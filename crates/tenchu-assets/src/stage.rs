@@ -89,14 +89,14 @@ impl MissionAssets {
             .ok_or("Unknown stage")?;
         let asset = |name: &str| game.asset(&format!("STAGE/{}/{name}", stage.directory));
         let mut vram = Vram::default();
-        let image_archive = game.asset("IMAGE/IMAGES.ARC")?;
-        let images = (0..62)
-            .map(|i| vram.upload_tim(model::arc_entry(&image_archive, i)?))
-            .collect::<Result<_>>()?;
         vram.upload_tpd(&asset("TIM.TPD")?)?;
         vram.upload_tpd(&game.asset("IMAGE/COMMON.TPD")?)?;
         let player = if character == 0 { "RIKIMARU" } else { "AYAME" };
         vram.upload_tpd(&game.asset(&format!("HUMAN/{player}.TPD"))?)?;
+        let image_archive = game.asset("IMAGE/IMAGES.ARC")?;
+        let images = (0..62)
+            .map(|i| vram.upload_tim(model::arc_entry(&image_archive, i)?))
+            .collect::<Result<_>>()?;
         let map = model::archive(&asset("MAP.MAD")?)?;
         if map.iter().any(|p| p.parent >= 0) {
             return Err("Unexpected parented map geometry".into());

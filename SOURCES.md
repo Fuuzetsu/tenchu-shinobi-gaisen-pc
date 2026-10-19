@@ -225,3 +225,9 @@ responses to isolate item arithmetic and branching.
 | `tenchu-decomp` (revision above) | `src/main.exe/3DCTRL.C` | `1175982b0890852071a4b0f581ab637b24258d9fe2153b94d958d0edd337c45a` |
 | `tenchu-decomp` (revision above) | `src/main.exe/layout_save.h` | `31531d6c0942c77ebe82132f7f86de543178bd6ae6b51119d8b676ea346cd8b9` |
 | `tenchu-decomp-glitch-research` (revision above) | `tools/tenchu-sim/src/items/rolling.rs` | `c780da63cacd9f2ccf4b6ef6fd1d78871cb948bf0a90d23d2d05a6dbce147665` |
+
+Stage loading restores the shared image archive after the stage/common/player
+texture packs, matching `CreateStage` → `InitializeImage`. Loading it only at
+startup lets the stage pack overwrite item-icon texels and palettes.
+
+`tenchu-decomp` (revision above), `src/main.exe/IMAGES.C`: `4ad4a53038c560c889c0057b6c1b7d3903da2585dbbd0e86682af24e94d71799`.
