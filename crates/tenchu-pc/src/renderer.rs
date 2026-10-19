@@ -1,4 +1,4 @@
-use crate::render_mesh::Vertex;
+use crate::{render_effects, render_mesh::Vertex};
 use glam::Mat4;
 use tenchu_assets::{Result, texture::Vram};
 use wgpu::util::DeviceExt;
@@ -8,10 +8,17 @@ pub struct Mesh {
     count: u32,
 }
 
+pub struct EffectMesh {
+    mesh: Mesh,
+    batches: Vec<render_effects::Batch>,
+}
+
 pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pipeline: wgpu::RenderPipeline,
+    effects: [wgpu::RenderPipeline; 5],
+    size: [u32; 2],
     bindings: wgpu::BindGroup,
     camera: wgpu::Buffer,
     depth: wgpu::TextureView,
@@ -38,30 +45,93 @@ impl Renderer {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(include_str!("scene.wgsl").into()),
         });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Scene"), layout: None,
-            vertex: wgpu::VertexState {
-                module: &shader, entry_point: Some("vertex"), compilation_options: Default::default(),
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32],
-                }],
-            },
-            primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: wgpu::TextureFormat::Depth32Float, depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::LessEqual, stencil: Default::default(), bias: Default::default(),
-            }),
-            multisample: Default::default(),
-            fragment: Some(wgpu::FragmentState {
-                module: &shader, entry_point: Some("fragment"), compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState { format, blend: None, write_mask: wgpu::ColorWrites::ALL })],
-            }),
-            multiview: None, cache: None,
+        let binding_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Scene bindings"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Uint,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Scene and effects"),
+            bind_group_layouts: &[&binding_layout],
+            push_constant_ranges: &[],
+        });
+        let make_pipeline = |blend: Option<wgpu::BlendState>,
+                             fragment: &str,
+                             bias: i32,
+                             depth_write_enabled: bool| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(fragment), layout: Some(&layout),
+                vertex: wgpu::VertexState {
+                    module: &shader, entry_point: Some("vertex"), compilation_options: Default::default(),
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32],
+                    }],
+                },
+                primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: wgpu::TextureFormat::Depth32Float, depth_write_enabled,
+                    depth_compare: wgpu::CompareFunction::LessEqual, stencil: Default::default(),
+                    bias: wgpu::DepthBiasState { constant: bias, ..Default::default() },
+                }),
+                multisample: Default::default(),
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader, entry_point: Some(fragment), compilation_options: Default::default(),
+                    targets: &[Some(wgpu::ColorTargetState { format, blend, write_mask: wgpu::ColorWrites::ALL })],
+                }),
+                multiview: None, cache: None,
+            })
+        };
+        let pipeline = make_pipeline(None, "opaque", 0, true);
+        let effects = std::array::from_fn(|mode| {
+            if mode == 0 {
+                return make_pipeline(None, "opaque", -2, true);
+            }
+            let blend = wgpu::BlendState {
+                color: wgpu::BlendComponent {
+                    src_factor: if matches!(mode, 1 | 4) {
+                        wgpu::BlendFactor::Constant
+                    } else {
+                        wgpu::BlendFactor::One
+                    },
+                    dst_factor: if mode == 1 {
+                        wgpu::BlendFactor::Constant
+                    } else {
+                        wgpu::BlendFactor::One
+                    },
+                    operation: if mode == 3 {
+                        wgpu::BlendOperation::ReverseSubtract
+                    } else {
+                        wgpu::BlendOperation::Add
+                    },
+                },
+                alpha: wgpu::BlendComponent::REPLACE,
+            };
+            make_pipeline(Some(blend), "translucent", -2, false)
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::cast_slice(&Mat4::IDENTITY.to_cols_array()),
+            contents: bytemuck::bytes_of(&[0.0f32; 20]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -90,7 +160,7 @@ impl Renderer {
         );
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
-            layout: &pipeline.get_bind_group_layout(0),
+            layout: &binding_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -109,6 +179,8 @@ impl Renderer {
             device,
             queue,
             pipeline,
+            effects,
+            size,
             bindings,
             camera,
             depth,
@@ -135,6 +207,7 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, size: [u32; 2]) {
+        self.size = size;
         self.depth = Self::depth(&self.device, size);
     }
 
@@ -151,12 +224,24 @@ impl Renderer {
         }
     }
 
-    pub fn draw(&self, target: &wgpu::TextureView, matrix: Mat4, meshes: &[&Mesh]) {
-        self.queue.write_buffer(
-            &self.camera,
-            0,
-            bytemuck::cast_slice(&matrix.to_cols_array()),
-        );
+    pub fn upload_effects(&self, geometry: render_effects::Geometry) -> EffectMesh {
+        EffectMesh {
+            mesh: self.upload(&geometry.vertices),
+            batches: geometry.batches,
+        }
+    }
+
+    pub fn draw(
+        &self,
+        target: &wgpu::TextureView,
+        matrix: Mat4,
+        meshes: &[&Mesh],
+        effects: Option<&EffectMesh>,
+    ) {
+        let mut camera = matrix.to_cols_array().to_vec();
+        camera.extend([self.size[0] as f32 / self.size[1] as f32, 0.0, 0.0, 0.0]);
+        self.queue
+            .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -188,8 +273,30 @@ impl Renderer {
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.bindings, &[]);
             for mesh in meshes {
+                if mesh.count == 0 {
+                    continue;
+                }
                 pass.set_vertex_buffer(0, mesh.buffer.slice(..));
                 pass.draw(0..mesh.count, 0..1);
+            }
+            if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
+                pass.set_vertex_buffer(0, effects.mesh.buffer.slice(..));
+                pass.set_pipeline(&self.effects[0]);
+                pass.draw(0..effects.mesh.count, 0..1);
+                for batch in &effects.batches {
+                    if batch.blend == 0 {
+                        continue;
+                    }
+                    let constant = if batch.blend == 4 { 0.25 } else { 0.5 };
+                    pass.set_blend_constant(wgpu::Color {
+                        r: constant,
+                        g: constant,
+                        b: constant,
+                        a: 1.0,
+                    });
+                    pass.set_pipeline(&self.effects[usize::from(batch.blend)]);
+                    pass.draw(batch.range.clone(), 0..1);
+                }
             }
         }
         self.queue.submit([encoder.finish()]);

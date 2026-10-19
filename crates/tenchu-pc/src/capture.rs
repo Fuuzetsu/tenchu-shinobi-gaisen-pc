@@ -80,6 +80,7 @@ pub fn render(game: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
         &texture.create_view(&Default::default()),
         renderer::camera(eye, target, width as f32 / height as f32),
         &[&renderer.upload(&vertices)],
+        None,
     );
     let stride = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
     let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {

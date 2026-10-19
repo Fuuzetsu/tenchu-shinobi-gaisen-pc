@@ -1,4 +1,5 @@
 mod capture;
+mod render_effects;
 mod render_mesh;
 mod renderer;
 mod session;

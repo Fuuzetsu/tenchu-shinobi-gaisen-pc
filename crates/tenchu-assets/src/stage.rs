@@ -38,6 +38,7 @@ pub struct MissionAssets {
     pub placements: Vec<Placement>,
     pub terrain: AreaMap,
     pub vram: Vram,
+    pub images: Vec<crate::texture::Image>,
     pub characters: Vec<Character>,
     pub models: BTreeMap<i16, Vec<Part>>,
     pub clips: Vec<Clip>,
@@ -80,6 +81,10 @@ impl MissionAssets {
             .ok_or("Unknown stage")?;
         let asset = |name: &str| game.asset(&format!("STAGE/{}/{name}", stage.directory));
         let mut vram = Vram::default();
+        let image_archive = game.asset("IMAGE/IMAGES.ARC")?;
+        let images = (0..62)
+            .map(|i| vram.upload_tim(model::arc_entry(&image_archive, i)?))
+            .collect::<Result<_>>()?;
         vram.upload_tpd(&asset("TIM.TPD")?)?;
         vram.upload_tpd(&game.asset("IMAGE/COMMON.TPD")?)?;
         let player = if character == 0 { "RIKIMARU" } else { "AYAME" };
@@ -230,6 +235,7 @@ impl MissionAssets {
             placements,
             terrain,
             vram,
+            images,
             characters,
             models,
             clips,

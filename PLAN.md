@@ -168,7 +168,8 @@ player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions and authored stealth deaths. The native
-renderer displays original textured scenery, visible actors and held weapons.
+renderer displays original textured scenery, visible actors, held weapons,
+shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Ranged attacks, item damage/use,
 inventory drops, mission events, HUD and audio remain unfinished; this is not
 playable Mission 1.
@@ -183,8 +184,10 @@ activation is therefore not yet certified against continuous retail gameplay.
 
 Smoke, splashes, droplets, blood/gore, impacts and attached flashes share the source 200-slot pool
 and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
-effects. Prepared shadows, blood pools, weapon trails, effect graphics and sound events
-are not displayed or played yet. Damage-floor napalm and AI healing remain item-system boundaries.
+effects. The renderer consumes prepared effect graphics without mutating the game, using
+original TIM palettes, sprite origins and four transparency modes. It uses modern
+depth testing rather than reproducing PS1 ordering-table raster artifacts. Sound
+events are still unplayed. Damage-floor napalm and AI healing remain item-system boundaries.
 CVA camera/actor ownership, ranged/item combat, swimming/grappling, results,
 saving, transitions and the remaining campaign are still required.
 
@@ -221,7 +224,7 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: weapon attack hitboxes and damage/reaction control, then items and mission
-events. Fill the remaining drawing producers alongside their owning gameplay
+Next: scalar inventory, pickups and thrown weapons, then the remaining item
+behaviors and mission events. Fill the remaining drawing producers alongside their owning gameplay
 systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

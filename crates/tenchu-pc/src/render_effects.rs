@@ -1,0 +1,225 @@
+use crate::render_mesh::{self, SCREEN, TEXTURED, TRANSLUCENT, Vertex};
+use std::ops::Range;
+use tenchu_assets::texture::Image;
+use tenchu_core::{effects::Graphic, game::Game, math::Matrix};
+
+#[derive(Clone)]
+pub struct Batch {
+    pub blend: u8,
+    pub range: Range<u32>,
+}
+
+pub struct Geometry {
+    pub vertices: Vec<Vertex>,
+    pub batches: Vec<Batch>,
+}
+
+struct Surface {
+    depth: f32,
+    blend: u8,
+    vertices: Vec<Vertex>,
+}
+
+fn depth(z: f32) -> f32 {
+    let near = 50.0;
+    let far = 250_000.0;
+    (far / (far - near) - near * far / ((far - near) * z.max(near))).clamp(0.0, 1.0)
+}
+
+fn quad(
+    points: [[f32; 3]; 4],
+    color: [[f32; 3]; 4],
+    image: Option<Image>,
+    blend: u8,
+) -> Vec<Vertex> {
+    [0, 1, 2, 1, 3, 2]
+        .into_iter()
+        .map(|i| {
+            let uv = image.map_or([0.0; 2], |image| {
+                [
+                    f32::from(image.uv[0])
+                        + if i & 1 != 0 {
+                            f32::from(image.size[0])
+                        } else {
+                            0.0
+                        },
+                    f32::from(image.uv[1])
+                        + if i & 2 != 0 {
+                            f32::from(image.size[1])
+                        } else {
+                            0.0
+                        },
+                ]
+            });
+            Vertex {
+                position: points[i],
+                color: color[i],
+                uv,
+                page: image.map_or(0, |i| u32::from(i.page)),
+                palette: image.map_or(0, |i| u32::from(i.palette)),
+                flags: SCREEN
+                    | if image.is_some() { TEXTURED } else { 0 }
+                    | if blend != 0 { TRANSLUCENT } else { 0 },
+            }
+        })
+        .collect()
+}
+
+pub fn build(game: &Game) -> Geometry {
+    let mut surfaces = Vec::new();
+    for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
+        for instance in instances {
+            let mut matrix = Matrix {
+                rotation: game.math.rotate_yxz(instance.rotation),
+                translation: instance.position,
+            };
+            for row in &mut matrix.rotation {
+                for v in row {
+                    *v = (i32::from(*v).wrapping_mul(instance.scale) >> 12) as i16;
+                }
+            }
+            let view = game.camera.view.compose(&matrix);
+            for mesh in &game.mission.common_models[&index] {
+                for face in &mesh.faces {
+                    let blend = if face.translucent {
+                        face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1)
+                    } else {
+                        0
+                    };
+                    let mut vertices = Vec::new();
+                    render_mesh::append_face(&mut vertices, mesh, face, matrix);
+                    if blend != 0 {
+                        for v in &mut vertices {
+                            v.flags |= TRANSLUCENT;
+                        }
+                    }
+                    let z = face
+                        .corners
+                        .iter()
+                        .map(|c| view.transform(mesh.vertices[c.vertex as usize])[2] as f32)
+                        .sum::<f32>()
+                        / face.corners.len() as f32;
+                    surfaces.push(Surface {
+                        depth: z,
+                        blend,
+                        vertices,
+                    });
+                }
+            }
+        }
+    }
+    for drawing in &game.effects.drawings {
+        let (image, blend, bottom_origin) = match drawing.graphic {
+            Graphic::Smoke(index) => (Some([6, 58][usize::from(index)]), 2, false),
+            Graphic::Splash => (Some(14), 2, true),
+            Graphic::Bleed => (None, 0, false),
+            Graphic::Flash(index) => (Some(40 + index as usize), 2, false),
+            Graphic::Impact(index) => (Some([15, 11, 12, 59, 60][usize::from(index)]), 2, false),
+            Graphic::Blood {
+                sprite,
+                stain,
+                fading,
+            } => (
+                Some([0, 2, 4, 56][usize::from(sprite)] + usize::from(stain)),
+                if stain {
+                    3
+                } else if fading {
+                    2
+                } else {
+                    0
+                },
+                false,
+            ),
+        };
+        let image = image.map(|i| game.mission.images[i]);
+        let z = f32::from(drawing.depth) * 16.0;
+        let color = drawing
+            .color
+            .map(|v| f32::from(v) / if image.is_some() { 128.0 } else { 255.0 });
+        let xy = drawing.xy.map(f32::from);
+        let angle = (drawing.rotation as f32 / 4096.0).to_radians();
+        let (sin, cos) = angle.sin_cos();
+        let points = std::array::from_fn(|i| {
+            let mut p = if let Some(image) = image {
+                let size = image.size.map(f32::from);
+                let origin = [
+                    f32::from(image.size[0] >> 1),
+                    if bottom_origin {
+                        size[1]
+                    } else {
+                        f32::from(image.size[1] >> 1)
+                    },
+                ];
+                [
+                    ((i & 1) as f32 * size[0] - origin[0]) * f32::from(drawing.scale[0] as i16)
+                        / 4096.0,
+                    (((i >> 1) & 1) as f32 * size[1] - origin[1])
+                        * f32::from(drawing.scale[1] as i16)
+                        / 4096.0,
+                ]
+            } else {
+                [
+                    (i & 1) as f32 * drawing.scale[0] as f32,
+                    ((i >> 1) & 1) as f32 * drawing.scale[1] as f32,
+                ]
+            };
+            p = [p[0] * cos - p[1] * sin, p[0] * sin + p[1] * cos];
+            [xy[0] + p[0], xy[1] + p[1], depth(z)]
+        });
+        surfaces.push(Surface {
+            depth: z,
+            blend,
+            vertices: quad(points, [color; 4], image, blend),
+        });
+    }
+    for &id in &game.visible {
+        for trail in game.roster.get(id).trails.iter().flatten() {
+            if trail.depth == 0 {
+                continue;
+            }
+            let z = f32::from(trail.depth) * 4.0;
+            let mut previous = 127;
+            for i in 1..trail.count {
+                let shade = ((trail.count - i) * 127 / trail.count) as u8;
+                let points = [
+                    trail.points[i][0],
+                    trail.points[i - 1][0],
+                    trail.points[i][1],
+                    trail.points[i - 1][1],
+                ]
+                .map(|p| [f32::from(p[0]), f32::from(p[1]), depth(z)]);
+                let colors = [shade, previous, shade, previous].map(|v| [f32::from(v) / 128.0; 3]);
+                surfaces.push(Surface {
+                    depth: z,
+                    blend: 2,
+                    vertices: quad(points, colors, Some(game.mission.images[10]), 2),
+                });
+                previous = shade;
+            }
+        }
+    }
+    surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
+    let mut out = Geometry {
+        vertices: Vec::new(),
+        batches: Vec::new(),
+    };
+    for surface in surfaces {
+        if surface.vertices.is_empty() {
+            continue;
+        }
+        let start = out.vertices.len() as u32;
+        out.vertices.extend(surface.vertices);
+        let end = out.vertices.len() as u32;
+        if let Some(last) = out.batches.last_mut()
+            && last.blend == surface.blend
+        {
+            last.range.end = end;
+        } else {
+            out.batches.push(Batch {
+                blend: surface.blend,
+                range: start..end,
+            });
+        }
+    }
+    out
+}

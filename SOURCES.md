@@ -197,3 +197,14 @@ cleanup/scoring helpers at test time. Its native test shim supplies open terrain
 real-disc motion descriptors, arithmetic movement and effect-call RNG costs.
 It checks decisions and ordering, not complete native SDK/rendering equivalence.
 No matching C, executable tables or disc assets are bundled in the runtime.
+
+
+Effect presentation reads all 62 entries of `IMAGE/IMAGES.ARC` before stage and
+character texture uploads, following `START.C`, `IMAGES.C` and `EFFECT.C` above.
+The wgpu vertex/batch conversion is new code; it reads prepared core graphics.
+Additional decomp headers at the revision above:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/main.exe.h` | `511108e5103d791e0457cfbf209efa4dd59f95c8a475edea11a7370ff422d7df` |
+| `src/main.exe/images.h` | `415c9dfb272a098b396451fd26f639b32c9f4b9e167d7f40ac1b416d712de1ca` |

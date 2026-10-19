@@ -1,6 +1,6 @@
 use crate::{
-    render_mesh,
-    renderer::{self, Mesh, Renderer},
+    render_effects, render_mesh,
+    renderer::{self, EffectMesh, Mesh, Renderer},
     session::Options,
     source::FileSource,
 };
@@ -23,6 +23,7 @@ struct View {
     renderer: Renderer,
     stage: Mesh,
     actor: Mesh,
+    effects: EffectMesh,
     size: [u32; 2],
 }
 
@@ -32,7 +33,7 @@ impl View {
             events
                 .create_window(
                     Window::default_attributes()
-                        .with_title("Tenchu — movement preview")
+                        .with_title("Tenchu — gameplay preview")
                         .with_inner_size(LogicalSize::new(1280, 720)),
                 )
                 .map_err(|e| e.to_string())?,
@@ -68,6 +69,7 @@ impl View {
         surface.configure(&renderer.device, &config);
         let stage = renderer.upload(&render_mesh::stage(&game.mission, &game.math));
         let actor = renderer.upload(&render_mesh::characters(game));
+        let effects = renderer.upload_effects(render_effects::build(game));
         println!(
             "Renderer: {} ({:?})",
             adapter.get_info().name,
@@ -80,6 +82,7 @@ impl View {
             renderer,
             stage,
             actor,
+            effects,
             size: [size.width, size.height],
         })
     }
@@ -97,8 +100,9 @@ impl View {
 
     fn update(&mut self, game: &Game) {
         self.actor = self.renderer.upload(&render_mesh::characters(game));
+        self.effects = self.renderer.upload_effects(render_effects::build(game));
         self.window.set_title(&format!(
-            "Tenchu — movement preview | tick {} | HP {} | motion {:04x}",
+            "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
             game.tick,
             game.player().health,
             game.player().motion.action
@@ -125,6 +129,7 @@ impl View {
                 self.config.width as f32 / self.config.height as f32,
             ),
             &[&self.stage, &self.actor],
+            Some(&self.effects),
         );
         self.window.pre_present_notify();
         frame.present();
@@ -294,7 +299,7 @@ pub fn run(assets: GameAssets<FileSource>, options: Options) -> Result<()> {
         error: None,
     };
     println!(
-        "Movement preview: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 restart, Esc quit.\nCombat, items, enemies and events are still being implemented; an unsupported action pauses with a diagnostic."
+        "Gameplay preview: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 restart, Esc quit.\nRanged combat, items and events are still being implemented; an unsupported action pauses with a diagnostic."
     );
     EventLoop::new()
         .map_err(|e| e.to_string())?

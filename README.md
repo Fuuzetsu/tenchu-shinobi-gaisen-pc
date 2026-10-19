@@ -61,8 +61,10 @@ Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
 kills and the source follow/look camera. Items, ranged combat and mission events
 are unfinished; unsupported actions pause with a diagnostic.
-Held and sheathed weapons use their original attachment rules. Lighting,
-transparency, effects and audio remain in progress.
+Held and sheathed weapons use their original attachment rules. Original shadows,
+weapon trails, blood and implemented particle effects are displayed with their
+texture palettes and transparency modes. Lighting, full scene transparency, HUD
+and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;
@@ -86,7 +88,7 @@ continuous state comparison remains a separate acceptance requirement.
 
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
-NPC activation now runs at the source cadence. Effect presentation, ranged/item
+NPC activation now runs at the source cadence. Remaining effects, ranged/item
 combat and stage scripts remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; HUD and other unfinished systems still need to add
 their original contributions before this has full-game fidelity.
