@@ -54,6 +54,7 @@ pub struct Game {
     pub(crate) body: BodyTables,
     pub(crate) commands: Vec<Command>,
     pub(crate) cursor: Cursor,
+    pub(crate) sound_appearance: Vec<i16>,
 }
 
 impl Game {
@@ -66,6 +67,7 @@ impl Game {
         let math = Math {
             tables: executable.math_tables()?,
         };
+        let sound_appearance = executable.appearance(mission.stage.id)?;
         let body = executable.body_tables()?;
         let commands = executable.commands()?;
         let mut cursor = Cursor::new(&mission.terrain);
@@ -128,6 +130,7 @@ impl Game {
             activation: activation::Activation::default(),
             drawing,
             construction,
+            sound_appearance,
         })
     }
 

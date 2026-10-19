@@ -1,3 +1,4 @@
+mod audio;
 mod campaign;
 mod capture;
 mod render_effects;
@@ -22,7 +23,7 @@ fn run() -> Result<()> {
     if args[0] == "play" && args.len() >= 2 {
         let options = session::Options::parse(&args[2..])?;
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        return window::run(assets, options);
+        return window::run(assets, options, args[1].as_ref());
     }
     if args[0] == "replay" && args.len() >= 3 {
         let options = session::Options::parse(&args[3..])?;

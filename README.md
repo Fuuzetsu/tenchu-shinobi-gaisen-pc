@@ -68,7 +68,7 @@ and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
 smoke bombs, grenades, mines and poisoned food work through normal item selection. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
 then returns to gameplay. Results, stock rewards, retry and progression now run
 through a simple launcher. Remaining items/special attacks, environmental behavior
-and audio are unfinished; unsupported actions pause with a diagnostic. Caltrops,
+are unfinished; unsupported actions pause with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -79,7 +79,16 @@ Left/Right, then Enter to start. The hook is always carried. Tap E for a quick
 shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
 selected, hold E, aim with the direction keys and release to grapple. Lighting, full
-scene transparency, water surfaces, the map and audio remain in progress.
+scene transparency, water surfaces and the map remain in progress.
+
+Original sound effects, character voices, music and localized cinematic dialogue
+play from the disc. Music/dialogue require a raw Mode 2 BIN/CUE; cooked 2048-byte
+ISO images omit the XA payload. The mixer uses the original banks, pitch,
+envelopes and spatial sound rules with modern resampling. It does not emulate
+SPU reverb or CD seek timing. Pausing or losing focus freezes audio and gameplay.
+An unavailable audio device is reported without preventing play. Linux uses
+PulseAudio/PipeWire's PulseAudio service when available, with ALSA as fallback.
+Set `TENCHU_AUDIO_TRACE=1` to log music/dialogue requests and decoded clips.
 
 The launcher lets you choose character, difficulty, mission and layout. Results
 show the original score/rank, award items and update each character's records.
@@ -123,7 +132,7 @@ continuous state comparison remains a separate acceptance requirement.
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation now runs at the source cadence. Remaining effects, special ranged
-attacks, remaining items, results and progression remain unfinished. Activation workload counts use original geometry,
+attacks and remaining items remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; remaining items and environmental effects still need
 to add their original contributions before this has full-game fidelity. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates

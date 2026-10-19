@@ -1,0 +1,122 @@
+mod loader;
+mod output;
+
+use crate::{
+    campaign::{Campaign, Screen},
+    source::FileSource,
+};
+use std::{
+    mem::{Discriminant, discriminant},
+    path::Path,
+    sync::Arc,
+};
+use tenchu_assets::{
+    Result,
+    audio::{bank::Bank, catalog::Catalog, stream::Track},
+    game::GameAssets,
+};
+use tenchu_core::{audio::Sound, game::Game};
+
+pub struct Audio {
+    output: output::Output,
+    loader: loader::Loader,
+    catalog: Catalog,
+    screen: Option<Discriminant<Screen>>,
+    paused: bool,
+    trace: bool,
+}
+
+impl Audio {
+    pub fn new(path: &Path, assets: &GameAssets<FileSource>, campaign: &Campaign) -> Result<Self> {
+        let mut audio = Self {
+            output: output::Output::new()?,
+            loader: loader::Loader::new(path)?,
+            catalog: Catalog::load(&assets.executable, campaign.game.mission.scripts.language)?,
+            screen: None,
+            paused: false,
+            trace: std::env::var_os("TENCHU_AUDIO_TRACE").is_some(),
+        };
+        audio.reload(assets, &campaign.game)?;
+        audio.screen(&campaign.screen);
+        Ok(audio)
+    }
+
+    pub fn reload(&mut self, assets: &GameAssets<FileSource>, game: &Game) -> Result<()> {
+        let bank = Bank::load(
+            assets,
+            game.mission.stage.id,
+            game.player().kind,
+            game.mission.scripts.language,
+        )?;
+        self.catalog = Catalog::load(&assets.executable, game.mission.scripts.language)?;
+        self.track(None);
+        self.output.send(output::Command::Bank(Arc::new(bank)));
+        self.screen = None;
+        Ok(())
+    }
+
+    fn track(&mut self, track: Option<Track>) {
+        if self.trace {
+            eprintln!("Audio request: {track:?}");
+        }
+        self.output.send(output::Command::Music(None, false));
+        self.loader.request(track);
+    }
+
+    pub fn effect(&self, id: i16) {
+        self.output.send(output::Command::Effect(Sound::local(id)));
+    }
+
+    pub fn tick(&mut self, game: &Game) -> Result<()> {
+        for sound in game.sounds()? {
+            self.output.send(output::Command::Effect(sound));
+        }
+        for cue in &game.music {
+            if self.trace {
+                eprintln!("Audio tick {}: {cue:?}", game.tick);
+            }
+            self.track(cue.and_then(|cue| self.catalog.event(cue)).cloned());
+        }
+        Ok(())
+    }
+
+    pub fn screen(&mut self, screen: &Screen) {
+        if self.screen == Some(discriminant(screen)) {
+            return;
+        }
+        self.screen = Some(discriminant(screen));
+        self.output.send(output::Command::Clear);
+        let cue = match screen {
+            Screen::Launcher | Screen::Inventory(_) => Some(15),
+            Screen::Results(_) | Screen::Complete => Some(12),
+            Screen::GameOver => Some(11),
+            Screen::Playing => None,
+        };
+        self.track(cue.and_then(|cue| self.catalog.music(cue)).cloned());
+    }
+
+    pub fn pause(&mut self, paused: bool) {
+        if self.paused != paused {
+            self.paused = paused;
+            self.output.send(output::Command::Pause(paused));
+        }
+    }
+
+    pub fn poll(&mut self) {
+        if let Some(result) = self.loader.poll() {
+            match result {
+                Ok((clip, repeat)) => {
+                    if self.trace {
+                        eprintln!(
+                            "Audio ready: {} frames at {} Hz, repeat {repeat}",
+                            clip.frames.len(),
+                            clip.rate
+                        );
+                    }
+                    self.output.send(output::Command::Music(Some(clip), repeat));
+                }
+                Err(error) => eprintln!("Audio: {error}"),
+            }
+        }
+    }
+}

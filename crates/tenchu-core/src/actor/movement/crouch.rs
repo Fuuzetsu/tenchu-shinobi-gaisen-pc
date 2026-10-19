@@ -30,6 +30,9 @@ impl Actor {
                 }
             }
             MOT_SQUAT_WALK_F => {
+                if count == 1 {
+                    world.intelligence.voices.push((self.id, 0x11));
+                }
                 if held & UP == 0 {
                     pending = Some((MOT_SQUAT, true));
                 } else if self.pad.trigger & CROSS != 0 {
@@ -38,6 +41,9 @@ impl Actor {
                 }
             }
             MOT_SQUAT_WALK_B | MOT_SQUAT_WALK_R | MOT_SQUAT_WALK_L => {
+                if count == 1 {
+                    world.intelligence.voices.push((self.id, 0x11));
+                }
                 let mid = self.motion.action;
                 let button = match mid {
                     MOT_SQUAT_WALK_B => DOWN,
@@ -68,12 +74,16 @@ impl Actor {
                 }
             }
             MOT_SQUAT_BACKFLIP => {
+                if count == ctx.mission.clips[self.motion.clip.unwrap()].duration >> 1 {
+                    world.intelligence.voices.push((self.id, 0x13));
+                }
                 if count == 0 && self.motion.loops != 0 {
                     pending = Some((MOT_SQUAT, true));
                 }
             }
             _ => {
                 if count == 1 {
+                    world.intelligence.voices.push((self.id, 0x13));
                     return Ok(None);
                 }
                 if count == 0 && self.motion.loops != 0 {

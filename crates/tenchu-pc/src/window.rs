@@ -163,6 +163,7 @@ struct Application {
     fault: Option<String>,
     focused: bool,
     error: Option<String>,
+    audio: Option<crate::audio::Audio>,
 }
 
 impl Application {
@@ -198,6 +199,9 @@ impl Application {
             self.campaign.game.tick
         );
         self.paused = true;
+        if let Some(audio) = &mut self.audio {
+            audio.pause(true);
+        }
         self.faulted = true;
         self.fault = Some(error);
         self.update_view();
@@ -215,6 +219,16 @@ impl Application {
     fn action(&mut self, action: Action) {
         match self.campaign.action(action, &self.assets) {
             Ok(reload) => {
+                if let Some(audio) = &mut self.audio {
+                    if reload && let Err(error) = audio.reload(&self.assets, &self.campaign.game) {
+                        eprintln!("Audio: {error}");
+                    }
+                    audio.screen(&self.campaign.screen);
+                    audio.effect(match action {
+                        Action::Up | Action::Down | Action::Left | Action::Right => 0x0b,
+                        _ => 0x0a,
+                    });
+                }
                 if reload && let Some(view) = &mut self.view {
                     view.reload(&self.campaign.game);
                 }
@@ -260,6 +274,9 @@ impl ApplicationHandler for Application {
             }
             WindowEvent::Focused(focused) => {
                 self.focused = focused;
+                if let Some(audio) = &mut self.audio {
+                    audio.pause(!focused || self.paused);
+                }
                 self.keys.clear();
                 self.last_frame = Instant::now();
                 self.clock.discard_host_backlog();
@@ -284,6 +301,12 @@ impl ApplicationHandler for Application {
                     KeyCode::F5 => self.action(Action::Replay),
                     KeyCode::KeyP if !self.faulted && self.campaign.playing() => {
                         self.paused = !self.paused;
+                        if let Some(audio) = &mut self.audio {
+                            audio.pause(self.paused);
+                            if !self.paused {
+                                audio.effect(0x0a);
+                            }
+                        }
                         self.clock.discard_host_backlog();
                         self.update_view();
                     }
@@ -309,6 +332,10 @@ impl ApplicationHandler for Application {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
+                if let Some(audio) = &mut self.audio {
+                    audio.pause(!self.focused || self.paused);
+                    audio.poll();
+                }
                 let before = self.campaign.game.tick;
                 if self.focused && !self.paused && self.campaign.playing() {
                     self.clock.elapse(elapsed);
@@ -317,6 +344,12 @@ impl ApplicationHandler for Application {
                             self.pause_error(error);
                             self.clock.discard_host_backlog();
                             break;
+                        }
+                        if let Some(audio) = &mut self.audio {
+                            if let Err(error) = audio.tick(&self.campaign.game) {
+                                eprintln!("Audio: {error}");
+                            }
+                            audio.screen(&self.campaign.screen);
                         }
                         if !self.campaign.playing() {
                             self.clock.discard_host_backlog();
@@ -346,9 +379,16 @@ impl ApplicationHandler for Application {
     }
 }
 
-pub fn run(assets: GameAssets<FileSource>, options: Options) -> Result<()> {
+pub fn run(assets: GameAssets<FileSource>, options: Options, disc: &std::path::Path) -> Result<()> {
     let storage = Storage::new()?;
     let campaign = Campaign::new(&assets, options, storage.load()?)?;
+    let audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
+        Ok(audio) => Some(audio),
+        Err(error) => {
+            eprintln!("Audio unavailable: {error}");
+            None
+        }
+    };
     let mut application = Application {
         assets,
         campaign,
@@ -362,9 +402,10 @@ pub fn run(assets: GameAssets<FileSource>, options: Options) -> Result<()> {
         fault: None,
         focused: true,
         error: None,
+        audio,
     };
     println!(
-        "Gameplay: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 retry, Esc inventory.\nRemaining items, special attacks and audio are still being implemented; an unsupported action pauses with a diagnostic."
+        "Gameplay: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 retry, Esc inventory.\nRemaining items and special attacks are still being implemented; an unsupported action pauses with a diagnostic."
     );
     EventLoop::new()
         .map_err(|e| e.to_string())?

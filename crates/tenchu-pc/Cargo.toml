@@ -6,6 +6,7 @@ publish.workspace = true
 
 [dependencies]
 tenchu-assets.workspace = true
+tenchu-audio.workspace = true
 tenchu-core.workspace = true
 wgpu.workspace = true
 winit.workspace = true
@@ -13,3 +14,4 @@ glam.workspace = true
 pollster.workspace = true
 bytemuck.workspace = true
 png.workspace = true
+cpal.workspace = true

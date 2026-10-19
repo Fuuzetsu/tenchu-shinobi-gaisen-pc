@@ -487,3 +487,32 @@ languages with [FFmpeg](https://github.com/FFmpeg/FFmpeg) 8.1.2. FFmpeg is a
 test-only external oracle, not a runtime dependency. Synthetic checks cover
 ADPCM saturation/loops, mono/stereo unit order, eight-bit units and raw sectors
 with CUE pregaps. These checks establish decoding, not completed audio playback.
+
+## Portable mixing and desktop playback (2026-10-20)
+
+`tenchu-audio` mixes decoded samples independently of game state, clocks and
+device APIs. It retains the 24-voice replacement cycle, bank/program/tone gains,
+note 36 relative to each sample's tuning, loop boundaries and ADS envelope
+progression at 44.1 kHz. Output uses linear resampling at the device rate. SPU
+register emulation, reverb, Gaussian interpolation and CD seek timing are outside
+this implementation. The desktop boundary uses [CPAL 0.18.2](https://docs.rs/cpal/0.18.2/cpal/),
+with Nix providing ALSA development libraries and portable Rust dependencies.
+
+The spatial conversion follows `SEMNG.C::SoundEx` and `AUDIO.C::PlaySE`, including
+the player run-step attenuation, original angle folding and packed direction/pan
+arithmetic. Program selection follows `APPEAR.C`'s stage appearance table.
+`MOTION.C` supplies restored walk/run/wood/turn/crouch footsteps, dashes, landing,
+ledge and jump sounds. Actor requests and position requests are currently
+presented after each completed logic tick; their listener position is sampled at
+that boundary and actor requests precede positional effects. Sub-tick SPU ordering
+is not claimed. Voice categories are suppressed during cinematics and suspension.
+
+The host dispatches every completed tick, including catch-up ticks. XA decoding
+runs on a separate file-owning worker with cancellation and a 64 MiB cache; it
+does not stall or advance gameplay. Pausing/focus loss freezes mixer playback.
+Private C comparisons cover 4,096 spatial cases with supplied SDK math results.
+Portable tests cover sample order across buffer sizes, pause/resume, loop/expiry,
+voice replacement and envelopes. An asynchronous replacement test rejects stale
+XA completions. Both characters' localized Mission 2 openings return to the
+authored background cue. Isolated window captures exercise music/effects and
+French dialogue, without sending sound to the user's desktop speakers.

@@ -385,3 +385,22 @@ cannot contain. All 104 non-trial banks and 419 distinct XA cues decode from the
 retail disc; 10,604,160 XA samples match FFmpeg exactly in a private comparison.
 Native tests and the WASM asset/core build pass. Playback, spatial sound dispatch
 and missing gameplay sound triggers are the next audio work; nothing plays yet.
+
+Desktop playback now uses a portable 24-voice sample mixer plus original XA
+music/dialogue. Restored movement sound triggers include walking, running on
+wood, turning, crouching, jumping, ledge catches and landing. The host dispatches
+requests per game tick and decodes XA on a cancellable worker with bounded cache.
+Pausing/focus loss freezes audio. The mixer uses modern resampling and no SPU
+reverb/register emulation; listener positions are sampled at completed ticks.
+All 74 core checks pass, including 4,096 original-C spatial sound comparisons;
+the eight previous private host/cadence checks still pass. New checks cover audio
+buffer/pause independence, voice expiry/replacement, asynchronous cancellation and
+localized opening-dialogue handoff to background music. Native window recordings
+exercise music, effects, dialogue and silence during pause. Remaining item/special
+attack and environment sound producers will arrive with their owning systems.
+
+Next: finish environment behavior and remaining items, then ordinary Mission 1
+boss encounters and continuous campaign validation. A source review also found
+the guard-specific heavy-fall damage branch still missing from ActSTATE; restore
+and verify it alongside the next gameplay increment. These audio/progression
+increments do not establish complete Mission 1 or campaign playability.

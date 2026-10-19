@@ -29,6 +29,9 @@ impl Actor {
                 let right = self.motion.action == MOT_ENGAGE_TURN_R;
                 let turn = ctx.mission.characters[self.definition].turn;
                 self.rotation[1] = self.rotation[1].wrapping_add(if right { turn } else { -turn });
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 0x10));
+                }
                 if held & if right { RIGHT } else { LEFT } == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
                 }
@@ -84,7 +87,7 @@ impl Actor {
             });
         }
         if self.pad.trigger & CROSS != 0 {
-            return Ok(self.start_jump(ctx, held, center));
+            return Ok(self.start_jump(ctx, world, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
             return self.selected_item(ctx, world, pending);
@@ -123,6 +126,17 @@ impl Actor {
         let mut pending = None;
         match self.motion.action {
             MOT_CHASE => {
+                let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
+                if self.motion.count == 0 || self.motion.count == duration / 2 {
+                    world.intelligence.voices.push((
+                        self.id,
+                        if self.map.attribute & 8 != 0 {
+                            0x14
+                        } else {
+                            0x12
+                        },
+                    ));
+                }
                 if held & UP == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
                 } else if self.attribute & ATTR_LEDGE != 0 {
@@ -151,6 +165,9 @@ impl Actor {
                 }
             }
             MOT_CHASE_BACK => {
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 0x11));
+                }
                 if held & DOWN == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
                 } else if command == 0x22 {
@@ -176,8 +193,11 @@ impl Actor {
                         pending = self.attack_input(ctx, world, held, pending)?;
                     }
                     if self.pad.trigger & CROSS != 0 {
-                        pending = self.start_jump(ctx, held, center);
+                        pending = self.start_jump(ctx, world, held, center);
                     }
+                }
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 0x13));
                 }
                 if self.motion.count < 7 {
                     ctx.effects
@@ -195,7 +215,7 @@ impl Actor {
             return Ok(Some((MOT_JUMP_FLIP, false)));
         }
         if self.pad.trigger & CROSS != 0 {
-            return Ok(self.start_jump(ctx, held, center));
+            return Ok(self.start_jump(ctx, world, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
             return self.selected_item(ctx, world, pending);

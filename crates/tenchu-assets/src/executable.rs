@@ -49,6 +49,22 @@ pub struct DeathEvent {
 }
 
 impl<'a> Executable<'a> {
+    pub fn appearance(&self, stage: usize) -> Result<Vec<i16>> {
+        if stage >= 11 {
+            return Err("Invalid sound stage".into());
+        }
+        let address = u32_le(self.bytes(0x8008f188 + (stage as u32 + 1) * 4, 4)?, 0)?;
+        let mut kinds = Vec::new();
+        for index in 0..128 {
+            let kind = i16_le(self.bytes(address + index * 2, 2)?, 0)?;
+            if kind == -1 {
+                return Ok(kinds);
+            }
+            kinds.push(kind);
+        }
+        Err("Unterminated stage appearance table".into())
+    }
+
     pub fn death_events(&self) -> Result<Vec<Vec<DeathEvent>>> {
         let mut tables = Vec::new();
         for i in 0..6 {

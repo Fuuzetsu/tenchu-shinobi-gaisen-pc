@@ -44,7 +44,11 @@
           version = "0.1.0";
           src = source pkgs.lib;
           cargoLock.lockFile = ./Cargo.lock;
-          nativeBuildInputs = [ pkgs.makeWrapper ];
+          nativeBuildInputs = [
+            pkgs.makeWrapper
+            pkgs.pkg-config
+          ];
+          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.alsa-lib ];
           postFixup = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             wrapProgram "$out/bin/tenchu-pc" --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"
           '';
@@ -75,7 +79,9 @@
             gcc
             lld
             nixfmt
+            pkg-config
           ];
+          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.alsa-lib ];
           CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs.lld}/bin/wasm-ld";
         };
       });
@@ -90,7 +96,7 @@
           CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs.lld}/bin/wasm-ld";
           buildPhase = ''
             cargo build --frozen --offline --release --target wasm32-unknown-unknown \
-              -p tenchu-assets -p tenchu-core --lib
+              -p tenchu-assets -p tenchu-audio -p tenchu-core --lib
           '';
           doCheck = false;
           installPhase = ''

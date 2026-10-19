@@ -3,6 +3,43 @@ use std::time::Duration;
 use tenchu_core::{clock::GameClock, input::*};
 
 #[test]
+#[ignore = "requires TENCHU_DISC; checks localized opening dialogue returns to the authored background music"]
+fn mission_two_opening_resumes_background_music() {
+    use tenchu_assets::script::Language;
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    for character in 0..2 {
+        for language in [
+            Language::English,
+            Language::French,
+            Language::Italian,
+            Language::Japanese,
+        ] {
+            let mut game = Options {
+                mission: 2,
+                character,
+                language,
+                ..Options::default()
+            }
+            .load(&assets)
+            .unwrap();
+            let mut cues = Vec::new();
+            for _ in 0..600 {
+                game.step(0).unwrap();
+                cues.extend(game.music.iter().map(|&cue| (game.tick, cue)));
+                if game.music.last() == Some(&Some(101)) && !game.cinematic.active {
+                    break;
+                }
+            }
+            eprintln!("{character} {language:?}: {cues:?}");
+            assert!(cues.iter().any(|(_, cue)| cue.is_some_and(|cue| cue < 100)));
+            assert!(cues.iter().any(|(_, cue)| cue.is_none()));
+            assert_eq!(cues.last().map(|(_, cue)| *cue), Some(Some(101)));
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; decodes music and every localized/shared dialogue cue"]
 fn all_retail_xa_cues_decode() {
     use std::collections::HashSet;

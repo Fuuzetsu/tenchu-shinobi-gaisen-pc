@@ -94,6 +94,7 @@ impl Actor {
             self.position[1] = self.position[1].wrapping_sub(105i32.wrapping_sub(y));
         }
         self.enter_unless_scripted(ctx, MOT_HANG_CATCH, true);
+        ctx.effects.sounds.push((self.position, 0x1b));
         Ok(true)
     }
 
@@ -144,6 +145,9 @@ impl Actor {
                     pending = Some((MOT_HANG, true));
                 } else if !self.hang_check(ctx)? {
                     pending = Some((MOT_STATE_FALL, false));
+                }
+                if self.motion.count == 1 {
+                    ctx.effects.sounds.push((self.position, 0x1b));
                 }
             }
             MOT_HANG_PULLUP => {

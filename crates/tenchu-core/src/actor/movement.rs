@@ -53,7 +53,7 @@ impl Actor {
             6 => self.chase(ctx, world, held, command, center)?,
             7 => self.attack(ctx, world, held)?,
             8 => self.state(ctx, world, held)?,
-            9 => self.jump(ctx, held)?,
+            9 => self.jump(ctx, world, held)?,
             10 => self.hang(ctx, held, world.player)?,
             11 => self.crouch(ctx, world, held, command)?,
             12 => self.wall(ctx, world, held, command)?,
@@ -162,6 +162,9 @@ impl Actor {
                 }
             }
             MOT_NORMAL_TURN_R | MOT_NORMAL_TURN_L => {
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 0x10));
+                }
                 let right = self.motion.action == MOT_NORMAL_TURN_R;
                 if held & if right { RIGHT } else { LEFT } != 0 {
                     let turn = ctx.mission.characters[self.definition].turn;
@@ -186,7 +189,7 @@ impl Actor {
             });
         }
         if self.pad.trigger & CROSS != 0 {
-            return Ok(self.start_jump(ctx, held, center));
+            return Ok(self.start_jump(ctx, world, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
             return self.selected_item(ctx, world, pending);
@@ -274,6 +277,10 @@ impl Actor {
         let mut pending = None;
         match self.motion.action {
             MOT_MOVE => {
+                let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
+                if self.motion.count == 1 || self.motion.count == duration / 2 {
+                    world.intelligence.voices.push((self.id, 0x11));
+                }
                 if held & UP == 0 {
                     pending = Some((MOT_NORMAL, true));
                 } else if self.attribute & ATTR_WALL != 0 {
@@ -291,6 +298,9 @@ impl Actor {
                 }
             }
             MOT_MOVE_BACK => {
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 0x11));
+                }
                 if held & DOWN == 0 {
                     pending = Some((MOT_NORMAL, true));
                 }
@@ -300,6 +310,9 @@ impl Actor {
                 self.motion_velocity(ctx);
             }
             MOT_MOVE_DASH_FWD..=MOT_MOVE_DASH_LEFT => {
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 0x13));
+                }
                 if self.motion.count == 0 && self.motion.loops != 0 {
                     pending = Some((MOT_NORMAL, true));
                 }
@@ -307,7 +320,7 @@ impl Actor {
             _ => {}
         }
         if self.pad.trigger & CROSS != 0 {
-            return Ok(self.start_jump(ctx, held, center));
+            return Ok(self.start_jump(ctx, world, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
             return self.selected_item(ctx, world, pending);
@@ -324,6 +337,7 @@ impl Actor {
     fn start_jump(
         &mut self,
         ctx: &mut Context,
+        world: &mut ActionContext,
         held: u16,
         center: [i32; 3],
     ) -> Option<(i16, bool)> {
@@ -335,6 +349,10 @@ impl Actor {
         if self.motion.action == MOT_CHASE_DASH_FWD {
             if self.motion.count < 11 && self.registered(ctx, MOT_JUMP_RUN) {
                 self.move_at(ctx.math, 127, 0);
+                if self.id == world.player {
+                    world.intelligence.voices.push((self.id, 0x48));
+                }
+                world.intelligence.voices.push((self.id, 0x17));
                 return Some((MOT_JUMP_RUN, false));
             }
             return None;
@@ -364,7 +382,12 @@ impl Actor {
         ))
     }
 
-    fn jump(&mut self, ctx: &mut Context, held: u16) -> Result<Option<(i16, bool)>> {
+    fn jump(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+        held: u16,
+    ) -> Result<Option<(i16, bool)>> {
         let mid = self.motion.action;
         if self.pad.trigger & CROSS != 0 && mid != MOT_JUMP_WALLKICK {
             let width = ctx.mission.characters[self.definition].width;
@@ -387,12 +410,14 @@ impl Actor {
                 self.rotation[1] = yaw.wrapping_add(2048);
                 self.move_at(ctx.math, -100, 0);
             }
+            world.intelligence.voices.push((self.id, 0x48));
             return Ok(None);
         }
         if self.attribute & (ATTR_NOFLOOR | ATTR_BUOYANT) != 0 && self.motion.count >= 2 {
             let level = terrain::level(&ctx.mission.terrain, ctx.cursor, self.position, 0)?;
             if self.position[1] < level {
                 self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
+                world.intelligence.voices.push((self.id, 6));
                 self.motion.count >>= 2;
                 return Ok(None);
             }
@@ -499,6 +524,9 @@ impl Actor {
             }
             MOT_STATE_CLIMB => {
                 let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
+                if count == duration / 2 || (count == 0 && self.motion.loops != 0) {
+                    world.intelligence.voices.push((self.id, 0x13));
+                }
                 Ok(
                     (count == duration / 2 || (count == 0 && self.motion.loops != 0))
                         .then_some((MOT_CHASE, true)),
@@ -512,6 +540,7 @@ impl Actor {
                     .then_some((MOT_ATTACK_DIVE, false));
                 if self.attribute & ATTR_NOFLOOR != 0 || self.map.height <= 0 {
                     pending = Some(if self.motion.count < -40 {
+                        world.intelligence.voices.push((self.id, 0x19));
                         (self.return_normal(ctx, world.player)?, true)
                     } else if self.motion.count > -21 {
                         (MOT_STATE_LAND_HEAVY, false)
@@ -543,6 +572,11 @@ impl Actor {
                     self.rotation[1] = self.rotation[1].wrapping_add(2048);
                 }
                 if count == 1 {
+                    let action = pending.map_or(self.motion.action, |p| p.0);
+                    world
+                        .intelligence
+                        .voices
+                        .push((self.id, if action == MOT_STATE_LAND { 0x19 } else { 0x1a }));
                     ctx.effects
                         .smoke_burst(self.position, 300, 12, 10, ctx.random);
                 }
