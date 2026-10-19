@@ -7,6 +7,10 @@
 - Reuse and verify the existing work in `~/programming/tenchu-decomp-glitch-research`,
   `~/programming/tenchu-decomp` and `~/programming/tenchu-viewer`. Do not modify
   those repositories as part of this port. Record provenance for imported code.
+- Use the TAS model as a behavior/algorithm reference, not as an architecture to
+  copy. Write straightforward scalar code over ordinary owned game state. Do not
+  import batched worlds, SoA slabs, SIMD ownership machinery, search continuations
+  or speculative optimisation. Scalar loops may auto-vectorise normally.
 - Preserve source arithmetic, operation order, collision, AI, RNG, animation and
   gameplay glitches. Do not substitute generic physics or approximate mechanics.
 - Separate game updates from presentation. Run nominal original logic ticks;

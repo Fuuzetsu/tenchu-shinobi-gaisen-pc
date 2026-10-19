@@ -25,8 +25,11 @@ before reimplementing a subsystem:
   especially `tools/tenchu-sim` (large source-faithful Rust gameplay model),
   `tools/tenchu-wire`, recorded controller tapes and differential tests. The model
   owns actors, camera, AI/RNG, collision, terrain, effects, items and allocation.
-  Its current imported-state boundary, search stop conditions, unconditional
-  x86 SIMD and source-C build dependencies need adapting for a standalone port.
+  Use it for algorithm and behavioral reference, not as code to copy wholesale.
+  Its imported-state boundary, search stop conditions, batched worlds, SoA/SIMD
+  machinery and source-C build dependencies do not belong in the new runtime.
+  Implement straightforward scalar logic over ordinary owned game state;
+  compiler auto-vectorisation is welcome without special parallel-world layouts.
   Read `docs/tas-native-validation.md`, `docs/tas-native-coverage.md`,
   `docs/tas-native-player-items.md` and `docs/tas-campaign.md`.
 - **`~/programming/tenchu-decomp`**: matching C, original assembly, symbols,
@@ -51,8 +54,8 @@ Start with a small Cargo workspace, adding crates only at real dependency seams:
 - Disc/assets: checked byte readers for ISO/BIN/CUE and the AFS volume, then
   models, textures, terrain, motion and scripts. Work with byte sources so a
   native file and a browser-selected file can use the same decoders.
-- Gameplay: fixed-step native state and source-ordered updates. Reuse the Rust
-  simulator and preserve its useful regression evidence. Runtime code must not
+- Gameplay: fixed-step native state and source-ordered scalar updates. Consult
+  the Rust simulator and preserve its useful regression evidence. Runtime code must not
   require an emulator, source-C toolchain, OS clock or filesystem.
 - Presentation/host: gamepad and keyboard input, a renderer, audio and a minimal
   launcher. Immutable scene snapshots/events cross the game/presentation boundary.
@@ -79,7 +82,8 @@ same asset parser and scheduling/core code compile for WASM.
 
 ### 1. Mission 1 interactive gameplay
 
-- [ ] Import and document the native simulator; provide portable scalar paths.
+- [ ] Implement simple scalar gameplay state and source-ordered updates, guided
+  by the existing Rust model, matching C and continuous regression evidence.
 - [ ] Drive one live world from keyboard/gamepad, with source camera and controls.
 - [ ] Render original stage, characters, weapons, items and essential effects.
 - [ ] Construct Mission 1 from disc assets and launch options, without captured
@@ -154,5 +158,6 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 2026-10-19: repository created. Source audit confirmed the Rust model's major
 gameplay coverage, imported-state boundary and x86/C-oracle portability work.
-Next: disc/assets entry point and portable execution foundation, then integrate
-the existing gameplay model and rendered Mission 1.
+Next: disc/assets entry point and portable execution foundation, then implement
+straightforward scalar gameplay and rendered Mission 1 using the existing model
+as reference. Do not copy its parallel-search architecture.
