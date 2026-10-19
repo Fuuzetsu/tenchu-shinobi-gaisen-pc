@@ -227,3 +227,38 @@ fn leaving_a_wall_retains_or_reverts_the_slide_by_direction() {
         assert_eq!(game.player().velocity, [0; 3]);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; sustained pressure against Hanbe's straight wall must not turn into diagonal recovery or trap the player"]
+fn straight_wall_pressure_keeps_ground_contact_and_allows_retreat() {
+    for character in 0..2 {
+        let mut game = oracle::game(0, character);
+        let player = game.player_id;
+        with_actor(&mut game, player, |actor, ctx, _| {
+            actor.position = [0, -500, 9000];
+            actor.previous = actor.position;
+            actor.rotation = [0, 1024, 0];
+            actor.velocity = [0; 3];
+            actor.enter(ctx, MOT_ENGAGE_STANCE, true);
+            ctx.scene.update(actor.root_model, actor.root(ctx.math));
+        });
+        for _ in 0..100 {
+            game.step(UP).unwrap();
+            assert_eq!(game.player().position[1], -500);
+            assert_eq!(game.player().map.height, 0);
+            assert_eq!(game.player().rotation[1], 1024);
+            assert!(game.player().position[0] > -2000);
+        }
+        assert!(game.player().position[0] < -1000);
+        let wall_x = game.player().position[0];
+        for _ in 0..10 {
+            game.step(0).unwrap();
+        }
+        for _ in 0..60 {
+            game.step(DOWN).unwrap();
+        }
+        assert!(game.player().position[0] - wall_x > 1000);
+        assert_eq!(game.player().position[1], -500);
+        assert_eq!(game.player().map.vector, 0);
+    }
+}

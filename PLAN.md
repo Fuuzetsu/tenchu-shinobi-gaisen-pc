@@ -533,8 +533,32 @@ relevant host/GPU checks pass. The cadence tape now includes moving with the map
 open, and all 66 constructors load their map texture and placement. Native
 keyboard checks open, move with and close the map for both characters.
 
-Continuous Mission 1 exploration has reached the compound roof/garden and ordinary
-guard combat, without state imports. Neither boss has yet been reached in those
-runs. A converted older TAS controller proposal did not reproduce its original
-route at the nominal tick rate; it is not playthrough or parity evidence.
+Continuous Mission 1 exploration reached the compound roof/garden and ordinary
+guard combat, without state imports. A subsequent controller-only route reached
+Hanbe, defeated him, completed both encounter cinematics and used medicine.
+That run exposed the terrain-probe defect corrected below; it is not validation
+of the corrected runtime or a completed mission. A converted older TAS controller
+proposal did not reproduce its original route at the nominal tick rate, before
+or after this fix; it is not playthrough or parity evidence.
 Nix native, WASM and formatting checks pass for the map increment on x86_64-linux.
+
+
+Terrain movement probes now use the executable's four diagonal offsets in their
+original bit order. The first port incorrectly substituted compass directions,
+which misclassified straight walls against the original reflection tables. This
+caused sideways wall recovery, trapped movement and sideways aiming-camera
+corrections. The same shared query now correctly serves actors, camera, item
+rolling, shadows and ledge/wall checks.
+
+Verification: 4,096 extracted `GetAreaMapVector` executions match masks, height,
+attributes, retained cursor and ordered query coordinates/modes. The C harness
+reads the real direction table and uses recorded responses from the terrain
+lookup; it does not independently validate `GetAreaMapLevel`. Public geometric
+cases distinguish all four straight walls from corners. Both characters also
+press against Hanbe's west wall for 100 ticks and retreat through ordinary input.
+Native keyboard checks repeat wall pressure and retreat from controlled relocated
+starts for both characters. The temporary starts were removed and the binary
+rebuilt. The earlier 101-check core suite plus this new integration check and all
+11 relevant host/GPU checks pass. Nix native, WASM and formatting checks pass
+on x86_64-linux. A fresh controller-only route has reached the compound roof and
+garden with this correction; neither Mission 1 nor the full game is complete.

@@ -662,3 +662,20 @@ orders explicitly. No map texture, executable table or retail RAM is embedded.
 The differential test compiles all three original map callbacks with supplied
 trigonometric values and SDK submission collectors. Native presentation uses
 thin modern GPU quads for the original one-pixel lines.
+
+
+## Diagonal terrain probes (2026-10-20)
+
+`CONFLICT.C::GetAreaMapVector` uses `direction` at executable address
+`0x800867d4`: `[-1,-1], [1,-1], [-1,1], [1,1]`. These diagonals and their bit
+order are required by `RefrectVector`/`RefrectMove` in actor, item and camera
+responses. The first port's compass offsets were an implementation error;
+the research model already reads the original table correctly. The source,
+symbol-file and research-terrain hashes recorded above are unchanged.
+
+The new differential check extracts the C movement probe, supplies the retail
+direction table, and records five source-ordered terrain query responses from
+actual mission geometry. It compares returned fields, cursor state and query
+coordinates/modes. Terrain lookup itself is the supplied boundary of this check.
+A separate ordinary-input integration test exercises the straight-wall trap
+found during Mission 1 exploration, with both player characters.

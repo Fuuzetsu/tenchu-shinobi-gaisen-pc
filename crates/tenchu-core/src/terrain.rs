@@ -211,7 +211,8 @@ pub fn vector(
         result.angle_high = 15;
         return Ok(result);
     }
-    for (i, [dx, dz]) in [[0, -1], [1, 0], [0, 1], [-1, 0]].into_iter().enumerate() {
+    // Bit order matches CONFLICT.C's direction table and RefrectVector/RefrectMove.
+    for (i, [dx, dz]) in [[-1, -1], [1, -1], [-1, 1], [1, 1]].into_iter().enumerate() {
         let other = level(
             map,
             cursor,
@@ -299,6 +300,7 @@ pub fn ground_ray(
 #[cfg(test)]
 mod tests {
     use super::*;
+    mod vector;
 
     fn flat_map() -> AreaMap {
         let mut bytes = vec![0u8; 48];

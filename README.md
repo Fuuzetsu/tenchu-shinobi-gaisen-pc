@@ -136,6 +136,11 @@ TENCHU_DISC='/path/to/game.cue' \
 This checks display independence, not parity with complete PS1 gameplay. Retail
 continuous state comparison remains a separate acceptance requirement.
 
+Terrain collision probes retain the original diagonal sample positions and mask
+order. A private comparison runs the original C probe with the executable's
+direction table and recorded terrain responses; an ordinary-input regression
+checks wall pressure and retreat for both characters.
+
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation now runs at the source cadence. Remaining effects, special ranged
