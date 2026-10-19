@@ -170,6 +170,53 @@ fn wall_pose_keys_have_distinct_storage_in_retail_assets() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; validates every campaign/training ESD and CAD for both characters in all four languages"]
+fn all_stage_scripts_parse_from_the_disc() {
+    use tenchu_assets::script::{Language, Scripts};
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut sequences = 0;
+    let mut commands = 0;
+    for stage in 0..11 {
+        for character in 0..2 {
+            for language in [
+                Language::English,
+                Language::French,
+                Language::Italian,
+                Language::Japanese,
+            ] {
+                let scripts =
+                    Scripts::load(&assets, stage, character, language).unwrap_or_else(|e| {
+                        panic!("stage {stage} character {character} {language:?}: {e}")
+                    });
+                assert!(scripts.events.iter().any(|e| e.id == 0));
+                for event in &scripts.events {
+                    for id in event.next {
+                        if id != 255 {
+                            assert!(scripts.events.iter().any(|e| e.id == id));
+                        }
+                    }
+                }
+                for command in &scripts.cutscenes.commands {
+                    if command.operation == 0 {
+                        sequences += 1;
+                    }
+                    if command.operation == 8 && command.id >= 0 {
+                        assert!(
+                            !language
+                                .decode(scripts.cutscenes.text(command.id).unwrap())
+                                .contains('\u{fffd}')
+                        );
+                    }
+                }
+                commands += scripts.cutscenes.commands.len();
+            }
+        }
+    }
+    println!("Decoded {sequences} sequences, {commands} commands across 88 CAD files");
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC pointing to the private SLPS-019.01 disc"]
 fn retail_movement_is_independent_of_host_frame_cadence() {
     let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");

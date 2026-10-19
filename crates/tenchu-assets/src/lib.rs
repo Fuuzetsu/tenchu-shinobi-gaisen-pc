@@ -7,6 +7,7 @@ pub mod game;
 pub mod hud;
 pub mod model;
 pub mod motion;
+pub mod script;
 pub mod stage;
 pub mod terrain;
 pub mod texture;

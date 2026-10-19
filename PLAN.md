@@ -307,3 +307,7 @@ Next: Mission 1 event and CVA execution, with remaining item/environment behavio
 added alongside the encounters that need it. Fill the remaining
 drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.
+
+Stage event assets now load with each mission: all ESD tables and 88 localized
+character CAD files pass the private-disc parser check. Runtime event evaluation,
+cinematic actor/camera control and encounter completion are the next work.

@@ -357,3 +357,21 @@ The source stores a function pointer for the original AI; the scalar port uses
 The research file is a behavioral reference only. Private-disc scenarios exercise
 ordinary input, enemy following, eating, reaction/expiry, interrupted-drop RNG,
 cleanup, and the source search-order quirk that can suppress owner recovery.
+
+## Stage event and cinematic assets (2026-10-20)
+
+`CHRANIM.C`, `STAGE.C` and their recovered structures define the ESD event
+records and CAD command stream. The parser retains the original byte offsets
+for subtitle strings and loads the chosen character's localized script. These
+are the matching decompilation working-tree versions at the revision above:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/CHRANIM.C` | `5e8c2a7548b441bdb68b16b54b7ac2fb6c9dd5f791868295d625c3fb2297c825` |
+| `src/main.exe/STAGE.C` | `dc1573257be1b02eeaaa96cd1e3c6ce8b952da3dbd4a122e669a29e4d819a391` |
+
+The private-disc check decodes all 88 stage/character/language CAD files (502
+sequences, 15,689 commands), checks event successors, and decodes all subtitle
+strings without replacement characters. Synthetic tests cover truncated records,
+signed fields, sentinel sizes and out-of-bounds text. No retail script bytes are
+stored in the repository.

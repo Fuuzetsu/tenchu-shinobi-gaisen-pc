@@ -61,6 +61,7 @@ pub struct MissionAssets {
     pub story: Vec<StoryActor>,
     pub construction: Vec<u8>,
     pub layout: Vec<u8>,
+    pub scripts: crate::script::Scripts,
 }
 
 fn point(data: &[u8], at: usize) -> Result<[i32; 3]> {
@@ -78,6 +79,22 @@ impl MissionAssets {
         id: usize,
         character: i16,
         layout: usize,
+    ) -> Result<Self> {
+        Self::load_localized(
+            game,
+            id,
+            character,
+            layout,
+            crate::script::Language::English,
+        )
+    }
+
+    pub fn load_localized<S: ReadAt>(
+        game: &GameAssets<S>,
+        id: usize,
+        character: i16,
+        layout: usize,
+        language: crate::script::Language,
     ) -> Result<Self> {
         if !(0..=1).contains(&character) || !(1..=3).contains(&layout) {
             return Err("Invalid character or layout".into());
@@ -256,6 +273,7 @@ impl MissionAssets {
             .map(|i| Ok((i, model::tmd_model(model::arc_entry(&archive, i)?)?)))
             .collect::<Result<_>>()?;
         Ok(Self {
+            scripts: crate::script::Scripts::load(game, id, character, language)?,
             stage,
             map,
             objects,
