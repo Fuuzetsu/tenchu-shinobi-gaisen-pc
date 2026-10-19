@@ -1,0 +1,13 @@
+/target/
+/private/
+/captures/
+/screenshots/
+/result
+.direnv/
+*.iso
+*.cue
+*.bin
+*.exe
+*.vol
+*.trace
+*.State
