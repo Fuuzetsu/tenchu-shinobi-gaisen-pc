@@ -679,3 +679,8 @@ actual mission geometry. It compares returned fields, cursor state and query
 coordinates/modes. Terrain lookup itself is the supplied boundary of this check.
 A separate ordinary-input integration test exercises the straight-wall trap
 found during Mission 1 exploration, with both player characters.
+
+The checked-in `crates/tenchu-pc/tests/data/mission1-rikimaru.inputs` was authored
+through exploration in this port after that fix. It contains only controller
+durations/masks, not retail recordings or game data. Its completion regression
+uses ordinary new-game stock and actions; it is not a retail parity oracle.

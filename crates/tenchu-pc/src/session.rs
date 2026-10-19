@@ -125,28 +125,11 @@ impl Options {
 
 pub fn replay(mut game: Game, path: &Path) -> Result<Game> {
     let input = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let runs = parse_inputs(&input).map_err(|e| format!("{}:{e}", path.display()))?;
     println!(
         "tick,buttons,x,y,z,vx,vy,vz,yaw,motion,count,loops,attributes,rng,rng_calls,health,clock,cinematic,outcome"
     );
-    for (line, text) in input.lines().enumerate() {
-        let text = text.split('#').next().unwrap().trim();
-        if text.is_empty() {
-            continue;
-        }
-        let words: Vec<_> = text.split_whitespace().collect();
-        let invalid = || {
-            format!(
-                "{}:{}: expected tick count and hexadecimal buttons",
-                path.display(),
-                line + 1
-            )
-        };
-        if words.len() != 2 {
-            return Err(invalid());
-        }
-        let count = words[0].parse::<u32>().map_err(|_| invalid())?;
-        let buttons =
-            u16::from_str_radix(words[1].trim_start_matches("0x"), 16).map_err(|_| invalid())?;
+    for (count, buttons) in runs {
         for _ in 0..count {
             game.step(buttons)
                 .map_err(|e| format!("Tick {}: {e}", game.tick))?;
@@ -175,6 +158,26 @@ pub fn replay(mut game: Game, path: &Path) -> Result<Game> {
         }
     }
     Ok(game)
+}
+
+pub fn parse_inputs(input: &str) -> Result<Vec<(u32, u16)>> {
+    let mut runs = Vec::new();
+    for (line, text) in input.lines().enumerate() {
+        let text = text.split('#').next().unwrap().trim();
+        if text.is_empty() {
+            continue;
+        }
+        let words: Vec<_> = text.split_whitespace().collect();
+        let invalid = || format!("{}: expected tick count and hexadecimal buttons", line + 1);
+        if words.len() != 2 {
+            return Err(invalid());
+        }
+        let count = words[0].parse::<u32>().map_err(|_| invalid())?;
+        let buttons =
+            u16::from_str_radix(words[1].trim_start_matches("0x"), 16).map_err(|_| invalid())?;
+        runs.push((count, buttons));
+    }
+    Ok(runs)
 }
 
 #[cfg(test)]

@@ -83,7 +83,7 @@ shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
 selected, hold E, aim with the direction keys and release to grapple. Doors, pitfalls, animated water, fire emitters, snow and ambient sound now run
 from the original construction data. Scene faces now use back-face culling and their original transparency flags and
-blend modes, sorted together with particles. Lighting, fog and the map remain in progress.
+blend modes, sorted together with particles. Lighting and fog remain in progress.
 
 Original sound effects, character voices, music and localized cinematic dialogue
 play from the disc. Music/dialogue require a raw Mode 2 BIN/CUE; cooked 2048-byte
@@ -121,6 +121,20 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `#` starts a comment. For example, `30 1000` holds forward for one second and
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
+
+The checked-in [Mission 1 controller route](crates/tenchu-pc/tests/data/mission1-rikimaru.inputs)
+completes both boss fights and their cinematics as Rikimaru, normal difficulty,
+layout 1. Its private-disc test chooses equipment from new-game stock, reaches
+results with 75 HP, saves, reloads and starts Mission 2:
+
+```sh
+TENCHU_DISC='/path/to/game.cue' \
+  ./dev.sh cargo test -p tenchu-pc mission_one_controller_route -- --ignored
+```
+
+This is a regression for one authored route, not a complete-game or retail
+parity claim. Both characters' keyboard crouch and return to standing have also
+been checked in the native window.
 
 The private-disc cadence test exercises both characters and compares player,
 animation, effects, items, RNG, camera, collision, coordinate caches and activation at every tick

@@ -183,7 +183,7 @@ impl Application {
                     KeyCode::KeyA | KeyCode::ArrowLeft => input::LEFT,
                     KeyCode::KeyD | KeyCode::ArrowRight => input::RIGHT,
                     KeyCode::Space => input::CROSS,
-                    KeyCode::ShiftLeft | KeyCode::ShiftRight => input::R1,
+                    KeyCode::ShiftLeft | KeyCode::ShiftRight => input::CIRCLE,
                     KeyCode::KeyJ => input::SQUARE,
                     KeyCode::KeyE => input::TRIANGLE,
                     KeyCode::KeyQ => input::L1,

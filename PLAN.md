@@ -86,7 +86,7 @@ same asset parser and scheduling/core code compile for WASM.
   by the existing Rust model, matching C and continuous regression evidence.
 - [ ] Drive one live world from keyboard/gamepad, with source camera and controls.
 - [ ] Render original stage, characters, weapons, items and essential effects.
-- [ ] Construct Mission 1 from disc assets and launch options, without captured
+- [x] Construct Mission 1 from disc assets and launch options, without captured
   RAM or emulator setup. An imported checkpoint is an intermediate diagnostic.
 - [ ] Movement, jumping, climbing, grappling, swimming where applicable, stealth,
   alert/chase, combat, all available items, player death and restart.
@@ -560,5 +560,19 @@ Native keyboard checks repeat wall pressure and retreat from controlled relocate
 starts for both characters. The temporary starts were removed and the binary
 rebuilt. The earlier 101-check core suite plus this new integration check and all
 11 relevant host/GPU checks pass. Nix native, WASM and formatting checks pass
-on x86_64-linux. A fresh controller-only route has reached the compound roof and
-garden with this correction; neither Mission 1 nor the full game is complete.
+on x86_64-linux.
+
+The corrected controller-only Mission 1 route now completes both boss fights,
+all four encounter cinematics and the authored completion event at tick 7,684,
+with 75 HP. The checked-in input file contains no state imports or event edits.
+Its integration test selects six shuriken, five caltrops and two medicine from
+new-game stock through the launcher actions, executes the route, checks results,
+encodes/decodes the resulting save and starts Mission 2 through its opening scene.
+This is a continuous regression for one Rikimaru/normal/layout-1 route, not retail
+parity, a full manual window playthrough or arbitrary-play coverage. Both
+characters, all layouts and remaining items still require completion work.
+
+The keyboard's Shift binding now sends the core crouch action (`CIRCLE`); it
+previously sent an unused `R1` bit. Native keyboard checks confirm crouching and
+returning to standing for both characters from ordinary mission starts. No
+temporary relocated starts or other QA state overrides were used for these checks.
