@@ -25,7 +25,6 @@ impl Items {
         self.slots[id].collision.size = 0;
         self.slots[id].napalm.velocity =
             std::array::from_fn(|i| end[i].wrapping_sub(start[i]) as i16);
-        self.update_coordinate(id, ctx);
         Ok(())
     }
 

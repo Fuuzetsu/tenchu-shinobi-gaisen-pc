@@ -622,6 +622,7 @@ impl Actor {
             } else {
                 None
             }),
+            MOT_ITEM_PLANT => Ok(None),
             action => Err(format!(
                 "State transition {action:#x} is not implemented yet"
             )),

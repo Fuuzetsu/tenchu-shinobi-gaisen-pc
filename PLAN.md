@@ -576,3 +576,16 @@ The keyboard's Shift binding now sends the core crouch action (`CIRCLE`); it
 previously sent an unused `R1` bit. Native keyboard checks confirm crouching and
 returning to standing for both characters from ordinary mission starts. No
 temporary relocated starts or other QA state overrides were used for these checks.
+
+Colored rice now supports ordinary selection, planting, hand release, rolling,
+map marking and pickup. It retains the source's unusual state-controller override
+for the shared planting animation, interrupted-cast restart, raw rotated velocity
+and disposal-before-drop allocation order. Both characters pass a full tick-driven
+plant/map/pickup check; a controlled full-pool case checks interruption, halt,
+hand selection and release ordering. All 104 current core checks pass, excluding
+the unchanged long isolated campaign cinematic check.
+The shared item initializer now refreshes reused coordinate rotations at the
+original initialization boundary. The full Mission 1 controller regression still
+passes through saved continuation. Native inventory/keyboard checks plant, mark
+and recollect rice for both characters from ordinary starts.
+Nix native, WASM and formatting checks pass on x86_64-linux for this increment.

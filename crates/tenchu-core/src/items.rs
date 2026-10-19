@@ -9,6 +9,7 @@ mod napalm;
 mod pickup;
 mod poison;
 mod projectile;
+mod rice;
 mod rolling;
 mod sight_shot;
 mod sleep;
@@ -51,6 +52,7 @@ pub enum Processor {
     Sleep,
     Flute,
     Resurrection,
+    Rice,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -242,7 +244,7 @@ impl Items {
         let model = &mut ctx.scene.models[item.model];
         model.parent = None;
         model.local.translation = position;
-        model.flags = 0;
+        self.update_coordinate(id, ctx);
         Ok(())
     }
 
@@ -352,6 +354,9 @@ impl Items {
                 Some(Processor::Sleep) => self.sleep(id, actors, intelligence, ctx)?,
                 Some(Processor::Flute) => self.flute(id, actors, intelligence, ctx)?,
                 Some(Processor::Resurrection) => self.resurrection(id, actors, ctx)?,
+                Some(Processor::Rice) => {
+                    self.rice(id, actors, intelligence.action_halt, player, ctx)?
+                }
                 None => {}
             }
         }

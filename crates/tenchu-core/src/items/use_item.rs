@@ -216,7 +216,6 @@ impl Items {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
-                self.update_coordinate(id, ctx);
             }
             4 | 5 | 6 | 7 => {
                 let vector = match kind {
@@ -240,13 +239,19 @@ impl Items {
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
             }
             19 => {}
+            8 => {
+                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, -100], ctx)?;
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Rice, kind, Some(owner_id), start, ctx)?;
+                self.slots[id].collision.size = 0;
+                self.slots[id].rolling.velocity = velocity.map(|v| v as i16);
+            }
             9 => {
                 let velocity = throw_vector(actors.get(owner_id), player, [0, 0, -120], ctx)?;
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Sleep, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].napalm.velocity = velocity.map(|v| v as i16);
-                self.update_coordinate(id, ctx);
             }
             17 => {
                 let id = self.allocate(actors, ctx)?;
@@ -257,7 +262,6 @@ impl Items {
                     player,
                     ..breath::Breath::default()
                 };
-                self.update_coordinate(id, ctx);
             }
             _ => return Err(format!("Item {kind} use is not implemented yet")),
         }

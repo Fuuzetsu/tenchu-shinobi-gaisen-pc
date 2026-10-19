@@ -684,3 +684,21 @@ The checked-in `crates/tenchu-pc/tests/data/mission1-rikimaru.inputs` was author
 through exploration in this port after that fix. It contains only controller
 durations/masks, not retail recordings or game data. Its completion regression
 uses ordinary new-game stock and actions; it is not a retail parity oracle.
+
+## Colored rice (2026-10-20)
+
+`ITEM.C::ProcItemGoshikimai`, `ReqItemGoshikimai` and its `ReqItemUse` branch
+define the scalar planting callback and raw rotated release vector.
+`MOTION.C::ActSTATE` and `game_types.h` establish the deliberate status 8
+override and hand index 13. Using the animation's usual status 15 would enter
+`ActITEM` and wrongly emit a mine at frame 5. The existing source hashes are
+unchanged; the research `tools/tenchu-sim/src/items/rice.rs` reference has SHA-256
+`0b74f40161ced0bf0bf9905d85780f246c5e87863b883aaf712002e6fca62b0b`.
+The shared initializer now also applies `item.h::INITIALIZE_ITEM_FROM_REQUEST`'s
+coordinate rotation refresh for every item, including reused slots; the stored
+world matrix remains untouched while its validity flag is cleared.
+
+Integration tests cover both characters, the persistent owner/map marker,
+recollection, interrupted-cast restart and freeing the cast before allocating
+its drop in a full pool. These are behavior regressions, not a new extracted-C
+comparison or retail-state parity claim.

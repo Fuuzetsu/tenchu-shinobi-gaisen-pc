@@ -5,6 +5,7 @@ use std::fmt::Write;
 mod breath;
 mod napalm;
 mod poison;
+mod rice;
 mod sleep;
 mod support;
 
