@@ -22,6 +22,7 @@ pub struct Renderer {
     bindings: wgpu::BindGroup,
     camera: wgpu::Buffer,
     depth: wgpu::TextureView,
+    texture: wgpu::Texture,
 }
 
 impl Renderer {
@@ -148,16 +149,6 @@ impl Renderer {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-        queue.write_texture(
-            texture.as_image_copy(),
-            bytemuck::cast_slice(&vram.words),
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(2048),
-                rows_per_image: Some(512),
-            },
-            texture.size(),
-        );
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
             layout: &binding_layout,
@@ -175,7 +166,7 @@ impl Renderer {
             ],
         });
         let depth = Self::depth(&device, size);
-        Ok(Self {
+        let renderer = Self {
             device,
             queue,
             pipeline,
@@ -184,7 +175,10 @@ impl Renderer {
             bindings,
             camera,
             depth,
-        })
+            texture,
+        };
+        renderer.update_vram(vram);
+        Ok(renderer)
     }
 
     fn depth(device: &wgpu::Device, [width, height]: [u32; 2]) -> wgpu::TextureView {
@@ -209,6 +203,19 @@ impl Renderer {
     pub fn resize(&mut self, size: [u32; 2]) {
         self.size = size;
         self.depth = Self::depth(&self.device, size);
+    }
+
+    pub fn update_vram(&self, vram: &Vram) {
+        self.queue.write_texture(
+            self.texture.as_image_copy(),
+            bytemuck::cast_slice(&vram.words),
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(2048),
+                rows_per_image: Some(512),
+            },
+            self.texture.size(),
+        );
     }
 
     pub fn upload(&self, vertices: &[Vertex]) -> Mesh {

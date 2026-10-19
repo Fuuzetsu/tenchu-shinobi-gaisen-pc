@@ -435,3 +435,25 @@ Portable integration tests cover best-record ties, unplayed-layout preference,
 character isolation, training ranking, loadout limits and stock retained on retry.
 The original score oracle still passes after moving score calculation onto the
 packed record. This commit supplies rules; host screens and saves follow.
+
+## Campaign host and portable saves (2026-10-20)
+
+The host uses the progression rules above and replaces memory-card UI with a
+portable checked save and atomic native file replacement. Menu graphics/timing
+are intentionally simple. The stage loader retains all three layout candidates
+for random selection, then chooses at WORLD.C's original boundary after player
+and helper construction. APPEAR.C defines armour model substitutions, consumption
+of the carried armour, and the already ported damage flag. 3DCTRL.C documents the
+original VSync-derived startup seed; the PC host instead has an explicit,
+repeatable seed lifecycle independent of menu/display duration.
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/APPEAR.C` | `6626d5d5491a74dd826fa6a6e9fb0599b3ba8b5846e2e7377ef1b0a3e79ef86b` |
+| `src/main.exe/WORLD.C` | `f7999b02640fcdaecc8ee005941e3b7afb4108fbe598df6b8d8c8c19581e460f` |
+| `src/main.exe/3DCTRL.C` | `1175982b0890852071a4b0f581ab637b24258d9fe2153b94d958d0edd337c45a` |
+
+Campaign tests inject terminal outcomes to test result/retry/advance/persistence;
+they do not claim to beat the missions. Separate existing event tests exercise
+actual authored event chains. Original-disc checks load both characters' armour
+variants and random layouts; private cadence and roster checks remain passing.

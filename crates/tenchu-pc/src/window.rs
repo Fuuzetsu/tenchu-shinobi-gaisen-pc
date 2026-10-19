@@ -1,8 +1,11 @@
 use crate::{
+    campaign::{Action, Campaign, Screen},
     render_effects, render_mesh,
     renderer::{self, EffectMesh, Mesh, Renderer},
     session::Options,
     source::FileSource,
+    storage::Storage,
+    ui,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
 use tenchu_assets::{Result, game::GameAssets};
@@ -98,9 +101,19 @@ impl View {
         self.renderer.resize([width, height]);
     }
 
-    fn update(&mut self, game: &Game) {
+    fn reload(&mut self, game: &Game) {
+        self.renderer.update_vram(&game.mission.vram);
+        self.stage = self
+            .renderer
+            .upload(&render_mesh::stage(&game.mission, &game.math));
+    }
+
+    fn update(&mut self, campaign: &Campaign, paused: bool, error: Option<&str>) {
+        let game = &campaign.game;
         self.actor = self.renderer.upload(&render_mesh::characters(game));
-        self.effects = self.renderer.upload_effects(render_effects::build(game));
+        self.effects = self
+            .renderer
+            .upload_effects(ui::build(campaign, paused, error));
         self.window.set_title(&format!(
             "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
             game.tick,
@@ -139,14 +152,15 @@ impl View {
 
 struct Application {
     assets: GameAssets<FileSource>,
-    options: Options,
-    game: Game,
+    campaign: Campaign,
+    storage: Storage,
     view: Option<View>,
     clock: GameClock,
     last_frame: Instant,
     keys: HashSet<KeyCode>,
     paused: bool,
     faulted: bool,
+    fault: Option<String>,
     focused: bool,
     error: Option<String>,
 }
@@ -172,13 +186,48 @@ impl Application {
         })
     }
 
+    fn update_view(&mut self) {
+        if let Some(view) = &mut self.view {
+            view.update(&self.campaign, self.paused, self.fault.as_deref());
+        }
+    }
+
     fn pause_error(&mut self, error: String) {
-        eprintln!("Tick {}: {error}. Press F5 to restart.", self.game.tick);
+        eprintln!(
+            "Tick {}: {error}. Press F5 to retry.",
+            self.campaign.game.tick
+        );
         self.paused = true;
         self.faulted = true;
-        if let Some(view) = &self.view {
-            view.window
-                .set_title(&format!("Tenchu — {error} | F5: restart"));
+        self.fault = Some(error);
+        self.update_view();
+    }
+
+    fn save(&mut self) {
+        if let Some(save) = self.campaign.save_request.take() {
+            match self.storage.write(&save) {
+                Ok(()) => self.campaign.saved = Some(save),
+                Err(error) => self.pause_error(error),
+            }
+        }
+    }
+
+    fn action(&mut self, action: Action) {
+        match self.campaign.action(action, &self.assets) {
+            Ok(reload) => {
+                if reload && let Some(view) = &mut self.view {
+                    view.reload(&self.campaign.game);
+                }
+                self.clock = GameClock::default();
+                self.last_frame = Instant::now();
+                self.paused = false;
+                self.faulted = false;
+                self.fault = None;
+                self.keys.clear();
+                self.save();
+                self.update_view();
+            }
+            Err(error) => self.pause_error(error),
         }
     }
 }
@@ -186,8 +235,11 @@ impl Application {
 impl ApplicationHandler for Application {
     fn resumed(&mut self, events: &ActiveEventLoop) {
         if self.view.is_none() {
-            match View::new(events, &self.game) {
-                Ok(view) => self.view = Some(view),
+            match View::new(events, &self.campaign.game) {
+                Ok(view) => {
+                    self.view = Some(view);
+                    self.update_view();
+                }
                 Err(error) => {
                     self.error = Some(error);
                     events.exit();
@@ -225,48 +277,59 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 match code {
-                    KeyCode::Escape => events.exit(),
-                    KeyCode::KeyP if !self.faulted => {
+                    KeyCode::Escape if matches!(self.campaign.screen, Screen::Launcher) => {
+                        events.exit()
+                    }
+                    KeyCode::Escape => self.action(Action::Back),
+                    KeyCode::F5 => self.action(Action::Replay),
+                    KeyCode::KeyP if !self.faulted && self.campaign.playing() => {
                         self.paused = !self.paused;
                         self.clock.discard_host_backlog();
+                        self.update_view();
                     }
-                    KeyCode::F5 => match self.options.load(&self.assets) {
-                        Ok(game) => {
-                            self.game = game;
-                            self.clock = GameClock::default();
-                            self.last_frame = Instant::now();
-                            self.paused = false;
-                            self.faulted = false;
-                            self.keys.clear();
-                            if let Some(view) = &mut self.view {
-                                view.update(&self.game);
-                            }
+                    _ if !self.campaign.playing() => {
+                        let action = match code {
+                            KeyCode::Enter => Some(Action::Confirm),
+                            KeyCode::ArrowUp => Some(Action::Up),
+                            KeyCode::ArrowDown => Some(Action::Down),
+                            KeyCode::ArrowLeft => Some(Action::Left),
+                            KeyCode::ArrowRight => Some(Action::Right),
+                            KeyCode::KeyR => Some(Action::Replay),
+                            _ => None,
+                        };
+                        if let Some(action) = action {
+                            self.action(action);
                         }
-                        Err(error) => self.pause_error(error),
-                    },
+                    }
                     _ => {}
                 }
             }
+
             WindowEvent::RedrawRequested => {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
-                let before = self.game.tick;
-                if self.focused && !self.paused {
+                let before = self.campaign.game.tick;
+                if self.focused && !self.paused && self.campaign.playing() {
                     self.clock.elapse(elapsed);
                     while self.clock.step().is_some() {
-                        if let Err(error) = self.game.step(self.buttons()) {
+                        if let Err(error) = self.campaign.tick(self.buttons()) {
                             self.pause_error(error);
                             self.clock.discard_host_backlog();
                             break;
                         }
+                        if !self.campaign.playing() {
+                            self.clock.discard_host_backlog();
+                            break;
+                        }
                     }
+                    self.save();
                 }
                 if let Some(view) = &mut self.view {
-                    if before != self.game.tick && !self.paused {
-                        view.update(&self.game);
+                    if before != self.campaign.game.tick && !self.paused {
+                        view.update(&self.campaign, self.paused, self.fault.as_deref());
                     }
-                    if let Err(error) = view.draw(&self.game) {
+                    if let Err(error) = view.draw(&self.campaign.game) {
                         self.error = Some(error);
                         events.exit();
                     }
@@ -284,22 +347,24 @@ impl ApplicationHandler for Application {
 }
 
 pub fn run(assets: GameAssets<FileSource>, options: Options) -> Result<()> {
-    let game = options.load(&assets)?;
+    let storage = Storage::new()?;
+    let campaign = Campaign::new(&assets, options, storage.load()?)?;
     let mut application = Application {
         assets,
-        options,
-        game,
+        campaign,
+        storage,
         view: None,
         clock: GameClock::default(),
         last_frame: Instant::now(),
         keys: HashSet::new(),
         paused: false,
         faulted: false,
+        fault: None,
         focused: true,
         error: None,
     };
     println!(
-        "Gameplay preview: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 restart, Esc quit.\nRemaining items, special attacks, audio and results are still being implemented; an unsupported action pauses with a diagnostic."
+        "Gameplay: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 retry, Esc inventory.\nRemaining items, special attacks and audio are still being implemented; an unsupported action pauses with a diagnostic."
     );
     EventLoop::new()
         .map_err(|e| e.to_string())?

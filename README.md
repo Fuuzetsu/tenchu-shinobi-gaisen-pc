@@ -17,7 +17,7 @@ See [PLAN.md](PLAN.md) for deliverables and acceptance criteria and
 
 Game data, captured RAM and disc images must remain outside Git. No BIOS is
 required by the intended native runtime. The initial implementation is in
-progress; this repository is not yet a playable game.
+progress; gameplay is interactive, but the complete game is not implemented yet.
 
 ## Build and inspect a disc
 
@@ -52,30 +52,55 @@ through its duration. `render` captures Mission 1 with original textures.
 ```
 
 Mission numbers follow campaign order (1–10); `--mission training` selects
-training. Each mission has layouts 1–3. `--difficulty easy|normal|hard` selects
-the source AI difficulty; normal is the default.
+training. Each mission has layouts 1–3; `--layout random` selects one at the
+source construction boundary. `--difficulty easy|normal|hard` selects the source
+AI difficulty; normal is the default. `--language english|french|italian|japanese`
+selects the original cinematic scripts. Japanese subtitle rasterization still
+needs a portable replacement for BIOS KROM.
 
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
-an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
+an item, Q looks, and Z/C select items. P pauses; F5 or Escape abandons the
+attempt and opens retry equipment. Escape from the launcher quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
 smoke bombs, grenades, mines and poisoned food work through normal item selection. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
-then returns to gameplay. Remaining items/special attacks, audio, results and
-progression are unfinished; unsupported actions pause with a diagnostic. Caltrops,
+then returns to gameplay. Results, stock rewards, retry and progression now run
+through a simple launcher. Remaining items/special attacks, environmental behavior
+and audio are unfinished; unsupported actions pause with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
 texture palettes and transparency modes. The HUD shows inventory selection and
 counts, player/enemy health and the proximity indicator using original graphics.
-The launcher starts with the original fallback loadout: infinite hook, 10 shuriken,
-5 caltrops and 2 medicine. Tap E for a quick shuriken throw or hold it to aim,
+The launcher uses the source initial stock: choose equipment with Up/Down and
+Left/Right, then Enter to start. The hook is always carried. Tap E for a quick
+shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
 selected, hold E, aim with the direction keys and release to grapple. Lighting, full
 scene transparency, water surfaces, the map and audio remain in progress.
 
+The launcher lets you choose character, difficulty, mission and layout. Results
+show the original score/rank, award items and update each character's records.
+Enter advances (or retries training), R replays, and Escape returns to the launcher.
+Failed or abandoned attempts lose their carried items. Training keeps its separate
+ranking table and fixed equipment. Armour uses its original model and damage rule.
+
+Progress saves between attempts to
+`$XDG_DATA_HOME/tenchu-shinobi-gaisen-pc/progress.sav`, or
+`~/.local/share/tenchu-shinobi-gaisen-pc/progress.sav` on Linux. macOS uses
+`~/Library/Application Support`; Windows uses `%APPDATA%`. Set `TENCHU_SAVE` to
+choose a different file. Saves retain both characters' stock/records, mission,
+layout, language and difficulty. They are checked and replaced atomically;
+Continue resumes at equipment selection, not mid-mission. Closing during an
+attempt retains the preceding checkpoint. Existing PS1 memory cards are not
+imported. Initial gameplay uses seed 1, then subsequent attempts continue from
+the preceding gameplay/reward RNG. Menu waiting and display refresh consume no
+RNG; PS1 startup VSync seeding is intentionally a host policy, not a hardware model.
+
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
+It keeps the diagnostic fallback loadout (hook, 10 shuriken, 5 caltrops, 2 medicine).
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `#` starts a comment. For example, `30 1000` holds forward for one second and
 `1 1040` presses jump while holding forward. The replay and window use the same

@@ -37,6 +37,64 @@ pub struct Pickup {
     pub position: [i32; 3],
 }
 
+#[derive(Clone, Debug)]
+pub struct Layout {
+    pub index: usize,
+    pub data: Vec<u8>,
+    pub enemies: Vec<Enemy>,
+    pub pickups: Vec<Pickup>,
+}
+
+impl Layout {
+    fn parse(index: usize, layout: Vec<u8>) -> Result<Self> {
+        slice(&layout, 0, 7000)?;
+        let mut pickups = Vec::new();
+        for row in slice(&layout, 5000, 30 * 20)?.chunks_exact(20) {
+            let kind = u32_le(row, 0)? as i32;
+            if kind == -1 {
+                continue;
+            }
+            if !(0..25).contains(&kind) {
+                return Err("Invalid layout item kind".into());
+            }
+            pickups.push(Pickup {
+                kind: kind as usize,
+                position: point(row, 4)?,
+            });
+        }
+        let mut enemies = Vec::new();
+        for slot in 0..30 {
+            let p = slice(&layout, slot * 136, 136)?;
+            let kind = i16_le(p, 0)?;
+            if kind == -1 {
+                continue;
+            }
+            let count = i16_le(p, 4)?;
+            if !(0..=7).contains(&count) {
+                return Err("Invalid patrol length".into());
+            }
+            let mut patrol = Vec::new();
+            for i in 0..count as usize {
+                patrol.push((point(p, 24 + i * 16)?, u32_le(p, 36 + i * 16)? as i32));
+            }
+            enemies.push(Enemy {
+                slot,
+                kind,
+                think: i16_le(p, 2)?,
+                position: point(p, 8)?,
+                facing: i16_le(p, 20)?,
+                patrol,
+            });
+        }
+        Ok(Self {
+            index,
+            data: layout,
+            enemies,
+            pickups,
+        })
+    }
+}
+
 pub struct MissionAssets {
     pub stage: Stage,
     pub map: Vec<Part>,
@@ -62,6 +120,7 @@ pub struct MissionAssets {
     pub construction: Vec<u8>,
     pub layout: Vec<u8>,
     pub layout_index: usize,
+    pub random_layouts: Option<Vec<Layout>>,
     pub scripts: crate::script::Scripts,
     pub font: crate::font::Font,
     pub tanka: Vec<crate::texture::Image>,
@@ -77,6 +136,13 @@ fn point(data: &[u8], at: usize) -> Result<[i32; 3]> {
 }
 
 impl MissionAssets {
+    pub fn select_layout(&mut self, layout: Layout) {
+        self.layout_index = layout.index;
+        self.layout = layout.data;
+        self.enemies = layout.enemies;
+        self.pickups = layout.pickups;
+    }
+
     pub fn load<S: ReadAt>(
         game: &GameAssets<S>,
         id: usize,
@@ -99,7 +165,18 @@ impl MissionAssets {
         layout: usize,
         language: crate::script::Language,
     ) -> Result<Self> {
-        if !(0..=1).contains(&character) || !(1..=3).contains(&layout) {
+        Self::load_equipped(game, id, character, layout, language, 0)
+    }
+
+    pub fn load_equipped<S: ReadAt>(
+        game: &GameAssets<S>,
+        id: usize,
+        character: i16,
+        layout: usize,
+        language: crate::script::Language,
+        armour: u8,
+    ) -> Result<Self> {
+        if !(0..=1).contains(&character) || layout > 3 {
             return Err("Invalid character or layout".into());
         }
         let stage = game
@@ -174,7 +251,16 @@ impl MissionAssets {
         }
         let terrain = AreaMap::parse(asset(&area)?)?;
         let exe = Executable::new(&game.executable)?;
-        let characters = exe.characters()?;
+        let mut characters = exe.characters()?;
+        if armour != 0 {
+            for definition in &mut characters {
+                if definition.kind == 0 {
+                    definition.model = "RIKIMAUA".into();
+                } else if definition.kind == 1 {
+                    definition.model = if armour == 255 { "AYAMES" } else { "AYAMEA" }.into();
+                }
+            }
+        }
         let reinforcement_row = exe.bytes(0x80089e14 + id as u32 * 4, 4)?;
         let reinforcements = [i16_le(reinforcement_row, 0)?, i16_le(reinforcement_row, 2)?];
         let disguise =
@@ -199,53 +285,24 @@ impl MissionAssets {
                 kind => kind,
             };
         }
-        let layout_index = layout - 1;
-        let layout = asset(&format!("IE_{layout}"))?;
-        slice(&layout, 0, 7000)?;
-        let mut pickups = Vec::new();
-        for row in slice(&layout, 5000, 30 * 20)?.chunks_exact(20) {
-            let kind = u32_le(row, 0)? as i32;
-            if kind == -1 {
-                continue;
-            }
-            if !(0..25).contains(&kind) {
-                return Err("Invalid layout item kind".into());
-            }
-            pickups.push(Pickup {
-                kind: kind as usize,
-                position: point(row, 4)?,
-            });
-        }
-        let mut enemies = Vec::new();
-        for slot in 0..30 {
-            let p = slice(&layout, slot * 136, 136)?;
-            let kind = i16_le(p, 0)?;
-            if kind == -1 {
-                continue;
-            }
-            let count = i16_le(p, 4)?;
-            if !(0..=7).contains(&count) {
-                return Err("Invalid patrol length".into());
-            }
-            let mut patrol = Vec::new();
-            for i in 0..count as usize {
-                patrol.push((point(p, 24 + i * 16)?, u32_le(p, 36 + i * 16)? as i32));
-            }
-            enemies.push(Enemy {
-                slot,
-                kind,
-                think: i16_le(p, 2)?,
-                position: point(p, 8)?,
-                facing: i16_le(p, 20)?,
-                patrol,
-            });
-        }
+        let layouts = if layout == 0 {
+            (1..=3)
+                .map(|index| Layout::parse(index - 1, asset(&format!("IE_{index}"))?))
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            vec![Layout::parse(layout - 1, asset(&format!("IE_{layout}"))?)?]
+        };
+        let initial_layout = layouts[0].clone();
         let mut models = BTreeMap::new();
         for kind in std::iter::once(character)
             .chain([0xa9, disguise])
             .chain(reinforcements)
             .chain(construction_actors.iter().map(|e| e.kind))
-            .chain(enemies.iter().map(|e| e.kind))
+            .chain(
+                layouts
+                    .iter()
+                    .flat_map(|layout| layout.enemies.iter().map(|e| e.kind)),
+            )
             .chain(story.iter().map(|s| s.kind))
         {
             if models.contains_key(&kind) {
@@ -304,16 +361,17 @@ impl MissionAssets {
             weapons: crate::weapon::Weapons::load(game, &exe)?,
             death_events: exe.death_events()?,
             common_models,
-            enemies,
+            enemies: initial_layout.enemies,
             construction_actors,
             construction_pickups,
-            pickups,
+            pickups: initial_layout.pickups,
             disguise,
             reinforcements,
             story,
             construction,
-            layout,
-            layout_index,
+            layout: initial_layout.data,
+            layout_index: initial_layout.index,
+            random_layouts: (layout == 0).then_some(layouts),
         })
     }
 

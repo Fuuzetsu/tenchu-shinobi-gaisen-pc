@@ -14,6 +14,42 @@ pub struct Geometry {
     pub batches: Vec<Batch>,
 }
 
+pub fn panel(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 3])]) -> Geometry {
+    let mut vertices = screen_band(-120.0, 120.0, [0.018, 0.025, 0.034], 0);
+    for vertex in &mut vertices {
+        vertex.position[2] = 0.00001;
+    }
+    for &(left, top, ref text, color) in lines {
+        let mut x = f32::from(left);
+        for code in text.bytes() {
+            let (glyph, nudge) = font.glyph(code);
+            let y = f32::from(top + nudge);
+            let right = x + f32::from(glyph.size[0]);
+            let bottom = y + f32::from(glyph.size[1]);
+            vertices.extend(quad(
+                [
+                    [x, y, 0.0],
+                    [right, y, 0.0],
+                    [x, bottom, 0.0],
+                    [right, bottom, 0.0],
+                ],
+                [color; 4],
+                Some(glyph),
+                0,
+            ));
+            x += font.width(code) as f32;
+        }
+    }
+    let count = vertices.len() as u32;
+    Geometry {
+        vertices,
+        batches: vec![Batch {
+            blend: 0,
+            range: 0..count,
+        }],
+    }
+}
+
 struct Surface {
     depth: f32,
     blend: u8,

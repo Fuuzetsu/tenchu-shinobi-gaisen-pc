@@ -52,6 +52,10 @@ pub(super) fn construct(
     if roster.order.first() != Some(&player) {
         return Err("Construction actors displaced the stage player".into());
     }
+    if let Some(mut layouts) = ctx.mission.random_layouts.take() {
+        let index = ctx.random.next15() as usize % 3;
+        ctx.mission.select_layout(layouts.swap_remove(index));
+    }
     items.restore_layout(roster, ctx)?;
     for spawn in ctx.mission.enemies.clone() {
         let id = roster.spawn(spawn.kind, spawn.position, 0, ctx)?;

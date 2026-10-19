@@ -1,4 +1,5 @@
 mod inventory;
+pub mod save;
 #[cfg(test)]
 mod tests;
 

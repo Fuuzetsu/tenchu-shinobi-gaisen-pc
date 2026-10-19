@@ -3,12 +3,13 @@ use std::{ffi::OsString, path::Path};
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
 use tenchu_core::{ai::Difficulty, game::Game};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Options {
     pub mission: usize,
     pub character: i16,
     pub layout: usize,
     pub difficulty: Difficulty,
+    pub language: tenchu_assets::script::Language,
 }
 
 impl Default for Options {
@@ -18,6 +19,7 @@ impl Default for Options {
             character: 0,
             layout: 1,
             difficulty: Difficulty::Normal,
+            language: tenchu_assets::script::Language::English,
         }
     }
 }
@@ -54,11 +56,23 @@ impl Options {
                     _ => return Err("Difficulty must be easy, normal or hard".into()),
                 };
             } else if pair[0] == "--layout" {
-                options.layout = value
-                    .parse::<usize>()
-                    .ok()
-                    .filter(|n| (1..=3).contains(n))
-                    .ok_or("Layout must be 1–3")?;
+                options.layout = if value == "random" {
+                    0
+                } else {
+                    value
+                        .parse::<usize>()
+                        .ok()
+                        .filter(|n| (1..=3).contains(n))
+                        .ok_or("Layout must be 1–3 or random")?
+                };
+            } else if pair[0] == "--language" {
+                options.language = match value {
+                    "english" => tenchu_assets::script::Language::English,
+                    "french" => tenchu_assets::script::Language::French,
+                    "italian" => tenchu_assets::script::Language::Italian,
+                    "japanese" => tenchu_assets::script::Language::Japanese,
+                    _ => return Err("Language must be english, french, italian or japanese".into()),
+                };
             } else {
                 return Err(format!(
                     "Unknown launch option {}",
@@ -70,21 +84,41 @@ impl Options {
     }
 
     pub fn load(self, assets: &GameAssets<FileSource>) -> Result<Game> {
+        let mut inventory = [0; 20];
+        inventory[..4].copy_from_slice(&[255, 10, 5, 2]);
+        self.load_equipped(assets, 1, inventory)
+    }
+
+    pub fn load_equipped(
+        self,
+        assets: &GameAssets<FileSource>,
+        seed: u32,
+        mut inventory: [u8; 20],
+    ) -> Result<Game> {
         let id = assets
             .stages()?
             .iter()
             .find(|stage| stage.order == self.mission as i32)
             .ok_or("Unknown campaign mission")?
             .id;
-        let mission = MissionAssets::load(assets, id, self.character, self.layout)?;
+        let mission = MissionAssets::load_equipped(
+            assets,
+            id,
+            self.character,
+            self.layout,
+            self.language,
+            inventory[19],
+        )?;
         let mut game = Game::new(
             mission,
             &Executable::new(&assets.executable)?,
             self.character,
-            1,
+            seed,
         )?;
         game.intelligence.difficulty = self.difficulty;
-        game.roster.get_mut(game.player_id).inventory[..4].copy_from_slice(&[255, 10, 5, 2]);
+        game.combat.armor = inventory[19] != 0;
+        inventory[19] = 0;
+        game.roster.get_mut(game.player_id).inventory[..20].copy_from_slice(&inventory);
         Ok(game)
     }
 }

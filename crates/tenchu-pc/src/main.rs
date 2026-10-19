@@ -1,9 +1,12 @@
+mod campaign;
 mod capture;
 mod render_effects;
 mod render_mesh;
 mod renderer;
 mod session;
 mod source;
+mod storage;
+mod ui;
 mod window;
 
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
@@ -12,7 +15,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS]\ntenchu-pc replay DISC INPUT.txt [OPTIONS]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3 --difficulty easy|normal|hard\nplay is currently a gameplay preview. replay reads lines of tick count and hex buttons, and prints a state trace.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
+            "tenchu-pc play DISC [OPTIONS]\ntenchu-pc replay DISC INPUT.txt [OPTIONS]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection; gameplay is still in development. replay reads lines of tick count and hex buttons, and prints a state trace.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
         );
         return Ok(());
     }

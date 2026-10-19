@@ -103,10 +103,11 @@ against the existing retail corpus at comparable logical update boundaries.
 
 - [x] Execute Mission 1 CVA actor/camera/motion/text commands and return to gameplay.
   English subtitles render from the disc font; audio playback remains below.
-- [ ] Complete both boss encounters, results/ranking, inventory rewards and retry.
-- [ ] Persist character, difficulty, inventory and mission progress to a save.
+- [ ] Complete both boss encounters in ordinary interactive play.
+- [x] Results/ranking, inventory rewards, retry and source training records.
+- [x] Persist character, difficulty, inventory and mission progress to a save.
 - [ ] Complete music, voices and necessary movie/audio decoding.
-- [ ] Minimal launcher for new game, continue, character and difficulty; original
+- [x] Minimal launcher for new game, continue, character and difficulty; original
   title/menu artwork and exact menu timing remain out of scope.
 
 Acceptance: complete Mission 1 and continue into Mission 2 without state imports,
@@ -350,3 +351,29 @@ selection limits. The desktop still needs to connect these rules to result,
 retry and inventory screens and save storage. C comparisons pass for 2,048 award
 and return cases with exact RNG, plus the existing 512 score cases. Portable
 scenario checks cover character isolation, ranking ties and failure stock loss.
+
+
+The native window now starts in a minimal character/difficulty/mission/layout
+launcher and source-stock equipment selection. Stage completion shows rank,
+score and best records, persists rewards, and advances to the next unplayed
+layout. Failure/retry keeps the remaining shop stock and loses carried items.
+Training has fixed equipment and its separate leaderboard. Original armour
+models are loaded and its existing damage reduction is enabled on equipment.
+Random layouts are selected after player/dummy construction with the original
+RNG call ordering; all three candidate layouts are loaded only when required.
+
+Saves are a portable versioned byte format with integrity and range checks; the
+native host writes them atomically to the application data directory (or
+TENCHU_SAVE). Continue starts at equipment selection. A running attempt is not a
+mid-mission save. The initial deterministic seed is 1 and later attempts carry
+forward the prior gameplay/reward seed; menu wait/render duration never consumes
+RNG. Original VSync-based startup seeding is an explicit host-policy boundary.
+
+New checks cover corruption/truncation and replacement of saves; controlled
+completion/death transitions for both characters across all ten campaign stages;
+save/continue; random layouts; and armour variants. These transitions are not
+ordinary gameplay completion evidence. All eight private PC checks pass,
+including roster/assets, 66 fixed constructors and both cadence tests. Window
+checks exercise equipment selection, ordinary movement, retry and the result-to-
+next-mission presentation. Audio, environment producers and remaining items still
+prevent a complete Mission 1/game claim.

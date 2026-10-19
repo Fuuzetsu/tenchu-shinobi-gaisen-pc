@@ -6,3 +6,4 @@ publish.workspace = true
 
 [dependencies]
 tenchu-assets.workspace = true
+sha2.workspace = true
