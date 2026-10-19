@@ -1,0 +1,17 @@
+[workspace]
+members = ["crates/tenchu-assets", "crates/tenchu-core", "crates/tenchu-pc"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+tenchu-assets = { path = "crates/tenchu-assets" }
+tenchu-core = { path = "crates/tenchu-core" }
+sha2 = "0.10.9"
+encoding_rs = "=0.8.35"
+
+[profile.release]
+lto = "thin"

@@ -71,11 +71,11 @@ deliverables; visual meshes must not silently replace gameplay collision data.
 ### 0. Repository and executable foundation
 
 - [x] Initialise Git, document scope, resources and development conventions.
-- [ ] Cargo workspace, reproducible local toolchain instructions, formatting.
-- [ ] Read ISO-9660 data from ISO and PS1 raw BIN/CUE; locate `MAIN.EXE` and
+- [x] Cargo workspace, pinned Nix toolchain/package/checks, formatting.
+- [x] Read ISO-9660 data from ISO and PS1 raw BIN/CUE; locate `MAIN.EXE` and
   `DATA.VOL`, identify the supported release and list mission resources.
-- [ ] Compile the reusable asset/core boundary for native and WASM.
-- [ ] Fixed-step scheduler with a meaningful different-display-cadence test.
+- [x] Compile the reusable asset/core boundary for native and WASM.
+- [x] Fixed-step scheduler with a meaningful different-display-cadence test.
 
 Acceptance: a command reads the real user disc without a BIOS or emulator; the
 same asset parser and scheduling/core code compile for WASM.
@@ -156,8 +156,14 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-2026-10-19: repository created. Source audit confirmed the Rust model's major
-gameplay coverage, imported-state boundary and x86/C-oracle portability work.
-Next: disc/assets entry point and portable execution foundation, then implement
-straightforward scalar gameplay and rendered Mission 1 using the existing model
-as reference. Do not copy its parallel-search architecture.
+2026-10-20: foundation implemented. The actual mixed-mode CUE verifies the
+SLPS-019.01 executable, indexes 1,048 files in DATA.VOL, lists all eleven stages
+and reads Mission 1's STAGE.CON directly from the disc. Asset/core libraries
+compile for WASM. Synthetic tests cover raw/cooked sectors, pregaps, mixed-mode
+extents, archive parent indices, Shift-JIS names and malformed/truncated data.
+The scheduler produces identical ticks across 24–240 Hz presentation and stalls.
+Nix packages the native executable and checks native tests, WASM and formatting.
+
+No gameplay or renderer is implemented yet. Next: source-faithful scalar math,
+animation and terrain, disc-based Mission 1 construction, then interactive
+rendering and player control. The original TAS architecture remains a reference.

@@ -1,0 +1,9 @@
+[package]
+name = "tenchu-pc"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+tenchu-assets.workspace = true
+tenchu-core.workspace = true

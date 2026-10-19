@@ -18,3 +18,20 @@ See [PLAN.md](PLAN.md) for deliverables and acceptance criteria and
 Game data, captured RAM and disc images must remain outside Git. No BIOS is
 required by the intended native runtime. The initial implementation is in
 progress; this repository is not yet a playable game.
+
+## Build and inspect a disc
+
+Nix supplies the pinned Rust toolchain and dependencies:
+
+```sh
+nix develop
+cargo run -p tenchu-pc -- inspect '/path/to/game.cue'
+cargo test --workspace
+cargo fmt --all -- --check
+```
+
+`./dev.sh cargo ...` enters the same environment for one command. Use `nix build`
+for the native package, `nix run -- inspect /path/to/game.cue` to run it, and
+`nix flake check` for tests, formatting and a WASM build of the reusable crates.
+ISO files and raw BIN data tracks also work. Disc data is read on demand; it is
+never an input to the Nix package or copied into the Nix store.

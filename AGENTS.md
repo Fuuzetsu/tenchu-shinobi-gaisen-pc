@@ -19,6 +19,8 @@
 - Keep the core usable on native desktops and `wasm32-unknown-unknown`. Platform
   file access, clocks, windows and audio belong at the boundary. A portable
   implementation is required before optional CPU-specific optimisation.
+- Use the pinned Nix flake for dependency management, development and packaging.
+  Nightly Rust is allowed if useful; pin it in Nix rather than requiring rustup.
 - Use simple code and coherent modules. Avoid speculative abstraction, duplicate
   logic, obvious comments and tests that merely restate implementation.
 - Useful tests include source arithmetic edges, recorded state comparisons,
