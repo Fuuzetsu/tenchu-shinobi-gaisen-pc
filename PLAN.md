@@ -172,7 +172,7 @@ dropped inventory, pickups, arrow/gun/shuriken attacks and item damage. The nati
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Player item selection/aiming,
-remaining item use, special ranged attacks, mission events, HUD and audio remain unfinished; this is not
+remaining item use, special ranged attacks, mission events, map display and audio remain unfinished; this is not
 playable Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -180,7 +180,7 @@ wakeup guards and raw parking-coordinate writes. Integer geometry counters use
 original meshes, construction cell/depth ordering, adaptive subdivision, draw
 banks, shadows and implemented effects. They do not measure host performance,
 drop frames or change with render resolution. The sample remains incomplete
-until HUD, remaining effects, items and environmental producers are implemented;
+until remaining effects, items and environmental producers are implemented;
 activation is therefore not yet certified against continuous retail gameplay.
 
 Smoke, splashes, droplets, blood/gore, impacts and attached flashes share the source 200-slot pool
@@ -189,6 +189,12 @@ effects. The renderer consumes prepared effect graphics without mutating the gam
 original TIM palettes, sprite origins and four transparency modes. It uses modern
 depth testing rather than reproducing PS1 ordering-table raster artifacts. Sound
 events are still unplayed. Damage-floor napalm and AI healing remain item-system boundaries.
+The HUD now updates inventory selection after items, including the reserved-slot
+quirk, and displays original icons/counts, health bars and the proximity indicator.
+Five temporary enemy bars retain request order, captured health and expiry. Their
+logical packet contributions are included in activation sampling. The desktop
+launcher supplies the original fallback loadout (hook, 10 shuriken, 5 caltrops,
+2 medicine); using those items remains the next integration step.
 CVA camera/actor ownership, remaining ranged/item combat, swimming/grappling, results,
 saving, transitions and the remaining campaign are still required.
 
@@ -236,7 +242,7 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: player item selection and aiming, then remaining item behaviors,
+Next: player item use and aiming, then remaining item behaviors,
 swimming/grappling and mission events. Fill the remaining drawing producers alongside their owning gameplay
 systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

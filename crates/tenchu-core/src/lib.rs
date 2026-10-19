@@ -7,6 +7,7 @@ pub mod construction;
 pub mod drawing;
 pub mod effects;
 pub mod game;
+pub mod hud;
 pub mod ids;
 pub mod input;
 pub mod items;

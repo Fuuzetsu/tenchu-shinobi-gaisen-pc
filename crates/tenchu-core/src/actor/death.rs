@@ -94,7 +94,7 @@ impl Actor {
                     1 => world.intelligence.voices.push((self.id, event.payload[0])),
                     2 => {}
                     3 | 4 => {
-                        world.combat.life_bar = Some(self.id);
+                        world.combat.request_life(self);
                         if event.payload[0] != -1 {
                             gore = Some((
                                 event.payload[0] as usize,

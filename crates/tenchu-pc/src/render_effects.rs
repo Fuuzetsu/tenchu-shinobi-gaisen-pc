@@ -231,6 +231,34 @@ pub fn build(game: &Game) -> Geometry {
             previous = shade;
         }
     }
+    for sprite in &game.hud.sprites {
+        let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
+        let points = std::array::from_fn(|i| {
+            let x = ((i & 1) as f32 * f32::from(sprite.image.size[0])
+                - f32::from(sprite.origin[0]))
+                * f32::from(sprite.scale[0])
+                / 4096.0;
+            let y = ((i >> 1) as f32 * f32::from(sprite.image.size[1])
+                - f32::from(sprite.origin[1]))
+                * f32::from(sprite.scale[1])
+                / 4096.0;
+            [
+                f32::from(sprite.xy[0]) + x * cos - y * sin,
+                f32::from(sprite.xy[1]) + x * sin + y * cos,
+                f32::from(sprite.depth) * 0.000001,
+            ]
+        });
+        surfaces.push(Surface {
+            depth: f32::from(sprite.depth),
+            blend: sprite.blend,
+            vertices: quad(
+                points,
+                [sprite.color.map(|v| f32::from(v) / 128.0); 4],
+                Some(sprite.image),
+                sprite.blend,
+            ),
+        });
+    }
     surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
     let mut out = Geometry {
         vertices: Vec::new(),

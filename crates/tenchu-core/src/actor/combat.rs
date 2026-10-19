@@ -9,8 +9,15 @@ use tenchu_assets::weapon::kind::*;
 #[derive(Clone, Debug, Default)]
 pub struct Combat {
     pub death_sound: Option<usize>,
-    pub life_bar: Option<usize>,
+    pub life_bars: Vec<(usize, i16, i16)>,
     pub armor: bool,
+}
+
+impl Combat {
+    pub(crate) fn request_life(&mut self, actor: &Actor) {
+        self.life_bars
+            .push((actor.id, actor.health, actor.max_health));
+    }
 }
 
 impl Actor {

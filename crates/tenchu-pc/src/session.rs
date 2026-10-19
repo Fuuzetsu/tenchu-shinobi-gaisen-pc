@@ -84,6 +84,7 @@ impl Options {
             1,
         )?;
         game.intelligence.difficulty = self.difficulty;
+        game.roster.get_mut(game.player_id).inventory[..4].copy_from_slice(&[255, 10, 5, 2]);
         Ok(game)
     }
 }

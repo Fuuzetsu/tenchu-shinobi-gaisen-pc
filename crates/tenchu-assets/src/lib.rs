@@ -4,6 +4,7 @@ pub mod cue;
 pub mod disc;
 pub mod executable;
 pub mod game;
+pub mod hud;
 pub mod model;
 pub mod motion;
 pub mod stage;

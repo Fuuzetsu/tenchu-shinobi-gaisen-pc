@@ -64,8 +64,11 @@ and the source follow/look camera. Player item use, remaining special attacks
 and mission events are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
-texture palettes and transparency modes. Lighting, full scene transparency, HUD
-and audio remain in progress.
+texture palettes and transparency modes. The HUD shows inventory selection and
+counts, player/enemy health and the proximity indicator using original graphics.
+The launcher starts with the original fallback loadout: infinite hook, 10 shuriken,
+5 caltrops and 2 medicine. Item actions are still being connected. Lighting, full
+scene transparency, the map and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;
@@ -91,8 +94,8 @@ Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation now runs at the source cadence. Remaining effects, special ranged
 attacks, player items and stage scripts remain unfinished. Activation workload counts use original geometry,
-independent of PC rendering; HUD and other unfinished systems still need to add
-their original contributions before this has full-game fidelity.
+independent of PC rendering; remaining items and environmental effects still need
+to add their original contributions before this has full-game fidelity.
 An additional private check compares the roster, mission totals, weapon hitbox
 indices and layout patrol points with the existing Reclaim the Castle capture:
 

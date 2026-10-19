@@ -109,7 +109,7 @@ fn state(game: &Game) -> String {
             &game.visible,
             &game.activation,
             &game.drawing,
-            (&game.combat, &game.statistics),
+            (&game.combat, &game.statistics, &game.hud),
         )
     )
 }

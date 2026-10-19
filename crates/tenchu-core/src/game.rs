@@ -31,6 +31,7 @@ pub struct Game {
     pub random: Random,
     pub effects: Effects,
     pub items: crate::items::Items,
+    pub hud: crate::hud::Hud,
     pub tick: u64,
     pub scene: Scene,
     pub collision: Collision,
@@ -96,6 +97,7 @@ impl Game {
             random,
             effects,
             items,
+            hud: crate::hud::Hud::new(executable)?,
             roster,
             player_id,
             statistics,
@@ -281,6 +283,18 @@ impl Game {
             &mut self.intelligence,
             self.tick as i32,
         )?;
+        for (actor, health, maximum) in self.combat.life_bars.drain(..) {
+            self.hud.request_life(actor, health, maximum);
+        }
+        self.hud.step(
+            self.roster.get(self.player_id),
+            &self.mission.images,
+            self.intelligence.strain,
+            self.tick as i32,
+            &self.math,
+            &mut self.effects,
+            &mut self.drawing,
+        );
         for (i, &id) in self.visible.iter().enumerate() {
             self.roster.get_mut(id).prepare_draw(
                 &mut self.scene,

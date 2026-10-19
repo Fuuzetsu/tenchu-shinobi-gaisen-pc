@@ -40,11 +40,12 @@ impl Actor {
     }
 
     fn feedback(&self, world: &mut ActionContext, attacker: usize) {
-        world.combat.life_bar = Some(if self.id == world.player {
-            attacker
+        let actor = if self.id == world.player && attacker != self.id {
+            world.roster.get(attacker)
         } else {
-            self.id
-        });
+            self
+        };
+        world.combat.request_life(actor);
     }
 
     pub(super) fn blood(
@@ -103,7 +104,7 @@ impl Actor {
             } else {
                 self.health = 0;
             }
-            world.combat.life_bar = Some(self.id);
+            world.combat.request_life(self);
             let motion = if self.health != 0 {
                 world.intelligence.voices.push((self.id, 6));
                 world.intelligence.reset_alert();
@@ -453,7 +454,7 @@ impl Actor {
         };
         world.intelligence.voices.push((self.id, voice));
         if self.id != world.player {
-            world.combat.life_bar = Some(self.id);
+            world.combat.request_life(self);
         }
         world.intelligence.reset_alert();
         self.finish_damage(ctx, world, next, movement)

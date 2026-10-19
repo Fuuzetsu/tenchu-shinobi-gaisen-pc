@@ -247,3 +247,11 @@ flight/damage checks and ordinary-tick ranged scenarios.
 | Repository | File | Working-tree SHA-256 |
 | --- | --- | --- |
 | `tenchu-decomp-glitch-research` (revision above) | `tools/tenchu-sim/native/sdk_rotation_oracle.py` | `9f1fe49761cf8119b26b839380732ea542046eebcef7178c83ca142075420bdf` |
+
+## Inventory and HUD (2026-10-20)
+
+`INFOVIEW.C`, `START.C`, `game_types.h` and `main.exe.h` at the hashes above
+define item selection order, reserved-slot behavior, life-bar allocation and
+expiry, proximity feedback and the fallback launch loadout. Life-bar style
+parameters and image IDs come from `0x8008e414` and `0x8008e4b4` in `MAIN.EXE`.
+The HUD owns scalar state and prepared sprites; presentation cannot advance it.

@@ -485,7 +485,7 @@ fn human_and_item_damage_match_original_c() {
             e.velocity[2].into(),
             game.random.calls as i32,
             game.intelligence.alert,
-            which(game.combat.life_bar),
+            which(game.combat.life_bars.last().map(|r| r.0)),
             game.statistics.criticals.into(),
             game.statistics.murders.into(),
             game.statistics.friend_hits.into(),
