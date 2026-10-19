@@ -28,6 +28,7 @@ struct View {
     actor: Mesh,
     effects: EffectMesh,
     size: [u32; 2],
+    vram_revision: u64,
 }
 
 impl View {
@@ -87,6 +88,7 @@ impl View {
             actor,
             effects,
             size: [size.width, size.height],
+            vram_revision: game.mission.vram.revision,
         })
     }
 
@@ -103,6 +105,7 @@ impl View {
 
     fn reload(&mut self, game: &Game) {
         self.renderer.update_vram(&game.mission.vram);
+        self.vram_revision = game.mission.vram.revision;
         self.stage = self
             .renderer
             .upload(&render_mesh::stage(&game.mission, &game.math));
@@ -110,6 +113,10 @@ impl View {
 
     fn update(&mut self, campaign: &Campaign, paused: bool, error: Option<&str>) {
         let game = &campaign.game;
+        if self.vram_revision != game.mission.vram.revision {
+            self.renderer.update_vram(&game.mission.vram);
+            self.vram_revision = game.mission.vram.revision;
+        }
         self.actor = self.renderer.upload(&render_mesh::characters(game));
         self.effects = self
             .renderer

@@ -34,6 +34,7 @@ pub struct Game {
     pub random: Random,
     pub effects: Effects,
     pub items: crate::items::Items,
+    pub misc: crate::misc::Misc,
     pub hud: crate::hud::Hud,
     pub tick: u64,
     pub clock: i32,
@@ -77,6 +78,7 @@ impl Game {
         let mut drawing = Drawing::new(executable)?;
         let mut items = crate::items::Items::new(&mut scene);
         let construction = Construction::new(&mission, &mut scene, &math)?;
+        let mut misc = crate::misc::Misc::new(&mission, &mut scene);
         let mut collision = Collision::default();
         let mut camera = Camera::new(
             tenchu_assets::camera::CameraTables::load(executable)?,
@@ -97,7 +99,7 @@ impl Game {
         };
         let mut roster = Roster::default();
         let (player_id, statistics) =
-            setup::construct(&mut roster, &mut items, character, &mut context)?;
+            setup::construct(&mut roster, &mut items, &mut misc, character, &mut context)?;
         roster.get_mut(player_id).initialize_rendered(&scene, &math);
         let events = events::Events::new(&mission.scripts.events, &roster, player_id);
         let rendered_view = camera.view;
@@ -110,6 +112,7 @@ impl Game {
             random,
             effects,
             items,
+            misc,
             hud: crate::hud::Hud::new(executable)?,
             roster,
             player_id,
@@ -141,6 +144,11 @@ impl Game {
     pub fn step(&mut self, input: u16) -> Result<()> {
         self.tick += 1;
         self.music.clear();
+        for movement in self.effects.texture_moves.drain(..).rev() {
+            self.mission
+                .vram
+                .copy_rect(movement.source, movement.destination)?;
+        }
         if self.cinematic.tail > 0 {
             self.cinematic.tail -= 1;
             self.intelligence.voices.clear();
@@ -317,6 +325,7 @@ impl Game {
                 cursor: &mut self.cursor,
                 clock: self.clock,
                 owner_position: self.roster.get(self.player_id).position,
+                reference: self.camera.reference,
             },
         )?;
         self.drawing
@@ -338,6 +347,21 @@ impl Game {
             &mut self.intelligence,
             self.player_id,
             self.clock,
+        )?;
+        self.misc.step(
+            self.clock,
+            &mut Context {
+                mission: &mut self.mission,
+                math: &self.math,
+                body: &self.body,
+                cursor: &mut self.cursor,
+                random: &mut self.random,
+                effects: &mut self.effects,
+                scene: &mut self.scene,
+                collision: &mut self.collision,
+                camera: &mut self.camera,
+                drawing: &mut self.drawing,
+            },
         )?;
         for (actor, health, maximum) in self.combat.life_bars.drain(..) {
             self.hud.request_life(actor, health, maximum);

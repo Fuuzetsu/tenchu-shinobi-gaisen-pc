@@ -1,6 +1,6 @@
 use crate::{
     Result,
-    effects::{Effects, Graphic},
+    effects::Effects,
     math::{Math, Matrix},
     packets, projection,
 };
@@ -66,18 +66,12 @@ impl Drawing {
             }
         }
         self.bytes += effects.fades.len() as u32 * 32;
-        for drawing in &effects.drawings {
-            self.bytes += match drawing.graphic {
-                Graphic::Bleed => 24,
-                _ => {
-                    if drawing.scale.map(|v| v as i16) == [4096; 2] && drawing.rotation == 0 {
-                        24
-                    } else {
-                        40
-                    }
-                }
-            };
-        }
+        self.bytes += effects.texture_moves.len() as u32 * 24;
+        self.bytes += effects
+            .drawings
+            .iter()
+            .map(crate::effects::Drawing::bytes)
+            .sum::<u32>();
         Ok(())
     }
 }

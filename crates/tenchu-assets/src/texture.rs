@@ -8,19 +8,54 @@ pub struct Image {
     pub size: [u16; 2],
 }
 
+impl Image {
+    pub fn word_rect(self) -> [u16; 4] {
+        let shift = 2 - ((self.page >> 7) & 3);
+        [
+            (self.page & 15) * 64 + (u16::from(self.uv[0]) >> shift),
+            (self.page & 16) * 16 + u16::from(self.uv[1]),
+            self.size[0] >> shift,
+            self.size[1],
+        ]
+    }
+}
+
 pub struct Vram {
     pub words: Vec<u16>,
+    pub revision: u64,
 }
 
 impl Default for Vram {
     fn default() -> Self {
         Self {
             words: vec![0; 1024 * 512],
+            revision: 0,
         }
     }
 }
 
 impl Vram {
+    pub fn copy_rect(&mut self, source: [u16; 4], destination: [u16; 2]) -> Result<()> {
+        let [x, y, w, h] = source.map(usize::from);
+        let [dx, dy] = destination.map(usize::from);
+        if x + w > 1024 || y + h > 512 || dx + w > 1024 || dy + h > 512 {
+            return Err("Texture copy outside VRAM".into());
+        }
+        let pixels: Vec<_> = (y..y + h)
+            .flat_map(|row| {
+                self.words[row * 1024 + x..row * 1024 + x + w]
+                    .iter()
+                    .copied()
+            })
+            .collect();
+        for row in 0..h {
+            self.words[(dy + row) * 1024 + dx..(dy + row) * 1024 + dx + w]
+                .copy_from_slice(&pixels[row * w..(row + 1) * w]);
+        }
+        self.revision = self.revision.wrapping_add(1);
+        Ok(())
+    }
+
     pub fn upload_tim(&mut self, data: &[u8]) -> Result<Image> {
         if u32_le(data, 0)? != 0x10 {
             return Err("Invalid TIM signature".into());
@@ -65,6 +100,7 @@ impl Vram {
             }
             at += size;
         }
+        self.revision = self.revision.wrapping_add(1);
         image.ok_or_else(|| "TIM has no pixels".into())
     }
 
@@ -117,9 +153,37 @@ mod tests {
             (image.page, image.palette, image.uv, image.size),
             (133, 30722, [96, 255], [2, 1])
         );
+        assert_eq!(image.word_rect(), [368, 255, 1, 1]);
         assert_eq!(vram.words[480 * 1024 + 32], 0x8421);
         assert_eq!(vram.words[255 * 1024 + 368], 0x0201);
         data.pop();
         assert!(vram.upload_tim(&data).is_err());
+    }
+
+    #[test]
+    fn texture_copies_wrap_with_a_tiled_source_without_changing_the_palette() {
+        let mut vram = Vram::default();
+        for (i, word) in vram.words.iter_mut().enumerate() {
+            *word = i as u16;
+        }
+        let original = vram.words.clone();
+        let source = [704, 320, 32, 32];
+        for y in 0..2 {
+            for x in 0..2 {
+                vram.copy_rect(source, [832 + x * 32, 256 + y * 32])
+                    .unwrap();
+            }
+        }
+        vram.copy_rect([863, 273, 32, 32], [704, 320]).unwrap();
+        for y in 0..32 {
+            for x in 0..32 {
+                assert_eq!(
+                    vram.words[(320 + y) * 1024 + 704 + x],
+                    original[(320 + (y + 17) % 32) * 1024 + 704 + (x + 31) % 32]
+                );
+            }
+        }
+        assert_eq!(&vram.words[480 * 1024..], &original[480 * 1024..]);
+        assert!(vram.copy_rect([1020, 0, 32, 32], [0, 0]).is_err());
     }
 }

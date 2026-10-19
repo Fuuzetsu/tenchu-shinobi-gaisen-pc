@@ -67,7 +67,7 @@ kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
 smoke bombs, grenades, mines and poisoned food work through normal item selection. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
 then returns to gameplay. Results, stock rewards, retry and progression now run
-through a simple launcher. Remaining items/special attacks, environmental behavior
+through a simple launcher. Remaining items and special attacks
 are unfinished; unsupported actions pause with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
@@ -78,8 +78,9 @@ The launcher uses the source initial stock: choose equipment with Up/Down and
 Left/Right, then Enter to start. The hook is always carried. Tap E for a quick
 shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
-selected, hold E, aim with the direction keys and release to grapple. Lighting, full
-scene transparency, water surfaces and the map remain in progress.
+selected, hold E, aim with the direction keys and release to grapple. Doors, pitfalls, animated water, fire emitters, snow and ambient sound now run
+from the original construction data. Lighting, full scene transparency and the
+map remain in progress.
 
 Original sound effects, character voices, music and localized cinematic dialogue
 play from the disc. Music/dialogue require a raw Mode 2 BIN/CUE; cooked 2048-byte
@@ -133,7 +134,7 @@ Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation now runs at the source cadence. Remaining effects, special ranged
 attacks and remaining items remain unfinished. Activation workload counts use original geometry,
-independent of PC rendering; remaining items and environmental effects still need
+independent of PC rendering; remaining items and special attacks still need
 to add their original contributions before this has full-game fidelity. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates
 in that case, which this port does not reproduce.

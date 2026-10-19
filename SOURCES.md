@@ -516,3 +516,48 @@ voice replacement and envelopes. An asynchronous replacement test rejects stale
 XA completions. Both characters' localized Mission 2 openings return to the
 authored background cue. Isolated window captures exercise music/effects and
 French dialogue, without sending sound to the user's desktop speakers.
+
+
+## Environmental construction and fixed-tick updates (2026-10-20)
+
+New scalar `misc` state follows `MISC.C`: source construction ordering, the
+200-object limit, activation/deactivation before all active callbacks, door and
+pitfall collisions/hinges, shared template coordinates, fire/puff/bonfire/snow
+producers and ambient schedules. Asset tables and scrolling TIM names come from
+the user executable. The persistent texture-scroll effect and snow particle
+follow `EFFECT.C`; `3DCTRL.C` supplies model/sprite initialization and drawing.
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/MISC.C` | `6b46b6d6ac8ae87c9871b3109fedd47172f5f0fa25476aaf873c3e41a894a19c` |
+| `src/main.exe/misc.h` | `0579a437b71549205a5b0a70b7504ec17d794b41cd7086bba2c77eaf6f7f158e` |
+| `src/main.exe/EFFECT.C` | `a50b850d80090eda8cc39770d9d3026dc6888936eb2b1324d6c2821348d4da17` |
+| `src/main.exe/3DCTRL.C` | `1175982b0890852071a4b0f581ab637b24258d9fe2153b94d958d0edd337c45a` |
+| `src/main.exe/CONFLICT.C` | `4fd248c53cd709febd10f8f748dabe32e7844f1b5b91ee845343f57a7b7df4c0` |
+| `src/main.exe/AfsGetEntry.c` | `27ca3bd6f9e4c713185a67fff8a7b9baf3994340511ee2faf686d48c2c2b0f0c` |
+
+The research model's `misc/door_underflow.rs` establishes that an exhausted
+collision index aliases `systemAFS.maxElementArea` and two 24-bit ordering-table
+links. The owner alias is not the door sentinel on this disc. The port proves a
+single opening direction over all possible link values, by bounding the original
+atan table quotient for positive coordinate ranges. All 43 authored doors pass.
+It diagnoses unsupported oblique/out-of-range overrides instead of silently
+substituting a direction. This is a bounded gameplay proof, not a GPU/memory model.
+
+Research references at `9ac830e2234f1217daa096198cebadd3f80c0b02` (working-tree
+content hashes; no imported RAM storage or simulation batching):
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/misc/door_underflow.rs` | `fc4966d7d64e9e7589a6dc75d0a38e41429a7c34e08650ca7906a5a65c87b0d4` |
+| `tools/tenchu-sim/src/misc.rs` | `e72556f510b8909c9592fa9c88cac90f2bc825a2d755f714d8f3d28e26db2fb8` |
+| `tools/tenchu-sim/src/effects/snow.rs` | `a393686aa21eba156eef7d573f8cfe2a5342ad1cdd95210c7b4919287b925d37` |
+
+Original-C tests cover 4,096 emitter cases using previously verified particle RNG
+cost stubs; 4,096 hinged-object cases with supplied SDK angle results; 2,048 snow
+trajectories with flat terrain and omitted projection; and 40,960 scroll updates
+with graphics submission stubbed. Separate checks cover activation/resume,
+persistent effect allocation, overflow snow and texture pixels/palettes. Cadence
+snapshots now include misc state and texture revision. Relocated native-window
+starts exercise door opening, swimming over water textures, snow and flames;
+they do not establish completed missions or continuous retail parity.

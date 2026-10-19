@@ -20,19 +20,53 @@ pub struct Statistics {
 pub(super) fn construct(
     roster: &mut Roster,
     items: &mut crate::items::Items,
+    misc: &mut crate::misc::Misc,
     character: i16,
     ctx: &mut Context,
 ) -> Result<(usize, Statistics)> {
-    for spawn in ctx.mission.construction_actors.clone() {
-        roster.spawn(spawn.kind, spawn.position, spawn.facing, ctx)?;
+    enum Spawn {
+        Actor(tenchu_assets::stage::Enemy),
+        Pickup(tenchu_assets::stage::Pickup),
+        Misc(tenchu_assets::misc::Spawn),
     }
-    for spawn in ctx.mission.construction_pickups.clone() {
-        items.stay(
-            spawn.kind,
-            spawn.position,
-            &mut crate::roster::Actors::new(roster),
-            ctx,
-        )?;
+    let mut construction: Vec<_> = ctx
+        .mission
+        .construction_actors
+        .iter()
+        .cloned()
+        .map(|s| (s.slot, Spawn::Actor(s)))
+        .chain(
+            ctx.mission
+                .construction_pickups
+                .iter()
+                .cloned()
+                .map(|(record, s)| (record, Spawn::Pickup(s))),
+        )
+        .chain(
+            ctx.mission
+                .misc
+                .spawns
+                .iter()
+                .cloned()
+                .map(|s| (s.record, Spawn::Misc(s))),
+        )
+        .collect();
+    construction.sort_by_key(|(record, _)| *record);
+    for (_, spawn) in construction {
+        match spawn {
+            Spawn::Actor(s) => {
+                roster.spawn(s.kind, s.position, s.facing, ctx)?;
+            }
+            Spawn::Pickup(s) => {
+                items.stay(
+                    s.kind,
+                    s.position,
+                    &mut crate::roster::Actors::new(roster),
+                    ctx,
+                )?;
+            }
+            Spawn::Misc(s) => misc.spawn(s, ctx),
+        }
     }
     let player = roster.spawn(character, [0; 3], 0, ctx)?;
     let actor = roster.get_mut(player);
@@ -46,6 +80,7 @@ pub(super) fn construct(
     roster.get_mut(dog).attribute |= ATTR_SUSPEND;
     let disguise = roster.spawn(ctx.mission.disguise, [999000; 3], 0, ctx)?;
     roster.remove(disguise, ctx);
+    ctx.effects.reset();
     while roster.order.len() > 1 {
         roster.remove(roster.order[1], ctx);
     }

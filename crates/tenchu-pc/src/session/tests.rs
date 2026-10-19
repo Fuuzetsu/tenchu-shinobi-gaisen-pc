@@ -359,6 +359,8 @@ fn state(game: &Game) -> String {
                 &game.cinematic,
                 &game.events,
                 &game.music,
+                &game.misc,
+                game.mission.vram.revision,
             ),
         )
     )

@@ -212,7 +212,7 @@ pub fn build(game: &Game) -> Geometry {
             });
         }
     }
-    for &(index, matrix) in &game.items.models {
+    for &(index, matrix) in game.items.models.iter().chain(&game.misc.models) {
         mesh_surfaces(
             &mut surfaces,
             &game.mission.common_models[&index],
@@ -228,7 +228,13 @@ pub fn build(game: &Game) -> Geometry {
             game.rendered_view,
         );
     }
-    for drawing in game.effects.drawings.iter().chain(&game.items.drawings) {
+    for drawing in game
+        .effects
+        .drawings
+        .iter()
+        .chain(&game.items.drawings)
+        .chain(&game.misc.drawings)
+    {
         let (image, blend, bottom_origin) = match drawing.graphic {
             Graphic::Sprite { image, blend } => (Some(usize::from(image)), blend, false),
             Graphic::Explosion(index) => (Some(7 + usize::from(index)), 2, false),

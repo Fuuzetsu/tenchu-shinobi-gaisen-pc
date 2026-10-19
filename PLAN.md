@@ -102,7 +102,7 @@ against the existing retail corpus at comparable logical update boundaries.
 ### 2. Mission 1 from launch through results
 
 - [x] Execute Mission 1 CVA actor/camera/motion/text commands and return to gameplay.
-  English subtitles render from the disc font; audio playback remains below.
+  Latin subtitles and original localized dialogue play from the disc.
 - [ ] Complete both boss encounters in ordinary interactive play.
 - [x] Results/ranking, inventory rewards, retry and source training records.
 - [x] Persist character, difficulty, inventory and mission progress to a save.
@@ -175,15 +175,15 @@ medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and i
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Remaining item use, special
-ranged attacks, mission events, map display and audio remain unfinished; this is
-not playable Mission 1.
+ranged attacks, map display and continuous mission validation remain unfinished;
+this is not a completed Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
 original meshes, construction cell/depth ordering, adaptive subdivision, draw
 banks, shadows and implemented effects. They do not measure host performance,
 drop frames or change with render resolution. The sample remains incomplete
-until remaining effects, items and environmental producers are implemented;
+until remaining effects and items are implemented;
 activation is therefore not yet certified against continuous retail gameplay.
 
 Smoke, splashes, droplets, blood/gore, impacts and attached flashes share the source 200-slot pool
@@ -191,7 +191,7 @@ and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
 effects. The renderer consumes prepared effect graphics without mutating the game, using
 original TIM palettes, sprite origins and four transparency modes. It uses modern
 depth testing rather than reproducing PS1 ordering-table raster artifacts. Sound
-events are still unplayed. Damage-floor napalm remains an item-system boundary.
+events now play through the portable mixer. Damage-floor napalm remains an item-system boundary.
 The HUD now updates inventory selection after items, including the reserved-slot
 quirk, and displays original icons/counts, health bars and the proximity indicator.
 Five temporary enemy bars retain request order, captured health and expiry. Their
@@ -222,8 +222,7 @@ Poisoned food now supports rolling, owner recovery, ordered target selection,
 luring, eating/interruptions, poison reactions/expiry and cleanup of the saved
 AI callback. Smoke and food share the source target filter.
 Mission 1 event routing and CVA camera/actor ownership now run from the disc.
-Remaining ranged/item combat, results, saving, audio, environmental producers and
-continuous campaign validation are still required.
+Remaining ranged/item combat and continuous campaign validation are still required.
 
 Verification completed so far:
 
@@ -277,8 +276,7 @@ Verification completed so far:
   one-time cleanup and body visibility; a non-swimmer completes drowning and
   loses body collision. A separate fall regression checks attack cleanup. A
   native window check places the player in actual Mission 1 water and exercises
-  swimming/hook cancellation. The water surface itself still needs its original
-  environmental drawing producer; the current renderer shows the empty channel.
+  swimming/hook cancellation. The water surface now uses its original animated texture.
 - Both characters hug/slide against actual Mission 1 terrain and return to
   normal control. Controlled corner-throw checks cover selection changes,
   release during the throw, both sides and byte underflow; a missing-wall
@@ -306,9 +304,8 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: Mission 1 results/retry and audio, with remaining item/environment behavior
-added alongside the encounters that need it. Fill the remaining
-drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
+Continue filling the remaining drawing producers alongside their owning gameplay
+systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.
 
 Stage event assets load with each mission: all ESD tables and 88 localized
@@ -325,7 +322,7 @@ the completed frame, even when subsequent script commands change the camera.
 Original Latin glyphs, proportional spacing, accents, letterboxing, Tanka sprites
 and full-screen fade effects are supported. Japanese subtitle rasterization still
 needs a portable font source instead of the PS1 BIOS KROM. Music commands are
-queued; audio playback is not implemented yet. The deliberate VSync(60) audio tail
+queued for native playback from the original XA streams. The deliberate VSync(60) audio tail
 holds the last frame for one second without world updates. It is distinct from
 PS1 rendering slowdown, which remains excluded.
 
@@ -347,7 +344,7 @@ pre-existing style lints; no Clippy-clean claim is made.
 Result bookkeeping now exists in the portable core: packed counters/time,
 per-character/layout best records, completion flags, training leaderboard,
 source item awards/leftover returns, next-unplayed-layout selection and the stock
-selection limits. The desktop still needs to connect these rules to result,
+selection limits. The desktop connects these rules to result,
 retry and inventory screens and save storage. C comparisons pass for 2,048 award
 and return cases with exact RNG, plus the existing 512 score cases. Portable
 scenario checks cover character isolation, ranking ties and failure stock loss.
@@ -375,7 +372,7 @@ save/continue; random layouts; and armour variants. These transitions are not
 ordinary gameplay completion evidence. All eight private PC checks pass,
 including roster/assets, 66 fixed constructors and both cadence tests. Window
 checks exercise equipment selection, ordinary movement, retry and the result-to-
-next-mission presentation. Audio, environment producers and remaining items still
+next-mission presentation. Remaining items and ordinary playthrough validation still
 prevent a complete Mission 1/game claim.
 
 Original audio asset decoding is now portable: VAB programs/tones/samples,
@@ -383,8 +380,8 @@ SPU ADPCM loops, XA ADPCM mono/stereo streams and the executable's music/dialogu
 cue tables. Raw Mode 2 BIN/CUE retains XA audio that cooked 2048-byte ISO images
 cannot contain. All 104 non-trial banks and 419 distinct XA cues decode from the
 retail disc; 10,604,160 XA samples match FFmpeg exactly in a private comparison.
-Native tests and the WASM asset/core build pass. Playback, spatial sound dispatch
-and missing gameplay sound triggers are the next audio work; nothing plays yet.
+Native tests and the WASM asset/core build pass. Playback and spatial dispatch are implemented below; remaining sound producers
+are implemented with their owning gameplay systems.
 
 Desktop playback now uses a portable 24-voice sample mixer plus original XA
 music/dialogue. Restored movement sound triggers include walking, running on
@@ -396,13 +393,39 @@ All 74 core checks pass, including 4,096 original-C spatial sound comparisons;
 the eight previous private host/cadence checks still pass. New checks cover audio
 buffer/pause independence, voice expiry/replacement, asynchronous cancellation and
 localized opening-dialogue handoff to background music. Native window recordings
-exercise music, effects, dialogue and silence during pause. Remaining item/special
-attack and environment sound producers will arrive with their owning systems.
+exercise music, effects, dialogue and silence during pause. Remaining item and special attack sound producers will arrive with their owning systems.
 
-Next: finish environment behavior and remaining items, then ordinary Mission 1
+Next: finish remaining items and presentation gaps, then ordinary Mission 1
 boss encounters and continuous campaign validation. The guard-specific heavy-fall
 damage, slam direction, sound and health-bar branch now matches 2,048 original-C
 cases, including narrow-integer overflow and RNG use. NPC gesture priority and
 the shared camera reset on backflips/flip landings are also restored and checked.
 These audio/progression
 increments do not establish complete Mission 1 or campaign playability.
+
+
+Environmental construction records now load the original door/pitfall tables,
+sprites and scrolling TIMs. All activation callbacks run before object updates,
+at the source ten-tick cadence around the camera reference. Doors/pitfalls share
+the ordered collision pool, retain their different pause/resume rules and use
+shared leaf coordinate caches. The unchecked exhausted collision result retains
+its original behavior: every authored door has a constant direction over the
+possible aliased ordering-table links, so no GPU-address emulation is needed.
+
+Fire eruptions, steam puffs, bonfires, decorative flames, snowfall and ambient
+sound schedules preserve their RNG/effect allocation order. Snow wraps with the
+source unsigned remainder and queries first-hit terrain. Scrolling textures keep
+persistent effect slots and 1/16-word offsets. Their original texture copies are
+applied in reverse submission order at the next completed-frame boundary; native
+uploads are keyed by texture revision, independent of display cadence.
+
+Verification: 4,096 original-C emitter cases (particle RNG costs stubbed), 4,096
+door/pitfall transition cases (SDK angle results supplied), 2,048 snow trajectories
+with flat terrain/projection stubs, and 40,960 texture-scroll updates pass. All 83
+core checks plus a separate all-43-authored-doors proof pass. Ten relevant private
+host checks pass, including 66 constructors, progression and cadence comparisons.
+Native window checks show a door opening as the player walks through it, animated
+water during swimming, snow and decorative flames. These were relocated QA starts,
+not complete mission runs. The lava-area check reaches the existing unimplemented
+damage-floor napalm diagnostic; that is the next gameplay boundary. Camera-side
+scene culling and full stage transparency also need presentation follow-up.

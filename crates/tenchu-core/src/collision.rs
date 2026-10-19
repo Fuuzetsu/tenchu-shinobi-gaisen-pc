@@ -7,6 +7,7 @@ pub const CAPACITY: usize = 80;
 pub const HIT: i16 = 1;
 pub const STAND: i16 = 4;
 pub const SOFT: i16 = 8;
+pub const DOOR_OWNER: usize = usize::MAX;
 const LIVE: u8 = 0x80;
 const CONSUMED: u8 = 0x40;
 

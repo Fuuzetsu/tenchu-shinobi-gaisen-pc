@@ -4,7 +4,11 @@ pub use fade::Fade;
 mod explosion;
 mod impact;
 mod smoke;
+mod snow;
+mod texture;
 pub use explosion::Explosion;
+pub use snow::Snow;
+pub use texture::{TextureMove, TextureScroll};
 mod wire;
 pub use blood::Blood;
 pub use impact::Impact;
@@ -69,6 +73,8 @@ pub enum Effect {
     Explosion(Explosion),
     Ember(Explosion),
     Fade(Fade),
+    Snow(Snow),
+    TextureScroll(TextureScroll),
 }
 
 pub struct Environment<'a> {
@@ -76,6 +82,7 @@ pub struct Environment<'a> {
     pub cursor: &'a mut Cursor,
     pub clock: i32,
     pub owner_position: [i32; 3],
+    pub reference: [i32; 3],
 }
 
 #[derive(Clone, Copy)]
@@ -95,6 +102,28 @@ impl View {
         });
         let (xy, z) = visibility::project(&matrix, point);
         (xy, (z >> 2) as i16)
+    }
+
+    pub(crate) fn sprite(
+        &self,
+        position: [i32; 3],
+        graphic: Graphic,
+        scale: i32,
+        color: u8,
+    ) -> Option<Drawing> {
+        let (xy, depth) = self.project(position);
+        if depth <= 36 {
+            return None;
+        }
+        let scale = i32::from((scale.wrapping_mul(300) / i32::from(depth)) as i16).wrapping_add(1);
+        Some(Drawing {
+            graphic,
+            xy,
+            scale: [scale; 2],
+            color: [color; 3],
+            rotation: 0,
+            depth: (depth >> 2).clamp(0, 1249),
+        })
     }
 }
 
@@ -127,6 +156,18 @@ pub struct Drawing {
     pub depth: i16,
 }
 
+impl Drawing {
+    pub fn bytes(&self) -> u32 {
+        if matches!(self.graphic, Graphic::Bleed)
+            || (self.scale.map(|v| v as i16) == [4096; 2] && self.rotation == 0)
+        {
+            24
+        } else {
+            40
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Shadow {
     pub position: [i32; 3],
@@ -143,6 +184,7 @@ pub struct Effects {
     pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<([i32; 3], i16)>,
     pub fades: Vec<(i32, [u8; 3])>,
+    pub texture_moves: Vec<TextureMove>,
     cursor: usize,
     visiting: Option<usize>,
 }
@@ -157,6 +199,7 @@ impl Default for Effects {
             blood_pools: Vec::new(),
             sounds: Vec::new(),
             fades: Vec::new(),
+            texture_moves: Vec::new(),
             cursor: 0,
             visiting: None,
         }
@@ -164,6 +207,14 @@ impl Default for Effects {
 }
 
 impl Effects {
+    pub fn reset(&mut self) {
+        for slot in &mut self.slots[..200] {
+            if !matches!(slot, Some(Effect::TextureScroll(_))) {
+                *slot = None;
+            }
+        }
+    }
+
     fn sprite(
         &mut self,
         graphic: Graphic,
@@ -333,6 +384,7 @@ impl Effects {
         self.blood_pools.clear();
         self.sounds.clear();
         self.fades.clear();
+        self.texture_moves.clear();
     }
 
     pub fn step(
@@ -370,6 +422,11 @@ impl Effects {
         env: &mut Environment,
     ) -> Result<bool> {
         match effect {
+            Effect::Snow(snow) => self.update_snow(snow, view, env),
+            Effect::TextureScroll(scroll) => {
+                self.texture_moves.push(scroll.step());
+                Ok(true)
+            }
             Effect::Fade(fade) => Ok(self.update_fade(fade, env.clock)),
             Effect::Smoke(smoke) => Ok(self.update_smoke(smoke, rng, view)),
             Effect::Bleed(bleed) => {

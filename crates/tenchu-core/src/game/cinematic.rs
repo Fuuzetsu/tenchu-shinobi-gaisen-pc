@@ -230,6 +230,7 @@ impl Game {
                             cursor: &mut self.cursor,
                             clock: self.clock,
                             owner_position: self.roster.get(self.player_id).position,
+                            reference: self.camera.reference,
                         },
                     )?,
                     3 => self.effects.fade(

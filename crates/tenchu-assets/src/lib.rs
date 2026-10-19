@@ -7,6 +7,7 @@ pub mod executable;
 pub mod font;
 pub mod game;
 pub mod hud;
+pub mod misc;
 pub mod model;
 pub mod motion;
 pub mod script;

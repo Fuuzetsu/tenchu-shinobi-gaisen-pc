@@ -96,6 +96,7 @@ impl Layout {
 }
 
 pub struct MissionAssets {
+    pub misc: crate::misc::Misc,
     pub stage: Stage,
     pub map: Vec<Part>,
     pub objects: Vec<Part>,
@@ -112,7 +113,7 @@ pub struct MissionAssets {
     pub common_models: BTreeMap<usize, Vec<model::Geometry>>,
     pub enemies: Vec<Enemy>,
     pub construction_actors: Vec<Enemy>,
-    pub construction_pickups: Vec<Pickup>,
+    pub construction_pickups: Vec<(usize, Pickup)>,
     pub pickups: Vec<Pickup>,
     pub disguise: i16,
     pub reinforcements: [i16; 2],
@@ -242,10 +243,13 @@ impl MissionAssets {
                     facing: u32_le(row, 28)? as i16,
                     patrol: Vec::new(),
                 }),
-                4 => construction_pickups.push(Pickup {
-                    kind: i16_le(row, 2)? as usize,
-                    position: point(row, 16)?,
-                }),
+                4 => construction_pickups.push((
+                    i,
+                    Pickup {
+                        kind: i16_le(row, 2)? as usize,
+                        position: point(row, 16)?,
+                    },
+                )),
                 _ => {}
             }
         }
@@ -344,6 +348,7 @@ impl MissionAssets {
             Vec::new()
         };
         Ok(Self {
+            misc: crate::misc::Misc::load(game, &construction, &mut vram)?,
             font,
             tanka,
             scripts: crate::script::Scripts::load(game, id, character, language)?,

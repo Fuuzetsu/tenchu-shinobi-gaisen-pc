@@ -10,6 +10,7 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
         cursor: &mut cursor,
         clock: 0,
         owner_position: [0; 3],
+        reference: [0; 3],
     };
     let mut rng = Random::new(1);
     effects.smoke_burst([0; 3], 0, 12, 201, &mut rng);
@@ -56,6 +57,7 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
         cursor: &mut cursor,
         clock: 0,
         owner_position: [0; 3],
+        reference: [0; 3],
     };
     let mut rng = Random::new(1);
     let mut scene = Scene::default();
@@ -137,6 +139,7 @@ fn spawning_from_a_full_pool_preserves_the_visiting_slot_and_dummy_lifetime() {
         cursor: &mut cursor,
         clock: 0,
         owner_position: [0; 3],
+        reference: [0; 3],
     };
     effects.slots[..200].fill(Some(Effect::Bleed(Bleed {
         position: [0, 0, 2000],
@@ -207,6 +210,7 @@ fn expiring_attached_flash_still_visits_its_coordinate() {
         cursor: &mut cursor,
         clock: 0,
         owner_position: [0; 3],
+        reference: [0; 3],
     };
     effects.flash(Some(parent), [0; 3], 12288, 1);
     let Some(Effect::Flash(flash)) = effects.slots[1].as_mut() else {
@@ -245,3 +249,5 @@ fn flat_map() -> tenchu_assets::terrain::AreaMap {
 }
 
 mod explosions;
+
+mod snow;
