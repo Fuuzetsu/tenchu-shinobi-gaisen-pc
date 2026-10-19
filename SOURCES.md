@@ -720,3 +720,20 @@ coordinate calculation, trail allocation and sound submission are stubbed at
 their request boundaries; existing arithmetic/flight tests cover the shared
 helpers. Integration checks exercise arming, actual damage, continued flight
 after a humanoid hit and final terrain disposal.
+
+## Speed scroll (2026-10-20)
+
+`ITEM.C::ProcItemShinsoku` and `ReqItemShinsoku` define casting, the 75-tick boost,
+terrain probes, trails, steering, cancellation and interruption refunds.
+`EFFECT.C::RotateVectorS` uses the SDK's signed-short matrix result; steering
+therefore clamps the transformed short vector. `MODEL_POSITION` aliases the
+actor's position, while direct coordinate writes preserve the cached world matrix
+and validity flag. `MOTION.C::ActITEM` already holds the finished cast animation.
+The recorded source and tuning hashes are unchanged. The research reference
+`tools/tenchu-sim/src/items/speed.rs` has SHA-256
+`49b93440f71f8da3ae884652e9c6ced15d4a16cbc434112ee0fbe3be701e5502`.
+
+The focused checks exercise ordinary casts for both characters and controlled
+terrain/cache/interruption boundaries. They do not add a new extracted-C oracle
+for this callback. Existing matrix, camera, terrain and particle comparisons
+cover its shared helper boundaries.

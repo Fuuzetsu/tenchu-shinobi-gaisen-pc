@@ -606,3 +606,17 @@ for both characters. Those checks use a temporary save with the item unlocked;
 normal gameplay then selects it through the equipment screen. No runtime state
 override or source-code QA hook is present.
 Nix native, WASM and formatting checks pass on x86_64-linux.
+
+Speed scrolls now cast, add their original movement after the normal actor update,
+steer by 64 angle units per tick and run for 75 active ticks. Terrain probes,
+smoke/trail cadence, cancellation and camera changes follow the source. Interrupted
+casting drops a recoverable scroll; interruption during the boost does not.
+Forced item eviction deliberately leaves the source's motion/camera state intact.
+Three focused checks cover both characters' full duration and cancellation,
+terrain threshold edges, movement-before-turning, coordinate cache preservation,
+trail fields, interruption refunds and forced disposal. Both colored-rice checks
+also pass after sharing their scalar rotated-vector request setup.
+Native keyboard checks cast, move and recover for both characters, with visible
+speed trails. A temporary save supplies unlocked scrolls; equipment selection
+and gameplay use the normal UI and input paths. Nix native, WASM and formatting
+checks pass on x86_64-linux.

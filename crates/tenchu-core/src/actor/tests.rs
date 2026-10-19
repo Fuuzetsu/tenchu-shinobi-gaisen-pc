@@ -888,5 +888,6 @@ mod darts;
 mod explosives;
 mod poison;
 mod revival;
+mod speed;
 mod swim;
 mod wall;

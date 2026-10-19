@@ -240,10 +240,15 @@ impl Items {
             }
             19 => {}
             15 => self.request_darts(owner_id, start, actors, ctx)?,
-            8 => {
-                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, -100], ctx)?;
+            8 | 13 => {
+                let (processor, speed) = if kind == 8 {
+                    (Processor::Rice, -100)
+                } else {
+                    (Processor::Speed, -500)
+                };
+                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, speed], ctx)?;
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Rice, kind, Some(owner_id), start, ctx)?;
+                self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].rolling.velocity = velocity.map(|v| v as i16);
             }

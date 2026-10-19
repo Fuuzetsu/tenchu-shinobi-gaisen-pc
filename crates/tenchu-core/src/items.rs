@@ -15,6 +15,7 @@ mod rolling;
 mod sight_shot;
 mod sleep;
 mod smoke;
+mod speed;
 mod sprite;
 #[cfg(test)]
 mod tests;
@@ -55,6 +56,7 @@ pub enum Processor {
     Resurrection,
     Rice,
     Darts,
+    Speed,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -360,6 +362,7 @@ impl Items {
                     self.rice(id, actors, intelligence.action_halt, player, ctx)?
                 }
                 Some(Processor::Darts) => self.darts(id, actors, ctx)?,
+                Some(Processor::Speed) => self.speed(id, actors, player, ctx)?,
                 None => {}
             }
         }
