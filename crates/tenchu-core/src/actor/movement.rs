@@ -26,7 +26,7 @@ impl Actor {
         } else {
             if self.fall_check(ctx) {
                 self.hang_check(ctx)?;
-            } else if self.map.attribute & 4 != 0 {
+            } else if self.map.attribute & 4 != 0 && self.status != 4 {
                 return Err("Swimming control is not implemented yet".into());
             }
             None
@@ -35,6 +35,7 @@ impl Actor {
             0 => self.normal(ctx, world, held, command, center)?,
             1 => self.action(ctx, world, held)?,
             2 => self.walk(ctx, world, held, center)?,
+            4 => self.grapple_control(ctx, world)?,
             5 => self.engage(ctx, world, held, command, center)?,
             6 => self.chase(ctx, world, held, command, center)?,
             7 => self.attack(ctx, world, held)?,

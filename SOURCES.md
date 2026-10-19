@@ -264,3 +264,22 @@ interruption drops, caltrop scatter/arming and medicine animation/healing.
 apply. Item cleanup can access the actor currently executing control as well as
 the roster, preserving immediate owner-flag writes during pool eviction.
 Shared icon scales and reused item rotations remain live scalar state.
+
+## Grappling and cable effects (2026-10-20)
+
+`ActKAGI`, `ProcKaginawa`, `ReqItemUse`, `SetFlyWire`, `DrawFlyWire` and
+`SetWire` in the matching files above govern aim/release, camera, motion masks,
+pull/contact transitions, cable RNG and integer curve sampling. The runtime uses
+ordinary scalar actor/item/effect state. The original empty-curve hook draw uses
+undefined stack coordinates; the port explicitly omits that draw.
+
+Additional behavioral references in the research repository at the revision above:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/grapple.rs` | `b3f7b34a5b1baa42201c02929355a9f040cb37843e0a827ea058222de9541a87` |
+| `tools/tenchu-sim/src/wire_packets.rs` | `e67a1e26aeceb714f88bd0adbc4af080f84146c41ecd09cbf49c935feceef05b` |
+
+The new private test extracts the actual C hook setup/update routines. It compares
+2,048 flights with supplied SDK square-root results and draw/sound/particle stubs.
+No sibling source or C toolchain is required by the game.

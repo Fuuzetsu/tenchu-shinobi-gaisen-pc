@@ -1,0 +1,59 @@
+use super::*;
+use crate::{camera::Mode, ids::MOT_KAGI, input::TRIANGLE};
+
+impl Items {
+    pub(super) fn grapple(
+        &mut self,
+        id: usize,
+        actors: &mut Actors,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        let owner_id = self.slots[id].owner.ok_or("Grappling hook has no owner")?;
+        let owner = actors.get(owner_id);
+        if owner.inventory[25] == 0 {
+            use_item::camera(Mode::Direction, owner, ctx)?;
+            return self.dispose(id, actors, ctx);
+        }
+        if owner.motion.action != MOT_KAGI {
+            return self.dispose(id, actors, ctx);
+        }
+        let rotation = ctx
+            .math
+            .vector_rotation(ctx.camera.position, ctx.camera.reference)?;
+        if owner.pad.held & TRIANGLE != 0 {
+            if rotation[0] < 0 {
+                let mut sprite = crate::hud::Sprite::new(ctx.mission.images[52], [0; 2]);
+                sprite.blend = 2;
+                self.sprites.push(sprite);
+                ctx.drawing.bytes += 24;
+            }
+            return Ok(());
+        }
+        let vector = Matrix {
+            rotation: ctx.math.rotate_yxz(rotation),
+            ..Matrix::default()
+        }
+        .apply_large([0, 0, -20000]);
+        let end = std::array::from_fn(|i| ctx.camera.position[i].wrapping_add(vector[i]));
+        let target = terrain::ground_ray(
+            &ctx.mission.terrain,
+            ctx.cursor,
+            ctx.math,
+            ctx.camera.position,
+            end,
+            0,
+        )?
+        .1;
+        ctx.camera.target = std::array::from_fn(|i| target[i].wrapping_add(vector[i] / 16));
+        let root = ctx.scene.models[owner.root_model].local.translation;
+        let distance = ctx.math.vector_distance(std::array::from_fn(|i| {
+            root[i].wrapping_sub(ctx.camera.target[i])
+        }));
+        if rotation[0] > 0 || distance > 15000 {
+            ctx.camera.target = root;
+        }
+        use_item::camera(Mode::Lock, owner, ctx)?;
+        actors.get_mut(owner_id).inventory[25] = 0;
+        self.dispose(id, actors, ctx)
+    }
+}

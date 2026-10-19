@@ -2,6 +2,7 @@ mod body;
 mod combat;
 mod damage;
 mod death;
+mod grapple;
 mod item;
 pub use combat::Combat;
 mod movement;

@@ -65,6 +65,7 @@ impl Actor {
                 terrain: &ctx.mission.terrain,
                 cursor: ctx.cursor,
                 clock,
+                owner_position: self.position,
             },
         )
     }

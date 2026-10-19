@@ -67,6 +67,14 @@ impl Items {
             active: Some(owner),
         };
         match kind {
+            0 => {
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Grapple, kind, Some(owner_id), start, ctx)?;
+                self.slots[id].collision.size = 0;
+                actors.get_mut(owner_id).inventory[25] = 1;
+                camera(Mode::Sight, actors.get(player), ctx)?;
+                ctx.camera.direction = [-341, 0];
+            }
             1 if owner_id == player => {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::SightShot, kind, Some(owner_id), start, ctx)?;

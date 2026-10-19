@@ -721,3 +721,39 @@ fn injured_enemy_uses_its_medicine() {
     );
     assert_eq!(game.roster.get(enemy).inventory[3], 0);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; ordinary hook aim, flight, pull and cancellation for both characters"]
+fn both_players_grapple_and_cancel_through_normal_updates() {
+    use crate::input::*;
+    for character in 0..2 {
+        for path in 0..3 {
+            let mut game = oracle::game(0, character);
+            game.roster.get_mut(game.player_id).inventory[0] = 255;
+            game.step(0).unwrap();
+            game.step(TRIANGLE).unwrap();
+            for _ in 0..30 {
+                game.step(TRIANGLE | if path == 0 { RIGHT } else { 0 })
+                    .unwrap();
+            }
+            assert_eq!(game.player().motion.action, MOT_KAGI);
+            assert_eq!(game.player().inventory[25], 1);
+            assert!(!game.items.sprites.is_empty());
+            game.step(if path == 2 { TRIANGLE | SQUARE } else { 0 })
+                .unwrap();
+            assert_eq!(game.player().inventory[25], 0);
+            let mut fly = false;
+            let mut pull = false;
+            let mut wire = false;
+            for _ in 0..220 {
+                game.step(0).unwrap();
+                fly |= game.player().motion.action == MOT_KAGI_FLY;
+                pull |= game.player().motion.action == MOT_KAGI_PULL;
+                wire |= !game.effects.wires.is_empty();
+            }
+            assert_eq!(game.player().inventory[0], 255);
+            assert_ne!(game.player().status, 4);
+            assert_eq!((fly, pull, wire), (path == 0, path == 0, path == 0));
+        }
+    }
+}

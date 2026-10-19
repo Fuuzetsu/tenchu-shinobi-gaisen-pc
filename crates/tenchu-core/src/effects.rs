@@ -1,7 +1,9 @@
 mod blood;
 mod impact;
+mod wire;
 pub use blood::Blood;
 pub use impact::Impact;
+pub use wire::{FlyWire, Wire};
 
 use crate::{
     Result,
@@ -58,12 +60,14 @@ pub enum Effect {
     Flash(Flash),
     Blood(Blood),
     Impact(Impact),
+    FlyWire(FlyWire),
 }
 
 pub struct Environment<'a> {
     pub terrain: &'a tenchu_assets::terrain::AreaMap,
     pub cursor: &'a mut Cursor,
     pub clock: i32,
+    pub owner_position: [i32; 3],
 }
 
 #[derive(Clone, Copy)]
@@ -126,6 +130,7 @@ pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     pub drawings: Vec<Drawing>,
     pub shadows: Vec<Shadow>,
+    pub wires: Vec<Wire>,
     pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<([i32; 3], i16)>,
     cursor: usize,
@@ -138,6 +143,7 @@ impl Default for Effects {
             slots: vec![None; 201],
             drawings: Vec::new(),
             shadows: Vec::new(),
+            wires: Vec::new(),
             blood_pools: Vec::new(),
             sounds: Vec::new(),
             cursor: 0,
@@ -281,6 +287,7 @@ impl Effects {
     pub fn begin_tick(&mut self) {
         self.drawings.clear();
         self.shadows.clear();
+        self.wires.clear();
         self.blood_pools.clear();
         self.sounds.clear();
     }
@@ -473,6 +480,7 @@ impl Effects {
             }
             Effect::Blood(blood) => self.update_blood(blood, rng, view, env),
             Effect::Impact(impact) => self.update_impact(impact, view, scene),
+            Effect::FlyWire(wire) => Ok(self.update_wire(wire, rng, view, env.owner_position)),
         }
     }
 }

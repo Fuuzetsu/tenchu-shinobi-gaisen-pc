@@ -56,6 +56,15 @@ impl Drawing {
                 self.bytes += packets::sdk_plain(shadow, &matrix)?;
             }
         }
+        for wire in &effects.wires {
+            self.bytes += wire.lines.len() as u32 * 20;
+            if let Some((matrix, fog)) = wire.hook {
+                self.fog = fog;
+                if let Some(mesh) = mission.common_models[&26].first() {
+                    self.bytes += packets::draw_tmd(mesh, &view.compose(&matrix), fog);
+                }
+            }
+        }
         for drawing in &effects.drawings {
             self.bytes += match drawing.graphic {
                 Graphic::Bleed => 24,

@@ -122,6 +122,42 @@ pub fn build(game: &Game) -> Geometry {
             );
         }
     }
+    for wire in &game.effects.wires {
+        if let Some((matrix, _)) = wire.hook {
+            mesh_surfaces(
+                &mut surfaces,
+                &game.mission.common_models[&26],
+                matrix,
+                game.camera.view,
+            );
+        }
+        for &(points, sort_depth) in &wire.lines {
+            let [a, b] = points.map(|p| p.map(f32::from));
+            let delta = [b[0] - a[0], b[1] - a[1]];
+            let length = delta[0].hypot(delta[1]);
+            if length == 0.0 {
+                continue;
+            }
+            let offset = [-delta[1] / length * 0.5, delta[0] / length * 0.5];
+            let z = f32::from(sort_depth) * 16.0;
+            let points = [
+                [a[0] - offset[0], a[1] - offset[1], depth(z)],
+                [b[0] - offset[0], b[1] - offset[1], depth(z)],
+                [a[0] + offset[0], a[1] + offset[1], depth(z)],
+                [b[0] + offset[0], b[1] + offset[1], depth(z)],
+            ];
+            surfaces.push(Surface {
+                depth: z,
+                blend: 0,
+                vertices: quad(
+                    points,
+                    [[80.0 / 255.0, 72.0 / 255.0, 56.0 / 255.0]; 4],
+                    None,
+                    0,
+                ),
+            });
+        }
+    }
     for &(index, matrix) in &game.items.models {
         mesh_surfaces(
             &mut surfaces,

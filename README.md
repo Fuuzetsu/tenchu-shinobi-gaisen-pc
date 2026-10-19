@@ -60,8 +60,8 @@ an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
-and the source follow/look camera. Shuriken, medicine and caltrops work through
-normal item selection. Grappling, remaining items/special attacks and mission
+and the source follow/look camera. Grappling, shuriken, medicine and caltrops work
+through normal item selection. Remaining items/special attacks and mission
 events are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -69,7 +69,8 @@ texture palettes and transparency modes. The HUD shows inventory selection and
 counts, player/enemy health and the proximity indicator using original graphics.
 The launcher starts with the original fallback loadout: infinite hook, 10 shuriken,
 5 caltrops and 2 medicine. Tap E for a quick shuriken throw or hold it to aim,
-then release to throw; J, Space or Shift cancels the held item. Lighting, full
+then release to throw; J, Space or Shift cancels the held item. With the hook
+selected, hold E, aim with the direction keys and release to grapple. Lighting, full
 scene transparency, the map and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
@@ -97,7 +98,9 @@ weapons and patrol data. The ordered actor loop and AI controllers are implement
 NPC activation now runs at the source cadence. Remaining effects, special ranged
 attacks, remaining items and stage scripts remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; remaining items and environmental effects still need
-to add their original contributions before this has full-game fidelity.
+to add their original contributions before this has full-game fidelity. Empty
+cable curves omit the hook mesh: the original reads undefined stack coordinates
+in that case, which this port does not reproduce.
 An additional private check compares the roster, mission totals, weapon hitbox
 indices and layout patrol points with the existing Reclaim the Castle capture:
 

@@ -169,11 +169,12 @@ body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
 dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellation,
-medicine, caltrops and item damage. The native
+medicine, caltrops, grappling and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
-Unsupported actions still pause with a diagnostic. Grappling, remaining item use, special ranged attacks, mission events, map display and audio remain unfinished; this is not
-playable Mission 1.
+Unsupported actions still pause with a diagnostic. Remaining item use, special
+ranged attacks, mission events, map display and audio remain unfinished; this is
+not playable Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -196,8 +197,11 @@ logical packet contributions are included in activation sampling. The desktop
 launcher supplies the original fallback loadout (hook, 10 shuriken, 5 caltrops,
 2 medicine). Shuriken aiming/release/cancellation, medicine and caltrops now run
 through normal input, actor animations and item updates. AI can request medicine.
-Grappling remains the next integration step.
-CVA camera/actor ownership, remaining ranged/item combat, swimming/grappling, results,
+Grappling now includes source targeting, flight/countdown, pull/contact exits,
+cable RNG, impact particles and original hook geometry. Empty cable curves omit
+the hook draw instead of reading undefined retail stack locals; their exact
+original packet cost is therefore outside the fidelity claim.
+CVA camera/actor ownership, remaining ranged/item combat, swimming, results,
 saving, transitions and the remaining campaign are still required.
 
 Verification completed so far:
@@ -233,7 +237,13 @@ Verification completed so far:
   throws and medicine drops, medicine healing and caltrop contact damage through
   ordinary ticks. A low-health enemy heals through the AI/item loop. Pool eviction
   preserves cancellation of an aimed item owned by the currently executing actor.
-  Interactive window checks display the aiming sight and flying shuriken trail.
+  Interactive window checks display the aiming sight, flying shuriken trail and
+  medicine animation/healing particles.
+- Both characters aim, grapple into Mission 1 geometry, return from flight/pull,
+  cancel and reject distant targets through ordinary input and game updates.
+  Hook setup, flight/straightening timing, random bends and impact RNG match the
+  original C in 2,048 cases. This oracle supplies the integer square-root result
+  and stubs draw/sound/particle sinks. The native window renders the hook/cable.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -249,6 +259,6 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: grappling, then remaining item behaviors, swimming and mission events. Fill the remaining drawing producers alongside their owning gameplay
-systems. No batched-world storage, PS1 timing model or source-C runtime dependency
+Next: remaining item behaviors, swimming and mission events. Fill the remaining
+drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

@@ -265,6 +265,7 @@ impl Game {
                 terrain: &self.mission.terrain,
                 cursor: &mut self.cursor,
                 clock: self.tick as i32,
+                owner_position: self.roster.get(self.player_id).position,
             },
         )?;
         self.drawing

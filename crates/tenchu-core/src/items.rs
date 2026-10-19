@@ -1,5 +1,6 @@
 mod caltrops;
 mod flight;
+mod grapple;
 mod medicine;
 mod pickup;
 mod projectile;
@@ -32,6 +33,7 @@ pub enum Processor {
     SightShot,
     Medicine,
     Caltrops,
+    Grapple,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -152,6 +154,7 @@ impl Items {
     fn dispose(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<()> {
         let item = &mut self.slots[id];
         match item.processor {
+            Some(Processor::Grapple) => item.mode = 0,
             Some(Processor::SightShot) => {
                 actors
                     .get_mut(item.owner.ok_or("Aimed item has no owner")?)
@@ -296,6 +299,7 @@ impl Items {
                     self.medicine(id, actors, intelligence.action_halt, ctx)?
                 }
                 Some(Processor::Caltrops) => self.caltrops(id, actors, ctx)?,
+                Some(Processor::Grapple) => self.grapple(id, actors, ctx)?,
                 None => {}
             }
         }
