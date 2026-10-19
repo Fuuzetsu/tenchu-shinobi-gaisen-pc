@@ -167,11 +167,12 @@ Implemented systems include scalar fixed-point math, command history, RNG,
 player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
-weapon hitboxes/clashes, guarding, damage reactions and authored stealth deaths. The native
+weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
+dropped inventory and pickups. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Ranged attacks, item damage/use,
-inventory drops, mission events, HUD and audio remain unfinished; this is not
+mission events, HUD and audio remain unfinished; this is not
 playable Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -209,6 +210,10 @@ Verification completed so far:
   sound requests and collision-pool size. The native C harness supplies open
   terrain, motion descriptors and effect-allocation stubs; rendering and complete
   continuous gameplay are outside this isolated comparison.
+- Item rolling matches the original C in 4,096 cases using recorded terrain
+  responses, including bounce/out-of-map behavior, narrow velocities, RNG and
+  splashes. Both characters collect a pickup through ordinary ticks. Regressions
+  preserve interrupted final-tick transfer and eviction before failed allocation.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -224,7 +229,7 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: scalar inventory, pickups and thrown weapons, then the remaining item
-behaviors and mission events. Fill the remaining drawing producers alongside their owning gameplay
+Next: thrown weapons and item damage/use, then the remaining item behaviors
+and mission events. Fill the remaining drawing producers alongside their owning gameplay
 systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

@@ -108,8 +108,9 @@ pub fn build(game: &Game) -> Geometry {
             }
         }
     }
-    for drawing in &game.effects.drawings {
+    for drawing in game.effects.drawings.iter().chain(&game.items.drawings) {
         let (image, blend, bottom_origin) = match drawing.graphic {
+            Graphic::Sprite { image, blend } => (Some(usize::from(image)), blend, false),
             Graphic::Smoke(index) => (Some([6, 58][usize::from(index)]), 2, false),
             Graphic::Splash => (Some(14), 2, true),
             Graphic::Bleed => (None, 0, false),

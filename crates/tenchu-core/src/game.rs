@@ -30,6 +30,7 @@ pub struct Game {
     pub statistics: setup::Statistics,
     pub random: Random,
     pub effects: Effects,
+    pub items: crate::items::Items,
     pub tick: u64,
     pub scene: Scene,
     pub collision: Collision,
@@ -62,6 +63,7 @@ impl Game {
         let mut effects = Effects::default();
         let mut scene = Scene::default();
         let mut drawing = Drawing::new(executable)?;
+        let mut items = crate::items::Items::new(&mut scene);
         let construction = Construction::new(&mission, &mut scene, &math)?;
         let mut collision = Collision::default();
         let mut camera = Camera::new(
@@ -82,7 +84,8 @@ impl Game {
             drawing: &mut drawing,
         };
         let mut roster = Roster::default();
-        let (player_id, statistics) = setup::construct(&mut roster, character, &mut context)?;
+        let (player_id, statistics) =
+            setup::construct(&mut roster, &mut items, character, &mut context)?;
         roster.get_mut(player_id).initialize_rendered(&scene, &math);
         Ok(Self {
             mission,
@@ -92,6 +95,7 @@ impl Game {
             cursor,
             random,
             effects,
+            items,
             roster,
             player_id,
             statistics,
@@ -182,6 +186,7 @@ impl Game {
                             actor.corpse(
                                 &mut context,
                                 &mut crate::actor::ActionContext {
+                                    items: &mut self.items,
                                     roster: &mut self.roster,
                                     intelligence: &mut self.intelligence,
                                     statistics: &mut self.statistics,
@@ -198,6 +203,7 @@ impl Game {
                         &self.commands,
                         center,
                         &mut crate::actor::ActionContext {
+                            items: &mut self.items,
                             roster: &mut self.roster,
                             intelligence: &mut self.intelligence,
                             statistics: &mut self.statistics,
@@ -257,6 +263,23 @@ impl Game {
         )?;
         self.drawing
             .effects(&self.effects, &self.mission, &self.math, self.camera.view)?;
+        self.items.step(
+            &mut Context {
+                mission: &self.mission,
+                math: &self.math,
+                body: &self.body,
+                cursor: &mut self.cursor,
+                random: &mut self.random,
+                effects: &mut self.effects,
+                scene: &mut self.scene,
+                collision: &mut self.collision,
+                camera: &mut self.camera,
+                drawing: &mut self.drawing,
+            },
+            &mut self.roster,
+            self.intelligence.action_halt,
+            self.tick as i32,
+        )?;
         for (i, &id) in self.visible.iter().enumerate() {
             self.roster.get_mut(id).prepare_draw(
                 &mut self.scene,

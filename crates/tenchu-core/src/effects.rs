@@ -88,6 +88,10 @@ impl View {
 
 #[derive(Clone, Debug)]
 pub enum Graphic {
+    Sprite {
+        image: u8,
+        blend: u8,
+    },
     Smoke(u8),
     Splash,
     Bleed,

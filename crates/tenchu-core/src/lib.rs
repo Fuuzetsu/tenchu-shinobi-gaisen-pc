@@ -9,6 +9,7 @@ pub mod effects;
 pub mod game;
 pub mod ids;
 pub mod input;
+pub mod items;
 pub mod math;
 pub mod motion;
 pub mod packets;

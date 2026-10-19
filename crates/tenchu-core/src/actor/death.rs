@@ -1,13 +1,6 @@
 use super::*;
 
 impl Actor {
-    pub(super) fn drop_inventory(&self) -> Result<()> {
-        if self.inventory.iter().any(|&n| n != 0) {
-            return Err("Death inventory drops are not implemented yet".into());
-        }
-        Ok(())
-    }
-
     pub(super) fn dead(
         &mut self,
         ctx: &mut Context,
@@ -36,7 +29,7 @@ impl Actor {
                 if self.id != world.player {
                     ctx.collision.remove(ctx.scene, self.parts[0]);
                     if self.kind & 0xf0 != 0x80 {
-                        self.drop_inventory()?;
+                        world.items.drop_inventory(self, ctx)?;
                     }
                 }
                 if self.motion.action >= MOT_DEAD_STEALTH_BACK {

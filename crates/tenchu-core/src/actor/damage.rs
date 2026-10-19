@@ -422,7 +422,7 @@ impl Actor {
                     self.velocity = [0; 3];
                     if self.id != world.player {
                         ctx.collision.remove(ctx.scene, self.parts[0]);
-                        self.drop_inventory()?;
+                        world.items.drop_inventory(self, ctx)?;
                     }
                     return Ok(None);
                 }

@@ -59,7 +59,8 @@ WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
-kills and the source follow/look camera. Items, ranged combat and mission events
+kills, dropped inventory, pickups and the source follow/look camera. Item use,
+ranged combat and mission events
 are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -73,7 +74,7 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 scalar gameplay code.
 
 The private-disc cadence test exercises both characters and compares player,
-animation, effects, RNG, camera, collision, coordinate caches and activation at every tick
+animation, effects, items, RNG, camera, collision, coordinate caches and activation at every tick
 under 24 Hz and 144 Hz host frames:
 
 ```sh

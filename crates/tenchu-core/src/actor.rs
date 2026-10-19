@@ -40,6 +40,7 @@ pub struct Context<'a> {
 }
 
 pub struct ActionContext<'a> {
+    pub items: &'a mut crate::items::Items,
     pub roster: &'a mut crate::roster::Roster,
     pub intelligence: &'a mut crate::ai::Intelligence,
     pub statistics: &'a mut crate::game::Statistics,

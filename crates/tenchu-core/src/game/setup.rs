@@ -19,12 +19,16 @@ pub struct Statistics {
 
 pub(super) fn construct(
     roster: &mut Roster,
+    items: &mut crate::items::Items,
     character: i16,
     ctx: &mut Context,
 ) -> Result<(usize, Statistics)> {
     let mission = ctx.mission;
     for spawn in &mission.construction_actors {
         roster.spawn(spawn.kind, spawn.position, spawn.facing, ctx)?;
+    }
+    for spawn in &mission.construction_pickups {
+        items.stay(spawn.kind, spawn.position, ctx)?;
     }
     let player = roster.spawn(character, [0; 3], 0, ctx)?;
     let actor = roster.get_mut(player);
@@ -44,6 +48,7 @@ pub(super) fn construct(
     if roster.order.first() != Some(&player) {
         return Err("Construction actors displaced the stage player".into());
     }
+    items.restore_layout(ctx)?;
     for spawn in &mission.enemies {
         let id = roster.spawn(spawn.kind, spawn.position, 0, ctx)?;
         let actor = roster.get_mut(id);

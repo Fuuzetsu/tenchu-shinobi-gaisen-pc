@@ -25,6 +25,7 @@ fn with_actor<T>(
         intelligence: &mut game.intelligence,
         statistics: &mut game.statistics,
         combat: &mut game.combat,
+        items: &mut game.items,
         player: game.player_id,
         clock: game.tick as i32,
     };

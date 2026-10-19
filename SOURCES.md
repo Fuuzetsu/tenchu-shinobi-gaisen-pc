@@ -208,3 +208,20 @@ Additional decomp headers at the revision above:
 | --- | --- |
 | `src/main.exe/main.exe.h` | `511108e5103d791e0457cfbf209efa4dd59f95c8a475edea11a7370ff422d7df` |
 | `src/main.exe/images.h` | `415c9dfb272a098b396451fd26f639b32c9f4b9e167d7f40ac1b416d712de1ca` |
+
+## Scalar dropped items and pickups (2026-10-20)
+
+The owned 30-slot item pool, rolling physics, layout placement, inventory drops
+and pickup transfer follow the matching C, including allocation and update order.
+The research implementation informed edge cases; its slot bytes, imported state
+and batched storage were not reused. Original-C tests use recorded terrain
+responses to isolate item arithmetic and branching.
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp` (revision above) | `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` |
+| `tenchu-decomp` (revision above) | `src/main.exe/item.h` | `99109f2c30cc5b661e52225d14d14da287dc48045246e8657b9d29eefee0017c` |
+| `tenchu-decomp` (revision above) | `src/main.exe/INFOVIEW.C` | `e4aef1960f32907c3217bbdb3552204f99693124261ede8e9aaa3b6deba15af0` |
+| `tenchu-decomp` (revision above) | `src/main.exe/3DCTRL.C` | `1175982b0890852071a4b0f581ab637b24258d9fe2153b94d958d0edd337c45a` |
+| `tenchu-decomp` (revision above) | `src/main.exe/layout_save.h` | `31531d6c0942c77ebe82132f7f86de543178bd6ae6b51119d8b676ea346cd8b9` |
+| `tenchu-decomp-glitch-research` (revision above) | `tools/tenchu-sim/src/items/rolling.rs` | `c780da63cacd9f2ccf4b6ef6fd1d78871cb948bf0a90d23d2d05a6dbce147665` |

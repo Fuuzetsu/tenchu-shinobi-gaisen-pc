@@ -101,6 +101,7 @@ fn state(game: &Game) -> String {
             &game.roster,
             &game.random,
             &game.effects,
+            &game.items,
             &game.scene,
             &game.collision,
             &game.camera,
@@ -108,8 +109,7 @@ fn state(game: &Game) -> String {
             &game.visible,
             &game.activation,
             &game.drawing,
-            &game.combat,
-            &game.statistics,
+            (&game.combat, &game.statistics),
         )
     )
 }

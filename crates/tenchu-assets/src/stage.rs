@@ -31,6 +31,12 @@ pub struct Enemy {
     pub patrol: Vec<([i32; 3], i32)>,
 }
 
+#[derive(Clone, Debug)]
+pub struct Pickup {
+    pub kind: usize,
+    pub position: [i32; 3],
+}
+
 pub struct MissionAssets {
     pub stage: Stage,
     pub map: Vec<Part>,
@@ -48,6 +54,8 @@ pub struct MissionAssets {
     pub common_models: BTreeMap<usize, Vec<model::Geometry>>,
     pub enemies: Vec<Enemy>,
     pub construction_actors: Vec<Enemy>,
+    pub construction_pickups: Vec<Pickup>,
+    pub pickups: Vec<Pickup>,
     pub disguise: i16,
     pub reinforcements: [i16; 2],
     pub story: Vec<StoryActor>,
@@ -103,6 +111,7 @@ impl MissionAssets {
         let mut area = "STAGE.ACM".to_string();
         let mut placements = Vec::new();
         let mut construction_actors = Vec::new();
+        let mut construction_pickups = Vec::new();
         for (i, row) in construction.chunks_exact(32).enumerate() {
             match i16_le(row, 0)? {
                 0 => area = format!("{}.ACM", text(&row[4..16])?),
@@ -136,6 +145,10 @@ impl MissionAssets {
                     facing: u32_le(row, 28)? as i16,
                     patrol: Vec::new(),
                 }),
+                4 => construction_pickups.push(Pickup {
+                    kind: i16_le(row, 2)? as usize,
+                    position: point(row, 16)?,
+                }),
                 _ => {}
             }
         }
@@ -168,6 +181,20 @@ impl MissionAssets {
         }
         let layout = asset(&format!("IE_{layout}"))?;
         slice(&layout, 0, 7000)?;
+        let mut pickups = Vec::new();
+        for row in slice(&layout, 5000, 30 * 20)?.chunks_exact(20) {
+            let kind = u32_le(row, 0)? as i32;
+            if kind == -1 {
+                continue;
+            }
+            if !(0..25).contains(&kind) {
+                return Err("Invalid layout item kind".into());
+            }
+            pickups.push(Pickup {
+                kind: kind as usize,
+                position: point(row, 4)?,
+            });
+        }
         let mut enemies = Vec::new();
         for slot in 0..30 {
             let p = slice(&layout, slot * 136, 136)?;
@@ -245,6 +272,8 @@ impl MissionAssets {
             common_models,
             enemies,
             construction_actors,
+            construction_pickups,
+            pickups,
             disguise,
             reinforcements,
             story,
