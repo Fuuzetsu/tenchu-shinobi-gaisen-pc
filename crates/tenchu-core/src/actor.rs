@@ -1,6 +1,7 @@
 mod body;
 mod movement;
 pub mod patrol;
+mod shadow;
 pub mod sight;
 mod weapon;
 

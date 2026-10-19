@@ -155,3 +155,10 @@ extracts actual decision bodies and supplies native test structs/side effects.
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/ai.rs` | `c2f07eede86335dfb3047dd641eb42e90cc17ceb156e05325f05311091341439` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/birth/replacement.rs` | `ebf4c3fc4f247284af7b3aae621ca21e44b18f3bf9df665c636f4c43afc0aaec` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/native/ai.c` | `8c783ef32ee1cc58fff24227118fdb84fc42f0df3ebcb0a277813599cf8429f2` |
+
+Shared effect allocation, `DrawShadow`, splashes, droplets and attached flashes
+follow `EFFECT.C` above and this layout/allocator header at the same revision:
+
+| File in `tenchu-decomp` | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/effect.h` | `b274c297c776620cfa28ef26a0d0f3637f233e9fb3317a5d76ffd18a932c94f5` |

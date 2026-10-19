@@ -48,6 +48,7 @@ impl Actor {
         if let Some((action, movement)) = next {
             self.enter(ctx, action, movement);
         }
+        ctx.scene.set_translation(self.root_model, self.position);
         let visible = player
             || crate::visibility::model(ctx.scene, ctx.camera.view, self.root_model)?.is_some();
         let pose = visible || self.status == 7;

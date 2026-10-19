@@ -1,4 +1,10 @@
-use crate::random::Random;
+use crate::{
+    Result,
+    math::Matrix,
+    random::Random,
+    scene::{ModelId, Scene},
+    visibility,
+};
 
 #[derive(Clone, Debug)]
 pub struct Smoke {
@@ -7,19 +13,109 @@ pub struct Smoke {
     pub scale: i32,
     pub time: u8,
     pub change_at: u8,
+    pub sprite: u8,
+    pub rotation: i32,
+}
+
+#[derive(Clone, Debug)]
+pub struct Splash {
+    pub position: [i32; 3],
+    pub size: [i16; 2],
+    pub speed: u8,
+    pub count: u8,
+    pub mode: u8,
+}
+
+#[derive(Clone, Debug)]
+pub struct Bleed {
+    pub position: [i32; 3],
+    pub velocity: [i16; 3],
+    pub color: [u8; 3],
+    pub time: u8,
+    pub mode: u8,
+}
+
+#[derive(Clone, Debug)]
+pub struct Flash {
+    pub parent: Option<ModelId>,
+    pub position: [i32; 3],
+    pub size: i16,
+    pub count: i16,
+    pub mode: u8,
+}
+
+#[derive(Clone, Debug)]
+pub enum Effect {
+    Smoke(Smoke),
+    Splash(Splash),
+    Bleed(Bleed),
+    Flash(Flash),
+}
+
+#[derive(Clone, Copy)]
+pub struct View {
+    pub position: [i32; 3],
+    pub matrix: Matrix,
+}
+
+impl View {
+    fn project(&self, point: [i32; 3]) -> ([i16; 2], i16) {
+        let matrix = Matrix {
+            translation: [0; 3],
+            ..self.matrix
+        };
+        let point = std::array::from_fn(|i| {
+            point[i].wrapping_sub(i32::from(self.position[i] as i16)) as i16
+        });
+        let (xy, z) = visibility::project(&matrix, point);
+        (xy, (z >> 2) as i16)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Graphic {
+    Smoke(u8),
+    Splash,
+    Bleed,
+    Flash(i16),
+}
+
+#[derive(Clone, Debug)]
+pub struct Drawing {
+    pub graphic: Graphic,
+    pub xy: [i16; 2],
+    pub scale: [i32; 2],
+    pub color: [u8; 3],
+    pub rotation: i32,
+    pub depth: i16,
+}
+
+#[derive(Clone, Debug)]
+pub struct Shadow {
+    pub position: [i32; 3],
+    pub rotation: [i16; 3],
+    pub scale: i32,
 }
 
 #[derive(Clone, Debug)]
 pub struct Effects {
-    pub smoke: Vec<Option<Smoke>>,
+    pub slots: Vec<Option<Effect>>,
+    pub drawings: Vec<Drawing>,
+    pub shadows: Vec<Shadow>,
+    pub sounds: Vec<([i32; 3], i16)>,
     cursor: usize,
+    visiting: Option<usize>,
 }
 
 impl Default for Effects {
     fn default() -> Self {
         Self {
-            smoke: vec![None; 201],
+            slots: vec![None; 201],
+            drawings: Vec::new(),
+            shadows: Vec::new(),
+            sounds: Vec::new(),
             cursor: 0,
+            visiting: None,
         }
     }
 }
@@ -29,7 +125,7 @@ impl Effects {
         let mut i = self.cursor;
         for _ in 0..200 {
             i = (i + 1) % 200;
-            if self.smoke[i].is_none() {
+            if self.slots[i].is_none() && self.visiting != Some(i) {
                 self.cursor = (i + 1) % 200;
                 return i;
             }
@@ -51,70 +147,262 @@ impl Effects {
             let x = (if width > 0 { rng.next15() % width } else { 0 } - i32::from(spread)) as i16;
             let z = (if width > 0 { rng.next15() % width } else { 0 } - i32::from(spread)) as i16;
             let velocity = [x, -5, z];
-            self.smoke[slot] = Some(Smoke {
+            self.slots[slot] = Some(Effect::Smoke(Smoke {
                 position: std::array::from_fn(|i| position[i].wrapping_add(i32::from(velocity[i]))),
                 velocity: velocity.map(|v| (i32::from(v) / i32::from(divisor)) as i16),
                 scale: rng.next15() % 0x2000 + 0x1000,
                 time: 15,
                 change_at: (7 - rng.next15() % 15) as u8,
-            });
+                sprite: 1,
+                rotation: 0,
+            }));
         }
     }
 
-    pub fn step(&mut self, rng: &mut Random) {
-        for slot in &mut self.smoke[..200] {
-            let Some(smoke) = slot else {
+    pub fn splash(&mut self, position: [i32; 3], size: [i16; 2], speed: u8) {
+        let slot = self.allocate();
+        self.slots[slot] = Some(Effect::Splash(Splash {
+            position,
+            size,
+            speed,
+            count: 0,
+            mode: 0,
+        }));
+    }
+
+    pub fn flash(&mut self, parent: Option<ModelId>, position: [i32; 3], size: i16, time: i16) {
+        let slot = self.allocate();
+        self.slots[slot] = Some(Effect::Flash(Flash {
+            parent,
+            position,
+            size,
+            count: time,
+            mode: 0,
+        }));
+    }
+
+    pub fn bleeds(
+        &mut self,
+        position: [i32; 3],
+        velocity: [i16; 3],
+        spread: i16,
+        count: i16,
+        time: i32,
+        color: [u8; 3],
+        rng: &mut Random,
+    ) {
+        for _ in 0..count {
+            let width = i32::from(spread) * 2;
+            let position = position.map(|p| {
+                p.wrapping_add(if width > 0 {
+                    rng.next15() % width - i32::from(spread)
+                } else {
+                    -i32::from(spread)
+                })
+            });
+            let remaining = time.wrapping_sub(time / 8);
+            let time = (if remaining > 0 {
+                rng.next15() % remaining + time / 8
+            } else {
+                time / 8
+            }) as u8;
+            let slot = self.allocate();
+            self.slots[slot] = Some(Effect::Bleed(Bleed {
+                position,
+                velocity,
+                color,
+                time,
+                mode: 0,
+            }));
+        }
+    }
+
+    pub fn begin_tick(&mut self) {
+        self.drawings.clear();
+        self.shadows.clear();
+        self.sounds.clear();
+    }
+
+    pub fn step(&mut self, rng: &mut Random, view: View, scene: &mut Scene) -> Result<()> {
+        for i in 0..200 {
+            let Some(mut effect) = self.slots[i].take() else {
                 continue;
             };
-            if smoke.time == smoke.change_at {
-                if smoke.velocity[1] < -20 {
-                    smoke.velocity[0] = (i32::from(smoke.velocity[0]) * 80 / 100) as i16;
-                    smoke.velocity[1] /= 2;
-                    smoke.velocity[2] = (i32::from(smoke.velocity[2]) * 80 / 100) as i16;
+            self.visiting = Some(i);
+            let result = self.update(&mut effect, rng, view, scene);
+            self.visiting = None;
+            match result {
+                Ok(false) => {}
+                Ok(true) => self.slots[i] = Some(effect),
+                Err(error) => {
+                    self.slots[i] = Some(effect);
+                    return Err(error);
                 }
-                smoke.scale = smoke.scale.wrapping_add(1024);
-                smoke.change_at = (i32::from(smoke.time) - 1 - rng.next15() % 5) as u8;
             }
-            for i in 0..3 {
-                smoke.position[i] = smoke.position[i].wrapping_add(i32::from(smoke.velocity[i]));
+        }
+        Ok(())
+    }
+
+    fn update(
+        &mut self,
+        effect: &mut Effect,
+        rng: &mut Random,
+        view: View,
+        scene: &mut Scene,
+    ) -> Result<bool> {
+        match effect {
+            Effect::Smoke(smoke) => {
+                if smoke.time == smoke.change_at {
+                    if smoke.velocity[1] < -20 {
+                        smoke.velocity[0] = (i32::from(smoke.velocity[0]) * 80 / 100) as i16;
+                        smoke.velocity[1] /= 2;
+                        smoke.velocity[2] = (i32::from(smoke.velocity[2]) * 80 / 100) as i16;
+                    }
+                    smoke.scale = smoke.scale.wrapping_add(1024);
+                    smoke.change_at = (i32::from(smoke.time) - 1 - rng.next15() % 5) as u8;
+                }
+                for i in 0..3 {
+                    smoke.position[i] =
+                        smoke.position[i].wrapping_add(i32::from(smoke.velocity[i]));
+                }
+                let matrix = view.matrix.compose(&Matrix {
+                    translation: smoke.position,
+                    ..Matrix::default()
+                });
+                if let Some(clip) = visibility::clip(&matrix, 0, [0; 3]) {
+                    let depth = clip.depth as i16 - 5;
+                    if depth >= 1 {
+                        let scale =
+                            (((smoke.scale >> 2).wrapping_mul(300)) / i32::from(depth)) as i16;
+                        let color = if smoke.time < 26 { smoke.time * 5 } else { 128 };
+                        self.drawings.push(Drawing {
+                            graphic: Graphic::Smoke(smoke.sprite),
+                            xy: visibility::project(&matrix, [0; 3]).0,
+                            scale: [i32::from(scale); 2],
+                            color: [color; 3],
+                            rotation: smoke.rotation,
+                            depth,
+                        });
+                    }
+                }
+                let alive = smoke.time != 0;
+                smoke.time = smoke.time.wrapping_sub(1);
+                Ok(alive)
             }
-            if smoke.time == 0 {
-                *slot = None;
-            } else {
-                smoke.time -= 1;
+            Effect::Bleed(bleed) => {
+                let alive = bleed.mode != 0 || bleed.time != 0;
+                if bleed.mode == 0 && bleed.time != 0 {
+                    for i in 0..3 {
+                        bleed.position[i] =
+                            bleed.position[i].wrapping_add(i32::from(bleed.velocity[i]));
+                    }
+                    bleed.velocity[1] = bleed.velocity[1].wrapping_add(1);
+                }
+                bleed.time = bleed.time.wrapping_sub(1);
+                let (xy, z) = view.project(bleed.position);
+                if z > 36 {
+                    self.drawings.push(Drawing {
+                        graphic: Graphic::Bleed,
+                        xy,
+                        scale: [i32::from(900 / z + 1); 2],
+                        color: bleed.color,
+                        rotation: 0,
+                        depth: (z >> 2).clamp(0, 1249),
+                    });
+                }
+                Ok(alive)
+            }
+            Effect::Splash(splash) => {
+                let (xy, z) = view.project(splash.position);
+                if z <= 36 {
+                    return Ok(true);
+                }
+                let mut scale = splash.size.map(|v| i32::from(v) * 300 / i32::from(z) + 1);
+                if splash.mode == 0 {
+                    splash.count = 0;
+                    splash.mode = 1;
+                    self.bleeds(
+                        splash.position,
+                        [0, -20, 0],
+                        100,
+                        6,
+                        30,
+                        [144, 152, 160],
+                        rng,
+                    );
+                }
+                let mut alive = true;
+                if matches!(splash.mode, 1 | 2) {
+                    if splash.speed == 0 {
+                        return Err("Zero splash duration".into());
+                    }
+                    if splash.mode == 1 {
+                        scale[1] = scale[1].wrapping_mul(i32::from(splash.count))
+                            / i32::from(splash.speed);
+                    } else {
+                        scale[1] = scale[1]
+                            .wrapping_mul(i32::from(splash.speed) - i32::from(splash.count))
+                            / i32::from(splash.speed);
+                        scale[0] /= 2;
+                    }
+                    splash.count = splash.count.wrapping_add(1);
+                    if splash.count >= splash.speed {
+                        if splash.mode == 1 {
+                            splash.count = 0;
+                            splash.mode = 2;
+                        } else {
+                            alive = false;
+                        }
+                    }
+                }
+                self.drawings.push(Drawing {
+                    graphic: Graphic::Splash,
+                    xy,
+                    scale,
+                    color: [128; 3],
+                    rotation: 0,
+                    depth: (z >> 2).clamp(0, 1249),
+                });
+                Ok(alive)
+            }
+            Effect::Flash(flash) => {
+                let index = flash.count % 4;
+                let mut color = 128;
+                let mut alive = true;
+                if flash.mode == 0 {
+                    flash.count = flash.count.wrapping_sub(1);
+                    if flash.count <= 0 {
+                        flash.count = 128;
+                        flash.mode = 1;
+                    }
+                } else if flash.mode == 1 {
+                    color = flash.count as u8;
+                    flash.count = flash.count.wrapping_sub(29);
+                    alive = flash.count > 0;
+                }
+                let (xy, z) = if let Some(parent) = flash.parent {
+                    let matrix = view.matrix.compose(&scene.world(parent)?);
+                    let (xy, z) = visibility::project(&matrix, flash.position.map(|v| v as i16));
+                    (xy, (z >> 2) as i16)
+                } else {
+                    view.project(flash.position)
+                };
+                if z > 36 {
+                    let scale = i32::from((i32::from(flash.size) * 300 / i32::from(z)) as i16) + 1;
+                    self.drawings.push(Drawing {
+                        graphic: Graphic::Flash(index),
+                        xy,
+                        scale: [scale; 2],
+                        color: [color; 3],
+                        rotation: 0,
+                        depth: ((z - 50) >> 2).clamp(0, 1249),
+                    });
+                }
+                Ok(alive)
             }
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
-        let mut effects = Effects::default();
-        let mut rng = Random::new(1);
-        effects.smoke_burst([0; 3], 0, 12, 201, &mut rng);
-        assert_eq!(rng.calls, 402);
-        assert!(effects.smoke.iter().all(Option::is_some));
-        // Avoid event rolls: this test isolates the inclusive zero lifetime and dummy slot.
-        for smoke in effects.smoke.iter_mut().flatten() {
-            smoke.change_at = 255;
-        }
-        for _ in 0..15 {
-            effects.step(&mut rng);
-        }
-        assert!(
-            effects.smoke[..200]
-                .iter()
-                .all(|s| s.as_ref().unwrap().time == 0)
-        );
-        effects.step(&mut rng);
-        assert!(effects.smoke[..200].iter().all(Option::is_none));
-        assert_eq!(effects.smoke[200].as_ref().unwrap().time, 15);
-        assert_eq!(rng.calls, 402);
-        effects.smoke_burst([0; 3], 150, 12, 1, &mut rng);
-        assert_eq!(rng.calls, 406);
-    }
-}
+mod tests;

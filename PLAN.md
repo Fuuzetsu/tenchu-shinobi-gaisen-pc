@@ -234,5 +234,14 @@ its source roster position. Difficulty is selectable from the CLI.
 An 81,920-case original-C comparison validates engaged combat decisions, RNG,
 commands and counters; a private-disc check exercises caller replacement.
 Ordinary play still leaves NPCs suspended: activation's logical packet budget,
-DrawShadow effects, attack hitboxes/damage and AI healing remain pending. No
+damage-floor napalm, attack hitboxes/damage and AI healing remain pending. No
 enemy-play or Mission 1 acceptance claim is made at this checkpoint.
+
+`DrawShadow` now primes the waist coordinate before action control, preserves its
+airborne map flag and splash tests, and prepares shadow transforms. Smoke,
+splashes, droplets and attached flashes share the original 200-slot pool and
+overflow dummy. Visible splashes spawn droplets in source RNG/allocation order;
+newly allocated later slots execute in the same tick. Attached flashes visit
+their parent coordinate even on the final or invisible tick. Their prepared
+graphics and sound events are not displayed/played yet. Damage-floor napalm is
+an item-system boundary and still reports an explicit unsupported operation.

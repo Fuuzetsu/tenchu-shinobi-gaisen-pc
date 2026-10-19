@@ -102,6 +102,7 @@ impl Game {
         self.roster.begin_tick();
         self.visible.clear();
         self.intelligence.voices.clear();
+        self.effects.begin_tick();
         self.collision.compute(&mut self.scene)?;
         self.camera.advance(
             self.roster.get(self.player_id),
@@ -134,6 +135,9 @@ impl Game {
                     let center = actor.collision_center(&context);
                     actor.terrain_contact(&mut context, center, id == self.player_id)?;
                     actor.body_contact(&mut context, center)?;
+                    context
+                        .scene
+                        .set_translation(actor.root_model, actor.position);
                     let player = Player::new(
                         if id == self.player_id {
                             &actor
@@ -153,6 +157,7 @@ impl Game {
                         &mut context,
                     )
                     .update()?;
+                    actor.shadow(&mut context, self.tick as i32)?;
                     if actor.control(&mut context, &self.commands, center, id == self.player_id)? {
                         self.visible.push(id);
                         if self.intelligence.action_halt == 0 {
@@ -179,7 +184,14 @@ impl Game {
             .citizens
             .wrapping_add(self.intelligence.population_delta[1]);
         self.intelligence.population_delta = [0; 2];
-        self.effects.step(&mut self.random);
+        self.effects.step(
+            &mut self.random,
+            crate::effects::View {
+                position: self.camera.position,
+                matrix: self.camera.view,
+            },
+            &mut self.scene,
+        )?;
         for (i, &id) in self.visible.iter().enumerate() {
             self.roster
                 .get_mut(id)
