@@ -620,3 +620,14 @@ Native keyboard checks cast, move and recover for both characters, with visible
 speed trails. A temporary save supplies unlocked scrolls; equipment selection
 and gameplay use the normal UI and input paths. Nix native, WASM and formatting
 checks pass on x86_64-linux.
+
+Protection charms now cast, return control and apply the existing melee damage
+modifiers for 450 ticks, with torso particles and attached periodic pulses.
+Interrupted casts drop a recoverable charm. Expiry and forced disposal clear
+the owner's active-item flag unconditionally, preserving overlap behavior.
+Both characters pass a complete cast/move/expiry check; an interrupted-cast
+check covers the refund and cleanup of an unrelated active flag.
+Seventy-two extracted-C callback cases match timer wrapping, pulse fields/RNG
+and disposal. Native keyboard checks use unlocked temporary saves to equip,
+cast and return to play with both characters, through expiry. Nix native, WASM
+and formatting checks pass on x86_64-linux.

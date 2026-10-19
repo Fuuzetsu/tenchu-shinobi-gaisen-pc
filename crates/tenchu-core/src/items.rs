@@ -1,6 +1,7 @@
 mod bomb;
 mod breath;
 mod caltrops;
+mod charm;
 mod darts;
 mod flight;
 mod flute;
@@ -57,6 +58,7 @@ pub enum Processor {
     Rice,
     Darts,
     Speed,
+    Charm,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -77,6 +79,7 @@ pub struct Item {
     pub collision: Contact,
     pub rolling: Rolling,
     pub count: u8,
+    pub charm_remaining: u16,
     pub flight: flight::Flight,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
@@ -134,6 +137,7 @@ impl Items {
                 collision: Contact::default(),
                 rolling: Rolling::default(),
                 count: 0,
+                charm_remaining: 0,
                 flight: flight::Flight::default(),
                 trail: None,
                 rotation: [0; 3],
@@ -217,6 +221,12 @@ impl Items {
             }
             Some(Processor::Shuriken | Processor::Darts) => {
                 item.trail = None;
+                item.mode = 0;
+            }
+            Some(Processor::Charm) => {
+                actors
+                    .get_mut(item.owner.ok_or("Protection charm has no owner")?)
+                    .active_item = 0;
                 item.mode = 0;
             }
             Some(_) => item.mode = 0,
@@ -363,6 +373,7 @@ impl Items {
                 }
                 Some(Processor::Darts) => self.darts(id, actors, ctx)?,
                 Some(Processor::Speed) => self.speed(id, actors, player, ctx)?,
+                Some(Processor::Charm) => self.charm(id, actors, player, ctx)?,
                 None => {}
             }
         }

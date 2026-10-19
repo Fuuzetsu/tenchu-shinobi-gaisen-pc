@@ -207,10 +207,11 @@ impl Items {
                     self.throw_rolling(kind, owner_id, start, velocity, actors, ctx)?;
                 }
             }
-            3 | 10 | 18 => {
+            3 | 10 | 12 | 18 => {
                 let processor = match kind {
                     3 => Processor::Medicine,
                     10 => Processor::Resurrection,
+                    12 => Processor::Charm,
                     _ => Processor::Flute,
                 };
                 let id = self.allocate(actors, ctx)?;

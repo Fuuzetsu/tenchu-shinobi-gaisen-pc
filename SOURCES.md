@@ -737,3 +737,18 @@ The focused checks exercise ordinary casts for both characters and controlled
 terrain/cache/interruption boundaries. They do not add a new extracted-C oracle
 for this callback. Existing matrix, camera, terrain and particle comparisons
 cover its shared helper boundaries.
+
+## Protection charm (2026-10-20)
+
+`ITEM.C::ProcItemGosin`, `ReqItemGosin`, `item.h::param_gosin`, `tuning.h` and
+`effect.h` define the cast, unsigned sixteen-bit timer, attached pulse, refund
+and unconditional active-item cleanup. Existing combat damage logic consumes
+the active-item flag. The recorded source hashes are unchanged; the research
+`tools/tenchu-sim/src/items/charm.rs` reference has SHA-256
+`7853b2ff6872d04c04fc1b501714d71e26ff9fa4150bced4cc57d10256afd54b`.
+
+An extracted-C callback check exercises active-phase timer edges and disposal,
+including an unrelated active item. It compares RNG and every emitted pulse
+field/parent; effect allocation is stubbed at the request boundary. Casting
+and interrupted refunds are separate behavioral integration checks, not new
+retail trace comparisons.
