@@ -181,7 +181,7 @@ the resulting original-asset scene was visually inspected.
 
 The gameplay update is still player-only. Enemy activation/AI, combat, items,
 events, HUD and audio remain to be joined. Lighting,
-transparency, weapons and effect graphics also remain. Unsupported actions stop
+transparency and effect graphics also remain. Unsupported actions stop
 with a diagnostic. This is not the Mission 1 acceptance milestone.
 
 Source collision and persistent coordinate caches now run in the player update.
@@ -199,3 +199,9 @@ parity. Cinematic camera ownership and grapple targeting remain to be joined.
 
 Next: actor activation/AI and combat. The original TAS architecture remains a
 reference; there are no multi-world slabs or source-C runtime dependencies.
+
+Weapon geometry and hitbox/attack definitions now load from the executable and
+disc. Actors construct attachments and swap active/stowed slots according to
+`SetupWeapon`/`EquipWeapon`. The live render includes held weapons; no attack
+hitboxes or damage are enabled by this checkpoint. All-stage asset auditing and
+the both-character cadence replay pass with these attachments.

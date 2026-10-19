@@ -386,11 +386,7 @@ impl Actor {
                         )));
                     }
                 } else if count == ctx.mission.clips[self.motion.clip.unwrap()].duration / 2 {
-                    if drawing {
-                        self.attribute |= ATTR_WEAPON_DRAWN;
-                    } else {
-                        self.attribute &= !ATTR_WEAPON_DRAWN;
-                    }
+                    self.equip(ctx, drawing);
                 } else if count == 0 && self.motion.loops != 0 {
                     return Ok(Some((
                         if drawing {

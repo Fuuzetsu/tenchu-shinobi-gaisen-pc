@@ -1,5 +1,6 @@
 mod body;
 mod movement;
+mod weapon;
 
 use crate::{
     Result,
@@ -48,6 +49,8 @@ pub struct Actor {
     pub motion: Motion,
     pub hit: Option<usize>,
     pub trace_count: i16,
+    pub weapons: [Option<weapon::Weapon>; 4],
+    pub weapon_hitbox: [Option<usize>; 2],
 }
 
 impl Actor {
@@ -114,7 +117,10 @@ impl Actor {
             motion,
             hit: None,
             trace_count: 0,
+            weapons: std::array::from_fn(|_| None),
+            weapon_hitbox: [None; 2],
         };
+        actor.setup_weapons(ctx)?;
         actor.position[1] = terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
@@ -123,14 +129,28 @@ impl Actor {
         )?;
         ctx.scene.update(root_model, actor.root(ctx.math));
         if matches!(kind, 0..=1 | 0x81..=0x8a) {
-            actor.attribute |= ATTR_WEAPON_DRAWN | 2;
+            actor.attribute |= 2;
+            actor.equip(ctx, true);
             actor.enter(ctx, MOT_ENGAGE_STANCE, true);
         }
         if matches!(kind, 0xa6 | 0xa7) {
             actor.attribute |= ATTR_FLOAT;
         }
-        actor.rendered = actor.motion.pose.matrices(ctx.math, actor.root(ctx.math));
+        actor.initialize_rendered(ctx.scene, ctx.math);
         Ok(actor)
+    }
+
+    pub fn initialize_rendered(&mut self, scene: &Scene, math: &Math) {
+        self.rendered = self.motion.pose.matrices(math, self.root(math));
+        for weapon in self.weapons.iter_mut().flatten() {
+            let model = &scene.models[weapon.model];
+            let part = self
+                .parts
+                .iter()
+                .position(|&id| Some(id) == model.parent)
+                .unwrap();
+            weapon.rendered = self.rendered[part].compose(&model.local);
+        }
     }
 
     pub fn root(&self, math: &Math) -> Matrix {
@@ -150,6 +170,9 @@ impl Actor {
             if scene.models[model].attribute & 1 == 0 {
                 self.rendered[i] = scene.world(model)?;
             }
+        }
+        for weapon in self.weapons[..2].iter_mut().flatten() {
+            weapon.rendered = scene.world(weapon.model)?;
         }
         Ok(())
     }

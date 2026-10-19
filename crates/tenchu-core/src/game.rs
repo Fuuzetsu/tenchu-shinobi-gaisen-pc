@@ -66,7 +66,7 @@ impl Game {
         player.position = mission.stage.start;
         player.rotation = [0, mission.stage.facing as i16, 0];
         scene.set_translation(player.root_model, player.position);
-        player.rendered = player.motion.pose.matrices(&math, player.root(&math));
+        player.initialize_rendered(&scene, &math);
         Ok(Self {
             mission,
             math,

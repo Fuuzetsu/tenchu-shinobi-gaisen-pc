@@ -1,5 +1,8 @@
 use bytemuck::{Pod, Zeroable};
-use tenchu_assets::{model::Part, stage::MissionAssets};
+use tenchu_assets::{
+    model::{Geometry, Part},
+    stage::MissionAssets,
+};
 use tenchu_core::math::{Math, Matrix};
 
 #[repr(C)]
@@ -14,7 +17,11 @@ pub struct Vertex {
 }
 
 pub fn append(vertices: &mut Vec<Vertex>, part: &Part, matrix: Matrix) {
-    for geometry in &part.geometry {
+    append_geometry(vertices, &part.geometry, matrix);
+}
+
+fn append_geometry(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: Matrix) {
+    for geometry in geometries {
         for face in &geometry.faces {
             let points: Vec<_> = face
                 .corners
@@ -86,6 +93,13 @@ pub fn player(game: &tenchu_core::game::Game) -> Vec<Vertex> {
         .zip(actor.rendered.iter().copied())
     {
         append(&mut vertices, part, matrix);
+    }
+    for weapon in actor.weapons[..2].iter().flatten() {
+        append_geometry(
+            &mut vertices,
+            &game.mission.weapons.models[&weapon.kind],
+            weapon.rendered,
+        );
     }
     vertices
 }

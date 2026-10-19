@@ -108,3 +108,7 @@ neither the C nor captured RAM is needed by the game.
 | `tenchu-decomp` (revision above) | `src/main.exe/CAMERA.C` | `759da5c93aaa780ec4dc113bc0b49b18eeee7bc27f63c4b2024a5b520b4c5e86` |
 | `tenchu-decomp` (generated retail assembly) | `.shake/gen/main.exe/asm/SDK_TEXT_55714.s` | `85568476bf02dc47e015f0fd7f90e9b3909e5009f326f190090561bd5e35ccc8` |
 | `tenchu-decomp-glitch-research` (revision above) | `tools/tenchu-sim/src/camera.rs` | `e7a0277b94ad4d9d98853f364ea0816b1a1b85a6cb0c6af6955d9344b455c34d` |
+
+Weapon metadata, attachment construction and equipment swaps follow
+`APPEAR.C` and `game_types.h` already recorded above. Weapon geometry uses the
+same checked TMD reader as the original character models.

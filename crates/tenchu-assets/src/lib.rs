@@ -9,6 +9,7 @@ pub mod motion;
 pub mod stage;
 pub mod terrain;
 pub mod texture;
+pub mod weapon;
 
 pub type Result<T> = std::result::Result<T, String>;
 

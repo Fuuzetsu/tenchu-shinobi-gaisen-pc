@@ -56,7 +56,8 @@ an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control and the source follow/look camera. Combat,
 items and enemies are unfinished; unsupported actions pause with a diagnostic.
-Lighting, transparency, weapons, effects and audio remain in progress.
+Held and sheathed weapons use their original attachment rules. Lighting,
+transparency, effects and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;
