@@ -175,7 +175,7 @@ medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and i
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Remaining item use, special
-ranged attacks, map display and continuous mission validation remain unfinished;
+ranged attacks and continuous mission validation remain unfinished;
 this is not a completed Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -513,3 +513,28 @@ and optionally capture the final frame through the shared native renderer. A
 200-tick keyboard-mask tape starts Mission 1 directly from disc and runs down
 the starting street; its final capture was inspected. This is the beginning of
 continuous mission validation, not a completed run.
+
+
+The original `CHIZU.TIM` map and per-stage executable transforms now load with
+every mission. Holding Select (M/Tab on desktop) opens the source slide animation
+and local sound while the world continues running. The overlay retains its
+subtractive backdrop, ghost image, player/rice-marker filtering, integer
+projection and original red/blue channel reversal. Colored-rice use itself is
+still pending. Cinematics suppress the overlay without resetting its saved mode.
+Ordinary HUD updates now precede environmental objects as in `START.C`; cinematic
+text remains after those objects as in `CHRANIM.C`.
+
+Verification: 1,024 executions of the extracted `PutMap`, `draw_map_items_` and
+`DrawTargetS` callbacks match animation state, submitted sprites/lines, sound and
+packet counts, including full-width coordinate overflow and narrow line endpoints.
+SDK submission and supplied trigonometric results are stubbed. All 99 current
+core checks pass, excluding the unchanged long campaign cinematic check; all 11
+relevant host/GPU checks pass. The cadence tape now includes moving with the map
+open, and all 66 constructors load their map texture and placement. Native
+keyboard checks open, move with and close the map for both characters.
+
+Continuous Mission 1 exploration has reached the compound roof/garden and ordinary
+guard combat, without state imports. Neither boss has yet been reached in those
+runs. A converted older TAS controller proposal did not reproduce its original
+route at the nominal tick rate; it is not playthrough or parity evidence.
+Nix native, WASM and formatting checks pass for the map increment on x86_64-linux.

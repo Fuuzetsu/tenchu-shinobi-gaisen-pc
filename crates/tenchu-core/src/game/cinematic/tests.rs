@@ -238,3 +238,49 @@ fn campaign_cinematic_coverage() {
     );
     println!("Executed {sequences} English sequence entries");
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; map input leaves the world running, uses the local sound, closes cleanly and persists its animation state through cinematics"]
+fn map_input_lifetime_and_cinematic_suppression() {
+    use crate::{
+        input::{SELECT, UP},
+        oracle,
+    };
+    let mut game = oracle::game(0, 0);
+    for _ in 0..60 {
+        game.step(0).unwrap();
+    }
+    game.step(SELECT).unwrap();
+    assert_eq!((game.hud.map.mode, game.hud.map.slide), (1, 160));
+    assert!(
+        game.sounds()
+            .unwrap()
+            .iter()
+            .any(|s| s.id == 0x27 && s.volume == 126 && s.pan == 64)
+    );
+    let before = game.player().position;
+    for _ in 0..30 {
+        game.step(SELECT | UP).unwrap();
+    }
+    assert_ne!(game.player().position, before);
+    assert_eq!(game.hud.map.mode, 2);
+    assert_eq!(game.hud.map.lines.len(), 2);
+    game.begin_cinematic(0).unwrap();
+    game.step(SELECT).unwrap();
+    assert!(game.cinematic.active);
+    assert_eq!(game.hud.map.dim, None);
+    assert!(game.hud.map.lines.is_empty());
+    assert_eq!(game.hud.map.mode, 2);
+    for _ in 0..2000 {
+        game.step(0).unwrap();
+        if !game.cinematic.active {
+            break;
+        }
+    }
+    assert!(!game.cinematic.active);
+    game.step(0).unwrap();
+    assert_eq!(game.hud.map.mode, 0);
+    assert_eq!(game.hud.map.dim, None);
+    game.step(SELECT).unwrap();
+    assert_eq!((game.hud.map.mode, game.hud.map.slide), (1, 160));
+}

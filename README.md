@@ -60,7 +60,8 @@ selects the original cinematic scripts. Japanese subtitle rasterization still
 needs a portable replacement for BIOS KROM.
 
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
-an item, Q looks, and Z/C select items. P pauses; F5 or Escape abandons the
+an item, Q looks, and Z/C select items. Hold M or Tab to show the original map while gameplay
+continues. P pauses; F5 or Escape abandons the
 attempt and opens retry equipment. Escape from the launcher quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth

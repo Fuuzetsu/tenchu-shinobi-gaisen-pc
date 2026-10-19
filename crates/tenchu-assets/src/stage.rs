@@ -99,6 +99,8 @@ pub struct MissionAssets {
     pub misc: crate::misc::Misc,
     pub stage: Stage,
     pub map: Vec<Part>,
+    pub map_image: crate::texture::Image,
+    pub map_placement: crate::hud::MapPlacement,
     pub objects: Vec<Part>,
     pub placements: Vec<Placement>,
     pub terrain: AreaMap,
@@ -349,6 +351,8 @@ impl MissionAssets {
         };
         Ok(Self {
             misc: crate::misc::Misc::load(game, &construction, &mut vram)?,
+            map_image: vram.upload_tim(&asset("CHIZU.TIM")?)?,
+            map_placement: crate::hud::MapPlacement::load(&exe, id)?,
             font,
             tanka,
             scripts: crate::script::Scripts::load(game, id, character, language)?,

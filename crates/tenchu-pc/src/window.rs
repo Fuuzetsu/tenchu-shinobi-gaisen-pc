@@ -189,6 +189,7 @@ impl Application {
                     KeyCode::KeyQ => input::L1,
                     KeyCode::KeyZ => input::L2,
                     KeyCode::KeyC => input::R2,
+                    KeyCode::KeyM | KeyCode::Tab => input::SELECT,
                     _ => 0,
                 }
         })
@@ -412,7 +413,7 @@ pub fn run(assets: GameAssets<FileSource>, options: Options, disc: &std::path::P
         audio,
     };
     println!(
-        "Gameplay: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 retry, Esc inventory.\nRemaining items and special attacks are still being implemented; an unsupported action pauses with a diagnostic."
+        "Gameplay: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nRemaining items and special attacks are still being implemented; an unsupported action pauses with a diagnostic."
     );
     EventLoop::new()
         .map_err(|e| e.to_string())?

@@ -1,5 +1,6 @@
 use crate::{Result, actor::Actor, drawing::Drawing, effects::Effects, input::*, math::Math};
 use tenchu_assets::{executable::Executable, hud::LifeStyle, texture::Image};
+pub mod map;
 
 #[derive(Clone, Debug)]
 pub struct Sprite {
@@ -46,6 +47,7 @@ pub struct LifeBar {
 
 #[derive(Debug)]
 pub struct Hud {
+    pub map: map::Map,
     pub selected: Option<usize>,
     pub cursor: usize,
     pub cursor_rotation: i32,
@@ -58,6 +60,7 @@ pub struct Hud {
 impl Hud {
     pub fn new(exe: &Executable) -> Result<Self> {
         Ok(Self {
+            map: map::Map::default(),
             selected: Some(0),
             cursor: 0,
             cursor_rotation: 0,

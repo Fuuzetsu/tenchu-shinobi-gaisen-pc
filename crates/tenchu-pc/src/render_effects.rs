@@ -336,6 +336,38 @@ pub fn build(game: &Game) -> Geometry {
             previous = shade;
         }
     }
+    if let Some(shade) = game.hud.map.dim {
+        let mut vertices = screen_band(-120.0, 120.0, [f32::from(shade) / 255.0; 3], 3);
+        for vertex in &mut vertices {
+            vertex.position[2] = 0.000002;
+        }
+        surfaces.push(Surface {
+            depth: 2.0,
+            blend: 3,
+            vertices,
+        });
+        for line in &game.hud.map.lines {
+            let [a, b] = line.points.map(|p| p.map(f32::from));
+            let delta = [b[0] - a[0], b[1] - a[1]];
+            let length = delta[0].hypot(delta[1]).max(1.0);
+            let offset = [-delta[1] / length * 0.5, delta[0] / length * 0.5];
+            surfaces.push(Surface {
+                depth: 0.0,
+                blend: 0,
+                vertices: quad(
+                    [
+                        [a[0] + offset[0], a[1] + offset[1], 0.0],
+                        [b[0] + offset[0], b[1] + offset[1], 0.0],
+                        [a[0] - offset[0], a[1] - offset[1], 0.0],
+                        [b[0] - offset[0], b[1] - offset[1], 0.0],
+                    ],
+                    [line.color.map(|v| f32::from(v) / 255.0); 4],
+                    None,
+                    0,
+                ),
+            });
+        }
+    }
     for sprite in game
         .items
         .sprites

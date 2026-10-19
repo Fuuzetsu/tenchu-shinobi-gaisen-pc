@@ -644,3 +644,21 @@ The callback comparison includes all emitted particle fields and RNG; the damage
 comparison stubs item requests and final motion entry while retaining their
 stock/script guards. Controlled gameplay checks exercise actual lethal arrows,
 revival effects, local flute sound and forced eviction.
+
+
+## Original map overlay and UI ordering (2026-10-20)
+
+`INFOVIEW.C::ResetInfoview` and `PutMap` define the per-stage `CHIZU.TIM`,
+slide state, ghost image, subtractive backdrop and local opening cue.
+`ITEM.C::draw_map_items_` provides the divided/rotated world transform and
+owner/type filtering; `EFFECT.C::DrawTargetS` supplies the crossed line markers,
+including reversed RGB byte extraction. `MapPlacement` comes from the supported
+executable at `0x8008e50c`, using the sixteen-byte `MapPlacementType` structure.
+These source files and their current hashes are already recorded above.
+
+`START.C` orders `DoInfoViewProc` before `DoMiscProc`; `CHRANIM.C::CVArun`
+orders `DrawTelop` after `DoMiscProc`. The scalar update now distinguishes those
+orders explicitly. No map texture, executable table or retail RAM is embedded.
+The differential test compiles all three original map callbacks with supplied
+trigonometric values and SDK submission collectors. Native presentation uses
+thin modern GPU quads for the original one-pixel lines.

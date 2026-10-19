@@ -462,7 +462,7 @@ fn retail_movement_is_independent_of_host_frame_cadence() {
     let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
     let tape: Vec<_> = [
         (30, 0),
-        (30, UP),
+        (30, UP | SELECT),
         (1, UP | CROSS),
         (30, UP),
         (30, 0),
@@ -502,10 +502,12 @@ fn retail_movement_is_independent_of_host_frame_cadence() {
         let mut states = Vec::new();
         let mut motions = std::collections::BTreeSet::new();
         let mut looked = false;
+        let mut mapped = false;
         for &input in &tape {
             reference.step(input).unwrap();
             motions.insert(reference.player().motion.action);
             looked |= reference.camera.mode == tenchu_core::camera::Mode::Direction;
+            mapped |= reference.hud.map.mode == 2 && !reference.hud.map.lines.is_empty();
             states.push(state(&reference));
         }
         assert!(
@@ -521,6 +523,7 @@ fn retail_movement_is_independent_of_host_frame_cadence() {
             "melee attack was not reached"
         );
         assert!(looked, "direction camera was not reached");
+        assert!(mapped, "map was not shown");
         assert_eq!(reference.camera.mode, tenchu_core::camera::Mode::Normal);
         for fps in [24, 144] {
             let mut game = options.load(&assets).unwrap();

@@ -104,7 +104,7 @@ impl Game {
             }
         }
         for &(position, sound) in &self.effects.sounds {
-            let position = (!matches!(sound, 0x0b | 0x0e | 0x41 | 0x43)).then_some(position);
+            let position = (!matches!(sound, 0x0b | 0x0e | 0x27 | 0x41 | 0x43)).then_some(position);
             if let Some(sound) = listener.sound(&self.math, position, sound)? {
                 sounds.push(sound);
             }

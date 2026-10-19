@@ -353,6 +353,35 @@ impl Game {
             self.player_id,
             self.clock,
         )?;
+        for (actor, health, maximum) in self.combat.life_bars.drain(..) {
+            self.hud.request_life(actor, health, maximum);
+        }
+        if self.cinematic.active {
+            self.hud.sprites.clear();
+            self.hud.map.clear();
+        } else {
+            self.cinematic.sprites.clear();
+            self.hud.step(
+                self.roster.get(self.player_id),
+                &self.mission.images,
+                self.intelligence.strain,
+                self.clock,
+                &self.math,
+                &mut self.effects,
+                &mut self.drawing,
+            );
+            self.hud.map.step(
+                self.input & crate::input::SELECT != 0,
+                self.roster.get(self.player_id),
+                &self.mission,
+                &self.items,
+                &self.scene,
+                &self.math,
+                &mut self.effects,
+                &mut self.hud.sprites,
+                &mut self.drawing,
+            );
+        }
         self.misc.step(
             self.clock,
             &mut Context {
@@ -368,23 +397,8 @@ impl Game {
                 drawing: &mut self.drawing,
             },
         )?;
-        for (actor, health, maximum) in self.combat.life_bars.drain(..) {
-            self.hud.request_life(actor, health, maximum);
-        }
         if self.cinematic.active {
-            self.hud.sprites.clear();
             self.cinematic_text();
-        } else {
-            self.cinematic.sprites.clear();
-            self.hud.step(
-                self.roster.get(self.player_id),
-                &self.mission.images,
-                self.intelligence.strain,
-                self.clock,
-                &self.math,
-                &mut self.effects,
-                &mut self.drawing,
-            );
         }
         for (i, &id) in self.visible.iter().enumerate() {
             self.roster.get_mut(id).prepare_draw(
