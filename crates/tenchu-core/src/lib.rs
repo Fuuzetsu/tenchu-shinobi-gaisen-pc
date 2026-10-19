@@ -14,6 +14,7 @@ pub mod items;
 pub mod math;
 pub mod motion;
 pub mod packets;
+pub mod progress;
 pub mod projection;
 pub mod random;
 pub mod roster;

@@ -61,6 +61,7 @@ pub struct MissionAssets {
     pub story: Vec<StoryActor>,
     pub construction: Vec<u8>,
     pub layout: Vec<u8>,
+    pub layout_index: usize,
     pub scripts: crate::script::Scripts,
     pub font: crate::font::Font,
     pub tanka: Vec<crate::texture::Image>,
@@ -198,6 +199,7 @@ impl MissionAssets {
                 kind => kind,
             };
         }
+        let layout_index = layout - 1;
         let layout = asset(&format!("IE_{layout}"))?;
         slice(&layout, 0, 7000)?;
         let mut pickups = Vec::new();
@@ -311,6 +313,7 @@ impl MissionAssets {
             story,
             construction,
             layout,
+            layout_index,
         })
     }
 

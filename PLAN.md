@@ -342,3 +342,11 @@ window captures show the opening, subtitles, actor poses and return to combat.
 The intro/return also produces identical state at different display cadences and
 with simulated host stalls. Full-workspace strict Clippy currently reports 25
 pre-existing style lints; no Clippy-clean claim is made.
+
+Result bookkeeping now exists in the portable core: packed counters/time,
+per-character/layout best records, completion flags, training leaderboard,
+source item awards/leftover returns, next-unplayed-layout selection and the stock
+selection limits. The desktop still needs to connect these rules to result,
+retry and inventory screens and save storage. C comparisons pass for 2,048 award
+and return cases with exact RNG, plus the existing 512 score cases. Portable
+scenario checks cover character isolation, ranking ties and failure stock loss.

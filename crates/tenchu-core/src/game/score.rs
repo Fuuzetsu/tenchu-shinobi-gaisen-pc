@@ -10,18 +10,35 @@ pub struct Score {
     pub grade: i16,
 }
 
-impl Game {
-    pub fn score(&self) -> Score {
-        if u16::from(self.statistics.bosses as u8) + u16::from(self.statistics.enemies as u8) == 0 {
+pub const CLOCK_MAX: i32 = 107_970;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Record {
+    pub bosses: u8,
+    pub enemies: u8,
+    pub found: u8,
+    pub murders: u8,
+    pub criticals: u8,
+    pub friends: u8,
+    pub clock: i32,
+}
+
+impl Record {
+    pub fn played(self) -> bool {
+        u16::from(self.bosses) + u16::from(self.enemies) != 0
+    }
+
+    pub fn score(self, stage: usize) -> Score {
+        if !self.played() {
             return Score::default();
         }
-        let spots = i16::from(self.intelligence.found as u8);
+        let spots = i16::from(self.found);
         let mut score = Score {
-            criticals: i16::from(self.statistics.criticals as u8) * 20,
-            murders: i16::from(self.statistics.murders as u8) * 5,
-            friends: i16::from(self.statistics.friend_hits as u8) * -30,
+            criticals: i16::from(self.criticals) * 20,
+            murders: i16::from(self.murders) * 5,
+            friends: i16::from(self.friends) * -30,
             stealth: ((if spots == 0 { 400 } else { 300 })
-                - spots * if self.mission.stage.id == 8 { 40 } else { 20 })
+                - spots * if stage == 8 { 40 } else { 20 })
             .max(0),
             ..Score::default()
         };
@@ -32,6 +49,24 @@ impl Game {
             .wrapping_add(score.stealth);
         score.grade = (score.total.max(0) / 100).min(4);
         score
+    }
+}
+
+impl Game {
+    pub fn record(&self) -> Record {
+        Record {
+            bosses: self.statistics.bosses as u8,
+            enemies: self.statistics.enemies as u8,
+            found: self.intelligence.found as u8,
+            murders: self.statistics.murders as u8,
+            criticals: self.statistics.criticals as u8,
+            friends: self.statistics.friend_hits as u8,
+            clock: self.clock.min(CLOCK_MAX),
+        }
+    }
+
+    pub fn score(&self) -> Score {
+        self.record().score(self.mission.stage.id)
     }
 }
 

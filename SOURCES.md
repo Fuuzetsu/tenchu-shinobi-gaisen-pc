@@ -411,3 +411,27 @@ fade state/colors and score components. Separate live-world Mission 1 script and
 window checks cover integration. A campaign diagnostic attempts all 126 English
 sequence entries in isolation, including source-defined early returns. This evidence does not establish complete
 campaign, audio or uninterrupted retail-gameplay parity.
+
+## Results, records and inventory rules (2026-10-20)
+
+The portable progression state follows the original stage-end bookkeeping,
+per-character stock and per-layout score records. Training uses its separate
+five-entry grade/time leaderboard and prize path. Original byte overflow,
+locked/infinite markers, random award retries and leftover-item ordering remain
+intact. Shop limits and stage prizes are read from the supplied executable.
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/StageEndScreen.c` | `20251d89fe30220963dcb11471b2bd6e7908d5a7893a7c8eeb7f05ba70b3e5c0` |
+| `src/main.exe/award_stage_items_.c` | `ad8bce152cc5a32036d932f31207c2bc3349e29dcf8c5e176de5540391cf308f` |
+| `src/main.exe/mission_score_screen.c` | `e3b8ab0e195477eae678e0e2cb099409ef3c11556b8217279b0f7bcc408689e8` |
+| `src/main.exe/BriefingAndInventorySelectionScreen.c` | `bab7073d72addfc57e69a789e42650a64cdf27bca3efa4588fdfb8fbc16a7d66` |
+| `src/main.exe/START.C` | `41eb63500c09fa33d8938a9e8acc541789038d9df8971c3ee14e5d835f2591e3` |
+| `src/main.exe/game_over_screen_.c` | `7e292e6ea605fa1b6ac809b4628094d807565765af7884c4f9abbcb7590b1005` |
+| `src/main.exe/clamp_shop_stock_.c` | `6ff4e219bc87507b533af959b5e05c20ae595d089e3d4c653483bbb0307a35e5` |
+
+An independent C harness checks 2,048 reward/leftover cases and exact RNG state.
+Portable integration tests cover best-record ties, unplayed-layout preference,
+character isolation, training ranking, loadout limits and stock retained on retry.
+The original score oracle still passes after moving score calculation onto the
+packed record. This commit supplies rules; host screens and saves follow.

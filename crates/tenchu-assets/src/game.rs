@@ -2,13 +2,14 @@ use crate::{
     ReadAt, Result,
     afs::Afs,
     disc::{Disc, Entry},
-    text, u32_le,
+    i16_le, text, u32_le,
 };
 use sha2::{Digest, Sha256};
 
 pub const EXE_SHA256: &str = "0690a5c14ff3e975ebcb3de26e196a4dbb6afc992677d0de2cbcf86af9993558";
 const STAGE_CONFIG: u32 = 0x80011f18;
 
+#[derive(Clone, Debug)]
 pub struct Stage {
     pub id: usize,
     pub order: i32,
@@ -16,6 +17,7 @@ pub struct Stage {
     pub directory: String,
     pub start: [i32; 3],
     pub facing: i32,
+    pub reward: usize,
 }
 
 pub struct GameAssets<S> {
@@ -90,6 +92,7 @@ impl<S: ReadAt> GameAssets<S> {
                         u32_le(exe, p + 20)? as i32,
                     ],
                     facing: u32_le(exe, p + 24)? as i32,
+                    reward: i16_le(exe, offset(0x8008ed50)? + id * 2)? as usize,
                 })
             })
             .collect()
