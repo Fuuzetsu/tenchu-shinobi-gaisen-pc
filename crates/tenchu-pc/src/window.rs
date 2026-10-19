@@ -116,18 +116,10 @@ impl View {
             Err(wgpu::SurfaceError::Timeout) => return Ok(()),
             Err(error) => return Err(error.to_string()),
         };
-        let p = game.player.position.map(|v| v as f32);
-        let [sin, cos] = game.math.pair(game.player.rotation[1]);
-        let eye = [
-            p[0] + sin as f32 * 5500.0 / 4096.0,
-            p[1] - 2600.0,
-            p[2] + cos as f32 * 5500.0 / 4096.0,
-        ];
         self.renderer.draw(
             &frame.texture.create_view(&Default::default()),
-            renderer::camera(
-                eye,
-                [p[0], p[1] - 650.0, p[2]],
+            renderer::game_camera(
+                game.camera.view,
                 self.config.width as f32 / self.config.height as f32,
             ),
             &[&self.stage, &self.actor],

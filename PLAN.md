@@ -170,8 +170,8 @@ decoders construct all eleven stages for either character. A real-disc audit
 samples every decoded motion track across its duration. The native wgpu renderer
 produces a checked Mission 1 capture with original textures and posed Rikimaru.
 The native movement preview now loads either player directly from the disc,
-accepts keyboard input and supports pause/restart and resize. A 281-tick replay
-exercises running, jump/landing, turning and crouching for both characters.
+accepts keyboard input and supports pause/restart and resize. A 381-tick replay
+exercises running, jump/landing, turning, crouching and looking for both characters.
 Source terrain recovery and ledge control are implemented, but not yet validated
 against continuous retail state. Smoke lifetime/allocation/RNG and animation
 hold/sweep transitions have focused tests. The private-disc cadence test compares
@@ -179,9 +179,8 @@ every player/animation/effect/RNG state under 24 Hz and 144 Hz host frames.
 An actual X11 window was driven through movement, jump, crouch, resize and pause;
 the resulting original-asset scene was visually inspected.
 
-The gameplay update is still player-only. The preview follow camera is temporary;
-source camera, enemy
-activation/AI, combat, items, events, HUD and audio remain to be joined. Lighting,
+The gameplay update is still player-only. Enemy activation/AI, combat, items,
+events, HUD and audio remain to be joined. Lighting,
 transparency, weapons and effect graphics also remain. Unsupported actions stop
 with a diagnostic. This is not the Mission 1 acceptance milestone.
 
@@ -192,6 +191,11 @@ Rendering consumes matrices prepared at the logical draw phase; it cannot mutate
 the scene cache. Full actor/camera/effect visit ordering still needs validation.
 The private cadence test now includes collision slots and coordinate caches.
 
-Next: source camera, then actor activation/AI and combat. The original TAS
-architecture remains a reference; there are no
-multi-world slabs or source-C runtime dependencies.
+The source follow/look camera now runs before player control, with original
+terrain probes, smoothing history, head tracking and an integer SDK view matrix.
+Its 512-case smoothing comparison agrees with matching C; its view matrix agrees
+with a private retail capture. These are component checks, not continuous world
+parity. Cinematic camera ownership and grapple targeting remain to be joined.
+
+Next: actor activation/AI and combat. The original TAS architecture remains a
+reference; there are no multi-world slabs or source-C runtime dependencies.

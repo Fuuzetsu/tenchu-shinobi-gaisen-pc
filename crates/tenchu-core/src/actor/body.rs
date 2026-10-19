@@ -127,8 +127,11 @@ impl Actor {
             if self.velocity[1] < 400 {
                 self.velocity[1] = self.velocity[1].wrapping_add(20);
             }
-            if self.map.attribute & 0x200 != 0 && self.map.height < 25000 {
+            if self.map.attribute & 0x200 != 0 && self.map.height < 25000 && self.health != 0 {
                 self.health = 0;
+                if player {
+                    ctx.camera.mode = crate::camera::Mode::Fall;
+                }
             }
         } else if self.velocity[1] > 0 || self.map.level == terrain::NONE {
             if self.map.attribute & 0x200 == 0 {

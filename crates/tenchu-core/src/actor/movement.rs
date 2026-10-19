@@ -434,6 +434,9 @@ impl Actor {
             }
             MOT_STATE_LAND | MOT_STATE_LAND_HEAVY | MOT_STATE_LAND_FLIP => {
                 let mut pending = None;
+                if self.motion.action != MOT_STATE_LAND_FLIP && count == 1 && self.id == 0 {
+                    ctx.camera.normal(self, ctx.math)?;
+                }
                 if self.motion.action != MOT_STATE_LAND_FLIP
                     && count < 5
                     && held & CIRCLE != 0

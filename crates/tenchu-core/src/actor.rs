@@ -3,6 +3,7 @@ mod movement;
 
 use crate::{
     Result,
+    camera::Camera,
     collision::Collision,
     ids::*,
     input::Pad,
@@ -23,6 +24,7 @@ pub struct Context<'a> {
     pub effects: &'a mut crate::effects::Effects,
     pub scene: &'a mut Scene,
     pub collision: &'a mut Collision,
+    pub camera: &'a mut Camera,
 }
 
 #[derive(Clone, Debug)]
@@ -149,6 +151,47 @@ impl Actor {
                 self.rendered[i] = scene.world(model)?;
             }
         }
+        Ok(())
+    }
+
+    pub fn look_at_camera(&mut self, ctx: &mut Context) -> Result<()> {
+        if self.health <= 0 || self.status == 12 {
+            return Ok(());
+        }
+        if self.parts.len() < 3 {
+            return Err("Player model has no head".into());
+        }
+        let angles = if matches!(
+            ctx.camera.mode,
+            crate::camera::Mode::Direction | crate::camera::Mode::Sight
+        ) {
+            let pair = i32::from(self.motion.pose.rotation[0][1])
+                + i32::from(self.motion.pose.rotation[1][1]);
+            [
+                ctx.camera.direction[0].clamp(-500, 500),
+                (i32::from(ctx.camera.direction[1]) - pair).clamp(-900, 900) as i16,
+            ]
+        } else {
+            if self.motion.loops != -1 {
+                return Ok(());
+            }
+            let clip = &ctx.mission.clips[self.motion.clip.ok_or("Missing player motion")?];
+            let track = clip
+                .bones
+                .get(2)
+                .and_then(|t| t.first())
+                .ok_or("Missing head motion")?;
+            let angles = [track.value[0], track.value[1]];
+            if self.motion.pose.rotation[2][..2] == angles {
+                return Ok(());
+            }
+            angles
+        };
+        self.motion.pose.rotation[2][0] = angles[0];
+        self.motion.pose.rotation[2][1] = angles[1];
+        self.motion
+            .pose
+            .publish(ctx.scene, &self.parts, ctx.math, 1 << 2, 3);
         Ok(())
     }
 

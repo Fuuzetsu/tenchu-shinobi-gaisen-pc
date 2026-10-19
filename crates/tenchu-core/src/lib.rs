@@ -1,4 +1,5 @@
 pub mod actor;
+pub mod camera;
 pub mod clock;
 pub mod collision;
 pub mod effects;

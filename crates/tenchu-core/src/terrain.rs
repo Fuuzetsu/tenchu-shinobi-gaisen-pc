@@ -189,9 +189,96 @@ pub fn vector(
     Ok(result)
 }
 
+pub fn particle_floor(
+    map: &AreaMap,
+    cursor: &mut Cursor,
+    position: [i32; 3],
+    hint: &mut Option<usize>,
+    mode: u16,
+) -> Result<i32> {
+    let [x, y, z] = position.map(|v| v / 10);
+    if let Some(at) = *hint {
+        let node = map.node(at)?;
+        if i32::from(node.y) - 200 <= y && y <= i32::from(node.y) && node.contains(x, z) {
+            return if node.dy == 0 {
+                Ok(i32::from(node.y) * 10)
+            } else {
+                let value = node_level(node, x, z)?;
+                Ok(if value == NONE {
+                    NONE
+                } else {
+                    value.wrapping_mul(10)
+                })
+            };
+        }
+    }
+    let query = [position[0], position[1].wrapping_sub(300), position[2]];
+    let floor = level(map, cursor, query, mode)?;
+    if position[1] <= floor && map.node(cursor.area)?.division == u16::MAX {
+        *hint = Some(cursor.area);
+    }
+    Ok(floor)
+}
+
+pub fn ground_ray(
+    map: &AreaMap,
+    cursor: &mut Cursor,
+    math: &crate::math::Math,
+    from: [i32; 3],
+    to: [i32; 3],
+    mode: u16,
+) -> Result<(i32, [i32; 3])> {
+    let delta = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
+    let step = (500i32 << 12)
+        .checked_div(math.vector_distance(delta))
+        .filter(|v| *v > 0)
+        .ok_or("Ground ray has a zero or negative step")?;
+    let mut last = from;
+    let mut hint = None;
+    let mut time = step;
+    while time < 4096 {
+        let point =
+            std::array::from_fn(|i| from[i].wrapping_add(delta[i].wrapping_mul(time) / 4096));
+        if particle_floor(map, cursor, point, &mut hint, mode)? < point[1] {
+            break;
+        }
+        last = point;
+        time = time.wrapping_add(step);
+    }
+    Ok((time, last))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn particle_hint_uses_division_field_and_preserves_global_cursor_on_a_hit() {
+        let mut bytes = vec![0u8; 48];
+        bytes[2..4].copy_from_slice(&1i16.to_le_bytes());
+        bytes[4..8].copy_from_slice(&32u32.to_le_bytes());
+        for base in [8, 36] {
+            for (i, v) in [-1000i16, -1000, 1000, 1000].into_iter().enumerate() {
+                bytes[base + i * 2..base + i * 2 + 2].copy_from_slice(&v.to_le_bytes());
+            }
+        }
+        bytes[44..46].copy_from_slice(&0x2000u16.to_le_bytes());
+        bytes[46..48].copy_from_slice(&u16::MAX.to_le_bytes());
+        let map = AreaMap::parse(bytes).unwrap();
+        let mut cursor = Cursor::new(&map);
+        let mut hint = None;
+        assert_eq!(
+            particle_floor(&map, &mut cursor, [0, -100, 0], &mut hint, 0).unwrap(),
+            0
+        );
+        assert_eq!(hint, Some(32));
+        cursor.last_y = 12345;
+        assert_eq!(
+            particle_floor(&map, &mut cursor, [10, -200, 10], &mut hint, 0).unwrap(),
+            0
+        );
+        assert_eq!(cursor.last_y, 12345);
+    }
 
     #[test]
     fn signed_spans_holes_and_slope_narrowing_follow_compute_area_level() {

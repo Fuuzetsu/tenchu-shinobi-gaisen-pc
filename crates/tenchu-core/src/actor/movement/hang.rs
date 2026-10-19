@@ -143,6 +143,9 @@ impl Actor {
             }
             MOT_HANG_PULLUP => {
                 if self.motion.count == 0 && self.motion.loops != 0 {
+                    if self.id == 0 {
+                        ctx.camera.normal(self, ctx.math)?;
+                    }
                     return Ok(Some((self.return_motion(), true)));
                 }
                 if self.motion.count >= 0 {

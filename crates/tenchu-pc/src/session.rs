@@ -123,7 +123,8 @@ mod tests {
                 &game.random,
                 &game.effects,
                 &game.scene,
-                &game.collision
+                &game.collision,
+                &game.camera
             )
         )
     }
@@ -144,6 +145,11 @@ mod tests {
             (30, R1),
             (30, UP | R1),
             (60, 0),
+            (15, L1),
+            (20, L1 | RIGHT),
+            (20, L1 | UP),
+            (15, L1),
+            (30, 0),
         ]
         .into_iter()
         .flat_map(|(count, input)| std::iter::repeat_n(input, count))
@@ -157,9 +163,11 @@ mod tests {
             let mut reference = options.load(&assets).unwrap();
             let mut states = Vec::new();
             let mut motions = std::collections::BTreeSet::new();
+            let mut looked = false;
             for &input in &tape {
                 reference.step(input).unwrap();
                 motions.insert(reference.player.motion.action);
+                looked |= reference.camera.mode == tenchu_core::camera::Mode::Direction;
                 states.push(state(&reference));
             }
             assert!(
@@ -170,10 +178,12 @@ mod tests {
                 motions.iter().any(|motion| motion >> 8 == 11),
                 "crouch was not reached"
             );
+            assert!(looked, "direction camera was not reached");
+            assert_eq!(reference.camera.mode, tenchu_core::camera::Mode::Normal);
             for fps in [24, 144] {
                 let mut game = options.load(&assets).unwrap();
                 let mut clock = GameClock::default();
-                for frame in 0..fps * 10 {
+                for frame in 0..(tape.len() as u64 * fps).div_ceil(30) + 1 {
                     let elapsed = (frame + 1) * 1_000_000_000 / fps - frame * 1_000_000_000 / fps;
                     clock.elapse(Duration::from_nanos(elapsed));
                     while let Some(tick) = clock.step() {

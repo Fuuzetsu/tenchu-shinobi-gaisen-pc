@@ -54,8 +54,8 @@ through its duration. `render` captures Mission 1 with original textures.
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
-jumping, crouching and ledge control. Combat, items, enemies, events and source
-camera behavior are unfinished; unsupported actions pause with a diagnostic.
+jumping, crouching, ledge control and the source follow/look camera. Combat,
+items and enemies are unfinished; unsupported actions pause with a diagnostic.
 Lighting, transparency, weapons, effects and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
@@ -65,7 +65,8 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 scalar gameplay code.
 
 The private-disc cadence test exercises both characters and compares player,
-animation, effect and RNG state at every tick under 24 Hz and 144 Hz host frames:
+animation, effects, RNG, camera, collision and coordinate caches at every tick
+under 24 Hz and 144 Hz host frames:
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' ./dev.sh cargo test -p tenchu-pc -- --ignored
@@ -73,3 +74,13 @@ TENCHU_DISC='/path/to/game.cue' ./dev.sh cargo test -p tenchu-pc -- --ignored
 
 This checks display independence, not parity with complete PS1 gameplay. Retail
 continuous state comparison remains a separate acceptance requirement.
+
+Optional camera checks compare smoothing with the matching C and the integer
+view matrix with an existing retail trace. These private files remain outside
+the repository and are never build or runtime dependencies:
+
+```sh
+TENCHU_RETAIL_EXE='/path/to/main.exe' TENCHU_DECOMP='/path/to/tenchu-decomp' \
+TENCHU_CAMERA_TRACE='/path/to/kagi-aim-v1.trace' \
+  ./dev.sh cargo test -p tenchu-core -- --ignored
+```

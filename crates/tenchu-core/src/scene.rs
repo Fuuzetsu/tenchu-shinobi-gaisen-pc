@@ -2,6 +2,7 @@ use crate::{Result, math::Matrix};
 
 pub const COLLIDE: u16 = 0x4000;
 pub const CONFLICT: u16 = 0x8000;
+pub const NO_CULL: u16 = 2;
 pub type ModelId = usize;
 
 #[derive(Clone, Debug)]

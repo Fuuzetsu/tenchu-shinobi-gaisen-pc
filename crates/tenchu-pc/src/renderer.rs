@@ -197,6 +197,31 @@ impl Renderer {
 }
 
 pub fn camera(eye: [f32; 3], target: [f32; 3], aspect: f32) -> Mat4 {
-    Mat4::perspective_rh(55.0f32.to_radians(), aspect, 50.0, 250_000.0)
-        * Mat4::look_at_rh(eye.into(), target.into(), glam::Vec3::NEG_Y)
+    let eye = glam::Vec3::from(eye);
+    let target = glam::Vec3::from(target);
+    let up = if (target - eye).normalize_or_zero().y.abs() > 0.9999 {
+        glam::Vec3::Z
+    } else {
+        glam::Vec3::NEG_Y
+    };
+    Mat4::perspective_rh(2.0 * (120.0f32 / 300.0).atan(), aspect, 50.0, 250_000.0)
+        * Mat4::look_at_rh(eye, target, up)
+}
+
+pub fn game_camera(view: tenchu_core::math::Matrix, aspect: f32) -> Mat4 {
+    let mut columns = [[0.0; 4]; 4];
+    for (column, values) in columns.iter_mut().take(3).enumerate() {
+        for (row, value) in values.iter_mut().take(3).enumerate() {
+            *value = f32::from(view.rotation[row][column]) / 4096.0;
+        }
+    }
+    columns[3] = [
+        view.translation[0] as f32,
+        view.translation[1] as f32,
+        view.translation[2] as f32,
+        1.0,
+    ];
+    Mat4::perspective_rh(2.0 * (120.0f32 / 300.0).atan(), aspect, 50.0, 250_000.0)
+        * Mat4::from_scale(glam::Vec3::new(1.0, -1.0, -1.0))
+        * Mat4::from_cols_array_2d(&columns)
 }
