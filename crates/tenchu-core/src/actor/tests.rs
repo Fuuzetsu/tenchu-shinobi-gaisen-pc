@@ -766,3 +766,4 @@ fn both_players_grapple_and_cancel_through_normal_updates() {
 }
 
 mod explosives;
+mod swim;

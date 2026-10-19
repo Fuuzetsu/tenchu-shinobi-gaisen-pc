@@ -164,7 +164,7 @@ and checks native tests, WASM and formatting.
 
 Ordinary play now runs source-ordered actor control and periodic enemy activation.
 Implemented systems include scalar fixed-point math, command history, RNG,
-player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
+player movement/jump/crouch/ledge/swimming control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
@@ -207,7 +207,10 @@ Grappling now includes source targeting, flight/countdown, pull/contact exits,
 cable RNG, impact particles and original hook geometry. Empty cable curves omit
 the hook draw instead of reading undefined retail stack locals; their exact
 original packet cost is therefore outside the fidelity claim.
-CVA camera/actor ownership, remaining ranged/item combat, swimming, results,
+Swimming now preserves water entry, splash RNG, attack cleanup, hidden body parts,
+steering, reverse blockage, hook-only use/cancellation, shore exit and non-swimmer
+drowning. Falling also performs the original attack cleanup.
+CVA camera/actor ownership, wall hugging, remaining ranged/item combat, results,
 saving, transitions and the remaining campaign are still required.
 
 Verification completed so far:
@@ -257,6 +260,13 @@ Verification completed so far:
   through expiry in 384 cases with graphics submission stubbed. Window checks
   show the grenade blast, embers and smoke cloud using a temporary QA loadout;
   the launcher retains the original fallback inventory.
+- Both characters swim, reverse, cancel a hook and exit to dry terrain through
+  ordinary ticks in controlled scenarios. Entry checks cover splash RNG/order,
+  one-time cleanup and body visibility; a non-swimmer completes drowning and
+  loses body collision. A separate fall regression checks attack cleanup. A
+  native window check places the player in actual Mission 1 water and exercises
+  swimming/hook cancellation. The water surface itself still needs its original
+  environmental drawing producer; the current renderer shows the empty channel.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -272,6 +282,6 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: remaining item behaviors, swimming and mission events. Fill the remaining
+Next: wall hugging, remaining item behaviors and mission events. Fill the remaining
 drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

@@ -356,6 +356,21 @@ impl Actor {
         self.motion_id(ctx, action) >= 0
     }
 
+    fn hide_body(&self, scene: &mut Scene, hidden: bool) {
+        for &part in self
+            .parts
+            .iter()
+            .take(1)
+            .chain(self.parts.iter().take(13).skip(7))
+        {
+            if hidden {
+                scene.models[part].attribute |= 1;
+            } else {
+                scene.models[part].attribute &= !1;
+            }
+        }
+    }
+
     fn motion_id(&self, ctx: &Context, action: i16) -> i16 {
         ctx.mission.characters[self.definition]
             .motions

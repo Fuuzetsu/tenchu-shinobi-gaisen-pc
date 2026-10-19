@@ -298,3 +298,20 @@ from the actual source and checks 384 complete particle lifetimes, including
 RNG, velocity, scale, color, sprite choice and disposal. Coordinate/graphics
 submission is stubbed in that comparison. Controlled gameplay and window checks
 exercise actual item use and rendering separately.
+
+## Swimming and water transitions (2026-10-20)
+
+`SwimCheck`, `ActSWIM`, `FallCheck` and body visibility in the matching
+`MOTION.C` above supply entry/exit, motion and camera changes, steering, RNG,
+attack cleanup and hook interaction. The runtime uses scalar actor state and
+the existing ordered effects pool. Additional behavioral reference at the
+recorded research revision:
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/swim.rs` | `3ebfca456308dc54e65f1e7cf695f19e13ba7f4de41e85a10b2e864cda2cb5c1` |
+
+Private-disc tests exercise both players through water input, hook cancellation
+and shore exit, and a non-swimmer through drowning/collision removal. Targeted
+checks cover entry splash RNG, one-time cleanup and falling attack cancellation.
+These scenarios do not establish complete mission or water-presentation parity.

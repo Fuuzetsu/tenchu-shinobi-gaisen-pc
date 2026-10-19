@@ -58,7 +58,7 @@ the source AI difficulty; normal is the default.
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
-jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
+jumping, crouching, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
 smoke bombs, grenades and mines work through normal item selection. Remaining items/special attacks and mission
@@ -71,7 +71,7 @@ The launcher starts with the original fallback loadout: infinite hook, 10 shurik
 5 caltrops and 2 medicine. Tap E for a quick shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
 selected, hold E, aim with the direction keys and release to grapple. Lighting, full
-scene transparency, the map and audio remain in progress.
+scene transparency, water surfaces, the map and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;

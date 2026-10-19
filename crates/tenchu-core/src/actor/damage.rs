@@ -482,11 +482,7 @@ impl Actor {
         match self.motion.action {
             MOT_DAMAGE_LAUNCH_BACK | MOT_DAMAGE_LAUNCH_FORE => {
                 if count == 1 {
-                    for (i, &model) in self.parts.iter().enumerate() {
-                        if i == 0 || (7..=12).contains(&i) {
-                            ctx.scene.models[model].attribute &= !1;
-                        }
-                    }
+                    self.hide_body(ctx.scene, false);
                 } else if complete {
                     self.motion.loops = -1;
                 } else {

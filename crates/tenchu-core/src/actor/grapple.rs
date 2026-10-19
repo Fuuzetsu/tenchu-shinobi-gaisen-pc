@@ -44,9 +44,7 @@ impl Actor {
                     next = Some((self.return_normal(ctx, world.player)?, true));
                 }
                 if self.map.attribute & 4 != 0 && next.is_some_and(|(action, _)| action >> 8 != 4) {
-                    for &part in self.parts.iter().take(13).skip(7).chain(self.parts.first()) {
-                        ctx.scene.models[part].attribute |= 1;
-                    }
+                    self.hide_body(ctx.scene, true);
                     next = Some((MOT_SWIM, true));
                     self.motion.mask = 0x7fff;
                 }

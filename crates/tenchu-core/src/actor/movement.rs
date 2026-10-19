@@ -1,6 +1,7 @@
 mod chase;
 mod crouch;
 mod hang;
+mod swim;
 
 use super::*;
 use crate::input::*;
@@ -24,10 +25,10 @@ impl Actor {
         let damage_pending = if self.attribute & ATTR_HIT != 0 {
             self.damage_control(ctx, world)?
         } else {
-            if self.fall_check(ctx) {
+            if self.fall_check(ctx)? {
                 self.hang_check(ctx)?;
-            } else if self.map.attribute & 4 != 0 && self.status != 4 {
-                return Err("Swimming control is not implemented yet".into());
+            } else if self.map.attribute & 4 != 0 {
+                self.swim_check(ctx, world)?;
             }
             None
         };
@@ -35,6 +36,7 @@ impl Actor {
             0 => self.normal(ctx, world, held, command, center)?,
             1 => self.action(ctx, world, held)?,
             2 => self.walk(ctx, world, held, center)?,
+            3 => self.swim(ctx, world, held)?,
             4 => self.grapple_control(ctx, world)?,
             5 => self.engage(ctx, world, held, command, center)?,
             6 => self.chase(ctx, world, held, command, center)?,
@@ -89,23 +91,23 @@ impl Actor {
         Ok(visible)
     }
 
-    fn fall_check(&mut self, ctx: &mut Context) -> bool {
+    fn fall_check(&mut self, ctx: &mut Context) -> Result<bool> {
         if self.motion.action == MOT_STATE_FALL {
-            return true;
+            return Ok(true);
         }
         if self.motion.action == MOT_ATTACK_DIVE {
-            return false;
+            return Ok(false);
         }
         if self.status == 9 && self.map.height > 0 {
-            return true;
+            return Ok(true);
         }
         if self.attribute & ATTR_FLOAT != 0 || self.map.height <= 1000 {
-            return false;
+            return Ok(false);
         }
         if matches!(self.status, 4 | 10 | 13 | 16 | 17)
             || (self.status == 11 && self.motion.loops == 0)
         {
-            return false;
+            return Ok(false);
         }
         self.motion.mask = 0x7fff;
         let [x, z] = ctx.body.reflect_move[self.map.angle_high as usize];
@@ -116,7 +118,8 @@ impl Actor {
         if self.status == 11 {
             self.motion.count >>= 2;
         }
-        true
+        self.clear_attack(ctx, 3)?;
+        Ok(true)
     }
 
     fn normal(
