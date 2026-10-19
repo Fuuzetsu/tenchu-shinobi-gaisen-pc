@@ -205,3 +205,13 @@ disc. Actors construct attachments and swap active/stowed slots according to
 `SetupWeapon`/`EquipWeapon`. The live render includes held weapons; no attack
 hitboxes or damage are enabled by this checkpoint. All-stage asset auditing and
 the both-character cadence replay pass with these attachments.
+
+Stage actor construction now follows `BreedLife`, the temporary dog/disguise
+allocation and removal, layout installation, story placements and roster sorting.
+Mission selection resolves campaign numbers through the disc's stage table.
+All 66 mission/character/layout combinations construct successfully. The roster,
+mission totals, weapon indices, layout homes and patrol points agree with the
+private Reclaim the Castle capture. Player/story homes changed by CVA are outside
+that construction comparison. The frame update remains player-only until enemy
+visibility, activation and controllers are connected; this checkpoint does not
+skip those requirements or count as playable Mission 1.

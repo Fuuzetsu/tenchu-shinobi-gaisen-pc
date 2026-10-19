@@ -51,6 +51,9 @@ through its duration. `render` captures Mission 1 with original textures.
 ./dev.sh cargo run --release -- play '/path/to/game.cue' --character ayame --mission 1 --layout 1
 ```
 
+Mission numbers follow campaign order (1–10); `--mission training` selects
+training. Each mission has layouts 1–3.
+
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
@@ -70,11 +73,24 @@ animation, effects, RNG, camera, collision and coordinate caches at every tick
 under 24 Hz and 144 Hz host frames:
 
 ```sh
-TENCHU_DISC='/path/to/game.cue' ./dev.sh cargo test -p tenchu-pc -- --ignored
+TENCHU_DISC='/path/to/game.cue' \
+  ./dev.sh cargo test -p tenchu-pc retail_movement -- --ignored
+TENCHU_DISC='/path/to/game.cue' \
+  ./dev.sh cargo test -p tenchu-pc all_retail_layouts -- --ignored
 ```
 
 This checks display independence, not parity with complete PS1 gameplay. Retail
 continuous state comparison remains a separate acceptance requirement.
+
+Every mission/layout constructs the source actor roster, collision slots,
+weapons and patrol data. NPC updates and stage scripts are not enabled yet.
+An additional private check compares the roster, mission totals, weapon hitbox
+indices and layout patrol points with the existing Reclaim the Castle capture:
+
+```sh
+TENCHU_DISC='/path/to/game.cue' TENCHU_ROSTER_TRACE='/path/to/kagi-aim-v1.trace' \
+  ./dev.sh cargo test -p tenchu-pc roster_and_weapon -- --ignored
+```
 
 Optional camera checks compare smoothing with the matching C and the integer
 view matrix with an existing retail trace. These private files remain outside

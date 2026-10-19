@@ -73,8 +73,10 @@ impl Actor {
                 self.rotation[1].wrapping_add(if slot & 1 != 0 { turn } else { -turn });
             if self.velocity[0] != 0 || self.velocity[2] != 0 {
                 self.motion_velocity(ctx);
-                if self.attribute & ATTR_TRACE != 0 {
-                    self.trace_count = -20;
+                if self.attribute & ATTR_TRACE != 0
+                    && let Some(patrol) = &mut self.patrol
+                {
+                    patrol.count = -20;
                 }
             }
         }

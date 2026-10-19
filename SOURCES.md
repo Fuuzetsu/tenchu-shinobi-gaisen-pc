@@ -112,3 +112,16 @@ neither the C nor captured RAM is needed by the game.
 Weapon metadata, attachment construction and equipment swaps follow
 `APPEAR.C` and `game_types.h` already recorded above. Weapon geometry uses the
 same checked TMD reader as the original character models.
+
+## Stage roster construction (2026-10-20)
+
+Construction, layout installation and story ordering follow `WORLD.C`,
+`STAGE.C`, `APPEAR.C` and `HUMAN.C` recorded above. Patrol control retains
+`ControlTraceLine`'s narrow counters and direction fold. Additional matching
+sources at the same decomp revision:
+
+| File | Working-tree SHA-256 | Use |
+| --- | --- | --- |
+| `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` | Temporary dog/disguise construction |
+| `src/main.exe/THINK.C` | `65ddde563a175579f83c1f26e00cd63848b9abe2fb82a326097a42a7d987b23a` | Think-program selection |
+| `src/main.exe/CHRANIM.C` | `5e8c2a7548b441bdb68b16b54b7ac2fb6c9dd5f791868295d625c3fb2297c825` | Identifying CVA-mutated homes excluded from the roster fixture check |

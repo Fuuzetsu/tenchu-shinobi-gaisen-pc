@@ -9,6 +9,7 @@ pub mod input;
 pub mod math;
 pub mod motion;
 pub mod random;
+pub mod roster;
 pub mod scene;
 pub mod terrain;
 

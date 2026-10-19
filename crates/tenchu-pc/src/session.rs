@@ -3,19 +3,26 @@ use std::{ffi::OsString, path::Path};
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
 use tenchu_core::game::Game;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 pub struct Options {
     pub mission: usize,
     pub character: i16,
     pub layout: usize,
 }
 
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            mission: 1,
+            character: 0,
+            layout: 1,
+        }
+    }
+}
+
 impl Options {
     pub fn parse(args: &[OsString]) -> Result<Self> {
-        let mut options = Self {
-            layout: 1,
-            ..Self::default()
-        };
+        let mut options = Self::default();
         for pair in args.chunks(2) {
             if pair.len() != 2 {
                 return Err("Launch options require a value".into());
@@ -28,12 +35,15 @@ impl Options {
                     _ => return Err("Character must be rikimaru or ayame".into()),
                 };
             } else if pair[0] == "--mission" {
-                options.mission = value
-                    .parse::<usize>()
-                    .ok()
-                    .filter(|n| (1..=11).contains(n))
-                    .ok_or("Mission must be 1–11 (11 is training)")?
-                    - 1;
+                options.mission = if value == "training" {
+                    0
+                } else {
+                    value
+                        .parse::<usize>()
+                        .ok()
+                        .filter(|n| (1..=10).contains(n))
+                        .ok_or("Mission must be 1–10 or training")?
+                };
             } else if pair[0] == "--layout" {
                 options.layout = value
                     .parse::<usize>()
@@ -51,7 +61,13 @@ impl Options {
     }
 
     pub fn load(self, assets: &GameAssets<FileSource>) -> Result<Game> {
-        let mission = MissionAssets::load(assets, self.mission, self.character, self.layout)?;
+        let id = assets
+            .stages()?
+            .iter()
+            .find(|stage| stage.order == self.mission as i32)
+            .ok_or("Unknown campaign mission")?
+            .id;
+        let mission = MissionAssets::load(assets, id, self.character, self.layout)?;
         Game::new(
             mission,
             &Executable::new(&assets.executable)?,
@@ -86,7 +102,7 @@ pub fn replay(mut game: Game, path: &Path) -> Result<()> {
         for _ in 0..count {
             game.step(buttons)
                 .map_err(|e| format!("Tick {}: {e}", game.tick))?;
-            let p = &game.player;
+            let p = game.player();
             println!(
                 "{},{buttons:04x},{},{},{},{},{},{},{},{:04x},{},{},{:04x},{:08x},{}",
                 game.tick,
@@ -110,100 +126,4 @@ pub fn replay(mut game: Game, path: &Path) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::time::Duration;
-    use tenchu_core::{clock::GameClock, input::*};
-
-    fn state(game: &Game) -> String {
-        format!(
-            "{:?}",
-            (
-                &game.player,
-                &game.random,
-                &game.effects,
-                &game.scene,
-                &game.collision,
-                &game.camera
-            )
-        )
-    }
-
-    #[test]
-    #[ignore = "requires TENCHU_DISC pointing to the private SLPS-019.01 disc"]
-    fn retail_movement_is_independent_of_host_frame_cadence() {
-        let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
-        let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
-        let tape: Vec<_> = [
-            (30, 0),
-            (30, UP),
-            (1, UP | CROSS),
-            (30, UP),
-            (30, 0),
-            (20, RIGHT),
-            (20, UP),
-            (30, R1),
-            (30, UP | R1),
-            (60, 0),
-            (15, L1),
-            (20, L1 | RIGHT),
-            (20, L1 | UP),
-            (15, L1),
-            (30, 0),
-        ]
-        .into_iter()
-        .flat_map(|(count, input)| std::iter::repeat_n(input, count))
-        .collect();
-        for character in 0..=1 {
-            let options = Options {
-                character,
-                layout: 1,
-                ..Options::default()
-            };
-            let mut reference = options.load(&assets).unwrap();
-            let mut states = Vec::new();
-            let mut motions = std::collections::BTreeSet::new();
-            let mut looked = false;
-            for &input in &tape {
-                reference.step(input).unwrap();
-                motions.insert(reference.player.motion.action);
-                looked |= reference.camera.mode == tenchu_core::camera::Mode::Direction;
-                states.push(state(&reference));
-            }
-            assert!(
-                motions.iter().any(|motion| motion >> 8 == 9),
-                "jump was not reached"
-            );
-            assert!(
-                motions.iter().any(|motion| motion >> 8 == 11),
-                "crouch was not reached"
-            );
-            assert!(looked, "direction camera was not reached");
-            assert_eq!(reference.camera.mode, tenchu_core::camera::Mode::Normal);
-            for fps in [24, 144] {
-                let mut game = options.load(&assets).unwrap();
-                let mut clock = GameClock::default();
-                for frame in 0..(tape.len() as u64 * fps).div_ceil(30) + 1 {
-                    let elapsed = (frame + 1) * 1_000_000_000 / fps - frame * 1_000_000_000 / fps;
-                    clock.elapse(Duration::from_nanos(elapsed));
-                    while let Some(tick) = clock.step() {
-                        if tick as usize == tape.len() {
-                            break;
-                        }
-                        let tick = tick as usize;
-                        game.step(tape[tick]).unwrap();
-                        assert_eq!(
-                            state(&game),
-                            states[tick],
-                            "character {character}, {fps} Hz, tick {tick}"
-                        );
-                    }
-                    if game.tick as usize == tape.len() {
-                        break;
-                    }
-                }
-                assert_eq!(game.tick as usize, tape.len());
-            }
-        }
-    }
-}
+mod tests;

@@ -1,0 +1,122 @@
+use crate::{
+    Result,
+    actor::{Context, patrol::Patrol},
+    ids::{ATTR_CUSTOMAI, ATTR_SUSPEND, ATTR_TRACE},
+    roster::Roster,
+    scene::COLLIDE,
+    terrain,
+};
+
+#[derive(Clone, Debug, Default)]
+pub struct Statistics {
+    pub citizens: i16,
+    pub enemies: i16,
+    pub bosses: i16,
+}
+
+pub(super) fn construct(
+    roster: &mut Roster,
+    character: i16,
+    ctx: &mut Context,
+) -> Result<(usize, Statistics)> {
+    let mission = ctx.mission;
+    for spawn in &mission.construction_actors {
+        roster.spawn(spawn.kind, spawn.position, spawn.facing, ctx)?;
+    }
+    let player = roster.spawn(character, [0; 3], 0, ctx)?;
+    let actor = roster.get_mut(player);
+    actor.setup_think(0x1111);
+    actor.position = mission.stage.start;
+    actor.rotation = [0, mission.stage.facing as i16, 0];
+    ctx.scene.set_translation(actor.root_model, actor.position);
+
+    let dog = roster.spawn(0xa9, [999000; 3], 0, ctx)?;
+    roster.get_mut(dog).attribute |= ATTR_SUSPEND;
+    let disguise = roster.spawn(mission.disguise, [999000; 3], 0, ctx)?;
+    roster.remove(disguise, ctx);
+    while roster.order.len() > 1 {
+        roster.remove(roster.order[1], ctx);
+    }
+    if roster.order.first() != Some(&player) {
+        return Err("Construction actors displaced the stage player".into());
+    }
+    for spawn in &mission.enemies {
+        let id = roster.spawn(spawn.kind, spawn.position, 0, ctx)?;
+        let actor = roster.get_mut(id);
+        actor.rotation[1] = spawn.facing;
+        actor.attribute |= ATTR_SUSPEND;
+        actor.target = Some(player);
+        ctx.scene.models[actor.parts[0]].attribute &= !COLLIDE;
+        actor.setup_think(spawn.think);
+        if !spawn.patrol.is_empty() {
+            actor.patrol = Some(Patrol::new(&spawn.patrol, actor.position));
+            actor.attribute |= ATTR_TRACE;
+        }
+    }
+    for spawn in &mission.story {
+        let id = match roster.find(spawn.kind) {
+            Some(id) => id,
+            None => roster.spawn(spawn.kind, [0; 3], 0, ctx)?,
+        };
+        let actor = roster.get_mut(id);
+        actor.position = spawn.position;
+        actor.home = [spawn.position[0], spawn.position[2]];
+        let floor = terrain::level(
+            &mission.terrain,
+            ctx.cursor,
+            [
+                spawn.position[0],
+                spawn.position[1].wrapping_sub(1000),
+                spawn.position[2],
+            ],
+            0,
+        )?;
+        if floor < actor.position[1] {
+            actor.position[1] = floor;
+        }
+        actor.rotation[1] = spawn.facing;
+        ctx.scene.update(actor.root_model, actor.root(ctx.math));
+        actor.setup_think(spawn.think);
+        actor.attribute = (actor.attribute | ATTR_SUSPEND | 2) & !ATTR_CUSTOMAI;
+        actor.health = -1;
+        actor.target = Some(player);
+    }
+    let actors = &roster.actors;
+    roster
+        .order
+        .sort_by_key(|&id| match actors[id].as_ref().unwrap().kind & 0xf0 {
+            0 => 0,
+            0x80 => 1,
+            _ => 2,
+        });
+    let mut stats = Statistics::default();
+    for &id in &roster.order {
+        let actor = roster.get(id);
+        if actor.max_health < 0 || id == player || actor.kind == 0xa9 {
+            continue;
+        }
+        match actor.kind & 0xf0 {
+            0x80 => stats.bosses += 1,
+            0x90 => {
+                stats.citizens += 1;
+                continue;
+            }
+            _ => {}
+        }
+        stats.enemies += 1;
+    }
+    let adjustment = match mission.stage.id {
+        10 => {
+            if character == 0 {
+                2
+            } else {
+                1
+            }
+        }
+        2 | 3 => 1,
+        _ => 0,
+    };
+    stats.bosses -= adjustment;
+    stats.enemies -= adjustment;
+    Ok((player, stats))
+}

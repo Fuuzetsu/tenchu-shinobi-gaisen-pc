@@ -87,7 +87,7 @@ pub fn stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {
 
 pub fn player(game: &tenchu_core::game::Game) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    let actor = &game.player;
+    let actor = game.player();
     for (part, matrix) in game.mission.models[&actor.kind]
         .iter()
         .zip(actor.rendered.iter().copied())

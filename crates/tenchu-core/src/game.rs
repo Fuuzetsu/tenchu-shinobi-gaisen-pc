@@ -1,3 +1,5 @@
+mod setup;
+
 use crate::{
     Result,
     actor::{Actor, Context},
@@ -6,6 +8,7 @@ use crate::{
     effects::Effects,
     math::Math,
     random::Random,
+    roster::Roster,
     scene::Scene,
     terrain::Cursor,
 };
@@ -17,7 +20,9 @@ use tenchu_assets::{
 pub struct Game {
     pub mission: MissionAssets,
     pub math: Math,
-    pub player: Actor,
+    pub roster: Roster,
+    pub player_id: usize,
+    pub statistics: setup::Statistics,
     pub random: Random,
     pub effects: Effects,
     pub tick: u64,
@@ -62,11 +67,9 @@ impl Game {
             collision: &mut collision,
             camera: &mut camera,
         };
-        let mut player = Actor::new(0, character, [0; 3], 0, &mut context)?;
-        player.position = mission.stage.start;
-        player.rotation = [0, mission.stage.facing as i16, 0];
-        scene.set_translation(player.root_model, player.position);
-        player.initialize_rendered(&scene, &math);
+        let mut roster = Roster::default();
+        let (player_id, statistics) = setup::construct(&mut roster, character, &mut context)?;
+        roster.get_mut(player_id).initialize_rendered(&scene, &math);
         Ok(Self {
             mission,
             math,
@@ -75,7 +78,9 @@ impl Game {
             cursor,
             random,
             effects,
-            player,
+            roster,
+            player_id,
+            statistics,
             tick: 0,
             scene,
             collision,
@@ -83,11 +88,15 @@ impl Game {
         })
     }
 
+    pub fn player(&self) -> &Actor {
+        self.roster.get(self.player_id)
+    }
+
     pub fn step(&mut self, input: u16) -> Result<()> {
         self.tick += 1;
         self.collision.compute(&mut self.scene)?;
         self.camera.advance(
-            &self.player,
+            self.roster.get(self.player_id),
             input,
             &mut Environment {
                 terrain: &self.mission.terrain,
@@ -108,14 +117,14 @@ impl Game {
             collision: &mut self.collision,
             camera: &mut self.camera,
         };
-        let center = self.player.collision_center(&context);
-        self.player.terrain_contact(&mut context, center, true)?;
-        self.player.body_contact(&mut context, center)?;
-        self.player
-            .control(&mut context, input, &self.commands, center)?;
-        self.player.look_at_camera(&mut context)?;
+        let player = self.roster.get_mut(self.player_id);
+        let center = player.collision_center(&context);
+        player.terrain_contact(&mut context, center, true)?;
+        player.body_contact(&mut context, center)?;
+        player.control(&mut context, input, &self.commands, center)?;
+        player.look_at_camera(&mut context)?;
         self.effects.step(&mut self.random);
-        self.player.prepare_draw(&mut self.scene)?;
+        player.prepare_draw(&mut self.scene)?;
         self.scene.finish_tick();
         Ok(())
     }

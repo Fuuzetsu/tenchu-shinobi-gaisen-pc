@@ -43,6 +43,8 @@ pub struct MissionAssets {
     pub common_motions: Vec<MotionRegistration>,
     pub weapons: crate::weapon::Weapons,
     pub enemies: Vec<Enemy>,
+    pub construction_actors: Vec<Enemy>,
+    pub disguise: i16,
     pub story: Vec<StoryActor>,
     pub construction: Vec<u8>,
     pub layout: Vec<u8>,
@@ -91,6 +93,7 @@ impl MissionAssets {
         let mut object = 0;
         let mut area = "STAGE.ACM".to_string();
         let mut placements = Vec::new();
+        let mut construction_actors = Vec::new();
         for (i, row) in construction.chunks_exact(32).enumerate() {
             match i16_le(row, 0)? {
                 0 => area = format!("{}.ACM", text(&row[4..16])?),
@@ -115,12 +118,22 @@ impl MissionAssets {
                         facing: u32_le(row, 28)? as i32,
                     });
                 }
+                3 => construction_actors.push(Enemy {
+                    slot: i,
+                    kind: i16_le(row, 2)?,
+                    think: 0,
+                    position: point(row, 16)?,
+                    facing: u32_le(row, 28)? as i16,
+                    patrol: Vec::new(),
+                }),
                 _ => {}
             }
         }
         let terrain = AreaMap::parse(asset(&area)?)?;
         let exe = Executable::new(&game.executable)?;
         let characters = exe.characters()?;
+        let disguise =
+            i16::from(exe.bytes(0x8008e3ec + (id * 2 + character as usize) as u32, 1)?[0]);
         let mut story = exe.story_actors(id)?;
         for actor in &mut story {
             actor.kind = match actor.kind {
@@ -169,6 +182,8 @@ impl MissionAssets {
         }
         let mut models = BTreeMap::new();
         for kind in std::iter::once(character)
+            .chain([0xa9, disguise])
+            .chain(construction_actors.iter().map(|e| e.kind))
             .chain(enemies.iter().map(|e| e.kind))
             .chain(story.iter().map(|s| s.kind))
         {
@@ -208,6 +223,8 @@ impl MissionAssets {
             common_motions: exe.common_motions()?,
             weapons: crate::weapon::Weapons::load(game, &exe)?,
             enemies,
+            construction_actors,
+            disguise,
             story,
             construction,
             layout,

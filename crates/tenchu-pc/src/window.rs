@@ -99,7 +99,9 @@ impl View {
         self.actor = self.renderer.upload(&render_mesh::player(game));
         self.window.set_title(&format!(
             "Tenchu — movement preview | tick {} | HP {} | motion {:04x}",
-            game.tick, game.player.health, game.player.motion.action
+            game.tick,
+            game.player().health,
+            game.player().motion.action
         ));
     }
 
@@ -139,6 +141,7 @@ struct Application {
     last_frame: Instant,
     keys: HashSet<KeyCode>,
     paused: bool,
+    faulted: bool,
     focused: bool,
     error: Option<String>,
 }
@@ -167,6 +170,7 @@ impl Application {
     fn pause_error(&mut self, error: String) {
         eprintln!("Tick {}: {error}. Press F5 to restart.", self.game.tick);
         self.paused = true;
+        self.faulted = true;
         if let Some(view) = &self.view {
             view.window
                 .set_title(&format!("Tenchu — {error} | F5: restart"));
@@ -217,7 +221,7 @@ impl ApplicationHandler for Application {
                 }
                 match code {
                     KeyCode::Escape => events.exit(),
-                    KeyCode::KeyP => {
+                    KeyCode::KeyP if !self.faulted => {
                         self.paused = !self.paused;
                         self.clock.discard_host_backlog();
                     }
@@ -227,6 +231,7 @@ impl ApplicationHandler for Application {
                             self.clock = GameClock::default();
                             self.last_frame = Instant::now();
                             self.paused = false;
+                            self.faulted = false;
                             self.keys.clear();
                             if let Some(view) = &mut self.view {
                                 view.update(&self.game);
@@ -284,6 +289,7 @@ pub fn run(assets: GameAssets<FileSource>, options: Options) -> Result<()> {
         last_frame: Instant::now(),
         keys: HashSet::new(),
         paused: false,
+        faulted: false,
         focused: true,
         error: None,
     };

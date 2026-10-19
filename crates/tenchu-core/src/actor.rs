@@ -1,5 +1,6 @@
 mod body;
 mod movement;
+pub mod patrol;
 mod weapon;
 
 use crate::{
@@ -48,7 +49,10 @@ pub struct Actor {
     pub pad: Pad,
     pub motion: Motion,
     pub hit: Option<usize>,
-    pub trace_count: i16,
+    pub home: [i32; 2],
+    pub target: Option<usize>,
+    pub think: [u8; 4],
+    pub patrol: Option<patrol::Patrol>,
     pub weapons: [Option<weapon::Weapon>; 4],
     pub weapon_hitbox: [Option<usize>; 2],
 }
@@ -87,6 +91,7 @@ impl Actor {
             terrain::STEP_DOWN,
         )?;
         let root_model = ctx.scene.add(Some(0), Matrix::default());
+        ctx.scene.models[root_model].attribute = 0x1c;
         let nodes = motion.pose.bind(ctx.scene, root_model, ctx.math);
         let waist = *nodes.first().ok_or("Actor model has no waist")?;
         let slot = ctx.collision.insert(ctx.scene, waist)?;
@@ -116,7 +121,10 @@ impl Actor {
             pad: Pad::default(),
             motion,
             hit: None,
-            trace_count: 0,
+            home: [position[0], position[2]],
+            target: None,
+            think: [0; 4],
+            patrol: None,
             weapons: std::array::from_fn(|_| None),
             weapon_hitbox: [None; 2],
         };
@@ -157,6 +165,15 @@ impl Actor {
         Matrix {
             translation: self.position,
             rotation: math.rotate_yxz(self.rotation),
+        }
+    }
+
+    pub fn setup_think(&mut self, mix: i16) {
+        self.think = std::array::from_fn(|i| ((mix as u16 >> (i * 4)) & 15) as u8);
+        if matches!(mix, 0 | 0x1111 | 0x2222) {
+            self.attribute &= !ATTR_CUSTOMAI;
+        } else {
+            self.attribute |= ATTR_CUSTOMAI;
         }
     }
 
