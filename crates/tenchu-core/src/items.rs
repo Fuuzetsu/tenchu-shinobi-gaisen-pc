@@ -3,6 +3,7 @@ mod breath;
 mod caltrops;
 mod charm;
 mod darts;
+mod decoy;
 mod flight;
 mod flute;
 mod grapple;
@@ -59,6 +60,7 @@ pub enum Processor {
     Darts,
     Speed,
     Charm,
+    Decoy,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -80,6 +82,7 @@ pub struct Item {
     pub rolling: Rolling,
     pub count: u8,
     pub charm_remaining: u16,
+    pub decoy: decoy::Decoy,
     pub flight: flight::Flight,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
@@ -103,6 +106,7 @@ pub struct Items {
     cursor: usize,
     icons: [ModelId; KINDS + 1],
     icon_scale: [i32; KINDS + 1],
+    decoy_count: u8,
 }
 
 fn target_distance(actor: &Actor, position: [i32; 3], radius: i32, ctx: &Context) -> Option<i32> {
@@ -138,6 +142,7 @@ impl Items {
                 rolling: Rolling::default(),
                 count: 0,
                 charm_remaining: 0,
+                decoy: decoy::Decoy::default(),
                 flight: flight::Flight::default(),
                 trail: None,
                 rotation: [0; 3],
@@ -165,6 +170,7 @@ impl Items {
             cursor: 0,
             icons,
             icon_scale: [12288; KINDS + 1],
+            decoy_count: 0,
         }
     }
 
@@ -209,6 +215,9 @@ impl Items {
         }
         if self.slots[id].processor == Some(Processor::Breath) {
             self.finish_breath(id, actors, ctx)?;
+        }
+        if self.slots[id].processor == Some(Processor::Decoy) {
+            self.finish_decoy(id, actors);
         }
         let item = &mut self.slots[id];
         match item.processor {
@@ -374,6 +383,7 @@ impl Items {
                 Some(Processor::Darts) => self.darts(id, actors, ctx)?,
                 Some(Processor::Speed) => self.speed(id, actors, player, ctx)?,
                 Some(Processor::Charm) => self.charm(id, actors, player, ctx)?,
+                Some(Processor::Decoy) => self.decoy(id, actors, ctx)?,
                 None => {}
             }
         }

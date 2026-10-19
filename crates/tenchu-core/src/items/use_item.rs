@@ -241,6 +241,27 @@ impl Items {
             }
             19 => {}
             15 => self.request_darts(owner_id, start, actors, ctx)?,
+            14 => {
+                let velocity = throw_vector(actors.get(owner_id), player, [0, -120, -120], ctx)?;
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Decoy, kind, Some(owner_id), start, ctx)?;
+                let item = &mut self.slots[id];
+                item.collision.size = 0;
+                item.rolling = Rolling {
+                    velocity: velocity.map(|v| v as i16),
+                    ..Rolling::default()
+                };
+                item.count = 90;
+                item.rotation = [
+                    0,
+                    (ctx.random.next15() % 4096) as i16,
+                    (ctx.random.next15() % 68) as i16,
+                ];
+                item.decoy = decoy::Decoy { health: 99, player };
+                actors
+                    .get_mut(owner_id)
+                    .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
+            }
             8 | 13 => {
                 let (processor, speed) = if kind == 8 {
                     (Processor::Rice, -100)

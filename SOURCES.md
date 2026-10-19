@@ -752,3 +752,20 @@ including an unrelated active item. It compares RNG and every emitted pulse
 field/parent; effect allocation is stubbed at the request boundary. Casting
 and interrupted refunds are separate behavioral integration checks, not new
 retail trace comparisons.
+
+## Decoy doll (2026-10-20)
+
+`ITEM.C::ReqItemNingyo` and `ProcItemNingyo`, `item.h::param_ningyo` and the
+existing tuning constants define rolling, growth, target changes, collision,
+the three-doll cap and cleanup. Model archive asset 27 is drawn through the
+existing item mesh path. The original camera owner is assigned once per stage
+in `WORLD.C`; the scalar request retains that player ID for target restoration.
+The research `tools/tenchu-sim/src/items/decoy.rs` reference has SHA-256
+`583e2d6fd26041656988e09f53441b3878e1c05f2cd6525b33e39c25d5d7f77f`.
+The existing source and header hashes are unchanged.
+
+Behavior checks cover ordinary throws and growth for both characters, target
+eligibility/restoration, consumed contacts on retarget ticks, knockback edges,
+fourth-hit break, overflow refunds and water cleanup. They add no new full C
+callback or retail replay comparison; rolling, collisions, matrices and effects
+use the shared previously checked routines.

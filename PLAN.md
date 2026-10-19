@@ -631,3 +631,19 @@ Seventy-two extracted-C callback cases match timer wrapping, pulse fields/RNG
 and disposal. Native keyboard checks use unlocked temporary saves to equip,
 cast and return to play with both characters, through expiry. Nix native, WASM
 and formatting checks pass on x86_64-linux.
+
+Decoy dolls now throw and roll, wait 90 ticks, grow over 16 ticks and create the
+original standing/soft hitbox. At most three grow; additional dolls become
+recoverable pickups. They periodically redirect closer non-boss targets and
+restore those targets to the player on disposal, including suspended actors.
+Retarget ticks consume and ignore contacts; three points of health break on
+the fourth hit. Water disposal, knockback, smoke, sparks and original asset 27
+use the shared source routines.
+Four focused checks cover both characters' complete throw/growth, target
+eligibility and restoration, contact ordering, bump thresholds/RNG, fourth-hit
+break, overflow and water cleanup. The relocated arena fixture explicitly snaps
+its camera to the new start. Native keyboard checks from normal mission starts
+show both characters throwing and the original doll appearing with smoke.
+The native checks use temporary saves to unlock equipment, with ordinary
+launcher and keyboard paths afterward.
+Nix native, WASM and formatting checks pass on x86_64-linux.
