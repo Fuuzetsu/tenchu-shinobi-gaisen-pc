@@ -457,3 +457,33 @@ Campaign tests inject terminal outcomes to test result/retry/advance/persistence
 they do not claim to beat the missions. Separate existing event tests exercise
 actual authored event chains. Original-disc checks load both characters' armour
 variants and random layouts; private cadence and roster checks remain passing.
+
+## Original sound assets and XA streams (2026-10-20)
+
+The VAB parser, SPU/XA ADPCM decoders and cue resolver are new portable Rust.
+The sound bank, note, channel and cue choices follow the decompilation at
+`cd3a505559bc748ba7be0082ccea58c1d4908407`, including these working-tree files:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/AUDIO.C` | `cfef41d067b7d1099e5d64cfc4fcced2d4c0c8f85479ae79f8f482fe6f3537cc` |
+| `src/main.exe/SEMNG.C` | `2acf89e99c288fa90d767245eda9c888f4ae9ea95688f332fadc0fbb02f32a10` |
+| `src/main.exe/IMAGES.C` | `4ad4a53038c560c889c0057b6c1b7d3903da2585dbbd0e86682af24e94d71799` |
+| `src/main.exe/OPAUDIO.C` | `8365aa533aba84ba110af4decfb66f65a806a8deade3c0de2c9f20d76e0ada64` |
+| `src/main.exe/sound.h` | `405f3e09c98bcdea57852ec640f1249975e27f9bf44edf242084c2ef1e36159b` |
+| `src/main.exe/music.h` | `ba4db842b2a1200f95750fabb18747bf54ed235d756640a364261a337345bccc` |
+
+Format references: [PSX-SPX SPU](https://psx-spx.consoledev.net/soundprocessingunitspu/)
+and [CD-ROM XA](https://psx-spx.consoledev.net/cdromformat/). No emulator source or
+runtime is imported. The portable reader retains the raw Form 2 payload, checks
+duplicated subheaders and selects the original file/channel. Cue offsets use
+the game's double-speed CD conversion. Language-specific dialogue, shared
+fallbacks and Japanese silent entries come from the supplied executable.
+
+Private checks decode 104 non-trial VAB banks (9,139 samples), all 88 localized
+stage bank selections and 419 distinct XA cues (399,853,440 stereo frames).
+Another check compares 10,604,160 decoded samples across music and four dialogue
+languages with [FFmpeg](https://github.com/FFmpeg/FFmpeg) 8.1.2. FFmpeg is a
+test-only external oracle, not a runtime dependency. Synthetic checks cover
+ADPCM saturation/loops, mono/stereo unit order, eight-bit units and raw sectors
+with CUE pregaps. These checks establish decoding, not completed audio playback.

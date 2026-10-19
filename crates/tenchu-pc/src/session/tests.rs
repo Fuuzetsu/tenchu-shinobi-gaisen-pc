@@ -3,6 +3,195 @@ use std::time::Duration;
 use tenchu_core::{clock::GameClock, input::*};
 
 #[test]
+#[ignore = "requires TENCHU_DISC; decodes music and every localized/shared dialogue cue"]
+fn all_retail_xa_cues_decode() {
+    use std::collections::HashSet;
+    use tenchu_assets::{
+        audio::{catalog::Catalog, stream::Stream},
+        script::Language,
+    };
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let game = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut tracks = HashSet::new();
+    let mut total = 0;
+    for language in [
+        Language::English,
+        Language::French,
+        Language::Italian,
+        Language::Japanese,
+    ] {
+        let catalog = Catalog::load(&game.executable, language).unwrap();
+        assert_eq!(catalog.event(126), catalog.music(9));
+        assert_eq!(catalog.event(127), catalog.music(10));
+        assert_eq!(catalog.event(119), catalog.music(19));
+        assert!(catalog.event(-1).is_none());
+        assert!(catalog.event(161).is_none());
+        if language == Language::Japanese {
+            let silence = catalog.event(53).unwrap();
+            assert_eq!(silence.channel, 255);
+            assert_eq!(silence.start, silence.end);
+        }
+        for track in catalog.tracks() {
+            if !tracks.insert(track.clone()) {
+                continue;
+            }
+            let mut stream = Stream::open(&game.disc, track).unwrap();
+            let mut frames = 0;
+            let mut audible = false;
+            while let Some(clip) = stream
+                .next(&game.disc)
+                .unwrap_or_else(|e| panic!("{track:?}: {e}"))
+            {
+                assert_eq!(clip.rate, 37800, "{track:?}");
+                frames += clip.frames.len();
+                audible |= clip.frames.iter().flatten().any(|&sample| sample != 0);
+            }
+            if track.start != track.end {
+                assert!(audible, "{track:?} has no audio");
+            }
+            total += frames;
+        }
+    }
+    eprintln!("Decoded {} XA cues, {total} stereo frames", tracks.len());
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC and TENCHU_FFMPEG; compares decoded retail XA samples with FFmpeg"]
+fn retail_xa_samples_match_ffmpeg() {
+    use std::{io::Write, process::Command};
+    use tenchu_assets::{
+        audio::{catalog::Catalog, stream::Clip},
+        script::Language,
+    };
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let ffmpeg = std::env::var_os("TENCHU_FFMPEG").expect("Set TENCHU_FFMPEG");
+    let game = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let temp = std::env::temp_dir().join(format!("tenchu-xa-{}.str", std::process::id()));
+    let mut compared = 0;
+    for language in [
+        Language::English,
+        Language::French,
+        Language::Italian,
+        Language::Japanese,
+    ] {
+        let catalog = Catalog::load(&game.executable, language).unwrap();
+        for id in [2, 3, 100, 109, 119, 201] {
+            let mut track = catalog.event(id).unwrap().clone();
+            track.end = track.end.min(track.start + 1200);
+            let clip = Clip::load(&game.disc, &track).unwrap();
+            let entry = game.disc.find(&track.path).unwrap();
+            let mut file = std::fs::File::create(&temp).unwrap();
+            let mut stereo = false;
+            for index in track.start..track.end {
+                let sector = game.disc.xa_sector(entry.sector + index).unwrap();
+                if sector[0] != 1 || sector[1] != track.channel || sector[2] & 0x24 != 0x24 {
+                    continue;
+                }
+                assert!(sector[3] <= 1);
+                stereo = sector[3] == 1;
+                file.write_all(&[
+                    0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 2,
+                ])
+                .unwrap();
+                file.write_all(&sector).unwrap();
+            }
+            drop(file);
+            let mut command = Command::new(&ffmpeg);
+            command
+                .args(["-v", "error", "-f", "psxstr", "-i"])
+                .arg(&temp);
+            if !stereo {
+                command.args(["-af", "pan=stereo|c0=c0|c1=c0"]);
+            }
+            let output = command
+                .args([
+                    "-map",
+                    "0:a:0",
+                    "-c:a",
+                    "pcm_s16le",
+                    "-f",
+                    "s16le",
+                    "pipe:1",
+                ])
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let expected: Vec<_> = output
+                .stdout
+                .chunks_exact(2)
+                .map(|b| i16::from_le_bytes([b[0], b[1]]))
+                .collect();
+            assert_eq!(
+                expected.len(),
+                clip.frames.len() * 2,
+                "{language:?} {track:?}"
+            );
+            for (index, (&actual, &expected)) in
+                clip.frames.iter().flatten().zip(&expected).enumerate()
+            {
+                assert_eq!(actual, expected, "{language:?} {track:?} sample {index}");
+            }
+            compared += expected.len();
+        }
+    }
+    std::fs::remove_file(temp).unwrap();
+    eprintln!("Compared {compared} XA samples with FFmpeg");
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; decodes every non-trial sound bank and verifies localized stage lookup"]
+fn all_retail_sound_banks_decode() {
+    use tenchu_assets::{audio::bank::Bank, script::Language};
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let game = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut banks = 0;
+    let mut samples = 0;
+    let mut frames = 0;
+    for name in game
+        .archive
+        .files
+        .keys()
+        .filter(|name| name.ends_with(".VAB") && !name.contains("/TRIAL/"))
+    {
+        let bank =
+            Bank::parse(&game.asset(name).unwrap()).unwrap_or_else(|e| panic!("{name}: {e}"));
+        banks += 1;
+        samples += bank.samples.len() - 1;
+        frames += bank
+            .samples
+            .iter()
+            .map(|sample| sample.frames.len())
+            .sum::<usize>();
+        for program in bank.programs.iter().flatten() {
+            for tone in &program.tones {
+                assert!(
+                    tone.sample == 0 || !bank.samples[tone.sample].frames.is_empty(),
+                    "{name}: empty tone sample"
+                );
+            }
+        }
+    }
+    assert_eq!(banks, 104);
+    for language in [
+        Language::English,
+        Language::French,
+        Language::Italian,
+        Language::Japanese,
+    ] {
+        for stage in 0..11 {
+            for character in 0..2 {
+                Bank::load(&game, stage, character, language).unwrap();
+            }
+        }
+    }
+    eprintln!("Decoded {banks} banks, {samples} samples, {frames} frames");
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and TENCHU_ROSTER_TRACE; compares persistent roster fields with retail RAM"]
 fn roster_and_weapon_definitions_match_retail_capture() {
     use std::io::Read;

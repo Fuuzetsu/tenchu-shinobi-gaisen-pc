@@ -377,3 +377,11 @@ including roster/assets, 66 fixed constructors and both cadence tests. Window
 checks exercise equipment selection, ordinary movement, retry and the result-to-
 next-mission presentation. Audio, environment producers and remaining items still
 prevent a complete Mission 1/game claim.
+
+Original audio asset decoding is now portable: VAB programs/tones/samples,
+SPU ADPCM loops, XA ADPCM mono/stereo streams and the executable's music/dialogue
+cue tables. Raw Mode 2 BIN/CUE retains XA audio that cooked 2048-byte ISO images
+cannot contain. All 104 non-trial banks and 419 distinct XA cues decode from the
+retail disc; 10,604,160 XA samples match FFmpeg exactly in a private comparison.
+Native tests and the WASM asset/core build pass. Playback, spatial sound dispatch
+and missing gameplay sound triggers are the next audio work; nothing plays yet.

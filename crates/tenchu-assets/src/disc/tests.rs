@@ -90,3 +90,28 @@ fn corrupt_extents_and_truncated_records_are_rejected() {
     let entry = disc.find("DATA.VOL").unwrap();
     assert!(disc.file(&entry).read(0, entry.size as usize).is_err());
 }
+
+#[test]
+fn xa_reads_full_form_two_sectors_without_exposing_them_as_files() {
+    let cooked = image();
+    assert!(Disc::detect(&cooked).unwrap().xa_sector(21).is_err());
+    for format in [SectorFormat::Mode2, SectorFormat::Mode2_2336] {
+        let (stride, header) = format.layout();
+        let mut raw = vec![0; 182 * stride as usize];
+        for (sector, bytes) in cooked.chunks_exact(2048).enumerate() {
+            let at = (150 + sector) * stride as usize + header as usize;
+            raw[at..at + 2048].copy_from_slice(bytes);
+        }
+        let at = 171 * stride as usize + header as usize - 8;
+        raw[at..at + 8].copy_from_slice(&[1, 3, 0x64, 1, 1, 3, 0x64, 1]);
+        raw[at + 8..at + 2336].fill(0xa5);
+        let disc = Disc::open(&raw, format, 150).unwrap();
+        let sector = disc.xa_sector(21).unwrap();
+        assert_eq!(&sector[..8], &[1, 3, 0x64, 1, 1, 3, 0x64, 1]);
+        assert!(sector[8..].iter().all(|&byte| byte == 0xa5));
+        assert!(disc.read(21 * 2048, 1).is_err());
+        assert!(disc.xa_sector(32).is_err());
+        raw[at + 4] ^= 1;
+        assert!(Disc::open(raw, format, 150).unwrap().xa_sector(21).is_err());
+    }
+}

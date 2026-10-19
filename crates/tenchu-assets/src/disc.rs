@@ -134,6 +134,24 @@ impl<S: ReadAt> Disc<S> {
         self.format
     }
 
+    pub fn xa_sector(&self, sector: u32) -> Result<[u8; 2336]> {
+        check_span(u64::from(sector) * BLOCK, BLOCK, self.length)?;
+        let (stride, offset) = match self.format {
+            SectorFormat::Mode2 => (2352, 16),
+            SectorFormat::Mode2_2336 => (2336, 0),
+            _ => return Err("XA audio requires a raw Mode 2 BIN/CUE image".into()),
+        };
+        let mut bytes = [0; 2336];
+        self.source.read_exact_at(
+            (self.start_sector + u64::from(sector)) * stride + offset,
+            &mut bytes,
+        )?;
+        if bytes[..4] != bytes[4..8] {
+            return Err(format!("Inconsistent XA subheaders at sector {sector}"));
+        }
+        Ok(bytes)
+    }
+
     pub fn entries(&self, directory: &Entry) -> Result<Vec<Entry>> {
         if !directory.directory || directory.size > 16 * 1024 * 1024 {
             return Err("Invalid or excessive ISO directory".into());
