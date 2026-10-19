@@ -85,24 +85,26 @@ pub fn stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {
     vertices
 }
 
-pub fn player(game: &tenchu_core::game::Game) -> Vec<Vertex> {
+pub fn characters(game: &tenchu_core::game::Game) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    let actor = game.player();
-    for (i, (part, matrix)) in game.mission.models[&actor.kind]
-        .iter()
-        .zip(actor.rendered.iter().copied())
-        .enumerate()
-    {
-        if actor.render_mask & (1 << i) != 0 {
-            append(&mut vertices, part, matrix);
+    for &id in &game.visible {
+        let actor = game.roster.get(id);
+        for (i, (part, matrix)) in game.mission.models[&actor.kind]
+            .iter()
+            .zip(actor.rendered.iter().copied())
+            .enumerate()
+        {
+            if actor.render_mask & (1 << i) != 0 {
+                append(&mut vertices, part, matrix);
+            }
         }
-    }
-    for weapon in actor.weapons[..2].iter().flatten() {
-        append_geometry(
-            &mut vertices,
-            &game.mission.weapons.models[&weapon.kind],
-            weapon.rendered,
-        );
+        for weapon in actor.weapons[..2].iter().flatten() {
+            append_geometry(
+                &mut vertices,
+                &game.mission.weapons.models[&weapon.kind],
+                weapon.rendered,
+            );
+        }
     }
     vertices
 }

@@ -139,3 +139,19 @@ machinery. Revisions are the ones recorded above.
 | `tools/tenchu-sim/src/allocation.rs` | `2fa9018eb96dc7c427dc8b1177120e6d2d6a2c0ca7722e63f58ae51ff364ed7b` |
 | `tools/tenchu-sim/src/sensing.rs` | `c9f2ffba7d2d73d7c589316941213398ba3e5824d3a7a1aa1a0ae23265a569f6` |
 | `tools/tenchu-sim/native/sensing.c` | `d46bf244fbf33a085e24324041b26b3a9a4fed49d992664e743cf5d20c8ca73c` |
+
+## Scalar AI and ordered actor control (2026-10-20)
+
+Controllers follow `THINK.C`, `HUMAN.C`, `APPEAR.C` and `tuning.h` recorded
+above. The reinforcement type table is read from `MAIN.EXE` at `0x80089e14`.
+Research code clarified the freed-caller continuation and test-oracle boundary;
+no batched actor storage or source-C runtime code was imported. The combat oracle
+extracts actual decision bodies and supplies native test structs/side effects.
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp` | `src/main.exe/item.h` | `99109f2c30cc5b661e52225d14d14da287dc48045246e8657b9d29eefee0017c` |
+| `tenchu-decomp` | `src/main.exe/sound.h` | `405f3e09c98bcdea57852ec640f1249975e27f9bf44edf242084c2ef1e36159b` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/ai.rs` | `c2f07eede86335dfb3047dd641eb42e90cc17ceb156e05325f05311091341439` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/birth/replacement.rs` | `ebf4c3fc4f247284af7b3aae621ca21e44b18f3bf9df665c636f4c43afc0aaec` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/native/ai.c` | `8c783ef32ee1cc58fff24227118fdb84fc42f0df3ebcb0a277813599cf8429f2` |

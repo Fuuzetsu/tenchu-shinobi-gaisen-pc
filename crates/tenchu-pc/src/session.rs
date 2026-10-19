@@ -1,13 +1,14 @@
 use crate::source::FileSource;
 use std::{ffi::OsString, path::Path};
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
-use tenchu_core::game::Game;
+use tenchu_core::{ai::Difficulty, game::Game};
 
 #[derive(Clone, Copy)]
 pub struct Options {
     pub mission: usize,
     pub character: i16,
     pub layout: usize,
+    pub difficulty: Difficulty,
 }
 
 impl Default for Options {
@@ -16,6 +17,7 @@ impl Default for Options {
             mission: 1,
             character: 0,
             layout: 1,
+            difficulty: Difficulty::Normal,
         }
     }
 }
@@ -44,6 +46,13 @@ impl Options {
                         .filter(|n| (1..=10).contains(n))
                         .ok_or("Mission must be 1–10 or training")?
                 };
+            } else if pair[0] == "--difficulty" {
+                options.difficulty = match value {
+                    "easy" => Difficulty::Easy,
+                    "normal" => Difficulty::Normal,
+                    "hard" => Difficulty::Hard,
+                    _ => return Err("Difficulty must be easy, normal or hard".into()),
+                };
             } else if pair[0] == "--layout" {
                 options.layout = value
                     .parse::<usize>()
@@ -68,12 +77,14 @@ impl Options {
             .ok_or("Unknown campaign mission")?
             .id;
         let mission = MissionAssets::load(assets, id, self.character, self.layout)?;
-        Game::new(
+        let mut game = Game::new(
             mission,
             &Executable::new(&assets.executable)?,
             self.character,
             1,
-        )
+        )?;
+        game.intelligence.difficulty = self.difficulty;
+        Ok(game)
     }
 }
 

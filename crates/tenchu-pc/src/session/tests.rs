@@ -33,6 +33,7 @@ fn roster_and_weapon_definitions_match_retail_capture() {
         character: short(player),
         mission,
         layout: usize::from(bytes(0x80010006, 1)[0]) + 1,
+        ..Options::default()
     }
     .load(&assets)
     .unwrap();
@@ -102,7 +103,9 @@ fn state(game: &Game) -> String {
             &game.effects,
             &game.scene,
             &game.collision,
-            &game.camera
+            &game.camera,
+            &game.intelligence,
+            &game.visible,
         )
     )
 }
@@ -197,6 +200,7 @@ fn all_retail_layouts_construct_actor_and_collision_pools() {
                     mission,
                     character,
                     layout,
+                    ..Options::default()
                 }
                 .load(&assets)
                 .unwrap_or_else(|error| {

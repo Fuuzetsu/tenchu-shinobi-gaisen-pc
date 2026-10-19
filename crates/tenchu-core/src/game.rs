@@ -3,6 +3,7 @@ mod setup;
 use crate::{
     Result,
     actor::{Actor, Context},
+    ai::{Controller, Intelligence, Player},
     camera::{Camera, Environment},
     collision::Collision,
     effects::Effects,
@@ -29,9 +30,11 @@ pub struct Game {
     pub scene: Scene,
     pub collision: Collision,
     pub camera: Camera,
-    body: BodyTables,
-    commands: Vec<Command>,
-    cursor: Cursor,
+    pub intelligence: Intelligence,
+    pub visible: Vec<usize>,
+    pub(crate) body: BodyTables,
+    pub(crate) commands: Vec<Command>,
+    pub(crate) cursor: Cursor,
 }
 
 impl Game {
@@ -85,6 +88,8 @@ impl Game {
             scene,
             collision,
             camera,
+            intelligence: Intelligence::default(),
+            visible: vec![player_id],
         })
     }
 
@@ -94,6 +99,9 @@ impl Game {
 
     pub fn step(&mut self, input: u16) -> Result<()> {
         self.tick += 1;
+        self.roster.begin_tick();
+        self.visible.clear();
+        self.intelligence.voices.clear();
         self.collision.compute(&mut self.scene)?;
         self.camera.advance(
             self.roster.get(self.player_id),
@@ -117,14 +125,66 @@ impl Game {
             collision: &mut self.collision,
             camera: &mut self.camera,
         };
-        let player = self.roster.get_mut(self.player_id);
-        let center = player.collision_center(&context);
-        player.terrain_contact(&mut context, center, true)?;
-        player.body_contact(&mut context, center)?;
-        player.control(&mut context, input, &self.commands, center)?;
-        player.look_at_camera(&mut context)?;
+        let mut index = 0;
+        while index < self.roster.order.len() {
+            let id = self.roster.order[index];
+            if self.roster.get(id).attribute & crate::ids::ATTR_SUSPEND == 0 {
+                let mut actor = self.roster.take(id);
+                let result = (|| -> Result<()> {
+                    let center = actor.collision_center(&context);
+                    actor.terrain_contact(&mut context, center, id == self.player_id)?;
+                    actor.body_contact(&mut context, center)?;
+                    let player = Player::new(
+                        if id == self.player_id {
+                            &actor
+                        } else {
+                            self.roster.get(self.player_id)
+                        },
+                        &context,
+                    );
+                    Controller::new(
+                        &mut actor,
+                        player,
+                        &mut self.roster,
+                        &mut self.intelligence,
+                        self.tick as i32,
+                        input,
+                        &self.commands,
+                        &mut context,
+                    )
+                    .update()?;
+                    if actor.control(&mut context, &self.commands, center, id == self.player_id)? {
+                        self.visible.push(id);
+                        if self.intelligence.action_halt == 0 {
+                            if id == self.player_id {
+                                actor.look_at_camera(&mut context)?;
+                            } else {
+                                actor.look_at_target(player.root, &mut context)?;
+                            }
+                        }
+                    }
+                    Ok(())
+                })();
+                self.roster.restore(actor);
+                result?;
+            }
+            index += 1;
+        }
+        self.statistics.enemies = self
+            .statistics
+            .enemies
+            .wrapping_add(self.intelligence.population_delta[0]);
+        self.statistics.citizens = self
+            .statistics
+            .citizens
+            .wrapping_add(self.intelligence.population_delta[1]);
+        self.intelligence.population_delta = [0; 2];
         self.effects.step(&mut self.random);
-        player.prepare_draw(&mut self.scene, self.camera.view, true)?;
+        for (i, &id) in self.visible.iter().enumerate() {
+            self.roster
+                .get_mut(id)
+                .prepare_draw(&mut self.scene, self.camera.view, i == 0)?;
+        }
         self.scene.finish_tick();
         Ok(())
     }

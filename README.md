@@ -52,7 +52,8 @@ through its duration. `render` captures Mission 1 with original textures.
 ```
 
 Mission numbers follow campaign order (1–10); `--mission training` selects
-training. Each mission has layouts 1–3.
+training. Each mission has layouts 1–3. `--difficulty easy|normal|hard` selects
+the source AI difficulty; normal is the default.
 
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
@@ -83,7 +84,9 @@ This checks display independence, not parity with complete PS1 gameplay. Retail
 continuous state comparison remains a separate acceptance requirement.
 
 Every mission/layout constructs the source actor roster, collision slots,
-weapons and patrol data. NPC updates and stage scripts are not enabled yet.
+weapons and patrol data. The ordered actor loop and AI controllers are implemented;
+NPC activation, draw effects and combat still need to be joined before enemies
+are enabled in ordinary play. Stage scripts remain unfinished.
 An additional private check compares the roster, mission totals, weapon hitbox
 indices and layout patrol points with the existing Reclaim the Castle capture:
 
@@ -92,12 +95,15 @@ TENCHU_DISC='/path/to/game.cue' TENCHU_ROSTER_TRACE='/path/to/kagi-aim-v1.trace'
   ./dev.sh cargo test -p tenchu-pc roster_and_weapon -- --ignored
 ```
 
-Optional core checks compare camera smoothing and enemy sight checks with the
-matching C, and the integer view matrix with an existing retail trace. These private files remain outside
+Optional core checks compare camera smoothing, enemy sight and combat decisions
+with matching C, and the integer view matrix with an existing retail trace. The
+combat check covers 81,920 engaged-controller cases, including RNG and command
+history; it does not yet validate the entire AI/terrain/update pipeline. These private files remain outside
 the repository and are never build or runtime dependencies:
 
 ```sh
 TENCHU_RETAIL_EXE='/path/to/main.exe' TENCHU_DECOMP='/path/to/tenchu-decomp' \
 TENCHU_CAMERA_TRACE='/path/to/kagi-aim-v1.trace' \
+TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-core -- --ignored
 ```

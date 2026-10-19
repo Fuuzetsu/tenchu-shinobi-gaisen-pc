@@ -67,7 +67,7 @@ impl View {
         ))?;
         surface.configure(&renderer.device, &config);
         let stage = renderer.upload(&render_mesh::stage(&game.mission, &game.math));
-        let actor = renderer.upload(&render_mesh::player(game));
+        let actor = renderer.upload(&render_mesh::characters(game));
         println!(
             "Renderer: {} ({:?})",
             adapter.get_info().name,
@@ -96,7 +96,7 @@ impl View {
     }
 
     fn update(&mut self, game: &Game) {
-        self.actor = self.renderer.upload(&render_mesh::player(game));
+        self.actor = self.renderer.upload(&render_mesh::characters(game));
         self.window.set_title(&format!(
             "Tenchu — movement preview | tick {} | HP {} | motion {:04x}",
             game.tick,

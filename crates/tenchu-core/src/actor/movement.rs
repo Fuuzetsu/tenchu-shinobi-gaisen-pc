@@ -10,22 +10,10 @@ impl Actor {
     pub fn control(
         &mut self,
         ctx: &mut Context,
-        input: u16,
         commands: &[Command],
         center: [i32; 3],
-    ) -> Result<()> {
-        let mut input = if matches!(self.status, 16 | 17) {
-            0
-        } else {
-            input
-        };
-        if self.map.attribute & 0x200 != 0 && matches!(self.status, 7 | 9) {
-            input &= !0xf000;
-        }
-        if input & R1 != 0 {
-            input = (input & !R1) | CIRCLE;
-        }
-        self.pad.update(input);
+        player: bool,
+    ) -> Result<bool> {
         let command = self.pad.consume(commands);
         let held = if self.pad.held & L1 != 0 {
             self.pad.held & !0xf000
@@ -60,9 +48,12 @@ impl Actor {
         if let Some((action, movement)) = next {
             self.enter(ctx, action, movement);
         }
-        let animated = self.motion.loops >= 0;
+        let visible = player
+            || crate::visibility::model(ctx.scene, ctx.camera.view, self.root_model)?.is_some();
+        let pose = visible || self.status == 7;
+        let animated = pose && self.motion.loops >= 0;
         self.motion
-            .step(&ctx.mission.clips, &ctx.math.tables.hermite)?;
+            .play(&ctx.mission.clips, &ctx.math.tables.hermite, pose)?;
         if animated {
             let count = ctx.mission.clips[self.motion.clip.unwrap()].bones.len();
             self.motion
@@ -74,7 +65,7 @@ impl Actor {
             self.position[i] = self.position[i].wrapping_add(i32::from(self.velocity[i]));
         }
         ctx.scene.update(self.root_model, self.root(ctx.math));
-        Ok(())
+        Ok(visible)
     }
 
     fn fall_check(&mut self, ctx: &mut Context) -> bool {

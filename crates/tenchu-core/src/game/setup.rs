@@ -29,6 +29,7 @@ pub(super) fn construct(
     actor.position = mission.stage.start;
     actor.rotation = [0, mission.stage.facing as i16, 0];
     ctx.scene.set_translation(actor.root_model, actor.position);
+    let player_model = actor.root_model;
 
     let dog = roster.spawn(0xa9, [999000; 3], 0, ctx)?;
     roster.get_mut(dog).attribute |= ATTR_SUSPEND;
@@ -45,7 +46,7 @@ pub(super) fn construct(
         let actor = roster.get_mut(id);
         actor.rotation[1] = spawn.facing;
         actor.attribute |= ATTR_SUSPEND;
-        actor.target = Some(player);
+        actor.target = Some(player_model);
         ctx.scene.models[actor.parts[0]].attribute &= !COLLIDE;
         actor.setup_think(spawn.think);
         if !spawn.patrol.is_empty() {
@@ -79,7 +80,7 @@ pub(super) fn construct(
         actor.setup_think(spawn.think);
         actor.attribute = (actor.attribute | ATTR_SUSPEND | 2) & !ATTR_CUSTOMAI;
         actor.health = -1;
-        actor.target = Some(player);
+        actor.target = Some(player_model);
     }
     let actors = &roster.actors;
     roster

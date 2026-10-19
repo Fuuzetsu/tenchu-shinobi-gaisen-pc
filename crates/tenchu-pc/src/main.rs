@@ -11,7 +11,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS]\ntenchu-pc replay DISC INPUT.txt [OPTIONS]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3\nplay is currently a movement preview. replay reads lines of tick count and hex buttons, and prints a state trace.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
+            "tenchu-pc play DISC [OPTIONS]\ntenchu-pc replay DISC INPUT.txt [OPTIONS]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3 --difficulty easy|normal|hard\nplay is currently a movement preview. replay reads lines of tick count and hex buttons, and prints a state trace.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
         );
         return Ok(());
     }

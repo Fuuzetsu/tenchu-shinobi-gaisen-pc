@@ -45,6 +45,7 @@ pub struct MissionAssets {
     pub enemies: Vec<Enemy>,
     pub construction_actors: Vec<Enemy>,
     pub disguise: i16,
+    pub reinforcements: [i16; 2],
     pub story: Vec<StoryActor>,
     pub construction: Vec<u8>,
     pub layout: Vec<u8>,
@@ -132,6 +133,8 @@ impl MissionAssets {
         let terrain = AreaMap::parse(asset(&area)?)?;
         let exe = Executable::new(&game.executable)?;
         let characters = exe.characters()?;
+        let reinforcement_row = exe.bytes(0x80089e14 + id as u32 * 4, 4)?;
+        let reinforcements = [i16_le(reinforcement_row, 0)?, i16_le(reinforcement_row, 2)?];
         let disguise =
             i16::from(exe.bytes(0x8008e3ec + (id * 2 + character as usize) as u32, 1)?[0]);
         let mut story = exe.story_actors(id)?;
@@ -183,6 +186,7 @@ impl MissionAssets {
         let mut models = BTreeMap::new();
         for kind in std::iter::once(character)
             .chain([0xa9, disguise])
+            .chain(reinforcements)
             .chain(construction_actors.iter().map(|e| e.kind))
             .chain(enemies.iter().map(|e| e.kind))
             .chain(story.iter().map(|s| s.kind))
@@ -225,6 +229,7 @@ impl MissionAssets {
             enemies,
             construction_actors,
             disguise,
+            reinforcements,
             story,
             construction,
             layout,

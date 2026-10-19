@@ -52,8 +52,12 @@ pub struct Actor {
     pub motion: Motion,
     pub hit: Option<usize>,
     pub home: [i32; 2],
-    pub target: Option<usize>,
+    pub target: Option<ModelId>,
     pub think: [u8; 4],
+    pub brain: crate::ai::Brain,
+    pub active_item: i16,
+    pub inventory: [u8; 26],
+    pub attack: usize,
     pub patrol: Option<patrol::Patrol>,
     pub weapons: [Option<weapon::Weapon>; 4],
     pub weapon_hitbox: [Option<usize>; 2],
@@ -128,11 +132,18 @@ impl Actor {
             home: [position[0], position[2]],
             target: None,
             think: [0; 4],
+            brain: crate::ai::Brain::default(),
+            active_item: 0,
+            inventory: [0; 26],
+            attack: 0,
             patrol: None,
             weapons: std::array::from_fn(|_| None),
             weapon_hitbox: [None; 2],
         };
         actor.setup_weapons(ctx)?;
+        if kind == 0x87 {
+            actor.inventory[3] = 1;
+        }
         actor.position[1] = terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
@@ -242,6 +253,46 @@ impl Actor {
         Ok(())
     }
 
+    pub fn look_at_target(&mut self, player: ModelId, ctx: &mut Context) -> Result<()> {
+        if self.health <= 0
+            || (self.attribute & ATTR_PHASE != 2
+                && (self.target == Some(player) || self.motion.action == MOT_ACTION))
+        {
+            return Ok(());
+        }
+        let Some(target) = self.target else {
+            return Ok(());
+        };
+        let target = if target == self.root_model {
+            self.position
+        } else {
+            ctx.scene.models[target].local.translation
+        };
+        if self.parts.len() < 3 {
+            return Err("Tracking actor has no head".into());
+        }
+        let yaw = self.motion.pose.rotation[0][1]
+            .wrapping_add(self.motion.pose.rotation[1][1])
+            .wrapping_add(self.rotation[1]);
+        let degree = ctx.math.direction(
+            target[0].wrapping_sub(self.position[0]),
+            target[2].wrapping_sub(self.position[2]),
+            yaw,
+        )?;
+        if i32::from(degree).abs() >= 1800 {
+            return Ok(());
+        }
+        self.motion.pose.rotation[2][1] = degree.clamp(-900, 900);
+        let pitch = target[1].wrapping_sub(self.position[1]) / 2;
+        if pitch != 0 {
+            self.motion.pose.rotation[2][0] = pitch.clamp(-500, 100) as i16;
+        }
+        self.motion
+            .pose
+            .publish(ctx.scene, &self.parts, ctx.math, 1 << 2, 3);
+        Ok(())
+    }
+
     fn registered(&self, ctx: &Context, action: i16) -> bool {
         ctx.mission.characters[self.definition]
             .motions
@@ -249,7 +300,7 @@ impl Actor {
             .any(|r| r.action == action && r.clip >= 0)
     }
 
-    fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
+    pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
         if self.status == 17 && self.motion.loops == -1 {
             return false;
         }

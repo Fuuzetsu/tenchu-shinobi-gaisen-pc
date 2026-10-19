@@ -179,7 +179,7 @@ every player/animation/effect/RNG state under 24 Hz and 144 Hz host frames.
 An actual X11 window was driven through movement, jump, crouch, resize and pause;
 the resulting original-asset scene was visually inspected.
 
-The gameplay update is still player-only. Enemy activation/AI, combat, items,
+Ordinary play is still player-only. Enemy activation, combat, items,
 events, HUD and audio remain to be joined. Lighting,
 transparency and effect graphics also remain. Unsupported actions stop
 with a diagnostic. This is not the Mission 1 acceptance milestone.
@@ -197,7 +197,7 @@ Its 512-case smoothing comparison agrees with matching C; its view matrix agrees
 with a private retail capture. These are component checks, not continuous world
 parity. Cinematic camera ownership and grapple targeting remain to be joined.
 
-Next: actor activation/AI and combat. The original TAS architecture remains a
+Next: actor activation and combat. The original TAS architecture remains a
 reference; there are no multi-world slabs or source-C runtime dependencies.
 
 Weapon geometry and hitbox/attack definitions now load from the executable and
@@ -223,3 +223,16 @@ Enemy sight checks and terrain passage rays are implemented for the coming AI
 update. A 45,760-case comparison against original `SearchTarget` agrees on sight
 results and exact ray arguments. This isolates the sight branches from the math
 and terrain implementations; it does not establish whole-enemy behavior.
+
+The ordered actor loop now drives source AI state transitions, patrol/follow,
+investigation, melee/ranged/beast decisions and reinforcements. AI targets refer
+to scene coordinates, so items can become targets later. NPC visibility selects
+full-pose versus count-only animation before movement; visible actors retain
+source head tracking and ordered draw visits. Reinforcement replacement keeps
+the old actor through its remaining control/draw phase and gives the new guard
+its source roster position. Difficulty is selectable from the CLI.
+An 81,920-case original-C comparison validates engaged combat decisions, RNG,
+commands and counters; a private-disc check exercises caller replacement.
+Ordinary play still leaves NPCs suspended: activation's logical packet budget,
+DrawShadow effects, attack hitboxes/damage and AI healing remain pending. No
+enemy-play or Mission 1 acceptance claim is made at this checkpoint.

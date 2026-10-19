@@ -67,3 +67,51 @@ pub fn run(harness: &str, input: &str) -> Vec<Vec<i32>> {
     fs::remove_dir_all(directory).unwrap();
     result
 }
+
+pub fn game(stage: usize, character: i16) -> crate::game::Game {
+    use std::{
+        cell::RefCell,
+        io::{Read, Seek, SeekFrom},
+        path::PathBuf,
+    };
+    use tenchu_assets::{
+        ReadAt, cue, disc::Disc, executable::Executable, game::GameAssets, stage::MissionAssets,
+    };
+    struct File(RefCell<fs::File>, u64);
+    impl ReadAt for File {
+        fn byte_len(&self) -> u64 {
+            self.1
+        }
+        fn read_exact_at(&self, offset: u64, output: &mut [u8]) -> crate::Result<()> {
+            let mut file = self.0.borrow_mut();
+            file.seek(SeekFrom::Start(offset))
+                .map_err(|e| e.to_string())?;
+            file.read_exact(output).map_err(|e| e.to_string())
+        }
+    }
+    let path = PathBuf::from(std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC"));
+    let track = path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("cue"))
+        .then(|| cue::data_track(&fs::read_to_string(&path).unwrap()).unwrap());
+    let binary = track
+        .as_ref()
+        .map_or_else(|| path.clone(), |t| path.parent().unwrap().join(&t.file));
+    let file = fs::File::open(binary).unwrap();
+    let length = file.metadata().unwrap().len();
+    let file = File(RefCell::new(file), length);
+    let disc = match track {
+        Some(t) => Disc::open(file, t.format, t.start_sector),
+        None => Disc::detect(file),
+    }
+    .unwrap();
+    let assets = GameAssets::open(disc).unwrap();
+    let mission = MissionAssets::load(&assets, stage, character, 1).unwrap();
+    crate::game::Game::new(
+        mission,
+        &Executable::new(&assets.executable).unwrap(),
+        character,
+        1,
+    )
+    .unwrap()
+}
