@@ -234,6 +234,14 @@ impl Items {
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
             }
             19 => {}
+            9 => {
+                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, -120], ctx)?;
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Sleep, kind, Some(owner_id), start, ctx)?;
+                self.slots[id].collision.size = 0;
+                self.slots[id].napalm.velocity = velocity.map(|v| v as i16);
+                self.update_coordinate(id, ctx);
+            }
             17 => {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Breath, kind, Some(owner_id), start, ctx)?;

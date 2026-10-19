@@ -10,7 +10,9 @@ mod poison;
 mod projectile;
 mod rolling;
 mod sight_shot;
+mod sleep;
 mod smoke;
+mod sprite;
 #[cfg(test)]
 mod tests;
 mod use_item;
@@ -45,6 +47,7 @@ pub enum Processor {
     Poison,
     Napalm,
     Breath,
+    Sleep,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -84,6 +87,7 @@ pub struct Items {
     pub sprites: Vec<crate::hud::Sprite>,
     meshes: [ModelId; 4],
     napalm_sprites: [ModelId; 2],
+    sleep_sprite: ModelId,
     cursor: usize,
     icons: [ModelId; KINDS + 1],
     icon_scale: [i32; KINDS + 1],
@@ -144,6 +148,7 @@ impl Items {
             sprites: Vec::new(),
             meshes,
             napalm_sprites: std::array::from_fn(|_| scene.add(Some(0), Matrix::default())),
+            sleep_sprite: scene.add(Some(0), Matrix::default()),
             cursor: 0,
             icons,
             icon_scale: [12288; KINDS + 1],
@@ -254,34 +259,24 @@ impl Items {
 
     fn draw_icon(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
         let item = &self.slots[id];
-        let icon = self.icons[item.kind];
-        ctx.scene.copy_coordinate(icon, item.model);
-        let matrix = ctx.camera.view.compose(&ctx.scene.world(icon)?);
-        let Some(clip) = visibility::clip(&matrix, ctx.scene.models[icon].attribute, [0; 3]) else {
-            return Ok(());
-        };
-        let depth = clip.depth as i16 - 5;
-        if depth < 1 {
-            return Ok(());
-        }
-        let scale = ((self.icon_scale[item.kind] >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
-        self.drawings.push(effects::Drawing {
-            graphic: effects::Graphic::Sprite {
-                image: if item.kind < 20 {
-                    20 + item.kind as u8
-                } else {
-                    15
+        self.draw_sprite(
+            item.model,
+            self.icons[item.kind],
+            sprite::Sprite {
+                graphic: effects::Graphic::Sprite {
+                    image: if item.kind < 20 {
+                        20 + item.kind as u8
+                    } else {
+                        15
+                    },
+                    blend: 0,
                 },
-                blend: 0,
+                scale: self.icon_scale[item.kind],
+                color: 128,
+                rotation: 0,
             },
-            xy: visibility::project(&matrix, [0; 3]).0,
-            scale: [i32::from(scale); 2],
-            color: [128; 3],
-            rotation: 0,
-            depth,
-        });
-        ctx.drawing.bytes += if scale == 4096 { 24 } else { 40 };
-        Ok(())
+            ctx,
+        )
     }
 
     fn update_contacts(&mut self, ctx: &mut Context) -> Result<()> {
@@ -351,6 +346,7 @@ impl Items {
                 Some(Processor::Breath) => {
                     self.breath(id, actors, intelligence.action_halt, clock, ctx)?
                 }
+                Some(Processor::Sleep) => self.sleep(id, actors, intelligence, ctx)?,
                 None => {}
             }
         }

@@ -685,6 +685,60 @@ fn retail_damage_floor_advances_through_napalm() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; both characters release sleeping gas and put an armed guard to sleep without damage"]
+fn sleeping_gas_releases_and_changes_guard_ai() {
+    for character in 0..2 {
+        let mut game = oracle::game(0, character);
+        let enemy = arena(&mut game, 0x10);
+        with_actor(&mut game, enemy, |actor, ctx, _| {
+            actor.attribute = ATTR_WEAPON_DRAWN;
+            actor.think = [0; 4];
+            actor.enter(ctx, MOT_NORMAL, true);
+        });
+        game.camera.snap_pending = true;
+        let health = game.roster.get(enemy).health;
+        game.roster.get_mut(game.player_id).inventory[9] = 1;
+        game.hud.cursor = 9;
+        game.step(0).unwrap();
+        game.step(crate::input::TRIANGLE).unwrap();
+        assert_eq!(game.player().inventory[9], 0);
+        assert_eq!(game.player().motion.action, MOT_ITEM_THROW);
+        let mut released = false;
+        let mut sleeping = false;
+        let mut visible = false;
+        for _ in 0..160 {
+            game.step(0).unwrap();
+            released |= game.items.slots.iter().any(|i| {
+                i.processor == Some(crate::items::Processor::Sleep)
+                    && i.mode == 2
+                    && i.collision.size == 1000
+            });
+            visible |= game
+                .items
+                .drawings
+                .iter()
+                .any(|d| matches!(d.graphic, crate::effects::Graphic::Sprite { image: 6, .. }));
+            let actor = game.roster.get(enemy);
+            sleeping |= actor.think[0] == 7
+                && actor.motion.action == MOT_ACTION
+                && actor.attribute & (ATTR_WEAPON_DRAWN | ATTR_PHASE) == 0;
+        }
+        assert!(
+            released && visible && sleeping,
+            "character {character}: released {released}, visible {visible}, sleeping {sleeping}"
+        );
+        assert_eq!(game.roster.get(enemy).health, health);
+        assert!(
+            !game
+                .items
+                .slots
+                .iter()
+                .any(|i| i.processor == Some(crate::items::Processor::Sleep))
+        );
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; quick/aimed throws, cancellation and interruption through ordinary player input"]
 fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
     use crate::{camera::Mode, input::*, items::Processor};

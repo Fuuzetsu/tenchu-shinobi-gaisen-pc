@@ -469,3 +469,22 @@ Public workspace tests and the GPU check pass; the Nix native package, WASM
 boundary and formatting checks pass on x86_64-linux. The production binary was
 rebuilt after removing the temporary QA starts, and its `render` output was
 inspected.
+
+
+Sleeping gas now follows the original hand release, moving soft collision,
+sinusoidal sprite pulse, particle RNG, contact consumption, discarded hit jitter,
+weapon sheathing, sleeping AI callback and lifetime/terrain cleanup. Its release
+and early exits preserve the coordinate cache ordering. Item icons, napalm and
+gas share one sprite projection/draw helper.
+
+Verification: 4,096 original-C gas flight/contact cases pass with supplied sine
+and terrain results, previously checked particle RNG costs and projection stubs.
+Separate checks exercise release-cache preservation, an interrupted cast without
+a refund, and both characters throwing at an armed guard through ordinary ticks;
+the guard sleeps without losing health. The full 93-check core suite passes,
+excluding the unchanged long campaign-cinematic coverage check. Native keyboard
+checks visibly throw and draw the gas for both characters. Their temporary QA
+loadouts are not included in the runtime.
+All 11 relevant host/GPU checks pass, including both cadence comparisons. Nix
+native, WASM and formatting checks pass on x86_64-linux. The debug executable
+was rebuilt from clean runtime sources after the visual check.

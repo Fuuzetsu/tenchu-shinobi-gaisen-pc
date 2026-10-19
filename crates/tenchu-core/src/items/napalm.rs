@@ -86,27 +86,17 @@ impl Items {
             (self.napalm_sprites[1], 6, 3, (255 - brightness) / 3),
             (self.napalm_sprites[0], 7, 2, brightness),
         ] {
-            ctx.scene.copy_coordinate(sprite, model);
-            let matrix = ctx.camera.view.compose(&ctx.scene.world(sprite)?);
-            let Some(clip) = visibility::clip(&matrix, ctx.scene.models[sprite].attribute, [0; 3])
-            else {
-                continue;
-            };
-            let depth = clip.depth as i16 - 5;
-            if depth < 1 {
-                continue;
-            }
-            let projected = ((scale >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
-            let drawing = effects::Drawing {
-                graphic: effects::Graphic::Sprite { image, blend },
-                xy: visibility::project(&matrix, [0; 3]).0,
-                scale: [i32::from(projected); 2],
-                color: [color; 3],
-                rotation,
-                depth,
-            };
-            ctx.drawing.bytes += drawing.bytes();
-            self.drawings.push(drawing);
+            self.draw_sprite(
+                model,
+                sprite,
+                sprite::Sprite {
+                    graphic: effects::Graphic::Sprite { image, blend },
+                    scale,
+                    color,
+                    rotation,
+                },
+                ctx,
+            )?;
         }
         Ok(())
     }

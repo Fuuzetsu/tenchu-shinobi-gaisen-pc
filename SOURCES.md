@@ -599,3 +599,24 @@ and double-sided faces, opaque/transparent texels, STP black and all four
 original blend equations. Shared face traversal keeps opaque and transparent
 passes consistent. Native screenshots cover Mission 1 fire breath, Mission 4
 scenery and a relocated final-stage lava start.
+
+
+## Sleeping gas (2026-10-20)
+
+`ITEM.C::ReqItemUse`, `ReqItemNemuri` and `ProcItemNemuri` provide the cast,
+release, moving soft collision, RNG/effect calls, state changes and cleanup.
+Existing `THINK.C::Think1sleep` control is selected by the item. Motion entry
+uses the original direct `SetNowMotion` rules rather than the guarded medicine
+and fire-breath entry blocks. The shared `param_napalm` velocity/count layout is
+represented by the same small owned Rust record for both moving sprite items.
+
+Research reference (revision recorded above):
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/items/sleep.rs` | `c89c230e1c622c6ca3a237094b394929a649239b9f2a4373e8decf5f307b8f21` |
+
+The differential test extracts the original C callback and exercises 4,096
+flight/contact cases, with supplied sine/terrain values and stubbed, separately
+verified particle RNG costs and projection. Integration checks cover both player
+throws and a sleeping guard, plus cache preservation and interruption cleanup.
