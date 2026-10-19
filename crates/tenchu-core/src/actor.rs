@@ -3,11 +3,13 @@ mod movement;
 
 use crate::{
     Result,
+    collision::Collision,
     ids::*,
     input::Pad,
     math::{Math, Matrix},
     motion::{Change, Motion},
     random::Random,
+    scene::{ModelId, Scene},
     terrain::{self, Cursor, Probe},
 };
 use tenchu_assets::{executable::BodyTables, stage::MissionAssets};
@@ -19,10 +21,16 @@ pub struct Context<'a> {
     pub cursor: &'a mut Cursor,
     pub random: &'a mut Random,
     pub effects: &'a mut crate::effects::Effects,
+    pub scene: &'a mut Scene,
+    pub collision: &'a mut Collision,
 }
 
 #[derive(Clone, Debug)]
 pub struct Actor {
+    pub id: usize,
+    pub root_model: ModelId,
+    pub parts: Vec<ModelId>,
+    pub rendered: Vec<Matrix>,
     pub kind: i16,
     pub definition: usize,
     pub position: [i32; 3],
@@ -36,10 +44,18 @@ pub struct Actor {
     pub map: Probe,
     pub pad: Pad,
     pub motion: Motion,
+    pub hit: Option<usize>,
+    pub trace_count: i16,
 }
 
 impl Actor {
-    pub fn new(kind: i16, position: [i32; 3], yaw: i16, ctx: &mut Context) -> Result<Self> {
+    pub fn new(
+        id: usize,
+        kind: i16,
+        position: [i32; 3],
+        yaw: i16,
+        ctx: &mut Context,
+    ) -> Result<Self> {
         let definition = ctx
             .mission
             .characters
@@ -65,7 +81,22 @@ impl Actor {
             i32::from(data.width),
             terrain::STEP_DOWN,
         )?;
+        let root_model = ctx.scene.add(Some(0), Matrix::default());
+        let nodes = motion.pose.bind(ctx.scene, root_model, ctx.math);
+        let waist = *nodes.first().ok_or("Actor model has no waist")?;
+        let slot = ctx.collision.insert(ctx.scene, waist)?;
+        let body = &mut ctx.collision.slots[slot];
+        body.owner = Some(id);
+        body.size = [data.width / 2, data.height / 2, data.width / 2];
+        body.offset[1] = (-data.height / 2).wrapping_sub(parts[0].position[1]);
+        if matches!(kind, 0x86 | 0x89) {
+            body.offset = [0, -0x1c5, 0xc0];
+        }
         let mut actor = Self {
+            id,
+            root_model,
+            parts: nodes,
+            rendered: Vec::new(),
             kind,
             definition,
             position,
@@ -79,6 +110,8 @@ impl Actor {
             map,
             pad: Pad::default(),
             motion,
+            hit: None,
+            trace_count: 0,
         };
         actor.position[1] = terrain::level(
             &ctx.mission.terrain,
@@ -86,10 +119,15 @@ impl Actor {
             position,
             terrain::STEP_DOWN,
         )?;
-        if kind <= 1 {
+        ctx.scene.update(root_model, actor.root(ctx.math));
+        if matches!(kind, 0..=1 | 0x81..=0x8a) {
             actor.attribute |= ATTR_WEAPON_DRAWN | 2;
             actor.enter(ctx, MOT_ENGAGE_STANCE, true);
         }
+        if matches!(kind, 0xa6 | 0xa7) {
+            actor.attribute |= ATTR_FLOAT;
+        }
+        actor.rendered = actor.motion.pose.matrices(ctx.math, actor.root(ctx.math));
         Ok(actor)
     }
 
@@ -101,10 +139,17 @@ impl Actor {
     }
 
     pub fn collision_center(&self, ctx: &Context) -> [i32; 3] {
-        let parts = &ctx.mission.models[&self.kind];
-        let height = ctx.mission.characters[self.definition].height;
-        let offset = [0, (-height / 2).wrapping_sub(parts[0].position[1]), 0];
-        self.motion.pose.matrices(ctx.math, self.root(ctx.math))[0].transform(offset)
+        ctx.collision.slots[ctx.scene.models[self.parts[0]].conflict.unwrap()].position
+    }
+
+    pub fn prepare_draw(&mut self, scene: &mut Scene) -> Result<()> {
+        scene.world(self.root_model)?;
+        for (i, &model) in self.parts.iter().enumerate() {
+            if scene.models[model].attribute & 1 == 0 {
+                self.rendered[i] = scene.world(model)?;
+            }
+        }
+        Ok(())
     }
 
     fn registered(&self, ctx: &Context, action: i16) -> bool {

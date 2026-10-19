@@ -60,12 +60,20 @@ impl Actor {
         if let Some((action, movement)) = next {
             self.enter(ctx, action, movement);
         }
+        let animated = self.motion.loops >= 0;
         self.motion
             .step(&ctx.mission.clips, &ctx.math.tables.hermite)?;
+        if animated {
+            let count = ctx.mission.clips[self.motion.clip.unwrap()].bones.len();
+            self.motion
+                .pose
+                .publish(ctx.scene, &self.parts, ctx.math, self.motion.mask, count);
+        }
         self.previous = self.position;
         for i in 0..3 {
             self.position[i] = self.position[i].wrapping_add(i32::from(self.velocity[i]));
         }
+        ctx.scene.update(self.root_model, self.root(ctx.math));
         Ok(())
     }
 

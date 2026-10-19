@@ -115,6 +115,19 @@ mod tests {
     use std::time::Duration;
     use tenchu_core::{clock::GameClock, input::*};
 
+    fn state(game: &Game) -> String {
+        format!(
+            "{:?}",
+            (
+                &game.player,
+                &game.random,
+                &game.effects,
+                &game.scene,
+                &game.collision
+            )
+        )
+    }
+
     #[test]
     #[ignore = "requires TENCHU_DISC pointing to the private SLPS-019.01 disc"]
     fn retail_movement_is_independent_of_host_frame_cadence() {
@@ -147,10 +160,7 @@ mod tests {
             for &input in &tape {
                 reference.step(input).unwrap();
                 motions.insert(reference.player.motion.action);
-                states.push(format!(
-                    "{:?}",
-                    (&reference.player, &reference.random, &reference.effects)
-                ));
+                states.push(state(&reference));
             }
             assert!(
                 motions.iter().any(|motion| motion >> 8 == 9),
@@ -173,7 +183,7 @@ mod tests {
                         let tick = tick as usize;
                         game.step(tape[tick]).unwrap();
                         assert_eq!(
-                            format!("{:?}", (&game.player, &game.random, &game.effects)),
+                            state(&game),
                             states[tick],
                             "character {character}, {fps} Hz, tick {tick}"
                         );

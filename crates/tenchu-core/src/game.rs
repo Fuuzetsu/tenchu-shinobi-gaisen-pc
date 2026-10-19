@@ -1,9 +1,11 @@
 use crate::{
     Result,
     actor::{Actor, Context},
+    collision::Collision,
     effects::Effects,
     math::Math,
     random::Random,
+    scene::Scene,
     terrain::Cursor,
 };
 use tenchu_assets::{
@@ -18,6 +20,8 @@ pub struct Game {
     pub random: Random,
     pub effects: Effects,
     pub tick: u64,
+    pub scene: Scene,
+    pub collision: Collision,
     body: BodyTables,
     commands: Vec<Command>,
     cursor: Cursor,
@@ -38,6 +42,8 @@ impl Game {
         let mut cursor = Cursor::new(&mission.terrain);
         let mut random = Random::new(seed);
         let mut effects = Effects::default();
+        let mut scene = Scene::default();
+        let mut collision = Collision::default();
         let mut context = Context {
             mission: &mission,
             math: &math,
@@ -45,10 +51,14 @@ impl Game {
             cursor: &mut cursor,
             random: &mut random,
             effects: &mut effects,
+            scene: &mut scene,
+            collision: &mut collision,
         };
-        let mut player = Actor::new(character, [0; 3], 0, &mut context)?;
+        let mut player = Actor::new(0, character, [0; 3], 0, &mut context)?;
         player.position = mission.stage.start;
         player.rotation = [0, mission.stage.facing as i16, 0];
+        scene.set_translation(player.root_model, player.position);
+        player.rendered = player.motion.pose.matrices(&math, player.root(&math));
         Ok(Self {
             mission,
             math,
@@ -59,11 +69,14 @@ impl Game {
             effects,
             player,
             tick: 0,
+            scene,
+            collision,
         })
     }
 
     pub fn step(&mut self, input: u16) -> Result<()> {
         self.tick += 1;
+        self.collision.compute(&mut self.scene)?;
         let mut context = Context {
             mission: &self.mission,
             math: &self.math,
@@ -71,12 +84,17 @@ impl Game {
             cursor: &mut self.cursor,
             random: &mut self.random,
             effects: &mut self.effects,
+            scene: &mut self.scene,
+            collision: &mut self.collision,
         };
         let center = self.player.collision_center(&context);
         self.player.terrain_contact(&mut context, center, true)?;
+        self.player.body_contact(&mut context, center)?;
         self.player
             .control(&mut context, input, &self.commands, center)?;
         self.effects.step(&mut self.random);
+        self.player.prepare_draw(&mut self.scene)?;
+        self.scene.finish_tick();
         Ok(())
     }
 }

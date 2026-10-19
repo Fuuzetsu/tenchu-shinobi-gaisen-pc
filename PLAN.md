@@ -180,11 +180,18 @@ An actual X11 window was driven through movement, jump, crouch, resize and pause
 the resulting original-asset scene was visually inspected.
 
 The gameplay update is still player-only. The preview follow camera is temporary;
-source camera, persistent coordinate-cache semantics, solid contacts, enemy
+source camera, enemy
 activation/AI, combat, items, events, HUD and audio remain to be joined. Lighting,
 transparency, weapons and effect graphics also remain. Unsupported actions stop
 with a diagnostic. This is not the Mission 1 acceptance milestone.
 
-Next: source collision and coordinate caches, camera, then actor activation/AI
-and combat. The original TAS architecture remains a reference; there are no
+Source collision and persistent coordinate caches now run in the player update.
+Contact iteration retains disabled and vacated slot data. Body resolution keeps
+the original push/standing/underside reactions, including the world-Y-as-yaw bug.
+Rendering consumes matrices prepared at the logical draw phase; it cannot mutate
+the scene cache. Full actor/camera/effect visit ordering still needs validation.
+The private cadence test now includes collision slots and coordinate caches.
+
+Next: source camera, then actor activation/AI and combat. The original TAS
+architecture remains a reference; there are no
 multi-world slabs or source-C runtime dependencies.

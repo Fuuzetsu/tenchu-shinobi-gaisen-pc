@@ -83,3 +83,14 @@ window, CLI replay and fixed-step host integration are new code.
 | `tools/tenchu-sim/src/crouch.rs` | `6e4160e91edeac53a19b4ebac567ce430aa30a28e576d27cf80dc4fb53ecc988` |
 | `tools/tenchu-sim/src/effects.rs` | `7d6de4c9a97f8f50f1e8bf8b09ca698f94525b716ffbfe9815777679fd046a6b` |
 | `tools/tenchu-sim/src/controller.rs` | `adaf0e5d7c8c46616fe9eba793d898f626064739cbbb3900b7b141782d30ac7b` |
+
+## Coordinate caches and ordered contacts (2026-10-20)
+
+The scalar scene/cache walk follows the SDK behavior documented and tested in
+`tools/tenchu-sim/src/geometry.rs` above. The collision pool and body resolver
+follow the matching `CONFLICT.C` and `HUMAN.C`, including retained tail slots.
+Model construction and draw visits also reference this file in `tenchu-decomp`:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/3DCTRL.C` | `1175982b0890852071a4b0f581ab637b24258d9fe2153b94d958d0edd337c45a` |

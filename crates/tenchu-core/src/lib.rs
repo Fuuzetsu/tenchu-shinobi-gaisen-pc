@@ -1,5 +1,6 @@
 pub mod actor;
 pub mod clock;
+pub mod collision;
 pub mod effects;
 pub mod game;
 pub mod ids;
@@ -7,6 +8,7 @@ pub mod input;
 pub mod math;
 pub mod motion;
 pub mod random;
+pub mod scene;
 pub mod terrain;
 
 pub use tenchu_assets::Result;

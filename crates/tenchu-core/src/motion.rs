@@ -1,6 +1,7 @@
 use crate::{
     Result,
     math::{Math, Matrix},
+    scene::{ModelId, Scene},
 };
 use tenchu_assets::{
     executable::MotionRegistration,
@@ -130,6 +131,45 @@ impl Pose {
             }
         }
         out.into_iter().map(Option::unwrap).collect()
+    }
+
+    pub fn bind(&self, scene: &mut Scene, root: ModelId, math: &Math) -> Vec<ModelId> {
+        let models: Vec<_> = (0..self.parents.len())
+            .map(|i| {
+                scene.add(
+                    Some(root),
+                    Matrix {
+                        rotation: math.rotate_yxz(self.rotation[i]),
+                        translation: self.translation[i],
+                    },
+                )
+            })
+            .collect();
+        for (i, parent) in self.parents.iter().enumerate() {
+            scene.models[models[i]].parent = Some(parent.map_or(root, |p| models[p]));
+        }
+        models
+    }
+
+    pub fn publish(
+        &self,
+        scene: &mut Scene,
+        models: &[ModelId],
+        math: &Math,
+        mask: u32,
+        count: usize,
+    ) {
+        for (i, &model) in models.iter().take(count).enumerate() {
+            if mask & 1u32.wrapping_shl(i as u32) != 0 {
+                scene.update(
+                    model,
+                    Matrix {
+                        rotation: math.rotate_yxz(self.rotation[i]),
+                        translation: self.translation[i],
+                    },
+                );
+            }
+        }
     }
 }
 
