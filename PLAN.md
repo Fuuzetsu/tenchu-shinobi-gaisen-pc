@@ -169,9 +169,22 @@ implemented. MAD/TMD, TIM/TPD, AMD, ACM, CON, layout and executable metadata
 decoders construct all eleven stages for either character. A real-disc audit
 samples every decoded motion track across its duration. The native wgpu renderer
 produces a checked Mission 1 capture with original textures and posed Rikimaru.
-No interactive gameplay is implemented yet. Lighting, transparency, weapons,
-effects and the complete gameplay update still require implementation.
+The native movement preview now loads either player directly from the disc,
+accepts keyboard input and supports pause/restart and resize. A 281-tick replay
+exercises running, jump/landing, turning and crouching for both characters.
+Source terrain recovery and ledge control are implemented, but not yet validated
+against continuous retail state. Smoke lifetime/allocation/RNG and animation
+hold/sweep transitions have focused tests. The private-disc cadence test compares
+every player/animation/effect/RNG state under 24 Hz and 144 Hz host frames.
+An actual X11 window was driven through movement, jump, crouch, resize and pause;
+the resulting original-asset scene was visually inspected.
 
-Next: source-ordered actor construction/control, collision and camera, then
-connect native input and presentation. The original TAS architecture remains a
-reference; there are no multi-world slabs or source-C runtime dependencies.
+The gameplay update is still player-only. The preview follow camera is temporary;
+source camera, persistent coordinate-cache semantics, solid contacts, enemy
+activation/AI, combat, items, events, HUD and audio remain to be joined. Lighting,
+transparency, weapons and effect graphics also remain. Unsupported actions stop
+with a diagnostic. This is not the Mission 1 acceptance milestone.
+
+Next: source collision and coordinate caches, camera, then actor activation/AI
+and combat. The original TAS architecture remains a reference; there are no
+multi-world slabs or source-C runtime dependencies.

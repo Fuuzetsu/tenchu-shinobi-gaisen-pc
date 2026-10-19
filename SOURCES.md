@@ -55,3 +55,31 @@ research model’s regression cases. No batched simulator code is included.
 | `src/main.exe/CONFLICT.C` | `4fd248c53cd709febd10f8f748dabe32e7844f1b5b91ee845343f57a7b7df4c0` |
 | `src/main.exe/game_types.h` | `27e346901f78a9664385cd4110ca089dd45fc9b5ac8d6e883cacd08ed2e1cb07` |
 | `include/psxsdk/libetc.h` | `2d8dd8ba91ba482f6eaf7eff9270853c737f0f5729289b44c7f5b8a131b61e3c` |
+
+## Scalar movement and desktop input (2026-10-20)
+
+Movement was rewritten as ordinary owned actor state, following these matching
+C routines and the research model’s source-order regression evidence. The native
+window, CLI replay and fixed-step host integration are new code.
+
+`~/programming/tenchu-decomp` at the revision above:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/HUMAN.C` | `9138dbd55667b99dec7b7703ac58a6325dc70654bda3f0612b2af33340892158` |
+| `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
+| `src/main.exe/EFFECT.C` | `a50b850d80090eda8cc39770d9d3026dc6888936eb2b1324d6c2821348d4da17` |
+| `src/main.exe/humanoid.h` | `e10827d154b8a55e40e4a740ef8225fe2f0ea742586fc80a5df520a5977b9022` |
+| `src/main.exe/tuning.h` | `d24d0528aafd617a572eb1201edb3518d8ff497adaae82e44a9695e7c4d7897e` |
+
+`~/programming/tenchu-decomp-glitch-research` at the revision above:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/body.rs` | `980adfaefcbe33af67fb5b36b881f5f747bedbed2d70b04e1eaccf398267dac4` |
+| `tools/tenchu-sim/src/ground.rs` | `79df01195397c37371ce07dbebb1af0e7cd5d5efa34ec053f4c1b23bd0a86559` |
+| `tools/tenchu-sim/src/locomotion.rs` | `f16dbc13959c5788dbd6aa8b82733fac09875bc590f6e5fa20752c65efd402b3` |
+| `tools/tenchu-sim/src/hang.rs` | `80d92736fa26d2b6209e3b0c652759f8a8bcebaea6872078108fcf523ddf2bea` |
+| `tools/tenchu-sim/src/crouch.rs` | `6e4160e91edeac53a19b4ebac567ce430aa30a28e576d27cf80dc4fb53ecc988` |
+| `tools/tenchu-sim/src/effects.rs` | `7d6de4c9a97f8f50f1e8bf8b09ca698f94525b716ffbfe9815777679fd046a6b` |
+| `tools/tenchu-sim/src/controller.rs` | `adaf0e5d7c8c46616fe9eba793d898f626064739cbbb3900b7b141782d30ac7b` |

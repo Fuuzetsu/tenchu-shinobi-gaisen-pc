@@ -22,12 +22,13 @@ pub fn render(game: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
         .find(|c| c.kind == 0)
         .ok_or("Missing Rikimaru")?;
     let mut motion = Motion::new(parts)?;
-    if !motion.change(
+    if motion.change(
         0,
         &character.motions,
         &mission.common_motions,
         &mission.clips,
-    ) {
+    ) == tenchu_core::motion::Change::Missing
+    {
         return Err("Missing standing motion".into());
     }
     for _ in 0..30 {

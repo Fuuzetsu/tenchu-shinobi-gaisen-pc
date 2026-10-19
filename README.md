@@ -42,6 +42,34 @@ never an input to the Nix package or copied into the Nix store.
 ```
 
 `audit` constructs every stage for both characters and samples each motion track
-through its duration. `render` uses the native GPU renderer to capture Mission 1
-with original textures and a standing Rikimaru. This is a rendering checkpoint;
-interactive gameplay, lighting, transparency, weapons and effects are in progress.
+through its duration. `render` captures Mission 1 with original textures.
+
+## Movement preview
+
+```sh
+./dev.sh cargo run --release -- play '/path/to/game.cue'
+./dev.sh cargo run --release -- play '/path/to/game.cue' --character ayame --mission 1 --layout 1
+```
+
+WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
+an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
+Losing focus pauses simulation. The preview currently supports movement,
+jumping, crouching and ledge control. Combat, items, enemies, events and source
+camera behavior are unfinished; unsupported actions pause with a diagnostic.
+Lighting, transparency, weapons, effects and audio remain in progress.
+
+`replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
+Each input line contains a decimal tick count and hexadecimal PS1 button mask;
+`#` starts a comment. For example, `30 1000` holds forward for one second and
+`1 1040` presses jump while holding forward. The replay and window use the same
+scalar gameplay code.
+
+The private-disc cadence test exercises both characters and compares player,
+animation, effect and RNG state at every tick under 24 Hz and 144 Hz host frames:
+
+```sh
+TENCHU_DISC='/path/to/game.cue' ./dev.sh cargo test -p tenchu-pc -- --ignored
+```
+
+This checks display independence, not parity with complete PS1 gameplay. Retail
+continuous state comparison remains a separate acceptance requirement.

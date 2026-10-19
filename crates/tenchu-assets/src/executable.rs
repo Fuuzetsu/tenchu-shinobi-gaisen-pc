@@ -30,6 +30,11 @@ pub struct MathTables {
     pub hermite: [[i16; 4]; 33],
 }
 
+pub struct BodyTables {
+    pub reflect_angle: [i16; 16],
+    pub reflect_move: [[i16; 2]; 16],
+}
+
 #[derive(Clone, Debug)]
 pub struct Command {
     pub id: u16,
@@ -99,6 +104,21 @@ impl<'a> Executable<'a> {
             atan: shorts(0x80094ec8, 1025)?,
             sqrt,
             hermite,
+        })
+    }
+
+    pub fn body_tables(&self) -> Result<BodyTables> {
+        let mut reflect_angle = [0; 16];
+        let mut reflect_move = [[0; 2]; 16];
+        let angles = self.bytes(0x80086774, 32)?;
+        let movement = self.bytes(0x80086794, 64)?;
+        for i in 0..16 {
+            reflect_angle[i] = i16_le(angles, i * 2)?;
+            reflect_move[i] = [i16_le(movement, i * 4)?, i16_le(movement, i * 4 + 2)?];
+        }
+        Ok(BodyTables {
+            reflect_angle,
+            reflect_move,
         })
     }
 

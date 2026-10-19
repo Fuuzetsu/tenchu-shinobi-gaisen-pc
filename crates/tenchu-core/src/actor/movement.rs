@@ -1,0 +1,456 @@
+mod chase;
+mod crouch;
+mod hang;
+
+use super::*;
+use crate::input::*;
+use tenchu_assets::executable::Command;
+
+impl Actor {
+    pub fn control(
+        &mut self,
+        ctx: &mut Context,
+        input: u16,
+        commands: &[Command],
+        center: [i32; 3],
+    ) -> Result<()> {
+        let mut input = if matches!(self.status, 16 | 17) {
+            0
+        } else {
+            input
+        };
+        if self.map.attribute & 0x200 != 0 && matches!(self.status, 7 | 9) {
+            input &= !0xf000;
+        }
+        if input & R1 != 0 {
+            input = (input & !R1) | CIRCLE;
+        }
+        self.pad.update(input);
+        let command = self.pad.consume(commands);
+        let held = if self.pad.held & L1 != 0 {
+            self.pad.held & !0xf000
+        } else {
+            self.pad.held
+        };
+        if self.fall_check(ctx) {
+            self.hang_check(ctx)?;
+        } else if self.map.attribute & 4 != 0 {
+            return Err("Swimming control is not implemented yet".into());
+        }
+        let next = match self.status {
+            0 => self.normal(ctx, held, command, center)?,
+            1 => self.action(),
+            2 => self.walk(ctx, held, center)?,
+            5 => self.engage(ctx, held, command, center)?,
+            6 => self.chase(ctx, held, command, center)?,
+            7 if self.motion.action == MOT_ATTACK_TAUNT => (self.motion.count == 0
+                && self.motion.loops != 0)
+                .then_some((MOT_ENGAGE_STANCE, true)),
+            8 => self.state(ctx, held)?,
+            9 => self.jump(ctx, held)?,
+            10 => self.hang(ctx, held)?,
+            11 => self.crouch(ctx, held, command)?,
+            status => {
+                return Err(format!(
+                    "Actor state {status:#x}, motion {:#x} is not implemented yet",
+                    self.motion.action
+                ));
+            }
+        };
+        if let Some((action, movement)) = next {
+            self.enter(ctx, action, movement);
+        }
+        self.motion
+            .step(&ctx.mission.clips, &ctx.math.tables.hermite)?;
+        self.previous = self.position;
+        for i in 0..3 {
+            self.position[i] = self.position[i].wrapping_add(i32::from(self.velocity[i]));
+        }
+        Ok(())
+    }
+
+    fn fall_check(&mut self, ctx: &mut Context) -> bool {
+        if self.motion.action == MOT_STATE_FALL {
+            return true;
+        }
+        if self.motion.action == MOT_ATTACK_DIVE {
+            return false;
+        }
+        if self.status == 9 && self.map.height > 0 {
+            return true;
+        }
+        if self.attribute & ATTR_FLOAT != 0 || self.map.height <= 1000 {
+            return false;
+        }
+        if matches!(self.status, 4 | 10 | 13 | 16 | 17)
+            || (self.status == 11 && self.motion.loops == 0)
+        {
+            return false;
+        }
+        self.motion.mask = 0x7fff;
+        let [x, z] = ctx.body.reflect_move[self.map.angle_high as usize];
+        let width = i32::from(ctx.mission.characters[self.definition].width);
+        self.position[0] = self.position[0].wrapping_add(width * i32::from(x) >> 2);
+        self.position[2] = self.position[2].wrapping_add(width * i32::from(z) >> 2);
+        self.enter(ctx, MOT_STATE_FALL, false);
+        if self.status == 11 {
+            self.motion.count >>= 2;
+        }
+        true
+    }
+
+    fn normal(
+        &mut self,
+        ctx: &mut Context,
+        held: u16,
+        command: u16,
+        center: [i32; 3],
+    ) -> Result<Option<(i16, bool)>> {
+        let mut pending = None;
+        match self.motion.action {
+            MOT_NORMAL => {
+                if held & RIGHT != 0 {
+                    pending = Some((MOT_NORMAL_TURN_R, false));
+                } else if held & LEFT != 0 {
+                    pending = Some((MOT_NORMAL_TURN_L, false));
+                } else if self.motion.count == 0 && ctx.random.next15() % 100 == 0 {
+                    pending = Some((
+                        if ctx.random.next15() & 1 != 0 {
+                            MOT_ACTION_FIDGET_A
+                        } else {
+                            MOT_ACTION_FIDGET_B
+                        },
+                        true,
+                    ));
+                }
+            }
+            MOT_NORMAL_TURN_R | MOT_NORMAL_TURN_L => {
+                let right = self.motion.action == MOT_NORMAL_TURN_R;
+                if held & if right { RIGHT } else { LEFT } != 0 {
+                    let turn = ctx.mission.characters[self.definition].turn;
+                    self.rotation[1] =
+                        self.rotation[1].wrapping_add(if right { turn } else { -turn });
+                } else {
+                    pending = Some((MOT_NORMAL, true));
+                }
+            }
+            _ => {}
+        }
+        if self.attribute & ATTR_WEAPON_DRAWN != 0 {
+            return Ok(Some((MOT_ENGAGE_STANCE, true)));
+        }
+        if command != 0 {
+            return Ok(match command {
+                1 => Some((MOT_MOVE_DASH_FWD, true)),
+                2 => Some((MOT_MOVE_DASH_BACK, true)),
+                3 => Some((MOT_MOVE_DASH_LEFT, true)),
+                4 => Some((MOT_MOVE_DASH_RIGHT, true)),
+                _ => pending,
+            });
+        }
+        if self.pad.trigger & CROSS != 0 {
+            return Ok(self.start_jump(ctx, held, center));
+        }
+        if self.pad.trigger & TRIANGLE != 0 {
+            return Err("Item use is not implemented yet".into());
+        }
+        if held & CIRCLE != 0 {
+            return Ok(Some((MOT_SQUAT, true)));
+        }
+        if held & UP != 0 {
+            return Ok(Some((MOT_MOVE, true)));
+        }
+        if held & DOWN != 0 {
+            return Ok(Some((MOT_MOVE_BACK, true)));
+        }
+        if self.pad.trigger & SQUARE != 0 {
+            return Ok(Some((MOT_STATE_DRAW, true)));
+        }
+        Ok(pending)
+    }
+
+    fn action(&self) -> Option<(i16, bool)> {
+        let complete = self.motion.count == 0 && self.motion.loops != 0;
+        let done = match self.motion.action {
+            MOT_ACTION_FIDGET_A | MOT_ACTION_FIDGET_B => {
+                self.health != self.max_health || self.attribute & 1 != 0 || complete
+            }
+            _ => complete,
+        };
+        done.then_some((self.return_motion(), true))
+    }
+
+    fn walk(
+        &mut self,
+        ctx: &mut Context,
+        held: u16,
+        center: [i32; 3],
+    ) -> Result<Option<(i16, bool)>> {
+        let turn = ctx.mission.characters[self.definition].turn;
+        let mut pending = None;
+        match self.motion.action {
+            MOT_MOVE => {
+                if held & UP == 0 {
+                    pending = Some((MOT_NORMAL, true));
+                } else if self.attribute & ATTR_WALL != 0 {
+                    let (y, height) = (self.position[1], self.map.height);
+                    self.position[1] = y.wrapping_sub(400);
+                    self.map.height = 1;
+                    if !self.hang_check(ctx)? {
+                        self.position[1] = y;
+                        self.map.height = height;
+                    }
+                } else if held & (LEFT | RIGHT) != 0 {
+                    self.rotation[1] =
+                        self.rotation[1].wrapping_add(if held & RIGHT != 0 { turn } else { -turn });
+                    self.motion_velocity(ctx);
+                }
+            }
+            MOT_MOVE_BACK => {
+                if held & DOWN == 0 {
+                    pending = Some((MOT_NORMAL, true));
+                }
+                // The retail backward walk takes the left branch even without a turn button.
+                self.rotation[1] =
+                    self.rotation[1].wrapping_add(if held & RIGHT != 0 { turn } else { -turn });
+                self.motion_velocity(ctx);
+            }
+            MOT_MOVE_DASH_FWD..=MOT_MOVE_DASH_LEFT => {
+                if self.motion.count == 0 && self.motion.loops != 0 {
+                    pending = Some((MOT_NORMAL, true));
+                }
+            }
+            _ => {}
+        }
+        if self.pad.trigger & CROSS != 0 {
+            return Ok(self.start_jump(ctx, held, center));
+        }
+        if self.pad.trigger & TRIANGLE != 0 {
+            return Err("Item use is not implemented yet".into());
+        }
+        if held & CIRCLE != 0 {
+            return Ok(Some((MOT_SQUAT, true)));
+        }
+        if self.pad.trigger & SQUARE != 0 {
+            return Ok(Some((MOT_STATE_DRAW, true)));
+        }
+        Ok(pending)
+    }
+
+    fn start_jump(
+        &mut self,
+        ctx: &mut Context,
+        held: u16,
+        center: [i32; 3],
+    ) -> Option<(i16, bool)> {
+        ctx.effects
+            .smoke_burst(self.position, 150, 12, 8, ctx.random);
+        if !self.registered(ctx, MOT_JUMP) {
+            return None;
+        }
+        if self.motion.action == MOT_CHASE_DASH_FWD {
+            if self.motion.count < 11 && self.registered(ctx, MOT_JUMP_RUN) {
+                self.move_at(ctx.math, 127, 0);
+                return Some((MOT_JUMP_RUN, false));
+            }
+            return None;
+        }
+        self.position[0] = center[0];
+        self.position[2] = center[2];
+        self.velocity[1] = 0;
+        let (specific, forward, side) = if held & UP != 0 {
+            (MOT_JUMP_FORWARD, 100, 0)
+        } else if held & DOWN != 0 {
+            (MOT_JUMP_BACK, -100, 0)
+        } else if held & RIGHT != 0 {
+            (MOT_JUMP_RIGHT, 0, -100)
+        } else if held & LEFT != 0 {
+            (MOT_JUMP_LEFT, 0, 100)
+        } else {
+            (MOT_JUMP, 0, 0)
+        };
+        self.move_at(ctx.math, forward, side);
+        Some((
+            if self.registered(ctx, specific) {
+                specific
+            } else {
+                MOT_JUMP
+            },
+            false,
+        ))
+    }
+
+    fn jump(&mut self, ctx: &mut Context, held: u16) -> Result<Option<(i16, bool)>> {
+        let mid = self.motion.action;
+        if self.pad.trigger & CROSS != 0 && mid != MOT_JUMP_WALLKICK {
+            let width = ctx.mission.characters[self.definition].width;
+            let map = terrain::vector(
+                &ctx.mission.terrain,
+                ctx.cursor,
+                self.position,
+                i32::from(width) + 300,
+                0,
+            )?;
+            if map.vector == 0 || !self.enter(ctx, MOT_JUMP_WALLKICK, false) {
+                return Ok(None);
+            }
+            let yaw = ctx.body.reflect_angle[map.vector as usize];
+            self.position[1] = self.position[1].wrapping_sub(500);
+            if yaw == -1 {
+                self.velocity[0] = self.velocity[0].wrapping_neg();
+                self.velocity[2] = self.velocity[2].wrapping_neg();
+            } else {
+                self.rotation[1] = yaw.wrapping_add(2048);
+                self.move_at(ctx.math, -100, 0);
+            }
+            return Ok(None);
+        }
+        if self.attribute & (ATTR_NOFLOOR | ATTR_BUOYANT) != 0 && self.motion.count >= 2 {
+            let level = terrain::level(&ctx.mission.terrain, ctx.cursor, self.position, 0)?;
+            if self.position[1] < level {
+                self.enter(ctx, MOT_STATE_FALL, false);
+                self.motion.count >>= 2;
+                return Ok(None);
+            }
+            if mid == MOT_JUMP_FLIP {
+                self.rotation[1] = self.rotation[1].wrapping_add(self.motion.pose.rotation[0][1]);
+                self.motion.pose.rotation[0][1] = 0;
+                return Ok(Some((MOT_STATE_LAND_FLIP, true)));
+            }
+            return Ok(Some((MOT_STATE_LAND, false)));
+        }
+        if self.motion.count == 0 && self.motion.loops != 0 {
+            self.enter(ctx, MOT_STATE_FALL, false);
+            if mid == MOT_JUMP_FLIP {
+                self.rotation[1] = self.rotation[1].wrapping_add(2048);
+                self.motion.pose.rotation[0][1] = 0;
+            }
+            if matches!(mid, MOT_JUMP_RUN | MOT_JUMP_FLIP) {
+                self.motion.count >>= 1;
+            }
+            return Ok(None);
+        }
+        let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
+        self.velocity[1] = ((i32::from(self.motion.count) - i32::from(duration >> 1))
+            * if mid == MOT_JUMP_RUN { 10 } else { 20 }) as i16;
+        if held & 0xf000 != 0 && mid != MOT_JUMP_RUN {
+            let (forward, side) = if held & UP != 0 {
+                (10, 0)
+            } else if held & DOWN != 0 {
+                (-10, 0)
+            } else if held & RIGHT != 0 {
+                (0, -10)
+            } else {
+                (0, 10)
+            };
+            let v = ctx.math.velocity(self.rotation[1], forward, side);
+            let (x, z) = (
+                v[0].wrapping_add(self.velocity[0]),
+                v[2].wrapping_add(self.velocity[2]),
+            );
+            if i32::from(x).abs() <= 100 && i32::from(z).abs() <= 100 {
+                self.velocity[0] = x;
+                self.velocity[2] = z;
+            }
+        }
+        Ok((held & SQUARE != 0
+            && mid != MOT_JUMP_FLIP
+            && self.velocity[1] > 0
+            && self.attribute & ATTR_WEAPON_DRAWN != 0)
+            .then_some((MOT_ATTACK_DIVE, false)))
+    }
+
+    fn state(&mut self, ctx: &mut Context, held: u16) -> Result<Option<(i16, bool)>> {
+        let count = self.motion.count;
+        match self.motion.action {
+            MOT_STATE_DRAW | MOT_STATE_SHEATHE => {
+                let drawing = self.motion.action == MOT_STATE_DRAW;
+                if count == 1 {
+                    self.motion.mask = 0x7fff;
+                    if (self.attribute & ATTR_WEAPON_DRAWN != 0) == drawing {
+                        return Ok(Some((
+                            if drawing {
+                                MOT_ENGAGE_STANCE
+                            } else {
+                                MOT_NORMAL
+                            },
+                            true,
+                        )));
+                    }
+                } else if count == ctx.mission.clips[self.motion.clip.unwrap()].duration / 2 {
+                    if drawing {
+                        self.attribute |= ATTR_WEAPON_DRAWN;
+                    } else {
+                        self.attribute &= !ATTR_WEAPON_DRAWN;
+                    }
+                } else if count == 0 && self.motion.loops != 0 {
+                    return Ok(Some((
+                        if drawing {
+                            MOT_ENGAGE_STANCE
+                        } else {
+                            MOT_NORMAL
+                        },
+                        true,
+                    )));
+                }
+                Ok(None)
+            }
+            MOT_STATE_CLIMB => {
+                let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
+                Ok(
+                    (count == duration / 2 || (count == 0 && self.motion.loops != 0))
+                        .then_some((MOT_CHASE, true)),
+                )
+            }
+            MOT_STATE_FALL => {
+                if count < -54 && self.velocity[1] > 200 {
+                    self.motion.count = -30;
+                }
+                let mut pending = (self.velocity[1] > 0 && self.pad.trigger & SQUARE != 0)
+                    .then_some((MOT_ATTACK_DIVE, false));
+                if self.attribute & ATTR_NOFLOOR != 0 || self.map.height <= 0 {
+                    pending = Some(if self.motion.count < -40 {
+                        (self.return_motion(), true)
+                    } else if self.motion.count > -21 {
+                        (MOT_STATE_LAND_HEAVY, false)
+                    } else {
+                        (MOT_STATE_LAND, false)
+                    });
+                    return Ok(pending);
+                }
+                if self.motion.count <= -46 {
+                    self.velocity[0] >>= 1;
+                    self.velocity[2] >>= 1;
+                }
+                Ok(pending)
+            }
+            MOT_STATE_LAND | MOT_STATE_LAND_HEAVY | MOT_STATE_LAND_FLIP => {
+                let mut pending = None;
+                if self.motion.action != MOT_STATE_LAND_FLIP
+                    && count < 5
+                    && held & CIRCLE != 0
+                    && self.pad.trigger & CROSS != 0
+                {
+                    pending = Some((MOT_SQUAT_BACKFLIP, true));
+                    self.rotation[1] = self.rotation[1].wrapping_add(2048);
+                }
+                if count == 1 {
+                    ctx.effects
+                        .smoke_burst(self.position, 300, 12, 10, ctx.random);
+                }
+                if count == 0 && self.motion.loops != 0 {
+                    return Ok(Some((self.return_motion(), true)));
+                }
+                self.velocity[0] = self.velocity[0].wrapping_sub(self.velocity[0] >> 2);
+                self.velocity[2] = self.velocity[2].wrapping_sub(self.velocity[2] >> 2);
+                Ok(pending)
+            }
+            MOT_STATE_PICKUP => {
+                Ok((count == 0 && self.motion.loops != 0).then_some((self.return_motion(), true)))
+            }
+            action => Err(format!(
+                "State transition {action:#x} is not implemented yet"
+            )),
+        }
+    }
+}

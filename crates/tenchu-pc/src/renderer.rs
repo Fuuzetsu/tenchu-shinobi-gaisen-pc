@@ -134,6 +134,10 @@ impl Renderer {
             .create_view(&Default::default())
     }
 
+    pub fn resize(&mut self, size: [u32; 2]) {
+        self.depth = Self::depth(&self.device, size);
+    }
+
     pub fn upload(&self, vertices: &[Vertex]) -> Mesh {
         Mesh {
             buffer: self

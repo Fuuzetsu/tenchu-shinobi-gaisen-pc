@@ -1,4 +1,8 @@
+pub mod actor;
 pub mod clock;
+pub mod effects;
+pub mod game;
+pub mod ids;
 pub mod input;
 pub mod math;
 pub mod motion;

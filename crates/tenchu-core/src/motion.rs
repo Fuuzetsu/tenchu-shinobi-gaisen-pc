@@ -140,7 +140,15 @@ pub struct Motion {
     pub count: i16,
     pub loops: i16,
     pub mask: u32,
+    pub mode: i16,
     pub pose: Pose,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Change {
+    Missing,
+    Unchanged,
+    Changed,
 }
 
 impl Motion {
@@ -151,6 +159,7 @@ impl Motion {
             count: 0,
             loops: 0,
             mask: u32::MAX,
+            mode: 0,
             pose: Pose::new(parts)?,
         })
     }
@@ -161,9 +170,9 @@ impl Motion {
         registry: &[MotionRegistration],
         common: &[MotionRegistration],
         clips: &[Clip],
-    ) -> bool {
+    ) -> Change {
         if action == self.action {
-            return false;
+            return Change::Unchanged;
         }
         let find = |table: &[MotionRegistration]| {
             table
@@ -172,7 +181,7 @@ impl Motion {
                 .and_then(|r| clips.iter().position(|c| c.id == r.clip))
         };
         let Some(index) = find(registry).or_else(|| find(common)) else {
-            return false;
+            return Change::Missing;
         };
         self.action = action;
         self.clip = Some(index);
@@ -188,14 +197,26 @@ impl Motion {
                 } % 4096) as i16;
             }
         }
-        true
+        Change::Changed
     }
 
     pub fn step(&mut self, clips: &[Clip], table: &[[i16; 4]; 33]) -> Result<i16> {
+        self.play(clips, table, true)
+    }
+
+    pub fn play(&mut self, clips: &[Clip], table: &[[i16; 4]; 33], pose: bool) -> Result<i16> {
         if self.loops < 0 {
             return Ok(0);
         }
         let clip = &clips[self.clip.ok_or("Motion not selected")?];
+        if !pose {
+            self.count = self.count.wrapping_add(1);
+            if self.count > clip.duration {
+                self.count = 0;
+                self.loops = self.loops.wrapping_add(1);
+            }
+            return Ok(self.count);
+        }
         let n = clip.bones.len().min(self.pose.rotation.len());
         if n == 0 {
             return Err("Selected motion has no model parts".into());
@@ -234,6 +255,7 @@ impl Motion {
             }
         }
         if held {
+            // HoldMotion writes -2, then PlayMotion increments it after the zero return.
             self.loops = -1;
             self.count = 0;
         } else {
@@ -255,6 +277,48 @@ mod tests {
             value: [value; 3],
             time,
         }
+    }
+
+    #[test]
+    fn zero_duration_motion_sweeps_then_freezes_at_play_motion_boundary() {
+        let part = Part {
+            parent: -1,
+            child: 0,
+            position: [0, -100, 0],
+            geometry: vec![],
+        };
+        let clips = [Clip {
+            id: 1,
+            duration: 0,
+            sweep: -2,
+            forward_speed: 0,
+            side_speed: 0,
+            root: vec![Key {
+                value: [200, 4096, -200],
+                time: 0,
+            }],
+            bones: vec![vec![key(500, 0)]],
+        }];
+        let registry = [MotionRegistration { action: 0, clip: 1 }];
+        let mut motion = Motion::new(&[part]).unwrap();
+        motion.change(0, &registry, &[], &clips);
+        motion.step(&clips, &[[0; 4]; 33]).unwrap();
+        assert_eq!(motion.pose.translation[0], [100, -100, -100]);
+        assert_eq!(motion.pose.rotation[0], [250; 3]);
+        assert_eq!((motion.count, motion.loops), (-1, 0));
+        motion.step(&clips, &[[0; 4]; 33]).unwrap();
+        assert_eq!((motion.count, motion.loops), (0, 0));
+        motion.step(&clips, &[[0; 4]; 33]).unwrap();
+        assert_eq!((motion.count, motion.loops), (0, -1));
+        assert_eq!(motion.pose.translation[0], [200, -100, -200]);
+        motion.pose.rotation[0] = [17; 3];
+        motion.step(&clips, &[[0; 4]; 33]).unwrap();
+        assert_eq!(motion.pose.rotation[0], [17; 3]);
+
+        motion.loops = 0;
+        motion.play(&clips, &[[0; 4]; 33], false).unwrap();
+        assert_eq!((motion.count, motion.loops), (0, 1));
+        assert_eq!(motion.pose.rotation[0], [17; 3]);
     }
 
     #[test]
