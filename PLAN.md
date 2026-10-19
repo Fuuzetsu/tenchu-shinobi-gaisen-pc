@@ -507,3 +507,9 @@ All 97 current core checks pass, excluding the unchanged long campaign cinematic
 coverage check; all 11 relevant private host/GPU checks pass.
 Nix native, WASM and formatting checks pass on x86_64-linux. The production
 debug binary was rebuilt after removing the temporary QA setup.
+
+Replay diagnostics now report health, game clock, cinematic activity and outcome,
+and optionally capture the final frame through the shared native renderer. A
+200-tick keyboard-mask tape starts Mission 1 directly from disc and runs down
+the starting street; its final capture was inspected. This is the beginning of
+continuous mission validation, not a completed run.

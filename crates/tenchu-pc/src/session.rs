@@ -123,9 +123,11 @@ impl Options {
     }
 }
 
-pub fn replay(mut game: Game, path: &Path) -> Result<()> {
+pub fn replay(mut game: Game, path: &Path) -> Result<Game> {
     let input = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
-    println!("tick,buttons,x,y,z,vx,vy,vz,yaw,motion,count,loops,attributes,rng,rng_calls");
+    println!(
+        "tick,buttons,x,y,z,vx,vy,vz,yaw,motion,count,loops,attributes,rng,rng_calls,health,clock,cinematic,outcome"
+    );
     for (line, text) in input.lines().enumerate() {
         let text = text.split('#').next().unwrap().trim();
         if text.is_empty() {
@@ -150,7 +152,7 @@ pub fn replay(mut game: Game, path: &Path) -> Result<()> {
                 .map_err(|e| format!("Tick {}: {e}", game.tick))?;
             let p = game.player();
             println!(
-                "{},{buttons:04x},{},{},{},{},{},{},{},{:04x},{},{},{:04x},{:08x},{}",
+                "{},{buttons:04x},{},{},{},{},{},{},{},{:04x},{},{},{:04x},{:08x},{},{},{},{},{:?}",
                 game.tick,
                 p.position[0],
                 p.position[1],
@@ -164,11 +166,15 @@ pub fn replay(mut game: Game, path: &Path) -> Result<()> {
                 p.motion.loops,
                 p.attribute,
                 game.random.seed,
-                game.random.calls
+                game.random.calls,
+                p.health,
+                game.clock,
+                u8::from(game.cinematic.active),
+                game.events.outcome
             );
         }
     }
-    Ok(())
+    Ok(game)
 }
 
 #[cfg(test)]

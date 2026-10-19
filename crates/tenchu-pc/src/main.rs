@@ -16,7 +16,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS]\ntenchu-pc replay DISC INPUT.txt [OPTIONS]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection; gameplay is still in development. replay reads lines of tick count and hex buttons, and prints a state trace.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
+            "tenchu-pc play DISC [OPTIONS]\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection; gameplay is still in development. replay reads lines of tick count and hex buttons, and prints a state trace.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
         );
         return Ok(());
     }
@@ -26,9 +26,25 @@ fn run() -> Result<()> {
         return window::run(assets, options, args[1].as_ref());
     }
     if args[0] == "replay" && args.len() >= 3 {
-        let options = session::Options::parse(&args[3..])?;
+        let mut launch = Vec::new();
+        let mut capture = None;
+        for pair in args[3..].chunks(2) {
+            if pair[0] == "--capture" {
+                if pair.len() != 2 || capture.is_some() {
+                    return Err("Replay accepts one --capture OUTPUT.png".into());
+                }
+                capture = Some(std::path::Path::new(&pair[1]));
+            } else {
+                launch.extend_from_slice(pair);
+            }
+        }
+        let options = session::Options::parse(&launch)?;
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        return session::replay(options.load(&assets)?, args[2].as_ref());
+        let game = session::replay(options.load(&assets)?, args[2].as_ref())?;
+        if let Some(path) = capture {
+            capture::frame(&game, path)?;
+        }
+        return Ok(());
     }
     if args[0] == "render" && args.len() == 3 {
         let game = GameAssets::open(source::open_disc(args[1].as_ref())?)?;

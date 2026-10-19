@@ -12,13 +12,17 @@ pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()>
     for _ in 0..30 {
         game.step(0)?;
     }
+    frame(&game, destination)
+}
+
+pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
     let mut vertices = render_mesh::stage(&game.mission, &game.math);
-    vertices.extend(render_mesh::characters(&game));
+    vertices.extend(render_mesh::characters(game));
     let instance = wgpu::Instance::new(&Default::default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
             .ok_or("No graphics adapter")?;
-    println!(
+    eprintln!(
         "Renderer: {} ({:?})",
         adapter.get_info().name,
         adapter.get_info().backend
@@ -49,7 +53,7 @@ pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()>
         &texture.create_view(&Default::default()),
         renderer::game_camera(game.rendered_view, width as f32 / height as f32),
         &[&renderer.upload(&vertices)],
-        Some(&renderer.upload_effects(render_effects::build(&game))),
+        Some(&renderer.upload_effects(render_effects::build(game))),
     );
     let stride = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
     let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
@@ -96,6 +100,6 @@ pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()>
         .map_err(|e| e.to_string())?
         .write_image_data(&pixels)
         .map_err(|e| e.to_string())?;
-    println!("Saved {}", destination.display());
+    eprintln!("Saved {}", destination.display());
     Ok(())
 }

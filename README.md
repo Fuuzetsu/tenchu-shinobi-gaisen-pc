@@ -111,7 +111,10 @@ imported. Initial gameplay uses seed 1, then subsequent attempts continue from
 the preceding gameplay/reward RNG. Menu waiting and display refresh consume no
 RNG; PS1 startup VSync seeding is intentionally a host policy, not a hardware model.
 
-`replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
+`replay DISC INPUT.txt [OPTIONS]` runs without a window and writes a CSV trace,
+including health, game clock, cinematic activity and mission outcome. Add
+`--capture OUTPUT.png` to render its final state through the ordinary renderer;
+renderer messages go to stderr so stdout remains CSV.
 It keeps the diagnostic fallback loadout (hook, 10 shuriken, 5 caltrops, 2 medicine).
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `#` starts a comment. For example, `30 1000` holds forward for one second and
