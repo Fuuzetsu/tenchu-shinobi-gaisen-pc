@@ -175,6 +175,7 @@ impl Game {
                             &mut actor,
                             player,
                             &mut self.roster,
+                            &mut self.items,
                             &mut self.intelligence,
                             self.tick as i32,
                             input,
@@ -195,6 +196,7 @@ impl Game {
                                     statistics: &mut self.statistics,
                                     combat: &mut self.combat,
                                     player: self.player_id,
+                                    selected_item: self.hud.selected,
                                     clock: self.tick as i32,
                                 },
                             )?;
@@ -212,6 +214,7 @@ impl Game {
                             statistics: &mut self.statistics,
                             combat: &mut self.combat,
                             player: self.player_id,
+                            selected_item: self.hud.selected,
                             clock: self.tick as i32,
                         },
                     )? {

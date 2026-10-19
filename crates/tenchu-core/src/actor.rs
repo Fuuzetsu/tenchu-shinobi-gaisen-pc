@@ -2,6 +2,7 @@ mod body;
 mod combat;
 mod damage;
 mod death;
+mod item;
 pub use combat::Combat;
 mod movement;
 pub mod patrol;
@@ -47,6 +48,7 @@ pub struct ActionContext<'a> {
     pub statistics: &'a mut crate::game::Statistics,
     pub combat: &'a mut Combat,
     pub player: usize,
+    pub selected_item: Option<usize>,
     pub clock: i32,
 }
 
@@ -388,7 +390,7 @@ impl Actor {
         self.velocity[2] = v[2];
     }
 
-    fn motion_velocity(&mut self, ctx: &Context) {
+    pub(crate) fn motion_velocity(&mut self, ctx: &Context) {
         if let Some(i) = self.motion.clip {
             let clip = &ctx.mission.clips[i];
             self.move_at(

@@ -8,9 +8,10 @@ impl Items {
         owner: Option<usize>,
         position: [i32; 3],
         velocity: [i32; 3],
+        actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<bool> {
-        let id = self.allocate(ctx)?;
+        let id = self.allocate(actors, ctx)?;
         if terrain::level(&ctx.mission.terrain, ctx.cursor, position, 0)? < position[1] {
             return Ok(false);
         }
@@ -29,10 +30,11 @@ impl Items {
         &mut self,
         kind: usize,
         mut position: [i32; 3],
+        actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
         position[1] = terrain::level(&ctx.mission.terrain, ctx.cursor, position, 0)?;
-        self.drop(kind, None, position, [0; 3], ctx)?;
+        self.drop(kind, None, position, [0; 3], actors, ctx)?;
         Ok(())
     }
 
@@ -40,7 +42,7 @@ impl Items {
         &mut self,
         id: usize,
         ctx: &mut Context,
-        roster: &mut Roster,
+        actors: &mut Actors,
         halt: i16,
     ) -> Result<()> {
         self.draw_icon(id, ctx)?;
@@ -51,7 +53,7 @@ impl Items {
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(item.model, position);
                 match item.rolling.status {
-                    1 => self.dispose(id, ctx)?,
+                    1 => self.dispose(id, actors, ctx)?,
                     2 | 4 => {
                         self.contact(id, 180, collision::SOFT, ctx)?;
                         self.slots[id].mode = 1;
@@ -68,11 +70,11 @@ impl Items {
                 };
                 let Some(actor_id) = ctx.collision.slots[slot]
                     .owner
-                    .filter(|id| roster.order.contains(id))
+                    .filter(|id| actors.roster.order.contains(id))
                 else {
                     return Ok(());
                 };
-                let actor = roster.get_mut(actor_id);
+                let actor = actors.get_mut(actor_id);
                 if actor.motion.action == MOT_STATE_PICKUP || !matches!(actor.status, 2 | 6) {
                     return Ok(());
                 }
@@ -85,7 +87,7 @@ impl Items {
                 item.count = 0;
             }
             2 => {
-                let actor = roster.get_mut(item.owner.ok_or("Pickup transfer has no owner")?);
+                let actor = actors.get_mut(item.owner.ok_or("Pickup transfer has no owner")?);
                 if actor.motion.action != MOT_STATE_PICKUP {
                     item.rolling = Rolling {
                         velocity: [
@@ -103,7 +105,7 @@ impl Items {
                     if actor.inventory[item.kind] != 255 {
                         actor.inventory[item.kind] = actor.inventory[item.kind].wrapping_add(1);
                     }
-                    self.dispose(id, ctx)?;
+                    self.dispose(id, actors, ctx)?;
                 }
             }
             _ => {}

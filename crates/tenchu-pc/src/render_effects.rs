@@ -231,7 +231,7 @@ pub fn build(game: &Game) -> Geometry {
             previous = shade;
         }
     }
-    for sprite in &game.hud.sprites {
+    for sprite in game.items.sprites.iter().chain(&game.hud.sprites) {
         let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
         let points = std::array::from_fn(|i| {
             let x = ((i & 1) as f32 * f32::from(sprite.image.size[0])

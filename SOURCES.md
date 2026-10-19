@@ -255,3 +255,12 @@ define item selection order, reserved-slot behavior, life-bar allocation and
 expiry, proximity feedback and the fallback launch loadout. Life-bar style
 parameters and image IDs come from `0x8008e414` and `0x8008e4b4` in `MAIN.EXE`.
 The HUD owns scalar state and prepared sprites; presentation cannot advance it.
+
+## Player aiming and consumable items (2026-10-20)
+
+`MOTION.C`/`ITEM.C` supply quick/aimed shuriken, cancellation/refunds,
+interruption drops, caltrop scatter/arming and medicine animation/healing.
+`THINK.C` supplies enemy medicine requests. The working-tree hashes above still
+apply. Item cleanup can access the actor currently executing control as well as
+the roster, preserving immediate owner-flag writes during pool eviction.
+Shared icon scales and reused item rotations remain live scalar state.

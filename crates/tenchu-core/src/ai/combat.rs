@@ -26,7 +26,13 @@ impl Controller<'_, '_> {
             return Ok(());
         }
         if self.actor.inventory[3] != 0 && self.actor.health < self.actor.max_health / 3 {
-            return Err("AI healing item is not implemented yet".into());
+            return self.items.request_default(
+                3,
+                self.actor,
+                self.player.id,
+                self.roster,
+                self.ctx,
+            );
         }
         if self.actor.inventory[1] != 0 && self.degree().abs() < 100 {
             self.motion(MOT_SYURI);

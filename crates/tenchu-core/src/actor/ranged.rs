@@ -26,7 +26,7 @@ impl Actor {
         }
         world
             .items
-            .projectile(kind, self, start, end, world.roster, ctx)
+            .request(kind, self, start, end, world.player, world.roster, ctx)
     }
 
     pub(super) fn gun_control(
@@ -86,42 +86,43 @@ impl Actor {
         ctx: &mut Context,
         world: &mut ActionContext,
     ) -> Result<Option<(i16, bool)>> {
-        if self.id == world.player {
-            return Err("Player shuriken aiming is not implemented yet".into());
-        }
         let complete = self.motion.count == 0 && self.motion.loops != 0;
         if self.motion.action == MOT_SYURI {
-            if !complete {
-                return Ok(None);
+            let mut next = None;
+            if self.id != world.player {
+                if !complete {
+                    return Ok(None);
+                }
+                next = Some((MOT_SYURI_RECOVER, true));
             }
-            self.motion.loops = -1;
-            if self.inventory[25] != 1 {
+            if complete {
+                self.motion.loops = -1;
+            }
+            if self.motion.count == 1 {
+                let start = ctx.scene.world(self.parts[2])?.translation;
+                world
+                    .items
+                    .request(1, self, start, start, world.player, world.roster, ctx)?;
+                ctx.effects.sounds.push((self.position, 0x1e));
+            } else if self.inventory[25] != 1 {
+                next = Some((MOT_SYURI_RECOVER, true));
                 ctx.effects.sounds.push((self.position, 0x1f));
             } else if self.pad.trigger
                 & (crate::input::SQUARE | crate::input::CROSS | crate::input::CIRCLE)
                 != 0
             {
-                world.roster.get_mut(world.player).inventory[25] = 0;
-                return Ok(Some((self.return_motion(), true)));
+                if self.id == world.player {
+                    self.inventory[25] = 0;
+                } else {
+                    world.roster.get_mut(world.player).inventory[25] = 0;
+                }
+                next = Some((self.return_motion(), true));
             }
-            return Ok(Some((MOT_SYURI_RECOVER, true)));
+            return Ok(next);
         }
         if self.motion.action == MOT_SYURI_RECOVER {
-            if self.motion.count == 1 {
-                let start = [
-                    self.position[0],
-                    self.position[1].wrapping_sub(1200),
-                    self.position[2],
-                ];
-                let delta = Matrix {
-                    rotation: ctx.math.rotate_yxz(self.rotation),
-                    ..Matrix::default()
-                }
-                .apply_large([0, 0, -100]);
-                let end = std::array::from_fn(|i| start[i].wrapping_add(delta[i]));
-                world
-                    .items
-                    .projectile(1, self, start, end, world.roster, ctx)?;
+            if self.motion.count == 1 && self.id != world.player {
+                self.default_item(ctx, world, 1)?;
             }
             if complete {
                 return Ok(Some((self.return_motion(), true)));

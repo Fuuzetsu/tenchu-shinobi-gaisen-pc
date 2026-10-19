@@ -27,11 +27,38 @@ fn with_actor<T>(
         combat: &mut game.combat,
         items: &mut game.items,
         player: game.player_id,
+        selected_item: game.hud.selected,
         clock: game.tick as i32,
     };
     let result = f(&mut actor, &mut ctx, &mut world);
     game.roster.restore(actor);
     result
+}
+
+fn arena(game: &mut Game, kind: i16) -> usize {
+    oracle::flat_ground(game);
+    let player = game.player_id;
+    with_actor(game, player, |actor, ctx, world| {
+        for id in world.roster.order.clone() {
+            if id != player {
+                world.roster.remove(id, ctx);
+            }
+        }
+        for item in &mut world.items.slots {
+            ctx.collision.remove(ctx.scene, item.model);
+            item.processor = None;
+        }
+        actor.position = [0; 3];
+        actor.rotation = [0, 2048, 0];
+        actor.velocity = [0; 3];
+        actor.map =
+            terrain::vector(&ctx.mission.terrain, ctx.cursor, actor.position, 500, 0).unwrap();
+        actor.enter(ctx, MOT_NORMAL, true);
+        ctx.scene.update(actor.root_model, actor.root(ctx.math));
+        let id = world.roster.spawn(kind, [0, 0, 4000], 0, ctx).unwrap();
+        world.roster.get_mut(id).target = Some(actor.root_model);
+        id
+    })
 }
 
 fn constants() -> String {
@@ -551,29 +578,7 @@ fn ranged_actors_hit_and_projectiles_retire() {
                 Some((game, kind))
             })
             .expect("No ranged character found on the disc");
-        oracle::flat_ground(&mut game);
-        let player = game.player_id;
-        let shooter = with_actor(&mut game, player, |actor, ctx, world| {
-            for id in world.roster.order.clone() {
-                if id != player {
-                    world.roster.remove(id, ctx);
-                }
-            }
-            for item in &mut world.items.slots {
-                ctx.collision.remove(ctx.scene, item.model);
-                item.processor = None;
-            }
-            actor.position = [0; 3];
-            actor.rotation = [0, 2048, 0];
-            actor.velocity = [0; 3];
-            actor.map =
-                terrain::vector(&ctx.mission.terrain, ctx.cursor, actor.position, 500, 0).unwrap();
-            actor.enter(ctx, MOT_NORMAL, true);
-            ctx.scene.update(actor.root_model, actor.root(ctx.math));
-            let id = world.roster.spawn(kind, [0, 0, 4000], 0, ctx).unwrap();
-            world.roster.get_mut(id).target = Some(actor.root_model);
-            id
-        });
+        let shooter = arena(&mut game, kind);
         with_actor(&mut game, shooter, |actor, ctx, _| {
             actor.attribute = ATTR_WEAPON_DRAWN;
             actor.think = [0; 4];
@@ -612,4 +617,107 @@ fn ranged_actors_hit_and_projectiles_retire() {
             "kind {kind:x} projectile did not retire"
         );
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; quick/aimed throws, cancellation and interruption through ordinary player input"]
+fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
+    use crate::{camera::Mode, input::*, items::Processor};
+    for character in 0..2 {
+        for path in 0..4 {
+            let mut game = oracle::game(0, character);
+            game.roster.get_mut(game.player_id).inventory[1] = 3;
+            game.hud.cursor = 1;
+            game.step(0).unwrap();
+            assert_eq!(game.hud.selected, Some(1));
+            game.step(TRIANGLE).unwrap();
+            assert_eq!(game.player().motion.action, MOT_SYURI);
+            game.step(if path == 0 { 0 } else { TRIANGLE }).unwrap();
+            assert_eq!(game.player().inventory[1], 2);
+            if path != 0 {
+                for _ in 0..20 {
+                    game.step(TRIANGLE).unwrap();
+                }
+                assert_eq!(
+                    (game.camera.mode, game.camera.old_mode),
+                    (Mode::Direction, Mode::Sight as u8)
+                );
+                assert!(!game.items.sprites.is_empty());
+                assert_eq!(game.player().inventory[25], 1);
+                if path == 1 {
+                    game.step(0).unwrap();
+                    assert_eq!(game.camera.mode, Mode::Lock);
+                } else if path == 2 {
+                    game.step(TRIANGLE | SQUARE).unwrap();
+                    assert_eq!(game.player().inventory[1], 3);
+                    assert_eq!(game.camera.old_mode, Mode::Direction as u8);
+                } else {
+                    let player = game.player_id;
+                    with_actor(&mut game, player, |actor, ctx, _| {
+                        actor.enter(ctx, MOT_DAMAGE, true);
+                    });
+                    game.step(0).unwrap();
+                    assert_eq!(game.player().inventory[1], 2);
+                    assert!(
+                        game.items
+                            .slots
+                            .iter()
+                            .any(|i| i.kind == 1 && i.processor == Some(Processor::Pickup))
+                    );
+                }
+            }
+            assert_eq!(game.player().inventory[25], 0);
+            assert!(
+                !game
+                    .items
+                    .slots
+                    .iter()
+                    .any(|i| i.processor == Some(Processor::SightShot))
+            );
+            assert_eq!(
+                game.items
+                    .slots
+                    .iter()
+                    .any(|i| i.processor == Some(Processor::Shuriken)),
+                path <= 1
+            );
+            for _ in 0..90 {
+                game.step(0).unwrap();
+            }
+            assert!(!matches!(
+                game.player().motion.action,
+                MOT_SYURI | MOT_SYURI_RECOVER
+            ));
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; low-health enemy requests and drinks medicine through AI and item updates"]
+fn injured_enemy_uses_its_medicine() {
+    let mut game = oracle::game(0, 0);
+    let enemy = arena(&mut game, 0x10);
+    with_actor(&mut game, enemy, |actor, ctx, _| {
+        actor.health = 1;
+        actor.inventory.fill(0);
+        actor.inventory[3] = 1;
+        actor.attribute = ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | ATTR_SEARCH | 2;
+        actor.think = [0, 0, 5, 0];
+        actor.enter(ctx, MOT_ENGAGE_STANCE, true);
+        ctx.scene.update(actor.root_model, actor.root(ctx.math));
+    });
+    let mut drank = false;
+    for _ in 0..200 {
+        game.step(0).unwrap();
+        drank |= game.roster.get(enemy).motion.action == MOT_ITEM_DRINK;
+        if game.roster.get(enemy).health == game.roster.get(enemy).max_health {
+            break;
+        }
+    }
+    assert!(drank);
+    assert_eq!(
+        game.roster.get(enemy).health,
+        game.roster.get(enemy).max_health
+    );
+    assert_eq!(game.roster.get(enemy).inventory[3], 0);
 }

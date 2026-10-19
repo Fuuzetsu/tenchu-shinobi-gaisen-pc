@@ -138,7 +138,7 @@ impl Actor {
             return self.attack_input(ctx, world, held, pending);
         }
         if self.pad.trigger & TRIANGLE != 0 {
-            return Err("Item use is not implemented yet".into());
+            return self.selected_item(ctx, world, pending);
         }
         if held & CIRCLE == 0 {
             if self.id == 0 {

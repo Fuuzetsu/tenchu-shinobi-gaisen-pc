@@ -1,16 +1,20 @@
+mod caltrops;
 mod flight;
+mod medicine;
 mod pickup;
 mod projectile;
 mod rolling;
+mod sight_shot;
 #[cfg(test)]
 mod tests;
+mod use_item;
 
 use crate::{
     Result,
     actor::{Actor, Context},
     effects,
     math::Matrix,
-    roster::Roster,
+    roster::{Actors, Roster},
     scene::{ModelId, Scene},
     terrain, visibility,
 };
@@ -25,6 +29,9 @@ pub enum Processor {
     Shuriken,
     Arrow,
     Gun,
+    SightShot,
+    Medicine,
+    Caltrops,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -47,6 +54,7 @@ pub struct Item {
     pub count: u8,
     pub flight: flight::Flight,
     pub trail: Option<crate::actor::trail::Trail>,
+    pub rotation: [i16; 3],
 }
 
 #[derive(Debug)]
@@ -56,12 +64,20 @@ pub struct Items {
     pub models: Vec<(usize, Matrix)>,
     pub weapons: Vec<(i16, Matrix)>,
     pub trails: Vec<crate::actor::trail::Trail>,
+    pub sprites: Vec<crate::hud::Sprite>,
     meshes: [ModelId; 4],
     cursor: usize,
     icons: [ModelId; KINDS + 1],
+    icon_scale: [i32; KINDS + 1],
 }
 
 impl Items {
+    fn update_coordinate(&self, id: usize, ctx: &mut Context) {
+        let item = &self.slots[id];
+        ctx.scene.models[item.model].local.rotation = ctx.math.rotate_yxz(item.rotation);
+        ctx.scene.models[item.model].flags = 0;
+    }
+
     pub fn new(scene: &mut Scene) -> Self {
         let meshes = std::array::from_fn(|_| scene.add(Some(0), Matrix::default()));
         let slots = (0..CAPACITY)
@@ -76,6 +92,7 @@ impl Items {
                 count: 0,
                 flight: flight::Flight::default(),
                 trail: None,
+                rotation: [0; 3],
             })
             .collect();
         let icons = std::array::from_fn(|_| {
@@ -89,9 +106,11 @@ impl Items {
             models: Vec::new(),
             weapons: Vec::new(),
             trails: Vec::new(),
+            sprites: Vec::new(),
             meshes,
             cursor: 0,
             icons,
+            icon_scale: [12288; KINDS + 1],
         }
     }
 
@@ -100,6 +119,7 @@ impl Items {
         self.models.clear();
         self.weapons.clear();
         self.trails.clear();
+        self.sprites.clear();
     }
 
     fn draw_model(&mut self, id: usize, mesh: usize, ctx: &mut Context) -> Result<()> {
@@ -118,20 +138,26 @@ impl Items {
         Ok(())
     }
 
-    fn allocate(&mut self, ctx: &mut Context) -> Result<usize> {
+    fn allocate(&mut self, actors: &mut Actors, ctx: &mut Context) -> Result<usize> {
         for _ in 0..CAPACITY - 1 {
             self.cursor = (self.cursor + 1) % CAPACITY;
             if self.slots[self.cursor].processor.is_none() {
                 return Ok(self.cursor);
             }
         }
-        self.dispose(self.cursor, ctx)?;
+        self.dispose(self.cursor, actors, ctx)?;
         Ok(self.cursor)
     }
 
-    fn dispose(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
+    fn dispose(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<()> {
         let item = &mut self.slots[id];
         match item.processor {
+            Some(Processor::SightShot) => {
+                actors
+                    .get_mut(item.owner.ok_or("Aimed item has no owner")?)
+                    .inventory[25] = 0;
+                item.mode = 0;
+            }
             Some(Processor::Shuriken) => {
                 item.trail = None;
                 item.mode = 0;
@@ -195,7 +221,7 @@ impl Items {
         if depth < 1 {
             return Ok(());
         }
-        let scale = ((0x3000 >> 2) * 300 / i32::from(depth)) as i16;
+        let scale = ((self.icon_scale[item.kind] >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
         self.drawings.push(effects::Drawing {
             graphic: effects::Graphic::Sprite {
                 image: if item.kind < 20 {
@@ -253,35 +279,51 @@ impl Items {
         intelligence: &mut crate::ai::Intelligence,
         clock: i32,
     ) -> Result<()> {
+        let actors = &mut Actors::new(roster);
         if clock % 10 == 0 {
             self.update_contacts(ctx)?;
         }
         for id in 0..CAPACITY {
             match self.slots[id].processor {
                 Some(Processor::Pickup) => {
-                    self.pickup(id, ctx, roster, intelligence.action_halt)?
+                    self.pickup(id, ctx, actors, intelligence.action_halt)?
                 }
-                Some(Processor::Shuriken) => self.shuriken(id, ctx, roster, intelligence, clock)?,
-                Some(Processor::Arrow) => self.arrow(id, ctx, roster, clock)?,
-                Some(Processor::Gun) => self.gun(id, ctx, roster)?,
+                Some(Processor::Shuriken) => self.shuriken(id, ctx, actors, intelligence, clock)?,
+                Some(Processor::Arrow) => self.arrow(id, ctx, actors, clock)?,
+                Some(Processor::Gun) => self.gun(id, ctx, actors)?,
+                Some(Processor::SightShot) => self.sight_shot(id, actors, ctx)?,
+                Some(Processor::Medicine) => {
+                    self.medicine(id, actors, intelligence.action_halt, ctx)?
+                }
+                Some(Processor::Caltrops) => self.caltrops(id, actors, ctx)?,
                 None => {}
             }
         }
         Ok(())
     }
 
-    pub(crate) fn drop_inventory(&mut self, actor: &mut Actor, ctx: &mut Context) -> Result<()> {
+    pub(crate) fn drop_inventory(
+        &mut self,
+        actor: &mut Actor,
+        roster: &mut Roster,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        let owner = actor.id;
+        let actors = &mut Actors {
+            roster,
+            active: Some(actor),
+        };
         for kind in 0..KINDS {
-            for _ in 0..actor.inventory[kind] {
-                let position = ctx.scene.world(actor.parts[0])?.translation;
+            for _ in 0..actors.get(owner).inventory[kind] {
+                let position = ctx.scene.world(actors.get(owner).parts[0])?.translation;
                 let velocity = [
                     ctx.random.next15() % 200 - 100,
                     ctx.random.next15() % 100 - 200,
                     ctx.random.next15() % 200 - 100,
                 ];
-                self.drop(kind, Some(actor.id), position, velocity, ctx)?;
+                self.drop(kind, Some(owner), position, velocity, actors, ctx)?;
             }
-            actor.inventory[kind] = 0;
+            actors.get_mut(owner).inventory[kind] = 0;
         }
         Ok(())
     }
@@ -293,9 +335,10 @@ impl Items {
             .map_or(0, |item| item.kind)
     }
 
-    pub(crate) fn restore_layout(&mut self, ctx: &mut Context) -> Result<()> {
+    pub(crate) fn restore_layout(&mut self, roster: &mut Roster, ctx: &mut Context) -> Result<()> {
+        let actors = &mut Actors::new(roster);
         for id in 0..CAPACITY {
-            self.dispose(id, ctx)?;
+            self.dispose(id, actors, ctx)?;
         }
         for spawn in &ctx.mission.pickups {
             let mut position = spawn.position;
@@ -332,7 +375,7 @@ impl Items {
                 let Some(found) = found else { continue };
                 position = found;
             }
-            self.stay(spawn.kind, position, ctx)?;
+            self.stay(spawn.kind, position, actors, ctx)?;
         }
         Ok(())
     }

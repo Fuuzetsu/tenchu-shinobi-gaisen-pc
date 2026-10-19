@@ -168,11 +168,11 @@ player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
-dropped inventory, pickups, arrow/gun/shuriken attacks and item damage. The native
+dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellation,
+medicine, caltrops and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
-Unsupported actions still pause with a diagnostic. Player item selection/aiming,
-remaining item use, special ranged attacks, mission events, map display and audio remain unfinished; this is not
+Unsupported actions still pause with a diagnostic. Grappling, remaining item use, special ranged attacks, mission events, map display and audio remain unfinished; this is not
 playable Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -188,13 +188,15 @@ and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
 effects. The renderer consumes prepared effect graphics without mutating the game, using
 original TIM palettes, sprite origins and four transparency modes. It uses modern
 depth testing rather than reproducing PS1 ordering-table raster artifacts. Sound
-events are still unplayed. Damage-floor napalm and AI healing remain item-system boundaries.
+events are still unplayed. Damage-floor napalm remains an item-system boundary.
 The HUD now updates inventory selection after items, including the reserved-slot
 quirk, and displays original icons/counts, health bars and the proximity indicator.
 Five temporary enemy bars retain request order, captured health and expiry. Their
 logical packet contributions are included in activation sampling. The desktop
 launcher supplies the original fallback loadout (hook, 10 shuriken, 5 caltrops,
-2 medicine); using those items remains the next integration step.
+2 medicine). Shuriken aiming/release/cancellation, medicine and caltrops now run
+through normal input, actor animations and item updates. AI can request medicine.
+Grappling remains the next integration step.
 CVA camera/actor ownership, remaining ranged/item combat, swimming/grappling, results,
 saving, transitions and the remaining campaign are still required.
 
@@ -227,6 +229,11 @@ Verification completed so far:
   arrows attach to the struck body. The native window renders an archer and
   flying arrow using the original meshes. These scenarios do not establish
   full mission coverage.
+- Both characters exercise quick and aimed throws, cancellation refunds, interrupted
+  throws and medicine drops, medicine healing and caltrop contact damage through
+  ordinary ticks. A low-health enemy heals through the AI/item loop. Pool eviction
+  preserves cancellation of an aimed item owned by the currently executing actor.
+  Interactive window checks display the aiming sight and flying shuriken trail.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -242,7 +249,6 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: player item use and aiming, then remaining item behaviors,
-swimming/grappling and mission events. Fill the remaining drawing producers alongside their owning gameplay
+Next: grappling, then remaining item behaviors, swimming and mission events. Fill the remaining drawing producers alongside their owning gameplay
 systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

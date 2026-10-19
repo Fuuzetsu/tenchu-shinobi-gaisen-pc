@@ -32,9 +32,9 @@ impl Actor {
             None
         };
         let next = match self.status {
-            0 => self.normal(ctx, held, command, center)?,
+            0 => self.normal(ctx, world, held, command, center)?,
             1 => self.action(ctx, world, held)?,
-            2 => self.walk(ctx, held, center)?,
+            2 => self.walk(ctx, world, held, center)?,
             5 => self.engage(ctx, world, held, command, center)?,
             6 => self.chase(ctx, world, held, command, center)?,
             7 => self.attack(ctx, world, held)?,
@@ -43,6 +43,7 @@ impl Actor {
             10 => self.hang(ctx, held)?,
             11 => self.crouch(ctx, world, held, command)?,
             14 => self.shuriken_control(ctx, world)?,
+            15 => self.item_control(ctx, world)?,
             16 => self.damaged(ctx, world)?,
             17 => self.dead(ctx, world)?,
             status => {
@@ -120,6 +121,7 @@ impl Actor {
     fn normal(
         &mut self,
         ctx: &mut Context,
+        world: &mut ActionContext,
         held: u16,
         command: u16,
         center: [i32; 3],
@@ -170,7 +172,7 @@ impl Actor {
             return Ok(self.start_jump(ctx, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
-            return Err("Item use is not implemented yet".into());
+            return self.selected_item(ctx, world, pending);
         }
         if held & CIRCLE != 0 {
             return Ok(Some((MOT_SQUAT, true)));
@@ -247,6 +249,7 @@ impl Actor {
     fn walk(
         &mut self,
         ctx: &mut Context,
+        world: &mut ActionContext,
         held: u16,
         center: [i32; 3],
     ) -> Result<Option<(i16, bool)>> {
@@ -290,7 +293,7 @@ impl Actor {
             return Ok(self.start_jump(ctx, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
-            return Err("Item use is not implemented yet".into());
+            return self.selected_item(ctx, world, pending);
         }
         if held & CIRCLE != 0 {
             return Ok(Some((MOT_SQUAT, true)));

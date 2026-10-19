@@ -91,6 +91,7 @@ impl Intelligence {
 
 #[derive(Clone, Copy)]
 pub struct Player {
+    pub id: usize,
     pub root: ModelId,
     pub position: [i32; 3],
     pub status: i16,
@@ -102,6 +103,7 @@ pub struct Player {
 impl Player {
     pub fn new(actor: &Actor, ctx: &Context) -> Self {
         Self {
+            id: actor.id,
             root: actor.root_model,
             position: actor.position,
             status: actor.status,
@@ -116,6 +118,7 @@ pub struct Controller<'a, 'b> {
     pub actor: &'a mut Actor,
     pub player: Player,
     pub roster: &'a mut Roster,
+    pub items: &'a mut crate::items::Items,
     pub state: &'a mut Intelligence,
     pub clock: i32,
     pub input: u16,
@@ -130,6 +133,7 @@ impl<'a, 'b> Controller<'a, 'b> {
         actor: &'a mut Actor,
         player: Player,
         roster: &'a mut Roster,
+        items: &'a mut crate::items::Items,
         state: &'a mut Intelligence,
         clock: i32,
         input: u16,
@@ -141,6 +145,7 @@ impl<'a, 'b> Controller<'a, 'b> {
             actor,
             player,
             roster,
+            items,
             state,
             clock,
             input,

@@ -2,10 +2,10 @@ use super::*;
 use crate::{actor::trail::Trail, ai::Intelligence, collision, scene::CONFLICT};
 
 pub(super) fn target(
-    owner: &Actor,
+    owner: usize,
     rotation: [i16; 3],
     start: [i32; 3],
-    roster: &Roster,
+    actors: &Actors,
     ctx: &mut Context,
 ) -> Result<(Option<usize>, [i32; 3])> {
     let ray = Matrix {
@@ -24,14 +24,10 @@ pub(super) fn target(
         ..Matrix::default()
     };
     let mut found = None;
-    for &id in &roster.order {
-        let actor = if id == owner.id {
-            owner
-        } else {
-            roster.get(id)
-        };
+    for &id in &actors.roster.order {
+        let actor = actors.get(id);
         let world = ctx.scene.world(actor.parts[0])?.translation;
-        if actor.health > 0 && id != owner.id {
+        if actor.health > 0 && id != owner {
             let local =
                 inverse.apply_large(std::array::from_fn(|i| world[i].wrapping_sub(start[i])));
             let forward = local[2].wrapping_neg();
@@ -50,35 +46,23 @@ pub(super) fn target(
 }
 
 impl Items {
-    pub(crate) fn projectile(
+    pub(super) fn launch(
         &mut self,
         kind: usize,
-        owner: &mut Actor,
+        owner_id: usize,
         start: [i32; 3],
         end: [i32; 3],
-        roster: &Roster,
+        actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        if owner.inventory[kind] != 0 && owner.inventory[kind] != 255 {
-            owner.inventory[kind] -= 1;
-        }
-        let (processor, end) = match kind {
-            1 => (
-                Processor::Shuriken,
-                target(owner, owner.rotation, start, roster, ctx)?.1,
-            ),
-            20 => (Processor::Gun, end),
-            21 => {
-                let rotation = ctx.math.vector_rotation(start, end)?;
-                (
-                    Processor::Arrow,
-                    target(owner, rotation, start, roster, ctx)?.1,
-                )
-            }
-            _ => return Err(format!("Projectile item {kind} is not implemented yet")),
+        let processor = match kind {
+            1 => Processor::Shuriken,
+            20 => Processor::Gun,
+            21 => Processor::Arrow,
+            _ => return Err(format!("Invalid projectile kind {kind}")),
         };
-        let id = self.allocate(ctx)?;
-        self.initialize(id, processor, kind, Some(owner.id), start, ctx)?;
+        let id = self.allocate(actors, ctx)?;
+        self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
         self.slots[id].collision.size = 0;
         match processor {
             Processor::Shuriken | Processor::Arrow => {
@@ -94,7 +78,6 @@ impl Items {
                 if kind == 1 {
                     self.slots[id].trail =
                         Some(Trail::new(self.meshes[0], [[20, 0, 0], [-20, 0, 0]]));
-                    owner.inventory[25] = 0;
                 }
             }
             Processor::Gun => self.slots[id].flight.end = end,
@@ -115,40 +98,47 @@ impl Items {
         Ok(())
     }
 
-    fn hit(&mut self, id: usize, ctx: &mut Context, roster: &Roster) -> Option<(usize, usize)> {
+    pub(super) fn hit(
+        &mut self,
+        id: usize,
+        ctx: &mut Context,
+        actors: &mut Actors,
+    ) -> Option<(usize, usize)> {
         let model = self.slots[id].model;
         if ctx.scene.models[model].attribute & CONFLICT == 0 {
             return None;
         }
         let slot = ctx.collision.result(ctx.scene, model, None)?;
         let owner = ctx.collision.slots[slot].owner?;
-        roster.order.contains(&owner).then_some((slot, owner))
+        actors
+            .roster
+            .order
+            .contains(&owner)
+            .then_some((slot, owner))
     }
 
     pub(super) fn shuriken(
         &mut self,
         id: usize,
         ctx: &mut Context,
-        roster: &Roster,
+        actors: &mut Actors,
         intelligence: &mut Intelligence,
         clock: i32,
     ) -> Result<()> {
         self.fly(id, ctx)?;
         let model = self.slots[id].model;
-        ctx.scene.models[model].local.rotation =
-            ctx.math
-                .rotate_yxz([0, clock.wrapping_mul(4096 / 6) as i16, 0]);
-        ctx.scene.models[model].flags = 0;
+        self.slots[id].rotation = [0, clock.wrapping_mul(4096 / 6) as i16, 0];
+        self.update_coordinate(id, ctx);
         self.draw_model(id, 0, ctx)?;
         if let Some(trail) = &mut self.slots[id].trail {
             ctx.drawing.bytes += trail.draw(ctx.scene, ctx.camera.view, true)?;
             self.trails.push(trail.clone());
         }
         let position = ctx.scene.models[model].local.translation;
-        if self.hit(id, ctx, roster).is_some() {
+        if self.hit(id, ctx, actors).is_some() {
             ctx.effects.impact(position, 16384, 2, ctx.random);
             ctx.effects.sounds.push((position, 0x30));
-            self.dispose(id, ctx)?;
+            self.dispose(id, actors, ctx)?;
         } else if self.slots[id].flight.rolling {
             match self.slots[id].rolling.status {
                 3 => {
@@ -160,10 +150,10 @@ impl Items {
                 2 | 4 => {
                     let kind = self.slots[id].kind;
                     let owner = self.slots[id].owner;
-                    self.dispose(id, ctx)?;
-                    self.drop(kind, owner, position, [0; 3], ctx)?;
+                    self.dispose(id, actors, ctx)?;
+                    self.drop(kind, owner, position, [0; 3], actors, ctx)?;
                 }
-                1 => self.dispose(id, ctx)?,
+                1 => self.dispose(id, actors, ctx)?,
                 _ => {}
             }
         }
@@ -174,7 +164,7 @@ impl Items {
         &mut self,
         id: usize,
         ctx: &mut Context,
-        roster: &Roster,
+        actors: &mut Actors,
         clock: i32,
     ) -> Result<()> {
         let model = self.slots[id].model;
@@ -186,13 +176,13 @@ impl Items {
                     if let Some(slot) = ctx.collision.result(ctx.scene, model, None) {
                         if let Some(actor_id) = ctx.collision.slots[slot]
                             .owner
-                            .filter(|id| roster.order.contains(id))
+                            .filter(|id| actors.roster.order.contains(id))
                         {
                             if ctx.collision.slots[slot].class & collision::HIT != 0 {
-                                self.dispose(id, ctx)?;
+                                self.dispose(id, actors, ctx)?;
                                 return Ok(());
                             }
-                            let actor = roster.get(actor_id);
+                            let actor = actors.get(actor_id);
                             let part =
                                 actor.parts[ctx.random.next15() as usize % actor.parts.len()];
                             let position = ctx.scene.world(part)?.translation;
@@ -211,17 +201,17 @@ impl Items {
                             self.draw_model(id, 1, ctx)?;
                             return Ok(());
                         }
-                    } else if self.arrow_ground(id, ctx)? {
+                    } else if self.arrow_ground(id, actors, ctx)? {
                         return Ok(());
                     }
-                } else if self.arrow_ground(id, ctx)? {
+                } else if self.arrow_ground(id, actors, ctx)? {
                     return Ok(());
                 }
                 let position = ctx.scene.models[model].local.translation;
                 let mut rotation = ctx.math.vector_rotation(previous, position)?;
                 rotation[2] = clock.wrapping_mul(256) as i16;
-                ctx.scene.models[model].local.rotation = ctx.math.rotate_yxz(rotation);
-                ctx.scene.models[model].flags = 0;
+                self.slots[id].rotation = rotation;
+                self.update_coordinate(id, ctx);
             }
             1 => {
                 self.slots[id].count = self.slots[id].count.wrapping_sub(1);
@@ -233,7 +223,7 @@ impl Items {
             2 => {
                 self.slots[id].count = self.slots[id].count.wrapping_sub(1);
                 if self.slots[id].count == 0 {
-                    self.dispose(id, ctx)?;
+                    self.dispose(id, actors, ctx)?;
                     return Ok(());
                 }
                 if self.slots[id].count & 1 != 0 {
@@ -245,13 +235,13 @@ impl Items {
         self.draw_model(id, 1, ctx)
     }
 
-    fn arrow_ground(&mut self, id: usize, ctx: &mut Context) -> Result<bool> {
+    fn arrow_ground(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<bool> {
         let item = &mut self.slots[id];
         if !item.flight.rolling || item.rolling.status == 0 {
             return Ok(false);
         }
         if item.rolling.status == 1 {
-            self.dispose(id, ctx)?;
+            self.dispose(id, actors, ctx)?;
         } else {
             let position = ctx.scene.models[item.model].local.translation;
             ctx.effects.sounds.push((position, 0x31));
@@ -264,9 +254,9 @@ impl Items {
         Ok(true)
     }
 
-    pub(super) fn gun(&mut self, id: usize, ctx: &mut Context, roster: &Roster) -> Result<()> {
+    pub(super) fn gun(&mut self, id: usize, ctx: &mut Context, actors: &mut Actors) -> Result<()> {
         let item = &self.slots[id];
-        let owner = roster.get(item.owner.ok_or("Gun has no owner")?);
+        let owner = actors.get(item.owner.ok_or("Gun has no owner")?);
         let model = item.model;
         let position = ctx.scene.models[model].local.translation;
         match item.mode {
@@ -278,7 +268,7 @@ impl Items {
             }
             1 => {
                 let rotation = ctx.math.vector_rotation(position, item.flight.end)?;
-                let (hit, position) = target(owner, rotation, position, roster, ctx)?;
+                let (hit, position) = target(owner.id, rotation, position, actors, ctx)?;
                 ctx.scene.set_translation(model, position);
                 self.contact(id, 100, collision::HIT, ctx)?;
                 let matrix = Matrix {
@@ -314,7 +304,7 @@ impl Items {
                     .push((position, if hit.is_some() { 0x34 } else { 0x35 }));
                 self.slots[id].mode = 2;
             }
-            2 => self.dispose(id, ctx)?,
+            2 => self.dispose(id, actors, ctx)?,
             _ => {}
         }
         Ok(())

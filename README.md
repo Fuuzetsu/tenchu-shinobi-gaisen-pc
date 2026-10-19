@@ -60,14 +60,16 @@ an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
-and the source follow/look camera. Player item use, remaining special attacks
-and mission events are unfinished; unsupported actions pause with a diagnostic.
+and the source follow/look camera. Shuriken, medicine and caltrops work through
+normal item selection. Grappling, remaining items/special attacks and mission
+events are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
 texture palettes and transparency modes. The HUD shows inventory selection and
 counts, player/enemy health and the proximity indicator using original graphics.
 The launcher starts with the original fallback loadout: infinite hook, 10 shuriken,
-5 caltrops and 2 medicine. Item actions are still being connected. Lighting, full
+5 caltrops and 2 medicine. Tap E for a quick shuriken throw or hold it to aim,
+then release to throw; J, Space or Shift cancels the held item. Lighting, full
 scene transparency, the map and audio remain in progress.
 
 `replay DISC INPUT.txt [OPTIONS]` runs without graphics and writes a CSV trace.
@@ -93,7 +95,7 @@ continuous state comparison remains a separate acceptance requirement.
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation now runs at the source cadence. Remaining effects, special ranged
-attacks, player items and stage scripts remain unfinished. Activation workload counts use original geometry,
+attacks, remaining items and stage scripts remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; remaining items and environmental effects still need
 to add their original contributions before this has full-game fidelity.
 An additional private check compares the roster, mission totals, weapon hitbox

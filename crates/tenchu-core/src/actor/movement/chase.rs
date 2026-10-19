@@ -87,7 +87,7 @@ impl Actor {
             return Ok(self.start_jump(ctx, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
-            return Err("Item use is not implemented yet".into());
+            return self.selected_item(ctx, world, pending);
         }
         if held & CIRCLE != 0 {
             return Ok(Some((
@@ -198,7 +198,7 @@ impl Actor {
             return Ok(self.start_jump(ctx, held, center));
         }
         if self.pad.trigger & TRIANGLE != 0 {
-            return Err("Item use is not implemented yet".into());
+            return self.selected_item(ctx, world, pending);
         }
         if self.pad.trigger & SQUARE != 0 {
             return self.attack_input(ctx, world, held, pending);

@@ -46,6 +46,7 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
         &mut actor,
         player,
         &mut game.roster,
+        &mut game.items,
         &mut state,
         37,
         0,
@@ -124,6 +125,7 @@ fn combat_decisions_match_original_c() {
     let mut game = oracle::game(0, 0);
     let template = game.player().clone();
     let player = Player {
+        id: game.player_id,
         root: template.root_model,
         position: template.position,
         status: 0,
@@ -417,6 +419,7 @@ int main(void) {{
                     ..player
                 },
                 &mut game.roster,
+                &mut game.items,
                 &mut state,
                 clock,
                 0,

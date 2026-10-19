@@ -11,6 +11,36 @@ pub struct Roster {
     retired: Vec<usize>,
 }
 
+pub(crate) struct Actors<'a> {
+    pub roster: &'a mut Roster,
+    pub active: Option<&'a mut Actor>,
+}
+
+impl<'a> Actors<'a> {
+    pub fn new(roster: &'a mut Roster) -> Self {
+        Self {
+            roster,
+            active: None,
+        }
+    }
+
+    pub fn get(&self, id: usize) -> &Actor {
+        if let Some(actor) = self.active.as_deref().filter(|a| a.id == id) {
+            actor
+        } else {
+            self.roster.get(id)
+        }
+    }
+
+    pub fn get_mut(&mut self, id: usize) -> &mut Actor {
+        if self.active.as_deref().is_some_and(|a| a.id == id) {
+            self.active.as_deref_mut().unwrap()
+        } else {
+            self.roster.get_mut(id)
+        }
+    }
+}
+
 impl Roster {
     pub(crate) fn begin_tick(&mut self) {
         for id in self.retired.drain(..) {
