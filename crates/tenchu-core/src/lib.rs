@@ -12,6 +12,10 @@ pub mod random;
 pub mod roster;
 pub mod scene;
 pub mod terrain;
+pub mod visibility;
+
+#[cfg(test)]
+mod oracle;
 
 pub use tenchu_assets::Result;
 

@@ -92,8 +92,8 @@ TENCHU_DISC='/path/to/game.cue' TENCHU_ROSTER_TRACE='/path/to/kagi-aim-v1.trace'
   ./dev.sh cargo test -p tenchu-pc roster_and_weapon -- --ignored
 ```
 
-Optional camera checks compare smoothing with the matching C and the integer
-view matrix with an existing retail trace. These private files remain outside
+Optional core checks compare camera smoothing and enemy sight checks with the
+matching C, and the integer view matrix with an existing retail trace. These private files remain outside
 the repository and are never build or runtime dependencies:
 
 ```sh

@@ -125,3 +125,17 @@ sources at the same decomp revision:
 | `src/main.exe/ITEM.C` | `fd5a6d31ef3e5628d792a4f05604d7e40ff588663c339651858e161bee57e78a` | Temporary dog/disguise construction |
 | `src/main.exe/THINK.C` | `65ddde563a175579f83c1f26e00cd63848b9abe2fb82a326097a42a7d987b23a` | Think-program selection |
 | `src/main.exe/CHRANIM.C` | `5e8c2a7548b441bdb68b16b54b7ac2fb6c9dd5f791868295d625c3fb2297c825` | Identifying CVA-mutated homes excluded from the roster fixture check |
+
+## Visibility and sight checks (2026-10-20)
+
+`3DCTRL.C`, `HUMAN.C` and `CONFLICT.C` above define root clipping, sight guards
+and terrain passage. These research files supplied scalar arithmetic and
+regression evidence; the new runtime has no parallel projection/continuation
+machinery. Revisions are the ones recorded above.
+
+| File in `tenchu-decomp-glitch-research` | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/projection.rs` | `f6c4385b5317290e3bba067f1275421784bc1b306cac3c1f576df722c0c27b7e` |
+| `tools/tenchu-sim/src/allocation.rs` | `2fa9018eb96dc7c427dc8b1177120e6d2d6a2c0ca7722e63f58ae51ff364ed7b` |
+| `tools/tenchu-sim/src/sensing.rs` | `c9f2ffba7d2d73d7c589316941213398ba3e5824d3a7a1aa1a0ae23265a569f6` |
+| `tools/tenchu-sim/native/sensing.c` | `d46bf244fbf33a085e24324041b26b3a9a4fed49d992664e743cf5d20c8ca73c` |

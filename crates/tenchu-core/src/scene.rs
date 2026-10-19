@@ -13,6 +13,7 @@ pub struct Model {
     pub flags: u32,
     pub attribute: u16,
     pub conflict: Option<usize>,
+    pub clip: [i16; 3],
 }
 
 #[derive(Clone, Debug)]
@@ -42,6 +43,7 @@ impl Scene {
             flags: 0,
             attribute: 0,
             conflict: None,
+            clip: [0; 3],
         });
         id
     }

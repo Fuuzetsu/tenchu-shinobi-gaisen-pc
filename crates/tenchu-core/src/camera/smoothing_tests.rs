@@ -1,8 +1,6 @@
 use super::*;
-use std::{
-    fs,
-    process::{Command, Stdio},
-};
+use crate::oracle;
+use std::fs;
 use tenchu_assets::executable::Executable;
 
 #[test]
@@ -13,34 +11,8 @@ fn smoothing_matches_original_c_with_narrowing_and_retained_history() {
     let math = Math {
         tables: Executable::new(&exe).unwrap().math_tables().unwrap(),
     };
-    let path =
-        std::path::PathBuf::from(std::env::var_os("TENCHU_DECOMP").expect("Set TENCHU_DECOMP"));
-    let source = fs::read_to_string(path.join("src/main.exe/CAMERA.C")).unwrap();
-    let start = source.find("\nstatic void MakeDifSub(").unwrap() + 1;
-    let mut depth = 0;
-    let mut end = None;
-    for (i, c) in source[start..].char_indices() {
-        if c == '{' {
-            depth += 1;
-        }
-        if c == '}' {
-            depth -= 1;
-            if depth == 0 {
-                end = Some(start + i + 1);
-                break;
-            }
-        }
-    }
-    let routine = &source[start..end.unwrap()];
-    let directory = std::env::temp_dir().join(format!(
-        "tenchu-camera-oracle-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    fs::create_dir(&directory).unwrap();
+    let source = oracle::source("CAMERA.C");
+    let routine = oracle::function(&source, "static void MakeDifSub(");
     let harness = format!(
         r#"
 #include <stdint.h>
@@ -70,17 +42,6 @@ int main(void) {{
     }}
 }}
 "#
-    );
-    fs::write(directory.join("oracle.c"), harness).unwrap();
-    let build = Command::new("cc")
-        .args(["-std=c99", "-O2", "-fwrapv", "oracle.c", "-o", "oracle"])
-        .current_dir(&directory)
-        .output()
-        .unwrap();
-    assert!(
-        build.status.success(),
-        "{}",
-        String::from_utf8_lossy(&build.stderr)
     );
     let mut input = String::new();
     let mut expected = Vec::new();
@@ -128,23 +89,5 @@ int main(void) {{
                 .collect::<Vec<_>>(),
         );
     }
-    fs::write(directory.join("input"), input).unwrap();
-    let output = Command::new(directory.join("oracle"))
-        .stdin(Stdio::from(
-            fs::File::open(directory.join("input")).unwrap(),
-        ))
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    let actual: Vec<Vec<i32>> = String::from_utf8(output.stdout)
-        .unwrap()
-        .lines()
-        .map(|line| {
-            line.split_whitespace()
-                .map(|v| v.parse().unwrap())
-                .collect()
-        })
-        .collect();
-    assert_eq!(actual, expected);
-    fs::remove_dir_all(directory).unwrap();
+    assert_eq!(oracle::run(&harness, &input), expected);
 }

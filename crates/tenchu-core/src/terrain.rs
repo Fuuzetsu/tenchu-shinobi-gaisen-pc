@@ -8,6 +8,54 @@ pub const ALLOW_DEEP: u16 = 4;
 pub const FIRST_HIT: u16 = 8;
 pub const REUSE_CACHED: u16 = 16;
 
+pub fn passage(
+    map: &AreaMap,
+    cursor: &mut Cursor,
+    mut position: [i32; 3],
+    step: [i16; 3],
+    count: i16,
+) -> Result<Option<[i32; 3]>> {
+    let mut remaining = if count <= 0 { 100 } else { count };
+    loop {
+        let floor = level(map, cursor, position, 0)?;
+        if floor == NONE {
+            return Ok(Some(std::array::from_fn(|i| {
+                position[i].wrapping_sub(i32::from(step[i]))
+            })));
+        }
+        let node = map.node(cursor.area)?;
+        let [x1, z1, x2, z2] = node.bounds.map(|v| i32::from(v) * 10);
+        let ceiling = if cursor.row == 0 {
+            -1000000
+        } else {
+            i32::from(
+                map.rows
+                    .get(cursor.row - 1)
+                    .ok_or("Invalid passage row")?
+                    .height,
+            ) * 10
+        };
+        loop {
+            for i in 0..3 {
+                position[i] = position[i].wrapping_add(i32::from(step[i]));
+            }
+            remaining = remaining.wrapping_sub(1);
+            if remaining == 0 {
+                return Ok(None);
+            }
+            if !(x1 <= position[0]
+                && position[0] <= x2
+                && floor <= position[1]
+                && position[1] <= ceiling
+                && z1 <= position[2]
+                && position[2] <= z2)
+            {
+                break;
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Cursor {
     pub row: usize,
@@ -252,8 +300,7 @@ pub fn ground_ray(
 mod tests {
     use super::*;
 
-    #[test]
-    fn particle_hint_uses_division_field_and_preserves_global_cursor_on_a_hit() {
+    fn flat_map() -> AreaMap {
         let mut bytes = vec![0u8; 48];
         bytes[2..4].copy_from_slice(&1i16.to_le_bytes());
         bytes[4..8].copy_from_slice(&32u32.to_le_bytes());
@@ -264,7 +311,33 @@ mod tests {
         }
         bytes[44..46].copy_from_slice(&0x2000u16.to_le_bytes());
         bytes[46..48].copy_from_slice(&u16::MAX.to_le_bytes());
-        let map = AreaMap::parse(bytes).unwrap();
+        AreaMap::parse(bytes).unwrap()
+    }
+
+    #[test]
+    fn passage_excludes_the_final_step_and_returns_before_an_invalid_start() {
+        let map = flat_map();
+        let mut cursor = Cursor::new(&map);
+        let start = [9990, -100, 0];
+        let step = [100, 0, 0];
+        assert_eq!(passage(&map, &mut cursor, start, step, 1).unwrap(), None);
+        assert_eq!(
+            passage(&map, &mut cursor, start, step, 2).unwrap(),
+            Some(start)
+        );
+        assert_eq!(
+            passage(&map, &mut cursor, [10090, -100, 0], step, 1).unwrap(),
+            Some(start)
+        );
+        assert_eq!(
+            passage(&map, &mut cursor, [0, -100, 0], [0; 3], 0).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn particle_hint_uses_division_field_and_preserves_global_cursor_on_a_hit() {
+        let map = flat_map();
         let mut cursor = Cursor::new(&map);
         let mut hint = None;
         assert_eq!(

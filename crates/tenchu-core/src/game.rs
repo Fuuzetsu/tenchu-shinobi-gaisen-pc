@@ -124,7 +124,7 @@ impl Game {
         player.control(&mut context, input, &self.commands, center)?;
         player.look_at_camera(&mut context)?;
         self.effects.step(&mut self.random);
-        player.prepare_draw(&mut self.scene)?;
+        player.prepare_draw(&mut self.scene, self.camera.view, true)?;
         self.scene.finish_tick();
         Ok(())
     }

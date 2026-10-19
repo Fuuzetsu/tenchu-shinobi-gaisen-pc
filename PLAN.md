@@ -215,3 +215,11 @@ private Reclaim the Castle capture. Player/story homes changed by CVA are outsid
 that construction comparison. The frame update remains player-only until enemy
 visibility, activation and controllers are connected; this checkpoint does not
 skip those requirements or count as playable Mission 1.
+
+The logical draw phase now applies the source root visibility predicate before
+visiting body parts. Projection keeps the normalized reciprocal and the SDK's
+two depth divisions; modern render dimensions do not enter this predicate.
+Enemy sight checks and terrain passage rays are implemented for the coming AI
+update. A 45,760-case comparison against original `SearchTarget` agrees on sight
+results and exact ray arguments. This isolates the sight branches from the math
+and terrain implementations; it does not establish whole-enemy behavior.

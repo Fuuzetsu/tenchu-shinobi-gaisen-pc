@@ -1,6 +1,7 @@
 mod body;
 mod movement;
 pub mod patrol;
+pub mod sight;
 mod weapon;
 
 use crate::{
@@ -35,6 +36,7 @@ pub struct Actor {
     pub root_model: ModelId,
     pub parts: Vec<ModelId>,
     pub rendered: Vec<Matrix>,
+    pub render_mask: u32,
     pub kind: i16,
     pub definition: usize,
     pub position: [i32; 3],
@@ -92,6 +94,7 @@ impl Actor {
         )?;
         let root_model = ctx.scene.add(Some(0), Matrix::default());
         ctx.scene.models[root_model].attribute = 0x1c;
+        ctx.scene.models[root_model].clip = [0, -data.height / 2, 0];
         let nodes = motion.pose.bind(ctx.scene, root_model, ctx.math);
         let waist = *nodes.first().ok_or("Actor model has no waist")?;
         let slot = ctx.collision.insert(ctx.scene, waist)?;
@@ -107,6 +110,7 @@ impl Actor {
             root_model,
             parts: nodes,
             rendered: Vec::new(),
+            render_mask: u32::MAX,
             kind,
             definition,
             position,
@@ -181,11 +185,14 @@ impl Actor {
         ctx.collision.slots[ctx.scene.models[self.parts[0]].conflict.unwrap()].position
     }
 
-    pub fn prepare_draw(&mut self, scene: &mut Scene) -> Result<()> {
-        scene.world(self.root_model)?;
-        for (i, &model) in self.parts.iter().enumerate() {
-            if scene.models[model].attribute & 1 == 0 {
-                self.rendered[i] = scene.world(model)?;
+    pub fn prepare_draw(&mut self, scene: &mut Scene, view: Matrix, first: bool) -> Result<()> {
+        self.render_mask = 0;
+        if !first || crate::visibility::model(scene, view, self.root_model)?.is_some() {
+            for (i, &model) in self.parts.iter().enumerate() {
+                if scene.models[model].attribute & 1 == 0 {
+                    self.rendered[i] = scene.world(model)?;
+                    self.render_mask |= 1 << i;
+                }
             }
         }
         for weapon in self.weapons[..2].iter_mut().flatten() {
