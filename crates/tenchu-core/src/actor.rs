@@ -5,6 +5,7 @@ mod death;
 pub use combat::Combat;
 mod movement;
 pub mod patrol;
+mod ranged;
 mod shadow;
 pub mod sight;
 #[cfg(test)]

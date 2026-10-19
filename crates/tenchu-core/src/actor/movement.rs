@@ -42,6 +42,7 @@ impl Actor {
             9 => self.jump(ctx, held)?,
             10 => self.hang(ctx, held)?,
             11 => self.crouch(ctx, world, held, command)?,
+            14 => self.shuriken_control(ctx, world)?,
             16 => self.damaged(ctx, world)?,
             17 => self.dead(ctx, world)?,
             status => {

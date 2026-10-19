@@ -48,6 +48,15 @@ impl Scene {
         id
     }
 
+    pub fn copy_coordinate(&mut self, target: ModelId, source: ModelId) {
+        let source = self.models[source].clone();
+        let target = &mut self.models[target];
+        target.parent = source.parent;
+        target.local = source.local;
+        target.cached = source.cached;
+        target.flags = source.flags;
+    }
+
     pub fn update(&mut self, id: ModelId, local: Matrix) {
         let model = &mut self.models[id];
         model.local = local;

@@ -71,6 +71,7 @@ pub struct Weapons {
     pub models: BTreeMap<i16, Vec<Geometry>>,
     pub hitboxes: Vec<Hitbox>,
     pub attacks: Vec<Attack>,
+    pub bow_timing: [[i16; 2]; 2],
 }
 
 impl Weapons {
@@ -127,6 +128,16 @@ impl Weapons {
                     models,
                     hitboxes,
                     attacks,
+                    bow_timing: [
+                        [
+                            i16_le(exe.bytes(0x80097714, 4)?, 0)?,
+                            i16_le(exe.bytes(0x80097714, 4)?, 2)?,
+                        ],
+                        [
+                            i16_le(exe.bytes(0x80097718, 4)?, 0)?,
+                            i16_le(exe.bytes(0x80097718, 4)?, 2)?,
+                        ],
+                    ],
                 });
             }
         }

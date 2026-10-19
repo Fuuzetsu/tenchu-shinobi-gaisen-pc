@@ -168,11 +168,11 @@ player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
-dropped inventory and pickups. The native
+dropped inventory, pickups, arrow/gun/shuriken attacks and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
-Unsupported actions still pause with a diagnostic. Ranged attacks, item damage/use,
-mission events, HUD and audio remain unfinished; this is not
+Unsupported actions still pause with a diagnostic. Player item selection/aiming,
+remaining item use, special ranged attacks, mission events, HUD and audio remain unfinished; this is not
 playable Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -189,7 +189,7 @@ effects. The renderer consumes prepared effect graphics without mutating the gam
 original TIM palettes, sprite origins and four transparency modes. It uses modern
 depth testing rather than reproducing PS1 ordering-table raster artifacts. Sound
 events are still unplayed. Damage-floor napalm and AI healing remain item-system boundaries.
-CVA camera/actor ownership, ranged/item combat, swimming/grappling, results,
+CVA camera/actor ownership, remaining ranged/item combat, swimming/grappling, results,
 saving, transitions and the remaining campaign are still required.
 
 Verification completed so far:
@@ -205,15 +205,22 @@ Verification completed so far:
   or its absence, collision removal, blood-pool growth and return to control.
   A regression preserves the weapon-clash bug that indexes BattleDB with the
   collision slot. These are controlled scenarios, not complete mission runs.
-- DamageControl and its original cleanup/scoring helpers match in 4,096 varied
-  cases: health, reactions, knockback, attacker recoil, RNG consumption, scores,
+- DamageControl and its original cleanup/scoring helpers match in 8,192 varied
+  human/item cases: health, reactions, knockback, attacker recoil, RNG consumption, scores,
   sound requests and collision-pool size. The native C harness supplies open
   terrain, motion descriptors and effect-allocation stubs; rendering and complete
   continuous gameplay are outside this isolated comparison.
 - Item rolling matches the original C in 4,096 cases using recorded terrain
   responses, including bounce/out-of-map behavior, narrow velocities, RNG and
-  splashes. Both characters collect a pickup through ordinary ticks. Regressions
+  splashes. Another 2,048 complete projectile arcs match original setup, jitter,
+  every flight position and rolling handoff. Targeting rotation matches 2,048
+  executions of the retail SDK routine. Both characters collect a pickup through ordinary ticks. Regressions
   preserve interrupted final-tick transfer and eviction before failed allocation.
+- Controlled ordinary-tick scenarios exercise bow, pistol, rifle and ninja
+  attacks through projectile launch, collision, player damage and disposal;
+  arrows attach to the struck body. The native window renders an archer and
+  flying arrow using the original meshes. These scenarios do not establish
+  full mission coverage.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -229,7 +236,7 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: thrown weapons and item damage/use, then the remaining item behaviors
-and mission events. Fill the remaining drawing producers alongside their owning gameplay
+Next: player item selection and aiming, then remaining item behaviors,
+swimming/grappling and mission events. Fill the remaining drawing producers alongside their owning gameplay
 systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

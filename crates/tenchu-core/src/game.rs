@@ -122,6 +122,7 @@ impl Game {
         self.visible.clear();
         self.intelligence.voices.clear();
         self.effects.begin_tick();
+        self.items.begin_tick();
         self.drawing.bytes = 0;
         self.collision.compute(&mut self.scene)?;
         self.camera.advance(
@@ -277,7 +278,7 @@ impl Game {
                 drawing: &mut self.drawing,
             },
             &mut self.roster,
-            self.intelligence.action_halt,
+            &mut self.intelligence,
             self.tick as i32,
         )?;
         for (i, &id) in self.visible.iter().enumerate() {

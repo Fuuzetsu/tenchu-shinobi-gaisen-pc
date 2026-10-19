@@ -251,3 +251,114 @@ int main(void) {{
     }
     assert_eq!(actual.len(), expected.len());
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and TENCHU_DECOMP; compares complete integer projectile arcs with original C"]
+fn projectile_arcs_match_original_c_through_rolling_handoff() {
+    let source = oracle::source("ITEM.C");
+    let routines = [
+        "static inline long SubFlyJitter(",
+        "static void SetupFly(",
+        "static void MoveFly(",
+    ]
+    .map(|signature| oracle::function(&source, signature).replace("long ", "s32 "))
+    .join("\n");
+    let harness = format!(
+        r#"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+typedef int32_t s32;
+typedef struct {{ int32_t vx,vy,vz,pad; }} VECTOR;
+typedef struct {{ uintptr_t hint; int16_t vx,vy,vz; uint8_t status; }} param_korogari;
+struct tag_fly {{ int32_t sx,sy,sz,vx,vy,vz,rx,ry,rz; uint8_t count,count2; }};
+typedef struct {{ union {{ struct tag_fly fly; param_korogari koro; }} p; uint8_t mode; }} param_fly;
+typedef struct {{ struct {{ struct {{ int t[3]; }} coord; }} locate; }} ModelType;
+typedef struct {{ ModelType *locate; }} TItem;
+#define FLY_MODE_ARC 0
+#define FLY_MODE_ROLL 1
+#define KORO_NORMAL 0
+#define FIXED_ONE 4096
+#define FIXED_SHIFT 12
+#define FIXED_TRUNC_BIAS 4095
+#define setVector(v,x,y,z) ((v)->vx=(x),(v)->vy=(y),(v)->vz=(z))
+#define copyVector(to,from) setVector((to),(from)->vx,(from)->vy,(from)->vz)
+static int distance,calls;
+static uint32_t seed;
+int rand(void) {{ seed=seed*0x41c64e6d+12345;calls++;return(seed>>16)&32767; }}
+static int GetVectorDistance(VECTOR *a,VECTOR *b) {{ return distance; }}
+static void MoveKorogari(TItem *item,param_korogari *param) {{ abort(); }}
+{routines}
+int main(void) {{
+    int a[11];
+    while(scanf("%d",a)==1) {{
+        for(int i=1;i<11;i++) assert(scanf("%d",a+i)==1);
+        VECTOR start={{a[0],a[1],a[2],0}},end={{a[3],a[4],a[5],0}};
+        param_fly fly={{0}};seed=(uint32_t)a[10];calls=0;distance=a[9];
+        SetupFly(&fly,&start,&end,a[6],a[7],a[8]);
+        printf("%d %d %d %d %d %d %d",fly.p.fly.rx,fly.p.fly.ry,fly.p.fly.rz,fly.p.fly.count,fly.p.fly.count2,(int)seed,calls);
+        ModelType model={{.locate.coord.t={{a[0],a[1],a[2]}}}};TItem item={{&model}};
+        uint32_t digest=2166136261;
+        while(fly.mode==FLY_MODE_ARC) {{
+            MoveFly(&item,&fly);
+            for(int i=0;i<3;i++) digest=(digest^(uint32_t)model.locate.coord.t[i])*16777619;
+        }}
+        printf(" %d %d %d %d %d %d %d\n",(int)digest,model.locate.coord.t[0],model.locate.coord.t[1],model.locate.coord.t[2],fly.p.koro.vx,fly.p.koro.vy,fly.p.koro.vz);
+    }}
+}}
+"#
+    );
+    let mut game = oracle::game(0, 0);
+    let mut cases = Random::new(0x615517);
+    let mut input = String::new();
+    let mut expected = Vec::new();
+    for case in 0..2048 {
+        let start: [i32; 3] = std::array::from_fn(|_| (cases.next15() - 16384) * 100);
+        let end = std::array::from_fn(|i| start[i].wrapping_add((cases.next15() - 16384) * 8));
+        let width = [0, 1024, -1024, 32767][case % 4];
+        let height = [0, 1024, 2048, -32768][(case / 4) % 4];
+        let speed = [0, 1, 300, 1000, -1][case % 5];
+        let seed = cases.next15() as u32;
+        let distance = game
+            .math
+            .vector_distance(std::array::from_fn(|i| end[i].wrapping_sub(start[i])));
+        for v in start
+            .into_iter()
+            .chain(end)
+            .chain([width, height, speed, distance, seed as i32])
+        {
+            write!(input, "{v} ").unwrap();
+        }
+        writeln!(input).unwrap();
+        game.random = Random::new(seed);
+        with_items(&mut game, |_, ctx, _| {
+            let mut flight = flight::Flight::new(start, end, width, height, speed, ctx);
+            let mut row = flight.control.to_vec();
+            row.extend([
+                i32::from(flight.count),
+                i32::from(flight.total),
+                ctx.random.seed as i32,
+                ctx.random.calls as i32,
+            ]);
+            let mut rolling = Rolling::default();
+            let mut position = start;
+            let mut digest = 2166136261u32;
+            while !flight.rolling {
+                flight.step(&mut position, &mut rolling, ctx).unwrap();
+                for p in position {
+                    digest = (digest ^ p as u32).wrapping_mul(16777619);
+                }
+            }
+            row.push(digest as i32);
+            row.extend(position);
+            row.extend(rolling.velocity.map(i32::from));
+            expected.push(row);
+        });
+    }
+    let actual = oracle::run(&harness, &input);
+    assert_eq!(actual.len(), expected.len());
+    for (i, (c, rust)) in actual.iter().zip(&expected).enumerate() {
+        assert_eq!(rust, c, "flight case {i}");
+    }
+}

@@ -239,7 +239,7 @@ fn both_characters_finish_each_stealth_pair_and_leave_a_corpse() {
 
 #[test]
 #[ignore = "requires TENCHU_DISC, TENCHU_DECOMP and a C compiler; original DamageControl"]
-fn human_damage_decisions_match_original_c() {
+fn human_and_item_damage_match_original_c() {
     let mut game = oracle::game(0, 0);
     let template = game.player().clone();
     let id = template.id;
@@ -282,6 +282,7 @@ fn human_damage_decisions_match_original_c() {
         MOT_DAMAGE_FRONT_HEAVY,
         MOT_DAMAGE_BACK_LIGHT,
         MOT_DAMAGE_BACK_HEAVY,
+        MOT_DAMAGE_MAKIBISHI,
         MOT_DAMAGE_LAUNCH_BACK,
         MOT_DAMAGE_LAUNCH_FORE,
         MOT_DEAD,
@@ -340,28 +341,23 @@ fn human_damage_decisions_match_original_c() {
                 "/* ORIGINAL_ROUTINES */",
                 &(String::from("static void AttackCancelControl(s16 mode);\n") + &routines),
             );
-    // A broad, flat ground patch makes every tested source-to-victim passage open.
-    let mut bytes = vec![0u8; 48];
-    bytes[2..4].copy_from_slice(&1i16.to_le_bytes());
-    bytes[4..8].copy_from_slice(&32u32.to_le_bytes());
-    for base in [8, 36] {
-        for (i, v) in [-3000i16, -3000, 3000, 3000].into_iter().enumerate() {
-            bytes[base + i * 2..base + i * 2 + 2].copy_from_slice(&v.to_le_bytes());
-        }
-    }
-    bytes[44..46].copy_from_slice(&0x2000u16.to_le_bytes());
-    bytes[46..48].copy_from_slice(&u16::MAX.to_le_bytes());
-    game.mission.terrain = tenchu_assets::terrain::AreaMap::parse(bytes).unwrap();
+    oracle::flat_ground(&mut game);
     let scene = game.scene.clone();
     let mut input = String::new();
     let mut expected = Vec::new();
     let mut generator = Random::new(0x9121);
-    for case in 0..4096 {
+    for case in 0..8192 {
         let seed = generator.next15() as u32;
         let health = [0, 1, 8, 20, 99, 100][case % 6];
         let kind = [0, 0x10, 0x87, 0x88, 0x8a, 0x81, 0x90, 0xa0][case % 8];
         let attribute = [0, 2, ATTR_WEAPON_DRAWN, ATTR_WEAPON_DRAWN | 2][case % 4];
-        let action = actions[case % 8];
+        let item_kind = if case < 4096 {
+            -1
+        } else {
+            [1, 2, 4, 6, 15, 20, 21, 22, 23, 0][case % 10]
+        };
+        let water = if case % 31 == 0 { 4 } else { 0 };
+        let action = actions[case % if item_kind < 0 { 8 } else { actions.len() }];
         let count = case as i16 % 21;
         let loops = if case % 13 == 0 { -1 } else { 0 };
         let height = if case % 11 == 0 { 100 } else { 0 };
@@ -377,7 +373,7 @@ fn human_damage_decisions_match_original_c() {
         let dx = generator.next15() % 4000 - 2000;
         let dz = generator.next15() % 4000 - 2000;
         let direction = game.math.direction(dx, dz, yaw).unwrap();
-        writeln!(input, "{seed} {health} {kind} {attribute} {action} {count} {loops} {height} {active_item} {power} {difficulty} {role} {enemy_kind} {enemy_item} {} {} {yaw} {dx} {dz} {direction}", armor as i32, cleanup as i32).unwrap();
+        writeln!(input, "{seed} {health} {kind} {attribute} {action} {count} {loops} {height} {active_item} {power} {difficulty} {role} {enemy_kind} {enemy_item} {} {} {yaw} {dx} {dz} {direction} {item_kind} {water}", armor as i32, cleanup as i32).unwrap();
         game.scene = scene.clone();
         game.collision = Collision::default();
         game.random = Random::new(seed);
@@ -399,6 +395,12 @@ fn human_damage_decisions_match_original_c() {
         actor.kind = kind;
         actor.attribute = attribute;
         actor.motion.change(
+            MOT_ATTACK,
+            &game.mission.characters[actor.definition].motions,
+            &game.mission.common_motions,
+            &game.mission.clips,
+        );
+        actor.motion.change(
             action,
             &game.mission.characters[actor.definition].motions,
             &game.mission.common_motions,
@@ -413,6 +415,7 @@ fn human_damage_decisions_match_original_c() {
         actor.rotation = [0, yaw, 0];
         actor.velocity = [21, 7, -31];
         actor.map.height = height;
+        actor.map.attribute = water;
         actor.active_item = active_item;
         actor.pad.time = 19;
         let mut enemy = attacker.clone();
@@ -434,7 +437,10 @@ fn human_damage_decisions_match_original_c() {
             .collision
             .insert(&mut game.scene, enemy.parts[13])
             .unwrap();
-        game.collision.slots[hit].owner = Some(attacker_id);
+        game.collision.slots[hit].owner = (item_kind < 0).then_some(attacker_id);
+        game.collision.distance = [dx as i16, 0, dz as i16];
+        game.items.slots[0].model = enemy.parts[13];
+        game.items.slots[0].kind = item_kind.max(0) as usize;
         actor.hit = Some(hit);
         game.roster.actors[id] = Some(actor);
         game.roster.actors[attacker_id] = Some(enemy);
@@ -490,6 +496,7 @@ fn human_damage_decisions_match_original_c() {
             effects(|e| matches!(e, crate::effects::Effect::Blood(_))),
             effects(|e| matches!(e, crate::effects::Effect::Bleed(_))),
             effects(|e| matches!(e, crate::effects::Effect::Impact(_))),
+            i32::from(a.inventory[1]),
             game.intelligence.voices.len() as i32,
         ];
         row.extend(
@@ -508,6 +515,101 @@ fn human_damage_decisions_match_original_c() {
             c,
             "damage case {i}: {}",
             input.lines().nth(i).unwrap()
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; ranged animations launch items and cause damage through ordinary ticks"]
+fn ranged_actors_hit_and_projectiles_retire() {
+    use crate::items::Processor;
+    for (clip, action, processor, damage) in [
+        (Some(0xaa), MOT_ATTACK, Processor::Arrow, 10),
+        (Some(0xab), MOT_ATTACK, Processor::Gun, 20),
+        (Some(0xac), MOT_ATTACK, Processor::Gun, 20),
+        (None, MOT_SYURI, Processor::Shuriken, 20),
+    ] {
+        let (mut game, kind) = (0..11)
+            .find_map(|stage| {
+                let game = oracle::game(stage, 0);
+                let kind = game
+                    .mission
+                    .characters
+                    .iter()
+                    .find(|c| {
+                        c.kind >= 0x10
+                            && game.mission.models.contains_key(&c.kind)
+                            && if let Some(clip) = clip {
+                                c.motions
+                                    .iter()
+                                    .any(|m| m.action == action && m.clip == clip)
+                            } else {
+                                c.kind == 0x87
+                            }
+                    })
+                    .map(|c| c.kind)?;
+                Some((game, kind))
+            })
+            .expect("No ranged character found on the disc");
+        oracle::flat_ground(&mut game);
+        let player = game.player_id;
+        let shooter = with_actor(&mut game, player, |actor, ctx, world| {
+            for id in world.roster.order.clone() {
+                if id != player {
+                    world.roster.remove(id, ctx);
+                }
+            }
+            for item in &mut world.items.slots {
+                ctx.collision.remove(ctx.scene, item.model);
+                item.processor = None;
+            }
+            actor.position = [0; 3];
+            actor.rotation = [0, 2048, 0];
+            actor.velocity = [0; 3];
+            actor.map =
+                terrain::vector(&ctx.mission.terrain, ctx.cursor, actor.position, 500, 0).unwrap();
+            actor.enter(ctx, MOT_NORMAL, true);
+            ctx.scene.update(actor.root_model, actor.root(ctx.math));
+            let id = world.roster.spawn(kind, [0, 0, 4000], 0, ctx).unwrap();
+            world.roster.get_mut(id).target = Some(actor.root_model);
+            id
+        });
+        with_actor(&mut game, shooter, |actor, ctx, _| {
+            actor.attribute = ATTR_WEAPON_DRAWN;
+            actor.think = [0; 4];
+            actor.inventory[1] = 1;
+            assert!(actor.enter(ctx, action, true));
+            actor.map =
+                terrain::vector(&ctx.mission.terrain, ctx.cursor, actor.position, 500, 0).unwrap();
+            ctx.scene.update(actor.root_model, actor.root(ctx.math));
+        });
+        let health = game.player().health;
+        let mut launched = false;
+        let mut attached = false;
+        for _ in 0..220 {
+            game.step(0)
+                .unwrap_or_else(|error| panic!("kind {kind:x}, tick {}: {error}", game.tick));
+            launched |= game
+                .items
+                .slots
+                .iter()
+                .any(|i| i.processor == Some(processor));
+            attached |= game.items.slots.iter().any(|i| {
+                i.processor == Some(Processor::Arrow) && game.scene.models[i.model].parent.is_some()
+            });
+        }
+        assert!(launched, "kind {kind:x} did not launch");
+        assert_eq!(game.player().health, health - damage, "kind {kind:x}");
+        if processor == Processor::Arrow {
+            assert!(attached);
+        }
+        assert!(
+            !game
+                .items
+                .slots
+                .iter()
+                .any(|i| i.processor == Some(processor)),
+            "kind {kind:x} projectile did not retire"
         );
     }
 }

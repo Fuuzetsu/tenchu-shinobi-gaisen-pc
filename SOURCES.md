@@ -199,7 +199,7 @@ It checks decisions and ordering, not complete native SDK/rendering equivalence.
 No matching C, executable tables or disc assets are bundled in the runtime.
 
 
-Effect presentation reads all 62 entries of `IMAGE/IMAGES.ARC` before stage and
+Effect presentation reads all 62 entries of `IMAGE/IMAGES.ARC` after stage and
 character texture uploads, following `START.C`, `IMAGES.C` and `EFFECT.C` above.
 The wgpu vertex/batch conversion is new code; it reads prepared core graphics.
 Additional decomp headers at the revision above:
@@ -231,3 +231,19 @@ texture packs, matching `CreateStage` → `InitializeImage`. Loading it only at
 startup lets the stage pack overwrite item-icon texels and palettes.
 
 `tenchu-decomp` (revision above), `src/main.exe/IMAGES.C`: `4ad4a53038c560c889c0057b6c1b7d3903da2585dbbd0e86682af24e94d71799`.
+
+## Scalar projectiles and item damage (2026-10-20)
+
+Flight arcs, targeting, arrows, gunshots, shuriken, item damage, ranged animations
+and scatter particles follow `ITEM.C`, `MOTION.C`, `EFFECT.C` and headers at the
+hashes recorded above. Bow timing is read from `0x80097714` in the executable.
+The ordinary scalar implementation owns projectile state alongside the existing
+item pool. Runtime code does not execute original instructions or depend on C.
+
+The optional XYZ-rotation comparison executes only the retail SDK RotMatrix
+instruction range in the existing test oracle. This supplements the source-C
+flight/damage checks and ordinary-tick ranged scenarios.
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp-glitch-research` (revision above) | `tools/tenchu-sim/native/sdk_rotation_oracle.py` | `9f1fe49761cf8119b26b839380732ea542046eebcef7178c83ca142075420bdf` |

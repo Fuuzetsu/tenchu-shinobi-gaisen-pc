@@ -99,6 +99,34 @@ impl Math {
         ]
     }
 
+    pub fn vector_rotation(&self, from: [i32; 3], to: [i32; 3]) -> Result<[i16; 3]> {
+        let [x, y, z] = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
+        let yaw = self.atan2(x.wrapping_neg(), z.wrapping_neg())?;
+        Ok([self.atan2(y, self.length([x, 0, z]))?, yaw, 0])
+    }
+
+    pub fn rotate_xyz(&self, angles: [i16; 3]) -> [[i16; 3]; 3] {
+        let [sx, cx] = self.pair(angles[0]);
+        let [sy, cy] = self.pair(angles[1]);
+        let [sz, cz] = self.pair(angles[2]);
+        let m = |a: i32, b: i32| a.wrapping_mul(b) >> 12;
+        let u = m(cz, -sy);
+        let v = m(sz, -sy);
+        [
+            [m(cz, cy) as i16, m(-sz, cy) as i16, sy as i16],
+            [
+                (m(sz, cx) - m(u, sx)) as i16,
+                (m(cz, cx) + m(v, sx)) as i16,
+                m(-cy, sx) as i16,
+            ],
+            [
+                (m(sz, sx) + m(u, cx)) as i16,
+                (m(cz, sx) - m(v, cx)) as i16,
+                m(cy, cx) as i16,
+            ],
+        ]
+    }
+
     pub fn rotate_yxz(&self, angles: [i16; 3]) -> [[i16; 3]; 3] {
         let [sx, cx] = self.pair(angles[0]);
         let [sy, cy] = self.pair(angles[1]);
@@ -180,6 +208,47 @@ impl Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_RETAIL_EXE and TENCHU_SDK_ROTATION_ORACLE"]
+    fn xyz_rotation_matches_retail_sdk() {
+        use std::{env, fs, process::Command};
+        use tenchu_assets::executable::Executable;
+
+        let path = env::var_os("TENCHU_RETAIL_EXE").expect("Set TENCHU_RETAIL_EXE");
+        let bytes = fs::read(&path).unwrap();
+        let math = Math {
+            tables: Executable::new(&bytes).unwrap().math_tables().unwrap(),
+        };
+        let result = Command::new("python3")
+            .arg(env::var_os("TENCHU_SDK_ROTATION_ORACLE").expect("Set TENCHU_SDK_ROTATION_ORACLE"))
+            .arg(path)
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert_eq!(result.stdout.len(), 2048 * 18);
+        for (i, row) in result.stdout.chunks_exact(18).enumerate() {
+            let i = i as i32;
+            let angles = [
+                (i * 131 + 7) as i16,
+                (i * 977 - 31111) as i16,
+                (i * 4093 + 67) as i16,
+            ];
+            let expected: Vec<_> = row
+                .chunks_exact(2)
+                .map(|b| i16::from_le_bytes(b.try_into().unwrap()))
+                .collect();
+            assert_eq!(
+                math.rotate_xyz(angles).as_flattened(),
+                expected,
+                "angles {angles:?}"
+            );
+        }
+    }
 
     #[test]
     fn matrix_paths_preserve_distinct_mac_and_ir_rounding() {

@@ -1,4 +1,6 @@
+mod flight;
 mod pickup;
+mod projectile;
 mod rolling;
 #[cfg(test)]
 mod tests;
@@ -20,6 +22,9 @@ pub const KINDS: usize = 25;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Processor {
     Pickup,
+    Shuriken,
+    Arrow,
+    Gun,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -40,18 +45,25 @@ pub struct Item {
     pub collision: Contact,
     pub rolling: Rolling,
     pub count: u8,
+    pub flight: flight::Flight,
+    pub trail: Option<crate::actor::trail::Trail>,
 }
 
 #[derive(Debug)]
 pub struct Items {
     pub slots: Vec<Item>,
     pub drawings: Vec<effects::Drawing>,
+    pub models: Vec<(usize, Matrix)>,
+    pub weapons: Vec<(i16, Matrix)>,
+    pub trails: Vec<crate::actor::trail::Trail>,
+    meshes: [ModelId; 4],
     cursor: usize,
     icons: [ModelId; KINDS + 1],
 }
 
 impl Items {
     pub fn new(scene: &mut Scene) -> Self {
+        let meshes = std::array::from_fn(|_| scene.add(Some(0), Matrix::default()));
         let slots = (0..CAPACITY)
             .map(|_| Item {
                 owner: None,
@@ -62,6 +74,8 @@ impl Items {
                 collision: Contact::default(),
                 rolling: Rolling::default(),
                 count: 0,
+                flight: flight::Flight::default(),
+                trail: None,
             })
             .collect();
         let icons = std::array::from_fn(|_| {
@@ -72,9 +86,36 @@ impl Items {
         Self {
             slots,
             drawings: Vec::new(),
+            models: Vec::new(),
+            weapons: Vec::new(),
+            trails: Vec::new(),
+            meshes,
             cursor: 0,
             icons,
         }
+    }
+
+    pub(crate) fn begin_tick(&mut self) {
+        self.drawings.clear();
+        self.models.clear();
+        self.weapons.clear();
+        self.trails.clear();
+    }
+
+    fn draw_model(&mut self, id: usize, mesh: usize, ctx: &mut Context) -> Result<()> {
+        let model = self.meshes[mesh];
+        ctx.scene.copy_coordinate(model, self.slots[id].model);
+        let matrix = ctx.scene.world(model)?;
+        let view = ctx.camera.view.compose(&matrix);
+        if let Some(clip) = visibility::clip(&view, ctx.scene.models[model].attribute, [0; 3]) {
+            ctx.drawing.fog = clip.fog;
+            let asset = [20, 21, 27, 28][mesh];
+            if let Some(geometry) = ctx.mission.common_models[&asset].first() {
+                ctx.drawing.bytes += crate::packets::draw_tmd(geometry, &view, ctx.drawing.fog);
+            }
+            self.models.push((asset, matrix));
+        }
+        Ok(())
     }
 
     fn allocate(&mut self, ctx: &mut Context) -> Result<usize> {
@@ -91,7 +132,11 @@ impl Items {
     fn dispose(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
         let item = &mut self.slots[id];
         match item.processor {
-            Some(Processor::Pickup) => item.mode = 0,
+            Some(Processor::Shuriken) => {
+                item.trail = None;
+                item.mode = 0;
+            }
+            Some(_) => item.mode = 0,
             None => return Ok(()),
         }
         ctx.collision.remove(ctx.scene, item.model);
@@ -141,12 +186,7 @@ impl Items {
     fn draw_icon(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
         let item = &self.slots[id];
         let icon = self.icons[item.kind];
-        let source = ctx.scene.models[item.model].clone();
-        let target = &mut ctx.scene.models[icon];
-        target.local = source.local;
-        target.cached = source.cached;
-        target.parent = source.parent;
-        target.flags = source.flags;
+        ctx.scene.copy_coordinate(icon, item.model);
         let matrix = ctx.camera.view.compose(&ctx.scene.world(icon)?);
         let Some(clip) = visibility::clip(&matrix, ctx.scene.models[icon].attribute, [0; 3]) else {
             return Ok(());
@@ -210,16 +250,20 @@ impl Items {
         &mut self,
         ctx: &mut Context,
         roster: &mut Roster,
-        halt: i16,
+        intelligence: &mut crate::ai::Intelligence,
         clock: i32,
     ) -> Result<()> {
-        self.drawings.clear();
         if clock % 10 == 0 {
             self.update_contacts(ctx)?;
         }
         for id in 0..CAPACITY {
             match self.slots[id].processor {
-                Some(Processor::Pickup) => self.pickup(id, ctx, roster, halt)?,
+                Some(Processor::Pickup) => {
+                    self.pickup(id, ctx, roster, intelligence.action_halt)?
+                }
+                Some(Processor::Shuriken) => self.shuriken(id, ctx, roster, intelligence, clock)?,
+                Some(Processor::Arrow) => self.arrow(id, ctx, roster, clock)?,
+                Some(Processor::Gun) => self.gun(id, ctx, roster)?,
                 None => {}
             }
         }

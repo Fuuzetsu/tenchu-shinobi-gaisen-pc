@@ -207,6 +207,37 @@ impl Effects {
         }));
     }
 
+    pub fn scatter_bleeds(
+        &mut self,
+        position: [i32; 3],
+        spread: i16,
+        speed: i16,
+        count: i16,
+        time: i32,
+        color: [u8; 3],
+        rng: &mut Random,
+    ) {
+        for _ in 0..count {
+            let jitter = |range: i16, rng: &mut Random| {
+                let range = i32::from(range);
+                if range > 0 {
+                    rng.next15() % (range * 2) - range
+                } else {
+                    -range
+                }
+            };
+            let position = position.map(|p| p.wrapping_add(jitter(spread, rng)));
+            let velocity = std::array::from_fn(|_| jitter(speed, rng) as i16);
+            let half = time / 2;
+            let time = (if time - half > 0 {
+                rng.next15() % (time - half) + half
+            } else {
+                half
+            }) as u8;
+            self.bleed(position, velocity, time, color);
+        }
+    }
+
     pub fn bleeds(
         &mut self,
         position: [i32; 3],

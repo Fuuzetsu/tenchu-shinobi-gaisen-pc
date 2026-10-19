@@ -65,6 +65,42 @@ fn quad(
         .collect()
 }
 
+fn mesh_surfaces(
+    surfaces: &mut Vec<Surface>,
+    meshes: &[tenchu_assets::model::Geometry],
+    matrix: Matrix,
+    view: Matrix,
+) {
+    let view = view.compose(&matrix);
+    for mesh in meshes {
+        for face in &mesh.faces {
+            let blend = if face.translucent {
+                face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1)
+            } else {
+                0
+            };
+            let mut vertices = Vec::new();
+            render_mesh::append_face(&mut vertices, mesh, face, matrix);
+            if blend != 0 {
+                for v in &mut vertices {
+                    v.flags |= TRANSLUCENT;
+                }
+            }
+            let depth = face
+                .corners
+                .iter()
+                .map(|c| view.transform(mesh.vertices[c.vertex as usize])[2] as f32)
+                .sum::<f32>()
+                / face.corners.len() as f32;
+            surfaces.push(Surface {
+                depth,
+                blend,
+                vertices,
+            });
+        }
+    }
+}
+
 pub fn build(game: &Game) -> Geometry {
     let mut surfaces = Vec::new();
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
@@ -78,35 +114,29 @@ pub fn build(game: &Game) -> Geometry {
                     *v = (i32::from(*v).wrapping_mul(instance.scale) >> 12) as i16;
                 }
             }
-            let view = game.camera.view.compose(&matrix);
-            for mesh in &game.mission.common_models[&index] {
-                for face in &mesh.faces {
-                    let blend = if face.translucent {
-                        face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1)
-                    } else {
-                        0
-                    };
-                    let mut vertices = Vec::new();
-                    render_mesh::append_face(&mut vertices, mesh, face, matrix);
-                    if blend != 0 {
-                        for v in &mut vertices {
-                            v.flags |= TRANSLUCENT;
-                        }
-                    }
-                    let z = face
-                        .corners
-                        .iter()
-                        .map(|c| view.transform(mesh.vertices[c.vertex as usize])[2] as f32)
-                        .sum::<f32>()
-                        / face.corners.len() as f32;
-                    surfaces.push(Surface {
-                        depth: z,
-                        blend,
-                        vertices,
-                    });
-                }
-            }
+            mesh_surfaces(
+                &mut surfaces,
+                &game.mission.common_models[&index],
+                matrix,
+                game.camera.view,
+            );
         }
+    }
+    for &(index, matrix) in &game.items.models {
+        mesh_surfaces(
+            &mut surfaces,
+            &game.mission.common_models[&index],
+            matrix,
+            game.camera.view,
+        );
+    }
+    for &(kind, matrix) in &game.items.weapons {
+        mesh_surfaces(
+            &mut surfaces,
+            &game.mission.weapons.models[&kind],
+            matrix,
+            game.camera.view,
+        );
     }
     for drawing in game.effects.drawings.iter().chain(&game.items.drawings) {
         let (image, blend, bottom_origin) = match drawing.graphic {
@@ -173,30 +203,32 @@ pub fn build(game: &Game) -> Geometry {
             vertices: quad(points, [color; 4], image, blend),
         });
     }
-    for &id in &game.visible {
-        for trail in game.roster.get(id).trails.iter().flatten() {
-            if trail.depth == 0 {
-                continue;
-            }
-            let z = f32::from(trail.depth) * 4.0;
-            let mut previous = 127;
-            for i in 1..trail.count {
-                let shade = ((trail.count - i) * 127 / trail.count) as u8;
-                let points = [
-                    trail.points[i][0],
-                    trail.points[i - 1][0],
-                    trail.points[i][1],
-                    trail.points[i - 1][1],
-                ]
-                .map(|p| [f32::from(p[0]), f32::from(p[1]), depth(z)]);
-                let colors = [shade, previous, shade, previous].map(|v| [f32::from(v) / 128.0; 3]);
-                surfaces.push(Surface {
-                    depth: z,
-                    blend: 2,
-                    vertices: quad(points, colors, Some(game.mission.images[10]), 2),
-                });
-                previous = shade;
-            }
+    let actor_trails = game
+        .visible
+        .iter()
+        .flat_map(|&id| game.roster.get(id).trails.iter().flatten());
+    for trail in actor_trails.chain(&game.items.trails) {
+        if trail.depth == 0 {
+            continue;
+        }
+        let z = f32::from(trail.depth) * 4.0;
+        let mut previous = 127;
+        for i in 1..trail.count {
+            let shade = ((trail.count - i) * 127 / trail.count) as u8;
+            let points = [
+                trail.points[i][0],
+                trail.points[i - 1][0],
+                trail.points[i][1],
+                trail.points[i - 1][1],
+            ]
+            .map(|p| [f32::from(p[0]), f32::from(p[1]), depth(z)]);
+            let colors = [shade, previous, shade, previous].map(|v| [f32::from(v) / 128.0; 3]);
+            surfaces.push(Surface {
+                depth: z,
+                blend: 2,
+                vertices: quad(points, colors, Some(game.mission.images[10]), 2),
+            });
+            previous = shade;
         }
     }
     surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));

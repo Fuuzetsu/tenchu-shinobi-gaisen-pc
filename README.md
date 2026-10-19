@@ -59,9 +59,9 @@ WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
-kills, dropped inventory, pickups and the source follow/look camera. Item use,
-ranged combat and mission events
-are unfinished; unsupported actions pause with a diagnostic.
+kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
+and the source follow/look camera. Player item use, remaining special attacks
+and mission events are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
 texture palettes and transparency modes. Lighting, full scene transparency, HUD
@@ -89,8 +89,8 @@ continuous state comparison remains a separate acceptance requirement.
 
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
-NPC activation now runs at the source cadence. Remaining effects, ranged/item
-combat and stage scripts remain unfinished. Activation workload counts use original geometry,
+NPC activation now runs at the source cadence. Remaining effects, special ranged
+attacks, player items and stage scripts remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; HUD and other unfinished systems still need to add
 their original contributions before this has full-game fidelity.
 An additional private check compares the roster, mission totals, weapon hitbox
@@ -105,7 +105,7 @@ Optional core checks compare camera smoothing, enemy sight and combat decisions
 with matching C, including 4,096 activation worlds, and compare the integer view
 matrix and construction geometry with an existing retail trace. The
 combat check covers 81,920 engaged-controller cases, including RNG and command
-history. A further 4,096 cases compare the original damage routine and collision
+history. A further 8,192 human/item cases compare the original damage routine and collision
 cleanup, with supplied terrain/motion/effect boundaries. Six controlled stealth
 pairs exercise both characters through death and return to control. These checks
 do not yet validate the entire AI/terrain/update pipeline. These private files remain outside
@@ -116,6 +116,7 @@ TENCHU_RETAIL_EXE='/path/to/main.exe' TENCHU_DECOMP='/path/to/tenchu-decomp' \
 TENCHU_CAMERA_TRACE='/path/to/kagi-aim-v1.trace' \
 TENCHU_SCENE_TRACE='/path/to/kagi-aim-v1.trace' \
 TENCHU_GTE_ORACLE='/path/to/standalone-gte-oracle' \
+TENCHU_SDK_ROTATION_ORACLE='/path/to/tenchu-sim/native/sdk_rotation_oracle.py' \
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-core -- --ignored
 ```
@@ -123,3 +124,9 @@ TENCHU_DISC='/path/to/game.cue' \
 The optional projection check uses the standalone arithmetic oracle described in
 `~/programming/tenchu-decomp-glitch-research/docs/tas-native-packets.md`. That
 external test executable is not linked into this port or required to build it.
+
+Projectile checks cover 2,048 complete flight curves against original C and
+2,048 targeting rotations against the retail SDK. Controlled ordinary-tick
+scenarios check bow, pistol, rifle and ninja attacks through launch, damage,
+attachment and disposal. The SDK test invokes the research Python oracle above;
+it is optional and has no role in the runtime.

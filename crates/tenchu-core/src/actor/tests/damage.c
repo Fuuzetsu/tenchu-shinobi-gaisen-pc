@@ -76,8 +76,9 @@ static int rng(void) { seed = seed * 0x41c64e6d + 12345; calls++; return (seed >
 static int GetDirection(int x,int z,int yaw) { return direction; }
 static int GetAreaMapPassage(int map,VECTOR *p,SVECTOR *step,int count) { return 0; }
 static int GetAttackDBID(Humanoid *h,int mid) { return 0; }
-static int GetItemType(int i) { abort(); }
-static int GetConflictResult(ModelType *m,int i) { abort(); }
+static int item_kind;
+static int GetItemType(int i) { return models[1][13].id == i ? item_kind : 0; }
+static int GetConflictResult(ModelType *m,int i) { return -1; }
 static void ReqItemDefault(Humanoid *h,int item) { abort(); }
 static void reset_alert_duration(void) { alert = gNannido == 2 ? 600 : 300; }
 static void ReqLifeBar(Humanoid *h) { feedback = h - humans; }
@@ -120,8 +121,8 @@ static void SetNowMotionUnlessCva(void) { SetNowMotion(Me_MOTION_C,motID,motMODE
 static void AttackCancelControl(s16 mode) { ClearAttackEffects(mode); }
 int main(void) {
     unsigned initial_seed;
-    int hp,kind,attr,mid,count,loops,height,item,power,difficulty,role,enemy_kind,enemy_item,armor,cleanup,yaw,dx,dz,dir;
-    while(scanf("%u%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d", &initial_seed,&hp,&kind,&attr,&mid,&count,&loops,&height,&item,&power,&difficulty,&role,&enemy_kind,&enemy_item,&armor,&cleanup,&yaw,&dx,&dz,&dir)==20) {
+    int hp,kind,attr,mid,count,loops,height,item,power,difficulty,role,enemy_kind,enemy_item,armor,cleanup,yaw,dx,dz,dir,water;
+    while(scanf("%u%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d", &initial_seed,&hp,&kind,&attr,&mid,&count,&loops,&height,&item,&power,&difficulty,&role,&enemy_kind,&enemy_item,&armor,&cleanup,&yaw,&dx,&dz,&dir,&item_kind,&water)==22) {
         memset(humans,0,sizeof(humans)); memset(models,0,sizeof(models)); memset(managers,0,sizeof(managers)); memset(ConflictObject,0,sizeof(ConflictObject));
         memset(locations,0,sizeof(locations)); memset(rotations,0,sizeof(rotations));
         seed=initial_seed; calls=0; direction=dir; alert=0; feedback=-1; blood_count=bleed_count=impacts=played=sound_count=0;
@@ -133,7 +134,7 @@ int main(void) {
         }
         Me_MOTION_C=&humans[0]; StagePlayer=&humans[role];
         humans[0].life=hp; humans[0].lifemax=100; humans[0].height=2000; humans[0].type=kind; humans[0].attribute=attr;
-        humans[0].active_item=item; humans[0].map.height=height; humans[0].pad.time=19;
+        humans[0].active_item=item; humans[0].map.height=height; humans[0].map.attrib=water; humans[0].pad.time=19;
         UpdateMotion(&managers[0],mid); managers[0].mid=mid; managers[0].count=count; managers[0].loop=loops; managers[0].mask=0x1234;
         humans[0].status=(int8_t)(mid>>8); humans[0].vector=(SVECTOR){21,7,-31,2};
         humans[1].status=STAT_ATTACK; humans[1].type=enemy_kind; humans[1].active_item=enemy_item; humans[1].vector=(SVECTOR){99,8,88,0};
@@ -149,12 +150,14 @@ int main(void) {
         int hit=cleanup?4:2;
         ConflictObject[hit]=(Conflict){&models[1][13],&humans[1],{0}}; models[1][13].id=hit;
         humans[0].vector.pad=hit;
+        if(item_kind>=0) ConflictObject[hit].common=0;
+        ConflictDistance=(SVECTOR){dx,0,dz,0};
         dtM=&managers[0]; dtV=&humans[0].vector; dtR=&rotations[0]; dtL=&locations[0]; motID=mid; motMODE=-1;
         DamageControl();
         printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", humans[0].life,humans[0].status,managers[0].mid,managers[0].count,managers[0].loop,
             dtV->vx,dtV->vy,dtV->vz,dtR->vy,managers[1].loop,humans[1].vector.vx,humans[1].vector.vz,
             calls,alert,feedback,Criticals,Murders,FriendHits,ConflictObjects,DeadHumanoid?0:-1,
             humans[0].pad.time,managers[0].mask,blood_count,bleed_count,impacts);
-        printf(" %d",sound_count); for(int i=0;i<sound_count;i++) printf(" %d",sounds[i]); puts("");
+        printf(" %d %d",humans[0].item[1],sound_count); for(int i=0;i<sound_count;i++) printf(" %d",sounds[i]); puts("");
     }
 }

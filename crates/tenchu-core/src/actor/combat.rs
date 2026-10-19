@@ -269,7 +269,10 @@ impl Actor {
         match action {
             MOT_ATTACK => match self.motion_id(ctx, MOT_ATTACK) {
                 0xf1 => self.twin_blade(world, 42, 6),
-                0xaa | 0xab | 0xac | 0xe9 | 0xf5 | 0x1a4 => {
+                0xaa | 0x1a4 => self.bow_control(ctx, world, false)?,
+                0xab => self.gun_control(ctx, world, 20, 100)?,
+                0xac => self.gun_control(ctx, world, 22, 700)?,
+                0xe9 | 0xf5 => {
                     return Err("Ranged attack item launch is not implemented yet".into());
                 }
                 _ => (),
@@ -278,13 +281,15 @@ impl Actor {
                 if kind == KATANAL {
                     self.twin_blade(world, 52, 1);
                 }
-                if matches!(kind, SEVEN | KATAYUMI) {
+                if kind == KATAYUMI {
+                    self.bow_control(ctx, world, true)?;
+                }
+                if kind == SEVEN {
                     return Err("Ranged combo item launch is not implemented yet".into());
                 }
             }
-            MOT_ATTACK_SLASH3 | MOT_ATTACK_SLASH4
-                if kind == SEVEN || (action == MOT_ATTACK_SLASH3 && kind == KATAYUMI) =>
-            {
+            MOT_ATTACK_SLASH3 if kind == KATAYUMI => self.bow_control(ctx, world, true)?,
+            MOT_ATTACK_SLASH3 | MOT_ATTACK_SLASH4 if kind == SEVEN => {
                 return Err("Ranged combo item launch is not implemented yet".into());
             }
             MOT_ATTACK_RIGHT1 if kind == KATANAL => self.twin_blade(world, 52, 16),

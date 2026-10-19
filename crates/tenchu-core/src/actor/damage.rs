@@ -132,9 +132,9 @@ impl Actor {
         }
         self.clear_attack(ctx, 3)?;
         // Cleanup compacts the pool. The source deliberately reads the saved index again.
-        let source = ctx.collision.slots[hit]
-            .owner
-            .ok_or("Item damage is not implemented yet")?;
+        let Some(source) = ctx.collision.slots[hit].owner else {
+            return self.item_damage(ctx, world, hit);
+        };
         let enemy = if source == self.id {
             &*self
         } else {
@@ -280,7 +280,7 @@ impl Actor {
             MOT_DAMAGE_LAUNCH_FORE,
         ];
         self.health = self.health.wrapping_sub(damage);
-        let (mut next, mut movement);
+        let (mut next, movement);
         if self.health <= 0 {
             self.health = 0;
             world.combat.death_sound = Some(self.id);
@@ -335,6 +335,16 @@ impl Actor {
             4
         };
         world.intelligence.voices.push((source, sound));
+        self.finish_damage(ctx, world, next, movement)
+    }
+
+    fn finish_damage(
+        &mut self,
+        ctx: &mut Context,
+        _world: &mut ActionContext,
+        mut next: i16,
+        mut movement: bool,
+    ) -> Result<Option<(i16, bool)>> {
         if self.health == 0 && self.inventory[10] != 0 {
             return Err("Kawarimi resurrection is not implemented yet".into());
         }
@@ -350,6 +360,103 @@ impl Actor {
         }
         self.enter(ctx, next, movement);
         Ok(None)
+    }
+
+    fn item_damage(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+        hit: usize,
+    ) -> Result<Option<(i16, bool)>> {
+        if self.status == 16 {
+            return Ok(None);
+        }
+        ctx.collision.result(ctx.scene, self.root_model, Some(hit));
+        let kind = world.items.kind_for_contact(ctx.scene, hit);
+        let mut next = self.motion.action;
+        let mut movement = true;
+        let mut damage: i16 = match kind {
+            2 => {
+                next = MOT_DAMAGE_MAKIBISHI;
+                movement = true;
+                3
+            }
+            1 | 15 | 20 | 21 => {
+                if kind == 1 && matches!(self.kind, 0x87 | 0x8a) {
+                    self.inventory[1] = self.inventory[1].wrapping_add(1);
+                }
+                let mut position = self.position;
+                position[1] = position[1]
+                    .wrapping_sub(i32::from(ctx.mission.characters[self.definition].height) / 2);
+                next = MOT_DAMAGE;
+                movement = true;
+                self.blood(ctx, position, 5, 90, world.clock)?;
+                match kind {
+                    15 => 30,
+                    21 => 10,
+                    _ => 20,
+                }
+            }
+            22 => {
+                next = if ctx.random.next15() & 1 == 0 {
+                    MOT_DAMAGE_BACK_LIGHT
+                } else {
+                    MOT_DAMAGE_FRONT_MID
+                };
+                movement = true;
+                25
+            }
+            4 | 6 | 23 => {
+                if self.map.attribute & 4 == 0 {
+                    self.map.height = 1;
+                }
+                if kind == 6 { 45 } else { 30 }
+            }
+            _ => 0,
+        };
+        if self.map.height > 0 {
+            let direction = ctx.math.direction(
+                i32::from(ctx.collision.distance[0]),
+                i32::from(ctx.collision.distance[2]),
+                self.rotation[1],
+            )?;
+            let forward = i32::from(direction).abs() >= 1024;
+            next = if forward {
+                MOT_DAMAGE_LAUNCH_FORE
+            } else {
+                MOT_DAMAGE_LAUNCH_BACK
+            };
+            movement = false;
+            self.rotation[1] = self.rotation[1]
+                .wrapping_add(direction)
+                .wrapping_add(if forward { 2048 } else { 0 });
+            self.move_at(ctx.math, if forward { 70 } else { -70 }, 0);
+        }
+        if self.id == world.player && world.combat.armor {
+            damage = damage * 7 / 10;
+        }
+        self.health = self.health.wrapping_sub(damage);
+        let voice = if self.health <= 0 {
+            self.health = 0;
+            if !matches!(next, MOT_DAMAGE_LAUNCH_BACK | MOT_DAMAGE_LAUNCH_FORE) {
+                next = MOT_DEAD;
+                movement = true;
+            }
+            if !matches!(world.items.kind_for_contact(ctx.scene, hit), 20 | 21 | 23) {
+                self.score_death(world);
+            }
+            8
+        } else if ctx.random.next15() & 1 != 0 {
+            6
+        } else {
+            7
+        };
+        world.intelligence.voices.push((self.id, voice));
+        if self.id != world.player {
+            world.combat.life_bar = Some(self.id);
+        }
+        world.intelligence.reset_alert();
+        self.finish_damage(ctx, world, next, movement)
     }
 
     pub(super) fn recover_blade(&mut self, ctx: &Context, world: &mut ActionContext) {

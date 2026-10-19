@@ -299,7 +299,7 @@ pub fn run(assets: GameAssets<FileSource>, options: Options) -> Result<()> {
         error: None,
     };
     println!(
-        "Gameplay preview: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 restart, Esc quit.\nRanged combat, items and events are still being implemented; an unsupported action pauses with a diagnostic."
+        "Gameplay preview: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection. P pause, F5 restart, Esc quit.\nPlayer items, special attacks and mission events are still being implemented; an unsupported action pauses with a diagnostic."
     );
     EventLoop::new()
         .map_err(|e| e.to_string())?
