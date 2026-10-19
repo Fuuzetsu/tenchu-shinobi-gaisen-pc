@@ -400,7 +400,9 @@ exercise music, effects, dialogue and silence during pause. Remaining item/speci
 attack and environment sound producers will arrive with their owning systems.
 
 Next: finish environment behavior and remaining items, then ordinary Mission 1
-boss encounters and continuous campaign validation. A source review also found
-the guard-specific heavy-fall damage branch still missing from ActSTATE; restore
-and verify it alongside the next gameplay increment. These audio/progression
+boss encounters and continuous campaign validation. The guard-specific heavy-fall
+damage, slam direction, sound and health-bar branch now matches 2,048 original-C
+cases, including narrow-integer overflow and RNG use. NPC gesture priority and
+the shared camera reset on backflips/flip landings are also restored and checked.
+These audio/progression
 increments do not establish complete Mission 1 or campaign playability.

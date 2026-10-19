@@ -2,6 +2,8 @@ mod chase;
 mod crouch;
 mod hang;
 mod swim;
+#[cfg(test)]
+mod tests;
 mod wall;
 
 use super::*;
@@ -146,6 +148,19 @@ impl Actor {
         let mut pending = None;
         match self.motion.action {
             MOT_NORMAL => {
+                if held & L2 != 0 && self.id != world.player {
+                    return Ok(if held & DOWN != 0 {
+                        Some((MOT_ACTION_GESTURE, true))
+                    } else if held & RIGHT != 0 {
+                        Some((MOT_ACTION_LOOP, true))
+                    } else if held & LEFT != 0 {
+                        Some((MOT_ACTION_NOTICE, true))
+                    } else if held & UP != 0 {
+                        Some((MOT_ACTION, true))
+                    } else {
+                        None
+                    });
+                }
                 if held & RIGHT != 0 {
                     pending = Some((MOT_NORMAL_TURN_R, false));
                 } else if held & LEFT != 0 {
@@ -543,7 +558,19 @@ impl Actor {
                         world.intelligence.voices.push((self.id, 0x19));
                         (self.return_normal(ctx, world.player)?, true)
                     } else if self.motion.count > -21 {
-                        (MOT_STATE_LAND_HEAVY, false)
+                        if self.kind & 0xf0 == 0x10 {
+                            let action = if ctx.random.next15() & 1 != 0 {
+                                MOT_DAMAGE_SLAM_BACK
+                            } else {
+                                MOT_DAMAGE_SLAM_FORE
+                            };
+                            self.health = self.health.wrapping_sub(10).max(0);
+                            world.intelligence.voices.push((self.id, 8));
+                            world.combat.request_life(self);
+                            (action, false)
+                        } else {
+                            (MOT_STATE_LAND_HEAVY, false)
+                        }
                     } else {
                         (MOT_STATE_LAND, false)
                     });
@@ -581,6 +608,9 @@ impl Actor {
                         .smoke_burst(self.position, 300, 12, 10, ctx.random);
                 }
                 if count == 0 && self.motion.loops != 0 {
+                    if pending.map_or(self.motion.action, |p| p.0) == MOT_STATE_LAND_FLIP {
+                        ctx.camera.snap_pending = true;
+                    }
                     return Ok(Some((self.return_normal(ctx, world.player)?, true)));
                 }
                 self.velocity[0] = self.velocity[0].wrapping_sub(self.velocity[0] >> 2);

@@ -76,6 +76,7 @@ impl Actor {
             MOT_SQUAT_BACKFLIP => {
                 if count == ctx.mission.clips[self.motion.clip.unwrap()].duration >> 1 {
                     world.intelligence.voices.push((self.id, 0x13));
+                    ctx.camera.snap_pending = true;
                 }
                 if count == 0 && self.motion.loops != 0 {
                     pending = Some((MOT_SQUAT, true));

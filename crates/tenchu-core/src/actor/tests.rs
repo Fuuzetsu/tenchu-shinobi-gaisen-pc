@@ -2,7 +2,7 @@ use super::*;
 use crate::{game::Game, oracle};
 use std::fmt::Write;
 
-fn with_actor<T>(
+pub(super) fn with_actor<T>(
     game: &mut Game,
     id: usize,
     f: impl FnOnce(&mut Actor, &mut Context, &mut ActionContext) -> T,
@@ -35,7 +35,7 @@ fn with_actor<T>(
     result
 }
 
-fn arena(game: &mut Game, kind: i16) -> usize {
+pub(super) fn arena(game: &mut Game, kind: i16) -> usize {
     oracle::flat_ground(game);
     let player = game.player_id;
     with_actor(game, player, |actor, ctx, world| {
@@ -61,7 +61,7 @@ fn arena(game: &mut Game, kind: i16) -> usize {
     })
 }
 
-fn constants() -> String {
+pub(super) fn constants() -> String {
     let mut constants = String::new();
     for file in [
         "game_types.h",
