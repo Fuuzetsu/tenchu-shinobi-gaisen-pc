@@ -108,6 +108,8 @@ fn state(game: &Game) -> String {
             &game.visible,
             &game.activation,
             &game.drawing,
+            &game.combat,
+            &game.statistics,
         )
     )
 }
@@ -133,6 +135,18 @@ fn retail_movement_is_independent_of_host_frame_cadence() {
         (20, L1 | UP),
         (15, L1),
         (30, 0),
+        (1, SQUARE),
+        (9, 0),
+        (1, SQUARE),
+        (9, 0),
+        (1, SQUARE),
+        (9, 0),
+        (1, SQUARE),
+        (60, 0),
+        (1, RIGHT | SQUARE),
+        (60, 0),
+        (1, LEFT | SQUARE),
+        (60, 0),
     ]
     .into_iter()
     .flat_map(|(count, input)| std::iter::repeat_n(input, count))
@@ -160,6 +174,10 @@ fn retail_movement_is_independent_of_host_frame_cadence() {
         assert!(
             motions.iter().any(|motion| motion >> 8 == 11),
             "crouch was not reached"
+        );
+        assert!(
+            motions.contains(&tenchu_core::ids::MOT_ATTACK),
+            "melee attack was not reached"
         );
         assert!(looked, "direction camera was not reached");
         assert_eq!(reference.camera.mode, tenchu_core::camera::Mode::Normal);

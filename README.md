@@ -44,7 +44,7 @@ never an input to the Nix package or copied into the Nix store.
 `audit` constructs every stage for both characters and samples each motion track
 through its duration. `render` captures Mission 1 with original textures.
 
-## Movement preview
+## Gameplay preview
 
 ```sh
 ./dev.sh cargo run --release -- play '/path/to/game.cue'
@@ -58,8 +58,9 @@ the source AI difficulty; normal is the default.
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
-jumping, crouching, ledge control and the source follow/look camera. Combat,
-items and enemies are unfinished; unsupported actions pause with a diagnostic.
+jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
+kills and the source follow/look camera. Items, ranged combat and mission events
+are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Lighting,
 transparency, effects and audio remain in progress.
 
@@ -85,8 +86,8 @@ continuous state comparison remains a separate acceptance requirement.
 
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
-NPC activation now runs at the source cadence. Draw effects, combat and stage
-scripts remain unfinished. Activation workload counts use original geometry,
+NPC activation now runs at the source cadence. Effect presentation, ranged/item
+combat and stage scripts remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; HUD and other unfinished systems still need to add
 their original contributions before this has full-game fidelity.
 An additional private check compares the roster, mission totals, weapon hitbox
@@ -101,7 +102,10 @@ Optional core checks compare camera smoothing, enemy sight and combat decisions
 with matching C, including 4,096 activation worlds, and compare the integer view
 matrix and construction geometry with an existing retail trace. The
 combat check covers 81,920 engaged-controller cases, including RNG and command
-history; it does not yet validate the entire AI/terrain/update pipeline. These private files remain outside
+history. A further 4,096 cases compare the original damage routine and collision
+cleanup, with supplied terrain/motion/effect boundaries. Six controlled stealth
+pairs exercise both characters through death and return to control. These checks
+do not yet validate the entire AI/terrain/update pipeline. These private files remain outside
 the repository and are never build or runtime dependencies:
 
 ```sh

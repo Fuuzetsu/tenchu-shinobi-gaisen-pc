@@ -1,8 +1,15 @@
 mod body;
+mod combat;
+mod damage;
+mod death;
+pub use combat::Combat;
 mod movement;
 pub mod patrol;
 mod shadow;
 pub mod sight;
+#[cfg(test)]
+mod tests;
+pub mod trail;
 mod weapon;
 
 use crate::{
@@ -30,6 +37,15 @@ pub struct Context<'a> {
     pub collision: &'a mut Collision,
     pub camera: &'a mut Camera,
     pub drawing: &'a mut crate::drawing::Drawing,
+}
+
+pub struct ActionContext<'a> {
+    pub roster: &'a mut crate::roster::Roster,
+    pub intelligence: &'a mut crate::ai::Intelligence,
+    pub statistics: &'a mut crate::game::Statistics,
+    pub combat: &'a mut Combat,
+    pub player: usize,
+    pub clock: i32,
 }
 
 #[derive(Clone, Debug)]
@@ -64,6 +80,7 @@ pub struct Actor {
     pub patrol: Option<patrol::Patrol>,
     pub weapons: [Option<weapon::Weapon>; 4],
     pub weapon_hitbox: [Option<usize>; 2],
+    pub trails: [Option<trail::Trail>; 2],
 }
 
 impl Actor {
@@ -143,6 +160,7 @@ impl Actor {
             patrol: None,
             weapons: std::array::from_fn(|_| None),
             weapon_hitbox: [None; 2],
+            trails: std::array::from_fn(|_| None),
         };
         actor.setup_weapons(ctx)?;
         if kind == 0x87 {
@@ -242,6 +260,9 @@ impl Actor {
                     crate::packets::draw_tmd(mesh, &view.compose(&weapon.rendered), drawing.fog);
             }
         }
+        for trail in self.trails.iter_mut().flatten() {
+            drawing.bytes += trail.draw(scene, view, true)?;
+        }
         Ok(())
     }
 
@@ -327,10 +348,15 @@ impl Actor {
     }
 
     fn registered(&self, ctx: &Context, action: i16) -> bool {
+        self.motion_id(ctx, action) >= 0
+    }
+
+    fn motion_id(&self, ctx: &Context, action: i16) -> i16 {
         ctx.mission.characters[self.definition]
             .motions
             .iter()
-            .any(|r| r.action == action && r.clip >= 0)
+            .find(|r| r.action == action)
+            .map_or(-1, |r| r.clip)
     }
 
     pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {

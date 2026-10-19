@@ -4,6 +4,7 @@ impl Actor {
     pub(super) fn engage(
         &mut self,
         ctx: &mut Context,
+        world: &mut ActionContext,
         held: u16,
         command: u16,
         center: [i32; 3],
@@ -40,7 +41,34 @@ impl Actor {
                 return Ok((self.motion.count == 0 && self.motion.loops != 0)
                     .then_some((MOT_ENGAGE_STANCE, true)));
             }
-            action => return Err(format!("Combat recoil {action:#x} is not implemented yet")),
+            MOT_ENGAGE => {
+                for i in [0, 2] {
+                    if self.velocity[i] != 0 {
+                        self.velocity[i] = self.velocity[i].wrapping_add(if self.velocity[i] > 0 {
+                            -4
+                        } else {
+                            4
+                        });
+                    }
+                }
+                self.motion.count = self.motion.count.wrapping_sub(1);
+                if self.motion.count < self.motion.loops {
+                    pending = Some((
+                        if held & DOWN != 0 {
+                            MOT_CHASE_BACK
+                        } else {
+                            self.return_motion()
+                        },
+                        true,
+                    ));
+                }
+                if world.clock & 3 == 0 {
+                    ctx.effects
+                        .smoke_burst(self.position, 300, 10, 5, ctx.random);
+                }
+                return Ok(pending);
+            }
+            _ => (),
         }
         if self.attribute & ATTR_WEAPON_DRAWN == 0 {
             return Ok(Some((MOT_NORMAL, true)));
@@ -72,7 +100,7 @@ impl Actor {
             )));
         }
         if self.pad.trigger & SQUARE != 0 {
-            return Err("Attack control is not implemented yet".into());
+            return self.attack_input(ctx, world, held, pending);
         }
         if held & UP != 0 {
             return Ok(Some((MOT_CHASE, true)));
@@ -86,6 +114,7 @@ impl Actor {
     pub(super) fn chase(
         &mut self,
         ctx: &mut Context,
+        world: &mut ActionContext,
         held: u16,
         command: u16,
         center: [i32; 3],
@@ -144,7 +173,7 @@ impl Actor {
             MOT_CHASE_DASH_BACK..=MOT_CHASE_DASH_FWD => {
                 if self.motion.action == MOT_CHASE_DASH_FWD {
                     if self.pad.trigger & SQUARE != 0 {
-                        return Err("Attack control is not implemented yet".into());
+                        pending = self.attack_input(ctx, world, held, pending)?;
                     }
                     if self.pad.trigger & CROSS != 0 {
                         pending = self.start_jump(ctx, held, center);
@@ -172,7 +201,7 @@ impl Actor {
             return Err("Item use is not implemented yet".into());
         }
         if self.pad.trigger & SQUARE != 0 {
-            return Err("Attack control is not implemented yet".into());
+            return self.attack_input(ctx, world, held, pending);
         }
         Ok(pending)
     }

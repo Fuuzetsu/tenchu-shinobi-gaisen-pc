@@ -166,10 +166,12 @@ Ordinary play now runs source-ordered actor control and periodic enemy activatio
 Implemented systems include scalar fixed-point math, command history, RNG,
 player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
-patrol/investigation/combat decisions and reinforcement replacement. The native
+patrol/investigation/combat decisions, reinforcement replacement, melee combos,
+weapon hitboxes/clashes, guarding, damage reactions and authored stealth deaths. The native
 renderer displays original textured scenery, visible actors and held weapons.
-Unsupported actions still pause with a diagnostic. Combat hitboxes/damage, items,
-mission events, HUD and audio remain unfinished; this is not playable Mission 1.
+Unsupported actions still pause with a diagnostic. Ranged attacks, item damage/use,
+inventory drops, mission events, HUD and audio remain unfinished; this is not
+playable Mission 1.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -179,20 +181,31 @@ drop frames or change with render resolution. The sample remains incomplete
 until HUD, remaining effects, items and environmental producers are implemented;
 activation is therefore not yet certified against continuous retail gameplay.
 
-Smoke, splashes, droplets and attached flashes share the source 200-slot pool
+Smoke, splashes, droplets, blood/gore, impacts and attached flashes share the source 200-slot pool
 and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
-effects. Prepared shadow/effect graphics and sound events are not displayed or
-played yet. Damage-floor napalm and AI healing remain item-system boundaries.
-CVA camera/actor ownership, full combat reactions, swimming/grappling, results,
+effects. Prepared shadows, blood pools, weapon trails, effect graphics and sound events
+are not displayed or played yet. Damage-floor napalm and AI healing remain item-system boundaries.
+CVA camera/actor ownership, ranged/item combat, swimming/grappling, results,
 saving, transitions and the remaining campaign are still required.
 
 Verification completed so far:
 
-- A 381-tick replay exercises both characters at 24 Hz and 144 Hz presentation,
-  comparing the complete roster, animation, effects, RNG, camera, collision,
+- A 594-tick replay exercises both characters at 24 Hz and 144 Hz presentation,
+  including melee inputs and comparing the complete roster, combat/scoring,
+  animation, effects, RNG, camera, collision,
   coordinate caches, activation and drawing state at each tick. The actual X11
   window was also driven through movement, jumping, crouching, looking, resize
   and pause, and its output inspected.
+- All six character/angle stealth pairs complete through ordinary game ticks in
+  constructed private-disc scenarios, including the critical camera, authored gore
+  or its absence, collision removal, blood-pool growth and return to control.
+  A regression preserves the weapon-clash bug that indexes BattleDB with the
+  collision slot. These are controlled scenarios, not complete mission runs.
+- DamageControl and its original cleanup/scoring helpers match in 4,096 varied
+  cases: health, reactions, knockback, attacker recoil, RNG consumption, scores,
+  sound requests and collision-pool size. The native C harness supplies open
+  terrain, motion descriptors and effect-allocation stubs; rendering and complete
+  continuous gameplay are outside this isolated comparison.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc

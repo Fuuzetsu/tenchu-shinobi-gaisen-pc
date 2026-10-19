@@ -1,8 +1,14 @@
+mod blood;
+mod impact;
+pub use blood::Blood;
+pub use impact::Impact;
+
 use crate::{
     Result,
     math::Matrix,
     random::Random,
     scene::{ModelId, Scene},
+    terrain::{self, Cursor},
     visibility,
 };
 
@@ -50,6 +56,14 @@ pub enum Effect {
     Splash(Splash),
     Bleed(Bleed),
     Flash(Flash),
+    Blood(Blood),
+    Impact(Impact),
+}
+
+pub struct Environment<'a> {
+    pub terrain: &'a tenchu_assets::terrain::AreaMap,
+    pub cursor: &'a mut Cursor,
+    pub clock: i32,
 }
 
 #[derive(Clone, Copy)]
@@ -78,6 +92,12 @@ pub enum Graphic {
     Splash,
     Bleed,
     Flash(i16),
+    Blood {
+        sprite: u8,
+        stain: bool,
+        fading: bool,
+    },
+    Impact(u8),
 }
 
 #[derive(Clone, Debug)]
@@ -102,6 +122,7 @@ pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     pub drawings: Vec<Drawing>,
     pub shadows: Vec<Shadow>,
+    pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<([i32; 3], i16)>,
     cursor: usize,
     visiting: Option<usize>,
@@ -113,6 +134,7 @@ impl Default for Effects {
             slots: vec![None; 201],
             drawings: Vec::new(),
             shadows: Vec::new(),
+            blood_pools: Vec::new(),
             sounds: Vec::new(),
             cursor: 0,
             visiting: None,
@@ -206,30 +228,41 @@ impl Effects {
             } else {
                 time / 8
             }) as u8;
-            let slot = self.allocate();
-            self.slots[slot] = Some(Effect::Bleed(Bleed {
-                position,
-                velocity,
-                color,
-                time,
-                mode: 0,
-            }));
+            self.bleed(position, velocity, time, color);
         }
+    }
+
+    pub fn bleed(&mut self, position: [i32; 3], velocity: [i16; 3], time: u8, color: [u8; 3]) {
+        let slot = self.allocate();
+        self.slots[slot] = Some(Effect::Bleed(Bleed {
+            position,
+            velocity,
+            color,
+            time,
+            mode: 0,
+        }));
     }
 
     pub fn begin_tick(&mut self) {
         self.drawings.clear();
         self.shadows.clear();
+        self.blood_pools.clear();
         self.sounds.clear();
     }
 
-    pub fn step(&mut self, rng: &mut Random, view: View, scene: &mut Scene) -> Result<()> {
+    pub fn step(
+        &mut self,
+        rng: &mut Random,
+        view: View,
+        scene: &mut Scene,
+        env: &mut Environment,
+    ) -> Result<()> {
         for i in 0..200 {
             let Some(mut effect) = self.slots[i].take() else {
                 continue;
             };
             self.visiting = Some(i);
-            let result = self.update(&mut effect, rng, view, scene);
+            let result = self.update(&mut effect, rng, view, scene, env);
             self.visiting = None;
             match result {
                 Ok(false) => {}
@@ -249,6 +282,7 @@ impl Effects {
         rng: &mut Random,
         view: View,
         scene: &mut Scene,
+        env: &mut Environment,
     ) -> Result<bool> {
         match effect {
             Effect::Smoke(smoke) => {
@@ -317,7 +351,9 @@ impl Effects {
                 if z <= 36 {
                     return Ok(true);
                 }
-                let mut scale = splash.size.map(|v| i32::from(v) * 300 / i32::from(z) + 1);
+                let mut scale = splash
+                    .size
+                    .map(|v| i32::from((i32::from(v) * 300 / i32::from(z)) as i16) + 1);
                 if splash.mode == 0 {
                     splash.count = 0;
                     splash.mode = 1;
@@ -400,6 +436,8 @@ impl Effects {
                 }
                 Ok(alive)
             }
+            Effect::Blood(blood) => self.update_blood(blood, rng, view, env),
+            Effect::Impact(impact) => self.update_impact(impact, view, scene),
         }
     }
 }

@@ -3,6 +3,13 @@ use super::*;
 #[test]
 fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
     let mut effects = Effects::default();
+    let map = flat_map();
+    let mut cursor = Cursor::new(&map);
+    let mut env = Environment {
+        terrain: &map,
+        cursor: &mut cursor,
+        clock: 0,
+    };
     let mut rng = Random::new(1);
     effects.smoke_burst([0; 3], 0, 12, 201, &mut rng);
     assert_eq!(rng.calls, 402);
@@ -20,14 +27,14 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
     };
     let mut scene = Scene::default();
     for _ in 0..15 {
-        effects.step(&mut rng, view, &mut scene).unwrap();
+        effects.step(&mut rng, view, &mut scene, &mut env).unwrap();
     }
     assert!(
         effects.slots[..200]
             .iter()
             .all(|s| matches!(s, Some(Effect::Smoke(Smoke { time: 0, .. }))))
     );
-    effects.step(&mut rng, view, &mut scene).unwrap();
+    effects.step(&mut rng, view, &mut scene, &mut env).unwrap();
     assert!(effects.slots[..200].iter().all(Option::is_none));
     assert!(matches!(
         effects.slots[200],
@@ -41,6 +48,13 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
 #[test]
 fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
     let mut effects = Effects::default();
+    let map = flat_map();
+    let mut cursor = Cursor::new(&map);
+    let mut env = Environment {
+        terrain: &map,
+        cursor: &mut cursor,
+        clock: 0,
+    };
     let mut rng = Random::new(1);
     let mut scene = Scene::default();
     let forward = View {
@@ -57,11 +71,15 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
     effects.splash([0, 0, 2000], [8192; 2], 4);
     for _ in 0..30 {
         effects.begin_tick();
-        effects.step(&mut rng, behind, &mut scene).unwrap();
+        effects
+            .step(&mut rng, behind, &mut scene, &mut env)
+            .unwrap();
     }
     assert_eq!(rng.calls, 0);
     assert!(effects.drawings.is_empty());
-    effects.step(&mut rng, forward, &mut scene).unwrap();
+    effects
+        .step(&mut rng, forward, &mut scene, &mut env)
+        .unwrap();
     assert_eq!(rng.calls, 24);
     assert_eq!(effects.drawings.len(), 7);
     assert!(matches!(
@@ -89,7 +107,9 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
     }
     for _ in 0..40 {
         effects.begin_tick();
-        effects.step(&mut rng, behind, &mut scene).unwrap();
+        effects
+            .step(&mut rng, behind, &mut scene, &mut env)
+            .unwrap();
     }
     assert_eq!(effects.slots.iter().flatten().count(), 1);
     assert!(matches!(
@@ -98,7 +118,9 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
     ));
     for _ in 0..7 {
         effects.begin_tick();
-        effects.step(&mut rng, forward, &mut scene).unwrap();
+        effects
+            .step(&mut rng, forward, &mut scene, &mut env)
+            .unwrap();
     }
     assert!(effects.slots.iter().all(Option::is_none));
 }
@@ -106,6 +128,13 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
 #[test]
 fn spawning_from_a_full_pool_preserves_the_visiting_slot_and_dummy_lifetime() {
     let mut effects = Effects::default();
+    let map = flat_map();
+    let mut cursor = Cursor::new(&map);
+    let mut env = Environment {
+        terrain: &map,
+        cursor: &mut cursor,
+        clock: 0,
+    };
     effects.slots[..200].fill(Some(Effect::Bleed(Bleed {
         position: [0, 0, 2000],
         velocity: [0; 3],
@@ -130,6 +159,7 @@ fn spawning_from_a_full_pool_preserves_the_visiting_slot_and_dummy_lifetime() {
                 matrix: Matrix::default(),
             },
             &mut scene,
+            &mut env,
         )
         .unwrap();
     assert_eq!(rng.calls, 24);
@@ -167,6 +197,13 @@ fn expiring_attached_flash_still_visits_its_coordinate() {
         },
     );
     let mut effects = Effects::default();
+    let map = flat_map();
+    let mut cursor = Cursor::new(&map);
+    let mut env = Environment {
+        terrain: &map,
+        cursor: &mut cursor,
+        clock: 0,
+    };
     effects.flash(Some(parent), [0; 3], 12288, 1);
     let Some(Effect::Flash(flash)) = effects.slots[1].as_mut() else {
         unreachable!()
@@ -181,9 +218,24 @@ fn expiring_attached_flash_still_visits_its_coordinate() {
                 matrix: Matrix::default(),
             },
             &mut scene,
+            &mut env,
         )
         .unwrap();
     assert!(effects.slots[1].is_none());
     assert!(effects.drawings.is_empty());
     assert_eq!(scene.models[parent].flags, scene.epoch);
+}
+
+fn flat_map() -> tenchu_assets::terrain::AreaMap {
+    let mut bytes = vec![0u8; 48];
+    bytes[2..4].copy_from_slice(&1i16.to_le_bytes());
+    bytes[4..8].copy_from_slice(&32u32.to_le_bytes());
+    for base in [8, 36] {
+        for (i, v) in [-1000i16, -1000, 1000, 1000].into_iter().enumerate() {
+            bytes[base + i * 2..base + i * 2 + 2].copy_from_slice(&v.to_le_bytes());
+        }
+    }
+    bytes[44..46].copy_from_slice(&0x2000u16.to_le_bytes());
+    bytes[46..48].copy_from_slice(&u16::MAX.to_le_bytes());
+    tenchu_assets::terrain::AreaMap::parse(bytes).unwrap()
 }

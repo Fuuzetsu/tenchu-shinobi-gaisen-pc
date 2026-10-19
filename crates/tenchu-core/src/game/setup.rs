@@ -12,6 +12,9 @@ pub struct Statistics {
     pub citizens: i16,
     pub enemies: i16,
     pub bosses: i16,
+    pub criticals: i16,
+    pub murders: i16,
+    pub friend_hits: i16,
 }
 
 pub(super) fn construct(

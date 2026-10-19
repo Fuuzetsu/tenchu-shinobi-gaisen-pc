@@ -182,3 +182,18 @@ separate BizHawk/Mednafen GTE executable; neither is part of the runtime.
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/near_packets.rs` | `bbd545b68642dd4159bd05a76c9af5f3193f71d9b3c29728a15e5c0aefff5786` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/sprite_packets.rs` | `2b70e70d368cd98a43aaefdf827da6186c486a32c9a00ae461c6808981cf9e65` |
 | `tenchu-decomp-glitch-research` | `tools/tenchu-sim/native/gte_oracle.cpp` | `11b23899158103d574de865abbbd388bd4f8ec851cb4fa33d4700f8454639ee5` |
+
+
+## Melee, damage and death (2026-10-20)
+
+The scalar attack, guard, damage and death paths follow `MOTION.C`, `HUMAN.C`,
+`THINK.C`, `CONFLICT.C`, `EFFECT.C` and the headers recorded above, at the same
+working-tree hashes. Stealth death event lists are read from the executable's
+`DeadEvents` pointer table at `0x80086b0c`. Blood/gore, impacts, blood pools and
+weapon trails retain the source RNG, shared-pool and coordinate visits.
+
+The optional damage comparison extracts the original DamageControl and
+cleanup/scoring helpers at test time. Its native test shim supplies open terrain,
+real-disc motion descriptors, arithmetic movement and effect-call RNG costs.
+It checks decisions and ordering, not complete native SDK/rendering equivalence.
+No matching C, executable tables or disc assets are bundled in the runtime.

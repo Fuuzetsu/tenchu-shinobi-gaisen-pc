@@ -12,32 +12,38 @@ impl Actor {
         ctx: &mut Context,
         commands: &[Command],
         center: [i32; 3],
-        player: bool,
+        world: &mut ActionContext,
     ) -> Result<bool> {
+        let player = self.id == world.player;
         let command = self.pad.consume(commands);
         let held = if self.pad.held & L1 != 0 {
             self.pad.held & !0xf000
         } else {
             self.pad.held
         };
-        if self.fall_check(ctx) {
-            self.hang_check(ctx)?;
-        } else if self.map.attribute & 4 != 0 {
-            return Err("Swimming control is not implemented yet".into());
-        }
+        let damage_pending = if self.attribute & ATTR_HIT != 0 {
+            self.damage_control(ctx, world)?
+        } else {
+            if self.fall_check(ctx) {
+                self.hang_check(ctx)?;
+            } else if self.map.attribute & 4 != 0 {
+                return Err("Swimming control is not implemented yet".into());
+            }
+            None
+        };
         let next = match self.status {
             0 => self.normal(ctx, held, command, center)?,
-            1 => self.action(),
+            1 => self.action(ctx, world, held)?,
             2 => self.walk(ctx, held, center)?,
-            5 => self.engage(ctx, held, command, center)?,
-            6 => self.chase(ctx, held, command, center)?,
-            7 if self.motion.action == MOT_ATTACK_TAUNT => (self.motion.count == 0
-                && self.motion.loops != 0)
-                .then_some((MOT_ENGAGE_STANCE, true)),
-            8 => self.state(ctx, held)?,
+            5 => self.engage(ctx, world, held, command, center)?,
+            6 => self.chase(ctx, world, held, command, center)?,
+            7 => self.attack(ctx, world, held)?,
+            8 => self.state(ctx, world, held)?,
             9 => self.jump(ctx, held)?,
             10 => self.hang(ctx, held)?,
-            11 => self.crouch(ctx, held, command)?,
+            11 => self.crouch(ctx, world, held, command)?,
+            16 => self.damaged(ctx, world)?,
+            17 => self.dead(ctx, world)?,
             status => {
                 return Err(format!(
                     "Actor state {status:#x}, motion {:#x} is not implemented yet",
@@ -45,7 +51,7 @@ impl Actor {
                 ));
             }
         };
-        if let Some((action, movement)) = next {
+        if let Some((action, movement)) = next.or(damage_pending.filter(|_| self.status == 7)) {
             self.enter(ctx, action, movement);
         }
         ctx.scene.set_translation(self.root_model, self.position);
@@ -180,15 +186,61 @@ impl Actor {
         Ok(pending)
     }
 
-    fn action(&self) -> Option<(i16, bool)> {
+    fn action(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+        held: u16,
+    ) -> Result<Option<(i16, bool)>> {
         let complete = self.motion.count == 0 && self.motion.loops != 0;
-        let done = match self.motion.action {
-            MOT_ACTION_FIDGET_A | MOT_ACTION_FIDGET_B => {
-                self.health != self.max_health || self.attribute & 1 != 0 || complete
+        let mut pending = None;
+        match self.motion.action {
+            MOT_ACTION_LOOP => {
+                if self.motion.loops != 0 && held != 0 {
+                    pending = Some((self.return_motion(), true));
+                }
             }
-            _ => complete,
-        };
-        done.then_some((self.return_motion(), true))
+            MOT_ACTION_FIDGET_A | MOT_ACTION_FIDGET_B => {
+                if self.health != self.max_health || self.attribute & 1 != 0 {
+                    pending = Some((self.return_motion(), true));
+                }
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 15));
+                } else if complete {
+                    pending = Some((self.return_motion(), true));
+                }
+            }
+            MOT_ACTION => {
+                if self.motion.count == 1 {
+                    self.clear_attack(ctx, 3)?;
+                    self.recover_blade(ctx, world);
+                }
+                if self.motion.count == 0 && self.motion.loops > 0 {
+                    self.motion.count = ctx.mission.clips[self.motion.clip.unwrap()].duration - 1;
+                    self.play_pose(ctx)?;
+                    self.motion.loops = -1;
+                    self.velocity[0] = 0;
+                    self.velocity[2] = 0;
+                }
+                if self.motion.loops == -1 && held != 0 {
+                    self.enter(ctx, MOT_DAMAGE_GETUP, true);
+                    self.motion.count = -15;
+                }
+            }
+            MOT_ACTION_NOTICE => {
+                if self.motion.count == 1 {
+                    world.intelligence.voices.push((self.id, 6));
+                } else if complete {
+                    pending = Some((MOT_STATE_DRAW, true));
+                }
+            }
+            _ => {
+                if complete {
+                    pending = Some((self.return_motion(), true));
+                }
+            }
+        }
+        Ok(pending)
     }
 
     fn walk(
@@ -371,13 +423,21 @@ impl Actor {
             .then_some((MOT_ATTACK_DIVE, false)))
     }
 
-    fn state(&mut self, ctx: &mut Context, held: u16) -> Result<Option<(i16, bool)>> {
+    fn state(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+        held: u16,
+    ) -> Result<Option<(i16, bool)>> {
         let count = self.motion.count;
         match self.motion.action {
             MOT_STATE_DRAW | MOT_STATE_SHEATHE => {
                 let drawing = self.motion.action == MOT_STATE_DRAW;
                 if count == 1 {
-                    self.motion.mask = 0x7fff;
+                    self.clear_attack(ctx, 3)?;
+                    if drawing && (2..7).contains(&self.kind) {
+                        return Ok(Some((self.return_motion(), true)));
+                    }
                     if (self.attribute & ATTR_WEAPON_DRAWN != 0) == drawing {
                         return Ok(Some((
                             if drawing {
@@ -389,8 +449,22 @@ impl Actor {
                         )));
                     }
                 } else if count == ctx.mission.clips[self.motion.clip.unwrap()].duration / 2 {
+                    world
+                        .intelligence
+                        .voices
+                        .push((self.id, if drawing { 0 } else { 1 }));
                     self.equip(ctx, drawing);
                 } else if count == 0 && self.motion.loops != 0 {
+                    if drawing && self.attribute & ATTR_PHASE == 0 {
+                        self.attribute |= ATTR_SEARCH | 2;
+                        let position = if self.id == world.player {
+                            self.position
+                        } else {
+                            world.roster.get(world.player).position
+                        };
+                        self.brain.chase = [position[0], position[2]];
+                        self.brain.timer = 1;
+                    }
                     return Ok(Some((
                         if drawing {
                             MOT_ENGAGE_STANCE
@@ -433,7 +507,10 @@ impl Actor {
             }
             MOT_STATE_LAND | MOT_STATE_LAND_HEAVY | MOT_STATE_LAND_FLIP => {
                 let mut pending = None;
-                if self.motion.action != MOT_STATE_LAND_FLIP && count == 1 && self.id == 0 {
+                if self.motion.action != MOT_STATE_LAND_FLIP
+                    && count == 1
+                    && self.id == world.player
+                {
                     ctx.camera.normal(self, ctx.math)?;
                 }
                 if self.motion.action != MOT_STATE_LAND_FLIP

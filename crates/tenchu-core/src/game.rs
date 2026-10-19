@@ -1,5 +1,6 @@
 pub mod activation;
 mod setup;
+pub use setup::Statistics;
 
 use crate::{
     Result,
@@ -34,6 +35,7 @@ pub struct Game {
     pub collision: Collision,
     pub camera: Camera,
     pub intelligence: Intelligence,
+    pub combat: crate::actor::Combat,
     pub visible: Vec<usize>,
     pub activation: activation::Activation,
     pub drawing: Drawing,
@@ -98,6 +100,7 @@ impl Game {
             collision,
             camera,
             intelligence: Intelligence::default(),
+            combat: crate::actor::Combat::default(),
             visible: vec![player_id],
             activation: activation::Activation::default(),
             drawing,
@@ -146,39 +149,72 @@ impl Game {
             if self.roster.get(id).attribute & crate::ids::ATTR_SUSPEND == 0 {
                 let mut actor = self.roster.take(id);
                 let result = (|| -> Result<()> {
-                    let center = actor.collision_center(&context);
-                    actor.terrain_contact(&mut context, center, id == self.player_id)?;
-                    actor.body_contact(&mut context, center)?;
-                    context
-                        .scene
-                        .set_translation(actor.root_model, actor.position);
-                    let player = Player::new(
-                        if id == self.player_id {
-                            &actor
-                        } else {
-                            self.roster.get(self.player_id)
-                        },
-                        &context,
-                    );
-                    Controller::new(
-                        &mut actor,
-                        player,
-                        &mut self.roster,
-                        &mut self.intelligence,
-                        self.tick as i32,
-                        input,
-                        &self.commands,
+                    let center = if context.scene.models[actor.parts[0]].conflict.is_some() {
+                        let center = actor.collision_center(&context);
+                        actor.terrain_contact(&mut context, center, id == self.player_id)?;
+                        actor.body_contact(&mut context, center)?;
+                        context
+                            .scene
+                            .set_translation(actor.root_model, actor.position);
+                        let player = Player::new(
+                            if id == self.player_id {
+                                &actor
+                            } else {
+                                self.roster.get(self.player_id)
+                            },
+                            &context,
+                        );
+                        Controller::new(
+                            &mut actor,
+                            player,
+                            &mut self.roster,
+                            &mut self.intelligence,
+                            self.tick as i32,
+                            input,
+                            &self.commands,
+                            &mut context,
+                        )
+                        .update()?;
+                        actor.shadow(&mut context, self.tick as i32)?;
+                        center
+                    } else {
+                        if actor.status == 17 {
+                            actor.corpse(
+                                &mut context,
+                                &mut crate::actor::ActionContext {
+                                    roster: &mut self.roster,
+                                    intelligence: &mut self.intelligence,
+                                    statistics: &mut self.statistics,
+                                    combat: &mut self.combat,
+                                    player: self.player_id,
+                                    clock: self.tick as i32,
+                                },
+                            )?;
+                        }
+                        [0; 3]
+                    };
+                    if actor.control(
                         &mut context,
-                    )
-                    .update()?;
-                    actor.shadow(&mut context, self.tick as i32)?;
-                    if actor.control(&mut context, &self.commands, center, id == self.player_id)? {
+                        &self.commands,
+                        center,
+                        &mut crate::actor::ActionContext {
+                            roster: &mut self.roster,
+                            intelligence: &mut self.intelligence,
+                            statistics: &mut self.statistics,
+                            combat: &mut self.combat,
+                            player: self.player_id,
+                            clock: self.tick as i32,
+                        },
+                    )? {
                         self.visible.push(id);
                         if self.intelligence.action_halt == 0 {
                             if id == self.player_id {
                                 actor.look_at_camera(&mut context)?;
                             } else {
-                                actor.look_at_target(player.root, &mut context)?;
+                                actor.look_at_target(
+                                    self.roster.get(self.player_id).root_model,
+                                    &mut context,
+                                )?;
                             }
                         }
                     }
@@ -213,6 +249,11 @@ impl Game {
                 matrix: self.camera.view,
             },
             &mut self.scene,
+            &mut crate::effects::Environment {
+                terrain: &self.mission.terrain,
+                cursor: &mut self.cursor,
+                clock: self.tick as i32,
+            },
         )?;
         self.drawing
             .effects(&self.effects, &self.mission, &self.math, self.camera.view)?;

@@ -49,6 +49,37 @@ impl Roster {
             .find(|&id| self.get(id).kind == kind)
     }
 
+    pub fn nearest(&self, actor: &Actor, range: i16, math: &crate::math::Math) -> Option<usize> {
+        if actor.map.height != 0 {
+            return None;
+        }
+        let mut best = None;
+        let mut distance = 20000;
+        for &id in &self.order {
+            let Some(other) = self.actors[id].as_ref() else {
+                continue;
+            };
+            if id == actor.id
+                || other.status == 17
+                || other.attribute & crate::ids::ATTR_SUSPEND != 0
+                || other.kind & 0xf0 == 0x90
+                || other.health < 0
+            {
+                continue;
+            }
+            let d = math.length([
+                other.position[0].wrapping_sub(actor.position[0]),
+                0,
+                other.position[2].wrapping_sub(actor.position[2]),
+            ]);
+            if d < i32::from(range) && d < distance {
+                best = Some(id);
+                distance = d;
+            }
+        }
+        best
+    }
+
     pub fn spawn(
         &mut self,
         kind: i16,

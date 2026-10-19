@@ -41,7 +41,40 @@ pub struct Command {
     pub inputs: Vec<u16>,
 }
 
+#[derive(Clone, Debug)]
+pub struct DeathEvent {
+    pub frame: i16,
+    pub action: i16,
+    pub payload: [i16; 2],
+}
+
 impl<'a> Executable<'a> {
+    pub fn death_events(&self) -> Result<Vec<Vec<DeathEvent>>> {
+        let mut tables = Vec::new();
+        for i in 0..6 {
+            let address = u32_le(self.bytes(0x80086b0c + i * 4, 4)?, 0)?;
+            let mut events = Vec::new();
+            for j in 0..256 {
+                let row = self.bytes(address + j * 8, 8)?;
+                let event = DeathEvent {
+                    frame: i16_le(row, 0)?,
+                    action: i16_le(row, 2)?,
+                    payload: [i16_le(row, 4)?, i16_le(row, 6)?],
+                };
+                let end = event.action == 4;
+                events.push(event);
+                if end {
+                    break;
+                }
+                if j == 255 {
+                    return Err("Unterminated stealth death events".into());
+                }
+            }
+            tables.push(events);
+        }
+        Ok(tables)
+    }
+
     pub fn new(data: &'a [u8]) -> Result<Self> {
         if slice(data, 0, 8)? != b"PS-X EXE" {
             return Err("Invalid PS-X EXE header".into());

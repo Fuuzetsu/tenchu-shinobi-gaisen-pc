@@ -126,33 +126,9 @@ impl Controller<'_, '_> {
     pub(super) fn hunt(&mut self) -> Result<u16> {
         self.actor.brain.count = self.actor.brain.count.wrapping_add(1);
         if self.actor.brain.count == 1 {
-            let mut best = None;
-            let mut distance = 20000;
-            if self.actor.map.height == 0 {
-                for &id in &self.roster.order {
-                    let Some(other) = self.roster.actors[id].as_ref() else {
-                        continue;
-                    };
-                    if id == self.actor.id
-                        || other.status == 17
-                        || other.attribute & ATTR_SUSPEND != 0
-                        || other.kind & 0xf0 == 0x90
-                        || other.health < 0
-                    {
-                        continue;
-                    }
-                    let d = self.length(&[
-                        other.position[0].wrapping_sub(self.actor.position[0]),
-                        other.position[2].wrapping_sub(self.actor.position[2]),
-                    ]);
-                    if d < 5000 && d < distance {
-                        distance = d;
-                        best = Some([other.position[0], other.position[2]]);
-                    }
-                }
-            }
-            if let Some(p) = best {
-                self.actor.brain.chase = p;
+            if let Some(id) = self.roster.nearest(self.actor, 5000, self.ctx.math) {
+                let p = self.roster.get(id).position;
+                self.actor.brain.chase = [p[0], p[2]];
             } else {
                 self.random_destination();
             }

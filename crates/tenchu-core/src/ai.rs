@@ -79,6 +79,16 @@ impl Default for Intelligence {
     }
 }
 
+impl Intelligence {
+    pub fn reset_alert(&mut self) {
+        self.alert = if self.difficulty == Difficulty::Hard {
+            600
+        } else {
+            300
+        };
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Player {
     pub root: ModelId,
@@ -182,11 +192,7 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn alert(&mut self) {
-        self.state.alert = if self.state.difficulty == Difficulty::Hard {
-            600
-        } else {
-            300
-        };
+        self.state.reset_alert();
     }
 
     fn found(&mut self) {

@@ -4,6 +4,7 @@ impl Actor {
     pub(super) fn crouch(
         &mut self,
         ctx: &mut Context,
+        world: &mut ActionContext,
         held: u16,
         command: u16,
     ) -> Result<Option<(i16, bool)>> {
@@ -134,7 +135,7 @@ impl Actor {
             });
         }
         if self.pad.trigger & SQUARE != 0 {
-            return Err("Crouching attack is not implemented yet".into());
+            return self.attack_input(ctx, world, held, pending);
         }
         if self.pad.trigger & TRIANGLE != 0 {
             return Err("Item use is not implemented yet".into());
