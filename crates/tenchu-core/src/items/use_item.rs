@@ -41,6 +41,24 @@ fn throw_vector(owner: &Actor, player: usize, vector: [i32; 3], ctx: &Context) -
 }
 
 impl Items {
+    pub(super) fn refund_cast(
+        &mut self,
+        id: usize,
+        actors: &mut Actors,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        let item = &self.slots[id];
+        let position = ctx.scene.world(item.model)?.translation;
+        let (kind, owner) = (item.kind, item.owner);
+        let velocity = [
+            ctx.random.next15() % 200 - 100,
+            ctx.random.next15() % 100 - 200,
+            ctx.random.next15() % 200 - 100,
+        ];
+        self.drop(kind, owner, position, velocity, actors, ctx)?;
+        self.dispose(id, actors, ctx)
+    }
+
     fn throw_rolling(
         &mut self,
         kind: usize,
@@ -207,10 +225,11 @@ impl Items {
                     self.throw_rolling(kind, owner_id, start, velocity, actors, ctx)?;
                 }
             }
-            3 | 10 | 12 | 18 => {
+            3 | 10 | 11 | 12 | 18 => {
                 let processor = match kind {
                     3 => Processor::Medicine,
                     10 => Processor::Resurrection,
+                    11 => Processor::Disguise,
                     12 => Processor::Charm,
                     _ => Processor::Flute,
                 };

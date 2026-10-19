@@ -6,6 +6,7 @@ mod breath;
 mod charm;
 mod darts;
 mod decoy;
+mod disguise;
 mod napalm;
 mod poison;
 mod rice;

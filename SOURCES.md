@@ -769,3 +769,22 @@ eligibility/restoration, consumed contacts on retarget ticks, knockback edges,
 fourth-hit break, overflow refunds and water cleanup. They add no new full C
 callback or retail replay comparison; rolling, collisions, matrices and effects
 use the shared previously checked routines.
+
+## Disguise (2026-10-20)
+
+`ITEM.C::create_ninken_character_`, `ProcItemHenshin`, `ReqItemHenshin`,
+`item.h::CaptureHenshinModel` and `ApplyHenshinModel` define the two stage
+snapshots, fifteen signed-short offsets, root-motion scale, casting, shared
+600-tick timer, replacement and restoration. Existing `THINK.C` ports already
+consume active item 11 and the negative alert timer. Recorded source hashes
+are unchanged. The research `tools/tenchu-sim/src/items/disguise.rs` reference
+has SHA-256 `be333adcff687760a341b17185271787e09b7a8d813283b4094b4fe0857f60a2`.
+
+The port keeps actor identity and gameplay definitions separate from the chosen
+body mesh. Model application preserves parent links, rotation matrices and
+coordinate-cache validity; the animation state receives the same offsets and
+scale. Rendering captures the chosen mesh at the existing body draw boundary.
+Ninety-six extracted-C snapshot cases check signed-short offset truncation and
+height; additional checks cover cache preservation, both players' cast/movement/
+expiry, interruption, replacement, forced eviction and attack/damage/death
+boundaries. These checks do not establish full retail replay parity.

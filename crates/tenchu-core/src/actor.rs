@@ -62,6 +62,8 @@ pub struct Actor {
     pub render_mask: u32,
     pub draw_fog: bool,
     pub kind: i16,
+    pub mesh_kind: i16,
+    pub rendered_mesh_kind: i16,
     pub definition: usize,
     pub position: [i32; 3],
     pub previous: [i32; 3],
@@ -143,6 +145,8 @@ impl Actor {
             render_mask: u32::MAX,
             draw_fog: false,
             kind,
+            mesh_kind: kind,
+            rendered_mesh_kind: kind,
             definition,
             position,
             previous: [0; 3],
@@ -193,6 +197,7 @@ impl Actor {
     }
 
     pub fn initialize_rendered(&mut self, scene: &Scene, math: &Math) {
+        self.rendered_mesh_kind = self.mesh_kind;
         self.rendered = self.motion.pose.matrices(math, self.root(math));
         for weapon in self.weapons.iter_mut().flatten() {
             let model = &scene.models[weapon.model];
@@ -245,12 +250,16 @@ impl Actor {
             true
         };
         self.render_mask = 0;
+        self.rendered_mesh_kind = self.mesh_kind;
         if draw_body {
             for (i, &model) in self.parts.iter().enumerate() {
                 if scene.models[model].attribute & 1 == 0 {
                     self.rendered[i] = scene.world(model)?;
                     self.render_mask |= 1 << i;
-                    if let Some(mesh) = mission.models[&self.kind][i].geometry.first() {
+                    if let Some(mesh) = mission.models[&self.mesh_kind]
+                        .get(i)
+                        .and_then(|part| part.geometry.first())
+                    {
                         drawing.bytes += crate::packets::draw_tmd(
                             mesh,
                             &view.compose(&self.rendered[i]),

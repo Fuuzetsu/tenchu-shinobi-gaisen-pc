@@ -106,7 +106,7 @@ pub fn visit_characters(
 ) {
     for &id in &game.visible {
         let actor = game.roster.get(id);
-        for (i, (part, matrix)) in game.mission.models[&actor.kind]
+        for (i, (part, matrix)) in game.mission.models[&actor.rendered_mesh_kind]
             .iter()
             .zip(actor.rendered.iter().copied())
             .enumerate()

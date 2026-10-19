@@ -4,6 +4,7 @@ mod caltrops;
 mod charm;
 mod darts;
 mod decoy;
+mod disguise;
 mod flight;
 mod flute;
 mod grapple;
@@ -61,6 +62,7 @@ pub enum Processor {
     Speed,
     Charm,
     Decoy,
+    Disguise,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -107,6 +109,7 @@ pub struct Items {
     icons: [ModelId; KINDS + 1],
     icon_scale: [i32; KINDS + 1],
     decoy_count: u8,
+    disguise: disguise::Disguise,
 }
 
 fn target_distance(actor: &Actor, position: [i32; 3], radius: i32, ctx: &Context) -> Option<i32> {
@@ -171,6 +174,7 @@ impl Items {
             icons,
             icon_scale: [12288; KINDS + 1],
             decoy_count: 0,
+            disguise: disguise::Disguise::default(),
         }
     }
 
@@ -218,6 +222,9 @@ impl Items {
         }
         if self.slots[id].processor == Some(Processor::Decoy) {
             self.finish_decoy(id, actors);
+        }
+        if self.slots[id].processor == Some(Processor::Disguise) {
+            self.finish_disguise(id, actors, ctx)?;
         }
         let item = &mut self.slots[id];
         match item.processor {
@@ -384,6 +391,7 @@ impl Items {
                 Some(Processor::Speed) => self.speed(id, actors, player, ctx)?,
                 Some(Processor::Charm) => self.charm(id, actors, player, ctx)?,
                 Some(Processor::Decoy) => self.decoy(id, actors, ctx)?,
+                Some(Processor::Disguise) => self.disguise(id, actors, intelligence, ctx)?,
                 None => {}
             }
         }

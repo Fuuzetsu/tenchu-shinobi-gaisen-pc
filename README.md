@@ -73,6 +73,7 @@ shuriken item uses its original spread, delayed hitboxes and independent trails.
 Speed scrolls retain the original cast, steering, terrain checks and cancellation.
 Protection charms apply their original melee damage modifiers for 450 logic ticks.
 Decoy dolls grow, draw nearby enemies and break under attack; only three can be active.
+Disguise changes the original body meshes and motion scale, with source alert and expiry rules.
 Resurrection leaves restore health after a lethal hit. Damage floors and Manji flame attacks share the original napalm behavior. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
 then returns to gameplay. Results, stock rewards, retry and progression now run
 through a simple launcher. Remaining items and special attacks

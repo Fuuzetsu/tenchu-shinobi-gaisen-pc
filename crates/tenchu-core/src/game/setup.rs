@@ -79,6 +79,7 @@ pub(super) fn construct(
     let dog = roster.spawn(0xa9, [999000; 3], 0, ctx)?;
     roster.get_mut(dog).attribute |= ATTR_SUSPEND;
     let disguise = roster.spawn(ctx.mission.disguise, [999000; 3], 0, ctx)?;
+    items.capture_disguises(roster.get(player), roster.get(disguise), ctx.scene)?;
     roster.remove(disguise, ctx);
     ctx.effects.reset();
     while roster.order.len() > 1 {

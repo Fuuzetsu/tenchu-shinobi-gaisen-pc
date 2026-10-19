@@ -68,16 +68,7 @@ impl Items {
             }
             1 => {
                 if owner.motion.action != MOT_ITEM_DRINK {
-                    let position = ctx.scene.world(item.model)?.translation;
-                    let kind = item.kind;
-                    let velocity = [
-                        ctx.random.next15() % 200 - 100,
-                        ctx.random.next15() % 100 - 200,
-                        ctx.random.next15() % 200 - 100,
-                    ];
-                    self.drop(kind, Some(owner_id), position, velocity, actors, ctx)?;
-                    self.dispose(id, actors, ctx)?;
-                    return Ok(());
+                    return self.refund_cast(id, actors, ctx);
                 }
                 if owner.motion.count == 55 {
                     self.slots[id].mode = 2;

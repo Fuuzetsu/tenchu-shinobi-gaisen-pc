@@ -647,3 +647,19 @@ show both characters throwing and the original doll appearing with smoke.
 The native checks use temporary saves to unlock equipment, with ordinary
 launcher and keyboard paths afterward.
 Nix native, WASM and formatting checks pass on x86_64-linux.
+
+Disguise now swaps the original body meshes, short rest offsets and motion height,
+while preserving player identity, collision definitions and coordinate caches.
+It sets the original alert state and lasts 600 active ticks; damage, death,
+specified attacks, replacement and forced disposal restore the original body.
+Four focused checks cover both characters, full duration, crouch recovery,
+interruption refunds, replacement, eviction and status boundaries. Ninety-six
+extracted-C snapshot/apply cases cover short truncation and untouched cache,
+parent and rotation fields. Medicine, charm, speed and disguise now share their
+identical source-ordered interrupted-cast refund helper.
+All 121 core checks pass, excluding the unchanged long cinematic coverage check.
+The twelve relevant private desktop checks also pass, including all 66 starts,
+display-cadence independence, GPU blends and the full Mission 1 route through
+saved continuation. Native keyboard checks visibly transform and restore both
+characters, using temporary saves to unlock the equipment and ordinary UI paths.
+Nix native, WASM and formatting checks pass on x86_64-linux.

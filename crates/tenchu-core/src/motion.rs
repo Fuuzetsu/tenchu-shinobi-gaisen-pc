@@ -70,7 +70,7 @@ pub struct Pose {
     pub translation: Vec<[i32; 3]>,
     pub rotation: Vec<[i16; 3]>,
     parents: Vec<Option<usize>>,
-    root_height: i16,
+    pub(crate) root_height: i16,
 }
 
 impl Pose {

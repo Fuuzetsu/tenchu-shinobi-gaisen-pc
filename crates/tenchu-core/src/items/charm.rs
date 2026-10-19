@@ -20,15 +20,7 @@ impl Items {
             }
             1 => {
                 if owner.motion.action != MOT_ITEM_KAENGEKI {
-                    let position = ctx.scene.world(item.model)?.translation;
-                    let kind = item.kind;
-                    let velocity = [
-                        ctx.random.next15() % 200 - 100,
-                        ctx.random.next15() % 100 - 200,
-                        ctx.random.next15() % 200 - 100,
-                    ];
-                    self.drop(kind, Some(owner_id), position, velocity, actors, ctx)?;
-                    return self.dispose(id, actors, ctx);
+                    return self.refund_cast(id, actors, ctx);
                 }
                 if owner.motion.count != 0 || owner.motion.loops == 0 {
                     return Ok(());
