@@ -2,6 +2,7 @@ const TEXTURED: u32 = 1u;
 const SCREEN: u32 = 2u;
 const TRANSLUCENT: u32 = 4u;
 const SCREEN_WIDE: u32 = 8u;
+const DOUBLE_SIDED: u32 = 16u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -44,7 +45,8 @@ fn word(x: u32, y: u32) -> u32 {
     return textureLoad(vram, vec2<i32>(i32(x & 1023u), i32(y & 511u)), 0).r;
 }
 
-fn shade(v: Fragment) -> vec4<f32> {
+fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
+    if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     var color = v.color;
     var semi = (v.flags & TRANSLUCENT) != 0u;
     if (v.flags & TEXTURED) != 0u {
@@ -71,14 +73,14 @@ fn shade(v: Fragment) -> vec4<f32> {
     return vec4(clamp(color, vec3(0.0), vec3(1.0)), select(0.0, 1.0, semi));
 }
 
-@fragment fn opaque(v: Fragment) -> @location(0) vec4<f32> {
-    let color = shade(v);
+@fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    let color = shade(v, front_facing);
     if color.a != 0.0 { discard; }
     return vec4(color.rgb, 1.0);
 }
 
-@fragment fn translucent(v: Fragment) -> @location(0) vec4<f32> {
-    let color = shade(v);
+@fragment fn translucent(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    let color = shade(v, front_facing);
     if color.a == 0.0 { discard; }
     return vec4(color.rgb, 1.0);
 }

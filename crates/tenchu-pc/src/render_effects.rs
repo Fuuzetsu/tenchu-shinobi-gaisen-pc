@@ -124,10 +124,14 @@ fn mesh_surfaces(
     meshes: &[tenchu_assets::model::Geometry],
     matrix: Matrix,
     view: Matrix,
+    translucent_only: bool,
 ) {
     let view = view.compose(&matrix);
     for mesh in meshes {
         for face in &mesh.faces {
+            if translucent_only && !face.translucent {
+                continue;
+            }
             let blend = if face.translucent {
                 face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1)
             } else {
@@ -135,11 +139,6 @@ fn mesh_surfaces(
             };
             let mut vertices = Vec::new();
             render_mesh::append_face(&mut vertices, mesh, face, matrix);
-            if blend != 0 {
-                for v in &mut vertices {
-                    v.flags |= TRANSLUCENT;
-                }
-            }
             let depth = face
                 .corners
                 .iter()
@@ -157,6 +156,11 @@ fn mesh_surfaces(
 
 pub fn build(game: &Game) -> Geometry {
     let mut surfaces = Vec::new();
+    let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
+        mesh_surfaces(&mut surfaces, meshes, matrix, game.rendered_view, true);
+    };
+    render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
+    render_mesh::visit_characters(game, &mut translucent);
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
         for instance in instances {
             let mut matrix = Matrix {
@@ -173,6 +177,7 @@ pub fn build(game: &Game) -> Geometry {
                 &game.mission.common_models[&index],
                 matrix,
                 game.rendered_view,
+                false,
             );
         }
     }
@@ -183,6 +188,7 @@ pub fn build(game: &Game) -> Geometry {
                 &game.mission.common_models[&26],
                 matrix,
                 game.rendered_view,
+                false,
             );
         }
         for &(points, sort_depth) in &wire.lines {
@@ -218,6 +224,7 @@ pub fn build(game: &Game) -> Geometry {
             &game.mission.common_models[&index],
             matrix,
             game.rendered_view,
+            false,
         );
     }
     for &(kind, matrix) in &game.items.weapons {
@@ -226,6 +233,7 @@ pub fn build(game: &Game) -> Geometry {
             &game.mission.weapons.models[&kind],
             matrix,
             game.rendered_view,
+            false,
         );
     }
     for drawing in game

@@ -449,3 +449,23 @@ occluded by scene geometry, reinforcing the remaining renderer culling work.
 Ten private host checks, including both cadence comparisons, pass. Nix native,
 WASM and formatting checks pass on x86_64-linux. These are subsystem checks,
 not ordinary completed mission runs.
+
+
+Renderer follow-up: original mesh face winding now culls back faces while
+preserving explicitly double-sided faces and screen sprites. Transparent stage,
+placement, character and weapon faces join the depth-sorted effect surfaces;
+their opaque texture pixels still write depth before semitransparent pixels blend.
+Original texture STP handling and all four blend equations are exercised in an
+ignored offscreen GPU check, together with front/back/double-sided faces. Stage
+and character traversal is shared between the opaque and transparent builders.
+
+Native windows confirm the final-stage lava start is now visible instead of
+being covered by back faces, and render the fire-breath effect and Mission 4
+scenery. The `render` command now captures 30 real gameplay ticks through the
+same camera, character/effect and HUD path. No game state or tick ordering changed.
+Lighting, fog, original distance/sector visibility and continuous-play validation
+remain separate work; this is not a complete original renderer claim.
+Public workspace tests and the GPU check pass; the Nix native package, WASM
+boundary and formatting checks pass on x86_64-linux. The production binary was
+rebuilt after removing the temporary QA starts, and its `render` output was
+inspected.

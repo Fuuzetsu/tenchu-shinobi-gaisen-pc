@@ -585,3 +585,17 @@ cases with previously verified motion/rotation calls stubbed. Additional checks
 cover full-pool even-tick rejection, both playable casts, a Manji attack and the
 retail lava-floor emitter through ordinary updates. Native QA uses temporary
 loadout/position setup only; those hooks are not part of the committed runtime.
+
+
+## Mesh visibility and transparency (2026-10-20)
+
+The existing TMD decoder provides primitive winding, double-sided flags, texture
+STP and texture-page blend modes. The host now uses those fields for stage,
+placement, character and weapon faces as well as effects. This is a modern
+GPU depth-buffer renderer: no ordering-table addresses, raster warping or PS1
+frame-cost emulation. Logical packet counting remains in the core unchanged.
+An offscreen GPU regression verifies positive source-screen winding, reversed
+and double-sided faces, opaque/transparent texels, STP black and all four
+original blend equations. Shared face traversal keeps opaque and transparent
+passes consistent. Native screenshots cover Mission 1 fire breath, Mission 4
+scenery and a relocated final-stage lava start.

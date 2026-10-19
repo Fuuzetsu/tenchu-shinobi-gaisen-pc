@@ -42,7 +42,8 @@ never an input to the Nix package or copied into the Nix store.
 ```
 
 `audit` constructs every stage for both characters and samples each motion track
-through its duration. `render` captures Mission 1 with original textures.
+through its duration. `render` captures Mission 1 after 30 ordinary logic ticks, using the same camera,
+textures, characters, effects and HUD as the window.
 
 ## Gameplay preview
 
@@ -79,8 +80,8 @@ Left/Right, then Enter to start. The hook is always carried. Tap E for a quick
 shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
 selected, hold E, aim with the direction keys and release to grapple. Doors, pitfalls, animated water, fire emitters, snow and ambient sound now run
-from the original construction data. Lighting, full scene transparency and the
-map remain in progress.
+from the original construction data. Scene faces now use back-face culling and their original transparency flags and
+blend modes, sorted together with particles. Lighting, fog and the map remain in progress.
 
 Original sound effects, character voices, music and localized cinematic dialogue
 play from the disc. Music/dialogue require a raw Mode 2 BIN/CUE; cooked 2048-byte

@@ -1,47 +1,19 @@
 use crate::{
-    render_mesh,
+    render_effects, render_mesh,
     renderer::{self, Renderer},
+    session::Options,
     source::FileSource,
 };
 use std::{fs::File, io::BufWriter, path::Path};
-use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
-use tenchu_core::{
-    math::{Math, Matrix},
-    motion::Motion,
-};
+use tenchu_assets::{Result, game::GameAssets};
 
-pub fn render(game: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
-    let mission = MissionAssets::load(game, 0, 0, 1)?;
-    let math = Math {
-        tables: Executable::new(&game.executable)?.math_tables()?,
-    };
-    let parts = &mission.models[&0];
-    let character = mission
-        .characters
-        .iter()
-        .find(|c| c.kind == 0)
-        .ok_or("Missing Rikimaru")?;
-    let mut motion = Motion::new(parts)?;
-    if motion.change(
-        0,
-        &character.motions,
-        &mission.common_motions,
-        &mission.clips,
-    ) == tenchu_core::motion::Change::Missing
-    {
-        return Err("Missing standing motion".into());
-    }
+pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
+    let mut game = Options::default().load(assets)?;
     for _ in 0..30 {
-        motion.step(&mission.clips, &math.tables.hermite)?;
+        game.step(0)?;
     }
-    let mut vertices = render_mesh::stage(&mission, &math);
-    let root = Matrix {
-        translation: mission.stage.start,
-        rotation: math.rotate_yxz([0, mission.stage.facing as i16, 0]),
-    };
-    for (part, matrix) in parts.iter().zip(motion.pose.matrices(&math, root)) {
-        render_mesh::append(&mut vertices, part, matrix);
-    }
+    let mut vertices = render_mesh::stage(&game.mission, &game.math);
+    vertices.extend(render_mesh::characters(&game));
     let instance = wgpu::Instance::new(&Default::default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
@@ -57,7 +29,7 @@ pub fn render(game: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
         &adapter,
         format,
         [width, height],
-        &mission.vram,
+        &game.mission.vram,
     ))?;
     let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Capture"),
@@ -73,14 +45,11 @@ pub fn render(game: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
         view_formats: &[],
     });
-    let target = mission.stage.start.map(|v| v as f32);
-    let eye = [target[0] + 4000.0, target[1] - 3500.0, target[2] + 6000.0];
-    let target = [target[0], target[1] - 700.0, target[2]];
     renderer.draw(
         &texture.create_view(&Default::default()),
-        renderer::camera(eye, target, width as f32 / height as f32),
+        renderer::game_camera(game.rendered_view, width as f32 / height as f32),
         &[&renderer.upload(&vertices)],
-        None,
+        Some(&renderer.upload_effects(render_effects::build(&game))),
     );
     let stride = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
     let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {

@@ -3,6 +3,9 @@ use glam::Mat4;
 use tenchu_assets::{Result, texture::Vram};
 use wgpu::util::DeviceExt;
 
+#[cfg(test)]
+mod tests;
+
 pub struct Mesh {
     buffer: wgpu::Buffer,
     count: u32,
@@ -89,7 +92,7 @@ impl Renderer {
                         attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32],
                     }],
                 },
-                primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
+                primitive: wgpu::PrimitiveState { front_face: wgpu::FrontFace::Cw, cull_mode: None, ..Default::default() },
                 depth_stencil: Some(wgpu::DepthStencilState {
                     format: wgpu::TextureFormat::Depth32Float, depth_write_enabled,
                     depth_compare: wgpu::CompareFunction::LessEqual, stencil: Default::default(),
@@ -308,18 +311,6 @@ impl Renderer {
         }
         self.queue.submit([encoder.finish()]);
     }
-}
-
-pub fn camera(eye: [f32; 3], target: [f32; 3], aspect: f32) -> Mat4 {
-    let eye = glam::Vec3::from(eye);
-    let target = glam::Vec3::from(target);
-    let up = if (target - eye).normalize_or_zero().y.abs() > 0.9999 {
-        glam::Vec3::Z
-    } else {
-        glam::Vec3::NEG_Y
-    };
-    Mat4::perspective_rh(2.0 * (120.0f32 / 300.0).atan(), aspect, 50.0, 250_000.0)
-        * Mat4::look_at_rh(eye, target, up)
 }
 
 pub fn game_camera(view: tenchu_core::math::Matrix, aspect: f32) -> Mat4 {
