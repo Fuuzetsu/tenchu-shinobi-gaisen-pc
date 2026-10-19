@@ -285,6 +285,7 @@ impl Game {
             },
             &mut self.roster,
             &mut self.intelligence,
+            self.player_id,
             self.tick as i32,
         )?;
         for (actor, health, maximum) in self.combat.life_bars.drain(..) {

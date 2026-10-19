@@ -169,7 +169,7 @@ body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
 dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellation,
-medicine, caltrops, grappling, smoke bombs, grenades, mines and item damage. The native
+medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Remaining item use, special
@@ -211,12 +211,14 @@ Swimming now preserves water entry, splash RNG, attack cleanup, hidden body part
 steering, reverse blockage, hook-only use/cancellation, shore exit and non-swimmer
 drowning. Falling also performs the original attack cleanup.
 Wall hugging now preserves shared static animation edits, cardinal alignment,
-slide/roll/release transitions, and caltrop/grenade/smoke corner throws. Corner
+slide/roll/release transitions, and caltrop/grenade/smoke/poisoned-food corner throws. Corner
 throws latch selection and decrement inventory bytes even from zero or 255.
 The original null-map probe reads a zero vector byte from low RAM in the available
 retail capture; the portable implementation explicitly uses reflected vector zero
 for that branch. Other BIOS low-RAM contents are outside that fidelity claim.
-Poisoned-food corner throws remain with the pending poisoned-food processor.
+Poisoned food now supports rolling, owner recovery, ordered target selection,
+luring, eating/interruptions, poison reactions/expiry and cleanup of the saved
+AI callback. Smoke and food share the source target filter.
 CVA camera/actor ownership, remaining ranged/item combat, results,
 saving, transitions and the remaining campaign are still required.
 
@@ -281,6 +283,11 @@ Verification completed so far:
   wall entry, sliding and release. The private asset check confirms editable
   wall tracks do not alias other tracks in either player's original AMD, and
   display-cadence snapshots now include shared wall motion keys.
+- Both characters throw poisoned food and lure a guard through eating, poison
+  reactions and expiry in controlled ordinary-tick scenarios. Tests preserve
+  interrupted-food detachment/RNG, restoration of the original idle callback,
+  owner-pickup dependence on roster order, and poisoned-food corner throws.
+  The native window displays the original thrown-food sprite and its landing.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -296,6 +303,7 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: poisoned food and remaining item behaviors, then mission events. Fill the remaining
+Next: Mission 1 event and CVA execution, with remaining item/environment behavior
+added alongside the encounters that need it. Fill the remaining
 drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

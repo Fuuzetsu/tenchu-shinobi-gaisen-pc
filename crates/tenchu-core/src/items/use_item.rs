@@ -44,6 +44,7 @@ impl Items {
             4 => Processor::Fire,
             5 => Processor::Smoke,
             6 => Processor::Mine,
+            7 => Processor::Poison,
             _ => return Err(format!("Rolling item {kind} is not implemented yet")),
         };
         let id = self.allocate(actors, ctx)?;
@@ -58,6 +59,13 @@ impl Items {
             2 => ctx.effects.sounds.push((start, 0x22)),
             4 => item.count = 150,
             5 => item.count = 10,
+            7 => {
+                item.poison.remaining = 10;
+                item.poison.eater = None;
+                actors
+                    .get_mut(owner)
+                    .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
+            }
             _ => {}
         }
         Ok(())
@@ -199,10 +207,11 @@ impl Items {
                 self.initialize(id, Processor::Medicine, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
             }
-            4 | 5 | 6 => {
+            4 | 5 | 6 | 7 => {
                 let vector = match kind {
                     4 => [0, -120, -120],
                     5 => [0, 0, -60],
+                    7 => [0, -120, -240],
                     _ => [0, 0, -1000],
                 };
                 let velocity = throw_vector(actors.get(owner_id), player, vector, ctx)?;

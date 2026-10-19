@@ -61,9 +61,9 @@ Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
-smoke bombs, grenades and mines work through normal item selection. Remaining items/special attacks and mission
+smoke bombs, grenades, mines and poisoned food work through normal item selection. Remaining items/special attacks and mission
 events are unfinished; unsupported actions pause with a diagnostic. Caltrops,
-grenades and smoke bombs also use the original corner-throw behavior.
+grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
 texture palettes and transparency modes. The HUD shows inventory selection and

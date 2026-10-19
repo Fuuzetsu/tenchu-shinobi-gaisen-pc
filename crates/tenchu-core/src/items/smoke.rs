@@ -1,5 +1,5 @@
 use super::*;
-use crate::ids::{ATTR_SUSPEND, MOT_ACTION, MOT_DAMAGE_CHOKE};
+use crate::ids::MOT_DAMAGE_CHOKE;
 
 impl Items {
     pub(super) fn roll_icon(
@@ -56,16 +56,7 @@ impl Items {
                 }
                 for target in actors.roster.order.clone() {
                     let actor = actors.get_mut(target);
-                    if actor.health <= 0
-                        || actor.motion.action == MOT_ACTION
-                        || actor.attribute & ATTR_SUSPEND != 0
-                    {
-                        continue;
-                    }
-                    if ctx.math.vector_distance(std::array::from_fn(|i| {
-                        position[i].wrapping_sub(actor.position[i])
-                    })) >= 2000
-                    {
+                    if target_distance(actor, position, 2000, ctx).is_none() {
                         continue;
                     }
                     if Some(target) == item.owner || actor.motion.action == MOT_DAMAGE_CHOKE {

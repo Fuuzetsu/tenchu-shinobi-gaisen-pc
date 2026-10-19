@@ -339,4 +339,21 @@ fails. Its vector byte is zero in the available retail capture. The port uses
 `RefrectVector[0]` explicitly here; it neither reads a native null pointer nor
 requires BIOS/RAM emulation. This behavior is checked for both advancing away
 from the wall and reverting a sideways slide. Different low-RAM contents are
-not part of this claim. Poisoned-food throws still await their item processor.
+not part of this claim.
+
+## Poisoned food and lure cleanup (2026-10-20)
+
+`ProcItemDokudango`, `ReqItemDokudango`, `FindItemTarget`,
+`restore_dokudango_target` and `apply_dokudango_reaction` in `ITEM.C` above
+supply rolling, search order, owner recovery, AI redirection, eating, interrupted
+drops and poison expiry. `MOTION.C` supplies the return-to-normal behavior.
+The source stores a function pointer for the original AI; the scalar port uses
+`Option<u8>` so program index zero remains distinct from no saved callback.
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/items/poison.rs` | `893c917374d28d9c4d220ce54dd7656578c677028f2516ec0e89403813bffdd9` |
+
+The research file is a behavioral reference only. Private-disc scenarios exercise
+ordinary input, enemy following, eating, reaction/expiry, interrupted-drop RNG,
+cleanup, and the source search-order quirk that can suppress owner recovery.

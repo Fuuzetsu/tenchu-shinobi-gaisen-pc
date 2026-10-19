@@ -4,6 +4,7 @@ mod flight;
 mod grapple;
 mod medicine;
 mod pickup;
+mod poison;
 mod projectile;
 mod rolling;
 mod sight_shot;
@@ -39,6 +40,7 @@ pub enum Processor {
     Smoke,
     Fire,
     Mine,
+    Poison,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -62,6 +64,7 @@ pub struct Item {
     pub flight: flight::Flight,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
+    pub poison: poison::Poison,
 }
 
 #[derive(Debug)]
@@ -77,6 +80,19 @@ pub struct Items {
     cursor: usize,
     icons: [ModelId; KINDS + 1],
     icon_scale: [i32; KINDS + 1],
+}
+
+fn target_distance(actor: &Actor, position: [i32; 3], radius: i32, ctx: &Context) -> Option<i32> {
+    if actor.health <= 0
+        || actor.motion.action == crate::ids::MOT_ACTION
+        || actor.attribute & crate::ids::ATTR_SUSPEND != 0
+    {
+        return None;
+    }
+    let distance = ctx.math.vector_distance(std::array::from_fn(|i| {
+        position[i].wrapping_sub(actor.position[i])
+    }));
+    (distance < radius).then_some(distance)
 }
 
 impl Items {
@@ -101,6 +117,7 @@ impl Items {
                 flight: flight::Flight::default(),
                 trail: None,
                 rotation: [0; 3],
+                poison: poison::Poison::default(),
             })
             .collect();
         let icons = std::array::from_fn(|_| {
@@ -159,6 +176,9 @@ impl Items {
     }
 
     fn dispose(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<()> {
+        if self.slots[id].processor == Some(Processor::Poison) {
+            self.restore_poison_target(id, actors)?;
+        }
         let item = &mut self.slots[id];
         match item.processor {
             Some(Processor::Grapple) => item.mode = 0,
@@ -287,6 +307,7 @@ impl Items {
         ctx: &mut Context,
         roster: &mut Roster,
         intelligence: &mut crate::ai::Intelligence,
+        player: usize,
         clock: i32,
     ) -> Result<()> {
         let actors = &mut Actors::new(roster);
@@ -310,6 +331,9 @@ impl Items {
                 Some(Processor::Smoke) => self.smoke(id, actors, intelligence, clock, ctx)?,
                 Some(Processor::Fire) => self.fire(id, actors, intelligence, ctx)?,
                 Some(Processor::Mine) => self.mine(id, actors, intelligence, ctx)?,
+                Some(Processor::Poison) => {
+                    self.poison(id, actors, intelligence, player, clock, ctx)?
+                }
                 None => {}
             }
         }

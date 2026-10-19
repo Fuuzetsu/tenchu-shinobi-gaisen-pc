@@ -2,6 +2,8 @@ use super::*;
 use crate::{game::Game, input::UP, oracle, random::Random};
 use std::fmt::Write;
 
+mod poison;
+
 fn with_items<T>(game: &mut Game, f: impl FnOnce(&mut Items, &mut Context, &mut Actors) -> T) -> T {
     f(
         &mut game.items,

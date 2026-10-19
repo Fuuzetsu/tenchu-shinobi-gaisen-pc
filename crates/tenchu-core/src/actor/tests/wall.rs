@@ -133,7 +133,7 @@ fn wall_hug_slide_and_release_through_input() {
 fn corner_throws_keep_selection_and_byte_decrement() {
     use crate::{camera::Mode, items::Processor};
     for character in 0..2 {
-        for kind in [2, 4, 5] {
+        for kind in [2, 4, 5, 7] {
             let mut game = oracle::game(0, character);
             at_wall(&mut game);
             let player = game.player_id;
@@ -163,6 +163,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
             let processor = match kind {
                 2 => Processor::Caltrops,
                 4 => Processor::Fire,
+                7 => Processor::Poison,
                 _ => Processor::Smoke,
             };
             for _ in 0..100 {

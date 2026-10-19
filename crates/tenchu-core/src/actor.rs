@@ -417,7 +417,7 @@ impl Actor {
         }
     }
 
-    fn return_normal(&self, ctx: &mut Context, player: usize) -> Result<i16> {
+    pub(crate) fn return_normal(&self, ctx: &mut Context, player: usize) -> Result<i16> {
         if self.id == player {
             ctx.camera.normal(self, ctx.math)?;
         }
