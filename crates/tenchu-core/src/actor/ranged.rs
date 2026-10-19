@@ -116,7 +116,7 @@ impl Actor {
                 } else {
                     world.roster.get_mut(world.player).inventory[25] = 0;
                 }
-                next = Some((self.return_motion(), true));
+                next = Some((self.return_normal(ctx, world.player)?, true));
             }
             return Ok(next);
         }
@@ -125,7 +125,7 @@ impl Actor {
                 self.default_item(ctx, world, 1)?;
             }
             if complete {
-                return Ok(Some((self.return_motion(), true)));
+                return Ok(Some((self.return_normal(ctx, world.player)?, true)));
             }
         }
         Ok(None)

@@ -624,7 +624,7 @@ fn ranged_actors_hit_and_projectiles_retire() {
 fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
     use crate::{camera::Mode, input::*, items::Processor};
     for character in 0..2 {
-        for path in 0..4 {
+        for (path, look) in [(0, false), (1, false), (1, true), (2, false), (3, false)] {
             let mut game = oracle::game(0, character);
             game.roster.get_mut(game.player_id).inventory[1] = 3;
             game.hud.cursor = 1;
@@ -682,12 +682,19 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                 path <= 1
             );
             for _ in 0..90 {
-                game.step(0).unwrap();
+                game.step(if look { L1 } else { 0 }).unwrap();
             }
             assert!(!matches!(
                 game.player().motion.action,
                 MOT_SYURI | MOT_SYURI_RECOVER
             ));
+            if path != 3 {
+                assert_eq!(
+                    game.camera.mode,
+                    if look { Mode::Direction } else { Mode::Normal },
+                    "character {character}, path {path}"
+                );
+            }
         }
     }
 }

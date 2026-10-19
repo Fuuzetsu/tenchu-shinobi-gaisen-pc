@@ -38,7 +38,11 @@ impl Actor {
                 ctx,
             )?;
         }
-        Ok(complete.then_some((self.return_motion(), true)))
+        Ok(if complete {
+            Some((self.return_normal(ctx, world.player)?, true))
+        } else {
+            None
+        })
     }
 
     pub(super) fn default_item(

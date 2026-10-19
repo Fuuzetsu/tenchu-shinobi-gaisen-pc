@@ -141,10 +141,7 @@ impl Actor {
             return self.selected_item(ctx, world, pending);
         }
         if held & CIRCLE == 0 {
-            if self.id == 0 {
-                ctx.camera.normal(self, ctx.math)?;
-            }
-            return Ok(Some((self.return_motion(), true)));
+            return Ok(Some((self.return_normal(ctx, world.player)?, true)));
         }
         Ok(pending)
     }

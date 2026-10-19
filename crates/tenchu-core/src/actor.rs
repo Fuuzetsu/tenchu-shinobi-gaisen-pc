@@ -402,11 +402,14 @@ impl Actor {
         }
     }
 
-    fn return_motion(&self) -> i16 {
-        if self.attribute & ATTR_WEAPON_DRAWN != 0 {
+    fn return_normal(&self, ctx: &mut Context, player: usize) -> Result<i16> {
+        if self.id == player {
+            ctx.camera.normal(self, ctx.math)?;
+        }
+        Ok(if self.attribute & ATTR_WEAPON_DRAWN != 0 {
             MOT_ENGAGE_STANCE
         } else {
             MOT_NORMAL
-        }
+        })
     }
 }

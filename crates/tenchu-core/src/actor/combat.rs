@@ -393,7 +393,8 @@ impl Actor {
                 self.motion.pose.translation[0][2] = 0;
                 ctx.scene
                     .set_translation(self.parts[0], self.motion.pose.translation[0]);
-                self.enter(ctx, self.return_motion(), true);
+                let action = self.return_normal(ctx, world.player)?;
+                self.enter(ctx, action, true);
                 self.motion.count = 0;
                 self.motion.loops = 0;
                 self.play_pose(ctx)?;

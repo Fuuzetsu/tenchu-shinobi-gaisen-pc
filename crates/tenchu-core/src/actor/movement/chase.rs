@@ -57,7 +57,7 @@ impl Actor {
                         if held & DOWN != 0 {
                             MOT_CHASE_BACK
                         } else {
-                            self.return_motion()
+                            self.return_normal(ctx, world.player)?
                         },
                         true,
                     ));

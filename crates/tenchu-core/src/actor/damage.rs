@@ -126,8 +126,9 @@ impl Actor {
         }
         if (MOT_ATTACK_STEALTH_BACK..=MOT_ATTACK_STEALTH_SIDE_AYAME).contains(&self.motion.action) {
             world.intelligence.action_halt = 0;
+            let action = self.return_normal(ctx, world.player)?;
             self.position[1] = self.position[1].wrapping_sub(1);
-            return Ok(Some((self.return_motion(), true)));
+            return Ok(Some((action, true)));
         }
         if self.motion.action == MOT_DAMAGE_DOWNED {
             return Ok(None);

@@ -197,6 +197,8 @@ logical packet contributions are included in activation sampling. The desktop
 launcher supplies the original fallback loadout (hook, 10 shuriken, 5 caltrops,
 2 medicine). Shuriken aiming/release/cancellation, medicine and caltrops now run
 through normal input, actor animations and item updates. AI can request medicine.
+Return-to-normal transitions now apply the source player camera reset, including
+shuriken recovery and the held-look-button exception.
 Grappling now includes source targeting, flight/countdown, pull/contact exits,
 cable RNG, impact particles and original hook geometry. Empty cable curves omit
 the hook draw instead of reading undefined retail stack locals; their exact

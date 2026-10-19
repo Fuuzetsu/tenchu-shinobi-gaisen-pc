@@ -29,10 +29,7 @@ impl Actor {
                     let dx = ctx.camera.target[0].wrapping_sub(self.position[0]);
                     let dz = ctx.camera.target[2].wrapping_sub(self.position[2]);
                     if dx == 0 && dz == 0 {
-                        if self.id == world.player {
-                            ctx.camera.normal(self, ctx.math)?;
-                        }
-                        next = Some((self.return_motion(), true));
+                        next = Some((self.return_normal(ctx, world.player)?, true));
                     } else {
                         self.rotation[1] = self.rotation[1].wrapping_add(ctx.math.direction(
                             dx,
@@ -44,10 +41,7 @@ impl Actor {
                     }
                 } else if self.pad.trigger & (SQUARE | CROSS | CIRCLE) != 0 {
                     self.inventory[25] = 0;
-                    if self.id == world.player {
-                        ctx.camera.normal(self, ctx.math)?;
-                    }
-                    next = Some((self.return_motion(), true));
+                    next = Some((self.return_normal(ctx, world.player)?, true));
                 }
                 if self.map.attribute & 4 != 0 && next.is_some_and(|(action, _)| action >> 8 != 4) {
                     for &part in self.parts.iter().take(13).skip(7).chain(self.parts.first()) {

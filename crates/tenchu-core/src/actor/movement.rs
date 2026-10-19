@@ -41,7 +41,7 @@ impl Actor {
             7 => self.attack(ctx, world, held)?,
             8 => self.state(ctx, world, held)?,
             9 => self.jump(ctx, held)?,
-            10 => self.hang(ctx, held)?,
+            10 => self.hang(ctx, held, world.player)?,
             11 => self.crouch(ctx, world, held, command)?,
             14 => self.shuriken_control(ctx, world)?,
             15 => self.item_control(ctx, world)?,
@@ -201,17 +201,17 @@ impl Actor {
         match self.motion.action {
             MOT_ACTION_LOOP => {
                 if self.motion.loops != 0 && held != 0 {
-                    pending = Some((self.return_motion(), true));
+                    pending = Some((self.return_normal(ctx, world.player)?, true));
                 }
             }
             MOT_ACTION_FIDGET_A | MOT_ACTION_FIDGET_B => {
                 if self.health != self.max_health || self.attribute & 1 != 0 {
-                    pending = Some((self.return_motion(), true));
+                    pending = Some((self.return_normal(ctx, world.player)?, true));
                 }
                 if self.motion.count == 1 {
                     world.intelligence.voices.push((self.id, 15));
                 } else if complete {
-                    pending = Some((self.return_motion(), true));
+                    pending = Some((self.return_normal(ctx, world.player)?, true));
                 }
             }
             MOT_ACTION => {
@@ -240,7 +240,7 @@ impl Actor {
             }
             _ => {
                 if complete {
-                    pending = Some((self.return_motion(), true));
+                    pending = Some((self.return_normal(ctx, world.player)?, true));
                 }
             }
         }
@@ -441,7 +441,7 @@ impl Actor {
                 if count == 1 {
                     self.clear_attack(ctx, 3)?;
                     if drawing && (2..7).contains(&self.kind) {
-                        return Ok(Some((self.return_motion(), true)));
+                        return Ok(Some((self.return_normal(ctx, world.player)?, true)));
                     }
                     if (self.attribute & ATTR_WEAPON_DRAWN != 0) == drawing {
                         return Ok(Some((
@@ -496,7 +496,7 @@ impl Actor {
                     .then_some((MOT_ATTACK_DIVE, false));
                 if self.attribute & ATTR_NOFLOOR != 0 || self.map.height <= 0 {
                     pending = Some(if self.motion.count < -40 {
-                        (self.return_motion(), true)
+                        (self.return_normal(ctx, world.player)?, true)
                     } else if self.motion.count > -21 {
                         (MOT_STATE_LAND_HEAVY, false)
                     } else {
@@ -531,15 +531,17 @@ impl Actor {
                         .smoke_burst(self.position, 300, 12, 10, ctx.random);
                 }
                 if count == 0 && self.motion.loops != 0 {
-                    return Ok(Some((self.return_motion(), true)));
+                    return Ok(Some((self.return_normal(ctx, world.player)?, true)));
                 }
                 self.velocity[0] = self.velocity[0].wrapping_sub(self.velocity[0] >> 2);
                 self.velocity[2] = self.velocity[2].wrapping_sub(self.velocity[2] >> 2);
                 Ok(pending)
             }
-            MOT_STATE_PICKUP => {
-                Ok((count == 0 && self.motion.loops != 0).then_some((self.return_motion(), true)))
-            }
+            MOT_STATE_PICKUP => Ok(if count == 0 && self.motion.loops != 0 {
+                Some((self.return_normal(ctx, world.player)?, true))
+            } else {
+                None
+            }),
             action => Err(format!(
                 "State transition {action:#x} is not implemented yet"
             )),

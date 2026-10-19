@@ -97,7 +97,12 @@ impl Actor {
         Ok(true)
     }
 
-    pub(super) fn hang(&mut self, ctx: &mut Context, held: u16) -> Result<Option<(i16, bool)>> {
+    pub(super) fn hang(
+        &mut self,
+        ctx: &mut Context,
+        held: u16,
+        player: usize,
+    ) -> Result<Option<(i16, bool)>> {
         self.velocity[1] = 0;
         let mut pending = None;
         match self.motion.action {
@@ -143,10 +148,7 @@ impl Actor {
             }
             MOT_HANG_PULLUP => {
                 if self.motion.count == 0 && self.motion.loops != 0 {
-                    if self.id == 0 {
-                        ctx.camera.normal(self, ctx.math)?;
-                    }
-                    return Ok(Some((self.return_motion(), true)));
+                    return Ok(Some((self.return_normal(ctx, player)?, true)));
                 }
                 if self.motion.count >= 0 {
                     self.velocity[1] = -35;
