@@ -1,7 +1,13 @@
 pub mod afs;
 pub mod cue;
 pub mod disc;
+pub mod executable;
 pub mod game;
+pub mod model;
+pub mod motion;
+pub mod stage;
+pub mod terrain;
+pub mod texture;
 
 pub type Result<T> = std::result::Result<T, String>;
 
@@ -40,13 +46,40 @@ pub fn check_span(offset: u64, size: u64, length: u64) -> Result<()> {
 }
 
 fn u32_le(bytes: &[u8], at: usize) -> Result<u32> {
-    let data = bytes.get(at..at + 4).ok_or("Missing 32-bit field")?;
+    let data = slice(bytes, at, 4)?;
     Ok(u32::from_le_bytes(data.try_into().unwrap()))
 }
 
 fn u32_be(bytes: &[u8], at: usize) -> Result<u32> {
-    let data = bytes.get(at..at + 4).ok_or("Missing 32-bit field")?;
+    let data = slice(bytes, at, 4)?;
     Ok(u32::from_be_bytes(data.try_into().unwrap()))
+}
+
+fn slice(bytes: &[u8], at: usize, size: usize) -> Result<&[u8]> {
+    at.checked_add(size)
+        .and_then(|end| bytes.get(at..end))
+        .ok_or_else(|| format!("Missing asset bytes {at}+{size}, length {}", bytes.len()))
+}
+
+fn u16_le(bytes: &[u8], at: usize) -> Result<u16> {
+    Ok(u16::from_le_bytes(slice(bytes, at, 2)?.try_into().unwrap()))
+}
+
+fn i16_le(bytes: &[u8], at: usize) -> Result<i16> {
+    Ok(u16_le(bytes, at)? as i16)
+}
+
+fn short3(bytes: &[u8], at: usize) -> Result<[i16; 3]> {
+    let row = slice(bytes, at, 6)?;
+    Ok([i16_le(row, 0)?, i16_le(row, 2)?, i16_le(row, 4)?])
+}
+
+fn relative(bytes: &[u8], base: usize, field: usize) -> Result<usize> {
+    let at = base
+        .checked_add(u32_le(bytes, field)? as usize)
+        .ok_or("Asset offset overflow")?;
+    slice(bytes, at, 1)?;
+    Ok(at)
 }
 
 fn text(bytes: &[u8]) -> Result<String> {

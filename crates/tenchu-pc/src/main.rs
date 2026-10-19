@@ -1,17 +1,68 @@
+mod capture;
+mod render_mesh;
+mod renderer;
 mod source;
 
-use tenchu_assets::{Result, game::GameAssets};
+use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
 
 fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc inspect DISC [ASSET]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nLists mission resources; ASSET reads a named file from DATA.VOL."
+            "tenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
         );
         return Ok(());
     }
+    if args[0] == "render" && args.len() == 3 {
+        let game = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        return capture::render(&game, args[2].as_ref());
+    }
+    if args[0] == "audit" && args.len() == 2 {
+        let game = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        let exe = Executable::new(&game.executable)?;
+        let math = tenchu_core::math::Math {
+            tables: exe.math_tables()?,
+        };
+        println!(
+            "{} characters, {} command patterns",
+            exe.characters()?.len(),
+            exe.commands()?.len()
+        );
+        for id in 0..11 {
+            for character in 0..2 {
+                let mission = MissionAssets::load(&game, id, character, 1)?;
+                for parts in mission.models.values() {
+                    tenchu_core::motion::Pose::new(parts)?;
+                }
+                for clip in &mission.clips {
+                    for track in std::iter::once(&clip.root)
+                        .chain(&clip.bones)
+                        .filter(|t| !t.is_empty())
+                    {
+                        for frame in 0..=clip.duration {
+                            tenchu_core::motion::sample(
+                                track,
+                                frame,
+                                clip.duration,
+                                &math.tables.hermite,
+                            )?;
+                        }
+                    }
+                }
+                println!(
+                    "{} {}: {} triangles, {} enemies, {} clips",
+                    mission.stage.directory,
+                    if character == 0 { "Rikimaru" } else { "Ayame" },
+                    mission.triangle_count(),
+                    mission.enemies.len(),
+                    mission.clips.len()
+                );
+            }
+        }
+        return Ok(());
+    }
     if args[0] != "inspect" || !(2..=3).contains(&args.len()) {
-        return Err("Usage: tenchu-pc inspect DISC [ASSET]".into());
+        return Err("Usage: tenchu-pc inspect DISC [ASSET] | audit DISC".into());
     }
     let game = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
     println!(

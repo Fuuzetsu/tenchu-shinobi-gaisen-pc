@@ -12,6 +12,21 @@
         "aarch64-darwin"
       ];
       eachSystem = f: nixpkgs.lib.genAttrs systems (system: f (import nixpkgs { inherit system; }));
+      runtimeLibraries =
+        pkgs:
+        pkgs.lib.optionals pkgs.stdenv.isLinux (
+          with pkgs;
+          [
+            vulkan-loader
+            libGL
+            libxkbcommon
+            wayland
+            libX11
+            libXcursor
+            libXi
+            libXrandr
+          ]
+        );
       source =
         lib:
         lib.fileset.toSource {
@@ -29,6 +44,10 @@
           version = "0.1.0";
           src = source pkgs.lib;
           cargoLock.lockFile = ./Cargo.lock;
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          postFixup = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+            wrapProgram "$out/bin/tenchu-pc" --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"
+          '';
           meta.mainProgram = "tenchu-pc";
         };
     in
@@ -46,6 +65,7 @@
       devShells = eachSystem (pkgs: {
         default = pkgs.mkShell {
           TENCHU_DEV_SHELL = "1";
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (runtimeLibraries pkgs) + ":/run/opengl-driver/lib";
           packages = with pkgs; [
             cargo
             rustc

@@ -164,6 +164,14 @@ extents, archive parent indices, Shift-JIS names and malformed/truncated data.
 The scheduler produces identical ticks across 24–240 Hz presentation and stalls.
 Nix packages the native executable and checks native tests, WASM and formatting.
 
-No gameplay or renderer is implemented yet. Next: source-faithful scalar math,
-animation and terrain, disc-based Mission 1 construction, then interactive
-rendering and player control. The original TAS architecture remains a reference.
+Scalar math, command history, RNG, animation playback and terrain probes are now
+implemented. MAD/TMD, TIM/TPD, AMD, ACM, CON, layout and executable metadata
+decoders construct all eleven stages for either character. A real-disc audit
+samples every decoded motion track across its duration. The native wgpu renderer
+produces a checked Mission 1 capture with original textures and posed Rikimaru.
+No interactive gameplay is implemented yet. Lighting, transparency, weapons,
+effects and the complete gameplay update still require implementation.
+
+Next: source-ordered actor construction/control, collision and camera, then
+connect native input and presentation. The original TAS architecture remains a
+reference; there are no multi-world slabs or source-C runtime dependencies.

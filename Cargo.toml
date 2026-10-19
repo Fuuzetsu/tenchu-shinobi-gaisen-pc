@@ -12,6 +12,12 @@ tenchu-assets = { path = "crates/tenchu-assets" }
 tenchu-core = { path = "crates/tenchu-core" }
 sha2 = "0.10.9"
 encoding_rs = "=0.8.35"
+wgpu = "24.0.5"
+winit = "0.30.12"
+glam = "0.30"
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+png = "0.17"
 
 [profile.release]
 lto = "thin"

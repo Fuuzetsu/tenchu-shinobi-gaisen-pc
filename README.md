@@ -35,3 +35,13 @@ for the native package, `nix run -- inspect /path/to/game.cue` to run it, and
 `nix flake check` for tests, formatting and a WASM build of the reusable crates.
 ISO files and raw BIN data tracks also work. Disc data is read on demand; it is
 never an input to the Nix package or copied into the Nix store.
+
+```sh
+./dev.sh cargo run --release -- audit '/path/to/game.cue'
+./dev.sh cargo run --release -- render '/path/to/game.cue' /tmp/mission1.png
+```
+
+`audit` constructs every stage for both characters and samples each motion track
+through its duration. `render` uses the native GPU renderer to capture Mission 1
+with original textures and a standing Rikimaru. This is a rendering checkpoint;
+interactive gameplay, lighting, transparency, weapons and effects are in progress.
