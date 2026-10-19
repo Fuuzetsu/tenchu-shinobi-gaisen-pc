@@ -427,5 +427,25 @@ host checks pass, including 66 constructors, progression and cadence comparisons
 Native window checks show a door opening as the player walks through it, animated
 water during swimming, snow and decorative flames. These were relocated QA starts,
 not complete mission runs. The lava-area check reaches the existing unimplemented
-damage-floor napalm diagnostic; that is the next gameplay boundary. Camera-side
+damage-floor napalm diagnostic, now resolved by the next increment. Camera-side
 scene culling and full stage transparency also need presentation follow-up.
+
+
+Damage-floor napalm, Manji flame attacks and the player fire-breath item now run
+in scalar owned state. Napalm retains inventory consumption and pool allocation
+before even-tick rejection, curved motion, delayed collision, attached flashes,
+RNG/color/rotation order, terrain-exit cache behavior and both sprite passes.
+Fire breath retains its fixed cast origin, guarded motion entry, interruption
+refund, 40-tick firing window, steering/aiming and return-to-normal cleanup.
+
+Verification: 4,096 original-C napalm cases and 3,072 fire-breath callback cases
+pass, with terrain responses and already-verified rotation/motion/projection calls
+stubbed as stated by each test. Ordinary update tests exercise both player casts,
+Manji damage and the retail final-stage lava floor. All 90 current core checks
+pass except the separately excluded long campaign cinematic coverage check.
+A native keyboard check visibly casts and recovers from fire breath; a relocated
+lava start runs through damage without the former diagnostic. Its camera is
+occluded by scene geometry, reinforcing the remaining renderer culling work.
+Ten private host checks, including both cadence comparisons, pass. Nix native,
+WASM and formatting checks pass on x86_64-linux. These are subsystem checks,
+not ordinary completed mission runs.

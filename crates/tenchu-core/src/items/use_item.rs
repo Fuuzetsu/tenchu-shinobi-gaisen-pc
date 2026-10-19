@@ -1,6 +1,17 @@
 use super::*;
 use crate::camera::{Environment, Mode};
 
+pub(super) fn consume(owner: &mut Actor, kind: usize) -> Result<()> {
+    let count = owner
+        .inventory
+        .get_mut(kind)
+        .ok_or("Invalid item request")?;
+    if *count != 0 && *count != 255 {
+        *count -= 1;
+    }
+    Ok(())
+}
+
 pub(super) fn camera(mode: Mode, owner: &Actor, ctx: &mut Context) -> Result<()> {
     ctx.camera.set_mode(
         mode,
@@ -151,13 +162,7 @@ impl Items {
         roster: &mut Roster,
         ctx: &mut Context,
     ) -> Result<()> {
-        let count = owner
-            .inventory
-            .get_mut(kind)
-            .ok_or("Invalid item request")?;
-        if *count != 0 && *count != 255 {
-            *count -= 1;
-        }
+        consume(owner, kind)?;
         let owner_id = owner.id;
         let actors = &mut Actors {
             roster,
@@ -229,6 +234,17 @@ impl Items {
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
             }
             19 => {}
+            17 => {
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Breath, kind, Some(owner_id), start, ctx)?;
+                self.slots[id].collision.size = 0;
+                self.slots[id].breath = breath::Breath {
+                    origin: start,
+                    player,
+                    ..breath::Breath::default()
+                };
+                self.update_coordinate(id, ctx);
+            }
             _ => return Err(format!("Item {kind} use is not implemented yet")),
         }
         Ok(())

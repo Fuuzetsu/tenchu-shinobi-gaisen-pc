@@ -620,6 +620,71 @@ fn ranged_actors_hit_and_projectiles_retire() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; Manji's authored attack emits napalm that damages an actor through ordinary updates"]
+fn manji_fire_reaches_the_shared_item_damage_path() {
+    let mut game = oracle::game(3, 0);
+    let shooter = arena(&mut game, 0x30);
+    with_actor(&mut game, shooter, |actor, ctx, _| {
+        actor.attribute = ATTR_WEAPON_DRAWN;
+        actor.think = [0; 4];
+        actor.position = [0, 0, 2300];
+        assert!(actor.enter(ctx, MOT_ATTACK, true));
+        assert_eq!(actor.motion_id(ctx, MOT_ATTACK), 0xf5);
+        ctx.scene.update(actor.root_model, actor.root(ctx.math));
+    });
+    let mut launched = false;
+    for _ in 0..140 {
+        game.step(0).unwrap();
+        launched |= game
+            .items
+            .slots
+            .iter()
+            .any(|i| i.processor == Some(crate::items::Processor::Napalm));
+    }
+    assert!(launched);
+    assert!(game.player().health < game.player().max_health);
+    assert!(
+        !game
+            .items
+            .slots
+            .iter()
+            .any(|i| i.processor == Some(crate::items::Processor::Napalm))
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; the original final-stage lava floor spawns damaging napalm without a special host path"]
+fn retail_damage_floor_advances_through_napalm() {
+    let mut game = oracle::game(7, 0);
+    let player = game.player_id;
+    with_actor(&mut game, player, |actor, ctx, world| {
+        for id in world.roster.order.clone() {
+            if id != player {
+                world.roster.remove(id, ctx);
+            }
+        }
+        actor.position = [58000, 2000, 164500];
+        ctx.scene.update(actor.root_model, actor.root(ctx.math));
+        ctx.camera.position = [58000, -1000, 160500];
+        ctx.camera.reference = actor.position;
+        ctx.camera.snap_pending = true;
+    });
+    let mut launched = 0;
+    for _ in 0..100 {
+        game.step(0).unwrap();
+        launched += usize::from(
+            game.items
+                .slots
+                .iter()
+                .any(|i| i.processor == Some(crate::items::Processor::Napalm)),
+        );
+    }
+    assert!(launched > 20);
+    assert_ne!(game.player().map.attribute & 0x100, 0);
+    assert!(game.player().health < game.player().max_health);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; quick/aimed throws, cancellation and interruption through ordinary player input"]
 fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
     use crate::{camera::Mode, input::*, items::Processor};

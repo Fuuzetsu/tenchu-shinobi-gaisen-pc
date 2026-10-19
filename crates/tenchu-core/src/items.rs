@@ -1,8 +1,10 @@
 mod bomb;
+mod breath;
 mod caltrops;
 mod flight;
 mod grapple;
 mod medicine;
+mod napalm;
 mod pickup;
 mod poison;
 mod projectile;
@@ -41,6 +43,8 @@ pub enum Processor {
     Fire,
     Mine,
     Poison,
+    Napalm,
+    Breath,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -65,6 +69,8 @@ pub struct Item {
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
     pub poison: poison::Poison,
+    pub napalm: napalm::Napalm,
+    pub breath: breath::Breath,
 }
 
 #[derive(Debug)]
@@ -77,6 +83,7 @@ pub struct Items {
     pub trails: Vec<crate::actor::trail::Trail>,
     pub sprites: Vec<crate::hud::Sprite>,
     meshes: [ModelId; 4],
+    napalm_sprites: [ModelId; 2],
     cursor: usize,
     icons: [ModelId; KINDS + 1],
     icon_scale: [i32; KINDS + 1],
@@ -118,6 +125,8 @@ impl Items {
                 trail: None,
                 rotation: [0; 3],
                 poison: poison::Poison::default(),
+                napalm: napalm::Napalm::default(),
+                breath: breath::Breath::default(),
             })
             .collect();
         let icons = std::array::from_fn(|_| {
@@ -134,6 +143,7 @@ impl Items {
             trails: Vec::new(),
             sprites: Vec::new(),
             meshes,
+            napalm_sprites: std::array::from_fn(|_| scene.add(Some(0), Matrix::default())),
             cursor: 0,
             icons,
             icon_scale: [12288; KINDS + 1],
@@ -178,6 +188,9 @@ impl Items {
     fn dispose(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<()> {
         if self.slots[id].processor == Some(Processor::Poison) {
             self.restore_poison_target(id, actors)?;
+        }
+        if self.slots[id].processor == Some(Processor::Breath) {
+            self.finish_breath(id, actors, ctx)?;
         }
         let item = &mut self.slots[id];
         match item.processor {
@@ -333,6 +346,10 @@ impl Items {
                 Some(Processor::Mine) => self.mine(id, actors, intelligence, ctx)?,
                 Some(Processor::Poison) => {
                     self.poison(id, actors, intelligence, player, clock, ctx)?
+                }
+                Some(Processor::Napalm) => self.napalm(id, actors, ctx)?,
+                Some(Processor::Breath) => {
+                    self.breath(id, actors, intelligence.action_halt, clock, ctx)?
                 }
                 None => {}
             }

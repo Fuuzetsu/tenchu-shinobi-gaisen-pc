@@ -1,6 +1,37 @@
 use super::*;
 
 impl Actor {
+    pub(super) fn fire_control(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+    ) -> Result<()> {
+        if (36..=65).contains(&self.motion.count) {
+            if self.motion.count == 36 {
+                world.intelligence.voices.push((self.id, 0x28));
+            }
+            let start = ctx.scene.world(self.parts[2])?.transform([0, -100, -300]);
+            let velocity = ctx.math.velocity(self.rotation[1], 100, 0);
+            let end = [
+                start[0].wrapping_add(i32::from(velocity[0])),
+                start[1],
+                start[2].wrapping_add(i32::from(velocity[2])),
+            ];
+            world.items.request_napalm(
+                self.id,
+                start,
+                end,
+                world.clock,
+                &mut crate::roster::Actors {
+                    roster: world.roster,
+                    active: Some(self),
+                },
+                ctx,
+            )?;
+        }
+        Ok(())
+    }
+
     fn shoot(
         &mut self,
         ctx: &mut Context,

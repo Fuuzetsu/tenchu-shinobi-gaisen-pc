@@ -279,7 +279,8 @@ impl Actor {
                 0xaa | 0x1a4 => self.bow_control(ctx, world, false)?,
                 0xab => self.gun_control(ctx, world, 20, 100)?,
                 0xac => self.gun_control(ctx, world, 22, 700)?,
-                0xe9 | 0xf5 => {
+                0xf5 => self.fire_control(ctx, world)?,
+                0xe9 => {
                     return Err("Ranged attack item launch is not implemented yet".into());
                 }
                 _ => (),

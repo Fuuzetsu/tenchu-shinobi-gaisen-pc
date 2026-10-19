@@ -240,7 +240,12 @@ impl Game {
                             &mut context,
                         )
                         .update()?;
-                        actor.shadow(&mut context, self.clock)?;
+                        actor.shadow(
+                            &mut context,
+                            &mut self.items,
+                            &mut self.roster,
+                            self.clock,
+                        )?;
                         center
                     } else {
                         if actor.status == 17 {

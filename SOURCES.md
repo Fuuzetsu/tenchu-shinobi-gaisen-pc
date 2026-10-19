@@ -561,3 +561,27 @@ persistent effect allocation, overflow snow and texture pixels/palettes. Cadence
 snapshots now include misc state and texture revision. Relocated native-window
 starts exercise door opening, swimming over water textures, snow and flames;
 they do not establish completed missions or continuous retail parity.
+
+
+## Napalm and fire attacks (2026-10-20)
+
+`ITEM.C::ReqItemUse`, `ProcItemNapalm`, `ReqItemKaengeki` and
+`ProcItemKaengeki` supply allocation, arithmetic, collision, rendering and cast
+ordering. `EFFECT.C::SpawnNapalmDamage` and the Manji branch of
+`MOTION.C::ActATTACK` supply the two additional producers. Their source hashes
+are recorded above. Runtime code uses typed scalar item fields and ordinary
+scene/effect state, without RAM or batch storage.
+
+Research references at the recorded research revision:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/items/napalm.rs` | `fa2fb97a75afb6008cb71fd5da33e04be7c51b9b688e84b03bf36f8af728714e` |
+| `tools/tenchu-sim/src/items/breath.rs` | `7b71390084ffc3496dd4fcea10b174bb0d2fc9f97ae67011ebc91a439ed461d2` |
+
+Private differential checks extract the actual C callbacks: 4,096 napalm cases
+with recorded terrain responses and stubbed projection, and 3,072 fire-breath
+cases with previously verified motion/rotation calls stubbed. Additional checks
+cover full-pool even-tick rejection, both playable casts, a Manji attack and the
+retail lava-floor emitter through ordinary updates. Native QA uses temporary
+loadout/position setup only; those hooks are not part of the committed runtime.

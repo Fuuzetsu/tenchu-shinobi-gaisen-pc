@@ -2,7 +2,13 @@ use super::*;
 use crate::effects::Shadow;
 
 impl Actor {
-    pub fn shadow(&mut self, ctx: &mut Context, clock: i32) -> Result<()> {
+    pub fn shadow(
+        &mut self,
+        ctx: &mut Context,
+        items: &mut crate::items::Items,
+        roster: &mut crate::roster::Roster,
+        clock: i32,
+    ) -> Result<()> {
         let mut position = ctx.scene.world(self.parts[0])?.translation;
         if self.map.level < position[1] || self.map.level == terrain::NONE {
             self.map.attribute |= 8;
@@ -28,7 +34,24 @@ impl Actor {
         } else if self.map.attribute & 0x100 != 0 {
             if self.map.height == 0 {
                 if clock & 63 == 1 {
-                    return Err("Damage-floor napalm item is not implemented yet".into());
+                    let mut start = ctx.scene.models[self.root_model].local.translation;
+                    start[1] = start[1].wrapping_sub(100);
+                    let end = [
+                        start[0].wrapping_add(i32::from(self.velocity[0])),
+                        start[1].wrapping_sub(15),
+                        start[2].wrapping_add(i32::from(self.velocity[2])),
+                    ];
+                    items.request_napalm(
+                        self.id,
+                        start,
+                        end,
+                        clock,
+                        &mut crate::roster::Actors {
+                            roster,
+                            active: Some(self),
+                        },
+                        ctx,
+                    )?;
                 }
                 if clock & 15 == 0 {
                     self.damage_flash(ctx)?;
