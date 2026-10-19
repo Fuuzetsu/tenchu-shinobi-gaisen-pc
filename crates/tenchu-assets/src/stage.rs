@@ -16,6 +16,7 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug)]
 pub struct Placement {
     pub part: usize,
+    pub cloned: bool,
     pub position: [i32; 3],
     pub facing: i32,
 }
@@ -42,6 +43,7 @@ pub struct MissionAssets {
     pub clips: Vec<Clip>,
     pub common_motions: Vec<MotionRegistration>,
     pub weapons: crate::weapon::Weapons,
+    pub common_models: BTreeMap<usize, Vec<model::Geometry>>,
     pub enemies: Vec<Enemy>,
     pub construction_actors: Vec<Enemy>,
     pub disguise: i16,
@@ -115,6 +117,7 @@ impl MissionAssets {
                     }
                     placements.push(Placement {
                         part,
+                        cloned: name.is_empty(),
                         position: point(row, 16)?,
                         facing: u32_le(row, 28)? as i32,
                     });
@@ -214,6 +217,11 @@ impl MissionAssets {
                     .map_err(|e| format!("{file}.AMD: {e}"))?,
             );
         }
+        let archive = game.asset("IMAGE/MODELS.ARC")?;
+        let common_models = (0..33)
+            .filter(|i| !(22..=24).contains(i))
+            .map(|i| Ok((i, model::tmd_model(model::arc_entry(&archive, i)?)?)))
+            .collect::<Result<_>>()?;
         Ok(Self {
             stage,
             map,
@@ -226,6 +234,7 @@ impl MissionAssets {
             clips,
             common_motions: exe.common_motions()?,
             weapons: crate::weapon::Weapons::load(game, &exe)?,
+            common_models,
             enemies,
             construction_actors,
             disguise,

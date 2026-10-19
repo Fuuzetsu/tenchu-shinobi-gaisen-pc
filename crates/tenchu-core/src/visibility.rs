@@ -10,7 +10,7 @@ pub struct Clip {
     pub fog: bool,
 }
 
-fn divide(h: u16, z: u16) -> u32 {
+pub(crate) fn divide(h: u16, z: u16) -> u32 {
     if u32::from(h) >= u32::from(z) * 2 {
         return 0x1ffff;
     }

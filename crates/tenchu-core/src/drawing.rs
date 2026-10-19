@@ -1,0 +1,73 @@
+use crate::{
+    Result,
+    effects::{Effects, Graphic},
+    math::{Math, Matrix},
+    packets, projection,
+};
+use tenchu_assets::{executable::Executable, stage::MissionAssets};
+
+#[derive(Debug)]
+pub struct Drawing {
+    pub fog: bool,
+    pub bytes: u32,
+    pub sampled_bytes: u32,
+    pub subdivision: packets::Subdivision,
+}
+
+impl Drawing {
+    pub fn new(exe: &Executable) -> Result<Self> {
+        Ok(Self {
+            fog: false,
+            bytes: 0,
+            sampled_bytes: 0,
+            subdivision: packets::Subdivision::load(exe)?,
+        })
+    }
+
+    pub fn finish(&mut self, tick: u64) {
+        if tick.is_multiple_of(30) {
+            self.sampled_bytes = self.bytes.min(65536);
+        }
+    }
+
+    pub fn effects(
+        &mut self,
+        effects: &Effects,
+        mission: &MissionAssets,
+        math: &Math,
+        view: Matrix,
+    ) -> Result<()> {
+        let shadow = mission.common_models[&25]
+            .first()
+            .ok_or("Missing shadow geometry")?;
+        for instance in &effects.shadows {
+            let mut rotation = math.rotate_yxz(instance.rotation);
+            for row in &mut rotation {
+                for coefficient in row {
+                    *coefficient =
+                        (i32::from(*coefficient).wrapping_mul(instance.scale) >> 12) as i16;
+                }
+            }
+            let matrix = view.compose(&Matrix {
+                rotation,
+                translation: instance.position,
+            });
+            if projection::point(&matrix, [0; 3]).z >> 4 < 1250 {
+                self.bytes += packets::sdk_plain(shadow, &matrix)?;
+            }
+        }
+        for drawing in &effects.drawings {
+            self.bytes += match drawing.graphic {
+                Graphic::Bleed => 24,
+                _ => {
+                    if drawing.scale.map(|v| v as i16) == [4096; 2] && drawing.rotation == 0 {
+                        24
+                    } else {
+                        40
+                    }
+                }
+            };
+        }
+        Ok(())
+    }
+}

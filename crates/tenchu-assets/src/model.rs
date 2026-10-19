@@ -17,6 +17,8 @@ pub struct Geometry {
 
 #[derive(Clone, Debug)]
 pub struct Face {
+    pub mode: u8,
+    pub flags: u8,
     pub corners: Vec<Corner>,
     pub texture: Option<Texture>,
     pub double_sided: bool,
@@ -35,6 +37,23 @@ pub struct Corner {
 pub struct Texture {
     pub page: u16,
     pub palette: u16,
+}
+
+pub fn arc_entry(data: &[u8], index: usize) -> Result<&[u8]> {
+    let count = u16_le(data, 0)? as usize;
+    if u16_le(data, 2)? != 0 || index >= count {
+        return Err("Invalid unrelocated ARC entry".into());
+    }
+    slice(data, 4, count * 4)?;
+    let at = relative(data, 4, 4 + index * 4)?;
+    let mut end = data.len();
+    for i in 0..count {
+        let offset = relative(data, 4, 4 + i * 4)?;
+        if offset > at {
+            end = end.min(offset);
+        }
+    }
+    Ok(&data[at..end])
 }
 
 pub fn archive(data: &[u8]) -> Result<Vec<Part>> {
@@ -165,6 +184,8 @@ pub fn tmd_model(data: &[u8]) -> Result<Vec<Geometry>> {
                 None
             };
             faces.push(Face {
+                mode,
+                flags,
                 corners,
                 texture,
                 double_sided: flags & 2 != 0,

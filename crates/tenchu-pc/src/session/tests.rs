@@ -106,6 +106,8 @@ fn state(game: &Game) -> String {
             &game.camera,
             &game.intelligence,
             &game.visible,
+            &game.activation,
+            &game.drawing,
         )
     )
 }

@@ -29,6 +29,7 @@ pub struct Context<'a> {
     pub scene: &'a mut Scene,
     pub collision: &'a mut Collision,
     pub camera: &'a mut Camera,
+    pub drawing: &'a mut crate::drawing::Drawing,
 }
 
 #[derive(Clone, Debug)]
@@ -38,6 +39,7 @@ pub struct Actor {
     pub parts: Vec<ModelId>,
     pub rendered: Vec<Matrix>,
     pub render_mask: u32,
+    pub draw_fog: bool,
     pub kind: i16,
     pub definition: usize,
     pub position: [i32; 3],
@@ -116,6 +118,7 @@ impl Actor {
             parts: nodes,
             rendered: Vec::new(),
             render_mask: u32::MAX,
+            draw_fog: false,
             kind,
             definition,
             position,
@@ -197,18 +200,47 @@ impl Actor {
         ctx.collision.slots[ctx.scene.models[self.parts[0]].conflict.unwrap()].position
     }
 
-    pub fn prepare_draw(&mut self, scene: &mut Scene, view: Matrix, first: bool) -> Result<()> {
+    pub fn prepare_draw(
+        &mut self,
+        scene: &mut Scene,
+        view: Matrix,
+        first: bool,
+        drawing: &mut crate::drawing::Drawing,
+        mission: &MissionAssets,
+    ) -> Result<()> {
+        drawing.fog = self.draw_fog;
+        let draw_body = if first {
+            if let Some(clip) = crate::visibility::model(scene, view, self.root_model)? {
+                drawing.fog = clip.fog;
+                true
+            } else {
+                false
+            }
+        } else {
+            true
+        };
         self.render_mask = 0;
-        if !first || crate::visibility::model(scene, view, self.root_model)?.is_some() {
+        if draw_body {
             for (i, &model) in self.parts.iter().enumerate() {
                 if scene.models[model].attribute & 1 == 0 {
                     self.rendered[i] = scene.world(model)?;
                     self.render_mask |= 1 << i;
+                    if let Some(mesh) = mission.models[&self.kind][i].geometry.first() {
+                        drawing.bytes += crate::packets::draw_tmd(
+                            mesh,
+                            &view.compose(&self.rendered[i]),
+                            drawing.fog,
+                        );
+                    }
                 }
             }
         }
         for weapon in self.weapons[..2].iter_mut().flatten() {
             weapon.rendered = scene.world(weapon.model)?;
+            if let Some(mesh) = mission.weapons.models[&weapon.kind].first() {
+                drawing.bytes +=
+                    crate::packets::draw_tmd(mesh, &view.compose(&weapon.rendered), drawing.fog);
+            }
         }
         Ok(())
     }

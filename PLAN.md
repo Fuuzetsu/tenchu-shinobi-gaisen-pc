@@ -156,92 +156,59 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-2026-10-20: foundation implemented. The actual mixed-mode CUE verifies the
-SLPS-019.01 executable, indexes 1,048 files in DATA.VOL, lists all eleven stages
-and reads Mission 1's STAGE.CON directly from the disc. Asset/core libraries
-compile for WASM. Synthetic tests cover raw/cooked sectors, pregaps, mixed-mode
-extents, archive parent indices, Shift-JIS names and malformed/truncated data.
-The scheduler produces identical ticks across 24–240 Hz presentation and stalls.
-Nix packages the native executable and checks native tests, WASM and formatting.
+2026-10-20: foundation complete; Mission 1 gameplay is in progress. The native
+executable reads the actual SLPS-019.01 mixed-mode disc, indexes 1,048 DATA.VOL
+entries and constructs all 66 mission/character/layout combinations without RAM
+imports. Assets and core compile for WASM. Nix packages the desktop executable
+and checks native tests, WASM and formatting.
 
-Scalar math, command history, RNG, animation playback and terrain probes are now
-implemented. MAD/TMD, TIM/TPD, AMD, ACM, CON, layout and executable metadata
-decoders construct all eleven stages for either character. A real-disc audit
-samples every decoded motion track across its duration. The native wgpu renderer
-produces a checked Mission 1 capture with original textures and posed Rikimaru.
-The native movement preview now loads either player directly from the disc,
-accepts keyboard input and supports pause/restart and resize. A 381-tick replay
-exercises running, jump/landing, turning, crouching and looking for both characters.
-Source terrain recovery and ledge control are implemented, but not yet validated
-against continuous retail state. Smoke lifetime/allocation/RNG and animation
-hold/sweep transitions have focused tests. The private-disc cadence test compares
-every player/animation/effect/RNG state under 24 Hz and 144 Hz host frames.
-An actual X11 window was driven through movement, jump, crouch, resize and pause;
-the resulting original-asset scene was visually inspected.
+Ordinary play now runs source-ordered actor control and periodic enemy activation.
+Implemented systems include scalar fixed-point math, command history, RNG,
+player movement/jump/crouch/ledge control, persistent coordinate caches, ordered
+body collision, camera follow/look, original animation, weapon attachment/swap,
+patrol/investigation/combat decisions and reinforcement replacement. The native
+renderer displays original textured scenery, visible actors and held weapons.
+Unsupported actions still pause with a diagnostic. Combat hitboxes/damage, items,
+mission events, HUD and audio remain unfinished; this is not playable Mission 1.
 
-Ordinary play is still player-only. Enemy activation, combat, items,
-events, HUD and audio remain to be joined. Lighting,
-transparency and effect graphics also remain. Unsupported actions stop
-with a diagnostic. This is not the Mission 1 acceptance milestone.
+Enemy activation retains the source's 30-tick sampling delay, ordered budget,
+wakeup guards and raw parking-coordinate writes. Integer geometry counters use
+original meshes, construction cell/depth ordering, adaptive subdivision, draw
+banks, shadows and implemented effects. They do not measure host performance,
+drop frames or change with render resolution. The sample remains incomplete
+until HUD, remaining effects, items and environmental producers are implemented;
+activation is therefore not yet certified against continuous retail gameplay.
 
-Source collision and persistent coordinate caches now run in the player update.
-Contact iteration retains disabled and vacated slot data. Body resolution keeps
-the original push/standing/underside reactions, including the world-Y-as-yaw bug.
-Rendering consumes matrices prepared at the logical draw phase; it cannot mutate
-the scene cache. Full actor/camera/effect visit ordering still needs validation.
-The private cadence test now includes collision slots and coordinate caches.
+Smoke, splashes, droplets and attached flashes share the source 200-slot pool
+and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
+effects. Prepared shadow/effect graphics and sound events are not displayed or
+played yet. Damage-floor napalm and AI healing remain item-system boundaries.
+CVA camera/actor ownership, full combat reactions, swimming/grappling, results,
+saving, transitions and the remaining campaign are still required.
 
-The source follow/look camera now runs before player control, with original
-terrain probes, smoothing history, head tracking and an integer SDK view matrix.
-Its 512-case smoothing comparison agrees with matching C; its view matrix agrees
-with a private retail capture. These are component checks, not continuous world
-parity. Cinematic camera ownership and grapple targeting remain to be joined.
+Verification completed so far:
 
-Next: actor activation and combat. The original TAS architecture remains a
-reference; there are no multi-world slabs or source-C runtime dependencies.
+- A 381-tick replay exercises both characters at 24 Hz and 144 Hz presentation,
+  comparing the complete roster, animation, effects, RNG, camera, collision,
+  coordinate caches, activation and drawing state at each tick. The actual X11
+  window was also driven through movement, jumping, crouching, looking, resize
+  and pause, and its output inspected.
+- Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
+  cases with exact ray arguments, 81,920 engaged combat-controller cases and
+  4,096 varied activation worlds. Reinforcement continuation has a private-disc
+  regression check. These isolate components; they do not establish full AI or
+  complete gameplay parity.
+- The integer view matrix matches a retail capture. Constructed roster totals,
+  weapons, patrols and layout homes match persistent retail fields. All 339
+  scenery objects in that capture match transforms, bounds, subdivision flags,
+  vertex geometry and spatial-list order. CVA-mutated homes are excluded from
+  the construction check.
+- The projection kernel matches an independent arithmetic oracle in 67,584
+  full-width/depth cases. Focused tests preserve custom-versus-SDK clipping,
+  degenerate subdivision stitches, contact-list tails, current-epoch coordinate
+  caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Weapon geometry and hitbox/attack definitions now load from the executable and
-disc. Actors construct attachments and swap active/stowed slots according to
-`SetupWeapon`/`EquipWeapon`. The live render includes held weapons; no attack
-hitboxes or damage are enabled by this checkpoint. All-stage asset auditing and
-the both-character cadence replay pass with these attachments.
-
-Stage actor construction now follows `BreedLife`, the temporary dog/disguise
-allocation and removal, layout installation, story placements and roster sorting.
-Mission selection resolves campaign numbers through the disc's stage table.
-All 66 mission/character/layout combinations construct successfully. The roster,
-mission totals, weapon indices, layout homes and patrol points agree with the
-private Reclaim the Castle capture. Player/story homes changed by CVA are outside
-that construction comparison. The frame update remains player-only until enemy
-visibility, activation and controllers are connected; this checkpoint does not
-skip those requirements or count as playable Mission 1.
-
-The logical draw phase now applies the source root visibility predicate before
-visiting body parts. Projection keeps the normalized reciprocal and the SDK's
-two depth divisions; modern render dimensions do not enter this predicate.
-Enemy sight checks and terrain passage rays are implemented for the coming AI
-update. A 45,760-case comparison against original `SearchTarget` agrees on sight
-results and exact ray arguments. This isolates the sight branches from the math
-and terrain implementations; it does not establish whole-enemy behavior.
-
-The ordered actor loop now drives source AI state transitions, patrol/follow,
-investigation, melee/ranged/beast decisions and reinforcements. AI targets refer
-to scene coordinates, so items can become targets later. NPC visibility selects
-full-pose versus count-only animation before movement; visible actors retain
-source head tracking and ordered draw visits. Reinforcement replacement keeps
-the old actor through its remaining control/draw phase and gives the new guard
-its source roster position. Difficulty is selectable from the CLI.
-An 81,920-case original-C comparison validates engaged combat decisions, RNG,
-commands and counters; a private-disc check exercises caller replacement.
-Ordinary play still leaves NPCs suspended: activation's logical packet budget,
-damage-floor napalm, attack hitboxes/damage and AI healing remain pending. No
-enemy-play or Mission 1 acceptance claim is made at this checkpoint.
-
-`DrawShadow` now primes the waist coordinate before action control, preserves its
-airborne map flag and splash tests, and prepares shadow transforms. Smoke,
-splashes, droplets and attached flashes share the original 200-slot pool and
-overflow dummy. Visible splashes spawn droplets in source RNG/allocation order;
-newly allocated later slots execute in the same tick. Attached flashes visit
-their parent coordinate even on the final or invisible tick. Their prepared
-graphics and sound events are not displayed/played yet. Damage-floor napalm is
-an item-system boundary and still reports an explicit unsupported operation.
+Next: weapon attack hitboxes and damage/reaction control, then items and mission
+events. Fill the remaining drawing producers alongside their owning gameplay
+systems. No batched-world storage, PS1 timing model or source-C runtime dependency
+has been introduced.

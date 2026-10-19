@@ -70,7 +70,7 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 scalar gameplay code.
 
 The private-disc cadence test exercises both characters and compares player,
-animation, effects, RNG, camera, collision and coordinate caches at every tick
+animation, effects, RNG, camera, collision, coordinate caches and activation at every tick
 under 24 Hz and 144 Hz host frames:
 
 ```sh
@@ -85,8 +85,10 @@ continuous state comparison remains a separate acceptance requirement.
 
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
-NPC activation, draw effects and combat still need to be joined before enemies
-are enabled in ordinary play. Stage scripts remain unfinished.
+NPC activation now runs at the source cadence. Draw effects, combat and stage
+scripts remain unfinished. Activation workload counts use original geometry,
+independent of PC rendering; HUD and other unfinished systems still need to add
+their original contributions before this has full-game fidelity.
 An additional private check compares the roster, mission totals, weapon hitbox
 indices and layout patrol points with the existing Reclaim the Castle capture:
 
@@ -96,7 +98,8 @@ TENCHU_DISC='/path/to/game.cue' TENCHU_ROSTER_TRACE='/path/to/kagi-aim-v1.trace'
 ```
 
 Optional core checks compare camera smoothing, enemy sight and combat decisions
-with matching C, and the integer view matrix with an existing retail trace. The
+with matching C, including 4,096 activation worlds, and compare the integer view
+matrix and construction geometry with an existing retail trace. The
 combat check covers 81,920 engaged-controller cases, including RNG and command
 history; it does not yet validate the entire AI/terrain/update pipeline. These private files remain outside
 the repository and are never build or runtime dependencies:
@@ -104,6 +107,12 @@ the repository and are never build or runtime dependencies:
 ```sh
 TENCHU_RETAIL_EXE='/path/to/main.exe' TENCHU_DECOMP='/path/to/tenchu-decomp' \
 TENCHU_CAMERA_TRACE='/path/to/kagi-aim-v1.trace' \
+TENCHU_SCENE_TRACE='/path/to/kagi-aim-v1.trace' \
+TENCHU_GTE_ORACLE='/path/to/standalone-gte-oracle' \
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-core -- --ignored
 ```
+
+The optional projection check uses the standalone arithmetic oracle described in
+`~/programming/tenchu-decomp-glitch-research/docs/tas-native-packets.md`. That
+external test executable is not linked into this port or required to build it.

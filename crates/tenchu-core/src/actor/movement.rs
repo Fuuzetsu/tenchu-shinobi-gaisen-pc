@@ -49,8 +49,19 @@ impl Actor {
             self.enter(ctx, action, movement);
         }
         ctx.scene.set_translation(self.root_model, self.position);
-        let visible = player
-            || crate::visibility::model(ctx.scene, ctx.camera.view, self.root_model)?.is_some();
+        let visible = if player {
+            true
+        } else if let Some(clip) =
+            crate::visibility::model(ctx.scene, ctx.camera.view, self.root_model)?
+        {
+            ctx.drawing.fog = clip.fog;
+            true
+        } else {
+            false
+        };
+        if visible {
+            self.draw_fog = ctx.drawing.fog;
+        }
         let pose = visible || self.status == 7;
         let animated = pose && self.motion.loops >= 0;
         self.motion

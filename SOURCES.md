@@ -162,3 +162,23 @@ follow `EFFECT.C` above and this layout/allocator header at the same revision:
 | File in `tenchu-decomp` | Working-tree SHA-256 |
 | --- | --- |
 | `src/main.exe/effect.h` | `b274c297c776620cfa28ef26a0d0f3637f233e9fb3317a5d76ffd18a932c94f5` |
+
+
+## Activation and logical drawing workload (2026-10-20)
+
+`WORLD.C`, `3DCTRL.C`, `HUMAN.C` and `EFFECT.C` above define the activation
+period, previous sampled budget, construction order and drawing side effects.
+The scalar reference sections of the research counters supplied the integer
+geometry algorithms; no SIMD slabs, search bounds, imported-RAM runtime or GPU
+timing/rasterizer was adopted. Optional tests use matching activation C and a
+separate BizHawk/Mednafen GTE executable; neither is part of the runtime.
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp` | `src/main.exe/IMAGES.C` | `4ad4a53038c560c889c0057b6c1b7d3903da2585dbbd0e86682af24e94d71799` |
+| `tenchu-decomp` | `src/main.exe/model.h` | `1a390b1d673df773a43dcfb58e341af9d3f99c5a5a9135ec450c358d4bd59c00` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/construction.rs` | `8ffca448d7c39a8edc3864fff5ee418438cc42a2309fdfecd695573d6790651d` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/render.rs` | `3a98f8aca8602071ae4e5908e8c29ad7743be32fcbf9bfe0d65add6d670d2e34` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/near_packets.rs` | `bbd545b68642dd4159bd05a76c9af5f3193f71d9b3c29728a15e5c0aefff5786` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/sprite_packets.rs` | `2b70e70d368cd98a43aaefdf827da6186c486a32c9a00ae461c6808981cf9e65` |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/native/gte_oracle.cpp` | `11b23899158103d574de865abbbd388bd4f8ec851cb4fa33d4700f8454639ee5` |

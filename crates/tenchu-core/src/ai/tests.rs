@@ -39,6 +39,7 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
         scene: &mut game.scene,
         collision: &mut game.collision,
         camera: &mut game.camera,
+        drawing: &mut game.drawing,
     };
     let player = Player::new(game.roster.get(game.player_id), &ctx);
     Controller::new(
@@ -407,6 +408,7 @@ int main(void) {{
                 scene: &mut game.scene,
                 collision: &mut game.collision,
                 camera: &mut game.camera,
+                drawing: &mut game.drawing,
             };
             let mut controller = Controller::new(
                 &mut actor,

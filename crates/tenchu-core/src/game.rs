@@ -1,3 +1,4 @@
+pub mod activation;
 mod setup;
 
 use crate::{
@@ -6,6 +7,8 @@ use crate::{
     ai::{Controller, Intelligence, Player},
     camera::{Camera, Environment},
     collision::Collision,
+    construction::Construction,
+    drawing::Drawing,
     effects::Effects,
     math::Math,
     random::Random,
@@ -32,6 +35,9 @@ pub struct Game {
     pub camera: Camera,
     pub intelligence: Intelligence,
     pub visible: Vec<usize>,
+    pub activation: activation::Activation,
+    pub drawing: Drawing,
+    pub construction: Construction,
     pub(crate) body: BodyTables,
     pub(crate) commands: Vec<Command>,
     pub(crate) cursor: Cursor,
@@ -53,6 +59,8 @@ impl Game {
         let mut random = Random::new(seed);
         let mut effects = Effects::default();
         let mut scene = Scene::default();
+        let mut drawing = Drawing::new(executable)?;
+        let construction = Construction::new(&mission, &mut scene, &math)?;
         let mut collision = Collision::default();
         let mut camera = Camera::new(
             tenchu_assets::camera::CameraTables::load(executable)?,
@@ -69,6 +77,7 @@ impl Game {
             scene: &mut scene,
             collision: &mut collision,
             camera: &mut camera,
+            drawing: &mut drawing,
         };
         let mut roster = Roster::default();
         let (player_id, statistics) = setup::construct(&mut roster, character, &mut context)?;
@@ -90,6 +99,9 @@ impl Game {
             camera,
             intelligence: Intelligence::default(),
             visible: vec![player_id],
+            activation: activation::Activation::default(),
+            drawing,
+            construction,
         })
     }
 
@@ -103,6 +115,7 @@ impl Game {
         self.visible.clear();
         self.intelligence.voices.clear();
         self.effects.begin_tick();
+        self.drawing.bytes = 0;
         self.collision.compute(&mut self.scene)?;
         self.camera.advance(
             self.roster.get(self.player_id),
@@ -125,6 +138,7 @@ impl Game {
             scene: &mut self.scene,
             collision: &mut self.collision,
             camera: &mut self.camera,
+            drawing: &mut self.drawing,
         };
         let mut index = 0;
         while index < self.roster.order.len() {
@@ -184,6 +198,14 @@ impl Game {
             .citizens
             .wrapping_add(self.intelligence.population_delta[1]);
         self.intelligence.population_delta = [0; 2];
+        self.activate()?;
+        self.drawing.fog = true;
+        self.drawing.bytes += self.construction.packets(
+            &self.mission,
+            &mut self.scene,
+            &self.camera,
+            &self.drawing.subdivision,
+        )?;
         self.effects.step(
             &mut self.random,
             crate::effects::View {
@@ -192,11 +214,18 @@ impl Game {
             },
             &mut self.scene,
         )?;
+        self.drawing
+            .effects(&self.effects, &self.mission, &self.math, self.camera.view)?;
         for (i, &id) in self.visible.iter().enumerate() {
-            self.roster
-                .get_mut(id)
-                .prepare_draw(&mut self.scene, self.camera.view, i == 0)?;
+            self.roster.get_mut(id).prepare_draw(
+                &mut self.scene,
+                self.camera.view,
+                i == 0,
+                &mut self.drawing,
+                &self.mission,
+            )?;
         }
+        self.drawing.finish(self.tick);
         self.scene.finish_tick();
         Ok(())
     }
