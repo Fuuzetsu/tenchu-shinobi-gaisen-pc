@@ -30,7 +30,7 @@ impl Activation {
 
 impl Game {
     pub(super) fn activate(&mut self) -> Result<()> {
-        if !self.tick.is_multiple_of(30) {
+        if self.clock % 30 != 0 {
             return Ok(());
         }
         let focus = self.player_id;
@@ -42,7 +42,7 @@ impl Game {
         };
         self.activation.update_budget(self.drawing.sampled_bytes);
         let training = self.mission.stage.id == 8;
-        let first = self.tick == 30;
+        let first = self.clock == 30;
         for &id in &self.roster.order {
             if id == focus {
                 continue;

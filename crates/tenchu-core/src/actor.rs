@@ -71,6 +71,7 @@ pub struct Actor {
     pub max_health: i16,
     pub attribute: u16,
     pub status: i16,
+    pub scripted: bool,
     pub map: Probe,
     pub pad: Pad,
     pub motion: Motion,
@@ -151,6 +152,7 @@ impl Actor {
             max_health: data.health,
             attribute: 0,
             status: 0,
+            scripted: false,
             map,
             pad: Pad::default(),
             motion,
@@ -377,6 +379,10 @@ impl Actor {
             .iter()
             .find(|r| r.action == action)
             .map_or(-1, |r| r.clip)
+    }
+
+    fn enter_unless_scripted(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
+        !self.scripted && self.enter(ctx, action, movement)
     }
 
     pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {

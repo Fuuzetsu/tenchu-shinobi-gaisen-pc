@@ -93,7 +93,7 @@ impl Actor {
             self.position[2] = self.position[2].wrapping_add(i32::from(v[2]));
             self.position[1] = self.position[1].wrapping_sub(105i32.wrapping_sub(y));
         }
-        self.enter(ctx, MOT_HANG_CATCH, true);
+        self.enter_unless_scripted(ctx, MOT_HANG_CATCH, true);
         Ok(true)
     }
 

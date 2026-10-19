@@ -65,6 +65,24 @@ fn quad(
         .collect()
 }
 
+fn screen_band(top: f32, bottom: f32, color: [f32; 3], blend: u8) -> Vec<Vertex> {
+    let mut vertices = quad(
+        [
+            [-160.0, top, 0.0],
+            [160.0, top, 0.0],
+            [-160.0, bottom, 0.0],
+            [160.0, bottom, 0.0],
+        ],
+        [color; 4],
+        None,
+        blend,
+    );
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::SCREEN_WIDE;
+    }
+    vertices
+}
+
 fn mesh_surfaces(
     surfaces: &mut Vec<Surface>,
     meshes: &[tenchu_assets::model::Geometry],
@@ -118,7 +136,7 @@ pub fn build(game: &Game) -> Geometry {
                 &mut surfaces,
                 &game.mission.common_models[&index],
                 matrix,
-                game.camera.view,
+                game.rendered_view,
             );
         }
     }
@@ -128,7 +146,7 @@ pub fn build(game: &Game) -> Geometry {
                 &mut surfaces,
                 &game.mission.common_models[&26],
                 matrix,
-                game.camera.view,
+                game.rendered_view,
             );
         }
         for &(points, sort_depth) in &wire.lines {
@@ -163,7 +181,7 @@ pub fn build(game: &Game) -> Geometry {
             &mut surfaces,
             &game.mission.common_models[&index],
             matrix,
-            game.camera.view,
+            game.rendered_view,
         );
     }
     for &(kind, matrix) in &game.items.weapons {
@@ -171,7 +189,7 @@ pub fn build(game: &Game) -> Geometry {
             &mut surfaces,
             &game.mission.weapons.models[&kind],
             matrix,
-            game.camera.view,
+            game.rendered_view,
         );
     }
     for drawing in game.effects.drawings.iter().chain(&game.items.drawings) {
@@ -268,7 +286,13 @@ pub fn build(game: &Game) -> Geometry {
             previous = shade;
         }
     }
-    for sprite in game.items.sprites.iter().chain(&game.hud.sprites) {
+    for sprite in game
+        .items
+        .sprites
+        .iter()
+        .chain(&game.hud.sprites)
+        .chain(&game.cinematic.sprites)
+    {
         let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
         let points = std::array::from_fn(|i| {
             let x = ((i & 1) as f32 * f32::from(sprite.image.size[0])
@@ -295,6 +319,22 @@ pub fn build(game: &Game) -> Geometry {
                 sprite.blend,
             ),
         });
+    }
+    for &(priority, color) in &game.effects.fades {
+        surfaces.push(Surface {
+            depth: priority as f32 * 4.0,
+            blend: 2,
+            vertices: screen_band(-120.0, 120.0, color.map(|v| f32::from(v) / 255.0), 2),
+        });
+    }
+    if game.cinematic.frame {
+        for (top, bottom) in [(-120.0, -90.0), (90.0, 120.0)] {
+            surfaces.push(Surface {
+                depth: 1.0,
+                blend: 0,
+                vertices: screen_band(top, bottom, [1.0 / 255.0; 3], 0),
+            });
+        }
     }
     surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
     let mut out = Geometry {

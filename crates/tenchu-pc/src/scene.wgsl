@@ -1,6 +1,7 @@
 const TEXTURED: u32 = 1u;
 const SCREEN: u32 = 2u;
 const TRANSLUCENT: u32 = 4u;
+const SCREEN_WIDE: u32 = 8u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -26,7 +27,8 @@ struct Fragment {
 @vertex fn vertex(v: Vertex) -> Fragment {
     var out: Fragment;
     if (v.flags & SCREEN) != 0u {
-        out.position = vec4(v.position.x / (120.0 * camera.viewport.x), -v.position.y / 120.0, v.position.z, 1.0);
+        let half_width = select(120.0 * camera.viewport.x, 160.0, (v.flags & SCREEN_WIDE) != 0u);
+        out.position = vec4(v.position.x / half_width, -v.position.y / 120.0, v.position.z, 1.0);
     } else {
         out.position = camera.matrix * vec4(v.position, 1.0);
     }

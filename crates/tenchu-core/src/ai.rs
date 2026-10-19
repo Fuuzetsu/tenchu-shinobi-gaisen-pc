@@ -54,6 +54,7 @@ pub struct Intelligence {
     pub probe: [i32; 2],
     pub probe_attribute: [u16; 2],
     pub action_halt: i16,
+    pub cinematic: bool,
     pub voices: Vec<(usize, i16)>,
     pub population_delta: [i16; 2],
 }
@@ -73,6 +74,7 @@ impl Default for Intelligence {
             probe: [0; 2],
             probe_attribute: [0; 2],
             action_halt: 0,
+            cinematic: false,
             voices: Vec::new(),
             population_delta: [0; 2],
         }

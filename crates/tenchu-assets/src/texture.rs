@@ -69,6 +69,10 @@ impl Vram {
     }
 
     pub fn upload_tpd(&mut self, data: &[u8]) -> Result<()> {
+        self.upload_tpd_images(data).map(|_| ())
+    }
+
+    pub fn upload_tpd_images(&mut self, data: &[u8]) -> Result<Vec<Image>> {
         if u32_le(data, 0)? != 0x96082100 {
             return Err("Invalid TPD signature".into());
         }
@@ -77,11 +81,12 @@ impl Vram {
             return Err("Excessive TPD image count".into());
         }
         slice(data, 8, count * 4)?;
-        for i in 0..count {
-            let at = relative(data, 8, 8 + i * 4)?;
-            self.upload_tim(&data[at..])?;
-        }
-        Ok(())
+        (0..count)
+            .map(|i| {
+                let at = relative(data, 8, 8 + i * 4)?;
+                self.upload_tim(&data[at..])
+            })
+            .collect()
     }
 }
 

@@ -61,8 +61,9 @@ Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
-smoke bombs, grenades, mines and poisoned food work through normal item selection. Remaining items/special attacks and mission
-events are unfinished; unsupported actions pause with a diagnostic. Caltrops,
+smoke bombs, grenades, mines and poisoned food work through normal item selection. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
+then returns to gameplay. Remaining items/special attacks, audio, results and
+progression are unfinished; unsupported actions pause with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -97,7 +98,7 @@ continuous state comparison remains a separate acceptance requirement.
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation now runs at the source cadence. Remaining effects, special ranged
-attacks, remaining items and stage scripts remain unfinished. Activation workload counts use original geometry,
+attacks, remaining items, results and progression remain unfinished. Activation workload counts use original geometry,
 independent of PC rendering; remaining items and environmental effects still need
 to add their original contributions before this has full-game fidelity. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates

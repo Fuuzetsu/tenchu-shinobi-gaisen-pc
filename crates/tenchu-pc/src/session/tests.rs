@@ -122,7 +122,18 @@ fn state(game: &Game) -> String {
             &game.visible,
             &game.activation,
             &game.drawing,
-            (&game.combat, &game.statistics, &game.hud, wall_clips),
+            (
+                &game.combat,
+                &game.statistics,
+                &game.hud,
+                wall_clips,
+                game.clock,
+                game.input,
+                game.rendered_view,
+                &game.cinematic,
+                &game.events,
+                &game.music,
+            ),
         )
     )
 }
@@ -354,5 +365,51 @@ fn all_retail_layouts_construct_actor_and_collision_pools() {
                 }
             }
         }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; compares scripted waits, audio-tail holds and return to combat at different display cadences"]
+fn cinematic_timing_is_independent_of_host_frame_cadence() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    for character in 0..2 {
+        let mut snapshots = Vec::new();
+        for cadence in [
+            vec![16_666_667],
+            vec![6_944_444],
+            vec![3_000_000, 81_000_000, 900_000_000, 11_000_000],
+        ] {
+            let mut game = Options {
+                character,
+                ..Options::default()
+            }
+            .load(&assets)
+            .unwrap();
+            let player = game.roster.get_mut(game.player_id);
+            player.position = [1000, 0, 5000];
+            game.scene
+                .update(player.root_model, player.root(&game.math));
+            let mut clock = tenchu_core::clock::GameClock::default();
+            let mut frame = 0;
+            while game.tick < 1050 {
+                clock.elapse(std::time::Duration::from_nanos(
+                    cadence[frame % cadence.len()],
+                ));
+                while clock.step().is_some() {
+                    let input = if game.tick % 12 == 0 { SQUARE } else { 0 };
+                    game.step(input).unwrap();
+                    if game.tick == 1050 {
+                        break;
+                    }
+                }
+                frame += 1;
+            }
+            assert!(game.clock < 200);
+            assert!(!game.cinematic.active);
+            snapshots.push(state(&game));
+        }
+        assert_eq!(snapshots[0], snapshots[1]);
+        assert_eq!(snapshots[0], snapshots[2]);
     }
 }

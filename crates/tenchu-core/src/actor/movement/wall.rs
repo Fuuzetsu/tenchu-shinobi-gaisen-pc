@@ -87,7 +87,7 @@ impl Actor {
                 }
                 if let Some(action) = crouch_roll(command) {
                     self.motion.mask = 0x7fff;
-                    self.enter(ctx, action, true);
+                    self.enter_unless_scripted(ctx, action, true);
                     self.motion.count = -5;
                 } else if self.motion.loops == -1 {
                     let quadrant = (self.motion.pose.rotation[0][1] >> 10) & 3;
@@ -127,7 +127,7 @@ impl Actor {
             MOT_STICKON_SLIDE_L | MOT_STICKON_SLIDE_R => {
                 if let Some(action) = crouch_roll(command) {
                     self.motion.mask = 0x7fff;
-                    self.enter(ctx, action, true);
+                    self.enter_unless_scripted(ctx, action, true);
                     self.motion.count = -5;
                 } else if self.motion.count >= 0 {
                     if let Some(direction) = direction(held) {

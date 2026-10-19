@@ -62,6 +62,8 @@ pub struct MissionAssets {
     pub construction: Vec<u8>,
     pub layout: Vec<u8>,
     pub scripts: crate::script::Scripts,
+    pub font: crate::font::Font,
+    pub tanka: Vec<crate::texture::Image>,
 }
 
 fn point(data: &[u8], at: usize) -> Result<[i32; 3]> {
@@ -272,7 +274,19 @@ impl MissionAssets {
             .filter(|i| !(22..=24).contains(i))
             .map(|i| Ok((i, model::tmd_model(model::arc_entry(&archive, i)?)?)))
             .collect::<Result<_>>()?;
+        let font = crate::font::Font::load(game, &mut vram)?;
+        let tanka = if id == 10 && character == 0 {
+            let images = vram.upload_tpd_images(&game.asset("ANIM/TANKA.TPD")?)?;
+            if images.len() < 6 {
+                return Err("Missing tanka sprites".into());
+            }
+            images[..6].to_vec()
+        } else {
+            Vec::new()
+        };
         Ok(Self {
+            font,
+            tanka,
             scripts: crate::script::Scripts::load(game, id, character, language)?,
             stage,
             map,

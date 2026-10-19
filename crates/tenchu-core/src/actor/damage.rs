@@ -75,7 +75,7 @@ impl Actor {
         ctx: &mut Context,
         world: &mut ActionContext,
     ) -> Result<Option<(i16, bool)>> {
-        if self.health < 1 || self.motion.action == MOT_SWIM_EXIT {
+        if self.health < 1 || world.intelligence.cinematic || self.motion.action == MOT_SWIM_EXIT {
             return Ok(None);
         }
         let hit = self.hit.ok_or("Hit actor has no collision slot")?;
@@ -120,7 +120,7 @@ impl Actor {
                 }
                 MOT_DEAD
             };
-            self.enter(ctx, motion, true);
+            self.enter_unless_scripted(ctx, motion, true);
             self.clear_attack(ctx, 3)?;
             return Ok(None);
         }
@@ -290,7 +290,7 @@ impl Actor {
             if tier != 3 {
                 next = MOT_DEAD;
                 movement = true;
-                self.enter(ctx, next, movement);
+                self.enter_unless_scripted(ctx, next, movement);
                 if ctx.random.next15() & 1 != 0 {
                     next = MOT_DEAD_ALT;
                 }
@@ -361,7 +361,7 @@ impl Actor {
             next = MOT_DEAD_DROWN;
             movement = true;
         }
-        self.enter(ctx, next, movement);
+        self.enter_unless_scripted(ctx, next, movement);
         Ok(None)
     }
 

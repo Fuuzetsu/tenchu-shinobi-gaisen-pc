@@ -432,7 +432,7 @@ impl Actor {
         {
             self.pad.time = 0;
             self.clear_attack(ctx, 3)?;
-            if self.enter(ctx, next, true) {
+            if self.enter_unless_scripted(ctx, next, true) {
                 self.snap_attack(ctx);
             }
         }
@@ -445,7 +445,7 @@ impl Actor {
         }
         if self.motion.count == 0 && self.motion.loops == 1 {
             self.clear_attack(ctx, 3)?;
-            self.enter(ctx, MOT_ENGAGE_STANCE, true);
+            self.enter_unless_scripted(ctx, MOT_ENGAGE_STANCE, true);
             let base = ctx.mission.clips[self.motion.clip.unwrap()].bones[0][0].value[1];
             self.rotation[1] =
                 self.rotation[1].wrapping_add(self.motion.pose.rotation[0][1].wrapping_sub(base));

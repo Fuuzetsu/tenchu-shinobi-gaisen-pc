@@ -1,4 +1,7 @@
 pub mod activation;
+pub mod cinematic;
+pub mod events;
+pub mod score;
 mod setup;
 pub use setup::Statistics;
 
@@ -33,6 +36,12 @@ pub struct Game {
     pub items: crate::items::Items,
     pub hud: crate::hud::Hud,
     pub tick: u64,
+    pub clock: i32,
+    pub input: u16,
+    pub rendered_view: crate::math::Matrix,
+    pub cinematic: cinematic::Cinematic,
+    pub events: events::Events,
+    pub music: Vec<Option<i16>>,
     pub scene: Scene,
     pub collision: Collision,
     pub camera: Camera,
@@ -88,6 +97,8 @@ impl Game {
         let (player_id, statistics) =
             setup::construct(&mut roster, &mut items, character, &mut context)?;
         roster.get_mut(player_id).initialize_rendered(&scene, &math);
+        let events = events::Events::new(&mission.scripts.events, &roster, player_id);
+        let rendered_view = camera.view;
         Ok(Self {
             mission,
             math,
@@ -102,6 +113,12 @@ impl Game {
             player_id,
             statistics,
             tick: 0,
+            clock: 0,
+            input: 0,
+            rendered_view,
+            cinematic: cinematic::Cinematic::default(),
+            events,
+            music: Vec::new(),
             scene,
             collision,
             camera,
@@ -120,24 +137,53 @@ impl Game {
 
     pub fn step(&mut self, input: u16) -> Result<()> {
         self.tick += 1;
+        self.music.clear();
+        if self.cinematic.tail > 0 {
+            self.cinematic.tail -= 1;
+            self.intelligence.voices.clear();
+            self.effects.sounds.clear();
+            if self.cinematic.tail == 0 {
+                self.cinematic.active = false;
+                self.music.push(None);
+            }
+            return Ok(());
+        }
+        if !self.cinematic.active {
+            self.input = input;
+        }
         self.roster.begin_tick();
-        self.visible.clear();
         self.intelligence.voices.clear();
         self.effects.begin_tick();
         self.items.begin_tick();
         self.drawing.bytes = 0;
+        self.stage_sequence()?;
+        if self.events.outcome != events::Outcome::Running {
+            return Ok(());
+        }
+        self.visible.clear();
+        self.cinematic.frame = self.cinematic.active;
+        let input = if self.cinematic.active {
+            self.cinematic.input
+        } else {
+            input
+        };
         self.collision.compute(&mut self.scene)?;
-        self.camera.advance(
-            self.roster.get(self.player_id),
-            input,
-            &mut Environment {
-                terrain: &self.mission.terrain,
-                cursor: &mut self.cursor,
-                math: &self.math,
-                body: &self.body,
-            },
-            &mut self.scene,
-        )?;
+        self.clock = self.clock.wrapping_add(1);
+        if self.cinematic.active {
+            self.cinematic_camera(input)?;
+        } else {
+            self.camera.advance(
+                self.roster.get(self.player_id),
+                input,
+                &mut Environment {
+                    terrain: &self.mission.terrain,
+                    cursor: &mut self.cursor,
+                    math: &self.math,
+                    body: &self.body,
+                },
+                &mut self.scene,
+            )?;
+        }
         let mut context = Context {
             mission: &mut self.mission,
             math: &self.math,
@@ -177,13 +223,13 @@ impl Game {
                             &mut self.roster,
                             &mut self.items,
                             &mut self.intelligence,
-                            self.tick as i32,
+                            self.clock,
                             input,
                             &self.commands,
                             &mut context,
                         )
                         .update()?;
-                        actor.shadow(&mut context, self.tick as i32)?;
+                        actor.shadow(&mut context, self.clock)?;
                         center
                     } else {
                         if actor.status == 17 {
@@ -197,7 +243,7 @@ impl Game {
                                     combat: &mut self.combat,
                                     player: self.player_id,
                                     selected_item: self.hud.selected,
-                                    clock: self.tick as i32,
+                                    clock: self.clock,
                                 },
                             )?;
                         }
@@ -215,7 +261,7 @@ impl Game {
                             combat: &mut self.combat,
                             player: self.player_id,
                             selected_item: self.hud.selected,
-                            clock: self.tick as i32,
+                            clock: self.clock,
                         },
                     )? {
                         self.visible.push(id);
@@ -246,7 +292,9 @@ impl Game {
             .citizens
             .wrapping_add(self.intelligence.population_delta[1]);
         self.intelligence.population_delta = [0; 2];
-        self.activate()?;
+        if !self.cinematic.active {
+            self.activate()?;
+        }
         self.drawing.fog = true;
         self.drawing.bytes += self.construction.packets(
             &self.mission,
@@ -264,7 +312,7 @@ impl Game {
             &mut crate::effects::Environment {
                 terrain: &self.mission.terrain,
                 cursor: &mut self.cursor,
-                clock: self.tick as i32,
+                clock: self.clock,
                 owner_position: self.roster.get(self.player_id).position,
             },
         )?;
@@ -286,20 +334,26 @@ impl Game {
             &mut self.roster,
             &mut self.intelligence,
             self.player_id,
-            self.tick as i32,
+            self.clock,
         )?;
         for (actor, health, maximum) in self.combat.life_bars.drain(..) {
             self.hud.request_life(actor, health, maximum);
         }
-        self.hud.step(
-            self.roster.get(self.player_id),
-            &self.mission.images,
-            self.intelligence.strain,
-            self.tick as i32,
-            &self.math,
-            &mut self.effects,
-            &mut self.drawing,
-        );
+        if self.cinematic.active {
+            self.hud.sprites.clear();
+            self.cinematic_text();
+        } else {
+            self.cinematic.sprites.clear();
+            self.hud.step(
+                self.roster.get(self.player_id),
+                &self.mission.images,
+                self.intelligence.strain,
+                self.clock,
+                &self.math,
+                &mut self.effects,
+                &mut self.drawing,
+            );
+        }
         for (i, &id) in self.visible.iter().enumerate() {
             self.roster.get_mut(id).prepare_draw(
                 &mut self.scene,
@@ -309,8 +363,10 @@ impl Game {
                 &self.mission,
             )?;
         }
-        self.drawing.finish(self.tick);
+        self.drawing.finish(self.clock);
         self.scene.finish_tick();
+        self.rendered_view = self.camera.view;
+        self.advance_cinematic()?;
         Ok(())
     }
 }

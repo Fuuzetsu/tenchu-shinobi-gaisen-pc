@@ -1,4 +1,6 @@
 mod blood;
+mod fade;
+pub use fade::Fade;
 mod explosion;
 mod impact;
 mod smoke;
@@ -66,6 +68,7 @@ pub enum Effect {
     FlyWire(FlyWire),
     Explosion(Explosion),
     Ember(Explosion),
+    Fade(Fade),
 }
 
 pub struct Environment<'a> {
@@ -139,6 +142,7 @@ pub struct Effects {
     pub wires: Vec<Wire>,
     pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<([i32; 3], i16)>,
+    pub fades: Vec<(i32, [u8; 3])>,
     cursor: usize,
     visiting: Option<usize>,
 }
@@ -152,6 +156,7 @@ impl Default for Effects {
             wires: Vec::new(),
             blood_pools: Vec::new(),
             sounds: Vec::new(),
+            fades: Vec::new(),
             cursor: 0,
             visiting: None,
         }
@@ -327,6 +332,7 @@ impl Effects {
         self.wires.clear();
         self.blood_pools.clear();
         self.sounds.clear();
+        self.fades.clear();
     }
 
     pub fn step(
@@ -364,6 +370,7 @@ impl Effects {
         env: &mut Environment,
     ) -> Result<bool> {
         match effect {
+            Effect::Fade(fade) => Ok(self.update_fade(fade, env.clock)),
             Effect::Smoke(smoke) => Ok(self.update_smoke(smoke, rng, view)),
             Effect::Bleed(bleed) => {
                 let alive = bleed.mode != 0 || bleed.time != 0;

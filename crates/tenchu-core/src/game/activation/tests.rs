@@ -131,7 +131,7 @@ int main(void) {{
     let mut input = String::new();
     let mut expected = Vec::new();
     for case in 0..4096 {
-        game.tick = [29, 30, 60, 90, 120, 122][case % 6];
+        game.clock = [29, 30, 60, 90, 120, 122][case % 6];
         game.mission.stage.id = [0, 6, 7, 8][case % 4];
         game.drawing.sampled_bytes = next() % 65537;
         game.activation = Activation {
@@ -145,7 +145,7 @@ int main(void) {{
         writeln!(
             input,
             "{} {} {} {} {} {} {} {}",
-            game.tick,
+            game.clock,
             game.mission.stage.id,
             game.drawing.sampled_bytes,
             game.activation.budget,

@@ -101,7 +101,8 @@ against the existing retail corpus at comparable logical update boundaries.
 
 ### 2. Mission 1 from launch through results
 
-- [ ] Execute CVA actor/camera/motion/dialogue commands and return to gameplay.
+- [x] Execute Mission 1 CVA actor/camera/motion/text commands and return to gameplay.
+  English subtitles render from the disc font; audio playback remains below.
 - [ ] Complete both boss encounters, results/ranking, inventory rewards and retry.
 - [ ] Persist character, difficulty, inventory and mission progress to a save.
 - [ ] Complete music, voices and necessary movie/audio decoding.
@@ -219,8 +220,9 @@ for that branch. Other BIOS low-RAM contents are outside that fidelity claim.
 Poisoned food now supports rolling, owner recovery, ordered target selection,
 luring, eating/interruptions, poison reactions/expiry and cleanup of the saved
 AI callback. Smoke and food share the source target filter.
-CVA camera/actor ownership, remaining ranged/item combat, results,
-saving, transitions and the remaining campaign are still required.
+Mission 1 event routing and CVA camera/actor ownership now run from the disc.
+Remaining ranged/item combat, results, saving, audio, environmental producers and
+continuous campaign validation are still required.
 
 Verification completed so far:
 
@@ -303,11 +305,40 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: Mission 1 event and CVA execution, with remaining item/environment behavior
+Next: Mission 1 results/retry and audio, with remaining item/environment behavior
 added alongside the encounters that need it. Fill the remaining
 drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.
 
-Stage event assets now load with each mission: all ESD tables and 88 localized
-character CAD files pass the private-disc parser check. Runtime event evaluation,
-cinematic actor/camera control and encounter completion are the next work.
+Stage event assets load with each mission: all ESD tables and 88 localized
+character CAD files pass the private-disc parser check. Event triggers and cached
+targets, both successor slots, death roots, training grade selection and cinematic
+returns now run in the core. The host tick count is separate from the original
+signed game clock, which advances during CVA then restores at the event return.
+Controller input stays at the entry poll throughout CVA, including the case where
+a later item clears ActionHalt. Script-owned motions retain ordinary collision/action updates while guarded
+transitions and damage respect CVA ownership. Normal and cinematic cameras share
+the original view position. The presentation snapshot retains the view used for
+the completed frame, even when subsequent script commands change the camera.
+
+Original Latin glyphs, proportional spacing, accents, letterboxing, Tanka sprites
+and full-screen fade effects are supported. Japanese subtitle rasterization still
+needs a portable font source instead of the PS1 BIOS KROM. Music commands are
+queued; audio playback is not implemented yet. The deliberate VSync(60) audio tail
+holds the last frame for one second without world updates. It is distinct from
+PS1 rendering slowdown, which remains excluded.
+
+New verification: both characters' twelve Mission 1 sequence entries execute with
+live actors. Authored event chains activate bosses and restore the mission clock;
+controlled boss/player-death states exercise the real routes to completion and
+game over. Those injected death conditions are not evidence of an ordinary
+complete playthrough. Source-C comparisons cover 576 event worlds, 512 cinematic
+camera cuts/pans, 512 score cases and 3,072 fade updates (including clock rewind).
+An isolated campaign diagnostic attempts all 126 English sequence entries; each
+finishes or takes a source-defined early return without a runtime error. This is
+not campaign playthrough coverage. A separate check protects script-owned motion
+and the frozen audio tail. Native
+window captures show the opening, subtitles, actor poses and return to combat.
+The intro/return also produces identical state at different display cadences and
+with simulated host stalls. Full-workspace strict Clippy currently reports 25
+pre-existing style lints; no Clippy-clean claim is made.

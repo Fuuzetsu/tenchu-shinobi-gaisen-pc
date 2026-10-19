@@ -45,7 +45,7 @@ impl Actor {
         } else {
             MOT_SWIM
         };
-        self.enter(ctx, action, true);
+        self.enter_unless_scripted(ctx, action, true);
         ctx.effects.sounds.push((self.position, 0x16));
         world.intelligence.reset_alert();
         Ok(true)

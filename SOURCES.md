@@ -375,3 +375,39 @@ sequences, 15,689 commands), checks event successors, and decodes all subtitle
 strings without replacement characters. Synthetic tests cover truncated records,
 signed fields, sentinel sizes and out-of-bounds text. No retail script bytes are
 stored in the repository.
+
+## Event execution, cinematics, fades and subtitles (2026-10-20)
+
+The `STAGE.C` and `CHRANIM.C` versions above govern routing, cached targets,
+clock restoration, CVA motion ownership, actor placement, camera cuts/pans,
+cumulative waits and end cleanup. `MOTION.C` supplies guarded motion updates and
+the global cinematic damage gate. `PADCMD.C`/`CHRANIM.C` show that controller
+sampling stays at the entry poll during CVA; an item clearing ActionHalt does not
+refresh that sample. `EFFECT.C` supplies fade allocation and clock
+arithmetic. `CAMERA.C` and `WORLD.C` confirm that normal and cinematic control
+share `ViewInfo`; the port keeps a separate immutable view of the rendered frame,
+not a separate normal-camera position. Source score packing and rank computation
+are used for training's sequence selection and subsequent results work.
+
+Additional matching source files at the decompilation revision above:
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/draw_glyph_.c` | `b53f92efcc7181b741888788edc10be93ca4a9f7e8b10620bf811e7fb39d9dd6` |
+| `src/main.exe/telop_text_width_.c` | `ff94949d90d52753b09ac4f2cfaa23e3fc1dd88a12c835c8eaec836422fbf047` |
+| `src/main.exe/draw_telop_line_.c` | `77fa51787c93e7595d353eb9ad885ce2b7ae55048c96a4cc825fd964db95eb92` |
+| `src/main.exe/initialise_font.c` | `13bc65c8f9a759d9494b96b3eafcaeccd9716b699ca8c048f21fb10dbd2e2373` |
+| `src/main.exe/SetupTelop.c` | `cf3b80b2a8fda7c57f5138d89de6473214abc7fbcc36c5bc4fb6c043efc041c8` |
+
+Latin glyph pixels and widths come from the supplied disc/executable. The Shift-JIS
+KROM rasterization path is identified but not implemented; no BIOS font is copied.
+Widescreen bars/fades extend to the host viewport. The source's intentional
+one-second post-music hold preserves a frozen world independently of host refresh.
+CD startup latency and PS1 frame-cost stalls are not simulated.
+
+Private source-C harnesses compare event routing/death returns (with a controlled
+CVA callback), camera cuts/pans (with supplied SDK square-root/direction results),
+fade state/colors and score components. Separate live-world Mission 1 script and
+window checks cover integration. A campaign diagnostic attempts all 126 English
+sequence entries in isolation, including source-defined early returns. This evidence does not establish complete
+campaign, audio or uninterrupted retail-gameplay parity.

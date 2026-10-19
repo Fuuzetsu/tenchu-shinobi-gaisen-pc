@@ -126,7 +126,7 @@ impl Actor {
                 if held & UP == 0 {
                     pending = Some((MOT_ENGAGE_STANCE, true));
                 } else if self.attribute & ATTR_LEDGE != 0 {
-                    self.enter(ctx, MOT_STATE_CLIMB, false);
+                    self.enter_unless_scripted(ctx, MOT_STATE_CLIMB, false);
                     self.move_at(ctx.math, 35, 0);
                     if self.motion.mode & 1 != 0 {
                         self.motion.mode &= !1;

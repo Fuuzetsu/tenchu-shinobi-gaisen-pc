@@ -70,7 +70,7 @@ impl Actor {
             }
         };
         if let Some((action, movement)) = next.or(damage_pending.filter(|_| self.status == 7)) {
-            self.enter(ctx, action, movement);
+            self.enter_unless_scripted(ctx, action, movement);
         }
         ctx.scene.set_translation(self.root_model, self.position);
         let visible = if player {
@@ -127,7 +127,7 @@ impl Actor {
         let width = i32::from(ctx.mission.characters[self.definition].width);
         self.position[0] = self.position[0].wrapping_add(width * i32::from(x) >> 2);
         self.position[2] = self.position[2].wrapping_add(width * i32::from(z) >> 2);
-        self.enter(ctx, MOT_STATE_FALL, false);
+        self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
         if self.status == 11 {
             self.motion.count >>= 2;
         }
@@ -243,7 +243,7 @@ impl Actor {
                     self.velocity[2] = 0;
                 }
                 if self.motion.loops == -1 && held != 0 {
-                    self.enter(ctx, MOT_DAMAGE_GETUP, true);
+                    self.enter_unless_scripted(ctx, MOT_DAMAGE_GETUP, true);
                     self.motion.count = -15;
                 }
             }
@@ -392,7 +392,7 @@ impl Actor {
         if self.attribute & (ATTR_NOFLOOR | ATTR_BUOYANT) != 0 && self.motion.count >= 2 {
             let level = terrain::level(&ctx.mission.terrain, ctx.cursor, self.position, 0)?;
             if self.position[1] < level {
-                self.enter(ctx, MOT_STATE_FALL, false);
+                self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
                 self.motion.count >>= 2;
                 return Ok(None);
             }
@@ -404,7 +404,7 @@ impl Actor {
             return Ok(Some((MOT_STATE_LAND, false)));
         }
         if self.motion.count == 0 && self.motion.loops != 0 {
-            self.enter(ctx, MOT_STATE_FALL, false);
+            self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
             if mid == MOT_JUMP_FLIP {
                 self.rotation[1] = self.rotation[1].wrapping_add(2048);
                 self.motion.pose.rotation[0][1] = 0;

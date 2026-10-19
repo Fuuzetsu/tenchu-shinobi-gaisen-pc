@@ -127,8 +127,14 @@ impl Camera {
     }
 
     fn update_view(&mut self, math: &Math) -> Result<()> {
+        self.set_view(self.position, self.reference, math)
+    }
+
+    pub fn set_view(&mut self, position: [i32; 3], reference: [i32; 3], math: &Math) -> Result<()> {
+        self.position = position;
+        self.reference = reference;
         let mut maximum = 0;
-        for value in self.position.into_iter().chain(self.reference) {
+        for value in position.into_iter().chain(reference) {
             maximum = maximum.max(
                 value
                     .checked_abs()
@@ -136,9 +142,8 @@ impl Camera {
             );
         }
         let shift = (32 - (maximum as u32).leading_zeros()).saturating_sub(15);
-        let delta = std::array::from_fn(|i| {
-            (self.reference[i] >> shift).wrapping_sub(self.position[i] >> shift)
-        });
+        let delta =
+            std::array::from_fn(|i| (reference[i] >> shift).wrapping_sub(position[i] >> shift));
         let length = math.length(delta);
         self.view = Matrix::default();
         if length == 0 {
@@ -168,7 +173,7 @@ impl Camera {
                 ..Matrix::default()
             });
         }
-        self.view.translation = self.view.apply_large(self.position.map(i32::wrapping_neg));
+        self.view.translation = self.view.apply_large(position.map(i32::wrapping_neg));
         Ok(())
     }
 

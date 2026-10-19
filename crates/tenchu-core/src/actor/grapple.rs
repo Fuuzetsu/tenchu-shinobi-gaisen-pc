@@ -104,7 +104,7 @@ impl Actor {
                         ((sum & 0xc00) + if sum & 512 != 0 { 1024 } else { 0 }) as i16;
                     waist[1] = waist[1].wrapping_add(old.wrapping_sub(self.rotation[1]));
                     self.motion.mask = 0x7fff;
-                    self.enter(ctx, MOT_STATE_FALL, false);
+                    self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
                     self.motion.count >>= 1;
                     for i in [0, 2] {
                         self.velocity[i] = if self.map.vector == 15 {

@@ -8,6 +8,7 @@ use tenchu_core::math::{Math, Matrix};
 pub const TEXTURED: u32 = 1;
 pub const SCREEN: u32 = 2;
 pub const TRANSLUCENT: u32 = 4;
+pub const SCREEN_WIDE: u32 = 8;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]

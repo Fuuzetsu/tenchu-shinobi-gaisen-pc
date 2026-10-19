@@ -24,8 +24,8 @@ impl Drawing {
         })
     }
 
-    pub fn finish(&mut self, tick: u64) {
-        if tick.is_multiple_of(30) {
+    pub fn finish(&mut self, clock: i32) {
+        if clock % 30 == 0 {
             self.sampled_bytes = self.bytes.min(65536);
         }
     }
@@ -65,6 +65,7 @@ impl Drawing {
                 }
             }
         }
+        self.bytes += effects.fades.len() as u32 * 32;
         for drawing in &effects.drawings {
             self.bytes += match drawing.graphic {
                 Graphic::Bleed => 24,

@@ -3,6 +3,7 @@ pub mod camera;
 pub mod cue;
 pub mod disc;
 pub mod executable;
+pub mod font;
 pub mod game;
 pub mod hud;
 pub mod model;

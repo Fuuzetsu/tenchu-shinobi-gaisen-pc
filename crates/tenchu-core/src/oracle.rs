@@ -107,13 +107,15 @@ pub fn game(stage: usize, character: i16) -> crate::game::Game {
     .unwrap();
     let assets = GameAssets::open(disc).unwrap();
     let mission = MissionAssets::load(&assets, stage, character, 1).unwrap();
-    crate::game::Game::new(
+    let mut game = crate::game::Game::new(
         mission,
         &Executable::new(&assets.executable).unwrap(),
         character,
         1,
     )
-    .unwrap()
+    .unwrap();
+    game.events = crate::game::events::Events::default();
+    game
 }
 
 pub fn flat_ground(game: &mut crate::game::Game) {
