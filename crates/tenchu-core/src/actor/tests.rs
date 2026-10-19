@@ -9,7 +9,7 @@ fn with_actor<T>(
 ) -> T {
     let mut actor = game.roster.take(id);
     let mut ctx = Context {
-        mission: &game.mission,
+        mission: &mut game.mission,
         math: &game.math,
         body: &game.body,
         cursor: &mut game.cursor,
@@ -767,3 +767,4 @@ fn both_players_grapple_and_cancel_through_normal_updates() {
 
 mod explosives;
 mod swim;
+mod wall;

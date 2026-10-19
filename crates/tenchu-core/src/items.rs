@@ -66,6 +66,7 @@ pub struct Item {
 
 #[derive(Debug)]
 pub struct Items {
+    pub wall_item: Option<usize>,
     pub slots: Vec<Item>,
     pub drawings: Vec<effects::Drawing>,
     pub models: Vec<(usize, Matrix)>,
@@ -108,6 +109,7 @@ impl Items {
             id
         });
         Self {
+            wall_item: Some(0),
             slots,
             drawings: Vec::new(),
             models: Vec::new(),
@@ -352,7 +354,7 @@ impl Items {
         for id in 0..CAPACITY {
             self.dispose(id, actors, ctx)?;
         }
-        for spawn in &ctx.mission.pickups {
+        for spawn in ctx.mission.pickups.clone() {
             let mut position = spawn.position;
             let floor = terrain::level(
                 &ctx.mission.terrain,

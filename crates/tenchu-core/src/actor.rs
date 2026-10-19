@@ -30,7 +30,7 @@ use crate::{
 use tenchu_assets::{executable::BodyTables, stage::MissionAssets};
 
 pub struct Context<'a> {
-    pub mission: &'a MissionAssets,
+    pub mission: &'a mut MissionAssets,
     pub math: &'a Math,
     pub body: &'a BodyTables,
     pub cursor: &'a mut Cursor,

@@ -95,6 +95,19 @@ fn roster_and_weapon_definitions_match_retail_capture() {
 }
 
 fn state(game: &Game) -> String {
+    let wall_clips: Vec<_> = game
+        .mission
+        .characters
+        .iter()
+        .flat_map(|character| character.motions.iter())
+        .filter(|motion| motion.action == tenchu_core::ids::MOT_STICKON)
+        .filter_map(|motion| {
+            game.mission
+                .clips
+                .iter()
+                .find(|clip| clip.id == motion.clip)
+        })
+        .collect();
     format!(
         "{:?}",
         (
@@ -109,9 +122,51 @@ fn state(game: &Game) -> String {
             &game.visible,
             &game.activation,
             &game.drawing,
-            (&game.combat, &game.statistics, &game.hud),
+            (&game.combat, &game.statistics, &game.hud, wall_clips),
         )
     )
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; validates that editable wall-pose tracks do not alias other original motion tracks"]
+fn wall_pose_keys_have_distinct_storage_in_retail_assets() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let definitions = tenchu_assets::executable::Executable::new(&assets.executable)
+        .unwrap()
+        .characters()
+        .unwrap();
+    for (kind, file) in [(0, "RIKIMARU"), (1, "AYAME")] {
+        let clip = definitions
+            .iter()
+            .find(|c| c.kind == kind)
+            .unwrap()
+            .motions
+            .iter()
+            .find(|m| m.action == tenchu_core::ids::MOT_STICKON)
+            .unwrap()
+            .clip;
+        let data = assets.asset(&format!("HUMAN/MOTION/{file}.AMD")).unwrap();
+        let word =
+            |offset| u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+        let mut tracks = Vec::new();
+        for i in 0..word(0) {
+            let at = word(4 + i * 4);
+            let id = i16::from_le_bytes(data[at + 6..at + 8].try_into().unwrap());
+            for track in 0..=usize::from(data[at]) {
+                tracks.push((id, track, at + word(at + 8 + track * 4)));
+            }
+        }
+        for track in [0, 1, 3] {
+            let offset = tracks
+                .iter()
+                .find(|t| t.0 == clip && t.1 == track)
+                .unwrap()
+                .2;
+            let aliases: Vec<_> = tracks.iter().filter(|t| t.2 == offset).collect();
+            assert_eq!(aliases.len(), 1, "{file}: {aliases:?}");
+        }
+    }
 }
 
 #[test]

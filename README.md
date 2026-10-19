@@ -58,11 +58,12 @@ the source AI difficulty; normal is the default.
 WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
 an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
-jumping, crouching, ledge control, swimming, melee combos, guard/damage reactions, stealth
+jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
 smoke bombs, grenades and mines work through normal item selection. Remaining items/special attacks and mission
-events are unfinished; unsupported actions pause with a diagnostic.
+events are unfinished; unsupported actions pause with a diagnostic. Caltrops,
+grenades and smoke bombs also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
 texture palettes and transparency modes. The HUD shows inventory selection and

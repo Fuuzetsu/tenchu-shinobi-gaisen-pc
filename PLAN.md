@@ -164,7 +164,7 @@ and checks native tests, WASM and formatting.
 
 Ordinary play now runs source-ordered actor control and periodic enemy activation.
 Implemented systems include scalar fixed-point math, command history, RNG,
-player movement/jump/crouch/ledge/swimming control, persistent coordinate caches, ordered
+player movement/jump/crouch/ledge/swimming/wall control, persistent coordinate caches, ordered
 body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
@@ -210,7 +210,14 @@ original packet cost is therefore outside the fidelity claim.
 Swimming now preserves water entry, splash RNG, attack cleanup, hidden body parts,
 steering, reverse blockage, hook-only use/cancellation, shore exit and non-swimmer
 drowning. Falling also performs the original attack cleanup.
-CVA camera/actor ownership, wall hugging, remaining ranged/item combat, results,
+Wall hugging now preserves shared static animation edits, cardinal alignment,
+slide/roll/release transitions, and caltrop/grenade/smoke corner throws. Corner
+throws latch selection and decrement inventory bytes even from zero or 255.
+The original null-map probe reads a zero vector byte from low RAM in the available
+retail capture; the portable implementation explicitly uses reflected vector zero
+for that branch. Other BIOS low-RAM contents are outside that fidelity claim.
+Poisoned-food corner throws remain with the pending poisoned-food processor.
+CVA camera/actor ownership, remaining ranged/item combat, results,
 saving, transitions and the remaining campaign are still required.
 
 Verification completed so far:
@@ -267,6 +274,13 @@ Verification completed so far:
   native window check places the player in actual Mission 1 water and exercises
   swimming/hook cancellation. The water surface itself still needs its original
   environmental drawing producer; the current renderer shows the empty channel.
+- Both characters hug/slide against actual Mission 1 terrain and return to
+  normal control. Controlled corner-throw checks cover selection changes,
+  release during the throw, both sides and byte underflow; a missing-wall
+  check preserves source advance/revert behavior. A native window displays
+  wall entry, sliding and release. The private asset check confirms editable
+  wall tracks do not alias other tracks in either player's original AMD, and
+  display-cadence snapshots now include shared wall motion keys.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc
@@ -282,6 +296,6 @@ Verification completed so far:
   degenerate subdivision stitches, contact-list tails, current-epoch coordinate
   caches, effect allocation/RNG and animation hold/sweep behavior.
 
-Next: wall hugging, remaining item behaviors and mission events. Fill the remaining
+Next: poisoned food and remaining item behaviors, then mission events. Fill the remaining
 drawing producers alongside their owning gameplay systems. No batched-world storage, PS1 timing model or source-C runtime dependency
 has been introduced.

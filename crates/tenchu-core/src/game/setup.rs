@@ -23,11 +23,10 @@ pub(super) fn construct(
     character: i16,
     ctx: &mut Context,
 ) -> Result<(usize, Statistics)> {
-    let mission = ctx.mission;
-    for spawn in &mission.construction_actors {
+    for spawn in ctx.mission.construction_actors.clone() {
         roster.spawn(spawn.kind, spawn.position, spawn.facing, ctx)?;
     }
-    for spawn in &mission.construction_pickups {
+    for spawn in ctx.mission.construction_pickups.clone() {
         items.stay(
             spawn.kind,
             spawn.position,
@@ -38,14 +37,14 @@ pub(super) fn construct(
     let player = roster.spawn(character, [0; 3], 0, ctx)?;
     let actor = roster.get_mut(player);
     actor.setup_think(0x1111);
-    actor.position = mission.stage.start;
-    actor.rotation = [0, mission.stage.facing as i16, 0];
+    actor.position = ctx.mission.stage.start;
+    actor.rotation = [0, ctx.mission.stage.facing as i16, 0];
     ctx.scene.set_translation(actor.root_model, actor.position);
     let player_model = actor.root_model;
 
     let dog = roster.spawn(0xa9, [999000; 3], 0, ctx)?;
     roster.get_mut(dog).attribute |= ATTR_SUSPEND;
-    let disguise = roster.spawn(mission.disguise, [999000; 3], 0, ctx)?;
+    let disguise = roster.spawn(ctx.mission.disguise, [999000; 3], 0, ctx)?;
     roster.remove(disguise, ctx);
     while roster.order.len() > 1 {
         roster.remove(roster.order[1], ctx);
@@ -54,7 +53,7 @@ pub(super) fn construct(
         return Err("Construction actors displaced the stage player".into());
     }
     items.restore_layout(roster, ctx)?;
-    for spawn in &mission.enemies {
+    for spawn in ctx.mission.enemies.clone() {
         let id = roster.spawn(spawn.kind, spawn.position, 0, ctx)?;
         let actor = roster.get_mut(id);
         actor.rotation[1] = spawn.facing;
@@ -67,7 +66,7 @@ pub(super) fn construct(
             actor.attribute |= ATTR_TRACE;
         }
     }
-    for spawn in &mission.story {
+    for spawn in ctx.mission.story.clone() {
         let id = match roster.find(spawn.kind) {
             Some(id) => id,
             None => roster.spawn(spawn.kind, [0; 3], 0, ctx)?,
@@ -76,7 +75,7 @@ pub(super) fn construct(
         actor.position = spawn.position;
         actor.home = [spawn.position[0], spawn.position[2]];
         let floor = terrain::level(
-            &mission.terrain,
+            &ctx.mission.terrain,
             ctx.cursor,
             [
                 spawn.position[0],
@@ -119,7 +118,7 @@ pub(super) fn construct(
         }
         stats.enemies += 1;
     }
-    let adjustment = match mission.stage.id {
+    let adjustment = match ctx.mission.stage.id {
         10 => {
             if character == 0 {
                 2

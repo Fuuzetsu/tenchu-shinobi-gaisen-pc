@@ -315,3 +315,28 @@ Private-disc tests exercise both players through water input, hook cancellation
 and shore exit, and a non-swimmer through drowning/collision removal. Targeted
 checks cover entry splash RNG, one-time cleanup and falling attack cancellation.
 These scenarios do not establish complete mission or water-presentation parity.
+
+## Wall hugging and corner throws (2026-10-20)
+
+`StickonCheck`/`ActSTICKON` in the matching `MOTION.C` above govern entry,
+shared static pose-key edits, alignment, sliding, rolls and delayed throws.
+`ACTION.C` defines motion update/hold behavior. `ITEM.C` supplies the raw
+caltrop, grenade and smoke requests, now shared with ordinary item use. The
+empty `ActCEILHANG` dispatch remains empty.
+
+| Repository | File | Working-tree SHA-256 |
+| --- | --- | --- |
+| `tenchu-decomp-glitch-research` | `tools/tenchu-sim/src/wallstick.rs` | `6f2e224a48c642b6061007b3f053544f394b84d34f89f71648d5cfa32c14440f` |
+
+The research implementation supplied behavioral context, not storage or copied
+architecture. Matching C takes precedence, including `UpdateMotion`'s same-ID
+early return. Mission data is owned and mutable by game control so edits to the
+wall clip persist across users/re-entry. A private-disc check confirms the
+modified tracks have distinct storage in the original Rikimaru and Ayame AMDs.
+
+Retail wall sliding dereferences a null map at RAM `0x0000000c` when a probe
+fails. Its vector byte is zero in the available retail capture. The port uses
+`RefrectVector[0]` explicitly here; it neither reads a native null pointer nor
+requires BIOS/RAM emulation. This behavior is checked for both advancing away
+from the wall and reverting a sideways slide. Different low-RAM contents are
+not part of this claim. Poisoned-food throws still await their item processor.

@@ -2,10 +2,21 @@ mod chase;
 mod crouch;
 mod hang;
 mod swim;
+mod wall;
 
 use super::*;
 use crate::input::*;
 use tenchu_assets::executable::Command;
+
+fn crouch_roll(command: u16) -> Option<i16> {
+    match command {
+        0x11 => Some(MOT_SQUAT_ROLL_F),
+        0x12 => Some(MOT_SQUAT_ROLL_B),
+        0x13 => Some(MOT_SQUAT_ROLL_L),
+        0x14 => Some(MOT_SQUAT_ROLL_R),
+        _ => None,
+    }
+}
 
 impl Actor {
     pub fn control(
@@ -45,6 +56,8 @@ impl Actor {
             9 => self.jump(ctx, held)?,
             10 => self.hang(ctx, held, world.player)?,
             11 => self.crouch(ctx, world, held, command)?,
+            12 => self.wall(ctx, world, held, command)?,
+            13 => None,
             14 => self.shuriken_control(ctx, world)?,
             15 => self.item_control(ctx, world)?,
             16 => self.damaged(ctx, world)?,

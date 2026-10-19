@@ -30,6 +30,80 @@ fn throw_vector(owner: &Actor, player: usize, vector: [i32; 3], ctx: &Context) -
 }
 
 impl Items {
+    fn throw_rolling(
+        &mut self,
+        kind: usize,
+        owner: usize,
+        start: [i32; 3],
+        velocity: [i32; 3],
+        actors: &mut Actors,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        let processor = match kind {
+            2 => Processor::Caltrops,
+            4 => Processor::Fire,
+            5 => Processor::Smoke,
+            6 => Processor::Mine,
+            _ => return Err(format!("Rolling item {kind} is not implemented yet")),
+        };
+        let id = self.allocate(actors, ctx)?;
+        self.initialize(id, processor, kind, Some(owner), start, ctx)?;
+        let item = &mut self.slots[id];
+        item.collision.size = 0;
+        item.rolling = Rolling {
+            velocity: velocity.map(|v| v as i16),
+            ..Rolling::default()
+        };
+        match kind {
+            2 => ctx.effects.sounds.push((start, 0x22)),
+            4 => item.count = 150,
+            5 => item.count = 10,
+            _ => {}
+        }
+        Ok(())
+    }
+
+    pub(crate) fn wall_throw(
+        &mut self,
+        kind: usize,
+        owner: &mut Actor,
+        start: [i32; 3],
+        mut angle: i16,
+        roster: &mut Roster,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        let id = owner.id;
+        let actors = &mut Actors {
+            roster,
+            active: Some(owner),
+        };
+        if kind == 2 {
+            for _ in 0..5 {
+                angle = angle
+                    .wrapping_sub(10)
+                    .wrapping_add((ctx.random.next15() % 20) as i16);
+                let [sin, cos] = ctx.math.pair(angle);
+                let velocity = [
+                    sin * (-30 - ctx.random.next15() % 200) >> 12,
+                    -(ctx.random.next15() % 30),
+                    cos * (-30 - ctx.random.next15() % 200) >> 12,
+                ];
+                self.throw_rolling(kind, id, start, velocity, actors, ctx)?;
+            }
+        } else {
+            let [sin, cos] = ctx.math.pair(angle);
+            self.throw_rolling(
+                kind,
+                id,
+                start,
+                [sin * -120 >> 12, 0, cos * -120 >> 12],
+                actors,
+                ctx,
+            )?;
+        }
+        Ok(())
+    }
+
     pub(super) fn item_motion(actor: &mut Actor, action: i16, ctx: &Context) {
         actor.motion.change(
             action,
@@ -117,14 +191,7 @@ impl Items {
                         velocity[1].wrapping_sub(ctx.random.next15() % 50 + 50),
                         velocity[2].wrapping_add(ctx.random.next15() % 100 - 50),
                     ];
-                    let id = self.allocate(actors, ctx)?;
-                    self.initialize(id, Processor::Caltrops, kind, Some(owner_id), start, ctx)?;
-                    self.slots[id].collision.size = 0;
-                    self.slots[id].rolling = Rolling {
-                        velocity: velocity.map(|v| v as i16),
-                        ..Rolling::default()
-                    };
-                    ctx.effects.sounds.push((start, 0x22));
+                    self.throw_rolling(kind, owner_id, start, velocity, actors, ctx)?;
                 }
             }
             3 => {
@@ -144,22 +211,7 @@ impl Items {
                 } else {
                     start
                 };
-                let processor = match kind {
-                    4 => Processor::Fire,
-                    5 => Processor::Smoke,
-                    _ => Processor::Mine,
-                };
-                let id = self.allocate(actors, ctx)?;
-                self.initialize(id, processor, kind, Some(owner_id), position, ctx)?;
-                let item = &mut self.slots[id];
-                item.collision.size = 0;
-                item.rolling = Rolling {
-                    velocity: velocity.map(|v| v as i16),
-                    ..Rolling::default()
-                };
-                if kind != 6 {
-                    item.count = if kind == 4 { 150 } else { 10 };
-                }
+                self.throw_rolling(kind, owner_id, position, velocity, actors, ctx)?;
             }
             20 => self.launch(kind, owner_id, start, end, actors, ctx)?,
             21 => {

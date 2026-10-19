@@ -49,7 +49,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(
-        mission: MissionAssets,
+        mut mission: MissionAssets,
         executable: &Executable,
         character: i16,
         seed: u32,
@@ -73,7 +73,7 @@ impl Game {
             &math,
         )?;
         let mut context = Context {
-            mission: &mission,
+            mission: &mut mission,
             math: &math,
             body: &body,
             cursor: &mut cursor,
@@ -139,7 +139,7 @@ impl Game {
             &mut self.scene,
         )?;
         let mut context = Context {
-            mission: &self.mission,
+            mission: &mut self.mission,
             math: &self.math,
             body: &self.body,
             cursor: &mut self.cursor,
@@ -272,7 +272,7 @@ impl Game {
             .effects(&self.effects, &self.mission, &self.math, self.camera.view)?;
         self.items.step(
             &mut Context {
-                mission: &self.mission,
+                mission: &mut self.mission,
                 math: &self.math,
                 body: &self.body,
                 cursor: &mut self.cursor,

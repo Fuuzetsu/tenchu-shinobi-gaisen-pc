@@ -126,13 +126,9 @@ impl Actor {
             }
         }
         if command != 0 {
-            return Ok(match command {
-                0x11 => Some((MOT_SQUAT_ROLL_F, true)),
-                0x12 => Some((MOT_SQUAT_ROLL_B, true)),
-                0x13 => Some((MOT_SQUAT_ROLL_L, true)),
-                0x14 => Some((MOT_SQUAT_ROLL_R, true)),
-                _ => pending,
-            });
+            return Ok(crouch_roll(command)
+                .map(|action| (action, true))
+                .or(pending));
         }
         if self.pad.trigger & SQUARE != 0 {
             return self.attack_input(ctx, world, held, pending);
@@ -142,6 +138,9 @@ impl Actor {
         }
         if held & CIRCLE == 0 {
             return Ok(Some((self.return_normal(ctx, world.player)?, true)));
+        }
+        if world.intelligence.player_strain != 0 && self.wall_check(ctx)?.is_some() {
+            return Ok(Some((MOT_STICKON, true)));
         }
         Ok(pending)
     }

@@ -30,7 +30,7 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
     let old_pad = actor.pad.clone();
     let mut state = Intelligence::default();
     let mut ctx = Context {
-        mission: &game.mission,
+        mission: &mut game.mission,
         math: &game.math,
         body: &game.body,
         cursor: &mut game.cursor,
@@ -401,7 +401,7 @@ int main(void) {{
             input.push('\n');
             game.random = Random::new(seed);
             let mut ctx = Context {
-                mission: &game.mission,
+                mission: &mut game.mission,
                 math: &game.math,
                 body: &game.body,
                 cursor: &mut game.cursor,

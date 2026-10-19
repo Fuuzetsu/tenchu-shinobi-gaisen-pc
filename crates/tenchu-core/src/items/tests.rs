@@ -6,7 +6,7 @@ fn with_items<T>(game: &mut Game, f: impl FnOnce(&mut Items, &mut Context, &mut 
     f(
         &mut game.items,
         &mut Context {
-            mission: &game.mission,
+            mission: &mut game.mission,
             math: &game.math,
             body: &game.body,
             cursor: &mut game.cursor,
