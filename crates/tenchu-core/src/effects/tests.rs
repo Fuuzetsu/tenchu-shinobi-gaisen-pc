@@ -243,3 +243,5 @@ fn flat_map() -> tenchu_assets::terrain::AreaMap {
     bytes[46..48].copy_from_slice(&u16::MAX.to_le_bytes());
     tenchu_assets::terrain::AreaMap::parse(bytes).unwrap()
 }
+
+mod explosions;

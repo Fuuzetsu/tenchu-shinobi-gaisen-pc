@@ -15,7 +15,32 @@ pub(super) fn camera(mode: Mode, owner: &Actor, ctx: &mut Context) -> Result<()>
     )
 }
 
+fn throw_vector(owner: &Actor, player: usize, vector: [i32; 3], ctx: &Context) -> Result<[i32; 3]> {
+    let rotation = if owner.id == player && ctx.camera.mode == Mode::Direction {
+        ctx.math
+            .vector_rotation(ctx.camera.position, ctx.camera.reference)?
+    } else {
+        owner.rotation
+    };
+    Ok(Matrix {
+        rotation: ctx.math.rotate_yxz(rotation),
+        ..Matrix::default()
+    }
+    .apply_large(vector))
+}
+
 impl Items {
+    pub(super) fn item_motion(actor: &mut Actor, action: i16, ctx: &Context) {
+        actor.motion.change(
+            action,
+            &ctx.mission.characters[actor.definition].motions,
+            &ctx.mission.common_motions,
+            &ctx.mission.clips,
+        );
+        actor.status = (action >> 8) as i8 as i16;
+        actor.motion_velocity(ctx);
+    }
+
     pub(crate) fn request_default(
         &mut self,
         kind: usize,
@@ -29,17 +54,7 @@ impl Items {
             owner.position[1].wrapping_sub(1200),
             owner.position[2],
         ];
-        let rotation = if owner.id == player && ctx.camera.mode == Mode::Direction {
-            ctx.math
-                .vector_rotation(ctx.camera.position, ctx.camera.reference)?
-        } else {
-            owner.rotation
-        };
-        let delta = Matrix {
-            rotation: ctx.math.rotate_yxz(rotation),
-            ..Matrix::default()
-        }
-        .apply_large([0, 0, -100]);
+        let delta = throw_vector(owner, player, [0, 0, -100], ctx)?;
         let end = std::array::from_fn(|i| start[i].wrapping_add(delta[i]));
         self.request(kind, owner, start, end, player, roster, ctx)
     }
@@ -95,17 +110,7 @@ impl Items {
                 actors.get_mut(owner_id).inventory[25] = 0;
             }
             2 => {
-                let rotation = if owner_id == player && ctx.camera.mode == Mode::Direction {
-                    ctx.math
-                        .vector_rotation(ctx.camera.position, ctx.camera.reference)?
-                } else {
-                    actors.get(owner_id).rotation
-                };
-                let velocity = Matrix {
-                    rotation: ctx.math.rotate_yxz(rotation),
-                    ..Matrix::default()
-                }
-                .apply_large([0, 0, 100]);
+                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, 100], ctx)?;
                 for _ in 0..5 {
                     let velocity = [
                         velocity[0].wrapping_add(ctx.random.next15() % 100 - 50),
@@ -126,6 +131,35 @@ impl Items {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Medicine, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
+            }
+            4 | 5 | 6 => {
+                let vector = match kind {
+                    4 => [0, -120, -120],
+                    5 => [0, 0, -60],
+                    _ => [0, 0, -1000],
+                };
+                let velocity = throw_vector(actors.get(owner_id), player, vector, ctx)?;
+                let position = if kind == 6 {
+                    std::array::from_fn(|i| start[i].wrapping_add(velocity[i]))
+                } else {
+                    start
+                };
+                let processor = match kind {
+                    4 => Processor::Fire,
+                    5 => Processor::Smoke,
+                    _ => Processor::Mine,
+                };
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, processor, kind, Some(owner_id), position, ctx)?;
+                let item = &mut self.slots[id];
+                item.collision.size = 0;
+                item.rolling = Rolling {
+                    velocity: velocity.map(|v| v as i16),
+                    ..Rolling::default()
+                };
+                if kind != 6 {
+                    item.count = if kind == 4 { 150 } else { 10 };
+                }
             }
             20 => self.launch(kind, owner_id, start, end, actors, ctx)?,
             21 => {

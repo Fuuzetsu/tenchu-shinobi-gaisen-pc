@@ -1,5 +1,8 @@
 mod blood;
+mod explosion;
 mod impact;
+mod smoke;
+pub use explosion::Explosion;
 mod wire;
 pub use blood::Blood;
 pub use impact::Impact;
@@ -61,6 +64,8 @@ pub enum Effect {
     Blood(Blood),
     Impact(Impact),
     FlyWire(FlyWire),
+    Explosion(Explosion),
+    Ember(Explosion),
 }
 
 pub struct Environment<'a> {
@@ -97,6 +102,7 @@ pub enum Graphic {
         blend: u8,
     },
     Smoke(u8),
+    Explosion(u8),
     Splash,
     Bleed,
     Flash(i16),
@@ -153,6 +159,37 @@ impl Default for Effects {
 }
 
 impl Effects {
+    fn sprite(
+        &mut self,
+        graphic: Graphic,
+        position: [i32; 3],
+        scale: i32,
+        color: u8,
+        rotation: i32,
+        view: View,
+    ) {
+        let matrix = view.matrix.compose(&Matrix {
+            translation: position,
+            ..Matrix::default()
+        });
+        let Some(clip) = visibility::clip(&matrix, 0, [0; 3]) else {
+            return;
+        };
+        let depth = clip.depth as i16 - 5;
+        if depth < 1 {
+            return;
+        }
+        let scale = ((scale >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
+        self.drawings.push(Drawing {
+            graphic,
+            xy: visibility::project(&matrix, [0; 3]).0,
+            scale: [i32::from(scale); 2],
+            color: [color; 3],
+            rotation,
+            depth,
+        });
+    }
+
     fn allocate(&mut self) -> usize {
         let mut i = self.cursor;
         for _ in 0..200 {
@@ -327,44 +364,7 @@ impl Effects {
         env: &mut Environment,
     ) -> Result<bool> {
         match effect {
-            Effect::Smoke(smoke) => {
-                if smoke.time == smoke.change_at {
-                    if smoke.velocity[1] < -20 {
-                        smoke.velocity[0] = (i32::from(smoke.velocity[0]) * 80 / 100) as i16;
-                        smoke.velocity[1] /= 2;
-                        smoke.velocity[2] = (i32::from(smoke.velocity[2]) * 80 / 100) as i16;
-                    }
-                    smoke.scale = smoke.scale.wrapping_add(1024);
-                    smoke.change_at = (i32::from(smoke.time) - 1 - rng.next15() % 5) as u8;
-                }
-                for i in 0..3 {
-                    smoke.position[i] =
-                        smoke.position[i].wrapping_add(i32::from(smoke.velocity[i]));
-                }
-                let matrix = view.matrix.compose(&Matrix {
-                    translation: smoke.position,
-                    ..Matrix::default()
-                });
-                if let Some(clip) = visibility::clip(&matrix, 0, [0; 3]) {
-                    let depth = clip.depth as i16 - 5;
-                    if depth >= 1 {
-                        let scale =
-                            (((smoke.scale >> 2).wrapping_mul(300)) / i32::from(depth)) as i16;
-                        let color = if smoke.time < 26 { smoke.time * 5 } else { 128 };
-                        self.drawings.push(Drawing {
-                            graphic: Graphic::Smoke(smoke.sprite),
-                            xy: visibility::project(&matrix, [0; 3]).0,
-                            scale: [i32::from(scale); 2],
-                            color: [color; 3],
-                            rotation: smoke.rotation,
-                            depth,
-                        });
-                    }
-                }
-                let alive = smoke.time != 0;
-                smoke.time = smoke.time.wrapping_sub(1);
-                Ok(alive)
-            }
+            Effect::Smoke(smoke) => Ok(self.update_smoke(smoke, rng, view)),
             Effect::Bleed(bleed) => {
                 let alive = bleed.mode != 0 || bleed.time != 0;
                 if bleed.mode == 0 && bleed.time != 0 {
@@ -481,6 +481,8 @@ impl Effects {
             Effect::Blood(blood) => self.update_blood(blood, rng, view, env),
             Effect::Impact(impact) => self.update_impact(impact, view, scene),
             Effect::FlyWire(wire) => Ok(self.update_wire(wire, rng, view, env.owner_position)),
+            Effect::Explosion(effect) => Ok(self.update_explosion(effect, false, view)),
+            Effect::Ember(effect) => Ok(self.update_explosion(effect, true, view)),
         }
     }
 }

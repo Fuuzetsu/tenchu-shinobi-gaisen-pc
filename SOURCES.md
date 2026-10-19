@@ -283,3 +283,18 @@ Additional behavioral references in the research repository at the revision abov
 The new private test extracts the actual C hook setup/update routines. It compares
 2,048 flights with supplied SDK square-root results and draw/sound/particle stubs.
 No sibling source or C toolchain is required by the game.
+
+## Smoke bombs, grenades and mines (2026-10-20)
+
+The matching `ITEM.C` routines `ProcItemSmoke`, `ProcItemFire`, `ProcItemJirai`,
+`FindItemTarget` and their request functions define throws, filters, timers,
+collision changes, dud recovery and refunds. `EFFECT.C` defines the new smoke,
+explosion and ember requests and updates. These are the same working-tree
+versions hashed above. Shared scalar helpers retain request/update ordering;
+there is no source-C runtime dependency.
+
+A private comparison extracts `DrawSmoke`, `DrawExplosion` and `DrawHinoko`
+from the actual source and checks 384 complete particle lifetimes, including
+RNG, velocity, scale, color, sprite choice and disposal. Coordinate/graphics
+submission is stubbed in that comparison. Controlled gameplay and window checks
+exercise actual item use and rendering separately.

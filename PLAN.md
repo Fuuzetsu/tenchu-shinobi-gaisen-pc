@@ -169,7 +169,7 @@ body collision, camera follow/look, original animation, weapon attachment/swap,
 patrol/investigation/combat decisions, reinforcement replacement, melee combos,
 weapon hitboxes/clashes, guarding, damage reactions, authored stealth deaths,
 dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellation,
-medicine, caltrops, grappling and item damage. The native
+medicine, caltrops, grappling, smoke bombs, grenades, mines and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Remaining item use, special
@@ -199,6 +199,10 @@ launcher supplies the original fallback loadout (hook, 10 shuriken, 5 caltrops,
 through normal input, actor animations and item updates. AI can request medicine.
 Return-to-normal transitions now apply the source player camera reset, including
 shuriken recovery and the held-look-button exception.
+Smoke bombs apply the source radius/owner filters and choke motion; grenades and
+mines preserve arming, fuse/blast lifetimes, dud recovery, placement refunds and
+water disposal. Smoke, explosion and ember effects share the existing ordered
+pool and original textures.
 Grappling now includes source targeting, flight/countdown, pull/contact exits,
 cable RNG, impact particles and original hook geometry. Empty cable curves omit
 the hook draw instead of reading undefined retail stack locals; their exact
@@ -246,6 +250,13 @@ Verification completed so far:
   Hook setup, flight/straightening timing, random bends and impact RNG match the
   original C in 2,048 cases. This oracle supplies the integer square-root result
   and stubs draw/sound/particle sinks. The native window renders the hook/cable.
+- Both characters throw smoke bombs/grenades and plant mines through ordinary
+  input, animation, item/contact updates and enemy damage in controlled scenarios.
+  Separate checks cover grenade dud recovery, invalid/water mine refunds and
+  water extinguishing. Smoke/explosion/ember state and RNG match original C
+  through expiry in 384 cases with graphics submission stubbed. Window checks
+  show the grenade blast, embers and smoke cloud using a temporary QA loadout;
+  the launcher retains the original fallback inventory.
 - Original-C comparisons cover 512 camera-smoothing cases, 45,760 enemy sight
   cases with exact ray arguments, 81,920 engaged combat-controller cases and
   4,096 varied activation worlds. Reinforcement continuation has a private-disc

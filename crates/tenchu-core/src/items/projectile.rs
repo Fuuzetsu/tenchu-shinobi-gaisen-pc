@@ -98,17 +98,21 @@ impl Items {
         Ok(())
     }
 
+    pub(super) fn first_contact(&mut self, id: usize, ctx: &mut Context) -> Option<usize> {
+        let model = self.slots[id].model;
+        if ctx.scene.models[model].attribute & CONFLICT == 0 {
+            return None;
+        }
+        ctx.collision.result(ctx.scene, model, None)
+    }
+
     pub(super) fn hit(
         &mut self,
         id: usize,
         ctx: &mut Context,
         actors: &mut Actors,
     ) -> Option<(usize, usize)> {
-        let model = self.slots[id].model;
-        if ctx.scene.models[model].attribute & CONFLICT == 0 {
-            return None;
-        }
-        let slot = ctx.collision.result(ctx.scene, model, None)?;
+        let slot = self.first_contact(id, ctx)?;
         let owner = ctx.collision.slots[slot].owner?;
         actors
             .roster

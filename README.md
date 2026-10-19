@@ -60,8 +60,8 @@ an item, Q looks, and Z/C select items. P pauses, F5 restarts and Escape quits.
 Losing focus pauses simulation. The preview currently supports movement,
 jumping, crouching, ledge control, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
-and the source follow/look camera. Grappling, shuriken, medicine and caltrops work
-through normal item selection. Remaining items/special attacks and mission
+and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
+smoke bombs, grenades and mines work through normal item selection. Remaining items/special attacks and mission
 events are unfinished; unsupported actions pause with a diagnostic.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their

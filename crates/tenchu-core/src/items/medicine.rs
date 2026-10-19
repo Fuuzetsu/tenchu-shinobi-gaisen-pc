@@ -16,14 +16,7 @@ impl Items {
             0 => {
                 if halt == 0 && owner.health > 0 {
                     owner.clear_attack(ctx, 3)?;
-                    owner.motion.change(
-                        MOT_ITEM_DRINK,
-                        &ctx.mission.characters[owner.definition].motions,
-                        &ctx.mission.common_motions,
-                        &ctx.mission.clips,
-                    );
-                    owner.status = 15;
-                    owner.motion_velocity(ctx);
+                    Self::item_motion(owner, MOT_ITEM_DRINK, ctx);
                 }
                 let model = &mut ctx.scene.models[item.model];
                 model.parent = Some(owner.parts[if owner.parts.len() > 14 { 14 } else { 2 }]);

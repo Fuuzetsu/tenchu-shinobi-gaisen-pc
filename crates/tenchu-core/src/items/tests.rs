@@ -529,3 +529,107 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         actors.roster.restore(actor);
     });
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; dud recovery, invalid mine refunds and water extinguishing"]
+fn bombs_recover_refund_and_extinguish() {
+    let mut game = oracle::game(0, 0);
+    oracle::flat_ground(&mut game);
+    let player = game.player_id;
+    let mut intelligence = crate::ai::Intelligence::default();
+    with_items(&mut game, |items, ctx, actors| {
+        for id in 0..CAPACITY {
+            items.dispose(id, actors, ctx).unwrap();
+        }
+        let mut actor = actors.roster.take(player);
+        actor.inventory[4] = 2;
+        actor.inventory[6] = 2;
+        items
+            .request(
+                4,
+                &mut actor,
+                [0, -1000, 0],
+                [0; 3],
+                player,
+                actors.roster,
+                ctx,
+            )
+            .unwrap();
+        actors.roster.restore(actor);
+        let id = items.cursor;
+        items.slots[id].rolling.status = 4;
+        items.slots[id].count = 1;
+        let seed = (0..100)
+            .find(|&seed| {
+                let mut rng = Random::new(seed);
+                for _ in 0..4 {
+                    rng.next15();
+                }
+                rng.next15() % 10 < 2
+            })
+            .unwrap();
+        *ctx.random = Random::new(seed);
+        items.fire(id, actors, &mut intelligence, ctx).unwrap();
+        assert!(items.slots[id].processor.is_none());
+        assert!(
+            items.slots.iter().any(|i| i.kind == 4
+                && i.owner.is_none()
+                && i.processor == Some(Processor::Pickup))
+        );
+        assert_eq!(ctx.random.calls, 8);
+        assert!(ctx.effects.slots.iter().any(|s| matches!(
+            s,
+            Some(effects::Effect::Smoke(effects::Smoke { time: 10, .. }))
+        )));
+        assert_eq!(actors.get(player).inventory[4], 1);
+        let mut actor = actors.roster.take(player);
+        items
+            .request(
+                6,
+                &mut actor,
+                [999000, -1000, 999000],
+                [0; 3],
+                player,
+                actors.roster,
+                ctx,
+            )
+            .unwrap();
+        actors.roster.restore(actor);
+        let id = items.cursor;
+        items.mine(id, actors, &mut intelligence, ctx).unwrap();
+        assert_eq!(actors.get(player).inventory[6], 2);
+        assert!(items.slots[id].processor.is_none());
+    });
+    oracle::flat_terrain(&mut game, 0x2004);
+    with_items(&mut game, |items, ctx, actors| {
+        for kind in [4, 5, 6] {
+            let mut actor = actors.roster.take(player);
+            actor.inventory[kind] = 2;
+            items
+                .request(
+                    kind,
+                    &mut actor,
+                    [0, -50, 0],
+                    [0; 3],
+                    player,
+                    actors.roster,
+                    ctx,
+                )
+                .unwrap();
+            actors.roster.restore(actor);
+            let id = items.cursor;
+            items.slots[id].rolling.velocity = [0, 100, 0];
+            match kind {
+                4 => items.fire(id, actors, &mut intelligence, ctx),
+                5 => items.smoke(id, actors, &mut intelligence, 0, ctx),
+                _ => items.mine(id, actors, &mut intelligence, ctx),
+            }
+            .unwrap();
+            assert!(items.slots[id].processor.is_none(), "kind {kind}");
+            assert_eq!(
+                actors.get(player).inventory[kind],
+                if kind == 6 { 2 } else { 1 }
+            );
+        }
+    });
+}

@@ -117,6 +117,10 @@ pub fn game(stage: usize, character: i16) -> crate::game::Game {
 }
 
 pub fn flat_ground(game: &mut crate::game::Game) {
+    flat_terrain(game, 0x2000);
+}
+
+pub fn flat_terrain(game: &mut crate::game::Game, attribute: u16) {
     let mut bytes = vec![0u8; 48];
     bytes[2..4].copy_from_slice(&1i16.to_le_bytes());
     bytes[4..8].copy_from_slice(&32u32.to_le_bytes());
@@ -125,7 +129,7 @@ pub fn flat_ground(game: &mut crate::game::Game) {
             bytes[base + i * 2..base + i * 2 + 2].copy_from_slice(&value.to_le_bytes());
         }
     }
-    bytes[44..46].copy_from_slice(&0x2000u16.to_le_bytes());
+    bytes[44..46].copy_from_slice(&attribute.to_le_bytes());
     bytes[46..48].copy_from_slice(&u16::MAX.to_le_bytes());
     game.mission.terrain = tenchu_assets::terrain::AreaMap::parse(bytes).unwrap();
     game.cursor = crate::terrain::Cursor::new(&game.mission.terrain);

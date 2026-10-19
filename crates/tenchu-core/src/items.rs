@@ -1,3 +1,4 @@
+mod bomb;
 mod caltrops;
 mod flight;
 mod grapple;
@@ -6,6 +7,7 @@ mod pickup;
 mod projectile;
 mod rolling;
 mod sight_shot;
+mod smoke;
 #[cfg(test)]
 mod tests;
 mod use_item;
@@ -34,6 +36,9 @@ pub enum Processor {
     Medicine,
     Caltrops,
     Grapple,
+    Smoke,
+    Fire,
+    Mine,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -300,6 +305,9 @@ impl Items {
                 }
                 Some(Processor::Caltrops) => self.caltrops(id, actors, ctx)?,
                 Some(Processor::Grapple) => self.grapple(id, actors, ctx)?,
+                Some(Processor::Smoke) => self.smoke(id, actors, intelligence, clock, ctx)?,
+                Some(Processor::Fire) => self.fire(id, actors, intelligence, ctx)?,
+                Some(Processor::Mine) => self.mine(id, actors, intelligence, ctx)?,
                 None => {}
             }
         }
