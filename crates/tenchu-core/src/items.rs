@@ -1,6 +1,7 @@
 mod bomb;
 mod breath;
 mod caltrops;
+mod darts;
 mod flight;
 mod flute;
 mod grapple;
@@ -53,6 +54,7 @@ pub enum Processor {
     Flute,
     Resurrection,
     Rice,
+    Darts,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -211,7 +213,7 @@ impl Items {
                     .inventory[25] = 0;
                 item.mode = 0;
             }
-            Some(Processor::Shuriken) => {
+            Some(Processor::Shuriken | Processor::Darts) => {
                 item.trail = None;
                 item.mode = 0;
             }
@@ -357,6 +359,7 @@ impl Items {
                 Some(Processor::Rice) => {
                     self.rice(id, actors, intelligence.action_halt, player, ctx)?
                 }
+                Some(Processor::Darts) => self.darts(id, actors, ctx)?,
                 None => {}
             }
         }

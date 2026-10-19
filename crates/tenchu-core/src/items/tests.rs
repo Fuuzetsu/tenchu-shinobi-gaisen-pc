@@ -3,6 +3,7 @@ use crate::{game::Game, input::UP, oracle, random::Random};
 use std::fmt::Write;
 
 mod breath;
+mod darts;
 mod napalm;
 mod poison;
 mod rice;

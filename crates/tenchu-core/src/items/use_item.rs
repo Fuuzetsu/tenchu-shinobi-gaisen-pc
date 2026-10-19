@@ -239,6 +239,7 @@ impl Items {
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
             }
             19 => {}
+            15 => self.request_darts(owner_id, start, actors, ctx)?,
             8 => {
                 let velocity = throw_vector(actors.get(owner_id), player, [0, 0, -100], ctx)?;
                 let id = self.allocate(actors, ctx)?;

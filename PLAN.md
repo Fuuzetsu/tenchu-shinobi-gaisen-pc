@@ -589,3 +589,20 @@ original initialization boundary. The full Mission 1 controller regression still
 passes through saved continuation. Native inventory/keyboard checks plant, mark
 and recollect rice for both characters from ordinary starts.
 Nix native, WASM and formatting checks pass on x86_64-linux for this increment.
+
+The eight-shot shuriken item now creates eight independently targeted curved
+flights, with original yaw jitter, per-projectile trails, an eight-tick hitbox
+delay, thirty-point damage and terrain-impact effects. Humanoid contact removes
+the hitbox while retaining the projectile and trail; terrain impact disposes
+both. Existing flight, collision, rendering and damage routines are shared.
+An extracted-C check covers 128 requests/1,024 shots, comparing RNG, rotation,
+curve setup, arming, trail binding and sound. Terrain target positions and SDK
+distances are supplied; the C-generated aim angles are separately fed back into
+the native target lookup. Controlled ordinary-tick fights verify both characters,
+and a contact regression distinguishes humanoid and terrain disposal. All 107
+current core checks pass, excluding the unchanged long cinematic coverage check.
+Native keyboard checks display the throw, separate trails and wall-impact sparks
+for both characters. Those checks use a temporary save with the item unlocked;
+normal gameplay then selects it through the equipment screen. No runtime state
+override or source-code QA hook is present.
+Nix native, WASM and formatting checks pass on x86_64-linux.

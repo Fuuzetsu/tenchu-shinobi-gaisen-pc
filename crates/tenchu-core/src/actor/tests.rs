@@ -884,6 +884,7 @@ fn both_players_grapple_and_cancel_through_normal_updates() {
     }
 }
 
+mod darts;
 mod explosives;
 mod poison;
 mod revival;

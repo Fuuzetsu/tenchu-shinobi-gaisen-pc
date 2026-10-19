@@ -702,3 +702,21 @@ Integration tests cover both characters, the persistent owner/map marker,
 recollection, interrupted-cast restart and freeing the cast before allocating
 its drop in a full pool. These are behavior regressions, not a new extracted-C
 comparison or retail-state parity claim.
+
+## Eight-shot shuriken (2026-10-20)
+
+`ITEM.C::ReqItemHappou`, `ProcItemHappou`, `SetupFly` and `SearchItemTarget2`
+define the eight-shot request, aim jitter, flight, trails, delayed hitboxes and
+different humanoid/terrain impact behavior. The model is archive asset 28.
+`MOTION.C::DamageControl` already supplies its thirty-point damage. The source
+hashes recorded above are unchanged. The research reference
+`tools/tenchu-sim/src/items/darts.rs` has SHA-256
+`5493c40b19a220574da504ad1cca00776295e4afe86f800bac4464b660819a90`.
+
+The request comparison extracts the actual C request, curve setup and initializer/
+allocation macros. It supplies recorded target coordinates and SDK distances,
+then checks the C aim angles through the native target lookup. Motion entry,
+coordinate calculation, trail allocation and sound submission are stubbed at
+their request boundaries; existing arithmetic/flight tests cover the shared
+helpers. Integration checks exercise arming, actual damage, continued flight
+after a humanoid hit and final terrain disposal.

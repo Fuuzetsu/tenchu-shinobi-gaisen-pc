@@ -86,7 +86,7 @@ impl Items {
         Ok(())
     }
 
-    fn fly(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
+    pub(super) fn fly(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
         let item = &mut self.slots[id];
         let mut position = ctx.scene.models[item.model].local.translation;
         item.flight.step(&mut position, &mut item.rolling, ctx)?;
@@ -94,6 +94,14 @@ impl Items {
         item.count = item.count.wrapping_sub(1);
         if item.count == 0 {
             self.contact(id, 300, collision::HIT, ctx)?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn draw_trail(&mut self, id: usize, ctx: &mut Context) -> Result<()> {
+        if let Some(trail) = &mut self.slots[id].trail {
+            ctx.drawing.bytes += trail.draw(ctx.scene, ctx.camera.view, true)?;
+            self.trails.push(trail.clone());
         }
         Ok(())
     }
@@ -134,10 +142,7 @@ impl Items {
         self.slots[id].rotation = [0, clock.wrapping_mul(4096 / 6) as i16, 0];
         self.update_coordinate(id, ctx);
         self.draw_model(id, 0, ctx)?;
-        if let Some(trail) = &mut self.slots[id].trail {
-            ctx.drawing.bytes += trail.draw(ctx.scene, ctx.camera.view, true)?;
-            self.trails.push(trail.clone());
-        }
+        self.draw_trail(id, ctx)?;
         let position = ctx.scene.models[model].local.translation;
         if self.hit(id, ctx, actors).is_some() {
             ctx.effects.impact(position, 16384, 2, ctx.random);
