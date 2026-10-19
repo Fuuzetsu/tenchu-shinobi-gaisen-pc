@@ -191,7 +191,7 @@ and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
 effects. The renderer consumes prepared effect graphics without mutating the game, using
 original TIM palettes, sprite origins and four transparency modes. It uses modern
 depth testing rather than reproducing PS1 ordering-table raster artifacts. Sound
-events now play through the portable mixer. Damage-floor napalm remains an item-system boundary.
+events now play through the portable mixer. Damage-floor napalm is implemented below.
 The HUD now updates inventory selection after items, including the reserved-slot
 quirk, and displays original icons/counts, health bars and the proximity indicator.
 Five temporary enemy bars retain request order, captured health and expiry. Their
@@ -488,3 +488,22 @@ loadouts are not included in the runtime.
 All 11 relevant host/GPU checks pass, including both cadence comparisons. Nix
 native, WASM and formatting checks pass on x86_64-linux. The debug executable
 was rebuilt from clean runtime sources after the visual check.
+
+
+The lure flute and resurrection leaves now use the shared source item pool.
+The flute clears the global alert, plays its local cue, and holds the AI active
+flag for thirty updates. Forced disposal deliberately leaves that flag set,
+matching the original callback. Resurrection runs after lethal-hit feedback,
+consumes carried stock, restores maximum health, preserves launch/swim reactions
+and emits the original thirty-one bursts of blue recovery particles.
+
+Verification: 512 original-C support-item callback cases compare counters, flags,
+RNG and every particle field; 288 original-C damage-tail cases cover both players,
+finite/infinite stock, launch, swimming and CVA suppression. Ordinary-tick checks
+exercise both players surviving lethal arrows and the complete effect lifetime.
+A native window check uses the flute, while a relocated lava start displays blue
+revival particles and restored health. These are controlled subsystem scenarios.
+All 97 current core checks pass, excluding the unchanged long campaign cinematic
+coverage check; all 11 relevant private host/GPU checks pass.
+Nix native, WASM and formatting checks pass on x86_64-linux. The production
+debug binary was rebuilt after removing the temporary QA setup.

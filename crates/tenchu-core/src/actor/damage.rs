@@ -342,15 +342,22 @@ impl Actor {
         self.finish_damage(ctx, world, next, movement)
     }
 
-    fn finish_damage(
+    pub(super) fn finish_damage(
         &mut self,
         ctx: &mut Context,
-        _world: &mut ActionContext,
+        world: &mut ActionContext,
         mut next: i16,
         mut movement: bool,
     ) -> Result<Option<(i16, bool)>> {
         if self.health == 0 && self.inventory[10] != 0 {
-            return Err("Kawarimi resurrection is not implemented yet".into());
+            world
+                .items
+                .request_default(10, self, world.player, world.roster, ctx)?;
+            self.health = self.max_health;
+            if !matches!(next, MOT_DAMAGE_LAUNCH_BACK | MOT_DAMAGE_LAUNCH_FORE) {
+                next = MOT_DAMAGE_FRONT_HEAVY;
+                movement = true;
+            }
         }
         self.pad.time = 0;
         if matches!(self.motion.action, MOT_SWIM | MOT_SWIM_STROKE) {

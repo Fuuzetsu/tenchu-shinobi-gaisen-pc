@@ -6,6 +6,7 @@ mod breath;
 mod napalm;
 mod poison;
 mod sleep;
+mod support;
 
 fn with_items<T>(game: &mut Game, f: impl FnOnce(&mut Items, &mut Context, &mut Actors) -> T) -> T {
     f(

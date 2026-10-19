@@ -207,10 +207,16 @@ impl Items {
                     self.throw_rolling(kind, owner_id, start, velocity, actors, ctx)?;
                 }
             }
-            3 => {
+            3 | 10 | 18 => {
+                let processor = match kind {
+                    3 => Processor::Medicine,
+                    10 => Processor::Resurrection,
+                    _ => Processor::Flute,
+                };
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Medicine, kind, Some(owner_id), start, ctx)?;
+                self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
+                self.update_coordinate(id, ctx);
             }
             4 | 5 | 6 | 7 => {
                 let vector = match kind {

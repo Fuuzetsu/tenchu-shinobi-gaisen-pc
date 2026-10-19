@@ -2,6 +2,7 @@ mod bomb;
 mod breath;
 mod caltrops;
 mod flight;
+mod flute;
 mod grapple;
 mod medicine;
 mod napalm;
@@ -48,6 +49,8 @@ pub enum Processor {
     Napalm,
     Breath,
     Sleep,
+    Flute,
+    Resurrection,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -347,6 +350,8 @@ impl Items {
                     self.breath(id, actors, intelligence.action_halt, clock, ctx)?
                 }
                 Some(Processor::Sleep) => self.sleep(id, actors, intelligence, ctx)?,
+                Some(Processor::Flute) => self.flute(id, actors, intelligence, ctx)?,
+                Some(Processor::Resurrection) => self.resurrection(id, actors, ctx)?,
                 None => {}
             }
         }

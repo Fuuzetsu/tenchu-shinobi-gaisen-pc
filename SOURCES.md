@@ -620,3 +620,27 @@ The differential test extracts the original C callback and exercises 4,096
 flight/contact cases, with supplied sine/terrain values and stubbed, separately
 verified particle RNG costs and projection. Integration checks cover both player
 throws and a sleeping guard, plus cache preservation and interruption cleanup.
+
+
+## Lure flute and resurrection leaves (2026-10-20)
+
+`ITEM.C::ProcItemManebue`, `ReqItemManebue`, `ProcItemKawarimi` and
+`ReqItemKawarimi` define initialization, the thirty-tick flute flag and
+thirty-one recovery-particle bursts. `MOTION.C::DamageControl` defines leaf
+consumption and health restoration after damage feedback, with launch, swimming
+and scripted-motion exceptions. The flute uses the existing source AI response
+to `active_item == 18`; its forced-disposal flag leak is retained. Medicine and
+resurrection share the identical particle loop with different original colors.
+
+Research references (revision recorded above):
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `tools/tenchu-sim/src/items/flute.rs` | `c59c3e5f6ff595ea42495a9461074ecc4f367180385a21263b518a50129e51c7` |
+| `tools/tenchu-sim/src/items/leaf.rs` | `65d31e97c4544ebeb0ad0591c304b8701ccbb756ee3afd6274ca2d2673160536` |
+
+Differential checks extract both item callbacks and the original damage tail.
+The callback comparison includes all emitted particle fields and RNG; the damage
+comparison stubs item requests and final motion entry while retaining their
+stock/script guards. Controlled gameplay checks exercise actual lethal arrows,
+revival effects, local flute sound and forced eviction.
