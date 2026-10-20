@@ -80,23 +80,33 @@ impl Image {
         }];
         while levels.last().unwrap().size != [1, 1] {
             let previous = levels.last().unwrap();
-            let size = previous.size.map(|n| n.div_ceil(2));
+            let size = previous.size.map(|n| (n / 2).max(1));
+            let scale = [
+                previous.size[0] as f32 / size[0] as f32,
+                previous.size[1] as f32 / size[1] as f32,
+            ];
             let classes = previous.classes.each_ref().map(|pixels| {
                 let mut out = Vec::with_capacity((size[0] * size[1] * 4) as usize);
                 for y in 0..size[1] {
                     for x in 0..size[0] {
-                        let mut sum = [0u32; 4];
-                        let mut count = 0;
-                        for py in y * 2..(y * 2 + 2).min(previous.size[1]) {
-                            for px in x * 2..(x * 2 + 2).min(previous.size[0]) {
+                        let mut sum = [0.0f32; 4];
+                        let low = [x as f32 * scale[0], y as f32 * scale[1]];
+                        let high = [(x + 1) as f32 * scale[0], (y + 1) as f32 * scale[1]];
+                        for py in
+                            low[1].floor() as u32..(high[1].ceil() as u32).min(previous.size[1])
+                        {
+                            let dy = high[1].min((py + 1) as f32) - low[1].max(py as f32);
+                            for px in
+                                low[0].floor() as u32..(high[0].ceil() as u32).min(previous.size[0])
+                            {
+                                let dx = high[0].min((px + 1) as f32) - low[0].max(px as f32);
                                 let at = ((py * previous.size[0] + px) * 4) as usize;
                                 for channel in 0..4 {
-                                    sum[channel] += u32::from(pixels[at + channel]);
+                                    sum[channel] += f32::from(pixels[at + channel]) * dx * dy;
                                 }
-                                count += 1;
                             }
                         }
-                        out.extend(sum.map(|n| ((n + count / 2) / count) as u8));
+                        out.extend(sum.map(|n| (n / (scale[0] * scale[1])).round() as u8));
                     }
                 }
                 out
@@ -125,5 +135,10 @@ mod tests {
             rgba: [255, 0, 0, 255].repeat(3),
         };
         assert_eq!(odd.mips().last().unwrap().classes[0], [255, 0, 0, 255]);
+        let odd = Image {
+            size: [3, 1],
+            rgba: vec![255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255],
+        };
+        assert_eq!(odd.mips().last().unwrap().classes[0], [85, 85, 85, 255]);
     }
 }

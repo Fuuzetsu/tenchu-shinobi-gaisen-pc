@@ -260,3 +260,10 @@ with 4× MSAA, anisotropy, curved models and a 1024 point shadow; profile qualit
 costs and the presentation path before choosing the final presets.
 All 57 desktop checks pass sequentially in release mode with the private disc,
 audio/reference fixtures and GPU, including both complete ten-mission campaigns.
+The x86_64-linux Nix package, native checks, portable WASM libraries and formatting
+check also pass. Other declared platforms remain unverified.
+
+Odd-sized replacement textures use area-weighted mip reduction, avoiding an
+unequal color/coverage contribution from the final row or column. A three-color
+3×1 regression verifies equal contributions, and the GPU minification/anisotropy
+regression still passes.
