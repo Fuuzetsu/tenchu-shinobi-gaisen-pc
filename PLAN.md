@@ -158,7 +158,8 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-2026-10-20: foundation complete; Mission 1 gameplay is in progress. The native
+2026-10-20: native gameplay is playable; campaign and presentation validation
+remain in progress. The native
 executable reads the actual SLPS-019.01 mixed-mode disc, indexes 1,048 DATA.VOL
 entries and constructs all 66 mission/character/layout combinations without RAM
 imports. Assets and core compile for WASM. Nix packages the desktop executable
@@ -178,7 +179,7 @@ Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
-Mission 6–9 routes pass; arbitrary interactive play is not yet
+Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -876,3 +877,21 @@ No runtime positions, health or event state are overridden. An offscreen native
 capture of the upper grapple was visually inspected. This standalone route does
 not extend the accumulated-stock campaign beyond Mission 3.
 Nix native, WASM and formatting checks pass on x86_64-linux.
+
+A standalone Rikimaru Mission 10 controller route now defeats Onikage, traverses
+the inner caverns and lava crossings, descends the authored pitfall and defeats
+Mei-Oh. Sequences 7, 10, 15, 35 and 40 start at ticks 1,473, 1,563, 4,607, 9,092
+and 9,773. Results arrive at tick 15,556 with 10 HP and game clock 12,135. The
+ordinary equipment menu supplies six shuriken, six caltrops and two medicine;
+all shuriken and medicine are used. Both bosses reach zero health and their
+authored death state. No runtime state is overridden. The private-disc test
+checks the result, encoded/decoded save, final completion flags, completion
+screen, return to the launcher and saved Mission 10 replay selection.
+Native offscreen captures of the inner area, pitfall entrance and Mei-Oh fight
+were visually inspected. This finishes standalone route coverage of Rikimaru's
+ten missions, but the continuous saved campaign is still verified through
+Mission 3. Ayame's remaining routes, broader play and presentation work remain.
+The original handoff to the external ending executable remains a placeholder
+completion screen.
+The final mission regression and Nix native, WASM and formatting checks pass on
+x86_64-linux.

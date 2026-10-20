@@ -219,6 +219,15 @@ Its private-disc test uses ordinary equipment selection, saves the results,
 reloads and starts Mission 10. This is a fresh-stock route; the continuous saved
 campaign is still validated through Mission 3.
 
+The [Rikimaru Mission 10 route](crates/tenchu-pc/tests/data/mission10-rikimaru.inputs)
+defeats Onikage, crosses the inner caverns and lava, descends the pitfall and
+defeats Mei-Oh. All five cinematics run; results arrive with 10 HP after using
+six shuriken and both medicine. Its private-disc test verifies the final record,
+saved completion flags, completion screen and saved Mission 10 replay selection.
+This completes standalone route coverage of Rikimaru's ten missions; the
+accumulated-stock campaign remains verified through Mission 3. The external
+ending movie executable is still represented by a completion screen.
+
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
