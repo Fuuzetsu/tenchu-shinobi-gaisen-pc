@@ -19,6 +19,7 @@ impl Actor {
         if self.kind & 0xf0 == 0xa0
             || self.map.height <= 0
             || self.motion.action == MOT_JUMP_WALLKICK
+            || self.active_item == 11
         {
             return Ok(false);
         }
@@ -109,9 +110,11 @@ impl Actor {
         match self.motion.action {
             MOT_HANG => {
                 if held & DOWN != 0 {
+                    let mut y = self.position[1];
                     let mut escaped = false;
                     for _ in 0..4096 {
-                        self.position[1] = self.position[1].wrapping_add(100);
+                        y = y.wrapping_add(100);
+                        self.position[1] = y;
                         if !self.hang_check(ctx)? {
                             escaped = true;
                             break;
@@ -185,21 +188,4 @@ fn catch_yaw(yaw: i16) -> i16 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn ledge_catch_keeps_non_cardinal_multiples_of_256() {
-        for (input, expected) in [
-            (255, 0),
-            (256, 256),
-            (511, 0),
-            (512, 512),
-            (513, 1024),
-            (4095, 4096),
-            (-1, 4096),
-            (-256, -256),
-        ] {
-            assert_eq!(catch_yaw(input), expected);
-        }
-    }
-}
+mod tests;

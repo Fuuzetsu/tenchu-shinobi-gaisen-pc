@@ -322,3 +322,59 @@ fn punishment_controller_routes_reach_results() {
         );
     }
 }
+
+fn save_and_start_next(campaign: &mut Campaign, assets: &GameAssets<FileSource>, clock: i32) {
+    let Screen::Results(results) = &campaign.screen else {
+        panic!("Expected mission results");
+    };
+    assert_eq!(results.record.clock, clock);
+    assert!(results.record.played());
+    assert_eq!(results.record, campaign.game.record());
+    let flag = 1 << (campaign.options.mission - 1);
+    assert_eq!(campaign.progress.flags & flag, flag);
+    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.progress, campaign.progress);
+    let mut resumed = Campaign::new(assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, assets).unwrap();
+    assert_eq!(resumed.options.mission, campaign.options.mission + 1);
+    assert_eq!(resumed.options.character, campaign.options.character);
+    resumed.action(Action::Confirm, assets).unwrap();
+    for _ in 0..30 {
+        resumed.tick(0).unwrap();
+    }
+    assert!(resumed.playing());
+    assert_eq!(resumed.game.events.outcome, Outcome::Running);
+    assert_eq!(
+        resumed.game.player().health,
+        resumed.game.player().max_health
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; grapples the statue, completes both Mission 6 encounters, exercises guard ledge release and starts Mission 7 from a save"]
+fn rikimaru_cult_controller_route_reaches_results() {
+    let assets = assets();
+    let options = Options {
+        mission: 6,
+        ..Options::default()
+    };
+    let mut campaign = Campaign::new(&assets, options, None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
+    let scenes = controller_route(
+        &mut campaign,
+        include_str!("../../../tests/data/mission6-rikimaru.inputs"),
+    );
+    eprintln!("Mission 6 Rikimaru: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [20, 110, 150]
+    );
+    assert_eq!(campaign.game.tick, 5458);
+    assert_eq!(campaign.game.player().health, 5);
+    assert_eq!(
+        &campaign.game.player().inventory[..6],
+        &[255, 0, 6, 2, 0, 0]
+    );
+    save_and_start_next(&mut campaign, &assets, 3187);
+}

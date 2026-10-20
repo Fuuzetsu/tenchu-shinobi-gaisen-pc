@@ -177,8 +177,8 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
-an independent Ayame Mission 2 route and both Mission 5 branches pass; arbitrary
-interactive play is not yet certified.
+an independent Ayame Mission 2 route, both Mission 5 branches and a Rikimaru
+Mission 6 route pass; arbitrary interactive play is not yet certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -805,3 +805,26 @@ Native offscreen captures of Rikimaru's final dialogue and Ayame's boss fight
 were visually inspected. Controller-route tests now live in their own module,
 separate from controlled transition and loadout tests.
 Nix native, WASM and formatting checks pass on x86_64-linux.
+
+The Mission 6 route exposed a mistranslation in ledge release: `HangCheck`
+adjusts the actor's height, but `ActHANG` advances a separate local height by
+100 for each release probe. Reusing the adjusted position could repeat the same
+probe until the port's diagnostic limit. The scalar loop now preserves the local
+counter, confirmed against the original executable's saved `s0` counter and
+matching C. The same source review restored the missing disguise restriction on
+ledge grabs. A 144-case comparison executes the original `HangCheck` and
+`ActHANG` against a controlled two-level ledge, covering repeated release probes,
+different body dimensions, beast exclusion and disguise. It passes; all 132 core
+checks pass, excluding the unchanged long isolated cinematic coverage check.
+Eighteen existing private desktop checks also pass.
+
+A new Rikimaru Mission 6 controller regression grapples the statue, climbs and
+jumps into the encounter trigger, defeats the cult leader and brings the second
+opponent to the authored retreat threshold. It includes the guard release that
+previously stopped at tick 4,290. All three cinematics run; results arrive at
+tick 5,458 with 5 HP and game clock 3,187, followed by an encoded/decoded save
+and Mission 7 startup. Equipment comes from the ordinary menu: six shuriken,
+six caltrops and two medicine plus the hook. It uses all shuriken and no medicine.
+This new private-disc regression passes without any runtime state overrides.
+Native offscreen captures of the statue climb and second fight were visually
+inspected. Nix native, WASM and formatting checks pass on x86_64-linux.

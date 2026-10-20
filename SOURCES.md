@@ -887,3 +887,18 @@ omitting the final lit triangle and any subsequently appended faces. The logical
 packet counter already had this stop rule. The audit reads private disc data and stores no game assets
 in the repository. GPU checks cover near/far depths, translated/rotated cameras,
 texture transparency/blending and unfogged screen graphics.
+
+`MOTION.C::ActHANG` retains an independent height counter while `HangCheck`
+adjusts the actor position. The scalar release loop was corrected after an
+ordinary Mission 6 guard reached its diagnostic limit. The original executable
+at `0x800247b8` loads the counter into `s0`; `0x800247c0` increments it by 100,
+and the call's delay slot stores it before `HangCheck`, without reloading the
+adjusted height. `HangCheck` also excludes `ACTIVE_ITEM_DISGUISE`; that guard is
+now retained. The `MOTION.C` hash remains
+`7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82`.
+A private 144-case oracle compiles both original functions over a synthetic
+two-level ledge, stubbing cardinal movement and terrain queries with the same
+fixed geometry used by Rust. It compares release positions, results, motion
+requests and velocity across dimensions, disguise and beast guards. This is an
+isolated source comparison; the separate Mission 6 input regression covers the
+originally failing guard within ordinary gameplay.

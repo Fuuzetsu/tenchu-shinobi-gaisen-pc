@@ -98,7 +98,8 @@ shuriken item uses its original spread, delayed hitboxes and independent trails.
 Speed scrolls retain the original cast, steering, terrain checks and cancellation.
 Protection charms apply their original melee damage modifiers for 450 logic ticks.
 Decoy dolls grow, draw nearby enemies and break under attack; only three can be active.
-Disguise changes the original body meshes and motion scale, with source alert and expiry rules.
+Disguise changes the original body meshes and motion scale, with source alert,
+expiry and ledge-grab restrictions.
 Ninja dogs summon, select and attack enemies, then expire after 1,800 logic ticks.
 Mei-Oh's four lightning attacks retain repeated targeting, damage and original bolt jitter.
 Resurrection leaves restore health after a lethal hit. Damage floors and Manji flame attacks share the original napalm behavior. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
@@ -191,6 +192,13 @@ Hikone's retreat and follow their character's event branch through results and
 a saved transition into Mission 6. Rikimaru carries only the hook and finishes
 with 56 HP; Ayame defeats Kataoka using five shuriken and melee, uses one medicine
 and finishes with 80 HP.
+
+The [Rikimaru Mission 6 route](crates/tenchu-pc/tests/data/mission6-rikimaru.inputs)
+grapples and climbs the statue, completes both encounters and reaches results
+with 5 HP, then saves into Mission 7. It also exercises a nearby guard releasing
+a ledge during combat. That exposed a port error: release probes now advance
+using the original independent height counter, preserving each probe's position
+adjustments without feeding them into the next counter value.
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
