@@ -178,7 +178,8 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
+Ayame's first two saved missions, an independent Ayame Mission 2 route,
+both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
 
@@ -1019,3 +1020,14 @@ The complete ten-mission regression and independent final mission regression
 pass in the release build; formatting passes. Remaining Ayame routes, training,
 broader interactive play and presentation validation are still required. This
 specific controller route is not a claim of complete-game or retail parity.
+
+
+Ayame now completes Mission 1 from new-game stock through ordinary grappling,
+movement and melee. Both bosses die; sequences 0/220/150/151 begin at ticks
+1,486/3,146/4,573/5,031. Results arrive at tick 5,421 with 70 HP and clock 3,530.
+All selected equipment remains. The saved continuation completes Mission 2
+carrying only the hook: sequences 10/20, tick 2,464, 100 HP and clock 1,878.
+Its path accounts for different enemy behavior from the standalone seed-1 run.
+Both saves are encoded/decoded and Mission 3 starts with Ayame selected.
+The two-mission Ayame regression, full saved Rikimaru campaign and formatting
+checks pass. Remaining Ayame missions and broader interactive validation continue.

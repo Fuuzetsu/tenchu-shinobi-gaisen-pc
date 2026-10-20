@@ -218,6 +218,14 @@ boundary and final completion flags checked. A separate
 with 100 HP. The delivery routes use ordinary movement and swimming, carrying
 only the automatically supplied hook in the campaign tests.
 
+The saved Ayame campaign now completes
+[Mission 1](crates/tenchu-pc/tests/data/mission1-ayame.inputs) with 70 HP,
+using grappling and melee for both encounters without consuming equipment.
+It saves, reloads and completes
+[Mission 2](crates/tenchu-pc/tests/data/mission2-ayame-campaign.inputs) with
+100 HP, then saves into Mission 3. Its carried RNG produces different enemy
+behavior from the standalone delivery route.
+
 An independent [Rikimaru Mission 3 route](crates/tenchu-pc/tests/data/mission3-rikimaru.inputs)
 crosses the mine, defeats Goo, runs the rescue cinematic and reaches results
 with 28 HP. It selects six shuriken, six caltrops and two medicine from new-game
