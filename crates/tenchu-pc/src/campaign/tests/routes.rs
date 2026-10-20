@@ -378,3 +378,37 @@ fn rikimaru_cult_controller_route_reaches_results() {
     );
     save_and_start_next(&mut campaign, &assets, 3187);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; boards the pirate ship, defeats Balma with controller input, saves and starts Mission 8"]
+fn rikimaru_pirates_controller_route_reaches_results() {
+    let assets = assets();
+    let options = Options {
+        mission: 7,
+        ..Options::default()
+    };
+    let mut campaign = Campaign::new(&assets, options, None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
+    let scenes = controller_route(
+        &mut campaign,
+        include_str!("../../../tests/data/mission7-rikimaru.inputs"),
+    );
+    eprintln!("Mission 7 Rikimaru: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [10, 20, 100]
+    );
+    assert_eq!(campaign.game.tick, 3309);
+    assert_eq!(campaign.game.player().health, 100);
+    assert_eq!(
+        &campaign.game.player().inventory[..6],
+        &[255, 0, 6, 1, 0, 1]
+    );
+    let boss = campaign
+        .game
+        .roster
+        .get(campaign.game.roster.find(0x85).unwrap());
+    assert_eq!((boss.health, boss.status), (0, 17));
+    save_and_start_next(&mut campaign, &assets, 2678);
+}

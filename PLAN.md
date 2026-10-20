@@ -177,8 +177,9 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
-an independent Ayame Mission 2 route, both Mission 5 branches and a Rikimaru
-Mission 6 route pass; arbitrary interactive play is not yet certified.
+an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
+Mission 6 and Mission 7 routes pass; arbitrary interactive play is not yet
+certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -828,3 +829,14 @@ six caltrops and two medicine plus the hook. It uses all shuriken and no medicin
 This new private-disc regression passes without any runtime state overrides.
 Native offscreen captures of the statue climb and second fight were visually
 inspected. Nix native, WASM and formatting checks pass on x86_64-linux.
+
+A separate Rikimaru Mission 7 route now crosses the port, boards the ship,
+defeats Balma and runs sequences 10, 20 and 100. It reaches results at tick 3,309
+with 100 HP and clock 2,678, then saves, reloads and starts Mission 8. It carries
+six shuriken, six caltrops and two medicine selected from fresh stock, uses all
+shuriken and one medicine, and picks up a dropped smoke bomb during the approach.
+The private-disc controller regression passes on the corrected ledge runtime,
+checks Balma's death state and requires no state overrides. A native offscreen
+capture of the shipboard fight was visually inspected. This standalone case does
+not extend the continuous saved campaign beyond Mission 3.
+Nix native, WASM and formatting checks pass on x86_64-linux.

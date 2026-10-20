@@ -200,6 +200,11 @@ a ledge during combat. That exposed a port error: release probes now advance
 using the original independent height counter, preserving each probe's position
 adjustments without feeding them into the next counter value.
 
+The [Rikimaru Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
+boards the pirate ship, defeats Balma, runs all three cinematics and reaches
+results with 100 HP. It uses six shuriken and one medicine, picks up a dropped
+smoke bomb along the route, then saves and starts Mission 8.
+
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
