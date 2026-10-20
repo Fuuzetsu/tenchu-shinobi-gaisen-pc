@@ -167,6 +167,12 @@ results with 75 HP, saves, reloads, completes the
 with 100 HP. The delivery routes use ordinary movement and swimming, carrying
 only the automatically supplied hook in the campaign tests.
 
+An independent [Rikimaru Mission 3 route](crates/tenchu-pc/tests/data/mission3-rikimaru.inputs)
+crosses the mine, defeats Goo, runs the rescue cinematic and reaches results
+with 28 HP. It selects six shuriken, six caltrops and two medicine from new-game
+stock; four shuriken are used. Its test saves and reloads into Mission 4. This
+route has not yet been joined to the continuous Mission 1–2 campaign test.
+
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored

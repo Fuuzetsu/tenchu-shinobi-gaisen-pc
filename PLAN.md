@@ -176,8 +176,8 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first two missions and an independent Ayame Mission 2 route pass; arbitrary
-interactive play is not yet certified.
+first two missions, an independent Rikimaru Mission 3 route and an independent
+Ayame Mission 2 route pass; arbitrary interactive play is not yet certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -755,3 +755,15 @@ both characters swimming along the recorded route.
 All fifteen relevant private desktop checks pass, along with Nix native, WASM
 and formatting checks on x86_64-linux. Complete Mission 3 and later playthroughs,
 Ayame's Mission 1 and broader exploratory coverage remain outstanding.
+
+An independent Rikimaru Mission 3 controller route now crosses the mine's gaps,
+uses four shuriken against a guard, defeats Goo through melee and runs both
+authored cinematics. It reaches results at tick 5,010 with 28 HP and game clock
+3,279, then saves, reloads and starts Mission 4. Equipment is selected through
+the ordinary menu from new-game stock (six shuriken, six caltrops, two medicine
+and the automatic hook); no runtime state is overridden. The input tape was
+authored in the port. Connecting it to the preceding campaign's continued RNG,
+Ayame's rescue route and broader exploratory play remain outstanding.
+All three private controller-route regressions pass. Native offscreen captures
+of the pit crossing, boss fight and rescue dialogue were visually inspected.
+Nix native, WASM and formatting checks pass on x86_64-linux.
