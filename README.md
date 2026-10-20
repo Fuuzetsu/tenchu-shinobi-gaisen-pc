@@ -232,6 +232,10 @@ It then completes Ayame's
 [Mission 5 branch](crates/tenchu-pc/tests/data/mission5-ayame-campaign.inputs),
 including Kataoka, with 27 HP and saves into Mission 6. The attempted medicine
 is interrupted before healing; the smoke throw is also interrupted and refunded.
+Her [Mission 6 route](crates/tenchu-pc/tests/data/mission6-ayame-campaign.inputs)
+climbs the statue, defeats the cult leader and triggers Onikage's retreat with
+25 HP. Two shuriken, one medicine, one smoke bomb and both mines are used before
+saving into Mission 7.
 Its carried RNG produces different enemy
 behavior from the standalone delivery route.
 

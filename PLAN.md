@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's first five saved missions, an independent Ayame Mission 2 route,
+Ayame's first six saved missions, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -1053,3 +1053,14 @@ the hook. The attempted medicine is interrupted before healing and the smoke
 throw is refunded after interruption; melee finishes Kataoka. One medicine and
 all other carried items remain. The full five-mission Ayame save/reload regression
 passes and starts Mission 6 with carried stock and RNG.
+
+
+Ayame's continuous saved campaign completes Mission 6. It grapples and climbs
+the statue, defeats the cult leader and drives Onikage to his retreat threshold
+with 94 HP remaining. Sequences 20/110/150 begin at ticks 1,181/2,949/4,627;
+results arrive at tick 5,037 with 25 HP and clock 2,776. Ordinary selection supplies
+two shuriken, one medicine, five smoke bombs and two mines, plus the hook; four
+smoke bombs remain. The full six-mission regression verifies saved continuation
+into Mission 7. The native window also continues from the actual Mission 6 save,
+records movement/crouch and a separate grapple attempt, retains pause through
+resize, and debits carried stock on retry. Its audio uses an isolated null sink.

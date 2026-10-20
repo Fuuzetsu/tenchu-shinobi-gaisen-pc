@@ -334,8 +334,8 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Ayame's first five missions from new-game stock, saves between missions and starts Mission 6"]
-fn ayame_campaign_controller_routes_complete_first_five_missions() {
+#[ignore = "requires TENCHU_DISC; completes Ayame's first six missions from new-game stock, saves between missions and starts Mission 7"]
+fn ayame_campaign_controller_routes_complete_first_six_missions() {
     let assets = assets();
     let options = Options {
         character: 1,
@@ -409,11 +409,30 @@ fn ayame_campaign_controller_routes_complete_first_five_missions() {
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 6);
     assert_eq!(resumed.options.character, 1);
-    resumed.action(Action::Confirm, &assets).unwrap();
-    for _ in 0..30 {
-        resumed.tick(0).unwrap();
-    }
-    assert!(resumed.playing());
+    equip(&mut resumed, &assets, &[(1, 2), (3, 1), (5, 5), (6, 2)]);
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission6-ayame-campaign.inputs"),
+    );
+    assert_eq!(scenes, [(1181, 20), (2949, 110), (4627, 150)]);
+    assert_eq!(resumed.game.tick, 5037);
+    assert_eq!(resumed.game.player().health, 25);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 0, 0, 0, 4, 0]
+    );
+    let leader = resumed
+        .game
+        .roster
+        .get(resumed.game.roster.find(0x84).unwrap());
+    assert_eq!((leader.health, leader.status), (0, 17));
+    let onikage = resumed
+        .game
+        .roster
+        .get(resumed.game.roster.find(0x8a).unwrap());
+    assert_eq!(onikage.health, 94);
+    assert_eq!(resumed.progress.flags & 63, 63);
+    save_and_start_next(&mut resumed, &assets, 2776);
 }
 
 #[test]
