@@ -177,7 +177,7 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first eight missions, independent Rikimaru Mission 3 and Mission 4 routes,
+first nine missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -994,3 +994,13 @@ at tick 5,566 with 50 HP and clock 5,335. One medicine remains. The regression
 continues from the preceding seven missions, encodes/decodes each save and starts
 Mission 9 without overriding gameplay state.
 The full eight-mission regression and formatting check pass.
+
+
+The saved Rikimaru campaign now completes Mission 9 with its remaining stock:
+six caltrops, two medicine and six mines, plus the hook. Both medicine and four
+mines are used; caltrops remain. The fight retains mine self-damage and finishes
+Onikage before he can heal. Sequences 10/50 start at ticks 1,957/4,832; results
+arrive at tick 5,112 with 22 HP and clock 4,026. The regression checks the boss's
+death, accumulated completion flags and encoded/decoded continuation into
+Mission 10. No gameplay state is overridden.
+The full nine-mission regression and formatting check pass.

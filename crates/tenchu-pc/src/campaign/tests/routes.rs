@@ -125,8 +125,8 @@ fn complete_punishment(campaign: &mut Campaign, tape: &str) -> Save {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1–8 from new-game stock using controller input, saves between missions and starts Mission 9"]
-fn controller_routes_complete_first_eight_missions() {
+#[ignore = "requires TENCHU_DISC; completes Missions 1–9 from new-game stock using controller input, saves between missions and starts Mission 10"]
+fn controller_routes_complete_first_nine_missions() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -270,7 +270,34 @@ fn controller_routes_complete_first_eight_missions() {
     assert_eq!(&resumed.game.player().inventory[..6], &[255, 0, 0, 1, 0, 0]);
     assert_eq!(resumed.game.player().position, [-18000, -53500, 143957]);
     assert_eq!(resumed.progress.flags & 255, 255);
-    save_and_start_next(&mut resumed, &assets, 5335);
+    let save = save_result(&mut resumed, 5335);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 9);
+    equip(&mut resumed, &assets, &[(2, 6), (3, 2), (6, 6)]);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 6, 2, 0, 0, 6]
+    );
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission9-rikimaru-campaign.inputs"),
+    );
+    eprintln!("Mission 9 saved campaign: {scenes:?}");
+    assert_eq!(scenes.iter().map(|s| s.1).collect::<Vec<_>>(), [10, 50]);
+    assert_eq!(resumed.game.tick, 5112);
+    assert_eq!(resumed.game.player().health, 22);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 6, 0, 0, 0, 2]
+    );
+    let boss = resumed
+        .game
+        .roster
+        .get(resumed.game.roster.find(0x87).unwrap());
+    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!(resumed.progress.flags & 511, 511);
+    save_and_start_next(&mut resumed, &assets, 4026);
 }
 
 #[test]
