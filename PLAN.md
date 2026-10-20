@@ -206,8 +206,11 @@ RNG, collision, event time, activation budgets and exact drawing allocation.
 The comparison exposed two runtime defects: the swimming camera used state 13
 instead of 3, and adaptive drawing used pre-initialization SDK globals instead
 of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
-campaign recordings consequently need refresh: both Mission 1 boss fights and
-the independent Mission 7 route no longer complete with their old inputs.
+campaign recordings consequently need refresh. Missions 1–3 now complete for
+both characters using their actual saved stock/RNG; Rikimaru also completes
+Mission 4. The next failures are Ayame Mission 4 and Rikimaru Mission 5, where
+the old controller routes die. The independent Mission 7 route also needs
+refreshed inputs.
 The earlier full-campaign results below describe the pre-fix revision, not a
 current passing gate. Remaining acceptance work includes restoring this
 campaign evidence and extending the continuous comparison into combat. Console
@@ -1180,3 +1183,13 @@ Pause controls now use two short lines so their meaning remains visible at 4:3.
 The final completion notice is also shorter, and the training failure screen
 correctly says its equipment resets. A rebuilt native window was inspected at
 960×720 and 1280×720; all pause text fits. Formatting and the release build pass.
+
+
+After correcting drawing initialization, refreshed ordinary-input recordings
+complete Missions 1–3 for both characters and Mission 4 for Rikimaru. The
+campaign tests verify all intervening results, boss deaths, inventory and
+encoded/decoded saves before reaching the next stale routes. Mission 1 finishes
+with 64/94 HP, Mission 2 with 100 HP each, Mission 3 with 7/46 HP, and Rikimaru's
+checkpoint with 57 HP. The updated tapes carry their exact launch settings for
+standalone replay. Full-chain tests remain failing at Ayame Mission 4 and
+Rikimaru Mission 5; those inputs are still being refreshed.

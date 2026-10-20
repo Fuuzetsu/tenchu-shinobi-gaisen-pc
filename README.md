@@ -191,145 +191,35 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
-The campaign recordings described below passed before the swimming-camera and
-drawing-initialization corrections. Both Mission 1 fights and the independent
-Mission 7 recording need refreshed inputs after those fixes; their tests
-currently report this failure. The earlier completion results remain useful
-as a record of feature coverage.
+Current saved-campaign regressions complete Missions 1–3 for both characters
+and Mission 4 for Rikimaru after the swimming-camera and drawing-initialization
+corrections. Stock and RNG carry through real encoded/decoded saves at every
+boundary. Refreshed recordings include their starting seed and equipment, so
+`replay` can run them directly.
 
-The checked-in [Mission 1 route](crates/tenchu-pc/tests/data/mission1-rikimaru.inputs)
-completes both boss fights and their cinematics as Rikimaru, normal difficulty,
-layout 1. Its private-disc test chooses equipment from new-game stock, reaches
-results with 75 HP, saves, reloads, completes the
-[Mission 2 delivery](crates/tenchu-pc/tests/data/mission2-rikimaru.inputs) with
-100 HP, saves again, completes the
-[Mission 3 rescue](crates/tenchu-pc/tests/data/mission3-rikimaru-campaign.inputs)
-with 68 HP, then completes the
-[Mission 4 checkpoint](crates/tenchu-pc/tests/data/mission4-rikimaru-campaign.inputs)
-with 16 HP, then the
-[Mission 5 punishment](crates/tenchu-pc/tests/data/mission5-rikimaru-campaign.inputs)
-with 72 HP, then the
-[Mission 6 cult encounters](crates/tenchu-pc/tests/data/mission6-rikimaru-campaign.inputs)
-with 12 HP, then the
-[Mission 7 pirate ship](crates/tenchu-pc/tests/data/mission7-rikimaru-campaign.inputs)
-with 100 HP, then the
-[Mission 8 mountain](crates/tenchu-pc/tests/data/mission8-rikimaru-campaign.inputs)
-with 50 HP, then the
-[Mission 9 castle](crates/tenchu-pc/tests/data/mission9-rikimaru-campaign.inputs)
-with 22 HP, then the
-[final mission](crates/tenchu-pc/tests/data/mission10-rikimaru-campaign.inputs)
-with 30 HP. Mission 4 uses the saved stock of two
-shuriken, four grenades and two of the three carried medicine; Mission 5 carries
-only the hook. Mission 6 uses one shuriken, two grenades and two smoke bombs.
-Mission 7 swims past the armed quay and uses one medicine, one grenade and one
-smoke bomb against Balma. Mission 8 uses one shuriken, one medicine, one grenade
-and three smoke bombs, then climbs past the upper guards to the cure.
-Mission 9 uses both medicine and four mines alongside melee, retaining the
-original blast self-damage. Mission 10 uses its remaining medicine and smoke
-bomb, crosses the lava and uses one mine alongside melee against Mei-Oh.
-Inventory and RNG carry through all ten missions, with a save/reload at every
-boundary and final completion flags checked. A separate
-[Ayame route](crates/tenchu-pc/tests/data/mission2-ayame.inputs) completes Mission 2
-with 100 HP. The delivery routes use ordinary movement and swimming, carrying
-only the automatically supplied hook in the campaign tests.
+| Character | Mission | Results tick | Health |
+| --- | --- | ---: | ---: |
+| Rikimaru | [1](crates/tenchu-pc/tests/data/mission1-rikimaru.inputs) | 5,667 | 64 |
+| Ayame | [1](crates/tenchu-pc/tests/data/mission1-ayame.inputs) | 4,834 | 94 |
+| Rikimaru | [3](crates/tenchu-pc/tests/data/mission3-rikimaru-campaign.inputs) | 5,952 | 7 |
+| Ayame | [3](crates/tenchu-pc/tests/data/mission3-ayame-campaign.inputs) | 5,883 | 46 |
+| Rikimaru | [4](crates/tenchu-pc/tests/data/mission4-rikimaru-campaign.inputs) | 9,128 | 57 |
 
-The saved Ayame campaign now completes
-[Mission 1](crates/tenchu-pc/tests/data/mission1-ayame.inputs) with 70 HP,
-using grappling and melee for both encounters without consuming equipment.
-It saves, reloads and completes
-[Mission 2](crates/tenchu-pc/tests/data/mission2-ayame-campaign.inputs) with
-100 HP. It then completes the
-[mine rescue](crates/tenchu-pc/tests/data/mission3-ayame-campaign.inputs) with
-64 HP using four shuriken and melee, and the
-[checkpoint](crates/tenchu-pc/tests/data/mission4-ayame-campaign.inputs) with
-67 HP using three shuriken, three medicine, four grenades and one smoke bomb.
-It then completes Ayame's
-[Mission 5 branch](crates/tenchu-pc/tests/data/mission5-ayame-campaign.inputs),
-including Kataoka, with 27 HP and saves into Mission 6. The attempted medicine
-is interrupted before healing; the smoke throw is also interrupted and refunded.
-Her [Mission 6 route](crates/tenchu-pc/tests/data/mission6-ayame-campaign.inputs)
-climbs the statue, defeats the cult leader and triggers Onikage's retreat with
-25 HP. Two shuriken, one medicine, one smoke bomb and both mines are used before
-saving into Mission 7. Her
-[ship route](crates/tenchu-pc/tests/data/mission7-ayame-campaign.inputs) swims
-past the quay and defeats Balma with 93 HP, using one medicine, one grenade and
-one smoke bomb. The
-[mountain route](crates/tenchu-pc/tests/data/mission8-ayame-campaign.inputs)
-fights the archer guarding the upper crossing and reaches the cure with 75 HP.
-It uses one shuriken, one medicine, two grenades and three smoke bombs, then
-saves into Mission 9. The
-[castle route](crates/tenchu-pc/tests/data/mission9-ayame-campaign.inputs)
-defeats Onikage using one mine and melee, finishes with 28 HP and saves into
-the final mission. No other carried equipment is consumed in the castle.
-Her [final mission](crates/tenchu-pc/tests/data/mission10-ayame-campaign.inputs)
-defeats both bosses, crosses the lava with grappling and a running jump, and
-finishes with 4 HP. It uses two shuriken, two grenades and one smoke bomb.
-Both characters now have a full ten-mission regression from new-game stock,
-with save/reload at every boundary and the final completion flags checked.
-Its carried RNG produces different enemy
-behavior from the standalone delivery route.
-
-An independent [Rikimaru Mission 3 route](crates/tenchu-pc/tests/data/mission3-rikimaru.inputs)
-crosses the mine, defeats Goo, runs the rescue cinematic and reaches results
-with 28 HP. It selects six shuriken, six caltrops and two medicine from new-game
-stock; four shuriken are used. Its test saves and reloads into Mission 4. This
-exercises a different starting RNG and loadout from the continuous campaign,
-which carries five shuriken, six caltrops and one medicine into Mission 3 and
-uses all five shuriken.
-
-An independent [Rikimaru Mission 4 route](crates/tenchu-pc/tests/data/mission4-rikimaru.inputs)
-defeats both checkpoint bosses, runs all four cinematics and reaches results
-with 84 HP. It selects six shuriken, six caltrops and two medicine from new-game
-stock, uses the shuriken and medicine, then saves and reloads into Mission 5.
-
-Mission 5 has separate [Rikimaru](crates/tenchu-pc/tests/data/mission5-rikimaru.inputs)
-and [Ayame](crates/tenchu-pc/tests/data/mission5-ayame.inputs) routes. Both trigger
-Hikone's retreat and follow their character's event branch through results and
-a saved transition into Mission 6. Rikimaru carries only the hook and finishes
-with 56 HP; Ayame defeats Kataoka using five shuriken and melee, uses one medicine
-and finishes with 80 HP.
-
-The [Rikimaru Mission 6 route](crates/tenchu-pc/tests/data/mission6-rikimaru.inputs)
-grapples and climbs the statue, completes both encounters and reaches results
-with 5 HP, then saves into Mission 7. It also exercises a nearby guard releasing
-a ledge during combat. That exposed a port error: release probes now advance
-using the original independent height counter, preserving each probe's position
-adjustments without feeding them into the next counter value.
-
-The [Rikimaru Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
-boards the pirate ship, defeats Balma, runs all three cinematics and reaches
-results with 100 HP. It uses six shuriken and one medicine, picks up a dropped
-smoke bomb along the route, then saves and starts Mission 8.
-
-The [Rikimaru Mission 8 route](crates/tenchu-pc/tests/data/mission8-rikimaru.inputs)
-traverses the mountain with repeated grapples, jumps and ledge climbs, fights
-its guards and collects the cure. It uses six shuriken and two medicine, reaches
-results with 100 HP, then saves and starts Mission 9.
-
-An independent [Rikimaru Mission 9 route](crates/tenchu-pc/tests/data/mission9-rikimaru.inputs)
-climbs the castle, defeats Onikage and completes both cinematics with 53 HP.
-Its private-disc test uses ordinary equipment selection, saves the results,
-reloads and starts Mission 10. This exercises a different starting stock and RNG
-from the continuous saved campaign.
-
-The [Rikimaru Mission 10 route](crates/tenchu-pc/tests/data/mission10-rikimaru.inputs)
-defeats Onikage, crosses the inner caverns and lava, descends the pitfall and
-defeats Mei-Oh. All five cinematics run; results arrive with 10 HP after using
-six shuriken and both medicine. Its private-disc test verifies the final record,
-saved completion flags, completion screen and saved Mission 10 replay selection.
-Both the independent routes and the accumulated-stock campaign now complete
-Rikimaru's ten missions. The external
-ending movie executable is still represented by a completion screen.
+Both complete Mission 2 with 100 HP. The complete campaign tests currently fail
+at Ayame Mission 4 and Rikimaru Mission 5 because their old controller routes
+no longer survive. The independent Mission 7 recording also needs refreshing.
+Both ten-mission campaigns and training passed before the corrections; those
+historical results and the implemented feature coverage are recorded in
+[PLAN.md](PLAN.md). They are not a current passing campaign gate.
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
-  ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
+  ./dev.sh cargo test --release -p tenchu-pc controller_route -- --ignored
 ```
 
-These regressions cover complete saved campaigns and training, with specific
-controller routes. Native window checks also cover movement, combat/items,
-pause/resize, language selection and death/retry. Arbitrary inputs and every
-difficulty/layout combination have not been exhaustively compared with retail.
+Native window checks cover movement, combat/items, pause/resize, language
+selection and death/retry. Arbitrary inputs and every difficulty/layout
+combination have not been exhaustively compared with retail.
 
 The private-disc cadence test exercises both characters and compares player,
 animation, effects, items, RNG, camera, collision, coordinate caches and activation at every tick
