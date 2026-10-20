@@ -907,3 +907,21 @@ event completion or RNG is overridden. The standalone fresh-stock route remains
 as a separate regression. Later continuous missions and remaining Ayame routes
 are still pending.
 The full four-mission regression passes, including the Mission 5 launch.
+
+
+Japanese subtitles now render with an embedded GNU Unifont JP replacement under
+SIL OFL 1.1. The existing language selector no longer needs a font warning. The
+original Shift-JIS detection, sixteen-character limit, fifteen-row texture strip,
+outline, custom executable-supplied star and centered width-minus-one quad are
+preserved. A Japanese caption contributes the original forty-byte textured quad
+to logical drawing costs. Prepared textures survive repeated frames and clear
+with the caption; host rendering still does not update gameplay.
+
+The font is portable embedded data, with a pinned regeneration script, provenance
+and license installed by the Nix package. No BIOS or system font is needed. All
+Japanese captions across the 22 character/stage script files have glyphs. Both
+characters' openings pass in all four languages, including subtitle presence and
+return to background music. Native captures show Japanese text for both characters
+and the original French/Italian text; caption changes and clearing were checked.
+Menu labels remain English. Original menu-binary decompilation remains deferred.
+Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.

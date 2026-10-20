@@ -7,6 +7,7 @@
 *.iso
 *.cue
 *.bin
+!/crates/tenchu-assets/data/japanese-font/glyphs.bin
 *.exe
 *.vol
 *.trace

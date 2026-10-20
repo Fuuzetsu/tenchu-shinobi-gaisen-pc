@@ -112,9 +112,6 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                         if campaign.cursor == i { GOLD } else { WHITE },
                     );
                 }
-                if options.language == Some(tenchu_assets::script::Language::Japanese) {
-                    line(-140, 72, "Japanese subtitles: font incomplete".into(), DIM);
-                }
                 line(-140, 88, "Arrows/D-pad/stick: choose/change".into(), DIM);
                 line(-140, 104, "Enter/South: select  Esc/East: quit".into(), DIM);
             }

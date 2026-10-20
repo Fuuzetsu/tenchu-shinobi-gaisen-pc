@@ -4,10 +4,12 @@ use crate::{
     game::GameAssets,
     texture::{Image, Vram},
 };
+mod japanese;
 
 pub struct Font {
     pub image: Image,
     widths: Vec<u8>,
+    star: [u16; 15],
 }
 
 fn index(code: u8) -> usize {
@@ -17,12 +19,17 @@ fn index(code: u8) -> usize {
 
 impl Font {
     pub fn load<S: ReadAt>(game: &GameAssets<S>, vram: &mut Vram) -> Result<Self> {
+        let exe = Executable::new(&game.executable)?;
+        let star = exe.bytes(0x8008f078, 30)?;
         Ok(Self {
             image: vram.upload_tim(&game.asset("IMAGE/FONT.TIM")?)?,
-            widths: Executable::new(&game.executable)?
-                .bytes(0x8008ef98, 224)?
-                .to_vec(),
+            widths: exe.bytes(0x8008ef98, 224)?.to_vec(),
+            star: std::array::from_fn(|y| u16::from_be_bytes([star[y * 2], star[y * 2 + 1]])),
         })
+    }
+
+    pub fn prepare_caption(&self, text: &[u8], vram: &mut Vram) -> Option<Image> {
+        japanese::caption(text, &self.star, vram)
     }
 
     pub fn width(&self, code: u8) -> i32 {

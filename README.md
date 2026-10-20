@@ -59,8 +59,9 @@ AI difficulty; normal is the default. The launcher's **Language** row selects
 English, French, Italian or Japanese dialogue and subtitles. Use Left/Right to
 change it before starting a mission or continuing a save. The choice is saved;
 `--language english|french|italian|japanese` overrides the saved preference at launch.
-The placeholder menu labels remain in English. Japanese subtitle rasterization
-still needs a portable replacement for BIOS KROM, as indicated in the menu.
+The placeholder menu labels remain in English. Japanese subtitles use a bundled
+[replacement font](crates/tenchu-assets/data/japanese-font/README.md); no BIOS is
+needed. Latin subtitles retain the original disc font.
 
 | Action | Keyboard | Controller |
 | --- | --- | --- |

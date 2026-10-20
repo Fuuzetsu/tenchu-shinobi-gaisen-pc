@@ -24,8 +24,17 @@ fn mission_two_opening_resumes_background_music() {
             .load(&assets)
             .unwrap();
             let mut cues = Vec::new();
+            let mut caption_seen = false;
             for _ in 0..600 {
                 game.step(0).unwrap();
+                if game.cinematic.frame && !game.cinematic.displayed_caption.is_empty() {
+                    caption_seen = true;
+                    assert!(!game.cinematic.sprites.is_empty());
+                    if language == Language::Japanese {
+                        assert_eq!(game.cinematic.sprites.len(), 1);
+                        assert_eq!(game.cinematic.sprites[0].image.word_rect()[..2], [768, 496]);
+                    }
+                }
                 cues.extend(game.music.iter().map(|&cue| (game.tick, cue)));
                 if game.music.last() == Some(&Some(101)) && !game.cinematic.active {
                     break;
@@ -35,6 +44,7 @@ fn mission_two_opening_resumes_background_music() {
             assert!(cues.iter().any(|(_, cue)| cue.is_some_and(|cue| cue < 100)));
             assert!(cues.iter().any(|(_, cue)| cue.is_none()));
             assert_eq!(cues.last().map(|(_, cue)| *cue), Some(Some(101)));
+            assert!(caption_seen);
         }
     }
 }
@@ -414,6 +424,8 @@ fn all_stage_scripts_parse_from_the_disc() {
     use tenchu_assets::script::{Language, Scripts};
     let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
     let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut vram = tenchu_assets::texture::Vram::default();
+    let font = tenchu_assets::font::Font::load(&assets, &mut vram).unwrap();
     let mut sequences = 0;
     let mut commands = 0;
     for stage in 0..11 {
@@ -441,11 +453,18 @@ fn all_stage_scripts_parse_from_the_disc() {
                         sequences += 1;
                     }
                     if command.operation == 8 && command.id >= 0 {
-                        assert!(
-                            !language
-                                .decode(scripts.cutscenes.text(command.id).unwrap())
-                                .contains('\u{fffd}')
-                        );
+                        let text = scripts.cutscenes.text(command.id).unwrap();
+                        assert!(!language.decode(text).contains('\u{fffd}'));
+                        if language == Language::Japanese
+                            && let Some(image) = font.prepare_caption(text, &mut vram)
+                        {
+                            assert_eq!(
+                                image.size,
+                                [(text.len() / 2).min(16) as u16 * 16 - 1, 15],
+                                "Missing glyph in {}",
+                                language.decode(text)
+                            );
+                        }
                     }
                 }
                 commands += scripts.cutscenes.commands.len();

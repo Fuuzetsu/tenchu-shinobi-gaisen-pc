@@ -52,6 +52,11 @@
             pkgs.alsa-lib
             pkgs.udev
           ];
+          postInstall = ''
+            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
+            cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
+              "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
+          '';
           postFixup = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             wrapProgram "$out/bin/tenchu-pc" --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"
           '';

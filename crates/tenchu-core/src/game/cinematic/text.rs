@@ -3,15 +3,25 @@ use crate::hud::Sprite;
 
 impl Game {
     pub(in crate::game) fn cinematic_text(&mut self) {
+        if self.cinematic.caption != self.cinematic.displayed_caption {
+            self.cinematic.caption_image = self
+                .mission
+                .font
+                .prepare_caption(&self.cinematic.caption, &mut self.mission.vram);
+        }
         self.cinematic
             .displayed_caption
             .clone_from(&self.cinematic.caption);
         self.cinematic.sprites.clear();
         self.drawing.bytes += 48;
         let text = &self.cinematic.caption;
-        let kanji = text.first().is_some_and(|c| c & 0x80 != 0)
-            && text.get(2).is_some_and(|c| c & 0x80 != 0);
-        if !kanji {
+        if let Some(image) = self.cinematic.caption_image {
+            let mut sprite = Sprite::new(image, [-(image.size[0] as i16 / 2), 92]);
+            sprite.origin = [0; 2];
+            sprite.color = [255; 3];
+            self.cinematic.sprites.push(sprite);
+            self.drawing.bytes += 40;
+        } else {
             let font = &self.mission.font;
             let width: i32 = text.iter().map(|&c| font.width(c)).sum();
             let mut x = -width / 2;
@@ -48,5 +58,32 @@ impl Game {
                 self.drawing.bytes += 24;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    #[ignore = "requires TENCHU_DISC; checks the original single-quad subtitle cost and caption texture lifetime"]
+    fn japanese_caption_packet_and_texture_survive_until_cleared() {
+        let mut game = crate::oracle::game(1, 0);
+        game.cinematic.caption = vec![0x93, 0x56, 0x92, 0x94];
+        let revision = game.mission.vram.revision;
+        for _ in 0..3 {
+            game.drawing.bytes = 0;
+            game.cinematic_text();
+            assert_eq!(game.drawing.bytes, 88);
+            assert_eq!(game.cinematic.sprites.len(), 1);
+            let sprite = &game.cinematic.sprites[0];
+            assert_eq!(sprite.xy, [-15, 92]);
+            assert_eq!(sprite.image.word_rect(), [768, 496, 31, 15]);
+            assert_eq!(game.mission.vram.revision, revision + 1);
+        }
+        game.cinematic.caption.clear();
+        game.drawing.bytes = 0;
+        game.cinematic_text();
+        assert_eq!(game.drawing.bytes, 48);
+        assert!(game.cinematic.sprites.is_empty());
+        assert!(game.cinematic.displayed_caption.is_empty());
     }
 }

@@ -25,6 +25,7 @@ pub struct Cinematic {
     music_cue: i16,
     pub caption: Vec<u8>,
     pub displayed_caption: Vec<u8>,
+    caption_image: Option<tenchu_assets::texture::Image>,
     pub tanka: [bool; 6],
     pub tanka_shade: [u8; 6],
     pub sprites: Vec<crate::hud::Sprite>,

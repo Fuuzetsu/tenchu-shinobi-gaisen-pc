@@ -902,3 +902,20 @@ fixed geometry used by Rust. It compares release positions, results, motion
 requests and velocity across dimensions, disguise and beast guards. This is an
 isolated source comparison; the separate Mission 6 input regression covers the
 originally failing guard within ordinary gameplay.
+
+
+## Japanese subtitle rendering (2026-10-20)
+
+`SetupTelop.c`, `telop_text_width_.c` and `draw_telop_line_.c` above define the
+Shift-JIS detection, sixteen-character cap, fifteen-row strip at (768, 496),
+outline and width-minus-one quad. The custom star is read from the supplied
+executable at `0x8008f078`. The port now includes the original forty-byte textured
+quad contribution in logical drawing costs. The prepared caption follows the
+existing DrawTelop/CVA update order and stays cached between text changes.
+
+The replacement glyphs come from GNU Unifont JP 16.0.04 under SIL OFL 1.1.
+[Font provenance, conversion and license](crates/tenchu-assets/data/japanese-font/README.md)
+are bundled with the bitmap and installed by Nix. Glyph shapes replace the BIOS
+KROM; neither BIOS data nor a system font package is needed. All Japanese CAD
+captions fit the bundled Shift-JIS glyph set. This is presentation substitution,
+not a claim of pixel-identical console fonts.
