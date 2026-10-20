@@ -5,6 +5,7 @@ use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
 mod pipelines;
+mod shadows;
 
 #[cfg(test)]
 mod tests;
@@ -36,6 +37,7 @@ pub struct Renderer {
     samples: u32,
     multisample: Option<wgpu::TextureView>,
     graphics: crate::settings::Graphics,
+    shadows: shadows::Shadows,
 }
 
 impl Renderer {
@@ -78,7 +80,15 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Original paletted textures"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("scene.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(
+                format!(
+                    "{}\n{}\n{}",
+                    include_str!("scene.wgsl"),
+                    include_str!("renderer/palette.wgsl"),
+                    include_str!("renderer/lighting.wgsl")
+                )
+                .into(),
+            ),
         });
         let binding_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Scene bindings"),
@@ -105,12 +115,6 @@ impl Renderer {
                 },
             ],
         });
-        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Scene and effects"),
-            bind_group_layouts: &[&binding_layout],
-            push_constant_ranges: &[],
-        });
-        let (pipeline, effects) = pipelines::create(&device, format, &layout, &shader, 1);
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
             contents: bytemuck::bytes_of(&[0.0f32; 28]),
@@ -130,6 +134,13 @@ impl Renderer {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
+        let shadows = shadows::Shadows::new(&device, &texture);
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Scene and effects"),
+            bind_group_layouts: &[&binding_layout, &shadows.layout],
+            push_constant_ranges: &[],
+        });
+        let (pipeline, effects) = pipelines::create(&device, format, &layout, &shader, 1);
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
             layout: &binding_layout,
@@ -164,6 +175,7 @@ impl Renderer {
             samples: 1,
             multisample: None,
             graphics: crate::settings::Graphics::default(),
+            shadows,
         };
         renderer.update_vram(vram);
         Ok(renderer)
@@ -222,6 +234,7 @@ impl Renderer {
             self.samples = samples;
             self.resize(self.size);
         }
+        self.shadows.configure(&self.device, &graphics.lighting);
         self.graphics = graphics.clone();
     }
 
@@ -265,6 +278,18 @@ impl Renderer {
         meshes: &[&Mesh],
         effects: Option<&EffectMesh>,
     ) {
+        self.draw_lit(target, matrix, meshes, effects, &[], meshes);
+    }
+
+    pub fn draw_lit(
+        &self,
+        target: &wgpu::TextureView,
+        matrix: Mat4,
+        meshes: &[&Mesh],
+        effects: Option<&EffectMesh>,
+        lights: &[crate::lighting::Light],
+        casters: &[&Mesh],
+    ) {
         let mut camera = matrix.to_cols_array().to_vec();
         camera.extend([self.size[0] as f32 / self.size[1] as f32, 0.0, 0.0, 0.0]);
         camera.extend([
@@ -292,6 +317,14 @@ impl Renderer {
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
+        self.shadows.draw(
+            &mut encoder,
+            &self.queue,
+            &self.graphics.lighting,
+            lights,
+            casters,
+            effects,
+        );
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Scene"),
@@ -321,6 +354,7 @@ impl Renderer {
             });
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.bindings, &[]);
+            pass.set_bind_group(1, &self.shadows.bindings, &[]);
             for mesh in meshes {
                 if mesh.count == 0 {
                     continue;

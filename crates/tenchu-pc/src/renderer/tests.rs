@@ -121,6 +121,86 @@ fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
 }
 
 #[test]
+#[ignore = "requires a graphics adapter; checks moving point-light shadows, alpha cutouts, second-light layers and unchanged defaults"]
+fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
+    use crate::lighting::Light;
+    use glam::Vec3;
+    let mut vram = Vram::default();
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let matrix = Mat4::orthographic_rh(-1000.0, 1000.0, -1000.0, 1000.0, 1.0, 5000.0)
+        * Mat4::look_to_rh(Vec3::new(0.0, 0.0, -2000.0), Vec3::Z, Vec3::NEG_Y);
+    let quad = |center: Vec3, size: f32, flags: u32| {
+        let points = [
+            center + Vec3::new(-size, -size, 0.0),
+            center + Vec3::new(size, -size, 0.0),
+            center + Vec3::new(-size, size, 0.0),
+            center + Vec3::new(size, size, 0.0),
+        ];
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: points[i].to_array(),
+            color: [0.5; 3],
+            uv: [0.0; 2],
+            page: 256,
+            palette: 0,
+            flags: flags | render_mesh::DOUBLE_SIDED,
+        })
+    };
+    let receiver = renderer.upload(&quad(Vec3::ZERO, 1000.0, 0));
+    let sample = Vec3::new(-234.375, -234.375, 0.0);
+    let light = Light {
+        position: Vec3::new(1000.0, -800.0, -1000.0),
+        color: [1.0; 3],
+        radius: 5000.0,
+    };
+    let blocker_position = (sample + light.position) * 0.5;
+    let blocker = renderer.upload(&quad(blocker_position, 140.0, 0));
+    let transparent = renderer.upload(&quad(blocker_position, 140.0, render_mesh::TEXTURED));
+    let draw = |renderer: &Renderer, lights: &[Light], blockers: &[&Mesh]| {
+        let mut casters = vec![&receiver];
+        casters.extend_from_slice(blockers);
+        renderer.draw_lit(&view, matrix, &[&receiver], None, lights, &casters);
+        read_pixel(renderer, &target)
+    };
+    let original = draw(&renderer, &[light], &[&blocker]);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.lighting.enabled = true;
+    graphics.lighting.ambient = 30;
+    renderer.configure(&graphics);
+    let lit = draw(&renderer, &[light], &[]);
+    let shadowed = draw(&renderer, &[light], &[&blocker]);
+    assert!(lit[0] > shadowed[0] + 25, "{lit:?} versus {shadowed:?}");
+    assert!((i32::from(shadowed[0]) - 38).abs() <= 2, "{shadowed:?}");
+    assert_eq!(draw(&renderer, &[light], &[&transparent]), lit);
+    vram.words[0] = 0x7fff;
+    renderer.update_vram(&vram);
+    assert_eq!(draw(&renderer, &[light], &[&transparent]), shadowed);
+
+    let moved = Light {
+        position: Vec3::new(-1000.0, -800.0, -1000.0),
+        ..light
+    };
+    assert!(draw(&renderer, &[moved], &[&blocker])[0] > shadowed[0] + 25);
+    let inactive = Light {
+        color: [0.0; 3],
+        ..moved
+    };
+    assert_eq!(draw(&renderer, &[inactive, light], &[&blocker]), shadowed);
+    assert_eq!(draw(&renderer, &[inactive, light], &[]), lit);
+    for resolution in [256, 1024, 2048] {
+        graphics.lighting.resolution = resolution;
+        graphics.samples = *renderer.sample_counts.last().unwrap();
+        renderer.configure(&graphics);
+        assert_eq!(draw(&renderer, &[light], &[&blocker]), shadowed);
+    }
+    graphics.lighting.shadows = false;
+    renderer.configure(&graphics);
+    assert_eq!(draw(&renderer, &[light], &[&blocker]), lit);
+    renderer.configure(&crate::settings::Graphics::default());
+    assert_eq!(draw(&renderer, &[light], &[&blocker]), original);
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; renders source winding, texture transparency and all four blend modes offscreen"]
 fn winding_and_original_texture_blends_render_correctly() {
     let mut vram = Vram::default();

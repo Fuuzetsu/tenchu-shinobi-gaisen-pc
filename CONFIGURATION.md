@@ -15,7 +15,7 @@ camera state, simulation controls and one-shot edits start disabled each launch.
   texture filtering and GPU-supported MSAA choices. Keep original defaults.
   Paletted VRAM needs decoded texture sampling; ordinary hardware anisotropic
   filtering is not automatically applicable.
-- [ ] Optional dynamic lights and shadow maps, disabled by default. Inspect
+- [x] Optional dynamic lights and shadow maps, disabled by default. Inspect
   authored fire emitters as light sources; provide a movable debug light,
   distance/intensity controls and explicit performance/coverage limits.
 - [x] Enemy sight-distance multiplier, using the original angular, stance,
@@ -97,3 +97,20 @@ ended its recording at tick 27; replay consumed that complete prefix. Menu help
 is fitted to the original 320-wide safe area, including at 4:3. Fast-forward
 silences audio instead of trying to play accelerated dialogue; music restarts and
 speech resumes on its next cue when ordinary speed returns.
+
+The lighting increment adds up to two optional point lights selected from
+registered fires/bonfires and a movable, camera-following inspection light.
+Six depth faces per light preserve original paletted cutouts; moving actors
+outside the gameplay camera can still cast shadows. Resolution, light radius,
+intensity and ambient contribution are adjustable. Disabled output matches the
+existing GPU regressions. Baked colors/blob shadows remain, translucent pixels
+and particles do not cast, and baked lamp textures are not inferred emitters.
+See README for the performance/coverage limits.
+
+The shadow GPU regression checks real occlusion, moving lights, transparent
+holes versus opaque texels, the second light, all four shadow resolutions with
+supported MSAA, and restoration of unchanged defaults. Native screenshots
+confirm actor/scenery shadows and live resolution changes. All 43 host tests,
+including private-disc, audio, GPU, full campaign and new tool checks, pass.
+A native Mission 2 run held Backspace through its opening, resumed music and
+returned to normal-speed gameplay after tick 181.

@@ -35,6 +35,8 @@ pub struct Debug {
     pub sight_percent: u16,
     pub frame_step: bool,
     pub pause_view: bool,
+    pub light: Option<Vec3>,
+    pub light_follow: bool,
     pub surfaces: Vec<terrain::Surface>,
     trail: VecDeque<Vec3>,
     last_tick: u64,
@@ -66,6 +68,8 @@ impl Debug {
             sight_percent: 100,
             frame_step: false,
             pause_view: false,
+            light: None,
+            light_follow: false,
             surfaces: terrain::surfaces(&game.mission.terrain)?,
             trail: VecDeque::new(),
             last_tick: game.tick,
@@ -76,6 +80,8 @@ impl Debug {
         self.camera = None;
         self.looking = false;
         self.bookmark = None;
+        self.light = None;
+        self.light_follow = false;
         self.teleport_armed = false;
         self.selected_actor = game.player_id;
         self.target = game.player().position;
@@ -90,6 +96,17 @@ impl Debug {
             || crate::renderer::game_camera(game.rendered_view, aspect),
             |c| c.matrix(aspect),
         )
+    }
+
+    pub fn eye(&self, game: &Game) -> Vec3 {
+        self.camera
+            .unwrap_or_else(|| Camera::from_game(game))
+            .position
+    }
+
+    pub fn light_position(&self, game: &Game) -> Option<Vec3> {
+        self.light
+            .map(|p| if self.light_follow { self.eye(game) } else { p })
     }
 
     pub fn toggle_camera(&mut self, game: &Game) {

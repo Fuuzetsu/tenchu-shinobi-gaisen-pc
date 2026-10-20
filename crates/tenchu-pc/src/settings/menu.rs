@@ -51,6 +51,19 @@ pub enum Item {
     CutsceneSpeed,
     Screenshot,
     ResetTweaks,
+    Lighting,
+    Shadows,
+    FireLights,
+    LightRadius,
+    LightIntensity,
+    LightAmbient,
+    LightResolution,
+    LightCount,
+    DebugLight,
+    PlaceLight,
+    PlayerLight,
+    FollowLight,
+    LightAxis(usize),
 }
 
 impl Item {
@@ -71,6 +84,8 @@ impl Item {
                 | Self::Step
                 | Self::Screenshot
                 | Self::ResetTweaks
+                | Self::PlaceLight
+                | Self::PlayerLight
         )
     }
 }
@@ -95,13 +110,14 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 6] = [
+pub const PAGES: [&str; 7] = [
     "General",
     "Graphics",
     "Overlays",
     "Camera",
     "Teleport / actor",
     "Simulation",
+    "Lighting",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -377,7 +393,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Close menu and click a collision surface.",
             ),
         ],
-        _ => vec![
+        5 => vec![
             (
                 Item::Pause,
                 "Pause simulation / F3",
@@ -425,6 +441,102 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Restore 100% speed and original enemy sight.",
             ),
         ],
+        _ => {
+            let light = &s.graphics.lighting;
+            let position = d.light.unwrap_or_default().to_array();
+            vec![
+                (
+                    Item::Lighting,
+                    "Dynamic lighting",
+                    on(light.enabled),
+                    "Optional look; original lighting when Off.",
+                ),
+                (
+                    Item::Shadows,
+                    "Dynamic shadows",
+                    on(light.shadows),
+                    "Six depth views per point light; GPU cost.",
+                ),
+                (
+                    Item::FireLights,
+                    "Authored fires",
+                    on(light.fires),
+                    "Nearest fire/bonfire emitters supply lights.",
+                ),
+                (
+                    Item::LightCount,
+                    "Maximum lights",
+                    light.count.to_string(),
+                    "Up to two lights; debug light has priority.",
+                ),
+                (
+                    Item::LightRadius,
+                    "Light radius",
+                    format!("{}k", light.radius),
+                    "World units; larger radius softens falloff.",
+                ),
+                (
+                    Item::LightIntensity,
+                    "Light intensity",
+                    format!("{}%", light.intensity),
+                    "Strength of added point lighting.",
+                ),
+                (
+                    Item::LightAmbient,
+                    "Ambient brightness",
+                    format!("{}%", light.ambient),
+                    "Retained baked light in shadowed areas.",
+                ),
+                (
+                    Item::LightResolution,
+                    "Shadow resolution",
+                    light.resolution.to_string(),
+                    "Per face: 256-2048. Higher uses more GPU.",
+                ),
+                (
+                    Item::DebugLight,
+                    "Movable light",
+                    on(d.light.is_some()),
+                    "Session-only light; no gameplay effects.",
+                ),
+                (
+                    Item::PlaceLight,
+                    "Place light at camera",
+                    "Enter".into(),
+                    "Freeze a light at the current view position.",
+                ),
+                (
+                    Item::PlayerLight,
+                    "Place light above player",
+                    "Enter".into(),
+                    "Place above/beside player to inspect shadows.",
+                ),
+                (
+                    Item::FollowLight,
+                    "Light follows camera",
+                    on(d.light_follow),
+                    "Move with free camera to inspect occlusion.",
+                ),
+                (
+                    Item::LightAxis(0),
+                    "Light X",
+                    format!("{:.0}", position[0]),
+                    "Arrows move fixed light by 500 world units.",
+                ),
+                (
+                    Item::LightAxis(1),
+                    "Light Y",
+                    format!("{:.0}", position[1]),
+                    "Negative Y is up; disables camera follow.",
+                ),
+                (
+                    Item::LightAxis(2),
+                    "Light Z",
+                    format!("{:.0}", position[2]),
+                    "Arrows move fixed light by 500 world units.",
+                ),
+            ]
+        }
     };
     entries
         .into_iter()

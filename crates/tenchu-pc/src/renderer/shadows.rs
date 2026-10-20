@@ -1,0 +1,309 @@
+use super::{EffectMesh, Mesh};
+use crate::{lighting::Light, render_mesh::Vertex, settings::Lighting};
+use glam::{Mat4, Vec3};
+
+const FACES: usize = 12;
+
+pub struct Shadows {
+    pub layout: wgpu::BindGroupLayout,
+    pub bindings: wgpu::BindGroup,
+    data: wgpu::Buffer,
+    sampler: wgpu::Sampler,
+    views: Vec<wgpu::TextureView>,
+    faces: Vec<(wgpu::Buffer, wgpu::BindGroup)>,
+    pipeline: wgpu::RenderPipeline,
+    resolution: u32,
+}
+
+impl Shadows {
+    pub fn new(device: &wgpu::Device, vram: &wgpu::Texture) -> Self {
+        let uniform = wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        };
+        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Point lights and shadow maps"),
+            entries: &[
+                uniform,
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth,
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+            ],
+        });
+        let data = buffer(device, (2 * 8 + FACES * 16 + 4) * 4);
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Shadow comparison filter"),
+            compare: Some(wgpu::CompareFunction::LessEqual),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+        let (bindings, views) = maps(device, &layout, &data, &sampler, 1);
+        let face_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Shadow face"),
+            entries: &[
+                uniform,
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Uint,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let faces = (0..FACES)
+            .map(|_| {
+                let data = buffer(device, 64);
+                let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("Shadow face and original texture"),
+                    layout: &face_layout,
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: data.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::TextureView(
+                                &vram.create_view(&Default::default()),
+                            ),
+                        },
+                    ],
+                });
+                (data, binding)
+            })
+            .collect();
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Paletted cutout shadows"),
+            source: wgpu::ShaderSource::Wgsl(
+                format!(
+                    "{}\n{}",
+                    include_str!("shadow.wgsl"),
+                    include_str!("palette.wgsl")
+                )
+                .into(),
+            ),
+        });
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Shadow face"),
+            bind_group_layouts: &[&face_layout],
+            push_constant_ranges: &[],
+        });
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Point light shadow caster"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader, entry_point: Some("vertex"), compilation_options: Default::default(),
+                buffers: &[wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32],
+                }],
+            },
+            primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true, depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: Default::default(),
+                bias: wgpu::DepthBiasState { constant: 2, slope_scale: 2.0, clamp: 0.0 },
+            }),
+            multisample: Default::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &shader, entry_point: Some("fragment"),
+                compilation_options: Default::default(), targets: &[],
+            }),
+            multiview: None, cache: None,
+        });
+        Self {
+            layout,
+            bindings,
+            data,
+            sampler,
+            views,
+            faces,
+            pipeline,
+            resolution: 1,
+        }
+    }
+
+    pub fn configure(&mut self, device: &wgpu::Device, settings: &Lighting) {
+        let resolution = if settings.enabled && settings.shadows {
+            settings.resolution
+        } else {
+            1
+        };
+        if self.resolution != resolution {
+            (self.bindings, self.views) =
+                maps(device, &self.layout, &self.data, &self.sampler, resolution);
+            self.resolution = resolution;
+        }
+    }
+
+    pub fn draw(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        queue: &wgpu::Queue,
+        settings: &Lighting,
+        lights: &[Light],
+        meshes: &[&Mesh],
+        effects: Option<&EffectMesh>,
+    ) {
+        let count = if settings.enabled {
+            lights.len().min(2)
+        } else {
+            0
+        };
+        let mut data = vec![0.0f32; 2 * 8 + FACES * 16];
+        for (i, light) in lights.iter().take(count).enumerate() {
+            data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
+            data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
+            for (face, matrix) in matrices(light).iter().enumerate() {
+                let index = i * 6 + face;
+                data[16 + index * 16..16 + (index + 1) * 16]
+                    .copy_from_slice(&matrix.to_cols_array());
+                if !settings.shadows {
+                    continue;
+                }
+                let (buffer, bindings) = &self.faces[index];
+                queue.write_buffer(buffer, 0, bytemuck::cast_slice(&matrix.to_cols_array()));
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Point light face"),
+                    color_attachments: &[],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &self.views[index],
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(1.0),
+                            store: wgpu::StoreOp::Store,
+                        }),
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pass.set_pipeline(&self.pipeline);
+                pass.set_bind_group(0, bindings, &[]);
+                for mesh in meshes.iter().copied().chain(effects.map(|e| &e.mesh)) {
+                    if mesh.count == 0 {
+                        continue;
+                    }
+                    pass.set_vertex_buffer(0, mesh.buffer.slice(..));
+                    pass.draw(0..mesh.count, 0..1);
+                }
+            }
+        }
+        data.extend([
+            f32::from(settings.ambient) / 100.0,
+            f32::from(settings.intensity) / 100.0,
+            count as f32,
+            if !settings.enabled {
+                0.0
+            } else if settings.shadows {
+                2.0
+            } else {
+                1.0
+            },
+        ]);
+        queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
+    }
+}
+
+fn buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {
+    device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("Lighting uniform"),
+        size: size as u64,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    })
+}
+
+fn maps(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    data: &wgpu::Buffer,
+    sampler: &wgpu::Sampler,
+    resolution: u32,
+) -> (wgpu::BindGroup, Vec<wgpu::TextureView>) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Point shadow depth array"),
+        size: wgpu::Extent3d {
+            width: resolution,
+            height: resolution,
+            depth_or_array_layers: FACES as u32,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Depth32Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Lighting textures"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: data.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(
+                    &texture.create_view(&Default::default()),
+                ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    });
+    let views = (0..FACES)
+        .map(|face| {
+            texture.create_view(&wgpu::TextureViewDescriptor {
+                label: Some("Shadow face"),
+                dimension: Some(wgpu::TextureViewDimension::D2),
+                base_array_layer: face as u32,
+                array_layer_count: Some(1),
+                ..Default::default()
+            })
+        })
+        .collect();
+    (bindings, views)
+}
+
+fn matrices(light: &Light) -> [Mat4; 6] {
+    [
+        (Vec3::X, Vec3::NEG_Y),
+        (Vec3::NEG_X, Vec3::NEG_Y),
+        (Vec3::Y, Vec3::Z),
+        (Vec3::NEG_Y, Vec3::NEG_Z),
+        (Vec3::Z, Vec3::NEG_Y),
+        (Vec3::NEG_Z, Vec3::NEG_Y),
+    ]
+    .map(|(direction, up)| {
+        Mat4::perspective_rh(std::f32::consts::FRAC_PI_2, 1.0, 20.0, light.radius)
+            * Mat4::look_to_rh(light.position, direction, up)
+    })
+}

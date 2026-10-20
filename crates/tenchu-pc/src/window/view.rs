@@ -3,6 +3,8 @@ use super::*;
 pub(super) struct View {
     pub(super) stage: Mesh,
     pub(super) actor: Mesh,
+    shadow_actor: Option<Mesh>,
+    lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
     pub(super) renderer: Renderer,
     pub(super) surface: wgpu::Surface<'static>,
@@ -67,6 +69,8 @@ impl View {
             renderer,
             stage,
             actor,
+            shadow_actor: None,
+            lights: Vec::new(),
             effects,
             size: [size.width, size.height],
             vram_revision: game.mission.vram.revision,
@@ -126,6 +130,19 @@ impl View {
             render_mesh::inspection_characters(game)
         } else {
             render_mesh::characters(game)
+        });
+        self.lights = crate::lighting::sources(
+            game,
+            &settings.graphics.lighting,
+            debug.eye(game),
+            debug.light_position(game),
+        );
+        self.shadow_actor = (settings.graphics.lighting.enabled
+            && settings.graphics.lighting.shadows
+            && !self.lights.is_empty())
+        .then(|| {
+            self.renderer
+                .upload(&render_mesh::inspection_characters(game))
         });
         let mut geometry = if menu.open {
             menu.build(&game.mission.font, settings, debug, paused)
@@ -201,11 +218,17 @@ impl View {
 
     fn render(&self, target: &wgpu::TextureView, game: &Game, debug: &crate::debug::Debug) {
         let meshes = [&self.stage, &self.actor];
-        self.renderer.draw(
+        let casters = [
+            &self.stage,
+            self.shadow_actor.as_ref().unwrap_or(&self.actor),
+        ];
+        self.renderer.draw_lit(
             target,
             debug.matrix(game, self.config.width as f32 / self.config.height as f32),
             if debug.collision_only { &[] } else { &meshes },
             Some(&self.effects),
+            &self.lights,
+            &casters,
         );
     }
 

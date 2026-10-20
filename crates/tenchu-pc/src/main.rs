@@ -3,6 +3,7 @@ mod campaign;
 mod capture;
 mod controls;
 mod debug;
+mod lighting;
 mod recording;
 mod render_effects;
 mod render_mesh;

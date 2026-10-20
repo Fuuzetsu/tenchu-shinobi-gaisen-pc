@@ -136,6 +136,21 @@ when control returns. Fast-forward mutes sound and resumes background music at
 ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
 
+The Lighting page adds optional dynamic point lights and shadow maps. Enable
+Dynamic lighting, then use authored fires or place a movable light at the camera
+or above the player. The light can follow free camera or move along X/Y/Z.
+Radius, intensity, ambient brightness and 256–2048 shadow resolution are adjustable.
+Lighting starts off; changing it never affects AI, visibility, RNG or logic timing.
+
+This is a new visual treatment over the original baked colors, with flat surface
+normals and filtered depth shadows. It supports the two nearest registered
+fire/bonfire emitters; the movable light takes priority. Baked lantern textures
+do not automatically become emitters. Each light costs six extra scene passes;
+both shadow maps use about 12 MiB at 512 or 192 MiB at 2048. Opaque live actors,
+scenery and rendered moving geometry cast shadows, respecting texture holes.
+Particles and translucent pixels do not cast shadows. Original blob shadows
+remain; this does not attempt to remove lighting already baked into the assets.
+
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.
 Held controls must be released after menu or focus changes. Losing focus freezes

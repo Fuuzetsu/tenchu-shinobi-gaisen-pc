@@ -67,6 +67,18 @@ fn inspecting_live_state_does_not_change_the_game() {
         debug.labels = true;
         debug.inspect_actor = true;
         debug.show_trail = true;
+        let lights = crate::lighting::sources(
+            &game,
+            &crate::settings::Lighting {
+                enabled: true,
+                count: 1,
+                ..Default::default()
+            },
+            camera.position,
+            Some(camera.position),
+        );
+        assert_eq!(lights.len(), 1);
+        assert_eq!(lights[0].position, camera.position);
         for _ in 0..3 {
             debug.focus(&game, true);
             let (origin, direction) = camera::ray(debug.matrix(&game, 16.0 / 9.0), [0.0, 0.0]);

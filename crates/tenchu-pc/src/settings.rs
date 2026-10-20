@@ -42,6 +42,7 @@ pub struct Graphics {
     pub exposure: u16,
     pub bilinear: bool,
     pub samples: u32,
+    pub lighting: Lighting,
 }
 
 impl Default for Graphics {
@@ -54,6 +55,35 @@ impl Default for Graphics {
             exposure: 100,
             bilinear: false,
             samples: 1,
+            lighting: Lighting::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Lighting {
+    pub enabled: bool,
+    pub shadows: bool,
+    pub fires: bool,
+    pub radius: u16,
+    pub intensity: u16,
+    pub ambient: u16,
+    pub resolution: u32,
+    pub count: u16,
+}
+
+impl Default for Lighting {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            shadows: true,
+            fires: true,
+            radius: 12,
+            intensity: 150,
+            ambient: 60,
+            resolution: 512,
+            count: 2,
         }
     }
 }
@@ -99,6 +129,14 @@ impl Store {
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }
+                let light = &mut settings.graphics.lighting;
+                light.radius = light.radius.clamp(2, 50);
+                light.intensity = light.intensity.min(400);
+                light.ambient = light.ambient.min(100);
+                light.count = light.count.clamp(1, 2);
+                if ![256, 512, 1024, 2048].contains(&light.resolution) {
+                    light.resolution = 512;
+                }
                 Ok(settings)
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Settings::default()),
@@ -135,6 +173,21 @@ mod tests {
         let loaded = store.load().unwrap();
         assert!(loaded.show_fps && loaded.pause_on_defocus);
         assert_eq!(loaded.volume, 100);
+        assert_eq!(loaded.graphics.lighting, Lighting::default());
+        fs::write(&store.path, br#"{"cutscene_speed":7,"graphics":{"lighting":{"enabled":true,"count":99,"radius":0,"intensity":65535,"ambient":200,"resolution":99999}}}"#).unwrap();
+        let loaded = store.load().unwrap();
+        assert_eq!(loaded.cutscene_speed, 1);
+        assert_eq!(
+            loaded.graphics.lighting,
+            Lighting {
+                enabled: true,
+                count: 2,
+                radius: 2,
+                intensity: 400,
+                ambient: 100,
+                ..Lighting::default()
+            }
+        );
         fs::write(&store.path, b"{").unwrap();
         assert!(store.load().is_err());
         fs::remove_dir_all(root).unwrap();

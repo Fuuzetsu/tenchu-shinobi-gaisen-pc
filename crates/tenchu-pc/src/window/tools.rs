@@ -115,6 +115,72 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::Lighting => {
+                self.settings.graphics.lighting.enabled = !self.settings.graphics.lighting.enabled
+            }
+            Item::Shadows => {
+                self.settings.graphics.lighting.shadows = !self.settings.graphics.lighting.shadows
+            }
+            Item::FireLights => {
+                self.settings.graphics.lighting.fires = !self.settings.graphics.lighting.fires
+            }
+            Item::LightCount => {
+                self.settings.graphics.lighting.count =
+                    cycle(self.settings.graphics.lighting.count, &[1, 2], direction)
+            }
+            Item::LightRadius => {
+                self.settings.graphics.lighting.radius =
+                    (i32::from(self.settings.graphics.lighting.radius) + direction).clamp(2, 50)
+                        as u16
+            }
+            Item::LightIntensity => {
+                self.settings.graphics.lighting.intensity =
+                    (i32::from(self.settings.graphics.lighting.intensity) + direction * 10)
+                        .clamp(0, 400) as u16
+            }
+            Item::LightAmbient => {
+                self.settings.graphics.lighting.ambient =
+                    (i32::from(self.settings.graphics.lighting.ambient) + direction * 5)
+                        .clamp(0, 100) as u16
+            }
+            Item::LightResolution => {
+                self.settings.graphics.lighting.resolution = u32::from(cycle(
+                    self.settings.graphics.lighting.resolution as u16,
+                    &[256, 512, 1024, 2048],
+                    direction,
+                ))
+            }
+            Item::DebugLight => {
+                self.debug.light = if self.debug.light.is_some() {
+                    None
+                } else {
+                    Some(self.debug.eye(&self.campaign.game))
+                };
+                self.debug.light_follow = false;
+            }
+            Item::PlaceLight => {
+                self.debug.light = Some(self.debug.eye(&self.campaign.game));
+                self.debug.light_follow = false;
+            }
+            Item::PlayerLight => {
+                self.debug.light = Some(
+                    glam::Vec3::from(self.campaign.game.player().position.map(|v| v as f32))
+                        + glam::Vec3::new(2000.0, -4000.0, 2000.0),
+                );
+                self.debug.light_follow = false;
+            }
+            Item::FollowLight => {
+                self.debug.light_follow = !self.debug.light_follow;
+                self.debug
+                    .light
+                    .get_or_insert(self.debug.eye(&self.campaign.game));
+            }
+            Item::LightAxis(axis) => {
+                self.debug.light_follow = false;
+                let eye = self.debug.eye(&self.campaign.game);
+                let light = self.debug.light.get_or_insert(eye);
+                light[axis] = (light[axis] + direction as f32 * 500.0).clamp(-320_000.0, 320_000.0);
+            }
             Item::Fps => self.settings.show_fps = !self.settings.show_fps,
             Item::Focus => self.settings.pause_on_defocus = !self.settings.pause_on_defocus,
             Item::Fullscreen => self.settings.fullscreen = !self.settings.fullscreen,
