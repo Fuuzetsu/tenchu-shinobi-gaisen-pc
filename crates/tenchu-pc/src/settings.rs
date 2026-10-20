@@ -43,6 +43,8 @@ pub struct Graphics {
     pub bilinear: bool,
     pub mipmaps: bool,
     pub anisotropy: u16,
+    pub asset_pack: bool,
+    pub upscale: u16,
     pub samples: u32,
     pub lighting: Lighting,
     pub blob_shadows: bool,
@@ -59,6 +61,8 @@ impl Default for Graphics {
             bilinear: false,
             mipmaps: false,
             anisotropy: 1,
+            asset_pack: true,
+            upscale: 1,
             samples: 1,
             lighting: Lighting::default(),
             blob_shadows: true,
@@ -150,6 +154,9 @@ impl Store {
                 settings.graphics.exposure = settings.graphics.exposure.clamp(25, 300);
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.anisotropy) {
                     settings.graphics.anisotropy = 1;
+                }
+                if ![1, 2, 4].contains(&settings.graphics.upscale) {
+                    settings.graphics.upscale = 1;
                 }
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;

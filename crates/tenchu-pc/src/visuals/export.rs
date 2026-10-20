@@ -142,6 +142,19 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
+    let pack = super::pack::Manifest {
+        version: 1,
+        textures: manifest
+            .textures
+            .iter()
+            .map(|id| (id.clone(), format!("textures/{id}.png")))
+            .collect(),
+    };
+    fs::write(
+        directory.join("pack.json"),
+        serde_json::to_vec_pretty(&pack).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
     println!(
         "Exported {} textures and {} models to {}",
         manifest.textures.len(),

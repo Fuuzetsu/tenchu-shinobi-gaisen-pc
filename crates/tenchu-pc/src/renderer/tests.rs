@@ -125,6 +125,83 @@ fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
 }
 
 #[test]
+#[ignore = "requires a graphics adapter; replacements retain higher-resolution detail, use their own cutouts and revert without disturbing original animation"]
+fn replacement_textures_reload_cutouts_and_revert() {
+    use crate::visuals::{catalog, pack::Pack, pixels::Image};
+    use std::{collections::BTreeMap, sync::Arc};
+    let mut vram = Vram::default();
+    vram.images.push(tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [1, 1],
+    });
+    vram.words[0] = 0x7fff;
+    let id = catalog::image_id([1, 1], &[255; 4]);
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for vertex in &mut vertices {
+        vertex.uv = [vertex.position[0] / 1200.0, vertex.position[1] / 1200.0];
+    }
+    let mesh = renderer.upload(&vertices);
+    let mut image = Image {
+        size: [4, 4],
+        rgba: (0..16)
+            .flat_map(|n| {
+                if n % 2 == 0 {
+                    [255, 0, 0, 255]
+                } else {
+                    [0, 255, 0, 255]
+                }
+            })
+            .collect(),
+    };
+    let pack = |image: Image| Pack {
+        textures: BTreeMap::from([(id.clone(), Arc::new(image))]),
+    };
+    renderer.set_asset_pack(&pack(image.clone()));
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let colors = read_pixels(&renderer, &target);
+    assert!(colors.chunks_exact(4).any(|p| p == [255, 0, 0, 255]));
+    assert!(colors.chunks_exact(4).any(|p| p == [0, 255, 0, 255]));
+    image.rgba.fill(0);
+    renderer.set_asset_pack(&pack(image.clone()));
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[0; 3]);
+    vram.words[0] = 31;
+    renderer.update_vram(&vram);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.asset_pack = false;
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert!(
+        read_pixels(&renderer, &target)
+            .chunks_exact(4)
+            .any(|p| p == [255, 0, 0, 255])
+    );
+    vram.words[0] = 0;
+    renderer.update_vram(&vram);
+    image.rgba = [0, 0, 255, 255].repeat(16);
+    renderer.set_asset_pack(&pack(image));
+    graphics.asset_pack = true;
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[0, 0, 255]);
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; minification averages texels, anisotropy preserves detail across the short axis, and VRAM animation stays live"]
 fn decoded_mips_filter_without_blurring_the_short_axis() {
     let mut vram = Vram::default();
@@ -258,6 +335,21 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     vram.words[0] |= 0x8000;
     renderer.update_vram(&vram);
     assert_eq!(draw(&mut renderer, &[light], &[&mixed]), lit);
+
+    for (alpha, expected) in [(255, shadowed), (128, lit), (0, lit)] {
+        let pack = crate::visuals::pack::Pack {
+            textures: std::collections::BTreeMap::from([(
+                crate::visuals::catalog::image_id([1, 1], &[0; 4]),
+                std::sync::Arc::new(crate::visuals::pixels::Image {
+                    size: [4, 4],
+                    rgba: [255, 255, 255, alpha].repeat(16),
+                }),
+            )]),
+        };
+        renderer.set_asset_pack(&pack);
+        assert_eq!(draw(&mut renderer, &[light], &[&mixed]), expected);
+    }
+    renderer.set_asset_pack(&crate::visuals::pack::Pack::default());
 
     let moved = Light {
         position: Vec3::new(-1000.0, -800.0, -1000.0),

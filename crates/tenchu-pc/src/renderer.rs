@@ -139,8 +139,8 @@ impl Renderer {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-        let shadows = shadows::Shadows::new(&device, &texture);
         let materials = materials::Materials::new(&device, &queue, vram);
+        let shadows = shadows::Shadows::new(&device, &texture, &materials.layout);
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Scene and effects"),
             bind_group_layouts: &[&binding_layout, &shadows.layout, &materials.layout],
@@ -224,7 +224,17 @@ impl Renderer {
             .then(|| Self::attachment(&self.device, size, self.format, self.samples));
     }
 
+    pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
+        self.materials.set_pack(pack.textures.clone());
+    }
+
+    pub fn reset_vram(&mut self, vram: &Vram) {
+        self.materials.reset(vram);
+        self.update_vram(vram);
+    }
+
     pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
+        self.materials.configure(graphics);
         let samples = if self.sample_counts.contains(&graphics.samples) {
             graphics.samples
         } else {
@@ -299,9 +309,7 @@ impl Renderer {
         lights: &[crate::lighting::Light],
         casters: &[&Mesh],
     ) -> Result<()> {
-        if self.graphics.mipmaps {
-            self.materials.flush(&self.device, &self.queue)?;
-        }
+        self.materials.flush(&self.device, &self.queue)?;
         let mut camera = matrix.to_cols_array().to_vec();
         camera.extend([
             self.size[0] as f32 / self.size[1] as f32,
@@ -347,6 +355,7 @@ impl Renderer {
             lights,
             casters,
             effects,
+            &self.materials.bindings,
         );
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

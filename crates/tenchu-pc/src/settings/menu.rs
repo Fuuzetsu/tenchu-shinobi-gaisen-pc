@@ -66,6 +66,9 @@ pub enum Item {
     LightAxis(usize),
     BlobShadows,
     ShadowPreview,
+    AssetPack,
+    ReloadAssets,
+    Upscale,
 }
 
 #[cfg(test)]
@@ -117,6 +120,7 @@ impl Item {
                 | Self::PlaceLight
                 | Self::PlayerLight
                 | Self::ShadowPreview
+                | Self::ReloadAssets
         )
     }
 }
@@ -142,7 +146,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 7] = [
+pub const PAGES: [&str; 8] = [
     "General",
     "Graphics",
     "Overlays",
@@ -150,10 +154,36 @@ pub const PAGES: [&str; 7] = [
     "Teleport / actor",
     "Simulation",
     "Lighting",
+    "Visual assets",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        7 => vec![
+            (
+                Item::AssetPack,
+                "Replacement artwork",
+                on(s.graphics.asset_pack),
+                "Use textures from TENCHU_ASSET_PACK.",
+            ),
+            (
+                Item::ReloadAssets,
+                "Reload asset pack",
+                "Enter".into(),
+                "Reload edited files; retain last good pack.",
+            ),
+            (
+                Item::Upscale,
+                "Texture reconstruction",
+                match s.graphics.upscale {
+                    2 => "Scale2x",
+                    4 => "Scale4x",
+                    _ => "Original",
+                }
+                .into(),
+                "Smooth pixel stair-steps; no new detail.",
+            ),
+        ],
         0 => vec![
             (
                 Item::Fps,

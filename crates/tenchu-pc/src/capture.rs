@@ -35,6 +35,7 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         [width, height],
         &game.mission.vram,
     ))?;
+    renderer.set_asset_pack(&crate::visuals::pack::Pack::from_env()?);
     let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Capture"),
         size: wgpu::Extent3d {

@@ -65,15 +65,24 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(v.uv + vec2(0.001)));
         let pixel = texel(nearest, v.page, v.palette);
-        if pixel == 0u { discard; }
-        semi = semi && (pixel & 32768u) != 0u;
+        let replaced = !screen && material_replaced(v.material);
+        var base = rgb(pixel);
+        if replaced {
+            let decoded = material_texel(v.material, v.uv);
+            if decoded.a == 0.0 { discard; }
+            semi = semi && decoded.a < 0.75;
+            base = decoded.rgb;
+        } else {
+            if pixel == 0u { discard; }
+            semi = semi && (pixel & 32768u) != 0u;
+        }
         if screen || camera.options.y != 0.0 {
-            if !screen && camera.options.w >= 2.0 {
-                color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, semi, (v.flags & TRANSLUCENT) != 0u, rgb(pixel));
+            if !screen && (camera.options.w >= 2.0 || (replaced && camera.options.w != 0.0)) {
+                color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, camera.options.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if !screen && camera.options.w != 0.0 {
                 color *= filtered(v.uv, v.page, v.palette, pixel);
             } else {
-                color *= rgb(pixel);
+                color *= base;
             }
         }
     }

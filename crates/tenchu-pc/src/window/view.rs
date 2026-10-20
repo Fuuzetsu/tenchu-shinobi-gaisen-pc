@@ -54,6 +54,15 @@ impl View {
             [config.width, config.height],
             &game.mission.vram,
         ))?;
+        match crate::visuals::pack::Pack::from_env() {
+            Ok(pack) => {
+                if !pack.textures.is_empty() {
+                    println!("Asset pack: {} edited textures", pack.textures.len());
+                }
+                renderer.set_asset_pack(&pack);
+            }
+            Err(error) => eprintln!("Asset pack: {error}; using original assets"),
+        }
         surface.configure(&renderer.device, &config);
         let stage = renderer.upload(&render_mesh::stage(&game.mission, &game.math));
         let actor = renderer.upload(&render_mesh::characters(game));
@@ -91,7 +100,7 @@ impl View {
     }
 
     pub(super) fn reload(&mut self, game: &Game) {
-        self.renderer.update_vram(&game.mission.vram);
+        self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
         self.shadow_stage = None;
         self.stage = self

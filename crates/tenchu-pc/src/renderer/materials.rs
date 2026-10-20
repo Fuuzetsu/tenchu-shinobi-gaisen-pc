@@ -1,9 +1,12 @@
 use crate::{
     render_mesh::{self, Vertex},
-    visuals::{catalog::Region, pixels::Image},
+    visuals::{
+        catalog::{self, Region},
+        pixels::Image,
+    },
 };
 use bytemuck::{Pod, Zeroable};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{Result, model::Texture, texture::Vram};
 use wgpu::util::DeviceExt;
 
@@ -19,7 +22,19 @@ struct Material {
 
 struct Entry {
     region: Region,
+    id: String,
+    original: Image,
     image: Image,
+    replaced: bool,
+}
+
+impl Entry {
+    fn prepare(&mut self, textures: &BTreeMap<String, Arc<Image>>, enabled: bool, upscale: u16) {
+        let replacement = enabled.then(|| textures.get(&self.id)).flatten();
+        self.image =
+            replacement.map_or_else(|| self.original.upscale(upscale), |image| (**image).clone());
+        self.replaced = replacement.is_some() || upscale > 1;
+    }
 }
 
 pub struct Materials {
@@ -30,6 +45,9 @@ pub struct Materials {
     regions: BTreeMap<Region, u32>,
     lookups: BTreeMap<(u16, u16, [u16; 4]), u32>,
     dirty: bool,
+    textures: BTreeMap<String, Arc<Image>>,
+    enabled: bool,
+    upscale: u16,
 }
 
 impl Materials {
@@ -81,18 +99,50 @@ impl Materials {
             regions: BTreeMap::new(),
             lookups: BTreeMap::new(),
             dirty: false,
+            textures: BTreeMap::new(),
+            enabled: true,
+            upscale: 1,
         }
     }
 
     pub fn update(&mut self, vram: &Vram) {
         for entry in &mut self.entries {
             let rgba = entry.region.pixels(vram);
-            if rgba != entry.image.rgba {
-                entry.image.rgba = rgba;
+            if rgba != entry.original.rgba {
+                entry.original.rgba = rgba;
+                entry.prepare(&self.textures, self.enabled, self.upscale);
                 self.dirty = true;
             }
         }
         self.vram = vram.clone();
+    }
+
+    pub fn reset(&mut self, vram: &Vram) {
+        self.vram = vram.clone();
+        self.entries.clear();
+        self.regions.clear();
+        self.lookups.clear();
+        self.dirty = true;
+    }
+
+    pub fn set_pack(&mut self, textures: BTreeMap<String, Arc<Image>>) {
+        self.textures = textures;
+        self.prepare();
+    }
+
+    pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
+        if self.enabled != graphics.asset_pack || self.upscale != graphics.upscale {
+            self.enabled = graphics.asset_pack;
+            self.upscale = graphics.upscale;
+            self.prepare();
+        }
+    }
+
+    fn prepare(&mut self) {
+        for entry in &mut self.entries {
+            entry.prepare(&self.textures, self.enabled, self.upscale);
+        }
+        self.dirty = true;
     }
 
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
@@ -139,13 +189,19 @@ impl Materials {
             return id;
         }
         let id = self.entries.len() as u32 + 1;
-        self.entries.push(Entry {
+        let original = Image {
+            size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
+            rgba: region.pixels(&self.vram),
+        };
+        let mut entry = Entry {
             region,
-            image: Image {
-                size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
-                rgba: region.pixels(&self.vram),
-            },
-        });
+            id: catalog::image_id(original.size.map(|n| n as u16), &original.rgba),
+            image: original.clone(),
+            original,
+            replaced: false,
+        };
+        entry.prepare(&self.textures, self.enabled, self.upscale);
+        self.entries.push(entry);
         self.regions.insert(region, id);
         self.dirty = true;
         id
@@ -195,7 +251,7 @@ impl Materials {
                 levels[index].len() as u32,
                 entry.image.size[0],
                 entry.image.size[1],
-                0,
+                u32::from(entry.replaced),
             ];
         }
         let page_bytes = (side * side * 4) as usize;

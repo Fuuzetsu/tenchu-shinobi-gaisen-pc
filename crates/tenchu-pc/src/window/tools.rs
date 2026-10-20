@@ -119,6 +119,20 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::AssetPack => {
+                self.settings.graphics.asset_pack = !self.settings.graphics.asset_pack
+            }
+            Item::Upscale => {
+                self.settings.graphics.upscale =
+                    cycle(self.settings.graphics.upscale, &[1, 2, 4], direction)
+            }
+            Item::ReloadAssets => {
+                let pack = crate::visuals::pack::Pack::from_env()?;
+                self.menu.notice = format!("Loaded {} edited textures", pack.textures.len());
+                if let Some(view) = &mut self.view {
+                    view.renderer.set_asset_pack(&pack);
+                }
+            }
             Item::Lighting => {
                 self.settings.graphics.lighting.enabled = !self.settings.graphics.lighting.enabled
             }

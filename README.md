@@ -37,7 +37,30 @@ Actor parts are separate files corresponding to the existing animation rig.
 PNG alpha 0 means a hole, 128 preserves the original semi-transparency flag,
 and 255 is opaque. The original face still decides whether that flag blends.
 These are local exports of your disc, not assets bundled with the port.
-The replacement loader and enhanced presentation are still being implemented.
+Edit the PNGs with your preferred image editor, then launch with that folder:
+
+```sh
+TENCHU_ASSET_PACK=/tmp/tenchu-art ./dev.sh cargo run --release -- play '/path/to/game.cue'
+```
+
+F1 → **Visual assets → Reload asset pack** applies edits without restarting.
+Unchanged exported textures are skipped, preserving the live original fallback.
+The **Replacement artwork** switch compares against the originals. A failed
+reload keeps the previous pack. `pack.json` maps content identities to relative
+PNG paths; it can contain only the replacements you want to distribute.
+Textures may be RGB/RGBA, grayscale or indexed PNG, up to 1024 pixels per side,
+with a pack budget of 16 million decoded pixels. Alpha 0 is transparent,
+1–191 selects semi-transparency and 192–255 is opaque; these are game blend
+classes rather than continuous opacity. Higher resolutions retain the original
+UV mapping. New cutouts also affect model shadows. HUD/menu textures stay original.
+`render` and replay captures also accept `TENCHU_ASSET_PACK`.
+
+**Texture reconstruction** optionally applies
+[Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.
+It smooths pixel stair-steps without inventing detail, and can change cutout edges.
+It suits some patterns better than photographic textures; compare it in game.
+Authored replacements take precedence and are not automatically enlarged.
+Model replacement and the broader enhanced presentation are still in progress.
 
 ## Build and inspect a disc
 
@@ -192,14 +215,10 @@ keeping the original 30 Hz simulation. Better authored light placement and an
 optional directional moon/sun light would give shadows more consistent coverage.
 These are follow-ups, not currently implemented.
 
-There is no PNG replacement loader yet. The intended editing workflow is an
-export command producing named RGBA PNGs and model/UV previews, then a mod folder
-loaded before the disc with hot reload and the original assets as fallback.
-Stable asset identities, original UVs and separate transparency/blend metadata
-would let larger textures replace originals without changing collision or logic.
-Texture painting in an image editor or on a model in Blender could then be
-iterative; currently it requires implementing that export/override path first.
-Upscaling alone cannot add model detail or remove lighting baked into the art.
+The export/edit/reload workflow above supports higher-resolution PNG replacements
+without changing collision or logic. Upscaling alone cannot add model detail or
+remove lighting baked into the art. Replacement meshes and broader presentation
+upgrades are tracked in `CONFIGURATION.md`.
 
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.

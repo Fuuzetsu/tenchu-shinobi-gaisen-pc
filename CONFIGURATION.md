@@ -177,7 +177,7 @@ AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
 - [ ] Implement an editable visual asset pack with original fallback, validation,
   reload and useful errors. Support higher-resolution texture overrides and
   visual mesh overrides attached to the existing animation parts.
-- [ ] Improve texture minification with isolated mip chains and anisotropic
+- [x] Improve texture minification with isolated mip chains and anisotropic
   sampling, preserving texture holes and original semi-transparency. Offer
   optional automatic texture reconstruction/upscaling, tested against real art.
 - [ ] Improve model presentation with smooth lighting and an optional
@@ -219,3 +219,20 @@ short-axis detail, animation, original blends/fog and actual model shadows.
 Thirteen fixture-free desktop tests pass. Native Mission 1 captures show smoother
 ground/roof textures with unchanged HUD, followed by movement and a clean exit.
 This removes sampling artifacts; it does not add new source detail.
+
+Texture packs: the export includes an editable `pack.json`. `TENCHU_ASSET_PACK`
+selects it; F1's Visual assets page reloads files and toggles replacements.
+Unchanged exported PNGs are skipped, retaining live original animation. Failed
+loads retain the previous pack. Size/path/PNG validation happens before applying
+changes. Higher-resolution colors, cutouts and blend classes are shared by scene
+and shadow shaders. New missions clear the old region cache before rebuilding.
+Optional Scale2x/Scale4x reconstruction follows the
+[published algorithm](https://www.scale2x.it/algorithm) and does not process
+authored replacements.
+Native Mission 1 reloaded 256px blue then orange checker fixtures on its floor,
+kept the orange version after malformed JSON, and restored original art and
+reconstruction successfully. These checker images test the editing workflow;
+they are not proposed artwork. The unfiltered Scale4x view is still visibly
+pixelated; it is a stylistic option, not a substitute for replacement detail.
+Fourteen fixture-free desktop tests and seven sequential GPU tests pass,
+including replacement detail, dynamic fallback and changed shadow cutouts.

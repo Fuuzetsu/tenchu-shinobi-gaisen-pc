@@ -21,7 +21,11 @@ pub struct Shadows {
 }
 
 impl Shadows {
-    pub fn new(device: &wgpu::Device, vram: &wgpu::Texture) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        vram: &wgpu::Texture,
+        materials: &wgpu::BindGroupLayout,
+    ) -> Self {
         let uniform = wgpu::BindGroupLayoutEntry {
             binding: 0,
             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -105,16 +109,18 @@ impl Shadows {
             label: Some("Paletted cutout shadows"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "{}\n{}",
+                    "const MAX_MIPS: u32 = {}u;\n{}\n{}\n{}",
+                    super::materials::MAX_MIPS,
                     include_str!("shadow.wgsl"),
-                    include_str!("palette.wgsl")
+                    include_str!("palette.wgsl"),
+                    include_str!("materials.wgsl").replace("@group(2)", "@group(1)")
                 )
                 .into(),
             ),
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Shadow face"),
-            bind_group_layouts: &[&face_layout],
+            bind_group_layouts: &[&face_layout, materials],
             push_constant_ranges: &[],
         });
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -124,7 +130,7 @@ impl Shadows {
                 module: &shader, entry_point: Some("vertex"), compilation_options: Default::default(),
                 buffers: &[wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32],
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32],
                 }],
             },
             primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
@@ -178,6 +184,7 @@ impl Shadows {
         lights: &[Light],
         meshes: &[&Mesh],
         effects: Option<&EffectMesh>,
+        materials: &wgpu::BindGroup,
     ) {
         let count = if settings.enabled {
             lights.len().min(MAX_LIGHTS)
@@ -213,6 +220,7 @@ impl Shadows {
                 });
                 pass.set_pipeline(&self.pipeline);
                 pass.set_bind_group(0, bindings, &[]);
+                pass.set_bind_group(1, materials, &[]);
                 for mesh in meshes.iter().copied().chain(effects.map(|e| &e.mesh)) {
                     if mesh.count == 0 {
                         continue;

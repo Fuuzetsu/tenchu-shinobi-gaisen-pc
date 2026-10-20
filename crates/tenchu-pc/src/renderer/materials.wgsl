@@ -7,6 +7,23 @@ struct Material {
 @group(2) @binding(1) var material_sampler: sampler;
 @group(2) @binding(2) var<storage, read> materials: array<Material>;
 
+fn material_replaced(index: u32) -> bool {
+    return index != 0u && index < arrayLength(&materials) && materials[index].info.w != 0u;
+}
+
+fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
+    let material = materials[index];
+    let uv = (coordinate - material.source.xy + vec2(0.5)) / material.source.zw;
+    let rect = material.mips[0];
+    let side = textureDimensions(material_images).x;
+    let page = u32(rect.x) / side;
+    let origin = vec2<i32>(i32(u32(rect.x) % side), i32(rect.y));
+    let point = origin + vec2<i32>(clamp(floor(uv * rect.zw), vec2(0.0), rect.zw - vec2(1.0)));
+    let opaque = textureLoad(material_images, point, i32(page * 2u), 0);
+    let semi = textureLoad(material_images, point, i32(page * 2u + 1u), 0);
+    return vec4(opaque.rgb + semi.rgb, opaque.a + semi.a * 0.5);
+}
+
 fn material_level(material: Material, uv: vec2<f32>, level: u32, semi: bool, blended: bool) -> vec4<f32> {
     let rect = material.mips[level];
     let side = f32(textureDimensions(material_images).x);
@@ -20,10 +37,14 @@ fn material_level(material: Material, uv: vec2<f32>, level: u32, semi: bool, ble
         + textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + 1u), 0.0);
 }
 
-fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32>, anisotropy: f32, semi: bool, blended: bool, fallback: vec3<f32>) -> vec3<f32> {
+fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32>, anisotropy: f32, filtering: f32, semi: bool, blended: bool, fallback: vec3<f32>) -> vec3<f32> {
     if index == 0u || index >= arrayLength(&materials) { return fallback; }
     let material = materials[index];
     let uv = (coordinate - material.source.xy + vec2(0.5)) / material.source.zw;
+    if filtering < 2.0 {
+        let color = material_level(material, uv, 0u, semi, blended);
+        return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
+    }
     let gx = dx / material.source.zw;
     let gy = dy / material.source.zw;
     let size = vec2<f32>(material.info.yz);

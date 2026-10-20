@@ -8,6 +8,7 @@ struct Vertex {
     @location(3) page: u32,
     @location(4) palette: u32,
     @location(5) flags: u32,
+    @location(6) material: u32,
 }
 struct Fragment {
     @builtin(position) position: vec4<f32>,
@@ -15,6 +16,7 @@ struct Fragment {
     @location(1) @interpolate(flat) page: u32,
     @location(2) @interpolate(flat) palette: u32,
     @location(3) @interpolate(flat) flags: u32,
+    @location(4) @interpolate(flat) material: u32,
 }
 
 @vertex fn vertex(v: Vertex) -> Fragment {
@@ -24,6 +26,7 @@ struct Fragment {
     out.page = v.page;
     out.palette = v.palette;
     out.flags = v.flags;
+    out.material = v.material;
     return out;
 }
 
@@ -31,8 +34,13 @@ struct Fragment {
     // Screen/debug geometry and genuinely translucent texels do not cast shadows.
     if (v.flags & 66u) != 0u { discard; }
     if (v.flags & 1u) != 0u {
-        let pixel = texel(vec2<i32>(floor(v.uv + vec2(0.001))), v.page, v.palette);
-        if pixel == 0u || ((v.flags & 4u) != 0u && (pixel & 32768u) != 0u) { discard; }
+        if material_replaced(v.material) {
+            let alpha = material_texel(v.material, v.uv).a;
+            if alpha == 0.0 || ((v.flags & 4u) != 0u && alpha < 0.75) { discard; }
+        } else {
+            let pixel = texel(vec2<i32>(floor(v.uv + vec2(0.001))), v.page, v.palette);
+            if pixel == 0u || ((v.flags & 4u) != 0u && (pixel & 32768u) != 0u) { discard; }
+        }
     } else if (v.flags & 4u) != 0u {
         discard;
     }

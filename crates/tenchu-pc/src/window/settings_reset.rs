@@ -21,6 +21,8 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
+            Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
             Item::Fps => self.settings.show_fps = s.show_fps,
             Item::Focus => self.settings.pause_on_defocus = s.pause_on_defocus,
             Item::Fullscreen => self.settings.fullscreen = s.fullscreen,
