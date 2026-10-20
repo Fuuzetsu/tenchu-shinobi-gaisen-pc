@@ -974,3 +974,13 @@ during pause, then replayed both files: tick counts, health and motion match, an
 the retry seed equals the first run's final RNG. The replay's rendered frame was
 visually inspected. Audio was routed to a private null sink.
 Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.
+
+
+The continuous saved Rikimaru campaign now completes Mission 7. An ordinary
+swimming route bypasses the armed quay, boards the ship and defeats Balma.
+Sequences 10/20/100 begin at ticks 1,640/1,730/2,577; results arrive at tick 2,817
+with 100 HP and clock 2,186. Equipment is selected from the actual saved stock:
+two medicine, one grenade, two smoke bombs and four mines, plus the hook. One
+medicine, the grenade and one smoke bomb are used; a smoke pickup is retained.
+The full seven-mission regression passes, including saved continuation into
+Mission 8. No runtime state is overridden.
