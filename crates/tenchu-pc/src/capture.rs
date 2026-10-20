@@ -29,7 +29,7 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
     );
     let [width, height] = [1280, 720];
     let format = wgpu::TextureFormat::Rgba8Unorm;
-    let renderer = pollster::block_on(Renderer::new(
+    let mut renderer = pollster::block_on(Renderer::new(
         &adapter,
         format,
         [width, height],

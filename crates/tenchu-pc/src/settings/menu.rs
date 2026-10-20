@@ -64,6 +64,8 @@ pub enum Item {
     PlayerLight,
     FollowLight,
     LightAxis(usize),
+    BlobShadows,
+    ShadowPreview,
 }
 
 #[cfg(test)]
@@ -114,6 +116,7 @@ impl Item {
                 | Self::ResetTweaks
                 | Self::PlaceLight
                 | Self::PlayerLight
+                | Self::ShadowPreview
         )
     }
 }
@@ -480,15 +483,27 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             vec![
                 (
                     Item::Lighting,
-                    "Dynamic lighting",
+                    "Point lighting",
                     on(light.enabled),
-                    "Optional look; original lighting when Off.",
+                    "Master switch: light sources plus ambient.",
                 ),
                 (
                     Item::Shadows,
-                    "Dynamic shadows",
+                    "Model / weapon shadows",
                     on(light.shadows),
-                    "Six depth views per point light; GPU cost.",
+                    "Real geometry blocks each enabled light.",
+                ),
+                (
+                    Item::ShadowPreview,
+                    "Preview model shadows",
+                    "Enter".into(),
+                    "Lit player, dark ambient, blob shadows off.",
+                ),
+                (
+                    Item::BlobShadows,
+                    "Original blob shadows",
+                    on(s.graphics.blob_shadows),
+                    "Original ground decals; separate from models.",
                 ),
                 (
                     Item::FireLights,
@@ -498,9 +513,9 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
                 (
                     Item::LightCount,
-                    "Maximum lights",
+                    "Point-light budget",
                     light.count.to_string(),
-                    "Up to two lights; debug light has priority.",
+                    "1-16 simultaneous sources; six views each.",
                 ),
                 (
                     Item::LightRadius,
@@ -622,7 +637,14 @@ impl Menu {
         (row < count).then_some(row)
     }
 
-    pub fn build(&self, font: &Font, settings: &Settings, debug: &Debug, paused: bool) -> Geometry {
+    pub fn build(
+        &self,
+        font: &Font,
+        settings: &Settings,
+        debug: &Debug,
+        paused: bool,
+        active_lights: usize,
+    ) -> Geometry {
         let rows = rows(self.page, settings, debug, paused);
         let mut lines = vec![
             (
@@ -633,7 +655,7 @@ impl Menu {
             ),
             (
                 -146,
-                -90,
+                -94,
                 format!(
                     "< {}/{} > Tab / Shift+Tab / L1/R1",
                     self.page + 1,
@@ -674,13 +696,28 @@ impl Menu {
         }
         let help = &rows[self.row.min(rows.len() - 1)].help;
         lines.push((-146, 70, (*help).into(), [0.6, 0.8, 0.85]));
+        if PAGES[self.page] == "Lighting" {
+            let lighting = &settings.graphics.lighting;
+            let status = if !lighting.enabled {
+                "Lighting off; use Preview to try shadows".into()
+            } else if active_lights == 0 {
+                "0 lights active; use Preview or add a light".into()
+            } else {
+                let faces = if lighting.shadows {
+                    active_lights * 6
+                } else {
+                    0
+                };
+                let mib = faces as u64 * u64::from(lighting.resolution).pow(2) * 4 / 1048576;
+                format!(
+                    "{active_lights}/{} lights active; {faces} shadow views; {mib} MiB",
+                    lighting.count
+                )
+            };
+            lines.push((-146, -79, status, [0.6, 0.8, 0.85]));
+        }
         if !self.notice.is_empty() {
-            lines.push((
-                -146,
-                86,
-                self.notice.chars().take(46).collect(),
-                [1.0, 0.65, 0.3],
-            ));
+            lines.push((-146, 86, self.notice.clone(), [1.0, 0.65, 0.3]));
         }
         lines.push((
             -146,

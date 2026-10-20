@@ -1,7 +1,7 @@
 struct Light { position: vec4<f32>, color: vec4<f32> }
 struct Lighting {
-    lights: array<Light, 2>,
-    matrices: array<mat4x4<f32>, 12>,
+    lights: array<Light, MAX_LIGHTS>,
+    matrices: array<mat4x4<f32>, SHADOW_FACES>,
     options: vec4<f32>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;

@@ -130,9 +130,36 @@ clean exits, with the graphics-before-display shutdown fix retained.
 - [x] Unlimited simulation speed runs every tick, including across cutscenes,
   while preserving pause/focus/single-step controls. Audio is muted at unlimited
   speed. Host state-sequence regression passes.
-- [ ] Make model/weapon/object shadows easier to inspect: preview action,
+- [x] Make model/weapon/object shadows easier to inspect: preview action,
   original-blob toggle and active-light feedback.
-- [ ] Expand the point-light budget beyond two and allocate depth maps for active
+- [x] Expand the point-light budget beyond two and allocate depth maps for active
   lights only. Check model/weapon and off-camera moving-object caster coverage.
-- [ ] Document current texture replacement limitations and a practical visual
+- [x] Document current texture replacement limitations and a practical visual
   improvement/asset editing path.
+
+The light budget now offers 1/2/4/8/16 sources with its original default of two.
+The menu reports actual sources, six shadow views per source and depth memory;
+shadow arrays grow/shrink with active sources and release when disabled. A
+preview action creates a movable light and changes presentation preferences for
+clearer shadows. Blob decals have a separate switch, defaulting to on.
+
+Shadow geometry includes opaque texels of mixed translucent faces. All live
+actor/weapon meshes and hinged objects contribute independently of gameplay
+camera culling. Hinged presentation uses the same pure local-transform helper
+as the original gameplay draw path; it does not update scene caches or game state.
+GPU checks verify actual Rikimaru/Ayame body and weapon silhouettes, the sixteenth
+light, transparent cutouts and unchanged default rendering. A ten-mission check
+matches visible hinged poses and verifies off-camera doors/trapdoors still move.
+
+Native checks exercised reverse tabs, hover-reset from a budget of 16 back to 2,
+Unlimited execution and R restoring 100%. Shadow-on/off captures in Mission 1
+show the body/sword silhouette with blob decals disabled. Inspection-camera
+focus/overhead had an inverted vertical sign; both now place the view above the
+target, with a projection regression.
+
+All 49 host tests pass, including both complete campaigns, private-disc/audio
+fixtures and five GPU tests. One parallel run stalled with all GPU tests pending;
+the full sequential run (`--include-ignored --test-threads=1`) completed in
+25.49 seconds. Nix native packaging, WASM libraries and formatting pass on
+x86_64 Linux. The release binary is rebuilt. Three isolated Wayland runs enabled
+the shadow preview and exited cleanly under repeated Escape presses.

@@ -31,6 +31,7 @@ impl Application {
             Item::FogDistance => self.settings.graphics.fog_distance = s.graphics.fog_distance,
             Item::Textures => self.settings.graphics.textures = s.graphics.textures,
             Item::Shading => self.settings.graphics.shading = s.graphics.shading,
+            Item::BlobShadows => self.settings.graphics.blob_shadows = s.graphics.blob_shadows,
             Item::Exposure => self.settings.graphics.exposure = s.graphics.exposure,
             Item::Filtering => self.settings.graphics.bilinear = s.graphics.bilinear,
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,

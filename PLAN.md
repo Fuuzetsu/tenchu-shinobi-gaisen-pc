@@ -1287,3 +1287,7 @@ The requested desktop MAIN.EXE scope is complete. The original main menu and
 external ENDING.EXE movie, browser host, replacement asset packs and HD content
 remain separate follow-ups. Source-level and continuous-retail comparisons
 provide fidelity evidence, not exhaustive equivalence for every input sequence.
+
+Optional desktop settings, native inspection and lighting/shadow improvements
+are tracked in `CONFIGURATION.md`. Their factory defaults retain the original
+presentation and simulation; the shared gameplay core remains portable.

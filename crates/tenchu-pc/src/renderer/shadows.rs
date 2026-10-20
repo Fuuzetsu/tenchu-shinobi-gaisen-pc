@@ -1,8 +1,13 @@
 use super::{EffectMesh, Mesh};
-use crate::{lighting::Light, render_mesh::Vertex, settings::Lighting};
+use crate::{
+    lighting::{Light, MAX_LIGHTS},
+    render_mesh::Vertex,
+    settings::Lighting,
+};
 use glam::{Mat4, Vec3};
 
-const FACES: usize = 12;
+const FACES: usize = MAX_LIGHTS * 6;
+const LIGHT_WORDS: usize = MAX_LIGHTS * 8;
 
 pub struct Shadows {
     pub layout: wgpu::BindGroupLayout,
@@ -49,7 +54,7 @@ impl Shadows {
                 },
             ],
         });
-        let data = buffer(device, (2 * 8 + FACES * 16 + 4) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 4) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -57,7 +62,7 @@ impl Shadows {
             min_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
-        let (bindings, views) = maps(device, &layout, &data, &sampler, 1);
+        let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1);
         let face_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Shadow face"),
             entries: &[
@@ -148,15 +153,19 @@ impl Shadows {
         }
     }
 
-    pub fn configure(&mut self, device: &wgpu::Device, settings: &Lighting) {
-        let resolution = if settings.enabled && settings.shadows {
-            settings.resolution
-        } else {
-            1
-        };
-        if self.resolution != resolution {
-            (self.bindings, self.views) =
-                maps(device, &self.layout, &self.data, &self.sampler, resolution);
+    pub fn configure(&mut self, device: &wgpu::Device, settings: &Lighting, count: usize) {
+        let active = settings.enabled && settings.shadows && count > 0;
+        let layers = if active { count.min(MAX_LIGHTS) * 6 } else { 1 };
+        let resolution = if active { settings.resolution } else { 1 };
+        if self.resolution != resolution || self.views.len() != layers {
+            (self.bindings, self.views) = maps(
+                device,
+                &self.layout,
+                &self.data,
+                &self.sampler,
+                resolution,
+                layers,
+            );
             self.resolution = resolution;
         }
     }
@@ -171,17 +180,17 @@ impl Shadows {
         effects: Option<&EffectMesh>,
     ) {
         let count = if settings.enabled {
-            lights.len().min(2)
+            lights.len().min(MAX_LIGHTS)
         } else {
             0
         };
-        let mut data = vec![0.0f32; 2 * 8 + FACES * 16];
+        let mut data = vec![0.0f32; LIGHT_WORDS + FACES * 16];
         for (i, light) in lights.iter().take(count).enumerate() {
             data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
             data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
             for (face, matrix) in matrices(light).iter().enumerate() {
                 let index = i * 6 + face;
-                data[16 + index * 16..16 + (index + 1) * 16]
+                data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
                 if !settings.shadows {
                     continue;
@@ -244,13 +253,14 @@ fn maps(
     data: &wgpu::Buffer,
     sampler: &wgpu::Sampler,
     resolution: u32,
+    layers: usize,
 ) -> (wgpu::BindGroup, Vec<wgpu::TextureView>) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Point shadow depth array"),
         size: wgpu::Extent3d {
             width: resolution,
             height: resolution,
-            depth_or_array_layers: FACES as u32,
+            depth_or_array_layers: layers as u32,
         },
         mip_level_count: 1,
         sample_count: 1,
@@ -269,9 +279,12 @@ fn maps(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: wgpu::BindingResource::TextureView(
-                    &texture.create_view(&Default::default()),
-                ),
+                resource: wgpu::BindingResource::TextureView(&texture.create_view(
+                    &wgpu::TextureViewDescriptor {
+                        dimension: Some(wgpu::TextureViewDimension::D2Array),
+                        ..Default::default()
+                    },
+                )),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -279,7 +292,7 @@ fn maps(
             },
         ],
     });
-    let views = (0..FACES)
+    let views = (0..layers)
         .map(|face| {
             texture.create_view(&wgpu::TextureViewDescriptor {
                 label: Some("Shadow face"),

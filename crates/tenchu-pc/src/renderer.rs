@@ -82,7 +82,8 @@ impl Renderer {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "{}\n{}\n{}",
+                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = MAX_LIGHTS * 6u;\n{}\n{}\n{}",
+                    crate::lighting::MAX_LIGHTS,
                     include_str!("scene.wgsl"),
                     include_str!("renderer/palette.wgsl"),
                     include_str!("renderer/lighting.wgsl")
@@ -234,7 +235,6 @@ impl Renderer {
             self.samples = samples;
             self.resize(self.size);
         }
-        self.shadows.configure(&self.device, &graphics.lighting);
         self.graphics = graphics.clone();
     }
 
@@ -272,7 +272,7 @@ impl Renderer {
     }
 
     pub fn draw(
-        &self,
+        &mut self,
         target: &wgpu::TextureView,
         matrix: Mat4,
         meshes: &[&Mesh],
@@ -282,7 +282,7 @@ impl Renderer {
     }
 
     pub fn draw_lit(
-        &self,
+        &mut self,
         target: &wgpu::TextureView,
         matrix: Mat4,
         meshes: &[&Mesh],
@@ -317,6 +317,8 @@ impl Renderer {
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
+        self.shadows
+            .configure(&self.device, &self.graphics.lighting, lights.len());
         self.shadows.draw(
             &mut encoder,
             &self.queue,

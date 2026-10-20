@@ -43,6 +43,7 @@ pub struct Graphics {
     pub bilinear: bool,
     pub samples: u32,
     pub lighting: Lighting,
+    pub blob_shadows: bool,
 }
 
 impl Default for Graphics {
@@ -56,6 +57,7 @@ impl Default for Graphics {
             bilinear: false,
             samples: 1,
             lighting: Lighting::default(),
+            blob_shadows: true,
         }
     }
 }
@@ -133,7 +135,7 @@ impl Store {
                 light.radius = light.radius.clamp(2, 50);
                 light.intensity = light.intensity.min(400);
                 light.ambient = light.ambient.min(100);
-                light.count = light.count.clamp(1, 2);
+                light.count = light.count.clamp(1, crate::lighting::MAX_LIGHTS as u16);
                 if ![256, 512, 1024, 2048].contains(&light.resolution) {
                     light.resolution = 512;
                 }
@@ -181,7 +183,7 @@ mod tests {
             loaded.graphics.lighting,
             Lighting {
                 enabled: true,
-                count: 2,
+                count: crate::lighting::MAX_LIGHTS as u16,
                 radius: 2,
                 intensity: 400,
                 ambient: 100,

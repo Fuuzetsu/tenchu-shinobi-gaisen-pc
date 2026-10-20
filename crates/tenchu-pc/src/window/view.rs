@@ -3,7 +3,8 @@ use super::*;
 pub(super) struct View {
     pub(super) stage: Mesh,
     pub(super) actor: Mesh,
-    shadow_actor: Option<Mesh>,
+    shadow_stage: Option<Mesh>,
+    shadow_models: Option<Mesh>,
     lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
     pub(super) renderer: Renderer,
@@ -69,7 +70,8 @@ impl View {
             renderer,
             stage,
             actor,
-            shadow_actor: None,
+            shadow_stage: None,
+            shadow_models: None,
             lights: Vec::new(),
             effects,
             size: [size.width, size.height],
@@ -91,6 +93,7 @@ impl View {
     pub(super) fn reload(&mut self, game: &Game) {
         self.renderer.update_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
+        self.shadow_stage = None;
         self.stage = self
             .renderer
             .upload(&render_mesh::stage(&game.mission, &game.math));
@@ -137,15 +140,25 @@ impl View {
             debug.eye(game),
             debug.light_position(game),
         );
-        self.shadow_actor = (settings.graphics.lighting.enabled
+        let shadowing = settings.graphics.lighting.enabled
             && settings.graphics.lighting.shadows
-            && !self.lights.is_empty())
-        .then(|| {
-            self.renderer
-                .upload(&render_mesh::inspection_characters(game))
-        });
+            && !self.lights.is_empty();
+        if shadowing && self.shadow_stage.is_none() {
+            self.shadow_stage = Some(
+                self.renderer
+                    .upload(&render_mesh::shadow_stage(&game.mission, &game.math)),
+            );
+        }
+        self.shadow_models =
+            shadowing.then(|| self.renderer.upload(&render_mesh::shadow_models(game)));
         let mut geometry = if menu.open {
-            menu.build(&game.mission.font, settings, debug, paused)
+            menu.build(
+                &game.mission.font,
+                settings,
+                debug,
+                paused,
+                self.lights.len(),
+            )
         } else if campaign.playing() && (!paused || debug.active()) && error.is_none() {
             if debug.collision_only {
                 render_effects::Geometry {
@@ -153,10 +166,11 @@ impl View {
                     batches: Vec::new(),
                 }
             } else {
-                render_effects::build_for_camera(
+                render_effects::build_options(
                     game,
                     settings.show_hud,
                     debug.camera.map(|c| c.source_view()),
+                    settings.graphics.blob_shadows,
                 )
             }
         } else {
@@ -216,11 +230,11 @@ impl View {
         Ok(())
     }
 
-    fn render(&self, target: &wgpu::TextureView, game: &Game, debug: &crate::debug::Debug) {
+    fn render(&mut self, target: &wgpu::TextureView, game: &Game, debug: &crate::debug::Debug) {
         let meshes = [&self.stage, &self.actor];
         let casters = [
-            &self.stage,
-            self.shadow_actor.as_ref().unwrap_or(&self.actor),
+            self.shadow_stage.as_ref().unwrap_or(&self.stage),
+            self.shadow_models.as_ref().unwrap_or(&self.actor),
         ];
         self.renderer.draw_lit(
             target,
@@ -233,7 +247,7 @@ impl View {
     }
 
     pub(super) fn capture(
-        &self,
+        &mut self,
         game: &Game,
         debug: &crate::debug::Debug,
         path: &std::path::Path,

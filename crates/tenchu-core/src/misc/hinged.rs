@@ -43,6 +43,22 @@ fn underflow_direction(math: &Math, position: [i32; 3], yaw: i16) -> Result<i16>
 }
 
 impl Object {
+    pub fn hinged_matrices(&self, data: &tenchu_assets::misc::Hinged, math: &Math) -> [Matrix; 2] {
+        let door = matches!(self.kind, Kind::Door { .. });
+        let mut width = i32::from(data.width);
+        if door {
+            width -= width * i32::from(self.angle).abs() / 10240;
+        }
+        [-1, 1].map(|sign| {
+            let mut rotation = [0; 3];
+            rotation[if door { 1 } else { 2 }] = self.angle.wrapping_mul(-sign as i16);
+            Matrix {
+                translation: [width * sign, 0, 0],
+                rotation: math.rotate_yxz(rotation),
+            }
+        })
+    }
+
     pub(super) fn pause(&mut self, paused: bool, ctx: &mut Context) -> Result<()> {
         let Some(model) = self.model else {
             return Ok(());
@@ -136,25 +152,13 @@ impl Object {
             }
             _ => {}
         }
-        let mut width = i32::from(data.width);
-        if door {
-            width -= width * i32::from(self.angle).abs() / 10240;
-        }
+        let matrices = self.hinged_matrices(&data, ctx.math);
         for (side, leaf) in leaves.into_iter().enumerate() {
             let Some(leaf) = leaf else {
                 continue;
             };
-            let sign = if side == 0 { -1 } else { 1 };
-            let mut rotation = [0; 3];
-            rotation[if door { 1 } else { 2 }] = self.angle.wrapping_mul(-sign as i16);
             ctx.scene.models[leaf].parent = Some(model);
-            ctx.scene.update(
-                leaf,
-                Matrix {
-                    translation: [width * sign, 0, 0],
-                    rotation: ctx.math.rotate_yxz(rotation),
-                },
-            );
+            ctx.scene.update(leaf, matrices[side]);
             let world = ctx.scene.world(leaf)?;
             let matrix = ctx.camera.view.compose(&world);
             let node = &ctx.scene.models[leaf];

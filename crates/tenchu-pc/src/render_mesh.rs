@@ -170,6 +170,54 @@ pub fn inspection_characters(game: &tenchu_core::game::Game) -> Vec<Vertex> {
     vertices
 }
 
+pub fn visit_hinged(game: &tenchu_core::game::Game, mut visit: impl FnMut(&[Geometry], Matrix)) {
+    use tenchu_assets::misc::Kind;
+    for object in &game.misc.objects {
+        let (data, yaw) = match object.kind {
+            Kind::Door { kind, rotation } => (&game.mission.misc.doors[kind], rotation),
+            Kind::Pitfall { kind, rotation } => (&game.mission.misc.pitfalls[kind], rotation),
+            _ => continue,
+        };
+        let root = Matrix {
+            translation: object.position,
+            rotation: game.math.rotate_yxz([0, yaw, 0]),
+        };
+        for (mesh, local) in data
+            .models
+            .into_iter()
+            .zip(object.hinged_matrices(data, &game.math))
+        {
+            if let Some(mesh) = mesh {
+                visit(&game.mission.common_models[&mesh], root.compose(&local));
+            }
+        }
+    }
+}
+
+fn append_caster(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: Matrix) {
+    for geometry in geometries {
+        for face in draw_tmd_faces(geometry) {
+            append_face(vertices, geometry, face, matrix, false);
+        }
+    }
+}
+
+pub fn shadow_stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {
+    let mut vertices = Vec::new();
+    visit_stage(mission, math, |geometry, matrix| {
+        append_caster(&mut vertices, geometry, matrix)
+    });
+    vertices
+}
+
+pub fn shadow_models(game: &tenchu_core::game::Game) -> Vec<Vertex> {
+    let mut vertices = Vec::new();
+    let mut append = |geometry: &[Geometry], matrix| append_caster(&mut vertices, geometry, matrix);
+    visit_inspection_characters(game, &mut append);
+    visit_hinged(game, &mut append);
+    vertices
+}
+
 pub fn stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     visit_stage(mission, math, |geometry, matrix| {

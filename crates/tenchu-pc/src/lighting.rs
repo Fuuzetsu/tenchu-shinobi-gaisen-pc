@@ -2,6 +2,8 @@ use glam::Vec3;
 use tenchu_assets::misc::Kind;
 use tenchu_core::game::Game;
 
+pub const MAX_LIGHTS: usize = 16;
+
 #[derive(Clone, Copy)]
 pub struct Light {
     pub position: Vec3,
@@ -53,6 +55,6 @@ pub fn sources(
             });
         }
     }
-    lights.truncate(usize::from(settings.count));
+    lights.truncate(usize::from(settings.count).min(MAX_LIGHTS));
     lights
 }

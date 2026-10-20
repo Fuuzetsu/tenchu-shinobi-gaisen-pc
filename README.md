@@ -140,20 +140,49 @@ when control returns. Fast-forward mutes sound and resumes background music at
 ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
 
-The Lighting page adds optional dynamic point lights and shadow maps. Enable
-Dynamic lighting, then use authored fires or place a movable light at the camera
-or above the player. The light can follow free camera or move along X/Y/Z.
-Radius, intensity, ambient brightness and 256–2048 shadow resolution are adjustable.
+The Lighting page adds optional dynamic point lights and model/weapon shadows.
+In a mission, select **Preview model shadows** to enable a light above/beside the
+player, lower ambient brightness and hide the original blob shadows. Close F1
+and move or attack to inspect the animated silhouette. This changes presentation
+preferences; General → Restore defaults restores the original look.
+For manual setup, enable **Point lighting**, then use authored fires or place a
+movable light at the camera or above the player. The movable light lasts for the
+session and can follow free camera or move along X/Y/Z. Radius, intensity,
+ambient brightness and 256–2048 shadow resolution are adjustable.
 Lighting starts off; changing it never affects AI, visibility, RNG or logic timing.
 
 This is a new visual treatment over the original baked colors, with flat surface
-normals and filtered depth shadows. It supports the two nearest registered
-fire/bonfire emitters; the movable light takes priority. Baked lantern textures
-do not automatically become emitters. Each light costs six extra scene passes;
-both shadow maps use about 12 MiB at 512 or 192 MiB at 2048. Opaque live actors,
-scenery and rendered moving geometry cast shadows, respecting texture holes.
-Particles and translucent pixels do not cast shadows. Original blob shadows
-remain; this does not attempt to remove lighting already baked into the assets.
+normals and filtered depth shadows. **Point-light budget** allows 1/2/4/8/16
+simultaneous sources (default 2); it does not create lights. Nearest registered
+fire/bonfire emitters fill the budget; the movable light takes priority. Baked
+lantern textures do not automatically become emitters, so enabling lighting
+away from a source changes only ambient brightness. The menu shows active lights,
+shadow views and depth-map memory. With shadows enabled, each active light costs
+six extra scene passes and about 6 MiB at 512 or 96 MiB at 2048. Maps are allocated
+for active lights only; disabling shadows releases them.
+
+Actual live actors, held/sheathed weapons, scenery, doors and trapdoors cast
+shadows even outside the gameplay camera. Other rendered world item meshes also
+cast. Original texture holes and translucent pixels remain transparent to
+shadows, including mixed opaque/translucent textured faces. Particles do not cast.
+**Original blob shadows** controls the original ground decals independently.
+Lighting already baked into textures/vertex colors remains.
+
+Further visual work need not start with replacing textures. Decoded texture
+mipmaps and anisotropic filtering would reduce distant ground/roof shimmer;
+presentation interpolation could smooth animation at higher display rates while
+keeping the original 30 Hz simulation. Better authored light placement and an
+optional directional moon/sun light would give shadows more consistent coverage.
+These are follow-ups, not currently implemented.
+
+There is no PNG replacement loader yet. The intended editing workflow is an
+export command producing named RGBA PNGs and model/UV previews, then a mod folder
+loaded before the disc with hot reload and the original assets as fallback.
+Stable asset identities, original UVs and separate transparency/blend metadata
+would let larger textures replace originals without changing collision or logic.
+Texture painting in an image editor or on a model in Blender could then be
+iterative; currently it requires implementing that export/override path first.
+Upscaling alone cannot add model detail or remove lighting baked into the art.
 
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.
@@ -297,6 +326,15 @@ TENCHU_DISC='/path/to/game.cue' \
 Native window checks cover movement, combat/items, pause/resize, language
 selection and death/retry. Arbitrary inputs and every difficulty/layout
 combination have not been exhaustively compared with retail.
+
+Optional GPU checks cover source blending/fog, filtering/MSAA, light occlusion
+and actual character/weapon shadows. Run these sequentially to avoid concurrent
+graphics-device initialization:
+
+```sh
+TENCHU_DISC='/path/to/game.cue' \
+  ./dev.sh cargo test --release -p tenchu-pc renderer::tests -- --ignored --test-threads=1
+```
 
 The private-disc cadence test exercises both characters and compares player,
 animation, effects, items, RNG, camera, collision, coordinate caches and activation at every tick

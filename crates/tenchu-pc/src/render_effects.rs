@@ -223,6 +223,15 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
 }
 
 pub fn build_for_camera(game: &Game, show_hud: bool, camera: Option<Matrix>) -> Geometry {
+    build_options(game, show_hud, camera, true)
+}
+
+pub fn build_options(
+    game: &Game,
+    show_hud: bool,
+    camera: Option<Matrix>,
+    blob_shadows: bool,
+) -> Geometry {
     let inspection = camera.is_some();
     let view = camera.unwrap_or(game.rendered_view);
     let mut surfaces = Vec::new();
@@ -236,6 +245,9 @@ pub fn build_for_camera(game: &Game, show_hud: bool, camera: Option<Matrix>) -> 
         render_mesh::visit_characters(game, &mut translucent);
     }
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
+        if index == 25 && !blob_shadows {
+            continue;
+        }
         for instance in instances {
             let mut matrix = Matrix {
                 rotation: game.math.rotate_yxz(instance.rotation),

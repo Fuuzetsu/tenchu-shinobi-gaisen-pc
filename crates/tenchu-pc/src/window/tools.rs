@@ -129,8 +129,29 @@ impl Application {
                 self.settings.graphics.lighting.fires = !self.settings.graphics.lighting.fires
             }
             Item::LightCount => {
-                self.settings.graphics.lighting.count =
-                    cycle(self.settings.graphics.lighting.count, &[1, 2], direction)
+                self.settings.graphics.lighting.count = cycle(
+                    self.settings.graphics.lighting.count,
+                    &[1, 2, 4, 8, 16],
+                    direction,
+                )
+            }
+            Item::BlobShadows => {
+                self.settings.graphics.blob_shadows = !self.settings.graphics.blob_shadows
+            }
+            Item::ShadowPreview => {
+                if !self.campaign.playing() {
+                    return Err("Start a mission to preview model shadows".into());
+                }
+                self.settings.graphics.lighting.enabled = true;
+                self.settings.graphics.lighting.shadows = true;
+                self.settings.graphics.lighting.fires = false;
+                self.settings.graphics.lighting.ambient = 25;
+                self.settings.graphics.lighting.intensity = 250;
+                self.settings.graphics.lighting.radius = 12;
+                self.settings.graphics.lighting.resolution = 1024;
+                self.settings.graphics.blob_shadows = false;
+                self.apply_item(Item::PlayerLight, 1)?;
+                self.menu.notice = "Preview ready: close F1; move or attack".into();
             }
             Item::LightRadius => {
                 self.settings.graphics.lighting.radius =
@@ -174,6 +195,7 @@ impl Application {
                 self.debug.light_follow = false;
             }
             Item::FollowLight => {
+                self.debug.light = self.debug.light_position(&self.campaign.game);
                 self.debug.light_follow = !self.debug.light_follow;
                 self.debug
                     .light
@@ -384,7 +406,7 @@ impl Application {
                 .map_err(|e| e.to_string())?
                 .as_nanos();
             let path = directory.join(format!("tenchu-{}-{time}.png", self.campaign.game.tick));
-            self.view.as_ref().ok_or("Window is not ready")?.capture(
+            self.view.as_mut().ok_or("Window is not ready")?.capture(
                 &self.campaign.game,
                 &self.debug,
                 &path,
