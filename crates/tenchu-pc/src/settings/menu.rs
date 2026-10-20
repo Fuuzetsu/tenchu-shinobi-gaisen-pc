@@ -76,6 +76,13 @@ pub enum Item {
     Upscale,
     SmoothModels,
     ModelDetail,
+    SkyTint,
+    DirectionalIntensity,
+    DirectionalColor,
+    DirectionalAzimuth,
+    DirectionalElevation,
+    DirectionalRadius,
+    DirectionalResolution,
 }
 
 #[cfg(test)]
@@ -154,7 +161,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 8] = [
+pub const PAGES: [&str; 9] = [
     "General",
     "Graphics",
     "Overlays",
@@ -163,10 +170,64 @@ pub const PAGES: [&str; 8] = [
     "Simulation",
     "Lighting",
     "Visual assets",
+    "Sky lighting",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        8 => {
+            let sun = &s.graphics.lighting.directional;
+            vec![
+                (
+                    Item::Lighting,
+                    "Dynamic lighting",
+                    on(s.graphics.lighting.enabled),
+                    "Master switch for ambient, lamps and sky light.",
+                ),
+                (
+                    Item::DirectionalIntensity,
+                    "Sun / moon strength",
+                    format!("{}%", sun.intensity),
+                    "Requires Dynamic lighting; 0 disables sky light.",
+                ),
+                (
+                    Item::DirectionalColor,
+                    "Sun / moon color",
+                    ["Neutral", "Cool moon", "Warm sun"][sun.color as usize].into(),
+                    "Tint of the directional light.",
+                ),
+                (
+                    Item::DirectionalAzimuth,
+                    "Light compass angle",
+                    format!("{} deg", sun.azimuth),
+                    "Rotate the sky light around the scene.",
+                ),
+                (
+                    Item::DirectionalElevation,
+                    "Light elevation",
+                    format!("{} deg", sun.elevation),
+                    "Higher angles shorten shadows.",
+                ),
+                (
+                    Item::DirectionalRadius,
+                    "Shadow coverage radius",
+                    format!("{}k", sun.radius),
+                    "Larger area trades away nearby shadow detail.",
+                ),
+                (
+                    Item::DirectionalResolution,
+                    "Sky shadow resolution",
+                    sun.resolution.to_string(),
+                    "One map, independent of point-light quality.",
+                ),
+                (
+                    Item::SkyTint,
+                    "Cool ambient tint",
+                    format!("{}%", s.graphics.lighting.sky_tint),
+                    "Color retained baked shading toward blue.",
+                ),
+            ]
+        }
         7 => vec![
             (
                 Item::AssetPack,
@@ -537,7 +598,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             vec![
                 (
                     Item::Lighting,
-                    "Point lighting",
+                    "Dynamic lighting",
                     on(light.enabled),
                     "Master switch: light sources plus ambient.",
                 ),
@@ -569,7 +630,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::LightCount,
                     "Point-light budget",
                     light.count.to_string(),
-                    "1-16 nearest sources; shadows cost extra.",
+                    "0-16 nearest sources; shadows cost extra.",
                 ),
                 (
                     Item::LightRadius,
@@ -784,17 +845,22 @@ impl Menu {
             let lighting = &settings.graphics.lighting;
             let status = if !lighting.enabled {
                 "Lighting off; use Preview to try shadows".into()
-            } else if active_lights == 0 {
+            } else if active_lights == 0 && lighting.directional.intensity == 0 {
                 "0 lights active; use Preview or add a light".into()
             } else {
-                let faces = if lighting.shadows {
+                let point_faces = if lighting.shadows {
                     active_lights.min(usize::from(lighting.shadow_count)) * 6
                 } else {
                     0
                 };
-                let mib = faces as u64 * u64::from(lighting.resolution).pow(2) * 4 / 1048576;
+                let sun_faces = usize::from(lighting.shadows && lighting.directional.intensity > 0);
+                let faces = point_faces + sun_faces;
+                let mib = (point_faces as u64 * u64::from(lighting.resolution).pow(2)
+                    + sun_faces as u64 * u64::from(lighting.directional.resolution).pow(2))
+                    * 4
+                    / 1048576;
                 format!(
-                    "{active_lights}/{} lights active; {faces} shadow views; {mib} MiB",
+                    "{active_lights}/{} points; {faces} shadow views; {mib} MiB",
                     lighting.count
                 )
             };

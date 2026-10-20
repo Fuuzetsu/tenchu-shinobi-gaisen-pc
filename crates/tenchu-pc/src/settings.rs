@@ -105,6 +105,8 @@ pub struct Lighting {
     pub lamps: bool,
     pub markers: bool,
     pub softness: u16,
+    pub sky_tint: u16,
+    pub directional: Directional,
 }
 
 impl Default for Lighting {
@@ -122,6 +124,32 @@ impl Default for Lighting {
             lamps: true,
             markers: false,
             softness: 0,
+            sky_tint: 0,
+            directional: Directional::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Directional {
+    pub intensity: u16,
+    pub color: u16,
+    pub azimuth: u16,
+    pub elevation: u16,
+    pub radius: u16,
+    pub resolution: u32,
+}
+
+impl Default for Directional {
+    fn default() -> Self {
+        Self {
+            intensity: 0,
+            color: 1,
+            azimuth: 315,
+            elevation: 45,
+            radius: 30,
+            resolution: 2048,
         }
     }
 }
@@ -179,7 +207,17 @@ impl Store {
                 light.intensity = light.intensity.min(400);
                 light.ambient = light.ambient.min(100);
                 light.softness = light.softness.min(8);
-                light.count = light.count.clamp(1, crate::lighting::MAX_LIGHTS as u16);
+                light.sky_tint = light.sky_tint.min(100);
+                let sun = &mut light.directional;
+                sun.intensity = sun.intensity.min(200);
+                sun.color = sun.color.min(2);
+                sun.azimuth %= 360;
+                sun.elevation = sun.elevation.clamp(10, 85);
+                sun.radius = sun.radius.clamp(10, 60);
+                if ![512, 1024, 2048, 4096].contains(&sun.resolution) {
+                    sun.resolution = 2048;
+                }
+                light.count = light.count.min(crate::lighting::MAX_LIGHTS as u16);
                 light.shadow_count = light
                     .shadow_count
                     .min(crate::lighting::MAX_SHADOW_LIGHTS as u16);

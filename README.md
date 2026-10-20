@@ -214,7 +214,7 @@ In a mission, select **Preview model shadows** to enable a light above/beside th
 player, lower ambient brightness and hide the original blob shadows. Close F1
 and move or attack to inspect the animated silhouette. This changes presentation
 preferences; General → Restore defaults restores the original look.
-For manual setup, enable **Point lighting**. Authored fires and detected lanterns
+For manual setup, enable **Dynamic lighting**. Authored fires and detected lanterns
 supply lights; a movable light can also be placed at the camera or above the
 player. The movable light lasts for the session and can follow free camera or
 move along X/Y/Z. Radius, intensity, ambient brightness, shadow filtering and
@@ -222,7 +222,7 @@ move along X/Y/Z. Radius, intensity, ambient brightness, shadow filtering and
 Lighting starts off; changing it never affects AI, visibility, RNG or logic timing.
 
 This is a new visual treatment over the original baked colors.
-**Point-light budget** allows 1/2/4/8/16 simultaneous sources (default 2).
+**Point-light budget** allows 0/1/2/4/8/16 simultaneous sources (default 2).
 Nearest sources fill the budget; the movable light takes priority.
 **Shadowed point lights** independently limits shadow rendering to the nearest
 0–4 lights. Unshadowed lights are cheaper but can shine through walls.
@@ -255,11 +255,18 @@ shadows, including mixed opaque/translucent textured faces. Particles do not cas
 **Original blob shadows** controls the original ground decals independently.
 Lighting already baked into textures/vertex colors remains.
 
-Further visual work need not start with replacing textures.
+F1 → **Sky lighting** adds a directional sun/moon source and optional cool ambient
+tint. Its strength starts at zero. Enable Dynamic lighting and raise Sun / moon
+strength, then choose neutral/cool/warm color, compass angle and elevation.
+Its single shadow map has independent 512–4096 resolution and a 10k–60k coverage
+radius around the view. The projection moves in texel increments to reduce
+shimmer, with a gradual fade at its boundary. Wider coverage reduces detail;
+2048 is a useful starting point. The shared shadow switch and filtering radius
+also apply to sky shadows. A point-light budget of zero leaves just sky/ambient
+lighting and glowing panels.
+
 Presentation interpolation could smooth animation at higher display rates while
-keeping the original 30 Hz simulation. An optional directional moon/sun light
-would give shadows more consistent coverage.
-These are follow-ups, not currently implemented.
+keeping the original 30 Hz simulation; it remains a follow-up.
 
 The export/edit/reload workflow above supports higher-resolution textures and
 replacement models without changing collision or logic. Automatic processing

@@ -518,6 +518,73 @@ fn live_character_and_weapon_meshes_cast_shadows() {
 }
 
 #[test]
+#[ignore = "requires a graphics adapter; directional shadows work without point lights, stay stable under small camera motion, and preserve original defaults"]
+fn directional_shadows_cover_scenery_without_point_sources() {
+    use glam::Vec3;
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let quad = |y: f32, half: f32| {
+        let points = [
+            Vec3::new(-half, y, -half),
+            Vec3::new(half, y, -half),
+            Vec3::new(-half, y, half),
+            Vec3::new(half, y, half),
+        ];
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: points[i].to_array(),
+            color: [0.5; 3],
+            uv: [0.0; 2],
+            page: 0,
+            palette: 0,
+            flags: render_mesh::DOUBLE_SIDED,
+            material: 0,
+            normal: [0.0; 3],
+        })
+    };
+    let ground = renderer.upload(&quad(0.0, 1000.0));
+    let roof = renderer.upload(&quad(-500.0, 400.0));
+    let camera = |x: f32| {
+        Mat4::orthographic_rh(-1000.0, 1000.0, -1000.0, 1000.0, 1.0, 5000.0)
+            * Mat4::look_at_rh(Vec3::new(x, -3000.0, 0.0), Vec3::new(x, 0.0, 0.0), Vec3::Z)
+    };
+    let draw = |renderer: &mut Renderer, x| {
+        renderer
+            .draw_lit(&view, camera(x), &[&ground], None, &[], &[&ground, &roof])
+            .unwrap();
+        read_pixel(renderer, &target)
+    };
+    let original = draw(&mut renderer, 123.0);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.lighting.enabled = true;
+    graphics.lighting.ambient = 20;
+    graphics.lighting.shadow_count = 0;
+    graphics.lighting.directional = crate::settings::Directional {
+        intensity: 100,
+        color: 0,
+        azimuth: 0,
+        elevation: 85,
+        radius: 10,
+        resolution: 2048,
+    };
+    renderer.configure(&graphics);
+    let shadow = draw(&mut renderer, 123.0);
+    assert_eq!(draw(&mut renderer, 123.01), shadow);
+    graphics.lighting.shadows = false;
+    renderer.configure(&graphics);
+    let lit = draw(&mut renderer, 123.0);
+    assert!(lit[0] > shadow[0] + 80, "{lit:?} versus {shadow:?}");
+    graphics.lighting.directional.color = 1;
+    renderer.configure(&graphics);
+    let cool = draw(&mut renderer, 123.0);
+    assert!(cool[2] > cool[0] + 25);
+    graphics.lighting.directional.intensity = 0;
+    renderer.configure(&graphics);
+    assert_eq!(draw(&mut renderer, 123.0), shadow);
+    renderer.configure(&crate::settings::Graphics::default());
+    assert_eq!(draw(&mut renderer, 123.0), original);
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; renders source winding, texture transparency and all four blend modes offscreen"]
 fn winding_and_original_texture_blends_render_correctly() {
     let mut vram = Vram::default();

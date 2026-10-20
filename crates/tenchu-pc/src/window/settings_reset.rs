@@ -40,6 +40,33 @@ impl Application {
             Item::Filtering => self.settings.graphics.set_filtering(s.graphics.filtering()),
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
             Item::Lighting => self.settings.graphics.lighting.enabled = s.graphics.lighting.enabled,
+            Item::SkyTint => {
+                self.settings.graphics.lighting.sky_tint = s.graphics.lighting.sky_tint
+            }
+            Item::DirectionalIntensity => {
+                self.settings.graphics.lighting.directional.intensity =
+                    s.graphics.lighting.directional.intensity
+            }
+            Item::DirectionalColor => {
+                self.settings.graphics.lighting.directional.color =
+                    s.graphics.lighting.directional.color
+            }
+            Item::DirectionalAzimuth => {
+                self.settings.graphics.lighting.directional.azimuth =
+                    s.graphics.lighting.directional.azimuth
+            }
+            Item::DirectionalElevation => {
+                self.settings.graphics.lighting.directional.elevation =
+                    s.graphics.lighting.directional.elevation
+            }
+            Item::DirectionalRadius => {
+                self.settings.graphics.lighting.directional.radius =
+                    s.graphics.lighting.directional.radius
+            }
+            Item::DirectionalResolution => {
+                self.settings.graphics.lighting.directional.resolution =
+                    s.graphics.lighting.directional.resolution
+            }
             Item::Shadows => self.settings.graphics.lighting.shadows = s.graphics.lighting.shadows,
             Item::FireLights => self.settings.graphics.lighting.fires = s.graphics.lighting.fires,
             Item::LightCount => self.settings.graphics.lighting.count = s.graphics.lighting.count,

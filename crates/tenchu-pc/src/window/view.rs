@@ -241,8 +241,8 @@ impl View {
         self.lights = sources.iter().map(|s| s.light).collect();
         let shadowing = settings.graphics.lighting.enabled
             && settings.graphics.lighting.shadows
-            && settings.graphics.lighting.shadow_count > 0
-            && !self.lights.is_empty();
+            && ((settings.graphics.lighting.shadow_count > 0 && !self.lights.is_empty())
+                || settings.graphics.lighting.directional.intensity > 0);
         if shadowing && self.shadow_stage.is_none() {
             self.shadow_stage = Some(self.renderer.upload(&render_mesh::shadow_stage(
                 &game.mission,

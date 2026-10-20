@@ -148,6 +148,48 @@ impl Application {
             Item::Lighting => {
                 self.settings.graphics.lighting.enabled = !self.settings.graphics.lighting.enabled
             }
+            Item::SkyTint => {
+                self.settings.graphics.lighting.sky_tint =
+                    (i32::from(self.settings.graphics.lighting.sky_tint) + direction * 10)
+                        .clamp(0, 100) as u16
+            }
+            Item::DirectionalIntensity => {
+                self.settings.graphics.lighting.directional.intensity =
+                    (i32::from(self.settings.graphics.lighting.directional.intensity)
+                        + direction * 10)
+                        .clamp(0, 200) as u16
+            }
+            Item::DirectionalColor => {
+                self.settings.graphics.lighting.directional.color = cycle(
+                    self.settings.graphics.lighting.directional.color,
+                    &[0, 1, 2],
+                    direction,
+                )
+            }
+            Item::DirectionalAzimuth => {
+                self.settings.graphics.lighting.directional.azimuth =
+                    (i32::from(self.settings.graphics.lighting.directional.azimuth)
+                        + direction * 15)
+                        .rem_euclid(360) as u16
+            }
+            Item::DirectionalElevation => {
+                self.settings.graphics.lighting.directional.elevation =
+                    (i32::from(self.settings.graphics.lighting.directional.elevation)
+                        + direction * 5)
+                        .clamp(10, 85) as u16
+            }
+            Item::DirectionalRadius => {
+                self.settings.graphics.lighting.directional.radius =
+                    (i32::from(self.settings.graphics.lighting.directional.radius) + direction * 5)
+                        .clamp(10, 60) as u16
+            }
+            Item::DirectionalResolution => {
+                self.settings.graphics.lighting.directional.resolution = u32::from(cycle(
+                    self.settings.graphics.lighting.directional.resolution as u16,
+                    &[512, 1024, 2048, 4096],
+                    direction,
+                ))
+            }
             Item::Shadows => {
                 self.settings.graphics.lighting.shadows = !self.settings.graphics.lighting.shadows
             }
@@ -175,7 +217,7 @@ impl Application {
             Item::LightCount => {
                 self.settings.graphics.lighting.count = cycle(
                     self.settings.graphics.lighting.count,
-                    &[1, 2, 4, 8, 16],
+                    &[0, 1, 2, 4, 8, 16],
                     direction,
                 )
             }

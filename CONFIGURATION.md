@@ -183,7 +183,7 @@ AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
 - [x] Improve model presentation with smooth lighting and an optional
   silhouette-smoothing mode where it helps, plus the replacement-mesh path.
   Retain sharp architecture and verify animation/weapon attachments and shadows.
-- [ ] Make lanterns and luminous props emit light, using recovered names/material
+- [x] Make lanterns and luminous props emit light, using recovered names/material
   information and editable reusable rules. Provide visible source markers and
   overrides for ambiguous assets. Add useful ambient/directional lighting.
 - [ ] Add restrained bloom, atmosphere/color controls and presentation polish,
@@ -306,3 +306,17 @@ taps and removes the speckling/moiré in that view. See Microsoft's discussion o
 All seven GPU regressions still pass, including actual actor/weapon silhouettes;
 17 fixture-free desktop checks pass. HDR highlight handling and broad scene
 lighting remain the next stage; the current lamp panels can clip to white.
+
+Sky lighting adds an independently colored/directed sun or moon source, cool
+ambient tint and one orthographic shadow map with separate resolution/coverage.
+The projection follows the view in texel increments and fades shadows at the
+boundary. Point sources can be budgeted to zero while retaining sky light.
+Factory strength is zero and the lighting master remains off.
+The additional GPU regression verifies occlusion without point lights, small
+camera motion, color changes and restoration of the original output. Existing
+seven GPU regressions pass as well.
+Two native Mission 1 comparisons toggle sky lighting with the same camera,
+inspect the player/ground overhead, then resume movement and exit cleanly.
+Low-angle light is correctly blocked by the alley's buildings; a higher angle
+lights the street and gives a clearer comparison. Final preset values still
+need tuning with post-processing enabled.

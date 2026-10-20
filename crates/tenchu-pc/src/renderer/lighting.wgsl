@@ -4,10 +4,14 @@ struct Lighting {
     matrices: array<mat4x4<f32>, SHADOW_FACES>,
     options: vec4<f32>,
     lamps: vec4<f32>,
+    sun_inverse: mat4x4<f32>,
+    sun_direction: vec4<f32>,
+    sun_color: vec4<f32>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
 @group(1) @binding(2) var shadow_sampler: sampler_comparison;
+@group(1) @binding(3) var sun_map: texture_depth_2d;
 
 fn shadow_face(direction: vec3<f32>) -> u32 {
     let a = abs(direction);
@@ -18,7 +22,11 @@ fn shadow_face(direction: vec3<f32>) -> u32 {
 
 fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32>) -> vec3<f32> {
     if lighting.options.w == 0.0 { return vec3(1.0); }
-    var result = vec3(lighting.options.x);
+    var result = lighting.options.x * mix(vec3(1.0), vec3(0.6, 0.75, 1.0), lighting.lamps.z);
+    if lighting.sun_direction.w > 0.0 {
+        result += lighting.sun_color.rgb * lighting.sun_direction.w
+            * abs(dot(normal, lighting.sun_direction.xyz)) * sun_visibility(position, surface_normal);
+    }
     for (var i = 0u; i < u32(lighting.options.z); i++) {
         let light = lighting.lights[i];
         let delta = position - light.position.xyz;
@@ -48,6 +56,32 @@ fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32
             * abs(dot(normal, delta / distance)) * visibility;
     }
     return result;
+}
+
+fn sun_visibility(position: vec3<f32>, normal: vec3<f32>) -> f32 {
+    if lighting.sun_color.w == 0.0 { return 1.0; }
+    let receiver = position + lighting.sun_direction.xyz * 2.0;
+    let p = lighting.matrices[SHADOW_FACES - 1u] * vec4(receiver, 1.0);
+    let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
+    if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) || p.z < 0.0 || p.z > 1.0 { return 1.0; }
+    let plane = transpose(lighting.sun_inverse) * vec4(normal, -dot(normal, receiver));
+    var gradient = vec2(0.0);
+    if abs(plane.z) > 0.00001 { gradient = vec2(-2.0, 2.0) * plane.xy / plane.z; }
+    let size = vec2<f32>(textureDimensions(sun_map));
+    let reference = p.z - dot(abs(gradient), vec2(0.5) / size);
+    var visibility = 0.0;
+    if lighting.lamps.y == 0.0 {
+        visibility = textureSampleCompareLevel(sun_map, shadow_sampler, uv, reference);
+    } else {
+        for (var y = -1; y <= 1; y++) {
+            for (var x = -1; x <= 1; x++) {
+                let offset = vec2(f32(x), f32(y)) * lighting.lamps.y / size;
+                visibility += textureSampleCompareLevel(sun_map, shadow_sampler, uv + offset, reference + dot(gradient, offset)) / 9.0;
+            }
+        }
+    }
+    let edge = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.0;
+    return mix(visibility, 1.0, smoothstep(0.85, 1.0, edge));
 }
 
 fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>) -> f32 {

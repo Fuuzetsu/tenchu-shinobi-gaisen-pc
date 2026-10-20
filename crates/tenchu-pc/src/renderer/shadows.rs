@@ -6,7 +6,7 @@ use crate::{
 };
 use glam::{Mat4, Vec3};
 
-pub const FACES: usize = MAX_SHADOW_LIGHTS * 6;
+pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
 const LIGHT_WORDS: usize = MAX_LIGHTS * 8;
 
@@ -19,6 +19,8 @@ pub struct Shadows {
     faces: Vec<(wgpu::Buffer, wgpu::BindGroup)>,
     pipeline: wgpu::RenderPipeline,
     resolution: u32,
+    sun: wgpu::TextureView,
+    sun_resolution: u32,
 }
 
 impl Shadows {
@@ -57,9 +59,19 @@ impl Shadows {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 8) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 32) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -67,7 +79,8 @@ impl Shadows {
             min_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
-        let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1);
+        let sun = super::sun::target(device, 1);
+        let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1, &sun);
         let face_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Shadow face"),
             entries: &[
@@ -157,6 +170,8 @@ impl Shadows {
             faces,
             pipeline,
             resolution: 1,
+            sun,
+            sun_resolution: 1,
         }
     }
 
@@ -167,7 +182,18 @@ impl Shadows {
         let active = settings.enabled && settings.shadows && count > 0;
         let layers = if active { count * 6 } else { 1 };
         let resolution = if active { settings.resolution } else { 1 };
-        if self.resolution != resolution || self.views.len() != layers {
+        let sun_resolution =
+            if settings.enabled && settings.shadows && settings.directional.intensity > 0 {
+                settings.directional.resolution
+            } else {
+                1
+            };
+        let sun_changed = self.sun_resolution != sun_resolution;
+        if sun_changed {
+            self.sun = super::sun::target(device, sun_resolution);
+            self.sun_resolution = sun_resolution;
+        }
+        if self.resolution != resolution || self.views.len() != layers || sun_changed {
             (self.bindings, self.views) = maps(
                 device,
                 &self.layout,
@@ -175,6 +201,7 @@ impl Shadows {
                 &self.sampler,
                 resolution,
                 layers,
+                &self.sun,
             );
             self.resolution = resolution;
         }
@@ -185,6 +212,7 @@ impl Shadows {
         encoder: &mut wgpu::CommandEncoder,
         queue: &wgpu::Queue,
         settings: &Lighting,
+        camera: Mat4,
         lights: &[Light],
         meshes: &[&Mesh],
         effects: Option<&EffectMesh>,
@@ -207,35 +235,37 @@ impl Shadows {
                 let index = i * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
-                let (buffer, bindings) = &self.faces[index];
-                let mut face = matrix.to_cols_array().to_vec();
-                face.extend([u8::from(settings.lamps) as f32, 0.0, 0.0, 0.0]);
-                queue.write_buffer(buffer, 0, bytemuck::cast_slice(&face));
-                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Point light face"),
-                    color_attachments: &[],
-                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                        view: &self.views[index],
-                        depth_ops: Some(wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(1.0),
-                            store: wgpu::StoreOp::Store,
-                        }),
-                        stencil_ops: None,
-                    }),
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-                pass.set_pipeline(&self.pipeline);
-                pass.set_bind_group(0, bindings, &[]);
-                pass.set_bind_group(1, materials, &[]);
-                for mesh in meshes.iter().copied().chain(effects.map(|e| &e.mesh)) {
-                    if mesh.count == 0 {
-                        continue;
-                    }
-                    pass.set_vertex_buffer(0, mesh.buffer.slice(..));
-                    pass.draw(0..mesh.count, 0..1);
-                }
+                self.draw_face(
+                    encoder,
+                    queue,
+                    index,
+                    *matrix,
+                    &self.views[index],
+                    settings.lamps,
+                    meshes,
+                    effects,
+                    materials,
+                );
             }
+        }
+        let sun_matrix = super::sun::matrix(&settings.directional, camera);
+        let index = FACES - 1;
+        data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
+            .copy_from_slice(&sun_matrix.to_cols_array());
+        let sun_shadows =
+            settings.enabled && settings.shadows && settings.directional.intensity > 0;
+        if sun_shadows {
+            self.draw_face(
+                encoder,
+                queue,
+                index,
+                sun_matrix,
+                &self.sun,
+                settings.lamps,
+                meshes,
+                effects,
+                materials,
+            );
         }
         data.extend([
             f32::from(settings.ambient) / 100.0,
@@ -252,10 +282,59 @@ impl Shadows {
         data.extend([
             u8::from(settings.lamps) as f32,
             f32::from(settings.softness),
-            0.0,
+            f32::from(settings.sky_tint) / 100.0,
             0.0,
         ]);
+        data.extend(sun_matrix.inverse().to_cols_array());
+        data.extend(
+            super::sun::direction(&settings.directional)
+                .extend(f32::from(settings.directional.intensity) / 100.0)
+                .to_array(),
+        );
+        data.extend(super::sun::color(&settings.directional));
+        data.push(u8::from(sun_shadows) as f32);
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
+    }
+
+    fn draw_face(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        queue: &wgpu::Queue,
+        index: usize,
+        matrix: Mat4,
+        target: &wgpu::TextureView,
+        lamps: bool,
+        meshes: &[&Mesh],
+        effects: Option<&EffectMesh>,
+        materials: &wgpu::BindGroup,
+    ) {
+        let (buffer, bindings) = &self.faces[index];
+        let mut face = matrix.to_cols_array().to_vec();
+        face.extend([u8::from(lamps) as f32, 0.0, 0.0, 0.0]);
+        queue.write_buffer(buffer, 0, bytemuck::cast_slice(&face));
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Shadow face"),
+            color_attachments: &[],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: target,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, bindings, &[]);
+        pass.set_bind_group(1, materials, &[]);
+        for mesh in meshes.iter().copied().chain(effects.map(|e| &e.mesh)) {
+            if mesh.count != 0 {
+                pass.set_vertex_buffer(0, mesh.buffer.slice(..));
+                pass.draw(0..mesh.count, 0..1);
+            }
+        }
     }
 }
 
@@ -275,6 +354,7 @@ fn maps(
     sampler: &wgpu::Sampler,
     resolution: u32,
     layers: usize,
+    sun: &wgpu::TextureView,
 ) -> (wgpu::BindGroup, Vec<wgpu::TextureView>) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Point shadow depth array"),
@@ -310,6 +390,10 @@ fn maps(
             wgpu::BindGroupEntry {
                 binding: 2,
                 resource: wgpu::BindingResource::Sampler(sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(sun),
             },
         ],
     });

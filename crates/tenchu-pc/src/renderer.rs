@@ -7,6 +7,7 @@ use wgpu::util::DeviceExt;
 mod materials;
 mod pipelines;
 mod shadows;
+mod sun;
 
 #[cfg(test)]
 mod tests;
@@ -362,6 +363,7 @@ impl Renderer {
             &mut encoder,
             &self.queue,
             &self.graphics.lighting,
+            matrix,
             lights,
             casters,
             effects,
