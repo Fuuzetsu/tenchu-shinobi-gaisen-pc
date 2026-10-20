@@ -243,7 +243,10 @@ one smoke bomb. The
 [mountain route](crates/tenchu-pc/tests/data/mission8-ayame-campaign.inputs)
 fights the archer guarding the upper crossing and reaches the cure with 75 HP.
 It uses one shuriken, one medicine, two grenades and three smoke bombs, then
-saves into Mission 9.
+saves into Mission 9. The
+[castle route](crates/tenchu-pc/tests/data/mission9-ayame-campaign.inputs)
+defeats Onikage using one mine and melee, finishes with 28 HP and saves into
+the final mission. No other carried equipment is consumed in the castle.
 Its carried RNG produces different enemy
 behavior from the standalone delivery route.
 

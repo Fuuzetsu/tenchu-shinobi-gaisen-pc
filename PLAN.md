@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's first eight saved missions, an independent Ayame Mission 2 route,
+Ayame's first nine saved missions, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -939,6 +939,13 @@ clock 5,890. It uses one shuriken, one medicine, two grenades and three smoke
 bombs. The full eight-mission save/reload regression passes and starts Mission 9
 with carried stock and RNG; formatting passes. These routes require no runtime
 changes or game-state overrides.
+
+Ayame's saved castle continuation defeats Onikage with one mine and melee.
+It jumps past a courtyard guard and climbs the castle; sequences 10/50 start
+at ticks 1,830/4,624. Results arrive at tick 4,904 with 28 HP and clock 3,783.
+The carried shuriken, six caltrops and three smoke bombs remain. The nine-mission
+regression saves/reloads every boundary and starts Mission 10 with the original
+stock/reward and RNG rules, without game-state overrides.
 
 
 The continuous saved Rikimaru campaign now also completes Mission 5. Ordinary
