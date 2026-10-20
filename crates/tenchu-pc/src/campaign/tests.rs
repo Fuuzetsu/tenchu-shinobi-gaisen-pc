@@ -58,9 +58,29 @@ fn complete_delivery(campaign: &mut Campaign) -> Save {
     Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap()
 }
 
+fn complete_rescue(campaign: &mut Campaign, tape: &str) -> Save {
+    let scenes = controller_route(campaign, tape);
+    eprintln!("Mission 3 Rikimaru: {scenes:?}");
+    assert_eq!(scenes.iter().map(|s| s.1).collect::<Vec<_>>(), [30, 40]);
+    let boss = campaign
+        .game
+        .roster
+        .get(campaign.game.roster.find(0x83).unwrap());
+    assert_eq!((boss.health, boss.status), (0, 17));
+    let Screen::Results(results) = &campaign.screen else {
+        panic!("Expected rescue results");
+    };
+    assert!(results.record.played());
+    assert_eq!(results.record, campaign.game.record());
+    assert_eq!(campaign.progress.flags & 4, 4);
+    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.progress, campaign.progress);
+    save
+}
+
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1 and 2 from new-game stock using controller input, saves and continues to Mission 3"]
-fn controller_routes_complete_first_two_missions() {
+#[ignore = "requires TENCHU_DISC; completes Missions 1–3 from new-game stock using controller input, saves between missions and starts Mission 4"]
+fn controller_routes_complete_first_three_missions() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -101,6 +121,20 @@ fn controller_routes_complete_first_two_missions() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 3);
+    equip(&mut resumed, &assets, &[(1, 5), (2, 6), (3, 1)]);
+    assert_eq!(&resumed.game.player().inventory[..4], &[255, 5, 6, 1]);
+    let save = complete_rescue(
+        &mut resumed,
+        include_str!("../../tests/data/mission3-rikimaru-campaign.inputs"),
+    );
+    assert_eq!(resumed.game.tick, 4853);
+    assert_eq!(resumed.game.player().health, 68);
+    assert_eq!(resumed.game.clock, 3122);
+    assert_eq!(&resumed.game.player().inventory[..4], &[255, 0, 6, 1]);
+    assert_eq!(save.progress.flags & 7, 7);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 4);
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(
         resumed.game.player().health,
@@ -111,7 +145,6 @@ fn controller_routes_complete_first_two_missions() {
     }
     assert!(resumed.playing());
     assert_eq!(resumed.game.events.outcome, Outcome::Running);
-    assert!(!resumed.game.cinematic.active);
     assert!(resumed.game.player().health > 0);
 }
 
@@ -150,29 +183,14 @@ fn rikimaru_rescue_controller_route_reaches_results() {
     campaign.action(Action::Confirm, &assets).unwrap();
     equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
     assert_eq!(&campaign.game.player().inventory[..4], &[255, 6, 6, 2]);
-    let scenes = controller_route(
+    let save = complete_rescue(
         &mut campaign,
         include_str!("../../tests/data/mission3-rikimaru.inputs"),
     );
-    eprintln!("Mission 3 Rikimaru: {scenes:?}");
-    assert_eq!(scenes.iter().map(|s| s.1).collect::<Vec<_>>(), [30, 40]);
-    let boss = campaign
-        .game
-        .roster
-        .get(campaign.game.roster.find(0x83).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
     assert_eq!(campaign.game.tick, 5010);
     assert_eq!(campaign.game.player().health, 28);
     assert_eq!(&campaign.game.player().inventory[..4], &[255, 2, 6, 2]);
-    let Screen::Results(results) = &campaign.screen else {
-        panic!("Expected rescue results");
-    };
-    assert_eq!(results.record.clock, 3279);
-    assert!(results.record.played());
-    assert_eq!(results.record, campaign.game.record());
-    assert_eq!(campaign.progress.flags & 4, 4);
-    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
-    assert_eq!(save.progress, campaign.progress);
+    assert_eq!(campaign.game.clock, 3279);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 4);

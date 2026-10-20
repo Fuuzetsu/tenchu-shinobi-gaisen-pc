@@ -80,6 +80,8 @@ controller, pause first, then use east/west to abandon/retry. Escape/east from
 the launcher quits. Controller hints use physical face-button positions because
 labels differ between controller brands.
 
+With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
+
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.
 Held controls must be released after menu or focus changes. Losing focus freezes
@@ -162,7 +164,10 @@ completes both boss fights and their cinematics as Rikimaru, normal difficulty,
 layout 1. Its private-disc test chooses equipment from new-game stock, reaches
 results with 75 HP, saves, reloads, completes the
 [Mission 2 delivery](crates/tenchu-pc/tests/data/mission2-rikimaru.inputs) with
-100 HP, saves again and starts Mission 3. A separate
+100 HP, saves again, completes the
+[Mission 3 rescue](crates/tenchu-pc/tests/data/mission3-rikimaru-campaign.inputs)
+with 68 HP, then saves and starts Mission 4. Inventory and RNG carry through
+the entire campaign. A separate
 [Ayame route](crates/tenchu-pc/tests/data/mission2-ayame.inputs) completes Mission 2
 with 100 HP. The delivery routes use ordinary movement and swimming, carrying
 only the automatically supplied hook in the campaign tests.
@@ -171,7 +176,9 @@ An independent [Rikimaru Mission 3 route](crates/tenchu-pc/tests/data/mission3-r
 crosses the mine, defeats Goo, runs the rescue cinematic and reaches results
 with 28 HP. It selects six shuriken, six caltrops and two medicine from new-game
 stock; four shuriken are used. Its test saves and reloads into Mission 4. This
-route has not yet been joined to the continuous Mission 1–2 campaign test.
+exercises a different starting RNG and loadout from the continuous campaign,
+which carries five shuriken, six caltrops and one medicine into Mission 3 and
+uses all five shuriken.
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
