@@ -209,8 +209,8 @@ RNG, collision, event time, activation budgets and exact drawing allocation.
 The comparison exposed two runtime defects: the swimming camera used state 13
 instead of 3, and adaptive drawing used pre-initialization SDK globals instead
 of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
-campaign recordings consequently need refresh. Missions 1–7 now complete for
-both characters using their actual saved stock/RNG. The Mission 8 continuations
+campaign recordings consequently need refresh. Missions 1–8 now complete for
+both characters using their actual saved stock/RNG. The Mission 9 continuations
 are next. The independent Mission 7 route now passes with
 refreshed inputs and the corrected swimming camera.
 The earlier full-campaign results below describe the pre-fix revision, not a
@@ -1243,3 +1243,9 @@ health 5 and clock 4,132. Mission 7 defeats Balma and finishes with 100 HP each,
 at ticks 3,744/2,546 and clocks 3,113/1,955. Actual encoded/decoded saves carry
 seeds 1,341,414,700 and 176,276,537 into Mission 8. No runtime changes were
 needed for these refreshed routes.
+
+Both refreshed Mission 8 continuations reach the cure, play scene 11 and save
+their results. Rikimaru finishes at tick 8,448, health 74 and clock 8,217; Ayame
+at tick 8,126, health 56 and clock 7,920. The paths clear two interfering archers
+and climb back through the mountain using the hook. Their remaining equipment
+is carried into the actual Mission 9 saves.
