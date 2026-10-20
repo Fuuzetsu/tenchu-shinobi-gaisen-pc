@@ -176,9 +176,9 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first three missions, independent Rikimaru Mission 3 and Mission 4 routes, and
-an independent Ayame Mission 2 route pass; arbitrary interactive play is not yet
-certified.
+first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
+an independent Ayame Mission 2 route and both Mission 5 branches pass; arbitrary
+interactive play is not yet certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -789,4 +789,19 @@ their authored death state. This is a standalone route; the continued campaign
 with accumulated stock and RNG is still validated through Mission 3.
 All four private controller-route regressions pass. Native offscreen captures
 of both checkpoint boss fights were visually inspected.
+Nix native, WASM and formatting checks pass on x86_64-linux.
+
+Both Mission 5 character branches now have ordinary controller routes from
+fresh seed/stock through results and a saved transition into Mission 6. Hikone's
+authored health threshold triggers his retreat. Rikimaru then follows sequence
+100 and finishes at tick 7,586 with 56 HP, game clock 3,480, carrying only the hook.
+Ayame instead follows sequences 40 and 45, defeats Kataoka through five shuriken
+and melee, and finishes at tick 7,618 with 80 HP, clock 3,747. She selects six
+shuriken, six caltrops and two medicine through the equipment menu, using one
+medicine. No runtime state is overridden. These standalone cases do not extend
+the accumulated-stock campaign beyond Mission 3.
+All five private controller-route checks pass, including both new branches.
+Native offscreen captures of Rikimaru's final dialogue and Ayame's boss fight
+were visually inspected. Controller-route tests now live in their own module,
+separate from controlled transition and loadout tests.
 Nix native, WASM and formatting checks pass on x86_64-linux.

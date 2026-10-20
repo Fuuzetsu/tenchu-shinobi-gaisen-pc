@@ -185,6 +185,13 @@ defeats both checkpoint bosses, runs all four cinematics and reaches results
 with 84 HP. It selects six shuriken, six caltrops and two medicine from new-game
 stock, uses the shuriken and medicine, then saves and reloads into Mission 5.
 
+Mission 5 has separate [Rikimaru](crates/tenchu-pc/tests/data/mission5-rikimaru.inputs)
+and [Ayame](crates/tenchu-pc/tests/data/mission5-ayame.inputs) routes. Both trigger
+Hikone's retreat and follow their character's event branch through results and
+a saved transition into Mission 6. Rikimaru carries only the hook and finishes
+with 56 HP; Ayame defeats Kataoka using five shuriken and melee, uses one medicine
+and finishes with 80 HP.
+
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
