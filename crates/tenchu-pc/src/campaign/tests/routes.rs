@@ -73,9 +73,34 @@ fn complete_rescue(campaign: &mut Campaign, tape: &str) -> Save {
     save
 }
 
+fn complete_checkpoint(campaign: &mut Campaign, tape: &str) -> Save {
+    let scenes = controller_route(campaign, tape);
+    eprintln!("Mission 4 Rikimaru: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [10, 20, 40, 50]
+    );
+    for kind in [0x8c, 0x8b] {
+        let boss = campaign
+            .game
+            .roster
+            .get(campaign.game.roster.find(kind).unwrap());
+        assert_eq!((boss.health, boss.status), (0, 17));
+    }
+    let Screen::Results(results) = &campaign.screen else {
+        panic!("Expected checkpoint results");
+    };
+    assert!(results.record.played());
+    assert_eq!(results.record, campaign.game.record());
+    assert_eq!(campaign.progress.flags & 8, 8);
+    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.progress, campaign.progress);
+    save
+}
+
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1–3 from new-game stock using controller input, saves between missions and starts Mission 4"]
-fn controller_routes_complete_first_three_missions() {
+#[ignore = "requires TENCHU_DISC; completes Missions 1–4 from new-game stock using controller input, saves between missions and starts Mission 5"]
+fn controller_routes_complete_first_four_missions() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -130,6 +155,20 @@ fn controller_routes_complete_first_three_missions() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 4);
+    equip(&mut resumed, &assets, &[(1, 2), (2, 6), (3, 3), (4, 4)]);
+    assert_eq!(&resumed.game.player().inventory[..5], &[255, 2, 6, 3, 4]);
+    let save = complete_checkpoint(
+        &mut resumed,
+        include_str!("../../../tests/data/mission4-rikimaru-campaign.inputs"),
+    );
+    assert_eq!(resumed.game.tick, 7742);
+    assert_eq!(resumed.game.player().health, 16);
+    assert_eq!(resumed.game.clock, 4416);
+    assert_eq!(&resumed.game.player().inventory[..5], &[255, 0, 6, 1, 0]);
+    assert_eq!(save.progress.flags & 15, 15);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 5);
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(
         resumed.game.player().health,
@@ -213,34 +252,14 @@ fn rikimaru_checkpoint_controller_route_reaches_results() {
     campaign.action(Action::Confirm, &assets).unwrap();
     equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
     assert_eq!(&campaign.game.player().inventory[..4], &[255, 6, 6, 2]);
-    let scenes = controller_route(
+    let save = complete_checkpoint(
         &mut campaign,
         include_str!("../../../tests/data/mission4-rikimaru.inputs"),
     );
-    eprintln!("Mission 4 Rikimaru: {scenes:?}");
-    assert_eq!(
-        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
-        [10, 20, 40, 50]
-    );
-    for kind in [0x8c, 0x8b] {
-        let boss = campaign
-            .game
-            .roster
-            .get(campaign.game.roster.find(kind).unwrap());
-        assert_eq!((boss.health, boss.status), (0, 17));
-    }
     assert_eq!(campaign.game.tick, 7961);
     assert_eq!(campaign.game.player().health, 84);
     assert_eq!(&campaign.game.player().inventory[..4], &[255, 0, 6, 0]);
-    let Screen::Results(results) = &campaign.screen else {
-        panic!("Expected checkpoint results");
-    };
-    assert_eq!(results.record.clock, 4635);
-    assert!(results.record.played());
-    assert_eq!(results.record, campaign.game.record());
-    assert_eq!(campaign.progress.flags & 8, 8);
-    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
-    assert_eq!(save.progress, campaign.progress);
+    assert_eq!(campaign.game.clock, 4635);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 5);

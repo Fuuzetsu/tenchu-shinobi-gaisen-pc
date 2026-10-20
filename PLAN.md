@@ -177,7 +177,7 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
+first four missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -895,3 +895,15 @@ The original handoff to the external ending executable remains a placeholder
 completion screen.
 The final mission regression and Nix native, WASM and formatting checks pass on
 x86_64-linux.
+
+
+The continuous saved Rikimaru campaign now completes Mission 4 with its actual
+accumulated stock and RNG. It carries two shuriken, six caltrops, three medicine
+and four grenades through ordinary equipment selection. Both checkpoint bosses
+die, sequences 10/20/40/50 finish, and results arrive at tick 7,742 with 16 HP
+and game clock 4,416. Both shuriken, all four grenades and two medicine are used.
+The test encodes/decodes the resulting save and starts Mission 5; no actor state,
+event completion or RNG is overridden. The standalone fresh-stock route remains
+as a separate regression. Later continuous missions and remaining Ayame routes
+are still pending.
+The full four-mission regression passes, including the Mission 5 launch.
