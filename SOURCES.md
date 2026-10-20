@@ -933,10 +933,26 @@ These corrections were checked against `tenchu-decomp` revision
 | `src/main.exe/CAMERA.C` | `759da5c93aaa780ec4dc113bc0b49b18eeee7bc27f63c4b2024a5b520b4c5e86` |
 | `src/main.exe/jt_init4.c` | `6de1321f2d6b6f0a77a7c8cfcb0f5ebab176b15a8d743b3e194e2b248c195e20` |
 
-The private `tenchu-castle-approach-validation-20260925` corpus supplies six
+The private `tenchu-castle-approach-validation-20260925` corpus supplies seven
 hash-bound original recordings. The core test documents their precise horizons
-and the single initial loading-pose import. It runs disc-constructed scalar
+and initial loading-pose and ambient-deadline alignment. It runs disc-constructed scalar
 worlds with no subsequent state refresh and compares exact drawing totals in
 addition to gameplay state. Neither captures nor the research runtime are
 included in the port. The research allocation report helped localize the
 subdivision mismatch; the original startup code establishes the correct values.
+
+`MOTION.C::INSERT_WEAPON_CONFLICT` copies the complete `WeaponDB.confp`
+SVECTOR, including its radius in `pad`, into the collision offset. That word
+is the contact count until the next `ComputeAllConflict` pass. The longer
+`wall-grapple-long.trace` exposed this difference at clock 1,254; all 4,000
+updates match after preserving the assignment. Its SHA-256 is
+`9486c05b11149c82acd093231bf4ae5d6e89e22f6586499e3a64b84331555859`.
+`MISC.C::proc_misc_sound_` initializes deadlines from the pre-loading GameClock;
+`STAGE.C::StartStageSequence` later resets the clock. The fixture retains 644,
+which is supplied only to the test's initial conditions. Source hashes:
+
+| Source | SHA-256 |
+| --- | --- |
+| `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
+| `src/main.exe/MISC.C` | `6b46b6d6ac8ae87c9871b3109fedd47172f5f0fa25476aaf873c3e41a894a19c` |
+| `src/main.exe/STAGE.C` | `dc1573257be1b02eeaaa96cd1e3c6ce8b952da3dbd4a122e669a29e4d819a391` |

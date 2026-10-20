@@ -232,9 +232,9 @@ TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc all_retail_layouts -- --ignored
 ```
 
-This checks display independence. A separate private comparison checks six
-original Castle-start recordings for 630 consecutive updates, including entry
-into water:
+This checks display independence. A separate private comparison checks seven
+original Castle-start recordings for 4,630 consecutive updates, including
+swimming, grappling, climbing and enemy attacks that reduce health to 73:
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
@@ -243,8 +243,9 @@ TENCHU_CASTLE_CORPUS='/path/to/tenchu-castle-approach-validation-20260925' \
 ```
 
 It constructs the world from disc assets, supplies the recorded launch seed and
-loadout, and imports the initial player pose once to align the console's loading
-tick. All subsequent actor, camera, RNG, collision and drawing state advances
+loadout, and aligns the initial player pose and ambient-sound deadlines once.
+The original loading sequence left those deadlines at clock 644; the PC launcher
+starts them at zero. All subsequent actor, camera, RNG, collision and drawing state advances
 in the port without corrections from the recordings. This is finite coverage,
 not a claim of full-campaign parity.
 
@@ -256,7 +257,7 @@ checks wall pressure and retreat for both characters.
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation runs at the source cadence. Activation workload counts use
-original geometry, independent of PC rendering. The six continuous recordings
+original geometry, independent of PC rendering. The seven continuous recordings
 check exact drawing counts as well as gameplay. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates
 in that case, which this port does not reproduce.

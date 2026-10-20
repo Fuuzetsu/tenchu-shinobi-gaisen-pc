@@ -134,7 +134,7 @@ impl Trace {
     }
 }
 
-fn starting_pose(game: &mut Game, root: &Ram<'_>) {
+fn starting_state(game: &mut Game, root: &Ram<'_>) {
     // The retail root follows SKIPFRAME_AFTER_LOAD: its first update advanced
     // motion counters without animating the player. Import that initial pose
     // once; every subsequent update uses the port's ordinary no-skip loop.
@@ -166,6 +166,16 @@ fn starting_pose(game: &mut Game, root: &Ram<'_>) {
             game.scene.epoch - 1
         };
     }
+    // ProcMiscSound stores the pre-loading GameClock before StartStageSequence
+    // resets it. The PC launcher starts at zero; this recording starts at 644.
+    for (index, object) in game.misc.objects.iter_mut().enumerate() {
+        if matches!(object.kind, tenchu_assets::misc::Kind::Sound { .. }) {
+            let address = 0x800c0958 + index as u32 * 36;
+            assert_eq!(object.position, root.vector(address + 4));
+            assert_eq!(root.word(address + 24), 644);
+            object.count = 644;
+        }
+    }
 }
 
 fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
@@ -175,7 +185,6 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
         0,
         "fixture must not request console frame skips"
     );
-    assert_eq!(game.random.seed, ram.word(SEED), "RNG at {}", game.clock);
     assert_eq!(game.roster.order.len(), ram.short(0x80097724) as usize);
     assert_eq!(
         game.camera.smoothing_state(),
@@ -399,10 +408,11 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
             game.clock
         );
     }
+    assert_eq!(game.random.seed, ram.word(SEED), "RNG at {}", game.clock);
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC and TENCHU_CASTLE_CORPUS; continuous retail comparison with one initial startup-pose import"]
+#[ignore = "requires TENCHU_DISC and TENCHU_CASTLE_CORPUS; continuous retail comparison with initial loading-pose and ambient-schedule alignment"]
 fn castle_start_matches_retail_without_state_refreshes() {
     let directory = std::path::PathBuf::from(
         std::env::var_os("TENCHU_CASTLE_CORPUS").expect("Set TENCHU_CASTLE_CORPUS"),
@@ -438,6 +448,11 @@ fn castle_start_matches_retail_without_state_refreshes() {
             155,
             "b3c20164e7e07f0348293709fe1035f1a8c1060ecab1ab604dc608cfeb69b9c1",
         ),
+        (
+            "wall-grapple-long",
+            4000,
+            "9486c05b11149c82acd093231bf4ae5d6e89e22f6586499e3a64b84331555859",
+        ),
     ] {
         eprintln!("{name}");
         let trace = Trace::load(&directory.join(format!("{name}.trace")), hash);
@@ -457,7 +472,7 @@ fn castle_start_matches_retail_without_state_refreshes() {
         game.events =
             events::Events::new(&game.mission.scripts.events, &game.roster, game.player_id);
         game.step(0).unwrap();
-        starting_pose(&mut game, &root);
+        starting_state(&mut game, &root);
         compare(&game, &root, &root);
         let updates = trace.completed_updates();
         let mut checked = 0;

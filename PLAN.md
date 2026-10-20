@@ -194,11 +194,13 @@ both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass. These controller routes and native window checks
 provide playability evidence, not exhaustive retail parity across all inputs.
 
-Six original Castle-start recordings now match for 630 consecutive updates in
-total: standing, walking, jumping, crouching, grappling and entering water. Each
+Seven original Castle-start recordings now match for 4,630 consecutive updates in
+total, including a 4,000-update traversal with grappling, climbing, swimming and
+enemy attacks that reduce health from 100 to 73. Each
 world is constructed from the disc; the test supplies its launch seed/loadout
-and imports the player's initial pose once because the captured loading tick
-advanced motion counters without animation. Later recorded state is only an
+and aligns the player's initial pose and ambient deadlines once. The captured
+loading tick advanced motion counters without animation, and ambient sounds
+retained the pre-loading clock 644. Later recorded state is only an
 assertion target; controller words are the only subsequent inputs. Checks cover
 all 23 actors, animation/coordinate caches, camera and smoothing history, shared
 RNG, collision, event time, activation budgets and exact drawing allocation.
@@ -213,7 +215,8 @@ the old controller routes die. The independent Mission 7 route also needs
 refreshed inputs.
 The earlier full-campaign results below describe the pre-fix revision, not a
 current passing gate. Remaining acceptance work includes restoring this
-campaign evidence and extending the continuous comparison into combat. Console
+campaign evidence. The longer continuous comparison now covers receiving
+attacks as well as traversal. Console
 frame-cost prediction remains outside scope.
 
 Before these two corrections, the Linux host suite passed all 37 tests including private-disc, audio and
@@ -1193,3 +1196,17 @@ with 64/94 HP, Mission 2 with 100 HP each, Mission 3 with 7/46 HP, and Rikimaru'
 checkpoint with 57 HP. The updated tapes carry their exact launch settings for
 standalone replay. Full-chain tests remain failing at Ayame Mission 4 and
 Rikimaru Mission 5; those inputs are still being refreshed.
+
+
+The longer Castle-start comparison now passes 4,000 consecutive updates without
+state refreshes, bringing the seven-recording total to 4,630. Player health falls
+from 100 to 73 through actual enemy attacks. It revealed that copying a weapon's
+hitbox also writes its radius into the collision count word (`offset.pad`),
+until the next collision pass resets that word. The port now preserves that
+source assignment. The weapon-clash regression also passes. The fixture's
+initial ambient deadline is aligned to its recorded pre-loading clock 644;
+shipping gameplay continues to initialize from the PC launcher's zero clock.
+The Linux Nix package, native fixture-free tests, portable WASM build and
+formatting checks pass after this correction. Other declared build platforms
+remain unverified. The separate private full-campaign failures above remain
+open; the Nix checks do not run those private-disc recordings.

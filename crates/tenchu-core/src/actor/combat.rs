@@ -469,6 +469,8 @@ impl Actor {
                     let slot = ctx.collision.insert(ctx.scene, model)?;
                     ctx.collision.slots[slot].owner = Some(self.id);
                     ctx.collision.slots[slot].offset = hitbox.center;
+                    // Copying WeaponDB.confp also overwrites offset.pad.
+                    ctx.collision.slots[slot].count = hitbox.radius;
                     ctx.collision.slots[slot].size = [hitbox.radius; 3];
                     ctx.collision.slots[slot].class = collision::HIT;
                 }
