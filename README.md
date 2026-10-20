@@ -157,17 +157,22 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
-The checked-in [Mission 1 controller route](crates/tenchu-pc/tests/data/mission1-rikimaru.inputs)
+The checked-in [Mission 1 route](crates/tenchu-pc/tests/data/mission1-rikimaru.inputs)
 completes both boss fights and their cinematics as Rikimaru, normal difficulty,
 layout 1. Its private-disc test chooses equipment from new-game stock, reaches
-results with 75 HP, saves, reloads and starts Mission 2:
+results with 75 HP, saves, reloads, completes the
+[Mission 2 delivery](crates/tenchu-pc/tests/data/mission2-rikimaru.inputs) with
+100 HP, saves again and starts Mission 3. A separate
+[Ayame route](crates/tenchu-pc/tests/data/mission2-ayame.inputs) completes Mission 2
+with 100 HP. The delivery routes use ordinary movement and swimming, carrying
+only the automatically supplied hook in the campaign tests.
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
-  ./dev.sh cargo test -p tenchu-pc mission_one_controller_route -- --ignored
+  ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
 ```
 
-This is a regression for one authored route, not a complete-game or retail
+These are regressions for specific authored routes, not a complete-game or retail
 parity claim. Both characters' keyboard crouch and return to standing have also
 been checked in the native window.
 

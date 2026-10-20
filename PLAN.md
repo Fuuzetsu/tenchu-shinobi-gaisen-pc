@@ -175,8 +175,9 @@ medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and i
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
-presentation and continuous mission validation remain unfinished. One Mission 1
-route passes; arbitrary interactive play is not yet certified.
+presentation and continuous mission validation remain unfinished. Rikimaru's
+first two missions and an independent Ayame Mission 2 route pass; arbitrary
+interactive play is not yet certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -739,3 +740,18 @@ A private-disc regression checks the seven triangles and three quads preceding
 that face, including the stop if another unlit face follows. The GPU blend/fog
 checks and the core custom-versus-SDK traversal check pass. Nix native, WASM and
 formatting checks pass on x86_64-linux.
+
+Mission 2 now has complete ordinary-input routes for both characters. They cross
+the town, swim the river, leave the water and trigger the authored delivery
+cinematic/results with 100 HP. Rikimaru finishes in 2,457 ticks (game clock 1,860),
+Ayame in 2,465 (clock 1,879). The tests carry only the default hook and perform no
+runtime position, health, event or equipment overrides.
+Rikimaru's existing Mission 1 regression now saves, reloads, runs the complete
+Mission 2 route with the continued RNG, saves again and starts Mission 3 for
+30 ordinary ticks. Ayame's separate Mission 2 test verifies results and saved
+Mission 3 selection. These tapes are newly authored port inputs, not retail
+state captures or a full-campaign parity claim. Offscreen native captures show
+both characters swimming along the recorded route.
+All fifteen relevant private desktop checks pass, along with Nix native, WASM
+and formatting checks on x86_64-linux. Complete Mission 3 and later playthroughs,
+Ayame's Mission 1 and broader exploratory coverage remain outstanding.

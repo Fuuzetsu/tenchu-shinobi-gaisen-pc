@@ -5,27 +5,9 @@ fn assets() -> GameAssets<FileSource> {
     GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap()
 }
 
-#[test]
-#[ignore = "requires TENCHU_DISC; completes Mission 1 from new-game stock with controller input, then saves and continues"]
-fn mission_one_controller_route_reaches_results_and_mission_two() {
-    let assets = assets();
-    let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
-    campaign.action(Action::Confirm, &assets).unwrap();
-    for (item, count) in [(1, 6), (2, 5), (3, 2)] {
-        while campaign.shop.order[campaign.cursor] != item {
-            campaign.action(Action::Down, &assets).unwrap();
-        }
-        for _ in 0..count {
-            campaign.action(Action::Right, &assets).unwrap();
-        }
-    }
-    campaign.action(Action::Confirm, &assets).unwrap();
-    assert_eq!(&campaign.game.player().inventory[..4], &[255, 6, 5, 2]);
-    let runs =
-        crate::session::parse_inputs(include_str!("../../tests/data/mission1-rikimaru.inputs"))
-            .unwrap();
+fn controller_route(campaign: &mut Campaign, tape: &str) -> Vec<(u64, i16)> {
     let mut scenes = Vec::new();
-    for (ticks, buttons) in runs {
+    for (ticks, buttons) in crate::session::parse_inputs(tape).unwrap() {
         for _ in 0..ticks {
             assert!(
                 campaign.playing(),
@@ -40,6 +22,50 @@ fn mission_one_controller_route_reaches_results_and_mission_two() {
             assert!(campaign.game.player().health > 0);
         }
     }
+    scenes
+}
+
+fn complete_delivery(campaign: &mut Campaign) -> Save {
+    let character = campaign.options.character as usize;
+    let tape = [
+        include_str!("../../tests/data/mission2-rikimaru.inputs"),
+        include_str!("../../tests/data/mission2-ayame.inputs"),
+    ][character];
+    let scenes = controller_route(campaign, tape);
+    eprintln!("Mission 2 character {character}: {scenes:?}");
+    assert_eq!(scenes.iter().map(|s| s.1).collect::<Vec<_>>(), [10, 20]);
+    assert_eq!(campaign.game.tick, [2457, 2465][character]);
+    assert_eq!(campaign.game.player().health, 100);
+    let Screen::Results(results) = &campaign.screen else {
+        panic!("Expected delivery results");
+    };
+    assert_eq!(results.record.clock, [1860, 1879][character]);
+    assert!(results.record.played());
+    assert_eq!(results.record, campaign.game.record());
+    assert_eq!(campaign.progress.flags & 2, 2);
+    Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap()
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; completes Missions 1 and 2 from new-game stock using controller input, saves and continues to Mission 3"]
+fn controller_routes_complete_first_two_missions() {
+    let assets = assets();
+    let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    for (item, count) in [(1, 6), (2, 5), (3, 2)] {
+        while campaign.shop.order[campaign.cursor] != item {
+            campaign.action(Action::Down, &assets).unwrap();
+        }
+        for _ in 0..count {
+            campaign.action(Action::Right, &assets).unwrap();
+        }
+    }
+    campaign.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(&campaign.game.player().inventory[..4], &[255, 6, 5, 2]);
+    let scenes = controller_route(
+        &mut campaign,
+        include_str!("../../tests/data/mission1-rikimaru.inputs"),
+    );
     eprintln!("Mission 1 controller route: {scenes:?}");
     assert_eq!(scenes.len(), 4);
     assert_eq!(scenes[1..], [(4267, 220), (6295, 150), (7274, 151)]);
@@ -66,16 +92,46 @@ fn mission_one_controller_route_reaches_results_and_mission_two() {
     assert_eq!(resumed.options.mission, 2);
     assert!(matches!(resumed.screen, Screen::Inventory(_)));
     resumed.action(Action::Confirm, &assets).unwrap();
-    for _ in 0..600 {
+    let save = complete_delivery(&mut resumed);
+    assert_eq!(save.progress.flags & 3, 3);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 3);
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(
+        resumed.game.player().health,
+        resumed.game.player().max_health
+    );
+    for _ in 0..30 {
         resumed.tick(0).unwrap();
     }
     assert!(resumed.playing());
     assert_eq!(resumed.game.events.outcome, Outcome::Running);
     assert!(!resumed.game.cinematic.active);
+    assert!(resumed.game.player().health > 0);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; completes Mission 2 as Ayame with only the hook carried"]
+fn ayame_delivery_controller_route_reaches_results() {
+    let assets = assets();
+    let options = Options {
+        mission: 2,
+        character: 1,
+        ..Options::default()
+    };
+    let mut campaign = Campaign::new(&assets, options, None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
     assert_eq!(
-        resumed.game.player().health,
-        resumed.game.player().max_health
+        campaign.game.player().inventory[..20],
+        [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     );
+    let save = complete_delivery(&mut campaign);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 3);
+    assert_eq!(resumed.options.character, 1);
 }
 
 #[test]
