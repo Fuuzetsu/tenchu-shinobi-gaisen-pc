@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's first six saved missions, an independent Ayame Mission 2 route,
+Ayame's first eight saved missions, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -926,6 +926,19 @@ return to background music. Native captures show Japanese text for both characte
 and the original French/Italian text; caption changes and clearing were checked.
 Menu labels remain English. Original menu-binary decompilation remains deferred.
 Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.
+
+
+Ayame's saved campaign now completes Missions 7 and 8. The ship route swims
+past the armed quay, heals and defeats Balma with a grenade, smoke and melee.
+Sequences 10/20/100 begin at ticks 1,655/1,745/3,052; results arrive at tick
+3,292 with 93 HP and clock 2,701. One medicine, grenade and smoke bomb are used;
+a smoke pickup replaces the consumed bomb. The mountain route fights the lower
+guards and the archer covering the upper crossing, then climbs to the cure.
+Sequence 11 starts at tick 5,891; results arrive at tick 6,096 with 75 HP and
+clock 5,890. It uses one shuriken, one medicine, two grenades and three smoke
+bombs. The full eight-mission save/reload regression passes and starts Mission 9
+with carried stock and RNG; formatting passes. These routes require no runtime
+changes or game-state overrides.
 
 
 The continuous saved Rikimaru campaign now also completes Mission 5. Ordinary

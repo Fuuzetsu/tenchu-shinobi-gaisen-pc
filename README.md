@@ -236,7 +236,14 @@ is interrupted before healing; the smoke throw is also interrupted and refunded.
 Her [Mission 6 route](crates/tenchu-pc/tests/data/mission6-ayame-campaign.inputs)
 climbs the statue, defeats the cult leader and triggers Onikage's retreat with
 25 HP. Two shuriken, one medicine, one smoke bomb and both mines are used before
-saving into Mission 7.
+saving into Mission 7. Her
+[ship route](crates/tenchu-pc/tests/data/mission7-ayame-campaign.inputs) swims
+past the quay and defeats Balma with 93 HP, using one medicine, one grenade and
+one smoke bomb. The
+[mountain route](crates/tenchu-pc/tests/data/mission8-ayame-campaign.inputs)
+fights the archer guarding the upper crossing and reaches the cure with 75 HP.
+It uses one shuriken, one medicine, two grenades and three smoke bombs, then
+saves into Mission 9.
 Its carried RNG produces different enemy
 behavior from the standalone delivery route.
 

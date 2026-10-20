@@ -334,8 +334,8 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Ayame's first six missions from new-game stock, saves between missions and starts Mission 7"]
-fn ayame_campaign_controller_routes_complete_first_six_missions() {
+#[ignore = "requires TENCHU_DISC; completes Ayame's first eight missions from new-game stock, saves between missions and starts Mission 9"]
+fn ayame_campaign_controller_routes_complete_first_eight_missions() {
     let assets = assets();
     let options = Options {
         character: 1,
@@ -432,7 +432,39 @@ fn ayame_campaign_controller_routes_complete_first_six_missions() {
         .get(resumed.game.roster.find(0x8a).unwrap());
     assert_eq!(onikage.health, 94);
     assert_eq!(resumed.progress.flags & 63, 63);
-    save_and_start_next(&mut resumed, &assets, 2776);
+    let save = save_result(&mut resumed, 2776);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 7);
+    equip(&mut resumed, &assets, &[(2, 6), (3, 1), (4, 1), (5, 5)]);
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission7-ayame-campaign.inputs"),
+    );
+    assert_eq!(scenes, [(1655, 10), (1745, 20), (3052, 100)]);
+    assert_eq!(resumed.game.tick, 3292);
+    assert_eq!(resumed.game.player().health, 93);
+    assert_eq!(&resumed.game.player().inventory[..6], &[255, 0, 6, 0, 0, 5]);
+    let balma = resumed
+        .game
+        .roster
+        .get(resumed.game.roster.find(0x85).unwrap());
+    assert_eq!((balma.health, balma.status), (0, 17));
+    let save = save_result(&mut resumed, 2701);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 8);
+    equip(&mut resumed, &assets, &[(1, 1), (3, 1), (4, 2), (5, 5)]);
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission8-ayame-campaign.inputs"),
+    );
+    assert_eq!(scenes, [(5891, 11)]);
+    assert_eq!(resumed.game.tick, 6096);
+    assert_eq!(resumed.game.player().health, 75);
+    assert_eq!(&resumed.game.player().inventory[..6], &[255, 0, 0, 0, 0, 2]);
+    assert_eq!(resumed.progress.flags & 255, 255);
+    save_and_start_next(&mut resumed, &assets, 5890);
 }
 
 #[test]
