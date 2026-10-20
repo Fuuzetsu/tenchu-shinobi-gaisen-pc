@@ -934,3 +934,10 @@ tick 7,300 with 72 HP and game clock 3,194, then the save reloads into Mission 6
 The fresh-stock Rikimaru and Ayame Mission 5 routes remain separate regressions.
 The full five-mission save/reload regression and both standalone Mission 5
 branches pass.
+
+
+The equipment screen now shows the original five-type limit alongside the
+15-item count. The automatic hook occupies one type. The limit is shared with
+the loadout rules; behavior is unchanged. The existing inventory regression
+passes, and an isolated native window confirmed the empty and full-type displays
+and rejection of a fifth selected equipment type.

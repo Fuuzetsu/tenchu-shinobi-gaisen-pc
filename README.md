@@ -115,6 +115,8 @@ Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
 texture palettes and transparency modes. The HUD shows inventory selection and
 counts, player/enemy health and the proximity indicator using original graphics.
+The equipment screen shows both limits: 15 selected items and five item types.
+The automatic hook uses one type, leaving four for selected equipment.
 The launcher uses the source initial stock: choose equipment with Up/Down and
 Left/Right, then Enter to start. The hook is always carried. Tap E for a quick
 shuriken throw or hold it to aim,

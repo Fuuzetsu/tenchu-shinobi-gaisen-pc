@@ -11,6 +11,8 @@ pub struct Loadout {
 }
 
 impl Loadout {
+    pub const KIND_LIMIT: i16 = 5;
+
     pub fn new(mut stock: [u8; ITEMS], shop: &Shop, training: bool) -> Self {
         let mut selected = [0; ITEMS];
         selected[0] = INFINITE;
@@ -47,7 +49,7 @@ impl Loadout {
         if count == 0 {
             self.kinds += 1;
         }
-        if self.kinds >= 6 {
+        if self.kinds > Self::KIND_LIMIT {
             self.kinds -= 1;
             return false;
         }

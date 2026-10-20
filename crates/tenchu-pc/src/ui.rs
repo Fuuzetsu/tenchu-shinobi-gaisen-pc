@@ -2,7 +2,7 @@ use crate::{
     campaign::{Campaign, Screen},
     render_effects::{self, Geometry},
 };
-use tenchu_core::progress::{INFINITE, LOCKED};
+use tenchu_core::progress::{INFINITE, LOCKED, Loadout};
 
 const ITEMS: [&str; 20] = [
     "Grappling hook",
@@ -129,8 +129,11 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                         format!("{character}   Training equipment")
                     } else {
                         format!(
-                            "{character}   Items: {}/{}",
-                            loadout.taken, loadout.capacity
+                            "{character}  Items: {}/{}  Types: {}/{}",
+                            loadout.taken,
+                            loadout.capacity,
+                            loadout.kinds,
+                            Loadout::KIND_LIMIT
                         )
                     },
                     WHITE,
