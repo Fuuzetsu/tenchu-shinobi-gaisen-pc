@@ -189,11 +189,10 @@ dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellati
 medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
-Unexpected or unsupported data pauses with a diagnostic. Rikimaru's
-complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's complete saved campaign, training for both characters, an independent Ayame Mission 2 route,
-both Mission 5 branches and Rikimaru
-Mission 6–10 routes pass. These controller routes and native window checks
+Unexpected or unsupported data pauses with a diagnostic. The current private
+checks pass training for both characters, an independent Ayame Mission 2 route,
+both standalone Mission 5 branches and independent Rikimaru Mission 3, 4 and
+6–10 routes. The saved campaign refresh is described below. These controller routes and native window checks
 provide playability evidence, not exhaustive retail parity across all inputs.
 
 Seven original Castle-start recordings now match for 4,630 consecutive updates in
@@ -210,8 +209,8 @@ RNG, collision, event time, activation budgets and exact drawing allocation.
 The comparison exposed two runtime defects: the swimming camera used state 13
 instead of 3, and adaptive drawing used pre-initialization SDK globals instead
 of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
-campaign recordings consequently need refresh. Missions 1–5 now complete for
-both characters using their actual saved stock/RNG. The Mission 6 continuations
+campaign recordings consequently need refresh. Missions 1–7 now complete for
+both characters using their actual saved stock/RNG. The Mission 8 continuations
 are next. The independent Mission 7 route now passes with
 refreshed inputs and the corrected swimming camera.
 The earlier full-campaign results below describe the pre-fix revision, not a
@@ -1236,3 +1235,11 @@ Ayame's refreshed Mission 5 also completes her additional Kataoka encounter,
 reaching results at tick 7,919, health 46 and clock 4,048. Two smoke bombs are
 used; six caltrops, one smoke bomb and two mines remain. Its actual save starts
 Mission 6 with seed 2,861,527,239.
+
+Refreshed saved campaigns now complete Missions 6 and 7 for both characters.
+The cult leader dies and Onikage retreats through the original scenes. Rikimaru
+finishes Mission 6 at tick 6,139, health 50 and clock 3,868; Ayame at tick 6,393,
+health 5 and clock 4,132. Mission 7 defeats Balma and finishes with 100 HP each,
+at ticks 3,744/2,546 and clocks 3,113/1,955. Actual encoded/decoded saves carry
+seeds 1,341,414,700 and 176,276,537 into Mission 8. No runtime changes were
+needed for these refreshed routes.
