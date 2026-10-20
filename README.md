@@ -101,6 +101,12 @@ Preferences save separately from progress in
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`
 overrides the file. Disabling pause on defocus keeps simulation/audio running
 but still releases controls; input from another application never controls the game.
+Tab/Page Down/Page Up or controller R1/L1 changes settings pages. Graphics
+settings include black fog and its distance, textures, baked vertex shading,
+exposure, nearest/bilinear filtering and supported MSAA modes. MSAA smooths
+polygon edges; bilinear filtering decodes the original palettes and keeps
+transparent/semitransparent texels separate. HUD and menu textures remain sharp.
+Mipmaps and anisotropic texture filtering are not implemented yet.
 
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.

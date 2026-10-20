@@ -11,7 +11,7 @@ camera state, simulation controls and one-shot edits start disabled each launch.
   reset-to-defaults, persistent preferences and visible feedback for errors.
 - [x] FPS/tick display, pause on defocus, fullscreen, VSync, HUD visibility and
   master volume. Preserve the existing focus, audio and input behavior by default.
-- [ ] Fog enable/distance, textures, vertex shading, exposure, nearest/bilinear
+- [x] Fog enable/distance, textures, vertex shading, exposure, nearest/bilinear
   texture filtering and GPU-supported MSAA choices. Keep original defaults.
   Paletted VRAM needs decoded texture sampling; ordinary hardware anisotropic
   filtering is not automatically applicable.
@@ -67,3 +67,9 @@ window check opened/closed F1 during Mission 1, changed preferences, displayed
 FPS and verified that ticks stop while the menu is open. With another window
 focused, ticks continue only when pause on defocus is disabled. Screenshots were
 inspected; a footer placed too low was moved within the viewport.
+
+The graphics increment passes all three offscreen GPU tests: unchanged source
+blending/fog defaults, decoded bilinear samples, UI isolation and all supported
+MSAA sample counts (queried for both color and depth). The native menu switches
+filtering/MSAA while running. Mipmaps/anisotropic sampling remain later work;
+MSAA is edge anti-aliasing, not a substitute for texture minification.

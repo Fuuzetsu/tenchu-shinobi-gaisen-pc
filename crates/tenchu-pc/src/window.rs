@@ -118,6 +118,7 @@ impl View {
     }
 
     fn settings(&mut self, settings: &Settings) {
+        self.renderer.configure(&settings.graphics);
         self.window
             .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
         let mode = if settings.vsync {
@@ -288,7 +289,7 @@ impl Application {
     }
 
     fn settings_action(&mut self, action: Action) {
-        let rows = settings::menu::rows(&self.settings);
+        let rows = settings::menu::rows(self.menu.page, &self.settings);
         if let Some(direction) = self.menu.action(action, rows.len()) {
             match rows[self.menu.row].item {
                 Item::Fps => self.settings.show_fps = !self.settings.show_fps,
@@ -301,6 +302,35 @@ impl Application {
                         (i32::from(self.settings.volume) + direction * 5).clamp(0, 100) as u16
                 }
                 Item::Reset => self.settings = Settings::default(),
+                Item::Fog => self.settings.graphics.fog = !self.settings.graphics.fog,
+                Item::FogDistance => {
+                    self.settings.graphics.fog_distance =
+                        (i32::from(self.settings.graphics.fog_distance) + direction * 25)
+                            .clamp(25, 400) as u16
+                }
+                Item::Textures => {
+                    self.settings.graphics.textures = !self.settings.graphics.textures
+                }
+                Item::Shading => self.settings.graphics.shading = !self.settings.graphics.shading,
+                Item::Exposure => {
+                    self.settings.graphics.exposure = (i32::from(self.settings.graphics.exposure)
+                        + direction * 25)
+                        .clamp(25, 300) as u16
+                }
+                Item::Filtering => {
+                    self.settings.graphics.bilinear = !self.settings.graphics.bilinear
+                }
+                Item::Antialiasing => {
+                    if let Some(view) = &self.view {
+                        let counts = &view.renderer.sample_counts;
+                        let index = counts
+                            .iter()
+                            .position(|&n| n == self.settings.graphics.samples)
+                            .unwrap_or(0);
+                        self.settings.graphics.samples = counts
+                            [(index as i32 + direction).rem_euclid(counts.len() as i32) as usize];
+                    }
+                }
             }
             self.menu.notice = match self.settings_store.write(&self.settings) {
                 Ok(()) => String::new(),
@@ -430,6 +460,14 @@ impl ApplicationHandler for Application {
         if self.view.is_none() {
             match View::new(events, &self.campaign.game) {
                 Ok(mut view) => {
+                    if !view
+                        .renderer
+                        .sample_counts
+                        .contains(&self.settings.graphics.samples)
+                    {
+                        self.settings.graphics.samples = 1;
+                        self.menu.notice = "Saved MSAA mode unavailable; using Off".into();
+                    }
                     view.settings(&self.settings);
                     self.view = Some(view);
                     self.update_view();
@@ -477,7 +515,8 @@ impl ApplicationHandler for Application {
                     let row = ((y + 64.0) / 19.0).floor() as isize;
                     if (-150.0..150.0).contains(&x)
                         && row >= 0
-                        && (row as usize) < settings::menu::rows(&self.settings).len()
+                        && (row as usize)
+                            < settings::menu::rows(self.menu.page, &self.settings).len()
                     {
                         self.menu.row = row as usize;
                         self.settings_action(if button == MouseButton::Right {
@@ -505,6 +544,13 @@ impl ApplicationHandler for Application {
                 }
                 if self.menu.open {
                     if event.state == ElementState::Pressed
+                        && matches!(code, KeyCode::Tab | KeyCode::PageDown | KeyCode::PageUp)
+                    {
+                        self.menu.page(if code == KeyCode::PageUp { -1 } else { 1 });
+                        self.update_view();
+                        return;
+                    }
+                    if event.state == ElementState::Pressed
                         && let Some(Command::Menu(action)) = controls::keyboard_command(code, false)
                     {
                         self.settings_action(action);
@@ -528,6 +574,16 @@ impl ApplicationHandler for Application {
                     eprintln!("Active controller disconnected; gameplay paused.");
                     self.set_paused(true);
                 } else if self.focused && self.menu.open {
+                    if update.pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0 {
+                        self.menu
+                            .page(if update.pressed & tenchu_core::input::L1 != 0 {
+                                -1
+                            } else {
+                                1
+                            });
+                        self.controls.clear();
+                        self.update_view();
+                    }
                     if let Some(Command::Menu(action)) =
                         controls::gamepad_command(update.pressed, false, false)
                     {

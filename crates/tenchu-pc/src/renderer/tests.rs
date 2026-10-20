@@ -278,3 +278,70 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
     renderer.draw(&view, camera, &[&mesh], None);
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[255; 3]);
 }
+
+#[test]
+#[ignore = "requires a graphics adapter; validates every supported MSAA mode, decoded bilinear sampling and unchanged UI"]
+fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
+    let mut vram = Vram::default();
+    vram.words[0] = 31;
+    vram.words[1] = 31 << 10;
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for vertex in &mut vertices {
+        vertex.uv = [0.5, 0.0];
+    }
+    let mesh = renderer.upload(&vertices);
+    renderer.draw(&view, camera, &[&mesh], None);
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[255, 0, 0]);
+    let mut options = crate::settings::Graphics {
+        bilinear: true,
+        ..Default::default()
+    };
+    for samples in renderer.sample_counts.clone() {
+        options.samples = samples;
+        renderer.configure(&options);
+        renderer.draw(&view, camera, &[&mesh], None);
+        let pixel = read_pixel(&renderer, &target);
+        assert!(
+            pixel[0].abs_diff(128) <= 1 && pixel[1] == 0 && pixel[2].abs_diff(128) <= 1,
+            "{samples}x: {pixel:?}"
+        );
+    }
+    options.textures = false;
+    renderer.configure(&options);
+    renderer.draw(&view, camera, &[&mesh], None);
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[255; 3]);
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::SCREEN;
+        vertex.position = [vertex.position[0] / 5.0, vertex.position[1] / 5.0, 0.5];
+    }
+    let ui = renderer.upload(&vertices);
+    options.exposure = 25;
+    renderer.configure(&options);
+    renderer.draw(&view, camera, &[&ui], None);
+    assert_eq!(
+        &read_pixel(&renderer, &target)[..3],
+        &[255, 0, 0],
+        "UI keeps nearest textures and original brightness"
+    );
+    options = crate::settings::Graphics::default();
+    renderer.configure(&options);
+    renderer.draw(&view, camera, &[&mesh], None);
+    assert_eq!(
+        &read_pixel(&renderer, &target)[..3],
+        &[255, 0, 0],
+        "restoring defaults restores the original image"
+    );
+}

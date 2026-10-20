@@ -4,6 +4,8 @@ use tenchu_assets::{Result, texture::Vram};
 use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
+mod pipelines;
+
 #[cfg(test)]
 mod tests;
 
@@ -27,6 +29,13 @@ pub struct Renderer {
     camera: wgpu::Buffer,
     depth: wgpu::TextureView,
     texture: wgpu::Texture,
+    format: wgpu::TextureFormat,
+    layout: wgpu::PipelineLayout,
+    shader: wgpu::ShaderModule,
+    pub sample_counts: Vec<u32>,
+    samples: u32,
+    multisample: Option<wgpu::TextureView>,
+    graphics: crate::settings::Graphics,
 }
 
 impl Renderer {
@@ -36,10 +45,31 @@ impl Renderer {
         size: [u32; 2],
         vram: &Vram,
     ) -> Result<Self> {
+        let features =
+            adapter.features() & wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
+        let format_flags = |format: wgpu::TextureFormat| {
+            if features.is_empty() {
+                format.guaranteed_format_features(features).flags
+            } else {
+                adapter.get_texture_format_features(format).flags
+            }
+        };
+        let color = format_flags(format);
+        let depth = format_flags(wgpu::TextureFormat::Depth32Float);
+        let sample_counts = [1, 2, 4, 8, 16]
+            .into_iter()
+            .filter(|&n| {
+                color.sample_count_supported(n)
+                    && depth.sample_count_supported(n)
+                    && (n == 1
+                        || color.contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_RESOLVE))
+            })
+            .collect();
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: Some("Tenchu renderer"),
+                    required_features: features,
                     ..Default::default()
                 },
                 None,
@@ -80,63 +110,10 @@ impl Renderer {
             bind_group_layouts: &[&binding_layout],
             push_constant_ranges: &[],
         });
-        let make_pipeline = |blend: Option<wgpu::BlendState>,
-                             fragment: &str,
-                             bias: i32,
-                             depth_write_enabled: bool| {
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some(fragment), layout: Some(&layout),
-                vertex: wgpu::VertexState {
-                    module: &shader, entry_point: Some("vertex"), compilation_options: Default::default(),
-                    buffers: &[wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32],
-                    }],
-                },
-                primitive: wgpu::PrimitiveState { front_face: wgpu::FrontFace::Cw, cull_mode: None, ..Default::default() },
-                depth_stencil: Some(wgpu::DepthStencilState {
-                    format: wgpu::TextureFormat::Depth32Float, depth_write_enabled,
-                    depth_compare: wgpu::CompareFunction::LessEqual, stencil: Default::default(),
-                    bias: wgpu::DepthBiasState { constant: bias, ..Default::default() },
-                }),
-                multisample: Default::default(),
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader, entry_point: Some(fragment), compilation_options: Default::default(),
-                    targets: &[Some(wgpu::ColorTargetState { format, blend, write_mask: wgpu::ColorWrites::ALL })],
-                }),
-                multiview: None, cache: None,
-            })
-        };
-        let pipeline = make_pipeline(None, "opaque", 0, true);
-        let effects = std::array::from_fn(|mode| {
-            if mode == 0 {
-                return make_pipeline(None, "opaque", -2, true);
-            }
-            let blend = wgpu::BlendState {
-                color: wgpu::BlendComponent {
-                    src_factor: if matches!(mode, 1 | 4) {
-                        wgpu::BlendFactor::Constant
-                    } else {
-                        wgpu::BlendFactor::One
-                    },
-                    dst_factor: if mode == 1 {
-                        wgpu::BlendFactor::Constant
-                    } else {
-                        wgpu::BlendFactor::One
-                    },
-                    operation: if mode == 3 {
-                        wgpu::BlendOperation::ReverseSubtract
-                    } else {
-                        wgpu::BlendOperation::Add
-                    },
-                },
-                alpha: wgpu::BlendComponent::REPLACE,
-            };
-            make_pipeline(Some(blend), "translucent", -2, false)
-        });
+        let (pipeline, effects) = pipelines::create(&device, format, &layout, &shader, 1);
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::bytes_of(&[0.0f32; 24]),
+            contents: bytemuck::bytes_of(&[0.0f32; 28]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -169,7 +146,7 @@ impl Renderer {
                 },
             ],
         });
-        let depth = Self::depth(&device, size);
+        let depth = Self::attachment(&device, size, wgpu::TextureFormat::Depth32Float, 1);
         let renderer = Self {
             device,
             queue,
@@ -180,12 +157,24 @@ impl Renderer {
             camera,
             depth,
             texture,
+            format,
+            layout,
+            shader,
+            sample_counts,
+            samples: 1,
+            multisample: None,
+            graphics: crate::settings::Graphics::default(),
         };
         renderer.update_vram(vram);
         Ok(renderer)
     }
 
-    fn depth(device: &wgpu::Device, [width, height]: [u32; 2]) -> wgpu::TextureView {
+    fn attachment(
+        device: &wgpu::Device,
+        [width, height]: [u32; 2],
+        format: wgpu::TextureFormat,
+        samples: u32,
+    ) -> wgpu::TextureView {
         device
             .create_texture(&wgpu::TextureDescriptor {
                 label: Some("Depth"),
@@ -195,9 +184,9 @@ impl Renderer {
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
-                sample_count: 1,
+                sample_count: samples,
                 dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Depth32Float,
+                format,
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 view_formats: &[],
             })
@@ -206,7 +195,34 @@ impl Renderer {
 
     pub fn resize(&mut self, size: [u32; 2]) {
         self.size = size;
-        self.depth = Self::depth(&self.device, size);
+        self.depth = Self::attachment(
+            &self.device,
+            size,
+            wgpu::TextureFormat::Depth32Float,
+            self.samples,
+        );
+        self.multisample = (self.samples > 1)
+            .then(|| Self::attachment(&self.device, size, self.format, self.samples));
+    }
+
+    pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
+        let samples = if self.sample_counts.contains(&graphics.samples) {
+            graphics.samples
+        } else {
+            1
+        };
+        if samples != self.samples {
+            (self.pipeline, self.effects) = pipelines::create(
+                &self.device,
+                self.format,
+                &self.layout,
+                &self.shader,
+                samples,
+            );
+            self.samples = samples;
+            self.resize(self.size);
+        }
+        self.graphics = graphics.clone();
     }
 
     pub fn update_vram(&self, vram: &Vram) {
@@ -252,10 +268,26 @@ impl Renderer {
         let mut camera = matrix.to_cols_array().to_vec();
         camera.extend([self.size[0] as f32 / self.size[1] as f32, 0.0, 0.0, 0.0]);
         camera.extend([
-            DEPTH_CUE[0] as f32 * f32::from(DISTANCE) / 256.0,
-            DEPTH_CUE[1] as f32 / 16_777_216.0,
+            if self.graphics.fog {
+                DEPTH_CUE[0] as f32 * f32::from(DISTANCE) / 256.0
+                    * f32::from(self.graphics.fog_distance)
+                    / 100.0
+            } else {
+                0.0
+            },
+            if self.graphics.fog {
+                DEPTH_CUE[1] as f32 / 16_777_216.0
+            } else {
+                0.0
+            },
             0.0,
             0.0,
+        ]);
+        camera.extend([
+            f32::from(self.graphics.exposure) / 100.0,
+            u8::from(self.graphics.textures) as f32,
+            u8::from(self.graphics.shading) as f32,
+            u8::from(self.graphics.bilinear) as f32,
         ]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
@@ -264,8 +296,8 @@ impl Renderer {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Scene"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target,
-                    resolve_target: None,
+                    view: self.multisample.as_ref().unwrap_or(target),
+                    resolve_target: self.multisample.as_ref().map(|_| target),
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
                             r: 0.0,

@@ -13,6 +13,7 @@ pub struct Settings {
     pub vsync: bool,
     pub show_hud: bool,
     pub volume: u16,
+    pub graphics: Graphics,
 }
 
 impl Default for Settings {
@@ -24,6 +25,33 @@ impl Default for Settings {
             vsync: true,
             show_hud: true,
             volume: 100,
+            graphics: Graphics::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Graphics {
+    pub fog: bool,
+    pub fog_distance: u16,
+    pub textures: bool,
+    pub shading: bool,
+    pub exposure: u16,
+    pub bilinear: bool,
+    pub samples: u32,
+}
+
+impl Default for Graphics {
+    fn default() -> Self {
+        Self {
+            fog: true,
+            fog_distance: 100,
+            textures: true,
+            shading: true,
+            exposure: 100,
+            bilinear: false,
+            samples: 1,
         }
     }
 }
@@ -61,6 +89,11 @@ impl Store {
                 let mut settings: Settings = serde_json::from_slice(&bytes)
                     .map_err(|e| format!("{}: {e}", self.path.display()))?;
                 settings.volume = settings.volume.min(100);
+                settings.graphics.fog_distance = settings.graphics.fog_distance.clamp(25, 400);
+                settings.graphics.exposure = settings.graphics.exposure.clamp(25, 300);
+                if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
+                    settings.graphics.samples = 1;
+                }
                 Ok(settings)
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Settings::default()),
