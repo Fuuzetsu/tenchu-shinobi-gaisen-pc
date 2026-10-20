@@ -3,7 +3,6 @@ struct Options {
     color: vec4<f32>,
     effects: vec4<f32>,
     finish: vec4<f32>,
-    fog: vec4<f32>,
     size: vec4<f32>,
 }
 @group(0) @binding(0) var scene: texture_2d<f32>;
@@ -81,9 +80,7 @@ fn filmic(color: vec3<f32>) -> vec3<f32> {
     let depth = depth_at(pixel);
     var color = textureSampleLevel(scene, linear_sampler, v.uv, 0.0).rgb;
     let original_color = color;
-    if depth >= 0.999999 {
-        color += options.fog.rgb;
-    } else if options.effects.y > 0.0 {
+    if depth < 0.999999 && options.effects.y > 0.0 {
         let ao = occlusion(pixel, world(v.uv, depth));
         color *= mix(ao, 1.0, clamp(max(color.r, max(color.g, color.b)) - 1.0, 0.0, 1.0));
     }

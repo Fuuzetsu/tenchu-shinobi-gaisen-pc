@@ -36,7 +36,7 @@ impl Post {
             mag_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
-        let data = buffer(device, 36 * 4);
+        let data = buffer(device, 32 * 4);
         let bloom_data = buffer(device, 16);
         let bloom_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Bloom source"),
@@ -176,8 +176,7 @@ impl Post {
             f32::from(settings.sharpen) / 100.0,
             0.0,
         ]);
-        data.extend(settings.fog_color());
-        data.extend([0.0, self.size[0] as f32, self.size[1] as f32, 0.0, 0.0]);
+        data.extend([self.size[0] as f32, self.size[1] as f32, 0.0, 0.0]);
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
         queue.write_buffer(
             &self.bloom_data,

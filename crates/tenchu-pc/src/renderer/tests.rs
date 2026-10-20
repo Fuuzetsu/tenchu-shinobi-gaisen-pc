@@ -206,6 +206,24 @@ fn hdr_finishing_preserves_ui_and_restores_original_rendering() {
         pixel(&read_pixels(&renderer, &target), 8, 8),
         pixel(&original, 8, 8)
     );
+    let mut distant = rectangle(25000, 96, None, false, false, false);
+    for vertex in &mut distant {
+        vertex.position[0] *= 10.3;
+        vertex.position[1] *= 10.3;
+    }
+    let distant = renderer.upload(&distant);
+    graphics.post.bloom = 0;
+    graphics.post.fog_tint = 1;
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&distant], None).unwrap();
+    let pixels = read_pixels(&renderer, &target);
+    let background = pixel(&pixels, 0, 0);
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .all(|p| p.iter().zip(background).all(|(a, b)| a.abs_diff(b) <= 1)),
+        "fog and sky must meet without dark MSAA fringes"
+    );
     renderer.configure(&Default::default());
     renderer
         .draw(&view, camera, &[&mesh], Some(&effects))

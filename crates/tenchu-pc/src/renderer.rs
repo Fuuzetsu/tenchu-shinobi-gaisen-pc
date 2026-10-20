@@ -422,6 +422,7 @@ impl Renderer {
         }
         {
             let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
+            let clear = self.graphics.post.fog_color().map(f64::from);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Scene"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -429,9 +430,9 @@ impl Renderer {
                     resolve_target: self.multisample.as_ref().map(|_| world_target),
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
+                            r: clear[0],
+                            g: clear[1],
+                            b: clear[2],
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
