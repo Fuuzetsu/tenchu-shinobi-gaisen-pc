@@ -414,6 +414,29 @@ fn rikimaru_pirates_controller_route_reaches_results() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; climbs the mountain and obtains the cure with controller input, saves and starts Mission 9"]
+fn rikimaru_mountain_controller_route_reaches_results() {
+    let assets = assets();
+    let options = Options {
+        mission: 8,
+        ..Options::default()
+    };
+    let mut campaign = Campaign::new(&assets, options, None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
+    let scenes = controller_route(
+        &mut campaign,
+        include_str!("../../../tests/data/mission8-rikimaru.inputs"),
+    );
+    assert_eq!(scenes, [(10502, 11)]);
+    assert_eq!(campaign.game.tick, 10732);
+    assert_eq!(campaign.game.player().health, 100);
+    assert_eq!(&campaign.game.player().inventory[..4], &[255, 0, 6, 0]);
+    assert_eq!(campaign.game.player().position, [-18000, -53500, 143957]);
+    save_and_start_next(&mut campaign, &assets, 10501);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; climbs the castle, defeats Onikage with controller input, saves and starts Mission 10"]
 fn rikimaru_castle_controller_route_reaches_results() {
     let assets = assets();

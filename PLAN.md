@@ -178,7 +178,7 @@ Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
-Mission 6, Mission 7 and Mission 9 routes pass; arbitrary interactive play is not yet
+Mission 6–9 routes pass; arbitrary interactive play is not yet
 certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -865,3 +865,14 @@ decompiling the original main menu remains deferred, as requested.
 The language-selection regression, all eight localized Mission 2 openings and
 the existing campaign save/retry/continuation check pass. Nix native, WASM and
 formatting checks pass on x86_64-linux.
+
+A standalone Rikimaru Mission 8 controller route now crosses the mountain,
+uses repeated grapples/jumps/ledge climbs, fights guards and reaches the cure.
+Sequence 11 begins at tick 10,502; results arrive at tick 10,732 with 100 HP and
+game clock 10,501. Six shuriken and two medicine are used from ordinary equipment
+selection; six caltrops remain. The private-disc regression checks the final
+position, health, inventory, result and encoded/decoded save into Mission 9.
+No runtime positions, health or event state are overridden. An offscreen native
+capture of the upper grapple was visually inspected. This standalone route does
+not extend the accumulated-stock campaign beyond Mission 3.
+Nix native, WASM and formatting checks pass on x86_64-linux.

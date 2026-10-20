@@ -208,6 +208,11 @@ boards the pirate ship, defeats Balma, runs all three cinematics and reaches
 results with 100 HP. It uses six shuriken and one medicine, picks up a dropped
 smoke bomb along the route, then saves and starts Mission 8.
 
+The [Rikimaru Mission 8 route](crates/tenchu-pc/tests/data/mission8-rikimaru.inputs)
+traverses the mountain with repeated grapples, jumps and ledge climbs, fights
+its guards and collects the cure. It uses six shuriken and two medicine, reaches
+results with 100 HP, then saves and starts Mission 9.
+
 An independent [Rikimaru Mission 9 route](crates/tenchu-pc/tests/data/mission9-rikimaru.inputs)
 climbs the castle, defeats Onikage and completes both cinematics with 53 HP.
 Its private-disc test uses ordinary equipment selection, saves the results,
