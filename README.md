@@ -97,7 +97,7 @@ Held controls must be released after menu or focus changes. Losing focus freezes
 simulation and audio. Controller mappings use [gilrs](https://docs.rs/gilrs/0.11.2/gilrs/)
 and accept its `SDL_GAMECONTROLLERCONFIG` environment override.
 
-The preview currently supports movement,
+The game supports movement,
 jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
@@ -191,10 +191,10 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
-Current saved-campaign regressions complete Missions 1–9 for both characters
-after the swimming-camera and drawing-initialization
-corrections. Stock and RNG carry through real encoded/decoded saves at every
-boundary. Refreshed recordings include their starting seed and equipment, so
+Saved-campaign regressions complete all ten missions for both characters,
+including the final bosses, results and completion screen. Stock and RNG carry
+through real encoded/decoded saves at every boundary. The recordings include
+their starting seed and equipment, so
 `replay` can run them directly.
 
 | Character | Mission | Results tick | Health |
@@ -215,13 +215,15 @@ boundary. Refreshed recordings include their starting seed and equipment, so
 | Ayame | [8](crates/tenchu-pc/tests/data/mission8-ayame-campaign.inputs) | 8,126 | 56 |
 | Rikimaru | [9](crates/tenchu-pc/tests/data/mission9-rikimaru-campaign.inputs) | 6,292 | 3 |
 | Ayame | [9](crates/tenchu-pc/tests/data/mission9-ayame-campaign.inputs) | 5,741 | 67 |
+| Rikimaru | [10](crates/tenchu-pc/tests/data/mission10-rikimaru-campaign.inputs) | 15,082 | 30 |
+| Ayame | [10](crates/tenchu-pc/tests/data/mission10-ayame-campaign.inputs) | 16,015 | 7 |
 
-Both complete Mission 2 with 100 HP. The complete campaign tests currently fail
-on the old Mission 10 continuations. The independent [Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
-now also passes with the corrected swimming camera, finishing at tick 3,461 with
-93 HP. Both ten-mission campaigns and training passed before the corrections; those
-historical results and the implemented feature coverage are recorded in
-[PLAN.md](PLAN.md). They are not a current passing campaign gate.
+Both complete Mission 2 with 100 HP. The independent
+[Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
+also passes with the corrected swimming camera, finishing at tick 3,461 with
+93 HP. [PLAN.md](PLAN.md) records the feature coverage, native play checks and
+source/retail comparisons. These routes exercise ordinary controller inputs;
+they do not prove exhaustive parity with retail.
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \

@@ -168,10 +168,10 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-2026-10-20: all MAIN.EXE systems are implemented. Earlier recordings completed
+2026-10-20: all MAIN.EXE systems are implemented. Current recordings complete
 all ten campaign missions and training for both characters from ordinary
-controller input and original disc assets; the source-backed corrections below
-require refreshed campaign recordings. Each campaign carries
+controller input and original disc assets, including the source-backed
+corrections below. Each campaign carries
 stock and RNG through encoded/decoded saves at every mission boundary. Native
 window checks cover controls, combat/items, pause, resize, language selection
 and retry. The native executable reads the actual SLPS-019.01 mixed-mode disc, indexes 1,048 DATA.VOL
@@ -192,7 +192,8 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unexpected or unsupported data pauses with a diagnostic. The current private
 checks pass training for both characters, an independent Ayame Mission 2 route,
 both standalone Mission 5 branches and independent Rikimaru Mission 3, 4 and
-6–10 routes. The saved campaign refresh is described below. These controller routes and native window checks
+6–10 routes. The saved campaigns also pass from new game through final results,
+completion screen and saved Mission 10 replay selection. These controller routes and native window checks
 provide playability evidence, not exhaustive retail parity across all inputs.
 
 Seven original Castle-start recordings now match for 4,630 consecutive updates in
@@ -209,19 +210,21 @@ RNG, collision, event time, activation budgets and exact drawing allocation.
 The comparison exposed two runtime defects: the swimming camera used state 13
 instead of 3, and adaptive drawing used pre-initialization SDK globals instead
 of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
-campaign recordings consequently need refresh. Missions 1–9 now complete for
-both characters using their actual saved stock/RNG. The Mission 10 continuations
-are next. The independent Mission 7 route now passes with
-refreshed inputs and the corrected swimming camera.
-The earlier full-campaign results below describe the pre-fix revision, not a
-current passing gate. Remaining acceptance work includes restoring this
-campaign evidence. The longer continuous comparison now covers receiving
+campaign recordings have been refreshed for both characters using their actual
+saved stock/RNG. Rikimaru finishes Mission 10 at tick 15,082 with 30 HP and
+Ayame at tick 16,015 with 7 HP. Both defeat Onikage and Mei-Oh and save all ten
+mission flags. The independent Mission 7 route also passes with the corrected
+swimming camera. The longer continuous comparison covers receiving
 attacks as well as traversal. Console
 frame-cost prediction remains outside scope.
 
-Before these two corrections, the Linux host suite passed all 37 tests including private-disc, audio and
-GPU checks. The Nix desktop package, native checks, WASM build and formatting
-checks pass; the packaged executable successfully inspects the real disc.
+The current Linux host suite passes all 37 tests, including private-disc,
+full-campaign, audio and GPU checks. The final Nix desktop package, native tests,
+WASM libraries and formatting checks pass on x86_64-linux. The packaged
+executable successfully inspects the real disc and resumes the actual completed
+Ayame save into Mission 10. Physical gamepad hardware and the other declared
+build platforms remain unverified. These checks do not establish exhaustive
+retail parity.
 
 A native Rikimaru training attempt also reaches actual combat death and the
 mission-failed screen, then retries through fixed equipment selection. The
@@ -1254,3 +1257,29 @@ Both saved Mission 9 continuations now complete the castle and Onikage fight.
 Rikimaru finishes at tick 6,292 with 3 HP and clock 5,206; Ayame at tick 5,741
 with 67 HP and clock 4,620. Saves carry seeds 37,031,008 and 4,197,738,911 into
 Mission 10. The final mission recordings are the remaining campaign gate.
+
+
+Both refreshed saved campaigns now complete all ten missions. Rikimaru's final
+mission uses one medicine, one smoke bomb and one mine, finishing with 30 HP,
+clock 11,661 and results at tick 15,082. Ayame uses two shuriken, one smoke bomb
+and two mines, finishing with 7 HP, clock 12,629 and results at tick 16,015.
+Both defeat Onikage and Mei-Oh, play scenes 7/10/15/35/40, save all ten mission
+flags and pass the completion-screen/launcher/reload checks. The recordings
+include their actual campaign seed and loadout for standalone replay. No
+runtime adjustments were needed for these refreshed final-mission routes.
+All 37 desktop tests pass with the private disc, audio and offscreen GPU
+fixtures, including both complete campaigns and training routes.
+
+Final x86_64-linux Nix packaging, native tests, WASM libraries and formatting
+checks pass. The packaged executable verifies the real disc and opens the
+completed Ayame save. Native input changes the language to Italian, continues
+into Mission 10, moves/jumps, pauses, resizes to 4:3 and returns to retry
+equipment. Its recording replays to tick 148, 100 HP and jump motion `0902`;
+the saved language and RNG are retained. The equipment, language and pause
+screens were visually inspected, as was a GPU capture of Ayame fighting Mei-Oh.
+These checks used isolated X servers and private silent audio sinks.
+
+The requested desktop MAIN.EXE scope is complete. The original main menu and
+external ENDING.EXE movie, browser host, replacement asset packs and HD content
+remain separate follow-ups. Source-level and continuous-retail comparisons
+provide fidelity evidence, not exhaustive equivalence for every input sequence.

@@ -330,10 +330,10 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 10);
-    equip(&mut resumed, &assets, &[(2, 6), (3, 1), (5, 1), (6, 2)]);
+    equip(&mut resumed, &assets, &[(2, 6), (3, 1), (5, 1), (6, 6)]);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 0, 6, 1, 0, 1, 2]
+        &[255, 0, 6, 1, 0, 1, 6]
     );
     let scenes = controller_route(
         &mut resumed,
@@ -341,17 +341,17 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
     );
     eprintln!("Mission 10 saved campaign: {scenes:?}");
     assert_eq!(
-        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
-        [7, 10, 15, 35, 40]
+        scenes,
+        [(1499, 7), (1589, 10), (5370, 15), (10285, 35), (10966, 40)]
     );
-    assert_eq!(resumed.game.tick, 14348);
+    assert_eq!(resumed.game.tick, 15082);
     assert_eq!(resumed.game.player().health, 30);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 0, 6, 0, 0, 0, 1]
+        &[255, 0, 6, 0, 0, 0, 5]
     );
     assert_eq!(resumed.progress.flags & 0x3ff, 0x3ff);
-    save_and_complete(&mut resumed, &assets, 10927);
+    save_and_complete(&mut resumed, &assets, 11661);
 }
 
 #[test]
@@ -514,23 +514,27 @@ fn ayame_campaign_controller_routes_reach_completion() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 10);
-    equip(&mut resumed, &assets, &[(1, 2), (2, 6), (4, 2), (5, 3)]);
+    equip(&mut resumed, &assets, &[(1, 2), (4, 1), (5, 1), (6, 6)]);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 2, 0, 0, 1, 1, 6]
+    );
     let scenes = controller_route(
         &mut resumed,
         include_str!("../../../tests/data/mission10-ayame-campaign.inputs"),
     );
     assert_eq!(
         scenes,
-        [(1460, 7), (1550, 10), (5156, 15), (9456, 35), (10157, 40)]
+        [(1449, 7), (1539, 10), (4700, 15), (9303, 35), (10004, 40)]
     );
-    assert_eq!(resumed.game.tick, 17130);
-    assert_eq!(resumed.game.player().health, 4);
+    assert_eq!(resumed.game.tick, 16015);
+    assert_eq!(resumed.game.player().health, 7);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 0, 6, 0, 0, 2, 0]
+        &[255, 0, 0, 0, 1, 0, 4]
     );
     assert_eq!(resumed.progress.flags & 0x3ff, 0x3ff);
-    save_and_complete(&mut resumed, &assets, 13744);
+    save_and_complete(&mut resumed, &assets, 12629);
 }
 
 #[test]
