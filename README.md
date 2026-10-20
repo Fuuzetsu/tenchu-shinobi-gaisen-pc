@@ -173,9 +173,11 @@ results with 75 HP, saves, reloads, completes the
 [Mission 3 rescue](crates/tenchu-pc/tests/data/mission3-rikimaru-campaign.inputs)
 with 68 HP, then completes the
 [Mission 4 checkpoint](crates/tenchu-pc/tests/data/mission4-rikimaru-campaign.inputs)
-with 16 HP and saves into Mission 5. Mission 4 uses the saved stock of two
-shuriken, four grenades and two of the three carried medicine. Inventory and
-RNG carry through all four missions. A separate
+with 16 HP, then the
+[Mission 5 punishment](crates/tenchu-pc/tests/data/mission5-rikimaru-campaign.inputs)
+with 72 HP before saving into Mission 6. Mission 4 uses the saved stock of two
+shuriken, four grenades and two of the three carried medicine; Mission 5 carries
+only the hook. Inventory and RNG carry through all five missions. A separate
 [Ayame route](crates/tenchu-pc/tests/data/mission2-ayame.inputs) completes Mission 2
 with 100 HP. The delivery routes use ordinary movement and swimming, carrying
 only the automatically supplied hook in the campaign tests.
@@ -221,7 +223,7 @@ An independent [Rikimaru Mission 9 route](crates/tenchu-pc/tests/data/mission9-r
 climbs the castle, defeats Onikage and completes both cinematics with 53 HP.
 Its private-disc test uses ordinary equipment selection, saves the results,
 reloads and starts Mission 10. This is a fresh-stock route; the continuous saved
-campaign is now validated through Mission 4.
+campaign is now validated through Mission 5.
 
 The [Rikimaru Mission 10 route](crates/tenchu-pc/tests/data/mission10-rikimaru.inputs)
 defeats Onikage, crosses the inner caverns and lava, descends the pitfall and
@@ -229,7 +231,7 @@ defeats Mei-Oh. All five cinematics run; results arrive with 10 HP after using
 six shuriken and both medicine. Its private-disc test verifies the final record,
 saved completion flags, completion screen and saved Mission 10 replay selection.
 This completes standalone route coverage of Rikimaru's ten missions; the
-accumulated-stock campaign is verified through Mission 4. The external
+accumulated-stock campaign is verified through Mission 5. The external
 ending movie executable is still represented by a completion screen.
 
 ```sh

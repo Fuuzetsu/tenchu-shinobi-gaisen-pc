@@ -177,7 +177,7 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first four missions, independent Rikimaru Mission 3 and Mission 4 routes,
+first five missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -925,3 +925,12 @@ return to background music. Native captures show Japanese text for both characte
 and the original French/Italian text; caption changes and clearing were checked.
 Menu labels remain English. Original menu-binary decompilation remains deferred.
 Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.
+
+
+The continuous saved Rikimaru campaign now also completes Mission 5. Ordinary
+movement and melee trigger Hikone's retreat and the return to the minister;
+sequences 5/6/10/20/100 run. Only the automatic hook is carried. Results arrive at
+tick 7,300 with 72 HP and game clock 3,194, then the save reloads into Mission 6.
+The fresh-stock Rikimaru and Ayame Mission 5 routes remain separate regressions.
+The full five-mission save/reload regression and both standalone Mission 5
+branches pass.

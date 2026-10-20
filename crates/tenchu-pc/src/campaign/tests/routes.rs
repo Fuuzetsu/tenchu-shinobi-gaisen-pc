@@ -98,9 +98,35 @@ fn complete_checkpoint(campaign: &mut Campaign, tape: &str) -> Save {
     save
 }
 
+fn complete_punishment(campaign: &mut Campaign, tape: &str) -> Save {
+    let character = campaign.options.character as usize;
+    let scenes = controller_route(campaign, tape);
+    eprintln!("Mission 5 character {character}: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [&[5, 6, 10, 20, 100][..], &[5, 6, 10, 20, 40, 45][..]][character]
+    );
+    if character == 1 {
+        let boss = campaign
+            .game
+            .roster
+            .get(campaign.game.roster.find(0x8e).unwrap());
+        assert_eq!((boss.health, boss.status), (0, 17));
+    }
+    let Screen::Results(results) = &campaign.screen else {
+        panic!("Expected punishment results");
+    };
+    assert!(results.record.played());
+    assert_eq!(results.record, campaign.game.record());
+    assert_eq!(campaign.progress.flags & 16, 16);
+    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.progress, campaign.progress);
+    save
+}
+
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1–4 from new-game stock using controller input, saves between missions and starts Mission 5"]
-fn controller_routes_complete_first_four_missions() {
+#[ignore = "requires TENCHU_DISC; completes Missions 1–5 from new-game stock using controller input, saves between missions and starts Mission 6"]
+fn controller_routes_complete_first_five_missions() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -169,6 +195,19 @@ fn controller_routes_complete_first_four_missions() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 5);
+    resumed.action(Action::Confirm, &assets).unwrap();
+    let save = complete_punishment(
+        &mut resumed,
+        include_str!("../../../tests/data/mission5-rikimaru-campaign.inputs"),
+    );
+    assert_eq!(resumed.game.tick, 7300);
+    assert_eq!(resumed.game.player().health, 72);
+    assert_eq!(resumed.game.clock, 3194);
+    assert_eq!(&resumed.game.player().inventory[..4], &[255, 0, 0, 0]);
+    assert_eq!(save.progress.flags & 31, 31);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 6);
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(
         resumed.game.player().health,
@@ -297,34 +336,14 @@ fn punishment_controller_routes_reach_results() {
             &[(1, 6), (2, 6), (3, 2)][..]
         };
         equip(&mut campaign, &assets, gear);
-        let scenes = controller_route(&mut campaign, tape);
-        eprintln!("Mission 5 character {character}: {scenes:?}");
-        assert_eq!(
-            scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
-            [&[5, 6, 10, 20, 100][..], &[5, 6, 10, 20, 40, 45][..]][character]
-        );
+        let save = complete_punishment(&mut campaign, tape);
         assert_eq!(campaign.game.tick, [7586, 7618][character]);
         assert_eq!(campaign.game.player().health, [56, 80][character]);
         assert_eq!(
             campaign.game.player().inventory[..4],
             [[255, 0, 0, 0], [255, 1, 6, 1]][character]
         );
-        if character == 1 {
-            let boss = campaign
-                .game
-                .roster
-                .get(campaign.game.roster.find(0x8e).unwrap());
-            assert_eq!((boss.health, boss.status), (0, 17));
-        }
-        let Screen::Results(results) = &campaign.screen else {
-            panic!("Expected punishment results");
-        };
-        assert_eq!(results.record.clock, [3480, 3747][character]);
-        assert!(results.record.played());
-        assert_eq!(results.record, campaign.game.record());
-        assert_eq!(campaign.progress.flags & 16, 16);
-        let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
-        assert_eq!(save.progress, campaign.progress);
+        assert_eq!(campaign.game.clock, [3480, 3747][character]);
         let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
         resumed.action(Action::Confirm, &assets).unwrap();
         assert_eq!(resumed.options.mission, 6);
