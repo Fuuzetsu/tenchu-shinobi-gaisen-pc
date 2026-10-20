@@ -60,10 +60,16 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                 WHITE,
             );
         }
-        line(-140, 92, "F5: retry   Esc: inventory".into(), DIM);
+        line(-140, 92, "F5/West: retry  Esc/East: inventory".into(), DIM);
     } else if paused {
         line(-40, -20, "Paused".into(), GOLD);
-        line(-100, 12, "P: resume   Esc: inventory".into(), WHITE);
+        line(-140, 12, "P/Start/South: resume".into(), WHITE);
+        line(
+            -140,
+            32,
+            "Esc/East: inventory (abandons attempt)".into(),
+            DIM,
+        );
     } else {
         match &campaign.screen {
             Screen::Launcher => {
@@ -105,13 +111,8 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                         if campaign.cursor == i { GOLD } else { WHITE },
                     );
                 }
-                line(
-                    -140,
-                    88,
-                    "Arrows: choose/change   Enter: select".into(),
-                    DIM,
-                );
-                line(-140, 104, "Esc: quit".into(), DIM);
+                line(-140, 88, "Arrows/D-pad/stick: choose/change".into(), DIM);
+                line(-140, 104, "Enter/South: select  Esc/East: quit".into(), DIM);
             }
             Screen::Inventory(loadout) => {
                 line(-140, -102, "MISSION EQUIPMENT".into(), GOLD);
@@ -165,8 +166,8 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                         color,
                     );
                 }
-                line(-140, 88, "Up/Down: item   Left/Right: count".into(), DIM);
-                line(-140, 104, "Enter: start   Esc: back".into(), DIM);
+                line(-140, 88, "Arrows/D-pad/stick: item/count".into(), DIM);
+                line(-140, 104, "Enter/South: start  Esc/East: back".into(), DIM);
             }
             Screen::Results(results) => {
                 line(-140, -102, "MISSION COMPLETE".into(), GOLD);
@@ -202,24 +203,24 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                     -140,
                     88,
                     if campaign.options.mission == 0 {
-                        "Enter: train again   Esc: launcher".into()
+                        "Enter/South: train  Esc/East: menu".into()
                     } else {
-                        "Enter: next   R: retry   Esc: menu".into()
+                        "Enter/South: next  R/West: retry".into()
                     },
                     DIM,
                 );
-                line(-140, 104, "Progress and rewards saved".into(), DIM);
+                line(-140, 104, "Esc/East: menu  Progress saved".into(), DIM);
             }
             Screen::GameOver => {
                 line(-80, -40, "MISSION FAILED".into(), GOLD);
-                line(-130, 4, "Enter: retry   Esc: launcher".into(), WHITE);
+                line(-140, 4, "Enter/South: retry  Esc/East: menu".into(), WHITE);
                 line(-130, 32, "Carried items were lost.".into(), DIM);
             }
             Screen::Complete => {
                 line(-112, -50, "CAMPAIGN COMPLETE".into(), GOLD);
                 line(-130, -10, "All ten missions completed.".into(), WHITE);
                 line(-130, 14, "Ending movie is not implemented yet.".into(), DIM);
-                line(-130, 60, "Enter: return to launcher".into(), WHITE);
+                line(-130, 60, "Enter/South: return to launcher".into(), WHITE);
             }
             Screen::Playing => {}
         }

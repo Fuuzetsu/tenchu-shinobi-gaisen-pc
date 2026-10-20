@@ -48,7 +48,10 @@
             pkgs.makeWrapper
             pkgs.pkg-config
           ];
-          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.alsa-lib ];
+          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            pkgs.alsa-lib
+            pkgs.udev
+          ];
           postFixup = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             wrapProgram "$out/bin/tenchu-pc" --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"
           '';
@@ -81,7 +84,10 @@
             nixfmt
             pkg-config
           ];
-          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.alsa-lib ];
+          buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            pkgs.alsa-lib
+            pkgs.udev
+          ];
           CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs.lld}/bin/wasm-ld";
         };
       });

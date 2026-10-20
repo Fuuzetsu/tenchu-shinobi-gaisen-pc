@@ -1,6 +1,7 @@
 mod audio;
 mod campaign;
 mod capture;
+mod controls;
 mod render_effects;
 mod render_mesh;
 mod renderer;

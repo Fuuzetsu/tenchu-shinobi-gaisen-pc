@@ -703,3 +703,17 @@ two item checks cover holding, release, camera ownership, range edges, failed ra
 and forced disposal. All 131 current core checks and twelve relevant private
 desktop checks pass, including Mission 1 through saved continuation. Nix native,
 WASM and formatting checks pass on x86_64-linux.
+
+The desktop host now accepts gamepads through pinned gilrs, with the original
+face/shoulder button layout and digital D-pad/left-stick movement. Launcher,
+equipment, results, pause and retry share their actions with keyboard input.
+Stick hysteresis prevents threshold chatter; held input is suppressed across
+menu/focus changes, and disconnecting the active controller pauses gameplay.
+Three focused checks cover diagonal/threshold behavior, focus/menu edges,
+controller ownership and independent keyboard releases. Twelve private desktop
+checks pass, including the complete Mission 1 regression. Isolated native windows
+verify keyboard menus, crouch/recovery, map, pause/resume and retry for both
+characters; controller-aware help screens were visually inspected. No physical
+controller was attached, so device/backend interaction is not yet manually
+verified. Nix native, WASM and formatting checks pass on x86_64-linux; the Linux
+package and development shell now include libudev.

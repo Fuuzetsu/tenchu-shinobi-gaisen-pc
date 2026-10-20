@@ -1,5 +1,6 @@
 use crate::{
     campaign::{Action, Campaign, Screen},
+    controls::{self, Command, Controls},
     render_effects, render_mesh,
     renderer::{self, EffectMesh, Mesh, Renderer},
     session::Options,
@@ -7,15 +8,15 @@ use crate::{
     storage::Storage,
     ui,
 };
-use std::{collections::HashSet, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 use tenchu_assets::{Result, game::GameAssets};
-use tenchu_core::{clock::GameClock, game::Game, input};
+use tenchu_core::{clock::GameClock, game::Game};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
     event::{ElementState, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
-    keyboard::{KeyCode, PhysicalKey},
+    keyboard::PhysicalKey,
     window::{Window, WindowId},
 };
 
@@ -164,7 +165,7 @@ struct Application {
     view: Option<View>,
     clock: GameClock,
     last_frame: Instant,
-    keys: HashSet<KeyCode>,
+    controls: Controls,
     paused: bool,
     faulted: bool,
     fault: Option<String>,
@@ -174,27 +175,6 @@ struct Application {
 }
 
 impl Application {
-    fn buttons(&self) -> u16 {
-        self.keys.iter().fold(0, |buttons, key| {
-            buttons
-                | match key {
-                    KeyCode::KeyW | KeyCode::ArrowUp => input::UP,
-                    KeyCode::KeyS | KeyCode::ArrowDown => input::DOWN,
-                    KeyCode::KeyA | KeyCode::ArrowLeft => input::LEFT,
-                    KeyCode::KeyD | KeyCode::ArrowRight => input::RIGHT,
-                    KeyCode::Space => input::CROSS,
-                    KeyCode::ShiftLeft | KeyCode::ShiftRight => input::CIRCLE,
-                    KeyCode::KeyJ => input::SQUARE,
-                    KeyCode::KeyE => input::TRIANGLE,
-                    KeyCode::KeyQ => input::L1,
-                    KeyCode::KeyZ => input::L2,
-                    KeyCode::KeyC => input::R2,
-                    KeyCode::KeyM | KeyCode::Tab => input::SELECT,
-                    _ => 0,
-                }
-        })
-    }
-
     fn update_view(&mut self) {
         if let Some(view) = &mut self.view {
             view.update(&self.campaign, self.paused, self.fault.as_deref());
@@ -245,11 +225,38 @@ impl Application {
                 self.paused = false;
                 self.faulted = false;
                 self.fault = None;
-                self.keys.clear();
+                self.controls.clear();
                 self.save();
                 self.update_view();
             }
             Err(error) => self.pause_error(error),
+        }
+    }
+
+    fn set_paused(&mut self, paused: bool) {
+        self.paused = paused;
+        self.controls.clear();
+        if let Some(audio) = &mut self.audio {
+            audio.pause(paused || !self.focused);
+            if !paused {
+                audio.effect(0x0a);
+            }
+        }
+        self.last_frame = Instant::now();
+        self.clock.discard_host_backlog();
+        self.update_view();
+    }
+
+    fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        match command {
+            Command::Pause if self.campaign.playing() && !self.faulted => {
+                self.set_paused(!self.paused);
+            }
+            Command::Menu(Action::Back) if matches!(self.campaign.screen, Screen::Launcher) => {
+                events.exit();
+            }
+            Command::Menu(action) => self.action(action),
+            _ => {}
         }
     }
 }
@@ -281,62 +288,54 @@ impl ApplicationHandler for Application {
                 }
             }
             WindowEvent::Focused(focused) => {
+                let update = self.controls.poll(false);
                 self.focused = focused;
+                if update.disconnected && self.campaign.playing() {
+                    self.set_paused(true);
+                }
                 if let Some(audio) = &mut self.audio {
                     audio.pause(!focused || self.paused);
                 }
-                self.keys.clear();
+                self.controls.clear();
                 self.last_frame = Instant::now();
                 self.clock.discard_host_backlog();
             }
-            WindowEvent::KeyboardInput { event, .. } => {
+            WindowEvent::KeyboardInput {
+                event,
+                is_synthetic,
+                ..
+            } => {
+                if !self.focused || is_synthetic || event.repeat {
+                    return;
+                }
                 let PhysicalKey::Code(code) = event.physical_key else {
                     return;
                 };
-                if event.state == ElementState::Released {
-                    self.keys.remove(&code);
+                if !self
+                    .controls
+                    .key(code, event.state == ElementState::Pressed)
+                {
                     return;
                 }
-                self.keys.insert(code);
-                if event.repeat {
-                    return;
-                }
-                match code {
-                    KeyCode::Escape if matches!(self.campaign.screen, Screen::Launcher) => {
-                        events.exit()
-                    }
-                    KeyCode::Escape => self.action(Action::Back),
-                    KeyCode::F5 => self.action(Action::Replay),
-                    KeyCode::KeyP if !self.faulted && self.campaign.playing() => {
-                        self.paused = !self.paused;
-                        if let Some(audio) = &mut self.audio {
-                            audio.pause(self.paused);
-                            if !self.paused {
-                                audio.effect(0x0a);
-                            }
-                        }
-                        self.clock.discard_host_backlog();
-                        self.update_view();
-                    }
-                    _ if !self.campaign.playing() => {
-                        let action = match code {
-                            KeyCode::Enter => Some(Action::Confirm),
-                            KeyCode::ArrowUp => Some(Action::Up),
-                            KeyCode::ArrowDown => Some(Action::Down),
-                            KeyCode::ArrowLeft => Some(Action::Left),
-                            KeyCode::ArrowRight => Some(Action::Right),
-                            KeyCode::KeyR => Some(Action::Replay),
-                            _ => None,
-                        };
-                        if let Some(action) = action {
-                            self.action(action);
-                        }
-                    }
-                    _ => {}
+                if let Some(command) = controls::keyboard_command(code, self.campaign.playing()) {
+                    self.command(command, events);
                 }
             }
 
             WindowEvent::RedrawRequested => {
+                let update = self.controls.poll(self.focused);
+                if update.disconnected && self.campaign.playing() {
+                    eprintln!("Active controller disconnected; gameplay paused.");
+                    self.set_paused(true);
+                } else if self.focused
+                    && let Some(command) = controls::gamepad_command(
+                        update.pressed,
+                        self.campaign.playing(),
+                        self.paused,
+                    )
+                {
+                    self.command(command, events);
+                }
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
@@ -348,7 +347,7 @@ impl ApplicationHandler for Application {
                 if self.focused && !self.paused && self.campaign.playing() {
                     self.clock.elapse(elapsed);
                     while self.clock.step().is_some() {
-                        if let Err(error) = self.campaign.tick(self.buttons()) {
+                        if let Err(error) = self.campaign.tick(self.controls.buttons()) {
                             self.pause_error(error);
                             self.clock.discard_host_backlog();
                             break;
@@ -360,6 +359,7 @@ impl ApplicationHandler for Application {
                             audio.screen(&self.campaign.screen);
                         }
                         if !self.campaign.playing() {
+                            self.controls.clear();
                             self.clock.discard_host_backlog();
                             break;
                         }
@@ -404,7 +404,7 @@ pub fn run(assets: GameAssets<FileSource>, options: Options, disc: &std::path::P
         view: None,
         clock: GameClock::default(),
         last_frame: Instant::now(),
-        keys: HashSet::new(),
+        controls: Controls::new(),
         paused: false,
         faulted: false,
         fault: None,
@@ -413,7 +413,7 @@ pub fn run(assets: GameAssets<FileSource>, options: Options, disc: &std::path::P
         audio,
     };
     println!(
-        "Gameplay: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
+        "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
     );
     EventLoop::new()
         .map_err(|e| e.to_string())?

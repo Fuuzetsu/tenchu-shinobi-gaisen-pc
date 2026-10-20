@@ -59,11 +59,34 @@ AI difficulty; normal is the default. `--language english|french|italian|japanes
 selects the original cinematic scripts. Japanese subtitle rasterization still
 needs a portable replacement for BIOS KROM.
 
-WASD/arrows move and turn, Space jumps, Shift crouches, J attacks/draws, E uses
-an item, Q looks, and Z/C select items. Hold M or Tab to show the original map while gameplay
-continues. P pauses; F5 or Escape abandons the
-attempt and opens retry equipment. Escape from the launcher quits.
-Losing focus pauses simulation. The preview currently supports movement,
+| Action | Keyboard | Controller |
+| --- | --- | --- |
+| Move and turn | WASD / arrows | D-pad / left stick |
+| Jump | Space | South (Cross / A) |
+| Attack / draw weapon | J | West (Square / X) |
+| Crouch | Shift | East (Circle / B), or R1 / RB |
+| Use item | E | North (Triangle / Y) |
+| Look / aim | Hold Q + directions | Hold L1 / LB + directions |
+| Previous / next item | Z / C | L2 / R2 (LT / RT) |
+| Map | Hold M / Tab | Hold Select / Back |
+| Pause / resume | P | Start / Menu |
+
+In menus, use the arrows, D-pad or stick to choose and change values; Enter or
+the south face button confirms, Escape or east goes back, and R or west retries
+from results. In the equipment screen, Up/Down selects an item and Left/Right
+removes/adds one. Enter/south starts the mission; the hook is carried automatically.
+In gameplay, F5 or Escape abandons the attempt and opens retry equipment. On a
+controller, pause first, then use east/west to abandon/retry. Escape/east from
+the launcher quits. Controller hints use physical face-button positions because
+labels differ between controller brands.
+
+The first controller used is selected until disconnected. Keyboard and controller
+can be used together. Disconnecting the active controller pauses gameplay.
+Held controls must be released after menu or focus changes. Losing focus freezes
+simulation and audio. Controller mappings use [gilrs](https://docs.rs/gilrs/0.11.2/gilrs/)
+and accept its `SDL_GAMECONTROLLERCONFIG` environment override.
+
+The preview currently supports movement,
 jumping, crouching, wall hugging/sliding, ledge control, swimming, melee combos, guard/damage reactions, stealth
 kills, dropped inventory, pickups, enemy arrows/gunshots/shuriken, item damage
 and the source follow/look camera. Grappling, shuriken, medicine, caltrops,
