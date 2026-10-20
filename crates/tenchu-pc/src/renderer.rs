@@ -84,9 +84,11 @@ impl Renderer {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = MAX_LIGHTS * 6u; const MAX_MIPS: u32 = {}u;\n{}\n{}\n{}\n{}",
+                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {};\n{}\n{}\n{}\n{}",
                     crate::lighting::MAX_LIGHTS,
+                    shadows::FACES,
                     materials::MAX_MIPS,
+                    shadows::NEAR,
                     include_str!("scene.wgsl"),
                     include_str!("renderer/palette.wgsl"),
                     include_str!("renderer/lighting.wgsl"),
@@ -226,6 +228,10 @@ impl Renderer {
 
     pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
         self.materials.set_pack(pack.textures.clone());
+    }
+
+    pub fn set_emitters(&mut self, emitters: &crate::visuals::lights::Emitters) {
+        self.materials.set_emissions(emitters.emissions.clone());
     }
 
     pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {

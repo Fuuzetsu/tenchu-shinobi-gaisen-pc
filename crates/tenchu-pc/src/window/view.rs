@@ -1,5 +1,5 @@
 use super::*;
-use crate::visuals::{models::Models, pack::Pack};
+use crate::visuals::{lights::Emitters, models::Models, pack::Pack};
 
 fn model_options(graphics: &settings::Graphics) -> (bool, bool, u16) {
     (
@@ -25,9 +25,21 @@ pub(super) struct View {
     pack: Pack,
     models: Models,
     model_options: (bool, bool, u16),
+    emitters: Emitters,
 }
 
 impl View {
+    pub(super) fn nearest_lamp(
+        &self,
+        game: &Game,
+        eye: glam::Vec3,
+    ) -> Option<crate::lighting::Source> {
+        self.emitters.sources(game).into_iter().min_by(|a, b| {
+            eye.distance_squared(a.light.position)
+                .total_cmp(&eye.distance_squared(b.light.position))
+        })
+    }
+
     pub(super) fn new(events: &ActiveEventLoop, game: &Game, settings: &Settings) -> Result<Self> {
         let window = Arc::new(
             events
@@ -77,6 +89,8 @@ impl View {
                 Models::build(&game.mission, &pack, &settings.graphics).unwrap()
             });
         renderer.set_asset_pack(&pack);
+        let emitters = Emitters::build(game, &pack, settings.graphics.asset_pack);
+        renderer.set_emitters(&emitters);
         renderer.bind_models(&mut models);
         surface.configure(&renderer.device, &config);
         let stage = renderer.upload(&render_mesh::stage(
@@ -113,6 +127,7 @@ impl View {
             pack,
             models,
             model_options: model_options(&settings.graphics),
+            emitters,
         })
     }
 
@@ -134,6 +149,8 @@ impl View {
         let error = result.as_ref().err().cloned();
         self.set_models(result.unwrap_or_default(), game);
         self.model_options = model_options(&settings.graphics);
+        self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
+        self.renderer.set_emitters(&self.emitters);
         error.map_or(Ok(()), Err)
     }
 
@@ -159,6 +176,8 @@ impl View {
         self.renderer.set_asset_pack(&pack);
         self.set_models(models, game);
         self.pack = pack;
+        self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
+        self.renderer.set_emitters(&self.emitters);
         Ok(count)
     }
 
@@ -170,6 +189,8 @@ impl View {
                 game,
             );
             self.model_options = options;
+            self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
+            self.renderer.set_emitters(&self.emitters);
         }
         self.renderer.configure(&settings.graphics);
         self.window
@@ -206,14 +227,21 @@ impl View {
         } else {
             render_mesh::characters(game, Some(&self.models))
         });
-        self.lights = crate::lighting::sources(
+        let sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,
             debug.eye(game),
             debug.light_position(game),
+            if settings.graphics.lighting.enabled && settings.graphics.lighting.lamps {
+                self.emitters.sources(game)
+            } else {
+                Vec::new()
+            },
         );
+        self.lights = sources.iter().map(|s| s.light).collect();
         let shadowing = settings.graphics.lighting.enabled
             && settings.graphics.lighting.shadows
+            && settings.graphics.lighting.shadow_count > 0
             && !self.lights.is_empty();
         if shadowing && self.shadow_stage.is_none() {
             self.shadow_stage = Some(self.renderer.upload(&render_mesh::shadow_stage(
@@ -253,6 +281,19 @@ impl View {
             ui::build(campaign, paused, error)
         };
         if campaign.playing() && !menu.open && error.is_none() {
+            if settings.graphics.lighting.markers {
+                geometry.append(crate::debug::light_markers(
+                    debug,
+                    game,
+                    self.config.width as f32 / self.config.height as f32,
+                    &sources,
+                    if settings.graphics.lighting.shadows {
+                        usize::from(settings.graphics.lighting.shadow_count)
+                    } else {
+                        0
+                    },
+                ));
+            }
             geometry
                 .append(debug.overlay(game, self.config.width as f32 / self.config.height as f32));
             if paused && debug.active() {

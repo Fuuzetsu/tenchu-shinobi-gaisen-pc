@@ -278,3 +278,31 @@ pass. Repeating the isolated X11 gameplay sequence improved the sampled enhanced
 view from 29 to 42 FPS and original view from 35 to 49 FPS. These are indicative
 single captures, not a platform benchmark; driver presentation dominates the
 remaining sampled CPU time. Both runs exited cleanly.
+
+Lamp emitters now use recovered model names plus bright texture/geometry samples,
+with positions from actual placements and weapon attachments. Exported packs
+include editable matching, brightness, emission, color, radius and offset rules.
+The first-layout campaign check finds 57/34/101/37/31/28 placed lamps in missions
+1/2/5/6/7/9; other starting missions have no matching placed props. An ANDON
+attachment fixture verifies movement with its owner, and source discovery leaves
+game state unchanged. This is heuristic lighting metadata, not original authored
+lights. Changed replacement shapes can require a rule offset.
+
+Bright panels emit and transmit light while dark frames remain shadow casters.
+The GPU regression covers transmission, opaque frames, lamp toggling, independent
+light/shadow budgets and filtered shadow edges. Up to 16 point lights can be
+active, with a separate 0–4 shadow budget. F1 labels active sources and can focus
+free camera on the nearest lantern. Native inspection found excessive speckling
+from paper mottling; transmission now includes the dimmer paper tones, and
+optional nine-tap filtering softens edges. The master lighting switch remains
+off by default.
+
+Native Mission 1 checks compare lamps on/off, source markers, asset-rule reload,
+shadow toggling and normal movement/jumping, followed by clean exits. The close
+lamp inspection also exposed receiver self-shadowing; a surface-plane depth
+gradient for the point-light projection now corrects comparisons across filter
+taps and removes the speckling/moiré in that view. See Microsoft's discussion of
+[shadow-map precision and bias](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps).
+All seven GPU regressions still pass, including actual actor/weapon silhouettes;
+17 fixture-free desktop checks pass. HDR highlight handling and broad scene
+lighting remain the next stage; the current lamp panels can clip to white.

@@ -43,6 +43,16 @@ impl Application {
             Item::Shadows => self.settings.graphics.lighting.shadows = s.graphics.lighting.shadows,
             Item::FireLights => self.settings.graphics.lighting.fires = s.graphics.lighting.fires,
             Item::LightCount => self.settings.graphics.lighting.count = s.graphics.lighting.count,
+            Item::ShadowSoftness => {
+                self.settings.graphics.lighting.softness = s.graphics.lighting.softness
+            }
+            Item::ShadowCount => {
+                self.settings.graphics.lighting.shadow_count = s.graphics.lighting.shadow_count
+            }
+            Item::LampLights => self.settings.graphics.lighting.lamps = s.graphics.lighting.lamps,
+            Item::LightMarkers => {
+                self.settings.graphics.lighting.markers = s.graphics.lighting.markers
+            }
             Item::LightRadius => {
                 self.settings.graphics.lighting.radius = s.graphics.lighting.radius
             }

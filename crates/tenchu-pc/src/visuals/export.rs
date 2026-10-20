@@ -183,6 +183,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
             .collect(),
         models: BTreeMap::new(),
         materials: definitions,
+        lights: Some(super::lights::defaults()),
     };
     fs::write(
         directory.join("pack.json"),

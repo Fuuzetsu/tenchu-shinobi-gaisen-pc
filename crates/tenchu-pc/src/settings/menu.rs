@@ -59,6 +59,11 @@ pub enum Item {
     LightAmbient,
     LightResolution,
     LightCount,
+    ShadowCount,
+    ShadowSoftness,
+    LampLights,
+    LightMarkers,
+    FocusLight,
     DebugLight,
     PlaceLight,
     PlayerLight,
@@ -123,6 +128,7 @@ impl Item {
                 | Self::PlayerLight
                 | Self::ShadowPreview
                 | Self::ReloadAssets
+                | Self::FocusLight
         )
     }
 }
@@ -563,7 +569,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::LightCount,
                     "Point-light budget",
                     light.count.to_string(),
-                    "1-16 simultaneous sources; six views each.",
+                    "1-16 nearest sources; shadows cost extra.",
                 ),
                 (
                     Item::LightRadius,
@@ -630,6 +636,36 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Light Z",
                     format!("{:.0}", position[2]),
                     "Arrows move fixed light by 500 world units.",
+                ),
+                (
+                    Item::LampLights,
+                    "Lantern / prop lights",
+                    on(light.lamps),
+                    "Bright panels in named props emit light.",
+                ),
+                (
+                    Item::ShadowCount,
+                    "Shadowed point lights",
+                    light.shadow_count.to_string(),
+                    "0-4 nearest lights; six views per source.",
+                ),
+                (
+                    Item::LightMarkers,
+                    "Light source markers",
+                    on(light.markers),
+                    "Label active sources and shadow casters.",
+                ),
+                (
+                    Item::FocusLight,
+                    "Inspect nearest lantern",
+                    "Enter".into(),
+                    "Focus free camera and show source labels.",
+                ),
+                (
+                    Item::ShadowSoftness,
+                    "Shadow filtering radius",
+                    light.softness.to_string(),
+                    "0: bilinear; 1-8: nine-tap soft edges.",
                 ),
             ]
         }
@@ -752,7 +788,7 @@ impl Menu {
                 "0 lights active; use Preview or add a light".into()
             } else {
                 let faces = if lighting.shadows {
-                    active_lights * 6
+                    active_lights.min(usize::from(lighting.shadow_count)) * 6
                 } else {
                     0
                 };

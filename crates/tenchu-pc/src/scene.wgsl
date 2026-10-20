@@ -57,13 +57,15 @@ struct Fragment {
 }
 
 fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
-    var normal = normalize(cross(dpdx(v.world), dpdy(v.world)));
+    let surface_normal = normalize(cross(dpdx(v.world), dpdy(v.world)));
+    var normal = surface_normal;
     if dot(v.normal, v.normal) > 0.0001 { normal = normalize(v.normal); }
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     var color = v.color;
+    var emission = vec3(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
     var semi = (v.flags & TRANSLUCENT) != 0u;
     if (v.flags & TEXTURED) != 0u {
@@ -89,8 +91,11 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
                 color *= base;
             }
         }
+        if !screen && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
+            emission = material_emission(v.material, base);
+        }
     }
-    if !screen { color *= illumination(v.world, normal); }
+    if !screen { color = color * illumination(v.world, normal, surface_normal) + emission; }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
         color *= 1.0 - fog;

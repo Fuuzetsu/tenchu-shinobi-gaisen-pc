@@ -353,6 +353,29 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         assert_eq!(draw(&mut renderer, &[light], &[&mixed]), expected);
     }
     renderer.set_asset_pack(&crate::visuals::pack::Pack::default());
+    let region = crate::visuals::catalog::Region {
+        page: 256,
+        palette: 0,
+        rect: [0, 0, 1, 1],
+    };
+    renderer
+        .materials
+        .set_emissions(std::collections::BTreeMap::from([(
+            region,
+            [2.0, 2.0, 2.0, 0.65],
+        )]));
+    vram.words[0] = 0x7fff;
+    renderer.update_vram(&vram);
+    assert_eq!(draw(&mut renderer, &[light], &[&transparent]), lit);
+    graphics.lighting.lamps = false;
+    renderer.configure(&graphics);
+    assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
+    graphics.lighting.lamps = true;
+    renderer.configure(&graphics);
+    vram.words[0] = 31;
+    renderer.update_vram(&vram);
+    assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
+    renderer.materials.set_emissions(Default::default());
 
     let moved = Light {
         position: Vec3::new(-1000.0, -800.0, -1000.0),
@@ -378,8 +401,24 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     renderer.configure(&graphics);
     let mut full_budget = vec![inactive; crate::lighting::MAX_LIGHTS];
     *full_budget.last_mut().unwrap() = light;
-    assert_eq!(draw(&mut renderer, &full_budget, &[&blocker]), shadowed);
+    assert_eq!(draw(&mut renderer, &full_budget, &[&blocker]), lit);
     assert_eq!(draw(&mut renderer, &full_budget, &[]), lit);
+    full_budget.swap(0, crate::lighting::MAX_LIGHTS - 1);
+    assert_eq!(draw(&mut renderer, &full_budget, &[&blocker]), shadowed);
+    graphics.lighting.shadow_count = 0;
+    renderer.configure(&graphics);
+    assert_eq!(draw(&mut renderer, &full_budget, &[&blocker]), lit);
+    graphics.lighting.shadow_count = 2;
+    renderer.configure(&graphics);
+    draw(&mut renderer, &[light], &[&blocker]);
+    let hard = read_pixels(&renderer, &target);
+    graphics.lighting.softness = 3;
+    renderer.configure(&graphics);
+    let filtered = draw(&mut renderer, &[light], &[&blocker]);
+    assert!(filtered[0] < lit[0] - 20);
+    assert_ne!(read_pixels(&renderer, &target), hard);
+    graphics.lighting.softness = 0;
+    renderer.configure(&graphics);
     draw(&mut renderer, &[], &[]);
     assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
     graphics.lighting.shadows = false;

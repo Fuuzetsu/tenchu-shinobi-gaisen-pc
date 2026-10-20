@@ -1,12 +1,13 @@
 use super::{EffectMesh, Mesh};
 use crate::{
-    lighting::{Light, MAX_LIGHTS},
+    lighting::{Light, MAX_LIGHTS, MAX_SHADOW_LIGHTS},
     render_mesh::Vertex,
     settings::Lighting,
 };
 use glam::{Mat4, Vec3};
 
-const FACES: usize = MAX_LIGHTS * 6;
+pub const FACES: usize = MAX_SHADOW_LIGHTS * 6;
+pub const NEAR: f32 = 20.0;
 const LIGHT_WORDS: usize = MAX_LIGHTS * 8;
 
 pub struct Shadows {
@@ -58,7 +59,7 @@ impl Shadows {
                 },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 4) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 8) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -85,7 +86,7 @@ impl Shadows {
         });
         let faces = (0..FACES)
             .map(|_| {
-                let data = buffer(device, 64);
+                let data = buffer(device, 80);
                 let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("Shadow face and original texture"),
                     layout: &face_layout,
@@ -160,8 +161,11 @@ impl Shadows {
     }
 
     pub fn configure(&mut self, device: &wgpu::Device, settings: &Lighting, count: usize) {
+        let count = count
+            .min(usize::from(settings.shadow_count))
+            .min(MAX_SHADOW_LIGHTS);
         let active = settings.enabled && settings.shadows && count > 0;
-        let layers = if active { count.min(MAX_LIGHTS) * 6 } else { 1 };
+        let layers = if active { count * 6 } else { 1 };
         let resolution = if active { settings.resolution } else { 1 };
         if self.resolution != resolution || self.views.len() != layers {
             (self.bindings, self.views) = maps(
@@ -195,15 +199,18 @@ impl Shadows {
         for (i, light) in lights.iter().take(count).enumerate() {
             data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
             data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
+            if !settings.shadows || i >= usize::from(settings.shadow_count).min(MAX_SHADOW_LIGHTS) {
+                continue;
+            }
+            data[i * 8 + 7] = (i + 1) as f32;
             for (face, matrix) in matrices(light).iter().enumerate() {
                 let index = i * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
-                if !settings.shadows {
-                    continue;
-                }
                 let (buffer, bindings) = &self.faces[index];
-                queue.write_buffer(buffer, 0, bytemuck::cast_slice(&matrix.to_cols_array()));
+                let mut face = matrix.to_cols_array().to_vec();
+                face.extend([u8::from(settings.lamps) as f32, 0.0, 0.0, 0.0]);
+                queue.write_buffer(buffer, 0, bytemuck::cast_slice(&face));
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Point light face"),
                     color_attachments: &[],
@@ -241,6 +248,12 @@ impl Shadows {
             } else {
                 1.0
             },
+        ]);
+        data.extend([
+            u8::from(settings.lamps) as f32,
+            f32::from(settings.softness),
+            0.0,
+            0.0,
         ]);
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
     }
@@ -324,7 +337,7 @@ fn matrices(light: &Light) -> [Mat4; 6] {
         (Vec3::NEG_Z, Vec3::NEG_Y),
     ]
     .map(|(direction, up)| {
-        Mat4::perspective_rh(std::f32::consts::FRAC_PI_2, 1.0, 20.0, light.radius)
+        Mat4::perspective_rh(std::f32::consts::FRAC_PI_2, 1.0, NEAR, light.radius)
             * Mat4::look_to_rh(light.position, direction, up)
     })
 }

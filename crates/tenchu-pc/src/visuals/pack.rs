@@ -33,6 +33,8 @@ pub struct Manifest {
     pub models: BTreeMap<String, String>,
     #[serde(default)]
     pub materials: BTreeMap<String, Material>,
+    #[serde(default)]
+    pub lights: Option<Vec<super::lights::Rule>>,
 }
 
 #[derive(Default)]
@@ -41,6 +43,7 @@ pub struct Pack {
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub materials: BTreeMap<String, Material>,
+    pub lights: Option<Vec<super::lights::Rule>>,
 }
 
 impl Pack {
@@ -62,6 +65,12 @@ impl Pack {
             ));
         }
         let mut pack = Self::default();
+        if let Some(rules) = &manifest.lights {
+            for rule in rules {
+                rule.validate()?;
+            }
+        }
+        pack.lights = manifest.lights;
         let mut pixels = 0;
         for (id, path) in manifest.textures {
             if id.is_empty()
@@ -198,6 +207,7 @@ mod tests {
             textures: BTreeMap::from([(id.clone(), "test.png".into())]),
             models: BTreeMap::new(),
             materials: BTreeMap::new(),
+            lights: None,
         };
         let save = |manifest: &Manifest| {
             fs::write(

@@ -1,14 +1,29 @@
 struct Material {
     source: vec4<f32>,
     info: vec4<u32>,
+    emission: vec4<f32>,
     mips: array<vec4<f32>, MAX_MIPS>,
 }
 @group(2) @binding(0) var material_images: texture_2d_array<f32>;
 @group(2) @binding(1) var material_sampler: sampler;
 @group(2) @binding(2) var<storage, read> materials: array<Material>;
 
+fn material_emission(index: u32, color: vec3<f32>) -> vec3<f32> {
+    if index == 0u || index >= arrayLength(&materials) { return vec3(0.0); }
+    let emission = materials[index].emission;
+    let brightness = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    return color * emission.rgb * smoothstep(emission.a - 0.05, emission.a + 0.05, brightness);
+}
+
 fn material_replaced(index: u32) -> bool {
     return index != 0u && index < arrayLength(&materials) && materials[index].info.w != 0u;
+}
+
+fn material_transmits(index: u32, color: vec3<f32>) -> bool {
+    if index == 0u || index >= arrayLength(&materials) { return false; }
+    let emission = materials[index].emission;
+    return any(emission.rgb > vec3(0.0))
+        && dot(color, vec3(0.2126, 0.7152, 0.0722)) >= emission.a * 0.5;
 }
 
 fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {

@@ -154,6 +154,24 @@ impl Application {
             Item::FireLights => {
                 self.settings.graphics.lighting.fires = !self.settings.graphics.lighting.fires
             }
+            Item::LampLights => {
+                self.settings.graphics.lighting.lamps = !self.settings.graphics.lighting.lamps
+            }
+            Item::LightMarkers => {
+                self.settings.graphics.lighting.markers = !self.settings.graphics.lighting.markers
+            }
+            Item::ShadowSoftness => {
+                self.settings.graphics.lighting.softness =
+                    (i32::from(self.settings.graphics.lighting.softness) + direction).clamp(0, 8)
+                        as u16
+            }
+            Item::ShadowCount => {
+                self.settings.graphics.lighting.shadow_count = cycle(
+                    self.settings.graphics.lighting.shadow_count,
+                    &[0, 1, 2, 3, 4],
+                    direction,
+                )
+            }
             Item::LightCount => {
                 self.settings.graphics.lighting.count = cycle(
                     self.settings.graphics.lighting.count,
@@ -171,6 +189,8 @@ impl Application {
                 self.settings.graphics.lighting.enabled = true;
                 self.settings.graphics.lighting.shadows = true;
                 self.settings.graphics.lighting.fires = false;
+                self.settings.graphics.lighting.lamps = false;
+                self.settings.graphics.lighting.shadow_count = 1;
                 self.settings.graphics.lighting.ambient = 25;
                 self.settings.graphics.lighting.intensity = 250;
                 self.settings.graphics.lighting.radius = 12;
@@ -208,6 +228,29 @@ impl Application {
                     Some(self.debug.eye(&self.campaign.game))
                 };
                 self.debug.light_follow = false;
+            }
+            Item::FocusLight => {
+                let game = &self.campaign.game;
+                let source = self
+                    .view
+                    .as_ref()
+                    .and_then(|v| v.nearest_lamp(game, self.debug.eye(game)))
+                    .ok_or("No lantern emitters found in this mission")?;
+                let mut camera = self
+                    .debug
+                    .camera
+                    .unwrap_or_else(|| crate::debug::camera::Camera::from_game(game));
+                let direction = (source.light.position - camera.position).normalize_or_zero();
+                camera.yaw = direction.x.atan2(direction.z);
+                camera.focus(source.light.position, false);
+                camera.position = source.light.position - camera.forward() * 4500.0;
+                self.debug.camera = Some(camera);
+                self.settings.graphics.lighting.markers = true;
+                self.menu.notice = format!(
+                    "{} at {:.0?}",
+                    source.name,
+                    source.light.position.to_array()
+                );
             }
             Item::PlaceLight => {
                 self.debug.light = Some(self.debug.eye(&self.campaign.game));

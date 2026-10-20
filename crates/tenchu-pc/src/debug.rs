@@ -1,5 +1,6 @@
 pub mod camera;
 mod overlay;
+pub use overlay::light_markers;
 pub mod terrain;
 
 #[cfg(test)]

@@ -1,0 +1,8 @@
+[
+  { "name_contains": "AKARI" },
+  { "name_contains": "TORO" },
+  { "name_contains": "ANDON" },
+  { "name_contains": "CHOCHIN" },
+  { "name_contains": "LANTERN" },
+  { "name_contains": "LAMP" }
+]

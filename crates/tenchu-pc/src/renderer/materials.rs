@@ -17,6 +17,7 @@ pub const MAX_MIPS: usize = 13;
 struct Material {
     source: [f32; 4],
     info: [u32; 4],
+    emission: [f32; 4],
     mips: [[f32; 4]; MAX_MIPS],
 }
 
@@ -67,6 +68,7 @@ pub struct Materials {
     textures: BTreeMap<String, Arc<Image>>,
     enabled: bool,
     upscale: u16,
+    emissions: BTreeMap<Region, [f32; 4]>,
 }
 
 impl Materials {
@@ -123,6 +125,7 @@ impl Materials {
             textures: BTreeMap::new(),
             enabled: true,
             upscale: 1,
+            emissions: BTreeMap::new(),
         }
     }
 
@@ -150,12 +153,18 @@ impl Materials {
         self.regions.clear();
         self.external.clear();
         self.lookups.clear();
+        self.emissions.clear();
         self.repack = true;
     }
 
     pub fn set_pack(&mut self, textures: BTreeMap<String, Arc<Image>>) {
         self.textures = textures;
         self.prepare();
+    }
+
+    pub fn set_emissions(&mut self, emissions: BTreeMap<Region, [f32; 4]>) {
+        self.emissions = emissions;
+        self.repack = true;
     }
 
     pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
@@ -335,6 +344,11 @@ impl Materials {
         }
         let mut materials = vec![Material::zeroed(); self.entries.len() + 1];
         for (index, entry) in self.entries.iter().enumerate() {
+            materials[index + 1].emission = entry
+                .region
+                .and_then(|r| self.emissions.get(&r))
+                .copied()
+                .unwrap_or([0.0; 4]);
             materials[index + 1].source = entry
                 .region
                 .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));

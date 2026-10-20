@@ -214,21 +214,39 @@ In a mission, select **Preview model shadows** to enable a light above/beside th
 player, lower ambient brightness and hide the original blob shadows. Close F1
 and move or attack to inspect the animated silhouette. This changes presentation
 preferences; General → Restore defaults restores the original look.
-For manual setup, enable **Point lighting**, then use authored fires or place a
-movable light at the camera or above the player. The movable light lasts for the
-session and can follow free camera or move along X/Y/Z. Radius, intensity,
-ambient brightness and 256–2048 shadow resolution are adjustable.
+For manual setup, enable **Point lighting**. Authored fires and detected lanterns
+supply lights; a movable light can also be placed at the camera or above the
+player. The movable light lasts for the session and can follow free camera or
+move along X/Y/Z. Radius, intensity, ambient brightness, shadow filtering and
+256–2048 shadow resolution are adjustable.
 Lighting starts off; changing it never affects AI, visibility, RNG or logic timing.
 
-This is a new visual treatment over the original baked colors, with flat surface
-normals and filtered depth shadows. **Point-light budget** allows 1/2/4/8/16
-simultaneous sources (default 2); it does not create lights. Nearest registered
-fire/bonfire emitters fill the budget; the movable light takes priority. Baked
-lantern textures do not automatically become emitters, so enabling lighting
-away from a source changes only ambient brightness. The menu shows active lights,
-shadow views and depth-map memory. With shadows enabled, each active light costs
-six extra scene passes and about 6 MiB at 512 or 96 MiB at 2048. Maps are allocated
-for active lights only; disabling shadows releases them.
+This is a new visual treatment over the original baked colors.
+**Point-light budget** allows 1/2/4/8/16 simultaneous sources (default 2).
+Nearest sources fill the budget; the movable light takes priority.
+**Shadowed point lights** independently limits shadow rendering to the nearest
+0–4 lights. Unshadowed lights are cheaper but can shine through walls.
+The menu shows active lights, shadow views and depth-map memory. Each shadowed
+point light costs six extra scene passes and about 6 MiB at 512 or 96 MiB at 2048.
+Maps are allocated only for active shadowed lights; disabling shadows releases
+them. Filtering radius 0 retains bilinear depth comparisons; 1–8 adds nine-tap
+filtering. This softens edges, rather than simulating a full area light.
+
+**Lantern / prop lights** recognizes names such as AKARI, TORO and ANDON from
+the disc, then samples bright textured surfaces to locate/color the emitter.
+Placements and carried-weapon transforms supply world positions. Bright panels
+glow and transmit light; their darker frames still cast shadows. This is a
+reusable heuristic, not recovered original lighting data. **Light source
+markers** labels active sources; **Inspect nearest lantern** focuses free camera.
+
+Exported `pack.json` includes editable `lights` rules. An omitted list uses the
+built-in rules; `[]` disables detection. The last matching rule wins. Match with
+case-insensitive `name_contains`, or an exact catalogue `model` identity. Rules
+accept `enabled`, `threshold` (0.05–1 brightness), `emission` (0–10),
+`radius_scale` (0.1–4), optional RGB `color` and a local-space `offset`.
+Defaults derive color and position from the original mesh/texture; offsets let
+replacement authors adjust them. Reload through Visual assets. No mission
+coordinates are embedded in the renderer.
 
 Actual live actors, held/sheathed weapons, scenery, doors and trapdoors cast
 shadows even outside the gameplay camera. Other rendered world item meshes also
@@ -239,8 +257,8 @@ Lighting already baked into textures/vertex colors remains.
 
 Further visual work need not start with replacing textures.
 Presentation interpolation could smooth animation at higher display rates while
-keeping the original 30 Hz simulation. Better authored light placement and an
-optional directional moon/sun light would give shadows more consistent coverage.
+keeping the original 30 Hz simulation. An optional directional moon/sun light
+would give shadows more consistent coverage.
 These are follow-ups, not currently implemented.
 
 The export/edit/reload workflow above supports higher-resolution textures and

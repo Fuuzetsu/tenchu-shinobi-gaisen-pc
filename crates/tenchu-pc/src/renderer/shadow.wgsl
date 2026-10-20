@@ -1,4 +1,5 @@
-@group(0) @binding(0) var<uniform> matrix: mat4x4<f32>;
+struct Face { matrix: mat4x4<f32>, options: vec4<f32> }
+@group(0) @binding(0) var<uniform> face: Face;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
 struct Vertex {
@@ -21,7 +22,7 @@ struct Fragment {
 
 @vertex fn vertex(v: Vertex) -> Fragment {
     var out: Fragment;
-    out.position = matrix * vec4(v.position, 1.0);
+    out.position = face.matrix * vec4(v.position, 1.0);
     out.uv = v.uv;
     out.page = v.page;
     out.palette = v.palette;
@@ -34,13 +35,18 @@ struct Fragment {
     // Screen/debug geometry and genuinely translucent texels do not cast shadows.
     if (v.flags & 66u) != 0u { discard; }
     if (v.flags & 1u) != 0u {
+        var color = vec3(0.0);
         if material_replaced(v.material) {
-            let alpha = material_texel(v.material, v.uv).a;
+            let decoded = material_texel(v.material, v.uv);
+            let alpha = decoded.a;
+            color = decoded.rgb;
             if alpha == 0.0 || ((v.flags & 4u) != 0u && alpha < 0.75) { discard; }
         } else {
             let pixel = texel(vec2<i32>(floor(v.uv + vec2(0.001))), v.page, v.palette);
+            color = rgb(pixel);
             if pixel == 0u || ((v.flags & 4u) != 0u && (pixel & 32768u) != 0u) { discard; }
         }
+        if face.options.x != 0.0 && material_transmits(v.material, color) { discard; }
     } else if (v.flags & 4u) != 0u {
         discard;
     }

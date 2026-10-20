@@ -94,6 +94,49 @@ impl Lines {
     }
 }
 
+pub fn light_markers(
+    debug: &Debug,
+    game: &Game,
+    aspect: f32,
+    sources: &[crate::lighting::Source],
+    shadows: usize,
+) -> Geometry {
+    let mut lines = Lines {
+        vertices: Vec::new(),
+        matrix: debug.matrix(game, aspect),
+        aspect,
+        xray: false,
+    };
+    let mut labels = Vec::new();
+    for (i, source) in sources.iter().enumerate() {
+        let p = source.light.position;
+        let color = source.light.color;
+        lines.box_at(p - Vec3::splat(80.0), p + Vec3::splat(80.0), color);
+        if let Some([x, y]) = lines.label(p) {
+            labels.push((
+                x,
+                y,
+                format!(
+                    "{}{}",
+                    source.name,
+                    if i < shadows { " [shadow]" } else { "" }
+                ),
+                color,
+            ));
+        }
+    }
+    let count = lines.vertices.len() as u32;
+    let mut geometry = Geometry {
+        vertices: lines.vertices,
+        batches: vec![Batch {
+            blend: 0,
+            range: 0..count,
+        }],
+    };
+    geometry.append(render_effects::text(&game.mission.font, &labels));
+    geometry
+}
+
 pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
     let mut lines = Lines {
         vertices: Vec::new(),

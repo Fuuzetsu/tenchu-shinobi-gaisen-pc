@@ -101,6 +101,10 @@ pub struct Lighting {
     pub ambient: u16,
     pub resolution: u32,
     pub count: u16,
+    pub shadow_count: u16,
+    pub lamps: bool,
+    pub markers: bool,
+    pub softness: u16,
 }
 
 impl Default for Lighting {
@@ -114,6 +118,10 @@ impl Default for Lighting {
             ambient: 60,
             resolution: 512,
             count: 2,
+            shadow_count: 2,
+            lamps: true,
+            markers: false,
+            softness: 0,
         }
     }
 }
@@ -170,7 +178,11 @@ impl Store {
                 light.radius = light.radius.clamp(2, 50);
                 light.intensity = light.intensity.min(400);
                 light.ambient = light.ambient.min(100);
+                light.softness = light.softness.min(8);
                 light.count = light.count.clamp(1, crate::lighting::MAX_LIGHTS as u16);
+                light.shadow_count = light
+                    .shadow_count
+                    .min(crate::lighting::MAX_SHADOW_LIGHTS as u16);
                 if ![256, 512, 1024, 2048].contains(&light.resolution) {
                     light.resolution = 512;
                 }
