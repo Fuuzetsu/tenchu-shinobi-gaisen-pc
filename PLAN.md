@@ -168,6 +168,10 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
+The next goal adds optional configuration and native inspection tools while
+preserving the current defaults. See [CONFIGURATION.md](CONFIGURATION.md) for
+its deliverables and verification.
+
 2026-10-20: all MAIN.EXE systems are implemented. Current recordings complete
 all ten campaign missions and training for both characters from ordinary
 controller input and original disc assets, including the source-backed
