@@ -3,8 +3,9 @@ const SCREEN: u32 = 2u;
 const TRANSLUCENT: u32 = 4u;
 const SCREEN_WIDE: u32 = 8u;
 const DOUBLE_SIDED: u32 = 16u;
+const FOG: u32 = 32u;
 
-struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32> }
+struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -23,6 +24,7 @@ struct Fragment {
     @location(2) @interpolate(flat) page: u32,
     @location(3) @interpolate(flat) palette: u32,
     @location(4) @interpolate(flat) flags: u32,
+    @location(5) depth: f32,
 }
 
 @vertex fn vertex(v: Vertex) -> Fragment {
@@ -30,8 +32,10 @@ struct Fragment {
     if (v.flags & SCREEN) != 0u {
         let half_width = select(120.0 * camera.viewport.x, 160.0, (v.flags & SCREEN_WIDE) != 0u);
         out.position = vec4(v.position.x / half_width, -v.position.y / 120.0, v.position.z, 1.0);
+        out.depth = 0.0;
     } else {
         out.position = camera.matrix * vec4(v.position, 1.0);
+        out.depth = out.position.w;
     }
     out.color = v.color;
     out.uv = v.uv;
@@ -69,6 +73,10 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
         if pixel == 0u { discard; }
         semi = semi && (pixel & 32768u) != 0u;
         color *= vec3<f32>(f32(pixel & 31u), f32((pixel >> 5u) & 31u), f32((pixel >> 10u) & 31u)) / 31.0;
+    }
+    if (v.flags & (FOG | SCREEN)) == FOG {
+        let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
+        color *= 1.0 - fog;
     }
     return vec4(clamp(color, vec3(0.0), vec3(1.0)), select(0.0, 1.0, semi));
 }

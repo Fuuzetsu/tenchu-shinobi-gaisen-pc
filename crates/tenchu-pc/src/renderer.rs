@@ -1,6 +1,7 @@
 use crate::{render_effects, render_mesh::Vertex};
 use glam::Mat4;
 use tenchu_assets::{Result, texture::Vram};
+use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
 #[cfg(test)]
@@ -54,7 +55,7 @@ impl Renderer {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -135,7 +136,7 @@ impl Renderer {
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::bytes_of(&[0.0f32; 20]),
+            contents: bytemuck::bytes_of(&[0.0f32; 24]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -250,6 +251,12 @@ impl Renderer {
     ) {
         let mut camera = matrix.to_cols_array().to_vec();
         camera.extend([self.size[0] as f32 / self.size[1] as f32, 0.0, 0.0, 0.0]);
+        camera.extend([
+            DEPTH_CUE[0] as f32 * f32::from(DISTANCE) / 256.0,
+            DEPTH_CUE[1] as f32 / 16_777_216.0,
+            0.0,
+            0.0,
+        ]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -261,9 +268,9 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.008,
-                            g: 0.012,
-                            b: 0.02,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -326,7 +333,11 @@ pub fn game_camera(view: tenchu_core::math::Matrix, aspect: f32) -> Mat4 {
         view.translation[2] as f32,
         1.0,
     ];
-    Mat4::perspective_rh(2.0 * (120.0f32 / 300.0).atan(), aspect, 50.0, 250_000.0)
-        * Mat4::from_scale(glam::Vec3::new(1.0, -1.0, -1.0))
+    Mat4::perspective_rh(
+        2.0 * (120.0f32 / f32::from(DISTANCE)).atan(),
+        aspect,
+        50.0,
+        250_000.0,
+    ) * Mat4::from_scale(glam::Vec3::new(1.0, -1.0, -1.0))
         * Mat4::from_cols_array_2d(&columns)
 }

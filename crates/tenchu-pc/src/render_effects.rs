@@ -158,6 +158,7 @@ fn mesh_surfaces(
     matrix: Matrix,
     view: Matrix,
     translucent_only: bool,
+    fog: bool,
 ) {
     let view = view.compose(&matrix);
     for mesh in meshes {
@@ -171,7 +172,7 @@ fn mesh_surfaces(
                 0
             };
             let mut vertices = Vec::new();
-            render_mesh::append_face(&mut vertices, mesh, face, matrix);
+            render_mesh::append_face(&mut vertices, mesh, face, matrix, fog);
             let depth = face
                 .corners
                 .iter()
@@ -190,7 +191,14 @@ fn mesh_surfaces(
 pub fn build(game: &Game) -> Geometry {
     let mut surfaces = Vec::new();
     let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
-        mesh_surfaces(&mut surfaces, meshes, matrix, game.rendered_view, true);
+        mesh_surfaces(
+            &mut surfaces,
+            meshes,
+            matrix,
+            game.rendered_view,
+            true,
+            true,
+        );
     };
     render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
     render_mesh::visit_characters(game, &mut translucent);
@@ -211,17 +219,19 @@ pub fn build(game: &Game) -> Geometry {
                 matrix,
                 game.rendered_view,
                 false,
+                false,
             );
         }
     }
     for wire in &game.effects.wires {
-        if let Some((matrix, _)) = wire.hook {
+        if let Some((matrix, fog)) = wire.hook {
             mesh_surfaces(
                 &mut surfaces,
                 &game.mission.common_models[&26],
                 matrix,
                 game.rendered_view,
                 false,
+                fog,
             );
         }
         for &(points, sort_depth) in &wire.lines {
@@ -244,6 +254,7 @@ pub fn build(game: &Game) -> Geometry {
             matrix,
             game.rendered_view,
             false,
+            true,
         );
     }
     for &(kind, matrix) in &game.items.weapons {
@@ -253,6 +264,7 @@ pub fn build(game: &Game) -> Geometry {
             matrix,
             game.rendered_view,
             false,
+            true,
         );
     }
     for drawing in game

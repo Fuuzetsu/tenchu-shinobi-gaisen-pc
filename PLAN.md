@@ -174,17 +174,16 @@ dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellati
 medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
-Unsupported actions still pause with a diagnostic. Remaining item use, special
-ranged attacks and continuous mission validation remain unfinished;
-this is not a completed Mission 1.
+Unsupported actions still pause with a diagnostic. Broader campaign behavior,
+presentation and continuous mission validation remain unfinished. One Mission 1
+route passes; arbitrary interactive play is not yet certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
 original meshes, construction cell/depth ordering, adaptive subdivision, draw
 banks, shadows and implemented effects. They do not measure host performance,
-drop frames or change with render resolution. The sample remains incomplete
-until remaining effects and items are implemented;
-activation is therefore not yet certified against continuous retail gameplay.
+drop frames or change with render resolution. Drawing coverage and activation
+are not yet certified against continuous retail gameplay.
 
 Smoke, splashes, droplets, blood/gore, impacts and attached flashes share the source 200-slot pool
 and overflow dummy. DrawShadow preserves waist-cache, map-flag and splash side
@@ -196,8 +195,9 @@ The HUD now updates inventory selection after items, including the reserved-slot
 quirk, and displays original icons/counts, health bars and the proximity indicator.
 Five temporary enemy bars retain request order, captured health and expiry. Their
 logical packet contributions are included in activation sampling. The desktop
-launcher supplies the original fallback loadout (hook, 10 shuriken, 5 caltrops,
-2 medicine). Shuriken aiming/release/cancellation, medicine and caltrops now run
+diagnostic replay supplies the original fallback loadout (hook, 10 shuriken,
+5 caltrops, 2 medicine); the launcher uses source stock and equipment selection.
+Shuriken aiming/release/cancellation, medicine and caltrops now run
 through normal input, actor animations and item updates. AI can request medicine.
 Return-to-normal transitions now apply the source player camera reset, including
 shuriken recovery and the held-look-button exception.
@@ -222,7 +222,7 @@ Poisoned food now supports rolling, owner recovery, ordered target selection,
 luring, eating/interruptions, poison reactions/expiry and cleanup of the saved
 AI callback. Smoke and food share the source target filter.
 Mission 1 event routing and CVA camera/actor ownership now run from the disc.
-Remaining ranged/item combat and continuous campaign validation are still required.
+Broader campaign behavior and continuous campaign validation are still required.
 
 Verification completed so far:
 
@@ -717,3 +717,17 @@ characters; controller-aware help screens were visually inspected. No physical
 controller was attached, so device/backend interaction is not yet manually
 verified. Nix native, WASM and formatting checks pass on x86_64-linux; the Linux
 package and development shell now include libudev.
+
+World geometry now fades into black with the original camera-forward depth-cue
+curve, sharing the scalar projection constants. The GPU evaluates a continuous
+per-pixel curve; original polygon cue quantization/bank boundaries are outside
+this presentation change. HUD/sprites and plain shadow meshes remain separate,
+and the hook keeps its selected fog bank. No new lighting is applied to baked
+vertex colors. The renderer now clears to the original black background.
+An offscreen GPU check covers near/far colors, camera translation/rotation,
+textured additive blending, explicitly unfogged meshes and screen graphics.
+Both GPU checks, all thirteen relevant private desktop checks and the 67,584-case
+integer projection oracle pass. Captures of both Mission 1 starts and 1,000 ticks
+of its existing input route were visually inspected. Nix native, WASM and
+formatting checks pass on x86_64-linux. Original sector/distance visibility and
+the lit-tail omission in actor `0x8b`'s hand remain separate rendering work.

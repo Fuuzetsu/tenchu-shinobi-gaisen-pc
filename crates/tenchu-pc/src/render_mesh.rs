@@ -10,6 +10,7 @@ pub const SCREEN: u32 = 2;
 pub const TRANSLUCENT: u32 = 4;
 pub const SCREEN_WIDE: u32 = 8;
 pub const DOUBLE_SIDED: u32 = 16;
+pub const FOG: u32 = 32;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -26,7 +27,7 @@ fn append_geometry(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: 
     for geometry in geometries {
         for face in &geometry.faces {
             if !face.translucent {
-                append_face(vertices, geometry, face, matrix);
+                append_face(vertices, geometry, face, matrix, true);
             }
         }
     }
@@ -37,6 +38,7 @@ pub(crate) fn append_face(
     geometry: &Geometry,
     face: &Face,
     matrix: Matrix,
+    fog: bool,
 ) {
     let points: Vec<_> = face
         .corners
@@ -70,7 +72,8 @@ pub(crate) fn append_face(
             palette: face.texture.map_or(0, |t| u32::from(t.palette)),
             flags: if face.texture.is_some() { TEXTURED } else { 0 }
                 | if face.double_sided { DOUBLE_SIDED } else { 0 }
-                | if face.translucent { TRANSLUCENT } else { 0 },
+                | if face.translucent { TRANSLUCENT } else { 0 }
+                | if fog { FOG } else { 0 },
         });
     }
 }

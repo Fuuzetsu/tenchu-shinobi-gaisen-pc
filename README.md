@@ -114,7 +114,11 @@ shuriken throw or hold it to aim,
 then release to throw; J, Space or Shift cancels the held item. With the hook
 selected, hold E, aim with the direction keys and release to grapple. Doors, pitfalls, animated water, fire emitters, snow and ambient sound now run
 from the original construction data. Scene faces now use back-face culling and their original transparency flags and
-blend modes, sorted together with particles. Lighting and fog remain in progress.
+blend modes, sorted together with particles. Meshes retain their baked vertex
+colors and fade into black using the original camera-depth fog curve. The GPU
+evaluates that curve smoothly per pixel; original per-polygon cue quantization
+and distance/sector visibility are not yet reproduced. HUD, sprites and shadow
+meshes retain their separate drawing rules.
 
 Original sound effects, character voices, music and localized cinematic dialogue
 play from the disc. Music/dialogue require a raw Mode 2 BIN/CUE; cooked 2048-byte

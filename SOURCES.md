@@ -857,3 +857,28 @@ zero, signed overflow and variable-shift behavior. Teleport checks cover the
 quantized range acceptance, movement of the camera owner rather than item owner,
 untouched coordinate caches, held sight and forced-disposal camera behavior.
 The reticle drawing is shared with the existing hook and aimed shuriken paths.
+
+## Native distance fog (2026-10-20)
+
+`3DCTRL.C::InitGraphicsSystem` initializes the black far color, projection 300,
+depth-cue slope `-0x7ef4` and offset `0x2f282e0`; `EndDrawing` clears to that black.
+`drawzGT4` at `0x8005e658` applies the GTE depth cue to the original vertex colors.
+The renderer uses the corresponding continuous camera-forward curve, sharing the
+constants already used by scalar projection. It evaluates fog per fragment,
+preserving modern perspective interpolation rather than copying original
+per-polygon cue selection/quantization. HUD and sprite graphics remain separate;
+plain shadow meshes are not fogged and the hook retains its selected drawing bank.
+No host-renderer calculation changes logical packet counters or game state.
+
+| Source | Working-tree SHA-256 |
+| --- | --- |
+| `tenchu-decomp/src/main.exe/3DCTRL.C` | `1175982b0890852071a4b0f581ab637b24258d9fe2153b94d958d0edd337c45a` |
+| `tenchu-decomp/.shake/gen/main.exe/asm/nonmatchings/drawzGT4/drawzGT4.s` | `43aff0b0349765d41ea33a452aa7a218a4940f86971675f80ba7c1301a491df9` |
+| `tenchu-viewer/src/fog.rs` (continuous curve reference) | `91412f619eb8b9365a3c70330d66b24aebbc9a0ae8630391bdc4e643e009dced` |
+
+An asset audit across eleven stages and both character selections finds baked
+vertex colors throughout, with one lit primitive in stage 9's actor `0x8b`, part 13.
+The original `DrawTMD` stops at a lit primitive; matching that native mesh traversal
+remains separate work. The audit reads private disc data and stores no game assets
+in the repository. GPU checks cover near/far depths, translated/rotated cameras,
+texture transparency/blending and unfogged screen graphics.

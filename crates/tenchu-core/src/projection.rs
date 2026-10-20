@@ -4,6 +4,8 @@ mod tests;
 
 pub const SUMMARY: u32 = 0x7f87e000;
 pub const DRAW_TMD_REJECT: u32 = 0x01c66000;
+pub const DISTANCE: u16 = 300;
+pub const DEPTH_CUE: [i32; 2] = [-0x7ef4, 0x2f282e0];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Point {
@@ -47,7 +49,7 @@ fn geometry(matrix: &Matrix, vertex: [i16; 3]) -> (Point, u32) {
         flags |= 1 << 18;
     }
     let z = mac[2].clamp(0, 65535) as u16;
-    let ratio = divide(300, z);
+    let ratio = divide(DISTANCE, z);
     if z <= 150 {
         flags |= 1 << 17;
     }
@@ -64,7 +66,7 @@ fn geometry(matrix: &Matrix, vertex: [i16; 3]) -> (Point, u32) {
 }
 
 fn finish(flags: u32, ratio: u32) -> u32 {
-    let cue = 0x2f282e0i64 - 0x7ef4 * i64::from(ratio);
+    let cue = i64::from(DEPTH_CUE[1]) + i64::from(DEPTH_CUE[0]) * i64::from(ratio);
     let flags = flags
         | mac0(cue)
         | if (0..=4096).contains(&(cue >> 12)) {
