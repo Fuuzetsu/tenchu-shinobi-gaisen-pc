@@ -954,3 +954,23 @@ The full six-mission regression passes, including encoded/decoded saves at
 each boundary and startup of Mission 7. These routes establish specific
 completion coverage; broader play and the remaining Ayame campaign still need
 validation.
+
+
+Native play now accepts `--record DIRECTORY`. Each mission attempt gets a new
+input file containing its original launch options, initial RNG, selected gear
+and tick-by-tick buttons. Random-layout requests are captured before construction
+normalizes the selected layout, and armour/flute gear is captured before runtime
+inventory conversion. Pausing or losing focus flushes pending inputs; menus and
+pause time add no ticks. Retry and later missions create separate files, and
+recording failures are reported without stopping gameplay.
+
+The replay command recognizes the versioned header, loads the recorded state
+and rejects conflicting launch options. Legacy input-only tapes keep their
+diagnostic defaults. Tests reject malformed headers, preserve inputs across
+buffer flushes, and compare complete existing state snapshots after replaying
+seeded, random-layout, armoured, localized and training starts. All three checks
+pass. An isolated native window recorded two Ayame attempts, verified no changes
+during pause, then replayed both files: tick counts, health and motion match, and
+the retry seed equals the first run's final RNG. The replay's rendered frame was
+visually inspected. Audio was routed to a private null sink.
+Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.

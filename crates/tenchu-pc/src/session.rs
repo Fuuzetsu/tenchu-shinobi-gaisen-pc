@@ -123,8 +123,21 @@ impl Options {
     }
 }
 
-pub fn replay(mut game: Game, path: &Path) -> Result<Game> {
+pub fn replay(
+    assets: &GameAssets<FileSource>,
+    options: Options,
+    path: &Path,
+    explicit_options: bool,
+) -> Result<Game> {
     let input = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let mut game = if let Some(start) = crate::recording::Start::parse(&input)? {
+        if explicit_options {
+            return Err("Recorded sessions supply their own launch options".into());
+        }
+        start.load(assets)?
+    } else {
+        options.load(assets)?
+    };
     let runs = parse_inputs(&input).map_err(|e| format!("{}:{e}", path.display()))?;
     println!(
         "tick,buttons,x,y,z,vx,vy,vz,yaw,motion,count,loops,attributes,rng,rng_calls,health,clock,cinematic,outcome"
@@ -181,4 +194,4 @@ pub fn parse_inputs(input: &str) -> Result<Vec<(u32, u16)>> {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

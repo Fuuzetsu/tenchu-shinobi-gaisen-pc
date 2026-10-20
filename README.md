@@ -156,11 +156,27 @@ imported. Initial gameplay uses seed 1, then subsequent attempts continue from
 the preceding gameplay/reward RNG. Menu waiting and display refresh consume no
 RNG; PS1 startup VSync seeding is intentionally a host policy, not a hardware model.
 
+Add `--record DIRECTORY` when launching to record normal play:
+
+```sh
+./dev.sh cargo run --release -- play '/path/to/game.cue' --record ./recordings
+./dev.sh cargo run --release -- replay '/path/to/game.cue' ./recordings/mission1-EXAMPLE.inputs
+```
+
+The terminal prints a unique filename for each mission attempt. Recordings store
+launch settings, starting RNG, equipment and inputs for each logic tick. Pause
+and menu time add no inputs; retry and subsequent missions start new files.
+Files contain no game assets or captured RAM. Replay supplies the recorded
+settings automatically, including random-layout selection and armour; extra
+launch options are rejected. Use the same port revision for deterministic
+comparisons.
+
 `replay DISC INPUT.txt [OPTIONS]` runs without a window and writes a CSV trace,
 including health, game clock, cinematic activity and mission outcome. Add
 `--capture OUTPUT.png` to render its final state through the ordinary renderer;
 renderer messages go to stderr so stdout remains CSV.
-It keeps the diagnostic fallback loadout (hook, 10 shuriken, 5 caltrops, 2 medicine).
+Older input-only tapes use the diagnostic fallback seed 1 and loadout
+(hook, 10 shuriken, 5 caltrops, 2 medicine), with launch options from the command line.
 Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `#` starts a comment. For example, `30 1000` holds forward for one second and
 `1 1040` presses jump while holding forward. The replay and window use the same

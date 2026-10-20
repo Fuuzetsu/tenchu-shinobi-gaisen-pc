@@ -1,6 +1,7 @@
 use crate::{
     campaign::{Action, Campaign, Screen},
     controls::{self, Command, Controls},
+    recording::{Recorder, Start},
     render_effects, render_mesh,
     renderer::{self, EffectMesh, Mesh, Renderer},
     session::Options,
@@ -8,7 +9,7 @@ use crate::{
     storage::Storage,
     ui,
 };
-use std::{sync::Arc, time::Instant};
+use std::{fs::File, io::BufWriter, path::PathBuf, sync::Arc, time::Instant};
 use tenchu_assets::{Result, game::GameAssets};
 use tenchu_core::{clock::GameClock, game::Game};
 use winit::{
@@ -172,9 +173,37 @@ struct Application {
     focused: bool,
     error: Option<String>,
     audio: Option<crate::audio::Audio>,
+    recording_directory: Option<PathBuf>,
+    recording: Option<Recorder<BufWriter<File>>>,
 }
 
 impl Application {
+    fn recording_error(&mut self, error: String) {
+        eprintln!("Recording stopped: {error}");
+        self.recording = None;
+    }
+
+    fn flush_recording(&mut self) {
+        if let Some(recording) = &mut self.recording
+            && let Err(error) = recording.flush()
+        {
+            self.recording_error(error);
+        }
+    }
+
+    fn finish_recording(&mut self) {
+        self.flush_recording();
+        self.recording = None;
+    }
+
+    fn record_input(&mut self, buttons: u16) {
+        if let Some(recording) = &mut self.recording
+            && let Err(error) = recording.push(buttons)
+        {
+            self.recording_error(error);
+        }
+    }
+
     fn update_view(&mut self) {
         if let Some(view) = &mut self.view {
             view.update(&self.campaign, self.paused, self.fault.as_deref());
@@ -182,6 +211,7 @@ impl Application {
     }
 
     fn pause_error(&mut self, error: String) {
+        self.flush_recording();
         eprintln!(
             "Tick {}: {error}. Press F5 to retry.",
             self.campaign.game.tick
@@ -205,8 +235,32 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
+        let start = if self.recording_directory.is_some()
+            && matches!(action, Action::Confirm)
+            && let Screen::Inventory(loadout) = &self.campaign.screen
+        {
+            Some(Start {
+                options: self.campaign.options,
+                seed: self.campaign.seed,
+                inventory: loadout.clone().finish().1,
+            })
+        } else {
+            None
+        };
         match self.campaign.action(action, &self.assets) {
             Ok(reload) => {
+                if reload
+                    && let Some(start) = start
+                    && let Some(directory) = &self.recording_directory
+                {
+                    match Recorder::create(directory, start) {
+                        Ok(recording) => self.recording = Some(recording),
+                        Err(error) => self.recording_error(error),
+                    }
+                }
+                if !self.campaign.playing() {
+                    self.finish_recording();
+                }
                 if let Some(audio) = &mut self.audio {
                     if reload && let Err(error) = audio.reload(&self.assets, &self.campaign.game) {
                         eprintln!("Audio: {error}");
@@ -234,6 +288,9 @@ impl Application {
     }
 
     fn set_paused(&mut self, paused: bool) {
+        if paused {
+            self.flush_recording();
+        }
         self.paused = paused;
         self.controls.clear();
         if let Some(audio) = &mut self.audio {
@@ -288,6 +345,9 @@ impl ApplicationHandler for Application {
                 }
             }
             WindowEvent::Focused(focused) => {
+                if !focused {
+                    self.flush_recording();
+                }
                 let update = self.controls.poll(false);
                 self.focused = focused;
                 if update.disconnected && self.campaign.playing() {
@@ -347,7 +407,9 @@ impl ApplicationHandler for Application {
                 if self.focused && !self.paused && self.campaign.playing() {
                     self.clock.elapse(elapsed);
                     while self.clock.step().is_some() {
-                        if let Err(error) = self.campaign.tick(self.controls.buttons()) {
+                        let buttons = self.controls.buttons();
+                        self.record_input(buttons);
+                        if let Err(error) = self.campaign.tick(buttons) {
                             self.pause_error(error);
                             self.clock.discard_host_backlog();
                             break;
@@ -359,6 +421,7 @@ impl ApplicationHandler for Application {
                             audio.screen(&self.campaign.screen);
                         }
                         if !self.campaign.playing() {
+                            self.finish_recording();
                             self.controls.clear();
                             self.clock.discard_host_backlog();
                             break;
@@ -387,7 +450,12 @@ impl ApplicationHandler for Application {
     }
 }
 
-pub fn run(assets: GameAssets<FileSource>, options: Options, disc: &std::path::Path) -> Result<()> {
+pub fn run(
+    assets: GameAssets<FileSource>,
+    options: Options,
+    disc: &std::path::Path,
+    recording_directory: Option<PathBuf>,
+) -> Result<()> {
     let storage = Storage::new()?;
     let campaign = Campaign::new(&assets, options, storage.load()?)?;
     let audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
@@ -411,13 +479,17 @@ pub fn run(assets: GameAssets<FileSource>, options: Options, disc: &std::path::P
         focused: true,
         error: None,
         audio,
+        recording_directory,
+        recording: None,
     };
     println!(
         "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
     );
-    EventLoop::new()
+    let result = EventLoop::new()
         .map_err(|e| e.to_string())?
         .run_app(&mut application)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string());
+    application.finish_recording();
+    result?;
     application.error.map_or(Ok(()), Err)
 }

@@ -1,6 +1,7 @@
 use super::{INFINITE, LOCKED};
 use tenchu_assets::shop::{ITEMS, Shop};
 
+#[derive(Clone)]
 pub struct Loadout {
     pub stock: [u8; ITEMS],
     pub selected: [u8; ITEMS],

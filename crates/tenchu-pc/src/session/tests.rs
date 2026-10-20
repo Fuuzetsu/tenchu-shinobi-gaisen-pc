@@ -330,7 +330,7 @@ fn roster_and_weapon_definitions_match_retail_capture() {
     }
 }
 
-fn state(game: &Game) -> String {
+pub(crate) fn state(game: &Game) -> String {
     let wall_clips: Vec<_> = game
         .mission
         .characters
