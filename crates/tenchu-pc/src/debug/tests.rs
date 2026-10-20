@@ -2,6 +2,25 @@ use super::*;
 use tenchu_assets::{game::GameAssets, terrain::AreaMap};
 
 #[test]
+fn focus_views_look_down_from_above_the_target() {
+    let target = Vec3::new(4500.0, -1200.0, 2000.0);
+    let mut camera = camera::Camera {
+        position: Vec3::ZERO,
+        yaw: 1.2,
+        pitch: 0.0,
+        fov: 44.0,
+    };
+    for overhead in [false, true] {
+        camera.focus(target, overhead);
+        assert!(camera.position.y < target.y);
+        assert!(camera.forward().y > 0.0);
+        let projected = camera.matrix(16.0 / 9.0).project_point3(target);
+        assert!(projected.x.abs() < 0.0001 && projected.y.abs() < 0.0001);
+        assert!((0.0..1.0).contains(&projected.z));
+    }
+}
+
+#[test]
 fn picking_respects_holes_slopes_stacked_floors_and_parallel_rays() {
     let mut bytes = vec![0u8; 64];
     bytes[2..4].copy_from_slice(&2i16.to_le_bytes());

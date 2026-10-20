@@ -73,7 +73,7 @@ impl Camera {
     }
 
     pub fn focus(&mut self, target: Vec3, overhead: bool) {
-        self.pitch = if overhead { 1.55 } else { 0.3 };
+        self.pitch = if overhead { -1.55 } else { -0.3 };
         self.position = target - self.forward() * if overhead { 18000.0 } else { 6000.0 };
     }
 }
