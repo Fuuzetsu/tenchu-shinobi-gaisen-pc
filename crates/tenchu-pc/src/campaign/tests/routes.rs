@@ -125,8 +125,8 @@ fn complete_punishment(campaign: &mut Campaign, tape: &str) -> Save {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1–5 from new-game stock using controller input, saves between missions and starts Mission 6"]
-fn controller_routes_complete_first_five_missions() {
+#[ignore = "requires TENCHU_DISC; completes Missions 1–6 from new-game stock using controller input, saves between missions and starts Mission 7"]
+fn controller_routes_complete_first_six_missions() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -208,17 +208,22 @@ fn controller_routes_complete_first_five_missions() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 6);
-    resumed.action(Action::Confirm, &assets).unwrap();
-    assert_eq!(
-        resumed.game.player().health,
-        resumed.game.player().max_health
+    equip(&mut resumed, &assets, &[(1, 1), (3, 2), (4, 2), (5, 4)]);
+    assert_eq!(&resumed.game.player().inventory[..6], &[255, 1, 0, 2, 2, 4]);
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission6-rikimaru-campaign.inputs"),
     );
-    for _ in 0..30 {
-        resumed.tick(0).unwrap();
-    }
-    assert!(resumed.playing());
-    assert_eq!(resumed.game.events.outcome, Outcome::Running);
-    assert!(resumed.game.player().health > 0);
+    eprintln!("Mission 6 saved campaign: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [20, 110, 150]
+    );
+    assert_eq!(resumed.game.tick, 5819);
+    assert_eq!(resumed.game.player().health, 12);
+    assert_eq!(&resumed.game.player().inventory[..6], &[255, 0, 0, 2, 0, 2]);
+    assert_eq!(resumed.progress.flags & 63, 63);
+    save_and_start_next(&mut resumed, &assets, 3548);
 }
 
 #[test]

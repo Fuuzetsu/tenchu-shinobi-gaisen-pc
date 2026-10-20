@@ -941,3 +941,16 @@ The equipment screen now shows the original five-type limit alongside the
 the loadout rules; behavior is unchanged. The existing inventory regression
 passes, and an isolated native window confirmed the empty and full-type displays
 and rejection of a fifth selected equipment type.
+
+
+The continuous saved Rikimaru campaign now completes Mission 6 with its actual
+stock and RNG. It grapples the statue, defeats the cult leader and reaches
+Onikage's authored retreat threshold. Sequences 20/110/150 start at ticks
+1,238/3,285/5,409; results arrive at tick 5,819 with 12 HP and clock 3,548.
+The normal equipment menu supplies one shuriken, two medicine, two grenades and
+four smoke bombs plus the hook. The shuriken, grenades and two smoke bombs are
+used; both medicine remain. No actor state, events or RNG are overridden.
+The full six-mission regression passes, including encoded/decoded saves at
+each boundary and startup of Mission 7. These routes establish specific
+completion coverage; broader play and the remaining Ayame campaign still need
+validation.
