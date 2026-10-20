@@ -14,11 +14,37 @@ pub struct Geometry {
     pub batches: Vec<Batch>,
 }
 
+impl Geometry {
+    pub fn append(&mut self, other: Geometry) {
+        let offset = self.vertices.len() as u32;
+        self.vertices.extend(other.vertices);
+        self.batches
+            .extend(other.batches.into_iter().map(|batch| Batch {
+                blend: batch.blend,
+                range: batch.range.start + offset..batch.range.end + offset,
+            }));
+    }
+}
+
 pub fn panel(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 3])]) -> Geometry {
     let mut vertices = screen_band(-120.0, 120.0, [0.018, 0.025, 0.034], 0);
     for vertex in &mut vertices {
         vertex.position[2] = 0.00001;
     }
+    let count = vertices.len() as u32;
+    let mut geometry = Geometry {
+        vertices,
+        batches: vec![Batch {
+            blend: 0,
+            range: 0..count,
+        }],
+    };
+    geometry.append(text(font, lines));
+    geometry
+}
+
+pub fn text(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 3])]) -> Geometry {
+    let mut vertices = Vec::new();
     for &(left, top, ref text, color) in lines {
         let mut x = f32::from(left);
         for code in text.bytes() {
@@ -189,6 +215,10 @@ fn mesh_surfaces(
 }
 
 pub fn build(game: &Game) -> Geometry {
+    build_with_hud(game, true)
+}
+
+pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
     let mut surfaces = Vec::new();
     let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
         mesh_surfaces(
@@ -403,7 +433,7 @@ pub fn build(game: &Game) -> Geometry {
         .items
         .sprites
         .iter()
-        .chain(&game.hud.sprites)
+        .chain(game.hud.sprites.iter().filter(|_| show_hud))
         .chain(&game.cinematic.sprites)
     {
         let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();

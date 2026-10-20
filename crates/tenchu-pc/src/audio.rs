@@ -102,6 +102,10 @@ impl Audio {
         }
     }
 
+    pub fn volume(&self, percent: u16) {
+        self.output.send(output::Command::Volume(percent));
+    }
+
     pub fn poll(&mut self) {
         if let Some(result) = self.loader.poll() {
             match result {

@@ -16,3 +16,5 @@ bytemuck.workspace = true
 png.workspace = true
 cpal.workspace = true
 gilrs.workspace = true
+serde.workspace = true
+serde_json.workspace = true

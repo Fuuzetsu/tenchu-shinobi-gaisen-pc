@@ -1,4 +1,8 @@
-use std::{fs, io::Write, path::PathBuf};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 use tenchu_assets::Result;
 use tenchu_core::progress::save::Save;
 
@@ -69,21 +73,24 @@ impl Storage {
     }
 
     pub fn write(&self, save: &Save) -> Result<()> {
-        let directory = self
-            .path
-            .parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(std::path::Path::new("."));
-        fs::create_dir_all(directory).map_err(|e| e.to_string())?;
-        let temporary = self.path.with_extension("sav.tmp");
-        let mut file = fs::File::create(&temporary).map_err(|e| e.to_string())?;
-        file.write_all(&save.encode())
-            .and_then(|_| file.sync_all())
-            .map_err(|e| e.to_string())?;
-        drop(file);
-        fs::rename(&temporary, &self.path)
-            .map_err(|e| format!("Save {}: {e}", self.path.display()))?;
+        atomic_write(&self.path, &save.encode())?;
         println!("Saved {}", self.path.display());
         Ok(())
     }
+}
+
+pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
+    let directory = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(std::path::Path::new("."));
+    fs::create_dir_all(directory).map_err(|e| e.to_string())?;
+    let temporary = path.with_extension("tmp");
+    let mut file = fs::File::create(&temporary).map_err(|e| e.to_string())?;
+    file.write_all(bytes)
+        .and_then(|_| file.sync_all())
+        .map_err(|e| e.to_string())?;
+    drop(file);
+    fs::rename(&temporary, path).map_err(|e| format!("Save {}: {e}", path.display()))?;
+    Ok(())
 }

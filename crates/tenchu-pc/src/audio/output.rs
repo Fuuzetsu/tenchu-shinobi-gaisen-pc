@@ -19,6 +19,7 @@ pub enum Command {
     Music(Option<Arc<Clip>>, bool),
     Clear,
     Pause(bool),
+    Volume(u16),
 }
 
 pub struct Output {
@@ -69,6 +70,7 @@ fn build<T: SizedSample + FromSample<f32>>(
     let mut mixer = Mixer::new(config.sample_rate);
     let channels = usize::from(config.channels);
     let mut reported = false;
+    let mut volume = 1.0;
     device
         .build_output_stream(
             config,
@@ -80,6 +82,7 @@ fn build<T: SizedSample + FromSample<f32>>(
                         Command::Music(clip, repeat) => mixer.music(clip, repeat),
                         Command::Clear => mixer.clear_effects(),
                         Command::Pause(paused) => mixer.paused = paused,
+                        Command::Volume(percent) => volume = f32::from(percent.min(100)) / 100.0,
                     }
                 }
                 for frame in data.chunks_exact_mut(channels) {
@@ -94,7 +97,7 @@ fn build<T: SizedSample + FromSample<f32>>(
                                 _ => 0.0,
                             }
                         };
-                        *out = T::from_sample(value);
+                        *out = T::from_sample(value * volume);
                     }
                 }
             },

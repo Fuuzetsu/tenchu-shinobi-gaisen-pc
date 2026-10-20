@@ -7,6 +7,7 @@ mod render_effects;
 mod render_mesh;
 mod renderer;
 mod session;
+mod settings;
 mod source;
 mod storage;
 mod ui;

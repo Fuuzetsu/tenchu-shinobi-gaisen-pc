@@ -7,14 +7,17 @@ camera state, simulation controls and one-shot edits start disabled each launch.
 
 ## Deliverables
 
-- [ ] F1 menu with keyboard, controller and pointer navigation, contextual help,
+- [x] F1 menu with keyboard, controller and pointer navigation, contextual help,
   reset-to-defaults, persistent preferences and visible feedback for errors.
-- [ ] FPS/tick display, pause on defocus, fullscreen, VSync, HUD visibility and
+- [x] FPS/tick display, pause on defocus, fullscreen, VSync, HUD visibility and
   master volume. Preserve the existing focus, audio and input behavior by default.
 - [ ] Fog enable/distance, textures, vertex shading, exposure, nearest/bilinear
   texture filtering and GPU-supported MSAA choices. Keep original defaults.
   Paletted VRAM needs decoded texture sampling; ordinary hardware anisotropic
   filtering is not automatically applicable.
+- [ ] Optional dynamic lights and shadow maps, disabled by default. Inspect
+  authored fire emitters as light sources; provide a movable debug light,
+  distance/intensity controls and explicit performance/coverage limits.
 - [ ] Enemy sight-distance multiplier, using the original angular, stance,
   occlusion and update rules at 100%. Clearly identify this as a gameplay edit.
 - [ ] Free camera, flight speed, camera bookmarks, focus selected actor, overhead
@@ -26,6 +29,9 @@ camera state, simulation controls and one-shot edits start disabled each launch.
 - [ ] Pause/frame advance, simulation speed and screenshots. Keep edits and
   recordings honest: unsupported state edits must not silently produce a tape
   that claims to replay the edited session.
+- [ ] Cutscene fast-forward: hold-to-speed-up and optional automatic speed,
+  including a bounded maximum-throughput mode. Execute every original logic
+  update and keep UI/input responsive; default to ordinary speed.
 - [ ] Meaningful regression checks for unchanged defaults, settings persistence,
   sight thresholds, geometry/picking, camera isolation and GPU settings; exercise
   the actual native menu. Format, document and commit coherent increments.
@@ -54,3 +60,10 @@ Run default campaign regressions after gameplay-facing changes. Compare default
 render output and exercise supported MSAA modes with the actual GPU backend.
 Use an isolated native window/audio sink for interactive checks. Shared core and
 asset crates must still compile for WASM. No new disc assets belong in Git.
+
+2026-10-20: the first menu increment passes eight fixture-free host tests,
+including settings upgrade/corruption and atomic replacement. An isolated native
+window check opened/closed F1 during Mission 1, changed preferences, displayed
+FPS and verified that ticks stop while the menu is open. With another window
+focused, ticks continue only when pause on defocus is disabled. Screenshots were
+inspected; a footer placed too low was moved within the viewport.

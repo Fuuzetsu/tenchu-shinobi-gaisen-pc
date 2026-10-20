@@ -5,6 +5,10 @@ use crate::{
     render_effects, render_mesh,
     renderer::{self, EffectMesh, Mesh, Renderer},
     session::Options,
+    settings::{
+        self, Settings,
+        menu::{Item, Menu},
+    },
     source::FileSource,
     storage::Storage,
     ui,
@@ -15,10 +19,10 @@ use tenchu_core::{clock::GameClock, game::Game};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
-    event::{ElementState, WindowEvent},
+    event::{ElementState, MouseButton, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
-    keyboard::PhysicalKey,
-    window::{Window, WindowId},
+    keyboard::{KeyCode, PhysicalKey},
+    window::{Fullscreen, Window, WindowId},
 };
 
 struct View {
@@ -113,16 +117,54 @@ impl View {
             .upload(&render_mesh::stage(&game.mission, &game.math));
     }
 
-    fn update(&mut self, campaign: &Campaign, paused: bool, error: Option<&str>) {
+    fn settings(&mut self, settings: &Settings) {
+        self.window
+            .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
+        let mode = if settings.vsync {
+            wgpu::PresentMode::AutoVsync
+        } else {
+            wgpu::PresentMode::AutoNoVsync
+        };
+        if self.config.present_mode != mode {
+            self.config.present_mode = mode;
+            self.surface.configure(&self.renderer.device, &self.config);
+        }
+    }
+
+    fn update(
+        &mut self,
+        campaign: &Campaign,
+        paused: bool,
+        error: Option<&str>,
+        settings: &Settings,
+        menu: &Menu,
+        fps: f32,
+    ) {
         let game = &campaign.game;
         if self.vram_revision != game.mission.vram.revision {
             self.renderer.update_vram(&game.mission.vram);
             self.vram_revision = game.mission.vram.revision;
         }
         self.actor = self.renderer.upload(&render_mesh::characters(game));
-        self.effects = self
-            .renderer
-            .upload_effects(ui::build(campaign, paused, error));
+        let mut geometry = if menu.open {
+            menu.build(&game.mission.font, settings)
+        } else if campaign.playing() && !paused && error.is_none() {
+            render_effects::build_with_hud(game, settings.show_hud)
+        } else {
+            ui::build(campaign, paused, error)
+        };
+        if settings.show_fps && !menu.open {
+            geometry.append(render_effects::text(
+                &game.mission.font,
+                &[(
+                    -154,
+                    -115,
+                    format!("{fps:.0} FPS  tick {}", game.tick),
+                    [1.0, 0.85, 0.35],
+                )],
+            ));
+        }
+        self.effects = self.renderer.upload_effects(geometry);
         self.window.set_title(&format!(
             "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
             game.tick,
@@ -175,6 +217,13 @@ struct Application {
     audio: Option<crate::audio::Audio>,
     recording_directory: Option<PathBuf>,
     recording: Option<Recorder<BufWriter<File>>>,
+    settings: Settings,
+    settings_store: settings::Store,
+    menu: Menu,
+    pointer: [f64; 2],
+    fps: f32,
+    fps_elapsed: f32,
+    fps_frames: u32,
 }
 
 impl Application {
@@ -206,8 +255,69 @@ impl Application {
 
     fn update_view(&mut self) {
         if let Some(view) = &mut self.view {
-            view.update(&self.campaign, self.paused, self.fault.as_deref());
+            view.update(
+                &self.campaign,
+                self.paused,
+                self.fault.as_deref(),
+                &self.settings,
+                &self.menu,
+                self.fps,
+            );
         }
+    }
+
+    fn is_suspended(&self) -> bool {
+        self.paused || self.menu.open || (!self.focused && self.settings.pause_on_defocus)
+    }
+
+    fn sync_pause(&mut self) {
+        let paused = self.is_suspended();
+        if let Some(audio) = &mut self.audio {
+            audio.pause(paused);
+        }
+        self.controls.clear();
+        self.last_frame = Instant::now();
+        self.clock.discard_host_backlog();
+    }
+
+    fn toggle_menu(&mut self) {
+        self.menu.open = !self.menu.open;
+        self.flush_recording();
+        self.sync_pause();
+        self.update_view();
+    }
+
+    fn settings_action(&mut self, action: Action) {
+        let rows = settings::menu::rows(&self.settings);
+        if let Some(direction) = self.menu.action(action, rows.len()) {
+            match rows[self.menu.row].item {
+                Item::Fps => self.settings.show_fps = !self.settings.show_fps,
+                Item::Focus => self.settings.pause_on_defocus = !self.settings.pause_on_defocus,
+                Item::Fullscreen => self.settings.fullscreen = !self.settings.fullscreen,
+                Item::Vsync => self.settings.vsync = !self.settings.vsync,
+                Item::Hud => self.settings.show_hud = !self.settings.show_hud,
+                Item::Volume => {
+                    self.settings.volume =
+                        (i32::from(self.settings.volume) + direction * 5).clamp(0, 100) as u16
+                }
+                Item::Reset => self.settings = Settings::default(),
+            }
+            self.menu.notice = match self.settings_store.write(&self.settings) {
+                Ok(()) => String::new(),
+                Err(error) => {
+                    eprintln!("Settings: {error}");
+                    "Could not save settings; see terminal".into()
+                }
+            };
+            if let Some(view) = &mut self.view {
+                view.settings(&self.settings);
+            }
+            if let Some(audio) = &self.audio {
+                audio.volume(self.settings.volume);
+            }
+        }
+        self.sync_pause();
+        self.update_view();
     }
 
     fn pause_error(&mut self, error: String) {
@@ -292,15 +402,12 @@ impl Application {
             self.flush_recording();
         }
         self.paused = paused;
-        self.controls.clear();
-        if let Some(audio) = &mut self.audio {
-            audio.pause(paused || !self.focused);
-            if !paused {
-                audio.effect(0x0a);
-            }
+        self.sync_pause();
+        if !self.is_suspended()
+            && let Some(audio) = &self.audio
+        {
+            audio.effect(0x0a);
         }
-        self.last_frame = Instant::now();
-        self.clock.discard_host_backlog();
         self.update_view();
     }
 
@@ -322,7 +429,8 @@ impl ApplicationHandler for Application {
     fn resumed(&mut self, events: &ActiveEventLoop) {
         if self.view.is_none() {
             match View::new(events, &self.campaign.game) {
-                Ok(view) => {
+                Ok(mut view) => {
+                    view.settings(&self.settings);
                     self.view = Some(view);
                     self.update_view();
                 }
@@ -353,12 +461,32 @@ impl ApplicationHandler for Application {
                 if update.disconnected && self.campaign.playing() {
                     self.set_paused(true);
                 }
-                if let Some(audio) = &mut self.audio {
-                    audio.pause(!focused || self.paused);
+                self.sync_pause();
+            }
+            WindowEvent::CursorMoved { position, .. } => self.pointer = [position.x, position.y],
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button,
+                ..
+            } if self.menu.open => {
+                if let Some(view) = &self.view {
+                    let y = self.pointer[1] / f64::from(view.size[1].max(1)) * 240.0 - 120.0;
+                    let x = (self.pointer[0] - f64::from(view.size[0]) / 2.0)
+                        / f64::from(view.size[1].max(1))
+                        * 240.0;
+                    let row = ((y + 64.0) / 19.0).floor() as isize;
+                    if (-150.0..150.0).contains(&x)
+                        && row >= 0
+                        && (row as usize) < settings::menu::rows(&self.settings).len()
+                    {
+                        self.menu.row = row as usize;
+                        self.settings_action(if button == MouseButton::Right {
+                            Action::Left
+                        } else {
+                            Action::Right
+                        });
+                    }
                 }
-                self.controls.clear();
-                self.last_frame = Instant::now();
-                self.clock.discard_host_backlog();
             }
             WindowEvent::KeyboardInput {
                 event,
@@ -371,6 +499,18 @@ impl ApplicationHandler for Application {
                 let PhysicalKey::Code(code) = event.physical_key else {
                     return;
                 };
+                if event.state == ElementState::Pressed && code == KeyCode::F1 {
+                    self.toggle_menu();
+                    return;
+                }
+                if self.menu.open {
+                    if event.state == ElementState::Pressed
+                        && let Some(Command::Menu(action)) = controls::keyboard_command(code, false)
+                    {
+                        self.settings_action(action);
+                    }
+                    return;
+                }
                 if !self
                     .controls
                     .key(code, event.state == ElementState::Pressed)
@@ -387,6 +527,12 @@ impl ApplicationHandler for Application {
                 if update.disconnected && self.campaign.playing() {
                     eprintln!("Active controller disconnected; gameplay paused.");
                     self.set_paused(true);
+                } else if self.focused && self.menu.open {
+                    if let Some(Command::Menu(action)) =
+                        controls::gamepad_command(update.pressed, false, false)
+                    {
+                        self.settings_action(action);
+                    }
                 } else if self.focused
                     && let Some(command) = controls::gamepad_command(
                         update.pressed,
@@ -399,15 +545,28 @@ impl ApplicationHandler for Application {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
+                self.fps_elapsed += elapsed.as_secs_f32();
+                self.fps_frames += 1;
+                let fps_changed = self.fps_elapsed >= 0.5;
+                if fps_changed {
+                    self.fps = self.fps_frames as f32 / self.fps_elapsed;
+                    self.fps_elapsed = 0.0;
+                    self.fps_frames = 0;
+                }
+                let suspended = self.is_suspended();
                 if let Some(audio) = &mut self.audio {
-                    audio.pause(!self.focused || self.paused);
+                    audio.pause(suspended);
                     audio.poll();
                 }
                 let before = self.campaign.game.tick;
-                if self.focused && !self.paused && self.campaign.playing() {
+                if !suspended && self.campaign.playing() {
                     self.clock.elapse(elapsed);
                     while self.clock.step().is_some() {
-                        let buttons = self.controls.buttons();
+                        let buttons = if self.focused {
+                            self.controls.buttons()
+                        } else {
+                            0
+                        };
                         self.record_input(buttons);
                         if let Err(error) = self.campaign.tick(buttons) {
                             self.pause_error(error);
@@ -429,10 +588,10 @@ impl ApplicationHandler for Application {
                     }
                     self.save();
                 }
+                if before != self.campaign.game.tick || fps_changed && self.settings.show_fps {
+                    self.update_view();
+                }
                 if let Some(view) = &mut self.view {
-                    if before != self.campaign.game.tick && !self.paused {
-                        view.update(&self.campaign, self.paused, self.fault.as_deref());
-                    }
                     if let Err(error) = view.draw(&self.campaign.game) {
                         self.error = Some(error);
                         events.exit();
@@ -457,6 +616,17 @@ pub fn run(
     recording_directory: Option<PathBuf>,
 ) -> Result<()> {
     let storage = Storage::new()?;
+    let settings_store = settings::Store::new()?;
+    let (settings, notice) = match settings_store.load() {
+        Ok(settings) => (settings, String::new()),
+        Err(error) => {
+            eprintln!("Settings: {error}. Using defaults.");
+            (
+                Settings::default(),
+                "Settings file unreadable; using defaults".into(),
+            )
+        }
+    };
     let campaign = Campaign::new(&assets, options, storage.load()?)?;
     let audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
         Ok(audio) => Some(audio),
@@ -465,6 +635,9 @@ pub fn run(
             None
         }
     };
+    if let Some(audio) = &audio {
+        audio.volume(settings.volume);
+    }
     let mut application = Application {
         assets,
         campaign,
@@ -481,6 +654,16 @@ pub fn run(
         audio,
         recording_directory,
         recording: None,
+        settings,
+        settings_store,
+        menu: Menu {
+            notice,
+            ..Menu::default()
+        },
+        pointer: [0.0; 2],
+        fps: 0.0,
+        fps_elapsed: 0.0,
+        fps_frames: 0,
     };
     println!(
         "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."

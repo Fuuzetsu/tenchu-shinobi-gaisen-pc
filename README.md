@@ -91,6 +91,17 @@ labels differ between controller brands.
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
 Quick keyboard and controller taps are retained until the next gameplay tick.
 
+**F1** opens settings from any screen. Use arrows/D-pad and Enter/South, or
+click a row (right-click decreases), then F1/Escape/East to close. The settings
+menu pauses the game without changing an existing manual pause. It provides FPS
+and tick display, pause on defocus, borderless fullscreen, VSync, HUD visibility
+and master volume. Factory defaults preserve the preceding experience.
+Preferences save separately from progress in
+`$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
+`~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`
+overrides the file. Disabling pause on defocus keeps simulation/audio running
+but still releases controls; input from another application never controls the game.
+
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.
 Held controls must be released after menu or focus changes. Losing focus freezes
