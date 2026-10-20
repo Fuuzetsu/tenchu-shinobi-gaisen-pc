@@ -163,3 +163,39 @@ the full sequential run (`--include-ignored --test-threads=1`) completed in
 25.49 seconds. Nix native packaging, WASM libraries and formatting pass on
 x86_64 Linux. The release binary is rebuilt. Three isolated Wayland runs enabled
 the shadow preview and exited cleanly under repeated Escape presses.
+
+## Whole-game visual upgrade goal
+
+Deliver an optional, coherent enhanced presentation, including textures and
+models rather than only lights. The original look stays the factory default.
+Changes remain presentation-only: source geometry/collision, animation updates,
+AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
+
+- [ ] Recover reusable asset identities, original texture regions and prop names
+  from the loaded disc. Export a reviewable catalogue, decoded PNG textures and
+  model/UV geometry; avoid tables of mission-specific coordinates/resources.
+- [ ] Implement an editable visual asset pack with original fallback, validation,
+  reload and useful errors. Support higher-resolution texture overrides and
+  visual mesh overrides attached to the existing animation parts.
+- [ ] Improve texture minification with isolated mip chains and anisotropic
+  sampling, preserving texture holes and original semi-transparency. Offer
+  optional automatic texture reconstruction/upscaling, tested against real art.
+- [ ] Improve model presentation with smooth lighting and an optional
+  silhouette-smoothing mode where it helps, plus the replacement-mesh path.
+  Retain sharp architecture and verify animation/weapon attachments and shadows.
+- [ ] Make lanterns and luminous props emit light, using recovered names/material
+  information and editable reusable rules. Provide visible source markers and
+  overrides for ambiguous assets. Add useful ambient/directional lighting.
+- [ ] Add restrained bloom, atmosphere/color controls and presentation polish,
+  preserving readable HUD/menu rendering. Keep effects individually adjustable.
+- [ ] Add Original/Enhanced/Cinematic presets and clear F1 controls, including
+  asset reload and quality/performance feedback.
+- [ ] Compare actual mission views and moving characters before/after, including
+  indoor/outdoor scenes and both players. Verify original rendering/gameplay
+  regressions, portable libraries, Nix packaging and repeated-exit behavior.
+
+Acceptance is an enhanced preset that visibly improves the game using the
+supplied disc alone, plus a working export/edit/reload path for genuinely new
+texture/model detail. Automated processing cannot invent accurate bespoke art;
+record where it helps, where it fails and how replacements take over. Do not
+declare completion after only the lighting or asset-catalogue stage.
