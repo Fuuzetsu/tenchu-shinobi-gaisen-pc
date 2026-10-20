@@ -177,7 +177,7 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first nine missions, independent Rikimaru Mission 3 and Mission 4 routes,
+complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -1004,3 +1004,18 @@ arrive at tick 5,112 with 22 HP and clock 4,026. The regression checks the boss'
 death, accumulated completion flags and encoded/decoded continuation into
 Mission 10. No gameplay state is overridden.
 The full nine-mission regression and formatting check pass.
+
+
+The saved Rikimaru campaign now completes all ten missions. Mission 10 selects
+six caltrops, one medicine, one smoke bomb and two mines from the accumulated
+stock, plus the hook. Ordinary controller input defeats Onikage, crosses the
+lava, descends the pitfall and defeats Mei-Oh. The medicine, smoke and one mine
+are used. Sequences 7/10/15/35/40 begin at ticks
+1,523/1,613/4,216/9,201/9,882; results arrive at tick 14,348 with 30 HP and clock
+10,927. The regression verifies both bosses' deaths, all ten mission flags,
+the encoded/decoded final save, completion screen, launcher return and saved
+Mission 10 replay selection. No gameplay state is overridden.
+The complete ten-mission regression and independent final mission regression
+pass in the release build; formatting passes. Remaining Ayame routes, training,
+broader interactive play and presentation validation are still required. This
+specific controller route is not a claim of complete-game or retail parity.

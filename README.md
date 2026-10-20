@@ -201,14 +201,19 @@ with 100 HP, then the
 [Mission 8 mountain](crates/tenchu-pc/tests/data/mission8-rikimaru-campaign.inputs)
 with 50 HP, then the
 [Mission 9 castle](crates/tenchu-pc/tests/data/mission9-rikimaru-campaign.inputs)
-with 22 HP before saving into Mission 10. Mission 4 uses the saved stock of two
+with 22 HP, then the
+[final mission](crates/tenchu-pc/tests/data/mission10-rikimaru-campaign.inputs)
+with 30 HP. Mission 4 uses the saved stock of two
 shuriken, four grenades and two of the three carried medicine; Mission 5 carries
 only the hook. Mission 6 uses one shuriken, two grenades and two smoke bombs.
 Mission 7 swims past the armed quay and uses one medicine, one grenade and one
 smoke bomb against Balma. Mission 8 uses one shuriken, one medicine, one grenade
 and three smoke bombs, then climbs past the upper guards to the cure.
 Mission 9 uses both medicine and four mines alongside melee, retaining the
-original blast self-damage. Inventory and RNG carry through all nine missions. A separate
+original blast self-damage. Mission 10 uses its remaining medicine and smoke
+bomb, crosses the lava and uses one mine alongside melee against Mei-Oh.
+Inventory and RNG carry through all ten missions, with a save/reload at every
+boundary and final completion flags checked. A separate
 [Ayame route](crates/tenchu-pc/tests/data/mission2-ayame.inputs) completes Mission 2
 with 100 HP. The delivery routes use ordinary movement and swimming, carrying
 only the automatically supplied hook in the campaign tests.
@@ -253,16 +258,16 @@ results with 100 HP, then saves and starts Mission 9.
 An independent [Rikimaru Mission 9 route](crates/tenchu-pc/tests/data/mission9-rikimaru.inputs)
 climbs the castle, defeats Onikage and completes both cinematics with 53 HP.
 Its private-disc test uses ordinary equipment selection, saves the results,
-reloads and starts Mission 10. This is a fresh-stock route; the continuous saved
-campaign is now validated through Mission 7.
+reloads and starts Mission 10. This exercises a different starting stock and RNG
+from the continuous saved campaign.
 
 The [Rikimaru Mission 10 route](crates/tenchu-pc/tests/data/mission10-rikimaru.inputs)
 defeats Onikage, crosses the inner caverns and lava, descends the pitfall and
 defeats Mei-Oh. All five cinematics run; results arrive with 10 HP after using
 six shuriken and both medicine. Its private-disc test verifies the final record,
 saved completion flags, completion screen and saved Mission 10 replay selection.
-This completes standalone route coverage of Rikimaru's ten missions; the
-accumulated-stock campaign is verified through Mission 9. The external
+Both the independent routes and the accumulated-stock campaign now complete
+Rikimaru's ten missions. The external
 ending movie executable is still represented by a completion screen.
 
 ```sh

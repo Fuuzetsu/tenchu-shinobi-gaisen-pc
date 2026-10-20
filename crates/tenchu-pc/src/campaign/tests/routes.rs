@@ -125,8 +125,8 @@ fn complete_punishment(campaign: &mut Campaign, tape: &str) -> Save {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1–9 from new-game stock using controller input, saves between missions and starts Mission 10"]
-fn controller_routes_complete_first_nine_missions() {
+#[ignore = "requires TENCHU_DISC; completes all ten missions from new-game stock using controller input and saves between missions"]
+fn rikimaru_campaign_controller_routes_reach_completion() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -297,7 +297,32 @@ fn controller_routes_complete_first_nine_missions() {
         .get(resumed.game.roster.find(0x87).unwrap());
     assert_eq!((boss.health, boss.status), (0, 17));
     assert_eq!(resumed.progress.flags & 511, 511);
-    save_and_start_next(&mut resumed, &assets, 4026);
+    let save = save_result(&mut resumed, 4026);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 10);
+    equip(&mut resumed, &assets, &[(2, 6), (3, 1), (5, 1), (6, 2)]);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 6, 1, 0, 1, 2]
+    );
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission10-rikimaru-campaign.inputs"),
+    );
+    eprintln!("Mission 10 saved campaign: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [7, 10, 15, 35, 40]
+    );
+    assert_eq!(resumed.game.tick, 14348);
+    assert_eq!(resumed.game.player().health, 30);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 6, 0, 0, 0, 1]
+    );
+    assert_eq!(resumed.progress.flags & 0x3ff, 0x3ff);
+    save_and_complete(&mut resumed, &assets, 10927);
 }
 
 #[test]
@@ -472,6 +497,32 @@ fn save_and_start_next(campaign: &mut Campaign, assets: &GameAssets<FileSource>,
     );
 }
 
+fn save_and_complete(campaign: &mut Campaign, assets: &GameAssets<FileSource>, clock: i32) {
+    for kind in [0x87, 0x88] {
+        let boss = campaign
+            .game
+            .roster
+            .get(campaign.game.roster.find(kind).unwrap());
+        assert_eq!((boss.health, boss.status), (0, 17));
+    }
+    let save = save_result(campaign, clock);
+    assert_eq!(campaign.progress.flags & 0x600, 0x600);
+    assert_eq!(
+        campaign.progress.highest[campaign.options.character as usize],
+        10
+    );
+    campaign.action(Action::Confirm, assets).unwrap();
+    assert!(matches!(campaign.screen, Screen::Complete));
+    campaign.action(Action::Confirm, assets).unwrap();
+    assert!(matches!(campaign.screen, Screen::Launcher));
+    let mut resumed = Campaign::new(assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, assets).unwrap();
+    assert_eq!(resumed.options.mission, 10);
+    assert_eq!(resumed.options.character, campaign.options.character);
+    assert_eq!(resumed.progress, campaign.progress);
+    assert!(matches!(resumed.screen, Screen::Inventory(_)));
+}
+
 #[test]
 #[ignore = "requires TENCHU_DISC; grapples the statue, completes both Mission 6 encounters, exercises guard ledge release and starts Mission 7 from a save"]
 fn rikimaru_cult_controller_route_reaches_results() {
@@ -609,31 +660,5 @@ fn rikimaru_final_controller_route_reaches_completion() {
     assert_eq!(campaign.game.tick, 15556);
     assert_eq!(campaign.game.player().health, 10);
     assert_eq!(&campaign.game.player().inventory[..4], &[255, 0, 6, 0]);
-    for kind in [0x87, 0x88] {
-        let boss = campaign
-            .game
-            .roster
-            .get(campaign.game.roster.find(kind).unwrap());
-        assert_eq!((boss.health, boss.status), (0, 17));
-    }
-    let Screen::Results(results) = &campaign.screen else {
-        panic!("Expected final mission results");
-    };
-    assert_eq!(results.record.clock, 12135);
-    assert!(results.record.played());
-    assert_eq!(results.record, campaign.game.record());
-    assert_eq!(campaign.progress.flags & 0x600, 0x600);
-    assert_eq!(campaign.progress.highest[0], 10);
-    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
-    assert_eq!(save.progress, campaign.progress);
-    campaign.action(Action::Confirm, &assets).unwrap();
-    assert!(matches!(campaign.screen, Screen::Complete));
-    campaign.action(Action::Confirm, &assets).unwrap();
-    assert!(matches!(campaign.screen, Screen::Launcher));
-    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
-    resumed.action(Action::Confirm, &assets).unwrap();
-    assert_eq!(resumed.options.mission, 10);
-    assert_eq!(resumed.options.character, 0);
-    assert_eq!(resumed.progress, campaign.progress);
-    assert!(matches!(resumed.screen, Screen::Inventory(_)));
+    save_and_complete(&mut campaign, &assets, 12135);
 }
