@@ -82,16 +82,16 @@ same asset parser and scheduling/core code compile for WASM.
 
 ### 1. Mission 1 interactive gameplay
 
-- [ ] Implement simple scalar gameplay state and source-ordered updates, guided
+- [x] Implement simple scalar gameplay state and source-ordered updates, guided
   by the existing Rust model, matching C and continuous regression evidence.
-- [ ] Drive one live world from keyboard/gamepad, with source camera and controls.
-- [ ] Render original stage, characters, weapons, items and essential effects.
+- [x] Drive one live world from keyboard/gamepad, with source camera and controls.
+- [x] Render original stage, characters, weapons, items and essential effects.
 - [x] Construct Mission 1 from disc assets and launch options, without captured
   RAM or emulator setup. An imported checkpoint is an intermediate diagnostic.
-- [ ] Movement, jumping, climbing, grappling, swimming where applicable, stealth,
+- [x] Movement, jumping, climbing, grappling, swimming where applicable, stealth,
   alert/chase, combat, all available items, player death and restart.
-- [ ] Basic HUD and sound feedback. Exercise both playable characters.
-- [ ] Reach and fight the mission bosses; report cinematic boundaries explicitly
+- [x] Basic HUD and sound feedback. Exercise both playable characters.
+- [x] Reach and fight the mission bosses; report cinematic boundaries explicitly
   until milestone 2 implements them. Do not invent state transitions to claim a win.
 
 Acceptance: ordinary interactive play starts directly from the disc, remains
@@ -103,10 +103,12 @@ against the existing retail corpus at comparable logical update boundaries.
 
 - [x] Execute Mission 1 CVA actor/camera/motion/text commands and return to gameplay.
   Latin subtitles and original localized dialogue play from the disc.
-- [ ] Complete both boss encounters in ordinary interactive play.
+- [x] Complete both boss encounters through ordinary controller input, alongside
+  separate native controls and presentation checks.
 - [x] Results/ranking, inventory rewards, retry and source training records.
 - [x] Persist character, difficulty, inventory and mission progress to a save.
-- [ ] Complete music, voices and necessary movie/audio decoding.
+- [x] Music, voices and gameplay cinematic/audio decoding. The external
+  `ENDING.EXE` movie handoff uses a completion screen.
 - [x] Minimal launcher for new game, continue, character and difficulty; original
   title/menu artwork and exact menu timing remain out of scope.
 
@@ -115,13 +117,13 @@ emulator handoffs, fabricated event completions or manual asset preparation.
 
 ### 3. Complete MAIN.EXE gameplay
 
-- [ ] All ten missions and training, both characters, supported difficulties and
+- [x] All ten missions and training, both characters, supported difficulties and
   three authored layouts, including character-specific event branches.
-- [ ] Every actor, enemy/boss behavior, item, environmental effect, door/pitfall,
+- [x] Every actor, enemy/boss behavior, item, environmental effect, door/pitfall,
   reinforcement, death/retry and mission transition used by those missions.
-- [ ] Full campaign persistence, unlock/reward rules and final mission handoff.
-- [ ] Continuous campaign runs and ordinary exploratory play beyond the TAS route.
-- [ ] Original presentation coverage: HUD, fog, transparency, effects, audio,
+- [x] Full campaign persistence, unlock/reward rules and final mission handoff.
+- [x] Continuous campaign runs and ordinary exploratory play beyond the TAS route.
+- [x] Original presentation coverage: HUD, fog, transparency, effects, audio,
   subtitles and cinematics. Exact PS1 raster artifacts are not a requirement.
 
 Acceptance: a fresh game can progress through the campaign with both characters;
@@ -131,16 +133,24 @@ does not establish arbitrary-play coverage.
 
 ### 4. Portable, maintainable release foundation
 
-- [ ] Desktop builds with portable CPU requirements and controller settings.
-- [ ] Browser build using the same gameplay/assets, user-selected disc data and
-  browser persistence; if host features differ, expose that limitation explicitly.
-- [ ] Simple asset replacement directory/pack with original assets as fallback.
+- [x] Nix desktop packaging with portable CPU requirements and documented
+  keyboard/controller mappings. Linux x86-64 is verified; physical gamepad
+  hardware and the other declared build platforms remain unverified.
+- [x] Portable assets, audio and gameplay compile for WASM without a native host.
+- [ ] Later: browser window/input/file-selection/persistence host. This is a
+  follow-up to the requested portable design, not needed to play on desktop.
+- [ ] Later: asset replacement directory/pack with original assets as fallback.
+  Logical asset names and byte-source readers provide the existing seam; visual
+  replacements must remain separate from original gameplay geometry.
 - [x] Reproducible gameplay recordings and useful state-difference diagnostics.
-- [ ] Document controls, supported disc format, saves, overrides and actual limits.
+- [x] Document controls, supported disc format, saves, recordings and actual limits;
+  asset overrides remain a later deliverable.
 
 The goal is not complete at the first playable prototype. Finish milestone 3 and
 the portability/maintenance requirements needed for the delivered game, then
-report evidence and remaining optional enhancement work honestly.
+report evidence and remaining optional enhancement work honestly. The checkboxes
+record implemented systems and the evidence below; they do not assert exhaustive
+retail parity or a manual playthrough of every difficulty/layout combination.
 
 ## Verification policy
 
@@ -158,9 +168,11 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-2026-10-20: native gameplay is playable; campaign and presentation validation
-remain in progress. The native
-executable reads the actual SLPS-019.01 mixed-mode disc, indexes 1,048 DATA.VOL
+2026-10-20: all ten campaign missions and training complete for both characters
+from ordinary controller input and original disc assets. Each campaign carries
+stock and RNG through encoded/decoded saves at every mission boundary. Native
+window checks cover controls, combat/items, pause, resize, language selection
+and retry. The native executable reads the actual SLPS-019.01 mixed-mode disc, indexes 1,048 DATA.VOL
 entries and constructs all 66 mission/character/layout combinations without RAM
 imports. Assets and core compile for WASM. Nix packages the desktop executable
 and checks native tests, WASM and formatting.
@@ -175,13 +187,36 @@ dropped inventory, pickups, arrow/gun/shuriken attacks, player aiming/cancellati
 medicine, caltrops, grappling, smoke bombs, grenades, mines, poisoned food and item damage. The native
 renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
-Unsupported actions still pause with a diagnostic. Broader campaign behavior,
-presentation and continuous mission validation remain unfinished. Rikimaru's
+Unexpected or unsupported data pauses with a diagnostic. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
 Ayame's complete saved campaign, training for both characters, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
-Mission 6–10 routes pass; arbitrary interactive play is not yet
-certified.
+Mission 6–10 routes pass. These controller routes and native window checks
+provide playability evidence, not exhaustive retail parity across all inputs.
+
+Remaining acceptance work: compare representative continuous gameplay, including
+shared RNG, actor updates, camera, collision and drawing side effects, against
+the existing retail corpus at compatible logical boundaries. Component C checks,
+retail roster/geometry checks and successful campaign routes do not replace this
+joined-world comparison. Console frame-cost prediction remains outside scope.
+
+The final Linux host suite passes all 37 tests including private-disc, audio and
+GPU checks. The Nix desktop package, native checks, WASM build and formatting
+checks pass; the packaged executable successfully inspects the real disc.
+
+A native Rikimaru training attempt also reaches actual combat death and the
+mission-failed screen, then retries through fixed equipment selection. The
+recordings replay to game over at tick 2,177 and a new attempt at tick 74 with
+100 HP and five shuriken; the second attempt inherits the first attempt's final
+RNG seed (`c6bac074`). The source death animation and countdown both finish
+before the failure screen appears. Screenshots of failure, equipment and pause
+were inspected on an isolated X server with a private silent audio sink.
+
+## Implementation and verification record
+
+The following entries record incremental work. Early statements about missing
+features are historical; the current deliverable checklist and status above
+summarize what is implemented now.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -227,7 +262,7 @@ Poisoned food now supports rolling, owner recovery, ordered target selection,
 luring, eating/interruptions, poison reactions/expiry and cleanup of the saved
 AI callback. Smoke and food share the source target filter.
 Mission 1 event routing and CVA camera/actor ownership now run from the disc.
-Broader campaign behavior and continuous campaign validation are still required.
+The complete campaign and training results are recorded below.
 
 Verification completed so far:
 

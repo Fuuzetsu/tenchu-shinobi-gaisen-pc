@@ -8,16 +8,20 @@ renderer and portable runtime. Gameplay advances at the original nominal rate;
 display refresh and graphics settings do not determine game speed. Reproducing
 PS1 hardware slowdown is outside the target.
 
-Development starts with Mission 1. The complete goal includes the functionality
-of `MAIN.EXE`, all missions, both characters, cinematics, progression and
-save/retry. A simple launcher replaces the original main menu.
+All ten campaign missions and training are playable with both characters,
+including gameplay cinematics, progression and save/retry. A simple launcher
+replaces the original main menu. The final mission returns to a completion
+screen; the movie from the separate `ENDING.EXE` is not implemented.
 
 See [PLAN.md](PLAN.md) for deliverables and acceptance criteria and
 [AGENTS.md](AGENTS.md) for development conventions.
 
 Game data, captured RAM and disc images must remain outside Git. No BIOS is
-required by the intended native runtime. The initial implementation is in
-progress; gameplay is interactive, but the complete game is not implemented yet.
+required. This is an early PC port with full campaign and training regression
+routes, native window checks and source/retail comparisons described below.
+Those checks do not establish perfect parity for every possible playthrough.
+A browser host, asset replacement packs and HD content are later work; the
+shared assets, audio and gameplay crates already compile for WASM.
 
 ## Build and inspect a disc
 
@@ -45,7 +49,7 @@ never an input to the Nix package or copied into the Nix store.
 through its duration. `render` captures Mission 1 after 30 ordinary logic ticks, using the same camera,
 textures, characters, effects and HUD as the window.
 
-## Gameplay preview
+## Play
 
 ```sh
 ./dev.sh cargo run --release -- play '/path/to/game.cue'
@@ -109,8 +113,7 @@ Ninja dogs summon, select and attack enemies, then expire after 1,800 logic tick
 Mei-Oh's four lightning attacks retain repeated targeting, damage and original bolt jitter.
 Resurrection leaves restore health after a lethal hit. Damage floors and Manji flame attacks share the original napalm behavior. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
 then returns to gameplay. Results, stock rewards, retry and progression now run
-through a simple launcher. Broader campaign and presentation coverage remain
-unfinished; unsupported actions pause with a diagnostic. Caltrops,
+through a simple launcher. Unexpected or unsupported data pauses with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -317,9 +320,10 @@ TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
 ```
 
-These are regressions for specific authored routes, not a complete-game or retail
-parity claim. Both characters' keyboard crouch and return to standing have also
-been checked in the native window.
+These regressions cover complete saved campaigns and training, with specific
+controller routes. Native window checks also cover movement, combat/items,
+pause/resize, language selection and death/retry. Arbitrary inputs and every
+difficulty/layout combination have not been exhaustively compared with retail.
 
 The private-disc cadence test exercises both characters and compares player,
 animation, effects, items, RNG, camera, collision, coordinate caches and activation at every tick
@@ -342,10 +346,9 @@ checks wall pressure and retreat for both characters.
 
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
-NPC activation now runs at the source cadence. Remaining effects and full-campaign
-coverage are unfinished. Activation workload counts use original geometry,
-independent of PC rendering; complete drawing coverage still needs verification
-before this has full-game fidelity. Empty
+NPC activation runs at the source cadence. Activation workload counts use
+original geometry, independent of PC rendering. Continuous comparisons of the
+joined gameplay and drawing side effects against retail remain outstanding. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates
 in that case, which this port does not reproduce.
 An additional private check compares the roster, mission totals, weapon hitbox
