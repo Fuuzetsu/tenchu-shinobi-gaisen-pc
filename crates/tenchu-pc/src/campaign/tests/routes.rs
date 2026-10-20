@@ -26,7 +26,13 @@ fn controller_route(campaign: &mut Campaign, tape: &str) -> Vec<(u64, i16)> {
             if !was_active && campaign.game.cinematic.active {
                 scenes.push((campaign.game.tick, campaign.game.cinematic.sequence));
             }
-            assert!(campaign.game.player().health > 0);
+            assert!(
+                campaign.game.player().health > 0,
+                "Player died in mission {} at tick {} (clock {}, scenes {scenes:?})",
+                campaign.options.mission,
+                campaign.game.tick,
+                campaign.game.clock,
+            );
         }
     }
     scenes

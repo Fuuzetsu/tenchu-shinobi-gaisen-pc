@@ -194,13 +194,26 @@ both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass. These controller routes and native window checks
 provide playability evidence, not exhaustive retail parity across all inputs.
 
-Remaining acceptance work: compare representative continuous gameplay, including
-shared RNG, actor updates, camera, collision and drawing side effects, against
-the existing retail corpus at compatible logical boundaries. Component C checks,
-retail roster/geometry checks and successful campaign routes do not replace this
-joined-world comparison. Console frame-cost prediction remains outside scope.
+Six original Castle-start recordings now match for 630 consecutive updates in
+total: standing, walking, jumping, crouching, grappling and entering water. Each
+world is constructed from the disc; the test supplies its launch seed/loadout
+and imports the player's initial pose once because the captured loading tick
+advanced motion counters without animation. Later recorded state is only an
+assertion target; controller words are the only subsequent inputs. Checks cover
+all 23 actors, animation/coordinate caches, camera and smoothing history, shared
+RNG, collision, event time, activation budgets and exact drawing allocation.
 
-The final Linux host suite passes all 37 tests including private-disc, audio and
+The comparison exposed two runtime defects: the swimming camera used state 13
+instead of 3, and adaptive drawing used pre-initialization SDK globals instead
+of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
+campaign recordings consequently need refresh: both Mission 1 boss fights and
+the independent Mission 7 route no longer complete with their old inputs.
+The earlier full-campaign results below describe the pre-fix revision, not a
+current passing gate. Remaining acceptance work includes restoring this
+campaign evidence and extending the continuous comparison into combat. Console
+frame-cost prediction remains outside scope.
+
+Before these two corrections, the Linux host suite passed all 37 tests including private-disc, audio and
 GPU checks. The Nix desktop package, native checks, WASM build and formatting
 checks pass; the packaged executable successfully inspects the real disc.
 
@@ -211,6 +224,14 @@ recordings replay to game over at tick 2,177 and a new attempt at tick 74 with
 RNG seed (`c6bac074`). The source death animation and countdown both finish
 before the failure screen appears. Screenshots of failure, equipment and pause
 were inspected on an isolated X server with a private silent audio sink.
+
+The ongoing TAS campaign conversation (`01a0faf5-e0e4-7f81-a768-0172851c36b1`)
+now uses `/home/shana/tenchu-searches/mission-1-action-repair-20261013`; its current
+Mission 10 work and existing boot-connected OTAS routes are additional validation
+resources. Read them without disturbing the running search. If used for whole
+campaign parity, collect actual logic/controller/draw-skip boundaries during a
+BizHawk replay and confine those skips to a test harness. Feature implementation
+takes priority over an exhaustive console-validation suite.
 
 ## Implementation and verification record
 

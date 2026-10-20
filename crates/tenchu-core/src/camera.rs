@@ -109,6 +109,11 @@ fn terrain_pitch(owner: &Actor, env: &Environment) -> Result<i16> {
 }
 
 impl Camera {
+    #[cfg(test)]
+    pub(crate) fn smoothing_state(&self) -> [[i16; 6]; 2] {
+        std::array::from_fn(|i| self.smoothing[i].state())
+    }
+
     pub(crate) fn snap_target(&mut self, fallback: [i32; 3], env: &mut Environment) -> Result<()> {
         let delta = std::array::from_fn(|i| {
             (self.reference[i] as i16).wrapping_sub(self.position[i] as i16)
@@ -369,7 +374,7 @@ impl Camera {
         match owner.status {
             12 => self.wall_mode(owner, env)?,
             11 => self.mode = Mode::Crouch,
-            13 => self.mode = Mode::Swim,
+            3 => self.mode = Mode::Swim,
             10 => self.mode = Mode::Hang,
             6 if owner.motion.action == MOT_CHASE => self.mode = Mode::Run,
             8 if owner.motion.action == MOT_STATE_CLIMB => self.mode = Mode::Run,

@@ -1,6 +1,8 @@
 pub mod activation;
 pub mod cinematic;
 pub mod events;
+#[cfg(test)]
+mod retail_tests;
 pub mod score;
 mod setup;
 pub use setup::Statistics;
@@ -75,7 +77,7 @@ impl Game {
         let mut random = Random::new(seed);
         let mut effects = Effects::default();
         let mut scene = Scene::default();
-        let mut drawing = Drawing::new(executable)?;
+        let mut drawing = Drawing::default();
         let mut items = crate::items::Items::new(&mut scene);
         let construction = Construction::new(&mission, &mut scene, &math)?;
         let mut misc = crate::misc::Misc::new(&mission, &mut scene);

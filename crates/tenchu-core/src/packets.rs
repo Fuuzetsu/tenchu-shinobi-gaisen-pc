@@ -7,7 +7,7 @@ use crate::{
     math::Matrix,
     projection::{self, Point},
 };
-use tenchu_assets::{executable::Executable, model::Geometry};
+use tenchu_assets::model::Geometry;
 
 const BYTES: [u32; 8] = [20, 32, 24, 40, 28, 40, 36, 52];
 
@@ -17,17 +17,17 @@ pub struct Subdivision {
     extent: [i16; 2],
 }
 
-impl Subdivision {
-    pub fn load(exe: &Executable) -> Result<Self> {
-        let data = exe.bytes(0x8008f7c8, 8)?;
-        Ok(Self {
-            depth: i32::from_le_bytes(data[..4].try_into().unwrap()),
-            extent: std::array::from_fn(|i| {
-                i16::from_le_bytes(data[4 + i * 2..6 + i * 2].try_into().unwrap())
-            }),
-        })
+impl Default for Subdivision {
+    fn default() -> Self {
+        // jt_init4 overwrites the SDK's initial values before stage drawing.
+        Self {
+            depth: 0x25a,
+            extent: [0x200; 2],
+        }
     }
+}
 
+impl Subdivision {
     pub fn count(&self, mesh: &Geometry, matrix: &Matrix, levels: u8) -> Result<u32> {
         let mut counter = subdivision::Counter::new(self, matrix, levels);
         for face in &mesh.faces {

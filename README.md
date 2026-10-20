@@ -191,6 +191,12 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
+The campaign recordings described below passed before the swimming-camera and
+drawing-initialization corrections. Both Mission 1 fights and the independent
+Mission 7 recording need refreshed inputs after those fixes; their tests
+currently report this failure. The earlier completion results remain useful
+as a record of feature coverage.
+
 The checked-in [Mission 1 route](crates/tenchu-pc/tests/data/mission1-rikimaru.inputs)
 completes both boss fights and their cinematics as Rikimaru, normal difficulty,
 layout 1. Its private-disc test chooses equipment from new-game stock, reaches
@@ -336,8 +342,21 @@ TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc all_retail_layouts -- --ignored
 ```
 
-This checks display independence, not parity with complete PS1 gameplay. Retail
-continuous state comparison remains a separate acceptance requirement.
+This checks display independence. A separate private comparison checks six
+original Castle-start recordings for 630 consecutive updates, including entry
+into water:
+
+```sh
+TENCHU_DISC='/path/to/game.cue' \
+TENCHU_CASTLE_CORPUS='/path/to/tenchu-castle-approach-validation-20260925' \
+  ./dev.sh cargo test --release -p tenchu-core castle_start_matches_retail -- --ignored
+```
+
+It constructs the world from disc assets, supplies the recorded launch seed and
+loadout, and imports the initial player pose once to align the console's loading
+tick. All subsequent actor, camera, RNG, collision and drawing state advances
+in the port without corrections from the recordings. This is finite coverage,
+not a claim of full-campaign parity.
 
 Terrain collision probes retain the original diagonal sample positions and mask
 order. A private comparison runs the original C probe with the executable's
@@ -347,8 +366,8 @@ checks wall pressure and retreat for both characters.
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
 NPC activation runs at the source cadence. Activation workload counts use
-original geometry, independent of PC rendering. Continuous comparisons of the
-joined gameplay and drawing side effects against retail remain outstanding. Empty
+original geometry, independent of PC rendering. The six continuous recordings
+check exact drawing counts as well as gameplay. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates
 in that case, which this port does not reproduce.
 An additional private check compares the roster, mission totals, weapon hitbox

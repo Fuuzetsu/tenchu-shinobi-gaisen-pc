@@ -4,9 +4,9 @@ use crate::{
     math::{Math, Matrix},
     packets, projection,
 };
-use tenchu_assets::{executable::Executable, stage::MissionAssets};
+use tenchu_assets::stage::MissionAssets;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Drawing {
     pub fog: bool,
     pub bytes: u32,
@@ -15,15 +15,6 @@ pub struct Drawing {
 }
 
 impl Drawing {
-    pub fn new(exe: &Executable) -> Result<Self> {
-        Ok(Self {
-            fog: false,
-            bytes: 0,
-            sampled_bytes: 0,
-            subdivision: packets::Subdivision::load(exe)?,
-        })
-    }
-
     pub fn finish(&mut self, clock: i32) {
         if clock % 30 == 0 {
             self.sampled_bytes = self.bytes.min(65536);

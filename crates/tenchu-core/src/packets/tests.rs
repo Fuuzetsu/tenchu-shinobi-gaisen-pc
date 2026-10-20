@@ -71,3 +71,22 @@ fn adaptive_subdivision_counts_degenerate_edge_stitches() {
     mesh.faces[0].corners.swap(1, 2);
     assert_eq!(params.count(&mesh, &matrix, 1).unwrap(), 0);
 }
+
+#[test]
+fn initialized_subdivision_splits_large_near_faces() {
+    let mut mesh = quad();
+    for vertex in &mut mesh.vertices {
+        *vertex = vertex.map(|v| v * 20);
+    }
+    let mut matrix = Matrix {
+        translation: [0, 0, 2000],
+        ..Matrix::default()
+    };
+    let parameters = Subdivision::default();
+    assert_eq!(
+        parameters.count(&mesh, &matrix, 2).unwrap(),
+        4 * 40 + 4 * 32
+    );
+    matrix.translation[2] = 4000;
+    assert_eq!(parameters.count(&mesh, &matrix, 2).unwrap(), 40);
+}

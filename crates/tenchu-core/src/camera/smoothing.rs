@@ -24,6 +24,18 @@ impl From<[i16; 6]> for Smooth {
 }
 
 impl Smooth {
+    #[cfg(test)]
+    pub(super) fn state(&self) -> [i16; 6] {
+        [
+            self.shift,
+            self.acceleration,
+            self.speed,
+            self.before[0],
+            self.before[1],
+            self.before[2],
+        ]
+    }
+
     pub fn delta(&mut self, from: [i32; 3], to: [i32; 3], math: &Math) -> Result<[i32; 3]> {
         let delta = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
         let length = math.vector_distance(delta);

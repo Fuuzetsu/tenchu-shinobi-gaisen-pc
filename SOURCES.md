@@ -919,3 +919,24 @@ are bundled with the bitmap and installed by Nix. Glyph shapes replace the BIOS
 KROM; neither BIOS data nor a system font package is needed. All Japanese CAD
 captions fit the bundled Shift-JIS glyph set. This is presentation substitution,
 not a claim of pixel-identical console fonts.
+
+## Continuous Castle-start comparison (2026-10-20)
+
+`CAMERA.C::CameraType1` selects the swimming pose for `STAT_SWIM` (3), not
+`STAT_CEILHANG` (13). `jt_init4` sets the adaptive drawing depth to `0x25a` and
+both extents to `0x200`; the on-disc SDK globals precede that initialization.
+These corrections were checked against `tenchu-decomp` revision
+`47c1ee292a779704865963636fe5672b1f9455fb`, with these source SHA-256 hashes:
+
+| Source | SHA-256 |
+| --- | --- |
+| `src/main.exe/CAMERA.C` | `759da5c93aaa780ec4dc113bc0b49b18eeee7bc27f63c4b2024a5b520b4c5e86` |
+| `src/main.exe/jt_init4.c` | `6de1321f2d6b6f0a77a7c8cfcb0f5ebab176b15a8d743b3e194e2b248c195e20` |
+
+The private `tenchu-castle-approach-validation-20260925` corpus supplies six
+hash-bound original recordings. The core test documents their precise horizons
+and the single initial loading-pose import. It runs disc-constructed scalar
+worlds with no subsequent state refresh and compares exact drawing totals in
+addition to gameplay state. Neither captures nor the research runtime are
+included in the port. The research allocation report helped localize the
+subdivision mismatch; the original startup code establishes the correct values.
