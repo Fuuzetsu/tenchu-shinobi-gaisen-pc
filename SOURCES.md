@@ -832,3 +832,28 @@ A callback check covers suspended-target inclusion, clock-driven re-aiming,
 persistent hitboxes between strikes, the final zero-count callback, forced disposal
 and player-local casting sound. These are focused behavior checks rather than a
 complete final-boss encounter or full retail replay comparison.
+
+## Debug teleport and vector normalization (2026-10-20)
+
+`ITEM.C::ProcItemTeleport`/`ReqItemUse` and
+`CAMERA.C::SnapCameraTargetVector` define the original debug item, its camera-owner
+movement, short ray, range check and raw translation write. `CAMERA.C` has SHA-256
+`759da5c93aaa780ec4dc113bc0b49b18eeee7bc27f63c4b2024a5b520b4c5e86`.
+`game_types.h` identifies item 24 as the debug menu's "the world"; normal equipment
+selection remains unchanged.
+
+The scalar `VectorNormalSS` implementation follows retail instructions at
+`0x80077b04`–`0x80077bf0`, with the lookup based at `0x80090a2c`, including accesses
+before that table for zero/overflowing squared lengths. The verified user
+executable supplies the table at load time. `tools/sdk_normal_oracle.py` executes
+only this original SDK instruction range and its two GTE commands for tests;
+it is not part of the runtime. Its small interpreter structure was adapted from
+the previously recorded research `native/sdk_rotation_oracle.py` reference.
+No retail instructions, tables or captured RAM are bundled in the repository.
+
+The 1,031-vector corpus compares the actual SDK result, including short extremes,
+zero, signed overflow and variable-shift behavior. Teleport checks cover the
+127-unit step produced for a 2,000-unit axial reference, passage/no-hit fallback,
+quantized range acceptance, movement of the camera owner rather than item owner,
+untouched coordinate caches, held sight and forced-disposal camera behavior.
+The reticle drawing is shared with the existing hook and aimed shuriken paths.

@@ -693,3 +693,13 @@ GPU blends, display cadence and Mission 1 through saved continuation. An offscre
 native GPU capture visually checks the additive bolt in a controlled effect
 fixture; it is not a complete final-boss window playthrough. The temporary capture
 module was removed. Nix native, WASM and formatting checks pass on x86_64-linux.
+
+The original debug teleport item now follows the camera ray, applies the source
+distance cutoff, preserves raw coordinate writes and emits its original particles.
+It remains outside the normal equipment menu. Its camera ray uses a scalar port
+of SDK VectorNormalSS, including short overflow and the zero-vector table path.
+An instruction-level SDK oracle checks 1,031 vectors against the user's executable;
+two item checks cover holding, release, camera ownership, range edges, failed rays
+and forced disposal. All 131 current core checks and twelve relevant private
+desktop checks pass, including Mission 1 through saved continuation. Nix native,
+WASM and formatting checks pass on x86_64-linux.

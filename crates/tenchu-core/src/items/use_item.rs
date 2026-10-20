@@ -268,6 +268,12 @@ impl Items {
                     rotation: ctx.math.vector_rotation(start, end)?,
                 };
             }
+            24 => {
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Teleport, kind, Some(owner_id), start, ctx)?;
+                self.slots[id].collision.size = 0;
+                ctx.camera.mode = Mode::Sight;
+            }
             21 => {
                 let rotation = ctx.math.vector_rotation(start, end)?;
                 let end = projectile::target(owner_id, rotation, start, actors, ctx)?.1;

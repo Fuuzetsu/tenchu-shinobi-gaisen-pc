@@ -109,6 +109,16 @@ fn terrain_pitch(owner: &Actor, env: &Environment) -> Result<i16> {
 }
 
 impl Camera {
+    pub(crate) fn snap_target(&mut self, fallback: [i32; 3], env: &mut Environment) -> Result<()> {
+        let delta = std::array::from_fn(|i| {
+            (self.reference[i] as i16).wrapping_sub(self.position[i] as i16)
+        });
+        let step = env.math.normalize_short(delta).map(|v| v / 32);
+        self.target =
+            terrain::passage(env.terrain, env.cursor, self.position, step, -1)?.unwrap_or(fallback);
+        Ok(())
+    }
+
     pub fn new(tables: CameraTables, start: [i32; 3], math: &Math) -> Result<Self> {
         let mut camera = Self {
             position: [start[0], start[1].wrapping_sub(10000), start[2]],

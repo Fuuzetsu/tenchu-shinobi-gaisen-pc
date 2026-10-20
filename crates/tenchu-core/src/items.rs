@@ -22,6 +22,7 @@ mod sleep;
 mod smoke;
 mod speed;
 mod sprite;
+mod teleport;
 #[cfg(test)]
 mod tests;
 mod use_item;
@@ -67,6 +68,7 @@ pub enum Processor {
     Disguise,
     Dog,
     Lightning,
+    Teleport,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -137,6 +139,13 @@ impl Items {
         let item = &self.slots[id];
         ctx.scene.models[item.model].local.rotation = ctx.math.rotate_yxz(item.rotation);
         ctx.scene.models[item.model].flags = 0;
+    }
+
+    fn draw_sight(&mut self, ctx: &mut Context) {
+        let mut sprite = crate::hud::Sprite::new(ctx.mission.images[52], [0; 2]);
+        sprite.blend = 2;
+        self.sprites.push(sprite);
+        ctx.drawing.bytes += 24;
     }
 
     pub fn new(scene: &mut Scene) -> Self {
@@ -407,6 +416,7 @@ impl Items {
                 Some(Processor::Disguise) => self.disguise(id, actors, intelligence, ctx)?,
                 Some(Processor::Dog) => self.dog(id, actors, clock, ctx)?,
                 Some(Processor::Lightning) => self.lightning(id, actors, player, clock, ctx)?,
+                Some(Processor::Teleport) => self.teleport(id, actors, player, ctx)?,
                 None => {}
             }
         }

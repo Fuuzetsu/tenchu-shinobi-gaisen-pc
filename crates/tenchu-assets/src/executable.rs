@@ -27,6 +27,7 @@ pub struct MathTables {
     pub trig: Vec<[i16; 2]>,
     pub atan: Vec<i16>,
     pub sqrt: Vec<i16>,
+    pub normal: Vec<i16>,
     pub hermite: [[i16; 4]; 33],
 }
 
@@ -152,6 +153,8 @@ impl<'a> Executable<'a> {
             trig,
             atan: shorts(0x80094ec8, 1025)?,
             sqrt,
+            // VectorNormalSS can index before its table for zero or overflowing square sums.
+            normal: shorts(0x800907ac, 512)?,
             hermite,
         })
     }

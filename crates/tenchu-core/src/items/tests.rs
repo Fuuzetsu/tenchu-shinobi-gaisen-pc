@@ -15,6 +15,7 @@ mod rice;
 mod sleep;
 mod speed;
 mod support;
+mod teleport;
 
 fn with_items<T>(game: &mut Game, f: impl FnOnce(&mut Items, &mut Context, &mut Actors) -> T) -> T {
     f(

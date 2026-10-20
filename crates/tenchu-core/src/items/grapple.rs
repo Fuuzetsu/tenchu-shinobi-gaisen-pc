@@ -22,10 +22,7 @@ impl Items {
             .vector_rotation(ctx.camera.position, ctx.camera.reference)?;
         if owner.pad.held & TRIANGLE != 0 {
             if rotation[0] < 0 {
-                let mut sprite = crate::hud::Sprite::new(ctx.mission.images[52], [0; 2]);
-                sprite.blend = 2;
-                self.sprites.push(sprite);
-                ctx.drawing.bytes += 24;
+                self.draw_sight(ctx);
             }
             return Ok(());
         }

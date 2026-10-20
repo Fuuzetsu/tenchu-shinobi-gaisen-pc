@@ -36,10 +36,7 @@ impl Items {
         if owner.pad.held & TRIANGLE != 0 {
             if item.count == 0 {
                 use_item::camera(Mode::Sight, owner, ctx)?;
-                let mut sprite = crate::hud::Sprite::new(ctx.mission.images[52], [0; 2]);
-                sprite.blend = 2;
-                self.sprites.push(sprite);
-                ctx.drawing.bytes += 24;
+                self.draw_sight(ctx);
             }
             return Ok(());
         }

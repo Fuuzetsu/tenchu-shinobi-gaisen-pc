@@ -48,6 +48,27 @@ impl Math {
         }
     }
 
+    pub fn normalize_short(&self, vector: [i16; 3]) -> [i16; 3] {
+        let sum = vector.into_iter().fold(0i32, |sum, value| {
+            let value = i32::from(value);
+            sum.wrapping_add(value * value)
+        });
+        let leading = if sum < 0 {
+            sum.leading_ones()
+        } else {
+            sum.leading_zeros()
+        };
+        let even = leading & !1;
+        let exponent = (31 - even as i32) >> 1;
+        let mantissa = if even >= 24 {
+            sum.wrapping_shl(even - 24)
+        } else {
+            sum >> (24 - even)
+        };
+        let factor = i32::from(self.tables.normal[(mantissa + 256) as usize]);
+        vector.map(|v| (i32::from(v) * factor).wrapping_shr(exponent as u32) as i16)
+    }
+
     pub fn atan2(&self, y: i32, x: i32) -> Result<i16> {
         let ay = y.checked_abs().ok_or("ratan2 y overflow")?;
         let ax = x.checked_abs().ok_or("ratan2 x overflow")?;
@@ -208,6 +229,70 @@ impl Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_RETAIL_EXE; executes original VectorNormalSS instructions across zero, short limits and overflowing square sums"]
+    fn short_normalization_matches_retail_sdk() {
+        use std::{
+            env, fs,
+            io::Write,
+            process::{Command, Stdio},
+        };
+        let path = env::var_os("TENCHU_RETAIL_EXE").expect("Set TENCHU_RETAIL_EXE");
+        let bytes = fs::read(&path).unwrap();
+        let math = Math {
+            tables: tenchu_assets::executable::Executable::new(&bytes)
+                .unwrap()
+                .math_tables()
+                .unwrap(),
+        };
+        let mut vectors = vec![
+            [0; 3],
+            [1, 0, 0],
+            [-1, 0, 0],
+            [32767; 3],
+            [-32768; 3],
+            [-32768, 32767, 0],
+            [4096, 0, 0],
+        ];
+        vectors.extend((0..1024).map(|i| {
+            [
+                (i * 131 + 7) as i16,
+                (i * 977 - 31111) as i16,
+                (i * 4093 + 67) as i16,
+            ]
+        }));
+        let mut child = Command::new("python3")
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../tools/sdk_normal_oracle.py"
+            ))
+            .arg(path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let input: Vec<_> = vectors
+            .iter()
+            .flatten()
+            .flat_map(|v| v.to_le_bytes())
+            .collect();
+        child.stdin.take().unwrap().write_all(&input).unwrap();
+        let result = child.wait_with_output().unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert_eq!(result.stdout.len(), vectors.len() * 6);
+        for (vector, row) in vectors.into_iter().zip(result.stdout.chunks_exact(6)) {
+            let expected: [i16; 3] = std::array::from_fn(|i| {
+                i16::from_le_bytes(row[i * 2..i * 2 + 2].try_into().unwrap())
+            });
+            assert_eq!(math.normalize_short(vector), expected, "input {vector:?}");
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_RETAIL_EXE and TENCHU_SDK_ROTATION_ORACLE"]
