@@ -191,8 +191,8 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
-Current saved-campaign regressions complete Missions 1–3 for both characters
-and Mission 4 for Rikimaru after the swimming-camera and drawing-initialization
+Current saved-campaign regressions complete Missions 1–5 for both characters
+after the swimming-camera and drawing-initialization
 corrections. Stock and RNG carry through real encoded/decoded saves at every
 boundary. Refreshed recordings include their starting seed and equipment, so
 `replay` can run them directly.
@@ -204,11 +204,14 @@ boundary. Refreshed recordings include their starting seed and equipment, so
 | Rikimaru | [3](crates/tenchu-pc/tests/data/mission3-rikimaru-campaign.inputs) | 5,952 | 7 |
 | Ayame | [3](crates/tenchu-pc/tests/data/mission3-ayame-campaign.inputs) | 5,883 | 46 |
 | Rikimaru | [4](crates/tenchu-pc/tests/data/mission4-rikimaru-campaign.inputs) | 9,128 | 57 |
+| Ayame | [4](crates/tenchu-pc/tests/data/mission4-ayame-campaign.inputs) | 12,062 | 24 |
+| Rikimaru | [5](crates/tenchu-pc/tests/data/mission5-rikimaru-campaign.inputs) | 8,034 | 100 |
+| Ayame | [5](crates/tenchu-pc/tests/data/mission5-ayame-campaign.inputs) | 7,919 | 46 |
 
 Both complete Mission 2 with 100 HP. The complete campaign tests currently fail
-at Ayame Mission 4 and Rikimaru Mission 5 because their old controller routes
-no longer survive. The independent Mission 7 recording also needs refreshing.
-Both ten-mission campaigns and training passed before the corrections; those
+on the old Mission 6 continuations. The independent [Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
+now also passes with the corrected swimming camera, finishing at tick 3,461 with
+93 HP. Both ten-mission campaigns and training passed before the corrections; those
 historical results and the implemented feature coverage are recorded in
 [PLAN.md](PLAN.md). They are not a current passing campaign gate.
 

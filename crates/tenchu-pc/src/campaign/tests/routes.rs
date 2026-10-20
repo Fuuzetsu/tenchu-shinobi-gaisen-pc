@@ -215,15 +215,18 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 5);
-    resumed.action(Action::Confirm, &assets).unwrap();
+    equip(&mut resumed, &assets, &[(2, 6), (3, 2), (5, 3), (6, 2)]);
     let save = complete_punishment(
         &mut resumed,
         include_str!("../../../tests/data/mission5-rikimaru-campaign.inputs"),
     );
-    assert_eq!(resumed.game.tick, 7300);
-    assert_eq!(resumed.game.player().health, 72);
-    assert_eq!(resumed.game.clock, 3194);
-    assert_eq!(&resumed.game.player().inventory[..4], &[255, 0, 0, 0]);
+    assert_eq!(resumed.game.tick, 8034);
+    assert_eq!(resumed.game.player().health, 100);
+    assert_eq!(resumed.game.clock, 3928);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 6, 0, 0, 2, 2]
+    );
     assert_eq!(save.progress.flags & 31, 31);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
@@ -390,31 +393,34 @@ fn ayame_campaign_controller_routes_reach_completion() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 4);
-    equip(&mut resumed, &assets, &[(1, 3), (3, 3), (4, 4), (5, 3)]);
+    equip(&mut resumed, &assets, &[(1, 1), (3, 3), (5, 2), (6, 2)]);
     let save = complete_checkpoint(
         &mut resumed,
         include_str!("../../../tests/data/mission4-ayame-campaign.inputs"),
     );
-    assert_eq!(resumed.game.tick, 7476);
-    assert_eq!(resumed.game.player().health, 67);
-    assert_eq!(resumed.game.clock, 4905);
-    assert_eq!(&resumed.game.player().inventory[..6], &[255, 0, 0, 0, 0, 2]);
+    assert_eq!(resumed.game.tick, 12062);
+    assert_eq!(resumed.game.player().health, 24);
+    assert_eq!(resumed.game.clock, 9491);
+    assert_eq!(
+        &resumed.game.player().inventory[..7],
+        &[255, 0, 0, 0, 0, 2, 2]
+    );
     assert_eq!(resumed.progress.flags & 15, 15);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 5);
     assert_eq!(resumed.options.character, 1);
-    equip(&mut resumed, &assets, &[(2, 6), (3, 2), (5, 4), (6, 2)]);
+    equip(&mut resumed, &assets, &[(2, 6), (5, 3), (6, 2)]);
     let save = complete_punishment(
         &mut resumed,
         include_str!("../../../tests/data/mission5-ayame-campaign.inputs"),
     );
-    assert_eq!(resumed.game.tick, 7469);
-    assert_eq!(resumed.game.player().health, 27);
-    assert_eq!(resumed.game.clock, 3598);
+    assert_eq!(resumed.game.tick, 7919);
+    assert_eq!(resumed.game.player().health, 46);
+    assert_eq!(resumed.game.clock, 4048);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 0, 6, 1, 0, 4, 2]
+        &[255, 0, 6, 0, 0, 1, 2]
     );
     assert_eq!(resumed.progress.flags & 31, 31);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
@@ -850,18 +856,18 @@ fn rikimaru_pirates_controller_route_reaches_results() {
         scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
         [10, 20, 100]
     );
-    assert_eq!(campaign.game.tick, 3309);
-    assert_eq!(campaign.game.player().health, 100);
+    assert_eq!(campaign.game.tick, 3461);
+    assert_eq!(campaign.game.player().health, 93);
     assert_eq!(
         &campaign.game.player().inventory[..6],
-        &[255, 0, 6, 1, 0, 1]
+        &[255, 1, 6, 1, 0, 1]
     );
     let boss = campaign
         .game
         .roster
         .get(campaign.game.roster.find(0x85).unwrap());
     assert_eq!((boss.health, boss.status), (0, 17));
-    save_and_start_next(&mut campaign, &assets, 2678);
+    save_and_start_next(&mut campaign, &assets, 2830);
 }
 
 #[test]

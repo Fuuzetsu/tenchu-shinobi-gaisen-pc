@@ -168,8 +168,10 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-2026-10-20: all ten campaign missions and training complete for both characters
-from ordinary controller input and original disc assets. Each campaign carries
+2026-10-20: all MAIN.EXE systems are implemented. Earlier recordings completed
+all ten campaign missions and training for both characters from ordinary
+controller input and original disc assets; the source-backed corrections below
+require refreshed campaign recordings. Each campaign carries
 stock and RNG through encoded/decoded saves at every mission boundary. Native
 window checks cover controls, combat/items, pause, resize, language selection
 and retry. The native executable reads the actual SLPS-019.01 mixed-mode disc, indexes 1,048 DATA.VOL
@@ -208,11 +210,10 @@ RNG, collision, event time, activation budgets and exact drawing allocation.
 The comparison exposed two runtime defects: the swimming camera used state 13
 instead of 3, and adaptive drawing used pre-initialization SDK globals instead
 of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
-campaign recordings consequently need refresh. Missions 1–3 now complete for
-both characters using their actual saved stock/RNG; Rikimaru also completes
-Mission 4. The next failures are Ayame Mission 4 and Rikimaru Mission 5, where
-the old controller routes die. The independent Mission 7 route also needs
-refreshed inputs.
+campaign recordings consequently need refresh. Missions 1–5 now complete for
+both characters using their actual saved stock/RNG. The Mission 6 continuations
+are next. The independent Mission 7 route now passes with
+refreshed inputs and the corrected swimming camera.
 The earlier full-campaign results below describe the pre-fix revision, not a
 current passing gate. Remaining acceptance work includes restoring this
 campaign evidence. The longer continuous comparison now covers receiving
@@ -1210,3 +1211,28 @@ The Linux Nix package, native fixture-free tests, portable WASM build and
 formatting checks pass after this correction. Other declared build platforms
 remain unverified. The separate private full-campaign failures above remain
 open; the Nix checks do not run those private-disc recordings.
+
+
+The independent Rikimaru pirate-ship route is refreshed for the corrected
+swimming camera. It runs all three cinematics, defeats Balma and reaches
+results at tick 3,461, health 93 and clock 2,830. It consumes five shuriken and
+one medicine and retains the smoke bomb picked up on the quay. A native GPU
+capture at tick 1,003 was inspected on an isolated X server and confirms the
+swimming view, water, actor and HUD. Audio uses a private silent sink.
+
+Ayame's refreshed saved Mission 4 defeats both bosses, completes all four
+cinematics and reaches results at tick 12,062, health 24 and clock 9,491. It
+uses one shuriken and three medicine while retaining two smoke bombs and two
+mines. The resulting encoded/decoded save carries seed 777,873,059 into Mission
+5. Thirty-five desktop checks pass with private disc/audio/GPU fixtures,
+excluding the two full campaigns whose later recordings still need refresh.
+
+Rikimaru's refreshed Mission 5 carries six caltrops, two medicine, three smoke
+bombs and two mines from the actual saved stock. It completes scenes 5, 6, 10,
+20 and 100, reaches results at tick 8,034 with 100 HP and clock 3,928, and
+saves seed 831,904,835 for Mission 6. Both medicine and one smoke bomb are used.
+
+Ayame's refreshed Mission 5 also completes her additional Kataoka encounter,
+reaching results at tick 7,919, health 46 and clock 4,048. Two smoke bombs are
+used; six caltrops, one smoke bomb and two mines remain. Its actual save starts
+Mission 6 with seed 2,861,527,239.
