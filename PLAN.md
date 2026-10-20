@@ -851,3 +851,17 @@ no runtime state overrides. An offscreen native capture of the rooftop fight was
 visually inspected. This does not extend the continuous saved campaign beyond
 Mission 3.
 Nix native, WASM and formatting checks pass on x86_64-linux.
+
+The placeholder launcher now offers all four dialogue/subtitle languages without
+reimplementing the original menu executable. A chosen language applies to both
+new missions and Continue, is stored in the existing save format, and is restored
+on launch unless an explicit `--language` option overrides it. The launcher labels
+remain English and Japanese selection displays the outstanding font limitation.
+A private-disc regression changes new-game and saved-game languages, loads the
+corresponding mission scripts, checks persistence and explicit CLI precedence.
+The native menu, Japanese notice and restored French preference were inspected
+in an isolated X11 window with audio routed to a private null sink. Recreating or
+decompiling the original main menu remains deferred, as requested.
+The language-selection regression, all eight localized Mission 2 openings and
+the existing campaign save/retry/continuation check pass. Nix native, WASM and
+formatting checks pass on x86_64-linux.

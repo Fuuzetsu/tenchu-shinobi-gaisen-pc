@@ -3,6 +3,7 @@ use tenchu_assets::{
     Result,
     executable::Executable,
     game::{GameAssets, Stage},
+    script::Language,
     shop::Shop,
 };
 use tenchu_core::{
@@ -53,9 +54,12 @@ pub struct Campaign {
 impl Campaign {
     pub fn new(
         assets: &GameAssets<FileSource>,
-        options: Options,
+        mut options: Options,
         saved: Option<Save>,
     ) -> Result<Self> {
+        options.language = options
+            .language
+            .or_else(|| saved.as_ref().map(|save| save.selection.language));
         Ok(Self {
             game: options.load(assets)?,
             options,
@@ -89,7 +93,7 @@ impl Campaign {
                 options.layout as u8 - 1
             },
             difficulty: options.difficulty,
-            language: options.language,
+            language: options.language.unwrap_or_default(),
         }
     }
 
@@ -141,7 +145,7 @@ impl Campaign {
                     stage: &self.game.mission.stage,
                     character: self.options.character as usize,
                     layout: self.game.mission.layout_index,
-                    language: self.options.language,
+                    language: self.options.language.unwrap_or_default(),
                     record: self.game.record(),
                     remaining: self.game.player().inventory[..20].try_into().unwrap(),
                 };
@@ -157,8 +161,8 @@ impl Campaign {
     pub fn action(&mut self, action: Action, assets: &GameAssets<FileSource>) -> Result<bool> {
         match &mut self.screen {
             Screen::Launcher => match action {
-                Action::Up => self.cursor = (self.cursor + 5) % 6,
-                Action::Down => self.cursor = (self.cursor + 1) % 6,
+                Action::Up => self.cursor = (self.cursor + 6) % 7,
+                Action::Down => self.cursor = (self.cursor + 1) % 7,
                 Action::Left | Action::Right => {
                     let delta = if matches!(action, Action::Right) {
                         1
@@ -183,6 +187,22 @@ impl Campaign {
                             self.options.layout =
                                 (self.options.layout as i32 + delta).rem_euclid(4) as usize
                         }
+                        6 => {
+                            let languages = [
+                                Language::English,
+                                Language::French,
+                                Language::Italian,
+                                Language::Japanese,
+                            ];
+                            let index = languages
+                                .iter()
+                                .position(|&language| {
+                                    language == self.options.language.unwrap_or_default()
+                                })
+                                .unwrap();
+                            self.options.language =
+                                Some(languages[(index as i32 + delta).rem_euclid(4) as usize]);
+                        }
                         _ => {}
                     }
                 }
@@ -197,7 +217,7 @@ impl Campaign {
                                 usize::from(save.selection.layout) + 1
                             },
                             difficulty: save.selection.difficulty,
-                            language: save.selection.language,
+                            language: self.options.language,
                         };
                         self.progress = save.progress;
                         self.seed = save.seed;

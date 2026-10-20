@@ -7,6 +7,46 @@ fn assets() -> GameAssets<FileSource> {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; changes localized mission assets through the launcher and saved continuation"]
+fn launcher_language_applies_to_new_and_saved_games() {
+    let assets = assets();
+    let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
+    campaign.action(Action::Up, &assets).unwrap();
+    campaign.action(Action::Up, &assets).unwrap();
+    campaign.action(Action::Right, &assets).unwrap();
+    for _ in 0..2 {
+        campaign.action(Action::Down, &assets).unwrap();
+    }
+    campaign.action(Action::Confirm, &assets).unwrap();
+    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.selection.language, Language::French);
+    campaign.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(campaign.game.mission.scripts.language, Language::French);
+
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    assert_eq!(resumed.options.language, Some(Language::French));
+    resumed.action(Action::Up, &assets).unwrap();
+    resumed.action(Action::Right, &assets).unwrap();
+    resumed.action(Action::Down, &assets).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    let save = Save::decode(&resumed.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.selection.language, Language::Italian);
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.game.mission.scripts.language, Language::Italian);
+
+    let options = Options::parse(&["--language".into(), "english".into()]).unwrap();
+    let mut resumed = Campaign::new(&assets, options, Some(save)).unwrap();
+    assert_eq!(resumed.options.language, Some(Language::English));
+    resumed.action(Action::Up, &assets).unwrap();
+    resumed.action(Action::Left, &assets).unwrap();
+    assert_eq!(resumed.options.language, Some(Language::Japanese));
+    resumed.action(Action::Down, &assets).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.game.mission.scripts.language, Language::Japanese);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; exercises campaign transitions using controlled completion/death outcomes, not a playthrough"]
 fn campaign_results_retry_and_saved_continuation() {
     let assets = assets();

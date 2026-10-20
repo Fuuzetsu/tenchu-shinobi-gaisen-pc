@@ -9,7 +9,7 @@ pub struct Options {
     pub character: i16,
     pub layout: usize,
     pub difficulty: Difficulty,
-    pub language: tenchu_assets::script::Language,
+    pub language: Option<tenchu_assets::script::Language>,
 }
 
 impl Default for Options {
@@ -19,7 +19,7 @@ impl Default for Options {
             character: 0,
             layout: 1,
             difficulty: Difficulty::Normal,
-            language: tenchu_assets::script::Language::English,
+            language: None,
         }
     }
 }
@@ -66,13 +66,13 @@ impl Options {
                         .ok_or("Layout must be 1–3 or random")?
                 };
             } else if pair[0] == "--language" {
-                options.language = match value {
+                options.language = Some(match value {
                     "english" => tenchu_assets::script::Language::English,
                     "french" => tenchu_assets::script::Language::French,
                     "italian" => tenchu_assets::script::Language::Italian,
                     "japanese" => tenchu_assets::script::Language::Japanese,
                     _ => return Err("Language must be english, french, italian or japanese".into()),
-                };
+                });
             } else {
                 return Err(format!(
                     "Unknown launch option {}",
@@ -106,7 +106,7 @@ impl Options {
             id,
             self.character,
             self.layout,
-            self.language,
+            self.language.unwrap_or_default(),
             inventory[19],
         )?;
         let mut game = Game::new(

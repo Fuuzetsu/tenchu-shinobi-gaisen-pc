@@ -102,14 +102,18 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                     } else {
                         format!("Layout: {}", options.layout)
                     },
+                    format!("Language: {:?}", options.language.unwrap_or_default()),
                 ];
                 for (i, label) in labels.into_iter().enumerate() {
                     line(
                         -140,
-                        -51 + i as i16 * 21,
+                        -55 + i as i16 * 18,
                         format!("{} {label}", if campaign.cursor == i { ">" } else { " " }),
                         if campaign.cursor == i { GOLD } else { WHITE },
                     );
+                }
+                if options.language == Some(tenchu_assets::script::Language::Japanese) {
+                    line(-140, 72, "Japanese subtitles: font incomplete".into(), DIM);
                 }
                 line(-140, 88, "Arrows/D-pad/stick: choose/change".into(), DIM);
                 line(-140, 104, "Enter/South: select  Esc/East: quit".into(), DIM);

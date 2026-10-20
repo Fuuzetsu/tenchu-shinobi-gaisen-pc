@@ -55,9 +55,12 @@ textures, characters, effects and HUD as the window.
 Mission numbers follow campaign order (1–10); `--mission training` selects
 training. Each mission has layouts 1–3; `--layout random` selects one at the
 source construction boundary. `--difficulty easy|normal|hard` selects the source
-AI difficulty; normal is the default. `--language english|french|italian|japanese`
-selects the original cinematic scripts. Japanese subtitle rasterization still
-needs a portable replacement for BIOS KROM.
+AI difficulty; normal is the default. The launcher's **Language** row selects
+English, French, Italian or Japanese dialogue and subtitles. Use Left/Right to
+change it before starting a mission or continuing a save. The choice is saved;
+`--language english|french|italian|japanese` overrides the saved preference at launch.
+The placeholder menu labels remain in English. Japanese subtitle rasterization
+still needs a portable replacement for BIOS KROM, as indicated in the menu.
 
 | Action | Keyboard | Controller |
 | --- | --- | --- |

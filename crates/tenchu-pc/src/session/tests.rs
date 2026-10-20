@@ -18,7 +18,7 @@ fn mission_two_opening_resumes_background_music() {
             let mut game = Options {
                 mission: 2,
                 character,
-                language,
+                language: Some(language),
                 ..Options::default()
             }
             .load(&assets)
