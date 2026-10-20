@@ -209,8 +209,8 @@ RNG, collision, event time, activation budgets and exact drawing allocation.
 The comparison exposed two runtime defects: the swimming camera used state 13
 instead of 3, and adaptive drawing used pre-initialization SDK globals instead
 of `jt_init4`'s depth 602 and extents 512. Both are corrected. The original
-campaign recordings consequently need refresh. Missions 1–8 now complete for
-both characters using their actual saved stock/RNG. The Mission 9 continuations
+campaign recordings consequently need refresh. Missions 1–9 now complete for
+both characters using their actual saved stock/RNG. The Mission 10 continuations
 are next. The independent Mission 7 route now passes with
 refreshed inputs and the corrected swimming camera.
 The earlier full-campaign results below describe the pre-fix revision, not a
@@ -1249,3 +1249,8 @@ their results. Rikimaru finishes at tick 8,448, health 74 and clock 8,217; Ayame
 at tick 8,126, health 56 and clock 7,920. The paths clear two interfering archers
 and climb back through the mountain using the hook. Their remaining equipment
 is carried into the actual Mission 9 saves.
+
+Both saved Mission 9 continuations now complete the castle and Onikage fight.
+Rikimaru finishes at tick 6,292 with 3 HP and clock 5,206; Ayame at tick 5,741
+with 67 HP and clock 4,620. Saves carry seeds 37,031,008 and 4,197,738,911 into
+Mission 10. The final mission recordings are the remaining campaign gate.

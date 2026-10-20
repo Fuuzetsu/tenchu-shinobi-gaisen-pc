@@ -191,7 +191,7 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
-Current saved-campaign regressions complete Missions 1–8 for both characters
+Current saved-campaign regressions complete Missions 1–9 for both characters
 after the swimming-camera and drawing-initialization
 corrections. Stock and RNG carry through real encoded/decoded saves at every
 boundary. Refreshed recordings include their starting seed and equipment, so
@@ -213,9 +213,11 @@ boundary. Refreshed recordings include their starting seed and equipment, so
 | Ayame | [7](crates/tenchu-pc/tests/data/mission7-ayame-campaign.inputs) | 2,546 | 100 |
 | Rikimaru | [8](crates/tenchu-pc/tests/data/mission8-rikimaru-campaign.inputs) | 8,448 | 74 |
 | Ayame | [8](crates/tenchu-pc/tests/data/mission8-ayame-campaign.inputs) | 8,126 | 56 |
+| Rikimaru | [9](crates/tenchu-pc/tests/data/mission9-rikimaru-campaign.inputs) | 6,292 | 3 |
+| Ayame | [9](crates/tenchu-pc/tests/data/mission9-ayame-campaign.inputs) | 5,741 | 67 |
 
 Both complete Mission 2 with 100 HP. The complete campaign tests currently fail
-on the old Mission 9 continuations. The independent [Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
+on the old Mission 10 continuations. The independent [Mission 7 route](crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
 now also passes with the corrected swimming camera, finishing at tick 3,461 with
 93 HP. Both ten-mission campaigns and training passed before the corrections; those
 historical results and the implemented feature coverage are recorded in

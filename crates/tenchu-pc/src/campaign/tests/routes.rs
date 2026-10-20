@@ -303,10 +303,10 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 9);
-    equip(&mut resumed, &assets, &[(2, 6), (3, 2), (6, 6)]);
+    equip(&mut resumed, &assets, &[(2, 6), (4, 1), (5, 2), (6, 6)]);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 0, 6, 2, 0, 0, 6]
+        &[255, 0, 6, 0, 1, 2, 6]
     );
     let scenes = controller_route(
         &mut resumed,
@@ -314,11 +314,11 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
     );
     eprintln!("Mission 9 saved campaign: {scenes:?}");
     assert_eq!(scenes.iter().map(|s| s.1).collect::<Vec<_>>(), [10, 50]);
-    assert_eq!(resumed.game.tick, 5112);
-    assert_eq!(resumed.game.player().health, 22);
+    assert_eq!(resumed.game.tick, 6292);
+    assert_eq!(resumed.game.player().health, 3);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 0, 6, 0, 0, 0, 2]
+        &[255, 0, 6, 0, 0, 1, 6]
     );
     let boss = resumed
         .game
@@ -326,7 +326,7 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
         .get(resumed.game.roster.find(0x87).unwrap());
     assert_eq!((boss.health, boss.status), (0, 17));
     assert_eq!(resumed.progress.flags & 511, 511);
-    let save = save_result(&mut resumed, 4026);
+    let save = save_result(&mut resumed, 5206);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 10);
@@ -492,17 +492,17 @@ fn ayame_campaign_controller_routes_reach_completion() {
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 9);
-    equip(&mut resumed, &assets, &[(1, 1), (2, 6), (5, 3), (6, 1)]);
+    equip(&mut resumed, &assets, &[(1, 2), (2, 6), (3, 1), (4, 1)]);
     let scenes = controller_route(
         &mut resumed,
         include_str!("../../../tests/data/mission9-ayame-campaign.inputs"),
     );
-    assert_eq!(scenes, [(1830, 10), (4624, 50)]);
-    assert_eq!(resumed.game.tick, 4904);
-    assert_eq!(resumed.game.player().health, 28);
+    assert_eq!(scenes, [(1946, 10), (5461, 50)]);
+    assert_eq!(resumed.game.tick, 5741);
+    assert_eq!(resumed.game.player().health, 67);
     assert_eq!(
         &resumed.game.player().inventory[..7],
-        &[255, 1, 6, 0, 0, 3, 0]
+        &[255, 0, 6, 0, 1, 0, 0]
     );
     let boss = resumed
         .game
@@ -510,7 +510,7 @@ fn ayame_campaign_controller_routes_reach_completion() {
         .get(resumed.game.roster.find(0x87).unwrap());
     assert_eq!((boss.health, boss.status), (0, 17));
     assert_eq!(resumed.progress.flags & 511, 511);
-    let save = save_result(&mut resumed, 3783);
+    let save = save_result(&mut resumed, 4620);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
     assert_eq!(resumed.options.mission, 10);
