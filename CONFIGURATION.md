@@ -190,7 +190,7 @@ AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
   preserving readable HUD/menu rendering. Keep effects individually adjustable.
 - [x] Add Original/Enhanced/Cinematic presets and clear F1 controls, including
   asset reload and quality/performance feedback.
-- [ ] Compare actual mission views and moving characters before/after, including
+- [x] Compare actual mission views and moving characters before/after, including
   indoor/outdoor scenes and both players. Verify original rendering/gameplay
   regressions, portable libraries, Nix packaging and repeated-exit behavior.
 
@@ -361,3 +361,28 @@ forest, temple steps and snowy courtyard pairs were reviewed. Native Mission 1
 comparisons exercised all three presets and a lantern close-up. A dark MSAA
 fringe at distant geometry was fixed by clearing scene samples to the fog color,
 with a GPU regression for the uniform fog/sky boundary.
+
+Final validation: all 62 desktop checks pass with the private disc, FFmpeg,
+retail-state and GPU fixtures. This includes both complete campaign routes,
+source model export/import, lantern transforms, texture animation, original
+blend/fog behavior, shadows and HDR/UI separation. `nix flake check` passes
+x86_64-linux packaging/tests, formatting and the shared WASM build. Other host
+architectures were not built on this machine.
+
+Native comparisons cover both players in Mission 1 and Ayame in Mission 10,
+switching presets at the same paused pose, free/overhead cameras, clean photo
+view, movement and jumping. A recorded Mission 1 route at tick 5000 supplies an
+enclosed-room comparison with ceiling occlusion and warm lamps. An enhanced
+window successfully reloads diagnostic high-resolution PNGs and a modified,
+subdivided OBJ head, retains the last working pack after a missing-file error,
+then restores the original art. Three isolated native Wayland launches with
+Cinematic effects, MSAA and shadows exit with status zero after repeated Escape.
+
+The visual-upgrade goal is complete. These are optional improvements using disc
+art, plus a working path for new art; they do not turn the source textures into
+authored HD content. Source model seams and coarse scenery remain visible in
+some views (including snow, with the new effects disabled). Texture
+reconstruction and rounded contours remain individual choices because they do
+not improve every asset. Baked lighting, heuristic emitter detection, limited
+shadow coverage/budgets and screen-space contact shading retain the limits
+described above. No game assets or diagnostic captures are included in Git.

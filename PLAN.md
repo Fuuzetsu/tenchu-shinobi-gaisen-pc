@@ -1284,10 +1284,19 @@ screens were visually inspected, as was a GPU capture of Ayame fighting Mei-Oh.
 These checks used isolated X servers and private silent audio sinks.
 
 The requested desktop MAIN.EXE scope is complete. The original main menu and
-external ENDING.EXE movie, browser host, replacement asset packs and HD content
+external ENDING.EXE movie, browser host and authored HD content
 remain separate follow-ups. Source-level and continuous-retail comparisons
 provide fidelity evidence, not exhaustive equivalence for every input sequence.
 
 Optional desktop settings, native inspection and lighting/shadow improvements
 are tracked in `CONFIGURATION.md`. Their factory defaults retain the original
 presentation and simulation; the shared gameplay core remains portable.
+
+The optional visual-upgrade deliverables are complete: editable PNG/OBJ packs
+with live fallback/reload, isolated texture mipmaps and anisotropy, optional
+texture reconstruction and character contours, recovered lantern emitters,
+point/sky shadows, HDR bloom, contact shading, atmosphere/color controls,
+Original/Enhanced/Cinematic presets and clean photo capture. Final evidence and
+remaining visual limits are recorded in `CONFIGURATION.md`. The original
+presentation remains the factory default; all 62 desktop checks and the native,
+WASM and formatting Nix checks pass.
