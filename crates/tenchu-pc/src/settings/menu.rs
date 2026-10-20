@@ -232,13 +232,17 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             (
                 Item::Filtering,
                 "Texture filtering",
-                if s.graphics.bilinear {
-                    "Linear"
-                } else {
-                    "Nearest"
-                }
+                [
+                    "Nearest",
+                    "Bilinear",
+                    "Trilinear",
+                    "2x aniso",
+                    "4x aniso",
+                    "8x aniso",
+                    "16x aniso",
+                ][usize::from(s.graphics.filtering())]
                 .into(),
-                "Bilinear decoded texels; UI stays sharp.",
+                "Mipmaps reduce shimmer; aniso keeps detail.",
             ),
             (
                 Item::Antialiasing,

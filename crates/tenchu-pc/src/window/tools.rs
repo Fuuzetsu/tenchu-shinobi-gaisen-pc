@@ -237,7 +237,14 @@ impl Application {
                     + direction * 25)
                     .clamp(25, 300) as u16
             }
-            Item::Filtering => self.settings.graphics.bilinear = !self.settings.graphics.bilinear,
+            Item::Filtering => {
+                let next = cycle(
+                    self.settings.graphics.filtering(),
+                    &[0, 1, 2, 3, 4, 5, 6],
+                    direction,
+                );
+                self.settings.graphics.set_filtering(next);
+            }
             Item::Antialiasing => {
                 if let Some(view) = &self.view {
                     let counts = &view.renderer.sample_counts;

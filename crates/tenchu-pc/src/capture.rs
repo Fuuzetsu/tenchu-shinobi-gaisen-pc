@@ -49,12 +49,14 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
         view_formats: &[],
     });
+    let mesh = renderer.upload(&vertices);
+    let effects = renderer.upload_effects(render_effects::build(game));
     renderer.draw(
         &texture.create_view(&Default::default()),
         renderer::game_camera(game.rendered_view, width as f32 / height as f32),
-        &[&renderer.upload(&vertices)],
-        Some(&renderer.upload_effects(render_effects::build(game))),
-    );
+        &[&mesh],
+        Some(&effects),
+    )?;
     read_texture(&renderer, &texture, destination)
 }
 

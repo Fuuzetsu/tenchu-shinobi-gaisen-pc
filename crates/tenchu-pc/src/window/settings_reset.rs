@@ -33,7 +33,7 @@ impl Application {
             Item::Shading => self.settings.graphics.shading = s.graphics.shading,
             Item::BlobShadows => self.settings.graphics.blob_shadows = s.graphics.blob_shadows,
             Item::Exposure => self.settings.graphics.exposure = s.graphics.exposure,
-            Item::Filtering => self.settings.graphics.bilinear = s.graphics.bilinear,
+            Item::Filtering => self.settings.graphics.set_filtering(s.graphics.filtering()),
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
             Item::Lighting => self.settings.graphics.lighting.enabled = s.graphics.lighting.enabled,
             Item::Shadows => self.settings.graphics.lighting.shadows = s.graphics.lighting.shadows,

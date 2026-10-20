@@ -18,6 +18,7 @@ struct Vertex {
     @location(3) page: u32,
     @location(4) palette: u32,
     @location(5) flags: u32,
+    @location(6) material: u32,
 }
 struct Fragment {
     @builtin(position) position: vec4<f32>,
@@ -28,6 +29,7 @@ struct Fragment {
     @location(4) @interpolate(flat) flags: u32,
     @location(5) depth: f32,
     @location(6) world: vec3<f32>,
+    @location(7) @interpolate(flat) material: u32,
 }
 
 @vertex fn vertex(v: Vertex) -> Fragment {
@@ -47,11 +49,14 @@ struct Fragment {
     out.page = v.page;
     out.palette = v.palette;
     out.flags = v.flags;
+    out.material = v.material;
     return out;
 }
 
 fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
     let normal = normalize(cross(dpdx(v.world), dpdy(v.world)));
+    let du = dpdx(v.uv);
+    let dv = dpdy(v.uv);
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     var color = v.color;
@@ -63,7 +68,9 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
         if pixel == 0u { discard; }
         semi = semi && (pixel & 32768u) != 0u;
         if screen || camera.options.y != 0.0 {
-            if !screen && camera.options.w != 0.0 {
+            if !screen && camera.options.w >= 2.0 {
+                color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, semi, (v.flags & TRANSLUCENT) != 0u, rgb(pixel));
+            } else if !screen && camera.options.w != 0.0 {
                 color *= filtered(v.uv, v.page, v.palette, pixel);
             } else {
                 color *= rgb(pixel);

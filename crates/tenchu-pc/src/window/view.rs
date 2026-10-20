@@ -48,7 +48,7 @@ impl View {
             config.format = format;
         }
         config.present_mode = wgpu::PresentMode::AutoVsync;
-        let renderer = pollster::block_on(Renderer::new(
+        let mut renderer = pollster::block_on(Renderer::new(
             &adapter,
             config.format,
             [config.width, config.height],
@@ -224,13 +224,18 @@ impl View {
             Err(wgpu::SurfaceError::Timeout) => return Ok(()),
             Err(error) => return Err(error.to_string()),
         };
-        self.render(&frame.texture.create_view(&Default::default()), game, debug);
+        self.render(&frame.texture.create_view(&Default::default()), game, debug)?;
         self.window.pre_present_notify();
         frame.present();
         Ok(())
     }
 
-    fn render(&mut self, target: &wgpu::TextureView, game: &Game, debug: &crate::debug::Debug) {
+    fn render(
+        &mut self,
+        target: &wgpu::TextureView,
+        game: &Game,
+        debug: &crate::debug::Debug,
+    ) -> Result<()> {
         let meshes = [&self.stage, &self.actor];
         let casters = [
             self.shadow_stage.as_ref().unwrap_or(&self.stage),
@@ -243,7 +248,7 @@ impl View {
             Some(&self.effects),
             &self.lights,
             &casters,
-        );
+        )
     }
 
     pub(super) fn capture(
@@ -269,7 +274,7 @@ impl View {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
                 view_formats: &[],
             });
-        self.render(&texture.create_view(&Default::default()), game, debug);
+        self.render(&texture.create_view(&Default::default()), game, debug)?;
         crate::capture::read_texture(&self.renderer, &texture, path)
     }
 }

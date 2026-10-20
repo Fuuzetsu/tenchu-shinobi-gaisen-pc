@@ -4,6 +4,7 @@ use tenchu_assets::{Result, texture::Vram};
 use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
+mod materials;
 mod pipelines;
 mod shadows;
 
@@ -38,6 +39,7 @@ pub struct Renderer {
     multisample: Option<wgpu::TextureView>,
     graphics: crate::settings::Graphics,
     shadows: shadows::Shadows,
+    materials: materials::Materials,
 }
 
 impl Renderer {
@@ -82,11 +84,13 @@ impl Renderer {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = MAX_LIGHTS * 6u;\n{}\n{}\n{}",
+                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = MAX_LIGHTS * 6u; const MAX_MIPS: u32 = {}u;\n{}\n{}\n{}\n{}",
                     crate::lighting::MAX_LIGHTS,
+                    materials::MAX_MIPS,
                     include_str!("scene.wgsl"),
                     include_str!("renderer/palette.wgsl"),
-                    include_str!("renderer/lighting.wgsl")
+                    include_str!("renderer/lighting.wgsl"),
+                    include_str!("renderer/materials.wgsl")
                 )
                 .into(),
             ),
@@ -136,9 +140,10 @@ impl Renderer {
             view_formats: &[],
         });
         let shadows = shadows::Shadows::new(&device, &texture);
+        let materials = materials::Materials::new(&device, &queue, vram);
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Scene and effects"),
-            bind_group_layouts: &[&binding_layout, &shadows.layout],
+            bind_group_layouts: &[&binding_layout, &shadows.layout, &materials.layout],
             push_constant_ranges: &[],
         });
         let (pipeline, effects) = pipelines::create(&device, format, &layout, &shader, 1);
@@ -159,7 +164,7 @@ impl Renderer {
             ],
         });
         let depth = Self::attachment(&device, size, wgpu::TextureFormat::Depth32Float, 1);
-        let renderer = Self {
+        let mut renderer = Self {
             device,
             queue,
             pipeline,
@@ -177,6 +182,7 @@ impl Renderer {
             multisample: None,
             graphics: crate::settings::Graphics::default(),
             shadows,
+            materials,
         };
         renderer.update_vram(vram);
         Ok(renderer)
@@ -238,7 +244,8 @@ impl Renderer {
         self.graphics = graphics.clone();
     }
 
-    pub fn update_vram(&self, vram: &Vram) {
+    pub fn update_vram(&mut self, vram: &Vram) {
+        self.materials.update(vram);
         self.queue.write_texture(
             self.texture.as_image_copy(),
             bytemuck::cast_slice(&vram.words),
@@ -251,20 +258,22 @@ impl Renderer {
         );
     }
 
-    pub fn upload(&self, vertices: &[Vertex]) -> Mesh {
+    pub fn upload(&mut self, vertices: &[Vertex]) -> Mesh {
+        let mut vertices = vertices.to_vec();
+        self.materials.annotate(&mut vertices);
         Mesh {
             buffer: self
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("Geometry"),
-                    contents: bytemuck::cast_slice(vertices),
+                    contents: bytemuck::cast_slice(&vertices),
                     usage: wgpu::BufferUsages::VERTEX,
                 }),
             count: vertices.len() as u32,
         }
     }
 
-    pub fn upload_effects(&self, geometry: render_effects::Geometry) -> EffectMesh {
+    pub fn upload_effects(&mut self, geometry: render_effects::Geometry) -> EffectMesh {
         EffectMesh {
             mesh: self.upload(&geometry.vertices),
             batches: geometry.batches,
@@ -277,8 +286,8 @@ impl Renderer {
         matrix: Mat4,
         meshes: &[&Mesh],
         effects: Option<&EffectMesh>,
-    ) {
-        self.draw_lit(target, matrix, meshes, effects, &[], meshes);
+    ) -> Result<()> {
+        self.draw_lit(target, matrix, meshes, effects, &[], meshes)
     }
 
     pub fn draw_lit(
@@ -289,9 +298,17 @@ impl Renderer {
         effects: Option<&EffectMesh>,
         lights: &[crate::lighting::Light],
         casters: &[&Mesh],
-    ) {
+    ) -> Result<()> {
+        if self.graphics.mipmaps {
+            self.materials.flush(&self.device, &self.queue)?;
+        }
         let mut camera = matrix.to_cols_array().to_vec();
-        camera.extend([self.size[0] as f32 / self.size[1] as f32, 0.0, 0.0, 0.0]);
+        camera.extend([
+            self.size[0] as f32 / self.size[1] as f32,
+            f32::from(self.graphics.anisotropy),
+            0.0,
+            0.0,
+        ]);
         camera.extend([
             if self.graphics.fog {
                 DEPTH_CUE[0] as f32 * f32::from(DISTANCE) / 256.0
@@ -312,7 +329,11 @@ impl Renderer {
             f32::from(self.graphics.exposure) / 100.0,
             u8::from(self.graphics.textures) as f32,
             u8::from(self.graphics.shading) as f32,
-            u8::from(self.graphics.bilinear) as f32,
+            if self.graphics.mipmaps {
+                2.0
+            } else {
+                u8::from(self.graphics.bilinear) as f32
+            },
         ]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
@@ -357,6 +378,7 @@ impl Renderer {
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.bindings, &[]);
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
+            pass.set_bind_group(2, &self.materials.bindings, &[]);
             for mesh in meshes {
                 if mesh.count == 0 {
                     continue;
@@ -385,6 +407,7 @@ impl Renderer {
             }
         }
         self.queue.submit([encoder.finish()]);
+        Ok(())
     }
 }
 

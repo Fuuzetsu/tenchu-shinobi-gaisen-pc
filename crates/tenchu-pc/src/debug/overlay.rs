@@ -15,6 +15,7 @@ struct Lines {
 
 fn vertex(position: [f32; 3], color: [f32; 3], flags: u32) -> Vertex {
     Vertex {
+        material: 0,
         position,
         color,
         flags,

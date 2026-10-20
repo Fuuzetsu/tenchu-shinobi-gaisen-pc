@@ -125,6 +125,73 @@ fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
 }
 
 #[test]
+#[ignore = "requires a graphics adapter; minification averages texels, anisotropy preserves detail across the short axis, and VRAM animation stays live"]
+fn decoded_mips_filter_without_blurring_the_short_axis() {
+    let mut vram = Vram::default();
+    vram.images.push(tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [256, 16],
+    });
+    for y in 0..16 {
+        for x in 0..256 {
+            vram.words[y * 1024 + x] = if x % 2 == 0 { 0x7fff } else { 0x8000 };
+        }
+    }
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut vertices = rectangle(
+        2000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for vertex in &mut vertices {
+        vertex.uv = [
+            (vertex.position[0] + vertex.position[1] + 1200.0) / 2400.0 * 255.0,
+            0.0,
+        ];
+    }
+    let mesh = renderer.upload(&vertices);
+    let mut options = crate::settings::Graphics::default();
+    options.set_filtering(2);
+    renderer.configure(&options);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let averaged = read_pixel(&renderer, &target);
+    assert!(
+        averaged[..3].iter().all(|&c| c.abs_diff(128) <= 2),
+        "{averaged:?}"
+    );
+    for y in 0..16 {
+        for x in 0..256 {
+            vram.words[y * 1024 + x] = if y % 2 == 0 { 0x7fff } else { 0x8000 };
+        }
+    }
+    renderer.update_vram(&vram);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let blurred = read_pixel(&renderer, &target);
+    assert!(blurred[0].abs_diff(128) <= 2, "{blurred:?}");
+    options.set_filtering(6);
+    renderer.configure(&options);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let detailed = read_pixel(&renderer, &target);
+    assert!(detailed[0] > 240, "{detailed:?}");
+    for word in &mut vram.words[..16 * 1024] {
+        *word = 31;
+    }
+    renderer.update_vram(&vram);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[255, 0, 0]);
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; checks moving point-light shadows, alpha cutouts, second-light layers and unchanged defaults"]
 fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     use crate::lighting::Light;
@@ -142,6 +209,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
             center + Vec3::new(size, size, 0.0),
         ];
         [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            material: 0,
             position: points[i].to_array(),
             color: [0.5; 3],
             uv: [0.0; 2],
@@ -168,7 +236,9 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     let draw = |renderer: &mut Renderer, lights: &[Light], blockers: &[&Mesh]| {
         let mut casters = vec![&receiver];
         casters.extend_from_slice(blockers);
-        renderer.draw_lit(&view, matrix, &[&receiver], None, lights, &casters);
+        renderer
+            .draw_lit(&view, matrix, &[&receiver], None, lights, &casters)
+            .unwrap();
         read_pixel(renderer, &target)
     };
     let original = draw(&mut renderer, &[light], &[&blocker]);
@@ -263,6 +333,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
             Vec3::new(4000.0, 20.0, 4000.0),
         ];
         let receiver = renderer.upload(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            material: 0,
             position: (origin + points[i]).to_array(),
             color: [0.5; 3],
             uv: [0.0; 2],
@@ -280,7 +351,9 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         let view = target.create_view(&Default::default());
         let draw = |renderer: &mut Renderer, mesh: Option<&Mesh>| {
             let casters: Vec<_> = mesh.into_iter().collect();
-            renderer.draw_lit(&view, matrix, &[&receiver], None, &lights, &casters);
+            renderer
+                .draw_lit(&view, matrix, &[&receiver], None, &lights, &casters)
+                .unwrap();
             read_pixels(renderer, &target)
         };
         let lit = draw(&mut renderer, None);
@@ -322,7 +395,7 @@ fn winding_and_original_texture_blends_render_correctly() {
         (true, true, [255; 3]),
     ] {
         let mesh = renderer.upload(&rectangle(1000, 255, None, false, reversed, double_sided));
-        renderer.draw(&view, camera, &[&mesh], None);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
         assert_eq!(
             &read_pixel(&renderer, &target)[..3],
             &expected,
@@ -362,7 +435,9 @@ fn winding_and_original_texture_blends_render_correctly() {
                 range: 0..count,
             }],
         });
-        renderer.draw(&view, camera, &[&background], Some(&effects));
+        renderer
+            .draw(&view, camera, &[&background], Some(&effects))
+            .unwrap();
         let color = read_pixel(&renderer, &target);
         assert!(
             color[..3]
@@ -404,7 +479,7 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
     ] {
         let vertices = plane(z, None, false);
         let mesh = renderer.upload(&vertices);
-        renderer.draw(&view, camera, &[&mesh], None);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
         let color = read_pixel(&renderer, &target);
         assert!(
             color[..3]
@@ -426,7 +501,9 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
             })
             .collect();
         let mesh = renderer.upload(&vertices);
-        renderer.draw(&view, game_camera(rotated, 1.0), &[&mesh], None);
+        renderer
+            .draw(&view, game_camera(rotated, 1.0), &[&mesh], None)
+            .unwrap();
         assert_eq!(
             read_pixel(&renderer, &target),
             color,
@@ -448,7 +525,7 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
         }],
         vertices,
     });
-    renderer.draw(&view, camera, &[], Some(&effects));
+    renderer.draw(&view, camera, &[], Some(&effects)).unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[73; 3]);
 
     let mut vertices = plane(20000.0, None, false);
@@ -456,7 +533,7 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
         vertex.flags &= !render_mesh::FOG;
     }
     let mesh = renderer.upload(&vertices);
-    renderer.draw(&view, camera, &[&mesh], None);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[255; 3]);
 
     for vertex in &mut vertices {
@@ -464,7 +541,7 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
         vertex.position = [vertex.position[0] / 200.0, vertex.position[1] / 200.0, 0.5];
     }
     let mesh = renderer.upload(&vertices);
-    renderer.draw(&view, camera, &[&mesh], None);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[255; 3]);
 }
 
@@ -492,7 +569,7 @@ fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
         vertex.uv = [0.5, 0.0];
     }
     let mesh = renderer.upload(&vertices);
-    renderer.draw(&view, camera, &[&mesh], None);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[255, 0, 0]);
     let mut options = crate::settings::Graphics {
         bilinear: true,
@@ -501,7 +578,7 @@ fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
     for samples in renderer.sample_counts.clone() {
         options.samples = samples;
         renderer.configure(&options);
-        renderer.draw(&view, camera, &[&mesh], None);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
         let pixel = read_pixel(&renderer, &target);
         assert!(
             pixel[0].abs_diff(128) <= 1 && pixel[1] == 0 && pixel[2].abs_diff(128) <= 1,
@@ -510,7 +587,7 @@ fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
     }
     options.textures = false;
     renderer.configure(&options);
-    renderer.draw(&view, camera, &[&mesh], None);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[255; 3]);
     for vertex in &mut vertices {
         vertex.flags |= render_mesh::SCREEN;
@@ -519,7 +596,7 @@ fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
     let ui = renderer.upload(&vertices);
     options.exposure = 25;
     renderer.configure(&options);
-    renderer.draw(&view, camera, &[&ui], None);
+    renderer.draw(&view, camera, &[&ui], None).unwrap();
     assert_eq!(
         &read_pixel(&renderer, &target)[..3],
         &[255, 0, 0],
@@ -527,7 +604,7 @@ fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
     );
     options = crate::settings::Graphics::default();
     renderer.configure(&options);
-    renderer.draw(&view, camera, &[&mesh], None);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert_eq!(
         &read_pixel(&renderer, &target)[..3],
         &[255, 0, 0],

@@ -121,10 +121,12 @@ Tab/Shift+Tab, Page Down/Page Up or controller R1/L1 changes settings pages.
 Hover a row or select it with the arrows, then press R to reset only that value;
 one-shot actions such as teleport cannot be reset or triggered with R. Graphics
 settings include black fog and its distance, textures, baked vertex shading,
-exposure, nearest/bilinear filtering and supported MSAA modes. MSAA smooths
-polygon edges; bilinear filtering decodes the original palettes and keeps
-transparent/semitransparent texels separate. HUD and menu textures remain sharp.
-Mipmaps and anisotropic texture filtering are not implemented yet.
+exposure, nearest/bilinear/trilinear filtering, 2×–16× anisotropic filtering and
+supported MSAA modes. MSAA smooths polygon edges. Mipmaps reduce distant texture
+shimmer; anisotropic filtering retains detail on angled floors and roofs.
+Each decoded texture has isolated mip levels and separate opaque/semitransparent
+colors, so filtering does not borrow from neighboring textures or blend modes.
+Animated VRAM textures remain live. HUD and menu textures remain sharp.
 
 Inspection pages include live body/attack hitboxes, sight bounds, masked terrain
 surfaces, patrol routes, spatial event regions, actor labels/state, X-ray overlays
@@ -184,9 +186,8 @@ shadows, including mixed opaque/translucent textured faces. Particles do not cas
 **Original blob shadows** controls the original ground decals independently.
 Lighting already baked into textures/vertex colors remains.
 
-Further visual work need not start with replacing textures. Decoded texture
-mipmaps and anisotropic filtering would reduce distant ground/roof shimmer;
-presentation interpolation could smooth animation at higher display rates while
+Further visual work need not start with replacing textures.
+Presentation interpolation could smooth animation at higher display rates while
 keeping the original 30 Hz simulation. Better authored light placement and an
 optional directional moon/sun light would give shadows more consistent coverage.
 These are follow-ups, not currently implemented.

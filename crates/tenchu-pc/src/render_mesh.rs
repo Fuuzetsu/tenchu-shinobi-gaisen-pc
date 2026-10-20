@@ -26,6 +26,7 @@ pub struct Vertex {
     pub(crate) page: u32,
     pub(crate) palette: u32,
     pub(crate) flags: u32,
+    pub(crate) material: u32,
 }
 
 pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
@@ -72,6 +73,7 @@ pub(crate) fn append_face(
     for &i in order {
         let corner = face.corners[i];
         vertices.push(Vertex {
+            material: 0,
             position: points[i],
             color: corner
                 .color

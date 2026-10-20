@@ -208,3 +208,14 @@ textures contain the bright lamp panels. A region/decoder regression covers
 texture-page offsets, palette separation, edge UVs and opaque/transparent/STP
 black distinctions. All twelve ordinary asset-crate tests pass. The original
 renderer continues to use its existing VRAM path at this stage.
+
+Texture filtering: F1 now offers trilinear and 2×–16× anisotropic sampling.
+Decoded TIM regions have independently padded mip chains, with separate opaque
+and semi-transparent colors and coverage. Anisotropy follows the texture
+footprint's major axis, including diagonal footprints; live VRAM updates refresh
+the decoded images. Original nearest sampling remains the default.
+Six sequential GPU regressions pass, including rotated minification, preserved
+short-axis detail, animation, original blends/fog and actual model shadows.
+Thirteen fixture-free desktop tests pass. Native Mission 1 captures show smoother
+ground/roof textures with unchanged HUD, followed by movement and a clean exit.
+This removes sampling artifacts; it does not add new source detail.

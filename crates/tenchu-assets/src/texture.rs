@@ -20,6 +20,7 @@ impl Image {
     }
 }
 
+#[derive(Clone)]
 pub struct Vram {
     pub words: Vec<u16>,
     pub revision: u64,
