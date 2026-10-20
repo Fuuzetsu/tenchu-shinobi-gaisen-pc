@@ -1119,3 +1119,8 @@ shuriken use, look controls, pause/resize and retry. Its two recordings replay t
 matching ticks, health and motion; the retry seed matches the preceding RNG.
 The recordings remain unchanged while paused. Audio uses a private null sink.
 Native 4:3 inspection exposed clipped pause instructions, to be corrected next.
+
+Pause controls now use two short lines so their meaning remains visible at 4:3.
+The final completion notice is also shorter, and the training failure screen
+correctly says its equipment resets. A rebuilt native window was inspected at
+960×720 and 1280×720; all pause text fits. Formatting and the release build pass.

@@ -64,12 +64,8 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
     } else if paused {
         line(-40, -20, "Paused".into(), GOLD);
         line(-140, 12, "P/Start/South: resume".into(), WHITE);
-        line(
-            -140,
-            32,
-            "Esc/East: inventory (abandons attempt)".into(),
-            DIM,
-        );
+        line(-140, 32, "Esc/East: abandon attempt".into(), DIM);
+        line(-140, 52, "Returns to equipment selection".into(), DIM);
     } else {
         match &campaign.screen {
             Screen::Launcher => {
@@ -218,12 +214,21 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
             Screen::GameOver => {
                 line(-80, -40, "MISSION FAILED".into(), GOLD);
                 line(-140, 4, "Enter/South: retry  Esc/East: menu".into(), WHITE);
-                line(-130, 32, "Carried items were lost.".into(), DIM);
+                line(
+                    -130,
+                    32,
+                    if campaign.options.mission == 0 {
+                        "Training equipment resets.".into()
+                    } else {
+                        "Carried items were lost.".into()
+                    },
+                    DIM,
+                );
             }
             Screen::Complete => {
                 line(-112, -50, "CAMPAIGN COMPLETE".into(), GOLD);
                 line(-130, -10, "All ten missions completed.".into(), WHITE);
-                line(-130, 14, "Ending movie is not implemented yet.".into(), DIM);
+                line(-130, 14, "Ending movie unavailable.".into(), DIM);
                 line(-130, 60, "Enter/South: return to launcher".into(), WHITE);
             }
             Screen::Playing => {}
