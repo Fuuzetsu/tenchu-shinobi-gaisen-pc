@@ -21,6 +21,8 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::Preset => self.settings.graphics.set_preset(0),
+            Item::PhotoMode => self.debug.photo_mode = false,
             Item::Post => self.settings.graphics.post.enabled = s.graphics.post.enabled,
             Item::Bloom => self.settings.graphics.post.bloom = s.graphics.post.bloom,
             Item::BloomThreshold => {

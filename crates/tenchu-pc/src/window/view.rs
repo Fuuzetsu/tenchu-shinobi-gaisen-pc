@@ -271,7 +271,7 @@ impl View {
             } else {
                 render_effects::build_options(
                     game,
-                    settings.show_hud,
+                    settings.show_hud && !debug.photo_mode,
                     debug.camera.map(|c| c.source_view()),
                     settings.graphics.blob_shadows,
                     Some(&self.models),
@@ -280,7 +280,10 @@ impl View {
         } else {
             ui::build(campaign, paused, error)
         };
-        if campaign.playing() && !menu.open && error.is_none() {
+        if campaign.playing() && !menu.open && error.is_none() && debug.photo_mode {
+            geometry.hide_ui();
+        }
+        if campaign.playing() && !menu.open && error.is_none() && !debug.photo_mode {
             if settings.graphics.lighting.markers {
                 geometry.append(crate::debug::light_markers(
                     debug,
@@ -308,7 +311,7 @@ impl View {
                 ));
             }
         }
-        if settings.show_fps && !menu.open {
+        if settings.show_fps && !menu.open && !debug.photo_mode {
             geometry.append(render_effects::text(
                 &game.mission.font,
                 &[(

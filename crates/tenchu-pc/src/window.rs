@@ -462,6 +462,7 @@ impl ApplicationHandler for Application {
                         KeyCode::F3 => Some(Item::Pause),
                         KeyCode::F4 => Some(Item::Step),
                         KeyCode::F9 => Some(Item::Screenshot),
+                        KeyCode::F10 => Some(Item::PhotoMode),
                         _ => None,
                     };
                     if let Some(item) = item {

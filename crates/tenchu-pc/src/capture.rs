@@ -7,8 +7,8 @@ use crate::{
 use std::{fs::File, io::BufWriter, path::Path};
 use tenchu_assets::{Result, game::GameAssets};
 
-pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()> {
-    let mut game = Options::default().load(assets)?;
+pub fn render(assets: &GameAssets<FileSource>, destination: &Path, options: Options) -> Result<()> {
+    let mut game = options.load(assets)?;
     for _ in 0..30 {
         game.step(0)?;
     }
@@ -16,6 +16,11 @@ pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()>
 }
 
 pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
+    let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
+        crate::settings::Store::new()?.load()?
+    } else {
+        crate::settings::Settings::default()
+    };
     let instance = wgpu::Instance::new(&Default::default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
@@ -35,8 +40,22 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
     ))?;
     let pack = crate::visuals::pack::Pack::from_env()?;
     let mut models =
-        crate::visuals::models::Models::build(&game.mission, &pack, &Default::default())?;
+        crate::visuals::models::Models::build(&game.mission, &pack, &settings.graphics)?;
+    let emitters =
+        crate::visuals::lights::Emitters::build(game, &pack, settings.graphics.asset_pack);
+    let lights: Vec<_> = crate::lighting::sources(
+        game,
+        &settings.graphics.lighting,
+        crate::debug::camera::Camera::from_game(game).position,
+        None,
+        emitters.sources(game),
+    )
+    .into_iter()
+    .map(|source| source.light)
+    .collect();
+    renderer.configure(&settings.graphics);
     renderer.set_asset_pack(&pack);
+    renderer.set_emitters(&emitters);
     renderer.bind_models(&mut models);
     let mut vertices = render_mesh::stage(&game.mission, &game.math, Some(&models));
     vertices.extend(render_mesh::characters(game, Some(&models)));
@@ -55,18 +74,27 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         view_formats: &[],
     });
     let mesh = renderer.upload(&vertices);
+    let casters = if settings.graphics.lighting.enabled && settings.graphics.lighting.shadows {
+        let mut vertices = render_mesh::shadow_stage(&game.mission, &game.math, Some(&models));
+        vertices.extend(render_mesh::shadow_models(game, Some(&models)));
+        Some(renderer.upload(&vertices))
+    } else {
+        None
+    };
     let effects = renderer.upload_effects(render_effects::build_options(
         game,
-        true,
+        settings.show_hud,
         None,
-        true,
+        settings.graphics.blob_shadows,
         Some(&models),
     ));
-    renderer.draw(
+    renderer.draw_lit(
         &texture.create_view(&Default::default()),
         renderer::game_camera(game.rendered_view, width as f32 / height as f32),
         &[&mesh],
         Some(&effects),
+        &lights,
+        &casters.iter().collect::<Vec<_>>(),
     )?;
     read_texture(&renderer, &texture, destination)
 }

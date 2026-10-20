@@ -339,6 +339,7 @@ impl Renderer {
         }
     }
 
+    #[cfg(test)]
     pub fn draw(
         &mut self,
         target: &wgpu::TextureView,

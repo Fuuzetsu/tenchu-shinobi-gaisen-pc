@@ -36,6 +36,7 @@ pub struct Debug {
     pub sight_percent: u16,
     pub frame_step: bool,
     pub pause_view: bool,
+    pub photo_mode: bool,
     pub light: Option<Vec3>,
     pub light_follow: bool,
     pub surfaces: Vec<terrain::Surface>,
@@ -69,6 +70,7 @@ impl Debug {
             sight_percent: 100,
             frame_step: false,
             pause_view: false,
+            photo_mode: false,
             light: None,
             light_follow: false,
             surfaces: terrain::surfaces(&game.mission.terrain)?,
@@ -205,6 +207,7 @@ impl Debug {
             || self.show_trail
             || self.inspect_actor
             || self.pause_view
+            || self.photo_mode
     }
 }
 

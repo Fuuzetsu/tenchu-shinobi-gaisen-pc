@@ -4,6 +4,8 @@ use tenchu_assets::font::Font;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Preset,
+    PhotoMode,
     Fps,
     Focus,
     Fullscreen,
@@ -417,6 +419,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
         ],
         1 => vec![
             (
+                Item::Preset,
+                "Visual preset",
+                super::presets::NAMES[s.graphics.preset() as usize].into(),
+                "Graphics only; preserves artwork pack preference.",
+            ),
+            (
                 Item::Fog,
                 "Black distance fog",
                 on(s.graphics.fog),
@@ -582,6 +590,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Recall camera bookmark",
                 "Enter".into(),
                 "Restore position, heading and field of view.",
+            ),
+            (
+                Item::PhotoMode,
+                "Clean photo view / F10",
+                on(d.photo_mode),
+                "Hide HUD/helpers; F2 camera, F3 pause, F9 shot.",
             ),
         ],
         4 => vec![
@@ -971,6 +985,17 @@ impl Menu {
                 )
             };
             lines.push((-146, -79, status, [0.6, 0.8, 0.85]));
+        }
+        if PAGES[self.page] == "Image effects" {
+            let post = &settings.graphics.post;
+            let status = if !post.enabled {
+                "Effects off; turn on the master switch"
+            } else if post.occlusion > 0 {
+                "For more FPS, reduce contact shading to 0"
+            } else {
+                "HUD stays sharp; color controls affect the world"
+            };
+            lines.push((-146, -79, status.into(), [0.6, 0.8, 0.85]));
         }
         if !self.notice.is_empty() {
             lines.push((-146, 86, self.notice.clone(), [1.0, 0.65, 0.3]));

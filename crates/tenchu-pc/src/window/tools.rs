@@ -123,6 +123,16 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::PhotoMode => self.debug.photo_mode = !self.debug.photo_mode,
+            Item::Preset => {
+                let current = self.settings.graphics.preset();
+                let index = if current == 3 {
+                    if direction < 0 { 2 } else { 0 }
+                } else {
+                    cycle(current, &[0, 1, 2], direction)
+                };
+                self.settings.graphics.set_preset(index);
+            }
             Item::Post => {
                 self.settings.graphics.post.enabled = !self.settings.graphics.post.enabled
             }

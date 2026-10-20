@@ -98,6 +98,38 @@ fn per_value_reset_does_not_execute_actions_or_reset_other_options() {
     app.debug.toggle_camera(&app.campaign.game);
     app.reset_item(Item::FreeCamera).unwrap();
     assert!(app.debug.camera.is_none());
+    app.settings.graphics.asset_pack = false;
+    app.settings.pause_on_defocus = false;
+    app.debug.speed = 200;
+    app.reset_item(Item::Preset).unwrap();
+    app.apply_item(Item::Preset, 1).unwrap();
+    assert_eq!(app.settings.graphics.preset(), 1);
+    app.apply_item(Item::Preset, 1).unwrap();
+    assert_eq!(app.settings.graphics.preset(), 2);
+    app.apply_item(Item::Bloom, 1).unwrap();
+    assert_eq!(app.settings.graphics.preset(), 3);
+    app.apply_item(Item::PhotoMode, 1).unwrap();
+    assert!(app.debug.photo_mode && app.debug.active());
+    let mut effects = crate::render_effects::build(&app.campaign.game);
+    let world: Vec<_> = effects
+        .vertices
+        .iter()
+        .filter(|v| v.flags & crate::render_mesh::UI == 0)
+        .copied()
+        .collect();
+    effects.hide_ui();
+    assert_eq!(
+        bytemuck::cast_slice::<_, u8>(&effects.vertices),
+        bytemuck::cast_slice::<_, u8>(&world)
+    );
+    assert_eq!(
+        effects.batches.iter().map(|b| b.range.len()).sum::<usize>(),
+        world.len()
+    );
+    app.reset_item(Item::Preset).unwrap();
+    assert_eq!(app.settings.graphics.preset(), 0);
+    assert!(!app.settings.graphics.asset_pack && !app.settings.pause_on_defocus);
+    assert_eq!(app.debug.speed, 200);
     assert_eq!(state, crate::session::tests::state(&app.campaign.game));
 }
 

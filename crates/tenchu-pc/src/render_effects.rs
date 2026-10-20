@@ -15,6 +15,28 @@ pub struct Geometry {
 }
 
 impl Geometry {
+    pub fn hide_ui(&mut self) {
+        let vertices = std::mem::take(&mut self.vertices);
+        let batches = std::mem::take(&mut self.batches);
+        for batch in batches {
+            let start = self.vertices.len() as u32;
+            self.vertices.extend(
+                vertices[batch.range.start as usize..batch.range.end as usize]
+                    .chunks_exact(3)
+                    .filter(|triangle| triangle[0].flags & render_mesh::UI == 0)
+                    .flatten()
+                    .copied(),
+            );
+            let end = self.vertices.len() as u32;
+            if start < end {
+                self.batches.push(Batch {
+                    range: start..end,
+                    blend: batch.blend,
+                });
+            }
+        }
+    }
+
     pub fn append(&mut self, other: Geometry) {
         let offset = self.vertices.len() as u32;
         self.vertices.extend(other.vertices);

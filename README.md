@@ -20,10 +20,24 @@ Game data, captured RAM and disc images must remain outside Git. No BIOS is
 required. This is an early PC port with full campaign and training regression
 routes, native window checks and source/retail comparisons described below.
 Those checks do not establish perfect parity for every possible playthrough.
-A browser host, asset replacement packs and HD content are later work; the
-shared assets, audio and gameplay crates already compile for WASM.
+A browser host and authored HD content are later work; editable texture/model
+packs are supported. The shared assets, audio and gameplay crates compile for WASM.
 
 The visual-upgrade work is tracked in [CONFIGURATION.md](CONFIGURATION.md).
+For the optional upgraded look, open **F1 → Graphics → Visual preset**:
+
+- **Original** restores the original presentation settings and is the factory default.
+- **Enhanced** combines 4× MSAA, 8× anisotropic filtering, subtle character
+  contours, smooth model lighting, lantern/sky shadows, contact shading,
+  restrained bloom and blue distance haze.
+- **Cinematic** increases anisotropy and the point-light/shadow budget, with
+  stronger bloom/contact shading, haze and a slight vignette. It costs more GPU time.
+
+Each effect remains adjustable. Changes show the preset as **Custom**; R on the
+preset row restores Original. Presets preserve the replacement-artwork switch
+and never change gameplay or simulation settings. Source textures still limit
+close-up detail; the editable pack workflow below supplies genuinely new art.
+
 An asset export is available for reviewing and editing the original art:
 
 ```sh
@@ -113,8 +127,12 @@ never an input to the Nix package or copied into the Nix store.
 ```
 
 `audit` constructs every stage for both characters and samples each motion track
-through its duration. `render` captures Mission 1 after 30 ordinary logic ticks, using the same camera,
-textures, characters, effects and HUD as the window.
+through its duration. `render` captures after 30 ordinary logic ticks, using the
+same camera, textures, characters, effects and HUD as the window. It accepts the
+same mission/character/layout options as `play`; Mission 1 is the default.
+Captures use Original settings unless `TENCHU_SETTINGS` explicitly names a
+settings file. That also works with `replay --capture`, allowing repeatable
+Original/Enhanced comparisons of the same simulation state.
 
 ## Play
 
@@ -208,6 +226,9 @@ logic tick runs; cutscene-only accelerated backlog is discarded
 when control returns. Fast-forward mutes sound and resumes background music at
 ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
+**F10** toggles a clean photo view, hiding HUD, captions, FPS and inspection
+helpers while preserving world effects. Combine it with F2/F3 for a paused
+free-camera shot; F1 remains available. It does not alter saved HUD preferences.
 
 The Lighting page adds optional dynamic point lights and model/weapon shadows.
 In a mission, select **Preview model shadows** to enable a light above/beside the
@@ -264,6 +285,15 @@ shimmer, with a gradual fade at its boundary. Wider coverage reduces detail;
 2048 is a useful starting point. The shared shadow switch and filtering radius
 also apply to sky shadows. A point-light budget of zero leaves just sky/ambient
 lighting and glowing panels.
+
+F1 → **Image effects** enables HDR finishing with bloom, contact shading,
+filmic tone mapping, contrast, saturation, warm/cool balance, shadow brightness,
+vignette and sharpening. Sky lighting also offers distance-fog colors and
+atmospheric haze, which require Image effects. HUD/menu rendering bypasses
+these effects. Contact shading uses visible depth, so off-screen objects cannot
+contribute; turn its strength to zero to reduce GPU cost. The filmic curve
+retains bright-light detail but is an optional artistic treatment of the original
+baked colors. All these effects start disabled in Original.
 
 Presentation interpolation could smooth animation at higher display rates while
 keeping the original 30 Hz simulation; it remains a follow-up.

@@ -188,7 +188,7 @@ AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
   overrides for ambiguous assets. Add useful ambient/directional lighting.
 - [x] Add restrained bloom, atmosphere/color controls and presentation polish,
   preserving readable HUD/menu rendering. Keep effects individually adjustable.
-- [ ] Add Original/Enhanced/Cinematic presets and clear F1 controls, including
+- [x] Add Original/Enhanced/Cinematic presets and clear F1 controls, including
   asset reload and quality/performance feedback.
 - [ ] Compare actual mission views and moving characters before/after, including
   indoor/outdoor scenes and both players. Verify original rendering/gameplay
@@ -342,3 +342,22 @@ Mission 1 window checks cover image-effects toggling, overhead/free-camera views
 moving/jumping and repeated Escape exit. In one isolated 1280x720 X11 comparison,
 the paused view measured 41 FPS with effects and 44 without; these are diagnostic
 samples, not a general performance guarantee.
+
+Graphics now offers Original, Enhanced and Cinematic presets. Enhanced combines
+the texture/model improvements with the lighting and finishing passes; Cinematic
+adds shadow quality/budget and stronger atmosphere. The controls remain
+independent and label edited combinations Custom. The factory default is still
+Original. A state comparison covers changing/resetting presets and photo mode,
+preserving gameplay state, simulation speed, unrelated preferences and the
+artwork-pack switch.
+
+F10 hides HUD/captions and inspection helpers for clean F9 captures, leaving F1,
+free camera and simulation pause available. Photo mode removes only UI geometry
+and retains world effects/blend batches. Headless render/replay captures apply
+an explicitly named TENCHU_SETTINGS file; unconfigured captures retain Original.
+Render also accepts normal mission/character/layout options. Forty captures
+(both characters, ten missions, Original/Enhanced) completed on the GPU; selected
+forest, temple steps and snowy courtyard pairs were reviewed. Native Mission 1
+comparisons exercised all three presets and a lantern close-up. A dark MSAA
+fringe at distant geometry was fixed by clearing scene samples to the fog color,
+with a GPU regression for the uniform fog/sky boundary.
