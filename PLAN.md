@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's first two saved missions, an independent Ayame Mission 2 route,
+Ayame's first four saved missions, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -1031,3 +1031,15 @@ Its path accounts for different enemy behavior from the standalone seed-1 run.
 Both saves are encoded/decoded and Mission 3 starts with Ayame selected.
 The two-mission Ayame regression, full saved Rikimaru campaign and formatting
 checks pass. Remaining Ayame missions and broader interactive validation continue.
+
+
+Ayame's saved campaign now also completes Missions 3 and 4. The mine route uses
+four shuriken and melee to defeat Goo, then completes the rescue: sequences
+30/40 at ticks 2,185/3,991, results at tick 5,471, 64 HP and clock 3,684.
+The checkpoint route defeats both bosses and completes sequences 10/20/40/50
+at ticks 1/1,775/4,623/6,836. Results arrive at tick 7,476 with 67 HP and clock
+4,905. All three carried shuriken, three medicine and four grenades are used;
+two of three smoke bombs remain. Guarding while smoke spreads allows the final
+medicine to complete amid the surrounding enemies. No game state is overridden.
+Encoded/decoded saves carry stock and RNG across all four missions and start
+Mission 5 with Ayame selected. The Ayame and Rikimaru campaign regressions pass.

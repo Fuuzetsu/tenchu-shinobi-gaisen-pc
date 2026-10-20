@@ -223,7 +223,12 @@ The saved Ayame campaign now completes
 using grappling and melee for both encounters without consuming equipment.
 It saves, reloads and completes
 [Mission 2](crates/tenchu-pc/tests/data/mission2-ayame-campaign.inputs) with
-100 HP, then saves into Mission 3. Its carried RNG produces different enemy
+100 HP. It then completes the
+[mine rescue](crates/tenchu-pc/tests/data/mission3-ayame-campaign.inputs) with
+64 HP using four shuriken and melee, and the
+[checkpoint](crates/tenchu-pc/tests/data/mission4-ayame-campaign.inputs) with
+67 HP using three shuriken, three medicine, four grenades and one smoke bomb.
+The resulting save starts Mission 5. Its carried RNG produces different enemy
 behavior from the standalone delivery route.
 
 An independent [Rikimaru Mission 3 route](crates/tenchu-pc/tests/data/mission3-rikimaru.inputs)
