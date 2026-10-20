@@ -1,6 +1,12 @@
 use super::catalog;
 use serde::Serialize;
-use std::{collections::BTreeSet, fmt::Write, fs, io::BufWriter, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Write,
+    fs,
+    io::BufWriter,
+    path::Path,
+};
 use tenchu_assets::{Result, stage::MissionAssets};
 
 #[derive(Serialize)]
@@ -57,15 +63,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
             .write_image_data(&region.pixels(&mission.vram))
             .map_err(|e| e.to_string())?;
     }
-    let mut materials = "newmtl untextured\nKd 1 1 1\n".to_owned();
-    for id in &textures {
-        writeln!(
-            materials,
-            "\nnewmtl tex_{id}\nKd 1 1 1\nmap_Kd textures/{id}.png"
-        )
-        .unwrap();
-    }
-    fs::write(directory.join("materials.mtl"), materials).map_err(|e| e.to_string())?;
+    let mut definitions = BTreeMap::new();
     let mut models = Vec::new();
     for source in catalog::models(mission) {
         let file = format!("models/{}.obj", source.id);
@@ -81,9 +79,34 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         let mut faces = 0;
         for geometry in source.geometry {
             for face in crate::render_mesh::draw_tmd_faces(geometry) {
+                let [a, b, c] = std::array::from_fn(|i| {
+                    glam::Vec3::from(
+                        geometry.vertices[face.corners[i].vertex as usize].map(f32::from),
+                    )
+                });
+                if (b - a).cross(c - a).length_squared() == 0.0 {
+                    continue;
+                }
                 let region = catalog::face_region(&mission.vram, face);
-                let material =
-                    region.map_or_else(|| "untextured".into(), |r| format!("tex_{}", regions[&r]));
+                let definition = super::pack::Material {
+                    texture: region.map(|r| regions[&r].clone()),
+                    blend: if face.translucent {
+                        face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1)
+                    } else {
+                        0
+                    },
+                    double_sided: face.double_sided,
+                };
+                let material = format!(
+                    "{}_b{}_d{}",
+                    definition
+                        .texture
+                        .as_ref()
+                        .map_or_else(|| "flat".into(), |id| format!("tex_{id}")),
+                    definition.blend,
+                    u8::from(definition.double_sided)
+                );
+                definitions.insert(material.clone(), definition);
                 writeln!(obj, "usemtl {material}").unwrap();
                 for corner in &face.corners {
                     let [x, y, z] = geometry.vertices[corner.vertex as usize];
@@ -129,6 +152,15 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
             faces,
         });
     }
+    let mut materials = String::new();
+    for (name, definition) in &definitions {
+        writeln!(materials, "newmtl {name}\nKd 1 1 1").unwrap();
+        if let Some(id) = &definition.texture {
+            writeln!(materials, "map_Kd textures/{id}.png").unwrap();
+        }
+        materials.push('\n');
+    }
+    fs::write(directory.join("materials.mtl"), materials).map_err(|e| e.to_string())?;
     let manifest = Manifest {
         version: 1,
         stage: mission.stage.directory.clone(),
@@ -149,6 +181,8 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
             .iter()
             .map(|id| (id.clone(), format!("textures/{id}.png")))
             .collect(),
+        models: BTreeMap::new(),
+        materials: definitions,
     };
     fs::write(
         directory.join("pack.json"),

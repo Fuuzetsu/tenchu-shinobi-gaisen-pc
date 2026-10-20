@@ -69,6 +69,8 @@ pub enum Item {
     AssetPack,
     ReloadAssets,
     Upscale,
+    SmoothModels,
+    ModelDetail,
 }
 
 #[cfg(test)]
@@ -182,6 +184,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 }
                 .into(),
                 "Smooth pixel stair-steps; no new detail.",
+            ),
+            (
+                Item::SmoothModels,
+                "Smooth model lighting",
+                on(s.graphics.smooth_models),
+                "For dynamic lights; preserve sharp creases.",
+            ),
+            (
+                Item::ModelDetail,
+                "Character contours",
+                ["Original", "Subtle", "Rounded"][s.graphics.model_detail as usize].into(),
+                "Curve original actors; keep joints in place.",
             ),
         ],
         0 => vec![

@@ -161,7 +161,7 @@ fn random_layouts_and_armour_load_from_disc() {
             for _ in 0..40 {
                 game.step(0).unwrap();
             }
-            assert!(!crate::render_mesh::characters(&game).is_empty());
+            assert!(!crate::render_mesh::characters(&game, None).is_empty());
         }
     }
     assert_eq!(selections.len(), 3);

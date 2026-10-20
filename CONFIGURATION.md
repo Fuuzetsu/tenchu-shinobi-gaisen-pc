@@ -174,13 +174,13 @@ AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
 - [x] Recover reusable asset identities, original texture regions and prop names
   from the loaded disc. Export a reviewable catalogue, decoded PNG textures and
   model/UV geometry; avoid tables of mission-specific coordinates/resources.
-- [ ] Implement an editable visual asset pack with original fallback, validation,
+- [x] Implement an editable visual asset pack with original fallback, validation,
   reload and useful errors. Support higher-resolution texture overrides and
   visual mesh overrides attached to the existing animation parts.
 - [x] Improve texture minification with isolated mip chains and anisotropic
   sampling, preserving texture holes and original semi-transparency. Offer
   optional automatic texture reconstruction/upscaling, tested against real art.
-- [ ] Improve model presentation with smooth lighting and an optional
+- [x] Improve model presentation with smooth lighting and an optional
   silhouette-smoothing mode where it helps, plus the replacement-mesh path.
   Retain sharp architecture and verify animation/weapon attachments and shadows.
 - [ ] Make lanterns and luminous props emit light, using recovered names/material
@@ -236,3 +236,27 @@ they are not proposed artwork. The unfiltered Scale4x view is still visibly
 pixelated; it is a stylistic option, not a substitute for replacement detail.
 Fourteen fixture-free desktop tests and seven sequential GPU tests pass,
 including replacement detail, dynamic fallback and changed shadow cutouts.
+
+Models: packs now accept triangulated OBJ part replacements, with explicit
+material texture/blend/double-sided definitions. Original animation transforms,
+placements, visibility and simulation remain in charge. Authored normals and
+subpixel UVs survive import; imported geometry participates in ordinary drawing,
+free-camera inspection and shadows. The default drawing path remains unchanged.
+Optional generated normals preserve lighting creases, and Subtle/Rounded PN
+patches soften only original actors. Original vertices, open seams, scenery and
+authored replacement contours stay fixed. The stronger setting is intentionally
+stylized; replacement art is still needed for new costume/face detail.
+
+The disc round-trip check exports/reloads both players' Mission 1 assets and
+compares live actors/weapons, scenery and hinged objects without changing game
+state. It caught an omitted degenerate quad; export now preserves that source
+omission. Separate regressions cover malformed OBJ indices, per-corner UV/normals,
+curved shared edges and fixed open boundaries. Native Rikimaru/Ayame views were
+compared with model lighting, rounded/subtle silhouettes and actual shadows.
+A larger, subdivided diagnostic head mesh reloads, follows movement/jumping and
+casts its own shadow, then reverts through the artwork toggle. Both sessions exit
+cleanly. The isolated X11 test reached only about 25 FPS during steady gameplay
+with 4× MSAA, anisotropy, curved models and a 1024 point shadow; profile quality
+costs and the presentation path before choosing the final presets.
+All 57 desktop checks pass sequentially in release mode with the private disc,
+audio/reference fixtures and GPU, including both complete ten-mission campaigns.

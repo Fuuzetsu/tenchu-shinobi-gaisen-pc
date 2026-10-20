@@ -115,6 +115,7 @@ fn quad(
             });
             Vertex {
                 material: 0,
+                normal: [0.0; 3],
                 position: points[i],
                 color: color[i],
                 uv,
@@ -186,7 +187,38 @@ fn mesh_surfaces(
     view: Matrix,
     translucent_only: bool,
     fog: bool,
+    models: Option<&crate::visuals::models::Models>,
 ) {
+    if models.is_some_and(|models| {
+        models.visit(meshes, matrix, fog, |triangle| {
+            let face = triangle[0];
+            if translucent_only && face.flags & TRANSLUCENT == 0 {
+                return;
+            }
+            let blend = if face.flags & TRANSLUCENT == 0 {
+                0
+            } else {
+                ((face.page >> 5) & 3) as u8 + 1
+            };
+            let depth = triangle
+                .iter()
+                .map(|vertex| {
+                    (0..3)
+                        .map(|i| vertex.position[i] * f32::from(view.rotation[2][i]) / 4096.0)
+                        .sum::<f32>()
+                        + view.translation[2] as f32
+                })
+                .sum::<f32>()
+                / 3.0;
+            surfaces.push(Surface {
+                depth,
+                blend,
+                vertices: triangle.to_vec(),
+            });
+        })
+    }) {
+        return;
+    }
     let view = view.compose(&matrix);
     for mesh in meshes {
         for face in render_mesh::draw_tmd_faces(mesh) {
@@ -224,7 +256,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
 }
 
 pub fn build_for_camera(game: &Game, show_hud: bool, camera: Option<Matrix>) -> Geometry {
-    build_options(game, show_hud, camera, true)
+    build_options(game, show_hud, camera, true, None)
 }
 
 pub fn build_options(
@@ -232,12 +264,13 @@ pub fn build_options(
     show_hud: bool,
     camera: Option<Matrix>,
     blob_shadows: bool,
+    models: Option<&crate::visuals::models::Models>,
 ) -> Geometry {
     let inspection = camera.is_some();
     let view = camera.unwrap_or(game.rendered_view);
     let mut surfaces = Vec::new();
     let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
-        mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true);
+        mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
     };
     render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
     if inspection {
@@ -266,6 +299,7 @@ pub fn build_options(
                 view,
                 false,
                 false,
+                models,
             );
         }
     }
@@ -278,6 +312,7 @@ pub fn build_options(
                 view,
                 false,
                 fog,
+                models,
             );
         }
         for &(points, sort_depth) in wire.lines.iter().filter(|_| !inspection) {
@@ -301,6 +336,7 @@ pub fn build_options(
             view,
             false,
             true,
+            models,
         );
     }
     for &(kind, matrix) in &game.items.weapons {
@@ -311,6 +347,7 @@ pub fn build_options(
             view,
             false,
             true,
+            models,
         );
     }
     for drawing in game

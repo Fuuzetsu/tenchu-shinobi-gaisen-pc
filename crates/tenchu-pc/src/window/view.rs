@@ -1,4 +1,13 @@
 use super::*;
+use crate::visuals::{models::Models, pack::Pack};
+
+fn model_options(graphics: &settings::Graphics) -> (bool, bool, u16) {
+    (
+        graphics.asset_pack,
+        graphics.smooth_models,
+        graphics.model_detail,
+    )
+}
 
 pub(super) struct View {
     pub(super) stage: Mesh,
@@ -13,10 +22,13 @@ pub(super) struct View {
     pub(super) config: wgpu::SurfaceConfiguration,
     pub(super) size: [u32; 2],
     pub(super) vram_revision: u64,
+    pack: Pack,
+    models: Models,
+    model_options: (bool, bool, u16),
 }
 
 impl View {
-    pub(super) fn new(events: &ActiveEventLoop, game: &Game) -> Result<Self> {
+    pub(super) fn new(events: &ActiveEventLoop, game: &Game, settings: &Settings) -> Result<Self> {
         let window = Arc::new(
             events
                 .create_window(
@@ -54,19 +66,32 @@ impl View {
             [config.width, config.height],
             &game.mission.vram,
         ))?;
-        match crate::visuals::pack::Pack::from_env() {
-            Ok(pack) => {
-                if !pack.textures.is_empty() {
-                    println!("Asset pack: {} edited textures", pack.textures.len());
-                }
-                renderer.set_asset_pack(&pack);
-            }
-            Err(error) => eprintln!("Asset pack: {error}; using original assets"),
-        }
+        let mut pack = Pack::from_env().unwrap_or_else(|error| {
+            eprintln!("Asset pack: {error}; using original assets");
+            Pack::default()
+        });
+        let mut models =
+            Models::build(&game.mission, &pack, &settings.graphics).unwrap_or_else(|error| {
+                eprintln!("Asset pack: {error}; using original assets");
+                pack = Pack::default();
+                Models::build(&game.mission, &pack, &settings.graphics).unwrap()
+            });
+        renderer.set_asset_pack(&pack);
+        renderer.bind_models(&mut models);
         surface.configure(&renderer.device, &config);
-        let stage = renderer.upload(&render_mesh::stage(&game.mission, &game.math));
-        let actor = renderer.upload(&render_mesh::characters(game));
-        let effects = renderer.upload_effects(render_effects::build(game));
+        let stage = renderer.upload(&render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
+        let actor = renderer.upload(&render_mesh::characters(game, Some(&models)));
+        let effects = renderer.upload_effects(render_effects::build_options(
+            game,
+            true,
+            None,
+            settings.graphics.blob_shadows,
+            Some(&models),
+        ));
         println!(
             "Renderer: {} ({:?})",
             adapter.get_info().name,
@@ -85,6 +110,9 @@ impl View {
             effects,
             size: [size.width, size.height],
             vram_revision: game.mission.vram.revision,
+            pack,
+            models,
+            model_options: model_options(&settings.graphics),
         })
     }
 
@@ -99,16 +127,50 @@ impl View {
         self.renderer.resize([width, height]);
     }
 
-    pub(super) fn reload(&mut self, game: &Game) {
+    pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
-        self.shadow_stage = None;
-        self.stage = self
-            .renderer
-            .upload(&render_mesh::stage(&game.mission, &game.math));
+        let result = Models::build(&game.mission, &self.pack, &settings.graphics);
+        let error = result.as_ref().err().cloned();
+        self.set_models(result.unwrap_or_default(), game);
+        self.model_options = model_options(&settings.graphics);
+        error.map_or(Ok(()), Err)
     }
 
-    pub(super) fn settings(&mut self, settings: &Settings) {
+    fn set_models(&mut self, mut models: Models, game: &Game) {
+        self.renderer.bind_models(&mut models);
+        self.shadow_stage = None;
+        self.stage = self.renderer.upload(&render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
+        self.models = models;
+    }
+
+    pub(super) fn load_pack(
+        &mut self,
+        pack: Pack,
+        game: &Game,
+        settings: &Settings,
+    ) -> Result<usize> {
+        let models = Models::build(&game.mission, &pack, &settings.graphics)?;
+        let count = models.replacements;
+        self.renderer.set_asset_pack(&pack);
+        self.set_models(models, game);
+        self.pack = pack;
+        Ok(count)
+    }
+
+    pub(super) fn settings(&mut self, settings: &Settings, game: &Game) -> Result<()> {
+        let options = model_options(&settings.graphics);
+        if options != self.model_options {
+            self.set_models(
+                Models::build(&game.mission, &self.pack, &settings.graphics)?,
+                game,
+            );
+            self.model_options = options;
+        }
         self.renderer.configure(&settings.graphics);
         self.window
             .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
@@ -121,6 +183,7 @@ impl View {
             self.config.present_mode = mode;
             self.surface.configure(&self.renderer.device, &self.config);
         }
+        Ok(())
     }
 
     pub(super) fn update(
@@ -139,9 +202,9 @@ impl View {
             self.vram_revision = game.mission.vram.revision;
         }
         self.actor = self.renderer.upload(&if debug.camera.is_some() {
-            render_mesh::inspection_characters(game)
+            render_mesh::inspection_characters(game, Some(&self.models))
         } else {
-            render_mesh::characters(game)
+            render_mesh::characters(game, Some(&self.models))
         });
         self.lights = crate::lighting::sources(
             game,
@@ -153,13 +216,16 @@ impl View {
             && settings.graphics.lighting.shadows
             && !self.lights.is_empty();
         if shadowing && self.shadow_stage.is_none() {
-            self.shadow_stage = Some(
-                self.renderer
-                    .upload(&render_mesh::shadow_stage(&game.mission, &game.math)),
-            );
+            self.shadow_stage = Some(self.renderer.upload(&render_mesh::shadow_stage(
+                &game.mission,
+                &game.math,
+                Some(&self.models),
+            )));
         }
-        self.shadow_models =
-            shadowing.then(|| self.renderer.upload(&render_mesh::shadow_models(game)));
+        self.shadow_models = shadowing.then(|| {
+            self.renderer
+                .upload(&render_mesh::shadow_models(game, Some(&self.models)))
+        });
         let mut geometry = if menu.open {
             menu.build(
                 &game.mission.font,
@@ -180,6 +246,7 @@ impl View {
                     settings.show_hud,
                     debug.camera.map(|c| c.source_view()),
                     settings.graphics.blob_shadows,
+                    Some(&self.models),
                 )
             }
         } else {

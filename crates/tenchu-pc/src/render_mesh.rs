@@ -1,3 +1,4 @@
+use crate::visuals::models::Models;
 use bytemuck::{Pod, Zeroable};
 use tenchu_assets::{
     model::{Face, Geometry},
@@ -27,13 +28,28 @@ pub struct Vertex {
     pub(crate) palette: u32,
     pub(crate) flags: u32,
     pub(crate) material: u32,
+    pub(crate) normal: [f32; 3],
 }
 
 pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
     geometry.faces.iter().take_while(|face| face.flags & 1 != 0)
 }
 
-fn append_geometry(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: Matrix) {
+fn append_geometry(
+    vertices: &mut Vec<Vertex>,
+    geometries: &[Geometry],
+    matrix: Matrix,
+    models: Option<&Models>,
+) {
+    if models.is_some_and(|models| {
+        models.visit(geometries, matrix, true, |triangle| {
+            if triangle[0].flags & TRANSLUCENT == 0 {
+                vertices.extend(triangle);
+            }
+        })
+    }) {
+        return;
+    }
     for geometry in geometries {
         for face in draw_tmd_faces(geometry) {
             if !face.translucent {
@@ -74,6 +90,7 @@ pub(crate) fn append_face(
         let corner = face.corners[i];
         vertices.push(Vertex {
             material: 0,
+            normal: [0.0; 3],
             position: points[i],
             color: corner
                 .color
@@ -164,10 +181,13 @@ pub fn visit_inspection_characters(
     }
 }
 
-pub fn inspection_characters(game: &tenchu_core::game::Game) -> Vec<Vertex> {
+pub fn inspection_characters(
+    game: &tenchu_core::game::Game,
+    models: Option<&Models>,
+) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     visit_inspection_characters(game, |geometry, matrix| {
-        append_geometry(&mut vertices, geometry, matrix)
+        append_geometry(&mut vertices, geometry, matrix, models)
     });
     vertices
 }
@@ -196,7 +216,19 @@ pub fn visit_hinged(game: &tenchu_core::game::Game, mut visit: impl FnMut(&[Geom
     }
 }
 
-fn append_caster(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: Matrix) {
+fn append_caster(
+    vertices: &mut Vec<Vertex>,
+    geometries: &[Geometry],
+    matrix: Matrix,
+    models: Option<&Models>,
+) {
+    if models.is_some_and(|models| {
+        models.visit(geometries, matrix, false, |triangle| {
+            vertices.extend(triangle)
+        })
+    }) {
+        return;
+    }
     for geometry in geometries {
         for face in draw_tmd_faces(geometry) {
             append_face(vertices, geometry, face, matrix, false);
@@ -204,34 +236,35 @@ fn append_caster(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: Ma
     }
 }
 
-pub fn shadow_stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {
+pub fn shadow_stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     visit_stage(mission, math, |geometry, matrix| {
-        append_caster(&mut vertices, geometry, matrix)
+        append_caster(&mut vertices, geometry, matrix, models)
     });
     vertices
 }
 
-pub fn shadow_models(game: &tenchu_core::game::Game) -> Vec<Vertex> {
+pub fn shadow_models(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    let mut append = |geometry: &[Geometry], matrix| append_caster(&mut vertices, geometry, matrix);
+    let mut append =
+        |geometry: &[Geometry], matrix| append_caster(&mut vertices, geometry, matrix, models);
     visit_inspection_characters(game, &mut append);
     visit_hinged(game, &mut append);
     vertices
 }
 
-pub fn stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {
+pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     visit_stage(mission, math, |geometry, matrix| {
-        append_geometry(&mut vertices, geometry, matrix)
+        append_geometry(&mut vertices, geometry, matrix, models)
     });
     vertices
 }
 
-pub fn characters(game: &tenchu_core::game::Game) -> Vec<Vertex> {
+pub fn characters(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     visit_characters(game, |geometry, matrix| {
-        append_geometry(&mut vertices, geometry, matrix)
+        append_geometry(&mut vertices, geometry, matrix, models)
     });
     vertices
 }

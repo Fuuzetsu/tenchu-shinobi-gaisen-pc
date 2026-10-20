@@ -21,7 +21,7 @@ struct Material {
 }
 
 struct Entry {
-    region: Region,
+    region: Option<Region>,
     id: String,
     original: Image,
     image: Image,
@@ -31,9 +31,14 @@ struct Entry {
 impl Entry {
     fn prepare(&mut self, textures: &BTreeMap<String, Arc<Image>>, enabled: bool, upscale: u16) {
         let replacement = enabled.then(|| textures.get(&self.id)).flatten();
-        self.image =
-            replacement.map_or_else(|| self.original.upscale(upscale), |image| (**image).clone());
-        self.replaced = replacement.is_some() || upscale > 1;
+        self.image = replacement.map_or_else(
+            || {
+                self.original
+                    .upscale(if self.region.is_some() { upscale } else { 1 })
+            },
+            |image| (**image).clone(),
+        );
+        self.replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
     }
 }
 
@@ -43,6 +48,7 @@ pub struct Materials {
     vram: Vram,
     entries: Vec<Entry>,
     regions: BTreeMap<Region, u32>,
+    external: BTreeMap<String, u32>,
     lookups: BTreeMap<(u16, u16, [u16; 4]), u32>,
     dirty: bool,
     textures: BTreeMap<String, Arc<Image>>,
@@ -97,6 +103,7 @@ impl Materials {
             vram: vram.clone(),
             entries: Vec::new(),
             regions: BTreeMap::new(),
+            external: BTreeMap::new(),
             lookups: BTreeMap::new(),
             dirty: false,
             textures: BTreeMap::new(),
@@ -107,7 +114,8 @@ impl Materials {
 
     pub fn update(&mut self, vram: &Vram) {
         for entry in &mut self.entries {
-            let rgba = entry.region.pixels(vram);
+            let Some(region) = entry.region else { continue };
+            let rgba = region.pixels(vram);
             if rgba != entry.original.rgba {
                 entry.original.rgba = rgba;
                 entry.prepare(&self.textures, self.enabled, self.upscale);
@@ -121,6 +129,7 @@ impl Materials {
         self.vram = vram.clone();
         self.entries.clear();
         self.regions.clear();
+        self.external.clear();
         self.lookups.clear();
         self.dirty = true;
     }
@@ -143,6 +152,33 @@ impl Materials {
             entry.prepare(&self.textures, self.enabled, self.upscale);
         }
         self.dirty = true;
+    }
+
+    pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {
+        models.bind(|material| {
+            if let Some(region) = material.region {
+                return self.register(region);
+            }
+            let id = if let Some(&id) = self.external.get(&material.id) {
+                id
+            } else {
+                let id = self.entries.len() as u32 + 1;
+                self.entries.push(Entry {
+                    region: None,
+                    id: material.id.clone(),
+                    original: (*material.image).clone(),
+                    image: (*material.image).clone(),
+                    replaced: true,
+                });
+                self.external.insert(material.id.clone(), id);
+                id
+            };
+            let entry = &mut self.entries[id as usize - 1];
+            entry.original = (*material.image).clone();
+            entry.prepare(&self.textures, self.enabled, self.upscale);
+            self.dirty = true;
+            id
+        });
     }
 
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
@@ -194,7 +230,7 @@ impl Materials {
             rgba: region.pixels(&self.vram),
         };
         let mut entry = Entry {
-            region,
+            region: Some(region),
             id: catalog::image_id(original.size.map(|n| n as u16), &original.rgba),
             image: original.clone(),
             original,
@@ -246,7 +282,9 @@ impl Materials {
         }
         let mut materials = vec![Material::zeroed(); self.entries.len() + 1];
         for (index, entry) in self.entries.iter().enumerate() {
-            materials[index + 1].source = entry.region.rect.map(f32::from);
+            materials[index + 1].source = entry
+                .region
+                .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
             materials[index + 1].info = [
                 levels[index].len() as u32,
                 entry.image.size[0],

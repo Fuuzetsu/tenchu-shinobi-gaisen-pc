@@ -16,8 +16,6 @@ pub fn render(assets: &GameAssets<FileSource>, destination: &Path) -> Result<()>
 }
 
 pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
-    let mut vertices = render_mesh::stage(&game.mission, &game.math);
-    vertices.extend(render_mesh::characters(game));
     let instance = wgpu::Instance::new(&Default::default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
@@ -35,7 +33,13 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         [width, height],
         &game.mission.vram,
     ))?;
-    renderer.set_asset_pack(&crate::visuals::pack::Pack::from_env()?);
+    let pack = crate::visuals::pack::Pack::from_env()?;
+    let mut models =
+        crate::visuals::models::Models::build(&game.mission, &pack, &Default::default())?;
+    renderer.set_asset_pack(&pack);
+    renderer.bind_models(&mut models);
+    let mut vertices = render_mesh::stage(&game.mission, &game.math, Some(&models));
+    vertices.extend(render_mesh::characters(game, Some(&models)));
     let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Capture"),
         size: wgpu::Extent3d {
@@ -51,7 +55,13 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         view_formats: &[],
     });
     let mesh = renderer.upload(&vertices);
-    let effects = renderer.upload_effects(render_effects::build(game));
+    let effects = renderer.upload_effects(render_effects::build_options(
+        game,
+        true,
+        None,
+        true,
+        Some(&models),
+    ));
     renderer.draw(
         &texture.create_view(&Default::default()),
         renderer::game_camera(game.rendered_view, width as f32 / height as f32),

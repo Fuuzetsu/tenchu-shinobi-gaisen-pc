@@ -103,14 +103,18 @@ impl Application {
     }
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if let Some(view) = &mut self.view
+            && let Err(error) = view.settings(&self.settings, &self.campaign.game)
+        {
+            self.menu.notice = error;
+            self.settings = previous.clone();
+            return;
+        }
         if self.settings != *previous
             && let Err(error) = self.settings_store.write(&self.settings)
         {
             eprintln!("Settings: {error}");
             self.menu.notice = "Could not save settings; see terminal".into();
-        }
-        if let Some(view) = &mut self.view {
-            view.settings(&self.settings);
         }
         if let Some(audio) = &mut self.audio {
             audio.volume(self.settings.volume);
@@ -119,6 +123,13 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::SmoothModels => {
+                self.settings.graphics.smooth_models = !self.settings.graphics.smooth_models
+            }
+            Item::ModelDetail => {
+                self.settings.graphics.model_detail =
+                    cycle(self.settings.graphics.model_detail, &[0, 1, 2], direction)
+            }
             Item::AssetPack => {
                 self.settings.graphics.asset_pack = !self.settings.graphics.asset_pack
             }
@@ -128,9 +139,10 @@ impl Application {
             }
             Item::ReloadAssets => {
                 let pack = crate::visuals::pack::Pack::from_env()?;
-                self.menu.notice = format!("Loaded {} edited textures", pack.textures.len());
+                let textures = pack.textures.len();
                 if let Some(view) = &mut self.view {
-                    view.renderer.set_asset_pack(&pack);
+                    let models = view.load_pack(pack, &self.campaign.game, &self.settings)?;
+                    self.menu.notice = format!("Loaded {textures} textures, {models} model parts");
                 }
             }
             Item::Lighting => {

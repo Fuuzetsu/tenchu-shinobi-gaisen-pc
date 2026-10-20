@@ -203,7 +203,10 @@ impl Application {
                     });
                 }
                 if reload && let Some(view) = &mut self.view {
-                    view.reload(&self.campaign.game);
+                    if let Err(error) = view.reload(&self.campaign.game, &self.settings) {
+                        eprintln!("Visual assets: {error}; using original models");
+                        self.menu.notice = error;
+                    }
                 }
                 self.clock = GameClock::default();
                 self.last_frame = Instant::now();
@@ -270,7 +273,7 @@ impl ApplicationHandler for Application {
 
     fn resumed(&mut self, events: &ActiveEventLoop) {
         if self.view.is_none() {
-            match View::new(events, &self.campaign.game) {
+            match View::new(events, &self.campaign.game, &self.settings) {
                 Ok(mut view) => {
                     if !view
                         .renderer
@@ -280,7 +283,11 @@ impl ApplicationHandler for Application {
                         self.settings.graphics.samples = 1;
                         self.menu.notice = "Saved MSAA mode unavailable; using Off".into();
                     }
-                    view.settings(&self.settings);
+                    if let Err(error) = view.settings(&self.settings, &self.campaign.game) {
+                        self.error = Some(error);
+                        events.exit();
+                        return;
+                    }
                     self.view = Some(view);
                     self.update_view();
                 }

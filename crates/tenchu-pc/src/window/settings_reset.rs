@@ -21,6 +21,8 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::SmoothModels => self.settings.graphics.smooth_models = s.graphics.smooth_models,
+            Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
             Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
             Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
             Item::Fps => self.settings.show_fps = s.show_fps,

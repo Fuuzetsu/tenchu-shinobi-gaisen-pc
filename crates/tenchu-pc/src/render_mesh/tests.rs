@@ -33,7 +33,7 @@ fn hinged_casters_keep_live_angles_without_camera_culling() {
         let positions = |game: &tenchu_core::game::Game| {
             let mut vertices = Vec::new();
             visit_hinged(game, |geometry, matrix| {
-                append_caster(&mut vertices, geometry, matrix)
+                append_caster(&mut vertices, geometry, matrix, None)
             });
             vertices.into_iter().map(|v| v.position).collect::<Vec<_>>()
         };
@@ -68,11 +68,11 @@ fn ani_hand_stops_at_the_original_lit_primitive() {
     assert_eq!((mesh.faces[10].mode, mesh.faces[10].flags), (0x30, 4));
     assert_eq!(draw_tmd_faces(&mesh).count(), 10);
     let mut vertices = Vec::new();
-    append_geometry(&mut vertices, &[mesh.clone()], Matrix::default());
+    append_geometry(&mut vertices, &[mesh.clone()], Matrix::default(), None);
     assert_eq!(vertices.len(), 39);
     mesh.faces.push(mesh.faces[0].clone());
     vertices.clear();
-    append_geometry(&mut vertices, &[mesh], Matrix::default());
+    append_geometry(&mut vertices, &[mesh], Matrix::default(), None);
     assert_eq!(
         vertices.len(),
         39,

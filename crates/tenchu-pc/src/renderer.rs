@@ -228,6 +228,10 @@ impl Renderer {
         self.materials.set_pack(pack.textures.clone());
     }
 
+    pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {
+        self.materials.bind_models(models);
+    }
+
     pub fn reset_vram(&mut self, vram: &Vram) {
         self.materials.reset(vram);
         self.update_vram(vram);

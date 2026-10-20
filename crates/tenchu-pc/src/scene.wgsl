@@ -19,6 +19,7 @@ struct Vertex {
     @location(4) palette: u32,
     @location(5) flags: u32,
     @location(6) material: u32,
+    @location(7) normal: vec3<f32>,
 }
 struct Fragment {
     @builtin(position) position: vec4<f32>,
@@ -30,6 +31,7 @@ struct Fragment {
     @location(5) depth: f32,
     @location(6) world: vec3<f32>,
     @location(7) @interpolate(flat) material: u32,
+    @location(8) normal: vec3<f32>,
 }
 
 @vertex fn vertex(v: Vertex) -> Fragment {
@@ -50,11 +52,13 @@ struct Fragment {
     out.palette = v.palette;
     out.flags = v.flags;
     out.material = v.material;
+    out.normal = v.normal;
     return out;
 }
 
 fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
-    let normal = normalize(cross(dpdx(v.world), dpdy(v.world)));
+    var normal = normalize(cross(dpdx(v.world), dpdy(v.world)));
+    if dot(v.normal, v.normal) > 0.0001 { normal = normalize(v.normal); }
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }

@@ -170,6 +170,7 @@ fn replacement_textures_reload_cutouts_and_revert() {
     };
     let pack = |image: Image| Pack {
         textures: BTreeMap::from([(id.clone(), Arc::new(image))]),
+        ..Default::default()
     };
     renderer.set_asset_pack(&pack(image.clone()));
     renderer.draw(&view, camera, &[&mesh], None).unwrap();
@@ -287,6 +288,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         ];
         [0, 1, 2, 1, 3, 2].map(|i| Vertex {
             material: 0,
+            normal: [0.0; 3],
             position: points[i].to_array(),
             color: [0.5; 3],
             uv: [0.0; 2],
@@ -345,6 +347,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
                     rgba: [255, 255, 255, alpha].repeat(16),
                 }),
             )]),
+            ..Default::default()
         };
         renderer.set_asset_pack(&pack);
         assert_eq!(draw(&mut renderer, &[light], &[&mixed]), expected);
@@ -426,6 +429,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         ];
         let receiver = renderer.upload(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
             material: 0,
+            normal: [0.0; 3],
             position: (origin + points[i]).to_array(),
             color: [0.5; 3],
             uv: [0.0; 2],
@@ -449,7 +453,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
             read_pixels(renderer, &target)
         };
         let lit = draw(&mut renderer, None);
-        let armed = renderer.upload(&render_mesh::shadow_models(&game));
+        let armed = renderer.upload(&render_mesh::shadow_models(&game, None));
         let armed_pixels = draw(&mut renderer, Some(&armed));
         assert_eq!(crate::session::tests::state(&game), before);
         assert!(
@@ -462,7 +466,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         );
         let weapons = std::mem::take(&mut game.roster.get_mut(game.player_id).weapons);
         assert!(weapons.iter().any(Option::is_some));
-        let unarmed = renderer.upload(&render_mesh::shadow_models(&game));
+        let unarmed = renderer.upload(&render_mesh::shadow_models(&game, None));
         let unarmed_pixels = draw(&mut renderer, Some(&unarmed));
         assert!(
             unarmed_pixels

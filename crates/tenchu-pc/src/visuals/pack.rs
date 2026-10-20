@@ -5,17 +5,42 @@ use tenchu_assets::Result;
 
 const MAX_PIXELS: usize = 16 * 1024 * 1024;
 
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Material {
+    pub texture: Option<String>,
+    pub blend: u8,
+    pub double_sided: bool,
+}
+
+impl Default for Material {
+    fn default() -> Self {
+        Self {
+            texture: None,
+            blend: 0,
+            double_sided: false,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
     pub version: u32,
     #[serde(default)]
     pub textures: BTreeMap<String, String>,
+    #[serde(default)]
+    pub models: BTreeMap<String, String>,
+    #[serde(default)]
+    pub materials: BTreeMap<String, Material>,
 }
 
 #[derive(Default)]
 pub struct Pack {
     pub textures: BTreeMap<String, Arc<Image>>,
+    pub images: BTreeMap<String, Arc<Image>>,
+    pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
+    pub materials: BTreeMap<String, Material>,
 }
 
 impl Pack {
@@ -53,9 +78,44 @@ impl Pack {
             if pixels > MAX_PIXELS {
                 return Err("Texture pack exceeds 16 million decoded pixels".into());
             }
-            if catalog::image_id(image.size.map(|n| n as u16), &image.rgba) != id {
-                pack.textures.insert(id, Arc::new(image));
+            let changed = catalog::image_id(image.size.map(|n| n as u16), &image.rgba) != id;
+            let image = Arc::new(image);
+            if changed {
+                pack.textures.insert(id.clone(), image.clone());
             }
+            pack.images.insert(id, image);
+        }
+        pack.materials = manifest.materials;
+        for (name, material) in &pack.materials {
+            if material.blend > 4
+                || material
+                    .texture
+                    .as_ref()
+                    .is_some_and(|id| !pack.images.contains_key(id))
+            {
+                return Err(format!(
+                    "Invalid blend mode or missing texture in material {name}"
+                ));
+            }
+        }
+        let mut triangles = 0;
+        for (id, path) in manifest.models {
+            let data = read(&root, &path, 64 * 1024 * 1024)?;
+            let text = std::str::from_utf8(&data).map_err(|e| format!("{path}: {e}"))?;
+            let model = super::obj::decode(text).map_err(|e| format!("{path}: {e}"))?;
+            for triangle in &model {
+                if !pack.materials.contains_key(&triangle.material) {
+                    return Err(format!(
+                        "{path}: unknown material {:?}; declare it in pack.json",
+                        triangle.material
+                    ));
+                }
+            }
+            triangles += model.len();
+            if triangles > 1_000_000 {
+                return Err("Asset pack exceeds one million model triangles".into());
+            }
+            pack.models.insert(id, model);
         }
         Ok(pack)
     }
@@ -136,6 +196,8 @@ mod tests {
         let mut manifest = Manifest {
             version: 1,
             textures: BTreeMap::from([(id.clone(), "test.png".into())]),
+            models: BTreeMap::new(),
+            materials: BTreeMap::new(),
         };
         let save = |manifest: &Manifest| {
             fs::write(

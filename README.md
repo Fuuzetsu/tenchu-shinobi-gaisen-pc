@@ -60,7 +60,35 @@ UV mapping. New cutouts also affect model shadows. HUD/menu textures stay origin
 It smooths pixel stair-steps without inventing detail, and can change cutout edges.
 It suits some patterns better than photographic textures; compare it in game.
 Authored replacements take precedence and are not automatically enlarged.
-Model replacement and the broader enhanced presentation are still in progress.
+To replace a model part, edit its OBJ and add its catalogue identity and file
+path to the `models` object in `pack.json`, for example:
+
+```json
+"models": { "actors/0000/2": "models/actors/0000/2.obj" }
+```
+
+Reload from F1. Export triangulated faces, preserve local coordinates and the
+part's origin, and retain its material names. The loader accepts OBJ positions,
+UVs, normals and optional vertex RGB colors; it uses `pack.json` material
+definitions rather than loading MTL files. The exported MTL is for editor
+previews. Material `blend` values are 0 opaque, 1 half blend, 2 additive,
+3 subtractive and 4 quarter additive; `double_sided` controls back faces.
+New materials can reference additional PNG identities declared in `textures`.
+UVs address each individual image, with clamp-to-edge sampling.
+
+Character parts and weapons follow the original animation transforms; scenery
+uses its original placements. The same edited geometry casts shadows. Collision,
+AI and simulation remain original. This is a rigid-part replacement workflow,
+not a new skeletal-animation importer. Empty source parts cannot be replaced.
+
+**Smooth model lighting** generates crease-aware normals for dynamic lighting.
+**Character contours** optionally rounds original actor silhouettes, with
+Subtle/Rounded settings. It uses
+[curved PN triangles](https://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Vlachos00.pdf),
+keeps original vertices and open boundaries fixed, and leaves scenery and
+authored replacement geometry unrounded. These options start off; finer
+geometry costs more to transform and shadow. They can soften the original
+shapes but cannot invent new costume or facial detail.
 
 ## Build and inspect a disc
 
@@ -215,10 +243,10 @@ keeping the original 30 Hz simulation. Better authored light placement and an
 optional directional moon/sun light would give shadows more consistent coverage.
 These are follow-ups, not currently implemented.
 
-The export/edit/reload workflow above supports higher-resolution PNG replacements
-without changing collision or logic. Upscaling alone cannot add model detail or
-remove lighting baked into the art. Replacement meshes and broader presentation
-upgrades are tracked in `CONFIGURATION.md`.
+The export/edit/reload workflow above supports higher-resolution textures and
+replacement models without changing collision or logic. Automatic processing
+cannot supply bespoke new detail or remove lighting baked into the art.
+Broader presentation upgrades are tracked in `CONFIGURATION.md`.
 
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.

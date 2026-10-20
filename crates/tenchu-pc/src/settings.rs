@@ -45,6 +45,8 @@ pub struct Graphics {
     pub anisotropy: u16,
     pub asset_pack: bool,
     pub upscale: u16,
+    pub smooth_models: bool,
+    pub model_detail: u16,
     pub samples: u32,
     pub lighting: Lighting,
     pub blob_shadows: bool,
@@ -63,6 +65,8 @@ impl Default for Graphics {
             anisotropy: 1,
             asset_pack: true,
             upscale: 1,
+            smooth_models: false,
+            model_detail: 0,
             samples: 1,
             lighting: Lighting::default(),
             blob_shadows: true,
@@ -158,6 +162,7 @@ impl Store {
                 if ![1, 2, 4].contains(&settings.graphics.upscale) {
                     settings.graphics.upscale = 1;
                 }
+                settings.graphics.model_detail = settings.graphics.model_detail.min(2);
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }
