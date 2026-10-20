@@ -1,0 +1,152 @@
+use super::catalog;
+use serde::Serialize;
+use std::{collections::BTreeSet, fmt::Write, fs, io::BufWriter, path::Path};
+use tenchu_assets::{Result, stage::MissionAssets};
+
+#[derive(Serialize)]
+struct Model {
+    id: String,
+    label: String,
+    file: String,
+    vertices: usize,
+    faces: usize,
+}
+
+#[derive(Serialize)]
+struct Manifest {
+    version: u32,
+    stage: String,
+    units: &'static str,
+    alpha: &'static str,
+    textures: Vec<String>,
+    models: Vec<Model>,
+}
+
+pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
+    let manifest_path = directory.join("catalog.json");
+    if directory.exists()
+        && fs::read_dir(directory)
+            .map_err(|e| e.to_string())?
+            .next()
+            .is_some()
+    {
+        return Err(format!(
+            "{} is not empty; export to a new directory to preserve edits",
+            directory.display()
+        ));
+    }
+    fs::create_dir_all(directory.join("textures")).map_err(|e| e.to_string())?;
+    let regions = catalog::regions(mission);
+    let mut textures = BTreeSet::new();
+    for (&region, id) in &regions {
+        if !textures.insert(id.clone()) {
+            continue;
+        }
+        let file = fs::File::create(directory.join("textures").join(format!("{id}.png")))
+            .map_err(|e| e.to_string())?;
+        let mut encoder = png::Encoder::new(
+            BufWriter::new(file),
+            u32::from(region.rect[2]),
+            u32::from(region.rect[3]),
+        );
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder
+            .write_header()
+            .map_err(|e| e.to_string())?
+            .write_image_data(&region.pixels(&mission.vram))
+            .map_err(|e| e.to_string())?;
+    }
+    let mut materials = "newmtl untextured\nKd 1 1 1\n".to_owned();
+    for id in &textures {
+        writeln!(
+            materials,
+            "\nnewmtl tex_{id}\nKd 1 1 1\nmap_Kd textures/{id}.png"
+        )
+        .unwrap();
+    }
+    fs::write(directory.join("materials.mtl"), materials).map_err(|e| e.to_string())?;
+    let mut models = Vec::new();
+    for source in catalog::models(mission) {
+        let file = format!("models/{}.obj", source.id);
+        let path = directory.join(&file);
+        fs::create_dir_all(path.parent().unwrap()).map_err(|e| e.to_string())?;
+        let depth = Path::new(&file).components().count() - 1;
+        let mut obj = format!(
+            "# {}\nmtllib {}materials.mtl\n",
+            source.label,
+            "../".repeat(depth)
+        );
+        let mut vertex = 1;
+        let mut faces = 0;
+        for geometry in source.geometry {
+            for face in crate::render_mesh::draw_tmd_faces(geometry) {
+                let region = catalog::face_region(&mission.vram, face);
+                let material =
+                    region.map_or_else(|| "untextured".into(), |r| format!("tex_{}", regions[&r]));
+                writeln!(obj, "usemtl {material}").unwrap();
+                for corner in &face.corners {
+                    let [x, y, z] = geometry.vertices[corner.vertex as usize];
+                    let [r, g, b] = corner
+                        .color
+                        .map(|c| f32::from(c) / if region.is_some() { 128.0 } else { 255.0 });
+                    writeln!(obj, "v {x} {y} {z} {r:.6} {g:.6} {b:.6}").unwrap();
+                    let [u, v] = region.map_or([0.0, 0.0], |r| {
+                        [
+                            (f32::from(corner.uv[0]) - f32::from(r.rect[0]) + 0.5)
+                                / f32::from(r.rect[2]),
+                            1.0 - (f32::from(corner.uv[1]) - f32::from(r.rect[1]) + 0.5)
+                                / f32::from(r.rect[3]),
+                        ]
+                    });
+                    writeln!(obj, "vt {u:.8} {v:.8}").unwrap();
+                }
+                let order: &[usize] = if face.corners.len() == 4 {
+                    &[0, 1, 2, 1, 3, 2]
+                } else {
+                    &[0, 1, 2]
+                };
+                for triangle in order.chunks_exact(3) {
+                    writeln!(
+                        obj,
+                        "f {0}/{0} {1}/{1} {2}/{2}",
+                        vertex + triangle[0],
+                        vertex + triangle[1],
+                        vertex + triangle[2]
+                    )
+                    .unwrap();
+                    faces += 1;
+                }
+                vertex += face.corners.len();
+            }
+        }
+        fs::write(path, obj).map_err(|e| e.to_string())?;
+        models.push(Model {
+            id: source.id,
+            label: source.label,
+            file,
+            vertices: vertex - 1,
+            faces,
+        });
+    }
+    let manifest = Manifest {
+        version: 1,
+        stage: mission.stage.directory.clone(),
+        units: "Original game units; negative Y is up. Actor parts are local to the existing animation rig.",
+        alpha: "PNG alpha 0 = hole, 128 = PS1 semi-transparency flag, 255 = opaque. Blend mode is still selected by the face.",
+        textures: textures.into_iter().collect(),
+        models,
+    };
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    println!(
+        "Exported {} textures and {} models to {}",
+        manifest.textures.len(),
+        manifest.models.len(),
+        directory.display()
+    );
+    Ok(())
+}

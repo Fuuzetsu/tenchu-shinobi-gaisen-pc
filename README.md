@@ -23,6 +23,22 @@ Those checks do not establish perfect parity for every possible playthrough.
 A browser host, asset replacement packs and HD content are later work; the
 shared assets, audio and gameplay crates already compile for WASM.
 
+The visual-upgrade work is tracked in [CONFIGURATION.md](CONFIGURATION.md).
+An asset export is available for reviewing and editing the original art:
+
+```sh
+./dev.sh cargo run --release -- export-assets '/path/to/game.cue' /tmp/tenchu-art --mission 1
+```
+
+Use an empty output directory. `catalog.json` records original prop/model names;
+`textures/` contains decoded PNGs with content-based identities, and `models/`
+contains textured OBJ geometry in original local units (negative Y is up).
+Actor parts are separate files corresponding to the existing animation rig.
+PNG alpha 0 means a hole, 128 preserves the original semi-transparency flag,
+and 255 is opaque. The original face still decides whether that flag blends.
+These are local exports of your disc, not assets bundled with the port.
+The replacement loader and enhanced presentation are still being implemented.
+
 ## Build and inspect a disc
 
 Nix supplies the pinned Rust toolchain and dependencies:

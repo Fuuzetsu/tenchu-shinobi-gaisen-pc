@@ -171,7 +171,7 @@ models rather than only lights. The original look stays the factory default.
 Changes remain presentation-only: source geometry/collision, animation updates,
 AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
 
-- [ ] Recover reusable asset identities, original texture regions and prop names
+- [x] Recover reusable asset identities, original texture regions and prop names
   from the loaded disc. Export a reviewable catalogue, decoded PNG textures and
   model/UV geometry; avoid tables of mission-specific coordinates/resources.
 - [ ] Implement an editable visual asset pack with original fallback, validation,
@@ -199,3 +199,12 @@ supplied disc alone, plus a working export/edit/reload path for genuinely new
 texture/model detail. Automated processing cannot invent accurate bespoke art;
 record where it helps, where it fails and how replacements take over. Do not
 declare completion after only the lighting or asset-catalogue stage.
+
+Asset foundation: retain uploaded TIM image regions and original CON/weapon
+names as presentation metadata. `export-assets` writes decoded PNGs identified
+by their content, a named catalogue and textured local-space OBJ model parts.
+Mission 1's first export produced 342 images and 633 parts; actual AKARI/TORO
+textures contain the bright lamp panels. A region/decoder regression covers
+texture-page offsets, palette separation, edge UVs and opaque/transparent/STP
+black distinctions. All twelve ordinary asset-crate tests pass. The original
+renderer continues to use its existing VRAM path at this stage.

@@ -102,6 +102,7 @@ pub struct MissionAssets {
     pub map_image: crate::texture::Image,
     pub map_placement: crate::hud::MapPlacement,
     pub objects: Vec<Part>,
+    pub object_names: Vec<String>,
     pub placements: Vec<Placement>,
     pub terrain: AreaMap,
     pub vram: Vram,
@@ -210,6 +211,7 @@ impl MissionAssets {
         let mut object = 0;
         let mut area = "STAGE.ACM".to_string();
         let mut placements = Vec::new();
+        let mut object_names = Vec::new();
         let mut construction_actors = Vec::new();
         let mut construction_pickups = Vec::new();
         for (i, row) in construction.chunks_exact(32).enumerate() {
@@ -223,6 +225,7 @@ impl MissionAssets {
                             .ok_or("Invalid CON clone")?
                     } else {
                         let index = object;
+                        object_names.push(name.to_owned());
                         originals.insert(i, index);
                         object += 1;
                         index
@@ -359,6 +362,7 @@ impl MissionAssets {
             stage,
             map,
             objects,
+            object_names,
             placements,
             terrain,
             vram,

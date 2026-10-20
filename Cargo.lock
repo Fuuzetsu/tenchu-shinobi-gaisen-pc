@@ -2182,6 +2182,7 @@ dependencies = [
  "pollster",
  "serde",
  "serde_json",
+ "sha2",
  "tenchu-assets",
  "tenchu-audio",
  "tenchu-core",

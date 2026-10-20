@@ -69,6 +69,7 @@ pub struct Attack {
 
 pub struct Weapons {
     pub models: BTreeMap<i16, Vec<Geometry>>,
+    pub names: BTreeMap<i16, String>,
     pub hitboxes: Vec<Hitbox>,
     pub attacks: Vec<Attack>,
     pub bow_timing: [[i16; 2]; 2],
@@ -77,6 +78,7 @@ pub struct Weapons {
 impl Weapons {
     pub fn load<S: ReadAt>(game: &GameAssets<S>, exe: &Executable) -> Result<Self> {
         let mut models = BTreeMap::new();
+        let mut names = BTreeMap::new();
         for i in 0..256 {
             let row = exe.bytes(0x8008986c + i * 12, 12)?;
             let kind = i16_le(row, 4)?;
@@ -84,6 +86,7 @@ impl Weapons {
                 break;
             }
             let name = exe.string(u32_le(row, 0)?)?;
+            names.insert(kind, name.to_owned());
             models.insert(
                 kind,
                 model::tmd_model(&game.asset(&format!("HUMAN/WEAPON/{name}.TMD"))?)?,
@@ -125,6 +128,7 @@ impl Weapons {
             });
             if clip == -1 {
                 return Ok(Self {
+                    names,
                     models,
                     hitboxes,
                     attacks,

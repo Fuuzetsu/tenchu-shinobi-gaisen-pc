@@ -13,6 +13,7 @@ mod settings;
 mod source;
 mod storage;
 mod ui;
+mod visuals;
 mod window;
 
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
@@ -21,9 +22,15 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS] [--record DIRECTORY]\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection for the campaign or training. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
+            "tenchu-pc play DISC [OPTIONS] [--record DIRECTORY]\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection for the campaign or training. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures Mission 1."
         );
         return Ok(());
+    }
+    if args[0] == "export-assets" && args.len() >= 3 {
+        let options = session::Options::parse(&args[3..])?;
+        let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        let game = options.load(&assets)?;
+        return visuals::export(&game.mission, args[2].as_ref());
     }
     if args[0] == "play" && args.len() >= 2 {
         let mut launch = Vec::new();

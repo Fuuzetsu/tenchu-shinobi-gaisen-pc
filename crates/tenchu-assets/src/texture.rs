@@ -1,6 +1,6 @@
 use crate::{Result, relative, slice, u16_le, u32_le};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Image {
     pub page: u16,
     pub palette: u16,
@@ -23,6 +23,7 @@ impl Image {
 pub struct Vram {
     pub words: Vec<u16>,
     pub revision: u64,
+    pub images: Vec<Image>,
 }
 
 impl Default for Vram {
@@ -30,11 +31,36 @@ impl Default for Vram {
         Self {
             words: vec![0; 1024 * 512],
             revision: 0,
+            images: Vec::new(),
         }
     }
 }
 
 impl Vram {
+    pub fn texel(&self, page: u16, palette: u16, uv: [u16; 2]) -> u16 {
+        let word = |x: usize, y: usize| self.words[(y & 511) * 1024 + (x & 1023)];
+        let [u, v] = uv.map(|n| usize::from(n & 255));
+        let x = usize::from(page & 15) * 64;
+        let y = usize::from(page & 16) * 16;
+        match (page >> 7) & 3 {
+            0 => {
+                let index = (word(x + u / 4, y + v) >> ((u & 3) * 4)) & 15;
+                word(
+                    usize::from((palette & 63) * 16 + index),
+                    usize::from(palette >> 6),
+                )
+            }
+            1 => {
+                let index = (word(x + u / 2, y + v) >> ((u & 1) * 8)) & 255;
+                word(
+                    usize::from((palette & 63) * 16 + index),
+                    usize::from(palette >> 6),
+                )
+            }
+            _ => word(x + u, y + v),
+        }
+    }
+
     pub fn copy_rect(&mut self, source: [u16; 4], destination: [u16; 2]) -> Result<()> {
         let [x, y, w, h] = source.map(usize::from);
         let [dx, dy] = destination.map(usize::from);
@@ -100,8 +126,10 @@ impl Vram {
             }
             at += size;
         }
+        let image = image.ok_or("TIM has no pixels")?;
+        self.images.push(image);
         self.revision = self.revision.wrapping_add(1);
-        image.ok_or_else(|| "TIM has no pixels".into())
+        Ok(image)
     }
 
     pub fn upload_tpd(&mut self, data: &[u8]) -> Result<()> {
