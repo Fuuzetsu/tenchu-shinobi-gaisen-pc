@@ -62,8 +62,9 @@ impl Lines {
         let d = (b - a).truncate().normalize_or_zero() * 0.35;
         let offset = Vec3::new(-d.y, d.x, 0.0);
         let points = [a - offset, b - offset, a + offset, b + offset];
-        self.vertices
-            .extend([0, 1, 2, 1, 3, 2].map(|i| vertex(points[i].to_array(), color, SCREEN)));
+        self.vertices.extend(
+            [0, 1, 2, 1, 3, 2].map(|i| vertex(points[i].to_array(), color, SCREEN | DEBUG)),
+        );
     }
 
     fn box_at(&mut self, min: Vec3, max: Vec3, color: [f32; 3]) {

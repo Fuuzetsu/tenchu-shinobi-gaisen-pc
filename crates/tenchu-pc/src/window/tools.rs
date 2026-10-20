@@ -123,6 +123,49 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::Post => {
+                self.settings.graphics.post.enabled = !self.settings.graphics.post.enabled
+            }
+            Item::Filmic => {
+                self.settings.graphics.post.filmic = !self.settings.graphics.post.filmic
+            }
+            Item::FogTint => {
+                self.settings.graphics.post.fog_tint = cycle(
+                    self.settings.graphics.post.fog_tint,
+                    &[0, 1, 2, 3],
+                    direction,
+                )
+            }
+            Item::Temperature => {
+                self.settings.graphics.post.temperature =
+                    (i32::from(self.settings.graphics.post.temperature) + direction * 5)
+                        .clamp(-50, 50) as i16
+            }
+            Item::Bloom
+            | Item::BloomThreshold
+            | Item::Occlusion
+            | Item::OcclusionRadius
+            | Item::Contrast
+            | Item::Saturation
+            | Item::Gamma
+            | Item::Vignette
+            | Item::Sharpen
+            | Item::Haze => {
+                let post = &mut self.settings.graphics.post;
+                let (value, step, min, max) = match item {
+                    Item::Bloom => (&mut post.bloom, 5, 0, 100),
+                    Item::BloomThreshold => (&mut post.bloom_threshold, 25, 25, 300),
+                    Item::Occlusion => (&mut post.occlusion, 5, 0, 100),
+                    Item::OcclusionRadius => (&mut post.occlusion_radius, 1, 2, 20),
+                    Item::Contrast => (&mut post.contrast, 5, 50, 150),
+                    Item::Saturation => (&mut post.saturation, 5, 0, 200),
+                    Item::Gamma => (&mut post.gamma, 5, 50, 150),
+                    Item::Vignette => (&mut post.vignette, 5, 0, 100),
+                    Item::Sharpen => (&mut post.sharpen, 5, 0, 100),
+                    _ => (&mut post.haze, 5, 0, 100),
+                };
+                *value = (i32::from(*value) + direction * step).clamp(min, max) as u16;
+            }
             Item::SmoothModels => {
                 self.settings.graphics.smooth_models = !self.settings.graphics.smooth_models
             }

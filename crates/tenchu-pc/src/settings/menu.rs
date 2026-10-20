@@ -83,6 +83,20 @@ pub enum Item {
     DirectionalElevation,
     DirectionalRadius,
     DirectionalResolution,
+    Post,
+    Bloom,
+    BloomThreshold,
+    Occlusion,
+    OcclusionRadius,
+    Filmic,
+    Contrast,
+    Saturation,
+    Temperature,
+    Gamma,
+    Vignette,
+    Sharpen,
+    FogTint,
+    Haze,
 }
 
 #[cfg(test)]
@@ -161,7 +175,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 9] = [
+pub const PAGES: [&str; 10] = [
     "General",
     "Graphics",
     "Overlays",
@@ -171,10 +185,88 @@ pub const PAGES: [&str; 9] = [
     "Lighting",
     "Visual assets",
     "Sky lighting",
+    "Image effects",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        9 => {
+            let post = &s.graphics.post;
+            vec![
+                (
+                    Item::Post,
+                    "Image effects",
+                    on(post.enabled),
+                    "Master switch; HUD remains unchanged.",
+                ),
+                (
+                    Item::Bloom,
+                    "Highlight bloom",
+                    format!("{}%", post.bloom),
+                    "Soft glow around bright surfaces and flames.",
+                ),
+                (
+                    Item::BloomThreshold,
+                    "Bloom threshold",
+                    format!("{}%", post.bloom_threshold),
+                    "Higher values restrict glow to brighter areas.",
+                ),
+                (
+                    Item::Occlusion,
+                    "Contact shading",
+                    format!("{}%", post.occlusion),
+                    "Nearby visible surfaces darken corners.",
+                ),
+                (
+                    Item::OcclusionRadius,
+                    "Contact shading radius",
+                    format!("{}", post.occlusion_radius * 100),
+                    "World units; larger values shade wider corners.",
+                ),
+                (
+                    Item::Filmic,
+                    "Filmic tone curve",
+                    on(post.filmic),
+                    "Roll off bright highlights; deepen dark tones.",
+                ),
+                (
+                    Item::Contrast,
+                    "Contrast",
+                    format!("{}%", post.contrast),
+                    "Contrast around middle gray.",
+                ),
+                (
+                    Item::Saturation,
+                    "Saturation",
+                    format!("{}%", post.saturation),
+                    "0 is monochrome; 100 is neutral.",
+                ),
+                (
+                    Item::Temperature,
+                    "Warm / cool balance",
+                    post.temperature.to_string(),
+                    "Negative cools; positive warms the image.",
+                ),
+                (
+                    Item::Gamma,
+                    "Shadow brightness",
+                    format!("{}%", post.gamma),
+                    "Raise to reveal dark details.",
+                ),
+                (
+                    Item::Vignette,
+                    "Vignette",
+                    format!("{}%", post.vignette),
+                    "Darken image edges; 0 disables.",
+                ),
+                (
+                    Item::Sharpen,
+                    "Sharpen",
+                    format!("{}%", post.sharpen),
+                    "Gentle local contrast; avoid high values.",
+                ),
+            ]
+        }
         8 => {
             let sun = &s.graphics.lighting.directional;
             vec![
@@ -225,6 +317,20 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Cool ambient tint",
                     format!("{}%", s.graphics.lighting.sky_tint),
                     "Color retained baked shading toward blue.",
+                ),
+                (
+                    Item::FogTint,
+                    "Distance fog color",
+                    ["Original black", "Night blue", "Warm dusk", "Gray mist"]
+                        [s.graphics.post.fog_tint as usize]
+                        .into(),
+                    "Requires Image effects; retains fog distance.",
+                ),
+                (
+                    Item::Haze,
+                    "Atmospheric haze",
+                    format!("{}%", s.graphics.post.haze),
+                    "Image effects: extra gradual distance haze.",
                 ),
             ]
         }

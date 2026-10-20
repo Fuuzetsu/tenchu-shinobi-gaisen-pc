@@ -125,6 +125,155 @@ fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
 }
 
 #[test]
+#[ignore = "requires a graphics adapter; HDR bloom spreads beyond highlights, UI bypasses grading, and MSAA depth resolves correctly"]
+fn hdr_finishing_preserves_ui_and_restores_original_rendering() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut vertices = rectangle(1000, 96, None, false, false, false);
+    let mut highlight = rectangle(900, 255, None, false, false, false);
+    for vertex in &mut highlight {
+        vertex.position[0] *= 0.15;
+        vertex.position[1] *= 0.15;
+        vertex.color = [2.0; 3];
+    }
+    vertices.extend(highlight);
+    let mesh = renderer.upload(&vertices);
+    let mut hud = rectangle(1000, 255, None, false, false, false);
+    for vertex in &mut hud {
+        vertex.position = [
+            vertex.position[0] / 30.0 - 90.0,
+            vertex.position[1] / 30.0 - 90.0,
+            0.01,
+        ];
+        vertex.color = [0.2, 0.6, 0.9];
+        vertex.flags = render_mesh::SCREEN | render_mesh::UI;
+    }
+    let effects = renderer.upload_effects(render_effects::Geometry {
+        batches: vec![render_effects::Batch {
+            blend: 0,
+            range: 0..hud.len() as u32,
+        }],
+        vertices: hud,
+    });
+    renderer
+        .draw(&view, camera, &[&mesh], Some(&effects))
+        .unwrap();
+    let original = read_pixels(&renderer, &target);
+    let pixel = |pixels: &[u8], x: usize, y: usize| {
+        <[u8; 4]>::try_from(&pixels[y * 256 + x * 4..y * 256 + x * 4 + 4]).unwrap()
+    };
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.post.enabled = true;
+    graphics.post.filmic = false;
+    graphics.post.bloom = 0;
+    graphics.post.occlusion = 0;
+    graphics.post.fog_tint = 0;
+    for samples in renderer.sample_counts.clone() {
+        graphics.samples = samples;
+        graphics.post.bloom = 0;
+        renderer.configure(&graphics);
+        renderer
+            .draw(&view, camera, &[&mesh], Some(&effects))
+            .unwrap();
+        let neutral = read_pixels(&renderer, &target);
+        assert_eq!(
+            pixel(&neutral, 8, 8),
+            pixel(&original, 8, 8),
+            "HUD with {samples} samples"
+        );
+        assert!(pixel(&neutral, 44, 32)[0].abs_diff(96) <= 1);
+        graphics.post.bloom = 100;
+        renderer.configure(&graphics);
+        renderer
+            .draw(&view, camera, &[&mesh], Some(&effects))
+            .unwrap();
+        let bloom = read_pixels(&renderer, &target);
+        assert!(
+            pixel(&bloom, 44, 32)[0] > pixel(&neutral, 44, 32)[0] + 5,
+            "highlight halo with {samples} samples"
+        );
+        assert_eq!(pixel(&bloom, 8, 8), pixel(&original, 8, 8));
+    }
+    graphics.post.saturation = 0;
+    graphics.post.contrast = 120;
+    graphics.post.filmic = true;
+    renderer.configure(&graphics);
+    renderer
+        .draw(&view, camera, &[&mesh], Some(&effects))
+        .unwrap();
+    assert_eq!(
+        pixel(&read_pixels(&renderer, &target), 8, 8),
+        pixel(&original, 8, 8)
+    );
+    renderer.configure(&Default::default());
+    renderer
+        .draw(&view, camera, &[&mesh], Some(&effects))
+        .unwrap();
+    assert_eq!(read_pixels(&renderer, &target), original);
+}
+
+#[test]
+#[ignore = "requires a graphics adapter; contact shading darkens nearby corners and leaves isolated flat surfaces unchanged"]
+fn screen_space_contact_shading_responds_to_geometry() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let camera = Mat4::perspective_rh(0.9, 1.0, 50.0, 250_000.0)
+        * Mat4::look_at_rh(
+            glam::Vec3::new(0.0, -1800.0, -3500.0),
+            glam::Vec3::new(0.0, 0.0, 2000.0),
+            glam::Vec3::NEG_Y,
+        );
+    let mut vertices = Vec::new();
+    for points in [
+        [
+            [-5000.0, 0.0, 0.0],
+            [5000.0, 0.0, 0.0],
+            [-5000.0, 0.0, 7000.0],
+            [5000.0, 0.0, 7000.0],
+        ],
+        [
+            [-3000.0, -2500.0, 2500.0],
+            [3000.0, -2500.0, 2500.0],
+            [-3000.0, 0.0, 2500.0],
+            [3000.0, 0.0, 2500.0],
+        ],
+    ] {
+        let mut quad = rectangle(1000, 153, None, false, false, true);
+        for (vertex, index) in quad.iter_mut().zip([0, 1, 2, 1, 3, 2]) {
+            vertex.position = points[index];
+            vertex.flags = render_mesh::DOUBLE_SIDED;
+        }
+        vertices.extend(quad);
+    }
+    let mesh = renderer.upload(&vertices);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.post.enabled = true;
+    graphics.post.filmic = false;
+    graphics.post.bloom = 0;
+    graphics.post.occlusion = 0;
+    graphics.post.fog_tint = 0;
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let flat = read_pixels(&renderer, &target);
+    graphics.post.occlusion = 100;
+    graphics.post.occlusion_radius = 15;
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let shaded = read_pixels(&renderer, &target);
+    let pairs: Vec<_> = flat.chunks_exact(4).zip(shaded.chunks_exact(4)).collect();
+    assert!(
+        pairs.iter().filter(|(a, b)| a[0] > b[0] + 3).count() > 20,
+        "corners acquire contact shading"
+    );
+    assert!(
+        pairs.iter().filter(|(a, b)| a[0] == 153 && a == b).count() > 200,
+        "flat regions remain unshaded"
+    );
+    assert!(pairs.iter().all(|(a, b)| b[0] <= a[0]));
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; replacements retain higher-resolution detail, use their own cutouts and revert without disturbing original animation"]
 fn replacement_textures_reload_cutouts_and_revert() {
     use crate::visuals::{catalog, pack::Pack, pixels::Image};

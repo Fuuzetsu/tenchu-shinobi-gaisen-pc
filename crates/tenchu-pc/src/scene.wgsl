@@ -6,8 +6,9 @@ const DOUBLE_SIDED: u32 = 16u;
 const FOG: u32 = 32u;
 const DEBUG: u32 = 64u;
 const XRAY: u32 = 128u;
+const UI: u32 = 256u;
 
-struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32> }
+struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -64,6 +65,7 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
     let dv = dpdy(v.uv);
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
+    let hdr = camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
     var color = v.color;
     var emission = vec3(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
@@ -93,14 +95,18 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
         }
         if !screen && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
             emission = material_emission(v.material, base);
+            if hdr { emission *= pow(max(base, vec3(0.0)), vec3(1.2)); }
         }
     }
+    if hdr { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
     if !screen { color = color * illumination(v.world, normal, surface_normal) + emission; }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
-        color *= 1.0 - fog;
+        let haze = 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0);
+        color = mix(color, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
     }
     if !screen { color *= camera.options.x; }
+    if hdr { return vec4(max(color, vec3(0.0)), select(0.0, 1.0, semi)); }
     return vec4(clamp(color, vec3(0.0), vec3(1.0)), select(0.0, 1.0, semi));
 }
 

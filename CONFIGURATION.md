@@ -186,7 +186,7 @@ AI, RNG and 30 Hz simulation do not depend on the chosen visual options.
 - [x] Make lanterns and luminous props emit light, using recovered names/material
   information and editable reusable rules. Provide visible source markers and
   overrides for ambiguous assets. Add useful ambient/directional lighting.
-- [ ] Add restrained bloom, atmosphere/color controls and presentation polish,
+- [x] Add restrained bloom, atmosphere/color controls and presentation polish,
   preserving readable HUD/menu rendering. Keep effects individually adjustable.
 - [ ] Add Original/Enhanced/Cinematic presets and clear F1 controls, including
   asset reload and quality/performance feedback.
@@ -320,3 +320,25 @@ inspect the player/ground overhead, then resume movement and exit cleanly.
 Low-angle light is correctly blocked by the alley's buildings; a higher angle
 lights the street and gives a clearer comparison. Final preset values still
 need tuning with post-processing enabled.
+
+Image effects now render the world into a linear HDR target, retain bright lamp
+panels and additive effects for bloom, and finish the image before drawing the
+HUD and inspection overlays. F1 / Image effects controls bloom and its threshold,
+screen-space contact shading and radius, a filmic tone curve, contrast,
+saturation, warm/cool balance, shadow brightness, vignette and sharpening.
+Sky lighting adds fog color and gradual atmospheric haze. All are behind an
+off-by-default master switch. The fitted filmic curve uses the author's
+[CC0 implementation](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/);
+this is a compact tone curve, not a complete ACES color-management system.
+
+Contact shading uses only visible depth, so hidden/off-screen geometry cannot
+contribute. Model and scenery shadows still use the actual caster meshes.
+World depth is resolved separately for unprocessed overlays when MSAA is active.
+GPU regressions verify glow outside a bright surface, unchanged UI under
+grading, contact shading at corners, unshaded flat regions, every supported
+sample count, and exact restoration of the original image. All eight previous
+renderer regressions also pass, including live character/weapon shadows.
+Mission 1 window checks cover image-effects toggling, overhead/free-camera views,
+moving/jumping and repeated Escape exit. In one isolated 1280x720 X11 comparison,
+the paused view measured 41 FPS with effects and 44 without; these are diagnostic
+samples, not a general performance guarantee.

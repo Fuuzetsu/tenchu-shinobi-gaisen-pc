@@ -6,6 +6,7 @@ use wgpu::util::DeviceExt;
 
 mod materials;
 mod pipelines;
+mod post;
 mod shadows;
 mod sun;
 
@@ -20,6 +21,7 @@ pub struct Mesh {
 pub struct EffectMesh {
     mesh: Mesh,
     batches: Vec<render_effects::Batch>,
+    ranges: [Vec<std::ops::Range<u32>>; 2],
 }
 
 pub struct Renderer {
@@ -27,6 +29,8 @@ pub struct Renderer {
     pub queue: wgpu::Queue,
     pipeline: wgpu::RenderPipeline,
     effects: [wgpu::RenderPipeline; 5],
+    overlay_effects: [wgpu::RenderPipeline; 5],
+    post: Option<post::Post>,
     size: [u32; 2],
     bindings: wgpu::BindGroup,
     camera: wgpu::Buffer,
@@ -60,14 +64,17 @@ impl Renderer {
             }
         };
         let color = format_flags(format);
+        let hdr = format_flags(post::FORMAT);
         let depth = format_flags(wgpu::TextureFormat::Depth32Float);
         let sample_counts = [1, 2, 4, 8, 16]
             .into_iter()
             .filter(|&n| {
                 color.sample_count_supported(n)
+                    && hdr.sample_count_supported(n)
                     && depth.sample_count_supported(n)
                     && (n == 1
-                        || color.contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_RESOLVE))
+                        || (color & hdr)
+                            .contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_RESOLVE))
             })
             .collect();
         let (device, queue) = adapter
@@ -125,7 +132,7 @@ impl Renderer {
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::bytes_of(&[0.0f32; 28]),
+            contents: bytemuck::bytes_of(&[0.0f32; 32]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -150,6 +157,7 @@ impl Renderer {
             push_constant_ranges: &[],
         });
         let (pipeline, effects) = pipelines::create(&device, format, &layout, &shader, 1);
+        let (_, overlay_effects) = pipelines::create(&device, format, &layout, &shader, 1);
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
             layout: &binding_layout,
@@ -172,6 +180,8 @@ impl Renderer {
             queue,
             pipeline,
             effects,
+            overlay_effects,
+            post: None,
             size,
             bindings,
             camera,
@@ -209,7 +219,8 @@ impl Renderer {
                 sample_count: samples,
                 dimension: wgpu::TextureDimension::D2,
                 format,
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             })
             .create_view(&Default::default())
@@ -224,7 +235,19 @@ impl Renderer {
             self.samples,
         );
         self.multisample = (self.samples > 1)
-            .then(|| Self::attachment(&self.device, size, self.format, self.samples));
+            .then(|| Self::attachment(&self.device, size, self.world_format(), self.samples));
+        self.post =
+            self.graphics.post.enabled.then(|| {
+                post::Post::new(&self.device, self.format, size, self.samples, &self.depth)
+            });
+    }
+
+    fn world_format(&self) -> wgpu::TextureFormat {
+        if self.graphics.post.enabled {
+            post::FORMAT
+        } else {
+            self.format
+        }
     }
 
     pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
@@ -251,10 +274,13 @@ impl Renderer {
         } else {
             1
         };
-        if samples != self.samples {
+        let rebuild =
+            samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
+        self.graphics = graphics.clone();
+        if rebuild {
             (self.pipeline, self.effects) = pipelines::create(
                 &self.device,
-                self.format,
+                self.world_format(),
                 &self.layout,
                 &self.shader,
                 samples,
@@ -262,7 +288,6 @@ impl Renderer {
             self.samples = samples;
             self.resize(self.size);
         }
-        self.graphics = graphics.clone();
     }
 
     pub fn update_vram(&mut self, vram: &Vram) {
@@ -295,9 +320,22 @@ impl Renderer {
     }
 
     pub fn upload_effects(&mut self, geometry: render_effects::Geometry) -> EffectMesh {
+        let mut ranges: [Vec<std::ops::Range<u32>>; 2] = Default::default();
+        for (i, triangle) in geometry.vertices.chunks_exact(3).enumerate() {
+            let overlay =
+                triangle[0].flags & (crate::render_mesh::UI | crate::render_mesh::DEBUG) != 0;
+            let ranges = &mut ranges[usize::from(overlay)];
+            let start = i as u32 * 3;
+            if let Some(last) = ranges.last_mut().filter(|last| last.end == start) {
+                last.end += 3;
+            } else {
+                ranges.push(start..start + 3);
+            }
+        }
         EffectMesh {
             mesh: self.upload(&geometry.vertices),
             batches: geometry.batches,
+            ranges,
         }
     }
 
@@ -325,7 +363,7 @@ impl Renderer {
         camera.extend([
             self.size[0] as f32 / self.size[1] as f32,
             f32::from(self.graphics.anisotropy),
-            0.0,
+            u8::from(self.post.is_some()) as f32,
             0.0,
         ]);
         camera.extend([
@@ -345,7 +383,11 @@ impl Renderer {
             0.0,
         ]);
         camera.extend([
-            f32::from(self.graphics.exposure) / 100.0,
+            if self.post.is_some() {
+                1.0
+            } else {
+                f32::from(self.graphics.exposure) / 100.0
+            },
             u8::from(self.graphics.textures) as f32,
             u8::from(self.graphics.shading) as f32,
             if self.graphics.mipmaps {
@@ -354,6 +396,12 @@ impl Renderer {
                 u8::from(self.graphics.bilinear) as f32
             },
         ]);
+        camera.extend(self.graphics.post.fog_color());
+        camera.push(if self.post.is_some() {
+            f32::from(self.graphics.post.haze) / 100.0
+        } else {
+            0.0
+        });
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -369,12 +417,16 @@ impl Renderer {
             effects,
             &self.materials.bindings,
         );
+        if let Some(post) = &self.post {
+            post.prepare(&self.queue, matrix, &self.graphics);
+        }
         {
+            let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Scene"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: self.multisample.as_ref().unwrap_or(target),
-                    resolve_target: self.multisample.as_ref().map(|_| target),
+                    view: self.multisample.as_ref().unwrap_or(world_target),
+                    resolve_target: self.multisample.as_ref().map(|_| world_target),
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
                             r: 0.0,
@@ -408,27 +460,88 @@ impl Renderer {
                 pass.draw(0..mesh.count, 0..1);
             }
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
-                pass.set_vertex_buffer(0, effects.mesh.buffer.slice(..));
-                pass.set_pipeline(&self.effects[0]);
-                pass.draw(0..effects.mesh.count, 0..1);
-                for batch in &effects.batches {
-                    if batch.blend == 0 {
-                        continue;
-                    }
-                    let constant = if batch.blend == 4 { 0.25 } else { 0.5 };
-                    pass.set_blend_constant(wgpu::Color {
-                        r: constant,
-                        g: constant,
-                        b: constant,
-                        a: 1.0,
-                    });
-                    pass.set_pipeline(&self.effects[usize::from(batch.blend)]);
-                    pass.draw(batch.range.clone(), 0..1);
-                }
+                draw_effects(
+                    &mut pass,
+                    &self.effects,
+                    effects,
+                    self.post.as_ref().map(|_| false),
+                );
+            }
+        }
+        if let Some(post) = &self.post {
+            post.draw(&mut encoder, target, self.graphics.post.bloom > 0);
+            if let Some(effects) = effects.filter(|e| !e.ranges[1].is_empty()) {
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Unprocessed HUD and inspection overlays"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: target,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &post.depth,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        }),
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pass.set_bind_group(0, &self.bindings, &[]);
+                pass.set_bind_group(1, &self.shadows.bindings, &[]);
+                pass.set_bind_group(2, &self.materials.bindings, &[]);
+                draw_effects(&mut pass, &self.overlay_effects, effects, Some(true));
             }
         }
         self.queue.submit([encoder.finish()]);
         Ok(())
+    }
+}
+
+fn draw_effects(
+    pass: &mut wgpu::RenderPass<'_>,
+    pipelines: &[wgpu::RenderPipeline; 5],
+    effects: &EffectMesh,
+    overlay: Option<bool>,
+) {
+    pass.set_vertex_buffer(0, effects.mesh.buffer.slice(..));
+    let ranges = overlay.map(|overlay| &effects.ranges[usize::from(overlay)]);
+    pass.set_pipeline(&pipelines[0]);
+    if let Some(ranges) = ranges {
+        for range in ranges {
+            pass.draw(range.clone(), 0..1);
+        }
+    } else {
+        pass.draw(0..effects.mesh.count, 0..1);
+    }
+    for batch in &effects.batches {
+        if batch.blend == 0 {
+            continue;
+        }
+        let constant = if batch.blend == 4 { 0.25 } else { 0.5 };
+        pass.set_blend_constant(wgpu::Color {
+            r: constant,
+            g: constant,
+            b: constant,
+            a: 1.0,
+        });
+        pass.set_pipeline(&pipelines[usize::from(batch.blend)]);
+        if let Some(ranges) = ranges {
+            for range in ranges {
+                let start = range.start.max(batch.range.start);
+                let end = range.end.min(batch.range.end);
+                if start < end {
+                    pass.draw(start..end, 0..1);
+                }
+            }
+        } else {
+            pass.draw(batch.range.clone(), 0..1);
+        }
     }
 }
 

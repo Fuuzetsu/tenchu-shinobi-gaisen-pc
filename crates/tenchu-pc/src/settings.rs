@@ -1,4 +1,6 @@
 pub mod menu;
+mod post;
+pub use post::Post;
 
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
@@ -50,6 +52,7 @@ pub struct Graphics {
     pub samples: u32,
     pub lighting: Lighting,
     pub blob_shadows: bool,
+    pub post: Post,
 }
 
 impl Default for Graphics {
@@ -70,6 +73,7 @@ impl Default for Graphics {
             samples: 1,
             lighting: Lighting::default(),
             blob_shadows: true,
+            post: Post::default(),
         }
     }
 }
@@ -199,6 +203,7 @@ impl Store {
                     settings.graphics.upscale = 1;
                 }
                 settings.graphics.model_detail = settings.graphics.model_detail.min(2);
+                settings.graphics.post.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

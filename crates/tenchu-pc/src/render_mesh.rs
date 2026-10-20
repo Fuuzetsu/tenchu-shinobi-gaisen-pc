@@ -17,6 +17,7 @@ pub const DOUBLE_SIDED: u32 = 16;
 pub const FOG: u32 = 32;
 pub const DEBUG: u32 = 64;
 pub const XRAY: u32 = 128;
+pub const UI: u32 = 256;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]

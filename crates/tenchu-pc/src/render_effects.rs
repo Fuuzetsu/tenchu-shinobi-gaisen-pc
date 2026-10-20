@@ -30,6 +30,7 @@ pub fn panel(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32;
     let mut vertices = screen_band(-120.0, 120.0, [0.018, 0.025, 0.034], 0);
     for vertex in &mut vertices {
         vertex.position[2] = 0.00001;
+        vertex.flags |= render_mesh::UI;
     }
     let count = vertices.len() as u32;
     let mut geometry = Geometry {
@@ -65,6 +66,9 @@ pub fn text(font: &tenchu_assets::font::Font, lines: &[(i16, i16, String, [f32; 
             ));
             x += font.width(code) as f32;
         }
+    }
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::UI;
     }
     let count = vertices.len() as u32;
     Geometry {
@@ -454,6 +458,7 @@ pub fn build_options(
             previous = shade;
         }
     }
+    let ui_start = surfaces.len();
     if let Some(shade) = game.hud.map.dim.filter(|_| !inspection) {
         let mut vertices = screen_band(-120.0, 120.0, [f32::from(shade) / 255.0; 3], 3);
         for vertex in &mut vertices {
@@ -520,6 +525,11 @@ pub fn build_options(
             ),
         });
     }
+    for surface in &mut surfaces[ui_start..] {
+        for vertex in &mut surface.vertices {
+            vertex.flags |= render_mesh::UI;
+        }
+    }
     for &(priority, color) in &game.effects.fades {
         surfaces.push(Surface {
             depth: priority as f32 * 4.0,
@@ -529,10 +539,14 @@ pub fn build_options(
     }
     if game.cinematic.frame && !inspection {
         for (top, bottom) in [(-120.0, -90.0), (90.0, 120.0)] {
+            let mut vertices = screen_band(top, bottom, [1.0 / 255.0; 3], 0);
+            for vertex in &mut vertices {
+                vertex.flags |= render_mesh::UI;
+            }
             surfaces.push(Surface {
                 depth: 1.0,
                 blend: 0,
-                vertices: screen_band(top, bottom, [1.0 / 255.0; 3], 0),
+                vertices,
             });
         }
     }

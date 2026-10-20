@@ -21,6 +21,26 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::Post => self.settings.graphics.post.enabled = s.graphics.post.enabled,
+            Item::Bloom => self.settings.graphics.post.bloom = s.graphics.post.bloom,
+            Item::BloomThreshold => {
+                self.settings.graphics.post.bloom_threshold = s.graphics.post.bloom_threshold
+            }
+            Item::Occlusion => self.settings.graphics.post.occlusion = s.graphics.post.occlusion,
+            Item::OcclusionRadius => {
+                self.settings.graphics.post.occlusion_radius = s.graphics.post.occlusion_radius
+            }
+            Item::Filmic => self.settings.graphics.post.filmic = s.graphics.post.filmic,
+            Item::Contrast => self.settings.graphics.post.contrast = s.graphics.post.contrast,
+            Item::Saturation => self.settings.graphics.post.saturation = s.graphics.post.saturation,
+            Item::Temperature => {
+                self.settings.graphics.post.temperature = s.graphics.post.temperature
+            }
+            Item::Gamma => self.settings.graphics.post.gamma = s.graphics.post.gamma,
+            Item::Vignette => self.settings.graphics.post.vignette = s.graphics.post.vignette,
+            Item::Sharpen => self.settings.graphics.post.sharpen = s.graphics.post.sharpen,
+            Item::FogTint => self.settings.graphics.post.fog_tint = s.graphics.post.fog_tint,
+            Item::Haze => self.settings.graphics.post.haze = s.graphics.post.haze,
             Item::SmoothModels => self.settings.graphics.smooth_models = s.graphics.smooth_models,
             Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
             Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
