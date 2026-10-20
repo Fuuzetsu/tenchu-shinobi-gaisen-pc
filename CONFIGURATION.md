@@ -121,3 +121,18 @@ platforms were not exercised. The optimized desktop binary is rebuilt.
 After the full tool/lighting integration, an isolated Wayland compositor again
 exercised F1, optional lighting, free camera and repeated Escape exits: three
 clean exits, with the graphics-before-display shutdown fix retained.
+
+## Follow-up usability and shadows
+
+- [x] Shift+Tab goes back a page. Pointer movement selects the hovered row without
+  shifting a scrolled list. R restores that value, preserving unrelated settings;
+  it does not execute one-shot actions.
+- [x] Unlimited simulation speed runs every tick, including across cutscenes,
+  while preserving pause/focus/single-step controls. Audio is muted at unlimited
+  speed. Host state-sequence regression passes.
+- [ ] Make model/weapon/object shadows easier to inspect: preview action,
+  original-blob toggle and active-light feedback.
+- [ ] Expand the point-light budget beyond two and allocate depth maps for active
+  lights only. Check model/weapon and off-camera moving-object caster coverage.
+- [ ] Document current texture replacement limitations and a practical visual
+  improvement/asset editing path.

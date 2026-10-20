@@ -54,7 +54,7 @@ impl Application {
         }
     }
 
-    fn set_sight(&mut self, value: u16) {
+    pub(super) fn set_sight(&mut self, value: u16) {
         if self.debug.sight_percent != value {
             self.stop_edited_recording();
         }
@@ -95,22 +95,26 @@ impl Application {
             if let Err(error) = self.apply_item(item, direction) {
                 self.menu.notice = error;
             }
-            if self.settings != previous
-                && let Err(error) = self.settings_store.write(&self.settings)
-            {
-                eprintln!("Settings: {error}");
-                self.menu.notice = "Could not save settings; see terminal".into();
-            }
-            if let Some(view) = &mut self.view {
-                view.settings(&self.settings);
-            }
-            if let Some(audio) = &mut self.audio {
-                audio.volume(self.settings.volume);
-            }
+            self.apply_settings(&previous);
         }
         self.release_pointer();
         self.sync_pause();
         self.update_view();
+    }
+
+    pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if self.settings != *previous
+            && let Err(error) = self.settings_store.write(&self.settings)
+        {
+            eprintln!("Settings: {error}");
+            self.menu.notice = "Could not save settings; see terminal".into();
+        }
+        if let Some(view) = &mut self.view {
+            view.settings(&self.settings);
+        }
+        if let Some(audio) = &mut self.audio {
+            audio.volume(self.settings.volume);
+        }
     }
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
@@ -308,7 +312,7 @@ impl Application {
                 self.menu.open = false;
             }
             Item::Speed => {
-                self.debug.speed = cycle(self.debug.speed, &[25, 50, 100, 200, 400], direction)
+                self.debug.speed = cycle(self.debug.speed, &[25, 50, 100, 200, 400, 0], direction)
             }
             Item::CutsceneSpeed => {
                 self.settings.cutscene_speed = cycle(

@@ -1,0 +1,98 @@
+use super::*;
+
+impl Application {
+    pub(super) fn reset_selected_setting(&mut self) {
+        let item = settings::menu::rows(self.menu.page, &self.settings, &self.debug, self.paused)
+            [self.menu.row]
+            .item;
+        let previous = self.settings.clone();
+        self.menu.notice = match self.reset_item(item) {
+            Ok(()) => "Value reset to default".into(),
+            Err(error) => error,
+        };
+        self.menu.edit = None;
+        self.apply_settings(&previous);
+        self.release_pointer();
+        self.sync_pause();
+        self.update_view();
+    }
+
+    pub(super) fn reset_item(&mut self, item: Item) -> Result<()> {
+        let s = Settings::default();
+        let d = crate::debug::Debug::new(&self.campaign.game)?;
+        match item {
+            Item::Fps => self.settings.show_fps = s.show_fps,
+            Item::Focus => self.settings.pause_on_defocus = s.pause_on_defocus,
+            Item::Fullscreen => self.settings.fullscreen = s.fullscreen,
+            Item::Vsync => self.settings.vsync = s.vsync,
+            Item::Hud => self.settings.show_hud = s.show_hud,
+            Item::Volume => self.settings.volume = s.volume,
+            Item::Fog => self.settings.graphics.fog = s.graphics.fog,
+            Item::FogDistance => self.settings.graphics.fog_distance = s.graphics.fog_distance,
+            Item::Textures => self.settings.graphics.textures = s.graphics.textures,
+            Item::Shading => self.settings.graphics.shading = s.graphics.shading,
+            Item::Exposure => self.settings.graphics.exposure = s.graphics.exposure,
+            Item::Filtering => self.settings.graphics.bilinear = s.graphics.bilinear,
+            Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
+            Item::Lighting => self.settings.graphics.lighting.enabled = s.graphics.lighting.enabled,
+            Item::Shadows => self.settings.graphics.lighting.shadows = s.graphics.lighting.shadows,
+            Item::FireLights => self.settings.graphics.lighting.fires = s.graphics.lighting.fires,
+            Item::LightCount => self.settings.graphics.lighting.count = s.graphics.lighting.count,
+            Item::LightRadius => {
+                self.settings.graphics.lighting.radius = s.graphics.lighting.radius
+            }
+            Item::LightIntensity => {
+                self.settings.graphics.lighting.intensity = s.graphics.lighting.intensity
+            }
+            Item::LightAmbient => {
+                self.settings.graphics.lighting.ambient = s.graphics.lighting.ambient
+            }
+            Item::LightResolution => {
+                self.settings.graphics.lighting.resolution = s.graphics.lighting.resolution
+            }
+            Item::CutsceneSpeed => self.settings.cutscene_speed = s.cutscene_speed,
+            Item::Hitboxes => self.debug.hitboxes = d.hitboxes,
+            Item::Sight => self.debug.sight = d.sight,
+            Item::SightStance => self.debug.sight_stance = d.sight_stance,
+            Item::Collision => self.debug.collision = d.collision,
+            Item::CollisionOnly => self.debug.collision_only = d.collision_only,
+            Item::Patrols => self.debug.patrols = d.patrols,
+            Item::Events => self.debug.events = d.events,
+            Item::Labels => self.debug.labels = d.labels,
+            Item::Xray => self.debug.xray = d.xray,
+            Item::Trail => self.debug.show_trail = d.show_trail,
+            Item::FreeCamera => {
+                self.debug.camera = None;
+                self.debug.teleport_armed = false;
+            }
+            Item::FlightSpeed => self.debug.flight_speed = d.flight_speed,
+            Item::Fov => {
+                if let Some(camera) = &mut self.debug.camera {
+                    camera.fov = crate::debug::camera::Camera::from_game(&self.campaign.game).fov;
+                }
+            }
+            Item::Actor => self.debug.selected_actor = d.selected_actor,
+            Item::InspectActor => self.debug.inspect_actor = d.inspect_actor,
+            Item::Target(axis) => self.debug.target[axis] = d.target[axis],
+            Item::SnapFloor => self.debug.snap_to_floor = d.snap_to_floor,
+            Item::Speed => self.debug.speed = d.speed,
+            Item::SightDistance => self.set_sight(d.sight_percent),
+            Item::DebugLight => {
+                self.debug.light = None;
+                self.debug.light_follow = false;
+            }
+            Item::FollowLight => {
+                self.debug.light = self.debug.light_position(&self.campaign.game);
+                self.debug.light_follow = false;
+            }
+            Item::LightAxis(axis) => {
+                if let Some(light) = &mut self.debug.light {
+                    light[axis] = 0.0;
+                }
+            }
+            Item::Pause if !self.faulted => self.paused = false,
+            _ => return Err("This action has no value to reset".into()),
+        }
+        Ok(())
+    }
+}

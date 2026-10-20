@@ -101,7 +101,9 @@ Preferences save separately from progress in
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`
 overrides the file. Disabling pause on defocus keeps simulation/audio running
 but still releases controls; input from another application never controls the game.
-Tab/Page Down/Page Up or controller R1/L1 changes settings pages. Graphics
+Tab/Shift+Tab, Page Down/Page Up or controller R1/L1 changes settings pages.
+Hover a row or select it with the arrows, then press R to reset only that value;
+one-shot actions such as teleport cannot be reset or triggered with R. Graphics
 settings include black fog and its distance, textures, baked vertex shading,
 exposure, nearest/bilinear filtering and supported MSAA modes. MSAA smooths
 polygon edges; bilinear filtering decodes the original palettes and keeps
@@ -131,7 +133,9 @@ distance does not change hearing, actor activation, attack range or occlusion.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general
-25–400% simulation speed. Every logic tick runs; accelerated backlog is discarded
+25–400% or Unlimited simulation speed. Unlimited runs across gameplay and
+cutscenes, muting audio and yielding periodically for input/rendering. Every
+logic tick runs; cutscene-only accelerated backlog is discarded
 when control returns. Fast-forward mutes sound and resumes background music at
 ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.

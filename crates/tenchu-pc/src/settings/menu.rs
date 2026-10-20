@@ -66,6 +66,34 @@ pub enum Item {
     LightAxis(usize),
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hovering_scrolled_rows_does_not_move_the_list_under_the_pointer() {
+        let mut menu = Menu::default();
+        for _ in 0..9 {
+            menu.action(Action::Down, 15);
+        }
+        assert_eq!(menu.offset(), 3);
+        for [width, height] in [[1280, 720], [960, 720]] {
+            let point = [
+                f64::from(width) / 2.0,
+                (56.0 + 2.0 * 19.0 + 8.0) * f64::from(height) / 240.0,
+            ];
+            menu.row = menu.row_at(point, [width, height], 15).unwrap();
+            assert_eq!(menu.row, 5);
+            assert_eq!(menu.offset(), 3);
+            assert_eq!(menu.row_at(point, [width, height], 15), Some(5));
+            assert!(menu.row_at([point[0], 0.0], [width, height], 15).is_none());
+        }
+        menu.page(-1);
+        assert_eq!(menu.offset(), 0);
+        assert_eq!(menu.page, PAGES.len() - 1);
+    }
+}
+
 impl Item {
     pub fn button(self) -> bool {
         matches!(
@@ -104,6 +132,7 @@ pub struct Menu {
     pub page: usize,
     pub notice: String,
     pub edit: Option<String>,
+    pub scroll: usize,
 }
 
 fn on(value: bool) -> String {
@@ -409,7 +438,11 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             (
                 Item::Speed,
                 "Simulation speed",
-                format!("{}%", d.speed),
+                if d.speed == 0 {
+                    "Unlimited".into()
+                } else {
+                    format!("{}%", d.speed)
+                },
                 "Host pacing only; every logic tick still runs.",
             ),
             (
@@ -553,6 +586,7 @@ impl Menu {
     pub fn page(&mut self, direction: i32) {
         self.page = (self.page as i32 + direction).rem_euclid(PAGES.len() as i32) as usize;
         self.row = 0;
+        self.scroll = 0;
         self.notice.clear();
         self.edit = None;
     }
@@ -566,11 +600,26 @@ impl Menu {
             Action::Right | Action::Confirm => return Some(1),
             Action::Replay => {}
         }
+        if self.row < self.scroll {
+            self.scroll = self.row;
+        } else if self.row >= self.scroll + 7 {
+            self.scroll = self.row - 6;
+        }
         None
     }
 
     pub fn offset(&self) -> usize {
-        self.row.saturating_sub(6)
+        self.scroll
+    }
+
+    pub fn row_at(&self, pointer: [f64; 2], size: [u32; 2], count: usize) -> Option<usize> {
+        let y = pointer[1] / f64::from(size[1].max(1)) * 240.0 - 120.0;
+        let x = (pointer[0] - f64::from(size[0]) / 2.0) / f64::from(size[1].max(1)) * 240.0;
+        if !(-150.0..150.0).contains(&x) || !(-64.0..69.0).contains(&y) {
+            return None;
+        }
+        let row = ((y + 64.0) / 19.0).floor() as usize + self.scroll;
+        (row < count).then_some(row)
     }
 
     pub fn build(&self, font: &Font, settings: &Settings, debug: &Debug, paused: bool) -> Geometry {
@@ -585,7 +634,11 @@ impl Menu {
             (
                 -146,
                 -90,
-                format!("< Page {}/{} >  Tab / L1 / R1", self.page + 1, PAGES.len()),
+                format!(
+                    "< {}/{} > Tab / Shift+Tab / L1/R1",
+                    self.page + 1,
+                    PAGES.len()
+                ),
                 [0.6, 0.65, 0.7],
             ),
         ];
@@ -632,7 +685,7 @@ impl Menu {
         lines.push((
             -146,
             102,
-            "Arrows: change  F1/Esc/East: close".into(),
+            "Arrows: change  R: reset  F1/Esc: close".into(),
             [0.6, 0.65, 0.7],
         ));
         let mut geometry = render_effects::panel(font, &[]);

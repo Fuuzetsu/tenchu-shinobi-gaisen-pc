@@ -34,7 +34,71 @@ fn application(options: Options) -> Application {
         fps_frames: 0,
         debug,
         screenshot: false,
+        modifiers: ModifiersState::empty(),
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; unlimited host pacing executes every original tick and respects menu, focus and single-step"]
+fn unlimited_simulation_keeps_the_same_state_sequence() {
+    let options = Options {
+        mission: 2,
+        ..Default::default()
+    };
+    let mut app = application(options);
+    let mut reference = application(options);
+    app.debug.speed = 0;
+    for _ in 0..8 {
+        let tick = app.campaign.game.tick;
+        app.advance_simulation(Duration::ZERO);
+        assert!(app.campaign.game.tick > tick);
+        assert!(app.campaign.game.tick - tick <= 2048);
+        while reference.campaign.game.tick < app.campaign.game.tick {
+            reference.campaign.tick(0).unwrap();
+        }
+        assert_eq!(
+            crate::session::tests::state(&app.campaign.game),
+            crate::session::tests::state(&reference.campaign.game)
+        );
+    }
+    let tick = app.campaign.game.tick;
+    app.menu.open = true;
+    app.advance_simulation(Duration::from_secs(1));
+    assert_eq!(app.campaign.game.tick, tick);
+    app.menu.open = false;
+    app.focused = false;
+    app.advance_simulation(Duration::from_secs(1));
+    assert_eq!(app.campaign.game.tick, tick);
+    app.focused = true;
+    app.apply_item(Item::Step, 1).unwrap();
+    app.advance_simulation(Duration::ZERO);
+    app.advance_simulation(Duration::ZERO);
+    assert_eq!(app.campaign.game.tick, tick + 1);
+    app.reset_item(Item::Speed).unwrap();
+    assert_eq!(app.debug.speed, 100);
+    app.set_paused(false);
+    app.advance_simulation(Duration::ZERO);
+    assert_eq!(app.campaign.game.tick, tick + 1);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; resetting a selected setting leaves other preferences and live game state alone"]
+fn per_value_reset_does_not_execute_actions_or_reset_other_options() {
+    let mut app = application(Options::default());
+    let state = crate::session::tests::state(&app.campaign.game);
+    app.settings.graphics.fog_distance = 200;
+    app.settings.graphics.exposure = 150;
+    app.reset_item(Item::FogDistance).unwrap();
+    assert_eq!(app.settings.graphics.fog_distance, 100);
+    assert_eq!(app.settings.graphics.exposure, 150);
+    app.debug.target[0] += 5000;
+    assert!(app.reset_item(Item::Teleport).is_err());
+    app.reset_item(Item::Target(0)).unwrap();
+    assert_eq!(app.debug.target, app.campaign.game.player().position);
+    app.debug.toggle_camera(&app.campaign.game);
+    app.reset_item(Item::FreeCamera).unwrap();
+    assert!(app.debug.camera.is_none());
+    assert_eq!(state, crate::session::tests::state(&app.campaign.game));
 }
 
 #[test]

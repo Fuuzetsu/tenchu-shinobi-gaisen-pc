@@ -1,4 +1,5 @@
 mod playback;
+mod settings_reset;
 #[cfg(test)]
 mod tests;
 mod tools;
@@ -28,7 +29,7 @@ use winit::{
     dpi::LogicalSize,
     event::{DeviceEvent, DeviceId, ElementState, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
-    keyboard::{KeyCode, PhysicalKey},
+    keyboard::{KeyCode, ModifiersState, PhysicalKey},
     window::{CursorGrabMode, Fullscreen, Window, WindowId},
 };
 
@@ -57,6 +58,7 @@ struct Application {
     fps_frames: u32,
     debug: crate::debug::Debug,
     screenshot: bool,
+    modifiers: ModifiersState,
 }
 
 impl Application {
@@ -302,6 +304,7 @@ impl ApplicationHandler for Application {
             }
             WindowEvent::Focused(focused) => {
                 if !focused {
+                    self.modifiers = ModifiersState::empty();
                     self.flush_recording();
                     self.release_pointer();
                 }
@@ -312,7 +315,29 @@ impl ApplicationHandler for Application {
                 }
                 self.sync_pause();
             }
-            WindowEvent::CursorMoved { position, .. } => self.pointer = [position.x, position.y],
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
+            WindowEvent::CursorMoved { position, .. } => {
+                self.pointer = [position.x, position.y];
+                if self.menu.open
+                    && self.menu.edit.is_none()
+                    && let Some(view) = &self.view
+                    && let Some(row) = self.menu.row_at(
+                        self.pointer,
+                        view.size,
+                        settings::menu::rows(
+                            self.menu.page,
+                            &self.settings,
+                            &self.debug,
+                            self.paused,
+                        )
+                        .len(),
+                    )
+                    && row != self.menu.row
+                {
+                    self.menu.row = row;
+                    self.update_view();
+                }
+            }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
                 button,
@@ -328,19 +353,14 @@ impl ApplicationHandler for Application {
                         self.update_view();
                         return;
                     }
-                    let row = ((y + 64.0) / 19.0).floor() as isize + self.menu.offset() as isize;
                     let rows = settings::menu::rows(
                         self.menu.page,
                         &self.settings,
                         &self.debug,
                         self.paused,
                     );
-                    if (-150.0..150.0).contains(&x)
-                        && (-64.0..69.0).contains(&y)
-                        && row >= 0
-                        && (row as usize) < rows.len()
-                    {
-                        self.menu.row = row as usize;
+                    if let Some(row) = self.menu.row_at(self.pointer, view.size, rows.len()) {
+                        self.menu.row = row;
                         let item = rows[self.menu.row].item;
                         self.settings_action(if button == MouseButton::Right {
                             Action::Left
@@ -406,8 +426,20 @@ impl ApplicationHandler for Application {
                     if event.state == ElementState::Pressed
                         && matches!(code, KeyCode::Tab | KeyCode::PageDown | KeyCode::PageUp)
                     {
-                        self.menu.page(if code == KeyCode::PageUp { -1 } else { 1 });
+                        self.menu.page(
+                            if code == KeyCode::PageUp
+                                || code == KeyCode::Tab && self.modifiers.shift_key()
+                            {
+                                -1
+                            } else {
+                                1
+                            },
+                        );
                         self.update_view();
+                        return;
+                    }
+                    if event.state == ElementState::Pressed && code == KeyCode::KeyR {
+                        self.reset_selected_setting();
                         return;
                     }
                     if event.state == ElementState::Pressed
@@ -601,6 +633,7 @@ pub fn run(
         fps_frames: 0,
         debug,
         screenshot: false,
+        modifiers: ModifiersState::empty(),
     };
     println!(
         "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."

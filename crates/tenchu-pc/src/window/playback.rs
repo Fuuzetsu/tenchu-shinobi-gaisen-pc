@@ -43,14 +43,16 @@ impl Application {
         } else {
             1
         };
-        let accelerated = cinematic && cutscene_speed != 1 && !self.is_suspended();
+        let unlimited_simulation = self.debug.speed == 0;
+        let accelerated = cinematic && cutscene_speed != 1;
+        let suspended = self.is_suspended();
         if let Some(audio) = &mut self.audio {
-            audio.fast_forward(accelerated);
+            audio.fast_forward((accelerated || unlimited_simulation) && !suspended);
         }
-        if self.is_suspended() || !self.campaign.playing() {
+        if suspended || !self.campaign.playing() {
             return;
         }
-        let unlimited = cutscene_speed == 0;
+        let unlimited = unlimited_simulation || cutscene_speed == 0;
         if unlimited {
             self.clock.discard_host_backlog();
         } else {
@@ -72,6 +74,7 @@ impl Application {
                 break;
             }
             if self.campaign.game.cinematic.active != cinematic
+                && !unlimited_simulation
                 && (accelerated
                     || self.settings.cutscene_speed != 1
                     || self.controls.held(KeyCode::Backspace))
@@ -87,6 +90,7 @@ impl Application {
             }
         }
         if accelerated
+            && !unlimited_simulation
             && !self.campaign.game.cinematic.active
             && let Some(audio) = &mut self.audio
         {
