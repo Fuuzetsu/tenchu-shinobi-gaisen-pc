@@ -144,6 +144,11 @@ show the original score/rank, award items and update each character's records.
 Enter advances (or retries training), R replays, and Escape returns to the launcher.
 Failed or abandoned attempts lose their carried items. Training keeps its separate
 ranking table and fixed equipment. Armour uses its original model and damage rule.
+Training completion is checked for both
+[Rikimaru](crates/tenchu-pc/tests/data/training-rikimaru.inputs) and
+[Ayame](crates/tenchu-pc/tests/data/training-ayame.inputs), including all seven
+opponents, the instructor's closing sequence, saved ranking and retry with
+the fixed hook and five shuriken. These routes finish with 70 and 90 HP.
 
 Progress saves between attempts to
 `$XDG_DATA_HOME/tenchu-shinobi-gaisen-pc/progress.sav`, or

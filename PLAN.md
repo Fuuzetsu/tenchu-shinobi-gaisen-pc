@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's complete saved campaign, an independent Ayame Mission 2 route,
+Ayame's complete saved campaign, training for both characters, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -1106,3 +1106,16 @@ tests pass. An isolated native window records a one-tick jump and one-tick
 attack from the same quick taps previously missed; both animations were visually
 inspected. Pause/resize/retry and a subsequent grapple attempt also pass.
 Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.
+
+Training now has complete ordinary-input routes for both characters. Both defeat
+all seven opponents, use two of the five training shuriken, traverse the jump,
+ledge and grapple sections, and reach the instructor. Rikimaru finishes at tick
+4,062 with 70 HP and clock 3,842; Ayame finishes at tick 3,724 with 90 HP and
+clock 3,513. Both trigger opening sequence 20 and grade-zero closing sequence 5.
+The regression verifies their saved ranking, unchanged campaign stock/progress,
+Continue, and retry with the fixed hook and five shuriken. It passes in release.
+An isolated native Ayame/Japanese training session exercises the first jump,
+shuriken use, look controls, pause/resize and retry. Its two recordings replay to
+matching ticks, health and motion; the retry seed matches the preceding RNG.
+The recordings remain unchanged while paused. Audio uses a private null sink.
+Native 4:3 inspection exposed clipped pause instructions, to be corrected next.

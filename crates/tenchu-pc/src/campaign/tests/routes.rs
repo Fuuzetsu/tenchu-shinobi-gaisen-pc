@@ -510,6 +510,88 @@ fn ayame_campaign_controller_routes_reach_completion() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; completes training with both characters, saves their rankings and retries with fixed training equipment"]
+fn training_controller_routes_save_rankings_and_retry() {
+    let assets = assets();
+    for (character, tape, ticks, clock, health, closing) in [
+        (
+            0,
+            include_str!("../../../tests/data/training-rikimaru.inputs"),
+            4062,
+            3842,
+            70,
+            3903,
+        ),
+        (
+            1,
+            include_str!("../../../tests/data/training-ayame.inputs"),
+            3724,
+            3513,
+            90,
+            3574,
+        ),
+    ] {
+        let options = Options {
+            mission: 0,
+            character,
+            ..Options::default()
+        };
+        let mut campaign = Campaign::new(&assets, options, None).unwrap();
+        let stock = campaign.progress.stock;
+        campaign.action(Action::Confirm, &assets).unwrap();
+        equip(&mut campaign, &assets, &[]);
+        assert_eq!(&campaign.game.player().inventory[..4], &[255, 5, 0, 0]);
+        assert_eq!(
+            controller_route(&mut campaign, tape),
+            [(1, 20), (closing, 5)]
+        );
+        assert_eq!(campaign.game.tick, ticks);
+        assert_eq!(campaign.game.player().health, health);
+        assert_eq!(&campaign.game.player().inventory[..4], &[255, 3, 0, 0]);
+        for id in 1..=7 {
+            let enemy = campaign.game.roster.get(id);
+            assert_eq!((enemy.health, enemy.status), (0, 17));
+        }
+        let Screen::Results(results) = &campaign.screen else {
+            panic!("Expected training results")
+        };
+        assert_eq!(results.record, campaign.game.record());
+        assert_eq!(results.record.clock, clock);
+        assert_eq!(results.score.grade, 0);
+        assert_eq!(results.training_place, Some(0));
+        assert_eq!(campaign.progress.stock, stock);
+        assert_eq!(campaign.progress.highest, [1, 1]);
+        assert_eq!(campaign.progress.flags, 1 << 31);
+        let ranked = campaign.progress.training[0];
+        assert_eq!(
+            (ranked.character, ranked.grade, ranked.clock),
+            (character as u8, 0, clock)
+        );
+        let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+        assert_eq!(save.progress, campaign.progress);
+        let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+        resumed.action(Action::Confirm, &assets).unwrap();
+        assert_eq!(
+            (resumed.options.character, resumed.options.mission),
+            (character, 0)
+        );
+        resumed.action(Action::Confirm, &assets).unwrap();
+        assert!(resumed.playing());
+        assert_eq!(resumed.game.player().health, 100);
+        assert_eq!(&resumed.game.player().inventory[..4], &[255, 5, 0, 0]);
+        assert_eq!(resumed.progress.stock, stock);
+        campaign.action(Action::Confirm, &assets).unwrap();
+        assert!(matches!(campaign.screen, Screen::Inventory(_)));
+        campaign.action(Action::Confirm, &assets).unwrap();
+        assert!(campaign.playing());
+        assert_eq!(campaign.options.mission, 0);
+        assert_eq!(&campaign.game.player().inventory[..4], &[255, 5, 0, 0]);
+        assert_eq!(campaign.progress.training[0], ranked);
+        assert_eq!(campaign.progress.stock, stock);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; completes Mission 2 as Ayame with only the hook carried"]
 fn ayame_delivery_controller_route_reaches_results() {
     let assets = assets();
