@@ -788,3 +788,22 @@ Ninety-six extracted-C snapshot cases check signed-short offset truncation and
 height; additional checks cover cache preservation, both players' cast/movement/
 expiry, interruption, replacement, forced eviction and attack/damage/death
 boundaries. These checks do not establish full retail replay parity.
+
+## Ninja dog (2026-10-20)
+
+`ITEM.C::ReqItemNinken`, `ProcItemNinken`, `create_ninken_character_`,
+`HUMAN.C::GetNearestHumanoid`, the shared motion/weapon helpers and the recorded
+item/tuning headers define summoning, the 1,800-tick lifetime, target changes and
+parking. The research `tools/tenchu-sim/src/items/dog.rs` reference has SHA-256
+`413c7e457236be57ab43f87d257e148cda790debadfb23d5d54c26bff3aaf7fd`.
+The matching C hashes remain unchanged (`HUMAN.C`:
+`9138dbd55667b99dec7b7703ac58a6325dc70654bda3f0612b2af33340892158`).
+
+The stage retains the original dog slot reference across layout removal and
+recreates the actor on demand under the source's two existence checks. Ordinary
+input checks cover both players, landing attacks, expiry and reuse. Controlled
+checks cover target filters/status gates, repeated idle sheathing, occupied-dog
+retries, disposal-before-refund allocation and inventory cleanup. These are
+behavioral checks using shared verified helpers, not a new full C callback or
+retail trace comparison. A dangling summon reference to an already freed actor
+produces an explicit diagnostic rather than reading freed memory.

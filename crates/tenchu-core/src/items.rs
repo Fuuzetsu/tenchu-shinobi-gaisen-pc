@@ -5,6 +5,7 @@ mod charm;
 mod darts;
 mod decoy;
 mod disguise;
+mod dog;
 mod flight;
 mod flute;
 mod grapple;
@@ -63,6 +64,7 @@ pub enum Processor {
     Charm,
     Decoy,
     Disguise,
+    Dog,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -85,6 +87,7 @@ pub struct Item {
     pub count: u8,
     pub charm_remaining: u16,
     pub decoy: decoy::Decoy,
+    pub dog: dog::Dog,
     pub flight: flight::Flight,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
@@ -110,6 +113,7 @@ pub struct Items {
     icon_scale: [i32; KINDS + 1],
     decoy_count: u8,
     disguise: disguise::Disguise,
+    pub(crate) dog_actor: Option<usize>,
 }
 
 fn target_distance(actor: &Actor, position: [i32; 3], radius: i32, ctx: &Context) -> Option<i32> {
@@ -146,6 +150,7 @@ impl Items {
                 count: 0,
                 charm_remaining: 0,
                 decoy: decoy::Decoy::default(),
+                dog: dog::Dog::default(),
                 flight: flight::Flight::default(),
                 trail: None,
                 rotation: [0; 3],
@@ -175,6 +180,7 @@ impl Items {
             icon_scale: [12288; KINDS + 1],
             decoy_count: 0,
             disguise: disguise::Disguise::default(),
+            dog_actor: None,
         }
     }
 
@@ -225,6 +231,9 @@ impl Items {
         }
         if self.slots[id].processor == Some(Processor::Disguise) {
             self.finish_disguise(id, actors, ctx)?;
+        }
+        if self.slots[id].processor == Some(Processor::Dog) {
+            self.finish_dog(id, actors, ctx)?;
         }
         let item = &mut self.slots[id];
         match item.processor {
@@ -392,6 +401,7 @@ impl Items {
                 Some(Processor::Charm) => self.charm(id, actors, player, ctx)?,
                 Some(Processor::Decoy) => self.decoy(id, actors, ctx)?,
                 Some(Processor::Disguise) => self.disguise(id, actors, intelligence, ctx)?,
+                Some(Processor::Dog) => self.dog(id, actors, clock, ctx)?,
                 None => {}
             }
         }
@@ -409,6 +419,15 @@ impl Items {
             roster,
             active: Some(actor),
         };
+        self.spill_inventory(owner, actors, ctx)
+    }
+
+    fn spill_inventory(
+        &mut self,
+        owner: usize,
+        actors: &mut Actors,
+        ctx: &mut Context,
+    ) -> Result<()> {
         for kind in 0..KINDS {
             for _ in 0..actors.get(owner).inventory[kind] {
                 let position = ctx.scene.world(actors.get(owner).parts[0])?.translation;

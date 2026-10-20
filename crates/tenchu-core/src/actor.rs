@@ -367,7 +367,7 @@ impl Actor {
         self.motion_id(ctx, action) >= 0
     }
 
-    fn hide_body(&self, scene: &mut Scene, hidden: bool) {
+    pub(crate) fn hide_body(&self, scene: &mut Scene, hidden: bool) {
         for &part in self
             .parts
             .iter()

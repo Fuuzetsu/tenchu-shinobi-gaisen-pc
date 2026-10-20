@@ -663,3 +663,17 @@ display-cadence independence, GPU blends and the full Mission 1 route through
 saved continuation. Native keyboard checks visibly transform and restore both
 characters, using temporary saves to unlock the equipment and ordinary UI paths.
 Nix native, WASM and formatting checks pass on x86_64-linux.
+
+Ninja dogs now throw, retry occupied/invalid spawn points, create or reuse the
+original dog actor, select enemies and attack through the existing AI and combat.
+They retain the 1,800-tick lifetime, status/clock target gates, repeated idle
+sheathing and disposal-before-refund allocation. Expiry drops collected inventory;
+forced disposal parks the dog without dropping it. The original stage dog slot
+reference survives layout replacement and is checked before summoning.
+Four focused checks cover both characters' full lifetime/resummon and actual
+attacks, plus controlled targeting, retries, refunds and cleanup. All 125 current
+core checks pass, excluding the unchanged long isolated cinematic coverage check.
+Native keyboard checks use temporary unlocked saves and show the original dog
+appearing for both characters. Nix native, WASM and formatting checks pass on
+x86_64-linux. Already-freed actor references remain a diagnostic boundary rather
+than an attempt to reproduce a freed-memory read.

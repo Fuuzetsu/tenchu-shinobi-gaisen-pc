@@ -260,6 +260,25 @@ impl Items {
             }
             19 => {}
             15 => self.request_darts(owner_id, start, actors, ctx)?,
+            16 => {
+                let velocity = throw_vector(actors.get(owner_id), player, [0, -120, -120], ctx)?;
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Dog, kind, Some(owner_id), start, ctx)?;
+                let item = &mut self.slots[id];
+                item.collision.size = 0;
+                item.rolling = Rolling {
+                    velocity: [velocity[0] as i16, -250, velocity[2] as i16],
+                    ..Rolling::default()
+                };
+                item.dog = dog::Dog {
+                    slave: None,
+                    remaining: 15,
+                    player,
+                };
+                actors
+                    .get_mut(owner_id)
+                    .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
+            }
             14 => {
                 let velocity = throw_vector(actors.get(owner_id), player, [0, -120, -120], ctx)?;
                 let id = self.allocate(actors, ctx)?;

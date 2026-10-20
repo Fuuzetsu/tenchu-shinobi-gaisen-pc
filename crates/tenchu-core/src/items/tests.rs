@@ -7,6 +7,7 @@ mod charm;
 mod darts;
 mod decoy;
 mod disguise;
+mod dog;
 mod napalm;
 mod poison;
 mod rice;

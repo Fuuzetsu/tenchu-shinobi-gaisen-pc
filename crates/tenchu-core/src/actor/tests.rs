@@ -888,6 +888,7 @@ mod charm;
 mod darts;
 mod decoy;
 mod disguise;
+mod dog;
 mod explosives;
 mod poison;
 mod revival;
