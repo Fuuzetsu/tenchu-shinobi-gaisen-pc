@@ -178,7 +178,7 @@ Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 first three missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
-Mission 6 and Mission 7 routes pass; arbitrary interactive play is not yet
+Mission 6, Mission 7 and Mission 9 routes pass; arbitrary interactive play is not yet
 certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
@@ -839,4 +839,15 @@ The private-disc controller regression passes on the corrected ledge runtime,
 checks Balma's death state and requires no state overrides. A native offscreen
 capture of the shipboard fight was visually inspected. This standalone case does
 not extend the continuous saved campaign beyond Mission 3.
+Nix native, WASM and formatting checks pass on x86_64-linux.
+
+A standalone Rikimaru Mission 9 controller route climbs the castle stairs,
+defeats Onikage and runs sequences 10 and 50 at ticks 1,936 and 4,255. It reaches
+results at tick 4,535 with 53 HP and game clock 3,449, then encodes/decodes the save
+and starts Mission 10. The normal equipment menu supplies six shuriken, six
+caltrops and two medicine; one medicine is used and no shuriken remain. The
+private-disc regression checks the boss's death state and saved transition with
+no runtime state overrides. An offscreen native capture of the rooftop fight was
+visually inspected. This does not extend the continuous saved campaign beyond
+Mission 3.
 Nix native, WASM and formatting checks pass on x86_64-linux.

@@ -205,6 +205,12 @@ boards the pirate ship, defeats Balma, runs all three cinematics and reaches
 results with 100 HP. It uses six shuriken and one medicine, picks up a dropped
 smoke bomb along the route, then saves and starts Mission 8.
 
+An independent [Rikimaru Mission 9 route](crates/tenchu-pc/tests/data/mission9-rikimaru.inputs)
+climbs the castle, defeats Onikage and completes both cinematics with 53 HP.
+Its private-disc test uses ordinary equipment selection, saves the results,
+reloads and starts Mission 10. This is a fresh-stock route; the continuous saved
+campaign is still validated through Mission 3.
+
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored

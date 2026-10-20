@@ -412,3 +412,31 @@ fn rikimaru_pirates_controller_route_reaches_results() {
     assert_eq!((boss.health, boss.status), (0, 17));
     save_and_start_next(&mut campaign, &assets, 2678);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; climbs the castle, defeats Onikage with controller input, saves and starts Mission 10"]
+fn rikimaru_castle_controller_route_reaches_results() {
+    let assets = assets();
+    let options = Options {
+        mission: 9,
+        ..Options::default()
+    };
+    let mut campaign = Campaign::new(&assets, options, None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
+    let scenes = controller_route(
+        &mut campaign,
+        include_str!("../../../tests/data/mission9-rikimaru.inputs"),
+    );
+    eprintln!("Mission 9 Rikimaru: {scenes:?}");
+    assert_eq!(scenes.iter().map(|s| s.1).collect::<Vec<_>>(), [10, 50]);
+    assert_eq!(campaign.game.tick, 4535);
+    assert_eq!(campaign.game.player().health, 53);
+    assert_eq!(&campaign.game.player().inventory[..4], &[255, 0, 6, 1]);
+    let boss = campaign
+        .game
+        .roster
+        .get(campaign.game.roster.find(0x87).unwrap());
+    assert_eq!((boss.health, boss.status), (0, 17));
+    save_and_start_next(&mut campaign, &assets, 3449);
+}
