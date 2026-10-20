@@ -2,7 +2,7 @@ use crate::{
     render_mesh::{self, Vertex},
     visuals::{
         catalog::{self, Region},
-        pixels::Image,
+        pixels::{Image, Mip},
     },
 };
 use bytemuck::{Pod, Zeroable};
@@ -26,20 +26,32 @@ struct Entry {
     original: Image,
     image: Image,
     replaced: bool,
+    dirty: bool,
+    mips: Vec<Mip>,
 }
 
 impl Entry {
     fn prepare(&mut self, textures: &BTreeMap<String, Arc<Image>>, enabled: bool, upscale: u16) {
         let replacement = enabled.then(|| textures.get(&self.id)).flatten();
-        self.image = replacement.map_or_else(
+        let image = replacement.map_or_else(
             || {
                 self.original
                     .upscale(if self.region.is_some() { upscale } else { 1 })
             },
             |image| (**image).clone(),
         );
-        self.replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
+        let replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
+        self.dirty |= self.image != image || self.replaced != replaced;
+        self.image = image;
+        self.replaced = replaced;
     }
+}
+
+struct Atlas {
+    texture: wgpu::Texture,
+    data: wgpu::Buffer,
+    materials: Vec<Material>,
+    side: u32,
 }
 
 pub struct Materials {
@@ -50,7 +62,8 @@ pub struct Materials {
     regions: BTreeMap<Region, u32>,
     external: BTreeMap<String, u32>,
     lookups: BTreeMap<(u16, u16, [u16; 4]), u32>,
-    dirty: bool,
+    atlas: Atlas,
+    repack: bool,
     textures: BTreeMap<String, Arc<Image>>,
     enabled: bool,
     upscale: u16,
@@ -89,7 +102,7 @@ impl Materials {
                 },
             ],
         });
-        let bindings = upload(
+        let (bindings, atlas) = upload(
             device,
             queue,
             &layout,
@@ -105,7 +118,8 @@ impl Materials {
             regions: BTreeMap::new(),
             external: BTreeMap::new(),
             lookups: BTreeMap::new(),
-            dirty: false,
+            atlas,
+            repack: false,
             textures: BTreeMap::new(),
             enabled: true,
             upscale: 1,
@@ -113,16 +127,21 @@ impl Materials {
     }
 
     pub fn update(&mut self, vram: &Vram) {
+        let changes = Changes::between(&self.vram, vram);
         for entry in &mut self.entries {
             let Some(region) = entry.region else { continue };
+            if !changes.affects(region) {
+                continue;
+            }
             let rgba = region.pixels(vram);
             if rgba != entry.original.rgba {
                 entry.original.rgba = rgba;
                 entry.prepare(&self.textures, self.enabled, self.upscale);
-                self.dirty = true;
             }
         }
-        self.vram = vram.clone();
+        self.vram.words.clone_from(&vram.words);
+        self.vram.images.clone_from(&vram.images);
+        self.vram.revision = vram.revision;
     }
 
     pub fn reset(&mut self, vram: &Vram) {
@@ -131,7 +150,7 @@ impl Materials {
         self.regions.clear();
         self.external.clear();
         self.lookups.clear();
-        self.dirty = true;
+        self.repack = true;
     }
 
     pub fn set_pack(&mut self, textures: BTreeMap<String, Arc<Image>>) {
@@ -151,7 +170,6 @@ impl Materials {
         for entry in &mut self.entries {
             entry.prepare(&self.textures, self.enabled, self.upscale);
         }
-        self.dirty = true;
     }
 
     pub fn bind_models(&mut self, models: &mut crate::visuals::models::Models) {
@@ -169,6 +187,8 @@ impl Materials {
                     original: (*material.image).clone(),
                     image: (*material.image).clone(),
                     replaced: true,
+                    dirty: true,
+                    mips: Vec::new(),
                 });
                 self.external.insert(material.id.clone(), id);
                 id
@@ -176,7 +196,6 @@ impl Materials {
             let entry = &mut self.entries[id as usize - 1];
             entry.original = (*material.image).clone();
             entry.prepare(&self.textures, self.enabled, self.upscale);
-            self.dirty = true;
             id
         });
     }
@@ -235,28 +254,62 @@ impl Materials {
             image: original.clone(),
             original,
             replaced: false,
+            dirty: true,
+            mips: Vec::new(),
         };
         entry.prepare(&self.textures, self.enabled, self.upscale);
         self.entries.push(entry);
         self.regions.insert(region, id);
-        self.dirty = true;
         id
     }
 
     pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<()> {
-        if !self.dirty {
+        self.repack |= self.entries.len() + 1 != self.atlas.materials.len();
+        for (index, entry) in self.entries.iter_mut().enumerate() {
+            if !entry.dirty {
+                continue;
+            }
+            if entry.mips.first().map(|mip| mip.size) != Some(entry.image.size) {
+                self.repack = true;
+            }
+            entry.mips = entry.image.mips();
+            if !self.repack {
+                let material = &mut self.atlas.materials[index + 1];
+                material.info[3] = u32::from(entry.replaced);
+                queue.write_buffer(
+                    &self.atlas.data,
+                    ((index + 1) * std::mem::size_of::<Material>()) as u64,
+                    bytemuck::bytes_of(material),
+                );
+                for (mip, image) in entry.mips.iter().enumerate() {
+                    let rect = material.mips[mip];
+                    let x = rect[0] as u32 % self.atlas.side - 1;
+                    let y = rect[1] as u32 - 1;
+                    let layer = rect[0] as u32 / self.atlas.side * 2;
+                    for class in 0..2 {
+                        let bytes = padded(image, class);
+                        write_texture(
+                            queue,
+                            &self.atlas.texture,
+                            [x, y, layer + class as u32],
+                            image.size.map(|n| n + 2),
+                            &bytes,
+                        );
+                    }
+                }
+            }
+            entry.dirty = false;
+        }
+        if !self.repack {
             return Ok(());
         }
-        let levels: Vec<_> = self
+        let mut tiles: Vec<_> = self
             .entries
             .iter()
-            .map(|entry| entry.image.mips())
-            .collect();
-        let mut tiles: Vec<_> = levels
-            .iter()
             .enumerate()
-            .flat_map(|(entry, mips)| {
-                mips.iter()
+            .flat_map(|(entry, data)| {
+                data.mips
+                    .iter()
                     .enumerate()
                     .map(move |(mip, image)| (entry, mip, image))
             })
@@ -286,7 +339,7 @@ impl Materials {
                 .region
                 .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
             materials[index + 1].info = [
-                levels[index].len() as u32,
+                entry.mips.len() as u32,
                 entry.image.size[0],
                 entry.image.size[1],
                 u32::from(entry.replaced),
@@ -336,10 +389,54 @@ impl Materials {
             x += width + 2;
             row_height = row_height.max(height + 2);
         }
-        self.bindings = upload(device, queue, &self.layout, side, &pages, &materials);
-        self.dirty = false;
+        (self.bindings, self.atlas) = upload(device, queue, &self.layout, side, &pages, &materials);
+        self.repack = false;
         Ok(())
     }
+}
+
+fn padded(mip: &Mip, class: usize) -> Vec<u8> {
+    let [width, height] = mip.size;
+    let mut bytes = Vec::with_capacity(((width + 2) * (height + 2) * 4) as usize);
+    for y in 0..height + 2 {
+        let sy = y.saturating_sub(1).min(height - 1);
+        for x in 0..width + 2 {
+            let sx = x.saturating_sub(1).min(width - 1);
+            let at = ((sy * width + sx) * 4) as usize;
+            bytes.extend_from_slice(&mip.classes[class][at..at + 4]);
+        }
+    }
+    bytes
+}
+
+fn write_texture(
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    origin: [u32; 3],
+    size: [u32; 2],
+    bytes: &[u8],
+) {
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            origin: wgpu::Origin3d {
+                x: origin[0],
+                y: origin[1],
+                z: origin[2],
+            },
+            ..texture.as_image_copy()
+        },
+        bytes,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(size[0] * 4),
+            rows_per_image: Some(size[1]),
+        },
+        wgpu::Extent3d {
+            width: size[0],
+            height: size[1],
+            depth_or_array_layers: 1,
+        },
+    );
 }
 
 fn upload(
@@ -349,7 +446,7 @@ fn upload(
     side: u32,
     pages: &[Vec<u8>],
     materials: &[Material],
-) -> wgpu::BindGroup {
+) -> (wgpu::BindGroup, Atlas) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Isolated opaque and semi-transparent mip chains"),
         size: wgpu::Extent3d {
@@ -365,27 +462,7 @@ fn upload(
         view_formats: &[],
     });
     for (layer, bytes) in pages.iter().enumerate() {
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                origin: wgpu::Origin3d {
-                    x: 0,
-                    y: 0,
-                    z: layer as u32,
-                },
-                ..texture.as_image_copy()
-            },
-            bytes,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(side * 4),
-                rows_per_image: Some(side),
-            },
-            wgpu::Extent3d {
-                width: side,
-                height: side,
-                depth_or_array_layers: 1,
-            },
-        );
+        write_texture(queue, &texture, [0, 0, layer as u32], [side, side], bytes);
     }
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("Material mip interpolation"),
@@ -396,9 +473,9 @@ fn upload(
     let data = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Material source regions and mip rectangles"),
         contents: bytemuck::cast_slice(materials),
-        usage: wgpu::BufferUsages::STORAGE,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
     });
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
+    let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Decoded material bindings"),
         layout,
         entries: &[
@@ -417,5 +494,99 @@ fn upload(
                 resource: data.as_entire_binding(),
             },
         ],
-    })
+    });
+    (
+        bindings,
+        Atlas {
+            texture,
+            data,
+            materials: materials.to_vec(),
+            side,
+        },
+    )
+}
+
+struct Changes([Option<(usize, usize)>; 512]);
+
+impl Changes {
+    fn between(old: &Vram, new: &Vram) -> Self {
+        Self(std::array::from_fn(|y| {
+            let old = &old.words[y * 1024..(y + 1) * 1024];
+            let new = &new.words[y * 1024..(y + 1) * 1024];
+            if old == new {
+                return None;
+            }
+            let start = old.iter().zip(new).position(|(a, b)| a != b).unwrap();
+            let end = old.iter().zip(new).rposition(|(a, b)| a != b).unwrap() + 1;
+            Some((start, end))
+        }))
+    }
+
+    fn row(&self, x: usize, y: usize, width: usize) -> bool {
+        let Some((start, end)) = self.0[y & 511] else {
+            return false;
+        };
+        let x = x & 1023;
+        (x < end && x + width > start) || (x + width > 1024 && x + width - 1024 > start)
+    }
+
+    fn affects(&self, region: Region) -> bool {
+        let mode = (region.page >> 7) & 3;
+        let scale = match mode {
+            0 => 4,
+            1 => 2,
+            _ => 1,
+        };
+        let [u, v, width, height] = region.rect.map(usize::from);
+        let x = usize::from(region.page & 15) * 64 + u / scale;
+        let width = (u + width - 1) / scale + 1 - u / scale;
+        let y = usize::from(region.page & 16) * 16 + v;
+        (y..y + height).any(|y| self.row(x, y, width))
+            || (mode < 2
+                && self.row(
+                    usize::from(region.palette & 63) * 16,
+                    usize::from(region.palette >> 6),
+                    if mode == 0 { 16 } else { 256 },
+                ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn animation_changes_include_packed_pixels_and_wrapping_palettes() {
+        let before = Vram::default();
+        let four_bit = Region {
+            page: 15,
+            palette: (480 << 6) | 63,
+            rect: [1, 10, 3, 2],
+        };
+        let eight_bit = Region {
+            page: 0x8f,
+            ..four_bit
+        };
+        let direct = Region {
+            page: 0x10f,
+            ..four_bit
+        };
+        for (x, y, affected) in [
+            (960, 10, [true, true, false]),
+            (962, 11, [false, false, true]),
+            (1008, 480, [true, true, false]),
+            (0, 480, [false, true, false]),
+            (240, 480, [false, false, false]),
+            (960, 12, [false, false, false]),
+        ] {
+            let mut after = before.clone();
+            after.words[y * 1024 + x] = 0x83e0;
+            let changes = Changes::between(&before, &after);
+            assert_eq!(
+                [four_bit, eight_bit, direct].map(|r| changes.affects(r)),
+                affected,
+                "word ({x}, {y})",
+            );
+        }
+    }
 }

@@ -267,3 +267,14 @@ Odd-sized replacement textures use area-weighted mip reduction, avoiding an
 unequal color/coverage contribution from the final row or column. A three-color
 3×1 regression verifies equal contributions, and the GPU minification/anisotropy
 regression still passes.
+
+Animation performance: a native profile found that moving source textures were
+rebuilding every decoded mip chain and uploading the whole atlas. The renderer
+now compares changed VRAM rows, including packed pixels and wrapping palettes,
+and refreshes only affected images and padded mip rectangles. Atlas storage and
+unchanged mips survive ordinary animation; dimensions/new materials trigger a
+repack. A palette/pixel-boundary regression and all seven sequential GPU checks
+pass. Repeating the isolated X11 gameplay sequence improved the sampled enhanced
+view from 29 to 42 FPS and original view from 35 to 49 FPS. These are indicative
+single captures, not a platform benchmark; driver presentation dominates the
+remaining sampled CPU time. Both runs exited cleanly.
