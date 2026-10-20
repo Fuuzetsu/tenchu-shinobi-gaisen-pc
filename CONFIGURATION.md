@@ -73,3 +73,12 @@ blending/fog defaults, decoded bilinear samples, UI isolation and all supported
 MSAA sample counts (queried for both color and depth). The native menu switches
 filtering/MSAA while running. Mipmaps/anisotropic sampling remain later work;
 MSAA is edge anti-aliasing, not a substitute for texture minification.
+
+Fixed a reported rapid-Escape exit crash before continuing the inspection work.
+The user's coredump showed NVIDIA EGL destroying Wayland proxies after the
+winit event loop had closed its display. Graphics resources now shut down in
+`ApplicationHandler::exiting`; GPU resources/surfaces drop before the native
+window. An isolated headless Wayland compositor and virtual keyboard reproduced
+the old binary's SIGSEGV (exit 139) and verified three clean patched exits
+(exit 0) through gameplay → inventory → launcher → quit. Audio used a private
+null sink. This supplements the existing X11 checks.

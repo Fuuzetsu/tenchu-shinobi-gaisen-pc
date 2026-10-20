@@ -26,13 +26,13 @@ use winit::{
 };
 
 struct View {
-    window: Arc<Window>,
-    surface: wgpu::Surface<'static>,
-    config: wgpu::SurfaceConfiguration,
-    renderer: Renderer,
     stage: Mesh,
     actor: Mesh,
     effects: EffectMesh,
+    renderer: Renderer,
+    surface: wgpu::Surface<'static>,
+    window: Arc<Window>,
+    config: wgpu::SurfaceConfiguration,
     size: [u32; 2],
     vram_revision: u64,
 }
@@ -456,6 +456,16 @@ impl Application {
 }
 
 impl ApplicationHandler for Application {
+    fn exiting(&mut self, _: &ActiveEventLoop) {
+        self.finish_recording();
+        self.audio.take();
+        // EGL/Wayland resources must die before winit closes its display connection.
+        if let Some(view) = self.view.take() {
+            view.renderer.device.poll(wgpu::Maintain::Wait);
+            drop(view);
+        }
+    }
+
     fn resumed(&mut self, events: &ActiveEventLoop) {
         if self.view.is_none() {
             match View::new(events, &self.campaign.game) {
