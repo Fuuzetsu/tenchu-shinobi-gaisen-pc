@@ -85,6 +85,7 @@ the launcher quits. Controller hints use physical face-button positions because
 labels differ between controller brands.
 
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
+Quick keyboard and controller taps are retained until the next gameplay tick.
 
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.

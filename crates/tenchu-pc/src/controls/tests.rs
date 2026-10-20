@@ -1,6 +1,35 @@
 use super::*;
 
 #[test]
+fn taps_between_ticks_are_delivered_once_and_cleared_at_host_transitions() {
+    let mut controls = Controls::default();
+    controls.key(KeyCode::KeyW, true);
+    controls.key(KeyCode::Space, true);
+    controls.key(KeyCode::Space, false);
+    controls.pad.sample(0, input::SQUARE, [0.0; 2], true);
+    controls.pad.sample(0, 0, [0.0; 2], true);
+    assert_eq!(controls.buttons(), input::UP | input::CROSS | input::SQUARE);
+    assert_eq!(controls.buttons(), input::UP);
+    controls.key(KeyCode::ArrowUp, true);
+    controls.key(KeyCode::KeyW, false);
+    assert_eq!(controls.buttons(), input::UP);
+    controls.key(KeyCode::ArrowUp, false);
+    assert_eq!(controls.buttons(), 0);
+
+    controls.key(KeyCode::KeyE, true);
+    controls.key(KeyCode::KeyE, false);
+    controls.pad.sample(0, input::CROSS, [0.0; 2], true);
+    controls.clear();
+    assert_eq!(controls.buttons(), 0);
+    assert_eq!(controls.pad.sample(0, input::CROSS, [0.0; 2], true), 0);
+    assert_eq!(controls.buttons(), 0);
+    controls.pad.sample(0, 0, [0.0; 2], true);
+    controls.pad.sample(0, input::CROSS, [0.0; 2], true);
+    controls.pad.disconnect(0);
+    assert_eq!(controls.buttons(), 0);
+}
+
+#[test]
 fn stick_thresholds_preserve_diagonals_and_do_not_chatter() {
     let mut pad = Pad::default();
     assert_eq!(pad.sample(3, 0, [0.54, -0.54], true), 0);

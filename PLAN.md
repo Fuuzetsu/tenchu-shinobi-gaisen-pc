@@ -1064,3 +1064,15 @@ smoke bombs remain. The full six-mission regression verifies saved continuation
 into Mission 7. The native window also continues from the actual Mission 6 save,
 records movement/crouch and a separate grapple attempt, retains pause through
 resize, and debits carried stock on retry. Its audio uses an isolated null sink.
+
+
+Native window testing exposed missed keyboard taps shorter than a logic tick.
+The host now retains new keyboard and controller presses until the next game
+update, then consumes that pending state once. Held input remains held; menu,
+pause, focus loss and disconnection discard pending input as appropriate. Game
+logic and its 30 Hz cadence are unchanged. A regression covers taps between
+updates, held input, keyboard aliases and host transitions. All four control
+tests pass. An isolated native window records a one-tick jump and one-tick
+attack from the same quick taps previously missed; both animations were visually
+inspected. Pause/resize/retry and a subsequent grapple attempt also pass.
+Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.

@@ -1,6 +1,6 @@
 use crate::campaign::Action;
 use gilrs::{Axis, Button, EventType, Gilrs};
-use std::collections::HashSet;
+use std::{collections::HashSet, mem};
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
 
@@ -24,6 +24,24 @@ const BUTTONS: [(Button, u16); 14] = [
 pub enum Command {
     Pause,
     Menu(Action),
+}
+
+fn key_button(code: KeyCode) -> u16 {
+    match code {
+        KeyCode::KeyW | KeyCode::ArrowUp => input::UP,
+        KeyCode::KeyS | KeyCode::ArrowDown => input::DOWN,
+        KeyCode::KeyA | KeyCode::ArrowLeft => input::LEFT,
+        KeyCode::KeyD | KeyCode::ArrowRight => input::RIGHT,
+        KeyCode::Space => input::CROSS,
+        KeyCode::ShiftLeft | KeyCode::ShiftRight => input::CIRCLE,
+        KeyCode::KeyJ => input::SQUARE,
+        KeyCode::KeyE => input::TRIANGLE,
+        KeyCode::KeyQ => input::L1,
+        KeyCode::KeyZ => input::L2,
+        KeyCode::KeyC => input::R2,
+        KeyCode::KeyM | KeyCode::Tab => input::SELECT,
+        _ => 0,
+    }
 }
 
 pub fn keyboard_command(code: KeyCode, playing: bool) -> Option<Command> {
@@ -84,6 +102,7 @@ struct Pad {
     active: Option<usize>,
     raw: u16,
     blocked: u16,
+    pending: u16,
     stick: [i8; 2],
 }
 
@@ -104,6 +123,7 @@ impl Pad {
 
     fn suppress(&mut self) {
         self.blocked = self.raw;
+        self.pending = 0;
     }
 
     fn sample(&mut self, id: usize, buttons: u16, axes: [f32; 2], focused: bool) -> u16 {
@@ -130,7 +150,9 @@ impl Pad {
         if !focused {
             self.suppress();
         }
-        self.buttons() & !before
+        let pressed = self.buttons() & !before;
+        self.pending |= pressed;
+        pressed
     }
 
     fn disconnect(&mut self, id: usize) -> bool {
@@ -151,6 +173,7 @@ pub struct Update {
 #[derive(Default)]
 pub struct Controls {
     keys: HashSet<KeyCode>,
+    pending_keys: u16,
     gilrs: Option<Gilrs>,
     pad: Pad,
 }
@@ -172,7 +195,11 @@ impl Controls {
 
     pub fn key(&mut self, code: KeyCode, pressed: bool) -> bool {
         if pressed {
-            self.keys.insert(code)
+            let changed = self.keys.insert(code);
+            if changed {
+                self.pending_keys |= key_button(code);
+            }
+            changed
         } else {
             self.keys.remove(&code);
             false
@@ -181,28 +208,17 @@ impl Controls {
 
     pub fn clear(&mut self) {
         self.keys.clear();
+        self.pending_keys = 0;
         self.pad.suppress();
     }
 
-    pub fn buttons(&self) -> u16 {
-        self.keys.iter().fold(self.pad.buttons(), |buttons, key| {
-            buttons
-                | match key {
-                    KeyCode::KeyW | KeyCode::ArrowUp => input::UP,
-                    KeyCode::KeyS | KeyCode::ArrowDown => input::DOWN,
-                    KeyCode::KeyA | KeyCode::ArrowLeft => input::LEFT,
-                    KeyCode::KeyD | KeyCode::ArrowRight => input::RIGHT,
-                    KeyCode::Space => input::CROSS,
-                    KeyCode::ShiftLeft | KeyCode::ShiftRight => input::CIRCLE,
-                    KeyCode::KeyJ => input::SQUARE,
-                    KeyCode::KeyE => input::TRIANGLE,
-                    KeyCode::KeyQ => input::L1,
-                    KeyCode::KeyZ => input::L2,
-                    KeyCode::KeyC => input::R2,
-                    KeyCode::KeyM | KeyCode::Tab => input::SELECT,
-                    _ => 0,
-                }
-        })
+    pub fn buttons(&mut self) -> u16 {
+        let buttons = self.pad.buttons()
+            | mem::take(&mut self.pad.pending)
+            | mem::take(&mut self.pending_keys);
+        self.keys
+            .iter()
+            .fold(buttons, |buttons, key| buttons | key_button(*key))
     }
 
     pub fn poll(&mut self, focused: bool) -> Update {
