@@ -32,7 +32,7 @@ camera state, simulation controls and one-shot edits start disabled each launch.
 - [x] Cutscene fast-forward: hold-to-speed-up and optional automatic speed,
   including a bounded maximum-throughput mode. Execute every original logic
   update and keep UI/input responsive; default to ordinary speed.
-- [ ] Meaningful regression checks for unchanged defaults, settings persistence,
+- [x] Meaningful regression checks for unchanged defaults, settings persistence,
   sight thresholds, geometry/picking, camera isolation and GPU settings; exercise
   the actual native menu. Format, document and commit coherent increments.
 
@@ -114,3 +114,10 @@ confirm actor/scenery shadows and live resolution changes. All 43 host tests,
 including private-disc, audio, GPU, full campaign and new tool checks, pass.
 A native Mission 2 run held Backspace through its opening, resumed music and
 returned to normal-speed gameplay after tick 181.
+
+Final verification: `nix flake check --no-update-lock-file` passes the native
+package, shared-core WASM and formatting checks on x86_64 Linux. Other host
+platforms were not exercised. The optimized desktop binary is rebuilt.
+After the full tool/lighting integration, an isolated Wayland compositor again
+exercised F1, optional lighting, free camera and repeated Escape exits: three
+clean exits, with the graphics-before-display shutdown fix retained.
