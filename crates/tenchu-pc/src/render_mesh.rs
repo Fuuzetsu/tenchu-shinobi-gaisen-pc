@@ -5,6 +5,9 @@ use tenchu_assets::{
 };
 use tenchu_core::math::{Math, Matrix};
 
+#[cfg(test)]
+mod tests;
+
 pub const TEXTURED: u32 = 1;
 pub const SCREEN: u32 = 2;
 pub const TRANSLUCENT: u32 = 4;
@@ -23,9 +26,13 @@ pub struct Vertex {
     pub(crate) flags: u32,
 }
 
+pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
+    geometry.faces.iter().take_while(|face| face.flags & 1 != 0)
+}
+
 fn append_geometry(vertices: &mut Vec<Vertex>, geometries: &[Geometry], matrix: Matrix) {
     for geometry in geometries {
-        for face in &geometry.faces {
+        for face in draw_tmd_faces(geometry) {
             if !face.translucent {
                 append_face(vertices, geometry, face, matrix, true);
             }

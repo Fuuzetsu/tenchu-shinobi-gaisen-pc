@@ -162,7 +162,7 @@ fn mesh_surfaces(
 ) {
     let view = view.compose(&matrix);
     for mesh in meshes {
-        for face in &mesh.faces {
+        for face in render_mesh::draw_tmd_faces(mesh) {
             if translucent_only && !face.translucent {
                 continue;
             }

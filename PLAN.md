@@ -731,3 +731,11 @@ integer projection oracle pass. Captures of both Mission 1 starts and 1,000 tick
 of its existing input route were visually inspected. Nix native, WASM and
 formatting checks pass on x86_64-linux. Original sector/distance visibility and
 the lit-tail omission in actor `0x8b`'s hand remain separate rendering work.
+
+Native opaque and transparent mesh traversal now stops at the first lit primitive,
+matching `DrawTMD` and the existing logical packet counter. This preserves ANI's
+missing hand triangle instead of drawing it with an invented lighting model.
+A private-disc regression checks the seven triangles and three quads preceding
+that face, including the stop if another unlit face follows. The GPU blend/fog
+checks and the core custom-versus-SDK traversal check pass. Nix native, WASM and
+formatting checks pass on x86_64-linux.

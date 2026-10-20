@@ -878,7 +878,12 @@ No host-renderer calculation changes logical packet counters or game state.
 
 An asset audit across eleven stages and both character selections finds baked
 vertex colors throughout, with one lit primitive in stage 9's actor `0x8b`, part 13.
-The original `DrawTMD` stops at a lit primitive; matching that native mesh traversal
-remains separate work. The audit reads private disc data and stores no game assets
+The original `DrawTMD` stops at a lit primitive; the native opaque/transparent
+builders now share that traversal rule. Its assembly listing at
+`tenchu-decomp/.shake/gen/main.exe/asm/nonmatchings/DrawTMD/DrawTMD.s` has SHA-256
+`305bc9883166ec07b69d4f81272c7d59c8e77ec523b5491ad0aaecb3c0586320`.
+A private-disc regression preserves ANI's seven triangles and three quads,
+omitting the final lit triangle and any subsequently appended faces. The logical
+packet counter already had this stop rule. The audit reads private disc data and stores no game assets
 in the repository. GPU checks cover near/far depths, translated/rotated cameras,
 texture transparency/blending and unfogged screen graphics.
