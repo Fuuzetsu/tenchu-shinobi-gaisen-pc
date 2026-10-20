@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's first four saved missions, an independent Ayame Mission 2 route,
+Ayame's first five saved missions, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -1043,3 +1043,13 @@ two of three smoke bombs remain. Guarding while smoke spreads allows the final
 medicine to complete amid the surrounding enemies. No game state is overridden.
 Encoded/decoded saves carry stock and RNG across all four missions and start
 Mission 5 with Ayame selected. The Ayame and Rikimaru campaign regressions pass.
+
+
+The saved Ayame campaign completes Mission 5's separate return-and-Kataoka branch.
+Sequences 5/6/10/20/40/45 start at ticks 1/211/2,781/4,193/5,339/7,079;
+results arrive at tick 7,469 with 27 HP and clock 3,598. The normal equipment
+menu supplies six caltrops, two medicine, four smoke bombs and two mines, plus
+the hook. The attempted medicine is interrupted before healing and the smoke
+throw is refunded after interruption; melee finishes Kataoka. One medicine and
+all other carried items remain. The full five-mission Ayame save/reload regression
+passes and starts Mission 6 with carried stock and RNG.

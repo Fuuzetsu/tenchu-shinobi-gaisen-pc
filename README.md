@@ -228,7 +228,11 @@ It saves, reloads and completes
 64 HP using four shuriken and melee, and the
 [checkpoint](crates/tenchu-pc/tests/data/mission4-ayame-campaign.inputs) with
 67 HP using three shuriken, three medicine, four grenades and one smoke bomb.
-The resulting save starts Mission 5. Its carried RNG produces different enemy
+It then completes Ayame's
+[Mission 5 branch](crates/tenchu-pc/tests/data/mission5-ayame-campaign.inputs),
+including Kataoka, with 27 HP and saves into Mission 6. The attempted medicine
+is interrupted before healing; the smoke throw is also interrupted and refunded.
+Its carried RNG produces different enemy
 behavior from the standalone delivery route.
 
 An independent [Rikimaru Mission 3 route](crates/tenchu-pc/tests/data/mission3-rikimaru.inputs)
