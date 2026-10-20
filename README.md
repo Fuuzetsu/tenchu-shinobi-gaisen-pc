@@ -197,11 +197,15 @@ with 72 HP, then the
 [Mission 6 cult encounters](crates/tenchu-pc/tests/data/mission6-rikimaru-campaign.inputs)
 with 12 HP, then the
 [Mission 7 pirate ship](crates/tenchu-pc/tests/data/mission7-rikimaru-campaign.inputs)
-with 100 HP before saving into Mission 8. Mission 4 uses the saved stock of two
+with 100 HP, then the
+[Mission 8 mountain](crates/tenchu-pc/tests/data/mission8-rikimaru-campaign.inputs)
+with 50 HP before saving into Mission 9. Mission 4 uses the saved stock of two
 shuriken, four grenades and two of the three carried medicine; Mission 5 carries
 only the hook. Mission 6 uses one shuriken, two grenades and two smoke bombs.
 Mission 7 swims past the armed quay and uses one medicine, one grenade and one
-smoke bomb against Balma. Inventory and RNG carry through all seven missions. A separate
+smoke bomb against Balma. Mission 8 uses one shuriken, one medicine, one grenade
+and three smoke bombs, then climbs past the upper guards to the cure.
+Inventory and RNG carry through all eight missions. A separate
 [Ayame route](crates/tenchu-pc/tests/data/mission2-ayame.inputs) completes Mission 2
 with 100 HP. The delivery routes use ordinary movement and swimming, carrying
 only the automatically supplied hook in the campaign tests.

@@ -125,8 +125,8 @@ fn complete_punishment(campaign: &mut Campaign, tape: &str) -> Save {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; completes Missions 1–7 from new-game stock using controller input, saves between missions and starts Mission 8"]
-fn controller_routes_complete_first_seven_missions() {
+#[ignore = "requires TENCHU_DISC; completes Missions 1–8 from new-game stock using controller input, saves between missions and starts Mission 9"]
+fn controller_routes_complete_first_eight_missions() {
     let assets = assets();
     let mut campaign = Campaign::new(&assets, Options::default(), None).unwrap();
     campaign.action(Action::Confirm, &assets).unwrap();
@@ -253,7 +253,24 @@ fn controller_routes_complete_first_seven_missions() {
         .get(resumed.game.roster.find(0x85).unwrap());
     assert_eq!((boss.health, boss.status), (0, 17));
     assert_eq!(resumed.progress.flags & 127, 127);
-    save_and_start_next(&mut resumed, &assets, 2186);
+    let save = save_result(&mut resumed, 2186);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 8);
+    equip(&mut resumed, &assets, &[(1, 1), (3, 2), (4, 1), (5, 3)]);
+    assert_eq!(&resumed.game.player().inventory[..6], &[255, 1, 0, 2, 1, 3]);
+    let scenes = controller_route(
+        &mut resumed,
+        include_str!("../../../tests/data/mission8-rikimaru-campaign.inputs"),
+    );
+    eprintln!("Mission 8 saved campaign: {scenes:?}");
+    assert_eq!(scenes, [(5336, 11)]);
+    assert_eq!(resumed.game.tick, 5566);
+    assert_eq!(resumed.game.player().health, 50);
+    assert_eq!(&resumed.game.player().inventory[..6], &[255, 0, 0, 1, 0, 0]);
+    assert_eq!(resumed.game.player().position, [-18000, -53500, 143957]);
+    assert_eq!(resumed.progress.flags & 255, 255);
+    save_and_start_next(&mut resumed, &assets, 5335);
 }
 
 #[test]

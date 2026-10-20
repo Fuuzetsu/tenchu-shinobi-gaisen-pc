@@ -135,7 +135,7 @@ does not establish arbitrary-play coverage.
 - [ ] Browser build using the same gameplay/assets, user-selected disc data and
   browser persistence; if host features differ, expose that limitation explicitly.
 - [ ] Simple asset replacement directory/pack with original assets as fallback.
-- [ ] Reproducible gameplay recordings and useful state-difference diagnostics.
+- [x] Reproducible gameplay recordings and useful state-difference diagnostics.
 - [ ] Document controls, supported disc format, saves, overrides and actual limits.
 
 The goal is not complete at the first playable prototype. Finish milestone 3 and
@@ -177,7 +177,7 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first five missions, independent Rikimaru Mission 3 and Mission 4 routes,
+first eight missions, independent Rikimaru Mission 3 and Mission 4 routes,
 an independent Ayame Mission 2 route, both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -984,3 +984,13 @@ two medicine, one grenade, two smoke bombs and four mines, plus the hook. One
 medicine, the grenade and one smoke bomb are used; a smoke pickup is retained.
 The full seven-mission regression passes, including saved continuation into
 Mission 8. No runtime state is overridden.
+
+
+The continuous saved Rikimaru campaign now completes Mission 8. Its carried gear
+is one shuriken, two medicine, one grenade and three smoke bombs, plus the hook.
+It fights the lower guards, grapples onto the mountain terraces and passes the
+upper guards to reach the cure. Sequence 11 starts at tick 5,336; results arrive
+at tick 5,566 with 50 HP and clock 5,335. One medicine remains. The regression
+continues from the preceding seven missions, encodes/decodes each save and starts
+Mission 9 without overriding gameplay state.
+The full eight-mission regression and formatting check pass.
