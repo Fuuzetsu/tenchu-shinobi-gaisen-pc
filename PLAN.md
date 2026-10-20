@@ -178,7 +178,7 @@ shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
 complete saved campaign, independent Rikimaru Mission 3 and Mission 4 routes,
-Ayame's first nine saved missions, an independent Ayame Mission 2 route,
+Ayame's complete saved campaign, an independent Ayame Mission 2 route,
 both Mission 5 branches and Rikimaru
 Mission 6–10 routes pass; arbitrary interactive play is not yet
 certified.
@@ -946,6 +946,16 @@ at ticks 1,830/4,624. Results arrive at tick 4,904 with 28 HP and clock 3,783.
 The carried shuriken, six caltrops and three smoke bombs remain. The nine-mission
 regression saves/reloads every boundary and starts Mission 10 with the original
 stock/reward and RNG rules, without game-state overrides.
+
+Ayame's saved final mission defeats Onikage and Mei-Oh, using two shuriken,
+two grenades and one smoke bomb. The lava route crosses both bridges, smokes
+the ghost at the upper crossing, grapples onto the shelf and uses a running
+jump to reach the inner path. Sequences 7/10/15/35/40 start at ticks
+1,460/1,550/5,156/9,456/10,157; results arrive at tick 17,130 with 4 HP and
+clock 13,744. Six caltrops and two smoke bombs remain. The campaign regression
+now covers all ten missions for each character, including encoded/decoded final
+saves, completion flags, launcher return and saved final-mission selection.
+Training, broader native play and presentation acceptance remain outstanding.
 
 
 The continuous saved Rikimaru campaign now also completes Mission 5. Ordinary

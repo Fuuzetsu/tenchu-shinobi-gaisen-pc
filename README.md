@@ -247,6 +247,11 @@ saves into Mission 9. The
 [castle route](crates/tenchu-pc/tests/data/mission9-ayame-campaign.inputs)
 defeats Onikage using one mine and melee, finishes with 28 HP and saves into
 the final mission. No other carried equipment is consumed in the castle.
+Her [final mission](crates/tenchu-pc/tests/data/mission10-ayame-campaign.inputs)
+defeats both bosses, crosses the lava with grappling and a running jump, and
+finishes with 4 HP. It uses two shuriken, two grenades and one smoke bomb.
+Both characters now have a full ten-mission regression from new-game stock,
+with save/reload at every boundary and the final completion flags checked.
 Its carried RNG produces different enemy
 behavior from the standalone delivery route.
 
