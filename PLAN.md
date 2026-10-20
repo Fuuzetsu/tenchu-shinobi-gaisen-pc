@@ -176,8 +176,9 @@ renderer displays original textured scenery, visible actors, held weapons,
 shadows, blood pools, weapon trails and the implemented particle effects.
 Unsupported actions still pause with a diagnostic. Broader campaign behavior,
 presentation and continuous mission validation remain unfinished. Rikimaru's
-first three missions, an independent Rikimaru Mission 3 route and an independent
-Ayame Mission 2 route pass; arbitrary interactive play is not yet certified.
+first three missions, independent Rikimaru Mission 3 and Mission 4 routes, and
+an independent Ayame Mission 2 route pass; arbitrary interactive play is not yet
+certified.
 
 Enemy activation retains the source's 30-tick sampling delay, ordered budget,
 wakeup guards and raw parking-coordinate writes. Integer geometry counters use
@@ -777,3 +778,15 @@ The resulting save starts Mission 4. The standalone Mission 3 route remains as
 coverage of the new-game seed/loadout. All three private controller-route
 regressions pass, including the full continuous campaign from fresh stock.
 Nix native, WASM and formatting checks also pass on x86_64-linux.
+
+An independent Rikimaru Mission 4 controller route now defeats both checkpoint
+bosses, traverses the river road and runs sequences 10, 20, 40 and 50. It reaches
+results at tick 7,961 with 84 HP and game clock 4,635, then saves, reloads and
+starts Mission 5. The ordinary equipment menu supplies six shuriken, six caltrops
+and two medicine from new-game stock; all six shuriken and both medicine are
+used. No runtime state is overridden. Both bosses finish at zero health in
+their authored death state. This is a standalone route; the continued campaign
+with accumulated stock and RNG is still validated through Mission 3.
+All four private controller-route regressions pass. Native offscreen captures
+of both checkpoint boss fights were visually inspected.
+Nix native, WASM and formatting checks pass on x86_64-linux.

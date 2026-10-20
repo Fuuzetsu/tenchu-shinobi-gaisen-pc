@@ -207,6 +207,61 @@ fn rikimaru_rescue_controller_route_reaches_results() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; completes both Mission 4 bosses as Rikimaru using controller input, saves and starts Mission 5"]
+fn rikimaru_checkpoint_controller_route_reaches_results() {
+    let assets = assets();
+    let options = Options {
+        mission: 4,
+        ..Options::default()
+    };
+    let mut campaign = Campaign::new(&assets, options, None).unwrap();
+    campaign.action(Action::Confirm, &assets).unwrap();
+    equip(&mut campaign, &assets, &[(1, 6), (2, 6), (3, 2)]);
+    assert_eq!(&campaign.game.player().inventory[..4], &[255, 6, 6, 2]);
+    let scenes = controller_route(
+        &mut campaign,
+        include_str!("../../tests/data/mission4-rikimaru.inputs"),
+    );
+    eprintln!("Mission 4 Rikimaru: {scenes:?}");
+    assert_eq!(
+        scenes.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [10, 20, 40, 50]
+    );
+    for kind in [0x8c, 0x8b] {
+        let boss = campaign
+            .game
+            .roster
+            .get(campaign.game.roster.find(kind).unwrap());
+        assert_eq!((boss.health, boss.status), (0, 17));
+    }
+    assert_eq!(campaign.game.tick, 7961);
+    assert_eq!(campaign.game.player().health, 84);
+    assert_eq!(&campaign.game.player().inventory[..4], &[255, 0, 6, 0]);
+    let Screen::Results(results) = &campaign.screen else {
+        panic!("Expected checkpoint results");
+    };
+    assert_eq!(results.record.clock, 4635);
+    assert!(results.record.played());
+    assert_eq!(results.record, campaign.game.record());
+    assert_eq!(campaign.progress.flags & 8, 8);
+    let save = Save::decode(&campaign.save_request.take().unwrap().encode()).unwrap();
+    assert_eq!(save.progress, campaign.progress);
+    let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
+    resumed.action(Action::Confirm, &assets).unwrap();
+    assert_eq!(resumed.options.mission, 5);
+    resumed.action(Action::Confirm, &assets).unwrap();
+    for _ in 0..30 {
+        resumed.tick(0).unwrap();
+    }
+    assert!(resumed.playing());
+    assert_eq!(resumed.game.events.outcome, Outcome::Running);
+    assert_eq!(
+        resumed.game.player().health,
+        resumed.game.player().max_health
+    );
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; exercises campaign transitions using controlled completion/death outcomes, not a playthrough"]
 fn campaign_results_retry_and_saved_continuation() {
     let assets = assets();

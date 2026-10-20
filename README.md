@@ -180,6 +180,11 @@ exercises a different starting RNG and loadout from the continuous campaign,
 which carries five shuriken, six caltrops and one medicine into Mission 3 and
 uses all five shuriken.
 
+An independent [Rikimaru Mission 4 route](crates/tenchu-pc/tests/data/mission4-rikimaru.inputs)
+defeats both checkpoint bosses, runs all four cinematics and reaches results
+with 84 HP. It selects six shuriken, six caltrops and two medicine from new-game
+stock, uses the shuriken and medicine, then saves and reloads into Mission 5.
+
 ```sh
 TENCHU_DISC='/path/to/game.cue' \
   ./dev.sh cargo test -p tenchu-pc controller_route -- --ignored
