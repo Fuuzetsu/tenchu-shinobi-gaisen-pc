@@ -14,6 +14,7 @@ pub struct Settings {
     pub show_hud: bool,
     pub volume: u16,
     pub graphics: Graphics,
+    pub cutscene_speed: u16,
 }
 
 impl Default for Settings {
@@ -26,6 +27,7 @@ impl Default for Settings {
             show_hud: true,
             volume: 100,
             graphics: Graphics::default(),
+            cutscene_speed: 1,
         }
     }
 }
@@ -89,6 +91,9 @@ impl Store {
                 let mut settings: Settings = serde_json::from_slice(&bytes)
                     .map_err(|e| format!("{}: {e}", self.path.display()))?;
                 settings.volume = settings.volume.min(100);
+                if ![0, 1, 2, 4, 8, 16].contains(&settings.cutscene_speed) {
+                    settings.cutscene_speed = 1;
+                }
                 settings.graphics.fog_distance = settings.graphics.fog_distance.clamp(25, 400);
                 settings.graphics.exposure = settings.graphics.exposure.clamp(25, 300);
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {

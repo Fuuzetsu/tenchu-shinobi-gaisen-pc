@@ -1,9 +1,16 @@
+mod playback;
+#[cfg(test)]
+mod tests;
+mod tools;
+mod view;
+use view::View;
+
 use crate::{
     campaign::{Action, Campaign, Screen},
     controls::{self, Command, Controls},
     recording::{Recorder, Start},
     render_effects, render_mesh,
-    renderer::{self, EffectMesh, Mesh, Renderer},
+    renderer::{EffectMesh, Mesh, Renderer},
     session::Options,
     settings::{
         self, Settings,
@@ -19,188 +26,11 @@ use tenchu_core::{clock::GameClock, game::Game};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
-    event::{ElementState, MouseButton, WindowEvent},
+    event::{DeviceEvent, DeviceId, ElementState, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
-    window::{Fullscreen, Window, WindowId},
+    window::{CursorGrabMode, Fullscreen, Window, WindowId},
 };
-
-struct View {
-    stage: Mesh,
-    actor: Mesh,
-    effects: EffectMesh,
-    renderer: Renderer,
-    surface: wgpu::Surface<'static>,
-    window: Arc<Window>,
-    config: wgpu::SurfaceConfiguration,
-    size: [u32; 2],
-    vram_revision: u64,
-}
-
-impl View {
-    fn new(events: &ActiveEventLoop, game: &Game) -> Result<Self> {
-        let window = Arc::new(
-            events
-                .create_window(
-                    Window::default_attributes()
-                        .with_title("Tenchu — gameplay preview")
-                        .with_inner_size(LogicalSize::new(1280, 720)),
-                )
-                .map_err(|e| e.to_string())?,
-        );
-        let instance = wgpu::Instance::new(&Default::default());
-        let surface = instance
-            .create_surface(window.clone())
-            .map_err(|e| e.to_string())?;
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            compatible_surface: Some(&surface),
-            ..Default::default()
-        }))
-        .ok_or("No graphics adapter for this window")?;
-        let size = window.inner_size();
-        let mut config = surface
-            .get_default_config(&adapter, size.width.max(1), size.height.max(1))
-            .ok_or("No surface configuration")?;
-        if let Some(format) = surface
-            .get_capabilities(&adapter)
-            .formats
-            .into_iter()
-            .find(|f| !f.is_srgb())
-        {
-            config.format = format;
-        }
-        config.present_mode = wgpu::PresentMode::AutoVsync;
-        let renderer = pollster::block_on(Renderer::new(
-            &adapter,
-            config.format,
-            [config.width, config.height],
-            &game.mission.vram,
-        ))?;
-        surface.configure(&renderer.device, &config);
-        let stage = renderer.upload(&render_mesh::stage(&game.mission, &game.math));
-        let actor = renderer.upload(&render_mesh::characters(game));
-        let effects = renderer.upload_effects(render_effects::build(game));
-        println!(
-            "Renderer: {} ({:?})",
-            adapter.get_info().name,
-            adapter.get_info().backend
-        );
-        Ok(Self {
-            window,
-            surface,
-            config,
-            renderer,
-            stage,
-            actor,
-            effects,
-            size: [size.width, size.height],
-            vram_revision: game.mission.vram.revision,
-        })
-    }
-
-    fn resize(&mut self, width: u32, height: u32) {
-        self.size = [width, height];
-        if width == 0 || height == 0 {
-            return;
-        }
-        self.config.width = width;
-        self.config.height = height;
-        self.surface.configure(&self.renderer.device, &self.config);
-        self.renderer.resize([width, height]);
-    }
-
-    fn reload(&mut self, game: &Game) {
-        self.renderer.update_vram(&game.mission.vram);
-        self.vram_revision = game.mission.vram.revision;
-        self.stage = self
-            .renderer
-            .upload(&render_mesh::stage(&game.mission, &game.math));
-    }
-
-    fn settings(&mut self, settings: &Settings) {
-        self.renderer.configure(&settings.graphics);
-        self.window
-            .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
-        let mode = if settings.vsync {
-            wgpu::PresentMode::AutoVsync
-        } else {
-            wgpu::PresentMode::AutoNoVsync
-        };
-        if self.config.present_mode != mode {
-            self.config.present_mode = mode;
-            self.surface.configure(&self.renderer.device, &self.config);
-        }
-    }
-
-    fn update(
-        &mut self,
-        campaign: &Campaign,
-        paused: bool,
-        error: Option<&str>,
-        settings: &Settings,
-        menu: &Menu,
-        fps: f32,
-    ) {
-        let game = &campaign.game;
-        if self.vram_revision != game.mission.vram.revision {
-            self.renderer.update_vram(&game.mission.vram);
-            self.vram_revision = game.mission.vram.revision;
-        }
-        self.actor = self.renderer.upload(&render_mesh::characters(game));
-        let mut geometry = if menu.open {
-            menu.build(&game.mission.font, settings)
-        } else if campaign.playing() && !paused && error.is_none() {
-            render_effects::build_with_hud(game, settings.show_hud)
-        } else {
-            ui::build(campaign, paused, error)
-        };
-        if settings.show_fps && !menu.open {
-            geometry.append(render_effects::text(
-                &game.mission.font,
-                &[(
-                    -154,
-                    -115,
-                    format!("{fps:.0} FPS  tick {}", game.tick),
-                    [1.0, 0.85, 0.35],
-                )],
-            ));
-        }
-        self.effects = self.renderer.upload_effects(geometry);
-        self.window.set_title(&format!(
-            "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
-            game.tick,
-            game.player().health,
-            game.player().motion.action
-        ));
-    }
-
-    fn draw(&mut self, game: &Game) -> Result<()> {
-        if self.size.contains(&0) {
-            return Ok(());
-        }
-        let frame = match self.surface.get_current_texture() {
-            Ok(frame) => frame,
-            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                self.surface.configure(&self.renderer.device, &self.config);
-                return Ok(());
-            }
-            Err(wgpu::SurfaceError::Timeout) => return Ok(()),
-            Err(error) => return Err(error.to_string()),
-        };
-        self.renderer.draw(
-            &frame.texture.create_view(&Default::default()),
-            renderer::game_camera(
-                game.rendered_view,
-                self.config.width as f32 / self.config.height as f32,
-            ),
-            &[&self.stage, &self.actor],
-            Some(&self.effects),
-        );
-        self.window.pre_present_notify();
-        frame.present();
-        Ok(())
-    }
-}
 
 struct Application {
     assets: GameAssets<FileSource>,
@@ -225,6 +55,8 @@ struct Application {
     fps: f32,
     fps_elapsed: f32,
     fps_frames: u32,
+    debug: crate::debug::Debug,
+    screenshot: bool,
 }
 
 impl Application {
@@ -263,6 +95,7 @@ impl Application {
                 &self.settings,
                 &self.menu,
                 self.fps,
+                &self.debug,
             );
         }
     }
@@ -282,70 +115,10 @@ impl Application {
     }
 
     fn toggle_menu(&mut self) {
+        self.release_pointer();
+        self.menu.edit = None;
         self.menu.open = !self.menu.open;
         self.flush_recording();
-        self.sync_pause();
-        self.update_view();
-    }
-
-    fn settings_action(&mut self, action: Action) {
-        let rows = settings::menu::rows(self.menu.page, &self.settings);
-        if let Some(direction) = self.menu.action(action, rows.len()) {
-            match rows[self.menu.row].item {
-                Item::Fps => self.settings.show_fps = !self.settings.show_fps,
-                Item::Focus => self.settings.pause_on_defocus = !self.settings.pause_on_defocus,
-                Item::Fullscreen => self.settings.fullscreen = !self.settings.fullscreen,
-                Item::Vsync => self.settings.vsync = !self.settings.vsync,
-                Item::Hud => self.settings.show_hud = !self.settings.show_hud,
-                Item::Volume => {
-                    self.settings.volume =
-                        (i32::from(self.settings.volume) + direction * 5).clamp(0, 100) as u16
-                }
-                Item::Reset => self.settings = Settings::default(),
-                Item::Fog => self.settings.graphics.fog = !self.settings.graphics.fog,
-                Item::FogDistance => {
-                    self.settings.graphics.fog_distance =
-                        (i32::from(self.settings.graphics.fog_distance) + direction * 25)
-                            .clamp(25, 400) as u16
-                }
-                Item::Textures => {
-                    self.settings.graphics.textures = !self.settings.graphics.textures
-                }
-                Item::Shading => self.settings.graphics.shading = !self.settings.graphics.shading,
-                Item::Exposure => {
-                    self.settings.graphics.exposure = (i32::from(self.settings.graphics.exposure)
-                        + direction * 25)
-                        .clamp(25, 300) as u16
-                }
-                Item::Filtering => {
-                    self.settings.graphics.bilinear = !self.settings.graphics.bilinear
-                }
-                Item::Antialiasing => {
-                    if let Some(view) = &self.view {
-                        let counts = &view.renderer.sample_counts;
-                        let index = counts
-                            .iter()
-                            .position(|&n| n == self.settings.graphics.samples)
-                            .unwrap_or(0);
-                        self.settings.graphics.samples = counts
-                            [(index as i32 + direction).rem_euclid(counts.len() as i32) as usize];
-                    }
-                }
-            }
-            self.menu.notice = match self.settings_store.write(&self.settings) {
-                Ok(()) => String::new(),
-                Err(error) => {
-                    eprintln!("Settings: {error}");
-                    "Could not save settings; see terminal".into()
-                }
-            };
-            if let Some(view) = &mut self.view {
-                view.settings(&self.settings);
-            }
-            if let Some(audio) = &self.audio {
-                audio.volume(self.settings.volume);
-            }
-        }
         self.sync_pause();
         self.update_view();
     }
@@ -376,6 +149,7 @@ impl Application {
 
     fn action(&mut self, action: Action) {
         let start = if self.recording_directory.is_some()
+            && self.debug.sight_percent == 100
             && matches!(action, Action::Confirm)
             && let Screen::Inventory(loadout) = &self.campaign.screen
         {
@@ -389,6 +163,14 @@ impl Application {
         };
         match self.campaign.action(action, &self.assets) {
             Ok(reload) => {
+                if reload {
+                    self.release_pointer();
+                    self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
+                    if let Err(error) = self.debug.reload(&self.campaign.game) {
+                        self.pause_error(error);
+                        return;
+                    }
+                }
                 if reload
                     && let Some(start) = start
                     && let Some(directory) = &self.recording_directory
@@ -397,6 +179,13 @@ impl Application {
                         Ok(recording) => self.recording = Some(recording),
                         Err(error) => self.recording_error(error),
                     }
+                } else if reload
+                    && self.campaign.playing()
+                    && self.recording_directory.is_some()
+                    && self.debug.sight_percent != 100
+                {
+                    self.menu.notice = "Recording disabled: sight range modified".into();
+                    eprintln!("{}", self.menu.notice);
                 }
                 if !self.campaign.playing() {
                     self.finish_recording();
@@ -456,6 +245,17 @@ impl Application {
 }
 
 impl ApplicationHandler for Application {
+    fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
+        if self.focused
+            && self.debug.looking
+            && !self.menu.open
+            && let DeviceEvent::MouseMotion { delta } = event
+            && let Some(camera) = &mut self.debug.camera
+        {
+            camera.look(delta.0, delta.1);
+        }
+    }
+
     fn exiting(&mut self, _: &ActiveEventLoop) {
         self.finish_recording();
         self.audio.take();
@@ -503,6 +303,7 @@ impl ApplicationHandler for Application {
             WindowEvent::Focused(focused) => {
                 if !focused {
                     self.flush_recording();
+                    self.release_pointer();
                 }
                 let update = self.controls.poll(false);
                 self.focused = focused;
@@ -522,20 +323,59 @@ impl ApplicationHandler for Application {
                     let x = (self.pointer[0] - f64::from(view.size[0]) / 2.0)
                         / f64::from(view.size[1].max(1))
                         * 240.0;
-                    let row = ((y + 64.0) / 19.0).floor() as isize;
+                    if (-95.0..-75.0).contains(&y) {
+                        self.menu.page(if x < 0.0 { -1 } else { 1 });
+                        self.update_view();
+                        return;
+                    }
+                    let row = ((y + 64.0) / 19.0).floor() as isize + self.menu.offset() as isize;
+                    let rows = settings::menu::rows(
+                        self.menu.page,
+                        &self.settings,
+                        &self.debug,
+                        self.paused,
+                    );
                     if (-150.0..150.0).contains(&x)
+                        && (-64.0..69.0).contains(&y)
                         && row >= 0
-                        && (row as usize)
-                            < settings::menu::rows(self.menu.page, &self.settings).len()
+                        && (row as usize) < rows.len()
                     {
                         self.menu.row = row as usize;
+                        let item = rows[self.menu.row].item;
                         self.settings_action(if button == MouseButton::Right {
                             Action::Left
+                        } else if item.button() || matches!(item, Item::Target(_)) {
+                            Action::Confirm
                         } else {
                             Action::Right
                         });
                     }
                 }
+            }
+            WindowEvent::MouseInput { state, button, .. }
+                if self.debug.camera.is_some() && self.focused =>
+            {
+                if button == MouseButton::Right {
+                    if state == ElementState::Released {
+                        self.release_pointer();
+                    } else if let Some(view) = &self.view {
+                        self.debug.looking = view
+                            .window
+                            .set_cursor_grab(CursorGrabMode::Locked)
+                            .or_else(|_| view.window.set_cursor_grab(CursorGrabMode::Confined))
+                            .is_ok();
+                        view.window.set_cursor_visible(!self.debug.looking);
+                    }
+                } else if button == MouseButton::Left && state == ElementState::Pressed {
+                    self.pick_debug_target();
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. } if self.menu.open => {
+                let y = match delta {
+                    MouseScrollDelta::LineDelta(_, y) => y,
+                    MouseScrollDelta::PixelDelta(p) => p.y as f32,
+                };
+                self.settings_action(if y > 0.0 { Action::Up } else { Action::Down });
             }
             WindowEvent::KeyboardInput {
                 event,
@@ -552,7 +392,17 @@ impl ApplicationHandler for Application {
                     self.toggle_menu();
                     return;
                 }
+                if event.state == ElementState::Pressed && code == KeyCode::F9 {
+                    self.screenshot = true;
+                    return;
+                }
                 if self.menu.open {
+                    if self.menu.edit.is_some() {
+                        if event.state == ElementState::Pressed {
+                            self.edit_coordinate(code, event.text.as_deref());
+                        }
+                        return;
+                    }
                     if event.state == ElementState::Pressed
                         && matches!(code, KeyCode::Tab | KeyCode::PageDown | KeyCode::PageUp)
                     {
@@ -566,6 +416,35 @@ impl ApplicationHandler for Application {
                         self.settings_action(action);
                     }
                     return;
+                }
+                if event.state == ElementState::Pressed {
+                    let item = match code {
+                        KeyCode::F2 => Some(Item::FreeCamera),
+                        KeyCode::F3 => Some(Item::Pause),
+                        KeyCode::F4 => Some(Item::Step),
+                        KeyCode::F9 => Some(Item::Screenshot),
+                        _ => None,
+                    };
+                    if let Some(item) = item {
+                        if let Err(error) = self.apply_item(item, 1) {
+                            self.menu.notice = error;
+                        }
+                        self.release_pointer();
+                        self.sync_pause();
+                        self.update_view();
+                        return;
+                    }
+                    if code == KeyCode::Escape && self.debug.camera.is_some() {
+                        if self.debug.looking || self.debug.teleport_armed {
+                            self.release_pointer();
+                            self.debug.teleport_armed = false;
+                        } else {
+                            self.debug.toggle_camera(&self.campaign.game);
+                            self.controls.clear();
+                        }
+                        self.update_view();
+                        return;
+                    }
                 }
                 if !self
                     .controls
@@ -611,6 +490,16 @@ impl ApplicationHandler for Application {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
+                if self.focused
+                    && !self.menu.open
+                    && let Some(camera) = &mut self.debug.camera
+                {
+                    camera.advance(
+                        &self.controls,
+                        elapsed.as_secs_f32(),
+                        f32::from(self.debug.flight_speed) * 1000.0,
+                    );
+                }
                 self.fps_elapsed += elapsed.as_secs_f32();
                 self.fps_frames += 1;
                 let fps_changed = self.fps_elapsed >= 0.5;
@@ -625,40 +514,19 @@ impl ApplicationHandler for Application {
                     audio.poll();
                 }
                 let before = self.campaign.game.tick;
-                if !suspended && self.campaign.playing() {
-                    self.clock.elapse(elapsed);
-                    while self.clock.step().is_some() {
-                        let buttons = if self.focused {
-                            self.controls.buttons()
-                        } else {
-                            0
-                        };
-                        self.record_input(buttons);
-                        if let Err(error) = self.campaign.tick(buttons) {
-                            self.pause_error(error);
-                            self.clock.discard_host_backlog();
-                            break;
-                        }
-                        if let Some(audio) = &mut self.audio {
-                            if let Err(error) = audio.tick(&self.campaign.game) {
-                                eprintln!("Audio: {error}");
-                            }
-                            audio.screen(&self.campaign.screen);
-                        }
-                        if !self.campaign.playing() {
-                            self.finish_recording();
-                            self.controls.clear();
-                            self.clock.discard_host_backlog();
-                            break;
-                        }
-                    }
-                    self.save();
-                }
-                if before != self.campaign.game.tick || fps_changed && self.settings.show_fps {
+                self.advance_simulation(elapsed);
+                self.debug.update(&self.campaign.game);
+                if before != self.campaign.game.tick
+                    || fps_changed && self.settings.show_fps
+                    || self.debug.camera.is_some()
+                {
                     self.update_view();
                 }
+                if self.screenshot {
+                    self.save_screenshot();
+                }
                 if let Some(view) = &mut self.view {
-                    if let Err(error) = view.draw(&self.campaign.game) {
+                    if let Err(error) = view.draw(&self.campaign.game, &self.debug) {
                         self.error = Some(error);
                         events.exit();
                     }
@@ -694,14 +562,15 @@ pub fn run(
         }
     };
     let campaign = Campaign::new(&assets, options, storage.load()?)?;
-    let audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
+    let debug = crate::debug::Debug::new(&campaign.game)?;
+    let mut audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
         Ok(audio) => Some(audio),
         Err(error) => {
             eprintln!("Audio unavailable: {error}");
             None
         }
     };
-    if let Some(audio) = &audio {
+    if let Some(audio) = &mut audio {
         audio.volume(settings.volume);
     }
     let mut application = Application {
@@ -730,6 +599,8 @@ pub fn run(
         fps: 0.0,
         fps_elapsed: 0.0,
         fps_frames: 0,
+        debug,
+        screenshot: false,
     };
     println!(
         "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."

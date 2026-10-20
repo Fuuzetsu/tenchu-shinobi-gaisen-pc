@@ -55,6 +55,20 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         &[&renderer.upload(&vertices)],
         Some(&renderer.upload_effects(render_effects::build(game))),
     );
+    read_texture(&renderer, &texture, destination)
+}
+
+pub fn read_texture(
+    renderer: &Renderer,
+    texture: &wgpu::Texture,
+    destination: &Path,
+) -> Result<()> {
+    let [width, height] = [texture.width(), texture.height()];
+    let bgra = match texture.format() {
+        wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Bgra8UnormSrgb => true,
+        wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => false,
+        format => return Err(format!("Screenshot format {format:?} is unsupported")),
+    };
     let stride = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
     let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Capture readback"),
@@ -88,10 +102,15 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
     let mapped = buffer.slice(..).get_mapped_range();
-    let pixels: Vec<_> = mapped
+    let mut pixels: Vec<_> = mapped
         .chunks_exact(stride as usize)
         .flat_map(|row| row[..width as usize * 4].iter().copied())
         .collect();
+    if bgra {
+        for pixel in pixels.chunks_exact_mut(4) {
+            pixel.swap(0, 2);
+        }
+    }
     let file = BufWriter::new(File::create(destination).map_err(|e| e.to_string())?);
     let mut png = png::Encoder::new(file, width, height);
     png.set_color(png::ColorType::Rgba);

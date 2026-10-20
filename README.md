@@ -108,6 +108,34 @@ polygon edges; bilinear filtering decodes the original palettes and keeps
 transparent/semitransparent texels separate. HUD and menu textures remain sharp.
 Mipmaps and anisotropic texture filtering are not implemented yet.
 
+Inspection pages include live body/attack hitboxes, sight bounds, masked terrain
+surfaces, patrol routes, spatial event regions, actor labels/state, X-ray overlays
+and a recent player trail. These tools start disabled each launch. Sight bounds
+show calm-state ranges and angles, not walls/occlusion or a guarantee of detection.
+Terrain overlays show ACM floors/slopes rather than inferred wall meshes.
+
+**F2** toggles free camera. Hold right mouse to look, WASD to fly, Q/E down/up,
+and Shift for a speed boost. Left-click selects an actor. F1's Camera page adds
+focus, overhead view, FOV, speed and a mission-local bookmark. Free camera
+suppresses player input; **F3** pauses/resumes while keeping the scene visible,
+and **F4** runs exactly one logic tick. The gameplay camera still runs internally.
+Some effects already projected by that camera (wire lines, weapon trails and
+sprites) are omitted from the inspection view.
+
+The Teleport page accepts exact X/Y/Z values (Enter to edit, Delete to clear,
+Enter to apply), floor snapping or a click on a terrain surface. Negative Y is
+up. Teleporting and changing the enemy sight-distance multiplier are explicit
+gameplay edits: they end an active recording before the edit, leaving a replayable
+prefix. A new attempt can record again with original sight distance. Sight
+distance does not change hearing, actor activation, attack range or occlusion.
+
+Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
+The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general
+25–400% simulation speed. Every logic tick runs; accelerated backlog is discarded
+when control returns. Fast-forward mutes sound and resumes background music at
+ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
+**F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
+
 The first controller used is selected until disconnected. Keyboard and controller
 can be used together. Disconnecting the active controller pauses gameplay.
 Held controls must be released after menu or focus changes. Losing focus freezes

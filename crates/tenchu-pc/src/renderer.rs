@@ -353,6 +353,15 @@ impl Renderer {
 }
 
 pub fn game_camera(view: tenchu_core::math::Matrix, aspect: f32) -> Mat4 {
+    Mat4::perspective_rh(
+        2.0 * (120.0f32 / f32::from(DISTANCE)).atan(),
+        aspect,
+        50.0,
+        250_000.0,
+    ) * view_matrix(view)
+}
+
+pub fn view_matrix(view: tenchu_core::math::Matrix) -> Mat4 {
     let mut columns = [[0.0; 4]; 4];
     for (column, values) in columns.iter_mut().take(3).enumerate() {
         for (row, value) in values.iter_mut().take(3).enumerate() {
@@ -365,11 +374,5 @@ pub fn game_camera(view: tenchu_core::math::Matrix, aspect: f32) -> Mat4 {
         view.translation[2] as f32,
         1.0,
     ];
-    Mat4::perspective_rh(
-        2.0 * (120.0f32 / f32::from(DISTANCE)).atan(),
-        aspect,
-        50.0,
-        250_000.0,
-    ) * Mat4::from_scale(glam::Vec3::new(1.0, -1.0, -1.0))
-        * Mat4::from_cols_array_2d(&columns)
+    Mat4::from_scale(glam::Vec3::new(1.0, -1.0, -1.0)) * Mat4::from_cols_array_2d(&columns)
 }

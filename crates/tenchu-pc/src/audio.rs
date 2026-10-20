@@ -24,6 +24,9 @@ pub struct Audio {
     screen: Option<Discriminant<Screen>>,
     paused: bool,
     trace: bool,
+    fast_forward: bool,
+    volume: u16,
+    current_track: Option<Track>,
 }
 
 impl Audio {
@@ -35,6 +38,9 @@ impl Audio {
             screen: None,
             paused: false,
             trace: std::env::var_os("TENCHU_AUDIO_TRACE").is_some(),
+            fast_forward: false,
+            volume: 100,
+            current_track: None,
         };
         audio.reload(assets, &campaign.game)?;
         audio.screen(&campaign.screen);
@@ -56,6 +62,10 @@ impl Audio {
     }
 
     fn track(&mut self, track: Option<Track>) {
+        self.current_track = track.clone();
+        if self.fast_forward {
+            return;
+        }
         if self.trace {
             eprintln!("Audio request: {track:?}");
         }
@@ -68,8 +78,10 @@ impl Audio {
     }
 
     pub fn tick(&mut self, game: &Game) -> Result<()> {
-        for sound in game.sounds()? {
-            self.output.send(output::Command::Effect(sound));
+        if !self.fast_forward {
+            for sound in game.sounds()? {
+                self.output.send(output::Command::Effect(sound));
+            }
         }
         for cue in &game.music {
             if self.trace {
@@ -102,8 +114,30 @@ impl Audio {
         }
     }
 
-    pub fn volume(&self, percent: u16) {
-        self.output.send(output::Command::Volume(percent));
+    pub fn volume(&mut self, percent: u16) {
+        self.volume = percent;
+        self.output
+            .send(output::Command::Volume(if self.fast_forward {
+                0
+            } else {
+                percent
+            }));
+    }
+
+    pub fn fast_forward(&mut self, enabled: bool) {
+        if self.fast_forward == enabled {
+            return;
+        }
+        self.fast_forward = enabled;
+        self.output.send(output::Command::Clear);
+        if enabled {
+            self.loader.request(None);
+            self.output.send(output::Command::Music(None, false));
+        } else {
+            let music = self.current_track.clone().filter(|track| track.repeat);
+            self.track(music);
+        }
+        self.volume(self.volume);
     }
 
     pub fn poll(&mut self) {

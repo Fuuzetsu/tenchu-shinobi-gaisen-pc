@@ -60,6 +60,7 @@ impl Controller<'_, '_> {
             self.player,
             self.clock,
             self.state.alert,
+            self.state.sight_percent,
             self.ctx,
         )?;
         let player_distance = if self.player_target() {

@@ -179,6 +179,10 @@ pub struct Controls {
 }
 
 impl Controls {
+    pub fn held(&self, key: KeyCode) -> bool {
+        self.keys.contains(&key)
+    }
+
     pub fn new() -> Self {
         let gilrs = match Gilrs::new() {
             Ok(gilrs) => Some(gilrs),

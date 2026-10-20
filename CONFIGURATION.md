@@ -18,18 +18,18 @@ camera state, simulation controls and one-shot edits start disabled each launch.
 - [ ] Optional dynamic lights and shadow maps, disabled by default. Inspect
   authored fire emitters as light sources; provide a movable debug light,
   distance/intensity controls and explicit performance/coverage limits.
-- [ ] Enemy sight-distance multiplier, using the original angular, stance,
+- [x] Enemy sight-distance multiplier, using the original angular, stance,
   occlusion and update rules at 100%. Clearly identify this as a gameplay edit.
-- [ ] Free camera, flight speed, camera bookmarks, focus selected actor, overhead
+- [x] Free camera, flight speed, camera bookmarks, focus selected actor, overhead
   view, player teleport to a picked terrain surface and exact coordinates.
-- [ ] Live body/attack hitboxes, sight bounds, patrol paths, actor labels and
+- [x] Live body/attack hitboxes, sight bounds, patrol paths, actor labels and
   inspector, event bounds, terrain collision surfaces, X-ray overlays and player
   trail. Read live state directly; inspection must not advance RNG or mutate
   the gameplay camera, terrain query cache or render-derived gameplay state.
-- [ ] Pause/frame advance, simulation speed and screenshots. Keep edits and
+- [x] Pause/frame advance, simulation speed and screenshots. Keep edits and
   recordings honest: unsupported state edits must not silently produce a tape
   that claims to replay the edited session.
-- [ ] Cutscene fast-forward: hold-to-speed-up and optional automatic speed,
+- [x] Cutscene fast-forward: hold-to-speed-up and optional automatic speed,
   including a bounded maximum-throughput mode. Execute every original logic
   update and keep UI/input responsive; default to ordinary speed.
 - [ ] Meaningful regression checks for unchanged defaults, settings persistence,
@@ -82,3 +82,18 @@ window. An isolated headless Wayland compositor and virtual keyboard reproduced
 the old binary's SIGSEGV (exit 139) and verified three clean patched exits
 (exit 0) through gameplay → inventory → launcher → quit. Audio used a private
 null sink. This supplements the existing X11 checks.
+
+The inspection/playback increment passes masked-hole/slope/stacked-floor picking,
+parallel ray-box edges, live inspection state isolation and teleport collision/RNG
+checks for both characters. The actual host scheduler reaches identical states
+at the end of Mission 2's opening at 2x, 16x, Max and held Backspace, and leaves
+no accelerated backlog. Pause/frame advance executes exactly one update.
+The original-C sight oracle and all twelve controller-route regressions (including
+both full campaigns and training) pass at default settings.
+
+An isolated native window exercised scrolling overlay pages, free flight/RMB,
+overhead focus, typed coordinates, teleport, F9 PNG capture and F3/F4. Teleport
+ended its recording at tick 27; replay consumed that complete prefix. Menu help
+is fitted to the original 320-wide safe area, including at 4:3. Fast-forward
+silences audio instead of trying to play accelerated dialogue; music restarts and
+speech resumes on its next cue when ordinary speed returns.

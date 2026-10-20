@@ -219,19 +219,22 @@ pub fn build(game: &Game) -> Geometry {
 }
 
 pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
+    build_for_camera(game, show_hud, None)
+}
+
+pub fn build_for_camera(game: &Game, show_hud: bool, camera: Option<Matrix>) -> Geometry {
+    let inspection = camera.is_some();
+    let view = camera.unwrap_or(game.rendered_view);
     let mut surfaces = Vec::new();
     let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
-        mesh_surfaces(
-            &mut surfaces,
-            meshes,
-            matrix,
-            game.rendered_view,
-            true,
-            true,
-        );
+        mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true);
     };
     render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
-    render_mesh::visit_characters(game, &mut translucent);
+    if inspection {
+        render_mesh::visit_inspection_characters(game, &mut translucent);
+    } else {
+        render_mesh::visit_characters(game, &mut translucent);
+    }
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
         for instance in instances {
             let mut matrix = Matrix {
@@ -247,7 +250,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
                 &mut surfaces,
                 &game.mission.common_models[&index],
                 matrix,
-                game.rendered_view,
+                view,
                 false,
                 false,
             );
@@ -259,16 +262,16 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
                 &mut surfaces,
                 &game.mission.common_models[&26],
                 matrix,
-                game.rendered_view,
+                view,
                 false,
                 fog,
             );
         }
-        for &(points, sort_depth) in &wire.lines {
+        for &(points, sort_depth) in wire.lines.iter().filter(|_| !inspection) {
             line(&mut surfaces, points, sort_depth, [80, 72, 56], 0);
         }
     }
-    for segment in &game.effects.lines {
+    for segment in game.effects.lines.iter().filter(|_| !inspection) {
         line(
             &mut surfaces,
             segment.points,
@@ -282,7 +285,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
             &mut surfaces,
             &game.mission.common_models[&index],
             matrix,
-            game.rendered_view,
+            view,
             false,
             true,
         );
@@ -292,7 +295,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
             &mut surfaces,
             &game.mission.weapons.models[&kind],
             matrix,
-            game.rendered_view,
+            view,
             false,
             true,
         );
@@ -303,6 +306,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
         .iter()
         .chain(&game.items.drawings)
         .chain(&game.misc.drawings)
+        .filter(|_| !inspection)
     {
         let (image, blend, bottom_origin) = match drawing.graphic {
             Graphic::Sprite { image, blend } => (Some(usize::from(image)), blend, false),
@@ -373,7 +377,10 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
         .visible
         .iter()
         .flat_map(|&id| game.roster.get(id).trails.iter().flatten());
-    for trail in actor_trails.chain(&game.items.trails) {
+    for trail in actor_trails
+        .chain(&game.items.trails)
+        .filter(|_| !inspection)
+    {
         if trail.depth == 0 {
             continue;
         }
@@ -397,7 +404,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
             previous = shade;
         }
     }
-    if let Some(shade) = game.hud.map.dim {
+    if let Some(shade) = game.hud.map.dim.filter(|_| !inspection) {
         let mut vertices = screen_band(-120.0, 120.0, [f32::from(shade) / 255.0; 3], 3);
         for vertex in &mut vertices {
             vertex.position[2] = 0.000002;
@@ -470,7 +477,7 @@ pub fn build_with_hud(game: &Game, show_hud: bool) -> Geometry {
             vertices: screen_band(-120.0, 120.0, color.map(|v| f32::from(v) / 255.0), 2),
         });
     }
-    if game.cinematic.frame {
+    if game.cinematic.frame && !inspection {
         for (top, bottom) in [(-120.0, -90.0), (90.0, 120.0)] {
             surfaces.push(Surface {
                 depth: 1.0,

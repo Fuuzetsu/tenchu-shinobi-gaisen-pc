@@ -2,6 +2,7 @@ mod audio;
 mod campaign;
 mod capture;
 mod controls;
+mod debug;
 mod recording;
 mod render_effects;
 mod render_mesh;

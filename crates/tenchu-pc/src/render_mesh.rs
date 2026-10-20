@@ -14,6 +14,8 @@ pub const TRANSLUCENT: u32 = 4;
 pub const SCREEN_WIDE: u32 = 8;
 pub const DOUBLE_SIDED: u32 = 16;
 pub const FOG: u32 = 32;
+pub const DEBUG: u32 = 64;
+pub const XRAY: u32 = 128;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -115,20 +117,57 @@ pub fn visit_characters(
     mut visit: impl FnMut(&[Geometry], Matrix),
 ) {
     for &id in &game.visible {
-        let actor = game.roster.get(id);
-        for (i, (part, matrix)) in game.mission.models[&actor.rendered_mesh_kind]
-            .iter()
-            .zip(actor.rendered.iter().copied())
-            .enumerate()
-        {
-            if actor.render_mask & (1 << i) != 0 {
-                visit(&part.geometry, matrix);
-            }
-        }
-        for weapon in actor.weapons[..2].iter().flatten() {
-            visit(&game.mission.weapons.models[&weapon.kind], weapon.rendered);
+        visit_actor(game, game.roster.get(id), &mut visit);
+    }
+}
+
+fn visit_actor(
+    game: &tenchu_core::game::Game,
+    actor: &tenchu_core::actor::Actor,
+    visit: &mut impl FnMut(&[Geometry], Matrix),
+) {
+    for (i, (part, matrix)) in game.mission.models[&actor.rendered_mesh_kind]
+        .iter()
+        .zip(actor.rendered.iter().copied())
+        .enumerate()
+    {
+        if actor.render_mask & (1 << i) != 0 {
+            visit(&part.geometry, matrix);
         }
     }
+    for weapon in actor.weapons[..2].iter().flatten() {
+        visit(&game.mission.weapons.models[&weapon.kind], weapon.rendered);
+    }
+}
+
+pub fn visit_inspection_characters(
+    game: &tenchu_core::game::Game,
+    mut visit: impl FnMut(&[Geometry], Matrix),
+) {
+    for &id in &game.roster.order {
+        let source = game.roster.get(id);
+        if source.attribute & tenchu_core::ids::ATTR_SUSPEND != 0 {
+            continue;
+        }
+        let mut actor = source.clone();
+        actor.initialize_rendered(&game.scene, &game.math);
+        actor.render_mask = actor.parts.iter().enumerate().fold(0, |mask, (i, &part)| {
+            mask | if game.scene.models[part].attribute & 1 == 0 {
+                1 << i
+            } else {
+                0
+            }
+        });
+        visit_actor(game, &actor, &mut visit);
+    }
+}
+
+pub fn inspection_characters(game: &tenchu_core::game::Game) -> Vec<Vertex> {
+    let mut vertices = Vec::new();
+    visit_inspection_characters(game, |geometry, matrix| {
+        append_geometry(&mut vertices, geometry, matrix)
+    });
+    vertices
 }
 
 pub fn stage(mission: &MissionAssets, math: &Math) -> Vec<Vertex> {

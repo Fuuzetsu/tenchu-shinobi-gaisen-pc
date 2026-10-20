@@ -51,6 +51,32 @@ research model’s regression cases. No batched simulator code is included.
 | `src/main.exe/ACTION.C` | `8599e6f2b0c7c15723d3c5f82fa6823f0b1f53e896b4ff83a4bc8e1fb927f8cd` |
 | `src/main.exe/APPEAR.C` | `6626d5d5491a74dd826fa6a6e9fb0599b3ba8b5846e2e7377ef1b0a3e79ef86b` |
 | `src/main.exe/STAGE.C` | `dc1573257be1b02eeaaa96cd1e3c6ce8b952da3dbd4a122e669a29e4d819a391` |
+
+## Native inspection tools (2026-10-20)
+
+`~/programming/tenchu-viewer`, revision
+`677cdc1f37710eec17b0479e7714dc3be09f2003`, supplied the inspection reference:
+ACM quarter-cell masks, slope surfaces and terrain colors; ConflictObject body
+and attack boxes; standing/crouching sight envelopes; event zones, patrol paths,
+free camera and picking. Its working tree contains unrelated research; the exact
+consulted files, including the modified `web.rs`, are identified below.
+
+| Source | SHA-256 |
+| --- | --- |
+| `src/collision.rs` | `738fcee9ad44e304ddfb017eb4633e0b6b1ef788bff2f552d5f7012c7e20ffa1` |
+| `src/sight.rs` | `7a959df4291d24d72a686ee3d5091ceb9d8cde0b4ab68048409d414beb9841d6` |
+| `src/spatial.rs` | `360d6bccc19b0511468af813a5adb55d302ceeb6698690b9eea2582f606e3f44` |
+| `src/web.rs` | `046e76fb1fbe8e6bff9e42dd0e3016e7ea5a8c1938efffc85f1f3b1969c3f79d` |
+
+The port adapts these ideas to owned live state without the emulator bridge.
+Terrain picks use original integer `node_level` after triangle intersection.
+Free-camera models derive from cloned poses; all overlays borrow the game
+immutably. The original gameplay camera, visibility/packet accounting and
+render-derived gameplay state continue to update normally. Sight bounds show
+calm-state distance/angle limits, not an occlusion solution. The optional sight
+multiplier changes distance thresholds only; the original C oracle still checks
+100% behavior. Teleport is an explicit gameplay edit with pose/contact refresh,
+not a claimed original function.
 | `src/main.exe/PADCMD.C` | `570e8ab66ddfe86b6a69271093c0c3ba187304985c252ee79bfa3a459d415f78` |
 | `src/main.exe/CONFLICT.C` | `4fd248c53cd709febd10f8f748dabe32e7844f1b5b91ee845343f57a7b7df4c0` |
 | `src/main.exe/game_types.h` | `27e346901f78a9664385cd4110ca089dd45fc9b5ac8d6e883cacd08ed2e1cb07` |

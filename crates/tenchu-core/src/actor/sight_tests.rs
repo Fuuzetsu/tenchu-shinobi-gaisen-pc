@@ -2,6 +2,70 @@ use super::*;
 use crate::oracle;
 
 #[test]
+fn optional_sight_range_changes_thresholds_without_changing_angles_or_polling() {
+    let query = |status, clock| Query {
+        position: [0; 3],
+        delta: [0, 0, 9000],
+        height: 1800,
+        player_height: 1800,
+        player_status: status,
+        clock,
+        slot: 0,
+        alert: 0,
+    };
+    let sight = Sight {
+        distance: 9000,
+        direction: 0,
+    };
+    assert_eq!(
+        sight
+            .evaluate_range(query(0, 32), 100, |_, _, _| Ok(false))
+            .unwrap(),
+        Detection::Seen
+    );
+    assert_eq!(
+        sight
+            .evaluate_range(query(0, 32), 50, |_, _, _| Ok(false))
+            .unwrap(),
+        Detection::Unseen
+    );
+    assert_eq!(
+        sight
+            .evaluate_range(query(0, 32), 0, |_, _, _| panic!(
+                "zero range must not raycast"
+            ))
+            .unwrap(),
+        Detection::Gone
+    );
+    assert_eq!(
+        sight
+            .evaluate_range(query(0, 31), 200, |_, _, _| panic!(
+                "cadence must not change"
+            ))
+            .unwrap(),
+        Detection::None
+    );
+    assert_eq!(
+        sight
+            .evaluate_range(query(0, 32), 200, |_, _, _| Ok(true))
+            .unwrap(),
+        Detection::Gone
+    );
+    let sight = Sight {
+        distance: 9000,
+        direction: 500,
+    };
+    assert_eq!(
+        sight
+            .evaluate_range(query(11, 32), 200, |_, _, _| panic!(
+                "crouch cone must stay narrow"
+            ))
+            .unwrap(),
+        Detection::Unseen
+    );
+}
+
+#[test]
 #[ignore = "requires TENCHU_DECOMP and a C compiler; compares SearchTarget guards and ray arguments"]
 fn sight_guards_and_ray_queries_match_original_c() {
     let source = oracle::source("HUMAN.C");

@@ -32,6 +32,28 @@ pub struct Sight {
     pub direction: i16,
 }
 
+pub struct Profile {
+    pub sight: i32,
+    pub clear: i32,
+    pub far: i32,
+    pub half_angle: i16,
+}
+
+pub fn profile(sneaking: bool, percent: u16) -> Profile {
+    let (sight, clear, far, half_angle) = if sneaking {
+        (12000, 7000, 16000, 450)
+    } else {
+        (16000, 10000, 20000, 900)
+    };
+    let scale = |distance| distance * i32::from(percent.min(400)) / 100;
+    Profile {
+        sight: scale(sight),
+        clear: scale(clear),
+        far: scale(far),
+        half_angle,
+    }
+}
+
 impl Sight {
     pub fn search(
         &mut self,
@@ -40,6 +62,7 @@ impl Sight {
         player: crate::ai::Player,
         clock: i32,
         alert: i32,
+        range_percent: u16,
         ctx: &mut Context,
     ) -> Result<Detection> {
         let Some(target) = target else {
@@ -56,7 +79,7 @@ impl Sight {
         let slot = ctx.scene.models[owner.parts[0]]
             .conflict
             .map_or(-1, |s| s as i32);
-        self.evaluate(
+        self.evaluate_range(
             Query {
                 position,
                 delta,
@@ -67,13 +90,24 @@ impl Sight {
                 slot,
                 alert,
             },
+            range_percent,
             |p, d, n| Ok(terrain::passage(&ctx.mission.terrain, ctx.cursor, p, d, n)?.is_some()),
         )
     }
 
+    #[cfg(test)]
     fn evaluate(
         &self,
         query: Query,
+        blocked: impl FnMut([i32; 3], [i16; 3], i16) -> Result<bool>,
+    ) -> Result<Detection> {
+        self.evaluate_range(query, 100, blocked)
+    }
+
+    fn evaluate_range(
+        &self,
+        query: Query,
+        range_percent: u16,
         mut blocked: impl FnMut([i32; 3], [i16; 3], i16) -> Result<bool>,
     ) -> Result<Detection> {
         let Query {
@@ -95,11 +129,10 @@ impl Sight {
         {
             return Ok(Detection::Gone);
         }
-        let (sight, clear, far, limit) = if sneaking {
-            (12000, 7000, 16000, 300)
-        } else {
-            (16000, 10000, 20000, 500)
-        };
+        let Profile {
+            sight, clear, far, ..
+        } = profile(sneaking, range_percent);
+        let limit = if sneaking { 300 } else { 500 };
         if self.distance >= far {
             return Ok(Detection::Gone);
         }

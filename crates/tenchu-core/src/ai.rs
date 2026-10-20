@@ -43,6 +43,7 @@ pub struct Brain {
 #[derive(Debug)]
 pub struct Intelligence {
     pub difficulty: Difficulty,
+    pub sight_percent: u16,
     pub attack_clock: i32,
     pub alert: i32,
     pub strain: i32,
@@ -63,6 +64,7 @@ impl Default for Intelligence {
     fn default() -> Self {
         Self {
             difficulty: Difficulty::Normal,
+            sight_percent: 100,
             attack_clock: 0,
             alert: 0,
             strain: 0,

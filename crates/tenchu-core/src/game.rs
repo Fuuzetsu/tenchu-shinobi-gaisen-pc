@@ -1,5 +1,6 @@
 pub mod activation;
 pub mod cinematic;
+mod debug;
 pub mod events;
 #[cfg(test)]
 mod retail_tests;

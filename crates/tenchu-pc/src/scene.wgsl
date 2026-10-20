@@ -4,6 +4,8 @@ const TRANSLUCENT: u32 = 4u;
 const SCREEN_WIDE: u32 = 8u;
 const DOUBLE_SIDED: u32 = 16u;
 const FOG: u32 = 32u;
+const DEBUG: u32 = 64u;
+const XRAY: u32 = 128u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -36,6 +38,7 @@ struct Fragment {
     } else {
         out.position = camera.matrix * vec4(v.position, 1.0);
         out.depth = out.position.w;
+        if (v.flags & XRAY) != 0u { out.position.z = 0.0; }
     }
     out.color = v.color;
     out.uv = v.uv;
@@ -93,7 +96,7 @@ fn filtered(uv: vec2<f32>, page: u32, palette: u32, nearest: u32) -> vec3<f32> {
 
 fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
-    let screen = (v.flags & SCREEN) != 0u;
+    let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     var color = v.color;
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
     var semi = (v.flags & TRANSLUCENT) != 0u;
