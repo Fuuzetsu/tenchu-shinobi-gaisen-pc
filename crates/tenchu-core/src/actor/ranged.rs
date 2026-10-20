@@ -1,6 +1,29 @@
 use super::*;
 
 impl Actor {
+    pub(super) fn lightning_control(
+        &mut self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+    ) -> Result<()> {
+        if self.motion.count == 13 {
+            world.intelligence.voices.push((self.id, 5));
+            let start = ctx.scene.world(self.parts[13])?.transform([0, 0, -700]);
+            let speed = (ctx.random.next15() % 5 * 1000 + 4000) as i16;
+            let velocity = ctx.math.velocity(self.rotation[1], speed, 0);
+            let target = self.target.ok_or("Lightning caster has no target")?;
+            let end = [
+                start[0].wrapping_add(i32::from(velocity[0])),
+                ctx.scene.models[target].local.translation[1],
+                start[2].wrapping_add(i32::from(velocity[2])),
+            ];
+            world
+                .items
+                .request(23, self, start, end, world.player, world.roster, ctx)?;
+        }
+        Ok(())
+    }
+
     pub(super) fn fire_control(
         &mut self,
         ctx: &mut Context,

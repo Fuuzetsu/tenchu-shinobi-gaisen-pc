@@ -9,6 +9,7 @@ mod dog;
 mod flight;
 mod flute;
 mod grapple;
+mod lightning;
 mod medicine;
 mod napalm;
 mod pickup;
@@ -65,6 +66,7 @@ pub enum Processor {
     Decoy,
     Disguise,
     Dog,
+    Lightning,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -88,6 +90,7 @@ pub struct Item {
     pub charm_remaining: u16,
     pub decoy: decoy::Decoy,
     pub dog: dog::Dog,
+    pub lightning: lightning::Lightning,
     pub flight: flight::Flight,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
@@ -151,6 +154,7 @@ impl Items {
                 charm_remaining: 0,
                 decoy: decoy::Decoy::default(),
                 dog: dog::Dog::default(),
+                lightning: lightning::Lightning::default(),
                 flight: flight::Flight::default(),
                 trail: None,
                 rotation: [0; 3],
@@ -402,6 +406,7 @@ impl Items {
                 Some(Processor::Decoy) => self.decoy(id, actors, ctx)?,
                 Some(Processor::Disguise) => self.disguise(id, actors, intelligence, ctx)?,
                 Some(Processor::Dog) => self.dog(id, actors, clock, ctx)?,
+                Some(Processor::Lightning) => self.lightning(id, actors, player, clock, ctx)?,
                 None => {}
             }
         }

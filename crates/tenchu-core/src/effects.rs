@@ -3,6 +3,7 @@ mod fade;
 pub use fade::Fade;
 mod explosion;
 mod impact;
+mod lightning;
 mod smoke;
 mod snow;
 mod texture;
@@ -175,12 +176,20 @@ pub struct Shadow {
     pub scale: i32,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Line {
+    pub points: [[i16; 2]; 2],
+    pub depth: i16,
+    pub color: [u8; 3],
+}
+
 #[derive(Clone, Debug)]
 pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     pub drawings: Vec<Drawing>,
     pub shadows: Vec<Shadow>,
     pub wires: Vec<Wire>,
+    pub lines: Vec<Line>,
     pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<([i32; 3], i16)>,
     pub fades: Vec<(i32, [u8; 3])>,
@@ -196,6 +205,7 @@ impl Default for Effects {
             drawings: Vec::new(),
             shadows: Vec::new(),
             wires: Vec::new(),
+            lines: Vec::new(),
             blood_pools: Vec::new(),
             sounds: Vec::new(),
             fades: Vec::new(),
@@ -381,6 +391,7 @@ impl Effects {
         self.drawings.clear();
         self.shadows.clear();
         self.wires.clear();
+        self.lines.clear();
         self.blood_pools.clear();
         self.sounds.clear();
         self.fades.clear();

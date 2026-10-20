@@ -677,3 +677,19 @@ Native keyboard checks use temporary unlocked saves and show the original dog
 appearing for both characters. Nix native, WASM and formatting checks pass on
 x86_64-linux. Already-freed actor references remain a diagnostic boundary rather
 than an attempt to reproduce a freed-memory read.
+
+Mei-Oh's four lightning attacks now launch on frame 13, re-aim on the original
+three-tick clock boundaries and retain their hitboxes between strikes. The
+postdecrement lifetime includes the final zero-count callback. Bolts, sparks,
+impact flashes, damage and local/player casting sound are implemented. Off-screen
+segments consume the same RNG; visible lines contribute their source packet cost
+independently of display rendering. Grappling cables and lightning share the
+native screen-line geometry helper with separate colors/blends.
+Ninety-six extracted-C segment cases verify coordinates/RNG with SDK square roots
+supplied. Focused checks cover all four attacks against both characters, repeated
+aiming, suspended-target inclusion, collision lifetime and forced cleanup. All
+128 current core checks and twelve relevant private desktop checks pass, including
+GPU blends, display cadence and Mission 1 through saved continuation. An offscreen
+native GPU capture visually checks the additive bolt in a controlled effect
+fixture; it is not a complete final-boss window playthrough. The temporary capture
+module was removed. Nix native, WASM and formatting checks pass on x86_64-linux.

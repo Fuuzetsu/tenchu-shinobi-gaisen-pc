@@ -807,3 +807,28 @@ retries, disposal-before-refund allocation and inventory cleanup. These are
 behavioral checks using shared verified helpers, not a new full C callback or
 retail trace comparison. A dangling summon reference to an already freed actor
 produces an explicit diagnostic rather than reading freed memory.
+
+## Lightning (2026-10-20)
+
+`MOTION.C::launch_lightning_bolt_` and its four attack branches,
+`ITEM.C::ReqItemLightningBolt`, `ProcItemLightningBolt`, `ReqItemUse`, and
+`EFFECT.C::SetLightningI` define launch timing, rotation, repeated target lookup,
+postdecrement lifetime, collision, particles and line generation. Their recorded
+hashes are unchanged. The research reference `tools/tenchu-sim/src/items/lightning.rs`
+has SHA-256 `9371073d6002eb0387c2ac685a04996412921fea87ce5bb71567df1c91e2bbee`.
+
+Ninety-six extracted-C segment-generation cases compare coordinates and RNG with
+the scalar loop, including sub-segment lengths and distance rescaling. SDK square
+roots are supplied to C; its generated points are projected through the existing
+separately checked native projection in both forward and reversed views. This
+does not independently revalidate the SDK projection. No persistent effect slot
+is allocated for bolt lines; visible segments contribute their original 20 bytes
+to activation accounting, and hidden segments still consume jitter/branch RNG.
+Native rendering shares the existing screen-line geometry with grappling cables,
+using the bolt's source color and additive blend.
+
+Ordinary-tick controlled fights exercise all four attacks against both characters.
+A callback check covers suspended-target inclusion, clock-driven re-aiming,
+persistent hitboxes between strikes, the final zero-count callback, forced disposal
+and player-local casting sound. These are focused behavior checks rather than a
+complete final-boss encounter or full retail replay comparison.

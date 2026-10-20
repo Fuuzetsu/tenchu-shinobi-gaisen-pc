@@ -8,6 +8,7 @@ mod darts;
 mod decoy;
 mod disguise;
 mod dog;
+mod lightning;
 mod napalm;
 mod poison;
 mod rice;

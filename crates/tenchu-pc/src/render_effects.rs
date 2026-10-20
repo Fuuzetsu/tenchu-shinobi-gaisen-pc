@@ -101,6 +101,39 @@ fn quad(
         .collect()
 }
 
+fn line(
+    surfaces: &mut Vec<Surface>,
+    points: [[i16; 2]; 2],
+    sort_depth: i16,
+    color: [u8; 3],
+    blend: u8,
+) {
+    let [a, b] = points.map(|p| p.map(f32::from));
+    let delta = [b[0] - a[0], b[1] - a[1]];
+    let length = delta[0].hypot(delta[1]);
+    if length == 0.0 {
+        return;
+    }
+    let offset = [-delta[1] / length * 0.5, delta[0] / length * 0.5];
+    let z = f32::from(sort_depth) * 16.0;
+    let points = [
+        [a[0] - offset[0], a[1] - offset[1], depth(z)],
+        [b[0] - offset[0], b[1] - offset[1], depth(z)],
+        [a[0] + offset[0], a[1] + offset[1], depth(z)],
+        [b[0] + offset[0], b[1] + offset[1], depth(z)],
+    ];
+    surfaces.push(Surface {
+        depth: z,
+        blend,
+        vertices: quad(
+            points,
+            [color.map(|v| f32::from(v) / 255.0); 4],
+            None,
+            blend,
+        ),
+    });
+}
+
 fn screen_band(top: f32, bottom: f32, color: [f32; 3], blend: u8) -> Vec<Vertex> {
     let mut vertices = quad(
         [
@@ -192,31 +225,17 @@ pub fn build(game: &Game) -> Geometry {
             );
         }
         for &(points, sort_depth) in &wire.lines {
-            let [a, b] = points.map(|p| p.map(f32::from));
-            let delta = [b[0] - a[0], b[1] - a[1]];
-            let length = delta[0].hypot(delta[1]);
-            if length == 0.0 {
-                continue;
-            }
-            let offset = [-delta[1] / length * 0.5, delta[0] / length * 0.5];
-            let z = f32::from(sort_depth) * 16.0;
-            let points = [
-                [a[0] - offset[0], a[1] - offset[1], depth(z)],
-                [b[0] - offset[0], b[1] - offset[1], depth(z)],
-                [a[0] + offset[0], a[1] + offset[1], depth(z)],
-                [b[0] + offset[0], b[1] + offset[1], depth(z)],
-            ];
-            surfaces.push(Surface {
-                depth: z,
-                blend: 0,
-                vertices: quad(
-                    points,
-                    [[80.0 / 255.0, 72.0 / 255.0, 56.0 / 255.0]; 4],
-                    None,
-                    0,
-                ),
-            });
+            line(&mut surfaces, points, sort_depth, [80, 72, 56], 0);
         }
+    }
+    for segment in &game.effects.lines {
+        line(
+            &mut surfaces,
+            segment.points,
+            segment.depth,
+            segment.color,
+            2,
+        );
     }
     for &(index, matrix) in game.items.models.iter().chain(&game.misc.models) {
         mesh_surfaces(

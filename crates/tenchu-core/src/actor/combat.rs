@@ -280,9 +280,7 @@ impl Actor {
                 0xab => self.gun_control(ctx, world, 20, 100)?,
                 0xac => self.gun_control(ctx, world, 22, 700)?,
                 0xf5 => self.fire_control(ctx, world)?,
-                0xe9 => {
-                    return Err("Ranged attack item launch is not implemented yet".into());
-                }
+                0xe9 => self.lightning_control(ctx, world)?,
                 _ => (),
             },
             MOT_ATTACK_SLASH2 => {
@@ -293,12 +291,12 @@ impl Actor {
                     self.bow_control(ctx, world, true)?;
                 }
                 if kind == SEVEN {
-                    return Err("Ranged combo item launch is not implemented yet".into());
+                    self.lightning_control(ctx, world)?;
                 }
             }
             MOT_ATTACK_SLASH3 if kind == KATAYUMI => self.bow_control(ctx, world, true)?,
             MOT_ATTACK_SLASH3 | MOT_ATTACK_SLASH4 if kind == SEVEN => {
-                return Err("Ranged combo item launch is not implemented yet".into());
+                self.lightning_control(ctx, world)?;
             }
             MOT_ATTACK_RIGHT1 if kind == KATANAL => self.twin_blade(world, 52, 16),
             MOT_ATTACK_LEFT1 if kind == KATANAL => self.twin_blade(world, 43, 13),

@@ -253,6 +253,21 @@ impl Items {
                 self.throw_rolling(kind, owner_id, position, velocity, actors, ctx)?;
             }
             20 => self.launch(kind, owner_id, start, end, actors, ctx)?,
+            23 => {
+                let end = if owner_id == player {
+                    let vector = throw_vector(actors.get(owner_id), player, [0, 0, -4096], ctx)?;
+                    std::array::from_fn(|i| start[i].wrapping_add(vector[i]))
+                } else {
+                    end
+                };
+                let id = self.allocate(actors, ctx)?;
+                self.initialize(id, Processor::Lightning, kind, Some(owner_id), start, ctx)?;
+                self.slots[id].collision.size = 0;
+                self.slots[id].lightning = lightning::Lightning {
+                    start,
+                    rotation: ctx.math.vector_rotation(start, end)?,
+                };
+            }
             21 => {
                 let rotation = ctx.math.vector_rotation(start, end)?;
                 let end = projectile::target(owner_id, rotation, start, actors, ctx)?.1;

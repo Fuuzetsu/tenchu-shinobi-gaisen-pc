@@ -75,10 +75,11 @@ Protection charms apply their original melee damage modifiers for 450 logic tick
 Decoy dolls grow, draw nearby enemies and break under attack; only three can be active.
 Disguise changes the original body meshes and motion scale, with source alert and expiry rules.
 Ninja dogs summon, select and attack enemies, then expire after 1,800 logic ticks.
+Mei-Oh's four lightning attacks retain repeated targeting, damage and original bolt jitter.
 Resurrection leaves restore health after a lethal hit. Damage floors and Manji flame attacks share the original napalm behavior. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
 then returns to gameplay. Results, stock rewards, retry and progression now run
-through a simple launcher. Remaining items and special attacks
-are unfinished; unsupported actions pause with a diagnostic. Caltrops,
+through a simple launcher. Broader campaign and presentation coverage remain
+unfinished; unsupported actions pause with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -164,10 +165,10 @@ checks wall pressure and retreat for both characters.
 
 Every mission/layout constructs the source actor roster, collision slots,
 weapons and patrol data. The ordered actor loop and AI controllers are implemented;
-NPC activation now runs at the source cadence. Remaining effects, special ranged
-attacks and remaining items remain unfinished. Activation workload counts use original geometry,
-independent of PC rendering; remaining items and special attacks still need
-to add their original contributions before this has full-game fidelity. Empty
+NPC activation now runs at the source cadence. Remaining effects and full-campaign
+coverage are unfinished. Activation workload counts use original geometry,
+independent of PC rendering; complete drawing coverage still needs verification
+before this has full-game fidelity. Empty
 cable curves omit the hook mesh: the original reads undefined stack coordinates
 in that case, which this port does not reproduce.
 An additional private check compares the roster, mission totals, weapon hitbox

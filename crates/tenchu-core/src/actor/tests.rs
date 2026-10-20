@@ -890,6 +890,7 @@ mod decoy;
 mod disguise;
 mod dog;
 mod explosives;
+mod lightning;
 mod poison;
 mod revival;
 mod speed;
