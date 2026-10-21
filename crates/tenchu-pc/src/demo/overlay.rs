@@ -64,6 +64,11 @@ pub fn show(
                         ui.label(egui::RichText::new(&clip.title).size(25.0).strong());
                         ui.add_space(3.0);
                         ui.label(egui::RichText::new(&clip.description).size(15.0));
+                        if player.video.is_some()
+                            && matches!(clip.feature, super::Feature::Performance | super::Feature::Interface)
+                        {
+                            ui.weak("Offline export: host FPS/timings include capture and encoding. Video plays at 60 fps.");
+                        }
                         ui.add_space(9.0);
                         let value = super::readout(player, settings, debug);
                         ui.label(

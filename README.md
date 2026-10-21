@@ -36,6 +36,9 @@ controls and short captions. Tab opens the clip picker; Space pauses, arrows
 change clip, Home restarts, H hides captions and V hides transport controls.
 Use `demo --list` for clip IDs or `--clean` for uncaptioned recording. Each clip
 resets independently; campaign saves and normal preferences stay unchanged.
+Add `--video /path/to/showcase.mp4` for a silent 4K/60 fps offline export with
+every frame preserved, embedded chapters and a YouTube description timestamp
+file. See [DEMOS.md](DEMOS.md#4k-video-export-and-chapters).
 
 For the optional upgraded look, open **F1 → Graphics → Visual preset**:
 

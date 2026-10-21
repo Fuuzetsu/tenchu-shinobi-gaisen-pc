@@ -57,8 +57,31 @@ fn playlist_order_resets_and_end_behavior_are_explicit() {
         vec!["--duration", "0"],
         vec!["--loop", "--exit"],
         vec!["--clips", ""],
+        vec!["--video", "out.mp4", "--loop"],
+        vec!["--video"],
     ] {
         assert!(Player::parse(&args.into_iter().map(OsString::from).collect::<Vec<_>>()).is_err());
+    }
+}
+
+#[test]
+fn offline_frames_match_the_live_timeline_without_rounding_or_wall_clock() {
+    for id in ["moon", "motion", "speed", "cinematics", "step"] {
+        let mut live = player(&["--clips", id]);
+        let mut offline = player(&["--clips", id, "--video", "out.mp4"]);
+        assert!(!offline.transport && offline.captions && offline.muted);
+        for frame in 0..600 {
+            live.elapse(Duration::from_nanos(
+                ((frame + 1) * 1_000_000_000_u64).div_ceil(60)
+                    - (frame * 1_000_000_000_u64).div_ceil(60),
+            ));
+            offline.queue_frame();
+            assert_eq!(offline.step(true), live.step(true));
+            assert!(offline.step(true).is_none());
+            assert!(live.step(true).is_none());
+            assert_eq!(offline.simulation_ticks, live.simulation_ticks);
+            assert!((offline.alpha() - live.alpha()).abs() < 1e-5);
+        }
     }
 }
 

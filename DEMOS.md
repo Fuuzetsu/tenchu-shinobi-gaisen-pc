@@ -38,10 +38,10 @@ order is preserved, including repeated IDs. Checked selections use catalog
 order. The full sequence holds on its last shot; use `--loop` to repeat or
 `--exit` to close automatically at the end.
 
-For a clean recording use `--clean` to hide captions and transport, or press V
-to keep the explanations while hiding controls. `--mute` silences the demo.
-Capture the native window with your desktop recording tool. F9 produces a PNG with the clip ID and timeline frame in its filename,
-not a video. The profiler and inspection overlays remain visible in their clips
+For a clean view use `--clean` to hide captions and transport, or press V
+to keep the explanations while hiding controls. `--mute` silences live playback.
+F9 produces a PNG with the clip ID and timeline frame in its filename.
+The profiler and inspection overlays remain visible in their clips
 because they are the feature being demonstrated. Hide or omit those clips for
 unannotated scenery footage.
 
@@ -52,6 +52,41 @@ comparison. The timeline schedules presentation at 60 Hz and gameplay at its
 original 30 Hz, independent of display cadence; explicit speed/single-step clips
 change tick pacing. Acceleration executes every game tick. This is staged game
 playback, not an input recording or a campaign/fidelity regression route.
+
+## 4K video export and chapters
+
+```sh
+./dev.sh cargo run --release -- demo '/path/to/game.cue' --video "$HOME/Videos/tenchu-showcase.mp4"
+```
+
+This renders every presentation frame at **3840×2160, 60 fps** and streams it to
+FFmpeg. It produces a silent H.264 High Profile MP4 (CRF 16, up to 68 Mbps,
+BT.709 limited-range 4:2:0, fast start). The Nix package and shell supply FFmpeg;
+`TENCHU_FFMPEG` can select another installation. The destination directory must
+exist, and existing video/chapter files are never overwritten.
+
+The full catalog is 502 seconds / 30,120 frames. No display capture is involved:
+the renderer waits for GPU readback and encoding before advancing the exact
+60 Hz timeline. Host speed changes completion time, never output cadence.
+Mission loading adds no video time. The window is only a host for the renderer;
+it need not be 4K and does not display the exported frames. Esc or closing it
+cancels the export and removes its temporary files.
+
+Captions are scaled for 4K; transport controls are hidden. `--clean` also hides
+captions. `--clips`, `--catalog` and `--duration` work as in live playback;
+`--loop` is rejected. Interactive input is ignored and preferences are never saved.
+Profiling/FPS demonstrations still measure real host work, including readback
+and encoder waits, and their captions identify this. Those numbers are not a
+real-time gameplay benchmark. The video still plays at 60 fps.
+
+Each selected clip becomes an embedded MP4 chapter. The adjacent
+`tenchu-showcase.chapters.txt` contains the same titles/timestamps for the
+YouTube description. Paste that file into the video's description when
+uploading: [YouTube reads chapters from description timestamps](https://support.google.com/youtube/answer/9884579),
+starting at 00:00, with at least three chapters and at least ten seconds per
+chapter. The default catalog meets these requirements; short custom selections
+may not. The encoding follows the [YouTube SDR upload recommendations](https://support.google.com/youtube/answer/1722171).
+Nothing is uploaded automatically.
 
 ## Authoring clips
 
@@ -105,7 +140,7 @@ PNG capture and repeated Escape exit. Private save/settings sentinels remained
 byte-for-byte unchanged. All 79 desktop checks, Clippy, formatting and Nix
 native-package/portable-WASM checks pass. Captures and disc data stay outside Git.
 
-The showcase is currently a native window mode. It does not encode video, and
-no browser demo host or authored HD pack is bundled. Performance charts show
-real host timings, so those measurements and accelerated audio are not suitable
-as deterministic media exports. Other operating systems were not exercised.
+The showcase and video export currently use the native window host. No browser
+demo host or authored HD pack is bundled. Rendered scene/timeline state is
+repeatable; performance measurements still depend on the host. Other operating
+systems were not exercised.

@@ -7,7 +7,7 @@ mod tests;
 
 pub use catalog::{Clip, Feature, Shot};
 pub use presentation::{Scene, animate, camera, readout};
-use std::{ffi::OsString, time::Duration};
+use std::{ffi::OsString, path::PathBuf, time::Duration};
 use tenchu_assets::Result;
 
 pub struct Player {
@@ -25,6 +25,7 @@ pub struct Player {
     pub repeat: bool,
     pub exit_when_finished: bool,
     pub muted: bool,
+    pub video: Option<PathBuf>,
     pub scene: Scene,
     phase: u128,
     simulation_phase: u16,
@@ -40,6 +41,7 @@ impl Player {
         let mut clean = false;
         let mut exit_when_finished = false;
         let mut muted = false;
+        let mut video = None;
         let mut args = args.iter();
         while let Some(arg) = args.next() {
             match arg.to_str().ok_or("Invalid demo option")? {
@@ -47,6 +49,14 @@ impl Player {
                 "--clean" => clean = true,
                 "--exit" => exit_when_finished = true,
                 "--mute" => muted = true,
+                "--video" => {
+                    if video.is_some() {
+                        return Err("Choose one --video OUTPUT.mp4".into());
+                    }
+                    video = Some(PathBuf::from(
+                        args.next().ok_or("--video needs OUTPUT.mp4")?,
+                    ));
+                }
                 "--clips" => {
                     clips = Some(
                         args.next()
@@ -75,6 +85,9 @@ impl Player {
         }
         if repeat && exit_when_finished {
             return Err("Choose --loop or --exit, not both".into());
+        }
+        if video.is_some() && repeat {
+            return Err("Video exports play the selected clips once; omit --loop".into());
         }
         if let Some(seconds) = duration {
             for clip in &mut catalog {
@@ -109,10 +122,11 @@ impl Player {
             finished: false,
             library: false,
             captions: !clean,
-            transport: !clean,
+            transport: !clean && video.is_none(),
             repeat,
             exit_when_finished,
-            muted,
+            muted: muted || video.is_some(),
+            video,
             scene: Scene::default(),
         })
     }
@@ -164,6 +178,10 @@ impl Player {
 
     pub fn elapse(&mut self, elapsed: Duration) {
         self.phase += elapsed.as_nanos() * 60;
+    }
+
+    pub fn queue_frame(&mut self) {
+        self.phase = 1_000_000_000;
     }
 
     pub fn step(&mut self, cinematic: bool) -> Option<usize> {

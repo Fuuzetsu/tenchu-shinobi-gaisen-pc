@@ -6,6 +6,7 @@ mod settings_reset;
 #[cfg(test)]
 mod tests;
 mod tools;
+mod video;
 mod view;
 use view::View;
 
@@ -64,6 +65,7 @@ struct Application {
     screenshot: bool,
     demo: Option<crate::demo::Player>,
     demo_exit: bool,
+    video: Option<crate::video::Export>,
     modifiers: ModifiersState,
 }
 
@@ -115,6 +117,7 @@ impl Application {
                 settings: &self.settings,
                 menu: &self.menu,
                 fps: self.fps,
+                offline: self.video.is_some(),
                 debug: &self.debug,
                 alpha,
             });
@@ -314,6 +317,7 @@ impl ApplicationHandler for Application {
     fn exiting(&mut self, _: &ActiveEventLoop) {
         self.finish_recording();
         self.audio.take();
+        self.video.take();
         // EGL/Wayland resources must die before winit closes its display connection.
         if let Some(view) = self.view.take() {
             view.renderer.device.poll(wgpu::Maintain::Wait);
@@ -339,6 +343,23 @@ impl ApplicationHandler for Application {
                         return;
                     }
                     self.view = Some(view);
+                    if self.exporting_video() {
+                        let view = self.view.as_mut().unwrap();
+                        view.resize(crate::video::SIZE[0], crate::video::SIZE[1]);
+                        match crate::video::Export::new(
+                            self.demo.as_ref().unwrap(),
+                            &view.renderer,
+                            view.config.format,
+                        ) {
+                            Ok(video) => self.video = Some(video),
+                            Err(error) => {
+                                self.error = Some(error);
+                                events.exit();
+                                return;
+                            }
+                        }
+                        events.set_control_flow(winit::event_loop::ControlFlow::Poll);
+                    }
                     if let Err(error) = self.start_demo_clip() {
                         self.error = Some(error);
                         events.exit();
@@ -357,6 +378,16 @@ impl ApplicationHandler for Application {
     }
 
     fn window_event(&mut self, events: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
+        if self.exporting_video() {
+            if matches!(event, WindowEvent::CloseRequested)
+                || matches!(event, WindowEvent::KeyboardInput { ref event, .. }
+                    if event.physical_key == PhysicalKey::Code(KeyCode::Escape))
+            {
+                self.error = Some("Video export cancelled".into());
+                events.exit();
+            }
+            return;
+        }
         if let Some(view) = &mut self.view {
             view.overlay.event(&view.window, &event);
         }
@@ -615,7 +646,20 @@ impl ApplicationHandler for Application {
         }
     }
 
-    fn about_to_wait(&mut self, _: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, events: &ActiveEventLoop) {
+        if self.exporting_video() {
+            if self.video.is_some() {
+                match self.export_video_frame() {
+                    Ok(true) => events.exit(),
+                    Ok(false) => (),
+                    Err(error) => {
+                        self.error = Some(error);
+                        events.exit();
+                    }
+                }
+            }
+            return;
+        }
         if let Some(view) = &self.view {
             view.window.request_redraw();
         }
@@ -659,11 +703,15 @@ pub fn run(
     )?;
     campaign.game.activation.keep_all_active = settings.keep_enemies_active;
     let debug = crate::debug::Debug::new(&campaign.game)?;
-    let mut audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
-        Ok(audio) => Some(audio),
-        Err(error) => {
-            eprintln!("Audio unavailable: {error}");
-            None
+    let mut audio = if demo.as_ref().is_some_and(|d| d.video.is_some()) {
+        None
+    } else {
+        match crate::audio::Audio::new(disc, &assets, &campaign) {
+            Ok(audio) => Some(audio),
+            Err(error) => {
+                eprintln!("Audio unavailable: {error}");
+                None
+            }
         }
     };
     if let Some(audio) = &mut audio {
@@ -701,9 +749,14 @@ pub fn run(
         screenshot: false,
         demo,
         demo_exit: false,
+        video: None,
         modifiers: ModifiersState::empty(),
     };
-    if application.demo.is_some() {
+    if application.exporting_video() {
+        println!(
+            "Offline 4K/60 export. Every frame is rendered; host speed only affects completion time. Esc cancels."
+        );
+    } else if application.demo.is_some() {
         println!(
             "Showcase: Space pauses, Left/Right change clip, Home restarts, Tab opens the picker, H toggles captions, V toggles controls, F1 inspects temporary settings, F9 saves a PNG, Esc exits. Saves and preferences are unchanged."
         );

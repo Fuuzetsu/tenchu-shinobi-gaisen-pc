@@ -14,6 +14,7 @@ mod settings;
 mod source;
 mod storage;
 mod ui;
+mod video;
 mod visuals;
 mod window;
 
@@ -33,7 +34,7 @@ fn run() -> Result<()> {
         }
         if args.len() < 2 || args[1] == "--help" {
             println!(
-                "tenchu-pc demo DISC [--clips moon,shadows,motion] [--loop | --exit] [--clean] [--mute] [--duration SECONDS] [--catalog FILE]\nUse demo --list to list clips. Space pauses; arrows change clip; Home restarts; Tab opens the clip picker; H toggles captions; V toggles transport; F1 inspects temporary settings; F9 captures a PNG; Esc exits."
+                "tenchu-pc demo DISC [--clips moon,shadows,motion] [--loop | --exit] [--clean] [--mute] [--duration SECONDS] [--catalog FILE] [--video OUTPUT.mp4]\n--video exports silent 3840x2160 at exactly 60 fps with chapters, then exits.\nUse demo --list to list clips. Space pauses; arrows change clip; Home restarts; Tab opens the clip picker; H toggles captions; V toggles transport; F1 inspects temporary settings; F9 captures a PNG; Esc exits."
             );
             return Ok(());
         }

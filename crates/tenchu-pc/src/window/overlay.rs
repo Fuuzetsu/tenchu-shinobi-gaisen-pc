@@ -16,6 +16,7 @@ pub(super) struct Extras<'a> {
     pub labels: &'a [crate::debug::Label],
     pub performance: &'a mut super::performance::Performance,
     pub demo: Option<&'a mut crate::demo::Player>,
+    pub video_time: Option<f64>,
 }
 
 pub(super) struct Updates {
@@ -70,6 +71,23 @@ impl Overlay {
         mut extras: Extras<'_>,
     ) -> Updates {
         let mut input = self.state.take_egui_input(window);
+        if let Some(time) = extras.video_time {
+            self.context.set_zoom_factor(3.0);
+            self.context.style_mut(|s| s.animation_time = 0.0);
+            input.screen_rect = Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(1280.0, 720.0),
+            ));
+            input
+                .viewports
+                .entry(egui::ViewportId::ROOT)
+                .or_default()
+                .native_pixels_per_point = Some(1.0);
+            input.time = Some(time);
+            input.predicted_dt = 1.0 / 60.0;
+            input.events.clear();
+            input.focused = true;
+        }
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
         if !self.editing() && menu.edit.is_none() {
             input
@@ -88,6 +106,7 @@ impl Overlay {
                     &mut show_performance,
                     menu.open,
                     renderer.timings.is_some(),
+                    extras.video_time.is_some(),
                 );
             }
             if let Some(demo) = &mut extras.demo {
@@ -111,7 +130,11 @@ impl Overlay {
             .tessellate(output.shapes, output.pixels_per_point);
         let size = window.inner_size();
         self.screen = egui_wgpu::ScreenDescriptor {
-            size_in_pixels: [size.width.max(1), size.height.max(1)],
+            size_in_pixels: if extras.video_time.is_some() {
+                crate::video::SIZE
+            } else {
+                [size.width.max(1), size.height.max(1)]
+            },
             pixels_per_point: output.pixels_per_point,
         };
         for (id, image) in &output.textures_delta.set {
@@ -191,6 +214,10 @@ impl super::Application {
                 labels: &view.labels,
                 performance: &mut self.performance,
                 demo: self.demo.as_mut(),
+                video_time: self
+                    .video
+                    .as_ref()
+                    .map(|v| v.frames as f64 / crate::video::FPS as f64),
             },
         );
         if let Some(action) = updates.demo {

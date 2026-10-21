@@ -57,8 +57,10 @@
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
           '';
-          postFixup = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-            wrapProgram "$out/bin/tenchu-pc" --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"
+          postFixup = ''
+            wrapProgram "$out/bin/tenchu-pc" \
+              --set-default TENCHU_FFMPEG "${pkgs.ffmpeg}/bin/ffmpeg" \
+              ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''--prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"''}
           '';
           meta.mainProgram = "tenchu-pc";
         };
@@ -77,6 +79,7 @@
       devShells = eachSystem (pkgs: {
         default = pkgs.mkShell {
           TENCHU_DEV_SHELL = "1";
+          TENCHU_FFMPEG = "${pkgs.ffmpeg}/bin/ffmpeg";
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (runtimeLibraries pkgs) + ":/run/opengl-driver/lib";
           packages = with pkgs; [
             cargo
@@ -88,6 +91,7 @@
             lld
             nixfmt
             pkg-config
+            ffmpeg
           ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
             pkgs.alsa-lib

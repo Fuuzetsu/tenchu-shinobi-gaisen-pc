@@ -53,6 +53,7 @@ impl Performance {
         open: &mut bool,
         interactive: bool,
         gpu_supported: bool,
+        offline: bool,
     ) {
         egui::Window::new("Performance")
             .open(open)
@@ -74,7 +75,8 @@ impl Performance {
                 let frames: Vec<_> = self.cpu.iter().map(|f| f.interval).collect();
                 let (average, p95) = stats(frames.iter().copied());
                 ui.label(format!(
-                    "Frame interval: {average:.2} ms average · {p95:.2} ms p95"
+                    "{} interval: {average:.2} ms average · {p95:.2} ms p95",
+                    if offline { "Capture" } else { "Frame" },
                 ));
                 let cpu: Vec<[f32; 5]> = self
                     .cpu
@@ -98,7 +100,11 @@ impl Performance {
                         "Geometry + uploads",
                         "Overlay CPU",
                         "Encode + submit",
-                        "Acquire + present wait",
+                        if offline {
+                            "Capture + encoder wait"
+                        } else {
+                            "Acquire + present wait"
+                        },
                     ],
                     &cpu,
                 );

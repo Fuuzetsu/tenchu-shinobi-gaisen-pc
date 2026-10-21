@@ -124,43 +124,14 @@ pub fn read_texture(
         wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => false,
         format => return Err(format!("Screenshot format {format:?} is unsupported")),
     };
-    let stride = (width * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
-    let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("Capture readback"),
-        size: u64::from(stride) * u64::from(height),
-        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-    let mut encoder = renderer.device.create_command_encoder(&Default::default());
-    encoder.copy_texture_to_buffer(
-        texture.as_image_copy(),
-        wgpu::TexelCopyBufferInfo {
-            buffer: &buffer,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(stride),
-                rows_per_image: Some(height),
-            },
-        },
-        texture.size(),
-    );
-    renderer.queue.submit([encoder.finish()]);
-    let (send, receive) = std::sync::mpsc::channel();
-    buffer
-        .slice(..)
-        .map_async(wgpu::MapMode::Read, move |result| {
-            let _ = send.send(result);
-        });
-    renderer.device.poll(wgpu::Maintain::Wait);
-    receive
-        .recv()
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
-    let mapped = buffer.slice(..).get_mapped_range();
-    let mut pixels: Vec<_> = mapped
-        .chunks_exact(stride as usize)
-        .flat_map(|row| row[..width as usize * 4].iter().copied())
-        .collect();
+    let readback = Readback::new(renderer, texture);
+    let mut pixels = Vec::with_capacity(width as usize * height as usize * 4);
+    readback.read(renderer, texture, |mapped, stride| {
+        for row in mapped.chunks_exact(stride) {
+            pixels.extend_from_slice(&row[..width as usize * 4]);
+        }
+        Ok(())
+    })?;
     if bgra {
         for pixel in pixels.chunks_exact_mut(4) {
             pixel.swap(0, 2);
@@ -176,4 +147,62 @@ pub fn read_texture(
         .map_err(|e| e.to_string())?;
     eprintln!("Saved {}", destination.display());
     Ok(())
+}
+
+pub struct Readback {
+    buffer: wgpu::Buffer,
+    stride: u32,
+}
+
+impl Readback {
+    pub fn new(renderer: &Renderer, texture: &wgpu::Texture) -> Self {
+        let stride = (texture.width() * 4).next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+        Self {
+            buffer: renderer.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Capture readback"),
+                size: u64::from(stride) * u64::from(texture.height()),
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            }),
+            stride,
+        }
+    }
+
+    pub fn read(
+        &self,
+        renderer: &Renderer,
+        texture: &wgpu::Texture,
+        consume: impl FnOnce(&[u8], usize) -> Result<()>,
+    ) -> Result<()> {
+        let mut encoder = renderer.device.create_command_encoder(&Default::default());
+        encoder.copy_texture_to_buffer(
+            texture.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: &self.buffer,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(self.stride),
+                    rows_per_image: Some(texture.height()),
+                },
+            },
+            texture.size(),
+        );
+        renderer.queue.submit([encoder.finish()]);
+        let (send, receive) = std::sync::mpsc::channel();
+        self.buffer
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                let _ = send.send(result);
+            });
+        renderer.device.poll(wgpu::Maintain::Wait);
+        receive
+            .recv()
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?;
+        let mapped = self.buffer.slice(..).get_mapped_range();
+        let result = consume(&mapped, self.stride as usize);
+        drop(mapped);
+        self.buffer.unmap();
+        result
+    }
 }

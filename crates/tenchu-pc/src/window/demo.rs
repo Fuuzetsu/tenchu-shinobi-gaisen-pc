@@ -221,6 +221,15 @@ impl Application {
             .as_mut()
             .unwrap()
             .elapse(elapsed.min(Duration::from_millis(100)));
+        self.run_demo_frames();
+    }
+
+    pub(super) fn advance_demo_frame(&mut self) {
+        self.demo.as_mut().unwrap().queue_frame();
+        self.run_demo_frames();
+    }
+
+    fn run_demo_frames(&mut self) {
         while let Some(player) = &mut self.demo {
             let Some(ticks) = player.step(self.campaign.game.cinematic.active) else {
                 break;

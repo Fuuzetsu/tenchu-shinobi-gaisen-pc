@@ -16,6 +16,7 @@ pub(super) struct Frame<'a> {
     pub settings: &'a Settings,
     pub menu: &'a Menu,
     pub fps: f32,
+    pub offline: bool,
     pub debug: &'a crate::debug::Debug,
     pub alpha: f32,
 }
@@ -339,6 +340,7 @@ impl View {
             settings,
             menu,
             fps,
+            offline,
             debug,
             alpha,
         } = frame;
@@ -441,9 +443,10 @@ impl View {
             }
         }
         if settings.show_fps && !debug.photo_mode {
+            let label = if offline { "capture FPS" } else { "FPS" };
             self.labels.push(crate::debug::Label(
                 crate::debug::Anchor::TopLeft([10.0, 10.0]),
-                format!("{fps:.0} FPS  ·  tick {}", game.tick),
+                format!("{fps:.0} {label}  ·  tick {}", game.tick),
                 [1.0, 0.85, 0.35],
             ));
         }
@@ -487,7 +490,7 @@ impl View {
         })
     }
 
-    fn render(
+    pub(super) fn render(
         &mut self,
         target: &wgpu::TextureView,
         game: &Game,
