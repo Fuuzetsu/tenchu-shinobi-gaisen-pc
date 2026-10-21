@@ -13,6 +13,8 @@ pub struct Scene {
     pub pitch: f32,
     pub actor: Option<usize>,
     pub player_start: tenchu_core::math::Position,
+    pub previous_player: Vec3,
+    pub current_player: Vec3,
     pub bodies: Vec<(String, String)>,
     pub samples: Vec<u32>,
 }
@@ -26,6 +28,8 @@ impl Default for Scene {
             pitch: -0.3,
             actor: None,
             player_start: [0; 3].into(),
+            previous_player: Vec3::ZERO,
+            current_player: Vec3::ZERO,
             bodies: vec![(String::new(), "Original".into())],
             samples: vec![1],
         }
@@ -37,13 +41,18 @@ fn part(p: f32, count: usize) -> (usize, f32) {
     (index, (p * count as f32 - index as f32).clamp(0.0, 1.0))
 }
 
-pub fn camera(player: &Player, game: &Game) -> Option<Camera> {
+pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera> {
     if player.clip().shot == Shot::Cinematic {
         return None;
     }
     let p = player.progress();
     let scene = &player.scene;
     let mut target = scene.target;
+    if player.clip().shot == Shot::Player && player.clip().feature != Feature::Teleport {
+        let alpha = if interpolate { player.alpha() } else { 1.0 };
+        target += scene.previous_player.lerp(scene.current_player, alpha)
+            - Vec3::from(scene.player_start.map(|v| v as f32).to_array());
+    }
     if let Some(actor) = scene
         .actor
         .and_then(|id| game.roster.actors.get(id))
@@ -90,6 +99,13 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.lighting.enabled = true;
             g.lighting.intensity = (wave * 220.0).round() as u16;
             g.lighting.directional.intensity = 0;
+        }
+        Feature::FireLights => {
+            g.lighting.enabled = true;
+            g.lighting.lamps = false;
+            g.lighting.fires = section(p, 4) % 2 == 1;
+            g.lighting.directional.intensity = 0;
+            g.lighting.intensity = 220;
         }
         Feature::Shadows => {
             g.lighting.directional.intensity = 0;
@@ -351,6 +367,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         }
         Feature::Interface => {
             let stage = section(p, 3);
+            settings.pause_in_menu = false;
             settings.show_hud = stage != 2;
             settings.show_fps = stage > 0;
         }
@@ -381,6 +398,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         Feature::Presets => text(crate::settings::presets::NAMES[g.preset() as usize].into()),
         Feature::Lanterns => meter("Point-light strength (%)", l.intensity, 220),
         Feature::Moon => meter("Moon strength (%)", l.directional.intensity, 100),
+        Feature::FireLights => text(format!("Authored fire lights: {}", on(l.fires))),
         Feature::Shadows => {
             text(["Shadows off", "Hard model shadows", "Soft model shadows"][section(p, 3)].into())
         }
@@ -488,15 +506,16 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
                 "Standing"
             }
         )),
-        Feature::Simulation | Feature::Cinematics => meter(
-            "Simulation speed (%)",
-            player.speed(),
-            if player.clip().feature == Feature::Cinematics {
-                1600
+        Feature::Simulation => meter("Simulation speed (%)", player.speed(), 400),
+        Feature::Cinematics => text(format!(
+            "Cutscene setting: {}x · {}",
+            player.speed() / 100,
+            if player.cinematic_active {
+                "Playing original script"
             } else {
-                400
-            },
-        ),
+                "Normal gameplay at 1x"
+            }
+        )),
         Feature::Performance => text("Live CPU / GPU timings · F1 to freeze or clear".into()),
         Feature::Artwork => text(format!(
             "Replacement artwork: {} · original fallback when no pack is loaded",

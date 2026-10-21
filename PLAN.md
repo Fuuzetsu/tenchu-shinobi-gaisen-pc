@@ -37,6 +37,12 @@ Ordinary play, user preferences and campaign saves must remain unchanged.
   persistence isolation and native rendering. Keep disc assets/captures outside
   Git, run the Nix checks, and commit coherent implementation increments.
 
+Delivered as `tenchu-pc demo`: 37 selectable clips, JSON catalog, independent
+scene resets, smooth animated controls/captions, native transport/picker and
+clean screenshots. The F1 coverage map and recording/authoring instructions are
+in `DEMOS.md`. Cadence, persistence, native playback and packaging checks pass;
+normal play and saved preferences retain their previous behavior.
+
 This is a staged presentation, not a campaign route or a fidelity oracle. A
 browser presentation host and authored replacement HD artwork remain separate.
 

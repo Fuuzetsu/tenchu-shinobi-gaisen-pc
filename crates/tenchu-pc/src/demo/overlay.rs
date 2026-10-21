@@ -22,7 +22,21 @@ pub fn show(
     let clip = player.clip();
     if player.captions {
         egui::Area::new("demo-caption".into())
-            .anchor(egui::Align2::LEFT_BOTTOM, [24.0, -24.0])
+            .anchor(
+                if clip.shot == super::Shot::Cinematic {
+                    egui::Align2::LEFT_TOP
+                } else {
+                    egui::Align2::LEFT_BOTTOM
+                },
+                [
+                    24.0,
+                    if clip.shot == super::Shot::Cinematic {
+                        24.0
+                    } else {
+                        -24.0
+                    },
+                ],
+            )
             .interactable(false)
             .show(ctx, |ui| {
                 egui::Frame::new()
@@ -30,7 +44,12 @@ pub fn show(
                     .corner_radius(8)
                     .inner_margin(16)
                     .show(ui, |ui| {
-                        ui.set_width((ctx.screen_rect().width() - 80.0).clamp(240.0, 680.0));
+                        let width = if clip.shot == super::Shot::Cinematic {
+                            460.0
+                        } else {
+                            680.0
+                        };
+                        ui.set_width((ctx.screen_rect().width() - 80.0).clamp(240.0, width));
                         ui.label(
                             egui::RichText::new(format!(
                                 "TENCHU / NATIVE SHOWCASE    {:02} / {:02}    MISSION {}",
@@ -77,7 +96,21 @@ pub fn show(
     }
     if player.transport {
         egui::Area::new("demo-transport".into())
-            .anchor(egui::Align2::RIGHT_TOP, [-16.0, 16.0])
+            .anchor(
+                if settings.show_performance {
+                    egui::Align2::RIGHT_BOTTOM
+                } else {
+                    egui::Align2::RIGHT_TOP
+                },
+                [
+                    -16.0,
+                    if settings.show_performance {
+                        -16.0
+                    } else {
+                        16.0
+                    },
+                ],
+            )
             .show(ctx, |ui| {
                 egui::Frame::new()
                     .fill(egui::Color32::from_black_alpha(210))
@@ -146,6 +179,7 @@ pub fn show(
                 });
                 ui.separator();
                 egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
                     .max_height(400.0)
                     .show(ui, |ui| {
                         for (index, clip) in player.catalog.iter().enumerate() {

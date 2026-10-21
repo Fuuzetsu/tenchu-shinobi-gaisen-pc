@@ -14,7 +14,7 @@ fn timeline_and_speed_changes_do_not_depend_on_display_cadence() {
                 p.elapse(Duration::from_nanos(
                     (frame + 1) * 1_000_000_000 / fps - frame * 1_000_000_000 / fps,
                 ));
-                while let Some(ticks) = p.step() {
+                while let Some(ticks) = p.step(true) {
                     samples.push((p.frame, ticks, p.simulation_ticks));
                 }
             }
@@ -39,7 +39,7 @@ fn playlist_order_resets_and_end_behavior_are_explicit() {
     assert_eq!(p.playlist.len(), 3);
     assert!(!p.captions && !p.transport);
     p.elapse(Duration::from_secs(2));
-    while p.step().is_some() {}
+    while p.step(true).is_some() {}
     assert!(p.ended());
     assert!(p.next());
     assert_eq!(p.clip().id, "shadows");
@@ -76,4 +76,12 @@ fn catalog_rejects_duplicate_ids_and_invalid_scene_pairings() {
     assert_eq!(sweep(0.0), 0.0);
     assert_eq!(sweep(0.5), 1.0);
     assert_eq!(sweep(1.0), 0.0);
+}
+
+#[test]
+fn cinematic_acceleration_does_not_spill_into_gameplay() {
+    let mut p = player(&["--clips", "cinematics", "--duration", "2"]);
+    p.elapse(Duration::from_secs(2));
+    while p.step(false).is_some() {}
+    assert_eq!(p.simulation_ticks, 60);
 }

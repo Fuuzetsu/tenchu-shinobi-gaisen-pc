@@ -40,7 +40,7 @@ order. The full sequence holds on its last shot; use `--loop` to repeat or
 
 For a clean recording use `--clean` to hide captions and transport, or press V
 to keep the explanations while hiding controls. `--mute` silences the demo.
-Capture the native window with your desktop recording tool. F9 produces a PNG,
+Capture the native window with your desktop recording tool. F9 produces a PNG with the clip ID and timeline frame in its filename,
 not a video. The profiler and inspection overlays remain visible in their clips
 because they are the feature being demonstrated. Hide or omit those clips for
 unannotated scenery footage.
@@ -61,15 +61,15 @@ Copy it outside the repository, keep/edit the clips you want, and launch with
 duration (2–120 seconds), mission (0–10), character (0/1), preset (0–6), shot and
 feature are validated. `--clips` also works with a custom catalog.
 
-A shot chooses a player, lamp, guard, wide or cinematic anchor from the actual
+A shot chooses a player, lamp, fire, guard, wide or cinematic anchor from the actual
 stage data. Features are typed Rust programs in `src/demo/presentation.rs`;
 adding a genuinely new animated control belongs there. Playback, transport,
 scene preparation and overlay rendering are separate modules.
 
 The normal scene clips disable mission event triggers so the shot is not
-interrupted by a story or result transition. The cinematic clip keeps the
+interrupted by a story or result transition. The cinematic clip replays Mission 2's opening at each speed, keeping the
 original script and camera. Inputs for character demonstrations are a small,
-repeatable attack/crouch/jump sequence. Restarts use the same initial RNG seed.
+repeatable attack/crouch sequence. Restarts use the same initial RNG seed.
 
 ## F1 coverage
 
@@ -81,7 +81,7 @@ repeatable attack/crouch/jump sequence. Restarts use the same initial RNG seed.
 | Camera | `camera`, `photo`: independent camera, framing, FOV, overhead and clean photo view. Bookmark/flight controls remain available in F1. |
 | Teleport / actor | `inspection`, `enemies`, `teleport`: actor selection/state, explicit position changes and collision-floor placement. |
 | Simulation | `speed`, `step`, `sight-distance`, `enemies`, `cinematics`: pacing, single ticks, detection range, activation override and cinematic acceleration. Unlimited pacing remains available in normal play; timed clips use bounded rates for repeatability. |
-| Lighting | `lanterns`, `light-range`, `light-budget`, `shadows`, `shadow-quality`, `movable-light`: emitters, markers, intensity, ambient, range, light/shadow budgets, resolution, softness, original blobs and a moving world-space light. |
+| Lighting | `lanterns`, `fires`, `light-range`, `light-budget`, `shadows`, `shadow-quality`, `movable-light`: emitters, markers, intensity, ambient, range, light/shadow budgets, resolution, softness, original blobs and a moving world-space light. |
 | Visual assets | `artwork`, `reconstruction`, `models`: pack fallback, reconstruction, normals and contours. |
 | Sky lighting | `moon`, `sky-direction`, `sky-quality`: strength, direction, color, sky tint, coverage and resolution. |
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
@@ -97,6 +97,15 @@ show authored HD content that is not installed.
 
 Timeline/speed tests compare the same sequence at 24, 30, 60, 75, 144 and 240 Hz.
 Transport tests cover ordered selections, repeated clips, restart/end/loop and
-invalid options/catalogs. The initial native sweep loaded all 36 clips and
-verified unchanged private save/settings sentinels. Shot framing and native
-mouse/keyboard acceptance checks are being refined before final acceptance.
+invalid options/catalogs. Private-disc tests compare the full gameplay state
+under scripted demo input at different display rates and verify temporary F1
+edits. Native X11/Vulkan runs exercised the catalog, longer model/cinematic
+comparisons, mouse playlist selection, keyboard navigation, pause, clean view,
+PNG capture and repeated Escape exit. Private save/settings sentinels remained
+byte-for-byte unchanged. All 79 desktop checks, Clippy, formatting and Nix
+native-package/portable-WASM checks pass. Captures and disc data stay outside Git.
+
+The showcase is currently a native window mode. It does not encode video, and
+no browser demo host or authored HD pack is bundled. Performance charts show
+real host timings, so those measurements and accelerated audio are not suitable
+as deterministic media exports. Other operating systems were not exercised.

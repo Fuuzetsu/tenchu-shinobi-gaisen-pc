@@ -1,4 +1,5 @@
 mod catalog;
+pub mod framing;
 pub mod overlay;
 mod presentation;
 #[cfg(test)]
@@ -16,6 +17,7 @@ pub struct Player {
     pub index: usize,
     pub frame: u64,
     pub simulation_ticks: u64,
+    pub cinematic_active: bool,
     pub finished: bool,
     pub library: bool,
     pub captions: bool,
@@ -26,6 +28,7 @@ pub struct Player {
     pub scene: Scene,
     phase: u128,
     simulation_phase: u16,
+    last_speed: u16,
 }
 
 impl Player {
@@ -99,8 +102,10 @@ impl Player {
             index: 0,
             frame: 0,
             simulation_ticks: 0,
+            cinematic_active: false,
             phase: 0,
             simulation_phase: 0,
+            last_speed: 100,
             finished: false,
             library: false,
             captions: !clean,
@@ -132,6 +137,7 @@ impl Player {
         self.simulation_ticks = 0;
         self.phase = 0;
         self.simulation_phase = 0;
+        self.last_speed = 100;
         self.finished = false;
     }
 
@@ -160,13 +166,18 @@ impl Player {
         self.phase += elapsed.as_nanos() * 60;
     }
 
-    pub fn step(&mut self) -> Option<usize> {
+    pub fn step(&mut self, cinematic: bool) -> Option<usize> {
         if self.phase < 1_000_000_000 || self.finished {
             return None;
         }
         self.phase -= 1_000_000_000;
         self.frame += 1;
-        self.simulation_phase += self.speed();
+        self.last_speed = if self.clip().feature == Feature::Cinematics && !cinematic {
+            100
+        } else {
+            self.speed()
+        };
+        self.simulation_phase += self.last_speed;
         let ticks = self.simulation_phase / 200;
         self.simulation_phase %= 200;
         self.simulation_ticks += u64::from(ticks);
@@ -193,7 +204,7 @@ impl Player {
         if self.clip().feature == Feature::Step {
             return 1.0;
         }
-        ((f32::from(self.simulation_phase) + self.phase as f32 / 1e9 * f32::from(self.speed()))
+        ((f32::from(self.simulation_phase) + self.phase as f32 / 1e9 * f32::from(self.last_speed))
             / 200.0)
             .min(1.0)
     }
@@ -203,7 +214,7 @@ impl Player {
     }
 
     pub fn buttons(&self, tick: u64) -> u16 {
-        use tenchu_core::input::{CROSS, R1, SQUARE};
+        use tenchu_core::input::{R1, SQUARE};
         match self.clip().feature {
             Feature::Interpolation
             | Feature::ModelDetail
@@ -212,7 +223,7 @@ impl Player {
             | Feature::Simulation => match tick % 120 {
                 5 => SQUARE,
                 50..=65 => R1,
-                80 => CROSS,
+                80 => SQUARE,
                 _ => 0,
             },
             _ => 0,

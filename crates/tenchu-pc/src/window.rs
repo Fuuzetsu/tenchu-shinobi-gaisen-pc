@@ -110,7 +110,7 @@ impl Application {
         if let Some(view) = &mut self.view {
             view.update(view::Frame {
                 campaign: &self.campaign,
-                paused: self.paused,
+                paused: self.paused && self.demo.is_none(),
                 error: self.fault.as_deref(),
                 settings: &self.settings,
                 menu: &self.menu,
@@ -118,7 +118,14 @@ impl Application {
                 debug: &self.debug,
                 alpha,
             });
-            if self.demo.is_some() {
+            if let Some(demo) = &self.demo {
+                view.window.set_title(&format!(
+                    "Tenchu — showcase | {} | {:.1} / {}s | tick {}",
+                    demo.clip().id,
+                    demo.time(),
+                    demo.clip().seconds,
+                    self.campaign.game.tick
+                ));
                 view.labels
                     .retain(|label| !matches!(label.0, crate::debug::Anchor::BottomLeft(_)));
             }
@@ -377,7 +384,8 @@ impl ApplicationHandler for Application {
             WindowEvent::CursorMoved { position, .. } => {
                 self.pointer = [position.x, position.y];
             }
-            WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. } if self.menu.open => {}
+            WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. }
+                if self.menu.open || self.demo.is_some() => {}
             WindowEvent::MouseInput { state, button, .. }
                 if self.debug.camera.is_some() && self.focused =>
             {
@@ -695,9 +703,15 @@ pub fn run(
         demo_exit: false,
         modifiers: ModifiersState::empty(),
     };
-    println!(
-        "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
-    );
+    if application.demo.is_some() {
+        println!(
+            "Showcase: Space pauses, Left/Right change clip, Home restarts, Tab opens the picker, H toggles captions, V toggles controls, F1 inspects temporary settings, F9 saves a PNG, Esc exits. Saves and preferences are unchanged."
+        );
+    } else {
+        println!(
+            "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
+        );
+    }
     let result = EventLoop::new()
         .map_err(|e| e.to_string())?
         .run_app(&mut application)

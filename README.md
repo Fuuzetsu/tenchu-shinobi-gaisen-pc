@@ -24,6 +24,19 @@ A browser host and authored HD content are later work; editable texture/model
 packs are supported. The shared assets, audio and gameplay crates compile for WASM.
 
 The visual-upgrade work is tracked in [CONFIGURATION.md](CONFIGURATION.md).
+For a guided tour, run the modular [feature showcase](DEMOS.md):
+
+```sh
+./dev.sh cargo run --release -- demo '/path/to/game.cue'
+./dev.sh cargo run --release -- demo '/path/to/game.cue' --clips moon,shadows,motion --loop
+```
+
+Its 37 clips stage visual, simulation and inspection comparisons with animated
+controls and short captions. Tab opens the clip picker; Space pauses, arrows
+change clip, Home restarts, H hides captions and V hides transport controls.
+Use `demo --list` for clip IDs or `--clean` for uncaptioned recording. Each clip
+resets independently; campaign saves and normal preferences stay unchanged.
+
 For the optional upgraded look, open **F1 → Graphics → Visual preset**:
 
 - **Original** restores the original presentation settings and is the factory default.

@@ -45,21 +45,7 @@ pub fn sources(
         source.light.radius *= radius / 12_000.0;
     }
     if settings.fires {
-        candidates.extend(game.misc.objects.iter().filter_map(|object| {
-            if object.mode != 0 || !matches!(object.kind, Kind::Fire | Kind::Bonfire(_)) {
-                return None;
-            }
-            let position =
-                Vec3::from(object.position.map(|v| v as f32).to_array()) - Vec3::Y * 400.0;
-            Some(Source {
-                name: "Fire".into(),
-                light: Light {
-                    position,
-                    color: [1.0, 0.57, 0.25],
-                    radius,
-                },
-            })
-        }));
+        candidates.extend(fire_sources(game, radius));
     }
     candidates.retain(|s| {
         camera.distance_squared(s.light.position) < (s.light.radius + 15_000.0).powi(2)
@@ -72,4 +58,21 @@ pub fn sources(
     lights.extend(candidates);
     lights.truncate(usize::from(settings.count).min(MAX_LIGHTS));
     lights
+}
+
+pub fn fire_sources(game: &Game, radius: f32) -> impl Iterator<Item = Source> + '_ {
+    game.misc.objects.iter().filter_map(move |object| {
+        if object.mode != 0 || !matches!(object.kind, Kind::Fire | Kind::Bonfire(_)) {
+            return None;
+        }
+        let position = Vec3::from(object.position.map(|v| v as f32).to_array()) - Vec3::Y * 400.0;
+        Some(Source {
+            name: "Fire".into(),
+            light: Light {
+                position,
+                color: [1.0, 0.57, 0.25],
+                radius,
+            },
+        })
+    })
 }

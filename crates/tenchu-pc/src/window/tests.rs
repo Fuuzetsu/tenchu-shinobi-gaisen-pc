@@ -266,3 +266,51 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
     app.apply_item(Item::ResetTweaks, 1).unwrap();
     assert!(!app.settings.keep_enemies_active && !app.campaign.game.activation.keep_all_active);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; the same scripted showcase inputs produce the same game state at different display rates"]
+fn showcase_simulation_is_independent_of_display_cadence() {
+    let run = |fps: u64| {
+        let mut app = application(Options::default());
+        app.campaign.game.events = Default::default();
+        app.demo = Some(crate::demo::Player::parse(&["--clips".into(), "motion".into()]).unwrap());
+        for frame in 0..fps * 6 {
+            app.advance_demo(Duration::from_nanos(
+                (frame + 1) * 1_000_000_000 / fps - frame * 1_000_000_000 / fps,
+            ));
+            assert!(!app.faulted, "{:?}", app.fault);
+        }
+        assert_eq!(app.campaign.game.tick, 180);
+        let state = crate::session::tests::state(&app.campaign.game);
+        app.demo.as_mut().unwrap().library = true;
+        app.advance_demo(Duration::from_secs(1));
+        assert_eq!(state, crate::session::tests::state(&app.campaign.game));
+        state
+    };
+    let expected = run(60);
+    for fps in [24, 30, 144] {
+        assert_eq!(run(fps), expected);
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; F1 edits in showcase mode must not overwrite normal preferences"]
+fn showcase_settings_are_temporary_even_when_edited_through_f1() {
+    let mut app = application(Options::default());
+    let directory =
+        std::env::temp_dir().join(format!("tenchu-demo-settings-{}", std::process::id()));
+    app.settings_store.path = directory.join("settings.json");
+    app.settings_store.write(&app.settings).unwrap();
+    let bytes = std::fs::read(&app.settings_store.path).unwrap();
+    let original = app.settings.clone();
+    app.demo = Some(crate::demo::Player::parse(&[]).unwrap());
+    app.apply_item(Item::Fps, 1).unwrap();
+    app.apply_item(Item::Preset, 1).unwrap();
+    app.apply_settings(&original);
+    assert_eq!(std::fs::read(&app.settings_store.path).unwrap(), bytes);
+    assert_ne!(app.settings, original);
+    app.demo = None;
+    app.apply_settings(&original);
+    assert_eq!(app.settings_store.load().unwrap(), app.settings);
+    std::fs::remove_dir_all(directory).unwrap();
+}

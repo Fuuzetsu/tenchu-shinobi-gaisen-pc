@@ -6,6 +6,7 @@ use tenchu_assets::Result;
 pub enum Feature {
     Presets,
     Lanterns,
+    FireLights,
     Shadows,
     Moon,
     TextureSampling,
@@ -47,6 +48,7 @@ pub enum Feature {
 pub enum Shot {
     Player,
     Lamp,
+    Fire,
     Guard,
     Wide,
     Cinematic,

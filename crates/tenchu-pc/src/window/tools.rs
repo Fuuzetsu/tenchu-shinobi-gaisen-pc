@@ -602,7 +602,12 @@ impl Application {
                 .duration_since(std::time::UNIX_EPOCH)
                 .map_err(|e| e.to_string())?
                 .as_nanos();
-            let path = directory.join(format!("tenchu-{}-{time}.png", self.campaign.game.tick));
+            let name = if let Some(demo) = &self.demo {
+                format!("demo-{}-{:05}-{time}.png", demo.clip().id, demo.frame)
+            } else {
+                format!("tenchu-{}-{time}.png", self.campaign.game.tick)
+            };
+            let path = directory.join(name);
             self.view.as_mut().ok_or("Window is not ready")?.capture(
                 &self.campaign.game,
                 &self.debug,

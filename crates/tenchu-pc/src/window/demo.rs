@@ -35,6 +35,7 @@ impl Application {
         self.debug = debug::Debug::new(&game)?;
         let view = self.view.as_mut().ok_or("Demo window is not ready")?;
         view.reload(&game, &self.settings)?;
+        let geometry = render_mesh::stage(&game.mission, &game.math, None);
         let origin = Vec3::from(game.player().position.map(|v| v as f32).to_array());
         let mut scene = demo::Scene {
             target: origin - Vec3::Y * 900.0,
@@ -47,18 +48,37 @@ impl Application {
         // Prefer different silhouettes over the player's own duplicate disc entry.
         let own = format!("disc:{}", game.player().kind);
         scene.bodies.retain(|(id, _)| *id != own);
+        scene.bodies.sort_by_key(|(id, _)| {
+            if id.is_empty() {
+                0
+            } else if id.starts_with("pack:") {
+                1
+            } else {
+                2
+            }
+        });
         match clip.shot {
-            Shot::Lamp => {
-                let lamp = view
-                    .nearest_lamp(&game, origin)
-                    .ok_or_else(|| format!("Demo '{}' needs a lantern in this stage", clip.id))?;
+            Shot::Lamp | Shot::Fire => {
+                let lamp = if clip.shot == Shot::Fire {
+                    crate::lighting::fire_sources(&game, 12000.0).min_by(|a, b| {
+                        origin
+                            .distance_squared(a.light.position)
+                            .total_cmp(&origin.distance_squared(b.light.position))
+                    })
+                } else {
+                    view.nearest_lamp(&game, origin)
+                }
+                .ok_or_else(|| {
+                    format!("Demo '{}' needs its light source in this stage", clip.id)
+                })?;
                 scene.target = lamp.light.position;
-                scene.distance = 7000.0;
+                scene.distance = 8000.0;
                 scene.pitch = -0.30;
-                let toward = Vec3::new(scene.yaw.sin(), 0.0, scene.yaw.cos());
+                let delta = origin - scene.target;
+                let toward = Vec3::new(delta.x, 0.0, delta.z).normalize_or_zero();
                 for offset in [
-                    -toward * 2000.0,
-                    toward * 2000.0,
+                    toward * 2200.0,
+                    -toward * 2200.0,
                     Vec3::X * 2000.0,
                     Vec3::NEG_X * 2000.0,
                 ] {
@@ -70,11 +90,26 @@ impl Application {
                         break;
                     }
                 }
+                for _ in 0..5 {
+                    game.step(0)?;
+                }
                 scene.player_start = game.player().position;
+                let body = Vec3::from(game.player().position.map(|v| v as f32).to_array())
+                    - Vec3::Y * 500.0;
+                scene.target = scene.target.lerp(body, 0.65);
+                if matches!(
+                    clip.feature,
+                    Feature::Shadows | Feature::ShadowQuality | Feature::Moon
+                ) {
+                    scene.yaw = toward.x.atan2(toward.z) + std::f32::consts::FRAC_PI_2;
+                    scene.pitch = -0.75;
+                    scene.distance = 9000.0;
+                }
+                demo::framing::unobstructed(&mut scene, &geometry);
             }
             Shot::Guard => {
                 let far = clip.feature == Feature::EnemySimulation;
-                let actor = game
+                let mut actors = game
                     .roster
                     .order
                     .iter()
@@ -83,21 +118,30 @@ impl Application {
                         let actor = game.roster.get(id);
                         id != game.player_id
                             && actor.health > 0
-                            && actor.attribute & tenchu_core::ids::ATTR_CUSTOMAI != 0
                             && actor.patrol.is_some()
+                            && actor.weapons.iter().any(Option::is_some)
+                            && actor.attribute & tenchu_core::ids::ATTR_CUSTOMAI != 0
                     })
-                    .min_by(|&a, &b| {
-                        let distance = |id| {
-                            Vec3::from(game.roster.get(id).position.map(|v| v as f32).to_array())
-                                .distance_squared(origin)
-                        };
-                        let order = distance(a).total_cmp(&distance(b));
-                        if far { order.reverse() } else { order }
-                    })
-                    .ok_or_else(|| format!("Demo '{}' needs a patrol actor", clip.id))?;
-                scene.actor = Some(actor);
-                scene.distance = if far { 10000.0 } else { 14000.0 };
+                    .collect::<Vec<_>>();
+                let position =
+                    |id| Vec3::from(game.roster.get(id).position.map(|v| v as f32).to_array());
+                actors.sort_by(|&a, &b| {
+                    let order = position(a)
+                        .distance_squared(origin)
+                        .total_cmp(&position(b).distance_squared(origin));
+                    if far { order.reverse() } else { order }
+                });
+                scene.distance = if far { 8000.0 } else { 14000.0 };
                 scene.pitch = -0.75;
+                let actor = actors
+                    .into_iter()
+                    .find(|&id| {
+                        scene.target = position(id) - Vec3::Y * 900.0;
+                        demo::framing::unobstructed(&mut scene, &geometry)
+                    })
+                    .ok_or_else(|| format!("Demo '{}' needs a visible patrol actor", clip.id))?;
+                scene.actor = Some(actor);
+                self.settings.graphics.fog = false;
                 self.debug.selected_actor = actor;
                 if !far {
                     self.settings.keep_enemies_active = true;
@@ -107,17 +151,36 @@ impl Application {
             Shot::Wide => {
                 scene.distance = 20000.0;
                 scene.pitch = -0.65;
+                self.settings.graphics.fog = false;
             }
             Shot::Player => {
-                scene.distance = 4800.0;
+                scene.target = origin - Vec3::Y * 500.0;
+                scene.distance = 4200.0;
                 scene.pitch = -0.25;
                 scene.yaw += 2.2;
+                demo::framing::unobstructed(&mut scene, &geometry);
             }
             Shot::Cinematic => {}
         }
+        if matches!(
+            clip.feature,
+            Feature::LightBudget | Feature::DistanceFiltering
+        ) {
+            self.settings.graphics.fog = false;
+        }
+        if matches!(
+            clip.feature,
+            Feature::ModelDetail | Feature::PlayerModels | Feature::MovableLight | Feature::Artwork
+        ) {
+            self.debug.light = Some(scene.target + Vec3::new(-2000.0, -2500.0, -2000.0));
+            self.settings.graphics.lighting.ambient = 65;
+        }
+        scene.current_player = Vec3::from(game.player().position.map(|v| v as f32).to_array());
+        scene.previous_player = scene.current_player;
+        player.cinematic_active = game.cinematic.active;
         player.scene = scene;
         demo::animate(player, &mut self.settings, &mut self.debug);
-        self.debug.camera = demo::camera(player, &game);
+        self.debug.camera = demo::camera(player, &game, self.settings.graphics.interpolation);
         game.activation.keep_all_active = self.settings.keep_enemies_active;
         game.intelligence.sight_percent = self.debug.sight_percent;
         self.campaign.game = game;
@@ -159,9 +222,21 @@ impl Application {
             .unwrap()
             .elapse(elapsed.min(Duration::from_millis(100)));
         while let Some(player) = &mut self.demo {
-            let Some(ticks) = player.step() else {
+            let Some(ticks) = player.step(self.campaign.game.cinematic.active) else {
                 break;
             };
+            if player.clip().feature == Feature::Cinematics
+                && !player.ended()
+                && player
+                    .frame
+                    .is_multiple_of(u64::from(player.clip().seconds) * 20)
+            {
+                player.simulation_ticks -= ticks as u64;
+                if let Err(error) = self.start_demo_clip() {
+                    self.pause_error(error);
+                }
+                return;
+            }
             let first = player.simulation_ticks - ticks as u64;
             let inputs = (0..ticks)
                 .map(|i| player.buttons(first + i as u64))
@@ -171,10 +246,28 @@ impl Application {
             self.campaign.game.activation.keep_all_active = self.settings.keep_enemies_active;
             self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
             if let Some(audio) = &mut self.audio {
-                audio.fast_forward(player.speed() != 100);
+                audio.fast_forward(
+                    player.speed() != 100
+                        && (player.clip().feature != Feature::Cinematics
+                            || self.campaign.game.cinematic.active),
+                );
             }
-            for buttons in inputs {
-                if !self.game_tick(buttons) {
+            let cinematic = self.campaign.game.cinematic.active;
+            let cinematic_clip = player.clip().feature == Feature::Cinematics;
+            for (index, buttons) in inputs.into_iter().enumerate() {
+                let scene = &mut self.demo.as_mut().unwrap().scene;
+                scene.previous_player = scene.current_player;
+                let running = self.game_tick(buttons);
+                self.demo.as_mut().unwrap().scene.current_player = Vec3::from(
+                    self.campaign
+                        .game
+                        .player()
+                        .position
+                        .map(|v| v as f32)
+                        .to_array(),
+                );
+                if !running || cinematic_clip && cinematic && !self.campaign.game.cinematic.active {
+                    self.demo.as_mut().unwrap().simulation_ticks -= (ticks - index - 1) as u64;
                     break;
                 }
             }
@@ -182,6 +275,7 @@ impl Application {
                 return;
             }
             let player = self.demo.as_mut().unwrap();
+            player.cinematic_active = self.campaign.game.cinematic.active;
             if player.clip().feature == Feature::Teleport {
                 let frames = u64::from(player.clip().seconds) * 60;
                 if player.frame == frames / 3 || player.frame == frames * 2 / 3 {
@@ -200,7 +294,15 @@ impl Application {
                     }
                 }
             }
-            self.debug.camera = demo::camera(player, &self.campaign.game);
+            self.debug.camera = demo::camera(
+                player,
+                &self.campaign.game,
+                self.settings.graphics.interpolation,
+            );
+            if player.clip().feature == Feature::Interface {
+                self.menu.page = 0;
+                self.menu.open = player.progress() >= 2.0 / 3.0;
+            }
             if self.settings != previous
                 && let Some(view) = &mut self.view
                 && let Err(error) = view.settings(&self.settings, &self.campaign.game)
@@ -218,6 +320,13 @@ impl Application {
                 }
                 break;
             }
+        }
+        if let Some(player) = &self.demo {
+            self.debug.camera = demo::camera(
+                player,
+                &self.campaign.game,
+                self.settings.graphics.interpolation,
+            );
         }
     }
 
