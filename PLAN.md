@@ -168,6 +168,22 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
+Current work: live player appearance swapping, followed by an idiomatic Rust
+refactor. Preserve gameplay behavior while improving the implementation rather
+than retaining C-shaped data structures for their own sake.
+
+- [ ] Select compatible original bodies in F1 without changing player identity,
+  animation, inventory, collision or disguise effects; keep weapons attached.
+- [ ] Load/reload custom bodies from a user-selected directory using the existing
+  OBJ/PNG workflow, with validation, original fallback and documented exports.
+- [ ] Exercise both players, combat/weapon swaps, interpolation and shadows;
+  compare complete gameplay state across appearance changes.
+- [ ] Introduce named coordinate types, remove unnecessary enum representations
+  and numeric casts, and simplify equivalent arithmetic/iteration using Rust APIs.
+- [ ] Resolve Clippy findings, run source/gameplay regressions and native/WASM
+  packaging checks, document retained binary/fixed-point boundaries and commit
+  coherent increments.
+
 Optional configuration, native inspection tools and visual upgrades are
 implemented while preserving the Original defaults. The latest additions are
 sharper texture variants, a compact mouse settings overlay, corrected lamp
