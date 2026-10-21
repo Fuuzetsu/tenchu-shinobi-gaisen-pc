@@ -168,9 +168,11 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-The next goal adds optional configuration and native inspection tools while
-preserving the current defaults. See [CONFIGURATION.md](CONFIGURATION.md) for
-its deliverables and verification.
+Optional configuration, native inspection tools and visual upgrades are
+implemented while preserving the Original defaults. The latest additions are
+sharper texture variants, a compact mouse settings overlay, corrected lamp
+shadow budgets and visual-only model interpolation. See
+[CONFIGURATION.md](CONFIGURATION.md) for deliverables, verification and limits.
 
 2026-10-20: all MAIN.EXE systems are implemented. Current recordings complete
 all ten campaign missions and training for both characters from ordinary
@@ -222,7 +224,7 @@ swimming camera. The longer continuous comparison covers receiving
 attacks as well as traversal. Console
 frame-cost prediction remains outside scope.
 
-The current Linux host suite passes all 37 tests, including private-disc,
+At the MAIN.EXE milestone, the Linux host suite passed all 37 tests, including private-disc,
 full-campaign, audio and GPU checks. The final Nix desktop package, native tests,
 WASM libraries and formatting checks pass on x86_64-linux. The packaged
 executable successfully inspects the real disc and resumes the actual completed
@@ -1300,3 +1302,12 @@ Original/Enhanced/Cinematic presets and clean photo capture. Final evidence and
 remaining visual limits are recorded in `CONFIGURATION.md`. The original
 presentation remains the factory default; all 62 desktop checks and the native,
 WASM and formatting Nix checks pass.
+
+The texture/overlay/interpolation follow-up is also complete. Enhanced and
+Cinematic now shadow all four active lamps and enable optional smooth model
+motion. Original retains its previous rendering and exact 30 Hz poses. All 66
+desktop checks pass, including both campaigns and full gameplay-state checks
+across intermediate rendered poses for both players. Native X11 mouse/gameplay
+checks and Wayland gameplay/overlay checks pass, including repeated Escape
+exits. The final Nix package, native tests, shared WASM libraries and formatting checks pass. The
+browser host, other build platforms and physical gamepads remain unverified.

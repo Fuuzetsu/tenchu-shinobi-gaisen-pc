@@ -429,5 +429,14 @@ described above. No game assets or diagnostic captures are included in Git.
   between-tick presentation, not a hardware performance benchmark (1280×720
   Xvfb presentation was limited to about 32 frames/s). No display rate is baked
   into the interpolation.
-- [ ] Verify actual native controls/rendering, regression checks, Nix packaging,
-  portable shared crates and clean Wayland exit; document remaining limits.
+- [x] Verify actual native controls/rendering, regression checks, Nix packaging,
+  portable shared crates and clean Wayland exit. All 66 desktop tests pass with
+  private disc/audio/GPU fixtures, including both complete campaigns. Focused
+  interpolation and GUI regressions pass after the final fixes. The final
+  x86_64-linux Nix package, native tests, shared WASM libraries and formatting
+  checks pass. Native X11 checks cover both players, model motion, mouse controls
+  and repeated Escape exits. An isolated headless Wayland session enters actual
+  gameplay, enables interpolation in F1, uses free camera/pause and exits with
+  repeated Escape, returning zero. Its recorded game ticks and saved setting
+  confirm those actions were processed. Other platforms and physical gamepads
+  remain unverified. The interpolation and rendering limits are listed above.
