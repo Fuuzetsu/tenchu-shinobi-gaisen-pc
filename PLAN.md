@@ -16,6 +16,30 @@ game. Keep drawing-related coordinate, effect, RNG and activation side effects
 in the ordered game update. Do not recreate PS1 frame drops. PC overload is a
 host scheduling/presentation concern, not a source of gameplay `SkipFrame` flags.
 
+## Showcase mode follow-up
+
+Build a separate, modular native demo mode using the same game and renderer.
+Ordinary play, user preferences and campaign saves must remain unchanged.
+
+- A named catalog of short clips, each with a mission, staged camera, feature
+  animation, readable explanation and progress/value display. Use recovered
+  scene lights, actors and terrain as anchors instead of asset-number hacks.
+- Reproducible per-clip resets and a presentation timeline independent of
+  display cadence. The simulation continues through the existing 30 Hz update;
+  explicit speed demonstrations change tick pacing, not gameplay arithmetic.
+- A full playlist, command-line clip selection/order, optional looping, mouse
+  clip picker, pause/restart/previous/next and clean capture controls.
+- Show presets, point/moon shadows, texture reconstruction/filtering, edge
+  antialiasing, model detail/swaps/interpolation, atmosphere and image effects,
+  collision/AI inspection, free camera, simulation and cinematic acceleration,
+  and live profiling across several stages and both player characters.
+- Document recording and clip reuse. Validate timing/transport, scene loading,
+  persistence isolation and native rendering. Keep disc assets/captures outside
+  Git, run the Nix checks, and commit coherent implementation increments.
+
+This is a staged presentation, not a campaign route or a fidelity oracle. A
+browser presentation host and authored replacement HD artwork remain separate.
+
 ## Existing resources
 
 These sibling repositories contain extensive existing work and must be consulted
