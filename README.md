@@ -30,7 +30,7 @@ For the optional upgraded look, open **F1 → Graphics → Visual preset**:
 - **Enhanced** combines 4× MSAA, 8× anisotropic filtering, subtle character
   contours, smooth model lighting, lantern/sky shadows, contact shading,
   restrained bloom and blue distance haze.
-- **Cinematic** increases anisotropy and the point-light/shadow budget, with
+- **Cinematic** increases anisotropy and point-shadow resolution, with
   stronger bloom/contact shading, haze and a slight vignette. It costs more GPU time.
 
 Each effect remains adjustable. Changes show the preset as **Custom**; R on the
@@ -45,6 +45,12 @@ Pixel uses nearest sampling up close. All four retain the selected mipmaps and
 anisotropy in the distance. Enhanced selects Crisp; Cinematic selects Cubic.
 These work with the optional Scale2x/4x reconstruction and replacement PNGs.
 The Original preset keeps its original nearest sampling.
+
+Both enhanced presets shadow all four active point lights. Ambient brightness
+is lower so lamp occlusion remains visible on scenery, models and weapons.
+Increasing the light budget beyond the shadow budget allows the extra lights
+to shine through geometry; the Lighting page reports that difference. Previously
+saved custom settings are preserved: reselect a preset to use the revised balance.
 
 An asset export is available for reviewing and editing the original art:
 

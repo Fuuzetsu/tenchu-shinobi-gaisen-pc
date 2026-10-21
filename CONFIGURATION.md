@@ -395,7 +395,15 @@ described above. No game assets or diagnostic captures are included in Git.
   minification across modes; same-state Mission 1 room captures were inspected.
 - [ ] Replace the fullscreen bitmap-font settings panel with a compact, movable
   mouse overlay, retaining keyboard/controller navigation and per-value reset.
-- [ ] Correct the enhanced lamp shadow budgets and inspect room occlusion.
+- [x] Correct the enhanced lamp shadow budgets and inspect room occlusion.
+  In the Mission 1 tick-5000 room, the visible AKARI01 wall lanterns were lights
+  three and four, while Enhanced only shadowed light one. Both enhanced presets
+  now give all four active lights shadow maps, reduce ambient from 85% to 45%
+  and increase lamp strength from 120% to 220%. Same-state comparisons with
+  zero/four point shadow maps show occlusion from props, characters and the
+  lantern frames. This uses the existing emitter data and geometry, with no
+  mission-coordinate overrides. Higher manual unshadowed budgets still leak
+  light by design and are identified in the new overlay.
 - [ ] Add optional visual model interpolation between 30 Hz ticks, including
   held weapons and discontinuity handling, without changing gameplay state.
 - [ ] Verify actual native controls/rendering, regression checks, Nix packaging,

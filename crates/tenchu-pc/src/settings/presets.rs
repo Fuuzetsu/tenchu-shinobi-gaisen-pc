@@ -31,10 +31,10 @@ fn preset(index: u16) -> Graphics {
     let light = &mut graphics.lighting;
     light.enabled = true;
     light.count = 4;
-    light.shadow_count = 1;
+    light.shadow_count = 4;
     light.radius = 10;
-    light.intensity = 120;
-    light.ambient = 85;
+    light.intensity = 220;
+    light.ambient = 45;
     light.softness = 2;
     light.sky_tint = 15;
     light.directional.intensity = 70;
@@ -45,8 +45,6 @@ fn preset(index: u16) -> Graphics {
     post.gamma = 105;
     post.haze = 10;
     if index == 2 {
-        light.count = 8;
-        light.shadow_count = 2;
         light.resolution = 1024;
         light.softness = 3;
         light.sky_tint = 25;
