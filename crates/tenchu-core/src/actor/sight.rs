@@ -45,6 +45,15 @@ pub struct Sight {
     pub direction: i16,
 }
 
+pub struct Search<'a> {
+    pub owner: &'a Actor,
+    pub target: Option<Position>,
+    pub player: crate::ai::Player,
+    pub clock: i32,
+    pub alert: i32,
+    pub range_percent: u16,
+}
+
 pub struct Profile {
     pub sight: i32,
     pub clear: i32,
@@ -68,16 +77,15 @@ pub fn profile(sneaking: bool, percent: u16) -> Profile {
 }
 
 impl Sight {
-    pub fn search(
-        &mut self,
-        owner: &Actor,
-        target: Option<Position>,
-        player: crate::ai::Player,
-        clock: i32,
-        alert: i32,
-        range_percent: u16,
-        ctx: &mut Context,
-    ) -> Result<Detection> {
+    pub fn search(&mut self, search: Search<'_>, ctx: &mut Context) -> Result<Detection> {
+        let Search {
+            owner,
+            target,
+            player,
+            clock,
+            alert,
+            range_percent,
+        } = search;
         let Some(target) = target else {
             return Ok(Detection::None);
         };

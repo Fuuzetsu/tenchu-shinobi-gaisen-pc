@@ -22,9 +22,17 @@ impl Actor {
                     start[1] = start[1]
                         .wrapping_sub(i32::from(ctx.mission.characters[self.definition].height))
                         .wrapping_add(300);
-                    world
-                        .items
-                        .request(0, self, start, start, world.player, world.roster, ctx)?;
+                    world.items.request(
+                        crate::items::Request {
+                            kind: 0,
+                            start,
+                            end: start,
+                        },
+                        self,
+                        world.player,
+                        world.roster,
+                        ctx,
+                    )?;
                     ctx.effects.sounds.push((self.position, 0x1e));
                 } else if self.inventory[25] != 1 {
                     let dx = ctx.camera.target[0].wrapping_sub(self.position.x);

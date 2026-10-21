@@ -113,11 +113,13 @@ impl Items {
                         if item.decoy.health == 0 {
                             ctx.effects.scatter_bleeds(
                                 position,
-                                0,
                                 30,
-                                30,
-                                30,
-                                [255, 255, 0],
+                                crate::effects::Burst {
+                                    spread: 0,
+                                    count: 30,
+                                    lifetime: 30,
+                                    color: [255, 255, 0],
+                                },
                                 ctx.random,
                             );
                             ctx.effects.sounds.push((position, 0x23));

@@ -25,8 +25,9 @@
   logic, obvious comments and tests that merely restate implementation.
 - Useful tests include source arithmetic edges, recorded state comparisons,
   asset parsing, gameplay transitions and independence from rendering cadence.
-- Run `cargo fmt --all` and appropriate focused checks before each implementation
-  commit. Commit coherent increments; keep the tree reviewable.
+- Run `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`
+  and appropriate focused checks before each implementation commit. Commit
+  coherent increments; keep the tree reviewable.
 - Never commit copyrighted game assets, disc images, BIOS files, captured RAM or
   generated build outputs. The runtime reads the user's disc; replacement assets
   will use explicit overrides with original assets as the fallback.

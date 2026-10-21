@@ -101,16 +101,16 @@ impl Application {
             self.clock.interpolation()
         };
         if let Some(view) = &mut self.view {
-            view.update(
-                &self.campaign,
-                self.paused,
-                self.fault.as_deref(),
-                &self.settings,
-                &self.menu,
-                self.fps,
-                &self.debug,
+            view.update(view::Frame {
+                campaign: &self.campaign,
+                paused: self.paused,
+                error: self.fault.as_deref(),
+                settings: &self.settings,
+                menu: &self.menu,
+                fps: self.fps,
+                debug: &self.debug,
                 alpha,
-            );
+            });
         }
     }
 

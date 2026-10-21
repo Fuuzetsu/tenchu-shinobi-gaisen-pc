@@ -29,8 +29,17 @@ impl Items {
                 let action = owner.return_normal(ctx, player)?;
                 owner.enter(ctx, action, true);
                 let position = ctx.scene.world(owner.parts[1])?.translation;
-                ctx.effects
-                    .scatter_bleeds(position, 600, 100, 20, 15, [180, 140, 30], ctx.random);
+                ctx.effects.scatter_bleeds(
+                    position,
+                    100,
+                    crate::effects::Burst {
+                        spread: 600,
+                        count: 20,
+                        lifetime: 15,
+                        color: [180, 140, 30],
+                    },
+                    ctx.random,
+                );
                 owner.active_item = item.kind as i16;
                 self.slots[id].charm_remaining = 450;
                 self.slots[id].mode = 2;

@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::Position;
 use crate::{items::Items, scene::Scene};
-use tenchu_assets::{hud::MapPlacement, stage::MissionAssets};
+use tenchu_assets::hud::MapPlacement;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Line {
@@ -52,14 +52,17 @@ impl Map {
         &mut self,
         held: bool,
         player: &Actor,
-        mission: &MissionAssets,
         items: &Items,
         scene: &Scene,
-        math: &Math,
-        effects: &mut Effects,
         sprites: &mut Vec<Sprite>,
-        drawing: &mut Drawing,
+        ctx: &mut Context,
     ) {
+        let Context {
+            mission,
+            math,
+            effects,
+            drawing,
+        } = ctx;
         self.clear();
         if !held {
             self.mode = 0;

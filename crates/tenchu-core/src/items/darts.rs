@@ -42,8 +42,17 @@ impl Items {
         let model = item.model;
         let position = ctx.scene.models[model].local.translation;
         if item.flight.rolling && item.rolling.status != 0 {
-            ctx.effects
-                .scatter_bleeds(position, 0, 25, 10, 10, [255, 255, 0], ctx.random);
+            ctx.effects.scatter_bleeds(
+                position,
+                25,
+                crate::effects::Burst {
+                    spread: 0,
+                    count: 10,
+                    lifetime: 10,
+                    color: [255, 255, 0],
+                },
+                ctx.random,
+            );
             ctx.effects.sounds.push((position, 0x31));
             self.dispose(id, actors, ctx)?;
         }

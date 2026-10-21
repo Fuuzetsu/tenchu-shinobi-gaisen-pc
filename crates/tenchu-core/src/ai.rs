@@ -48,6 +48,14 @@ impl Difficulty {
         }
     }
 
+    pub fn attack_chance_quarters(self) -> i32 {
+        match self {
+            Self::Easy => 2,
+            Self::Normal => 3,
+            Self::Hard => 4,
+        }
+    }
+
     pub fn cycle(self, delta: i32) -> Self {
         let index = match self {
             Self::Easy => 0,
@@ -153,6 +161,13 @@ impl Player {
     }
 }
 
+pub struct Input<'a> {
+    pub player: Player,
+    pub clock: i32,
+    pub buttons: u16,
+    pub commands: &'a [Command],
+}
+
 pub struct Controller<'a, 'b> {
     pub actor: &'a mut Actor,
     pub player: Player,
@@ -170,16 +185,19 @@ pub struct Controller<'a, 'b> {
 impl<'a, 'b> Controller<'a, 'b> {
     pub fn new(
         actor: &'a mut Actor,
-        player: Player,
         roster: &'a mut Roster,
         items: &'a mut crate::items::Items,
         state: &'a mut Intelligence,
-        clock: i32,
-        input: u16,
-        commands: &'a [Command],
+        input: Input<'a>,
         ctx: &'a mut Context<'b>,
     ) -> Self {
         let attribute = actor.attribute;
+        let Input {
+            player,
+            clock,
+            buttons,
+            commands,
+        } = input;
         Self {
             actor,
             player,
@@ -187,7 +205,7 @@ impl<'a, 'b> Controller<'a, 'b> {
             items,
             state,
             clock,
-            input,
+            input: buttons,
             commands,
             ctx,
             attribute,

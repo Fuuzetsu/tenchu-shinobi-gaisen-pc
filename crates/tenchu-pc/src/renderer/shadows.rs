@@ -10,6 +10,12 @@ pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
 const LIGHT_WORDS: usize = MAX_LIGHTS * 8;
 
+pub struct Geometry<'a> {
+    pub meshes: &'a [&'a Mesh],
+    pub effects: Option<&'a EffectMesh>,
+    pub materials: &'a wgpu::BindGroup,
+}
+
 pub struct Shadows {
     pub layout: wgpu::BindGroupLayout,
     pub bindings: wgpu::BindGroup,
@@ -214,9 +220,7 @@ impl Shadows {
         settings: &Lighting,
         camera: Mat4,
         lights: &[Light],
-        meshes: &[&Mesh],
-        effects: Option<&EffectMesh>,
-        materials: &wgpu::BindGroup,
+        geometry: &Geometry,
     ) {
         let count = if settings.enabled {
             lights.len().min(MAX_LIGHTS)
@@ -235,17 +239,7 @@ impl Shadows {
                 let index = i * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
-                self.draw_face(
-                    encoder,
-                    queue,
-                    index,
-                    *matrix,
-                    &self.views[index],
-                    settings.lamps,
-                    meshes,
-                    effects,
-                    materials,
-                );
+                self.draw_face(encoder, queue, index, *matrix, settings.lamps, geometry);
             }
         }
         let sun_matrix = super::sun::matrix(&settings.directional, camera);
@@ -255,17 +249,7 @@ impl Shadows {
         let sun_shadows =
             settings.enabled && settings.shadows && settings.directional.intensity > 0;
         if sun_shadows {
-            self.draw_face(
-                encoder,
-                queue,
-                index,
-                sun_matrix,
-                &self.sun,
-                settings.lamps,
-                meshes,
-                effects,
-                materials,
-            );
+            self.draw_face(encoder, queue, index, sun_matrix, settings.lamps, geometry);
         }
         data.extend([
             f32::from(settings.ambient) / 100.0,
@@ -302,12 +286,14 @@ impl Shadows {
         queue: &wgpu::Queue,
         index: usize,
         matrix: Mat4,
-        target: &wgpu::TextureView,
         lamps: bool,
-        meshes: &[&Mesh],
-        effects: Option<&EffectMesh>,
-        materials: &wgpu::BindGroup,
+        geometry: &Geometry,
     ) {
+        let target = if index == FACES - 1 {
+            &self.sun
+        } else {
+            &self.views[index]
+        };
         let (buffer, bindings) = &self.faces[index];
         let mut face = matrix.to_cols_array().to_vec();
         face.extend([u8::from(lamps) as f32, 0.0, 0.0, 0.0]);
@@ -328,8 +314,13 @@ impl Shadows {
         });
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, bindings, &[]);
-        pass.set_bind_group(1, materials, &[]);
-        for mesh in meshes.iter().copied().chain(effects.map(|e| &e.mesh)) {
+        pass.set_bind_group(1, geometry.materials, &[]);
+        for mesh in geometry
+            .meshes
+            .iter()
+            .copied()
+            .chain(geometry.effects.map(|e| &e.mesh))
+        {
             if mesh.count != 0 {
                 pass.set_vertex_buffer(0, mesh.buffer.slice(..));
                 pass.draw(0..mesh.count, 0..1);

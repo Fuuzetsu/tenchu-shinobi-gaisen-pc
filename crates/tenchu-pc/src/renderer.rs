@@ -414,9 +414,11 @@ impl Renderer {
             &self.graphics.lighting,
             matrix,
             lights,
-            casters,
-            effects,
-            &self.materials.bindings,
+            &shadows::Geometry {
+                meshes: casters,
+                effects,
+                materials: &self.materials.bindings,
+            },
         );
         if let Some(post) = &self.post {
             post.prepare(&self.queue, matrix, &self.graphics);

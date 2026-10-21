@@ -350,8 +350,10 @@ fn replacement_textures_reload_cutouts_and_revert() {
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[0; 3]);
     vram.words[0] = 31;
     renderer.update_vram(&vram);
-    let mut graphics = crate::settings::Graphics::default();
-    graphics.asset_pack = false;
+    let mut graphics = crate::settings::Graphics {
+        asset_pack: false,
+        ..Default::default()
+    };
     renderer.configure(&graphics);
     renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert!(

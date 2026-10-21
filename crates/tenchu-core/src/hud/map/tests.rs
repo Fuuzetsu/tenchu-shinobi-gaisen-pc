@@ -119,13 +119,15 @@ for(int i=0;i<nl;i++)for(int j=0;j<7;j++)printf(" %d",lines[i][j]);puts("");
         map.step(
             true,
             game.roster.get(player),
-            &game.mission,
             &game.items,
             &game.scene,
-            &game.math,
-            &mut game.effects,
             &mut sprites,
-            &mut game.drawing,
+            &mut Context {
+                mission: &game.mission,
+                math: &game.math,
+                effects: &mut game.effects,
+                drawing: &mut game.drawing,
+            },
         );
         let mut row = vec![
             i32::from(map.mode),

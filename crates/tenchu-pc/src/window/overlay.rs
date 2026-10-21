@@ -1,7 +1,6 @@
 use crate::{
-    debug::Debug,
     renderer::Renderer,
-    settings::{Settings, menu::Menu, overlay::Edit},
+    settings::{menu::Menu, overlay::Edit},
 };
 use winit::{event::WindowEvent, window::Window};
 
@@ -56,10 +55,7 @@ impl Overlay {
         window: &Window,
         renderer: &Renderer,
         menu: &mut Menu,
-        settings: &Settings,
-        debug: &Debug,
-        paused: bool,
-        lights: usize,
+        state: crate::settings::overlay::State<'_>,
     ) -> Vec<Edit> {
         let mut input = self.state.take_egui_input(window);
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
@@ -70,15 +66,7 @@ impl Overlay {
         }
         let mut edits = Vec::new();
         let output = self.context.run(input, |ctx| {
-            edits = crate::settings::overlay::show(
-                ctx,
-                menu,
-                settings,
-                debug,
-                paused,
-                lights,
-                &renderer.sample_counts,
-            );
+            edits = crate::settings::overlay::show(ctx, menu, state);
         });
         self.state
             .handle_platform_output(window, output.platform_output);
@@ -152,10 +140,13 @@ impl super::Application {
             &view.window,
             &view.renderer,
             &mut self.menu,
-            &self.settings,
-            &self.debug,
-            self.paused,
-            view.lights.len(),
+            crate::settings::overlay::State {
+                settings: &self.settings,
+                debug: &self.debug,
+                paused: self.paused,
+                lights: view.lights.len(),
+                samples: &view.renderer.sample_counts,
+            },
         );
         if edits.is_empty() && was_open == self.menu.open {
             return;

@@ -168,19 +168,28 @@ impl Items {
         ];
         let delta = throw_vector(owner, player, Position::new(0, 0, -100), ctx)?;
         let end = std::array::from_fn(|i| start[i].wrapping_add(delta[i]));
-        self.request(kind, owner, start.into(), end.into(), player, roster, ctx)
+        self.request(
+            crate::items::Request {
+                kind,
+                start: start.into(),
+                end: end.into(),
+            },
+            owner,
+            player,
+            roster,
+            ctx,
+        )
     }
 
     pub(crate) fn request(
         &mut self,
-        kind: usize,
+        request: Request,
         owner: &mut Actor,
-        start: Position,
-        end: Position,
         player: usize,
         roster: &mut Roster,
         ctx: &mut Context,
     ) -> Result<()> {
+        let Request { kind, start, end } = request;
         consume(owner, kind)?;
         let owner_id = owner.id;
         let actors = &mut Actors {

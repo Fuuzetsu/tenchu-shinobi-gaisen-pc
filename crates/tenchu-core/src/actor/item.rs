@@ -29,10 +29,12 @@ impl Actor {
         if let Some(kind) = kind {
             let position = ctx.scene.world(self.parts[2])?.translation;
             world.items.request(
-                kind,
+                crate::items::Request {
+                    kind,
+                    start: position,
+                    end: position,
+                },
                 self,
-                position,
-                position,
                 world.player,
                 world.roster,
                 ctx,

@@ -46,6 +46,14 @@ pub struct Splash {
 }
 
 #[derive(Clone, Debug)]
+pub struct Burst {
+    pub spread: i16,
+    pub count: i16,
+    pub lifetime: i32,
+    pub color: [u8; 3],
+}
+
+#[derive(Clone, Debug)]
 pub struct Bleed {
     pub position: Position,
     pub velocity: [i16; 3],
@@ -320,13 +328,16 @@ impl Effects {
     pub fn scatter_bleeds(
         &mut self,
         position: Position,
-        spread: i16,
         speed: i16,
-        count: i16,
-        time: i32,
-        color: [u8; 3],
+        burst: Burst,
         rng: &mut Random,
     ) {
+        let Burst {
+            spread,
+            count,
+            lifetime: time,
+            color,
+        } = burst;
         for _ in 0..count {
             let jitter = |range: i16, rng: &mut Random| {
                 let range = i32::from(range);
@@ -352,12 +363,15 @@ impl Effects {
         &mut self,
         position: Position,
         velocity: [i16; 3],
-        spread: i16,
-        count: i16,
-        time: i32,
-        color: [u8; 3],
+        burst: Burst,
         rng: &mut Random,
     ) {
+        let Burst {
+            spread,
+            count,
+            lifetime: time,
+            color,
+        } = burst;
         for _ in 0..count {
             let width = i32::from(spread) * 2;
             let position = position.map(|p| {
@@ -478,10 +492,12 @@ impl Effects {
                     self.bleeds(
                         splash.position,
                         [0, -20, 0],
-                        100,
-                        6,
-                        30,
-                        [144, 152, 160],
+                        crate::effects::Burst {
+                            spread: 100,
+                            count: 6,
+                            lifetime: 30,
+                            color: [144, 152, 160],
+                        },
                         rng,
                     );
                 }

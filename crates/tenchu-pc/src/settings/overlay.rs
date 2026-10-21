@@ -13,15 +13,23 @@ pub enum Edit {
     PlayerModel(String),
 }
 
-pub fn show(
-    ctx: &egui::Context,
-    menu: &mut Menu,
-    settings: &Settings,
-    debug: &Debug,
-    paused: bool,
-    lights: usize,
-    samples: &[u32],
-) -> Vec<Edit> {
+#[derive(Clone, Copy)]
+pub struct State<'a> {
+    pub settings: &'a Settings,
+    pub debug: &'a Debug,
+    pub paused: bool,
+    pub lights: usize,
+    pub samples: &'a [u32],
+}
+
+pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit> {
+    let State {
+        settings,
+        debug,
+        paused,
+        lights,
+        samples,
+    } = state;
     let mut edits = Vec::new();
     menu.hovered = None;
     if !menu.open {

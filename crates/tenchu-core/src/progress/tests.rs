@@ -205,15 +205,11 @@ fn training_ranks_time_within_grade_without_regular_awards() {
     assert_eq!(progress.flags, 1 << 31);
     assert_eq!(progress.highest, [1, 1]);
     assert_eq!(random, Random::new(123));
-    for character in 0..2 {
-        for item in 0..ITEMS {
+    for (character, stock) in stock.iter().enumerate() {
+        for (item, &count) in stock.iter().enumerate() {
             assert_eq!(
                 progress.stock[character][item],
-                if item == 15 {
-                    1
-                } else {
-                    stock[character][item]
-                }
+                if item == 15 { 1 } else { count }
             );
         }
     }

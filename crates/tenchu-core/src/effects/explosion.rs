@@ -22,7 +22,17 @@ impl Effects {
             time: 5,
             mode: 0,
         }));
-        self.scatter_bleeds(position, 200, 150, 20, 30, [255, 255, 0], rng);
+        self.scatter_bleeds(
+            position,
+            150,
+            crate::effects::Burst {
+                spread: 200,
+                count: 20,
+                lifetime: 30,
+                color: [255, 255, 0],
+            },
+            rng,
+        );
     }
 
     pub fn embers(

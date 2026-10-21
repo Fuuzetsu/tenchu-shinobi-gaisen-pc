@@ -33,8 +33,17 @@ impl Items {
         if ctx.math.vector_distance(position.wrapping_sub(target)) < 20000 {
             player.position = target;
             ctx.scene.set_translation(player.root_model, target);
-            ctx.effects
-                .scatter_bleeds(target, 1000, 20, 50, 60, [255; 3], ctx.random);
+            ctx.effects.scatter_bleeds(
+                target,
+                20,
+                crate::effects::Burst {
+                    spread: 1000,
+                    count: 50,
+                    lifetime: 60,
+                    color: [255; 3],
+                },
+                ctx.random,
+            );
         }
         use_item::camera(Mode::Normal, player, ctx)?;
         self.dispose(id, actors, ctx)

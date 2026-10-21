@@ -534,7 +534,17 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         let mut actor = actors.roster.take(player);
         let start = actor.position;
         items
-            .request(1, &mut actor, start, start, player, actors.roster, ctx)
+            .request(
+                crate::items::Request {
+                    kind: 1,
+                    start,
+                    end: start,
+                },
+                &mut actor,
+                player,
+                actors.roster,
+                ctx,
+            )
             .unwrap();
         let aim = items.cursor;
         actors.roster.restore(actor);
@@ -547,7 +557,17 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         let mut actor = actors.roster.take(player);
         assert_eq!(actor.inventory[25], 1);
         items
-            .request(20, &mut actor, start, start, player, actors.roster, ctx)
+            .request(
+                crate::items::Request {
+                    kind: 20,
+                    start,
+                    end: start,
+                },
+                &mut actor,
+                player,
+                actors.roster,
+                ctx,
+            )
             .unwrap();
         assert_eq!(actor.inventory[25], 0);
         assert_eq!(items.cursor, aim);
@@ -572,10 +592,12 @@ fn bombs_recover_refund_and_extinguish() {
         actor.inventory[6] = 2;
         items
             .request(
-                4,
+                crate::items::Request {
+                    kind: 4,
+                    start: Position::new(0, -1000, 0),
+                    end: Position::ZERO,
+                },
                 &mut actor,
-                Position::new(0, -1000, 0),
-                Position::ZERO,
                 player,
                 actors.roster,
                 ctx,
@@ -611,10 +633,12 @@ fn bombs_recover_refund_and_extinguish() {
         let mut actor = actors.roster.take(player);
         items
             .request(
-                6,
+                crate::items::Request {
+                    kind: 6,
+                    start: Position::new(999000, -1000, 999000),
+                    end: Position::ZERO,
+                },
                 &mut actor,
-                Position::new(999000, -1000, 999000),
-                Position::ZERO,
                 player,
                 actors.roster,
                 ctx,
@@ -633,10 +657,12 @@ fn bombs_recover_refund_and_extinguish() {
             actor.inventory[kind] = 2;
             items
                 .request(
-                    kind,
+                    crate::items::Request {
+                        kind,
+                        start: Position::new(0, -50, 0),
+                        end: Position::ZERO,
+                    },
                     &mut actor,
-                    Position::new(0, -50, 0),
-                    Position::ZERO,
                     player,
                     actors.roster,
                     ctx,

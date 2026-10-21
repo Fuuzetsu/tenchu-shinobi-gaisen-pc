@@ -56,12 +56,14 @@ impl Controller<'_, '_> {
         }
         let target = self.target();
         self.state.detection = self.state.sight.search(
-            self.actor,
-            target,
-            self.player,
-            self.clock,
-            self.state.alert,
-            self.state.sight_percent,
+            crate::actor::sight::Search {
+                owner: self.actor,
+                target,
+                player: self.player,
+                clock: self.clock,
+                alert: self.state.alert,
+                range_percent: self.state.sight_percent,
+            },
             self.ctx,
         )?;
         let player_distance = if self.player_target() {
@@ -198,7 +200,9 @@ impl Controller<'_, '_> {
                             && self.class() != 3
                         {
                             pad &= 0xf000;
-                        } else if self.random() % 4 >= 5 - self.state.difficulty.reaction_delay() {
+                        } else if self.random() % 4
+                            >= self.state.difficulty.attack_chance_quarters()
+                        {
                             pad = 0;
                         }
                     }

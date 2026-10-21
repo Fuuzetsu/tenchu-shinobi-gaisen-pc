@@ -155,6 +155,7 @@ Nix supplies the pinned Rust toolchain and dependencies:
 nix develop
 cargo run -p tenchu-pc -- inspect '/path/to/game.cue'
 cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 

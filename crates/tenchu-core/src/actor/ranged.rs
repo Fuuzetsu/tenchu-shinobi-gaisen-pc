@@ -18,9 +18,17 @@ impl Actor {
                 ctx.scene.models[target].local.translation.y,
                 start[2].wrapping_add(i32::from(velocity[2])),
             ];
-            world
-                .items
-                .request(23, self, start, end.into(), world.player, world.roster, ctx)?;
+            world.items.request(
+                crate::items::Request {
+                    kind: 23,
+                    start,
+                    end: end.into(),
+                },
+                self,
+                world.player,
+                world.roster,
+                ctx,
+            )?;
         }
         Ok(())
     }
@@ -82,10 +90,12 @@ impl Actor {
             end[1] = end[1].wrapping_sub(1000);
         }
         world.items.request(
-            kind,
+            crate::items::Request {
+                kind,
+                start,
+                end: end.into(),
+            },
             self,
-            start,
-            end.into(),
             world.player,
             world.roster,
             ctx,
@@ -163,9 +173,17 @@ impl Actor {
             }
             if self.motion.count == 1 {
                 let start = ctx.scene.world(self.parts[2])?.translation;
-                world
-                    .items
-                    .request(1, self, start, start, world.player, world.roster, ctx)?;
+                world.items.request(
+                    crate::items::Request {
+                        kind: 1,
+                        start,
+                        end: start,
+                    },
+                    self,
+                    world.player,
+                    world.roster,
+                    ctx,
+                )?;
                 ctx.effects.sounds.push((self.position, 0x1e));
             } else if self.inventory[25] != 1 {
                 next = Some((MOT_SYURI_RECOVER, true));

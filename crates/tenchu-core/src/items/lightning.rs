@@ -59,8 +59,17 @@ impl Items {
             ctx.random,
         );
         if clock & 3 == 0 {
-            ctx.effects
-                .scatter_bleeds(position, 200, 20, 10, 20, [255, 255, 120], ctx.random);
+            ctx.effects.scatter_bleeds(
+                position,
+                20,
+                crate::effects::Burst {
+                    spread: 200,
+                    count: 10,
+                    lifetime: 20,
+                    color: [255, 255, 120],
+                },
+                ctx.random,
+            );
             ctx.effects.impact(start, 16384, 1, ctx.random);
         }
         let item = &mut self.slots[id];

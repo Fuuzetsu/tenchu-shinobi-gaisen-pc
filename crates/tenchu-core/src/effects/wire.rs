@@ -94,7 +94,17 @@ impl Effects {
             if wire.count > 4096 {
                 wire.count = 0;
                 wire.mode = 1;
-                self.scatter_bleeds(wire.end, 0, 50, 10, 30, [255, 255, 0], rng);
+                self.scatter_bleeds(
+                    wire.end,
+                    50,
+                    crate::effects::Burst {
+                        spread: 0,
+                        count: 10,
+                        lifetime: 30,
+                        color: [255, 255, 0],
+                    },
+                    rng,
+                );
                 self.sounds.push((owner_position, 0x31));
                 return true;
             }

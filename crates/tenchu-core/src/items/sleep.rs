@@ -50,8 +50,17 @@ impl Items {
                 .wrapping_add(i32::from(item.napalm.velocity[i]))
         });
         ctx.scene.set_translation(model, position.into());
-        ctx.effects
-            .scatter_bleeds(position.into(), 300, 10, 2, 10, [110; 3], ctx.random);
+        ctx.effects.scatter_bleeds(
+            position.into(),
+            10,
+            crate::effects::Burst {
+                spread: 300,
+                count: 2,
+                lifetime: 10,
+                color: [110; 3],
+            },
+            ctx.random,
+        );
         self.slots[id].napalm.count = count.wrapping_add(1);
         if self.slots[id].napalm.count > 100 {
             self.slots[id].mode = 3;

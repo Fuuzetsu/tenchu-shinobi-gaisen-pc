@@ -234,13 +234,15 @@ impl Game {
                         );
                         Controller::new(
                             &mut actor,
-                            player,
                             &mut self.roster,
                             &mut self.items,
                             &mut self.intelligence,
-                            self.clock,
-                            input,
-                            &self.commands,
+                            crate::ai::Input {
+                                player,
+                                clock: self.clock,
+                                buttons: input,
+                                commands: &self.commands,
+                            },
                             &mut context,
                         )
                         .update()?;
@@ -365,25 +367,25 @@ impl Game {
             self.hud.map.clear();
         } else {
             self.cinematic.sprites.clear();
+            let mut hud_context = crate::hud::Context {
+                mission: &self.mission,
+                math: &self.math,
+                effects: &mut self.effects,
+                drawing: &mut self.drawing,
+            };
             self.hud.step(
                 self.roster.get(self.player_id),
-                &self.mission.images,
                 self.intelligence.strain,
                 self.clock,
-                &self.math,
-                &mut self.effects,
-                &mut self.drawing,
+                &mut hud_context,
             );
             self.hud.map.step(
                 self.input & crate::input::SELECT != 0,
                 self.roster.get(self.player_id),
-                &self.mission,
                 &self.items,
                 &self.scene,
-                &self.math,
-                &mut self.effects,
                 &mut self.hud.sprites,
-                &mut self.drawing,
+                &mut hud_context,
             );
         }
         self.misc.step(

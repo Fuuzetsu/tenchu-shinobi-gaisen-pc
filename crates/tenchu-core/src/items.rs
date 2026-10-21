@@ -103,6 +103,13 @@ pub struct Item {
 }
 
 #[derive(Debug)]
+pub(crate) struct Request {
+    pub kind: usize,
+    pub start: Position,
+    pub end: Position,
+}
+
+#[derive(Debug)]
 pub struct Items {
     pub wall_item: Option<usize>,
     pub slots: Vec<Item>,

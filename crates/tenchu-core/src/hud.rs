@@ -3,6 +3,13 @@ use crate::{Result, actor::Actor, drawing::Drawing, effects::Effects, input::*, 
 use tenchu_assets::{executable::Executable, hud::LifeStyle, texture::Image};
 pub mod map;
 
+pub(crate) struct Context<'a> {
+    pub mission: &'a tenchu_assets::stage::MissionAssets,
+    pub math: &'a Math,
+    pub effects: &'a mut Effects,
+    pub drawing: &'a mut Drawing,
+}
+
 #[derive(Clone, Debug)]
 pub struct Sprite {
     pub image: Image,
@@ -176,16 +183,14 @@ impl Hud {
         self.sprites.push(sprite);
     }
 
-    pub(crate) fn step(
-        &mut self,
-        player: &Actor,
-        images: &[Image],
-        strain: i32,
-        clock: i32,
-        math: &Math,
-        effects: &mut Effects,
-        drawing: &mut Drawing,
-    ) {
+    pub(crate) fn step(&mut self, player: &Actor, strain: i32, clock: i32, ctx: &mut Context) {
+        let Context {
+            mission,
+            math,
+            effects,
+            drawing,
+        } = ctx;
+        let images = &mission.images;
         self.sprites.clear();
         if player.pad.held & TRIANGLE == 0 {
             let step = if player.pad.trigger & R2 != 0 {

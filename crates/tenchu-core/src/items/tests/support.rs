@@ -81,8 +81,10 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
             ctx.scene.set_translation(owner.root_model, position.into());
             *ctx.random = Random::new(seed);
             *ctx.effects = effects::Effects::default();
-            let mut intelligence = Intelligence::default();
-            intelligence.alert = 500;
+            let mut intelligence = Intelligence {
+                alert: 500,
+                ..Intelligence::default()
+            };
             writeln!(
                 input,
                 "{} {mode} {count} {seed} {} {} {} {active} 500",

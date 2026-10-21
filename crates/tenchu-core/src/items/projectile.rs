@@ -155,8 +155,17 @@ impl Items {
         } else if self.slots[id].flight.rolling {
             match self.slots[id].rolling.status {
                 3 => {
-                    ctx.effects
-                        .scatter_bleeds(position, 0, 25, 10, 10, [255, 255, 0], ctx.random);
+                    ctx.effects.scatter_bleeds(
+                        position,
+                        25,
+                        crate::effects::Burst {
+                            spread: 0,
+                            count: 10,
+                            lifetime: 10,
+                            color: [255, 255, 0],
+                        },
+                        ctx.random,
+                    );
                     ctx.effects.sounds.push((position, 0x31));
                     intelligence.reset_alert();
                 }
@@ -258,8 +267,17 @@ impl Items {
         } else {
             let position = ctx.scene.models[item.model].local.translation;
             ctx.effects.sounds.push((position, 0x31));
-            ctx.effects
-                .scatter_bleeds(position, 0, 25, 30, 30, [255, 255, 0], ctx.random);
+            ctx.effects.scatter_bleeds(
+                position,
+                25,
+                crate::effects::Burst {
+                    spread: 0,
+                    count: 30,
+                    lifetime: 30,
+                    color: [255, 255, 0],
+                },
+                ctx.random,
+            );
             item.count = 30;
             item.mode = 1;
             ctx.collision.remove(ctx.scene, item.model);
@@ -275,8 +293,17 @@ impl Items {
         match item.mode {
             0 => {
                 ctx.effects.impact(position, 8192, 0, ctx.random);
-                ctx.effects
-                    .scatter_bleeds(position, 100, 10, 10, 10, [127; 3], ctx.random);
+                ctx.effects.scatter_bleeds(
+                    position,
+                    10,
+                    crate::effects::Burst {
+                        spread: 100,
+                        count: 10,
+                        lifetime: 10,
+                        color: [127; 3],
+                    },
+                    ctx.random,
+                );
                 self.slots[id].mode = 1;
             }
             1 => {
@@ -302,13 +329,15 @@ impl Items {
                 ctx.effects.bleeds(
                     position,
                     velocity.to_array(),
-                    100,
-                    15,
-                    10,
-                    if hit.is_some() {
-                        [255, 0, 0]
-                    } else {
-                        [255, 255, 0]
+                    crate::effects::Burst {
+                        spread: 100,
+                        count: 15,
+                        lifetime: 10,
+                        color: if hit.is_some() {
+                            [255, 0, 0]
+                        } else {
+                            [255, 255, 0]
+                        },
                     },
                     ctx.random,
                 );

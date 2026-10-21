@@ -8,10 +8,11 @@ impl Items {
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        let item = &mut self.slots[id];
-        let model = item.model;
-        match item.mode {
+        let model = self.slots[id].model;
+        let mode = self.slots[id].mode;
+        match mode {
             0 => {
+                let item = &mut self.slots[id];
                 let mut position = ctx.scene.models[model].local.translation;
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(model, position);
@@ -27,15 +28,22 @@ impl Items {
                     _ => {}
                 }
             }
-            1 => {
-                if self.hit(id, ctx, actors).is_some() {
-                    let position = ctx.scene.models[model].local.translation;
-                    ctx.effects
-                        .scatter_bleeds(position, 0, 20, 10, 15, [127, 0, 0], ctx.random);
-                    ctx.effects.sounds.push((position, 0x30));
-                    self.dispose(id, actors, ctx)?;
-                    return Ok(());
-                }
+            1 if self.hit(id, ctx, actors).is_some() => {
+                let position = ctx.scene.models[model].local.translation;
+                ctx.effects.scatter_bleeds(
+                    position,
+                    20,
+                    crate::effects::Burst {
+                        spread: 0,
+                        count: 10,
+                        lifetime: 15,
+                        color: [127, 0, 0],
+                    },
+                    ctx.random,
+                );
+                ctx.effects.sounds.push((position, 0x30));
+                self.dispose(id, actors, ctx)?;
+                return Ok(());
             }
             _ => {}
         }

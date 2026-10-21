@@ -9,6 +9,17 @@ fn model_options(graphics: &settings::Graphics) -> (bool, bool, u16) {
     )
 }
 
+pub(super) struct Frame<'a> {
+    pub campaign: &'a Campaign,
+    pub paused: bool,
+    pub error: Option<&'a str>,
+    pub settings: &'a Settings,
+    pub menu: &'a Menu,
+    pub fps: f32,
+    pub debug: &'a crate::debug::Debug,
+    pub alpha: f32,
+}
+
 pub(super) struct View {
     pub(super) stage: Mesh,
     pub(super) actor: Mesh,
@@ -318,17 +329,17 @@ impl View {
         Ok(())
     }
 
-    pub(super) fn update(
-        &mut self,
-        campaign: &Campaign,
-        paused: bool,
-        error: Option<&str>,
-        settings: &Settings,
-        menu: &Menu,
-        fps: f32,
-        debug: &crate::debug::Debug,
-        alpha: f32,
-    ) {
+    pub(super) fn update(&mut self, frame: Frame<'_>) {
+        let Frame {
+            campaign,
+            paused,
+            error,
+            settings,
+            menu,
+            fps,
+            debug,
+            alpha,
+        } = frame;
         let game = &campaign.game;
         if self.vram_revision != game.mission.vram.revision {
             self.renderer.update_vram(&game.mission.vram);

@@ -211,10 +211,12 @@ impl Misc {
                         ctx.effects.bleeds(
                             position,
                             [0, -60, 0],
-                            100,
-                            10,
-                            30,
-                            [100, 100, 60],
+                            crate::effects::Burst {
+                                spread: 100,
+                                count: 10,
+                                lifetime: 30,
+                                color: [100, 100, 60],
+                            },
                             ctx.random,
                         );
                     }

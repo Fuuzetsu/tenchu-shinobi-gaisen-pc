@@ -178,7 +178,7 @@ than retaining C-shaped data structures for their own sake.
   OBJ/PNG workflow, with validation, original fallback and documented exports.
 - [x] Exercise both players, combat/weapon swaps, interpolation and shadows;
   compare complete gameplay state across appearance changes.
-- [ ] Introduce named coordinate types, remove unnecessary enum representations
+- [x] Introduce named coordinate types, remove unnecessary enum representations
   and numeric casts, and simplify equivalent arithmetic/iteration using Rust APIs.
 - [ ] Resolve Clippy findings, run source/gameplay regressions and native/WASM
   packaging checks, document retained binary/fixed-point boundaries and commit
@@ -194,6 +194,17 @@ Ayame, reloaded edited offsets, retained the previous body after an invalid path
 played movement/jump/attack with Enhanced interpolation/shadows, restored
 Original with R and exited cleanly. Arbitrary skeleton retargeting is outside
 this rigid-part workflow; incompatible rigs are rejected.
+
+World positions now use `Position` with named `x`, `y`, `z` fields throughout
+actors, cameras, collision, terrain, effects and scene transforms. Enum behavior
+uses explicit matches, including difficulty and camera submodes; numeric IDs
+remain explicit only at save/oracle boundaries. Related particle, item, AI,
+HUD and rendering parameters have named request/context structures. Equivalent
+arithmetic and iteration use standard Rust helpers. Signed rounding, narrowing,
+wrapping, source bit flags and packed asset vectors retain their required
+semantics; `repr(C)` remains only for actual GPU buffer layouts. All 138 core
+regressions pass with private source/retail fixtures, and the complete workspace
+passes Clippy with warnings denied. Final desktop/native/WASM checks follow.
 
 Optional configuration, native inspection tools and visual upgrades are
 implemented while preserving the Original defaults. The latest additions are

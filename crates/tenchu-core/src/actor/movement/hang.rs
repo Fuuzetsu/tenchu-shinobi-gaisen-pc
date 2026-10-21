@@ -167,10 +167,8 @@ impl Actor {
                     }
                 }
             }
-            MOT_HANG_CATCH => {
-                if self.motion.count == 0 && self.motion.loops != 0 {
-                    pending = Some((MOT_HANG, true));
-                }
+            MOT_HANG_CATCH if self.motion.count == 0 && self.motion.loops != 0 => {
+                pending = Some((MOT_HANG, true));
             }
             _ => {}
         }

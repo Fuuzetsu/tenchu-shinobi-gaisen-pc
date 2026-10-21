@@ -45,13 +45,15 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
     let player = Player::new(game.roster.get(game.player_id), &ctx);
     Controller::new(
         &mut actor,
-        player,
         &mut game.roster,
         &mut game.items,
         &mut state,
-        37,
-        0,
-        &game.commands,
+        crate::ai::Input {
+            player,
+            clock: 37,
+            buttons: 0,
+            commands: &game.commands,
+        },
         &mut ctx,
     )
     .update()
@@ -415,16 +417,18 @@ int main(void) {{
             };
             let mut controller = Controller::new(
                 &mut actor,
-                Player {
-                    status: player_status,
-                    ..player
-                },
                 &mut game.roster,
                 &mut game.items,
                 &mut state,
-                clock,
-                0,
-                &game.commands,
+                crate::ai::Input {
+                    player: Player {
+                        status: player_status,
+                        ..player
+                    },
+                    clock,
+                    buttons: 0,
+                    commands: &game.commands,
+                },
                 &mut ctx,
             );
             let pad = match function {
