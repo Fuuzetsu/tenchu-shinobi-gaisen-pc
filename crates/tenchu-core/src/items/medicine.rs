@@ -1,5 +1,6 @@
 use super::*;
 use crate::ids::MOT_ITEM_DRINK;
+use crate::math::Position;
 
 impl Items {
     fn recovery_particles(owner: &Actor, color: [u8; 3], ctx: &mut Context) {
@@ -12,7 +13,7 @@ impl Items {
             ];
             let velocity = [0, (ctx.random.next15() % 10 - 30) as i16, 0];
             let time = (ctx.random.next15() % 16 + 15) as u8;
-            ctx.effects.bleed(position, velocity, time, color);
+            ctx.effects.bleed(position.into(), velocity, time, color);
         }
     }
 
@@ -63,7 +64,7 @@ impl Items {
                 }
                 let model = &mut ctx.scene.models[item.model];
                 model.parent = Some(owner.parts[if owner.parts.len() > 14 { 14 } else { 2 }]);
-                model.local.translation = [0, 50, 0];
+                model.local.translation = Position::new(0, 50, 0);
                 self.slots[id].mode = 1;
             }
             1 => {

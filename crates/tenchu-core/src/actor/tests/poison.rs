@@ -9,7 +9,7 @@ fn poisoned_food_lures_and_restores_an_enemy() {
         let enemy = arena(&mut game, 0x10);
         let player = game.player_id;
         with_actor(&mut game, enemy, |actor, ctx, _| {
-            actor.position[2] = 9000;
+            actor.position.z = 9000;
             actor.rotation[1] = 2048;
             actor.attribute = 0;
             actor.think = [0; 4];

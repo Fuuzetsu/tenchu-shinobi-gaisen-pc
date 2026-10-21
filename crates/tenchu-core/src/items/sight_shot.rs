@@ -26,7 +26,7 @@ impl Items {
                 ctx.random.next15() % 100 - 200,
                 ctx.random.next15() % 200 - 100,
             ];
-            self.drop(kind, Some(owner_id), position, velocity, actors, ctx)?;
+            self.drop(kind, Some(owner_id), position, velocity.into(), actors, ctx)?;
             return self.dispose(id, actors, ctx);
         }
         let item = &mut self.slots[id];

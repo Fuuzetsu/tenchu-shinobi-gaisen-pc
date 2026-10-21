@@ -1,11 +1,12 @@
 use super::Rolling;
+use crate::math::Position;
 use crate::{Result, actor::Context};
 
 #[derive(Clone, Debug, Default)]
 pub struct Flight {
-    pub start: [i32; 3],
-    pub end: [i32; 3],
-    pub control: [i32; 3],
+    pub start: Position,
+    pub end: Position,
+    pub control: Position,
     pub count: u8,
     pub total: u8,
     pub rolling: bool,
@@ -13,16 +14,14 @@ pub struct Flight {
 
 impl Flight {
     pub(super) fn new(
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         width: i32,
         height: i32,
         speed: i32,
         ctx: &mut Context,
     ) -> Self {
-        let distance = ctx
-            .math
-            .vector_distance(std::array::from_fn(|i| end[i].wrapping_sub(start[i])));
+        let distance = ctx.math.vector_distance(end.wrapping_sub(start));
         let total = if speed > 0 {
             ((distance / speed) as u8).max(1)
         } else {
@@ -30,7 +29,7 @@ impl Flight {
         };
         let width = distance.wrapping_mul(width / 2) / 4096;
         let height = distance.wrapping_mul(height / 2) / 4096;
-        let midpoint: [i32; 3] = std::array::from_fn(|i| start[i].wrapping_add(end[i]) / 2);
+        let midpoint: Position = Position::from_fn(|i| start[i].wrapping_add(end[i]) / 2);
         let x = midpoint[0].wrapping_add(if width.wrapping_mul(2) > 0 {
             ctx.random.next15() % (width * 2) - width
         } else {
@@ -49,7 +48,7 @@ impl Flight {
         Self {
             start,
             end,
-            control: [x, y, z],
+            control: Position::new(x, y, z),
             count: total - 1,
             total,
             rolling: false,
@@ -58,7 +57,7 @@ impl Flight {
 
     pub(super) fn step(
         &mut self,
-        position: &mut [i32; 3],
+        position: &mut Position,
         rolling: &mut Rolling,
         ctx: &mut Context,
     ) -> Result<()> {
@@ -71,7 +70,7 @@ impl Flight {
         let q = 4096 - (i32::from(self.count) << 12) / i32::from(self.total);
         let square = q.wrapping_mul(q) / 4096;
         let weights = [4096 - q * 2 + square, q * 2 - square * 2, square];
-        let next: [i32; 3] = std::array::from_fn(|i| {
+        let next: Position = Position::from_fn(|i| {
             weights[0]
                 .wrapping_mul(self.start[i])
                 .wrapping_add(weights[1].wrapping_mul(self.control[i]))

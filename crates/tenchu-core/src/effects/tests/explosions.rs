@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
 
@@ -97,7 +98,7 @@ int main(void) {{
         }
         writeln!(input).unwrap();
         let mut smoke = Smoke {
-            position,
+            position: position.into(),
             velocity,
             scale,
             rotation,
@@ -106,7 +107,7 @@ int main(void) {{
             sprite,
         };
         let mut explosion = Explosion {
-            position,
+            position: position.into(),
             velocity,
             scale,
             rotation,
@@ -116,7 +117,7 @@ int main(void) {{
         let mut effects = Effects::default();
         let mut rng = Random::new(seed);
         let view = View {
-            position: [0; 3],
+            position: Position::ZERO,
             matrix: Matrix::default(),
         };
         loop {

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 impl Actor {
     pub(super) fn lightning_control(
@@ -14,12 +15,12 @@ impl Actor {
             let target = self.target.ok_or("Lightning caster has no target")?;
             let end = [
                 start[0].wrapping_add(i32::from(velocity[0])),
-                ctx.scene.models[target].local.translation[1],
+                ctx.scene.models[target].local.translation.y,
                 start[2].wrapping_add(i32::from(velocity[2])),
             ];
             world
                 .items
-                .request(23, self, start, end, world.player, world.roster, ctx)?;
+                .request(23, self, start, end.into(), world.player, world.roster, ctx)?;
         }
         Ok(())
     }
@@ -43,7 +44,7 @@ impl Actor {
             world.items.request_napalm(
                 self.id,
                 start,
-                end,
+                end.into(),
                 world.clock,
                 &mut crate::roster::Actors {
                     roster: world.roster,
@@ -60,15 +61,15 @@ impl Actor {
         ctx: &mut Context,
         world: &mut ActionContext,
         kind: usize,
-        start: [i32; 3],
+        start: Position,
     ) -> Result<()> {
         let target = self.target.ok_or("Ranged actor has no target")?;
         let target = ctx.scene.models[target].local.translation;
-        let distance = ctx.math.length([
-            target[0].wrapping_sub(self.position[0]),
+        let distance = ctx.math.length(Position::new(
+            target[0].wrapping_sub(self.position.x),
             0,
-            target[2].wrapping_sub(self.position[2]),
-        ]) as i16;
+            target[2].wrapping_sub(self.position.z),
+        )) as i16;
         let velocity = ctx.math.velocity(self.rotation[1], distance.max(1000), 0);
         let mut end = [
             start[0].wrapping_add(i32::from(velocity[0])),
@@ -80,9 +81,15 @@ impl Actor {
         {
             end[1] = end[1].wrapping_sub(1000);
         }
-        world
-            .items
-            .request(kind, self, start, end, world.player, world.roster, ctx)
+        world.items.request(
+            kind,
+            self,
+            start,
+            end.into(),
+            world.player,
+            world.roster,
+            ctx,
+        )
     }
 
     pub(super) fn gun_control(

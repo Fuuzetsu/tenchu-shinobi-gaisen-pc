@@ -1,7 +1,8 @@
 use super::*;
 use crate::input::*;
+use crate::math::Position;
 
-fn wall_position(game: &mut Game) -> ([i32; 3], i16) {
+fn wall_position(game: &mut Game) -> (Position, i16) {
     let width = i32::from(game.mission.characters[game.player().definition].width);
     let mut positions = Vec::new();
     for row in &game.mission.terrain.rows {
@@ -25,7 +26,7 @@ fn wall_position(game: &mut Game) -> ([i32; 3], i16) {
         let body = terrain::vector(
             &game.mission.terrain,
             &mut game.cursor,
-            position,
+            position.into(),
             width,
             terrain::STEP_DOWN,
         )
@@ -33,7 +34,7 @@ fn wall_position(game: &mut Game) -> ([i32; 3], i16) {
         let wall = terrain::vector(
             &game.mission.terrain,
             &mut game.cursor,
-            position,
+            position.into(),
             width + 100,
             terrain::STEP_DOWN | terrain::ALLOW_DEEP,
         )
@@ -46,7 +47,7 @@ fn wall_position(game: &mut Game) -> ([i32; 3], i16) {
             && angle >= 0
             && angle & 512 == 0
         {
-            return (position, angle);
+            return (position.into(), angle);
         }
     }
     panic!("No wall position in Mission 1")
@@ -146,7 +147,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                     Mode::StickLeft
                 };
                 actor.pad.update(CIRCLE | TRIANGLE);
-                actor.control(ctx, &[], [0; 3], world).unwrap();
+                actor.control(ctx, &[], Position::ZERO, world).unwrap();
             });
             assert_eq!(game.items.wall_item, Some(kind));
             assert_eq!(
@@ -210,7 +211,7 @@ fn leaving_a_wall_retains_or_reverts_the_slide_by_direction() {
             actor.motion.pose.rotation[0] = [-105, 2048, 0];
             actor.motion.mask = !1;
             actor.pad.update(held | CIRCLE);
-            actor.control(ctx, &[], [0; 3], world).unwrap();
+            actor.control(ctx, &[], Position::ZERO, world).unwrap();
         });
         if held == DOWN {
             assert_eq!(game.player().position, [0, 0, 30]);
@@ -235,7 +236,7 @@ fn straight_wall_pressure_keeps_ground_contact_and_allows_retreat() {
         let mut game = oracle::game(0, character);
         let player = game.player_id;
         with_actor(&mut game, player, |actor, ctx, _| {
-            actor.position = [0, -500, 9000];
+            actor.position = Position::new(0, -500, 9000);
             actor.previous = actor.position;
             actor.rotation = [0, 1024, 0];
             actor.velocity = [0; 3];
@@ -244,21 +245,21 @@ fn straight_wall_pressure_keeps_ground_contact_and_allows_retreat() {
         });
         for _ in 0..100 {
             game.step(UP).unwrap();
-            assert_eq!(game.player().position[1], -500);
+            assert_eq!(game.player().position.y, -500);
             assert_eq!(game.player().map.height, 0);
             assert_eq!(game.player().rotation[1], 1024);
-            assert!(game.player().position[0] > -2000);
+            assert!(game.player().position.x > -2000);
         }
-        assert!(game.player().position[0] < -1000);
-        let wall_x = game.player().position[0];
+        assert!(game.player().position.x < -1000);
+        let wall_x = game.player().position.x;
         for _ in 0..10 {
             game.step(0).unwrap();
         }
         for _ in 0..60 {
             game.step(DOWN).unwrap();
         }
-        assert!(game.player().position[0] - wall_x > 1000);
-        assert_eq!(game.player().position[1], -500);
+        assert!(game.player().position.x - wall_x > 1000);
+        assert_eq!(game.player().position.y, -500);
         assert_eq!(game.player().map.vector, 0);
     }
 }

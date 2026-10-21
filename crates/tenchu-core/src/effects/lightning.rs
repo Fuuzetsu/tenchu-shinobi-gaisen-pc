@@ -1,18 +1,18 @@
 use super::*;
 use crate::math::Math;
+use crate::math::Position;
 
 impl Effects {
     pub fn lightning(
         &mut self,
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         color: [u8; 3],
         math: &Math,
         view: View,
         random: &mut Random,
     ) -> u32 {
-        let count =
-            math.vector_distance(std::array::from_fn(|i| start[i].wrapping_sub(end[i]))) / 200;
+        let count = math.vector_distance(start.wrapping_sub(end)) / 200;
         let mut previous = view.project(start);
         let mut bytes = 0;
         for step in 1..count {
@@ -23,7 +23,7 @@ impl Effects {
             });
             // The branch roll recurses with generation zero, which emits nothing.
             random.next15();
-            let current = view.project(point);
+            let current = view.project(point.into());
             if previous.1 > 0 && current.1 > 0 {
                 self.lines.push(Line {
                     points: [previous.0, current.0],
@@ -79,15 +79,15 @@ printf("%d %d %d",(int32_t)seed,calls,n);for(int i=0;i<n;i++)for(int j=0;j<3;j++
         let mut input = String::new();
         let mut cases = Vec::new();
         for case in 0..96 {
-            let start: [i32; 3] =
-                [[0, 0, 1000], [65500, -64000, -20000], [-300, 0, -2000]][case / 8 % 3];
+            let start: Position =
+                [[0, 0, 1000], [65500, -64000, -20000], [-300, 0, -2000]][case / 8 % 3].into();
             let span = [0, 199, 200, 399, 400, 4096, 20000, 65535][case % 8];
             let end = [
                 start[0].wrapping_add(span),
                 start[1],
                 start[2].wrapping_add(span / 2),
             ];
-            let delta: [i32; 3] = std::array::from_fn(|i| start[i].wrapping_sub(end[i]));
+            let delta: Position = start.wrapping_sub(end.into());
             let root = game.math.length(if delta.iter().any(|v| v.abs() > 4096) {
                 delta.map(|v| v / 256)
             } else {
@@ -104,14 +104,14 @@ printf("%d %d %d",(int32_t)seed,calls,n);for(int i=0;i<n;i++)for(int j=0;j<3;j++
         }
         let original = oracle::run(&harness, &input);
         for (case, ((start, end, seed), result)) in cases.into_iter().zip(original).enumerate() {
-            let points: Vec<[i32; 3]> = result[3..]
+            let points: Vec<Position> = result[3..]
                 .chunks_exact(3)
-                .map(|p| p.try_into().unwrap())
+                .map(|p| <[i32; 3]>::try_from(p).unwrap().into())
                 .collect();
             assert_eq!(points.len(), result[2] as usize);
             for yaw in [0, 2048] {
                 let view = View {
-                    position: [0; 3],
+                    position: Position::ZERO,
                     matrix: Matrix {
                         rotation: game.math.rotate_yxz([0, yaw, 0]),
                         ..Matrix::default()
@@ -129,8 +129,14 @@ printf("%d %d %d",(int32_t)seed,calls,n);for(int i=0;i<n;i++)for(int j=0;j<3;j++
                     .collect();
                 let mut effects = Effects::default();
                 let mut random = Random::new(seed);
-                let bytes =
-                    effects.lightning(start, end, [100, 100, 200], &game.math, view, &mut random);
+                let bytes = effects.lightning(
+                    start,
+                    end.into(),
+                    [100, 100, 200],
+                    &game.math,
+                    view,
+                    &mut random,
+                );
                 assert_eq!(random.seed as i32, result[0], "case {case}");
                 assert_eq!(random.calls as i32, result[1], "case {case}");
                 assert_eq!(effects.lines, expected, "case {case} yaw {yaw}");

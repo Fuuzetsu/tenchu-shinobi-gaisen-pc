@@ -1,8 +1,9 @@
 use super::*;
 use crate::collision;
+use crate::math::Position;
 
 impl Items {
-    fn explosion(&mut self, position: [i32; 3], mine: bool, ctx: &mut Context) -> Result<()> {
+    fn explosion(&mut self, position: Position, mine: bool, ctx: &mut Context) -> Result<()> {
         ctx.effects.explosion(position, [0, -25, 0], ctx.random);
         ctx.effects.embers(
             position,
@@ -34,7 +35,7 @@ impl Items {
             } else {
                 120
             };
-            ctx.effects.flash(Some(part), position, 12288, time);
+            ctx.effects.flash(Some(part), position.into(), 12288, time);
         }
     }
 

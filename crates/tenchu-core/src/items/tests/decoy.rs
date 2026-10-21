@@ -1,11 +1,12 @@
 use super::*;
+use crate::math::Position;
 use crate::{
     collision,
     ids::ATTR_SUSPEND,
     scene::{COLLIDE, CONFLICT},
 };
 
-fn prepare(items: &mut Items, id: usize, player: usize, position: [i32; 3], ctx: &mut Context) {
+fn prepare(items: &mut Items, id: usize, player: usize, position: Position, ctx: &mut Context) {
     items
         .initialize(id, Processor::Decoy, 14, Some(player), position, ctx)
         .unwrap();
@@ -27,19 +28,19 @@ fn decoys_retarget_source_eligible_actors_and_restore_them_on_disposal() {
     oracle::flat_ground(&mut game);
     let player = game.player_id;
     with_items(&mut game, |items, ctx, actors| {
-        prepare(items, 1, player, [0, 0, 1000], ctx);
+        prepare(items, 1, player, Position::new(0, 0, 1000), ctx);
         let model = items.slots[1].model;
         let far = ctx.scene.add(
             None,
             Matrix {
-                translation: [0, 0, 5000],
+                translation: Position::new(0, 0, 5000),
                 ..Matrix::default()
             },
         );
         let near = ctx.scene.add(
             None,
             Matrix {
-                translation: [0, 0, 1500],
+                translation: Position::new(0, 0, 1500),
                 ..Matrix::default()
             },
         );
@@ -53,7 +54,10 @@ fn decoys_retarget_source_eligible_actors_and_restore_them_on_disposal() {
         ];
         let mut ids = Vec::new();
         for (z, target, boss, suspended, _) in cases {
-            let id = actors.roster.spawn(0x10, [0, 0, z], 0, ctx).unwrap();
+            let id = actors
+                .roster
+                .spawn(0x10, Position::new(0, 0, z), 0, ctx)
+                .unwrap();
             let actor = actors.get_mut(id);
             actor.target = target;
             if boss {
@@ -93,7 +97,7 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
     oracle::flat_ground(&mut game);
     let player = game.player_id;
     with_items(&mut game, |items, ctx, actors| {
-        prepare(items, 1, player, [0; 3], ctx);
+        prepare(items, 1, player, Position::ZERO, ctx);
         let model = items.slots[1].model;
         items
             .contact(1, 500, collision::STAND | collision::SOFT, ctx)
@@ -105,8 +109,8 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
             ctx.scene.models[model].attribute |= COLLIDE | CONFLICT;
             ctx.collision.slots[own].results[other] = 0x81;
             ctx.collision.slots[own].count = 1;
-            ctx.collision.slots[own].position = [0; 3];
-            ctx.collision.slots[other].position = [1600, y, -1600];
+            ctx.collision.slots[own].position = Position::ZERO;
+            ctx.collision.slots[other].position = Position::new(1600, y, -1600);
             ctx.collision.slots[other].class = class;
         };
         hit(ctx, collision::HIT, 0);
@@ -172,7 +176,13 @@ fn decoy_cap_and_water_cleanup_preserve_active_count() {
             items.dispose(id, actors, ctx).unwrap();
         }
         for id in 1..=4 {
-            prepare(items, id, player, [id as i32 * 1000, 0, 0], ctx);
+            prepare(
+                items,
+                id,
+                player,
+                Position::new(id as i32 * 1000, 0, 0),
+                ctx,
+            );
             items.decoy_count -= 1;
             items.slots[id].mode = 0;
             items.slots[id].decoy.health = 99;
@@ -207,7 +217,7 @@ fn decoy_cap_and_water_cleanup_preserve_active_count() {
             actors.get(player).target,
             Some(actors.get(player).root_model)
         );
-        prepare(items, 4, player, [0; 3], ctx);
+        prepare(items, 4, player, Position::ZERO, ctx);
         items.decoy_count -= 1;
         items.slots[4].mode = 0;
         items.slots[4].decoy.health = 99;

@@ -397,8 +397,14 @@ impl Application {
             }
             Item::PlayerLight => {
                 self.debug.light = Some(
-                    glam::Vec3::from(self.campaign.game.player().position.map(|v| v as f32))
-                        + glam::Vec3::new(2000.0, -4000.0, 2000.0),
+                    glam::Vec3::from(
+                        self.campaign
+                            .game
+                            .player()
+                            .position
+                            .map(|v| v as f32)
+                            .to_array(),
+                    ) + glam::Vec3::new(2000.0, -4000.0, 2000.0),
                 );
                 self.debug.light_follow = false;
             }
@@ -518,6 +524,7 @@ impl Application {
                     .position
                     .to_array()
                     .map(|v| v.round() as i32)
+                    .into()
             }
             Item::SnapFloor => self.debug.snap_to_floor = !self.debug.snap_to_floor,
             Item::Teleport => self.teleport()?,

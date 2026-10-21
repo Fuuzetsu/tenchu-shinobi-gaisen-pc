@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{camera::Mode, ids::MOT_KAGI, input::TRIANGLE};
 
 impl Items {
@@ -30,20 +31,20 @@ impl Items {
             rotation: ctx.math.rotate_yxz(rotation),
             ..Matrix::default()
         }
-        .apply_large([0, 0, -20000]);
+        .apply_large(Position::new(0, 0, -20000));
         let end = std::array::from_fn(|i| ctx.camera.position[i].wrapping_add(vector[i]));
         let target = terrain::ground_ray(
             &ctx.mission.terrain,
             ctx.cursor,
             ctx.math,
             ctx.camera.position,
-            end,
+            end.into(),
             0,
         )?
         .1;
-        ctx.camera.target = std::array::from_fn(|i| target[i].wrapping_add(vector[i] / 16));
+        ctx.camera.target = Position::from_fn(|i| target[i].wrapping_add(vector[i] / 16));
         let root = ctx.scene.models[owner.root_model].local.translation;
-        let distance = ctx.math.vector_distance(std::array::from_fn(|i| {
+        let distance = ctx.math.vector_distance(Position::from_fn(|i| {
             root[i].wrapping_sub(ctx.camera.target[i])
         }));
         if rotation[0] > 0 || distance > 15000 {

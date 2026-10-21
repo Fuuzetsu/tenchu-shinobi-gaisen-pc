@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{Result, actor::Context, terrain};
 
 #[derive(Clone, Debug, Default)]
@@ -8,12 +9,12 @@ pub struct Rolling {
 }
 
 impl Rolling {
-    pub(super) fn step(&mut self, position: &mut [i32; 3], ctx: &mut Context) -> Result<()> {
+    pub(super) fn step(&mut self, position: &mut Position, ctx: &mut Context) -> Result<()> {
         if self.status == 4 {
             return Ok(());
         }
         let previous = *position;
-        *position = std::array::from_fn(|i| position[i].wrapping_add(i32::from(self.velocity[i])));
+        *position = Position::from_fn(|i| position[i].wrapping_add(i32::from(self.velocity[i])));
         let floor = terrain::particle_floor(
             &ctx.mission.terrain,
             ctx.cursor,

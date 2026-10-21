@@ -1,24 +1,29 @@
 use super::*;
+use crate::math::Position;
 use crate::{actor::trail::Trail, ai::Intelligence, collision, scene::CONFLICT};
 
 pub(super) fn target(
     owner: usize,
     rotation: [i16; 3],
-    start: [i32; 3],
+    start: Position,
     actors: &Actors,
     ctx: &mut Context,
-) -> Result<(Option<usize>, [i32; 3])> {
+) -> Result<(Option<usize>, Position)> {
     let ray = Matrix {
         rotation: ctx.math.rotate_yxz(rotation),
         ..Matrix::default()
     }
-    .apply_large([0, 0, -17000]);
+    .apply_large(Position::new(0, 0, -17000));
     let end = std::array::from_fn(|i| start[i].wrapping_add(ray[i]));
-    let (_, mut position) =
-        terrain::ground_ray(&ctx.mission.terrain, ctx.cursor, ctx.math, start, end, 0)?;
-    let mut distance = ctx
-        .math
-        .vector_distance(std::array::from_fn(|i| position[i].wrapping_sub(start[i])));
+    let (_, mut position) = terrain::ground_ray(
+        &ctx.mission.terrain,
+        ctx.cursor,
+        ctx.math,
+        start,
+        end.into(),
+        0,
+    )?;
+    let mut distance = ctx.math.vector_distance(position.wrapping_sub(start));
     let inverse = Matrix {
         rotation: ctx.math.rotate_xyz(rotation.map(i16::wrapping_neg)),
         ..Matrix::default()
@@ -28,8 +33,7 @@ pub(super) fn target(
         let actor = actors.get(id);
         let world = ctx.scene.world(actor.parts[0])?.translation;
         if actor.health > 0 && id != owner {
-            let local =
-                inverse.apply_large(std::array::from_fn(|i| world[i].wrapping_sub(start[i])));
+            let local = inverse.apply_large(world.wrapping_sub(start));
             let forward = local[2].wrapping_neg();
             if forward > 100
                 && local[0].wrapping_abs() < 500
@@ -50,8 +54,8 @@ impl Items {
         &mut self,
         kind: usize,
         owner_id: usize,
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
@@ -160,7 +164,7 @@ impl Items {
                     let kind = self.slots[id].kind;
                     let owner = self.slots[id].owner;
                     self.dispose(id, actors, ctx)?;
-                    self.drop(kind, owner, position, [0; 3], actors, ctx)?;
+                    self.drop(kind, owner, position, Position::ZERO, actors, ctx)?;
                 }
                 1 => self.dispose(id, actors, ctx)?,
                 _ => {}
@@ -203,7 +207,7 @@ impl Items {
                             let attached = &mut ctx.scene.models[model];
                             attached.flags = 0;
                             attached.parent = Some(part);
-                            attached.local.translation = [0; 3];
+                            attached.local.translation = Position::ZERO;
                             self.slots[id].count = 120;
                             self.slots[id].mode = 1;
                             ctx.collision.remove(ctx.scene, model);
@@ -297,7 +301,7 @@ impl Items {
                 );
                 ctx.effects.bleeds(
                     position,
-                    velocity,
+                    velocity.to_array(),
                     100,
                     15,
                     10,

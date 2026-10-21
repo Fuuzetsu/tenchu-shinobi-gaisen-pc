@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod hinged;
 #[cfg(test)]
 mod tests;
@@ -17,7 +18,7 @@ use tenchu_assets::{
 
 #[derive(Clone, Debug)]
 pub struct Object {
-    pub position: [i32; 3],
+    pub position: Position,
     pub kind: Kind,
     pub paused: bool,
     pub mode: u8,
@@ -78,14 +79,14 @@ impl Misc {
             Kind::Door { rotation, .. } | Kind::Pitfall { rotation, .. } => Some(ctx.scene.add(
                 Some(0),
                 Matrix {
-                    translation: spawn.position,
+                    translation: spawn.position.into(),
                     rotation: ctx.math.rotate_yxz([0, rotation, 0]),
                 },
             )),
             _ => None,
         };
         self.objects.push(Object {
-            position: spawn.position,
+            position: spawn.position.into(),
             count: if matches!(spawn.kind, Kind::Fire) {
                 10
             } else {
@@ -178,12 +179,26 @@ impl Misc {
                     ]
                     .map(|v| v as i16);
                     let position = [
-                        ctx.camera.reference[0].wrapping_add(ctx.random.next15() % 6000 - 3000),
-                        ctx.camera.reference[1].wrapping_add(ctx.random.next15() % 3000 - 6000),
-                        ctx.camera.reference[2].wrapping_add(ctx.random.next15() % 6000 - 3000),
+                        ctx.camera
+                            .reference
+                            .x
+                            .wrapping_add(ctx.random.next15() % 6000 - 3000),
+                        ctx.camera
+                            .reference
+                            .y
+                            .wrapping_add(ctx.random.next15() % 3000 - 6000),
+                        ctx.camera
+                            .reference
+                            .z
+                            .wrapping_add(ctx.random.next15() % 6000 - 3000),
                     ];
-                    ctx.effects
-                        .snow(position, velocity, 4096, &ctx.mission.terrain, ctx.cursor)?;
+                    ctx.effects.snow(
+                        position.into(),
+                        velocity,
+                        4096,
+                        &ctx.mission.terrain,
+                        ctx.cursor,
+                    )?;
                 }
                 Kind::Bonfire(scale) if object.mode == 0 => {
                     let color = (ctx.random.next15() % 100 + 100) as u8;

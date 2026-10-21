@@ -1,5 +1,6 @@
 use super::*;
 use crate::ids::*;
+use crate::math::Position;
 
 fn prepare(
     items: &mut Items,
@@ -9,7 +10,7 @@ fn prepare(
     actors: &mut Actors,
 ) -> usize {
     items
-        .initialize(id, Processor::Dog, 16, Some(player), [0; 3], ctx)
+        .initialize(id, Processor::Dog, 16, Some(player), Position::ZERO, ctx)
         .unwrap();
     let item = &mut items.slots[id];
     item.mode = 1;
@@ -36,12 +37,21 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
         }
         let dog = prepare(items, 1, player, ctx, actors);
         let owner_flags = actors.get(player).attribute;
-        let enemy = actors.roster.spawn(0x10, [0, 0, 5000], 0, ctx).unwrap();
-        let civilian = actors.roster.spawn(0x10, [0, 0, 100], 0, ctx).unwrap();
+        let enemy = actors
+            .roster
+            .spawn(0x10, Position::new(0, 0, 5000), 0, ctx)
+            .unwrap();
+        let civilian = actors
+            .roster
+            .spawn(0x10, Position::new(0, 0, 100), 0, ctx)
+            .unwrap();
         actors.get_mut(civilian).kind = 0x90;
-        let suspended = actors.roster.spawn(0x10, [0, 0, 200], 0, ctx).unwrap();
+        let suspended = actors
+            .roster
+            .spawn(0x10, Position::new(0, 0, 200), 0, ctx)
+            .unwrap();
         actors.get_mut(suspended).attribute |= ATTR_SUSPEND;
-        actors.get_mut(player).position = [0, 0, 50];
+        actors.get_mut(player).position = Position::new(0, 0, 50);
         actors.get_mut(dog).map.height = 0;
         let owner_root = actors.get(player).root_model;
         for (status, clock) in [(0, 14), (7, 15), (8, 15), (16, 15)] {
@@ -87,7 +97,7 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
     with_items(&mut game, |items, ctx, actors| {
         let dog = prepare(items, 1, player, ctx, actors);
         items
-            .initialize(2, Processor::Dog, 16, Some(player), [0; 3], ctx)
+            .initialize(2, Processor::Dog, 16, Some(player), Position::ZERO, ctx)
             .unwrap();
         items.slots[2].mode = 1;
         items.slots[2].dog = crate::items::dog::Dog {
@@ -101,7 +111,7 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
         for id in 0..CAPACITY {
             if id != 1 && id != 2 {
                 items
-                    .initialize(id, Processor::Flute, 18, Some(player), [0; 3], ctx)
+                    .initialize(id, Processor::Flute, 18, Some(player), Position::ZERO, ctx)
                     .unwrap();
             }
         }

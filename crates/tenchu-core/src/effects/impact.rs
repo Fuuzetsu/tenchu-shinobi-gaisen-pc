@@ -1,9 +1,10 @@
 use super::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug)]
 pub struct Impact {
     pub parent: Option<ModelId>,
-    pub position: [i32; 3],
+    pub position: Position,
     pub size: [i16; 2],
     pub color: [[u8; 3]; 2],
     pub rotation: i16,
@@ -14,7 +15,7 @@ pub struct Impact {
 }
 
 impl Effects {
-    pub fn impact(&mut self, position: [i32; 3], size: i16, sprite: u8, rng: &mut Random) {
+    pub fn impact(&mut self, position: Position, size: i16, sprite: u8, rng: &mut Random) {
         let speed = (rng.next15() % 90 + 90) as i16;
         self.impact_ex(Impact {
             parent: None,
@@ -54,7 +55,8 @@ impl Effects {
         });
         let (xy, z) = if let Some(parent) = impact.parent {
             let matrix = view.matrix.compose(&scene.world(parent)?);
-            let (xy, z) = visibility::project(&matrix, impact.position.map(|v| v as i16));
+            let (xy, z) =
+                visibility::project(&matrix, impact.position.map(|v| v as i16).to_array());
             (xy, (z >> 2) as i16)
         } else {
             view.project(impact.position)

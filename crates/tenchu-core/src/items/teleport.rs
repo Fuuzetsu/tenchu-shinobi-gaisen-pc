@@ -30,11 +30,7 @@ impl Items {
             },
         )?;
         let target = ctx.camera.target;
-        if ctx
-            .math
-            .vector_distance(std::array::from_fn(|i| position[i].wrapping_sub(target[i])))
-            < 20000
-        {
+        if ctx.math.vector_distance(position.wrapping_sub(target)) < 20000 {
             player.position = target;
             ctx.scene.set_translation(player.root_model, target);
             ctx.effects

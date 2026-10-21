@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{
     camera::Mode,
     effects::Effect,
@@ -12,7 +13,7 @@ fn teleport_release_preserves_source_ray_and_raw_position_write() {
     oracle::flat_ground(&mut game);
     let player = game.player_id;
     with_items(&mut game, |items, ctx, actors| {
-        let owner = actors.roster.spawn(0x10, [0; 3], 0, ctx).unwrap();
+        let owner = actors.roster.spawn(0x10, Position::ZERO, 0, ctx).unwrap();
         let hit = [29889, -1000, 0];
         let cases = [
             (
@@ -58,20 +59,20 @@ fn teleport_release_preserves_source_ray_and_raw_position_write() {
         ];
         for (position, camera, reference, target, accepted, look) in cases {
             let actor = actors.get_mut(player);
-            actor.position = position;
+            actor.position = position.into();
             actor.pad.held = if look { L1 } else { 0 };
             let root = actor.root_model;
-            ctx.scene.set_translation(root, position);
+            ctx.scene.set_translation(root, position.into());
             ctx.scene.models[root].flags = 73;
             let cached = ctx.scene.models[root].cached;
             let rotation = ctx.scene.models[root].local.rotation;
-            ctx.camera.position = camera;
-            ctx.camera.reference = reference;
+            ctx.camera.position = camera.into();
+            ctx.camera.reference = reference.into();
             ctx.camera.mode = Mode::Direction;
             ctx.camera.detail = crate::camera::Detail::Sight;
             *ctx.effects = effects::Effects::default();
             items
-                .initialize(1, Processor::Teleport, 24, Some(owner), [0; 3], ctx)
+                .initialize(1, Processor::Teleport, 24, Some(owner), Position::ZERO, ctx)
                 .unwrap();
             let seed = *ctx.random;
             items.teleport(1, actors, player, ctx).unwrap();

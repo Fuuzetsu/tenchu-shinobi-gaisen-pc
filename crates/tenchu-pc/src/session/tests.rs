@@ -637,7 +637,7 @@ fn cinematic_timing_is_independent_of_host_frame_cadence() {
             .load(&assets)
             .unwrap();
             let player = game.roster.get_mut(game.player_id);
-            player.position = [1000, 0, 5000];
+            player.position = [1000, 0, 5000].into();
             game.scene
                 .update(player.root_model, player.root(&game.math));
             let mut clock = tenchu_core::clock::GameClock::default();

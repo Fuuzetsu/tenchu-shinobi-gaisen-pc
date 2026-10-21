@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{game::Game, oracle};
 use std::fmt::Write;
 
@@ -48,14 +49,17 @@ pub(super) fn arena(game: &mut Game, kind: i16) -> usize {
             ctx.collision.remove(ctx.scene, item.model);
             item.processor = None;
         }
-        actor.position = [0; 3];
+        actor.position = Position::ZERO;
         actor.rotation = [0, 2048, 0];
         actor.velocity = [0; 3];
         actor.map =
             terrain::vector(&ctx.mission.terrain, ctx.cursor, actor.position, 500, 0).unwrap();
         actor.enter(ctx, MOT_NORMAL, true);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
-        let id = world.roster.spawn(kind, [0, 0, 4000], 0, ctx).unwrap();
+        let id = world
+            .roster
+            .spawn(kind, Position::new(0, 0, 4000), 0, ctx)
+            .unwrap();
         world.roster.get_mut(id).target = Some(actor.root_model);
         id
     })
@@ -438,7 +442,7 @@ fn human_and_item_damage_match_original_c() {
         actor.motion.loops = loops;
         actor.motion.mask = 0x1234;
         actor.status = (action >> 8) as i8 as i16;
-        actor.position = [0; 3];
+        actor.position = Position::ZERO;
         actor.rotation = [0, yaw, 0];
         actor.velocity = [21, 7, -31];
         actor.map.height = height;
@@ -448,7 +452,7 @@ fn human_and_item_damage_match_original_c() {
         let mut enemy = attacker.clone();
         enemy.kind = enemy_kind;
         enemy.active_item = enemy_item;
-        enemy.position = [dx, 0, dz];
+        enemy.position = Position::new(dx, 0, dz);
         for (model, owner) in [(actor.parts[0], id), (enemy.parts[0], attacker_id)] {
             game.scene.models[model].conflict = None;
             let slot = game.collision.insert(&mut game.scene, model).unwrap();
@@ -627,7 +631,7 @@ fn manji_fire_reaches_the_shared_item_damage_path() {
     with_actor(&mut game, shooter, |actor, ctx, _| {
         actor.attribute = ATTR_WEAPON_DRAWN;
         actor.think = [0; 4];
-        actor.position = [0, 0, 2300];
+        actor.position = Position::new(0, 0, 2300);
         assert!(actor.enter(ctx, MOT_ATTACK, true));
         assert_eq!(actor.motion_id(ctx, MOT_ATTACK), 0xf5);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
@@ -663,9 +667,9 @@ fn retail_damage_floor_advances_through_napalm() {
                 world.roster.remove(id, ctx);
             }
         }
-        actor.position = [58000, 2000, 164500];
+        actor.position = Position::new(58000, 2000, 164500);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
-        ctx.camera.position = [58000, -1000, 160500];
+        ctx.camera.position = Position::new(58000, -1000, 160500);
         ctx.camera.reference = actor.position;
         ctx.camera.snap_pending = true;
     });

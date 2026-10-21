@@ -39,12 +39,12 @@ impl Items {
                 });
                 let mut query = position;
                 query[1] = query[1].wrapping_sub(2000);
-                let map = terrain::vector(&ctx.mission.terrain, ctx.cursor, query, 500, 0)?;
+                let map = terrain::vector(&ctx.mission.terrain, ctx.cursor, query.into(), 500, 0)?;
                 if map.level >= position[1].wrapping_sub(500) {
                     position[1] = position[1].min(map.level);
-                    owner.position = position;
+                    owner.position = position.into();
                     // MODEL_POSITION aliases locate; the original leaves the world cache intact.
-                    ctx.scene.set_translation(owner.root_model, position);
+                    ctx.scene.set_translation(owner.root_model, position.into());
                 }
                 if item.count & 3 == 0 {
                     let mut position = ctx.scene.models[owner.root_model].local.translation;
@@ -79,7 +79,8 @@ impl Items {
                         ..Matrix::default()
                     }
                     .transform(item.rolling.velocity)
-                    .map(|v| v.clamp(-32768, 32767) as i16);
+                    .map(|v| v.clamp(-32768, 32767) as i16)
+                    .to_array();
                 }
                 item.count = item.count.wrapping_sub(1);
                 if item.count == 0 || owner.pad.trigger & (SQUARE | CROSS | CIRCLE | TRIANGLE) != 0

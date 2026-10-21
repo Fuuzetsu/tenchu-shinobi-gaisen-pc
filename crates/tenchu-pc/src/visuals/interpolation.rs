@@ -1,7 +1,10 @@
 use crate::render_mesh;
 use glam::{Mat3, Mat4, Quat, Vec3};
 use std::collections::BTreeMap;
-use tenchu_core::{game::Game, math::Matrix};
+use tenchu_core::{
+    game::Game,
+    math::{Matrix, Position},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Part {
@@ -21,7 +24,7 @@ pub enum Part {
 struct Snapshot {
     tick: u64,
     parts: BTreeMap<Part, Matrix>,
-    roots: BTreeMap<usize, [i32; 3]>,
+    roots: BTreeMap<usize, Position>,
     view: Matrix,
     cinematic: (bool, i16),
     camera_mode: tenchu_core::camera::Mode,
@@ -150,14 +153,15 @@ impl Frame {
     }
 }
 
-fn close(a: [i32; 3], b: [i32; 3], radius: f32) -> bool {
-    Vec3::from(a.map(|v| v as f32)).distance_squared(Vec3::from(b.map(|v| v as f32)))
+fn close(a: Position, b: Position, radius: f32) -> bool {
+    Vec3::from(a.map(|v| v as f32).to_array())
+        .distance_squared(Vec3::from(b.map(|v| v as f32).to_array()))
         <= radius * radius
 }
 
 fn matrix4(matrix: Matrix) -> Mat4 {
     let mut out = Mat4::from_mat3(super::models::rotation(matrix));
-    out.w_axis = Vec3::from(matrix.translation.map(|v| v as f32)).extend(1.0);
+    out.w_axis = Vec3::from(matrix.translation.map(|v| v as f32).to_array()).extend(1.0);
     out
 }
 
@@ -199,7 +203,8 @@ fn source_matrix(matrix: Mat4) -> Matrix {
             .w_axis
             .truncate()
             .to_array()
-            .map(|v| v.round() as i32),
+            .map(|v| v.round() as i32)
+            .into(),
     }
 }
 
@@ -251,13 +256,13 @@ mod tests {
             inspection: false,
         };
         let pose = |x| Matrix {
-            translation: [x, 0, 0],
+            translation: [x, 0, 0].into(),
             ..Default::default()
         };
         let snapshot = |tick, x| Snapshot {
             tick,
             parts: BTreeMap::from([(key, pose(x))]),
-            roots: BTreeMap::from([(1, [x, 0, 0])]),
+            roots: BTreeMap::from([(1, Position::new(x, 0, 0))]),
             view: pose(-x),
             cinematic: (false, 0),
             camera_mode: tenchu_core::camera::Mode::Normal,

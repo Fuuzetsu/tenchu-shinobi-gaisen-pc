@@ -29,7 +29,7 @@ pub struct Debug {
     pub show_trail: bool,
     pub inspect_actor: bool,
     pub selected_actor: usize,
-    pub target: [i32; 3],
+    pub target: tenchu_core::math::Position,
     pub snap_to_floor: bool,
     pub teleport_armed: bool,
     pub speed: u16,
@@ -129,7 +129,7 @@ impl Debug {
             .get(self.selected_actor)
             .and_then(Option::as_ref)
             .unwrap_or_else(|| game.player());
-        let target = Vec3::from(actor.position.map(|v| v as f32)) - Vec3::Y * 900.0;
+        let target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
         self.camera
             .get_or_insert_with(|| Camera::from_game(game))
             .focus(target, overhead);
@@ -165,7 +165,7 @@ impl Debug {
             }) {
                 continue;
             }
-            let center = Vec3::from(slot.position.map(|v| v as f32));
+            let center = Vec3::from(slot.position.map(|v| v as f32).to_array());
             let half = Vec3::from(slot.size.map(f32::from));
             if let Some(near) = ray_box(origin, direction, center - half, center + half)
                 && near < nearest
@@ -183,8 +183,9 @@ impl Debug {
                 self.trail.clear();
             }
             self.last_tick = game.tick;
-            self.trail
-                .push_back(Vec3::from(game.player().position.map(|v| v as f32)));
+            self.trail.push_back(Vec3::from(
+                game.player().position.map(|v| v as f32).to_array(),
+            ));
             if self.trail.len() > 1800 {
                 self.trail.pop_front();
             }

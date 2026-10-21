@@ -700,7 +700,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         graphics.lighting.intensity = 250;
         graphics.lighting.resolution = 1024;
         renderer.configure(&graphics);
-        let origin = Vec3::from(game.player().position.map(|v| v as f32));
+        let origin = Vec3::from(game.player().position.map(|v| v as f32).to_array());
         let points = [
             Vec3::new(-4000.0, 20.0, -4000.0),
             Vec3::new(4000.0, 20.0, -4000.0),
@@ -933,7 +933,7 @@ fn distance_fog_preserves_near_colors_and_screen_graphics() {
 
         let rotated = Matrix {
             rotation: [[0, 0, -4096], [0, 4096, 0], [4096, 0, 0]],
-            translation: [5000, 0, 2000],
+            translation: [5000, 0, 2000].into(),
         };
         let vertices: Vec<_> = vertices
             .into_iter()

@@ -49,7 +49,8 @@ pub fn sources(
             if object.mode != 0 || !matches!(object.kind, Kind::Fire | Kind::Bonfire(_)) {
                 return None;
             }
-            let position = Vec3::from(object.position.map(|v| v as f32)) - Vec3::Y * 400.0;
+            let position =
+                Vec3::from(object.position.map(|v| v as f32).to_array()) - Vec3::Y * 400.0;
             Some(Source {
                 name: "Fire".into(),
                 light: Light {

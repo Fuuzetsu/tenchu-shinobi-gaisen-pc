@@ -94,7 +94,9 @@ puts("");}return 0;}
             ];
             actors.get_mut(player).rotation = rotation;
             ctx.effects.sounds.clear();
-            items.request_darts(player, start, actors, ctx).unwrap();
+            items
+                .request_darts(player, start.into(), actors, ctx)
+                .unwrap();
             writeln!(
                 input,
                 "{seed} {} {} {} {} {} {}",
@@ -110,9 +112,7 @@ puts("");}return 0;}
             let mut ends = Vec::new();
             for item in &items.slots[1..=8] {
                 let f = &item.flight;
-                let distance = ctx
-                    .math
-                    .vector_distance(std::array::from_fn(|i| f.end[i].wrapping_sub(start[i])));
+                let distance = ctx.math.vector_distance(f.end.wrapping_sub(start.into()));
                 writeln!(input, "{} {} {} {distance}", f.end[0], f.end[1], f.end[2]).unwrap();
                 ends.push(f.end);
                 row.extend(item.rotation.map(i32::from));
@@ -142,7 +142,7 @@ puts("");}return 0;}
                 let e = &expected[4 + shot * 12..4 + (shot + 1) * 12];
                 assert_eq!(&a[3..], e, "case {case} shot {shot}");
                 let rotation = std::array::from_fn(|i| a[i] as i16);
-                let end = projectile::target(player, rotation, starts[case], actors, ctx)
+                let end = projectile::target(player, rotation, starts[case].into(), actors, ctx)
                     .unwrap()
                     .1;
                 assert_eq!(end, targets[case][shot], "case {case} shot {shot} aim");
@@ -166,7 +166,7 @@ fn dart_contact_keeps_flying_until_ground_impact() {
             .initialize(1, Processor::Darts, 15, Some(player), start, ctx)
             .unwrap();
         let model = items.slots[1].model;
-        items.slots[1].flight = flight::Flight::new(start, end, 4096, 1024, 400, ctx);
+        items.slots[1].flight = flight::Flight::new(start, end.into(), 4096, 1024, 400, ctx);
         items.slots[1].trail = Some(Trail::new(model, [[30, 0, 0], [-30, 0, 0]]));
         items.slots[1].count = 250;
         items.contact(1, 300, collision::HIT, ctx).unwrap();

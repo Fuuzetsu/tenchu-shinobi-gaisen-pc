@@ -1,4 +1,5 @@
 use crate::Result;
+use crate::math::Position;
 use tenchu_assets::terrain::{AreaMap, Node};
 
 pub const NONE: i32 = i32::MIN;
@@ -11,15 +12,15 @@ pub const REUSE_CACHED: u16 = 16;
 pub fn passage(
     map: &AreaMap,
     cursor: &mut Cursor,
-    mut position: [i32; 3],
+    mut position: Position,
     step: [i16; 3],
     count: i16,
-) -> Result<Option<[i32; 3]>> {
+) -> Result<Option<Position>> {
     let mut remaining = if count <= 0 { 100 } else { count };
     loop {
         let floor = level(map, cursor, position, 0)?;
         if floor == NONE {
-            return Ok(Some(std::array::from_fn(|i| {
+            return Ok(Some(Position::from_fn(|i| {
                 position[i].wrapping_sub(i32::from(step[i]))
             })));
         }
@@ -43,12 +44,12 @@ pub fn passage(
             if remaining == 0 {
                 return Ok(None);
             }
-            if !(x1 <= position[0]
-                && position[0] <= x2
-                && floor <= position[1]
-                && position[1] <= ceiling
-                && z1 <= position[2]
-                && position[2] <= z2)
+            if !(x1 <= position.x
+                && position.x <= x2
+                && floor <= position.y
+                && position.y <= ceiling
+                && z1 <= position.z
+                && position.z <= z2)
             {
                 break;
             }
@@ -108,8 +109,12 @@ pub fn node_level(node: Node, x: i32, z: i32) -> Result<i32> {
     Ok((i32::from(node.y) + slope) as i16 as i32)
 }
 
-pub fn level(map: &AreaMap, cursor: &mut Cursor, position: [i32; 3], mode: u16) -> Result<i32> {
-    let [wx, wy, wz] = position;
+pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) -> Result<i32> {
+    let Position {
+        x: wx,
+        y: wy,
+        z: wz,
+    } = position;
     let (x, z) = (wx / 10, wz / 10);
     let y = (wy / 10).wrapping_sub(if mode & STEP_DOWN != 0 { 150 } else { 0 });
     cursor.attribute = 0x81;
@@ -187,7 +192,7 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: [i32; 3], mode: u16) 
 pub fn vector(
     map: &AreaMap,
     cursor: &mut Cursor,
-    position: [i32; 3],
+    position: Position,
     width: i32,
     mode: u16,
 ) -> Result<Probe> {
@@ -197,7 +202,7 @@ pub fn vector(
         height: if center == NONE {
             0
         } else {
-            center.wrapping_sub(position[1])
+            center.wrapping_sub(position.y)
         },
         attribute: cursor.attribute,
         row: cursor.row,
@@ -216,15 +221,15 @@ pub fn vector(
         let other = level(
             map,
             cursor,
-            [
-                position[0].wrapping_add(width.wrapping_mul(dx)),
-                position[1],
-                position[2].wrapping_add(width.wrapping_mul(dz)),
-            ],
+            Position::new(
+                position.x.wrapping_add(width.wrapping_mul(dx)),
+                position.y,
+                position.z.wrapping_add(width.wrapping_mul(dz)),
+            ),
             mode,
         )?;
         if other == NONE
-            || (other.wrapping_sub(position[1]) < -500
+            || (other.wrapping_sub(position.y) < -500
                 && mode & ALLOW_DEEP == 0
                 && (result.attribute | cursor.attribute) & 0xc000 == 0)
         {
@@ -241,11 +246,11 @@ pub fn vector(
 pub fn particle_floor(
     map: &AreaMap,
     cursor: &mut Cursor,
-    position: [i32; 3],
+    position: Position,
     hint: &mut Option<usize>,
     mode: u16,
 ) -> Result<i32> {
-    let [x, y, z] = position.map(|v| v / 10);
+    let Position { x, y, z } = position.map(|v| v / 10);
     if let Some(at) = *hint {
         let node = map.node(at)?;
         if i32::from(node.y) - 200 <= y && y <= i32::from(node.y) && node.contains(x, z) {
@@ -261,9 +266,9 @@ pub fn particle_floor(
             };
         }
     }
-    let query = [position[0], position[1].wrapping_sub(300), position[2]];
+    let query = Position::new(position.x, position.y.wrapping_sub(300), position.z);
     let floor = level(map, cursor, query, mode)?;
-    if position[1] <= floor && map.node(cursor.area)?.division == u16::MAX {
+    if position.y <= floor && map.node(cursor.area)?.division == u16::MAX {
         *hint = Some(cursor.area);
     }
     Ok(floor)
@@ -273,11 +278,11 @@ pub fn ground_ray(
     map: &AreaMap,
     cursor: &mut Cursor,
     math: &crate::math::Math,
-    from: [i32; 3],
-    to: [i32; 3],
+    from: Position,
+    to: Position,
     mode: u16,
-) -> Result<(i32, [i32; 3])> {
-    let delta = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
+) -> Result<(i32, Position)> {
+    let delta = to.wrapping_sub(from);
     let step = (500i32 << 12)
         .checked_div(math.vector_distance(delta))
         .filter(|v| *v > 0)
@@ -286,9 +291,8 @@ pub fn ground_ray(
     let mut hint = None;
     let mut time = step;
     while time < 4096 {
-        let point =
-            std::array::from_fn(|i| from[i].wrapping_add(delta[i].wrapping_mul(time) / 4096));
-        if particle_floor(map, cursor, point, &mut hint, mode)? < point[1] {
+        let point = Position::from_fn(|i| from[i].wrapping_add(delta[i].wrapping_mul(time) / 4096));
+        if particle_floor(map, cursor, point, &mut hint, mode)? < point.y {
             break;
         }
         last = point;
@@ -322,17 +326,20 @@ mod tests {
         let mut cursor = Cursor::new(&map);
         let start = [9990, -100, 0];
         let step = [100, 0, 0];
-        assert_eq!(passage(&map, &mut cursor, start, step, 1).unwrap(), None);
         assert_eq!(
-            passage(&map, &mut cursor, start, step, 2).unwrap(),
-            Some(start)
+            passage(&map, &mut cursor, start.into(), step, 1).unwrap(),
+            None
         );
         assert_eq!(
-            passage(&map, &mut cursor, [10090, -100, 0], step, 1).unwrap(),
-            Some(start)
+            passage(&map, &mut cursor, start.into(), step, 2).unwrap(),
+            Some(start.into())
         );
         assert_eq!(
-            passage(&map, &mut cursor, [0, -100, 0], [0; 3], 0).unwrap(),
+            passage(&map, &mut cursor, Position::new(10090, -100, 0), step, 1).unwrap(),
+            Some(start.into())
+        );
+        assert_eq!(
+            passage(&map, &mut cursor, Position::new(0, -100, 0), [0; 3], 0).unwrap(),
             None
         );
     }
@@ -343,13 +350,13 @@ mod tests {
         let mut cursor = Cursor::new(&map);
         let mut hint = None;
         assert_eq!(
-            particle_floor(&map, &mut cursor, [0, -100, 0], &mut hint, 0).unwrap(),
+            particle_floor(&map, &mut cursor, Position::new(0, -100, 0), &mut hint, 0).unwrap(),
             0
         );
         assert_eq!(hint, Some(32));
         cursor.last_y = 12345;
         assert_eq!(
-            particle_floor(&map, &mut cursor, [10, -200, 10], &mut hint, 0).unwrap(),
+            particle_floor(&map, &mut cursor, Position::new(10, -200, 10), &mut hint, 0).unwrap(),
             0
         );
         assert_eq!(cursor.last_y, 12345);

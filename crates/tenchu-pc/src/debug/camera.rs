@@ -40,7 +40,7 @@ impl Camera {
             * Mat4::look_to_rh(self.position, self.forward(), Vec3::NEG_Y);
         let columns = matrix.to_cols_array_2d();
         tenchu_core::math::Matrix {
-            translation: std::array::from_fn(|i| columns[3][i].round() as i32),
+            translation: std::array::from_fn(|i| columns[3][i].round() as i32).into(),
             rotation: std::array::from_fn(|r| {
                 std::array::from_fn(|c| (columns[c][r] * 4096.0).round() as i16)
             }),

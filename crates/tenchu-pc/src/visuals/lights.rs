@@ -126,7 +126,7 @@ impl Emitters {
             name: emitter.name.clone(),
             light: Light {
                 position: rotation * emitter.position
-                    + Vec3::from(matrix.translation.map(|v| v as f32)),
+                    + Vec3::from(matrix.translation.map(|v| v as f32).to_array()),
                 color: emitter.color,
                 radius: 12_000.0 * emitter.radius_scale,
             },
@@ -280,7 +280,7 @@ mod tests {
             if mission == 1 {
                 assert!(sources.len() > 10);
                 assert!(names.iter().any(|name| name.contains("AKARI")));
-                let player = Vec3::from(game.player().position.map(|v| v as f32));
+                let player = Vec3::from(game.player().position.map(|v| v as f32).to_array());
                 let nearest = sources
                     .iter()
                     .min_by(|a, b| {

@@ -234,7 +234,7 @@ impl Meshes {
         };
         let rotation = rotation(matrix);
         let normal = rotation.inverse().transpose();
-        let translation = Vec3::from(matrix.translation.map(|n| n as f32));
+        let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
         for triangle in vertices.chunks_exact(3) {
             visit(std::array::from_fn(|i| {
                 let mut vertex = triangle[i];

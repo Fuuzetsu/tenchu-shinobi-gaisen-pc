@@ -1,3 +1,4 @@
+use crate::math::Position;
 pub mod activation;
 pub mod cinematic;
 mod debug;
@@ -85,7 +86,7 @@ impl Game {
         let mut collision = Collision::default();
         let mut camera = Camera::new(
             tenchu_assets::camera::CameraTables::load(executable)?,
-            mission.stage.start,
+            mission.stage.start.into(),
             &math,
         )?;
         let mut context = Context {
@@ -266,7 +267,7 @@ impl Game {
                                 },
                             )?;
                         }
-                        [0; 3]
+                        Position::ZERO
                     };
                     if actor.control(
                         &mut context,

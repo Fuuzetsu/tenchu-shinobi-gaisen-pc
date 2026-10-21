@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
 
@@ -61,11 +62,10 @@ int main(void) {{
     let mut input = String::new();
     let mut expected = Vec::new();
     for case in 0..2048 {
-        let start: [i32; 3] = std::array::from_fn(|_| (cases.next15() - 16384) * 7);
-        let end: [i32; 3] = std::array::from_fn(|i| {
-            start[i] + (cases.next15() - 16384) / [1, 4, 20, 400][case % 4]
-        });
-        let delta: [i32; 3] = std::array::from_fn(|i| start[i] - end[i]);
+        let start: Position = Position::from_fn(|_| (cases.next15() - 16384) * 7);
+        let end: Position =
+            Position::from_fn(|i| start[i] + (cases.next15() - 16384) / [1, 4, 20, 400][case % 4]);
+        let delta: Position = Position::from_fn(|i| start[i] - end[i]);
         let big = delta.iter().any(|v| v.abs() > 4096);
         let root = game
             .math
@@ -82,9 +82,9 @@ int main(void) {{
         // The original writes setup parameters even for a zero-time, unallocated effect.
         if result == 0 {
             let mut setup_rng = Random::new(seed);
-            let straight: [i32; 3] = std::array::from_fn(|i| (start[i] + end[i]) / 2);
+            let straight: Position = Position::from_fn(|i| (start[i] + end[i]) / 2);
             let bend = distance / 16;
-            let center: [i32; 3] = std::array::from_fn(|i| {
+            let center: Position = Position::from_fn(|i| {
                 let range = if i == 1 { bend } else { bend * 2 };
                 straight[i]
                     + if range > 0 {
@@ -135,10 +135,10 @@ int main(void) {{
                 &mut wire,
                 &mut rng,
                 View {
-                    position: [0; 3],
+                    position: Position::ZERO,
                     matrix: Matrix::default(),
                 },
-                [0; 3],
+                Position::ZERO,
             );
         }
     }
@@ -152,14 +152,14 @@ int main(void) {{
 #[test]
 fn cable_excludes_endpoint_and_empty_curve_has_no_hook() {
     let view = View {
-        position: [0; 3],
+        position: Position::ZERO,
         matrix: Matrix::default(),
     };
     let rotation = Matrix::default().rotation;
     let wire = sample(
-        [0, 0, 3000],
-        [3000, 0, 3000],
-        [1500, 0, 3000],
+        Position::new(0, 0, 3000),
+        Position::new(3000, 0, 3000),
+        Position::new(1500, 0, 3000),
         10,
         4096,
         rotation,
@@ -168,9 +168,9 @@ fn cable_excludes_endpoint_and_empty_curve_has_no_hook() {
     assert_eq!(wire.lines.len(), 10);
     assert_eq!(wire.hook.unwrap().0.translation, [2699, 0, 3000]);
     let empty = sample(
-        [0, 0, 3000],
-        [1, 0, 3000],
-        [0, 0, 3000],
+        Position::new(0, 0, 3000),
+        Position::new(1, 0, 3000),
+        Position::new(0, 0, 3000),
         0,
         4096,
         rotation,

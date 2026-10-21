@@ -70,6 +70,7 @@ pub fn model(scene: &mut Scene, view: Matrix, id: ModelId) -> Result<Option<Clip
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::math::Position;
 
     #[test]
     fn reciprocal_and_clip_boundaries_preserve_the_source_depth_units() {
@@ -77,7 +78,7 @@ mod tests {
         assert_eq!(divide(300, 150), 131071);
         assert_eq!(divide(29, 29), 65535);
         let at = |z| Matrix {
-            translation: [0, 0, z],
+            translation: Position::new(0, 0, z),
             ..Matrix::default()
         };
         assert_eq!(

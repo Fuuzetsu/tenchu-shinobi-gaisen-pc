@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 use std::fs;
 use tenchu_assets::executable::Executable;
@@ -48,11 +49,11 @@ int main(void) {{
     let mut random = crate::random::Random::new(123);
     for case in 0..512 {
         let mut next = || random.next15() * 13 - 200000;
-        let from: [i32; 3] = std::array::from_fn(|_| next());
+        let from: Position = Position::from_fn(|_| next());
         let to = if case % 7 == 0 {
             from
         } else {
-            std::array::from_fn(|_| next())
+            Position::from_fn(|_| next())
         };
         let mut smooth = Smooth {
             shift: case % 6,
@@ -60,11 +61,11 @@ int main(void) {{
             speed: next() as i16,
             before: std::array::from_fn(|_| next() as i16),
         };
-        let delta: [i32; 3] = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
+        let delta: Position = to.wrapping_sub(from);
         let lengths = [
             math.vector_distance(delta),
             math.vector_distance(delta.map(|v| v as i16 as i32)),
-            math.vector_distance(smooth.before.map(i32::from)),
+            math.vector_distance(smooth.before.map(i32::from).into()),
         ];
         let fields = from
             .into_iter()

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{items::Items, scene::Scene};
 use tenchu_assets::{hud::MapPlacement, stage::MissionAssets};
 
@@ -16,7 +17,7 @@ pub struct Map {
     pub lines: Vec<Line>,
 }
 
-fn project(position: [i32; 3], placement: MapPlacement, math: &Math) -> [i16; 2] {
+fn project(position: Position, placement: MapPlacement, math: &Math) -> [i16; 2] {
     let [sin, cos] = math.pair(placement.rotation as i16);
     let divisor = placement.divisor.max(1);
     let x = position[0] / divisor;
@@ -70,7 +71,7 @@ impl Map {
                 self.slide = 160;
                 self.mode = 1;
                 self.dim = Some(0);
-                effects.sounds.push(([0; 3], 0x27));
+                effects.sounds.push((Position::ZERO, 0x27));
             }
             1 => {
                 let mut ghost = Sprite::new(mission.map_image, [self.slide as i16, 0]);

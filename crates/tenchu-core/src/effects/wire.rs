@@ -1,12 +1,13 @@
 use super::*;
 use crate::math::Math;
+use crate::math::Position;
 
 #[derive(Clone, Debug)]
 pub struct FlyWire {
-    pub start: [i32; 3],
-    pub end: [i32; 3],
-    pub center: [i32; 3],
-    pub straight: [i32; 3],
+    pub start: Position,
+    pub end: Position,
+    pub center: Position,
+    pub straight: Position,
     pub count: i16,
     pub time: i16,
     pub mode: u8,
@@ -23,17 +24,17 @@ pub struct Wire {
 impl Effects {
     pub fn fly_wire(
         &mut self,
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         math: &Math,
         rng: &mut Random,
     ) -> Result<i16> {
         let slot = self.allocate();
-        let distance = math.vector_distance(std::array::from_fn(|i| start[i].wrapping_sub(end[i])));
+        let distance = math.vector_distance(start.wrapping_sub(end));
         let straight = std::array::from_fn(|i| start[i].wrapping_add(end[i]) / 2);
         let time = (distance / 1000) as i16;
         let bend = distance / 16;
-        let center = std::array::from_fn(|i| {
+        let center = Position::from_fn(|i| {
             let range = if i == 1 { bend } else { bend.wrapping_mul(2) };
             straight[i]
                 .wrapping_add(if range > 0 { rng.next15() % range } else { 0 })
@@ -44,7 +45,7 @@ impl Effects {
                 start,
                 end,
                 center,
-                straight,
+                straight: straight.into(),
                 count: 0,
                 time,
                 mode: 0,
@@ -59,18 +60,18 @@ impl Effects {
 
     pub fn wire(
         &mut self,
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         math: &Math,
         view: View,
     ) -> Result<Option<bool>> {
-        let distance = math.vector_distance(std::array::from_fn(|i| start[i].wrapping_sub(end[i])));
+        let distance = math.vector_distance(start.wrapping_sub(end));
         let mut center = std::array::from_fn(|i| start[i].wrapping_add(end[i]) / 2);
         center[1] = center[1].wrapping_add(distance / 32);
         let wire = sample(
             start,
             end,
-            center,
+            center.into(),
             distance / 300,
             4096,
             math.rotate_yxz(math.vector_rotation(start, end)?),
@@ -86,7 +87,7 @@ impl Effects {
         wire: &mut FlyWire,
         rng: &mut Random,
         view: View,
-        owner_position: [i32; 3],
+        owner_position: Position,
     ) -> bool {
         let (center, length, alive) = if wire.mode == 0 {
             wire.count = (i32::from(wire.count as u16) + 4096 / i32::from(wire.time)) as i16;
@@ -100,7 +101,7 @@ impl Effects {
             (wire.center, wire.count, true)
         } else {
             let count = i32::from(wire.count);
-            let center = std::array::from_fn(|i| {
+            let center = Position::from_fn(|i| {
                 wire.center[i]
                     .wrapping_mul(5 - count)
                     .wrapping_add(wire.straight[i].wrapping_mul(count))
@@ -124,9 +125,9 @@ impl Effects {
 }
 
 fn sample(
-    start: [i32; 3],
-    end: [i32; 3],
-    center: [i32; 3],
+    start: Position,
+    end: Position,
+    center: Position,
     segments: i32,
     length: i16,
     rotation: [[i16; 3]; 3],
@@ -147,7 +148,7 @@ fn sample(
                 .wrapping_add(r.wrapping_mul(start[j]))
                 / 4096
         });
-        let current = view.project(point);
+        let current = view.project(point.into());
         if current.1 > 0 && previous.1 > 0 {
             lines.push(([previous.0, current.0], (current.1 >> 2).clamp(0, 1249)));
         }
@@ -158,7 +159,7 @@ fn sample(
     let hook = tail.and_then(|translation| {
         let matrix = Matrix {
             rotation,
-            translation,
+            translation: translation.into(),
         };
         visibility::clip(&view.matrix.compose(&matrix), 0, [0; 3]).map(|clip| (matrix, clip.fog))
     });

@@ -117,7 +117,7 @@ for(int frame=0;frame<80;frame++){UpdateTexScroll(&e);printf("%d %d %d %d %d %d 
     fn layout_reset_retains_scroll_slots_and_the_allocation_cursor() {
         let mut effects = Effects::default();
         effects.texture_scroll([704, 320, 32, 32], [832, 256], [16, 0]);
-        effects.flash(None, [0; 3], 4096, 4);
+        effects.flash(None, Position::ZERO, 4096, 4);
         effects.texture_scroll([736, 256, 32, 32], [832, 320], [0, 2]);
         let cursor = effects.cursor;
         effects.reset();
@@ -125,7 +125,7 @@ for(int frame=0;frame<80;frame++){UpdateTexScroll(&e);printf("%d %d %d %d %d %d 
         assert_eq!(effects.slots.iter().flatten().count(), 2);
         assert!(matches!(effects.slots[1], Some(Effect::TextureScroll(_))));
         assert!(matches!(effects.slots[5], Some(Effect::TextureScroll(_))));
-        effects.flash(None, [0; 3], 4096, 4);
+        effects.flash(None, Position::ZERO, 4096, 4);
         assert!(matches!(effects.slots[7], Some(Effect::Flash(_))));
     }
 }

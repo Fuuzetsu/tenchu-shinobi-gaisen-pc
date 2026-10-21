@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{collision, ids::ATTR_SUSPEND};
 
 #[test]
@@ -13,16 +14,23 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
                 actors.roster.remove(id, ctx);
             }
         }
-        let owner = actors.roster.spawn(0x88, [0; 3], 0, ctx).unwrap();
+        let owner = actors.roster.spawn(0x88, Position::ZERO, 0, ctx).unwrap();
         let actor = actors.get_mut(player);
-        actor.position = [0, 0, -3000];
+        actor.position = Position::new(0, 0, -3000);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
         ctx.scene.finish_tick();
         items
-            .initialize(1, Processor::Lightning, 23, Some(owner), [0, -1000, 0], ctx)
+            .initialize(
+                1,
+                Processor::Lightning,
+                23,
+                Some(owner),
+                Position::new(0, -1000, 0),
+                ctx,
+            )
             .unwrap();
         items.slots[1].lightning = crate::items::lightning::Lightning {
-            start: [0, -1000, 0],
+            start: Position::new(0, -1000, 0),
             rotation: [0; 3],
         };
         let model = items.slots[1].model;
@@ -43,7 +51,7 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
         assert_eq!(ctx.collision.slots[slot].size, [100; 3]);
         assert_eq!(ctx.collision.slots[slot].class, collision::HIT);
         let actor = actors.get_mut(player);
-        actor.position[2] = -6000;
+        actor.position.z = -6000;
         actor.attribute |= ATTR_SUSPEND;
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
         ctx.scene.finish_tick();
@@ -65,9 +73,16 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
         assert_eq!(items.slots[1].count, 255);
         assert!(ctx.scene.models[model].conflict.is_none());
         items
-            .initialize(1, Processor::Lightning, 23, Some(player), [0; 3], ctx)
+            .initialize(
+                1,
+                Processor::Lightning,
+                23,
+                Some(player),
+                Position::ZERO,
+                ctx,
+            )
             .unwrap();
-        items.slots[1].lightning.start = [0; 3];
+        items.slots[1].lightning.start = Position::ZERO;
         items.lightning(1, actors, player, 17, ctx).unwrap();
         assert!(
             ctx.effects

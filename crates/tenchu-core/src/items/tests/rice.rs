@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{ids::*, input::*};
 
 #[test]
@@ -14,7 +15,7 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
             rotation: game.math.rotate_yxz(game.player().rotation),
             ..Matrix::default()
         }
-        .apply_large([0, 0, -100])
+        .apply_large(Position::new(0, 0, -100))
         .map(|v| v as i16);
         game.step(TRIANGLE | SELECT).unwrap();
         assert_eq!(game.player().inventory[8], 1);
@@ -28,7 +29,7 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
             .iter()
             .find(|i| i.processor == Some(Processor::Rice))
             .unwrap();
-        assert_eq!(cast.rolling.velocity, velocity);
+        assert_eq!(cast.rolling.velocity, velocity.to_array());
         let mut dropped = false;
         for _ in 0..80 {
             game.step(SELECT).unwrap();
@@ -76,7 +77,7 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
             items
-                .initialize(id, Processor::Pickup, 1, None, [0; 3], ctx)
+                .initialize(id, Processor::Pickup, 1, None, Position::ZERO, ctx)
                 .unwrap();
         }
         let owner = actors.get_mut(player);
@@ -84,14 +85,14 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         let action = owner.motion.action;
         let model = items.slots[1].model;
         let cached = Matrix {
-            translation: [800, 900, 1000],
+            translation: Position::new(800, 900, 1000),
             ..Matrix::default()
         };
         ctx.scene.models[model].cached = cached;
         ctx.scene.models[model].flags = 59;
         items.slots[1].rotation = [20, 600, -30];
         items
-            .initialize(1, Processor::Rice, 8, Some(player), [0; 3], ctx)
+            .initialize(1, Processor::Rice, 8, Some(player), Position::ZERO, ctx)
             .unwrap();
         assert_eq!(
             ctx.scene.models[model].local.rotation,
@@ -117,7 +118,7 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         let hand_position = [position[0] + 50, position[1] - 800, position[2] + 70];
         let hand = actors.get(player).parts[13];
         ctx.scene.models[hand].parent = None;
-        ctx.scene.models[hand].local.translation = hand_position;
+        ctx.scene.models[hand].local.translation = hand_position.into();
         ctx.scene.models[hand].flags = 0;
         items.cursor = 20;
         let random = *ctx.random;

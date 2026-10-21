@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{Result, camera::Mode, game::Game, ids::ATTR_SUSPEND, math::Math};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -19,18 +20,18 @@ impl Sound {
 
 #[derive(Clone, Copy)]
 pub struct Listener {
-    pub position: [i32; 3],
+    pub position: Position,
     pub yaw: i16,
     pub direction: Option<i16>,
 }
 
 impl Listener {
-    pub fn sound(&self, math: &Math, position: Option<[i32; 3]>, id: i16) -> Result<Option<Sound>> {
+    pub fn sound(&self, math: &Math, position: Option<Position>, id: i16) -> Result<Option<Sound>> {
         let Some(position) = position else {
             return Ok(Some(Sound::local(id)));
         };
         let [dx, dy, dz] = std::array::from_fn(|i| position[i].wrapping_sub(self.position[i]));
-        let distance = math.length([dx, 0, dz]);
+        let distance = math.length(Position::new(dx, 0, dz));
         let dy = dy.wrapping_abs();
         if distance >= 18000 || dy >= 10000 {
             return Ok(None);

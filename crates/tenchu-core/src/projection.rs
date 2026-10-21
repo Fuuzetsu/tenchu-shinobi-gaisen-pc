@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{math::Matrix, visibility::divide};
 #[cfg(test)]
 mod tests;
@@ -12,7 +13,7 @@ pub struct Point {
     pub xy: [i16; 2],
     pub z: u16,
     pub flags: u32,
-    pub mac: [i32; 3],
+    pub mac: Position,
 }
 
 fn mac0(value: i64) -> u32 {
@@ -62,7 +63,15 @@ fn geometry(matrix: &Matrix, vertex: [i16; 3]) -> (Point, u32) {
         }
         screen.clamp(-1024, 1023) as i16
     });
-    (Point { xy, z, flags, mac }, ratio)
+    (
+        Point {
+            xy,
+            z,
+            flags,
+            mac: mac.into(),
+        },
+        ratio,
+    )
 }
 
 fn finish(flags: u32, ratio: u32) -> u32 {

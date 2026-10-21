@@ -1,3 +1,4 @@
+use crate::math::Position;
 #[derive(Clone, Debug)]
 pub struct Point {
     pub position: [i32; 2],
@@ -13,7 +14,7 @@ pub struct Patrol {
 }
 
 impl Patrol {
-    pub fn new(points: &[([i32; 3], i32)], home: [i32; 3]) -> Self {
+    pub fn new(points: &[([i32; 3], i32)], home: Position) -> Self {
         let mut points: Vec<_> = points
             .iter()
             .map(|(p, _)| Point {
@@ -51,8 +52,8 @@ impl Actor {
             .points
             .get(patrol.index)
             .ok_or("Patrol index outside route")?;
-        let dx = point.position[0].wrapping_sub(self.position[0]);
-        let dz = point.position[1].wrapping_sub(self.position[2]);
+        let dx = point.position[0].wrapping_sub(self.position.x);
+        let dz = point.position[1].wrapping_sub(self.position.z);
         let distance = math.square_root(dx.wrapping_mul(dx).wrapping_add(dz.wrapping_mul(dz)));
         let range = i32::from(point.range);
         if self.attribute & ATTR_WALL != 0 {

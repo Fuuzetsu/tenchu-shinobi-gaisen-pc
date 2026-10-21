@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 #[test]
 fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
@@ -9,11 +10,11 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
         terrain: &map,
         cursor: &mut cursor,
         clock: 0,
-        owner_position: [0; 3],
-        reference: [0; 3],
+        owner_position: Position::ZERO,
+        reference: Position::ZERO,
     };
     let mut rng = Random::new(1);
-    effects.smoke_burst([0; 3], 0, 12, 201, &mut rng);
+    effects.smoke_burst(Position::ZERO, 0, 12, 201, &mut rng);
     assert_eq!(rng.calls, 402);
     assert!(effects.slots.iter().all(Option::is_some));
     // Avoid event rolls: this test isolates the inclusive zero lifetime and dummy slot.
@@ -24,7 +25,7 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
         smoke.change_at = 255;
     }
     let view = View {
-        position: [0; 3],
+        position: Position::ZERO,
         matrix: Matrix::default(),
     };
     let mut scene = Scene::default();
@@ -43,7 +44,7 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
         Some(Effect::Smoke(Smoke { time: 15, .. }))
     ));
     assert_eq!(rng.calls, 402);
-    effects.smoke_burst([0; 3], 150, 12, 1, &mut rng);
+    effects.smoke_burst(Position::ZERO, 150, 12, 1, &mut rng);
     assert_eq!(rng.calls, 406);
 }
 
@@ -56,13 +57,13 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
         terrain: &map,
         cursor: &mut cursor,
         clock: 0,
-        owner_position: [0; 3],
-        reference: [0; 3],
+        owner_position: Position::ZERO,
+        reference: Position::ZERO,
     };
     let mut rng = Random::new(1);
     let mut scene = Scene::default();
     let forward = View {
-        position: [0; 3],
+        position: Position::ZERO,
         matrix: Matrix::default(),
     };
     let behind = View {
@@ -72,7 +73,7 @@ fn splash_waits_for_visibility_and_new_droplets_run_in_slot_order() {
         },
         ..forward
     };
-    effects.splash([0, 0, 2000], [8192; 2], 4);
+    effects.splash(Position::new(0, 0, 2000), [8192; 2], 4);
     for _ in 0..30 {
         effects.begin_tick();
         effects
@@ -138,18 +139,18 @@ fn spawning_from_a_full_pool_preserves_the_visiting_slot_and_dummy_lifetime() {
         terrain: &map,
         cursor: &mut cursor,
         clock: 0,
-        owner_position: [0; 3],
-        reference: [0; 3],
+        owner_position: Position::ZERO,
+        reference: Position::ZERO,
     };
     effects.slots[..200].fill(Some(Effect::Bleed(Bleed {
-        position: [0, 0, 2000],
+        position: Position::new(0, 0, 2000),
         velocity: [0; 3],
         color: [0; 3],
         time: 20,
         mode: 1,
     })));
     effects.slots[0] = Some(Effect::Splash(Splash {
-        position: [0, 0, 2000],
+        position: Position::new(0, 0, 2000),
         size: [8192; 2],
         speed: 4,
         count: 0,
@@ -161,7 +162,7 @@ fn spawning_from_a_full_pool_preserves_the_visiting_slot_and_dummy_lifetime() {
         .step(
             &mut rng,
             View {
-                position: [0; 3],
+                position: Position::ZERO,
                 matrix: Matrix::default(),
             },
             &mut scene,
@@ -198,7 +199,7 @@ fn expiring_attached_flash_still_visits_its_coordinate() {
     let parent = scene.add(
         Some(0),
         Matrix {
-            translation: [0, 0, -1000],
+            translation: Position::new(0, 0, -1000),
             ..Matrix::default()
         },
     );
@@ -209,10 +210,10 @@ fn expiring_attached_flash_still_visits_its_coordinate() {
         terrain: &map,
         cursor: &mut cursor,
         clock: 0,
-        owner_position: [0; 3],
-        reference: [0; 3],
+        owner_position: Position::ZERO,
+        reference: Position::ZERO,
     };
-    effects.flash(Some(parent), [0; 3], 12288, 1);
+    effects.flash(Some(parent), Position::ZERO, 12288, 1);
     let Some(Effect::Flash(flash)) = effects.slots[1].as_mut() else {
         unreachable!()
     };
@@ -222,7 +223,7 @@ fn expiring_attached_flash_still_visits_its_coordinate() {
         .step(
             &mut rng,
             View {
-                position: [0; 3],
+                position: Position::ZERO,
                 matrix: Matrix::default(),
             },
             &mut scene,

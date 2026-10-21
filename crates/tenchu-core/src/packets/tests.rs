@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use tenchu_assets::model::{Corner, Face};
 
 fn quad() -> Geometry {
@@ -32,7 +33,7 @@ fn quad() -> Geometry {
 fn custom_and_sdk_draw_paths_disagree_on_the_fourth_vertex_and_lit_tail() {
     let mut mesh = quad();
     let matrix = Matrix {
-        translation: [0, 0, 5000],
+        translation: Position::new(0, 0, 5000),
         ..Matrix::default()
     };
     mesh.vertices[3][2] = -6000;
@@ -52,7 +53,7 @@ fn custom_and_sdk_draw_paths_disagree_on_the_fourth_vertex_and_lit_tail() {
 fn adaptive_subdivision_counts_degenerate_edge_stitches() {
     let mut mesh = quad();
     let matrix = Matrix {
-        translation: [0, 0, 1000],
+        translation: Position::new(0, 0, 1000),
         ..Matrix::default()
     };
     let mut params = Subdivision {
@@ -79,7 +80,7 @@ fn initialized_subdivision_splits_large_near_faces() {
         *vertex = vertex.map(|v| v * 20);
     }
     let mut matrix = Matrix {
-        translation: [0, 0, 2000],
+        translation: Position::new(0, 0, 2000),
         ..Matrix::default()
     };
     let parameters = Subdivision::default();
@@ -87,6 +88,6 @@ fn initialized_subdivision_splits_large_near_faces() {
         parameters.count(&mesh, &matrix, 2).unwrap(),
         4 * 40 + 4 * 32
     );
-    matrix.translation[2] = 4000;
+    matrix.translation.z = 4000;
     assert_eq!(parameters.count(&mesh, &matrix, 2).unwrap(), 40);
 }

@@ -26,7 +26,7 @@ impl Items {
             let action = actor.return_normal(ctx, dog.player)?;
             actor.enter(ctx, action, true);
             actor.attribute |= ATTR_SUSPEND;
-            actor.position = [999000; 3];
+            actor.position = [999000; 3].into();
             ctx.scene.update(actor.root_model, actor.root(ctx.math));
         }
         Ok(())
@@ -67,7 +67,7 @@ impl Items {
                     .is_none_or(|a| !actors.roster.order.contains(&a))
                     || actors.roster.find(0xa9).is_none()
                 {
-                    let slave = actors.roster.spawn(0xa9, [999000; 3], 0, ctx)?;
+                    let slave = actors.roster.spawn(0xa9, [999000; 3].into(), 0, ctx)?;
                     actors.get_mut(slave).attribute |= ATTR_SUSPEND;
                     self.dog_actor = Some(slave);
                 }

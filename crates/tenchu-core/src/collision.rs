@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{
     Result,
     scene::{COLLIDE, CONFLICT, ModelId, Scene},
@@ -15,7 +16,7 @@ const CONSUMED: u8 = 0x40;
 pub struct Slot {
     pub model: Option<ModelId>,
     pub owner: Option<usize>,
-    pub position: [i32; 3],
+    pub position: Position,
     pub offset: [i16; 3],
     pub size: [i16; 3],
     pub class: i16,
@@ -28,7 +29,7 @@ impl Default for Slot {
         Self {
             model: None,
             owner: None,
-            position: [0; 3],
+            position: Position::ZERO,
             offset: [0; 3],
             size: [0; 3],
             class: 0,
@@ -105,7 +106,7 @@ impl Collision {
             slot.count = 0;
             model.attribute &= !CONFLICT;
             slot.position = if model.parent == Some(0) {
-                std::array::from_fn(|i| {
+                Position::from_fn(|i| {
                     model.local.translation[i].wrapping_add(i32::from(slot.offset[i]))
                 })
             } else {
@@ -194,7 +195,7 @@ mod tests {
                 let id = scene.add(
                     Some(0),
                     Matrix {
-                        translation: [x, 0, 0],
+                        translation: Position::new(x, 0, 0),
                         ..Matrix::default()
                     },
                 );
@@ -234,7 +235,7 @@ mod tests {
             let model = scene.add(
                 Some(0),
                 Matrix {
-                    translation: [x, 0, 0],
+                    translation: Position::new(x, 0, 0),
                     ..Matrix::default()
                 },
             );

@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{
     Result,
     actor::{Context, patrol::Patrol},
@@ -55,12 +56,12 @@ pub(super) fn construct(
     for (_, spawn) in construction {
         match spawn {
             Spawn::Actor(s) => {
-                roster.spawn(s.kind, s.position, s.facing, ctx)?;
+                roster.spawn(s.kind, s.position.into(), s.facing, ctx)?;
             }
             Spawn::Pickup(s) => {
                 items.stay(
                     s.kind,
-                    s.position,
+                    s.position.into(),
                     &mut crate::roster::Actors::new(roster),
                     ctx,
                 )?;
@@ -68,18 +69,18 @@ pub(super) fn construct(
             Spawn::Misc(s) => misc.spawn(s, ctx),
         }
     }
-    let player = roster.spawn(character, [0; 3], 0, ctx)?;
+    let player = roster.spawn(character, Position::ZERO, 0, ctx)?;
     let actor = roster.get_mut(player);
     actor.setup_think(0x1111);
-    actor.position = ctx.mission.stage.start;
+    actor.position = ctx.mission.stage.start.into();
     actor.rotation = [0, ctx.mission.stage.facing as i16, 0];
     ctx.scene.set_translation(actor.root_model, actor.position);
     let player_model = actor.root_model;
 
-    let dog = roster.spawn(0xa9, [999000; 3], 0, ctx)?;
+    let dog = roster.spawn(0xa9, [999000; 3].into(), 0, ctx)?;
     roster.get_mut(dog).attribute |= ATTR_SUSPEND;
     items.dog_actor = Some(dog);
-    let disguise = roster.spawn(ctx.mission.disguise, [999000; 3], 0, ctx)?;
+    let disguise = roster.spawn(ctx.mission.disguise, [999000; 3].into(), 0, ctx)?;
     items.capture_disguises(roster.get(player), roster.get(disguise), ctx.scene)?;
     roster.remove(disguise, ctx);
     ctx.effects.reset();
@@ -95,7 +96,7 @@ pub(super) fn construct(
     }
     items.restore_layout(roster, ctx)?;
     for spawn in ctx.mission.enemies.clone() {
-        let id = roster.spawn(spawn.kind, spawn.position, 0, ctx)?;
+        let id = roster.spawn(spawn.kind, spawn.position.into(), 0, ctx)?;
         let actor = roster.get_mut(id);
         actor.rotation[1] = spawn.facing;
         actor.attribute |= ATTR_SUSPEND;
@@ -110,23 +111,23 @@ pub(super) fn construct(
     for spawn in ctx.mission.story.clone() {
         let id = match roster.find(spawn.kind) {
             Some(id) => id,
-            None => roster.spawn(spawn.kind, [0; 3], 0, ctx)?,
+            None => roster.spawn(spawn.kind, Position::ZERO, 0, ctx)?,
         };
         let actor = roster.get_mut(id);
-        actor.position = spawn.position;
+        actor.position = spawn.position.into();
         actor.home = [spawn.position[0], spawn.position[2]];
         let floor = terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
-            [
+            Position::new(
                 spawn.position[0],
                 spawn.position[1].wrapping_sub(1000),
                 spawn.position[2],
-            ],
+            ),
             0,
         )?;
-        if floor < actor.position[1] {
-            actor.position[1] = floor;
+        if floor < actor.position.y {
+            actor.position.y = floor;
         }
         actor.rotation[1] = spawn.facing;
         ctx.scene.update(actor.root_model, actor.root(ctx.math));

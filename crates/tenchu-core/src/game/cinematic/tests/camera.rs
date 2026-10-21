@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use std::fmt::Write;
 
 #[test]
@@ -82,8 +83,8 @@ int main(void){{
                 (random.next15() % 20000 - 10000) as i16
             },
         };
-        game.camera.position = std::array::from_fn(|_| random.next15() % 10000 - 5000);
-        game.camera.reference = std::array::from_fn(|_| random.next15() % 10000 - 5000);
+        game.camera.position = Position::from_fn(|_| random.next15() % 10000 - 5000);
+        game.camera.reference = Position::from_fn(|_| random.next15() % 10000 - 5000);
         let mut row = vec![i32::from(command.id)];
         row.extend(command.position.map(i32::from));
         row.push(i32::from(command.parameter));
@@ -91,7 +92,7 @@ int main(void){{
         row.extend(game.camera.reference);
         for id in [game.player_id, boss] {
             let actor = game.roster.get_mut(id);
-            actor.position = std::array::from_fn(|_| random.next15() % 20000 - 10000);
+            actor.position = Position::from_fn(|_| random.next15() % 20000 - 10000);
             actor.rotation[1] = random.next15() as i16;
             row.extend(actor.position);
             row.push(i32::from(actor.rotation[1]));
@@ -107,14 +108,14 @@ int main(void){{
             .collect::<Vec<_>>();
         let refreshed = i32::from(!(command.id == 5 && command.parameter == 99));
         state.extend([i32::from(game.cinematic.target == boss), refreshed]);
-        let x = game.camera.position[0] - game.camera.reference[0];
-        let z = game.camera.position[2] - game.camera.reference[2];
+        let x = game.camera.position.x - game.camera.reference.x;
+        let z = game.camera.position.z - game.camera.reference.z;
         game.cinematic.pan = [0, 2, 3, 4, 5, 6, 7, 8, 20][case % 9];
         game.cinematic.speed = (random.next15() % 300 - 150) as i16;
         row.extend([
             i32::from(game.cinematic.pan),
             i32::from(game.cinematic.speed),
-            game.math.length([x, 0, z]),
+            game.math.length(Position::new(x, 0, z)),
             i32::from(game.math.direction(x, z, 0).unwrap()),
             193,
         ]);
@@ -122,7 +123,7 @@ int main(void){{
             write!(input, "{value} ").unwrap();
         }
         input.push('\n');
-        game.roster.get_mut(game.cinematic.target).position[0] += 193;
+        game.roster.get_mut(game.cinematic.target).position.x += 193;
         game.cinematic_camera(0).unwrap();
         state.extend(game.camera.position);
         state.extend(game.camera.reference);

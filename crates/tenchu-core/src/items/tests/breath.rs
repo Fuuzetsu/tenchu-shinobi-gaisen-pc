@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{camera::Mode, ids::*, input};
 
 #[test]
@@ -88,8 +89,8 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
             };
             let seed = case as u32 * 31 + 7;
             ctx.camera.mode = camera_mode;
-            ctx.camera.position = [0, -3000, 5000];
-            ctx.camera.reference = [1000, -1000, 0];
+            ctx.camera.position = Position::new(0, -3000, 5000);
+            ctx.camera.reference = Position::new(1000, -1000, 0);
             let actor = actors.get_mut(player);
             actor.attribute = 0;
             actor.status = 0;
@@ -118,20 +119,20 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
                 rotation: ctx.math.rotate_yxz(rotation),
                 ..Matrix::default()
             }
-            .apply_large([0, 0, -60]);
+            .apply_large(Position::new(0, 0, -60));
             items
                 .initialize(
                     1,
                     Processor::Breath,
                     17,
                     Some(player),
-                    [400, -1000, 2000],
+                    Position::new(400, -1000, 2000),
                     ctx,
                 )
                 .unwrap();
             items.slots[1].mode = mode as u8;
             items.slots[1].breath = crate::items::breath::Breath {
-                origin: [100, -1200, 1500],
+                origin: Position::new(100, -1200, 1500),
                 remaining,
                 player: if camera_owner { player } else { usize::MAX },
             };
@@ -170,7 +171,7 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
                     ctx.scene.models[spawned.model].local.translation,
                     spawned.napalm.velocity,
                 ),
-                None => (0, [0; 3], [0; 3]),
+                None => (0, Position::ZERO, [0; 3]),
                 other => panic!("Unexpected spawned item {other:?}"),
             };
             row.push(kind);

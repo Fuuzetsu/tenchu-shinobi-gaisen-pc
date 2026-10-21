@@ -1,8 +1,9 @@
 use super::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug)]
 pub struct Explosion {
-    pub position: [i32; 3],
+    pub position: Position,
     pub velocity: [i16; 3],
     pub rotation: i32,
     pub scale: i32,
@@ -11,7 +12,7 @@ pub struct Explosion {
 }
 
 impl Effects {
-    pub fn explosion(&mut self, position: [i32; 3], velocity: [i16; 3], rng: &mut Random) {
+    pub fn explosion(&mut self, position: Position, velocity: [i16; 3], rng: &mut Random) {
         let slot = self.allocate();
         self.slots[slot] = Some(Effect::Explosion(Explosion {
             position,
@@ -26,7 +27,7 @@ impl Effects {
 
     pub fn embers(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         power: [i16; 3],
         count: i16,
         rng: &mut Random,

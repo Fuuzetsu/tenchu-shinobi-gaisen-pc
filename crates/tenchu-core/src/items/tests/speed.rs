@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{camera::Mode, effects::Effect, ids::*, input::*};
 
 #[test]
@@ -11,21 +12,21 @@ fn speed_movement_preserves_source_cache_and_terrain_boundary() {
         for y in [-100, 0, 499, 500, 501, 510] {
             items.dispose(1, actors, ctx).unwrap();
             items
-                .initialize(1, Processor::Speed, 13, Some(player), [0; 3], ctx)
+                .initialize(1, Processor::Speed, 13, Some(player), Position::ZERO, ctx)
                 .unwrap();
             items.slots[1].mode = 2;
             items.slots[1].count = 4;
             items.slots[1].rolling.velocity = [100, 0, 0];
             let owner = actors.get_mut(player);
             owner.enter(ctx, MOT_ITEM_SHINSOKU, true);
-            owner.position = [1000, y, 0];
+            owner.position = Position::new(1000, y, 0);
             owner.rotation = [0; 3];
             owner.pad.held = RIGHT | LEFT;
             owner.pad.trigger = 0;
             let root = owner.root_model;
             ctx.scene.update(root, owner.root(ctx.math));
             let cached = Matrix {
-                translation: [900, 800, 700],
+                translation: Position::new(900, 800, 700),
                 ..Matrix::default()
             };
             ctx.scene.models[root].cached = cached;
@@ -87,7 +88,14 @@ fn speed_interruption_refunds_only_the_casting_phase() {
                 items.dispose(id, actors, ctx).unwrap();
             }
             items
-                .initialize(1, Processor::Speed, 13, Some(player), [1000, -1200, 0], ctx)
+                .initialize(
+                    1,
+                    Processor::Speed,
+                    13,
+                    Some(player),
+                    Position::new(1000, -1200, 0),
+                    ctx,
+                )
                 .unwrap();
             items.slots[1].mode = mode;
             actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);

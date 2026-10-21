@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{camera::Mode, effects::Effect, input::*};
 
 fn hidden_body(game: &Game, hidden: bool) {
@@ -26,9 +27,9 @@ fn water_entry_cleans_attack_and_emits_one_splash_batch() {
         assert!(!actor.swim_check(ctx, world).unwrap());
         actor.map.height = 0;
         actor.map.level = 300;
-        actor.position = [100, 300, 100];
+        actor.position = Position::new(100, 300, 100);
         let waist = ctx.scene.models[actor.parts[0]].conflict.unwrap();
-        ctx.collision.slots[waist].position = [200, 0, -200];
+        ctx.collision.slots[waist].position = Position::new(200, 0, -200);
         for hand in [actor.parts[13], actor.parts[14]] {
             ctx.collision.insert(ctx.scene, hand).unwrap();
         }
@@ -64,7 +65,7 @@ fn water_entry_cleans_attack_and_emits_one_splash_batch() {
         assert!(actor.swim_check(ctx, world).unwrap());
         assert_eq!(*ctx.random, random);
         assert_eq!(ctx.effects.slots.iter().flatten().count(), 20);
-        assert_eq!(ctx.effects.sounds, [([200, 300, -200], 0x16)]);
+        assert_eq!(ctx.effects.sounds, [(Position::new(200, 300, -200), 0x16)]);
     });
     assert_eq!(game.camera.mode, Mode::Swim);
     hidden_body(&game, true);
@@ -170,7 +171,7 @@ fn falling_clears_attack_hitboxes() {
         for hand in [actor.parts[13], actor.parts[14]] {
             ctx.collision.insert(ctx.scene, hand).unwrap();
         }
-        actor.control(ctx, &[], [0; 3], world).unwrap();
+        actor.control(ctx, &[], Position::ZERO, world).unwrap();
         assert_eq!(actor.motion.action, MOT_STATE_FALL);
         for hand in [actor.parts[13], actor.parts[14]] {
             assert!(ctx.scene.models[hand].conflict.is_none());

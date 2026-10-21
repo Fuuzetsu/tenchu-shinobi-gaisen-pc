@@ -83,7 +83,11 @@ fn triangle(origin: Vec3, direction: Vec3, [a, b, c]: [Vec3; 3]) -> Option<f32> 
         .then_some(distance)
 }
 
-pub fn pick(surfaces: &[Surface], origin: Vec3, direction: Vec3) -> Option<[i32; 3]> {
+pub fn pick(
+    surfaces: &[Surface],
+    origin: Vec3,
+    direction: Vec3,
+) -> Option<tenchu_core::math::Position> {
     surfaces
         .iter()
         .flat_map(|s| {
@@ -107,5 +111,5 @@ pub fn pick(surfaces: &[Surface], origin: Vec3, direction: Vec3) -> Option<[i32;
                 })
         })
         .min_by(|a, b| a.0.total_cmp(&b.0))
-        .map(|(_, p)| p)
+        .map(|(_, p)| p.into())
 }

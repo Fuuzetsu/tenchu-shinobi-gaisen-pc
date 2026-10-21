@@ -1,5 +1,6 @@
 use super::*;
 use crate::ids::MOT_ITEM_KAENGEKI;
+use crate::math::Position;
 
 impl Items {
     pub(super) fn charm(
@@ -44,7 +45,7 @@ impl Items {
                     let rotation = (ctx.random.next15() % 360) as i16;
                     ctx.effects.impact_ex(effects::Impact {
                         parent: Some(owner.root_model),
-                        position: [0, -1200, 400],
+                        position: Position::new(0, -1200, 400),
                         size: [4096, 24576],
                         color: [[128; 3], [0; 3]],
                         rotation,

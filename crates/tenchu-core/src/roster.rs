@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{
     Result,
     actor::{Actor, Context},
@@ -97,11 +98,11 @@ impl Roster {
             {
                 continue;
             }
-            let d = math.length([
-                other.position[0].wrapping_sub(actor.position[0]),
+            let d = math.length(Position::new(
+                other.position.x.wrapping_sub(actor.position.x),
                 0,
-                other.position[2].wrapping_sub(actor.position[2]),
-            ]);
+                other.position.z.wrapping_sub(actor.position.z),
+            ));
             if d < i32::from(range) && d < distance {
                 best = Some(id);
                 distance = d;
@@ -113,7 +114,7 @@ impl Roster {
     pub fn spawn(
         &mut self,
         kind: i16,
-        position: [i32; 3],
+        position: Position,
         yaw: i16,
         ctx: &mut Context,
     ) -> Result<usize> {

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{
     effects::{Effect, Effects},
     game::Game,
@@ -109,7 +110,7 @@ puts("");
 }return 0;}
 "#].concat();
     let mut game = oracle::game(0, 0);
-    game.camera.reference = [100, -500, 1000];
+    game.camera.reference = Position::new(100, -500, 1000);
     let mut input = String::new();
     let mut expected = Vec::new();
     for case in 0..4096 {
@@ -131,7 +132,7 @@ puts("");
         with_misc(&mut game, |misc, ctx| {
             misc.objects.clear();
             misc.objects.push(Object {
-                position: [100, -500, 1000],
+                position: Position::new(100, -500, 1000),
                 paused: false,
                 mode,
                 count,
@@ -157,7 +158,7 @@ puts("");
             for effect in ctx.effects.slots.iter().flatten() {
                 let index = match effect {
                     Effect::Smoke(s) => {
-                        last_pos = s.position;
+                        last_pos = s.position.into();
                         0
                     }
                     Effect::Splash(_) => 1,
@@ -165,7 +166,7 @@ puts("");
                     Effect::Explosion(_) => 3,
                     Effect::Ember(_) => 4,
                     Effect::Snow(s) => {
-                        last_pos = s.position;
+                        last_pos = s.position.into();
                         last_velocity = s.velocity.map(i32::from);
                         5
                     }
@@ -173,7 +174,12 @@ puts("");
                 };
                 counts[index] += 1;
             }
-            let (sound_pos, sound) = ctx.effects.sounds.last().copied().unwrap_or(([0; 3], -1));
+            let (sound_pos, sound) = ctx
+                .effects
+                .sounds
+                .last()
+                .copied()
+                .unwrap_or((Position::ZERO, -1));
             let mut row = vec![
                 misc.objects[0].count,
                 ctx.random.seed as i32,

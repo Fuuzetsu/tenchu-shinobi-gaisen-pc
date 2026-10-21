@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{
     actor::tests::{arena, constants, with_actor},
     oracle,
@@ -136,7 +137,7 @@ fn npc_gesture_priority_and_flip_camera_requests() {
             (L2 | UP, Some(MOT_ACTION)),
         ] {
             assert_eq!(
-                actor.normal(ctx, world, held, 1, [0; 3]).unwrap(),
+                actor.normal(ctx, world, held, 1, Position::ZERO).unwrap(),
                 action.map(|action| (action, true))
             );
             assert_eq!(*ctx.random, seed);

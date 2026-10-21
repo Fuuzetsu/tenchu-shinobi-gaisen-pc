@@ -1,5 +1,6 @@
 use super::*;
 use crate::ids::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug, Default)]
 pub struct Poison {
@@ -86,7 +87,7 @@ impl Items {
                 if owner_distance < 500 {
                     let kind = item.kind;
                     self.dispose(id, actors, ctx)?;
-                    self.drop(kind, Some(owner), position, [0; 3], actors, ctx)?;
+                    self.drop(kind, Some(owner), position, Position::ZERO, actors, ctx)?;
                     return Ok(());
                 }
                 let Some(eater) = nearest else {
@@ -119,7 +120,7 @@ impl Items {
                     (2, [0, 0, -150])
                 };
                 ctx.scene.models[model].parent = Some(actor.parts[part]);
-                ctx.scene.models[model].local.translation = position;
+                ctx.scene.models[model].local.translation = position.into();
                 item.mode = 2;
             }
             2 => {

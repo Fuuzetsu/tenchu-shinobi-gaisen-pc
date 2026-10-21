@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 impl Controller<'_, '_> {
     pub fn update(&mut self) -> Result<()> {
@@ -30,8 +31,8 @@ impl Controller<'_, '_> {
             let mut pad = 0;
             if (self.actor.kind.wrapping_sub(0x10) as u16) < 0x70 {
                 let target = self.target().ok_or("Halted guard has no target")?;
-                let x = target[0].wrapping_sub(self.actor.position[0]);
-                let z = target[2].wrapping_sub(self.actor.position[2]);
+                let x = target.x.wrapping_sub(self.actor.position.x);
+                let z = target.z.wrapping_sub(self.actor.position.z);
                 let degree = i32::from(self.ctx.math.direction(x, z, self.actor.rotation[1])?);
                 if degree > self.turn() {
                     pad = RIGHT;
@@ -90,15 +91,15 @@ impl Controller<'_, '_> {
             .ctx
             .math
             .velocity(self.actor.rotation[1], self.width().wrapping_mul(2), 0);
-        let [x, y, z] = self.actor.position;
+        let Position { x, y, z } = self.actor.position;
         for i in 0..2 {
             let sign = if i == 0 { 1 } else { -1 };
             self.state.probe[i] = self.level(
-                [
+                Position::new(
                     x.wrapping_add(i32::from(v[0]) * sign),
                     y.wrapping_sub(3050),
                     z.wrapping_add(i32::from(v[2]) * sign),
-                ],
+                ),
                 26,
             )?;
             self.state.probe_attribute[i] = self.ctx.cursor.attribute;
@@ -193,10 +194,7 @@ impl Controller<'_, '_> {
                         pad &= 0xf000;
                     } else {
                         let target = self.target().ok_or("Attacking actor has no target")?;
-                        if target[1]
-                            .wrapping_sub(self.actor.position[1])
-                            .wrapping_abs()
-                            >= 2000
+                        if target.y.wrapping_sub(self.actor.position.y).wrapping_abs() >= 2000
                             && self.class() != 3
                         {
                             pad &= 0xf000;
@@ -208,7 +206,7 @@ impl Controller<'_, '_> {
                 if self.state.detection == Detection::Gone {
                     self.attribute = base | ATTR_SEARCH | 3;
                     let target = self.target().ok_or("Searching actor has no last target")?;
-                    self.actor.brain.chase = [target[0], target[2]];
+                    self.actor.brain.chase = [target.x, target.z];
                     self.actor.brain.timer = 1;
                 }
                 if self.actor.pad.hold_counter == 0 {

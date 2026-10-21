@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{Result, actor::Actor, drawing::Drawing, effects::Effects, input::*, math::Math};
 use tenchu_assets::{executable::Executable, hud::LifeStyle, texture::Image};
 pub mod map;
@@ -159,7 +160,7 @@ impl Hud {
             (49, 0)
         } else if ratio < 0 {
             if clock % 30 == 0 {
-                effects.sounds.push(([0; 3], 0x0e));
+                effects.sounds.push((Position::ZERO, 0x0e));
             }
             (47, 0)
         } else {
@@ -202,7 +203,7 @@ impl Hud {
                         break;
                     }
                 }
-                effects.sounds.push(([0; 3], 0x0b));
+                effects.sounds.push((Position::ZERO, 0x0b));
             }
         }
         self.selected = None;

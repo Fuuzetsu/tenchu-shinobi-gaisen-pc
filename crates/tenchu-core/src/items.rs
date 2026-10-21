@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod bomb;
 mod breath;
 mod caltrops;
@@ -121,14 +122,14 @@ pub struct Items {
     pub(crate) dog_actor: Option<usize>,
 }
 
-fn target_distance(actor: &Actor, position: [i32; 3], radius: i32, ctx: &Context) -> Option<i32> {
+fn target_distance(actor: &Actor, position: Position, radius: i32, ctx: &Context) -> Option<i32> {
     if actor.health <= 0
         || actor.motion.action == crate::ids::MOT_ACTION
         || actor.attribute & crate::ids::ATTR_SUSPEND != 0
     {
         return None;
     }
-    let distance = ctx.math.vector_distance(std::array::from_fn(|i| {
+    let distance = ctx.math.vector_distance(Position::from_fn(|i| {
         position[i].wrapping_sub(actor.position[i])
     }));
     (distance < radius).then_some(distance)
@@ -282,7 +283,7 @@ impl Items {
         processor: Processor,
         kind: usize,
         owner: Option<usize>,
-        position: [i32; 3],
+        position: Position,
         ctx: &mut Context,
     ) -> Result<()> {
         if kind >= KINDS {
@@ -451,7 +452,7 @@ impl Items {
                     ctx.random.next15() % 100 - 200,
                     ctx.random.next15() % 200 - 100,
                 ];
-                self.drop(kind, Some(owner), position, velocity, actors, ctx)?;
+                self.drop(kind, Some(owner), position, velocity.into(), actors, ctx)?;
             }
             actors.get_mut(owner).inventory[kind] = 0;
         }
@@ -475,7 +476,7 @@ impl Items {
             let floor = terrain::level(
                 &ctx.mission.terrain,
                 ctx.cursor,
-                position,
+                position.into(),
                 terrain::STEP_DOWN,
             )?;
             let valid = |floor: i32| {
@@ -494,7 +495,7 @@ impl Items {
                     let floor = terrain::level(
                         &ctx.mission.terrain,
                         ctx.cursor,
-                        offset,
+                        offset.into(),
                         terrain::STEP_DOWN,
                     )?;
                     if valid(floor) {
@@ -505,7 +506,7 @@ impl Items {
                 let Some(found) = found else { continue };
                 position = found;
             }
-            self.stay(spawn.kind, position, actors, ctx)?;
+            self.stay(spawn.kind, position.into(), actors, ctx)?;
         }
         Ok(())
     }

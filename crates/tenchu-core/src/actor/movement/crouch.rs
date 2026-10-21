@@ -94,19 +94,23 @@ impl Actor {
                     return Ok(None);
                 }
                 let p = [
-                    self.position[0].wrapping_add(i32::from(self.velocity[0]) * 4),
-                    self.position[1],
-                    self.position[2].wrapping_add(i32::from(self.velocity[2]) * 4),
+                    self.position
+                        .x
+                        .wrapping_add(i32::from(self.velocity[0]) * 4),
+                    self.position.y,
+                    self.position
+                        .z
+                        .wrapping_add(i32::from(self.velocity[2]) * 4),
                 ];
                 if terrain::level(
                     &ctx.mission.terrain,
                     ctx.cursor,
-                    p,
+                    p.into(),
                     terrain::STEP_DOWN | terrain::RETURN_DELTA,
                 )? < -450
                 {
-                    self.position[0] = self.position[0].wrapping_sub(i32::from(self.velocity[0]));
-                    self.position[2] = self.position[2].wrapping_sub(i32::from(self.velocity[2]));
+                    self.position.x = self.position.x.wrapping_sub(i32::from(self.velocity[0]));
+                    self.position.z = self.position.z.wrapping_sub(i32::from(self.velocity[2]));
                     self.velocity[0] = 0;
                     self.velocity[2] = 0;
                 }
@@ -119,14 +123,18 @@ impl Actor {
         }
         if next != MOT_SQUAT && (self.velocity[0] != 0 || self.velocity[2] != 0) {
             let p = [
-                self.position[0].wrapping_add(i32::from(self.velocity[0]) * 16),
-                self.position[1],
-                self.position[2].wrapping_add(i32::from(self.velocity[2]) * 16),
+                self.position
+                    .x
+                    .wrapping_add(i32::from(self.velocity[0]) * 16),
+                self.position.y,
+                self.position
+                    .z
+                    .wrapping_add(i32::from(self.velocity[2]) * 16),
             ];
             if terrain::level(
                 &ctx.mission.terrain,
                 ctx.cursor,
-                p,
+                p.into(),
                 terrain::STEP_DOWN | terrain::RETURN_DELTA,
             )?
             .wrapping_abs()

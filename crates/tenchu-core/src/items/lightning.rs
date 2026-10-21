@@ -1,8 +1,9 @@
 use super::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug, Default)]
 pub struct Lightning {
-    pub start: [i32; 3],
+    pub start: Position,
     pub rotation: [i16; 3],
 }
 
@@ -22,7 +23,7 @@ impl Items {
                 item.count = 15;
                 item.mode = 1;
                 if item.owner == Some(player) {
-                    ctx.effects.sounds.push(([0; 3], 0x39));
+                    ctx.effects.sounds.push((Position::ZERO, 0x39));
                 }
             }
             1 => {

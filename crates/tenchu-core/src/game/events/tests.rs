@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
 
@@ -105,11 +106,11 @@ int main(void){{
         let mut row = vec![mode as i32, sequence, value];
         for (i, id) in [game.player_id, boss].into_iter().enumerate() {
             let actor = game.roster.get_mut(id);
-            actor.position = [
+            actor.position = Position::new(
                 random.next15() % 6000 - 3000,
                 random.next15() % 2000 - 1999,
                 random.next15() % 6000 - 3000,
-            ];
+            );
             actor.motion.action = 0x501;
             actor.motion.loops = [-1, 0, 1][case / (i + 1) % 3];
             actor.motion.count = [0, 29, 30, 31][case / 3 % 4];

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
 
@@ -34,7 +35,7 @@ for(int frame=0;frame<24;frame++){DrawSnow(&e);printf("%d %d %d %d %d\n",e.proc!
     let mut cursor = Cursor::new(&map);
     let mut effects = Effects::default();
     let view = View {
-        position: [0; 3],
+        position: Position::ZERO,
         matrix: Matrix::default(),
     };
     let mut input = String::new();
@@ -64,7 +65,7 @@ for(int frame=0;frame<24;frame++){DrawSnow(&e);printf("%d %d %d %d %d\n",e.proc!
         }
         writeln!(input).unwrap();
         let mut snow = Snow {
-            position,
+            position: position.into(),
             velocity,
             ground,
             sample_y: -8000,
@@ -74,8 +75,8 @@ for(int frame=0;frame<24;frame++){DrawSnow(&e);printf("%d %d %d %d %d\n",e.proc!
             terrain: &map,
             cursor: &mut cursor,
             clock: 0,
-            owner_position: [0; 3],
-            reference,
+            owner_position: Position::ZERO,
+            reference: reference.into(),
         };
         for _ in 0..24 {
             let alive = effects.update_snow(&mut snow, view, &mut env).unwrap();
@@ -102,13 +103,19 @@ fn full_snow_pool_keeps_terrain_queries_and_does_not_tick_the_dummy() {
     let mut effects = Effects::default();
     for _ in 0..201 {
         effects
-            .snow([0, -200, 300], [0, 50, 0], 4096, &map, &mut cursor)
+            .snow(
+                Position::new(0, -200, 300),
+                [0, 50, 0],
+                4096,
+                &map,
+                &mut cursor,
+            )
             .unwrap();
     }
     assert_eq!(effects.slots.iter().flatten().count(), 201);
     assert_eq!(cursor.last_y, -820);
     let view = View {
-        position: [0; 3],
+        position: Position::ZERO,
         matrix: Matrix::default(),
     };
     effects
@@ -120,8 +127,8 @@ fn full_snow_pool_keeps_terrain_queries_and_does_not_tick_the_dummy() {
                 terrain: &map,
                 cursor: &mut cursor,
                 clock: 1,
-                owner_position: [0; 3],
-                reference: [0; 3],
+                owner_position: Position::ZERO,
+                reference: Position::ZERO,
             },
         )
         .unwrap();

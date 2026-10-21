@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{effects::Effect, scene::CONFLICT};
 
 #[test]
@@ -88,7 +89,14 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
             let id = 1;
             items.dispose(id, actors, ctx).unwrap();
             items
-                .initialize(id, Processor::Napalm, 22, Some(player), position, ctx)
+                .initialize(
+                    id,
+                    Processor::Napalm,
+                    22,
+                    Some(player),
+                    position.into(),
+                    ctx,
+                )
                 .unwrap();
             items.contact(id, 333, 7, ctx).unwrap();
             let item = &mut items.slots[id];
@@ -115,7 +123,7 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
             let next = std::array::from_fn(|i| {
                 position[i].wrapping_add(i32::from(velocity[i]) * i32::from(count).pow(2) / 100)
             });
-            let level = terrain::level(&ctx.mission.terrain, ctx.cursor, next, 0).unwrap();
+            let level = terrain::level(&ctx.mission.terrain, ctx.cursor, next.into(), 0).unwrap();
             writeln!(
                 input,
                 "{mode} {count} {} {} {} {} {} {} {seed} {hit} {level} {} 0",
@@ -137,7 +145,11 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
                     None
                 }
             });
-            let mut row = ctx.scene.models[model].local.translation.to_vec();
+            let mut row = ctx.scene.models[model]
+                .local
+                .translation
+                .to_array()
+                .to_vec();
             row.extend([
                 i32::from(item.napalm.count),
                 i32::from(item.mode),
@@ -160,7 +172,7 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
                         .unwrap() as i32
                 }),
             ]);
-            row.extend(flash.map_or([0; 3], |f| f.position));
+            row.extend(flash.map_or([0; 3], |f| f.position.into()));
             row.extend([
                 ctx.scene.models[model].flags as i32,
                 items.drawings.len() as i32,
@@ -196,21 +208,42 @@ fn rejected_request_preserves_allocator_side_effects() {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
             items
-                .initialize(id, Processor::SightShot, 1, Some(player), [0; 3], ctx)
+                .initialize(
+                    id,
+                    Processor::SightShot,
+                    1,
+                    Some(player),
+                    Position::ZERO,
+                    ctx,
+                )
                 .unwrap();
         }
         items.cursor = 0;
         actors.get_mut(player).inventory[25] = 1;
         actors.get_mut(player).inventory[22] = 3;
         items
-            .request_napalm(player, [0; 3], [99, -15, -99], 2, actors, ctx)
+            .request_napalm(
+                player,
+                Position::ZERO,
+                Position::new(99, -15, -99),
+                2,
+                actors,
+                ctx,
+            )
             .unwrap();
         assert_eq!(items.cursor, 29);
         assert!(items.slots[29].processor.is_none());
         assert_eq!(actors.get(player).inventory[25], 0);
         assert_eq!(actors.get(player).inventory[22], 2);
         items
-            .request_napalm(player, [0; 3], [65537, -32769, -99], 3, actors, ctx)
+            .request_napalm(
+                player,
+                Position::ZERO,
+                Position::new(65537, -32769, -99),
+                3,
+                actors,
+                ctx,
+            )
             .unwrap();
         assert_eq!(items.cursor, 28);
         assert_eq!(items.slots[28].processor, Some(Processor::Napalm));

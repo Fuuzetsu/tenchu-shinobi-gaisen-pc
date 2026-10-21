@@ -1,5 +1,6 @@
 use super::*;
 use crate::camera::{Environment, Mode};
+use crate::math::Position;
 
 pub(super) fn consume(owner: &mut Actor, kind: usize) -> Result<()> {
     let count = owner
@@ -26,7 +27,7 @@ pub(super) fn camera(mode: Mode, owner: &Actor, ctx: &mut Context) -> Result<()>
     )
 }
 
-fn throw_vector(owner: &Actor, player: usize, vector: [i32; 3], ctx: &Context) -> Result<[i32; 3]> {
+fn throw_vector(owner: &Actor, player: usize, vector: Position, ctx: &Context) -> Result<Position> {
     let rotation = if owner.id == player && ctx.camera.mode == Mode::Direction {
         ctx.math
             .vector_rotation(ctx.camera.position, ctx.camera.reference)?
@@ -55,7 +56,7 @@ impl Items {
             ctx.random.next15() % 100 - 200,
             ctx.random.next15() % 200 - 100,
         ];
-        self.drop(kind, owner, position, velocity, actors, ctx)?;
+        self.drop(kind, owner, position, velocity.into(), actors, ctx)?;
         self.dispose(id, actors, ctx)
     }
 
@@ -63,8 +64,8 @@ impl Items {
         &mut self,
         kind: usize,
         owner: usize,
-        start: [i32; 3],
-        velocity: [i32; 3],
+        start: Position,
+        velocity: Position,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
@@ -81,7 +82,7 @@ impl Items {
         let item = &mut self.slots[id];
         item.collision.size = 0;
         item.rolling = Rolling {
-            velocity: velocity.map(|v| v as i16),
+            velocity: velocity.map(|v| v as i16).to_array(),
             ..Rolling::default()
         };
         match kind {
@@ -104,7 +105,7 @@ impl Items {
         &mut self,
         kind: usize,
         owner: &mut Actor,
-        start: [i32; 3],
+        start: Position,
         mut angle: i16,
         roster: &mut Roster,
         ctx: &mut Context,
@@ -125,7 +126,7 @@ impl Items {
                     -(ctx.random.next15() % 30),
                     (cos * (-30 - ctx.random.next15() % 200)) >> 12,
                 ];
-                self.throw_rolling(kind, id, start, velocity, actors, ctx)?;
+                self.throw_rolling(kind, id, start, velocity.into(), actors, ctx)?;
             }
         } else {
             let [sin, cos] = ctx.math.pair(angle);
@@ -133,7 +134,7 @@ impl Items {
                 kind,
                 id,
                 start,
-                [(sin * -120) >> 12, 0, (cos * -120) >> 12],
+                Position::new((sin * -120) >> 12, 0, (cos * -120) >> 12),
                 actors,
                 ctx,
             )?;
@@ -161,21 +162,21 @@ impl Items {
         ctx: &mut Context,
     ) -> Result<()> {
         let start = [
-            owner.position[0],
-            owner.position[1].wrapping_sub(1200),
-            owner.position[2],
+            owner.position.x,
+            owner.position.y.wrapping_sub(1200),
+            owner.position.z,
         ];
-        let delta = throw_vector(owner, player, [0, 0, -100], ctx)?;
+        let delta = throw_vector(owner, player, Position::new(0, 0, -100), ctx)?;
         let end = std::array::from_fn(|i| start[i].wrapping_add(delta[i]));
-        self.request(kind, owner, start, end, player, roster, ctx)
+        self.request(kind, owner, start.into(), end.into(), player, roster, ctx)
     }
 
     pub(crate) fn request(
         &mut self,
         kind: usize,
         owner: &mut Actor,
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         player: usize,
         roster: &mut Roster,
         ctx: &mut Context,
@@ -215,14 +216,15 @@ impl Items {
                 actors.get_mut(owner_id).inventory[25] = 0;
             }
             2 => {
-                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, 100], ctx)?;
+                let velocity =
+                    throw_vector(actors.get(owner_id), player, Position::new(0, 0, 100), ctx)?;
                 for _ in 0..5 {
                     let velocity = [
                         velocity[0].wrapping_add(ctx.random.next15() % 100 - 50),
                         velocity[1].wrapping_sub(ctx.random.next15() % 50 + 50),
                         velocity[2].wrapping_add(ctx.random.next15() % 100 - 50),
                     ];
-                    self.throw_rolling(kind, owner_id, start, velocity, actors, ctx)?;
+                    self.throw_rolling(kind, owner_id, start, velocity.into(), actors, ctx)?;
                 }
             }
             3 | 10 | 11 | 12 | 18 => {
@@ -244,9 +246,9 @@ impl Items {
                     7 => [0, -120, -240],
                     _ => [0, 0, -1000],
                 };
-                let velocity = throw_vector(actors.get(owner_id), player, vector, ctx)?;
+                let velocity = throw_vector(actors.get(owner_id), player, vector.into(), ctx)?;
                 let position = if kind == 6 {
-                    std::array::from_fn(|i| start[i].wrapping_add(velocity[i]))
+                    start.wrapping_add(velocity)
                 } else {
                     start
                 };
@@ -255,8 +257,13 @@ impl Items {
             20 => self.launch(kind, owner_id, start, end, actors, ctx)?,
             23 => {
                 let end = if owner_id == player {
-                    let vector = throw_vector(actors.get(owner_id), player, [0, 0, -4096], ctx)?;
-                    std::array::from_fn(|i| start[i].wrapping_add(vector[i]))
+                    let vector = throw_vector(
+                        actors.get(owner_id),
+                        player,
+                        Position::new(0, 0, -4096),
+                        ctx,
+                    )?;
+                    start.wrapping_add(vector)
                 } else {
                     end
                 };
@@ -282,7 +289,12 @@ impl Items {
             19 => {}
             15 => self.request_darts(owner_id, start, actors, ctx)?,
             16 => {
-                let velocity = throw_vector(actors.get(owner_id), player, [0, -120, -120], ctx)?;
+                let velocity = throw_vector(
+                    actors.get(owner_id),
+                    player,
+                    Position::new(0, -120, -120),
+                    ctx,
+                )?;
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Dog, kind, Some(owner_id), start, ctx)?;
                 let item = &mut self.slots[id];
@@ -301,13 +313,18 @@ impl Items {
                     .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
             }
             14 => {
-                let velocity = throw_vector(actors.get(owner_id), player, [0, -120, -120], ctx)?;
+                let velocity = throw_vector(
+                    actors.get(owner_id),
+                    player,
+                    Position::new(0, -120, -120),
+                    ctx,
+                )?;
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Decoy, kind, Some(owner_id), start, ctx)?;
                 let item = &mut self.slots[id];
                 item.collision.size = 0;
                 item.rolling = Rolling {
-                    velocity: velocity.map(|v| v as i16),
+                    velocity: velocity.map(|v| v as i16).to_array(),
                     ..Rolling::default()
                 };
                 item.count = 90;
@@ -327,18 +344,24 @@ impl Items {
                 } else {
                     (Processor::Speed, -500)
                 };
-                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, speed], ctx)?;
+                let velocity = throw_vector(
+                    actors.get(owner_id),
+                    player,
+                    Position::new(0, 0, speed),
+                    ctx,
+                )?;
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
-                self.slots[id].rolling.velocity = velocity.map(|v| v as i16);
+                self.slots[id].rolling.velocity = velocity.map(|v| v as i16).to_array();
             }
             9 => {
-                let velocity = throw_vector(actors.get(owner_id), player, [0, 0, -120], ctx)?;
+                let velocity =
+                    throw_vector(actors.get(owner_id), player, Position::new(0, 0, -120), ctx)?;
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Sleep, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
-                self.slots[id].napalm.velocity = velocity.map(|v| v as i16);
+                self.slots[id].napalm.velocity = velocity.map(|v| v as i16).to_array();
             }
             17 => {
                 let id = self.allocate(actors, ctx)?;

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 impl Items {
     pub(super) fn flute(
@@ -14,7 +15,7 @@ impl Items {
             0 => {
                 intelligence.alert = 0;
                 owner.active_item = item.kind as i16;
-                ctx.effects.sounds.push(([0; 3], 0x43));
+                ctx.effects.sounds.push((Position::ZERO, 0x43));
                 item.count = 30;
                 item.mode = 1;
             }

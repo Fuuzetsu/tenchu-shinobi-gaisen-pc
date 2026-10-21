@@ -1,4 +1,5 @@
 use super::Game;
+use crate::math::Position;
 #[cfg(test)]
 mod tests;
 use crate::{
@@ -48,7 +49,7 @@ impl Game {
                 continue;
             }
             let actor = self.roster.actors[id].as_mut().unwrap();
-            let distance = self.math.vector_distance(std::array::from_fn(|i| {
+            let distance = self.math.vector_distance(Position::from_fn(|i| {
                 actor.position[i].wrapping_sub(position[i])
             }));
             let suspended = actor.attribute & ATTR_SUSPEND != 0;
@@ -88,7 +89,7 @@ impl Game {
                 {
                     for spawn in &self.mission.story {
                         if spawn.kind == actor.kind {
-                            actor.position = spawn.position;
+                            actor.position = spawn.position.into();
                             self.scene.set_translation(actor.root_model, actor.position);
                         }
                     }
@@ -96,15 +97,12 @@ impl Game {
                         actor.health = 1;
                     }
                 } else if actor.status != 0x11 && actor.attribute & ATTR_FLOAT == 0 {
-                    let query = [
+                    let query = Position::new(
                         actor.home[0],
-                        actor.position[1].wrapping_sub(1500),
+                        actor.position.y.wrapping_sub(1500),
                         actor.home[1],
-                    ];
-                    if self.math.vector_distance(std::array::from_fn(|i| {
-                        query[i].wrapping_sub(position[i])
-                    })) > 17000
-                    {
+                    );
+                    if self.math.vector_distance(query.wrapping_sub(position)) > 17000 {
                         let level = terrain::level(
                             &self.mission.terrain,
                             &mut self.cursor,
@@ -112,7 +110,7 @@ impl Game {
                             terrain::STEP_DOWN,
                         )?;
                         if level != terrain::NONE {
-                            actor.position = [query[0], level, query[2]];
+                            actor.position = Position::new(query[0], level, query[2]);
                             self.scene.set_translation(actor.root_model, actor.position);
                         }
                     }

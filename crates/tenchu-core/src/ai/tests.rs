@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{oracle, random::Random};
 use std::fmt::Write;
 
@@ -18,11 +19,11 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
     let mut actor = game.roster.take(id);
     let old_kind = actor.kind;
     let player = game.player();
-    actor.position = [
-        player.position[0] + 18500,
-        player.position[1],
-        player.position[2],
-    ];
+    actor.position = Position::new(
+        player.position.x + 18500,
+        player.position.y,
+        player.position.z,
+    );
     actor.attribute = ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | ATTR_SEARCH | 2;
     actor.setup_think(0x4344);
     actor.pad.held = LEFT;
@@ -338,7 +339,7 @@ int main(void) {{
                 Detection::Glimpse,
             ][cases.next15() as usize % 5];
             actor.kind = kind;
-            actor.position = [0; 3];
+            actor.position = Position::ZERO;
             actor.home = [0; 2];
             actor.status = status;
             actor.motion.action = action;

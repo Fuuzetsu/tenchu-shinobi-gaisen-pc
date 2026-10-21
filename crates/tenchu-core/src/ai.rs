@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod combat;
 mod idle;
 mod melee;
@@ -131,7 +132,7 @@ impl Intelligence {
 pub struct Player {
     pub id: usize,
     pub root: ModelId,
-    pub position: [i32; 3],
+    pub position: Position,
     pub status: i16,
     pub motion: i16,
     pub height: i16,
@@ -198,7 +199,7 @@ impl<'a, 'b> Controller<'a, 'b> {
         self.actor.target == Some(self.player.root)
     }
 
-    fn target(&self) -> Option<[i32; 3]> {
+    fn target(&self) -> Option<Position> {
         self.actor.target.map(|id| {
             if id == self.actor.root_model {
                 self.actor.position
@@ -264,7 +265,7 @@ impl<'a, 'b> Controller<'a, 'b> {
         )
     }
 
-    fn level(&mut self, position: [i32; 3], mode: u16) -> Result<i32> {
+    fn level(&mut self, position: Position, mode: u16) -> Result<i32> {
         terrain::level(&self.ctx.mission.terrain, self.ctx.cursor, position, mode)
     }
 
@@ -294,21 +295,21 @@ impl<'a, 'b> Controller<'a, 'b> {
                     .ctx
                     .math
                     .velocity(self.actor.rotation[1], 0, self.width());
-                let [x, y, z] = self.actor.position;
+                let crate::math::Position { x, y, z } = self.actor.position;
                 let a = self.level(
-                    [
+                    Position::new(
                         x.wrapping_add(i32::from(v[0])),
                         y.wrapping_sub(500),
                         z.wrapping_add(i32::from(v[2])),
-                    ],
+                    ),
                     26,
                 )?;
                 let b = self.level(
-                    [
+                    Position::new(
                         x.wrapping_sub(i32::from(v[0])),
                         y.wrapping_sub(500),
                         z.wrapping_sub(i32::from(v[2])),
-                    ],
+                    ),
                     26,
                 )?;
                 if pad & RIGHT != 0 && a != cached {
@@ -329,10 +330,10 @@ impl<'a, 'b> Controller<'a, 'b> {
         };
         let x = target[0]
             .wrapping_add(self.actor.brain.chase[0])
-            .wrapping_sub(self.actor.position[0]);
+            .wrapping_sub(self.actor.position.x);
         let z = target[2]
             .wrapping_add(self.actor.brain.chase[1])
-            .wrapping_sub(self.actor.position[2]);
+            .wrapping_sub(self.actor.position.z);
         if (x.wrapping_abs() < 500 && z.wrapping_abs() < 500)
             || self.attribute & ATTR_WALL != 0
             || self.distance() < 1000

@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{
     Result,
     math::{Math, Matrix},
@@ -67,7 +68,7 @@ pub fn sample(keys: &[Key], frame: i16, duration: i16, table: &[[i16; 4]; 33]) -
 
 #[derive(Clone, Debug)]
 pub struct Pose {
-    pub translation: Vec<[i32; 3]>,
+    pub translation: Vec<Position>,
     pub rotation: Vec<[i16; 3]>,
     parents: Vec<Option<usize>>,
     pub(crate) root_height: i16,
@@ -101,7 +102,10 @@ impl Pose {
             }
         }
         Ok(Self {
-            translation: parts.iter().map(|p| p.position.map(i32::from)).collect(),
+            translation: parts
+                .iter()
+                .map(|p| p.position.map(i32::from).into())
+                .collect(),
             rotation: vec![[0; 3]; parts.len()],
             parents,
             root_height: parts.first().map_or(0, |p| p.position[1]),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
 
@@ -164,12 +165,9 @@ int main(void) {{
             actor.position = if i == 0 {
                 player_position
             } else {
-                std::array::from_fn(|axis| player_position[axis] + (next() % 42001) as i32 - 21000)
+                Position::from_fn(|axis| player_position[axis] + (next() % 42001) as i32 - 21000)
             };
-            actor.home = [
-                actor.position[0] + (next() % 20000) as i32,
-                actor.position[2],
-            ];
+            actor.home = [actor.position.x + (next() % 20000) as i32, actor.position.z];
             let waist = &mut game.scene.models[actor.parts[0]];
             waist.attribute = next() as u16;
             let collision = waist.attribute;
@@ -179,17 +177,17 @@ int main(void) {{
             if visible {
                 game.visible.push(id);
             }
-            let distance = game.math.vector_distance(std::array::from_fn(|axis| {
+            let distance = game.math.vector_distance(Position::from_fn(|axis| {
                 actor.position[axis].wrapping_sub(player_position[axis])
             }));
-            let home = [actor.home[0], actor.position[1] - 1500, actor.home[1]];
-            let home_distance = game.math.vector_distance(std::array::from_fn(|axis| {
+            let home = [actor.home[0], actor.position.y - 1500, actor.home[1]];
+            let home_distance = game.math.vector_distance(Position::from_fn(|axis| {
                 home[axis].wrapping_sub(player_position[axis])
             }));
             let level = terrain::level(
                 &game.mission.terrain,
                 &mut game.cursor,
-                home,
+                home.into(),
                 terrain::STEP_DOWN,
             )
             .unwrap();
@@ -201,9 +199,9 @@ int main(void) {{
                 actor.status,
                 actor.attribute,
                 collision,
-                actor.position[0],
-                actor.position[1],
-                actor.position[2],
+                actor.position.x,
+                actor.position.y,
+                actor.position.z,
                 actor.home[0],
                 actor.home[1],
                 i32::from(visible),

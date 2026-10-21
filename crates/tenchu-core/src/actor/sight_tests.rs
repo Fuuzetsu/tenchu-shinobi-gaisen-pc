@@ -1,11 +1,12 @@
 use super::*;
+use crate::math::Position;
 use crate::oracle;
 
 #[test]
 fn optional_sight_range_changes_thresholds_without_changing_angles_or_polling() {
     let query = |status, clock| Query {
-        position: [0; 3],
-        delta: [0, 0, 9000],
+        position: Position::ZERO,
+        delta: Position::new(0, 0, 9000),
         height: 1800,
         player_height: 1800,
         player_status: status,
@@ -156,8 +157,8 @@ int main(void) {{
                             direction: if angle == -2048 { 2048 } else { angle },
                         };
                         let query = Query {
-                            position,
-                            delta: std::array::from_fn(|i| target[i] - position[i]),
+                            position: position.into(),
+                            delta: Position::from_fn(|i| target[i] - position[i]),
                             height: 2300,
                             player_height: 1901,
                             player_status: status,

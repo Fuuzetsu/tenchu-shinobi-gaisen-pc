@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{ai::Intelligence, effects::Effect, ids::*, scene::CONFLICT};
 
 #[test]
@@ -65,7 +66,7 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
         }
-        let enemy = actors.roster.spawn(0x10, [0; 3], 0, ctx).unwrap();
+        let enemy = actors.roster.spawn(0x10, Position::ZERO, 0, ctx).unwrap();
         let target = ctx.scene.add(None, Matrix::default());
         ctx.collision.insert(ctx.scene, target).unwrap();
         ctx.camera.view = Matrix::default();
@@ -96,7 +97,7 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             actor.enter(ctx, action, true);
             items.dispose(1, actors, ctx).unwrap();
             items
-                .initialize(1, Processor::Sleep, 9, Some(player), position, ctx)
+                .initialize(1, Processor::Sleep, 9, Some(player), position.into(), ctx)
                 .unwrap();
             items.contact(1, 1000, crate::collision::SOFT, ctx).unwrap();
             let item = &mut items.slots[1];
@@ -122,14 +123,18 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             items.begin_tick();
             *ctx.random = Random::new(seed);
             let next = std::array::from_fn(|i| position[i].wrapping_add(i32::from(velocity[i])));
-            let level = terrain::level(&ctx.mission.terrain, ctx.cursor, next, 0).unwrap();
+            let level = terrain::level(&ctx.mission.terrain, ctx.cursor, next.into(), 0).unwrap();
             let pulse = ctx.math.pair((i32::from(count) * 0x88) as i16)[0];
             writeln!(input,"{count} {} {} {} {} {} {} {seed} {hit} {health} {kind} {action} {level} {} {pulse} 0",position[0],position[1],position[2],velocity[0],velocity[1],velocity[2],actors.get(enemy).parts.len()).unwrap();
             let mut intelligence = Intelligence::default();
             items.sleep(1, actors, &mut intelligence, ctx).unwrap();
             let actor = actors.get(enemy);
             let item = &items.slots[1];
-            let mut row = ctx.scene.models[model].local.translation.to_vec();
+            let mut row = ctx.scene.models[model]
+                .local
+                .translation
+                .to_array()
+                .to_vec();
             row.extend([
                 i32::from(item.napalm.count),
                 i32::from(item.mode),
@@ -188,7 +193,7 @@ fn hand_release_and_interruption_keep_source_side_effects() {
             items.dispose(id, actors, ctx).unwrap();
         }
         items
-            .initialize(1, Processor::Sleep, 9, Some(player), [0; 3], ctx)
+            .initialize(1, Processor::Sleep, 9, Some(player), Position::ZERO, ctx)
             .unwrap();
         actors.get_mut(player).health = 0;
         items
@@ -197,7 +202,7 @@ fn hand_release_and_interruption_keep_source_side_effects() {
         assert_eq!(actors.get(player).motion.action, MOT_ITEM_THROW);
         let model = items.slots[1].model;
         let cached = Matrix {
-            translation: [700, 800, 900],
+            translation: Position::new(700, 800, 900),
             ..Matrix::default()
         };
         ctx.scene.models[model].cached = cached;
@@ -219,7 +224,7 @@ fn hand_release_and_interruption_keep_source_side_effects() {
         assert_eq!(*ctx.random, random);
         items.dispose(1, actors, ctx).unwrap();
         items
-            .initialize(1, Processor::Sleep, 9, Some(player), [0; 3], ctx)
+            .initialize(1, Processor::Sleep, 9, Some(player), Position::ZERO, ctx)
             .unwrap();
         items.slots[1].mode = 1;
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);

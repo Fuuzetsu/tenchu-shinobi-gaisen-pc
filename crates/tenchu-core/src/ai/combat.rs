@@ -166,8 +166,8 @@ impl Controller<'_, '_> {
         if self.class() == 3 {
             return self.attack_point();
         }
-        let x = self.actor.home[0].wrapping_sub(self.actor.position[0]);
-        let z = self.actor.home[1].wrapping_sub(self.actor.position[2]);
+        let x = self.actor.home[0].wrapping_sub(self.actor.position.x);
+        let z = self.actor.home[1].wrapping_sub(self.actor.position.z);
         let distance = self.length(&[x, z]);
         let mut pad = 0;
         if self.actor.brain.flag != 0 {

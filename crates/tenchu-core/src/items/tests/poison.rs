@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{ai::Intelligence, ids::*};
 
 fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usize) {
@@ -14,10 +15,13 @@ fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usiz
             }
         }
         let owner = actors.get_mut(player);
-        owner.position = [0, 0, -owner_distance];
+        owner.position = Position::new(0, 0, -owner_distance);
         ctx.scene.update(owner.root_model, owner.root(ctx.math));
         let root = owner.root_model;
-        let enemy = actors.roster.spawn(0x10, [0, 0, 100], 2048, ctx).unwrap();
+        let enemy = actors
+            .roster
+            .spawn(0x10, Position::new(0, 0, 100), 2048, ctx)
+            .unwrap();
         let actor = actors.get_mut(enemy);
         actor.attribute = 0;
         actor.think = [0; 4];
@@ -27,7 +31,7 @@ fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usiz
         }
         let id = items.allocate(actors, ctx).unwrap();
         items
-            .initialize(id, Processor::Poison, 7, Some(player), [0; 3], ctx)
+            .initialize(id, Processor::Poison, 7, Some(player), Position::ZERO, ctx)
             .unwrap();
         items.slots[id].mode = 1;
         items.slots[id].rolling.status = 4;

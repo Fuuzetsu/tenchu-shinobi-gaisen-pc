@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{ai::Intelligence, effects::Effect};
 
 #[test]
@@ -69,7 +70,7 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
                     },
                     if resurrection { 10 } else { 18 },
                     Some(player),
-                    [0; 3],
+                    Position::ZERO,
                     ctx,
                 )
                 .unwrap();
@@ -77,7 +78,7 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
             items.slots[1].count = count;
             let owner = actors.get_mut(player);
             owner.active_item = active;
-            ctx.scene.set_translation(owner.root_model, position);
+            ctx.scene.set_translation(owner.root_model, position.into());
             *ctx.random = Random::new(seed);
             *ctx.effects = effects::Effects::default();
             let mut intelligence = Intelligence::default();

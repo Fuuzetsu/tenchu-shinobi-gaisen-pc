@@ -94,7 +94,10 @@ fn per_value_reset_does_not_execute_actions_or_reset_other_options() {
     app.debug.target[0] += 5000;
     assert!(app.reset_item(Item::Teleport).is_err());
     app.reset_item(Item::Target(0)).unwrap();
-    assert_eq!(app.debug.target, app.campaign.game.player().position);
+    assert_eq!(
+        app.debug.target,
+        app.campaign.game.player().position.to_array()
+    );
     app.debug.toggle_camera(&app.campaign.game);
     app.reset_item(Item::FreeCamera).unwrap();
     assert!(app.debug.camera.is_none());

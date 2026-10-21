@@ -1,5 +1,6 @@
 use super::*;
 use crate::ids::MOT_DAMAGE_CHOKE;
+use crate::math::Position;
 
 impl Items {
     pub(super) fn roll_icon(
@@ -7,7 +8,7 @@ impl Items {
         id: usize,
         actors: &mut Actors,
         ctx: &mut Context,
-    ) -> Result<Option<[i32; 3]>> {
+    ) -> Result<Option<Position>> {
         let item = &mut self.slots[id];
         let model = item.model;
         let mut position = ctx.scene.models[model].local.translation;

@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod camera;
 #[cfg(test)]
 mod tests;
@@ -94,7 +95,7 @@ impl Game {
         let Some(id) = self.roster.find(command.id) else {
             return Ok(false);
         };
-        let player_y = self.player().position[1];
+        let player_y = self.player().position.y;
         let actor = self.roster.get_mut(id);
         let mut ctx = Context {
             mission: &mut self.mission,
@@ -125,8 +126,13 @@ impl Game {
             }
             if command.parameter != -1 {
                 let [x, y, z] = command.position.map(|v| i32::from(v) * 1000);
-                let floor = terrain::level(&ctx.mission.terrain, ctx.cursor, [x, y - 1000, z], 0)?;
-                actor.position = [
+                let floor = terrain::level(
+                    &ctx.mission.terrain,
+                    ctx.cursor,
+                    Position::new(x, y - 1000, z),
+                    0,
+                )?;
+                actor.position = Position::new(
                     x,
                     if floor == terrain::NONE {
                         y
@@ -134,16 +140,16 @@ impl Game {
                         floor.min(y)
                     },
                     z,
-                ];
+                );
                 actor.home = [x, z];
                 actor.rotation[1] = command.parameter;
                 ctx.scene.update(actor.root_model, actor.root(ctx.math));
                 let owner_y = if id == self.player_id {
-                    actor.position[1]
+                    actor.position.y
                 } else {
                     player_y
                 };
-                if actor.position[1].wrapping_sub(owner_y).wrapping_abs() > 20000 {
+                if actor.position.y.wrapping_sub(owner_y).wrapping_abs() > 20000 {
                     actor.attribute |= ATTR_SUSPEND;
                 }
             }
@@ -184,7 +190,7 @@ impl Game {
             });
             actor.scripted = self.cinematic.active;
             if actor.kind == 0xa7 && motion == MOT_DEAD {
-                ctx.effects.sounds.push(([0; 3], 0x41));
+                ctx.effects.sounds.push((Position::ZERO, 0x41));
             }
         }
         Ok(true)
@@ -222,7 +228,7 @@ impl Game {
                 }
                 7 => match command.id {
                     1 => self.effects.blood(
-                        command.position.map(|v| i32::from(v) * 10),
+                        command.position.map(|v| i32::from(v) * 10).into(),
                         command.parameter,
                         30,
                         &mut self.random,

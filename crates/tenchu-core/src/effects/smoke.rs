@@ -1,9 +1,10 @@
 use super::*;
+use crate::math::Position;
 
 impl Effects {
     pub fn smoke(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         velocity: [i16; 3],
         count: i16,
         time: i16,
@@ -17,7 +18,7 @@ impl Effects {
 
     pub fn smoke_single(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         velocity: [i16; 3],
         time: i16,
         rng: &mut Random,
@@ -27,7 +28,7 @@ impl Effects {
 
     fn new_smoke(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         mut velocity: [i16; 3],
         duration: i16,
         jitter: bool,

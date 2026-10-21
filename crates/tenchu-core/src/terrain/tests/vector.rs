@@ -12,7 +12,7 @@ fn square_probes_distinguish_walls_from_corners() {
         ([-9900, 0, -9900], 7),
         ([9900, 0, 9900], 14),
     ] {
-        let probe = vector(&map, &mut cursor, position, 300, 0).unwrap();
+        let probe = vector(&map, &mut cursor, position.into(), 300, 0).unwrap();
         assert_eq!(probe.vector, mask, "{position:?}");
         assert_eq!(probe.level, 0);
         assert_eq!((probe.angle_low, probe.angle_high), (0, 0));
@@ -113,7 +113,7 @@ int main(void) {{
                     mode,
                 )
             };
-            let floor = level(map, &mut cursor, p, m).unwrap();
+            let floor = level(map, &mut cursor, p.into(), m).unwrap();
             queries.extend([p[0], p[1], p[2], i32::from(m)]);
             responses.push([
                 floor,
@@ -139,7 +139,7 @@ int main(void) {{
         }
         input.push('\n');
         let mut actual_cursor = initial;
-        let probe = vector(map, &mut actual_cursor, position, width, mode).unwrap();
+        let probe = vector(map, &mut actual_cursor, position.into(), width, mode).unwrap();
         let mut row = vec![
             probe.level,
             probe.level,

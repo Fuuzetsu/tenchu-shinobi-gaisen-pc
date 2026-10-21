@@ -1,9 +1,10 @@
 use super::*;
+use crate::math::Position;
 
 #[test]
 fn saturated_depth_and_screen_flags_have_distinct_rejection_rules() {
     let matrix = Matrix {
-        translation: [0, 0, 40000],
+        translation: Position::new(0, 0, 40000),
         ..Matrix::default()
     };
     let p = point(&matrix, [0; 3]);
@@ -11,7 +12,7 @@ fn saturated_depth_and_screen_flags_have_distinct_rejection_rules() {
     assert_eq!(p.flags >> 31, 0);
     let p = point(
         &Matrix {
-            translation: [0, 0, 200],
+            translation: Position::new(0, 0, 200),
             ..Matrix::default()
         },
         [i16::MAX, i16::MIN, 0],
@@ -38,10 +39,10 @@ fn integer_projection_matches_independent_gte_kernel() {
         let mut matrix = Matrix::default();
         let vertices = if case < 2048 {
             matrix.rotation = std::array::from_fn(|_| std::array::from_fn(|_| next() as i16));
-            matrix.translation = std::array::from_fn(|_| next() as i32);
+            matrix.translation = Position::from_fn(|_| next() as i32);
             std::array::from_fn(|_| std::array::from_fn(|_| next() as i16))
         } else {
-            matrix.translation[2] = case - 2048;
+            matrix.translation.z = case - 2048;
             [[-100, -100, 0], [100, -100, 0], [-100, 100, 0]]
         };
         let tri = case & 1 == 0;
@@ -80,7 +81,7 @@ fn integer_projection_matches_independent_gte_kernel() {
             output[6] = p.flags;
             p
         };
-        output[8..].copy_from_slice(&last.mac.map(|v| v as u32));
+        output[8..].copy_from_slice(&last.mac.map(|v| v as u32).to_array());
         expected.push(output);
     }
     let mut process =

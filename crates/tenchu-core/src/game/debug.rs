@@ -1,4 +1,5 @@
 use super::Game;
+use crate::math::Position;
 use crate::{
     Result,
     actor::Context,
@@ -7,7 +8,7 @@ use crate::{
 };
 
 impl Game {
-    pub fn teleport_player(&mut self, mut position: [i32; 3], snap_to_floor: bool) -> Result<()> {
+    pub fn teleport_player(&mut self, mut position: Position, snap_to_floor: bool) -> Result<()> {
         if self.cinematic.active || self.player().scripted || self.player().health <= 0 {
             return Err("Teleport requires a living player outside a cutscene".into());
         }
@@ -19,7 +20,7 @@ impl Game {
             let floor = terrain::level(
                 &self.mission.terrain,
                 &mut cursor,
-                [position[0], position[1] - 1000, position[2]],
+                Position::new(position[0], position[1] - 1000, position[2]),
                 0,
             )?;
             if floor == terrain::NONE {
@@ -72,7 +73,8 @@ impl Game {
         let camera_position =
             std::array::from_fn(|i| ctx.camera.position[i].saturating_add(delta[i]));
         let reference = std::array::from_fn(|i| ctx.camera.reference[i].saturating_add(delta[i]));
-        ctx.camera.set_view(camera_position, reference, ctx.math)?;
+        ctx.camera
+            .set_view(camera_position.into(), reference.into(), ctx.math)?;
         ctx.camera.target = position;
         self.rendered_view = ctx.camera.view;
         self.effects.wires.clear();
@@ -82,6 +84,7 @@ impl Game {
 
 #[cfg(test)]
 mod tests {
+    use crate::math::Position;
     #[test]
     #[ignore = "requires TENCHU_DISC; checks teleport pose/collision refresh, validation, RNG isolation and continued play"]
     fn teleport_refreshes_player_without_advancing_simulation() {
@@ -93,17 +96,20 @@ mod tests {
             let random = game.random;
             let tick = game.tick;
             let position = game.player().position;
-            assert!(game.teleport_player([320001, 0, 0], false).is_err());
+            assert!(
+                game.teleport_player(Position::new(320001, 0, 0), false)
+                    .is_err()
+            );
             assert_eq!(game.player().position, position);
             game.cinematic.active = true;
             assert!(game.teleport_player(position, false).is_err());
             game.cinematic.active = false;
             let target = [position[0] + 250, position[1] - 100, position[2] + 250];
-            game.teleport_player(target, true).unwrap();
+            game.teleport_player(target.into(), true).unwrap();
             let player = game.player();
-            assert_eq!(player.position[0], target[0]);
-            assert_eq!(player.position[2], target[2]);
-            assert_eq!(player.position[1], player.map.level);
+            assert_eq!(player.position.x, target[0]);
+            assert_eq!(player.position.z, target[2]);
+            assert_eq!(player.position.y, player.map.level);
             assert_eq!(player.previous, player.position);
             assert_eq!(player.velocity, [0; 3]);
             assert_eq!(
@@ -114,8 +120,8 @@ mod tests {
                 .iter()
                 .find(|s| s.owner == Some(game.player_id) && s.class & crate::collision::HIT == 0)
                 .unwrap();
-            assert!((slot.position[0] - target[0]).abs() < 500);
-            assert!((slot.position[2] - target[2]).abs() < 500);
+            assert!((slot.position.x - target[0]).abs() < 500);
+            assert!((slot.position.z - target[2]).abs() < 500);
             assert_eq!(game.random, random);
             assert_eq!(game.tick, tick);
             for _ in 0..30 {

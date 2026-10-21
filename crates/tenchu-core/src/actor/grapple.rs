@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{
     camera::{Environment, Mode},
     input::{CIRCLE, CROSS, SQUARE},
@@ -26,8 +27,8 @@ impl Actor {
                         .request(0, self, start, start, world.player, world.roster, ctx)?;
                     ctx.effects.sounds.push((self.position, 0x1e));
                 } else if self.inventory[25] != 1 {
-                    let dx = ctx.camera.target[0].wrapping_sub(self.position[0]);
-                    let dz = ctx.camera.target[2].wrapping_sub(self.position[2]);
+                    let dx = ctx.camera.target[0].wrapping_sub(self.position.x);
+                    let dz = ctx.camera.target[2].wrapping_sub(self.position.z);
                     if dx == 0 && dz == 0 {
                         next = Some((self.return_normal(ctx, world.player)?, true));
                     } else {
@@ -84,9 +85,8 @@ impl Actor {
                     },
                     ctx.random,
                 )?;
-                let mut delta: [i32; 3] =
-                    std::array::from_fn(|i| ctx.camera.target[i].wrapping_sub(self.position[i]));
-                let distance = ctx.math.length([delta[0], 0, delta[2]]);
+                let mut delta: Position = ctx.camera.target.wrapping_sub(self.position);
+                let distance = ctx.math.length(Position::new(delta[0], 0, delta[2]));
                 let waist = &mut self.motion.pose.rotation[0];
                 waist[1] = ctx.math.direction(delta[0], delta[2], self.rotation[1])?;
                 waist[0] = ctx.math.atan2(distance, delta[1].wrapping_neg())?;
@@ -119,7 +119,7 @@ impl Actor {
                 while delta.iter().any(|v| v.wrapping_abs() > 400) {
                     delta = delta.map(|v| v >> 1);
                 }
-                self.velocity = delta.map(|v| v as i16);
+                self.velocity = delta.map(|v| v as i16).to_array();
                 let start = ctx.scene.world(self.parts[14])?.translation;
                 if let Some(fog) = ctx.effects.wire(
                     start,

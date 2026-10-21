@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 #[test]
 fn exact_negative_cell_boundaries_keep_the_original_preceding_cell() {
@@ -27,7 +28,7 @@ fn construction_coordinates_geometry_and_cell_order_match_retail() {
         rotation: std::array::from_fn(|i| {
             std::array::from_fn(|j| short(p + (i * 3 + j) as u32 * 2))
         }),
-        translation: std::array::from_fn(|i| word(p + 20 + i as u32 * 4) as i32),
+        translation: Position::from_fn(|i| word(p + 20 + i as u32 * 4) as i32),
     };
     let mut game = crate::oracle::game(word(0x80097ac4) as usize, short(word(0x80097c60)));
     assert_eq!(game.construction.objects.len(), word(0x8008dbe4) as usize);
@@ -85,7 +86,7 @@ fn construction_coordinates_geometry_and_cell_order_match_retail() {
             "world cell {i}"
         );
     }
-    game.camera.position = std::array::from_fn(|i| word(0x800b8080 + i as u32 * 4) as i32);
+    game.camera.position = Position::from_fn(|i| word(0x800b8080 + i as u32 * 4) as i32);
     game.camera.view = matrix(0x800c6520);
     let bytes = game
         .construction

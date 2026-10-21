@@ -1,15 +1,18 @@
 use super::*;
+use crate::math::Position;
 
 impl Game {
-    fn cinematic_focus(&self, id: usize) -> [i32; 3] {
+    fn cinematic_focus(&self, id: usize) -> Position {
         let actor = self.roster.get(id);
-        [
-            actor.position[0],
-            actor.position[1]
+        Position::new(
+            actor.position.x,
+            actor
+                .position
+                .y
                 .wrapping_sub(i32::from(self.mission.characters[actor.definition].height))
                 .wrapping_add(300),
-            actor.position[2],
-        ]
+            actor.position.z,
+        )
     }
 
     pub(super) fn cinematic_camera_command(&mut self, command: Command) -> Result<bool> {
@@ -30,7 +33,7 @@ impl Game {
                     position[0] = position[0].wrapping_add(i32::from(delta[0]));
                     position[2] = position[2].wrapping_add(i32::from(delta[2]));
                 }
-                4 => position = command.position.map(|v| i32::from(v) * 100),
+                4 => position = command.position.map(|v| i32::from(v) * 100).into(),
                 5 => {
                     let Some(id) = self.roster.find(command.parameter) else {
                         return Ok(true);
@@ -41,7 +44,7 @@ impl Game {
                 _ => (),
             }
         } else if command.id == 0 {
-            reference = command.position.map(|v| i32::from(v) * 100);
+            reference = command.position.map(|v| i32::from(v) * 100).into();
         } else {
             let Some(id) = self.roster.find(command.parameter) else {
                 return Ok(false);
@@ -58,7 +61,7 @@ impl Game {
         let mut reference = self.camera.reference;
         let x = position[0].wrapping_sub(reference[0]);
         let z = position[2].wrapping_sub(reference[2]);
-        let mut length = self.math.length([x, 0, z]);
+        let mut length = self.math.length(Position::new(x, 0, z));
         let mut yaw = self.math.direction(x, z, 0)?;
         let speed = i32::from(self.cinematic.speed);
         match self.cinematic.pan {

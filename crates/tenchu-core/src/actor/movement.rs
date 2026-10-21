@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod chase;
 mod crouch;
 mod hang;
@@ -25,7 +26,7 @@ impl Actor {
         &mut self,
         ctx: &mut Context,
         commands: &[Command],
-        center: [i32; 3],
+        center: Position,
         world: &mut ActionContext,
     ) -> Result<bool> {
         let player = self.id == world.player;
@@ -127,8 +128,8 @@ impl Actor {
         self.motion.mask = 0x7fff;
         let [x, z] = ctx.body.reflect_move[self.map.angle_high as usize];
         let width = i32::from(ctx.mission.characters[self.definition].width);
-        self.position[0] = self.position[0].wrapping_add((width * i32::from(x)) >> 2);
-        self.position[2] = self.position[2].wrapping_add((width * i32::from(z)) >> 2);
+        self.position.x = self.position.x.wrapping_add((width * i32::from(x)) >> 2);
+        self.position.z = self.position.z.wrapping_add((width * i32::from(z)) >> 2);
         self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
         if self.status == 11 {
             self.motion.count >>= 2;
@@ -143,7 +144,7 @@ impl Actor {
         world: &mut ActionContext,
         held: u16,
         command: u16,
-        center: [i32; 3],
+        center: Position,
     ) -> Result<Option<(i16, bool)>> {
         let mut pending = None;
         match self.motion.action {
@@ -286,7 +287,7 @@ impl Actor {
         ctx: &mut Context,
         world: &mut ActionContext,
         held: u16,
-        center: [i32; 3],
+        center: Position,
     ) -> Result<Option<(i16, bool)>> {
         let turn = ctx.mission.characters[self.definition].turn;
         let mut pending = None;
@@ -299,11 +300,11 @@ impl Actor {
                 if held & UP == 0 {
                     pending = Some((MOT_NORMAL, true));
                 } else if self.attribute & ATTR_WALL != 0 {
-                    let (y, height) = (self.position[1], self.map.height);
-                    self.position[1] = y.wrapping_sub(400);
+                    let (y, height) = (self.position.y, self.map.height);
+                    self.position.y = y.wrapping_sub(400);
                     self.map.height = 1;
                     if !self.hang_check(ctx)? {
-                        self.position[1] = y;
+                        self.position.y = y;
                         self.map.height = height;
                     }
                 } else if held & (LEFT | RIGHT) != 0 {
@@ -354,7 +355,7 @@ impl Actor {
         ctx: &mut Context,
         world: &mut ActionContext,
         held: u16,
-        center: [i32; 3],
+        center: Position,
     ) -> Option<(i16, bool)> {
         ctx.effects
             .smoke_burst(self.position, 150, 12, 8, ctx.random);
@@ -372,8 +373,8 @@ impl Actor {
             }
             return None;
         }
-        self.position[0] = center[0];
-        self.position[2] = center[2];
+        self.position.x = center[0];
+        self.position.z = center[2];
         self.velocity[1] = 0;
         let (specific, forward, side) = if held & UP != 0 {
             (MOT_JUMP_FORWARD, 100, 0)
@@ -417,7 +418,7 @@ impl Actor {
                 return Ok(None);
             }
             let yaw = ctx.body.reflect_angle[map.vector as usize];
-            self.position[1] = self.position[1].wrapping_sub(500);
+            self.position.y = self.position.y.wrapping_sub(500);
             if yaw == -1 {
                 self.velocity[0] = self.velocity[0].wrapping_neg();
                 self.velocity[2] = self.velocity[2].wrapping_neg();
@@ -430,7 +431,7 @@ impl Actor {
         }
         if self.attribute & (ATTR_NOFLOOR | ATTR_BUOYANT) != 0 && self.motion.count >= 2 {
             let level = terrain::level(&ctx.mission.terrain, ctx.cursor, self.position, 0)?;
-            if self.position[1] < level {
+            if self.position.y < level {
                 self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
                 world.intelligence.voices.push((self.id, 6));
                 self.motion.count >>= 2;

@@ -171,7 +171,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
             {
                 continue;
             }
-            let center = Vec3::from(slot.position.map(|v| v as f32));
+            let center = Vec3::from(slot.position.map(|v| v as f32).to_array());
             let size = Vec3::from(slot.size.map(f32::from));
             let color = if slot.class & tenchu_core::collision::HIT != 0 {
                 [1.0, 0.7, 0.15]
@@ -183,7 +183,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
     }
     for &id in &game.roster.order {
         let actor = game.roster.get(id);
-        let position = Vec3::from(actor.position.map(|v| v as f32));
+        let position = Vec3::from(actor.position.map(|v| v as f32).to_array());
         let suspended = actor.attribute & ATTR_SUSPEND != 0;
         if debug.labels {
             let top = position
@@ -213,11 +213,15 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
                 .map(|p| {
                     let mut cursor = tenchu_core::terrain::Cursor::new(&game.mission.terrain);
                     let p = [p.position[0], actor.position[1] - 1500, p.position[1]];
-                    let floor =
-                        tenchu_core::terrain::level(&game.mission.terrain, &mut cursor, p, 0)
-                            .ok()
-                            .filter(|&v| v != tenchu_core::terrain::NONE)
-                            .unwrap_or(actor.position[1]);
+                    let floor = tenchu_core::terrain::level(
+                        &game.mission.terrain,
+                        &mut cursor,
+                        p.into(),
+                        0,
+                    )
+                    .ok()
+                    .filter(|&v| v != tenchu_core::terrain::NONE)
+                    .unwrap_or(actor.position[1]);
                     Vec3::new(p[0] as f32, floor as f32 - 30.0, p[2] as f32)
                 })
                 .collect();
@@ -282,7 +286,13 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
                     } else {
                         game.roster.find(i16::from(event.target))
                     };
-                    id.map(|id| game.roster.get(id).position.map(|v| [v - 2000, v + 2000]))
+                    id.map(|id| {
+                        game.roster
+                            .get(id)
+                            .position
+                            .map(|v| [v - 2000, v + 2000])
+                            .to_array()
+                    })
                 }
                 _ => None,
             };

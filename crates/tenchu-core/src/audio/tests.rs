@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{oracle, random::Random};
 use std::fmt::Write;
 
@@ -73,14 +74,14 @@ SoundEx(a[6]?&pp:&pos,a[7]);printf("%d %d\n",volume,pan);
             std::array::from_fn(|_| random.next15() * 2 - 32768)
         };
         let listener = Listener {
-            position: [0; 3],
+            position: Position::ZERO,
             yaw: (random.next15() - 16384) as i16,
             direction: (case % 3 == 0).then(|| (random.next15() - 16384) as i16),
         };
         let local = case % 7 == 0;
         let id = [0x12, 0x11, 0x0b, 0x56][case % 4];
         let result = listener
-            .sound(&game.math, (!local).then_some(position), id)
+            .sound(&game.math, (!local).then_some(position.into()), id)
             .unwrap();
         expected.push(result.map_or(vec![-1, -1], |sound| {
             vec![i32::from(sound.volume), i32::from(sound.pan)]
@@ -93,7 +94,7 @@ SoundEx(a[6]?&pp:&pos,a[7]);printf("%d %d\n",volume,pan);
             u8::from(listener.direction.is_some()),
             listener.direction.unwrap_or(0),
             u8::from(local),
-            game.math.length([dx, 0, dz]),
+            game.math.length(Position::new(dx, 0, dz)),
             game.math.atan2(-dx, -dz).unwrap()
         )
         .unwrap();

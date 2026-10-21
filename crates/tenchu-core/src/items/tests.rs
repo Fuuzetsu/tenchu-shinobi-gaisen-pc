@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{game::Game, input::UP, oracle, random::Random};
 use std::fmt::Write;
 
@@ -65,7 +66,7 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
         assert!(game.effects.sounds.iter().any(|(_, sound)| *sound == 0x0d));
         with_items(&mut game, |items, ctx, roster| {
             items
-                .drop(3, Some(player), position, [0; 3], roster, ctx)
+                .drop(3, Some(player), position, Position::ZERO, roster, ctx)
                 .unwrap();
             let id = items.cursor;
             items.slots[id].mode = 2;
@@ -82,14 +83,18 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
             }
             items.cursor = 0;
             for _ in 0..CAPACITY {
-                assert!(items.drop(1, None, position, [0; 3], roster, ctx).unwrap());
+                assert!(
+                    items
+                        .drop(1, None, position, Position::ZERO, roster, ctx)
+                        .unwrap()
+                );
             }
             assert_eq!(items.cursor, 0);
             items.contact(29, 180, crate::collision::SOFT, ctx).unwrap();
             let model = items.slots[29].model;
             assert!(
                 !items
-                    .drop(3, None, [999000; 3], [0; 3], roster, ctx)
+                    .drop(3, None, [999000; 3].into(), Position::ZERO, roster, ctx)
                     .unwrap()
             );
             assert_eq!(items.cursor, 29);
@@ -178,11 +183,11 @@ int main(void) {{
     for case in 0..4096 {
         let at = nodes[cases.next15() as usize % nodes.len()];
         let node = game.mission.terrain.node(at).unwrap();
-        let mut position = [
+        let mut position: Position = Position::new(
             i32::from(node.bounds[0]) * 10,
             i32::from(node.y) * 10,
             i32::from(node.bounds[1]) * 10,
-        ];
+        );
         position[0] += cases.next15() % 3000 - 1500;
         position[1] += cases.next15() % 3000 - 1500;
         position[2] += cases.next15() % 3000 - 1500;
@@ -199,8 +204,14 @@ int main(void) {{
             std::array::from_fn(|i| position[i].wrapping_add(i32::from(rolling.velocity[i])));
         let mut cursor = game.cursor;
         let mut hint = rolling.hint;
-        let first = terrain::particle_floor(&game.mission.terrain, &mut cursor, next, &mut hint, 0)
-            .unwrap();
+        let first = terrain::particle_floor(
+            &game.mission.terrain,
+            &mut cursor,
+            next.into(),
+            &mut hint,
+            0,
+        )
+        .unwrap();
         let hint1 = hint.map_or(0, |h| h + 1) as i32;
         let probe = terrain::vector(&game.mission.terrain, &mut cursor, position, 500, 0).unwrap();
         let second =
@@ -335,15 +346,13 @@ int main(void) {{
     let mut input = String::new();
     let mut expected = Vec::new();
     for case in 0..2048 {
-        let start: [i32; 3] = std::array::from_fn(|_| (cases.next15() - 16384) * 100);
-        let end = std::array::from_fn(|i| start[i].wrapping_add((cases.next15() - 16384) * 8));
+        let start: Position = Position::from_fn(|_| (cases.next15() - 16384) * 100);
+        let end = Position::from_fn(|i| start[i].wrapping_add((cases.next15() - 16384) * 8));
         let width = [0, 1024, -1024, 32767][case % 4];
         let height = [0, 1024, 2048, -32768][(case / 4) % 4];
         let speed = [0, 1, 300, 1000, -1][case % 5];
         let seed = cases.next15() as u32;
-        let distance = game
-            .math
-            .vector_distance(std::array::from_fn(|i| end[i].wrapping_sub(start[i])));
+        let distance = game.math.vector_distance(end.wrapping_sub(start));
         for v in start
             .into_iter()
             .chain(end)
@@ -355,7 +364,7 @@ int main(void) {{
         game.random = Random::new(seed);
         with_items(&mut game, |_, ctx, _| {
             let mut flight = flight::Flight::new(start, end, width, height, speed, ctx);
-            let mut row = flight.control.to_vec();
+            let mut row = flight.control.to_array().to_vec();
             row.extend([
                 i32::from(flight.count),
                 i32::from(flight.total),
@@ -363,7 +372,7 @@ int main(void) {{
                 ctx.random.calls as i32,
             ]);
             let mut rolling = Rolling::default();
-            let mut position = start;
+            let mut position: Position = start;
             let mut digest = 2166136261u32;
             while !flight.rolling {
                 flight.step(&mut position, &mut rolling, ctx).unwrap();
@@ -444,7 +453,7 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
                 }
             }
             let actor = actors.get_mut(player);
-            actor.position = [0; 3];
+            actor.position = Position::ZERO;
             actor.rotation = [0; 3];
             actor.map =
                 terrain::vector(&ctx.mission.terrain, ctx.cursor, actor.position, 500, 0).unwrap();
@@ -479,7 +488,7 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
         );
         with_items(&mut game, |_, ctx, actors| {
             let actor = actors.get_mut(player);
-            actor.position[0] = 5000;
+            actor.position.x = 5000;
             ctx.scene.update(actor.root_model, actor.root(ctx.math));
             ctx.scene.finish_tick();
         });
@@ -530,7 +539,9 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         let aim = items.cursor;
         actors.roster.restore(actor);
         for _ in 0..CAPACITY - 1 {
-            items.drop(3, None, start, [0; 3], actors, ctx).unwrap();
+            items
+                .drop(3, None, start, Position::ZERO, actors, ctx)
+                .unwrap();
         }
         items.cursor = (aim + 1) % CAPACITY;
         let mut actor = actors.roster.take(player);
@@ -563,8 +574,8 @@ fn bombs_recover_refund_and_extinguish() {
             .request(
                 4,
                 &mut actor,
-                [0, -1000, 0],
-                [0; 3],
+                Position::new(0, -1000, 0),
+                Position::ZERO,
                 player,
                 actors.roster,
                 ctx,
@@ -602,8 +613,8 @@ fn bombs_recover_refund_and_extinguish() {
             .request(
                 6,
                 &mut actor,
-                [999000, -1000, 999000],
-                [0; 3],
+                Position::new(999000, -1000, 999000),
+                Position::ZERO,
                 player,
                 actors.roster,
                 ctx,
@@ -624,8 +635,8 @@ fn bombs_recover_refund_and_extinguish() {
                 .request(
                     kind,
                     &mut actor,
-                    [0, -50, 0],
-                    [0; 3],
+                    Position::new(0, -50, 0),
+                    Position::ZERO,
                     player,
                     actors.roster,
                     ctx,

@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{Result, math::Matrix};
 
 pub const COLLIDE: u16 = 0x4000;
@@ -63,7 +64,7 @@ impl Scene {
         model.flags = 0;
     }
 
-    pub fn set_translation(&mut self, id: ModelId, position: [i32; 3]) {
+    pub fn set_translation(&mut self, id: ModelId, position: Position) {
         self.models[id].local.translation = position;
     }
 
@@ -118,7 +119,7 @@ mod tests {
 
     fn translated(x: i32) -> Matrix {
         Matrix {
-            translation: [x, 0, 0],
+            translation: Position::new(x, 0, 0),
             ..Matrix::default()
         }
     }
@@ -133,7 +134,7 @@ mod tests {
         assert_eq!(scene.world(child).unwrap().translation[0], 12);
         scene.finish_tick();
         assert_eq!(scene.world(child).unwrap().translation[0], 102);
-        scene.set_translation(root, [200, 0, 0]);
+        scene.set_translation(root, Position::new(200, 0, 0));
         scene.finish_tick();
         assert_eq!(scene.world(child).unwrap().translation[0], 102);
         scene.models[child].flags = 0;

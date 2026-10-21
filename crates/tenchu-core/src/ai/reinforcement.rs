@@ -44,8 +44,8 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn alarm(&mut self) -> Result<u16> {
-        let x = self.actor.brain.chase[0].wrapping_sub(self.actor.position[0]);
-        let z = self.actor.brain.chase[1].wrapping_sub(self.actor.position[2]);
+        let x = self.actor.brain.chase[0].wrapping_sub(self.actor.position.x);
+        let z = self.actor.brain.chase[1].wrapping_sub(self.actor.position.z);
         let mut pad = 0;
         match self.actor.brain.timer {
             0 => {

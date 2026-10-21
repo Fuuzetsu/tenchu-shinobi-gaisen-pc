@@ -11,7 +11,7 @@ fn speed_scrolls_move_at_the_original_rate_and_return_control() {
             let player = game.player_id;
             with_actor(&mut game, player, |actor, ctx, world| {
                 world.roster.remove(enemy, ctx);
-                actor.position[2] = -10000;
+                actor.position.z = -10000;
                 ctx.scene.update(actor.root_model, actor.root(ctx.math));
                 actor.inventory[13] = 1;
             });

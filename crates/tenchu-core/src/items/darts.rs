@@ -1,11 +1,12 @@
 use super::*;
+use crate::math::Position;
 use crate::{actor::trail::Trail, ids::MOT_ITEM_THROW};
 
 impl Items {
     pub(super) fn request_darts(
         &mut self,
         owner: usize,
-        start: [i32; 3],
+        start: Position,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 #[test]
 fn ledge_catch_keeps_non_cardinal_multiples_of_256() {
     for (input, expected) in [
@@ -126,7 +127,7 @@ int main(void) {{int a[7];while(scanf("%d",a)==1) {{
                             actor.attribute = 0;
                             actor.active_item = active_item;
                             actor.map.height = 100;
-                            actor.position = [width / 2 + 100, y, 0];
+                            actor.position = Position::new(width / 2 + 100, y, 0);
                             actor.rotation = [0, 1024, 0];
                             actor.velocity = [0, 123, 0];
                             actor.motion.action = MOT_HANG;
@@ -142,9 +143,9 @@ int main(void) {{int a[7];while(scanf("%d",a)==1) {{
                             };
                             vec![
                                 result,
-                                actor.position[0],
-                                actor.position[1],
-                                actor.position[2],
+                                actor.position.x,
+                                actor.position.y,
+                                actor.position.z,
                                 i32::from(actor.rotation[1]),
                                 i32::from(actor.velocity[1]),
                                 i32::from(action),

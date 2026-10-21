@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 impl Actor {
     fn hang_probe(&self, ctx: &mut Context, yaw: i16, forward: i16, y: i32) -> Result<i32> {
@@ -6,11 +7,11 @@ impl Actor {
         terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
-            [
-                self.position[0].wrapping_add(i32::from(v[0])),
+            Position::new(
+                self.position.x.wrapping_add(i32::from(v[0])),
                 y,
-                self.position[2].wrapping_add(i32::from(v[2])),
-            ],
+                self.position.z.wrapping_add(i32::from(v[2])),
+            ),
             terrain::RETURN_DELTA,
         )
     }
@@ -25,39 +26,39 @@ impl Actor {
         }
         let definition = &ctx.mission.characters[self.definition];
         let (width, height) = (definition.width, definition.height);
-        let head = self.position[1].wrapping_sub(i32::from(height));
+        let head = self.position.y.wrapping_sub(i32::from(height));
         let v = ctx.math.velocity(self.rotation[1], width >> 1, 0);
         let y = terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
-            [
-                self.position[0].wrapping_add(i32::from(v[0])),
+            Position::new(
+                self.position.x.wrapping_add(i32::from(v[0])),
                 head.wrapping_sub(290),
-                self.position[2].wrapping_add(i32::from(v[2])),
-            ],
+                self.position.z.wrapping_add(i32::from(v[2])),
+            ),
             0,
         )?;
-        if y < self.position[1] {
+        if y < self.position.y {
             let y = terrain::level(
                 &ctx.mission.terrain,
                 ctx.cursor,
-                [
-                    self.position[0].wrapping_sub(i32::from(v[0])),
+                Position::new(
+                    self.position.x.wrapping_sub(i32::from(v[0])),
                     head.wrapping_sub(290),
-                    self.position[2].wrapping_sub(i32::from(v[2])),
-                ],
+                    self.position.z.wrapping_sub(i32::from(v[2])),
+                ),
                 0,
             )?;
-            if y != terrain::NONE && self.position[1] < y {
-                self.position[0] = self.position[0].wrapping_sub(i32::from(v[0] >> 1));
-                self.position[2] = self.position[2].wrapping_sub(i32::from(v[2] >> 1));
+            if y != terrain::NONE && self.position.y < y {
+                self.position.x = self.position.x.wrapping_sub(i32::from(v[0] >> 1));
+                self.position.z = self.position.z.wrapping_sub(i32::from(v[2] >> 1));
             }
             return Ok(false);
         }
         let y = terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
-            [self.position[0], head.wrapping_sub(300), self.position[2]],
+            Position::new(self.position.x, head.wrapping_sub(300), self.position.z),
             0,
         )?;
         if y < head {
@@ -72,27 +73,29 @@ impl Actor {
         if y == terrain::NONE || y > 400 {
             return Ok(false);
         }
-        self.position[1] = self.position[1].wrapping_sub(105i32.wrapping_sub(y));
+        self.position.y = self.position.y.wrapping_sub(105i32.wrapping_sub(y));
         if self.status == 10 {
             return Ok(true);
         }
         let old_y = y;
         let yaw = catch_yaw(self.rotation[1]);
-        let probe_y = self.position[1]
+        let probe_y = self
+            .position
+            .y
             .wrapping_sub(i32::from(height))
             .wrapping_sub(400);
         let y = self.hang_probe(ctx, yaw, (width >> 1).wrapping_add(300), probe_y)?;
         if y == terrain::NONE || y > 400 {
-            self.position[1] = self.position[1].wrapping_sub(old_y.wrapping_sub(5));
+            self.position.y = self.position.y.wrapping_sub(old_y.wrapping_sub(5));
             return Ok(false);
         }
         self.rotation[1] = yaw;
         let y = self.hang_probe(ctx, yaw, (width >> 1).wrapping_add(100), probe_y)?;
         if y != terrain::NONE && y <= 400 {
             let v = ctx.math.velocity(yaw, -200, 0);
-            self.position[0] = self.position[0].wrapping_add(i32::from(v[0]));
-            self.position[2] = self.position[2].wrapping_add(i32::from(v[2]));
-            self.position[1] = self.position[1].wrapping_sub(105i32.wrapping_sub(y));
+            self.position.x = self.position.x.wrapping_add(i32::from(v[0]));
+            self.position.z = self.position.z.wrapping_add(i32::from(v[2]));
+            self.position.y = self.position.y.wrapping_sub(105i32.wrapping_sub(y));
         }
         self.enter_unless_scripted(ctx, MOT_HANG_CATCH, true);
         ctx.effects.sounds.push((self.position, 0x1b));
@@ -110,11 +113,11 @@ impl Actor {
         match self.motion.action {
             MOT_HANG => {
                 if held & DOWN != 0 {
-                    let mut y = self.position[1];
+                    let mut y = self.position.y;
                     let mut escaped = false;
                     for _ in 0..4096 {
                         y = y.wrapping_add(100);
-                        self.position[1] = y;
+                        self.position.y = y;
                         if !self.hang_check(ctx)? {
                             escaped = true;
                             break;
@@ -132,11 +135,11 @@ impl Actor {
                     && terrain::level(
                         &ctx.mission.terrain,
                         ctx.cursor,
-                        [
-                            self.position[0],
-                            self.position[1].wrapping_sub(2000),
-                            self.position[2],
-                        ],
+                        Position::new(
+                            self.position.x,
+                            self.position.y.wrapping_sub(2000),
+                            self.position.z,
+                        ),
                         terrain::STEP_DOWN,
                     )? != terrain::NONE
                 {

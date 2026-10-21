@@ -49,9 +49,9 @@ impl Items {
             ctx.scene.models[model].local.translation[i]
                 .wrapping_add(i32::from(item.napalm.velocity[i]))
         });
-        ctx.scene.set_translation(model, position);
+        ctx.scene.set_translation(model, position.into());
         ctx.effects
-            .scatter_bleeds(position, 300, 10, 2, 10, [110; 3], ctx.random);
+            .scatter_bleeds(position.into(), 300, 10, 2, 10, [110; 3], ctx.random);
         self.slots[id].napalm.count = count.wrapping_add(1);
         if self.slots[id].napalm.count > 100 {
             self.slots[id].mode = 3;
@@ -66,7 +66,7 @@ impl Items {
             for _ in 0..3 {
                 ctx.random.next15();
             }
-            ctx.effects.sounds.push((position, 0x23));
+            ctx.effects.sounds.push((position.into(), 0x23));
             let position = ctx.scene.models[actor.root_model].local.translation;
             ctx.effects
                 .smoke(position, [0, -150, 0], 10, 30, ctx.random)?;
@@ -82,7 +82,7 @@ impl Items {
             }
             return self.dispose(id, actors, ctx);
         }
-        if terrain::level(&ctx.mission.terrain, ctx.cursor, position, 0)? == terrain::NONE {
+        if terrain::level(&ctx.mission.terrain, ctx.cursor, position.into(), 0)? == terrain::NONE {
             return self.dispose(id, actors, ctx);
         }
         self.update_coordinate(id, ctx);

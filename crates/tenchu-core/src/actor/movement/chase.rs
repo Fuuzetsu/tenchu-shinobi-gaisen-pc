@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 impl Actor {
     pub(super) fn engage(
@@ -7,7 +8,7 @@ impl Actor {
         world: &mut ActionContext,
         held: u16,
         command: u16,
-        center: [i32; 3],
+        center: Position,
     ) -> Result<Option<(i16, bool)>> {
         let mut pending = None;
         match self.motion.action {
@@ -120,7 +121,7 @@ impl Actor {
         world: &mut ActionContext,
         held: u16,
         command: u16,
-        center: [i32; 3],
+        center: Position,
     ) -> Result<Option<(i16, bool)>> {
         let turn = ctx.mission.characters[self.definition].turn / 2;
         let mut pending = None;
@@ -149,11 +150,11 @@ impl Actor {
                         self.motion.mode |= 1;
                     }
                 } else if self.attribute & ATTR_WALL != 0 {
-                    let (y, height) = (self.position[1], self.map.height);
-                    self.position[1] = y.wrapping_sub(400);
+                    let (y, height) = (self.position.y, self.map.height);
+                    self.position.y = y.wrapping_sub(400);
                     self.map.height = 1;
                     if !self.hang_check(ctx)? {
-                        self.position[1] = y;
+                        self.position.y = y;
                         self.map.height = height;
                     }
                 } else if held & (LEFT | RIGHT) != 0 {

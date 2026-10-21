@@ -1,9 +1,10 @@
 use super::*;
+use crate::math::Position;
 use crate::{camera::Mode, ids::MOT_ITEM_KAENGEKI, input};
 
 #[derive(Clone, Debug, Default)]
 pub struct Breath {
-    pub origin: [i32; 3],
+    pub origin: Position,
     pub remaining: u8,
     pub player: usize,
 }
@@ -59,7 +60,7 @@ impl Items {
                         ctx.random.next15() % 100 - 200,
                         ctx.random.next15() % 200 - 100,
                     ];
-                    self.drop(kind, Some(owner_id), position, velocity, actors, ctx)?;
+                    self.drop(kind, Some(owner_id), position, velocity.into(), actors, ctx)?;
                     self.dispose(id, actors, ctx)?;
                 }
             }
@@ -91,13 +92,13 @@ impl Items {
                     rotation: ctx.math.rotate_yxz(rotation),
                     ..Matrix::default()
                 }
-                .apply_large([0, 0, -60]);
+                .apply_large(Position::new(0, 0, -60));
                 let start = std::array::from_fn(|i| {
                     item.breath.origin[i].wrapping_add(direction[i].wrapping_mul(12))
                 });
                 let end =
                     std::array::from_fn(|i| start[i].wrapping_add(direction[i].wrapping_mul(2)));
-                self.request_napalm(owner_id, start, end, clock, actors, ctx)?;
+                self.request_napalm(owner_id, start.into(), end.into(), clock, actors, ctx)?;
             }
             mode => return Err(format!("Invalid fire-breath mode {mode}")),
         }

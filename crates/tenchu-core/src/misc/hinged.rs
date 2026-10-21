@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{
     collision::{DOOR_OWNER, SOFT},
     math::Math,
@@ -14,7 +15,7 @@ fn direction(angle: i16, yaw: i16) -> i16 {
     }
 }
 
-fn underflow_direction(math: &Math, position: [i32; 3], yaw: i16) -> Result<i16> {
+fn underflow_direction(math: &Math, position: Position, yaw: i16) -> Result<i16> {
     // ConflictObject[-1] aliases 24-bit ordering-table links. Prove the same
     // direction for their entire retail range instead of emulating GPU pointers.
     let range = |axis| -> Option<[i32; 2]> {
@@ -53,7 +54,7 @@ impl Object {
             let mut rotation = [0; 3];
             rotation[if door { 1 } else { 2 }] = self.angle.wrapping_mul(-sign as i16);
             Matrix {
-                translation: [width * sign, 0, 0],
+                translation: Position::new(width * sign, 0, 0),
                 rotation: math.rotate_yxz(rotation),
             }
         })
@@ -122,8 +123,8 @@ impl Object {
                         self.speed = match contact {
                             Some(contact) => direction(
                                 ctx.math.atan2(
-                                    contact.position[2].wrapping_sub(self.position[2]),
-                                    contact.position[0].wrapping_sub(self.position[0]),
+                                    contact.position.z.wrapping_sub(self.position.z),
+                                    contact.position.x.wrapping_sub(self.position.x),
                                 )?,
                                 yaw,
                             ),

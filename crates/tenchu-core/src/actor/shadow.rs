@@ -44,7 +44,7 @@ impl Actor {
                     items.request_napalm(
                         self.id,
                         start,
-                        end,
+                        end.into(),
                         clock,
                         &mut crate::roster::Actors {
                             roster,
@@ -85,7 +85,7 @@ impl Actor {
             .ok_or("Damaged actor has no model parts")?;
         let position = std::array::from_fn(|_| ctx.random.next15() % 200 - 100);
         let time = (ctx.random.next15() % 60 + 60) as i16;
-        ctx.effects.flash(Some(model), position, 12288, time);
+        ctx.effects.flash(Some(model), position.into(), 12288, time);
         let absolute = ctx.scene.world(model)?.translation;
         ctx.effects.bleeds(
             absolute,

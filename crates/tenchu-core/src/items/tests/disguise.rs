@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{ai::Intelligence, ids::*, input::TRIANGLE};
 
 #[test]
@@ -35,7 +36,7 @@ printf("%d",b.rotate.pad);for(int i=0;i<15;i++){assert(to[i].object.tmd==from[i]
     with_items(&mut game, |items, ctx, actors| {
         let donor = actors
             .roster
-            .spawn(ctx.mission.disguise, [999000; 3], 0, ctx)
+            .spawn(ctx.mission.disguise, [999000; 3].into(), 0, ctx)
             .unwrap();
         assert_eq!(actors.get(donor).parts.len(), 15);
         let donor_parts = actors.get(donor).parts.clone();
@@ -52,7 +53,7 @@ printf("%d",b.rotate.pad);for(int i=0;i<15;i++){assert(to[i].object.tmd==from[i]
                     1 => i32::MAX,
                     _ => (random.next15() * 73).wrapping_sub(900000),
                 });
-                ctx.scene.set_translation(model, position);
+                ctx.scene.set_translation(model, position.into());
                 for v in position {
                     write!(input, " {v}").unwrap();
                 }
@@ -63,14 +64,21 @@ printf("%d",b.rotate.pad);for(int i=0;i<15;i++){assert(to[i].object.tmd==from[i]
                 .unwrap();
             for &model in &player_parts {
                 ctx.scene.models[model].flags = 73;
-                ctx.scene.models[model].cached.translation = [111, 222, 333];
+                ctx.scene.models[model].cached.translation = Position::new(111, 222, 333);
             }
             let before: Vec<_> = player_parts
                 .iter()
                 .map(|&m| ctx.scene.models[m].clone())
                 .collect();
             items
-                .initialize(1, Processor::Disguise, 11, Some(player), [0; 3], ctx)
+                .initialize(
+                    1,
+                    Processor::Disguise,
+                    11,
+                    Some(player),
+                    Position::ZERO,
+                    ctx,
+                )
                 .unwrap();
             items.slots[1].mode = 2;
             let mut intelligence = Intelligence::default();
@@ -174,7 +182,7 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
         for id in 0..CAPACITY {
             if id != active {
                 items
-                    .initialize(id, Processor::Pickup, 1, None, [0; 3], ctx)
+                    .initialize(id, Processor::Pickup, 1, None, Position::ZERO, ctx)
                     .unwrap();
             }
         }

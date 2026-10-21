@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{collision, ids::MOT_STATE_PICKUP, scene::CONFLICT};
 
 impl Items {
@@ -6,8 +7,8 @@ impl Items {
         &mut self,
         kind: usize,
         owner: Option<usize>,
-        position: [i32; 3],
-        velocity: [i32; 3],
+        position: Position,
+        velocity: Position,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<bool> {
@@ -20,7 +21,7 @@ impl Items {
         item.collision.size = 0;
         item.rolling = Rolling {
             hint: None,
-            velocity: velocity.map(|v| v as i16),
+            velocity: velocity.map(|v| v as i16).to_array(),
             status: 0,
         };
         Ok(true)
@@ -29,12 +30,12 @@ impl Items {
     pub(crate) fn stay(
         &mut self,
         kind: usize,
-        mut position: [i32; 3],
+        mut position: Position,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
         position[1] = terrain::level(&ctx.mission.terrain, ctx.cursor, position, 0)?;
-        self.drop(kind, None, position, [0; 3], actors, ctx)?;
+        self.drop(kind, None, position, Position::ZERO, actors, ctx)?;
         Ok(())
     }
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path};
 
@@ -43,8 +44,8 @@ impl Ram<'_> {
         u32::from_le_bytes(self.bytes(address, 4).try_into().unwrap())
     }
 
-    fn vector(&self, address: u32) -> [i32; 3] {
-        std::array::from_fn(|i| self.word(address + i as u32 * 4) as i32)
+    fn vector(&self, address: u32) -> Position {
+        Position::from_fn(|i| self.word(address + i as u32 * 4) as i32)
     }
 
     fn short_vector(&self, address: u32) -> [i16; 3] {

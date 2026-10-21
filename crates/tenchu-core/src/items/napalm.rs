@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug, Default)]
 pub struct Napalm {
@@ -10,8 +11,8 @@ impl Items {
     pub(crate) fn request_napalm(
         &mut self,
         owner: usize,
-        start: [i32; 3],
-        end: [i32; 3],
+        start: Position,
+        end: Position,
         clock: i32,
         actors: &mut Actors,
         ctx: &mut Context,
@@ -52,7 +53,7 @@ impl Items {
             ctx.scene.models[model].local.translation[i]
                 .wrapping_add(i32::from(item.napalm.velocity[i]) * square / 100)
         });
-        ctx.scene.set_translation(model, position);
+        ctx.scene.set_translation(model, position.into());
         let brightness = (ctx.random.next15() % 25 - 26 - i32::from(count) * 230 / 20) as u8;
         let rotation = (ctx.random.next15() % 360) * 4096;
         let scale = square * 4096 / 50 + 4096;
@@ -75,9 +76,9 @@ impl Items {
                 .get(part)
                 .ok_or("Napalm target has no model parts")?;
             let local = std::array::from_fn(|_| ctx.random.next15() % 200 - 100);
-            ctx.effects.flash(Some(part), local, 12288, 60);
+            ctx.effects.flash(Some(part), local.into(), 12288, 60);
         }
-        if terrain::level(&ctx.mission.terrain, ctx.cursor, position, 0)? == terrain::NONE {
+        if terrain::level(&ctx.mission.terrain, ctx.cursor, position.into(), 0)? == terrain::NONE {
             return self.dispose(id, actors, ctx);
         }
         self.update_coordinate(id, ctx);

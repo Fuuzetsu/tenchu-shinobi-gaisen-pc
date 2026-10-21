@@ -77,6 +77,7 @@ pub(crate) fn append_face(
             matrix
                 .transform(geometry.vertices[c.vertex as usize])
                 .map(|x| x as f32)
+                .to_array()
         })
         .collect();
     let a = glam::Vec3::from(points[0]);
@@ -119,7 +120,7 @@ pub fn visit_stage(
         visit(
             &part.geometry,
             Matrix {
-                translation: part.position.map(|v| i32::from(v) * 10),
+                translation: part.position.map(|v| i32::from(v) * 10).into(),
                 ..Matrix::default()
             },
         );
@@ -128,7 +129,7 @@ pub fn visit_stage(
         visit(
             &mission.objects[placement.part].geometry,
             Matrix {
-                translation: placement.position,
+                translation: placement.position.into(),
                 rotation: math.rotate_yxz([0, placement.facing as i16, 0]),
             },
         );

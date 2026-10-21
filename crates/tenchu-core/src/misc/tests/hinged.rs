@@ -119,7 +119,7 @@ puts("");
         game.scene.update(
             root,
             Matrix {
-                translation: p,
+                translation: p.into(),
                 rotation: game.math.rotate_yxz([0, yaw, 0]),
             },
         );
@@ -133,7 +133,7 @@ puts("");
             0 => None,
             _ => Some(1),
         };
-        game.collision.slots[contact].position = q;
+        game.collision.slots[contact].position = q.into();
         game.effects.sounds.clear();
         with_misc(&mut game, |misc, ctx| {
             let leaves = if door {
@@ -142,7 +142,7 @@ puts("");
                 misc.pitfalls[kind]
             };
             let mut object = Object {
-                position: p,
+                position: p.into(),
                 kind: if door {
                     Kind::Door {
                         kind,
@@ -176,7 +176,7 @@ puts("");
                 let sign = if side == 0 { 1 } else { -1 };
                 row.extend(leaf.map_or([0, 0], |id| {
                     [
-                        ctx.scene.models[id].local.translation[0],
+                        ctx.scene.models[id].local.translation.x,
                         i32::from(object.angle.wrapping_mul(sign)),
                     ]
                 }));
@@ -237,7 +237,7 @@ fn environmental_activation_and_collision_lifecycle() {
     );
     game.misc.objects[door].angle = 960;
     game.misc.objects[door].mode = 1;
-    game.camera.reference[0] = position[0] + 15000;
+    game.camera.reference.x = position[0] + 15000;
     with_misc(&mut game, |misc, ctx| misc.step(19, ctx)).unwrap();
     assert!(game.scene.models[model].conflict.is_some());
     with_misc(&mut game, |misc, ctx| misc.step(20, ctx)).unwrap();
@@ -250,7 +250,7 @@ fn environmental_activation_and_collision_lifecycle() {
         misc.spawn(
             Spawn {
                 record: 0,
-                position,
+                position: position.into(),
                 kind: Kind::Pitfall {
                     rotation: 0,
                     kind: 2,
@@ -293,7 +293,7 @@ fn every_authored_door_has_a_proven_underflow_direction() {
                     for z in [0x98040, 0xbc098, 0xc6358, 0xffffff] {
                         let a = ctx
                             .math
-                            .atan2(z - object.position[2], x - object.position[0])
+                            .atan2(z - object.position.z, x - object.position.x)
                             .unwrap();
                         let speed = if (i32::from(a) + i32::from(rotation) + 8192) % 4096 <= 2048 {
                             64

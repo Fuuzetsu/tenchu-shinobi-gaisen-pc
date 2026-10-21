@@ -1,4 +1,5 @@
 use super::{Actor, Context};
+use crate::math::Position;
 use crate::{Result, terrain};
 
 #[cfg(test)]
@@ -6,8 +7,8 @@ use crate::{Result, terrain};
 mod tests;
 
 struct Query {
-    position: [i32; 3],
-    delta: [i32; 3],
+    position: Position,
+    delta: Position,
     height: i16,
     player_height: i16,
     player_status: i16,
@@ -70,7 +71,7 @@ impl Sight {
     pub fn search(
         &mut self,
         owner: &Actor,
-        target: Option<[i32; 3]>,
+        target: Option<Position>,
         player: crate::ai::Player,
         clock: i32,
         alert: i32,
@@ -81,13 +82,13 @@ impl Sight {
             return Ok(Detection::None);
         };
         let position = owner.position;
-        let delta: [i32; 3] = std::array::from_fn(|i| target[i].wrapping_sub(position[i]));
+        let delta: Position = target.wrapping_sub(position);
         self.distance = ctx.math.square_root(
             delta
                 .iter()
                 .fold(0i32, |sum, &n| sum.wrapping_add(n.wrapping_mul(n))),
         );
-        self.direction = ctx.math.direction(delta[0], delta[2], owner.rotation[1])?;
+        self.direction = ctx.math.direction(delta.x, delta.z, owner.rotation[1])?;
         let slot = ctx.scene.models[owner.parts[0]]
             .conflict
             .map_or(-1, |s| s as i32);
@@ -111,7 +112,7 @@ impl Sight {
     fn evaluate(
         &self,
         query: Query,
-        blocked: impl FnMut([i32; 3], [i16; 3], i16) -> Result<bool>,
+        blocked: impl FnMut(Position, [i16; 3], i16) -> Result<bool>,
     ) -> Result<Detection> {
         self.evaluate_range(query, 100, blocked)
     }
@@ -120,7 +121,7 @@ impl Sight {
         &self,
         query: Query,
         range_percent: u16,
-        mut blocked: impl FnMut([i32; 3], [i16; 3], i16) -> Result<bool>,
+        mut blocked: impl FnMut(Position, [i16; 3], i16) -> Result<bool>,
     ) -> Result<Detection> {
         let Query {
             mut position,
@@ -136,8 +137,8 @@ impl Sight {
             return Ok(Detection::None);
         }
         let sneaking = matches!(player_status, 11 | 12);
-        if (player_status == 10 && (delta[1] >= 0 || (delta[1] < -3000 && self.distance < 4000)))
-            || (delta[1].wrapping_abs() >= 3000 && (alert == 0 || self.distance < 4000))
+        if (player_status == 10 && (delta.y >= 0 || (delta.y < -3000 && self.distance < 4000)))
+            || (delta.y.wrapping_abs() >= 3000 && (alert == 0 || self.distance < 4000))
         {
             return Ok(Detection::Gone);
         }
@@ -154,21 +155,23 @@ impl Sight {
         }
         let height = i32::from(height);
         let player_height = i32::from(player_height);
-        position[1] = position[1].wrapping_add(300 - height);
-        delta[1] = delta[1]
-            .wrapping_sub(300)
-            .wrapping_add(height)
-            .wrapping_sub(if player_status == 11 {
-                player_height / 2
-            } else {
-                player_height
-            });
+        position.y = position.y.wrapping_add(300 - height);
+        delta.y =
+            delta
+                .y
+                .wrapping_sub(300)
+                .wrapping_add(height)
+                .wrapping_sub(if player_status == 11 {
+                    player_height / 2
+                } else {
+                    player_height
+                });
         let mut count = 1i16;
         while delta.iter().any(|v| v.wrapping_abs() > limit) {
             count = count.wrapping_shl(1);
             delta = delta.map(|v| v >> 1);
         }
-        if blocked(position, delta.map(|v| v as i16), count)? {
+        if blocked(position, delta.map(|v| v as i16).to_array(), count)? {
             return Ok(Detection::Gone);
         }
         Ok(if self.distance < clear {

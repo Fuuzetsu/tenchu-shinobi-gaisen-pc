@@ -24,12 +24,16 @@ impl Actor {
         }
         for _ in 0..20 {
             let position = [
-                self.position[0].wrapping_add((ctx.random.next15() % width) * 2 - width),
+                self.position
+                    .x
+                    .wrapping_add((ctx.random.next15() % width) * 2 - width),
                 self.map.level,
-                self.position[2].wrapping_add((ctx.random.next15() % width) * 2 - width),
+                self.position
+                    .z
+                    .wrapping_add((ctx.random.next15() % width) * 2 - width),
             ];
             let size = std::array::from_fn(|_| ((ctx.random.next15() & 7) << 12) as i16);
-            ctx.effects.splash(position, size, 6);
+            ctx.effects.splash(position.into(), size, 6);
         }
         self.clear_attack(ctx, 3)?;
         if self.id == world.player {

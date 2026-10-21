@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{
     Result,
     camera::Camera,
@@ -34,25 +35,25 @@ fn cell(value: i32) -> i32 {
     value / 16000 - i32::from(value < 0)
 }
 
-fn index([x, y, z]: [i32; 3]) -> usize {
+fn index(Position { x, y, z }: Position) -> usize {
     ((x & 7) * 64 + (y & 7) * 8 + (z & 7)) as usize
 }
 
 pub fn visible(
-    position: [i32; 3],
+    position: Position,
     radius: i32,
-    camera: [i32; 3],
+    camera: Position,
     rotation: [[i16; 3]; 3],
-) -> Option<[i32; 3]> {
-    let delta: [i32; 3] = std::array::from_fn(|i| position[i].wrapping_sub(camera[i]));
+) -> Option<Position> {
+    let delta: Position = position.wrapping_sub(camera);
     if delta.iter().any(|v| v.wrapping_abs() > 30000) {
         return None;
     }
     let point = Matrix {
         rotation,
-        translation: [0; 3],
+        translation: Position::ZERO,
     }
-    .transform(delta.map(|v| v as i16));
+    .transform(delta.map(|v| v as i16).to_array());
     let far = point[2].wrapping_add(radius);
     if far <= 150 || point[2].wrapping_sub(radius) > 17000 {
         return None;
@@ -78,7 +79,7 @@ impl Construction {
                 scene.add(
                     Some(root),
                     Matrix {
-                        translation: part.position.map(i32::from),
+                        translation: part.position.map(i32::from).into(),
                         ..Matrix::default()
                     },
                 )
@@ -108,7 +109,7 @@ impl Construction {
             let shift_y = ((i32::from(high[1]) + i32::from(low[1])) / 2) as i16;
             let matrix = Matrix {
                 rotation: math.rotate_yxz([0, placement.facing as i16, 0]),
-                translation: placement.position,
+                translation: placement.position.into(),
             };
             let model = if placement.cloned {
                 scene.add(Some(0), matrix)
@@ -133,7 +134,7 @@ impl Construction {
             let model = scene.add(
                 Some(root),
                 Matrix {
-                    translation: part.position.map(|v| i32::from(v) * 10),
+                    translation: part.position.map(|v| i32::from(v) * 10).into(),
                     ..Matrix::default()
                 },
             );
@@ -182,7 +183,7 @@ impl Construction {
             for y in center[1] - 1..=center[1] + 1 {
                 for z in center[2] - 2..=center[2] + 2 {
                     if visible(
-                        [x, y, z].map(|v| v * 16000 + 8000),
+                        [x, y, z].map(|v| v * 16000 + 8000).into(),
                         0x2bc1,
                         camera.position,
                         camera.view.rotation,
@@ -191,7 +192,7 @@ impl Construction {
                     {
                         continue;
                     }
-                    for &id in self.cells[index([x, y, z])].iter().rev() {
+                    for &id in self.cells[index(Position::new(x, y, z))].iter().rev() {
                         let object = &self.objects[id];
                         let mut position = scene.models[object.model].local.translation;
                         position[1] = position[1].wrapping_add(i32::from(object.shift_y));

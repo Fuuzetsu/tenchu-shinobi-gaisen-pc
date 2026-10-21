@@ -1,8 +1,9 @@
 use super::*;
+use crate::math::Position;
 use crate::{collision, scene::CONFLICT};
 
 impl Actor {
-    pub fn body_contact(&mut self, ctx: &mut Context, center: [i32; 3]) -> Result<()> {
+    pub fn body_contact(&mut self, ctx: &mut Context, center: Position) -> Result<()> {
         let model = self.parts[0];
         if ctx.scene.models[model].attribute & CONFLICT == 0 {
             return Ok(());
@@ -33,14 +34,14 @@ impl Actor {
                 };
                 self.position[axis] = self.position[axis].wrapping_sub(sign * width / 8);
             }
-            let top = other.position[1].wrapping_sub(i32::from(other.size[1]));
+            let top = other.position.y.wrapping_sub(i32::from(other.size[1]));
             if center[1] < top {
-                self.position[0] = previous[0];
-                self.position[2] = previous[2];
+                self.position.x = previous[0];
+                self.position.z = previous[2];
                 if other.class & collision::STAND != 0 {
                     self.velocity[1] = 0;
                     self.map.level = top;
-                    self.position[1] = top;
+                    self.position.y = top;
                     self.map.height = 0;
                     self.map.attribute &= !0x7f;
                     self.attribute &= !(ATTR_PUSH | ATTR_FALL);
@@ -49,14 +50,14 @@ impl Actor {
                 }
                 continue;
             }
-            if other.position[1].wrapping_add(i32::from(other.size[1])) < center[1]
+            if other.position.y.wrapping_add(i32::from(other.size[1])) < center[1]
                 && matches!(self.status, 0 | 2 | 5 | 6)
             {
                 // The original passes world Y as yaw here.
                 let direction = ctx.math.direction(
-                    other.position[0].wrapping_sub(self.position[0]),
-                    other.position[2].wrapping_sub(self.position[2]),
-                    self.position[1] as i16,
+                    other.position.x.wrapping_sub(self.position.x),
+                    other.position.z.wrapping_sub(self.position.z),
+                    self.position.y as i16,
                 )?;
                 self.enter(
                     ctx,
@@ -86,7 +87,7 @@ impl Actor {
     pub fn terrain_contact(
         &mut self,
         ctx: &mut Context,
-        center: [i32; 3],
+        center: Position,
         player: bool,
     ) -> Result<()> {
         let width = ctx.mission.characters[self.definition].width;
@@ -106,7 +107,7 @@ impl Actor {
                 && (i32::from(self.velocity[0]).abs() > 80
                     || i32::from(self.velocity[2]).abs() > 80))
         {
-            [center[0], self.position[1], center[2]]
+            crate::math::Position::new(center[0], self.position.y, center[2])
         } else {
             self.position
         };
@@ -140,7 +141,7 @@ impl Actor {
                 self.attribute |= ATTR_NOFLOOR;
             }
             if self.map.level != terrain::NONE {
-                self.position[1] = self.map.level;
+                self.position.y = self.map.level;
             }
             self.velocity[1] = 0;
         }
@@ -151,9 +152,9 @@ impl Actor {
             self.attribute |= ATTR_WALLANGLE;
             if self.map.height < -450 {
                 self.attribute |= ATTR_LEDGE;
-                self.position[1] = self.map.level;
+                self.position.y = self.map.level;
             } else if self.map.height < 0 {
-                self.position[1] = self.map.level;
+                self.position.y = self.map.level;
             }
         }
         if self.map.vector == 0 {
@@ -162,23 +163,23 @@ impl Actor {
         self.attribute |= ATTR_WALL;
         if self.map.level == terrain::NONE {
             self.position = self.previous;
-            let position = [center[0], self.position[1].wrapping_sub(500), center[2]];
+            let position = [center[0], self.position.y.wrapping_sub(500), center[2]];
             let probe = terrain::vector(
                 &ctx.mission.terrain,
                 ctx.cursor,
-                position,
+                position.into(),
                 300,
                 terrain::ALLOW_DEEP,
             )?;
             let [dx, dz] = ctx.body.reflect_move[probe.vector as usize].map(i32::from);
-            self.position[0] = self.position[0].wrapping_add(
-                dx.wrapping_mul(position[0].wrapping_sub(self.position[0]).wrapping_abs()),
+            self.position.x = self.position.x.wrapping_add(
+                dx.wrapping_mul(position[0].wrapping_sub(self.position.x).wrapping_abs()),
             );
-            self.position[2] = self.position[2].wrapping_add(
-                dz.wrapping_mul(position[2].wrapping_sub(self.position[2]).wrapping_abs()),
+            self.position.z = self.position.z.wrapping_add(
+                dz.wrapping_mul(position[2].wrapping_sub(self.position.z).wrapping_abs()),
             );
-            if probe.level != terrain::NONE && self.position[1] < probe.level {
-                self.position[1] = self.position[1].wrapping_add(if self.velocity[1] > 0 {
+            if probe.level != terrain::NONE && self.position.y < probe.level {
+                self.position.y = self.position.y.wrapping_add(if self.velocity[1] > 0 {
                     i32::from(self.velocity[1])
                 } else {
                     20
@@ -197,8 +198,8 @@ impl Actor {
             } else {
                 ctx.body.reflect_move[direction].map(|v| i32::from(v) * i32::from(width >> 2))
             };
-            self.position[0] = self.position[0].wrapping_add(dx);
-            self.position[2] = self.position[2].wrapping_add(dz);
+            self.position.x = self.position.x.wrapping_add(dx);
+            self.position.z = self.position.z.wrapping_add(dz);
             return Ok(());
         }
         let [sin, cos] = ctx.math.pair(yaw);
@@ -217,8 +218,8 @@ impl Actor {
             dx >>= 1;
             dz >>= 1;
         }
-        self.position[0] = self.position[0].wrapping_sub(dx);
-        self.position[2] = self.position[2].wrapping_sub(dz);
+        self.position.x = self.position.x.wrapping_sub(dx);
+        self.position.z = self.position.z.wrapping_sub(dz);
         Ok(())
     }
 }

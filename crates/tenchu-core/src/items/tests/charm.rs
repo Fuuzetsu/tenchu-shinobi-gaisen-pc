@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 use crate::{effects::Effect, ids::MOT_DAMAGE};
 
 #[test]
@@ -52,7 +53,7 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
                 for active in [0, 12, 18] {
                     items.dispose(1, actors, ctx).unwrap();
                     items
-                        .initialize(1, Processor::Charm, 12, Some(player), [0; 3], ctx)
+                        .initialize(1, Processor::Charm, 12, Some(player), Position::ZERO, ctx)
                         .unwrap();
                     items.slots[1].mode = mode;
                     items.slots[1].charm_remaining = count;
@@ -115,7 +116,14 @@ fn interrupted_charm_refunds_and_clears_active_item() {
             items.dispose(id, actors, ctx).unwrap();
         }
         items
-            .initialize(1, Processor::Charm, 12, Some(player), [1000, -1200, 0], ctx)
+            .initialize(
+                1,
+                Processor::Charm,
+                12,
+                Some(player),
+                Position::new(1000, -1200, 0),
+                ctx,
+            )
             .unwrap();
         items.slots[1].mode = 1;
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);

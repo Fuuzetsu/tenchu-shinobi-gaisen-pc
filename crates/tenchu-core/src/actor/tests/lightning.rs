@@ -1,5 +1,6 @@
 use super::*;
 use crate::items::Processor;
+use crate::math::Position;
 
 #[test]
 #[ignore = "requires TENCHU_DISC; all four Mei-Oh attacks launch on frame thirteen and damage both characters through ordinary collision ticks"]
@@ -17,7 +18,7 @@ fn mei_oh_lightning_attacks_launch_restrike_damage_and_expire() {
             with_actor(&mut game, shooter, |actor, ctx, _| {
                 actor.attribute = ATTR_WEAPON_DRAWN;
                 actor.think = [0; 4];
-                actor.position = [0, 0, 2300];
+                actor.position = Position::new(0, 0, 2300);
                 assert!(actor.enter(ctx, action, true));
                 assert_eq!(actor.motion_id(ctx, MOT_ATTACK), 0xe9);
                 ctx.scene.update(actor.root_model, actor.root(ctx.math));

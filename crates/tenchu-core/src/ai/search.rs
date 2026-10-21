@@ -69,8 +69,8 @@ impl Controller<'_, '_> {
             Ok(pad)
         } else {
             self.actor.brain.timer = self.actor.brain.timer.wrapping_add(1);
-            let x = self.actor.brain.chase[0].wrapping_sub(self.actor.position[0]);
-            let z = self.actor.brain.chase[1].wrapping_sub(self.actor.position[2]);
+            let x = self.actor.brain.chase[0].wrapping_sub(self.actor.position.x);
+            let z = self.actor.brain.chase[1].wrapping_sub(self.actor.position.z);
             let pad = self.goto(x, z)?;
             if self.length(&[x, z]) < 1000 || self.actor.brain.timer == 0 {
                 self.actor.brain.chase = [0; 2];

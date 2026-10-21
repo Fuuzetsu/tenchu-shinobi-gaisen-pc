@@ -1,4 +1,5 @@
 use super::{Actor, Context};
+use crate::math::Position;
 use crate::{Result, ids::ATTR_WEAPON_DRAWN, math::Matrix, scene::ModelId};
 use tenchu_assets::weapon::kind::*;
 
@@ -85,11 +86,11 @@ impl Actor {
                     for weapon in self.weapons[..2].iter().flatten() {
                         ctx.scene.set_translation(
                             weapon.model,
-                            [
+                            Position::new(
                                 i32::from(ctx.mission.characters[self.definition].width / 3),
                                 0,
                                 0,
-                            ],
+                            ),
                         );
                     }
                 }

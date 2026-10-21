@@ -1,3 +1,4 @@
+use crate::math::Position;
 use crate::{
     game::{
         Game,
@@ -59,7 +60,7 @@ fn mission_one_boss_activation_restores_the_mission_clock() {
         assert!(!game.cinematic.active);
         let clock = game.clock;
         let player = game.roster.get_mut(game.player_id);
-        player.position = [1000, 0, 5000];
+        player.position = Position::new(1000, 0, 5000);
         game.scene
             .update(player.root_model, player.root(&game.math));
         game.step(0).unwrap();
@@ -154,7 +155,7 @@ fn mission_one_routes_finish_after_boss_deaths() {
         for player_dies in [false, true] {
             let mut game = oracle::game(0, character);
             game.events = Events::new(&game.mission.scripts.events, &game.roster, game.player_id);
-            game.roster.get_mut(game.player_id).position = [1000, 0, 5000];
+            game.roster.get_mut(game.player_id).position = Position::new(1000, 0, 5000);
             game.step(0).unwrap();
             finish(&mut game);
             game.step(0).unwrap();
@@ -173,7 +174,7 @@ fn mission_one_routes_finish_after_boss_deaths() {
             game.step(0).unwrap();
             assert_eq!(game.cinematic.sequence, 220);
             finish(&mut game);
-            game.roster.get_mut(game.player_id).position = [-33000, -1000, 5000];
+            game.roster.get_mut(game.player_id).position = Position::new(-33000, -1000, 5000);
             game.step(0).unwrap();
             assert_eq!(game.cinematic.sequence, 150);
             finish(&mut game);

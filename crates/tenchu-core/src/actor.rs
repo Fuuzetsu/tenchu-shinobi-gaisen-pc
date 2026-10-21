@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod body;
 mod combat;
 mod damage;
@@ -65,8 +66,8 @@ pub struct Actor {
     pub mesh_kind: i16,
     pub rendered_mesh_kind: i16,
     pub definition: usize,
-    pub position: [i32; 3],
-    pub previous: [i32; 3],
+    pub position: Position,
+    pub previous: Position,
     pub velocity: [i16; 3],
     pub rotation: [i16; 3],
     pub health: i16,
@@ -95,7 +96,7 @@ impl Actor {
     pub fn new(
         id: usize,
         kind: i16,
-        position: [i32; 3],
+        position: Position,
         yaw: i16,
         ctx: &mut Context,
     ) -> Result<Self> {
@@ -120,7 +121,7 @@ impl Actor {
         let map = terrain::vector(
             &ctx.mission.terrain,
             ctx.cursor,
-            [0; 3],
+            Position::ZERO,
             i32::from(data.width),
             terrain::STEP_DOWN,
         )?;
@@ -149,7 +150,7 @@ impl Actor {
             rendered_mesh_kind: kind,
             definition,
             position,
-            previous: [0; 3],
+            previous: Position::ZERO,
             velocity: [0; 3],
             rotation: [0, yaw, 0],
             health: data.health,
@@ -177,7 +178,7 @@ impl Actor {
         if kind == 0x87 {
             actor.inventory[3] = 1;
         }
-        actor.position[1] = terrain::level(
+        actor.position.y = terrain::level(
             &ctx.mission.terrain,
             ctx.cursor,
             position,
@@ -226,7 +227,7 @@ impl Actor {
         }
     }
 
-    pub fn collision_center(&self, ctx: &Context) -> [i32; 3] {
+    pub fn collision_center(&self, ctx: &Context) -> Position {
         ctx.collision.slots[ctx.scene.models[self.parts[0]].conflict.unwrap()].position
     }
 
@@ -345,15 +346,15 @@ impl Actor {
             .wrapping_add(self.motion.pose.rotation[1][1])
             .wrapping_add(self.rotation[1]);
         let degree = ctx.math.direction(
-            target[0].wrapping_sub(self.position[0]),
-            target[2].wrapping_sub(self.position[2]),
+            target[0].wrapping_sub(self.position.x),
+            target[2].wrapping_sub(self.position.z),
             yaw,
         )?;
         if i32::from(degree).abs() >= 1800 {
             return Ok(());
         }
         self.motion.pose.rotation[2][1] = degree.clamp(-900, 900);
-        let pitch = target[1].wrapping_sub(self.position[1]) / 2;
+        let pitch = target[1].wrapping_sub(self.position.y) / 2;
         if pitch != 0 {
             self.motion.pose.rotation[2][0] = pitch.clamp(-500, 100) as i16;
         }

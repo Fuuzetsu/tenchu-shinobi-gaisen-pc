@@ -1,5 +1,7 @@
+mod vector;
 use crate::Result;
 use tenchu_assets::executable::MathTables;
+pub use vector::{Position, Vector3};
 
 pub struct Math {
     pub tables: MathTables,
@@ -32,7 +34,7 @@ impl Math {
         ((entry as u32).wrapping_shl(exponent) >> 12) as i32
     }
 
-    pub fn length(&self, vector: [i32; 3]) -> i32 {
+    pub fn length(&self, vector: Position) -> i32 {
         self.square_root(
             vector
                 .into_iter()
@@ -40,7 +42,7 @@ impl Math {
         )
     }
 
-    pub fn vector_distance(&self, delta: [i32; 3]) -> i32 {
+    pub fn vector_distance(&self, delta: Position) -> i32 {
         if delta.iter().any(|x| x.wrapping_abs() > 4096) {
             self.length(delta.map(|x| x / 256)).wrapping_mul(256)
         } else {
@@ -120,10 +122,10 @@ impl Math {
         ]
     }
 
-    pub fn vector_rotation(&self, from: [i32; 3], to: [i32; 3]) -> Result<[i16; 3]> {
-        let [x, y, z] = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
+    pub fn vector_rotation(&self, from: Position, to: Position) -> Result<[i16; 3]> {
+        let Position { x, y, z } = to.wrapping_sub(from);
         let yaw = self.atan2(x.wrapping_neg(), z.wrapping_neg())?;
-        Ok([self.atan2(y, self.length([x, 0, z]))?, yaw, 0])
+        Ok([self.atan2(y, self.length(Position::new(x, 0, z)))?, yaw, 0])
     }
 
     pub fn rotate_xyz(&self, angles: [i16; 3]) -> [[i16; 3]; 3] {
@@ -174,14 +176,14 @@ impl Math {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Matrix {
     pub rotation: [[i16; 3]; 3],
-    pub translation: [i32; 3],
+    pub translation: Position,
 }
 
 impl Default for Matrix {
     fn default() -> Self {
         Self {
             rotation: [[4096, 0, 0], [0, 4096, 0], [0, 0, 4096]],
-            translation: [0; 3],
+            translation: Position::ZERO,
         }
     }
 }
@@ -193,13 +195,13 @@ fn dot(row: [i16; 3], vector: [i16; 3]) -> i64 {
 }
 
 impl Matrix {
-    pub fn apply_large(&self, vector: [i32; 3]) -> [i32; 3] {
+    pub fn apply_large(&self, vector: Position) -> Position {
         let hi = vector.map(|x| (x / 32768) as i16);
         let lo = vector.map(|x| (x % 32768) as i16);
-        std::array::from_fn(|i| {
-            (dot(self.rotation[i], hi) as i32)
+        Position::from_fn(|i| {
+            (dot(self.rotation[i], hi.to_array()) as i32)
                 .wrapping_shl(3)
-                .wrapping_add((dot(self.rotation[i], lo) >> 12) as i32)
+                .wrapping_add((dot(self.rotation[i], lo.to_array()) >> 12) as i32)
         })
     }
 
@@ -213,12 +215,12 @@ impl Matrix {
         let v = self.apply_large(child.translation);
         Self {
             rotation,
-            translation: std::array::from_fn(|i| v[i].wrapping_add(self.translation[i])),
+            translation: v.wrapping_add(self.translation),
         }
     }
 
-    pub fn transform(&self, vector: [i16; 3]) -> [i32; 3] {
-        std::array::from_fn(|i| {
+    pub fn transform(&self, vector: [i16; 3]) -> Position {
+        Position::from_fn(|i| {
             let sum = (i64::from(self.translation[i]) << 12) + dot(self.rotation[i], vector);
             let mac = (sum << 20) >> 20;
             (mac >> 12) as i32
@@ -339,18 +341,21 @@ mod tests {
     fn matrix_paths_preserve_distinct_mac_and_ir_rounding() {
         let m = Matrix {
             rotation: [[30000; 3]; 3],
-            translation: [i32::MAX; 3],
+            translation: [i32::MAX; 3].into(),
         };
         assert_eq!(m.transform([30000; 3]), [i32::MIN + 659178; 3]);
         let child = Matrix {
             rotation: [[30000; 3]; 3],
-            translation: [0; 3],
+            translation: Position::ZERO,
         };
         assert_eq!(m.compose(&child).rotation, [[i16::MAX; 3]; 3]);
         let m = Matrix {
             rotation: [[4095, 1, 0], [0, 4096, 0], [0, 0, 4096]],
-            translation: [0; 3],
+            translation: Position::ZERO,
         };
-        assert_eq!(m.apply_large([-32769, 32768, -1]), [-32753, 32768, -1]);
+        assert_eq!(
+            m.apply_large(Position::new(-32769, 32768, -1)),
+            [-32753, 32768, -1]
+        );
     }
 }

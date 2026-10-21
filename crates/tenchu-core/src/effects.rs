@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod blood;
 mod fade;
 pub use fade::Fade;
@@ -26,7 +27,7 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct Smoke {
-    pub position: [i32; 3],
+    pub position: Position,
     pub velocity: [i16; 3],
     pub scale: i32,
     pub time: u8,
@@ -37,7 +38,7 @@ pub struct Smoke {
 
 #[derive(Clone, Debug)]
 pub struct Splash {
-    pub position: [i32; 3],
+    pub position: Position,
     pub size: [i16; 2],
     pub speed: u8,
     pub count: u8,
@@ -46,7 +47,7 @@ pub struct Splash {
 
 #[derive(Clone, Debug)]
 pub struct Bleed {
-    pub position: [i32; 3],
+    pub position: Position,
     pub velocity: [i16; 3],
     pub color: [u8; 3],
     pub time: u8,
@@ -56,7 +57,7 @@ pub struct Bleed {
 #[derive(Clone, Debug)]
 pub struct Flash {
     pub parent: Option<ModelId>,
-    pub position: [i32; 3],
+    pub position: Position,
     pub size: i16,
     pub count: i16,
     pub mode: u8,
@@ -82,20 +83,20 @@ pub struct Environment<'a> {
     pub terrain: &'a tenchu_assets::terrain::AreaMap,
     pub cursor: &'a mut Cursor,
     pub clock: i32,
-    pub owner_position: [i32; 3],
-    pub reference: [i32; 3],
+    pub owner_position: Position,
+    pub reference: Position,
 }
 
 #[derive(Clone, Copy)]
 pub struct View {
-    pub position: [i32; 3],
+    pub position: Position,
     pub matrix: Matrix,
 }
 
 impl View {
-    fn project(&self, point: [i32; 3]) -> ([i16; 2], i16) {
+    fn project(&self, point: Position) -> ([i16; 2], i16) {
         let matrix = Matrix {
-            translation: [0; 3],
+            translation: Position::ZERO,
             ..self.matrix
         };
         let point = std::array::from_fn(|i| {
@@ -107,7 +108,7 @@ impl View {
 
     pub(crate) fn sprite(
         &self,
-        position: [i32; 3],
+        position: Position,
         graphic: Graphic,
         scale: i32,
         color: u8,
@@ -171,7 +172,7 @@ impl Drawing {
 
 #[derive(Clone, Debug)]
 pub struct Shadow {
-    pub position: [i32; 3],
+    pub position: Position,
     pub rotation: [i16; 3],
     pub scale: i32,
 }
@@ -191,7 +192,7 @@ pub struct Effects {
     pub wires: Vec<Wire>,
     pub lines: Vec<Line>,
     pub blood_pools: Vec<Shadow>,
-    pub sounds: Vec<([i32; 3], i16)>,
+    pub sounds: Vec<(Position, i16)>,
     pub fades: Vec<(i32, [u8; 3])>,
     pub texture_moves: Vec<TextureMove>,
     cursor: usize,
@@ -228,7 +229,7 @@ impl Effects {
     fn sprite(
         &mut self,
         graphic: Graphic,
-        position: [i32; 3],
+        position: Position,
         scale: i32,
         color: u8,
         rotation: i32,
@@ -270,7 +271,7 @@ impl Effects {
 
     pub fn smoke_burst(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         spread: u16,
         divisor: i16,
         count: i16,
@@ -283,7 +284,7 @@ impl Effects {
             let z = (if width > 0 { rng.next15() % width } else { 0 } - i32::from(spread)) as i16;
             let velocity = [x, -5, z];
             self.slots[slot] = Some(Effect::Smoke(Smoke {
-                position: std::array::from_fn(|i| position[i].wrapping_add(i32::from(velocity[i]))),
+                position: Position::from_fn(|i| position[i].wrapping_add(i32::from(velocity[i]))),
                 velocity: velocity.map(|v| (i32::from(v) / i32::from(divisor)) as i16),
                 scale: rng.next15() % 0x2000 + 0x1000,
                 time: 15,
@@ -294,7 +295,7 @@ impl Effects {
         }
     }
 
-    pub fn splash(&mut self, position: [i32; 3], size: [i16; 2], speed: u8) {
+    pub fn splash(&mut self, position: Position, size: [i16; 2], speed: u8) {
         let slot = self.allocate();
         self.slots[slot] = Some(Effect::Splash(Splash {
             position,
@@ -305,7 +306,7 @@ impl Effects {
         }));
     }
 
-    pub fn flash(&mut self, parent: Option<ModelId>, position: [i32; 3], size: i16, time: i16) {
+    pub fn flash(&mut self, parent: Option<ModelId>, position: Position, size: i16, time: i16) {
         let slot = self.allocate();
         self.slots[slot] = Some(Effect::Flash(Flash {
             parent,
@@ -318,7 +319,7 @@ impl Effects {
 
     pub fn scatter_bleeds(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         spread: i16,
         speed: i16,
         count: i16,
@@ -349,7 +350,7 @@ impl Effects {
 
     pub fn bleeds(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         velocity: [i16; 3],
         spread: i16,
         count: i16,
@@ -376,7 +377,7 @@ impl Effects {
         }
     }
 
-    pub fn bleed(&mut self, position: [i32; 3], velocity: [i16; 3], time: u8, color: [u8; 3]) {
+    pub fn bleed(&mut self, position: Position, velocity: [i16; 3], time: u8, color: [u8; 3]) {
         let slot = self.allocate();
         self.slots[slot] = Some(Effect::Bleed(Bleed {
             position,
@@ -535,7 +536,8 @@ impl Effects {
                 }
                 let (xy, z) = if let Some(parent) = flash.parent {
                     let matrix = view.matrix.compose(&scene.world(parent)?);
-                    let (xy, z) = visibility::project(&matrix, flash.position.map(|v| v as i16));
+                    let (xy, z) =
+                        visibility::project(&matrix, flash.position.map(|v| v as i16).to_array());
                     (xy, (z >> 2) as i16)
                 } else {
                     view.project(flash.position)

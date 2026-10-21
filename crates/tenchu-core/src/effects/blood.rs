@@ -1,9 +1,10 @@
 use super::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug)]
 pub struct Blood {
     pub hint: Option<usize>,
-    pub position: [i32; 3],
+    pub position: Position,
     pub velocity: [i16; 3],
     pub scale: i32,
     pub rotation: i32,
@@ -17,7 +18,7 @@ pub struct Blood {
 impl Effects {
     pub fn blood(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         count: i16,
         time: i16,
         rng: &mut Random,
@@ -74,7 +75,7 @@ impl Effects {
         let sprite = (rng.next15() % 2) as u8;
         let rotation = (rng.next15() % 360) * 4096;
         let velocity = Matrix {
-            translation: [0; 3],
+            translation: Position::ZERO,
             ..matrix
         }
         .transform(velocity)
@@ -83,7 +84,7 @@ impl Effects {
         self.slots[slot] = Some(Effect::Blood(Blood {
             hint: None,
             position: world_position,
-            velocity,
+            velocity: velocity.to_array(),
             scale: 8192,
             rotation,
             time,
@@ -95,7 +96,7 @@ impl Effects {
         if clock & 3 == 0 {
             self.impact_ex(Impact {
                 parent: Some(parent),
-                position: position.map(i32::from),
+                position: position.map(i32::from).into(),
                 size: [8192; 2],
                 color: [[128; 3]; 2],
                 rotation: 0,
@@ -123,7 +124,7 @@ impl Effects {
                     blood.brightness = 0;
                     alive = false;
                 }
-                blood.position[1] = blood.position[1].wrapping_add(i32::from(blood.velocity[1]));
+                blood.position.y = blood.position.y.wrapping_add(i32::from(blood.velocity[1]));
                 self.draw_blood(blood, view, true);
                 return Ok(alive);
             }
@@ -153,10 +154,10 @@ impl Effects {
                     &mut blood.hint,
                     0,
                 )?;
-                if blood.position[1] >= floor {
+                if blood.position.y >= floor {
                     blood.velocity = [0; 3];
                     if floor != terrain::NONE {
-                        blood.position[1] = floor;
+                        blood.position.y = floor;
                     } else {
                         blood.velocity[1] = (rng.next15() % 8 + 8) as i16;
                         blood.rotation = 0;

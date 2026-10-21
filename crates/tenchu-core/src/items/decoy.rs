@@ -1,5 +1,6 @@
 use super::*;
 use crate::collision;
+use crate::math::Position;
 
 #[derive(Clone, Debug, Default)]
 pub struct Decoy {
@@ -55,7 +56,7 @@ impl Items {
                             ctx.random.next15() % 100 - 200,
                             ctx.random.next15() % 200 - 100,
                         ];
-                        self.drop(kind, owner, position, velocity, actors, ctx)?;
+                        self.drop(kind, owner, position, velocity.into(), actors, ctx)?;
                         return self.dispose(id, actors, ctx);
                     }
                 }
@@ -89,14 +90,14 @@ impl Items {
                 if item.count == 0 {
                     for actor_id in actors.roster.order.clone() {
                         let actor = actors.get_mut(actor_id);
-                        let distance = ctx.math.vector_distance(std::array::from_fn(|i| {
+                        let distance = ctx.math.vector_distance(Position::from_fn(|i| {
                             position[i].wrapping_sub(actor.position[i])
                         }));
                         if distance < 10000
                             && let Some(target) = actor.target
                         {
                             let target_position = ctx.scene.models[target].local.translation;
-                            let old_distance = ctx.math.vector_distance(std::array::from_fn(|i| {
+                            let old_distance = ctx.math.vector_distance(Position::from_fn(|i| {
                                 target_position[i].wrapping_sub(actor.position[i])
                             }));
                             if distance < old_distance && actor.kind & 0xf0 != 0x80 {

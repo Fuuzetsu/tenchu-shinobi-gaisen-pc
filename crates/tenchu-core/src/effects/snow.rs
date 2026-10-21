@@ -1,8 +1,9 @@
 use super::*;
+use crate::math::Position;
 
 #[derive(Clone, Debug)]
 pub struct Snow {
-    pub position: [i32; 3],
+    pub position: Position,
     pub velocity: [i16; 3],
     pub ground: i32,
     pub sample_y: i32,
@@ -12,7 +13,7 @@ pub struct Snow {
 impl Effects {
     pub fn snow(
         &mut self,
-        position: [i32; 3],
+        position: Position,
         velocity: [i16; 3],
         size: i32,
         map: &tenchu_assets::terrain::AreaMap,
@@ -20,7 +21,12 @@ impl Effects {
     ) -> Result<()> {
         let slot = self.allocate();
         let sample_y = position[1].wrapping_sub(8000);
-        let ground = terrain::level(map, cursor, [position[0], sample_y, position[2]], 8)?;
+        let ground = terrain::level(
+            map,
+            cursor,
+            Position::new(position[0], sample_y, position[2]),
+            8,
+        )?;
         self.slots[slot] = Some(Effect::Snow(Snow {
             position,
             velocity,
@@ -37,8 +43,8 @@ impl Effects {
         view: View,
         env: &mut Environment,
     ) -> Result<bool> {
-        let mut position: [i32; 3] =
-            std::array::from_fn(|i| snow.position[i].wrapping_add(i32::from(snow.velocity[i])));
+        let mut position: Position =
+            Position::from_fn(|i| snow.position[i].wrapping_add(i32::from(snow.velocity[i])));
         if snow.ground < position[1] {
             return Ok(false);
         }
@@ -55,7 +61,7 @@ impl Effects {
             let ground = terrain::level(
                 env.terrain,
                 env.cursor,
-                [position[0], snow.sample_y, position[2]],
+                Position::new(position[0], snow.sample_y, position[2]),
                 8,
             )?;
             if ground < position[1] {

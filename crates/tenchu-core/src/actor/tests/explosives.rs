@@ -13,7 +13,7 @@ fn both_players_use_smoke_grenades_and_mines() {
                 actor.attribute = ATTR_WEAPON_DRAWN;
                 actor.think = [0; 4];
                 actor.inventory.fill(0);
-                actor.position[2] = 2200;
+                actor.position.z = 2200;
                 actor.enter(ctx, MOT_ENGAGE_STANCE, true);
                 ctx.scene.update(actor.root_model, actor.root(ctx.math));
             });

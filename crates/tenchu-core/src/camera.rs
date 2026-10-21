@@ -1,3 +1,4 @@
+use crate::math::Position;
 mod smoothing;
 #[cfg(test)]
 mod tests;
@@ -84,9 +85,9 @@ pub struct Environment<'a> {
 
 #[derive(Clone, Debug)]
 pub struct Camera {
-    pub position: [i32; 3],
-    pub reference: [i32; 3],
-    pub target: [i32; 3],
+    pub position: Position,
+    pub reference: Position,
+    pub target: Position,
     pub mode: Mode,
     pub detail: Detail,
     pub direction: [i16; 2],
@@ -96,10 +97,10 @@ pub struct Camera {
     tables: CameraTables,
 }
 
-fn angles(from: [i32; 3], to: [i32; 3], math: &Math) -> Result<[i16; 2]> {
+fn angles(from: Position, to: Position, math: &Math) -> Result<[i16; 2]> {
     let [x, y, z] = std::array::from_fn(|i| to[i].wrapping_sub(from[i]));
     Ok([
-        math.atan2(y, math.length([x, 0, z]))?,
+        math.atan2(y, math.length(Position::new(x, 0, z)))?,
         math.atan2(x.wrapping_neg(), z.wrapping_neg())?,
     ])
 }
@@ -107,15 +108,16 @@ fn angles(from: [i32; 3], to: [i32; 3], math: &Math) -> Result<[i16; 2]> {
 fn rotate_short(math: &Math, rotation: [i16; 3], point: [i16; 3]) -> [i16; 3] {
     Matrix {
         rotation: math.rotate_yxz(rotation),
-        translation: [0; 3],
+        translation: Position::ZERO,
     }
     .transform(point)
     .map(|v| v.clamp(-32768, 32767) as i16)
+    .to_array()
 }
 
 fn terrain_pitch(owner: &Actor, env: &Environment) -> Result<i16> {
     let node = env.terrain.node(owner.map.area)?;
-    let height = |p: [i32; 3]| -> Result<i32> {
+    let height = |p: Position| -> Result<i32> {
         let [x1, z1, x2, z2] = node.bounds;
         let x = (p[0] / 10) as i16;
         let z = (p[2] / 10) as i16;
@@ -131,11 +133,11 @@ fn terrain_pitch(owner: &Actor, env: &Environment) -> Result<i16> {
     };
     let [sin, cos] = env.math.pair(owner.rotation[1]);
     let shifted = [
-        owner.position[0].wrapping_sub(sin / 16),
-        owner.position[1],
-        owner.position[2].wrapping_sub(cos / 16),
+        owner.position.x.wrapping_sub(sin / 16),
+        owner.position.y,
+        owner.position.z.wrapping_sub(cos / 16),
     ];
-    let delta = height(shifted)?.wrapping_sub(height(owner.position)?);
+    let delta = height(shifted.into())?.wrapping_sub(height(owner.position)?);
     if delta <= -700 {
         return Ok(0);
     }
@@ -148,7 +150,7 @@ impl Camera {
         std::array::from_fn(|i| self.smoothing[i].state())
     }
 
-    pub(crate) fn snap_target(&mut self, fallback: [i32; 3], env: &mut Environment) -> Result<()> {
+    pub(crate) fn snap_target(&mut self, fallback: Position, env: &mut Environment) -> Result<()> {
         let delta = std::array::from_fn(|i| {
             (self.reference[i] as i16).wrapping_sub(self.position[i] as i16)
         });
@@ -158,11 +160,11 @@ impl Camera {
         Ok(())
     }
 
-    pub fn new(tables: CameraTables, start: [i32; 3], math: &Math) -> Result<Self> {
+    pub fn new(tables: CameraTables, start: Position, math: &Math) -> Result<Self> {
         let mut camera = Self {
-            position: [start[0], start[1].wrapping_sub(10000), start[2]],
+            position: Position::new(start[0], start[1].wrapping_sub(10000), start[2]),
             reference: start,
-            target: [0; 3],
+            target: Position::ZERO,
             mode: Mode::Normal,
             detail: Detail::Ordinary,
             direction: [0; 2],
@@ -179,7 +181,7 @@ impl Camera {
         self.set_view(self.position, self.reference, math)
     }
 
-    pub fn set_view(&mut self, position: [i32; 3], reference: [i32; 3], math: &Math) -> Result<()> {
+    pub fn set_view(&mut self, position: Position, reference: Position, math: &Math) -> Result<()> {
         self.position = position;
         self.reference = reference;
         let mut maximum = 0;
@@ -193,12 +195,12 @@ impl Camera {
         let shift = (32 - (maximum as u32).leading_zeros()).saturating_sub(15);
         let delta =
             std::array::from_fn(|i| (reference[i] >> shift).wrapping_sub(position[i] >> shift));
-        let length = math.length(delta);
+        let length = math.length(delta.into());
         self.view = Matrix::default();
         if length == 0 {
             return Ok(());
         }
-        let horizontal = math.length([delta[0], 0, delta[2]]);
+        let horizontal = math.length(Position::new(delta[0], 0, delta[2]));
         let sin = delta[1].wrapping_shl(12) / length;
         let cos = horizontal.wrapping_shl(12) / length;
         let pitch = Matrix {
@@ -302,26 +304,26 @@ impl Camera {
 
     fn anti_wall(
         &self,
-        position: &mut [i32; 3],
-        reference: [i32; 3],
+        position: &mut Position,
+        reference: Position,
         env: &mut Environment,
     ) -> Result<()> {
         let [pitch, yaw] = angles(*position, reference, env.math)?;
         let matrix = Matrix {
             rotation: env.math.rotate_yxz([pitch, yaw, 0]),
-            translation: [0; 3],
+            translation: Position::ZERO,
         };
         let probes = self.tables.wall.map(|point| matrix.transform(point));
         let right = terrain::level(
             env.terrain,
             env.cursor,
-            std::array::from_fn(|i| position[i].wrapping_add(probes[1][i])),
+            Position::from_fn(|i| position[i].wrapping_add(probes[1][i])),
             0,
         )?;
         let left = terrain::level(
             env.terrain,
             env.cursor,
-            std::array::from_fn(|i| position[i].wrapping_add(probes[0][i])),
+            Position::from_fn(|i| position[i].wrapping_add(probes[0][i])),
             0,
         )?;
         let mask = u8::from(left <= position[1]) | (u8::from(right <= position[1]) << 1);
@@ -329,12 +331,12 @@ impl Camera {
             let mut push = match mask {
                 1 => matrix.transform([1000, 0, 0]),
                 2 => matrix.transform([-1000, 0, 0]),
-                _ => [0; 3],
+                _ => Position::ZERO,
             };
             let half = push.map(|v| v / 2);
             let test =
                 std::array::from_fn(|i| position[i].wrapping_add(push[i]).wrapping_add(half[i]));
-            if terrain::level(env.terrain, env.cursor, test, 0)? <= position[1] {
+            if terrain::level(env.terrain, env.cursor, test.into(), 0)? <= position[1] {
                 push = half.map(|v| v / 2);
             }
             for i in 0..3 {
@@ -349,29 +351,29 @@ impl Camera {
         owner: &Actor,
         pose: Pose,
         env: &mut Environment,
-    ) -> Result<(i32, [[i32; 3]; 2])> {
+    ) -> Result<(i32, [Position; 2])> {
         let mut rotation = owner.rotation;
         rotation[0] = rotation[0].wrapping_add(terrain_pitch(owner, env)?);
         let origin = [
-            owner.position[0],
-            owner.position[1].wrapping_sub(1550),
-            owner.position[2],
+            owner.position.x,
+            owner.position.y.wrapping_sub(1550),
+            owner.position.z,
         ];
         let matrix = Matrix {
             rotation: env.math.rotate_yxz(rotation),
-            translation: origin,
+            translation: origin.into(),
         };
         let [a, b, c, d] = pose.map(|v| matrix.transform(v));
         let (time, mut position) = terrain::ground_ray(env.terrain, env.cursor, env.math, c, d, 0)?;
-        let reference = std::array::from_fn(|i| {
+        let reference = Position::from_fn(|i| {
             a[i].wrapping_add(b[i].wrapping_sub(a[i]).wrapping_mul(time) / 4096)
         });
         self.anti_wall(&mut position, reference, env)?;
         let delta = if self.snap_pending {
             self.snap_pending = false;
             [
-                std::array::from_fn(|i| reference[i].wrapping_sub(self.reference[i])),
-                std::array::from_fn(|i| position[i].wrapping_sub(self.position[i])),
+                reference.wrapping_sub(self.reference),
+                position.wrapping_sub(self.position),
             ]
         } else {
             [
@@ -390,11 +392,12 @@ impl Camera {
         let mut mask = 0;
         for (v, sign, bit) in [(left, 1, 1), (right, 1, 2), (left, -1, 8), (right, -1, 4)] {
             let point = [
-                owner.position[0].wrapping_add(i32::from(v[0]) * sign),
-                owner.position[1],
-                owner.position[2].wrapping_add(i32::from(v[2]) * sign),
+                owner.position.x.wrapping_add(i32::from(v[0]) * sign),
+                owner.position.y,
+                owner.position.z.wrapping_add(i32::from(v[2]) * sign),
             ];
-            if terrain::level(env.terrain, env.cursor, point, terrain::STEP_DOWN)? == terrain::NONE
+            if terrain::level(env.terrain, env.cursor, point.into(), terrain::STEP_DOWN)?
+                == terrain::NONE
             {
                 mask |= bit;
             }
@@ -409,7 +412,7 @@ impl Camera {
         Ok(())
     }
 
-    fn follow(&mut self, owner: &Actor, env: &mut Environment) -> Result<[[i32; 3]; 2]> {
+    fn follow(&mut self, owner: &Actor, env: &mut Environment) -> Result<[Position; 2]> {
         match owner.status {
             12 => self.wall_mode(owner, env)?,
             11 => self.mode = Mode::Crouch,
@@ -461,7 +464,7 @@ impl Camera {
         Ok(delta)
     }
 
-    fn look(&mut self, owner: &Actor, input: u16, env: &mut Environment) -> Result<[[i32; 3]; 2]> {
+    fn look(&mut self, owner: &Actor, input: u16, env: &mut Environment) -> Result<[Position; 2]> {
         let mut x = if input & RIGHT != 0 {
             45
         } else if input & LEFT != 0 {
@@ -496,13 +499,13 @@ impl Camera {
         )
         .map(i32::from);
         let mut origin = [
-            owner.position[0],
-            owner.position[1].wrapping_sub(1550),
-            owner.position[2],
+            owner.position.x,
+            owner.position.y.wrapping_sub(1550),
+            owner.position.z,
         ];
-        let outer = terrain::vector(env.terrain, env.cursor, origin, 1000, 0)?;
+        let outer = terrain::vector(env.terrain, env.cursor, origin.into(), 1000, 0)?;
         if outer.level != terrain::NONE && outer.vector != 0 {
-            let inner = terrain::vector(env.terrain, env.cursor, origin, 500, 0)?;
+            let inner = terrain::vector(env.terrain, env.cursor, origin.into(), 500, 0)?;
             let (amount, mask) = if inner.vector == 0 {
                 (500, outer.vector)
             } else {
@@ -519,12 +522,8 @@ impl Camera {
         origin[2] = origin[2].wrapping_sub(cos / 6);
         origin[1] = origin[1].wrapping_add(if r[1] > 0 { -r[1] } else { r[1] / 4 });
         Ok([
-            std::array::from_fn(|i| {
-                origin[i].wrapping_sub(r[i]).wrapping_sub(self.reference[i]) / 4
-            }),
-            std::array::from_fn(|i| {
-                origin[i].wrapping_add(r[i]).wrapping_sub(self.position[i]) / 8
-            }),
+            Position::from_fn(|i| origin[i].wrapping_sub(r[i]).wrapping_sub(self.reference[i]) / 4),
+            Position::from_fn(|i| origin[i].wrapping_add(r[i]).wrapping_sub(self.position[i]) / 8),
         ])
     }
 
@@ -537,11 +536,8 @@ impl Camera {
     ) -> Result<()> {
         let [reference, position] = match self.mode {
             Mode::Direction => self.look(owner, input, env)?,
-            Mode::Lock => [[0; 3]; 2],
-            Mode::Fall => [
-                std::array::from_fn(|i| owner.position[i].wrapping_sub(self.reference[i])),
-                [0; 3],
-            ],
+            Mode::Lock => [Position::ZERO; 2],
+            Mode::Fall => [owner.position.wrapping_sub(self.reference), Position::ZERO],
             _ => {
                 if owner.pad.held & L1 != 0 {
                     return self.direction_mode(owner, env.math, Mode::Direction);

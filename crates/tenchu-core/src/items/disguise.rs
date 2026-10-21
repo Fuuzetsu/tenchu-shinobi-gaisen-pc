@@ -18,7 +18,11 @@ impl Snapshot {
         }
         let mut positions = [[0; 3]; 15];
         for (p, &model) in positions.iter_mut().zip(&actor.parts) {
-            *p = scene.models[model].local.translation.map(|v| v as i16);
+            *p = scene.models[model]
+                .local
+                .translation
+                .map(|v| v as i16)
+                .to_array();
         }
         Ok(Self {
             kind: actor.mesh_kind,
@@ -35,8 +39,8 @@ impl Snapshot {
         actor.motion.pose.root_height = self.height;
         for (i, &model) in actor.parts.iter().enumerate() {
             let position = self.positions[i].map(i32::from);
-            actor.motion.pose.translation[i] = position;
-            scene.set_translation(model, position);
+            actor.motion.pose.translation[i] = position.into();
+            scene.set_translation(model, position.into());
         }
         Ok(())
     }

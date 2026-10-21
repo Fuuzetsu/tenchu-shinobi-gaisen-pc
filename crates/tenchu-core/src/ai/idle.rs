@@ -1,4 +1,5 @@
 use super::*;
+use crate::math::Position;
 
 impl Controller<'_, '_> {
     pub(super) fn watch(&mut self) -> u16 {
@@ -59,8 +60,8 @@ impl Controller<'_, '_> {
             self.random_destination();
         } else {
             let [x, z] = self.actor.brain.chase;
-            let x = x.wrapping_sub(self.actor.position[0]);
-            let z = z.wrapping_sub(self.actor.position[2]);
+            let x = x.wrapping_sub(self.actor.position.x);
+            let z = z.wrapping_sub(self.actor.position.z);
             if (x.wrapping_abs() < 1000 && z.wrapping_abs() < 1000)
                 || self.attribute & ATTR_WALL != 0
             {
@@ -77,15 +78,15 @@ impl Controller<'_, '_> {
             .ctx
             .math
             .velocity(self.actor.rotation[1], self.width().wrapping_mul(5), 0);
-        let [x, y, z] = self.actor.position;
+        let Position { x, y, z } = self.actor.position;
         let y = y.wrapping_sub(3050);
-        let current = self.level([x, y, z], 25)?;
+        let current = self.level(Position::new(x, y, z), 25)?;
         let forward = self.level(
-            [
+            Position::new(
                 x.wrapping_add(i32::from(v[0])),
                 y,
                 z.wrapping_add(i32::from(v[2])),
-            ],
+            ),
             26,
         )?;
         Ok((current == self.actor.map.level && forward.wrapping_abs() < 500) || forward > 6100)
@@ -136,8 +137,8 @@ impl Controller<'_, '_> {
         } else {
             let [x, z] = self.actor.brain.chase;
             let mut pad = self.goto(
-                x.wrapping_sub(self.actor.position[0]),
-                z.wrapping_sub(self.actor.position[2]),
+                x.wrapping_sub(self.actor.position.x),
+                z.wrapping_sub(self.actor.position.z),
             )?;
             if pad == 0 {
                 pad |= SQUARE;
@@ -153,16 +154,14 @@ impl Controller<'_, '_> {
         }
         self.state.detection = Detection::Unseen;
         if self.clock & 31 == 0 {
-            let delta: [i32; 3] = std::array::from_fn(|i| {
-                self.player.position[i].wrapping_sub(self.actor.position[i])
-            });
-            let distance = self.length(&[delta[0], delta[2]]);
+            let delta: Position = self.player.position.wrapping_sub(self.actor.position);
+            let distance = self.length(&[delta.x, delta.z]);
             let degree = self
                 .ctx
                 .math
-                .direction(delta[0], delta[2], self.actor.rotation[1])?;
+                .direction(delta.x, delta.z, self.actor.rotation[1])?;
             if distance <= 4000
-                && delta[1].wrapping_abs() <= 3000
+                && delta.y.wrapping_abs() <= 3000
                 && i32::from(degree).abs() < 900
                 && self.player.active_item != 11
             {
@@ -175,18 +174,13 @@ impl Controller<'_, '_> {
             }
         }
         let target = self.target().unwrap();
-        let x = target[0].wrapping_sub(self.actor.position[0]);
-        let z = target[2].wrapping_sub(self.actor.position[2]);
+        let x = target.x.wrapping_sub(self.actor.position.x);
+        let z = target.z.wrapping_sub(self.actor.position.z);
         let distance = self.length(&[x, z]);
         if distance < 200 {
             return Ok(0);
         }
-        if distance < 4000
-            && target[1]
-                .wrapping_sub(self.actor.position[1])
-                .wrapping_abs()
-                > 2000
-        {
+        if distance < 4000 && target.y.wrapping_sub(self.actor.position.y).wrapping_abs() > 2000 {
             return Ok(self.watch());
         }
         self.goto(x, z)

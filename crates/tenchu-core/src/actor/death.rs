@@ -41,9 +41,9 @@ impl Actor {
         }
         if self.motion.action > MOT_DEAD_DROWN
             && self.id != world.player
-            && self.position[1] != world.roster.get(world.player).position[1]
+            && self.position.y != world.roster.get(world.player).position.y
         {
-            self.position[1] = self.position[1].wrapping_sub(1);
+            self.position.y = self.position.y.wrapping_sub(1);
             world.intelligence.action_halt = 0;
             if self.motion.count < 10 {
                 world.intelligence.voices.push((self.id, 8));
@@ -64,15 +64,17 @@ impl Actor {
                     }
                     for _ in 0..5 {
                         let position = [
-                            self.position[0]
+                            self.position
+                                .x
                                 .wrapping_add((ctx.random.next15() % width) * 2 - width),
                             self.map.level,
-                            self.position[2]
+                            self.position
+                                .z
                                 .wrapping_add((ctx.random.next15() % width) * 2 - width),
                         ];
                         let size =
                             std::array::from_fn(|_| ((ctx.random.next15() & 7) << 12) as i16);
-                        ctx.effects.splash(position, size, 6);
+                        ctx.effects.splash(position.into(), size, 6);
                     }
                 }
             }
@@ -151,7 +153,7 @@ impl Actor {
         }
         self.brain.chase[0] = self.brain.chase[0].wrapping_add(0x88).min(4096);
         let mut position = ctx.scene.world(self.parts[0])?.translation;
-        position[1] = ctx.scene.models[self.root_model].local.translation[1];
+        position[1] = ctx.scene.models[self.root_model].local.translation.y;
         let height = i32::from(ctx.mission.models[&self.kind][0].position[1]);
         let scale =
             (self.brain.chase[0].wrapping_mul(-height) / 1024).wrapping_sub(self.map.height >> 1);
@@ -209,9 +211,9 @@ impl Actor {
             return Ok(());
         }
         let mut delta = [
-            self.position[0].wrapping_sub(witness.position[0]),
+            self.position.x.wrapping_sub(witness.position.x),
             0,
-            self.position[2].wrapping_sub(witness.position[2]),
+            self.position.z.wrapping_sub(witness.position.z),
         ];
         if i32::from(
             ctx.math
@@ -219,12 +221,14 @@ impl Actor {
         )
         .abs()
             > 900
-            || ctx.math.length(delta) > 20000
+            || ctx.math.length(delta.into()) > 20000
         {
             return Ok(());
         }
-        delta[1] = self.position[1]
-            .wrapping_sub(witness.position[1])
+        delta[1] = self
+            .position
+            .y
+            .wrapping_sub(witness.position.y)
             .wrapping_sub(i32::from(ctx.mission.characters[witness.definition].height));
         let mut count: i16 = 1;
         while delta.iter().any(|v| v.wrapping_abs() > 500) {
@@ -245,7 +249,7 @@ impl Actor {
             witness.enter(ctx, MOT_STATE_DRAW, true);
             self.attribute |= ATTR_SEARCH;
             witness.attribute |= ATTR_SEARCH | 1;
-            witness.brain.chase = [self.position[0], self.position[2]];
+            witness.brain.chase = [self.position.x, self.position.z];
             witness.brain.count = 0;
             witness.brain.timer = 0;
         }

@@ -67,8 +67,8 @@ impl Actor {
 
     pub(super) fn snap_attack(&mut self, ctx: &Context) {
         if let Some(slot) = ctx.scene.models[self.parts[0]].conflict {
-            self.position[0] = ctx.collision.slots[slot].position[0];
-            self.position[2] = ctx.collision.slots[slot].position[2];
+            self.position.x = ctx.collision.slots[slot].position.x;
+            self.position.z = ctx.collision.slots[slot].position.z;
         }
     }
 
@@ -97,16 +97,16 @@ impl Actor {
             {
                 self.target = Some(victim.root_model);
                 let attacker_angle = ctx.math.direction(
-                    victim.position[0].wrapping_sub(self.position[0]),
-                    victim.position[2].wrapping_sub(self.position[2]),
+                    victim.position.x.wrapping_sub(self.position.x),
+                    victim.position.z.wrapping_sub(self.position.z),
                     self.rotation[1],
                 )?;
                 let victim_angle = ctx.math.direction(
-                    self.position[0].wrapping_sub(victim.position[0]),
-                    self.position[2].wrapping_sub(victim.position[2]),
+                    self.position.x.wrapping_sub(victim.position.x),
+                    self.position.z.wrapping_sub(victim.position.z),
                     victim.rotation[1],
                 )?;
-                if self.position[1] == victim.position[1]
+                if self.position.y == victim.position.y
                     && self.map.vector == 0
                     && self.map.angle_low == 0
                     && self.map.angle_high == 0
@@ -123,8 +123,8 @@ impl Actor {
                         2
                     } + if self.kind == 1 { 3 } else { 0 };
                     victim.rotation[1] = self.rotation[1];
-                    victim.position[0] = self.position[0];
-                    victim.position[2] = self.position[2];
+                    victim.position.x = self.position.x;
+                    victim.position.z = self.position.z;
                     ctx.scene
                         .set_translation(victim.root_model, victim.position);
                     victim.health = 0;
@@ -259,8 +259,8 @@ impl Actor {
                 ctx.scene.models[target].local.translation
             };
             let direction = ctx.math.direction(
-                position[0].wrapping_sub(self.position[0]),
-                position[2].wrapping_sub(self.position[2]),
+                position[0].wrapping_sub(self.position.x),
+                position[2].wrapping_sub(self.position.z),
                 self.rotation[1],
             )?;
             let turn = ctx.mission.characters[self.definition].turn;
@@ -382,7 +382,7 @@ impl Actor {
                 }
                 let target = self.target.ok_or("Stealth attack lost its paired actor")?;
                 if self.motion.loops == 0
-                    && self.position[1] == ctx.scene.models[target].local.translation[1]
+                    && self.position.y == ctx.scene.models[target].local.translation.y
                 {
                     return Ok(None);
                 }
