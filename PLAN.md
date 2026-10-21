@@ -168,9 +168,9 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-Current work: live player appearance swapping, followed by an idiomatic Rust
-refactor. Preserve gameplay behavior while improving the implementation rather
-than retaining C-shaped data structures for their own sake.
+Live player appearance swapping and the idiomatic Rust refactor are complete.
+Gameplay behavior is preserved while the implementation uses named types and
+explicit operations instead of retaining C-shaped data structures.
 
 - [x] Select compatible original bodies in F1 without changing player identity,
   animation, inventory, collision or disguise effects; keep weapons attached.
@@ -180,7 +180,7 @@ than retaining C-shaped data structures for their own sake.
   compare complete gameplay state across appearance changes.
 - [x] Introduce named coordinate types, remove unnecessary enum representations
   and numeric casts, and simplify equivalent arithmetic/iteration using Rust APIs.
-- [ ] Resolve Clippy findings, run source/gameplay regressions and native/WASM
+- [x] Resolve Clippy findings, run source/gameplay regressions and native/WASM
   packaging checks, document retained binary/fixed-point boundaries and commit
   coherent increments.
 
@@ -203,8 +203,13 @@ HUD and rendering parameters have named request/context structures. Equivalent
 arithmetic and iteration use standard Rust helpers. Signed rounding, narrowing,
 wrapping, source bit flags and packed asset vectors retain their required
 semantics; `repr(C)` remains only for actual GPU buffer layouts. All 138 core
-regressions pass with private source/retail fixtures, and the complete workspace
-passes Clippy with warnings denied. Final desktop/native/WASM checks follow.
+regressions and all 67 desktop tests pass with private source/retail fixtures,
+and the complete workspace passes Clippy with warnings denied. `nix flake check`
+passes native packaging/tests, shared-crate WASM compilation and formatting.
+After the refactor, the native window loaded the saved custom Ayame body, reset
+to Original, changed to a ronin, played movement/jump/sword attacks and exited
+cleanly. The window checks used separate settings/save files and left personal
+game settings intact.
 
 Optional configuration, native inspection tools and visual upgrades are
 implemented while preserving the Original defaults. The latest additions are
