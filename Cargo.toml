@@ -15,6 +15,9 @@ sha2 = "0.10.9"
 encoding_rs = "=0.8.35"
 wgpu = "24.0.5"
 winit = "0.30.12"
+egui = "=0.31.1"
+egui-wgpu = { version = "=0.31.1", default-features = false }
+egui-winit = { version = "=0.31.1", default-features = false }
 glam = "0.30"
 pollster = "0.4"
 bytemuck = { version = "1", features = ["derive"] }

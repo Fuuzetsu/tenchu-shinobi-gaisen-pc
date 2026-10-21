@@ -82,7 +82,7 @@ impl Application {
         if matches!(action, Action::Confirm)
             && let Item::Target(axis) = item
         {
-            self.menu.edit = Some(self.debug.target[axis].to_string());
+            self.menu.edit = Some((item, self.debug.target[axis].to_string()));
             self.update_view();
             return;
         }
@@ -536,40 +536,6 @@ impl Application {
             }
         }
         Ok(())
-    }
-
-    pub(super) fn edit_coordinate(&mut self, key: KeyCode, text: Option<&str>) {
-        if key == KeyCode::Escape {
-            self.menu.edit = None;
-        } else if key == KeyCode::Enter {
-            let input = self.menu.edit.take().unwrap();
-            if let Ok(value) = input.parse::<i32>()
-                && (-320_000..=320_000).contains(&value)
-            {
-                if let Item::Target(axis) =
-                    settings::menu::rows(self.menu.page, &self.settings, &self.debug, self.paused)
-                        [self.menu.row]
-                        .item
-                {
-                    self.debug.target[axis] = value;
-                }
-            } else {
-                self.menu.notice = "Enter a coordinate within +/-320000".into();
-            }
-        } else if let Some(input) = &mut self.menu.edit {
-            if key == KeyCode::Backspace {
-                input.pop();
-            } else if key == KeyCode::Delete {
-                input.clear();
-            } else if let Some(text) = text {
-                for ch in text.chars() {
-                    if input.len() < 8 && (ch.is_ascii_digit() || ch == '-' && input.is_empty()) {
-                        input.push(ch);
-                    }
-                }
-            }
-        }
-        self.update_view();
     }
 
     pub(super) fn save_screenshot(&mut self) {

@@ -1,6 +1,5 @@
 use super::Settings;
-use crate::{campaign::Action, debug::Debug, render_effects, render_effects::Geometry};
-use tenchu_assets::font::Font;
+use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
@@ -102,34 +101,6 @@ pub enum Item {
     Haze,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn hovering_scrolled_rows_does_not_move_the_list_under_the_pointer() {
-        let mut menu = Menu::default();
-        for _ in 0..9 {
-            menu.action(Action::Down, 15);
-        }
-        assert_eq!(menu.offset(), 3);
-        for [width, height] in [[1280, 720], [960, 720]] {
-            let point = [
-                f64::from(width) / 2.0,
-                (56.0 + 2.0 * 19.0 + 8.0) * f64::from(height) / 240.0,
-            ];
-            menu.row = menu.row_at(point, [width, height], 15).unwrap();
-            assert_eq!(menu.row, 5);
-            assert_eq!(menu.offset(), 3);
-            assert_eq!(menu.row_at(point, [width, height], 15), Some(5));
-            assert!(menu.row_at([point[0], 0.0], [width, height], 15).is_none());
-        }
-        menu.page(-1);
-        assert_eq!(menu.offset(), 0);
-        assert_eq!(menu.page, PAGES.len() - 1);
-    }
-}
-
 impl Item {
     pub fn button(self) -> bool {
         matches!(
@@ -170,8 +141,8 @@ pub struct Menu {
     pub row: usize,
     pub page: usize,
     pub notice: String,
-    pub edit: Option<String>,
-    pub scroll: usize,
+    pub edit: Option<(Item, String)>,
+    pub reveal_row: bool,
 }
 
 fn on(value: bool) -> String {
@@ -873,7 +844,7 @@ impl Menu {
     pub fn page(&mut self, direction: i32) {
         self.page = (self.page as i32 + direction).rem_euclid(PAGES.len() as i32) as usize;
         self.row = 0;
-        self.scroll = 0;
+        self.reveal_row = true;
         self.notice.clear();
         self.edit = None;
     }
@@ -887,143 +858,9 @@ impl Menu {
             Action::Right | Action::Confirm => return Some(1),
             Action::Replay => {}
         }
-        if self.row < self.scroll {
-            self.scroll = self.row;
-        } else if self.row >= self.scroll + 7 {
-            self.scroll = self.row - 6;
+        if matches!(action, Action::Up | Action::Down) {
+            self.reveal_row = true;
         }
         None
-    }
-
-    pub fn offset(&self) -> usize {
-        self.scroll
-    }
-
-    pub fn row_at(&self, pointer: [f64; 2], size: [u32; 2], count: usize) -> Option<usize> {
-        let y = pointer[1] / f64::from(size[1].max(1)) * 240.0 - 120.0;
-        let x = (pointer[0] - f64::from(size[0]) / 2.0) / f64::from(size[1].max(1)) * 240.0;
-        if !(-150.0..150.0).contains(&x) || !(-64.0..69.0).contains(&y) {
-            return None;
-        }
-        let row = ((y + 64.0) / 19.0).floor() as usize + self.scroll;
-        (row < count).then_some(row)
-    }
-
-    pub fn build(
-        &self,
-        font: &Font,
-        settings: &Settings,
-        debug: &Debug,
-        paused: bool,
-        active_lights: usize,
-    ) -> Geometry {
-        let rows = rows(self.page, settings, debug, paused);
-        let mut lines = vec![
-            (
-                -146,
-                -108,
-                format!("SETTINGS / {}", PAGES[self.page]),
-                [1.0, 0.8, 0.4],
-            ),
-            (
-                -146,
-                -94,
-                format!(
-                    "< {}/{} > Tab / Shift+Tab / L1/R1",
-                    self.page + 1,
-                    PAGES.len()
-                ),
-                [0.6, 0.65, 0.7],
-            ),
-        ];
-        for (index, row) in rows.iter().enumerate().skip(self.offset()).take(7) {
-            let color = if index == self.row {
-                [1.0, 0.8, 0.4]
-            } else {
-                [1.0; 3]
-            };
-            let y = -64 + (index - self.offset()) as i16 * 19;
-            lines.push((
-                -146,
-                y,
-                format!(
-                    "{} {}",
-                    if index == self.row { ">" } else { " " },
-                    row.label
-                ),
-                color,
-            ));
-            lines.push((
-                90,
-                y,
-                if index == self.row {
-                    self.edit
-                        .as_ref()
-                        .map_or_else(|| row.value.clone(), |value| format!("{value}_"))
-                } else {
-                    row.value.clone()
-                },
-                color,
-            ));
-        }
-        let help = &rows[self.row.min(rows.len() - 1)].help;
-        lines.push((-146, 70, (*help).into(), [0.6, 0.8, 0.85]));
-        if PAGES[self.page] == "Lighting" {
-            let lighting = &settings.graphics.lighting;
-            let status = if !lighting.enabled {
-                "Lighting off; use Preview to try shadows".into()
-            } else if active_lights == 0 && lighting.directional.intensity == 0 {
-                "0 lights active; use Preview or add a light".into()
-            } else {
-                let point_faces = if lighting.shadows {
-                    active_lights.min(usize::from(lighting.shadow_count)) * 6
-                } else {
-                    0
-                };
-                let sun_faces = usize::from(lighting.shadows && lighting.directional.intensity > 0);
-                let faces = point_faces + sun_faces;
-                let mib = (point_faces as u64 * u64::from(lighting.resolution).pow(2)
-                    + sun_faces as u64 * u64::from(lighting.directional.resolution).pow(2))
-                    * 4
-                    / 1048576;
-                format!(
-                    "{active_lights}/{} points; {faces} shadow views; {mib} MiB",
-                    lighting.count
-                )
-            };
-            lines.push((-146, -79, status, [0.6, 0.8, 0.85]));
-        }
-        if PAGES[self.page] == "Image effects" {
-            let post = &settings.graphics.post;
-            let status = if !post.enabled {
-                "Effects off; turn on the master switch"
-            } else if post.occlusion > 0 {
-                "For more FPS, reduce contact shading to 0"
-            } else {
-                "HUD stays sharp; color controls affect the world"
-            };
-            lines.push((-146, -79, status.into(), [0.6, 0.8, 0.85]));
-        }
-        if !self.notice.is_empty() {
-            lines.push((-146, 86, self.notice.clone(), [1.0, 0.65, 0.3]));
-        }
-        lines.push((
-            -146,
-            102,
-            "Arrows: change  R: reset  F1/Esc: close".into(),
-            [0.6, 0.65, 0.7],
-        ));
-        let mut geometry = render_effects::panel(font, &[]);
-        for line in lines {
-            let start = f32::from(line.0);
-            let width = line.2.bytes().map(|c| font.width(c)).sum::<i32>() as f32 + 4.0;
-            let scale = ((150.0 - start) / width.max(1.0)).min(1.0);
-            let mut text = render_effects::text(font, &[line]);
-            for vertex in &mut text.vertices {
-                vertex.position[0] = start + (vertex.position[0] - start) * scale;
-            }
-            geometry.append(text);
-        }
-        geometry
     }
 }

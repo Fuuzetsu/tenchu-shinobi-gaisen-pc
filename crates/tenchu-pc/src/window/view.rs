@@ -14,8 +14,9 @@ pub(super) struct View {
     pub(super) actor: Mesh,
     shadow_stage: Option<Mesh>,
     shadow_models: Option<Mesh>,
-    lights: Vec<crate::lighting::Light>,
+    pub(super) lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
+    pub(super) overlay: super::overlay::Overlay,
     pub(super) renderer: Renderer,
     pub(super) surface: wgpu::Surface<'static>,
     pub(super) window: Arc<Window>,
@@ -111,7 +112,9 @@ impl View {
             adapter.get_info().name,
             adapter.get_info().backend
         );
+        let overlay = super::overlay::Overlay::new(&window, &renderer, config.format);
         Ok(Self {
+            overlay,
             window,
             surface,
             config,
@@ -254,36 +257,29 @@ impl View {
             self.renderer
                 .upload(&render_mesh::shadow_models(game, Some(&self.models)))
         });
-        let mut geometry = if menu.open {
-            menu.build(
-                &game.mission.font,
-                settings,
-                debug,
-                paused,
-                self.lights.len(),
-            )
-        } else if campaign.playing() && (!paused || debug.active()) && error.is_none() {
-            if debug.collision_only {
-                render_effects::Geometry {
-                    vertices: Vec::new(),
-                    batches: Vec::new(),
+        let mut geometry =
+            if campaign.playing() && (menu.open || !paused || debug.active()) && error.is_none() {
+                if debug.collision_only {
+                    render_effects::Geometry {
+                        vertices: Vec::new(),
+                        batches: Vec::new(),
+                    }
+                } else {
+                    render_effects::build_options(
+                        game,
+                        settings.show_hud && !debug.photo_mode,
+                        debug.camera.map(|c| c.source_view()),
+                        settings.graphics.blob_shadows,
+                        Some(&self.models),
+                    )
                 }
             } else {
-                render_effects::build_options(
-                    game,
-                    settings.show_hud && !debug.photo_mode,
-                    debug.camera.map(|c| c.source_view()),
-                    settings.graphics.blob_shadows,
-                    Some(&self.models),
-                )
-            }
-        } else {
-            ui::build(campaign, paused, error)
-        };
-        if campaign.playing() && !menu.open && error.is_none() && debug.photo_mode {
+                ui::build(campaign, paused, error)
+            };
+        if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();
         }
-        if campaign.playing() && !menu.open && error.is_none() && !debug.photo_mode {
+        if campaign.playing() && error.is_none() && !debug.photo_mode {
             if settings.graphics.lighting.markers {
                 geometry.append(crate::debug::light_markers(
                     debug,
@@ -311,7 +307,7 @@ impl View {
                 ));
             }
         }
-        if settings.show_fps && !menu.open && !debug.photo_mode {
+        if settings.show_fps && !debug.photo_mode {
             geometry.append(render_effects::text(
                 &game.mission.font,
                 &[(
@@ -368,7 +364,9 @@ impl View {
             Some(&self.effects),
             &self.lights,
             &casters,
-        )
+        )?;
+        self.overlay.draw(&self.renderer, target);
+        Ok(())
     }
 
     pub(super) fn capture(

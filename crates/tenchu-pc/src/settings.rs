@@ -1,4 +1,5 @@
 pub mod menu;
+pub mod overlay;
 mod post;
 pub mod presets;
 pub use post::Post;

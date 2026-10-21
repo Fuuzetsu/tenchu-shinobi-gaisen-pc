@@ -190,9 +190,11 @@ labels differ between controller brands.
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
 Quick keyboard and controller taps are retained until the next gameplay tick.
 
-**F1** opens settings from any screen. Use arrows/D-pad and Enter/South, or
-click a row (right-click decreases), then F1/Escape/East to close. The settings
-menu pauses the game without changing an existing manual pause. It provides FPS
+**F1** opens a compact settings overlay from any screen. Click categories,
+checkboxes and dropdowns; drag sliders or double-click numbers to type.
+Drag the title bar to move the panel, resize its width, and scroll long pages.
+Arrows/D-pad and Enter/South also work; F1/Escape/East closes it. The overlay
+pauses the game without changing an existing manual pause. It provides FPS
 and tick display, pause on defocus, borderless fullscreen, VSync, HUD visibility
 and master volume. Factory defaults preserve the preceding experience.
 Preferences save separately from progress in
@@ -202,7 +204,8 @@ overrides the file. Disabling pause on defocus keeps simulation/audio running
 but still releases controls; input from another application never controls the game.
 Tab/Shift+Tab, Page Down/Page Up or controller R1/L1 changes settings pages.
 Hover a row or select it with the arrows, then press R to reset only that value;
-one-shot actions such as teleport cannot be reset or triggered with R. Graphics
+or right-click a control for its reset action. One-shot actions such as teleport
+cannot be reset or triggered with R. Graphics
 settings include black fog and its distance, textures, baked vertex shading,
 exposure, nearest/bilinear/trilinear filtering, 2×–16× anisotropic filtering and
 supported MSAA modes. MSAA smooths polygon edges. Mipmaps reduce distant texture

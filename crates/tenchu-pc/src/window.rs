@@ -1,3 +1,4 @@
+mod overlay;
 mod playback;
 mod settings_reset;
 #[cfg(test)]
@@ -27,7 +28,7 @@ use tenchu_core::{clock::GameClock, game::Game};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
-    event::{DeviceEvent, DeviceId, ElementState, MouseButton, MouseScrollDelta, WindowEvent},
+    event::{DeviceEvent, DeviceId, ElementState, MouseButton, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
     keyboard::{KeyCode, ModifiersState, PhysicalKey},
     window::{CursorGrabMode, Fullscreen, Window, WindowId},
@@ -302,6 +303,9 @@ impl ApplicationHandler for Application {
     }
 
     fn window_event(&mut self, events: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
+        if let Some(view) = &mut self.view {
+            view.overlay.event(&view.window, &event);
+        }
         match event {
             WindowEvent::CloseRequested => events.exit(),
             WindowEvent::Resized(size) => {
@@ -325,60 +329,8 @@ impl ApplicationHandler for Application {
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
             WindowEvent::CursorMoved { position, .. } => {
                 self.pointer = [position.x, position.y];
-                if self.menu.open
-                    && self.menu.edit.is_none()
-                    && let Some(view) = &self.view
-                    && let Some(row) = self.menu.row_at(
-                        self.pointer,
-                        view.size,
-                        settings::menu::rows(
-                            self.menu.page,
-                            &self.settings,
-                            &self.debug,
-                            self.paused,
-                        )
-                        .len(),
-                    )
-                    && row != self.menu.row
-                {
-                    self.menu.row = row;
-                    self.update_view();
-                }
             }
-            WindowEvent::MouseInput {
-                state: ElementState::Pressed,
-                button,
-                ..
-            } if self.menu.open => {
-                if let Some(view) = &self.view {
-                    let y = self.pointer[1] / f64::from(view.size[1].max(1)) * 240.0 - 120.0;
-                    let x = (self.pointer[0] - f64::from(view.size[0]) / 2.0)
-                        / f64::from(view.size[1].max(1))
-                        * 240.0;
-                    if (-95.0..-75.0).contains(&y) {
-                        self.menu.page(if x < 0.0 { -1 } else { 1 });
-                        self.update_view();
-                        return;
-                    }
-                    let rows = settings::menu::rows(
-                        self.menu.page,
-                        &self.settings,
-                        &self.debug,
-                        self.paused,
-                    );
-                    if let Some(row) = self.menu.row_at(self.pointer, view.size, rows.len()) {
-                        self.menu.row = row;
-                        let item = rows[self.menu.row].item;
-                        self.settings_action(if button == MouseButton::Right {
-                            Action::Left
-                        } else if item.button() || matches!(item, Item::Target(_)) {
-                            Action::Confirm
-                        } else {
-                            Action::Right
-                        });
-                    }
-                }
-            }
+            WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. } if self.menu.open => {}
             WindowEvent::MouseInput { state, button, .. }
                 if self.debug.camera.is_some() && self.focused =>
             {
@@ -396,13 +348,6 @@ impl ApplicationHandler for Application {
                 } else if button == MouseButton::Left && state == ElementState::Pressed {
                     self.pick_debug_target();
                 }
-            }
-            WindowEvent::MouseWheel { delta, .. } if self.menu.open => {
-                let y = match delta {
-                    MouseScrollDelta::LineDelta(_, y) => y,
-                    MouseScrollDelta::PixelDelta(p) => p.y as f32,
-                };
-                self.settings_action(if y > 0.0 { Action::Up } else { Action::Down });
             }
             WindowEvent::KeyboardInput {
                 event,
@@ -424,10 +369,9 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 if self.menu.open {
-                    if self.menu.edit.is_some() {
-                        if event.state == ElementState::Pressed {
-                            self.edit_coordinate(code, event.text.as_deref());
-                        }
+                    if self.menu.edit.is_some()
+                        || self.view.as_ref().is_some_and(|v| v.overlay.editing())
+                    {
                         return;
                     }
                     if event.state == ElementState::Pressed
@@ -562,6 +506,7 @@ impl ApplicationHandler for Application {
                 {
                     self.update_view();
                 }
+                self.update_overlay();
                 if self.screenshot {
                     self.save_screenshot();
                 }

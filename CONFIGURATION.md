@@ -393,8 +393,15 @@ described above. No game assets or diagnostic captures are included in Git.
   Catmull–Rom Cubic and Pixel, with unchanged Original defaults. GPU checks
   cover preserved texel interiors, narrower cubic blending and identical
   minification across modes; same-state Mission 1 room captures were inspected.
-- [ ] Replace the fullscreen bitmap-font settings panel with a compact, movable
+- [x] Replace the fullscreen bitmap-font settings panel with a compact, movable
   mouse overlay, retaining keyboard/controller navigation and per-value reset.
+  Egui shares the existing wgpu device and draws after scene finishing with its
+  own DPI-aware fonts. Categories, toggles, GPU-supported dropdowns, numeric
+  sliders/typing, exact coordinates and reset context menus reuse the existing
+  setting actions. Native checks cover pointer editing, a volume drag to 45%,
+  R restoring only volume, exact coordinate entry, presets, Shift+Tab, long-page
+  scrolling, resize, screenshots and repeated Escape exits. A GUI input
+  regression distinguishes an Off checkbox from the Off MSAA dropdown.
 - [x] Correct the enhanced lamp shadow budgets and inspect room occlusion.
   In the Mission 1 tick-5000 room, the visible AKARI01 wall lanterns were lights
   three and four, while Enhanced only shadowed light one. Both enhanced presets
