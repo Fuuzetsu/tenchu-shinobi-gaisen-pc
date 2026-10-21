@@ -267,6 +267,7 @@ fn widget(
         let mut value = current;
         let response = ui.add(
             egui::Slider::new(&mut value, min..=max)
+                .clamping(egui::SliderClamping::Edits)
                 .step_by(step)
                 .custom_formatter(|v, _| format!("{}", (v * scale).round() as i32)),
         );
@@ -392,6 +393,38 @@ fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn displaying_sliders_preserves_values_between_steps_or_outside_drag_range() {
+        for (item, value) in [
+            (Item::SkyTint, "15%"),
+            (Item::SkyTint, "25%"),
+            (Item::SkyTint, "55%"),
+            (Item::DirectionalIntensity, "25%"),
+            (Item::DirectionalAzimuth, "359 deg"),
+            (Item::Exposure, "135%"),
+            (Item::Temperature, "-8"),
+            (Item::Volume, "37%"),
+        ] {
+            let ctx = egui::Context::default();
+            let mut menu = Menu::default();
+            let row = Row {
+                item,
+                label: "Test",
+                value: value.into(),
+                help: "",
+            };
+            for _ in 0..3 {
+                let mut edits = Vec::new();
+                let _ = ctx.run(Default::default(), |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        widget(ui, &row, &mut menu, &[1, 4], &mut edits);
+                    });
+                });
+                assert!(edits.is_empty(), "Displaying {value} changed the setting");
+            }
+        }
+    }
 
     #[test]
     fn off_msaa_opens_supported_modes_instead_of_behaving_like_a_toggle() {

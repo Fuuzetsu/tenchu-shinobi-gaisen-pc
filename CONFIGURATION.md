@@ -4,6 +4,9 @@ Keep the current experience as the factory defaults. F1 opens a settings and
 inspection menu in the existing window. Changes apply without restarting.
 Presentation preferences persist separately from campaign progress. Debug
 camera state, simulation controls and one-shot edits start disabled each launch.
+Opening a category preserves its values, including preset values between slider
+steps. Sliders clamp and round only when edited; a regression test covers sky
+tint, light strength, angle, exposure, temperature and volume without input.
 
 ## Deliverables
 
