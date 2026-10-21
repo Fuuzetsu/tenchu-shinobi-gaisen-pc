@@ -237,6 +237,10 @@ impl Renderer {
             .create_view(&Default::default())
     }
 
+    pub fn size(&self) -> [u32; 2] {
+        self.size
+    }
+
     pub fn resize(&mut self, size: [u32; 2]) {
         self.size = size;
         self.depth = Self::attachment(

@@ -307,7 +307,9 @@ impl Application {
         if self.frontend_visible() {
             if let Command::Menu(action) = command {
                 if matches!(self.campaign.screen, Screen::Results(_)) {
-                    self.action(action);
+                    if self.frontend.as_ref().is_some_and(|f| f.ready()) {
+                        self.action(action);
+                    }
                 } else {
                     self.frontend_action(action);
                 }
@@ -716,12 +718,19 @@ impl ApplicationHandler for Application {
     }
 }
 
+#[derive(Default)]
+pub struct Startup {
+    pub quick_launcher: bool,
+    pub difficulty: Option<tenchu_core::ai::Difficulty>,
+}
+
 pub fn run(
     assets: GameAssets<FileSource>,
-    options: Options,
+    mut options: Options,
     disc: &std::path::Path,
     recording_directory: Option<PathBuf>,
     demo: Option<crate::demo::Player>,
+    startup: Startup,
 ) -> Result<()> {
     let storage = Storage::new()?;
     let settings_store = settings::Store::new()?;
@@ -742,15 +751,19 @@ pub fn run(
     if demo.as_ref().is_some_and(|d| d.muted) {
         settings.volume = 0;
     }
-    let mut campaign = Campaign::new(
-        &assets,
-        options,
-        if demo.is_some() {
-            None
-        } else {
-            storage.load()?
-        },
-    )?;
+    let saved = if demo.is_some() {
+        None
+    } else {
+        storage.load()?
+    };
+    if demo.is_none()
+        && let Some(difficulty) = startup
+            .difficulty
+            .or_else(|| saved.as_ref().map(|s| s.selection.difficulty))
+    {
+        options.difficulty = difficulty;
+    }
+    let mut campaign = Campaign::new(&assets, options, saved)?;
     campaign.game.activation.keep_all_active = settings.keep_enemies_active;
     let frontend = if demo.is_none() {
         campaign.frontend = true;
@@ -760,12 +773,17 @@ pub fn run(
             campaign.seed = save.seed;
         }
         campaign.screen = Screen::Frontend;
-        Some(crate::frontend::Frontend::new(
-            &assets,
-            disc,
-            &campaign,
-            settings.frontend.clone(),
-        )?)
+        let mut frontend =
+            crate::frontend::Frontend::new(&assets, disc, &campaign, settings.frontend.clone())?;
+        settings.frontend = frontend.preferences.clone();
+        if startup.quick_launcher {
+            campaign.quick_launcher = true;
+            campaign.screen = Screen::Launcher;
+            frontend.quick_launcher();
+        } else {
+            frontend.play_movie(tenchu_assets::frontend::Movie::Opening, &assets)?;
+        }
+        Some(frontend)
     } else {
         None
     };

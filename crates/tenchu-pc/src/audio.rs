@@ -41,6 +41,7 @@ impl Audio {
 
     pub fn frontend(&mut self, event: crate::frontend::Event) {
         use crate::frontend::Event;
+        self.fast_forward(false);
         match event {
             Event::Bank(bank) => {
                 self.output.send(Command::Bank(bank));
@@ -128,6 +129,9 @@ impl Audio {
     }
 
     pub fn screen(&mut self, screen: &Screen) {
+        if !matches!(screen, Screen::Playing) {
+            self.fast_forward(false);
+        }
         if self.screen == Some(discriminant(screen)) {
             return;
         }

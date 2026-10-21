@@ -9,9 +9,11 @@ display refresh and graphics settings do not determine game speed. Reproducing
 PS1 hardware slowdown is outside the target.
 
 All ten campaign missions and training are playable with both characters,
-including gameplay cinematics, progression and save/retry. A simple launcher
-replaces the original main menu. The final mission returns to a completion
-screen; the movie from the separate `ENDING.EXE` is not implemented.
+including gameplay cinematics, progression and save/retry. The original animated
+title, character selection, mission map and options are ported from `MENU.EXE`.
+The opening/training movies, both character epilogues, credits and final results
+from `ENDING.EXE` play from the disc. **F6** opens the previous quick launcher;
+**Esc** there returns to the title. **F1** still opens PC settings.
 
 See [PLAN.md](PLAN.md) for deliverables and acceptance criteria and
 [AGENTS.md](AGENTS.md) for development conventions.
@@ -203,19 +205,57 @@ Original/Enhanced comparisons of the same simulation state.
 
 ```sh
 ./dev.sh cargo run --release -- play '/path/to/game.cue'
-./dev.sh cargo run --release -- play '/path/to/game.cue' --character ayame --mission 1 --layout 1
+./dev.sh cargo run --release -- play '/path/to/game.cue' --quick --character ayame --mission 1 --layout 1
 ```
+
+Normal launch opens the original movie/title flow. Enter skips the opening,
+then reveals the title choices; select **Begin mission**, choose a character and
+use Up/Down for the mission and Left/Right for its layout. The map follows each
+character's saved progress. **F6** opens the unrestricted development launcher
+from any frontend screen, including movies. **`--quick`** starts there immediately.
+Launch character/mission/layout arguments prefill that quick launcher.
 
 Mission numbers follow campaign order (1–10); `--mission training` selects
 training. Each mission has layouts 1–3; `--layout random` selects one at the
 source construction boundary. `--difficulty easy|normal|hard` selects the source
-AI difficulty; normal is the default. The launcher's **Language** row selects
-English, French, Italian or Japanese dialogue and subtitles. Use Left/Right to
-change it before starting a mission or continuing a save. The choice is saved;
+AI difficulty; otherwise the saved choice is used, or Normal for a new campaign.
+The original **Options → Language** and quick launcher's **Language** row select
+English, French, Italian or Japanese dialogue and subtitles. All four remain
+available immediately. Character/map/results artwork follows that choice;
+the original release's options artwork is Japanese, with clear English
+descriptions and controls below it. The choice is saved with campaign progress;
 `--language english|french|italian|japanese` overrides the saved preference at launch.
-The placeholder menu labels remain in English. Japanese subtitles use a bundled
+Japanese subtitles use a bundled
 [replacement font](crates/tenchu-assets/data/japanese-font/README.md); no BIOS is
 needed. Latin subtitles retain the original disc font.
+
+Original options include records, difficulty, stereo/mono, music/effects volume,
+sound test, four controller layouts, vibration, load/save and automatic saving.
+Load/save uses the existing native campaign file. Turning automatic saving off
+does not disable explicit Save. Controller vibration uses the original gameplay
+cues on devices supported by the host; motor timing follows the driver's
+resolution; physical motor output still needs a hands-on controller check.
+Original cheat-button sequences are not implemented; F6 provides unrestricted
+mission/layout selection and all four languages are available immediately.
+The separate **TRIAL.EXE mission editor** is not ported; its title entry explains
+this and returns to the menu. Equipment and intermediate mission-results
+screens retain the existing PC presentation.
+
+Movies require raw Mode 2 BIN/CUE data and the Nix-provided FFmpeg decoder.
+Cooked ISO images can still run gameplay; an unavailable movie shows a message
+and Enter continues. Movies run at their authored 15 fps independently of the
+display; menu animation uses 60 Hz and the mission selector 30 Hz. Opening,
+training and credits can be skipped with Enter/Esc; the character epilogues
+follow the original unskippable rule, with F6 still available for development.
+
+The frontend regression checks load all four languages, exercise both character
+animations and ending transitions, and decode all five movies to their source
+endpoints with XA audio and caption/voice cues. They also check playback at
+5/15/60 Hz display cadence and cancellation of movie workers:
+
+```sh
+TENCHU_DISC='/path/to/game.cue' ./dev.sh cargo test --release -p tenchu-pc frontend -- --include-ignored
+```
 
 | Action | Keyboard | Controller |
 | --- | --- | --- |
@@ -231,11 +271,15 @@ needed. Latin subtitles retain the original disc font.
 
 In menus, use the arrows, D-pad or stick to choose and change values; Enter or
 the south face button confirms, Escape or east goes back, and R or west retries
-from results. In the equipment screen, Up/Down selects an item and Left/Right
+from results. Original menus also accept mouse clicks; F1 captures interaction
+while its settings overlay is open. The table above describes controller layout
+1; changing the original controller layout remaps gameplay buttons, including
+their keyboard equivalents. Host menu/navigation shortcuts keep their usual roles.
+In the equipment screen, Up/Down selects an item and Left/Right
 removes/adds one. Enter/south starts the mission; the hook is carried automatically.
 In gameplay, F5 or Escape abandons the attempt and opens retry equipment. On a
 controller, pause first, then use east/west to abandon/retry. Escape/east from
-the launcher quits. Controller hints use physical face-button positions because
+the quick launcher returns to the title; Escape on the title quits. Controller hints use physical face-button positions because
 labels differ between controller brands.
 
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
@@ -430,8 +474,8 @@ expiry and ledge-grab restrictions.
 Ninja dogs summon, select and attack enemies, then expire after 1,800 logic ticks.
 Mei-Oh's four lightning attacks retain repeated targeting, damage and original bolt jitter.
 Resurrection leaves restore health after a lethal hit. Damage floors and Manji flame attacks share the original napalm behavior. Mission 1 now runs its authored encounter scripts, camera cuts and subtitles,
-then returns to gameplay. Results, stock rewards, retry and progression now run
-through a simple launcher. Unexpected or unsupported data pauses with a diagnostic. Caltrops,
+then returns to gameplay. Results, stock rewards, retry and progression connect
+to the original frontend and optional quick launcher. Unexpected or unsupported data pauses with a diagnostic. Caltrops,
 grenades, smoke bombs and poisoned food also use the original corner-throw behavior.
 Held and sheathed weapons use their original attachment rules. Original shadows,
 weapon trails, blood and implemented particle effects are displayed with their
@@ -460,9 +504,11 @@ An unavailable audio device is reported without preventing play. Linux uses
 PulseAudio/PipeWire's PulseAudio service when available, with ALSA as fallback.
 Set `TENCHU_AUDIO_TRACE=1` to log music/dialogue requests and decoded clips.
 
-The launcher lets you choose character, difficulty, mission and layout. Results
+The quick launcher lets you choose character, difficulty, mission and layout. Results
 show the original score/rank, award items and update each character's records.
-Enter advances (or retries training), R replays, and Escape returns to the launcher.
+Enter advances (or retries training), R replays, and Escape returns to the menu.
+After Mission 10, the selected character's epilogue and credits precede the
+original final-results screen. Enter returns to the title; R/F5 retries.
 Failed or abandoned attempts lose their carried items. Training keeps its separate
 ranking table and fixed equipment. Armour uses its original model and damage rule.
 Training completion is checked for both
@@ -477,11 +523,12 @@ Progress saves between attempts to
 `~/Library/Application Support`; Windows uses `%APPDATA%`. Set `TENCHU_SAVE` to
 choose a different file. Saves retain both characters' stock/records, mission,
 layout, language and difficulty. They are checked and replaced atomically;
-Continue resumes at equipment selection, not mid-mission. Closing during an
+The quick launcher's Continue resumes at equipment selection, not mid-mission. Closing during an
 attempt retains the preceding checkpoint. Existing PS1 memory cards are not
 imported. Initial gameplay uses seed 1, then subsequent attempts continue from
 the preceding gameplay/reward RNG. Menu waiting and display refresh consume no
-RNG; PS1 startup VSync seeding is intentionally a host policy, not a hardware model.
+gameplay RNG; title palette variation has a separate cosmetic generator. PS1
+startup VSync seeding is intentionally a host policy, not a hardware model.
 
 Add `--record DIRECTORY` when launching to record normal play:
 
@@ -510,7 +557,7 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 scalar gameplay code.
 
 Saved-campaign regressions complete all ten missions for both characters,
-including the final bosses, results and completion screen. Stock and RNG carry
+including the final bosses and results. Stock and RNG carry
 through real encoded/decoded saves at every boundary. The recordings include
 their starting seed and equipment, so
 `replay` can run them directly.

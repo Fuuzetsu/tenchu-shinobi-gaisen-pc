@@ -18,20 +18,20 @@ their hardware scheduling. Read original artwork, animation, movies, captions
 and sound from the supplied disc. Keep platform movie decoding at the host
 boundary and reusable asset/timeline logic portable.
 
-- [ ] Animated title, original character models/motions, localized character
+- [x] Animated title, original character models/motions, localized character
   selection and mission map, with progress/layout restrictions and records.
-- [ ] Original options presentation and working difficulty, language, sound,
+- [x] Original options presentation and working difficulty, language, sound,
   controls and save operations adapted to the PC host. Preserve existing PC
   preferences and saves. Explicitly identify the separate TRIAL mission editor.
-- [ ] Original opening/training movies, character epilogues and credits,
+- [x] Original opening/training movies, character epilogues and credits,
   including source caption/voice timing, skip rules and final-results handoff.
-- [ ] F6 opens the existing quick launcher; returning to the main menu and F1
+- [x] F6 opens the existing quick launcher; returning to the main menu and F1
   settings remain convenient. Normal game ticks and demo exports stay isolated.
-- [ ] Meaningful asset/transition/timeline regression tests, native visual and
-  audio checks for both characters/languages, Nix/Clippy/format/WASM validation,
+- [x] Meaningful asset/transition/timeline regression tests, native visual checks,
+  decoded audio/caption checks, Nix/Clippy/format/WASM validation,
   documentation and source provenance. Commit coherent implementation stages.
 
-The initial port now connects the original title, animated character selection,
+The port connects the original title, animated character selection,
 mission map, options and ending results to the existing campaign. F6 opens the
 quick launcher and Esc returns to the title. All four language asset sets load;
 both selection motions finish and all five movie streams decode to their source
@@ -44,8 +44,25 @@ gameplay cues. Damage cue comparisons against C pass; physical motor output
 still needs a supported controller for a hands-on check. Movie cues agree at
 5/15/60 Hz display cadence and repeated early cancellation joins decoder workers.
 Unavailable movies show an explanation and allow continuing into the menu/game.
-Remaining verification/refinement includes packaging and completed user
-documentation, plus a final native navigation/save/resize check.
+All 143 core and 87 desktop tests pass, including real-disc checks. Formatting,
+Clippy with warnings denied, Nix native packaging and portable WASM checks pass
+on x86_64 Linux. Native checks exercise Mission 1 and training, F1 interaction
+isolation, F6/title navigation, saved language/difficulty, explicit command-line
+overrides, manual load/save with autosave disabled and missing-decoder recovery.
+Rapid window resizing exposed and fixed an overlay/surface size race. The
+overlay now uses the configured render-target size. `--quick` bypasses the
+opening and starts in the development launcher without starting a movie worker.
+The built Nix package also passed mouse navigation through Ayame selection,
+Mission 1, difficulty selection and the quick launcher, fifteen rapid resize
+pairs and a clean exit.
+
+Native saves replace the PS1 memory-card interface; original cheat-button chords
+are not implemented (F6 provides unrestricted mission/layout selection and all
+four languages are available). The separate TRIAL.EXE mission editor remains
+outside this port. Existing equipment and intermediate mission-results screens
+remain in place. These checks do not establish pixel-perfect rendering or a new
+full campaign playthrough; final-completion tests deliberately use controlled
+state to exercise both ending flows.
 
 Use the original nominal game rate (30 game updates per second in this release),
 independent of display rate. Rendering may interpolate but may not mutate the
@@ -186,7 +203,7 @@ against the existing retail corpus at comparable logical update boundaries.
 - [x] Results/ranking, inventory rewards, retry and source training records.
 - [x] Persist character, difficulty, inventory and mission progress to a save.
 - [x] Music, voices and gameplay cinematic/audio decoding. The external
-  `ENDING.EXE` movie handoff uses a completion screen.
+  `ENDING.EXE` movie handoff originally used a completion screen; the frontend follow-up now plays the epilogue and credits before final results.
 - [x] Minimal launcher for new game, continue, character and difficulty; original
   title/menu artwork and exact menu timing remain out of scope.
 
@@ -1147,7 +1164,7 @@ Japanese captions across the 22 character/stage script files have glyphs. Both
 characters' openings pass in all four languages, including subtitle presence and
 return to background music. Native captures show Japanese text for both characters
 and the original French/Italian text; caption changes and clearing were checked.
-Menu labels remain English. Original menu-binary decompilation remains deferred.
+At this milestone menu labels remained English. The later frontend follow-up uses the completed MENU decompilation and original artwork.
 Nix native tests/package, portable WASM and formatting checks pass on x86_64-linux.
 
 
@@ -1438,8 +1455,8 @@ screens were visually inspected, as was a GPU capture of Ayame fighting Mei-Oh.
 These checks used isolated X servers and private silent audio sinks.
 
 The requested desktop MAIN.EXE scope is complete. The original main menu and
-external ENDING.EXE movie, browser host and authored HD content
-remain separate follow-ups. Source-level and continuous-retail comparisons
+external ENDING.EXE movie are covered by the frontend follow-up at the top of
+this plan. A browser host and authored HD content remain separate work. Source-level and continuous-retail comparisons
 provide fidelity evidence, not exhaustive equivalence for every input sequence.
 
 Optional desktop settings, native inspection and lighting/shadow improvements

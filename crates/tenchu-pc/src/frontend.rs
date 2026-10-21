@@ -186,7 +186,6 @@ impl Frontend {
         };
         result.reset_title();
         result.menu_bank(assets)?;
-        result.play_movie(Movie::Opening, assets)?;
         Ok(result)
     }
 
@@ -250,6 +249,7 @@ impl Frontend {
     }
 
     fn set_page(&mut self, page: Page) {
+        self.notice.clear();
         self.page = page;
         self.ticks = 0;
         self.elapsed = 0.0;
@@ -258,6 +258,16 @@ impl Frontend {
         if self.canvas.size[0] != width {
             self.canvas = Canvas::new(width);
         }
+    }
+
+    pub fn ready(&self) -> bool {
+        self.ticks
+            >= match self.page {
+                Page::Title | Page::Movie(_) => 0,
+                Page::Missions => 31,
+                Page::Results => 32,
+                _ => 16,
+            }
     }
 
     pub fn play_movie(&mut self, movie: Movie, assets: &GameAssets<FileSource>) -> Result<()> {
@@ -401,6 +411,9 @@ impl Frontend {
         campaign: &mut Campaign,
         assets: &GameAssets<FileSource>,
     ) -> Result<()> {
+        if !self.ready() {
+            return Ok(());
+        }
         if !matches!(self.page, Page::Movie(_)) {
             self.notice.clear();
         }

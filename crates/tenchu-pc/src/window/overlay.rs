@@ -95,6 +95,14 @@ impl Overlay {
             input.predicted_dt = 1.0 / 60.0;
             input.events.clear();
             input.focused = true;
+        } else {
+            // A native resize can be visible before its Resized event configures the surface.
+            let [width, height] = renderer.size();
+            let scale = window.scale_factor() as f32 * self.context.zoom_factor();
+            input.screen_rect = Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(width as f32, height as f32) / scale,
+            ));
         }
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
         if !self.editing() && menu.edit.is_none() {
@@ -107,9 +115,11 @@ impl Overlay {
         let mut frontend_action = None;
         let output = self.context.run(input, |ctx| {
             if let Some((frontend, campaign)) = &mut extras.frontend {
-                frontend_action = frontend.show(ctx, campaign);
+                frontend_action = frontend.show(ctx, campaign, !menu.open);
             }
-            paint_labels(ctx, extras.labels);
+            if !self.opaque {
+                paint_labels(ctx, extras.labels);
+            }
             let mut show_performance = state.settings.show_performance;
             let profiling = show_performance;
             if show_performance && !state.debug.photo_mode {
@@ -140,13 +150,8 @@ impl Overlay {
         self.jobs = self
             .context
             .tessellate(output.shapes, output.pixels_per_point);
-        let size = window.inner_size();
         self.screen = egui_wgpu::ScreenDescriptor {
-            size_in_pixels: if extras.video_time.is_some() {
-                crate::video::SIZE
-            } else {
-                [size.width.max(1), size.height.max(1)]
-            },
+            size_in_pixels: renderer.size(),
             pixels_per_point: output.pixels_per_point,
         };
         for (id, image) in &output.textures_delta.set {

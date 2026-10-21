@@ -8,7 +8,6 @@ fn original_assets_and_selection_motions_load_for_all_languages() {
     let campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
     let mut frontend =
         Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
-    frontend.movie = None;
     for language in [
         Language::English,
         Language::Japanese,
@@ -88,6 +87,7 @@ fn menu_navigation_does_not_change_preferences_or_gameplay() {
     let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
     let mut frontend =
         Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    frontend.play_movie(Movie::Opening, &assets).unwrap();
     frontend
         .action(Action::Confirm, &mut campaign, &assets)
         .unwrap();
@@ -102,6 +102,9 @@ fn menu_navigation_does_not_change_preferences_or_gameplay() {
         frontend
             .advance(Duration::from_millis(250), false, &mut campaign, &assets)
             .unwrap();
+        frontend
+            .advance(Duration::from_millis(50), false, &mut campaign, &assets)
+            .unwrap();
         frontend.paint(&campaign);
         frontend
             .action(Action::Back, &mut campaign, &assets)
@@ -113,6 +116,7 @@ fn menu_navigation_does_not_change_preferences_or_gameplay() {
     assert_eq!(campaign.game.random.seed, random);
     frontend.option_selection = 3;
     frontend.open_option(&campaign);
+    frontend.ticks = 16;
     frontend
         .action(Action::Right, &mut campaign, &assets)
         .unwrap();

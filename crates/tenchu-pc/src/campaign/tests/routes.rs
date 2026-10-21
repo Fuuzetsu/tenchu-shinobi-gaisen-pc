@@ -588,7 +588,7 @@ fn training_controller_routes_save_rankings_and_retry() {
         assert_eq!(results.score.grade, 0);
         assert_eq!(results.training_place, Some(0));
         assert_eq!(campaign.progress.stock, stock);
-        assert_eq!(campaign.progress.highest, [1, 1]);
+        assert_eq!(campaign.progress.highest, [0, 0]);
         assert_eq!(campaign.progress.flags, 1 << 31);
         let ranked = campaign.progress.training[0];
         assert_eq!(

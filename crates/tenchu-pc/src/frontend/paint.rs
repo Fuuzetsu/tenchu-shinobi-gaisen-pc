@@ -17,7 +17,12 @@ const OPTIONS: [&str; 10] = [
 ];
 
 impl Frontend {
-    pub fn show(&mut self, ctx: &egui::Context, campaign: &Campaign) -> Option<Action> {
+    pub fn show(
+        &mut self,
+        ctx: &egui::Context,
+        campaign: &Campaign,
+        interactive: bool,
+    ) -> Option<Action> {
         if self.dirty {
             self.paint(campaign);
             let image =
@@ -36,7 +41,7 @@ impl Frontend {
         let screen = ctx.screen_rect();
         let height = (screen.height() - 60.0).min(screen.width() * 0.75).max(1.0);
         let size = EVec2::new(height * 4.0 / 3.0, height);
-        let rect = Rect::from_center_size(screen.center() - EVec2::new(0.0, 12.0), size);
+        let rect = Rect::from_center_size(screen.center() - EVec2::new(0.0, 30.0), size);
         let painter = ctx.layer_painter(egui::LayerId::background());
         painter.rect_filled(screen, 0.0, Color32::BLACK);
         if let Some(texture) = &self.texture {
@@ -67,6 +72,9 @@ impl Frontend {
             FontId::proportional(13.0),
             Color32::LIGHT_GRAY,
         );
+        if !interactive || !self.ready() {
+            return None;
+        }
         let mut action = None;
         egui::Area::new("frontend mouse".into())
             .order(egui::Order::Background)
@@ -225,7 +233,8 @@ impl Frontend {
             _ => self.paint_options(campaign),
         }
         if self.page != Page::Title && !matches!(self.page, Page::Movie(_)) {
-            self.canvas.fade((128 - self.ticks as i32 * 8).max(0));
+            let step = if self.page == Page::Results { 4 } else { 8 };
+            self.canvas.fade((128 - self.ticks as i32 * step).max(0));
         }
     }
 

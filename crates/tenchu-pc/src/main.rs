@@ -25,7 +25,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS] [--record DIRECTORY]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection for the campaign or training. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
+            "tenchu-pc play DISC [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
         );
         return Ok(());
     }
@@ -46,7 +46,14 @@ fn run() -> Result<()> {
             ..Default::default()
         };
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        return window::run(assets, options, args[1].as_ref(), None, Some(player));
+        return window::run(
+            assets,
+            options,
+            args[1].as_ref(),
+            None,
+            Some(player),
+            window::Startup::default(),
+        );
     }
     if args[0] == "export-assets" && args.len() >= 3 {
         let options = session::Options::parse(&args[3..])?;
@@ -57,19 +64,30 @@ fn run() -> Result<()> {
     if args[0] == "play" && args.len() >= 2 {
         let mut launch = Vec::new();
         let mut recordings = None;
-        for pair in args[2..].chunks(2) {
-            if pair[0] == "--record" {
-                if pair.len() != 2 || recordings.is_some() {
+        let mut startup = window::Startup::default();
+        let mut arguments = args[2..].iter();
+        while let Some(key) = arguments.next() {
+            if key == "--quick" {
+                startup.quick_launcher = true;
+                continue;
+            }
+            let value = arguments.next().ok_or("Launch options require a value")?;
+            if key == "--record" {
+                if recordings.is_some() {
                     return Err("Play accepts one --record DIRECTORY".into());
                 }
-                recordings = Some(std::path::PathBuf::from(&pair[1]));
+                recordings = Some(std::path::PathBuf::from(value));
             } else {
-                launch.extend_from_slice(pair);
+                launch.extend([key.clone(), value.clone()]);
             }
         }
         let options = session::Options::parse(&launch)?;
+        startup.difficulty = launch
+            .chunks(2)
+            .any(|p| p[0] == "--difficulty")
+            .then_some(options.difficulty);
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        return window::run(assets, options, args[1].as_ref(), recordings, None);
+        return window::run(assets, options, args[1].as_ref(), recordings, None, startup);
     }
     if args[0] == "replay" && args.len() >= 3 {
         let mut launch = Vec::new();
