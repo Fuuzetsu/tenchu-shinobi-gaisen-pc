@@ -17,6 +17,7 @@ pub struct Rule {
     pub enabled: bool,
     pub threshold: f32,
     pub emission: f32,
+    pub emit_caps: bool,
     pub radius_scale: f32,
     pub color: Option<[f32; 3]>,
     pub offset: [f32; 3],
@@ -29,7 +30,8 @@ impl Default for Rule {
             model: None,
             enabled: true,
             threshold: 0.65,
-            emission: 2.0,
+            emission: 1.0,
+            emit_caps: false,
             radius_scale: 1.0,
             color: None,
             offset: [0.0; 3],
@@ -38,6 +40,25 @@ impl Default for Rule {
 }
 
 impl Rule {
+    pub fn emits_surface(&self, points: [Vec3; 3]) -> bool {
+        let normal = (points[1] - points[0])
+            .cross(points[2] - points[0])
+            .normalize_or_zero();
+        self.emit_caps || normal.y.abs() < 0.5
+    }
+
+    pub fn matches(&self, model: &catalog::ModelSource<'_>) -> bool {
+        self.model.as_ref().map_or_else(
+            || {
+                model
+                    .label
+                    .to_ascii_uppercase()
+                    .contains(&self.name_contains.to_ascii_uppercase())
+            },
+            |id| id == &model.id,
+        )
+    }
+
     pub fn validate(&self) -> Result<()> {
         if (self.name_contains.is_empty() && self.model.is_none())
             || !self.threshold.is_finite()
@@ -64,6 +85,13 @@ pub fn defaults() -> Vec<Rule> {
     serde_json::from_str(include_str!("../../data/lights.json")).unwrap()
 }
 
+pub fn rules(pack: &Pack, artwork: bool) -> Vec<Rule> {
+    artwork
+        .then(|| pack.lights.clone())
+        .flatten()
+        .unwrap_or_else(defaults)
+}
+
 struct Emitter {
     name: String,
     position: Vec3,
@@ -80,23 +108,10 @@ pub struct Emitters {
 
 impl Emitters {
     pub fn build(game: &Game, pack: &Pack, artwork: bool) -> Self {
-        let rules = artwork
-            .then(|| pack.lights.clone())
-            .flatten()
-            .unwrap_or_else(defaults);
+        let rules = rules(pack, artwork);
         let mut out = Self::default();
         for model in catalog::models(&game.mission) {
-            let Some(rule) = rules.iter().rev().find(|r| {
-                r.model.as_ref().map_or_else(
-                    || {
-                        model
-                            .label
-                            .to_ascii_uppercase()
-                            .contains(&r.name_contains.to_ascii_uppercase())
-                    },
-                    |id| id == &model.id,
-                )
-            }) else {
+            let Some(rule) = rules.iter().rev().find(|r| r.matches(&model)) else {
                 continue;
             };
             if !rule.enabled || model.geometry.is_empty() {
@@ -188,7 +203,7 @@ fn detect(
                     .cross(points[2] - points[0])
                     .length()
                     * 0.5;
-                if area == 0.0 {
+                if area == 0.0 || !rule.emits_surface(points) {
                     continue;
                 }
                 for a in 0..8 {

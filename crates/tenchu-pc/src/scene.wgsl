@@ -7,6 +7,7 @@ const FOG: u32 = 32u;
 const DEBUG: u32 = 64u;
 const XRAY: u32 = 128u;
 const UI: u32 = 256u;
+const EMITTER: u32 = 512u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -57,17 +58,21 @@ struct Fragment {
     return out;
 }
 
-fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
-    let surface_normal = normalize(cross(dpdx(v.world), dpdy(v.world)));
+fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
+    let surface_normal = normalize(cross(dpdy(v.world), dpdx(v.world)));
     var normal = surface_normal;
-    if dot(v.normal, v.normal) > 0.0001 { normal = normalize(v.normal); }
+    if dot(v.normal, v.normal) > 0.0001 {
+        normal = normalize(v.normal);
+        if dot(normal, surface_normal) < 0.0 { normal = -normal; }
+    }
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     let hdr = camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
+    let linear_lighting = hdr || (!screen && lighting.options.w != 0.0);
     var color = v.color;
-    var emission = vec3(0.0);
+    var emission = vec4(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
     var semi = (v.flags & TRANSLUCENT) != 0u;
     if (v.flags & TEXTURED) != 0u {
@@ -84,6 +89,7 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
             if pixel == 0u { discard; }
             semi = semi && (pixel & 32768u) != 0u;
         }
+        if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
             if !screen && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
                 color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
@@ -93,13 +99,14 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
                 color *= base;
             }
         }
-        if !screen && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
+        if !screen && (v.flags & EMITTER) != 0u && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
             emission = material_emission(v.material, base);
-            if hdr { emission *= pow(max(base, vec3(0.0)), vec3(1.2)); }
+            if linear_lighting { emission = vec4(emission.rgb * pow(max(base, vec3(0.0)), vec3(1.2)), emission.a); }
         }
     }
-    if hdr { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
-    if !screen { color = color * illumination(v.world, normal, surface_normal) + emission; }
+    if semi != translucent_pass { discard; }
+    if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
+    if !screen { color = mix(color * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
         let haze = 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0);
@@ -107,17 +114,21 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
     }
     if !screen { color *= camera.options.x; }
     if hdr { return vec4(max(color, vec3(0.0)), select(0.0, 1.0, semi)); }
+    if linear_lighting {
+        // Preserve hue and texture contrast instead of clipping bright lamp pools to white.
+        let peak = max(color.r, max(color.g, color.b));
+        if peak > 0.5 { color *= (0.5 + (peak - 0.5) / (1.0 + (peak - 0.5) * 2.0)) / peak; }
+        color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
+    }
     return vec4(clamp(color, vec3(0.0), vec3(1.0)), select(0.0, 1.0, semi));
 }
 
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
-    let color = shade(v, front_facing);
-    if color.a != 0.0 { discard; }
+    let color = shade(v, front_facing, false);
     return vec4(color.rgb, 1.0);
 }
 
 @fragment fn translucent(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
-    let color = shade(v, front_facing);
-    if color.a == 0.0 { discard; }
+    let color = shade(v, front_facing, true);
     return vec4(color.rgb, 1.0);
 }

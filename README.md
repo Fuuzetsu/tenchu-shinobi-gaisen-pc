@@ -305,6 +305,12 @@ move along X/Y/Z. Radius, intensity, ambient brightness, shadow filtering and
 256–2048 shadow resolution are adjustable.
 Lighting starts off; changing it never affects AI, visibility, RNG or logic timing.
 
+Lighting uses linear color, front-facing diffuse response and controlled highlights.
+Lantern light fills directional shadows naturally; moon strength is calibrated
+below local lamps. Emissive panels replace their surface lighting instead of
+adding another full bright layer. Original baked light painted into textures
+remains; replacement artwork can remove it for a fully relit look.
+
 This is a new visual treatment over the original baked colors.
 **Point-light budget** allows 0/1/2/4/8/16 simultaneous sources (default 2).
 Nearest sources fill the budget; the movable light takes priority.
@@ -317,9 +323,11 @@ them. Filtering radius 0 retains bilinear depth comparisons; 1–8 adds nine-tap
 filtering. This softens edges, rather than simulating a full area light.
 
 **Lantern / prop lights** recognizes names such as AKARI, TORO and ANDON from
-the disc, then samples bright textured surfaces to locate/color the emitter.
+the disc, then samples bright side surfaces to locate/color the emitter.
 Placements and carried-weapon transforms supply world positions. Bright panels
-glow and transmit light; their darker frames still cast shadows. This is a
+glow and transmit light; their darker frames and solid caps still cast shadows.
+Emission is scoped to those models, so shared wall textures and snowy roofs do
+not become light sources. This is a
 reusable heuristic, not recovered original lighting data. **Light source
 markers** labels active sources; **Inspect nearest lantern** focuses free camera.
 
@@ -328,6 +336,8 @@ built-in rules; `[]` disables detection. The last matching rule wins. Match with
 case-insensitive `name_contains`, or an exact catalogue `model` identity. Rules
 accept `enabled`, `threshold` (0.05–1 brightness), `emission` (0–10),
 `radius_scale` (0.1–4), optional RGB `color` and a local-space `offset`.
+`emit_caps: true` permits emission from upward/downward surfaces for custom
+fixtures; the default excludes them.
 Defaults derive color and position from the original mesh/texture; offsets let
 replacement authors adjust them. Reload through Visual assets. No mission
 coordinates are embedded in the renderer.

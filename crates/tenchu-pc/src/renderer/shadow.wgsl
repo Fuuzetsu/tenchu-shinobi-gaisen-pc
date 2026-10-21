@@ -46,7 +46,7 @@ struct Fragment {
             color = rgb(pixel);
             if pixel == 0u || ((v.flags & 4u) != 0u && (pixel & 32768u) != 0u) { discard; }
         }
-        if face.options.x != 0.0 && material_transmits(v.material, color) { discard; }
+        if face.options.x != 0.0 && (v.flags & 512u) != 0u && material_transmits(v.material, color) { discard; }
     } else if (v.flags & 4u) != 0u {
         discard;
     }

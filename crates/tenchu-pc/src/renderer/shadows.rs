@@ -272,7 +272,7 @@ impl Shadows {
         data.extend(sun_matrix.inverse().to_cols_array());
         data.extend(
             super::sun::direction(&settings.directional)
-                .extend(f32::from(settings.directional.intensity) / 100.0)
+                .extend(f32::from(settings.directional.intensity) / 400.0)
                 .to_array(),
         );
         data.extend(super::sun::color(&settings.directional));

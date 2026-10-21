@@ -21,6 +21,7 @@ pub const FOG: u32 = 32;
 pub const DEBUG: u32 = 64;
 pub const XRAY: u32 = 128;
 pub const UI: u32 = 256;
+pub const EMITTER: u32 = 512;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]

@@ -83,23 +83,23 @@ impl Meshes {
         force: bool,
     ) -> Result<Self> {
         let mut out = Self::default();
-        if !force
-            && !(graphics.asset_pack && !pack.models.is_empty())
-            && !graphics.smooth_models
-            && graphics.model_detail == 0
-        {
-            return Ok(out);
-        }
+        let rules = super::lights::rules(pack, graphics.asset_pack);
         let region_ids = catalog::regions(mission);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
         for source in sources {
+            let emitter = rules
+                .iter()
+                .rev()
+                .find(|rule| rule.matches(&source))
+                .filter(|rule| rule.enabled);
             let replacement = graphics
                 .asset_pack
                 .then(|| pack.models.get(&source.id))
                 .flatten();
             let round = source.id.starts_with("actors/") && replacement.is_none();
             if !force
+                && emitter.is_none()
                 && replacement.is_none()
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
@@ -198,6 +198,16 @@ impl Meshes {
                             for vertex in &mut vertices[start..] {
                                 vertex.material = material;
                             }
+                        }
+                    }
+                }
+            }
+            if let Some(rule) = emitter {
+                for triangle in vertices.chunks_exact_mut(3) {
+                    if rule.emits_surface(std::array::from_fn(|i| Vec3::from(triangle[i].position)))
+                    {
+                        for vertex in triangle {
+                            vertex.flags |= render_mesh::EMITTER;
                         }
                     }
                 }
@@ -302,6 +312,8 @@ mod tests {
             .unwrap();
             let pack = Pack::load(&root).unwrap();
             let models = Models::build(&game.mission, &pack, &Graphics::default()).unwrap();
+            let original_models =
+                Models::build(&game.mission, &Pack::default(), &Graphics::default()).unwrap();
             assert!(models.replacements > 500);
             let region_ids = super::catalog::regions(&game.mission);
             let mut checked = 0;
@@ -318,6 +330,13 @@ mod tests {
                         ));
                     }
                 }
+                let mut index = 0;
+                original_models.visit(geometry, matrix, true, |triangle| {
+                    for vertex in triangle {
+                        original[index].flags = vertex.flags;
+                        index += 1;
+                    }
+                });
                 let mut edited = Vec::new();
                 if !models.visit(geometry, matrix, true, |triangle| edited.extend(triangle)) {
                     assert!(original.is_empty());

@@ -8,22 +8,23 @@ struct Material {
 @group(2) @binding(1) var material_sampler: sampler;
 @group(2) @binding(2) var<storage, read> materials: array<Material>;
 
-fn material_emission(index: u32, color: vec3<f32>) -> vec3<f32> {
-    if index == 0u || index >= arrayLength(&materials) { return vec3(0.0); }
+fn material_emission(index: u32, color: vec3<f32>) -> vec4<f32> {
+    if index == 0u || index >= arrayLength(&materials) { return vec4(0.0); }
     let emission = materials[index].emission;
+    if all(emission.rgb == vec3(0.0)) { return vec4(0.0); }
     let brightness = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    return color * emission.rgb * smoothstep(emission.a - 0.05, emission.a + 0.05, brightness);
+    return vec4(color * emission.rgb, smoothstep(emission.a - 0.05, emission.a + 0.05, brightness));
 }
 
 fn material_replaced(index: u32) -> bool {
-    return index != 0u && index < arrayLength(&materials) && materials[index].info.w != 0u;
+    return index != 0u && index < arrayLength(&materials) && (materials[index].info.w & 1u) != 0u;
 }
 
 fn material_transmits(index: u32, color: vec3<f32>) -> bool {
     if index == 0u || index >= arrayLength(&materials) { return false; }
     let emission = materials[index].emission;
     return any(emission.rgb > vec3(0.0))
-        && dot(color, vec3(0.2126, 0.7152, 0.0722)) >= emission.a * 0.5;
+        && dot(color, vec3(0.2126, 0.7152, 0.0722)) >= emission.a;
 }
 
 fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
@@ -34,8 +35,10 @@ fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
     let page = u32(rect.x) / side;
     let origin = vec2<i32>(i32(u32(rect.x) % side), i32(rect.y));
     let point = origin + vec2<i32>(clamp(floor(uv * rect.zw), vec2(0.0), rect.zw - vec2(1.0)));
-    let opaque = textureLoad(material_images, point, i32(page * 2u), 0);
-    let semi = textureLoad(material_images, point, i32(page * 2u + 1u), 0);
+    var opaque = vec4(0.0);
+    var semi = vec4(0.0);
+    if (material.info.w & 2u) != 0u { opaque = textureLoad(material_images, point, i32(page * 2u), 0); }
+    if (material.info.w & 4u) != 0u { semi = textureLoad(material_images, point, i32(page * 2u + 1u), 0); }
     return vec4(opaque.rgb + semi.rgb, opaque.a + semi.a * 0.5);
 }
 
@@ -48,8 +51,10 @@ fn material_level(material: Material, uv: vec2<f32>, level: u32, semi: bool, ble
     if blended {
         return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + select(0u, 1u, semi)), 0.0);
     }
-    return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u), 0.0)
-        + textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + 1u), 0.0);
+    var color = vec4(0.0);
+    if (material.info.w & 2u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u), 0.0); }
+    if (material.info.w & 4u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + 1u), 0.0); }
+    return color;
 }
 
 fn cubic_weights(t: f32) -> vec4<f32> {
@@ -76,6 +81,8 @@ fn material_closeup(material: Material, uv: vec2<f32>, footprint: vec2<f32>, mod
     var color = vec4(0.0);
     var low = vec4(1.0);
     var high = vec4(0.0);
+    var low_rgb = vec3(1.0);
+    var high_rgb = vec3(0.0);
     for (var y = 0u; y < 4u; y++) {
         for (var x = 0u; x < 4u; x++) {
             let sample = material_level(material, (base + vec2(f32(x), f32(y)) - vec2(0.5)) / size, 0u, semi, blended);
@@ -83,11 +90,17 @@ fn material_closeup(material: Material, uv: vec2<f32>, footprint: vec2<f32>, mod
             if (x == 1u || x == 2u) && (y == 1u || y == 2u) {
                 low = min(low, sample);
                 high = max(high, sample);
+                if sample.a > 0.00001 {
+                    let rgb = sample.rgb / sample.a;
+                    low_rgb = min(low_rgb, rgb);
+                    high_rgb = max(high_rgb, rgb);
+                }
             }
         }
     }
-    // Bound interpolation overshoot, including premultiplied alpha at texture holes.
-    return clamp(color, low, high);
+    // Bound straight color as well as coverage: independent RGBA bounds can brighten cutout edges.
+    color = clamp(color, low, high);
+    return vec4(clamp(color.rgb, low_rgb * color.a, high_rgb * color.a), color.a);
 }
 
 fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32>, anisotropy: f32, filtering: f32, magnification: f32, semi: bool, blended: bool, fallback: vec3<f32>) -> vec3<f32> {

@@ -23,15 +23,18 @@ fn shadow_face(direction: vec3<f32>) -> u32 {
 fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32>) -> vec3<f32> {
     if lighting.options.w == 0.0 { return vec3(1.0); }
     var result = lighting.options.x * mix(vec3(1.0), vec3(0.6, 0.75, 1.0), lighting.lamps.z);
-    if lighting.sun_direction.w > 0.0 {
+    let sun_diffuse = max(0.0, dot(normal, lighting.sun_direction.xyz));
+    if lighting.sun_direction.w > 0.0 && sun_diffuse > 0.0 {
         result += lighting.sun_color.rgb * lighting.sun_direction.w
-            * abs(dot(normal, lighting.sun_direction.xyz)) * sun_visibility(position, surface_normal);
+            * sun_diffuse * sun_visibility(position, surface_normal);
     }
     for (var i = 0u; i < u32(lighting.options.z); i++) {
         let light = lighting.lights[i];
         let delta = position - light.position.xyz;
         let distance = length(delta);
         if distance >= light.position.w || distance < 1.0 { continue; }
+        let diffuse = max(0.0, dot(normal, -delta / distance));
+        if diffuse == 0.0 { continue; }
         var visibility = 1.0;
         if light.color.w != 0.0 {
             let layer = u32(light.color.w - 1.0) * 6u + shadow_face(delta);
@@ -51,9 +54,9 @@ fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32
             }
             visibility = shadow_visibility(uv, layer, p.z / p.w, gradient);
         }
-        let falloff = max(0.0, 1.0 - distance / light.position.w);
+        let falloff = 1.0 - smoothstep(0.0, 1.0, distance / light.position.w);
         result += light.color.rgb * lighting.options.y * falloff * falloff
-            * abs(dot(normal, delta / distance)) * visibility;
+            * diffuse * visibility;
     }
     return result;
 }

@@ -571,7 +571,11 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     let lit = draw(&mut renderer, &[light], &[]);
     let shadowed = draw(&mut renderer, &[light], &[&blocker]);
     assert!(lit[0] > shadowed[0] + 25, "{lit:?} versus {shadowed:?}");
-    assert!((i32::from(shadowed[0]) - 38).abs() <= 2, "{shadowed:?}");
+    let ambient = (0.5 * 0.3f32.powf(1.0 / 2.2) * 255.0).round() as i32;
+    assert!(
+        (i32::from(shadowed[0]) - ambient).abs() <= 2,
+        "{shadowed:?}"
+    );
     assert_eq!(draw(&mut renderer, &[light], &[&transparent]), lit);
     vram.words[0] = 0x7fff;
     renderer.update_vram(&vram);
@@ -609,12 +613,22 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         )]));
     vram.words[0] = 0x7fff;
     renderer.update_vram(&vram);
+    // Reusing a lantern's texture does not make ordinary scenery luminous or transparent.
+    assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
+    let transparent = renderer.upload(&quad(
+        blocker_position,
+        140.0,
+        render_mesh::TEXTURED | render_mesh::EMITTER,
+    ));
     assert_eq!(draw(&mut renderer, &[light], &[&transparent]), lit);
     graphics.lighting.lamps = false;
     renderer.configure(&graphics);
     assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
     graphics.lighting.lamps = true;
     renderer.configure(&graphics);
+    vram.words[0] = 0x4210;
+    renderer.update_vram(&vram);
+    assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
     vram.words[0] = 31;
     renderer.update_vram(&vram);
     assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
@@ -815,11 +829,11 @@ fn directional_shadows_cover_scenery_without_point_sources() {
     graphics.lighting.shadows = false;
     renderer.configure(&graphics);
     let lit = draw(&mut renderer, 123.0);
-    assert!(lit[0] > shadow[0] + 80, "{lit:?} versus {shadow:?}");
+    assert!(lit[0] > shadow[0] + 20, "{lit:?} versus {shadow:?}");
     graphics.lighting.directional.color = 1;
     renderer.configure(&graphics);
     let cool = draw(&mut renderer, 123.0);
-    assert!(cool[2] > cool[0] + 25);
+    assert!(cool[2] > cool[0] + 5);
     graphics.lighting.directional.intensity = 0;
     renderer.configure(&graphics);
     assert_eq!(draw(&mut renderer, 123.0), shadow);
@@ -1054,5 +1068,155 @@ fn graphics_options_filter_palettes_and_resolve_supported_sample_counts() {
         &read_pixel(&renderer, &target)[..3],
         &[255, 0, 0],
         "restoring defaults restores the original image"
+    );
+}
+
+#[test]
+#[ignore = "requires a graphics adapter; local lights fill moon shadows, back-facing caps stay dark, and highlights retain detail"]
+fn lanterns_fill_moon_shadows_without_lighting_backfaces_or_clipping() {
+    use crate::lighting::Light;
+    use glam::Vec3;
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let matrix = Mat4::orthographic_rh(-1000.0, 1000.0, -1000.0, 1000.0, 1.0, 5000.0)
+        * Mat4::look_to_rh(Vec3::new(0.0, 0.0, -2000.0), Vec3::Z, Vec3::NEG_Y);
+    let quad = |center: Vec3, size: f32, color: f32| {
+        let points = [
+            Vec3::new(-size, -size, 0.0),
+            Vec3::new(size, -size, 0.0),
+            Vec3::new(-size, size, 0.0),
+            Vec3::new(size, size, 0.0),
+        ];
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: (center + points[i]).to_array(),
+            color: [color; 3],
+            normal: [0.0; 3],
+            uv: [0.0; 2],
+            page: 0,
+            palette: 0,
+            material: 0,
+            flags: render_mesh::DOUBLE_SIDED,
+        })
+    };
+    let ground = renderer.upload(&quad(Vec3::ZERO, 1000.0, 0.5));
+    let bright = renderer.upload(&quad(Vec3::ZERO, 1000.0, 1.0));
+    let sample = Vec3::new(-234.375, -234.375, 0.0);
+    let lamp = Light {
+        position: Vec3::new(-800.0, 300.0, -900.0),
+        color: [1.0; 3],
+        radius: 5000.0,
+    };
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.lighting.enabled = true;
+    graphics.lighting.ambient = 5;
+    graphics.lighting.intensity = 220;
+    graphics.lighting.directional.intensity = 50;
+    graphics.lighting.directional.color = 0;
+    graphics.lighting.directional.azimuth = 180;
+    graphics.lighting.directional.elevation = 45;
+    graphics.lighting.directional.radius = 10;
+    graphics.lighting.directional.resolution = 2048;
+    let roof = renderer.upload(&quad(
+        sample + super::sun::direction(&graphics.lighting.directional) * 500.0,
+        100.0,
+        0.5,
+    ));
+    let lamp_blocker = renderer.upload(&quad((sample + lamp.position) * 0.5, 100.0, 0.5));
+    let draw = |renderer: &mut Renderer, receiver: &Mesh, lights: &[Light], blockers: &[&Mesh]| {
+        renderer
+            .draw_lit(&view, matrix, &[receiver], None, lights, blockers)
+            .unwrap();
+        f32::from(read_pixel(renderer, &target)[0])
+    };
+    for hdr in [false, true] {
+        graphics.post.enabled = hdr;
+        renderer.configure(&graphics);
+        let moon = draw(&mut renderer, &ground, &[], &[]);
+        let moon_shadow = draw(&mut renderer, &ground, &[], &[&roof]);
+        let local = draw(&mut renderer, &ground, &[lamp], &[]);
+        let filled = draw(&mut renderer, &ground, &[lamp], &[&roof]);
+        let blocked = draw(&mut renderer, &ground, &[lamp], &[&lamp_blocker]);
+        assert!(
+            moon > moon_shadow + 5.0,
+            "moon {moon} / shadow {moon_shadow}"
+        );
+        assert!(
+            (local - filled) / local < (moon - moon_shadow) / moon * 0.3,
+            "nearby lamp fills moon shadow: {local} / {filled} vs {moon} / {moon_shadow}"
+        );
+        assert!(
+            local - blocked > (local - filled) * 3.0,
+            "local occlusion dominates: {local} / {blocked} / {filled}"
+        );
+    }
+    graphics.post.enabled = false;
+    graphics.lighting.directional.intensity = 0;
+    graphics.lighting.shadows = false;
+    graphics.lighting.intensity = 500;
+    renderer.configure(&graphics);
+    let ambient = draw(&mut renderer, &ground, &[], &[]);
+    let behind = Light {
+        position: sample + Vec3::Z * 100.0,
+        ..lamp
+    };
+    assert_eq!(
+        draw(&mut renderer, &ground, &[behind], &[]),
+        ambient,
+        "cap facing away from an internal lamp receives no direct light"
+    );
+    let front = Light {
+        position: sample - Vec3::Z * 100.0,
+        ..lamp
+    };
+    let gray = draw(&mut renderer, &ground, &[front], &[]);
+    let white = draw(&mut renderer, &bright, &[front], &[]);
+    assert!(
+        white < 255.0 && white > gray + 10.0,
+        "highlight contrast: gray {gray}, white {white}"
+    );
+}
+
+#[test]
+#[ignore = "requires a graphics adapter; cubic filtering of foliage cutouts must not invent bright pixels"]
+fn cubic_cutout_colors_stay_within_the_source_range() {
+    let mut vram = Vram::default();
+    vram.images.push(tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [4, 1],
+    });
+    vram.words[..4].copy_from_slice(&[0x8000, 15 << 5, 0, 0]);
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for vertex in &mut vertices {
+        vertex.uv = [(vertex.position[0] + 600.0) / 1200.0 * 3.0, 0.0];
+    }
+    let mesh = renderer.upload(&vertices);
+    let mut options = crate::settings::Graphics::default();
+    options.set_filtering(6);
+    options.magnification = 2;
+    options.post.enabled = true;
+    options.post.filmic = false;
+    renderer.configure(&options);
+    renderer
+        .draw(&view, game_camera(Matrix::default(), 1.0), &[&mesh], None)
+        .unwrap();
+    let pixels = read_pixels(&renderer, &target);
+    let green = pixels.chunks_exact(4).map(|p| p[1]).max().unwrap();
+    assert!(
+        green <= 124,
+        "cubic alpha-edge overshoot: {green}, source maximum 123"
     );
 }

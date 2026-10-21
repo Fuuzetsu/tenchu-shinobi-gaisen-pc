@@ -32,6 +32,20 @@ struct Entry {
 }
 
 impl Entry {
+    fn flags(&self) -> u32 {
+        self.image
+            .rgba
+            .chunks_exact(4)
+            .fold(u32::from(self.replaced), |flags, pixel| {
+                flags
+                    | match pixel[3] {
+                        0 => 0,
+                        1..192 => 4,
+                        _ => 2,
+                    }
+            })
+    }
+
     fn prepare(&mut self, textures: &BTreeMap<String, Arc<Image>>, enabled: bool, upscale: u16) {
         let replacement = enabled.then(|| textures.get(&self.id)).flatten();
         let image = replacement.map_or_else(
@@ -284,7 +298,7 @@ impl Materials {
             entry.mips = entry.image.mips();
             if !self.repack {
                 let material = &mut self.atlas.materials[index + 1];
-                material.info[3] = u32::from(entry.replaced);
+                material.info[3] = entry.flags();
                 queue.write_buffer(
                     &self.atlas.data,
                     ((index + 1) * std::mem::size_of::<Material>()) as u64,
@@ -356,7 +370,7 @@ impl Materials {
                 entry.mips.len() as u32,
                 entry.image.size[0],
                 entry.image.size[1],
-                u32::from(entry.replaced),
+                entry.flags(),
             ];
         }
         let page_bytes = (side * side * 4) as usize;
