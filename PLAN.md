@@ -178,9 +178,11 @@ Completed visual/configuration refinement:
 - [x] Measure MSAA/distant-view costs and remove redundant texture-layer and shadow sampling.
 - [x] Add live CPU/GPU performance plots, averages, p95, freeze and clear.
 - [x] Add optional persistent activation/animation of distant enemies, with default behavior unchanged.
-- [ ] Finish final packaging checks and commit verification evidence.
+- [x] Finish final packaging checks and commit verification evidence.
 
-Evidence: all 139 core fixture/oracle tests passed, including default activation
+Evidence: all 139 core fixture/oracle tests and all 73 desktop tests passed with
+private fixtures enabled. Formatting and warning-free workspace Clippy passed;
+Nix native packaging, portable WASM and formatting checks passed. This includes default activation
 parity and a distant guard patrol with the override. All 66 mission/character/layout
 combinations ran with distant AI enabled. Thirteen GPU regression cases passed,
 including mixed moon/lantern shadows, back-facing caps, highlight contrast and
