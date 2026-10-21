@@ -103,7 +103,13 @@ fn inspecting_live_state_does_not_change_the_game() {
             debug.focus(&game, true);
             let (origin, direction) = camera::ray(debug.matrix(&game, 16.0 / 9.0), [0.0, 0.0]);
             debug.pick_actor(&game, origin, direction);
-            assert!(!debug.overlay(&game, 16.0 / 9.0).vertices.is_empty());
+            assert!(
+                !debug
+                    .overlay(&game, 16.0 / 9.0)
+                    .geometry
+                    .vertices
+                    .is_empty()
+            );
             assert!(!crate::render_mesh::characters_presented(&game, None, true, None).is_empty());
             crate::render_effects::build_for_camera(&game, true, Some(camera.source_view()));
         }

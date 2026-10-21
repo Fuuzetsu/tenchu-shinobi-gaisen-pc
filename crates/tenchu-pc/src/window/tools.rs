@@ -62,6 +62,14 @@ impl Application {
         self.campaign.game.intelligence.sight_percent = value;
     }
 
+    pub(super) fn keep_enemies_active(&mut self, enabled: bool) {
+        if self.campaign.game.activation.keep_all_active != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.keep_enemies_active = enabled;
+        self.campaign.game.activation.keep_all_active = enabled;
+    }
+
     fn teleport(&mut self) -> Result<()> {
         if !self.campaign.playing() {
             return Err("Start a mission before teleporting".into());
@@ -108,6 +116,7 @@ impl Application {
         {
             self.menu.notice = error;
             self.settings = previous.clone();
+            self.campaign.game.activation.keep_all_active = previous.keep_enemies_active;
             return;
         }
         if self.settings != *previous
@@ -162,13 +171,7 @@ impl Application {
                 }
             }
             Item::Preset => {
-                let current = self.settings.graphics.preset();
-                let index = if current == 3 {
-                    if direction < 0 { 2 } else { 0 }
-                } else {
-                    cycle(current, &[0, 1, 2], direction)
-                };
-                self.settings.graphics.set_preset(index);
+                self.settings.graphics.cycle_preset(direction);
             }
             Item::Post => {
                 self.settings.graphics.post.enabled = !self.settings.graphics.post.enabled
@@ -423,6 +426,7 @@ impl Application {
             }
             Item::Fps => self.settings.show_fps = !self.settings.show_fps,
             Item::Focus => self.settings.pause_on_defocus = !self.settings.pause_on_defocus,
+            Item::MenuPause => self.settings.pause_in_menu = !self.settings.pause_in_menu,
             Item::Fullscreen => self.settings.fullscreen = !self.settings.fullscreen,
             Item::Vsync => self.settings.vsync = !self.settings.vsync,
             Item::Hud => self.settings.show_hud = !self.settings.show_hud,
@@ -431,6 +435,7 @@ impl Application {
                     (i32::from(self.settings.volume) + direction * 5).clamp(0, 100) as u16
             }
             Item::Reset => {
+                self.keep_enemies_active(false);
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
                 }
@@ -570,6 +575,7 @@ impl Application {
                     (i32::from(self.debug.sight_percent) + direction * 25).clamp(0, 400) as u16;
                 self.set_sight(value);
             }
+            Item::KeepEnemiesActive => self.keep_enemies_active(!self.settings.keep_enemies_active),
             Item::Screenshot => {
                 self.screenshot = true;
                 self.menu.open = false;
@@ -577,6 +583,7 @@ impl Application {
             Item::ResetTweaks => {
                 self.debug.speed = 100;
                 self.set_sight(100);
+                self.keep_enemies_active(false);
             }
         }
         Ok(())

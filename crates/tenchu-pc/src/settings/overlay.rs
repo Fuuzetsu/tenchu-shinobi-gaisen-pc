@@ -47,7 +47,11 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
         .collapsible(false)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.weak("Paused while open");
+                ui.weak(if paused || settings.pause_in_menu {
+                    "Paused"
+                } else {
+                    "Game running"
+                });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.weak("F1 / Esc: close · Tab / Shift+Tab: category");
                 });
@@ -275,7 +279,7 @@ fn widget(
         return response;
     }
     let choices: Vec<String> = match item {
-        Item::Preset => super::presets::NAMES[..3]
+        Item::Preset => super::presets::NAMES[..super::presets::CUSTOM as usize]
             .iter()
             .map(|s| s.to_string())
             .collect(),

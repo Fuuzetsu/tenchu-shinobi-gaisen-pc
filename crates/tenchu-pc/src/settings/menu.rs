@@ -10,6 +10,7 @@ pub enum Item {
     PhotoMode,
     Fps,
     Focus,
+    MenuPause,
     Fullscreen,
     Vsync,
     Hud,
@@ -53,6 +54,7 @@ pub enum Item {
     Step,
     Speed,
     SightDistance,
+    KeepEnemiesActive,
     CutsceneSpeed,
     Screenshot,
     ResetTweaks,
@@ -381,6 +383,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Off: game and audio keep running.",
             ),
             (
+                Item::MenuPause,
+                "Pause while settings are open",
+                on(s.pause_in_menu),
+                "Off: watch the game live while adjusting settings.",
+            ),
+            (
                 Item::Fullscreen,
                 "Fullscreen",
                 on(s.fullscreen),
@@ -706,6 +714,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "GAMEPLAY EDIT: sight ranges, not activation.",
             ),
             (
+                Item::KeepEnemiesActive,
+                "Keep all enemies active",
+                on(s.keep_enemies_active),
+                "GAMEPLAY EDIT: distant enemies keep thinking and patrolling; ends recording.",
+            ),
+            (
                 Item::Screenshot,
                 "Screenshot / F9",
                 "Enter".into(),
@@ -715,7 +729,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::ResetTweaks,
                 "Reset simulation tweaks",
                 "Enter".into(),
-                "Restore 100% speed and original enemy sight.",
+                "Restore original speed, enemy sight and activation.",
             ),
         ],
         _ => {

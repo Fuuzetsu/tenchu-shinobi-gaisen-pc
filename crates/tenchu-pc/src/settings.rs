@@ -13,6 +13,8 @@ use tenchu_assets::Result;
 pub struct Settings {
     pub show_fps: bool,
     pub pause_on_defocus: bool,
+    pub pause_in_menu: bool,
+    pub keep_enemies_active: bool,
     pub fullscreen: bool,
     pub vsync: bool,
     pub show_hud: bool,
@@ -28,6 +30,8 @@ impl Default for Settings {
         Self {
             show_fps: false,
             pause_on_defocus: true,
+            pause_in_menu: true,
+            keep_enemies_active: false,
             fullscreen: false,
             vsync: true,
             show_hud: true,

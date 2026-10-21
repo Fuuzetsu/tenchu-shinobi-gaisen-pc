@@ -11,12 +11,17 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Activation {
+    pub keep_all_active: bool,
     pub raw_budget: i16,
     pub budget: i16,
     pub count: i16,
 }
 
 impl Activation {
+    fn keeps_active(&self, actor: &crate::actor::Actor) -> bool {
+        self.keep_all_active && actor.kind >= 0x80 && actor.kind != 0xa9 && actor.health >= 0
+    }
+
     fn update_budget(&mut self, bytes: u32) {
         self.raw_budget = ((60536 - bytes as i32) / 5000 - 1) as i16;
         self.budget = if self.raw_budget < 2 {
@@ -31,6 +36,15 @@ impl Activation {
 
 impl Game {
     pub(super) fn activate(&mut self) -> Result<()> {
+        if self.activation.keep_all_active {
+            for &id in &self.roster.order {
+                let actor = self.roster.actors[id].as_mut().unwrap();
+                if self.activation.keeps_active(actor) && actor.attribute & ATTR_SUSPEND != 0 {
+                    actor.attribute &= !ATTR_SUSPEND;
+                    self.scene.models[actor.parts[0]].attribute |= COLLIDE;
+                }
+            }
+        }
         if self.clock % 30 != 0 {
             return Ok(());
         }
@@ -53,7 +67,9 @@ impl Game {
                 actor.position[i].wrapping_sub(position[i])
             }));
             let suspended = actor.attribute & ATTR_SUSPEND != 0;
-            let active = if distance > 17000 {
+            let active = if self.activation.keeps_active(actor) {
+                true
+            } else if distance > 17000 {
                 false
             } else if actor.kind & 0xf0 == 0x80
                 || actor.kind == 0xa9

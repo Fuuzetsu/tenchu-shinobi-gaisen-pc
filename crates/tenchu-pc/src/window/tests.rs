@@ -110,7 +110,7 @@ fn per_value_reset_does_not_execute_actions_or_reset_other_options() {
     app.apply_item(Item::Preset, 1).unwrap();
     assert_eq!(app.settings.graphics.preset(), 2);
     app.apply_item(Item::Bloom, 1).unwrap();
-    assert_eq!(app.settings.graphics.preset(), 3);
+    assert_eq!(app.settings.graphics.preset(), settings::presets::CUSTOM);
     app.apply_item(Item::PhotoMode, 1).unwrap();
     assert!(app.debug.photo_mode && app.debug.active());
     let mut effects = crate::render_effects::build(&app.campaign.game);
@@ -184,4 +184,82 @@ fn fast_forward_preserves_updates_and_stops_at_gameplay() {
             assert_eq!(app.campaign.game.tick, tick + 1);
         }
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; a live settings overlay must not feed menu input into gameplay or bypass explicit pauses"]
+fn live_settings_keep_simulating_without_menu_input() {
+    let options = Options {
+        mission: 2,
+        ..Default::default()
+    };
+    let mut app = application(options);
+    let mut reference = application(options);
+    app.menu.open = true;
+    app.apply_item(Item::MenuPause, 1).unwrap();
+    app.controls.key(KeyCode::KeyW, true);
+    let tick = app.campaign.game.tick;
+    app.advance_simulation(Duration::from_millis(34));
+    assert_eq!(app.campaign.game.tick, tick + 1);
+    reference.campaign.tick(0).unwrap();
+    assert_eq!(
+        crate::session::tests::state(&app.campaign.game),
+        crate::session::tests::state(&reference.campaign.game)
+    );
+    app.set_paused(true);
+    app.advance_simulation(Duration::from_secs(1));
+    assert_eq!(app.campaign.game.tick, tick + 1);
+    app.set_paused(false);
+    app.focused = false;
+    app.advance_simulation(Duration::from_secs(1));
+    assert_eq!(app.campaign.game.tick, tick + 1);
+    app.focused = true;
+    app.reset_item(Item::MenuPause).unwrap();
+    app.advance_simulation(Duration::from_secs(1));
+    assert_eq!(app.campaign.game.tick, tick + 1);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; all mission/layout rosters run with activation limits disabled"]
+fn all_enemy_activation_survives_layouts_and_mission_reloads() {
+    let mut app = application(Options::default());
+    app.apply_item(Item::KeepEnemiesActive, 1).unwrap();
+    assert!(app.campaign.game.activation.keep_all_active);
+    app.reset_item(Item::KeepEnemiesActive).unwrap();
+    assert!(!app.campaign.game.activation.keep_all_active);
+    let saved: Settings = serde_json::from_str(r#"{"keep_enemies_active":true}"#).unwrap();
+    assert!(saved.keep_enemies_active);
+    for mission in 0..=10 {
+        for character in 0..2 {
+            for layout in 1..=3 {
+                let options = Options {
+                    mission,
+                    character,
+                    layout,
+                    ..Default::default()
+                };
+                let mut game = options.load(&app.assets).unwrap();
+                game.activation.keep_all_active = true;
+                game.events = Default::default();
+                for _ in 0..300 {
+                    game.step(0).unwrap_or_else(|e| {
+                        panic!("mission {mission}, character {character}, layout {layout}: {e}")
+                    });
+                }
+                for &id in &game.roster.order {
+                    let actor = game.roster.get(id);
+                    if actor.kind >= 0x80 && actor.kind != 0xa9 && actor.health >= 0 {
+                        assert_eq!(actor.attribute & tenchu_core::ids::ATTR_SUSPEND, 0);
+                    }
+                }
+            }
+        }
+    }
+    app.keep_enemies_active(true);
+    app.campaign.screen = Screen::Launcher;
+    app.action(Action::Confirm);
+    app.action(Action::Confirm);
+    assert!(app.campaign.game.activation.keep_all_active);
+    app.apply_item(Item::ResetTweaks, 1).unwrap();
+    assert!(!app.settings.keep_enemies_active && !app.campaign.game.activation.keep_all_active);
 }

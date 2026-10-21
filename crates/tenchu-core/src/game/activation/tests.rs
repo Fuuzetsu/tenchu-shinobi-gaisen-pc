@@ -139,6 +139,7 @@ int main(void) {{
             budget: [0, 3, 4, 5, 6, -1, i16::MAX, i16::MIN][case % 8],
             raw_budget: -7,
             count: 9,
+            ..Activation::default()
         };
         let action = if case & 8 == 0 { 0xf05 } else { 0x500 };
         game.roster.get_mut(game.player_id).motion.action = action;
@@ -238,4 +239,72 @@ int main(void) {{
     for (case, (expected, actual)) in expected.iter().zip(&actual).enumerate() {
         assert_eq!(expected, actual, "activation case {case}");
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; distant patrols must actually update without waking story actors"]
+fn always_active_runs_distant_ai_and_restores_retail_activation() {
+    let mut game = oracle::game(0, 0);
+    let mut reference = oracle::game(0, 0);
+    let guard = game
+        .roster
+        .order
+        .iter()
+        .copied()
+        .find(|&id| {
+            let a = game.roster.get(id);
+            a.health > 0
+                && a.patrol.is_some()
+                && game
+                    .math
+                    .vector_distance(a.position.wrapping_sub(game.player().position))
+                    > 17000
+        })
+        .expect("distant patrol in Mission 1");
+    let position = game.roster.get(guard).position;
+    let hidden: Vec<_> = game
+        .roster
+        .order
+        .iter()
+        .copied()
+        .filter(|&id| game.roster.get(id).health < 0)
+        .map(|id| (id, game.roster.get(id).attribute))
+        .collect();
+    let slots = game.collision.len;
+    game.activation.keep_all_active = true;
+    game.clock = 31;
+    game.activate().unwrap();
+    assert_eq!(
+        game.roster.get(guard).position,
+        position,
+        "no home teleport on activation"
+    );
+    assert_eq!(game.roster.get(guard).attribute & ATTR_SUSPEND, 0);
+    assert_ne!(
+        game.scene.models[game.roster.get(guard).parts[0]].attribute & COLLIDE,
+        0
+    );
+    assert_eq!(
+        game.collision.len, slots,
+        "actors already own collision slots"
+    );
+    for (id, attribute) in hidden {
+        assert_eq!(game.roster.get(id).attribute, attribute);
+    }
+    game.clock = 0;
+    for _ in 0..180 {
+        game.step(0).unwrap();
+        reference.step(0).unwrap();
+    }
+    assert_ne!(
+        game.roster.get(guard).position,
+        position,
+        "distant patrol must walk"
+    );
+    assert_eq!(reference.roster.get(guard).position, position);
+    assert_ne!(reference.roster.get(guard).attribute & ATTR_SUSPEND, 0);
+    game.activation.keep_all_active = false;
+    game.clock = 210;
+    game.activate().unwrap();
+    assert_ne!(game.roster.get(guard).attribute & ATTR_SUSPEND, 0);
 }

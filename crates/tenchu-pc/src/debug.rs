@@ -1,6 +1,6 @@
 pub mod camera;
 mod overlay;
-pub use overlay::light_markers;
+pub use overlay::{Anchor, Label, Overlay, light_markers};
 pub mod terrain;
 
 #[cfg(test)]
@@ -192,7 +192,7 @@ impl Debug {
         }
     }
 
-    pub fn overlay(&self, game: &Game, aspect: f32) -> crate::render_effects::Geometry {
+    pub fn overlay(&self, game: &Game, aspect: f32) -> Overlay {
         overlay::build(self, game, aspect)
     }
 

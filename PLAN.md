@@ -168,6 +168,18 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
+Current visual refinement pass:
+
+- [ ] Balance lantern spill, surface glow and moon shadows; retain detail near lights.
+- [ ] Fix preset-only pale surfaces in Mission 5 and investigate foliage/snow flicker.
+- [ ] Add distinct visual presets with the Original baseline unchanged.
+- [x] Allow F1 to stay open while gameplay runs, with pausing still the default.
+- [x] Use clear overlay text for actor/light labels, FPS and debug readouts.
+- [ ] Measure MSAA/contact-shading cost and remove redundant depth sampling.
+- [ ] Add live CPU/GPU performance plots.
+- [x] Add optional persistent activation of distant enemies, with default behavior unchanged.
+- [ ] Verify GPU regressions, real mission captures/native play, format, Clippy and packaging; commit each coherent change.
+
 Live player appearance swapping and the idiomatic Rust refactor are complete.
 Gameplay behavior is preserved while the implementation uses named types and
 explicit operations instead of retaining C-shaped data structures.

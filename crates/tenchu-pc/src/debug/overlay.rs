@@ -1,10 +1,23 @@
 use super::Debug;
 use crate::{
-    render_effects::{self, Batch, Geometry},
+    render_effects::{Batch, Geometry},
     render_mesh::{DEBUG, DOUBLE_SIDED, SCREEN, Vertex, XRAY},
 };
 use glam::{Mat4, Vec3, Vec4};
 use tenchu_core::{game::Game, ids::ATTR_SUSPEND};
+
+pub struct Overlay {
+    pub geometry: Geometry,
+    pub labels: Vec<Label>,
+}
+
+pub enum Anchor {
+    Projected([f32; 2]),
+    TopLeft([f32; 2]),
+    BottomLeft([f32; 2]),
+}
+
+pub struct Label(pub Anchor, pub String, pub [f32; 3]);
 
 struct Lines {
     vertices: Vec<Vertex>,
@@ -84,14 +97,11 @@ impl Lines {
         }
     }
 
-    fn label(&self, point: Vec3) -> Option<[i16; 2]> {
+    fn label(&self, point: Vec3) -> Option<[f32; 2]> {
         let p = self.matrix * point.extend(1.0);
         let ndc = p.truncate() / p.w;
         (p.w > 0.0 && (0.0..=1.0).contains(&ndc.z) && ndc.x.abs() < 0.9 && ndc.y.abs() < 0.9)
-            .then_some([
-                (ndc.x * self.aspect * 120.0) as i16,
-                (-ndc.y * 120.0) as i16,
-            ])
+            .then_some([(ndc.x + 1.0) * 0.5, (1.0 - ndc.y) * 0.5])
     }
 }
 
@@ -101,7 +111,7 @@ pub fn light_markers(
     aspect: f32,
     sources: &[crate::lighting::Source],
     shadows: usize,
-) -> Geometry {
+) -> Overlay {
     let mut lines = Lines {
         vertices: Vec::new(),
         matrix: debug.matrix(game, aspect),
@@ -114,9 +124,8 @@ pub fn light_markers(
         let color = source.light.color;
         lines.box_at(p - Vec3::splat(80.0), p + Vec3::splat(80.0), color);
         if let Some([x, y]) = lines.label(p) {
-            labels.push((
-                x,
-                y,
+            labels.push(Label(
+                Anchor::Projected([x, y]),
                 format!(
                     "{}{}",
                     source.name,
@@ -127,18 +136,17 @@ pub fn light_markers(
         }
     }
     let count = lines.vertices.len() as u32;
-    let mut geometry = Geometry {
+    let geometry = Geometry {
         vertices: lines.vertices,
         batches: vec![Batch {
             blend: 0,
             range: 0..count,
         }],
     };
-    geometry.append(render_effects::text(&game.mission.font, &labels));
-    geometry
+    Overlay { geometry, labels }
 }
 
-pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
+pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
     let mut lines = Lines {
         vertices: Vec::new(),
         matrix: debug.matrix(game, aspect),
@@ -189,9 +197,8 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
             let top = position
                 - Vec3::Y * (f32::from(game.mission.characters[actor.definition].height) + 300.0);
             if let Some([x, y]) = lines.label(top) {
-                labels.push((
-                    x,
-                    y,
+                labels.push(Label(
+                    Anchor::Projected([x, y]),
                     format!("#{id} {:02x} HP {}", actor.kind, actor.health),
                     if suspended {
                         [0.5; 3]
@@ -301,9 +308,8 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
                 let max = Vec3::new(b[0][1] as f32, b[1][1] as f32, b[2][1] as f32);
                 lines.box_at(min, max, [0.9, 0.35, 0.95]);
                 if let Some([x, y]) = lines.label((min + max) * 0.5) {
-                    labels.push((
-                        x,
-                        y,
+                    labels.push(Label(
+                        Anchor::Projected([x, y]),
                         format!("Event {} CVA {}", event.id, event.sequence),
                         [0.9, 0.35, 0.95],
                     ));
@@ -346,19 +352,21 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
         .into_iter()
         .enumerate()
         {
-            labels.push((-154, -94 + i as i16 * 16, text, [0.7, 0.95, 1.0]));
+            labels.push(Label(
+                Anchor::TopLeft([10.0, 36.0 + i as f32 * 22.0]),
+                text,
+                [0.7, 0.95, 1.0],
+            ));
         }
     }
     if debug.camera.is_some() {
-        labels.push((
-            -154,
-            83,
+        labels.push(Label(
+            Anchor::BottomLeft([10.0, 48.0]),
             "FREE CAMERA  WASD/QE  Shift: boost".into(),
             [0.7, 0.95, 1.0],
         ));
-        labels.push((
-            -154,
-            101,
+        labels.push(Label(
+            Anchor::BottomLeft([10.0, 24.0]),
             if debug.teleport_armed {
                 "Click collision floor to teleport"
             } else {
@@ -369,13 +377,12 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Geometry {
         ));
     }
     let count = lines.vertices.len() as u32;
-    let mut geometry = Geometry {
+    let geometry = Geometry {
         vertices: lines.vertices,
         batches: vec![Batch {
             blend: 0,
             range: 0..count,
         }],
     };
-    geometry.append(render_effects::text(&game.mission.font, &labels));
-    geometry
+    Overlay { geometry, labels }
 }

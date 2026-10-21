@@ -54,6 +54,7 @@ impl Application {
             Item::Magnification => self.settings.graphics.magnification = s.graphics.magnification,
             Item::Fps => self.settings.show_fps = s.show_fps,
             Item::Focus => self.settings.pause_on_defocus = s.pause_on_defocus,
+            Item::MenuPause => self.settings.pause_in_menu = s.pause_in_menu,
             Item::Fullscreen => self.settings.fullscreen = s.fullscreen,
             Item::Vsync => self.settings.vsync = s.vsync,
             Item::Hud => self.settings.show_hud = s.show_hud,
@@ -146,6 +147,7 @@ impl Application {
             Item::SnapFloor => self.debug.snap_to_floor = d.snap_to_floor,
             Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
+            Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),
             Item::DebugLight => {
                 self.debug.light = None;
                 self.debug.light_follow = false;

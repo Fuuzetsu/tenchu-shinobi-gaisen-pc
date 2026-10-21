@@ -115,7 +115,9 @@ impl Application {
     }
 
     fn is_suspended(&self) -> bool {
-        self.paused || self.menu.open || (!self.focused && self.settings.pause_on_defocus)
+        self.paused
+            || (self.menu.open && self.settings.pause_in_menu)
+            || (!self.focused && self.settings.pause_on_defocus)
     }
 
     fn sync_pause(&mut self) {
@@ -168,6 +170,7 @@ impl Application {
     fn action(&mut self, action: Action) {
         let start = if self.recording_directory.is_some()
             && self.debug.sight_percent == 100
+            && !self.settings.keep_enemies_active
             && matches!(action, Action::Confirm)
             && let Screen::Inventory(loadout) = &self.campaign.screen
         {
@@ -184,6 +187,8 @@ impl Application {
                 if reload {
                     self.release_pointer();
                     self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
+                    self.campaign.game.activation.keep_all_active =
+                        self.settings.keep_enemies_active;
                     if let Err(error) = self.debug.reload(&self.campaign.game) {
                         self.pause_error(error);
                         return;
@@ -200,9 +205,9 @@ impl Application {
                 } else if reload
                     && self.campaign.playing()
                     && self.recording_directory.is_some()
-                    && self.debug.sight_percent != 100
+                    && (self.debug.sight_percent != 100 || self.settings.keep_enemies_active)
                 {
-                    self.menu.notice = "Recording disabled: sight range modified".into();
+                    self.menu.notice = "Recording disabled: enemy simulation modified".into();
                     eprintln!("{}", self.menu.notice);
                 }
                 if !self.campaign.playing() {
@@ -567,7 +572,8 @@ pub fn run(
         settings.model_directory = directory.to_string_lossy().into_owned();
     }
     let model_directory = settings.model_directory.clone();
-    let campaign = Campaign::new(&assets, options, storage.load()?)?;
+    let mut campaign = Campaign::new(&assets, options, storage.load()?)?;
+    campaign.game.activation.keep_all_active = settings.keep_enemies_active;
     let debug = crate::debug::Debug::new(&campaign.game)?;
     let mut audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
         Ok(audio) => Some(audio),

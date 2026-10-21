@@ -27,6 +27,7 @@ pub(super) struct View {
     shadow_models: Option<Mesh>,
     pub(super) lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
+    pub(super) labels: Vec<crate::debug::Label>,
     pub(super) overlay: super::overlay::Overlay,
     pub(super) renderer: Renderer,
     pub(super) surface: wgpu::Surface<'static>,
@@ -159,6 +160,7 @@ impl View {
             shadow_models: None,
             lights: Vec::new(),
             effects,
+            labels: Vec::new(),
             size: [size.width, size.height],
             vram_revision: game.mission.vram.revision,
             pack,
@@ -410,9 +412,10 @@ impl View {
         if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();
         }
+        self.labels.clear();
         if campaign.playing() && error.is_none() && !debug.photo_mode {
             if settings.graphics.lighting.markers {
-                geometry.append(crate::debug::light_markers(
+                let overlay = crate::debug::light_markers(
                     debug,
                     game,
                     self.config.width as f32 / self.config.height as f32,
@@ -422,31 +425,26 @@ impl View {
                     } else {
                         0
                     },
-                ));
+                );
+                geometry.append(overlay.geometry);
+                self.labels.extend(overlay.labels);
             }
-            geometry
-                .append(debug.overlay(game, self.config.width as f32 / self.config.height as f32));
+            let overlay = debug.overlay(game, self.config.width as f32 / self.config.height as f32);
+            geometry.append(overlay.geometry);
+            self.labels.extend(overlay.labels);
             if paused && debug.active() {
-                geometry.append(render_effects::text(
-                    &game.mission.font,
-                    &[(
-                        -154,
-                        -30,
-                        "PAUSED  F3: resume  F4: step".into(),
-                        [1.0, 0.85, 0.35],
-                    )],
+                self.labels.push(crate::debug::Label(
+                    crate::debug::Anchor::TopLeft([10.0, 132.0]),
+                    "PAUSED  F3: resume  F4: step".into(),
+                    [1.0, 0.85, 0.35],
                 ));
             }
         }
         if settings.show_fps && !debug.photo_mode {
-            geometry.append(render_effects::text(
-                &game.mission.font,
-                &[(
-                    -154,
-                    -115,
-                    format!("{fps:.0} FPS  tick {}", game.tick),
-                    [1.0, 0.85, 0.35],
-                )],
+            self.labels.push(crate::debug::Label(
+                crate::debug::Anchor::TopLeft([10.0, 10.0]),
+                format!("{fps:.0} FPS  ·  tick {}", game.tick),
+                [1.0, 0.85, 0.35],
             ));
         }
         self.effects = self.renderer.upload_effects(geometry);

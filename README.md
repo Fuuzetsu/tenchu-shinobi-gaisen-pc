@@ -32,6 +32,11 @@ For the optional upgraded look, open **F1 → Graphics → Visual preset**:
   restrained bloom and blue distance haze.
 - **Cinematic** increases anisotropy and point-shadow resolution, with
   stronger bloom/contact shading, haze and a slight vignette. It costs more GPU time.
+- **Crisp classic** and **Soft classic** preserve original lighting/geometry, adding
+  edge antialiasing, distant texture filtering and smooth motion, with distinct
+  close-up texture sampling.
+- **Lantern night** emphasizes warm local lights and dark surroundings.
+- **Moonlit** adds cool outdoor lighting with gentler color and bloom.
 
 Each effect remains adjustable. Changes show the preset as **Custom**; R on the
 preset row restores Original. Presets preserve the replacement-artwork switch
@@ -224,7 +229,9 @@ Quick keyboard and controller taps are retained until the next gameplay tick.
 checkboxes and dropdowns; drag sliders or double-click numbers to type.
 Drag the title bar to move the panel, resize its width, and scroll long pages.
 Arrows/D-pad and Enter/South also work; F1/Escape/East closes it. The overlay
-pauses the game without changing an existing manual pause. It provides FPS
+pauses the game by default. **General → Pause while settings are open** can keep
+the simulation running while you tune settings; menu input stays out of gameplay,
+and F3/focus-loss pauses still apply. It provides FPS
 and tick display, pause on defocus, borderless fullscreen, VSync, HUD visibility
 and master volume. Factory defaults preserve the preceding experience.
 Preferences save separately from progress in
@@ -244,7 +251,8 @@ Each decoded texture has isolated mip levels and separate opaque/semitransparent
 colors, so filtering does not borrow from neighboring textures or blend modes.
 Animated VRAM textures remain live. HUD and menu textures remain sharp.
 
-Inspection pages include live body/attack hitboxes, sight bounds, masked terrain
+Actor/light labels, FPS and inspection readouts use a clear, resolution-independent
+overlay font. Inspection pages include live body/attack hitboxes, sight bounds, masked terrain
 surfaces, patrol routes, spatial event regions, actor labels/state, X-ray overlays
 and a recent player trail. These tools start disabled each launch. Sight bounds
 show calm-state ranges and angles, not walls/occlusion or a guarantee of detection.
@@ -264,6 +272,14 @@ up. Teleporting and changing the enemy sight-distance multiplier are explicit
 gameplay edits: they end an active recording before the edit, leaving a replayable
 prefix. A new attempt can record again with original sight distance. Sight
 distance does not change hearing, actor activation, attack range or occlusion.
+
+**Simulation → Keep all enemies active** disables distance/budget suspension for
+spawned enemies and civilians, so distant patrols and AI keep running. It is off
+by default and saves as a preference across mission changes. Story-controlled
+actors still follow their cutscenes and spawn rules. This changes gameplay/RNG;
+it ends an active recording, and new recordings require original enemy settings.
+Turning it off restores the normal activation policy at its next periodic check;
+it does not undo movement or events that have already happened.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general

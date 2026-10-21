@@ -70,7 +70,7 @@ impl Application {
             if !unlimited && self.clock.step().is_none() {
                 break;
             }
-            let buttons = if self.focused && self.debug.camera.is_none() {
+            let buttons = if self.focused && !self.menu.open && self.debug.camera.is_none() {
                 self.controls.buttons()
             } else {
                 0
