@@ -140,6 +140,7 @@ pub struct Row {
 pub struct Menu {
     pub open: bool,
     pub row: usize,
+    pub hovered: Option<Item>,
     pub page: usize,
     pub notice: String,
     pub edit: Option<(Item, String)>,
@@ -851,6 +852,7 @@ impl Menu {
     pub fn page(&mut self, direction: i32) {
         self.page = (self.page as i32 + direction).rem_euclid(PAGES.len() as i32) as usize;
         self.row = 0;
+        self.hovered = None;
         self.reveal_row = true;
         self.notice.clear();
         self.edit = None;

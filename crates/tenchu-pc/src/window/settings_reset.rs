@@ -2,9 +2,11 @@ use super::*;
 
 impl Application {
     pub(super) fn reset_selected_setting(&mut self) {
-        let item = settings::menu::rows(self.menu.page, &self.settings, &self.debug, self.paused)
-            [self.menu.row]
-            .item;
+        let item = self.menu.hovered.unwrap_or_else(|| {
+            settings::menu::rows(self.menu.page, &self.settings, &self.debug, self.paused)
+                [self.menu.row]
+                .item
+        });
         let previous = self.settings.clone();
         self.menu.notice = match self.reset_item(item) {
             Ok(()) => "Value reset to default".into(),

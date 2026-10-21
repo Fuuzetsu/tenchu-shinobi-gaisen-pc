@@ -134,6 +134,7 @@ impl Application {
     fn toggle_menu(&mut self) {
         self.release_pointer();
         self.menu.edit = None;
+        self.menu.hovered = None;
         self.menu.open = !self.menu.open;
         self.flush_recording();
         self.sync_pause();

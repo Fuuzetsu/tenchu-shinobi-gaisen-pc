@@ -22,6 +22,7 @@ pub fn show(
     samples: &[u32],
 ) -> Vec<Edit> {
     let mut edits = Vec::new();
+    menu.hovered = None;
     if !menu.open {
         return edits;
     }
@@ -101,6 +102,9 @@ pub fn show(
                                             let response =
                                                 widget(ui, row, menu, samples, &mut edits);
                                             let rect = label.rect.union(response.rect);
+                                            if label.hovered() || response.hovered() {
+                                                menu.hovered = Some(row.item);
+                                            }
                                             if ctx.input(|i| i.pointer.delta() != egui::Vec2::ZERO)
                                                 && (label.hovered() || response.hovered())
                                             {
