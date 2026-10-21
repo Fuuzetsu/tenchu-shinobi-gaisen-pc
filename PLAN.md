@@ -46,13 +46,16 @@ normal play and saved preferences retain their previous behavior.
 This is a staged presentation, not a campaign route or a fidelity oracle. A
 browser presentation host and authored replacement HD artwork remain separate.
 
-The recording follow-up adds silent 3840×2160 / 60 fps offline export, preserving
-every presentation frame regardless of GPU/encoder speed. Stream pixels to the
-Nix-provided FFmpeg encoder, scale the explanatory overlay, and produce exact
-per-clip MP4 chapters plus YouTube description timestamps. Validate frame count,
-timestamps, color tags, chapter boundaries, cancellation and representative
-decoded frames before delivering the full 502-second recording. Export outputs
-stay outside Git. Desktop profiling in footage reports capture-host timings.
+The recording follow-up is delivered as `demo --video OUTPUT.mp4`: silent
+3840×2160 / 60 fps offline export, preserving every presentation frame regardless
+of GPU/encoder speed. Pixels stream to the Nix-provided FFmpeg encoder; captions
+scale for 4K and each clip has an MP4 chapter and YouTube description timestamp.
+The full 502-second recording has 30,120 frames with consecutive 1/60-second
+timestamps, correct SDR color tags and 37 exact chapter boundaries. Previews
+from all clips were inspected. Cancellation, overwrite protection, passive
+settings navigation and normal window resizing were exercised natively. Nix
+packaging, portable libraries, formatting and Clippy pass. Outputs stay outside
+Git; profiling in footage reports capture-host timings.
 
 ## Existing resources
 

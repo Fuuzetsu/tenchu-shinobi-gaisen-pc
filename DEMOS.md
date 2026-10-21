@@ -137,8 +137,17 @@ under scripted demo input at different display rates and verify temporary F1
 edits. Native X11/Vulkan runs exercised the catalog, longer model/cinematic
 comparisons, mouse playlist selection, keyboard navigation, pause, clean view,
 PNG capture and repeated Escape exit. Private save/settings sentinels remained
-byte-for-byte unchanged. All 79 desktop checks, Clippy, formatting and Nix
+byte-for-byte unchanged. Desktop regression checks, Clippy, formatting and Nix
 native-package/portable-WASM checks pass. Captures and disc data stay outside Git.
+
+Offline exports were checked at 4K, including the full default 502-second
+sequence: 30,120 video packets, unique consecutive 1/60-second timestamps, no
+audio stream, BT.709 color tags, square pixels, progressive H.264 High, fast-start
+MP4 and all 37 chapter/title boundaries. Decoded previews from every clip and
+full-resolution caption crops were inspected. Native cancellation removes
+partial output, existing output is preserved, and ordinary play still resizes
+at 640×480 and 1920×1080. A regression also prevents sliders from changing
+between-step preset values just because their category is opened.
 
 The showcase and video export currently use the native window host. No browser
 demo host or authored HD pack is bundled. Rendered scene/timeline state is
