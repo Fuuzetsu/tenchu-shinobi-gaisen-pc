@@ -1,3 +1,4 @@
+pub mod appearance;
 pub mod catalog;
 mod export;
 pub mod interpolation;

@@ -172,17 +172,28 @@ Current work: live player appearance swapping, followed by an idiomatic Rust
 refactor. Preserve gameplay behavior while improving the implementation rather
 than retaining C-shaped data structures for their own sake.
 
-- [ ] Select compatible original bodies in F1 without changing player identity,
+- [x] Select compatible original bodies in F1 without changing player identity,
   animation, inventory, collision or disguise effects; keep weapons attached.
-- [ ] Load/reload custom bodies from a user-selected directory using the existing
+- [x] Load/reload custom bodies from a user-selected directory using the existing
   OBJ/PNG workflow, with validation, original fallback and documented exports.
-- [ ] Exercise both players, combat/weapon swaps, interpolation and shadows;
+- [x] Exercise both players, combat/weapon swaps, interpolation and shadows;
   compare complete gameplay state across appearance changes.
 - [ ] Introduce named coordinate types, remove unnecessary enum representations
   and numeric casts, and simplify equivalent arithmetic/iteration using Rust APIs.
 - [ ] Resolve Clippy findings, run source/gameplay regressions and native/WASM
   packaging checks, document retained binary/fixed-point boundaries and commit
   coherent increments.
+
+The model swapper is presentation-only. F1 offers compatible mission bodies and
+folder bodies; export-assets generates editable fifteen-part rig definitions
+alongside OBJ/PNG data. New proportions move the rendered weapon attachments,
+while animations, collision and gameplay remain original. All 67 desktop tests
+pass, including complete campaigns and both-player body/weapon/interpolation
+checks. An isolated native window changed Rikimaru to a ronin and an exported
+Ayame, reloaded edited offsets, retained the previous body after an invalid path,
+played movement/jump/attack with Enhanced interpolation/shadows, restored
+Original with R and exited cleanly. Arbitrary skeleton retargeting is outside
+this rigid-part workflow; incompatible rigs are rejected.
 
 Optional configuration, native inspection tools and visual upgrades are
 implemented while preserving the Original defaults. The latest additions are

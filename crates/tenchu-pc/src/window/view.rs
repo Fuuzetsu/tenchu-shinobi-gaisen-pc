@@ -25,6 +25,9 @@ pub(super) struct View {
     pub(super) vram_revision: u64,
     pack: Pack,
     models: Models,
+    bodies: Pack,
+    pub(super) player_models: Vec<(String, String)>,
+    player_selection: String,
     model_options: (bool, bool, u16),
     emitters: Emitters,
     pub(super) interpolation: crate::visuals::interpolation::History,
@@ -92,6 +95,23 @@ impl View {
                 pack = Pack::default();
                 Models::build(&game.mission, &pack, &settings.graphics).unwrap()
             });
+        let bodies = load_bodies(&settings.model_directory).unwrap_or_else(|error| {
+            eprintln!("Player models: {error}; using disc bodies");
+            Pack::default()
+        });
+        let player_models = crate::visuals::appearance::choices(game, &bodies);
+        models = models
+            .with_player(
+                game,
+                &settings.player_model,
+                &pack,
+                &bodies,
+                &settings.graphics,
+            )
+            .unwrap_or_else(|error| {
+                eprintln!("Player model: {error}; using Original");
+                Models::build(&game.mission, &pack, &settings.graphics).unwrap()
+            });
         renderer.set_asset_pack(&pack);
         let emitters = Emitters::build(game, &pack, settings.graphics.asset_pack);
         renderer.set_emitters(&emitters);
@@ -132,12 +152,68 @@ impl View {
             vram_revision: game.mission.vram.revision,
             pack,
             models,
+            bodies,
+            player_models,
+            player_selection: settings.player_model.clone(),
             model_options: model_options(&settings.graphics),
             emitters,
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
         })
+    }
+
+    fn selected_player<'a>(&self, settings: &'a Settings) -> &'a str {
+        if self
+            .player_models
+            .iter()
+            .any(|(id, _)| id == &settings.player_model)
+        {
+            &settings.player_model
+        } else {
+            ""
+        }
+    }
+
+    fn build_models(&self, game: &Game, settings: &Settings) -> Result<Models> {
+        Models::build(&game.mission, &self.pack, &settings.graphics)?.with_player(
+            game,
+            self.selected_player(settings),
+            &self.pack,
+            &self.bodies,
+            &settings.graphics,
+        )
+    }
+
+    pub(super) fn load_bodies(
+        &mut self,
+        directory: &str,
+        game: &Game,
+        settings: &Settings,
+    ) -> Result<()> {
+        let bodies = load_bodies(directory)?;
+        let choices = crate::visuals::appearance::choices(game, &bodies);
+        if !directory.is_empty() && choices.iter().all(|(id, _)| !id.starts_with("pack:")) {
+            return Err("This folder contains no compatible player_models; export assets to create a template".into());
+        }
+        let selection = if choices.iter().any(|(id, _)| id == &settings.player_model) {
+            settings.player_model.as_str()
+        } else {
+            ""
+        };
+        let models = Models::build(&game.mission, &self.pack, &settings.graphics)?.with_player(
+            game,
+            selection,
+            &self.pack,
+            &bodies,
+            &settings.graphics,
+        )?;
+        self.bodies = bodies;
+        self.player_models = choices;
+        self.player_selection = selection.into();
+        self.set_models(models, game);
+        self.reset_interpolation(game);
+        Ok(())
     }
 
     pub(super) fn resize(&mut self, width: u32, height: u32) {
@@ -155,9 +231,16 @@ impl View {
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
-        let result = Models::build(&game.mission, &self.pack, &settings.graphics);
+        self.player_models = crate::visuals::appearance::choices(game, &self.bodies);
+        let result = self.build_models(game, settings);
         let error = result.as_ref().err().cloned();
-        self.set_models(result.unwrap_or_default(), game);
+        self.set_models(
+            result.unwrap_or_else(|_| {
+                Models::build(&game.mission, &self.pack, &settings.graphics).unwrap_or_default()
+            }),
+            game,
+        );
+        self.player_selection.clone_from(&settings.player_model);
         self.model_options = model_options(&settings.graphics);
         self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
         self.renderer.set_emitters(&self.emitters);
@@ -181,7 +264,13 @@ impl View {
         game: &Game,
         settings: &Settings,
     ) -> Result<usize> {
-        let models = Models::build(&game.mission, &pack, &settings.graphics)?;
+        let models = Models::build(&game.mission, &pack, &settings.graphics)?.with_player(
+            game,
+            self.selected_player(settings),
+            &pack,
+            &self.bodies,
+            &settings.graphics,
+        )?;
         let count = models.replacements;
         self.renderer.set_asset_pack(&pack);
         self.set_models(models, game);
@@ -206,12 +295,11 @@ impl View {
             self.reset_interpolation(game);
         }
         let options = model_options(&settings.graphics);
-        if options != self.model_options {
-            self.set_models(
-                Models::build(&game.mission, &self.pack, &settings.graphics)?,
-                game,
-            );
+        if options != self.model_options || self.player_selection != settings.player_model {
+            self.set_models(self.build_models(game, settings)?, game);
             self.model_options = options;
+            self.player_selection = settings.player_model.clone();
+            self.reset_interpolation(game);
             self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
             self.renderer.set_emitters(&self.emitters);
         }
@@ -433,5 +521,13 @@ impl View {
             });
         self.render(&texture.create_view(&Default::default()), game, debug)?;
         crate::capture::read_texture(&self.renderer, &texture, path)
+    }
+}
+
+fn load_bodies(directory: &str) -> Result<Pack> {
+    if directory.is_empty() {
+        Ok(Pack::default())
+    } else {
+        Pack::load(std::path::Path::new(directory))
     }
 }

@@ -127,6 +127,40 @@ impl Application {
                 self.settings.graphics.interpolation = !self.settings.graphics.interpolation
             }
             Item::PhotoMode => self.debug.photo_mode = !self.debug.photo_mode,
+            Item::PlayerModel => {
+                if let Some(view) = &self.view {
+                    let choices = &view.player_models;
+                    let index = choices
+                        .iter()
+                        .position(|(id, _)| id == &self.settings.player_model)
+                        .unwrap_or(0);
+                    self.settings.player_model = choices
+                        [(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
+                        .0
+                        .clone();
+                }
+            }
+            Item::ReloadModels => {
+                if let Some(view) = &mut self.view {
+                    view.load_bodies(
+                        &self.menu.model_directory,
+                        &self.campaign.game,
+                        &self.settings,
+                    )?;
+                    if !view
+                        .player_models
+                        .iter()
+                        .any(|(id, _)| id == &self.settings.player_model)
+                    {
+                        self.settings.player_model.clear();
+                    }
+                    self.settings
+                        .model_directory
+                        .clone_from(&self.menu.model_directory);
+                    self.menu.notice =
+                        format!("{} player bodies available", view.player_models.len() - 1);
+                }
+            }
             Item::Preset => {
                 let current = self.settings.graphics.preset();
                 let index = if current == 3 {

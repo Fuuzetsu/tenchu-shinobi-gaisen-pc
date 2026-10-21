@@ -3,6 +3,8 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    PlayerModel,
+    ReloadModels,
     Preset,
     Interpolation,
     PhotoMode,
@@ -107,6 +109,7 @@ impl Item {
         matches!(
             self,
             Self::Reset
+                | Self::ReloadModels
                 | Self::FocusPlayer
                 | Self::FocusActor
                 | Self::Overhead
@@ -145,13 +148,15 @@ pub struct Menu {
     pub notice: String,
     pub edit: Option<(Item, String)>,
     pub reveal_row: bool,
+    pub player_models: Vec<(String, String)>,
+    pub model_directory: String,
 }
 
 fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 10] = [
+pub const PAGES: [&str; 11] = [
     "General",
     "Graphics",
     "Overlays",
@@ -162,10 +167,25 @@ pub const PAGES: [&str; 10] = [
     "Visual assets",
     "Sky lighting",
     "Image effects",
+    "Player model",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        10 => vec![
+            (
+                Item::PlayerModel,
+                "Player body",
+                s.player_model.clone(),
+                "Appearance only; weapons, animation and gameplay remain unchanged.",
+            ),
+            (
+                Item::ReloadModels,
+                "Load / reload folder",
+                "Apply".into(),
+                "Load pack.json from the folder above. Failed reloads keep the previous models.",
+            ),
+        ],
         9 => {
             let post = &s.graphics.post;
             vec![

@@ -1,0 +1,445 @@
+use super::{
+    catalog::ModelSource,
+    interpolation::{Frame, Part},
+    models::{Meshes, rotation},
+    pack::Pack,
+};
+use crate::{render_mesh, settings::Graphics};
+use glam::Vec3;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use tenchu_assets::{Result, model, stage::MissionAssets};
+use tenchu_core::{game::Game, math::Matrix};
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Body {
+    pub name: String,
+    pub parts: Vec<BodyPart>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyPart {
+    pub file: Option<String>,
+    pub parent: Option<usize>,
+    pub position: [i16; 3],
+}
+
+pub fn parents(parts: &[model::Part]) -> Vec<Option<usize>> {
+    parts
+        .iter()
+        .map(|p| {
+            (p.parent >= 0)
+                .then(|| parts.iter().position(|v| v.child == p.parent))
+                .flatten()
+        })
+        .collect()
+}
+
+impl Body {
+    pub fn validate(&self) -> Result<()> {
+        if self.name.trim().is_empty() || self.name.len() > 100 || self.parts.len() != 15 {
+            return Err("A player body needs a name and fifteen rig parts".into());
+        }
+        for (index, part) in self.parts.iter().enumerate() {
+            let mut parent = part.parent;
+            for depth in 0..=self.parts.len() {
+                let Some(id) = parent else { break };
+                if id >= self.parts.len() || id == index || depth == self.parts.len() {
+                    return Err(format!("Invalid parent hierarchy in {}", self.name));
+                }
+                parent = self.parts[id].parent;
+            }
+        }
+        Ok(())
+    }
+}
+
+pub fn choices(game: &Game, pack: &Pack) -> Vec<(String, String)> {
+    let rig = parents(&game.mission.models[&game.player().kind]);
+    let mut choices = vec![(String::new(), "Original (follow equipment/disguise)".into())];
+    for (&kind, parts) in &game.mission.models {
+        if parts.len() == 15 && parents(parts) == rig {
+            let name = &game
+                .mission
+                .characters
+                .iter()
+                .find(|c| c.kind == kind)
+                .unwrap()
+                .model;
+            choices.push((format!("disc:{kind}"), format!("{name} ({kind:04x})")));
+        }
+    }
+    for (id, body) in &pack.player_models {
+        if body.parts.iter().map(|p| p.parent).collect::<Vec<_>>() == rig {
+            choices.push((format!("pack:{id}"), format!("{} — folder", body.name)));
+        }
+    }
+    choices
+}
+
+pub(super) struct Appearance {
+    parts: Vec<model::Part>,
+    parents: Vec<Option<usize>>,
+    pub meshes: Meshes,
+}
+
+impl Appearance {
+    pub fn build(
+        game: &Game,
+        selection: &str,
+        pack: &Pack,
+        bodies: &Pack,
+        graphics: &Graphics,
+    ) -> Result<Option<Self>> {
+        if selection.is_empty() {
+            return Ok(None);
+        }
+        let (parts, ids, pack, custom) = if let Some(kind) = selection.strip_prefix("disc:") {
+            let kind: i16 = kind.parse().map_err(|_| "Invalid disc body")?;
+            let parts = game
+                .mission
+                .models
+                .get(&kind)
+                .ok_or("Body is unavailable in this mission; choose Original or a model folder")?
+                .clone();
+            let ids = (0..parts.len())
+                .map(|i| format!("actors/{kind:04x}/{i}"))
+                .collect::<Vec<_>>();
+            (parts, ids, pack, false)
+        } else if let Some(id) = selection.strip_prefix("pack:") {
+            let body = bodies
+                .player_models
+                .get(id)
+                .ok_or("Selected body is missing from the model folder")?;
+            let parts = body
+                .parts
+                .iter()
+                .enumerate()
+                .map(|(i, p)| model::Part {
+                    parent: p.parent.map_or(-1, |v| v as i16),
+                    child: i as i16,
+                    position: p.position,
+                    geometry: vec![model::Geometry {
+                        vertices: Vec::new(),
+                        normals: Vec::new(),
+                        faces: Vec::new(),
+                    }],
+                })
+                .collect::<Vec<_>>();
+            let ids = (0..parts.len())
+                .map(|i| format!("player/{id}/{i}"))
+                .collect();
+            (parts, ids, bodies, true)
+        } else {
+            return Err("Unknown player model selection".into());
+        };
+        let parent = parents(&parts);
+        if parts.len() != 15 || parent != parents(&game.mission.models[&game.player().kind]) {
+            return Err("Body must use the player's fifteen-part humanoid rig".into());
+        }
+        let sources = parts
+            .iter()
+            .zip(ids)
+            .map(|(p, id)| ModelSource {
+                id,
+                label: String::new(),
+                geometry: &p.geometry,
+            })
+            .collect();
+        let mut options = graphics.clone();
+        if custom {
+            options.asset_pack = true;
+        }
+        let meshes = Meshes::build(&game.mission, pack, &options, sources, true)?;
+        Ok(Some(Self {
+            parts,
+            parents: parent,
+            meshes,
+        }))
+    }
+
+    fn offsets(
+        &self,
+        game: &Game,
+        inspection: bool,
+        frame: Option<&Frame>,
+    ) -> BTreeMap<usize, Vec3> {
+        let mut player = game.player().clone();
+        if inspection {
+            player.initialize_rendered(&game.scene, &game.math);
+        }
+        let original = &game.mission.models[&player.rendered_mesh_kind];
+        let matrices: Vec<_> = player
+            .rendered
+            .iter()
+            .enumerate()
+            .map(|(i, &matrix)| {
+                Frame::transform(
+                    frame,
+                    Part::Actor {
+                        root: player.root_model,
+                        model: player.parts[i],
+                        kind: player.rendered_mesh_kind,
+                        inspection,
+                    },
+                    matrix,
+                )
+            })
+            .collect();
+        let mut offsets = BTreeMap::new();
+        for _ in 0..self.parts.len() {
+            for (i, parent) in self.parents.iter().copied().enumerate() {
+                if offsets.contains_key(&player.parts[i]) {
+                    continue;
+                }
+                let (base, orientation) = if let Some(p) = parent {
+                    let Some(&offset) = offsets.get(&player.parts[p]) else {
+                        continue;
+                    };
+                    (offset, rotation(matrices[p]))
+                } else {
+                    let local = game.scene.models[player.parts[i]].local;
+                    (
+                        Vec3::ZERO,
+                        rotation(matrices[i]) * rotation(local).inverse(),
+                    )
+                };
+                let mut delta = Vec3::from(self.parts[i].position.map(f32::from))
+                    - Vec3::from(original[i].position.map(f32::from));
+                if parent.is_none() && original[i].position[1] != 0 {
+                    delta.y *= game.scene.models[player.parts[i]].local.translation[1] as f32
+                        / f32::from(original[i].position[1]);
+                }
+                offsets.insert(player.parts[i], base + orientation * delta);
+            }
+        }
+        for weapon in player.weapons.iter().flatten() {
+            if let Some(parent) = game.scene.models[weapon.model].parent
+                && let Some(&offset) = offsets.get(&parent)
+            {
+                offsets.insert(weapon.model, offset);
+            }
+        }
+        offsets
+    }
+}
+
+pub fn visit(
+    game: &Game,
+    inspection: bool,
+    models: Option<&super::models::Models>,
+    frame: Option<&Frame>,
+    mut visit: impl FnMut(&[model::Geometry], Matrix),
+) {
+    let appearance = models.and_then(|m| m.player.as_ref());
+    let offsets = appearance.map(|a| a.offsets(game, inspection, frame));
+    render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
+        let mut matrix = Frame::transform(frame, key, matrix);
+        if let Part::Actor { root, model, .. } = key
+            && root == game.player().root_model
+            && let Some(appearance) = appearance
+        {
+            if let Some(offset) = offsets.as_ref().and_then(|o| o.get(&model)) {
+                for (value, offset) in matrix.translation.iter_mut().zip(offset.to_array()) {
+                    *value += offset.round() as i32;
+                }
+            }
+            if let Some(index) = game.player().parts.iter().position(|&id| id == model) {
+                visit(&appearance.parts[index].geometry, matrix);
+                return;
+            }
+        }
+        visit(geometry, matrix);
+    });
+}
+
+pub fn exported(mission: &MissionAssets) -> BTreeMap<String, Body> {
+    mission
+        .models
+        .iter()
+        .filter(|(_, parts)| parts.len() == 15)
+        .map(|(&kind, parts)| {
+            let name = mission
+                .characters
+                .iter()
+                .find(|c| c.kind == kind)
+                .unwrap()
+                .model
+                .clone();
+            let body = Body {
+                name,
+                parts: parts
+                    .iter()
+                    .zip(parents(parts))
+                    .enumerate()
+                    .map(|(i, (p, parent))| BodyPart {
+                        file: p
+                            .geometry
+                            .iter()
+                            .any(|g| render_mesh::draw_tmd_faces(g).next().is_some())
+                            .then(|| format!("models/actors/{kind:04x}/{i}.obj")),
+                        parent,
+                        position: p.position,
+                    })
+                    .collect(),
+            };
+            (format!("{kind:04x}"), body)
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::visuals::{interpolation::History, models::Models, pack::Manifest};
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; checks body swaps, custom rig offsets and moving weapon attachments without changing game state"]
+    fn bodies_keep_weapons_animation_and_gameplay_for_both_players() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        for character in 0..2 {
+            let mut game = crate::session::Options {
+                character,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            let root = std::env::temp_dir().join(format!(
+                "tenchu-player-model-{}-{character}",
+                std::process::id()
+            ));
+            super::super::export(&game.mission, &root).unwrap();
+            let mut manifest: Manifest =
+                serde_json::from_slice(&std::fs::read(root.join("pack.json")).unwrap()).unwrap();
+            let id = format!("{character:04x}");
+            let body = manifest.player_models.get_mut(&id).unwrap();
+            body.name = "Long sleeves".into();
+            body.parts[13].position[0] += 100;
+            body.parts[14].position[0] -= 100;
+            std::fs::write(
+                root.join("pack.json"),
+                serde_json::to_vec(&manifest).unwrap(),
+            )
+            .unwrap();
+            let bodies = Pack::load(&root).unwrap();
+            let choices = choices(&game, &bodies);
+            assert!(choices.len() > 3);
+            eprintln!(
+                "character {character}: {} compatible bodies",
+                choices.len() - 1
+            );
+            let pack = Pack::default();
+            let graphics = Graphics::default();
+            let mut history = History::default();
+            history.reset(&game);
+            for tick in 0..46 {
+                game.step(if tick == 35 {
+                    tenchu_core::input::SQUARE
+                } else {
+                    0
+                })
+                .unwrap();
+                history.tick(&game);
+                if ![5, 36, 45].contains(&tick) {
+                    continue;
+                }
+                let state = crate::session::tests::state(&game);
+                for selection in choices
+                    .iter()
+                    .map(|(id, _)| id)
+                    .filter(|id| id.starts_with("disc:") || **id == format!("pack:{character:04x}"))
+                {
+                    let models = Models::build(&game.mission, &pack, &graphics)
+                        .unwrap()
+                        .with_player(&game, selection, &pack, &bodies, &graphics)
+                        .unwrap();
+                    let appearance = models.player.as_ref().unwrap();
+                    for alpha in [0.0, 0.5, 1.0] {
+                        let frame = history.sample(game.tick, alpha);
+                        for inspection in [false, true] {
+                            let offsets = appearance.offsets(&game, inspection, frame.as_ref());
+                            let mut presented = Vec::new();
+                            visit(
+                                &game,
+                                inspection,
+                                Some(&models),
+                                frame.as_ref(),
+                                |geometry, matrix| {
+                                    presented.push((geometry.as_ptr(), matrix));
+                                },
+                            );
+                            render_mesh::visit_character_parts(
+                                &game,
+                                inspection,
+                                |key, geometry, matrix| {
+                                    let Part::Actor { root, model, .. } = key else {
+                                        unreachable!()
+                                    };
+                                    let mut expected =
+                                        Frame::transform(frame.as_ref(), key, matrix);
+                                    if root == game.player().root_model {
+                                        if game.player().parts.contains(&model) {
+                                            return;
+                                        }
+                                        let parent = game.scene.models[model].parent.unwrap();
+                                        assert_eq!(offsets[&model], offsets[&parent]);
+                                        for (v, delta) in expected
+                                            .translation
+                                            .iter_mut()
+                                            .zip(offsets[&model].to_array())
+                                        {
+                                            *v += delta.round() as i32;
+                                        }
+                                    }
+                                    assert!(
+                                        presented.contains(&(geometry.as_ptr(), expected)),
+                                        "Weapon or NPC changed unexpectedly"
+                                    );
+                                },
+                            );
+                        }
+                        assert!(
+                            !render_mesh::characters_presented(
+                                &game,
+                                Some(&models),
+                                true,
+                                frame.as_ref()
+                            )
+                            .is_empty()
+                        );
+                        assert!(
+                            !render_mesh::shadow_models_presented(
+                                &game,
+                                Some(&models),
+                                frame.as_ref()
+                            )
+                            .is_empty()
+                        );
+                        let _ = crate::render_effects::build_presented(
+                            &game,
+                            false,
+                            None,
+                            true,
+                            Some(&models),
+                            frame.as_ref(),
+                        );
+                    }
+                }
+                assert_eq!(state, crate::session::tests::state(&game));
+            }
+            manifest.player_models.get_mut(&id).unwrap().parts[0].parent = Some(0);
+            std::fs::write(
+                root.join("pack.json"),
+                serde_json::to_vec(&manifest).unwrap(),
+            )
+            .unwrap();
+            assert!(Pack::load(&root).err().unwrap().contains("hierarchy"));
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+}

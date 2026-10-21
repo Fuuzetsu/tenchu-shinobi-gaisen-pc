@@ -184,6 +184,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         models: BTreeMap::new(),
         materials: definitions,
         lights: Some(super::lights::defaults()),
+        player_models: super::appearance::exported(mission),
     };
     fs::write(
         directory.join("pack.json"),

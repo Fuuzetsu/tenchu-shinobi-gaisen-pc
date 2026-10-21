@@ -147,6 +147,7 @@ impl super::Application {
         let Some(view) = &mut self.view else {
             return;
         };
+        self.menu.player_models.clone_from(&view.player_models);
         let edits = view.overlay.update(
             &view.window,
             &view.renderer,
@@ -169,6 +170,10 @@ impl super::Application {
                     Ok(())
                 }
                 Edit::Reset(item) => self.reset_item(item),
+                Edit::PlayerModel(id) => {
+                    self.settings.player_model = id;
+                    Ok(())
+                }
                 Edit::Coordinate(axis, value) => {
                     self.debug.target[axis] = value;
                     Ok(())

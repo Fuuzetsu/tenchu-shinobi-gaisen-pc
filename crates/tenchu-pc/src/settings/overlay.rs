@@ -10,6 +10,7 @@ pub enum Edit {
     Preset(u16),
     Reset(Item),
     Coordinate(usize, i32),
+    PlayerModel(String),
 }
 
 pub fn show(
@@ -57,6 +58,16 @@ pub fn show(
                 ui.add_space(10.0);
                 ui.vertical(|ui| {
                     ui.set_min_width(335.0);
+                    if menu.page == 10 {
+                        ui.label("Model folder (optional)");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut menu.model_directory)
+                                .desired_width(f32::INFINITY)
+                                .hint_text("Path to an exported or custom model pack"),
+                        );
+                        ui.weak("Choose a body below. Folder edits apply on Load / reload.");
+                        ui.separator();
+                    }
                     let rows = menu::rows(menu.page, settings, debug, paused);
                     if menu.page == 6 {
                         let light = &settings.graphics.lighting;
@@ -166,6 +177,24 @@ fn widget(
     edits: &mut Vec<Edit>,
 ) -> egui::Response {
     let item = row.item;
+    if item == Item::PlayerModel {
+        let selected = menu
+            .player_models
+            .iter()
+            .find(|(id, _)| id == &row.value)
+            .map_or("Original / unavailable", |(_, label)| label.as_str());
+        return egui::ComboBox::from_id_salt("player-model")
+            .width(200.0)
+            .selected_text(selected)
+            .show_ui(ui, |ui| {
+                for (id, label) in &menu.player_models {
+                    if ui.selectable_label(id == &row.value, label).clicked() {
+                        edits.push(Edit::PlayerModel(id.clone()));
+                    }
+                }
+            })
+            .response;
+    }
     if item.button() {
         let response = ui.button(if row.value == "Enter" {
             "Apply"

@@ -16,15 +16,75 @@ pub struct Material {
 
 #[derive(Default)]
 pub struct Models {
-    meshes: BTreeMap<usize, Vec<Vertex>>,
-    materials: Vec<Material>,
+    world: Meshes,
+    pub(super) player: Option<super::appearance::Appearance>,
     pub replacements: usize,
 }
 
 impl Models {
     pub fn build(mission: &MissionAssets, pack: &Pack, graphics: &Graphics) -> Result<Self> {
+        let world = Meshes::build(mission, pack, graphics, catalog::models(mission), false)?;
+        Ok(Self {
+            replacements: world.replacements,
+            world,
+            player: None,
+        })
+    }
+
+    pub fn with_player(
+        mut self,
+        game: &tenchu_core::game::Game,
+        selection: &str,
+        pack: &Pack,
+        bodies: &Pack,
+        graphics: &Graphics,
+    ) -> Result<Self> {
+        self.player =
+            super::appearance::Appearance::build(game, selection, pack, bodies, graphics)?;
+        Ok(self)
+    }
+
+    pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
+        self.world.bind(&mut bind);
+        if let Some(player) = &mut self.player {
+            player.meshes.bind(bind);
+        }
+    }
+
+    pub fn visit(
+        &self,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        fog: bool,
+        mut visit: impl FnMut([Vertex; 3]),
+    ) -> bool {
+        if let Some(player) = &self.player
+            && player.meshes.visit(geometry, matrix, fog, &mut visit)
+        {
+            return true;
+        }
+        self.world.visit(geometry, matrix, fog, visit)
+    }
+}
+
+#[derive(Default)]
+pub(super) struct Meshes {
+    meshes: BTreeMap<usize, Vec<Vertex>>,
+    materials: Vec<Material>,
+    pub replacements: usize,
+}
+
+impl Meshes {
+    pub fn build(
+        mission: &MissionAssets,
+        pack: &Pack,
+        graphics: &Graphics,
+        sources: Vec<catalog::ModelSource<'_>>,
+        force: bool,
+    ) -> Result<Self> {
         let mut out = Self::default();
-        if !(graphics.asset_pack && !pack.models.is_empty())
+        if !force
+            && !(graphics.asset_pack && !pack.models.is_empty())
             && !graphics.smooth_models
             && graphics.model_detail == 0
         {
@@ -33,13 +93,14 @@ impl Models {
         let region_ids = catalog::regions(mission);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
-        for source in catalog::models(mission) {
+        for source in sources {
             let replacement = graphics
                 .asset_pack
                 .then(|| pack.models.get(&source.id))
                 .flatten();
             let round = source.id.starts_with("actors/") && replacement.is_none();
-            if replacement.is_none()
+            if !force
+                && replacement.is_none()
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
             {
@@ -282,7 +343,7 @@ mod tests {
                         assert!((a.color[axis] - b.color[axis]).abs() < 0.00001);
                     }
                     if let Some(region) = region {
-                        let material = &models.materials[a.material as usize - 1];
+                        let material = &models.world.materials[a.material as usize - 1];
                         assert_eq!(material.id, region_ids[&region]);
                         let mapped = material.region.unwrap();
                         for axis in 0..2 {

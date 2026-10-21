@@ -284,8 +284,10 @@ pub fn shadow_models_presented(
             models,
         )
     };
-    visit_character_parts(game, true, &mut append);
     visit_hinged_parts(game, &mut append);
+    crate::visuals::appearance::visit(game, true, models, frame, |geometry, matrix| {
+        append_caster(&mut vertices, geometry, matrix, models);
+    });
     vertices
 }
 
@@ -308,13 +310,8 @@ pub fn characters_presented(
     frame: Option<&Frame>,
 ) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    visit_character_parts(game, inspection, |key, geometry, matrix| {
-        append_geometry(
-            &mut vertices,
-            geometry,
-            Frame::transform(frame, key, matrix),
-            models,
-        )
+    crate::visuals::appearance::visit(game, inspection, models, frame, |geometry, matrix| {
+        append_geometry(&mut vertices, geometry, matrix, models)
     });
     vertices
 }

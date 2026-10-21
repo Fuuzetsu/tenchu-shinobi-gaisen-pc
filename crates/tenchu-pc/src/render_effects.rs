@@ -310,12 +310,7 @@ pub fn build_presented(
         mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
     };
     render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
-    render_mesh::visit_character_parts(game, inspection, |key, meshes, matrix| {
-        translucent(
-            meshes,
-            crate::visuals::interpolation::Frame::transform(frame, key, matrix),
-        );
-    });
+    crate::visuals::appearance::visit(game, inspection, models, frame, &mut translucent);
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
         if index == 25 && !blob_shadows {
             continue;

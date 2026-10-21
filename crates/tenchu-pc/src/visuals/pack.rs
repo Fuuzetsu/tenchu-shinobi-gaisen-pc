@@ -35,6 +35,8 @@ pub struct Manifest {
     pub materials: BTreeMap<String, Material>,
     #[serde(default)]
     pub lights: Option<Vec<super::lights::Rule>>,
+    #[serde(default)]
+    pub player_models: BTreeMap<String, super::appearance::Body>,
 }
 
 #[derive(Default)]
@@ -44,6 +46,7 @@ pub struct Pack {
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub materials: BTreeMap<String, Material>,
     pub lights: Option<Vec<super::lights::Rule>>,
+    pub player_models: BTreeMap<String, super::appearance::Body>,
 }
 
 impl Pack {
@@ -107,8 +110,28 @@ impl Pack {
                 ));
             }
         }
+        let mut models = manifest.models;
+        for (id, body) in &manifest.player_models {
+            if id.is_empty()
+                || !id
+                    .bytes()
+                    .all(|c| c.is_ascii_alphanumeric() || b"_-".contains(&c))
+            {
+                return Err(format!("Invalid player model identity {id:?}"));
+            }
+            body.validate()?;
+            for (index, part) in body.parts.iter().enumerate() {
+                let key = format!("player/{id}/{index}");
+                if let Some(file) = &part.file {
+                    models.insert(key, file.clone());
+                } else {
+                    pack.models.insert(key, Vec::new());
+                }
+            }
+        }
+        pack.player_models = manifest.player_models;
         let mut triangles = 0;
-        for (id, path) in manifest.models {
+        for (id, path) in models {
             let data = read(&root, &path, 64 * 1024 * 1024)?;
             let text = std::str::from_utf8(&data).map_err(|e| format!("{path}: {e}"))?;
             let model = super::obj::decode(text).map_err(|e| format!("{path}: {e}"))?;
@@ -208,6 +231,7 @@ mod tests {
             models: BTreeMap::new(),
             materials: BTreeMap::new(),
             lights: None,
+            player_models: BTreeMap::new(),
         };
         let save = |manifest: &Manifest| {
             fs::write(

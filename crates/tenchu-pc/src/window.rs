@@ -552,7 +552,7 @@ pub fn run(
 ) -> Result<()> {
     let storage = Storage::new()?;
     let settings_store = settings::Store::new()?;
-    let (settings, notice) = match settings_store.load() {
+    let (mut settings, notice) = match settings_store.load() {
         Ok(settings) => (settings, String::new()),
         Err(error) => {
             eprintln!("Settings: {error}. Using defaults.");
@@ -562,6 +562,10 @@ pub fn run(
             )
         }
     };
+    if let Some(directory) = std::env::var_os("TENCHU_MODEL_DIR") {
+        settings.model_directory = directory.to_string_lossy().into_owned();
+    }
+    let model_directory = settings.model_directory.clone();
     let campaign = Campaign::new(&assets, options, storage.load()?)?;
     let debug = crate::debug::Debug::new(&campaign.game)?;
     let mut audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
@@ -594,6 +598,7 @@ pub fn run(
         settings_store,
         menu: Menu {
             notice,
+            model_directory,
             ..Menu::default()
         },
         pointer: [0.0; 2],

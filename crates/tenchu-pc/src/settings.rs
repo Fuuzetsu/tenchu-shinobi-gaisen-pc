@@ -19,6 +19,8 @@ pub struct Settings {
     pub volume: u16,
     pub graphics: Graphics,
     pub cutscene_speed: u16,
+    pub player_model: String,
+    pub model_directory: String,
 }
 
 impl Default for Settings {
@@ -32,6 +34,8 @@ impl Default for Settings {
             volume: 100,
             graphics: Graphics::default(),
             cutscene_speed: 1,
+            player_model: String::new(),
+            model_directory: String::new(),
         }
     }
 }

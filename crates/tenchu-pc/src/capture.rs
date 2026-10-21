@@ -39,8 +39,22 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         &game.mission.vram,
     ))?;
     let pack = crate::visuals::pack::Pack::from_env()?;
+    let directory =
+        std::env::var("TENCHU_MODEL_DIR").unwrap_or_else(|_| settings.model_directory.clone());
+    let bodies = if directory.is_empty() {
+        crate::visuals::pack::Pack::default()
+    } else {
+        crate::visuals::pack::Pack::load(std::path::Path::new(&directory))?
+    };
     let mut models =
-        crate::visuals::models::Models::build(&game.mission, &pack, &settings.graphics)?;
+        crate::visuals::models::Models::build(&game.mission, &pack, &settings.graphics)?
+            .with_player(
+                game,
+                &settings.player_model,
+                &pack,
+                &bodies,
+                &settings.graphics,
+            )?;
     let emitters =
         crate::visuals::lights::Emitters::build(game, &pack, settings.graphics.asset_pack);
     let lights: Vec<_> = crate::lighting::sources(
