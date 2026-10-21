@@ -28,6 +28,9 @@ pub struct Mixer {
     envelope_clock: u64,
     pub paused: bool,
     pub volume: f32,
+    pub music_volume: f32,
+    pub effects_volume: f32,
+    pub stereo: bool,
 }
 
 impl Mixer {
@@ -42,6 +45,9 @@ impl Mixer {
             envelope_clock: 0,
             paused: false,
             volume: 0.5,
+            music_volume: 1.0,
+            effects_volume: 1.0,
+            stereo: true,
         }
     }
 
@@ -55,6 +61,10 @@ impl Mixer {
     }
 
     pub fn play(&mut self, id: i16, volume: u8, pan: u8) {
+        self.play_note(id, volume, pan, 36);
+    }
+
+    pub fn play_note(&mut self, id: i16, volume: u8, pan: u8, note: u8) {
         self.next_voice = (self.next_voice + 1) % self.voices.len();
         let Some(bank) = &self.bank else {
             return;
@@ -77,7 +87,8 @@ impl Mixer {
             * f32::from(tone.volume)
             / 127.0;
         let pan = f32::from(pan.min(127));
-        let pitch = (36.0 - f64::from(tone.center) - f64::from(tone.fine) / 128.0) / 12.0;
+        let pitch =
+            (f64::from(note) - f64::from(tone.center) - f64::from(tone.fine) / 128.0) / 12.0;
         self.voices[self.next_voice] = Some(Voice {
             sample: tone.sample,
             position: 0.0,
@@ -148,6 +159,7 @@ impl Mixer {
                 voice.position += voice.step;
             }
         }
+        output = output.map(|v| v * self.effects_volume);
         if let Some(music) = &mut self.music {
             let length = music.clip.frames.len();
             if music.position < length as f64 || music.repeat {
@@ -164,12 +176,15 @@ impl Mixer {
                 for (channel, out) in output.iter_mut().enumerate() {
                     let a = f32::from(music.clip.frames[index][channel]);
                     let b = f32::from(music.clip.frames[next][channel]);
-                    *out += (a + (b - a) * fraction) / 32768.0;
+                    *out += (a + (b - a) * fraction) / 32768.0 * self.music_volume;
                 }
                 music.position += music.step;
             } else {
                 self.music = None;
             }
+        }
+        if !self.stereo {
+            output = [(output[0] + output[1]) * 0.5; 2];
         }
         output.map(|v| (v * self.volume).clamp(-1.0, 1.0))
     }

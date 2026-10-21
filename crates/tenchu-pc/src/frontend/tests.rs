@@ -1,0 +1,236 @@
+use super::*;
+
+#[test]
+#[ignore = "requires TENCHU_DISC; loads every original frontend asset and character animation"]
+fn original_assets_and_selection_motions_load_for_all_languages() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    frontend.movie = None;
+    for language in [
+        Language::English,
+        Language::Japanese,
+        Language::French,
+        Language::Italian,
+    ] {
+        frontend.language(&assets, language).unwrap();
+        assert_eq!(frontend.mission_images.len(), 36);
+        assert_eq!(frontend.character_images.len(), 3);
+        for movie in [
+            Movie::Training,
+            Movie::Rikimaru,
+            Movie::Ayame,
+            Movie::Credits,
+        ] {
+            let bytes = assets.asset(&movie.subtitles(language).unwrap()).unwrap();
+            tenchu_assets::frontend::movie_commands(&bytes).unwrap();
+            Bank::parse(&assets.asset(&movie.voices(language).unwrap()).unwrap()).unwrap();
+        }
+    }
+    for selected in 0..2 {
+        frontend.characters.reset(&frontend.tables);
+        frontend.characters.select(selected, &frontend.tables);
+        for _ in 0..180 {
+            frontend.characters.tick(&campaign.game.math).unwrap();
+        }
+        frontend.characters.confirm(&frontend.tables);
+        for _ in 0..180 {
+            frontend.characters.tick(&campaign.game.math).unwrap();
+        }
+        assert!(frontend.characters.done());
+    }
+    for page in [
+        Page::Title,
+        Page::Character,
+        Page::Missions,
+        Page::Options,
+        Page::Controls,
+        Page::Volume,
+        Page::SoundTest,
+        Page::Records,
+        Page::Card,
+        Page::Choice(1),
+        Page::Choice(2),
+        Page::Choice(6),
+        Page::Choice(8),
+        Page::Choice(9),
+    ] {
+        frontend.title.activate();
+        frontend.set_page(page);
+        frontend.ticks = 120;
+        frontend.paint(&campaign);
+        if let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
+            capture(&frontend.canvas, Path::new(&path), &format!("{page:?}"));
+        }
+    }
+}
+
+pub(super) fn capture(canvas: &Canvas, directory: &Path, name: &str) {
+    std::fs::create_dir_all(directory).unwrap();
+    let file = std::fs::File::create(directory.join(format!("{name}.png"))).unwrap();
+    let mut png = png::Encoder::new(file, canvas.size[0] as u32, canvas.size[1] as u32);
+    png.set_color(png::ColorType::Rgba);
+    png.set_depth(png::BitDepth::Eight);
+    png.write_header()
+        .unwrap()
+        .write_image_data(&canvas.pixels)
+        .unwrap();
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; exercises menu cancellation, remapping and progress restrictions"]
+fn menu_navigation_does_not_change_preferences_or_gameplay() {
+    use tenchu_core::{game::score::Record, progress::Completion};
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    frontend
+        .action(Action::Confirm, &mut campaign, &assets)
+        .unwrap();
+    frontend
+        .action(Action::Confirm, &mut campaign, &assets)
+        .unwrap();
+    let random = campaign.game.random.seed;
+    for option in 0..10 {
+        frontend.option_selection = option;
+        frontend.open_option(&campaign);
+        frontend.events.clear();
+        frontend
+            .advance(Duration::from_millis(250), false, &mut campaign, &assets)
+            .unwrap();
+        frontend.paint(&campaign);
+        frontend
+            .action(Action::Back, &mut campaign, &assets)
+            .unwrap();
+        assert_eq!(frontend.preferences, Preferences::default());
+        assert_eq!(frontend.page, Page::Options);
+    }
+    assert_eq!(campaign.game.tick, 0);
+    assert_eq!(campaign.game.random.seed, random);
+    frontend.option_selection = 3;
+    frontend.open_option(&campaign);
+    frontend
+        .action(Action::Right, &mut campaign, &assets)
+        .unwrap();
+    assert_eq!(frontend.preferences.music, 98);
+    frontend
+        .action(Action::Back, &mut campaign, &assets)
+        .unwrap();
+    assert_eq!(frontend.preferences.music, 96);
+    for scheme in 0..4 {
+        frontend.preferences.control_scheme = scheme;
+        for (source, target) in frontend.tables.button_assign[0]
+            .iter()
+            .zip(frontend.tables.button_assign[scheme])
+        {
+            assert_eq!(
+                frontend.buttons(u16::from(*source) | tenchu_core::input::UP),
+                u16::from(target) | tenchu_core::input::UP
+            );
+        }
+    }
+    assert_eq!(unlocked_mission(&campaign), 1);
+    assert!(!layout_available(&campaign, 1, 1));
+    // A zero-score clear advances the campaign even when it doesn't replace a record.
+    let stage = campaign.stages.iter().find(|s| s.order == 1).unwrap();
+    campaign.progress.complete(
+        Completion {
+            stage,
+            character: 0,
+            layout: 0,
+            language: Language::English,
+            record: Record {
+                enemies: 10,
+                found: 20,
+                clock: 3000,
+                ..Record::default()
+            },
+            remaining: [0; 20],
+        },
+        &mut campaign.game.random,
+    );
+    assert!(!campaign.progress.records[0][stage.id][0].played());
+    assert_eq!(unlocked_mission(&campaign), 2);
+    campaign.progress.records[0][stage.id][0].enemies = 10;
+    assert!(layout_available(&campaign, 1, 1));
+    assert!(!layout_available(&campaign, 1, 2));
+    campaign.options.character = 1;
+    assert_eq!(unlocked_mission(&campaign), 1);
+    assert!(!layout_available(&campaign, 1, 1));
+    frontend.quick_launcher();
+    assert!(frontend.movie.is_none());
+    assert!(matches!(frontend.events.as_slice(), [Event::QuickLauncher]));
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; controlled final completion checks ending/results/retry, not a campaign playthrough"]
+fn final_completion_hands_off_through_both_epilogues_to_results() {
+    use crate::campaign::Screen;
+    use tenchu_core::game::events::Outcome;
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    for character in 0..2 {
+        let options = crate::session::Options {
+            mission: 10,
+            character,
+            ..Default::default()
+        };
+        let mut campaign = Campaign::new(&assets, options, None).unwrap();
+        campaign.frontend = true;
+        let mut frontend =
+            Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+        frontend.movie = None;
+        campaign.inventory();
+        campaign.action(Action::Confirm, &assets).unwrap();
+        campaign.game.clock = 3000;
+        campaign.game.statistics.criticals = 10;
+        campaign.game.statistics.friend_hits = 2;
+        campaign.game.events.outcome = Outcome::Complete;
+        campaign.tick(0).unwrap();
+        assert!(matches!(campaign.screen, Screen::Ending(_)));
+        let progress = campaign.progress.clone();
+        let movie = if character == 0 {
+            Movie::Rikimaru
+        } else {
+            Movie::Ayame
+        };
+        frontend.play_movie(movie, &assets).unwrap();
+        assert!(frontend.movie.is_some(), "{}", frontend.notice);
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+        assert_eq!(frontend.page, Page::Movie(movie));
+        frontend.movie_finished(&assets).unwrap();
+        assert_eq!(frontend.page, Page::Movie(Movie::Credits));
+        frontend.events.clear();
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+        assert_eq!(frontend.page, Page::Results);
+        assert!(frontend.events.iter().any(|e| matches!(e, Event::Results)));
+        let Screen::Ending(results) = std::mem::replace(&mut campaign.screen, Screen::Frontend)
+        else {
+            unreachable!()
+        };
+        campaign.screen = Screen::Results(results);
+        frontend.ticks = 120;
+        frontend.paint(&campaign);
+        if let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
+            capture(
+                &frontend.canvas,
+                Path::new(&path),
+                &format!("results-{character}"),
+            );
+        }
+        assert_eq!(campaign.progress, progress);
+        campaign.action(Action::Replay, &assets).unwrap();
+        assert!(matches!(campaign.screen, Screen::Inventory(_)));
+        assert_eq!(campaign.options.mission, 10);
+        frontend.enter_title(&assets).unwrap();
+        assert_eq!(frontend.page, Page::Title);
+    }
+}

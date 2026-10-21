@@ -1,5 +1,6 @@
 mod loader;
 mod output;
+use output::Command;
 
 use crate::{
     campaign::{Campaign, Screen},
@@ -30,6 +31,40 @@ pub struct Audio {
 }
 
 impl Audio {
+    pub fn preferences(&self, preferences: &crate::frontend::Preferences) {
+        self.output.send(Command::Balance(
+            preferences.music,
+            preferences.effects,
+            preferences.stereo,
+        ));
+    }
+
+    pub fn frontend(&mut self, event: crate::frontend::Event) {
+        use crate::frontend::Event;
+        match event {
+            Event::Bank(bank) => {
+                self.output.send(Command::Bank(bank));
+                self.screen = None;
+            }
+            Event::Effect(id) => self.effect(id),
+            Event::Voice(id) => self.output.send(Command::Voice(id)),
+            Event::Music(index) => {
+                let track = index
+                    .and_then(|i| self.catalog.music(i as i32).cloned())
+                    .map(|mut track| {
+                        track.repeat = index != Some(14);
+                        track
+                    });
+                self.track(track);
+                self.output.send(Command::Clear);
+            }
+            Event::MovieAudio(clip) => {
+                self.loader.request(None);
+                self.output.send(Command::Music(Some(clip), false));
+            }
+            _ => (),
+        }
+    }
     pub fn new(path: &Path, assets: &GameAssets<FileSource>, campaign: &Campaign) -> Result<Self> {
         let mut audio = Self {
             output: output::Output::new()?,
@@ -103,6 +138,7 @@ impl Audio {
             Screen::Results(_) | Screen::Complete => Some(12),
             Screen::GameOver => Some(11),
             Screen::Playing => None,
+            Screen::Frontend | Screen::Ending(_) => None,
         };
         self.track(cue.and_then(|cue| self.catalog.music(cue)).cloned());
     }

@@ -8,6 +8,7 @@ fn application(options: Options) -> Application {
     campaign.screen = Screen::Playing;
     let debug = crate::debug::Debug::new(&campaign.game).unwrap();
     Application {
+        frontend: None,
         assets,
         campaign,
         storage: Storage::new().unwrap(),

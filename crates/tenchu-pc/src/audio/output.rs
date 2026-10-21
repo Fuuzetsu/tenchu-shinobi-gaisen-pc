@@ -20,6 +20,8 @@ pub enum Command {
     Clear,
     Pause(bool),
     Volume(u16),
+    Balance(u8, u8, bool),
+    Voice(i16),
 }
 
 pub struct Output {
@@ -83,6 +85,12 @@ fn build<T: SizedSample + FromSample<f32>>(
                         Command::Clear => mixer.clear_effects(),
                         Command::Pause(paused) => mixer.paused = paused,
                         Command::Volume(percent) => volume = f32::from(percent.min(100)) / 100.0,
+                        Command::Balance(music, effects, stereo) => {
+                            mixer.music_volume = f32::from(music) / 96.0;
+                            mixer.effects_volume = f32::from(effects) / 96.0;
+                            mixer.stereo = stereo;
+                        }
+                        Command::Voice(id) => mixer.play_note(id, 127, 64, 48),
                     }
                 }
                 for frame in data.chunks_exact_mut(channels) {

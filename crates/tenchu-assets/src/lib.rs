@@ -5,6 +5,7 @@ pub mod cue;
 pub mod disc;
 pub mod executable;
 pub mod font;
+pub mod frontend;
 pub mod game;
 pub mod hud;
 pub mod misc;

@@ -30,3 +30,4 @@ mod oracle;
 pub use tenchu_assets::Result;
 
 pub const TICKS_PER_SECOND: u32 = 30;
+pub mod frontend;

@@ -40,6 +40,37 @@ pub fn evaluate(a: Key, b: Key, tangent: [[i16; 3]; 2], basis: [i16; 4]) -> [i16
 }
 
 pub fn sample(keys: &[Key], frame: i16, duration: i16, table: &[[i16; 4]; 33]) -> Result<[i16; 3]> {
+    sample_with(keys, frame, duration, table, evaluate)
+}
+
+type Evaluation = fn(Key, Key, [[i16; 3]; 2], [i16; 4]) -> [i16; 3];
+type Sampling = fn(&[Key], i16, i16, &[[i16; 4]; 33]) -> Result<[i16; 3]>;
+
+fn evaluate_scalar(a: Key, b: Key, tangent: [[i16; 3]; 2], basis: [i16; 4]) -> [i16; 3] {
+    std::array::from_fn(|i| {
+        let values = [a.value[i], b.value[i], tangent[0][i], tangent[1][i]];
+        (values.into_iter().zip(basis).fold(0i32, |sum, (v, w)| {
+            sum.wrapping_add(i32::from(v) * i32::from(w))
+        }) >> 12) as i16
+    })
+}
+
+fn sample_scalar(
+    keys: &[Key],
+    frame: i16,
+    duration: i16,
+    table: &[[i16; 4]; 33],
+) -> Result<[i16; 3]> {
+    sample_with(keys, frame, duration, table, evaluate_scalar)
+}
+
+fn sample_with(
+    keys: &[Key],
+    frame: i16,
+    duration: i16,
+    table: &[[i16; 4]; 33],
+    evaluate: Evaluation,
+) -> Result<[i16; 3]> {
     let first = keys.first().ok_or("Empty animation track")?;
     if duration == 0 {
         return Ok(first.value);
@@ -249,6 +280,21 @@ impl Motion {
     }
 
     pub fn play(&mut self, clips: &[Clip], table: &[[i16; 4]; 33], pose: bool) -> Result<i16> {
+        self.play_sampled(clips, table, pose, sample)
+    }
+
+    /// MENU sums all four Hermite terms before shifting, unlike MAIN's GTE helper.
+    pub fn step_scalar(&mut self, clips: &[Clip], table: &[[i16; 4]; 33]) -> Result<i16> {
+        self.play_sampled(clips, table, true, sample_scalar)
+    }
+
+    fn play_sampled(
+        &mut self,
+        clips: &[Clip],
+        table: &[[i16; 4]; 33],
+        pose: bool,
+        sample: Sampling,
+    ) -> Result<i16> {
         if self.loops < 0 {
             return Ok(0);
         }
@@ -379,5 +425,27 @@ mod tests {
         );
         let a = key(0, 0);
         assert_eq!(evaluate(a, a, [[0; 3], [-3; 3]], [0, 0, 0, 2048]), [-2; 3]);
+    }
+
+    #[test]
+    fn menu_spline_rounds_after_the_four_term_sum() {
+        let a = key(1, 0);
+        let tangent = [[0; 3], [1; 3]];
+        assert_eq!(evaluate_scalar(a, a, tangent, [2048, 0, 0, 2048]), [1; 3]);
+        assert_eq!(evaluate(a, a, tangent, [2048, 0, 0, 2048]), [0; 3]);
+        let a = key(-1, 0);
+        assert_eq!(
+            evaluate_scalar(a, a, [[0; 3], [-1; 3]], [2048, 0, 0, 2048]),
+            [-1; 3]
+        );
+        assert_eq!(
+            evaluate(a, a, [[0; 3], [-1; 3]], [2048, 0, 0, 2048]),
+            [-2; 3]
+        );
+        let a = key(30000, 0);
+        assert_eq!(
+            evaluate_scalar(a, a, [[30000; 3]; 2], [30000; 4]),
+            [26938; 3]
+        );
     }
 }

@@ -68,6 +68,7 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
         line(-140, 52, "Returns to equipment selection".into(), DIM);
     } else {
         match &campaign.screen {
+            Screen::Frontend | Screen::Ending(_) => (),
             Screen::Launcher => {
                 line(-140, -102, "TENCHU: SHINOBI GAISEN".into(), GOLD);
                 line(-140, -84, "PC port - development build".into(), DIM);
@@ -109,7 +110,17 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
                     );
                 }
                 line(-140, 88, "Arrows/D-pad/stick: choose/change".into(), DIM);
-                line(-140, 104, "Enter/South: select  Esc/East: quit".into(), DIM);
+                line(
+                    -140,
+                    104,
+                    if campaign.frontend {
+                        "Enter/South: select  Esc/East: title"
+                    } else {
+                        "Enter/South: select  Esc/East: quit"
+                    }
+                    .into(),
+                    DIM,
+                );
             }
             Screen::Inventory(loadout) => {
                 line(-140, -102, "MISSION EQUIPMENT".into(), GOLD);

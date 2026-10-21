@@ -5,6 +5,7 @@ use crate::{
 use winit::{event::WindowEvent, window::Window};
 
 pub(super) struct Overlay {
+    pub opaque: bool,
     renderer: egui_wgpu::Renderer,
     state: egui_winit::State,
     context: egui::Context,
@@ -17,11 +18,16 @@ pub(super) struct Extras<'a> {
     pub performance: &'a mut super::performance::Performance,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
+    pub frontend: Option<(
+        &'a mut crate::frontend::Frontend,
+        &'a crate::campaign::Campaign,
+    )>,
 }
 
 pub(super) struct Updates {
     edits: Vec<Edit>,
     demo: Option<crate::demo::overlay::Action>,
+    frontend: Option<crate::campaign::Action>,
 }
 
 impl Overlay {
@@ -43,6 +49,7 @@ impl Overlay {
             Some(renderer.device.limits().max_texture_dimension_2d as usize),
         );
         Self {
+            opaque: false,
             renderer: egui_wgpu::Renderer::new(&renderer.device, format, None, 1, false),
             state,
             context,
@@ -70,6 +77,7 @@ impl Overlay {
         state: crate::settings::overlay::State<'_>,
         mut extras: Extras<'_>,
     ) -> Updates {
+        self.opaque = extras.frontend.is_some();
         let mut input = self.state.take_egui_input(window);
         if let Some(time) = extras.video_time {
             self.context.set_zoom_factor(3.0);
@@ -96,7 +104,11 @@ impl Overlay {
         }
         let mut edits = Vec::new();
         let mut demo_action = None;
+        let mut frontend_action = None;
         let output = self.context.run(input, |ctx| {
+            if let Some((frontend, campaign)) = &mut extras.frontend {
+                frontend_action = frontend.show(ctx, campaign);
+            }
             paint_labels(ctx, extras.labels);
             let mut show_performance = state.settings.show_performance;
             let profiling = show_performance;
@@ -147,6 +159,7 @@ impl Overlay {
         Updates {
             edits,
             demo: demo_action,
+            frontend: frontend_action,
         }
     }
 
@@ -195,6 +208,7 @@ impl super::Application {
     pub(super) fn update_overlay(&mut self) {
         let was_open = self.menu.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
+        let frontend_visible = self.frontend_visible();
         let Some(view) = &mut self.view else {
             return;
         };
@@ -218,10 +232,22 @@ impl super::Application {
                     .video
                     .as_ref()
                     .map(|v| v.frames as f64 / crate::video::FPS as f64),
+                frontend: if frontend_visible {
+                    self.frontend.as_mut().map(|f| (f, &self.campaign))
+                } else {
+                    None
+                },
             },
         );
         if let Some(action) = updates.demo {
             self.demo_action(action);
+        }
+        if let Some(action) = updates.frontend {
+            if matches!(self.campaign.screen, crate::campaign::Screen::Results(_)) {
+                self.action(action);
+            } else {
+                self.frontend_action(action);
+            }
         }
         if library_was_open != self.demo.as_ref().is_some_and(|d| d.library) {
             self.sync_pause();

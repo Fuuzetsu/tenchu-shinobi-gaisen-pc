@@ -501,21 +501,23 @@ impl View {
             self.shadow_stage.as_ref().unwrap_or(&self.stage),
             self.shadow_models.as_ref().unwrap_or(&self.actor),
         ];
-        self.renderer.draw_lit(
-            target,
-            if debug.camera.is_some() {
-                debug.matrix(game, self.config.width as f32 / self.config.height as f32)
-            } else {
-                crate::renderer::game_camera(
-                    self.frame.as_ref().map_or(game.rendered_view, |f| f.view),
-                    self.config.width as f32 / self.config.height as f32,
-                )
-            },
-            if debug.collision_only { &[] } else { &meshes },
-            Some(&self.effects),
-            &self.lights,
-            &casters,
-        )?;
+        if !self.overlay.opaque {
+            self.renderer.draw_lit(
+                target,
+                if debug.camera.is_some() {
+                    debug.matrix(game, self.config.width as f32 / self.config.height as f32)
+                } else {
+                    crate::renderer::game_camera(
+                        self.frame.as_ref().map_or(game.rendered_view, |f| f.view),
+                        self.config.width as f32 / self.config.height as f32,
+                    )
+                },
+                if debug.collision_only { &[] } else { &meshes },
+                Some(&self.effects),
+                &self.lights,
+                &casters,
+            )?;
+        }
         self.overlay.draw(&self.renderer, target);
         Ok(())
     }

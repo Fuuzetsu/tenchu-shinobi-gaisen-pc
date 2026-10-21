@@ -49,7 +49,7 @@ impl Default for Progress {
         Self {
             stock: [stock; 2],
             records: [[[Record::default(); LAYOUTS]; STAGES]; 2],
-            highest: [1; 2],
+            highest: [0; 2],
             flags: 0,
             training: [TrainingRecord::default(); 5],
         }

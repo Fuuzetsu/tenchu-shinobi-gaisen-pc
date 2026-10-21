@@ -4,6 +4,7 @@ mod capture;
 mod controls;
 mod debug;
 mod demo;
+mod frontend;
 mod lighting;
 mod recording;
 mod render_effects;

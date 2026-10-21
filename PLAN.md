@@ -31,6 +31,17 @@ boundary and reusable asset/timeline logic portable.
   audio checks for both characters/languages, Nix/Clippy/format/WASM validation,
   documentation and source provenance. Commit coherent implementation stages.
 
+The initial port now connects the original title, animated character selection,
+mission map, options and ending results to the existing campaign. F6 opens the
+quick launcher and Esc returns to the title. All four language asset sets load;
+both selection motions finish and all five movie streams decode to their source
+endpoints with XA audio and caption/voice cues. Native input has been exercised
+from boot through character selection into Mission 1, then back through language
+selection and the quick launcher. Controlled final-completion tests cover both
+epilogues, credits, results and retry; these are transition tests, not playthroughs.
+Remaining verification/refinement includes native controller feedback, packaging,
+movie failure/cadence handling and the completed user documentation.
+
 Use the original nominal game rate (30 game updates per second in this release),
 independent of display rate. Rendering may interpolate but may not mutate the
 game. Keep drawing-related coordinate, effect, RNG and activation side effects

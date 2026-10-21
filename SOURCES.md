@@ -982,3 +982,33 @@ which is supplied only to the test's initial conditions. Source hashes:
 | `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
 | `src/main.exe/MISC.C` | `6b46b6d6ac8ae87c9871b3109fedd47172f5f0fa25476aaf873c3e41a894a19c` |
 | `src/main.exe/STAGE.C` | `dc1573257be1b02eeaaa96cd1e3c6ce8b952da3dbd4a122e669a29e4d819a391` |
+
+## Original menu and ending (2026-10-21)
+
+The matching MENU/ENDING decompilation at `~/programming/tenchu-decomp`,
+revision `7e13c76e48a79ef8b187a838867670a945b789bd`, supplies the screen flow, archive indices,
+positions, animation registrations, caption/voice scheduling and skip rules.
+These are rewritten as owned Rust state and image composition. Disc movies
+use the Nix-provided FFmpeg MDEC decoder at the native host boundary; XA and
+VAB audio use the existing portable decoders. No SDK, emulator, sibling source
+or extracted assets are required at runtime. Native saves replace memory cards.
+
+| Consulted source | SHA-256 |
+| --- | --- |
+| `src/menu.exe/MAIN.C` | `5059dfd34680441e385b92cf187fb19e00764cdd02f5298b612afee5d65fdbf3` |
+| `src/menu.exe/TITLE.C` | `c6a0f380051d0857c4671041f5ad10192c88c44842c2750d5f431bae65fa5cd6` |
+| `src/menu.exe/TITLEMESH.C` | `8953014a46e45a8273a72bfbff4a556f46d1d3207d2d7a6c05502d8d73dd644a` |
+| `src/menu.exe/CHARACTER.C` | `3ff34ca92a9aff208bc6383025a284f2954ae4219f3fc5fcfea08c5c670613a8` |
+| `src/menu.exe/MISSION.C` | `e0d49f8827cf1f3429b96a76bbc099cf271c81322ce640d022d7398c1a29680f` |
+| `src/menu.exe/OPTIONS.C` | `5313a6fbe64a3607230ee00da7ae0e575687245719dc375c4e1f29d73619950c` |
+| `src/menu.exe/ACTION.C` | `33ce7904c2e31aa6cc98dd4de8e62f6578e84440c9a981bac1d6a60f8637285c` |
+| `src/menu.exe/3DCTRL.C` | `1fa4a4b185d1f9bf9776fcd7c82bcda6a3460620ea4a6e120880f5fcecc64e60` |
+| `src/menu.exe/OPMOVIE.C` | `9548653c76340a5e00e8b782d6835bfbccf0251dcc0f7cd5baf86d5907524e48` |
+| `src/menu.exe/AUDIO.C` | `ac7678fe77676f9d9ddf3fec2042a89663f012ea44c332d901ab1b9befe0f26b` |
+| `src/menu.exe/SEMNG.C` | `50d497dccc40cde4eecfbca7627efc9df228d0c3033999c855b94783790cca55` |
+| `src/menu.exe/persistent.h` | `90a102bc17a8e77e59cabc4cc95ae6f0927ca1ad3833acb29a2b72dd184d6b4b` |
+| `src/ending.exe/MAIN.C` | `9eb229c838e98cf7dafacb431d9cc0e473874719e7a004ff629c2551c56ae62f` |
+| `src/ending.exe/SUBTITLE.C` | `b206a40f12dee52f3b1f3bb88f424efd34ff47c33049b22363394abdd97e7198` |
+| `src/ending.exe/RESULTS.C` | `560d0fa8f915bca27db74e395c14b9166ccee2c0e48fa03df9ae1064a620389a` |
+| `config/symbols.menu.exe.txt` | `c35e2755cdaa0e6a0e2e0276883f281ac292aecc19e10ded06505eb945f9a8b2` |
+| `src/main.exe/PADCMD.C` | `e113fecf2c20e8e26140153569eeb9a746ef57f3ded1b4bb6b83fb36d117c7d0` |

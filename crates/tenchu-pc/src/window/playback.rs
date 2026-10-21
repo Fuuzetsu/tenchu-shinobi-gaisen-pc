@@ -75,6 +75,10 @@ impl Application {
             } else {
                 0
             };
+            let buttons = self
+                .frontend
+                .as_ref()
+                .map_or(buttons, |f| f.buttons(buttons));
             if !self.game_tick(buttons) {
                 break;
             }

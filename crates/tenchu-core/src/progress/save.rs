@@ -156,6 +156,18 @@ impl Save {
         if !reader.0.is_empty() {
             return Err("Unexpected data at end of save".into());
         }
+        // The original quick launcher initialized this completed-mission counter to one.
+        for character in 0..2 {
+            if save.progress.highest[character] == 1
+                && save.progress.flags & 1 == 0
+                && save.progress.records[character]
+                    .iter()
+                    .flatten()
+                    .all(|record| !record.played())
+            {
+                save.progress.highest[character] = 0;
+            }
+        }
         Ok(save)
     }
 }
@@ -173,6 +185,27 @@ impl Reader<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn old_unplayed_saves_do_not_unlock_mission_two() {
+        let mut old = Save::default();
+        old.progress.highest = [1, 1];
+        assert_eq!(
+            Save::decode(&old.encode()).unwrap().progress.highest,
+            [0, 0]
+        );
+        old.progress.flags = 1;
+        assert_eq!(
+            Save::decode(&old.encode()).unwrap().progress.highest,
+            [1, 1]
+        );
+        old.progress.flags = 0;
+        old.progress.records[0][0][0].enemies = 3;
+        assert_eq!(
+            Save::decode(&old.encode()).unwrap().progress.highest,
+            [1, 0]
+        );
+    }
 
     #[test]
     fn saved_progress_rejects_corruption_and_retains_signed_records() {

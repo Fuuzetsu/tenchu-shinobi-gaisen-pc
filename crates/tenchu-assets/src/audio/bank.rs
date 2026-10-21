@@ -6,6 +6,7 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct Tone {
+    pub mode: u8,
     pub volume: u8,
     pub pan: u8,
     pub center: u8,
@@ -70,6 +71,7 @@ impl Bank {
                     return Err("VAB tone sample outside bank".into());
                 }
                 entries.push(Tone {
+                    mode: tone[1],
                     volume: tone[2],
                     pan: tone[3],
                     center: tone[4],

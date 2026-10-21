@@ -1,4 +1,5 @@
 mod demo;
+mod frontend;
 mod overlay;
 mod performance;
 mod playback;
@@ -67,6 +68,7 @@ struct Application {
     demo_exit: bool,
     video: Option<crate::video::Export>,
     modifiers: ModifiersState,
+    frontend: Option<crate::frontend::Frontend>,
 }
 
 impl Application {
@@ -166,6 +168,9 @@ impl Application {
     }
 
     fn pause_error(&mut self, error: String) {
+        if let Some(frontend) = &mut self.frontend {
+            frontend.notice = format!("{error} — F6: quick launcher");
+        }
         self.flush_recording();
         eprintln!(
             "Tick {}: {error}. Press F5 to retry.",
@@ -185,6 +190,9 @@ impl Application {
             return;
         }
         if let Some(save) = self.campaign.save_request.take() {
+            if !self.settings.frontend.auto_save {
+                return;
+            }
             match self.storage.write(&save) {
                 Ok(()) => self.campaign.saved = Some(save),
                 Err(error) => self.pause_error(error),
@@ -209,6 +217,13 @@ impl Application {
         };
         match self.campaign.action(action, &self.assets) {
             Ok(reload) => {
+                if self.frontend.is_some()
+                    && (matches!(self.campaign.screen, Screen::Complete)
+                        || matches!(self.campaign.screen, Screen::Launcher)
+                            && !self.campaign.quick_launcher)
+                {
+                    self.open_title();
+                }
                 if reload {
                     self.release_pointer();
                     self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
@@ -289,12 +304,24 @@ impl Application {
             }
             return;
         }
+        if self.frontend_visible() {
+            if let Command::Menu(action) = command {
+                if matches!(self.campaign.screen, Screen::Results(_)) {
+                    self.action(action);
+                } else {
+                    self.frontend_action(action);
+                }
+                self.frontend_events(events);
+            }
+            return;
+        }
         match command {
             Command::Pause if self.campaign.playing() && !self.faulted => {
                 self.set_paused(!self.paused);
             }
             Command::Menu(Action::Back) if matches!(self.campaign.screen, Screen::Launcher) => {
-                events.exit();
+                self.open_title();
+                self.frontend_events(events);
             }
             Command::Menu(action) => self.action(action),
             _ => {}
@@ -318,6 +345,7 @@ impl ApplicationHandler for Application {
         self.finish_recording();
         self.audio.take();
         self.video.take();
+        self.frontend.take();
         // EGL/Wayland resources must die before winit closes its display connection.
         if let Some(view) = self.view.take() {
             view.renderer.device.poll(wgpu::Maintain::Wait);
@@ -452,6 +480,15 @@ impl ApplicationHandler for Application {
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F9 {
                     self.screenshot = true;
+                    return;
+                }
+                if event.state == ElementState::Pressed
+                    && code == KeyCode::F6
+                    && self.frontend.is_some()
+                    && !self.campaign.playing()
+                {
+                    self.frontend.as_mut().unwrap().quick_launcher();
+                    self.frontend_events(events);
                     return;
                 }
                 if self.demo_key(code, event.state == ElementState::Pressed) {
@@ -596,8 +633,19 @@ impl ApplicationHandler for Application {
                 let before = self.campaign.game.tick;
                 if self.demo.is_some() {
                     self.advance_demo(elapsed);
+                } else if self.frontend_visible() {
+                    if let Err(error) = self.frontend.as_mut().unwrap().advance(
+                        elapsed,
+                        suspended,
+                        &mut self.campaign,
+                        &self.assets,
+                    ) {
+                        self.pause_error(error);
+                    }
+                    self.frontend_events(events);
                 } else {
                     self.advance_simulation(elapsed);
+                    self.start_ending(events);
                 }
                 self.debug.update(&self.campaign.game);
                 timing.simulation = phase.elapsed().as_secs_f32() * 1000.0;
@@ -613,6 +661,7 @@ impl ApplicationHandler for Application {
                 timing.prepare = phase.elapsed().as_secs_f32() * 1000.0;
                 let phase = Instant::now();
                 self.update_overlay();
+                self.frontend_events(events);
                 if self.demo_exit
                     || self
                         .demo
@@ -702,6 +751,23 @@ pub fn run(
         },
     )?;
     campaign.game.activation.keep_all_active = settings.keep_enemies_active;
+    let frontend = if demo.is_none() {
+        campaign.frontend = true;
+        campaign.quick_launcher = false;
+        if let Some(save) = &campaign.saved {
+            campaign.progress = save.progress.clone();
+            campaign.seed = save.seed;
+        }
+        campaign.screen = Screen::Frontend;
+        Some(crate::frontend::Frontend::new(
+            &assets,
+            disc,
+            &campaign,
+            settings.frontend.clone(),
+        )?)
+    } else {
+        None
+    };
     let debug = crate::debug::Debug::new(&campaign.game)?;
     let mut audio = if demo.as_ref().is_some_and(|d| d.video.is_some()) {
         None
@@ -716,6 +782,7 @@ pub fn run(
     };
     if let Some(audio) = &mut audio {
         audio.volume(settings.volume);
+        audio.preferences(&settings.frontend);
     }
     let mut application = Application {
         assets,
@@ -751,6 +818,7 @@ pub fn run(
         demo_exit: false,
         video: None,
         modifiers: ModifiersState::empty(),
+        frontend,
     };
     if application.exporting_video() {
         println!(

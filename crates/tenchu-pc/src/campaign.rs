@@ -18,6 +18,8 @@ use tenchu_core::{
 mod tests;
 
 pub enum Screen {
+    Frontend,
+    Ending(Results),
     Launcher,
     Inventory(Loadout),
     Playing,
@@ -48,6 +50,8 @@ pub struct Campaign {
     pub saved: Option<Save>,
     pub save_request: Option<Save>,
     pub seed: u32,
+    pub frontend: bool,
+    pub quick_launcher: bool,
 }
 
 impl Campaign {
@@ -70,6 +74,8 @@ impl Campaign {
             saved,
             save_request: None,
             seed: 1,
+            frontend: false,
+            quick_launcher: true,
         })
     }
 
@@ -96,7 +102,7 @@ impl Campaign {
         }
     }
 
-    fn checkpoint(&mut self, options: Options) {
+    pub fn checkpoint(&mut self, options: Options) {
         self.save_request = Some(Save {
             progress: self.progress.clone(),
             selection: self.selection(options),
@@ -104,7 +110,7 @@ impl Campaign {
         });
     }
 
-    fn inventory(&mut self) {
+    pub fn inventory(&mut self) {
         self.checkpoint(self.options);
         self.screen = Screen::Inventory(Loadout::new(
             self.progress.stock[self.options.character as usize],
@@ -151,7 +157,11 @@ impl Campaign {
                 let results = self.progress.complete(completion, &mut self.game.random);
                 self.seed = self.game.random.seed;
                 self.checkpoint(self.next_options());
-                self.screen = Screen::Results(results);
+                self.screen = if self.frontend && self.options.mission == 10 {
+                    Screen::Ending(results)
+                } else {
+                    Screen::Results(results)
+                };
             }
         }
         Ok(())
@@ -159,6 +169,7 @@ impl Campaign {
 
     pub fn action(&mut self, action: Action, assets: &GameAssets<FileSource>) -> Result<bool> {
         match &mut self.screen {
+            Screen::Frontend | Screen::Ending(_) => (),
             Screen::Launcher => match action {
                 Action::Up => self.cursor = (self.cursor + 6) % 7,
                 Action::Down => self.cursor = (self.cursor + 1) % 7,

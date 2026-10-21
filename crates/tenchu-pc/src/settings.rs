@@ -24,6 +24,7 @@ pub struct Settings {
     pub cutscene_speed: u16,
     pub player_model: String,
     pub model_directory: String,
+    pub frontend: crate::frontend::Preferences,
 }
 
 impl Default for Settings {
@@ -42,6 +43,7 @@ impl Default for Settings {
             cutscene_speed: 1,
             player_model: String::new(),
             model_directory: String::new(),
+            frontend: crate::frontend::Preferences::default(),
         }
     }
 }

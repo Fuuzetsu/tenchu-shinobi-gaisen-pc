@@ -12,6 +12,7 @@ fn bank(loop_start: Option<usize>) -> Arc<Bank> {
             volume: 127,
             pan: 64,
             tones: vec![Tone {
+                mode: 4,
                 volume: 127,
                 pan: 64,
                 center: 36,
@@ -102,4 +103,42 @@ fn effects_end_loop_pan_and_replace_the_oldest_of_twenty_four_voices() {
             .all(|frame| frame[0] > 0.0 && frame[1] < 0.0)
     );
     assert!(frames[10..].iter().all(|&frame| frame == [0.0; 2]));
+}
+
+#[test]
+fn movie_voice_pitch_and_independent_music_effects_balance() {
+    let make = |note, music_volume, effects_volume, stereo| {
+        let mut mixer = Mixer::new(44100);
+        mixer.set_bank(bank(None));
+        mixer.play_note(0, 126, 0, note);
+        mixer.music(
+            Some(Arc::new(Clip {
+                rate: 44100,
+                frames: vec![[6000, 12000]; 250],
+            })),
+            false,
+        );
+        mixer.music_volume = music_volume;
+        mixer.effects_volume = effects_volume;
+        mixer.stereo = stereo;
+        let mut frames = [[0.0; 2]; 250];
+        mixer.render(&mut frames);
+        frames
+    };
+    let normal = make(36, 0.0, 1.0, true);
+    let high = make(48, 0.0, 1.0, true);
+    assert!(normal[100..200].iter().any(|v| v[0] != 0.0));
+    assert!(high[100..].iter().all(|v| v[0] == 0.0));
+    let music = make(48, 1.0, 0.0, true);
+    let mixed = make(48, 0.25, 0.75, true);
+    let mono = make(48, 0.25, 0.75, false);
+    for i in 0..250 {
+        for channel in 0..2 {
+            assert!(
+                (mixed[i][channel] - (high[i][channel] * 0.75 + music[i][channel] * 0.25)).abs()
+                    < 1e-6
+            );
+        }
+        assert_eq!(mono[i], [(mixed[i][0] + mixed[i][1]) * 0.5; 2]);
+    }
 }

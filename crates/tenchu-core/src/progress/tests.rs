@@ -203,7 +203,7 @@ fn training_ranks_time_within_grade_without_regular_awards() {
         assert_eq!(result.training_place, Some(place));
     }
     assert_eq!(progress.flags, 1 << 31);
-    assert_eq!(progress.highest, [1, 1]);
+    assert_eq!(progress.highest, [0, 0]);
     assert_eq!(random, Random::new(123));
     for (character, stock) in stock.iter().enumerate() {
         for (item, &count) in stock.iter().enumerate() {
