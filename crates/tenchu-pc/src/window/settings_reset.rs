@@ -52,6 +52,7 @@ impl Application {
             Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
             Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
             Item::Magnification => self.settings.graphics.magnification = s.graphics.magnification,
+            Item::Performance => self.settings.show_performance = s.show_performance,
             Item::Fps => self.settings.show_fps = s.show_fps,
             Item::Focus => self.settings.pause_on_defocus = s.pause_on_defocus,
             Item::MenuPause => self.settings.pause_in_menu = s.pause_in_menu,

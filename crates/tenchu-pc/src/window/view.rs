@@ -356,7 +356,7 @@ impl View {
         self.actor = self.renderer.upload(&render_mesh::characters_presented(
             game,
             Some(&self.models),
-            debug.camera.is_some(),
+            debug.camera.is_some() || game.activation.keep_all_active,
             frame,
         ));
         let sources = crate::lighting::sources(
@@ -456,23 +456,35 @@ impl View {
         ));
     }
 
-    pub(super) fn draw(&mut self, game: &Game, debug: &crate::debug::Debug) -> Result<()> {
+    pub(super) fn draw(
+        &mut self,
+        game: &Game,
+        debug: &crate::debug::Debug,
+    ) -> Result<super::performance::DrawTimes> {
         if self.size.contains(&0) {
-            return Ok(());
+            return Ok(Default::default());
         }
+        let start = Instant::now();
         let frame = match self.surface.get_current_texture() {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                 self.surface.configure(&self.renderer.device, &self.config);
-                return Ok(());
+                return Ok(Default::default());
             }
-            Err(wgpu::SurfaceError::Timeout) => return Ok(()),
+            Err(wgpu::SurfaceError::Timeout) => return Ok(Default::default()),
             Err(error) => return Err(error.to_string()),
         };
+        let acquire = start.elapsed();
+        let start = Instant::now();
         self.render(&frame.texture.create_view(&Default::default()), game, debug)?;
+        let submit = start.elapsed();
+        let start = Instant::now();
         self.window.pre_present_notify();
         frame.present();
-        Ok(())
+        Ok(super::performance::DrawTimes {
+            submit: submit.as_secs_f32() * 1000.0,
+            wait: (acquire + start.elapsed()).as_secs_f32() * 1000.0,
+        })
     }
 
     fn render(

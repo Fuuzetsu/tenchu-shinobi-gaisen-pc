@@ -234,6 +234,15 @@ the simulation running while you tune settings; menu input stays out of gameplay
 and F3/focus-loss pauses still apply. It provides FPS
 and tick display, pause on defocus, borderless fullscreen, VSync, HUD visibility
 and master volume. Factory defaults preserve the preceding experience.
+**General → Performance charts** opens live CPU/GPU stage plots that remain
+visible after closing F1. Reopen F1 to move/resize the panel, freeze history or
+clear it. The charts show the last 300 frames, average and p95 milliseconds,
+simulation/audio, geometry/uploads, overlay work, CPU submission, presentation
+wait, and separate GPU shadow/world/image-effect/HUD times. GPU results are
+asynchronous and optional when the adapter lacks timestamp queries; they exclude
+the egui overlay. CPU and GPU overlap, so their totals should not be added.
+Photo mode hides the charts along with the other inspection overlays.
+
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`
@@ -274,7 +283,7 @@ prefix. A new attempt can record again with original sight distance. Sight
 distance does not change hearing, actor activation, attack range or occlusion.
 
 **Simulation → Keep all enemies active** disables distance/budget suspension for
-spawned enemies and civilians, so distant patrols and AI keep running. It is off
+spawned enemies and civilians, so distant patrols, AI and animation keep running. It is off
 by default and saves as a preference across mission changes. Story-controlled
 actors still follow their cutscenes and spawn rules. This changes gameplay/RNG;
 it ends an active recording, and new recordings require original enemy settings.
@@ -613,3 +622,11 @@ Projectile checks cover 2,048 complete flight curves against original C and
 scenarios check bow, pistol, rifle and ninja attacks through launch, damage,
 attachment and disposal. The SDK test invokes the research Python oracle above;
 it is optional and has no role in the runtime.
+
+The ignored `profile_mission_rendering` renderer check provides a repeatable
+Mission 5 camera sweep, with 1×/4× MSAA and contact shading on/off. Run it with
+`TENCHU_DISC` set and `./dev.sh cargo test --release -p tenchu-pc
+profile_mission_rendering -- --ignored --nocapture` (one shell command).
+Optional `TENCHU_PROFILE_SIZE=2560x1440` and `TENCHU_PROFILE_FAR=1` select a larger,
+elevated view with fog disabled. It measures GPU work offscreen, independently
+of VSync/window-system presentation waits.

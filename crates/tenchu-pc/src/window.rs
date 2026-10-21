@@ -1,4 +1,5 @@
 mod overlay;
+mod performance;
 mod playback;
 mod settings_reset;
 #[cfg(test)]
@@ -55,6 +56,7 @@ struct Application {
     menu: Menu,
     pointer: [f64; 2],
     fps: f32,
+    performance: performance::Performance,
     fps_elapsed: f32,
     fps_frames: u32,
     debug: crate::debug::Debug,
@@ -513,6 +515,12 @@ impl ApplicationHandler for Application {
                     self.fps_elapsed = 0.0;
                     self.fps_frames = 0;
                 }
+                let profile = self.settings.show_performance;
+                let mut timing = performance::CpuFrame {
+                    interval: elapsed.as_secs_f32() * 1000.0,
+                    ..Default::default()
+                };
+                let phase = Instant::now();
                 let suspended = self.is_suspended();
                 if let Some(audio) = &mut self.audio {
                     audio.pause(suspended);
@@ -521,6 +529,8 @@ impl ApplicationHandler for Application {
                 let before = self.campaign.game.tick;
                 self.advance_simulation(elapsed);
                 self.debug.update(&self.campaign.game);
+                timing.simulation = phase.elapsed().as_secs_f32() * 1000.0;
+                let phase = Instant::now();
                 if before != self.campaign.game.tick
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
@@ -528,15 +538,28 @@ impl ApplicationHandler for Application {
                 {
                     self.update_view();
                 }
+                timing.prepare = phase.elapsed().as_secs_f32() * 1000.0;
+                let phase = Instant::now();
                 self.update_overlay();
+                timing.overlay = phase.elapsed().as_secs_f32() * 1000.0;
                 if self.screenshot {
                     self.save_screenshot();
                 }
-                if let Some(view) = &mut self.view
-                    && let Err(error) = view.draw(&self.campaign.game, &self.debug)
-                {
-                    self.error = Some(error);
-                    events.exit();
+                if let Some(view) = &mut self.view {
+                    view.renderer.profiling = profile;
+                    match view.draw(&self.campaign.game, &self.debug) {
+                        Ok(draw) => timing.draw = draw,
+                        Err(error) => {
+                            self.error = Some(error);
+                            events.exit();
+                        }
+                    }
+                    if profile {
+                        self.performance.record(
+                            timing,
+                            view.renderer.timings.as_ref().and_then(|t| t.latest),
+                        );
+                    }
                 }
             }
             _ => {}
@@ -610,6 +633,7 @@ pub fn run(
         },
         pointer: [0.0; 2],
         fps: 0.0,
+        performance: Default::default(),
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

@@ -9,7 +9,10 @@ mod pipelines;
 mod post;
 mod shadows;
 mod sun;
+pub mod timing;
 
+#[cfg(test)]
+mod benchmark;
 #[cfg(test)]
 mod tests;
 
@@ -40,6 +43,8 @@ pub struct Renderer {
     layout: wgpu::PipelineLayout,
     shader: wgpu::ShaderModule,
     pub sample_counts: Vec<u32>,
+    pub timings: Option<timing::Timer>,
+    pub profiling: bool,
     samples: u32,
     multisample: Option<wgpu::TextureView>,
     graphics: crate::settings::Graphics,
@@ -54,10 +59,13 @@ impl Renderer {
         size: [u32; 2],
         vram: &Vram,
     ) -> Result<Self> {
-        let features =
+        let mut features =
             adapter.features() & wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
+        if adapter.features().contains(timing::FEATURES) {
+            features |= timing::FEATURES;
+        }
         let format_flags = |format: wgpu::TextureFormat| {
-            if features.is_empty() {
+            if !features.contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES) {
                 format.guaranteed_format_features(features).flags
             } else {
                 adapter.get_texture_format_features(format).flags
@@ -175,7 +183,10 @@ impl Renderer {
             ],
         });
         let depth = Self::attachment(&device, size, wgpu::TextureFormat::Depth32Float, 1);
+        let timings = timing::Timer::new(&device, &queue);
         let mut renderer = Self {
+            timings,
+            profiling: false,
             device,
             queue,
             pipeline,
@@ -406,6 +417,11 @@ impl Renderer {
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
+        if self.profiling
+            && let Some(timer) = &mut self.timings
+        {
+            timer.begin(&self.device, &mut encoder);
+        }
         self.shadows
             .configure(&self.device, &self.graphics.lighting, lights.len());
         self.shadows.draw(
@@ -420,6 +436,9 @@ impl Renderer {
                 materials: &self.materials.bindings,
             },
         );
+        if let Some(timer) = &self.timings {
+            timer.mark(&mut encoder, 1);
+        }
         if let Some(post) = &self.post {
             post.prepare(&self.queue, matrix, &self.graphics);
         }
@@ -472,37 +491,51 @@ impl Renderer {
                 );
             }
         }
+        if let Some(timer) = &self.timings {
+            timer.mark(&mut encoder, 2);
+        }
         if let Some(post) = &self.post {
             post.draw(&mut encoder, target, self.graphics.post.bloom > 0);
-            if let Some(effects) = effects.filter(|e| !e.ranges[1].is_empty()) {
-                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Unprocessed HUD and inspection overlays"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: target,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                        view: &post.depth,
-                        depth_ops: Some(wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
-                            store: wgpu::StoreOp::Store,
-                        }),
-                        stencil_ops: None,
+        }
+        if let Some(timer) = &self.timings {
+            timer.mark(&mut encoder, 3);
+        }
+        if let Some(post) = &self.post
+            && let Some(effects) = effects.filter(|e| !e.ranges[1].is_empty())
+        {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Unprocessed HUD and inspection overlays"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &post.depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
                     }),
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-                pass.set_bind_group(0, &self.bindings, &[]);
-                pass.set_bind_group(1, &self.shadows.bindings, &[]);
-                pass.set_bind_group(2, &self.materials.bindings, &[]);
-                draw_effects(&mut pass, &self.overlay_effects, effects, Some(true));
-            }
+                    stencil_ops: None,
+                }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pass.set_bind_group(0, &self.bindings, &[]);
+            pass.set_bind_group(1, &self.shadows.bindings, &[]);
+            pass.set_bind_group(2, &self.materials.bindings, &[]);
+            draw_effects(&mut pass, &self.overlay_effects, effects, Some(true));
+        }
+        if let Some(timer) = &self.timings {
+            timer.resolve(&mut encoder);
         }
         self.queue.submit([encoder.finish()]);
+        if let Some(timer) = &mut self.timings {
+            timer.submitted();
+        }
         Ok(())
     }
 }

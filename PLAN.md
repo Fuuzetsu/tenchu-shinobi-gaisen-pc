@@ -168,17 +168,34 @@ is required. Preserve deliberate gameplay quirks instead of cleaning them up.
 
 ## Current status
 
-Current visual refinement pass:
+Completed visual/configuration refinement:
 
-- [ ] Balance lantern spill, surface glow and moon shadows; retain detail near lights.
-- [ ] Fix preset-only pale surfaces in Mission 5 and investigate foliage/snow flicker.
-- [ ] Add distinct visual presets with the Original baseline unchanged.
+- [x] Balance lantern spill, surface glow and moon shadows; retain detail near lights.
+- [x] Restrict emission to emitting models and side surfaces, fixing shared-texture/snow classification; bound Cubic cutout colors to prevent bright edge artifacts.
+- [x] Add Crisp classic, Soft classic, Lantern night and Moonlit presets.
 - [x] Allow F1 to stay open while gameplay runs, with pausing still the default.
 - [x] Use clear overlay text for actor/light labels, FPS and debug readouts.
-- [ ] Measure MSAA/contact-shading cost and remove redundant depth sampling.
-- [ ] Add live CPU/GPU performance plots.
-- [x] Add optional persistent activation of distant enemies, with default behavior unchanged.
-- [ ] Verify GPU regressions, real mission captures/native play, format, Clippy and packaging; commit each coherent change.
+- [x] Measure MSAA/distant-view costs and remove redundant texture-layer and shadow sampling.
+- [x] Add live CPU/GPU performance plots, averages, p95, freeze and clear.
+- [x] Add optional persistent activation/animation of distant enemies, with default behavior unchanged.
+- [ ] Finish final packaging checks and commit verification evidence.
+
+Evidence: all 139 core fixture/oracle tests passed, including default activation
+parity and a distant guard patrol with the override. All 66 mission/character/layout
+combinations ran with distant AI enabled. Thirteen GPU regression cases passed,
+including mixed moon/lantern shadows, back-facing caps, highlight contrast and
+Cubic cutout overshoot. The original Mission 5 capture is byte-identical to the
+pre-change capture. Native window checks exercised labels/charts, live F1, distant
+guards, lantern views, all new presets, photo mode and repeated-Escape exit.
+
+On a GTX 1080 Ti, the fixed 2560×1440 distant-camera sweep with Cinematic settings,
+4× MSAA and contact shading measured world GPU time 11.19 → 2.70 ms, shadows
+0.82 → 0.82 ms and image effects 1.08 → 1.07 ms. This identifies world shading
+as the main cost in that case; redundant MSAA depth reads were not the dominant
+cost and were left alone. These are offscreen GPU measurements, not a guarantee
+of desktop FPS. The Xvfb native check is dominated by presentation waits, which
+the new profiler reports separately. Emission detection remains a configurable
+mesh/texture heuristic over the game's baked artwork.
 
 Live player appearance swapping and the idiomatic Rust refactor are complete.
 Gameplay behavior is preserved while the implementation uses named types and

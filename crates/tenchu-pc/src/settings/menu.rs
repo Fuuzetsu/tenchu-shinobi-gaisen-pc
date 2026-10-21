@@ -9,6 +9,7 @@ pub enum Item {
     Interpolation,
     PhotoMode,
     Fps,
+    Performance,
     Focus,
     MenuPause,
     Fullscreen,
@@ -377,6 +378,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Display frames/second and game tick.",
             ),
             (
+                Item::Performance,
+                "Performance charts",
+                on(s.show_performance),
+                "Live CPU/GPU stage times; remains visible during play.",
+            ),
+            (
                 Item::Focus,
                 "Pause on defocus",
                 on(s.pause_on_defocus),
@@ -679,7 +686,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::Pause,
                 "Pause simulation / F3",
                 on(paused),
-                "Menu pauses too; F3 works without a menu.",
+                "F3 works with the menu open or closed.",
             ),
             (
                 Item::Step,

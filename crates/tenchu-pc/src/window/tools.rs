@@ -424,6 +424,7 @@ impl Application {
                 let light = self.debug.light.get_or_insert(eye);
                 light[axis] = (light[axis] + direction as f32 * 500.0).clamp(-320_000.0, 320_000.0);
             }
+            Item::Performance => self.settings.show_performance = !self.settings.show_performance,
             Item::Fps => self.settings.show_fps = !self.settings.show_fps,
             Item::Focus => self.settings.pause_on_defocus = !self.settings.pause_on_defocus,
             Item::MenuPause => self.settings.pause_in_menu = !self.settings.pause_in_menu,

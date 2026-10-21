@@ -30,6 +30,7 @@ fn application(options: Options) -> Application {
         menu: Menu::default(),
         pointer: [0.0; 2],
         fps: 0.0,
+        performance: Default::default(),
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,
@@ -248,7 +249,7 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
                 }
                 for &id in &game.roster.order {
                     let actor = game.roster.get(id);
-                    if actor.kind >= 0x80 && actor.kind != 0xa9 && actor.health >= 0 {
+                    if id != game.player_id && actor.kind != 0xa9 && actor.health >= 0 {
                         assert_eq!(actor.attribute & tenchu_core::ids::ATTR_SUSPEND, 0);
                     }
                 }

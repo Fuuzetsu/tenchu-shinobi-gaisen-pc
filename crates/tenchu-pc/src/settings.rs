@@ -12,6 +12,7 @@ use tenchu_assets::Result;
 #[serde(default)]
 pub struct Settings {
     pub show_fps: bool,
+    pub show_performance: bool,
     pub pause_on_defocus: bool,
     pub pause_in_menu: bool,
     pub keep_enemies_active: bool,
@@ -29,6 +30,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             show_fps: false,
+            show_performance: false,
             pause_on_defocus: true,
             pause_in_menu: true,
             keep_enemies_active: false,

@@ -57,6 +57,7 @@ impl Overlay {
         menu: &mut Menu,
         state: crate::settings::overlay::State<'_>,
         labels: &[crate::debug::Label],
+        performance: &mut super::performance::Performance,
     ) -> Vec<Edit> {
         let mut input = self.state.take_egui_input(window);
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
@@ -68,7 +69,20 @@ impl Overlay {
         let mut edits = Vec::new();
         let output = self.context.run(input, |ctx| {
             paint_labels(ctx, labels);
+            let mut show_performance = state.settings.show_performance;
+            let profiling = show_performance;
+            if show_performance && !state.debug.photo_mode {
+                performance.show(
+                    ctx,
+                    &mut show_performance,
+                    menu.open,
+                    renderer.timings.is_some(),
+                );
+            }
             edits = crate::settings::overlay::show(ctx, menu, state);
+            if show_performance != profiling {
+                edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
+            }
         });
         self.state
             .handle_platform_output(window, output.platform_output);
@@ -150,6 +164,7 @@ impl super::Application {
                 samples: &view.renderer.sample_counts,
             },
             &view.labels,
+            &mut self.performance,
         );
         if edits.is_empty() && was_open == self.menu.open {
             return;
