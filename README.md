@@ -38,6 +38,14 @@ preset row restores Original. Presets preserve the replacement-artwork switch
 and never change gameplay or simulation settings. Source textures still limit
 close-up detail; the editable pack workflow below supplies genuinely new art.
 
+**Graphics → Close-up textures** separates enlargement from distance filtering:
+Smooth is bilinear, Crisp preserves pixel interiors with narrow antialiased
+transitions, Cubic interpolates curves with bounded Catmull–Rom filtering, and
+Pixel uses nearest sampling up close. All four retain the selected mipmaps and
+anisotropy in the distance. Enhanced selects Crisp; Cinematic selects Cubic.
+These work with the optional Scale2x/4x reconstruction and replacement PNGs.
+The Original preset keeps its original nearest sampling.
+
 An asset export is available for reviewing and editing the original art:
 
 ```sh

@@ -365,7 +365,7 @@ impl Renderer {
             self.size[0] as f32 / self.size[1] as f32,
             f32::from(self.graphics.anisotropy),
             u8::from(self.post.is_some()) as f32,
-            0.0,
+            f32::from(self.graphics.magnification),
         ]);
         camera.extend([
             if self.graphics.fog {

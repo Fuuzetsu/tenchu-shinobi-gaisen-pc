@@ -22,6 +22,7 @@ fn preset(index: u16) -> Graphics {
         return graphics;
     }
     graphics.set_filtering(if index == 2 { 6 } else { 5 });
+    graphics.magnification = if index == 2 { 2 } else { 1 };
     graphics.samples = 4;
     graphics.smooth_models = true;
     graphics.model_detail = 1;

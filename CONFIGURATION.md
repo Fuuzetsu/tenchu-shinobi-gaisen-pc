@@ -386,3 +386,17 @@ reconstruction and rounded contours remain individual choices because they do
 not improve every asset. Baked lighting, heuristic emitter detection, limited
 shadow coverage/budgets and screen-space contact shading retain the limits
 described above. No game assets or diagnostic captures are included in Git.
+
+## Follow-up: texture detail, compact controls and interpolation
+
+- [x] Separate close-up sampling from mipmaps/aniso: Smooth, Crisp, bounded
+  Catmull–Rom Cubic and Pixel, with unchanged Original defaults. GPU checks
+  cover preserved texel interiors, narrower cubic blending and identical
+  minification across modes; same-state Mission 1 room captures were inspected.
+- [ ] Replace the fullscreen bitmap-font settings panel with a compact, movable
+  mouse overlay, retaining keyboard/controller navigation and per-value reset.
+- [ ] Correct the enhanced lamp shadow budgets and inspect room occlusion.
+- [ ] Add optional visual model interpolation between 30 Hz ticks, including
+  held weapons and discontinuity handling, without changing gameplay state.
+- [ ] Verify actual native controls/rendering, regression checks, Nix packaging,
+  portable shared crates and clean Wayland exit; document remaining limits.

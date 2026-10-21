@@ -414,6 +414,16 @@ fn decoded_mips_filter_without_blurring_the_short_axis() {
         averaged[..3].iter().all(|&c| c.abs_diff(128) <= 2),
         "{averaged:?}"
     );
+    for magnification in 1..=3 {
+        options.magnification = magnification;
+        renderer.configure(&options);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
+        assert_eq!(
+            read_pixel(&renderer, &target),
+            averaged,
+            "close-up modes must not change minification"
+        );
+    }
     for y in 0..16 {
         for x in 0..256 {
             vram.words[y * 1024 + x] = if y % 2 == 0 { 0x7fff } else { 0x8000 };
@@ -434,6 +444,70 @@ fn decoded_mips_filter_without_blurring_the_short_axis() {
     renderer.update_vram(&vram);
     renderer.draw(&view, camera, &[&mesh], None).unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[255, 0, 0]);
+}
+
+#[test]
+#[ignore = "requires a graphics adapter; close-up variants preserve texel interiors without cubic ringing or changes to default rendering"]
+fn closeup_filters_preserve_detail_and_bound_interpolation() {
+    let mut vram = Vram::default();
+    vram.images.push(tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [4, 1],
+    });
+    vram.words[..4].copy_from_slice(&[0x8000, 0x8000, 0x7fff, 0x7fff]);
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for vertex in &mut vertices {
+        vertex.uv = [(vertex.position[0] + 600.0) / 1200.0 * 3.0, 0.0];
+    }
+    let mesh = renderer.upload(&vertices);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.set_filtering(5);
+    let mut images = Vec::new();
+    for mode in 0..4 {
+        graphics.magnification = mode;
+        renderer.configure(&graphics);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
+        images.push(read_pixels(&renderer, &target));
+    }
+    let transitions = |pixels: &[u8]| {
+        pixels[32 * 256..33 * 256]
+            .chunks_exact(4)
+            .filter(|p| p[0] > 5 && p[0] < 250)
+            .count()
+    };
+    assert!(transitions(&images[0]) > 8);
+    assert!(transitions(&images[1]) <= 2);
+    let blending = |pixels: &[u8]| {
+        pixels[32 * 256..33 * 256]
+            .chunks_exact(4)
+            .map(|p| u32::from(p[0].min(255 - p[0])))
+            .sum::<u32>()
+    };
+    assert!(blending(&images[2]) < blending(&images[0]));
+    assert_eq!(transitions(&images[3]), 0);
+    graphics.set_filtering(0);
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    let original = read_pixels(&renderer, &target);
+    graphics.magnification = 0;
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert!(read_pixels(&renderer, &target) == original);
 }
 
 #[test]

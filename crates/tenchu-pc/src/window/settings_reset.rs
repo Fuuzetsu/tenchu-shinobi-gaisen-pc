@@ -47,6 +47,7 @@ impl Application {
             Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
             Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
             Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
+            Item::Magnification => self.settings.graphics.magnification = s.graphics.magnification,
             Item::Fps => self.settings.show_fps = s.show_fps,
             Item::Focus => self.settings.pause_on_defocus = s.pause_on_defocus,
             Item::Fullscreen => self.settings.fullscreen = s.fullscreen,

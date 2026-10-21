@@ -52,14 +52,48 @@ fn material_level(material: Material, uv: vec2<f32>, level: u32, semi: bool, ble
         + textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + 1u), 0.0);
 }
 
-fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32>, anisotropy: f32, filtering: f32, semi: bool, blended: bool, fallback: vec3<f32>) -> vec3<f32> {
+fn cubic_weights(t: f32) -> vec4<f32> {
+    let t2 = t * t;
+    let t3 = t2 * t;
+    return vec4(-0.5 * t + t2 - 0.5 * t3, 1.0 - 2.5 * t2 + 1.5 * t3,
+                0.5 * t + 2.0 * t2 - 1.5 * t3, -0.5 * t2 + 0.5 * t3);
+}
+
+fn material_closeup(material: Material, uv: vec2<f32>, footprint: vec2<f32>, mode: f32, semi: bool, blended: bool) -> vec4<f32> {
+    let size = material.mips[0].zw;
+    let pixel = uv * size - vec2(0.5);
+    let base = floor(pixel);
+    let fraction = fract(pixel);
+    if mode == 1.0 {
+        let transition = clamp((fraction - vec2(0.5)) / max(footprint, vec2(0.0001)) + vec2(0.5), vec2(0.0), vec2(1.0));
+        return material_level(material, (base + transition + vec2(0.5)) / size, 0u, semi, blended);
+    }
+    if mode == 3.0 {
+        return material_level(material, (floor(uv * size) + vec2(0.5)) / size, 0u, semi, blended);
+    }
+    let wx = cubic_weights(fraction.x);
+    let wy = cubic_weights(fraction.y);
+    var color = vec4(0.0);
+    var low = vec4(1.0);
+    var high = vec4(0.0);
+    for (var y = 0u; y < 4u; y++) {
+        for (var x = 0u; x < 4u; x++) {
+            let sample = material_level(material, (base + vec2(f32(x), f32(y)) - vec2(0.5)) / size, 0u, semi, blended);
+            color += sample * wx[x] * wy[y];
+            if (x == 1u || x == 2u) && (y == 1u || y == 2u) {
+                low = min(low, sample);
+                high = max(high, sample);
+            }
+        }
+    }
+    // Bound interpolation overshoot, including premultiplied alpha at texture holes.
+    return clamp(color, low, high);
+}
+
+fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32>, anisotropy: f32, filtering: f32, magnification: f32, semi: bool, blended: bool, fallback: vec3<f32>) -> vec3<f32> {
     if index == 0u || index >= arrayLength(&materials) { return fallback; }
     let material = materials[index];
     let uv = (coordinate - material.source.xy + vec2(0.5)) / material.source.zw;
-    if filtering < 2.0 {
-        let color = material_level(material, uv, 0u, semi, blended);
-        return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
-    }
     let gx = dx / material.source.zw;
     let gy = dy / material.source.zw;
     let size = vec2<f32>(material.info.yz);
@@ -71,6 +105,15 @@ fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32
     let spread = sqrt(max(0.0, (a - c) * (a - c) + 4.0 * b * b));
     let eigenvalue = max(0.0, (a + c + spread) * 0.5);
     let major = sqrt(eigenvalue);
+    if magnification > 0.0 && major < 1.0 {
+        let closeup = material_closeup(material, uv, min(abs(tx) + abs(ty), vec2(1.0)), magnification, semi, blended);
+        let color = mix(closeup, material_level(material, uv, 0u, semi, blended), smoothstep(0.75, 1.0, major));
+        return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
+    }
+    if filtering < 2.0 {
+        let color = material_level(material, uv, 0u, semi, blended);
+        return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
+    }
     let minor = sqrt(max(1.0, (a + c - spread) * 0.5));
     var direction = vec2(1.0, 0.0);
     let candidate = select(vec2(b, eigenvalue - a), vec2(eigenvalue - c, b), a >= c);

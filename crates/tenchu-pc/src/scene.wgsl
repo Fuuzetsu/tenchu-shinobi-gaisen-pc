@@ -85,8 +85,8 @@ fn shade(v: Fragment, front_facing: bool) -> vec4<f32> {
             semi = semi && (pixel & 32768u) != 0u;
         }
         if screen || camera.options.y != 0.0 {
-            if !screen && (camera.options.w >= 2.0 || (replaced && camera.options.w != 0.0)) {
-                color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, camera.options.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
+            if !screen && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
+                color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if !screen && camera.options.w != 0.0 {
                 color *= filtered(v.uv, v.page, v.palette, pixel);
             } else {

@@ -19,6 +19,7 @@ pub enum Item {
     Shading,
     Exposure,
     Filtering,
+    Magnification,
     Antialiasing,
     Hitboxes,
     Sight,
@@ -468,6 +469,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ][usize::from(s.graphics.filtering())]
                 .into(),
                 "Mipmaps reduce shimmer; aniso keeps detail.",
+            ),
+            (
+                Item::Magnification,
+                "Close-up textures",
+                ["Smooth", "Crisp", "Cubic", "Pixel"][usize::from(s.graphics.magnification)].into(),
+                "With filtering: crisp edges, cubic curves, or original pixels; distant mipmaps stay on.",
             ),
             (
                 Item::Antialiasing,

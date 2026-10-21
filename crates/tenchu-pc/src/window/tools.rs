@@ -190,6 +190,13 @@ impl Application {
                 self.settings.graphics.upscale =
                     cycle(self.settings.graphics.upscale, &[1, 2, 4], direction)
             }
+            Item::Magnification => {
+                self.settings.graphics.magnification = cycle(
+                    self.settings.graphics.magnification,
+                    &[0, 1, 2, 3],
+                    direction,
+                )
+            }
             Item::ReloadAssets => {
                 let pack = crate::visuals::pack::Pack::from_env()?;
                 let textures = pack.textures.len();
