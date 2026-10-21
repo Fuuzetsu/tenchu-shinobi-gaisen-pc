@@ -46,6 +46,7 @@ impl Actor {
             self.position.y = self.position.y.wrapping_sub(1);
             world.intelligence.action_halt = 0;
             if self.motion.count < 10 {
+                ctx.effects.rumble(world.player, 255, 10, 10);
                 world.intelligence.voices.push((self.id, 8));
                 world.intelligence.voices.push((world.player, 5));
             }
@@ -94,7 +95,12 @@ impl Actor {
                         .voices
                         .push((world.player, event.payload[0])),
                     1 => world.intelligence.voices.push((self.id, event.payload[0])),
-                    2 => {}
+                    2 => ctx.effects.rumble(
+                        world.player,
+                        255,
+                        event.payload[0].max(0) as u16,
+                        event.payload[1].max(0) as u16,
+                    ),
                     3 | 4 => {
                         world.combat.request_life(self);
                         if event.payload[0] != -1 {

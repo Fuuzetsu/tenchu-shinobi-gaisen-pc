@@ -536,6 +536,20 @@ fn human_and_item_damage_match_original_c() {
                 .iter()
                 .map(|&(who, sound)| which(Some(who)) * 256 + i32::from(sound)),
         );
+        row.extend(
+            game.effects
+                .rumble
+                .iter()
+                .rev()
+                .find(|r| r.actor == game.player_id)
+                .map_or([-1; 3], |r| {
+                    [
+                        i32::from(r.power),
+                        i32::from(r.attack),
+                        i32::from(r.release),
+                    ]
+                }),
+        );
         expected.push(row);
     }
     let actual = oracle::run(&harness, &input);

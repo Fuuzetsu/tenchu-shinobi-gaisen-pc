@@ -436,6 +436,7 @@ impl Actor {
                 self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
                 world.intelligence.voices.push((self.id, 6));
                 self.motion.count >>= 2;
+                ctx.effects.rumble(self.id, 255, 10, 0);
                 return Ok(None);
             }
             if mid == MOT_JUMP_FLIP {
@@ -591,6 +592,7 @@ impl Actor {
                     && self.id == world.player
                 {
                     ctx.camera.normal(self, ctx.math)?;
+                    ctx.effects.rumble(self.id, 255, 10, 0);
                 }
                 if self.motion.action != MOT_STATE_LAND_FLIP
                     && count < 5
@@ -608,6 +610,12 @@ impl Actor {
                         .push((self.id, if action == MOT_STATE_LAND { 0x19 } else { 0x1a }));
                     ctx.effects
                         .smoke_burst(self.position, 300, 12, 10, ctx.random);
+                    let (attack, release) = if action == MOT_STATE_LAND_HEAVY {
+                        (0, 30)
+                    } else {
+                        (5, 0)
+                    };
+                    ctx.effects.rumble(self.id, 255, attack, release);
                 }
                 if count == 0 && self.motion.loops != 0 {
                     if pending.map_or(self.motion.action, |p| p.0) == MOT_STATE_LAND_FLIP {

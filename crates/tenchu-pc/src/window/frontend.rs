@@ -109,6 +109,9 @@ impl Application {
                 }
                 Event::Preferences => {
                     self.settings.frontend = self.frontend.as_ref().unwrap().preferences.clone();
+                    if !self.settings.frontend.rumble {
+                        self.controls.stop_rumble();
+                    }
                     if let Some(audio) = &mut self.audio {
                         audio.preferences(&self.settings.frontend);
                     }

@@ -157,6 +157,7 @@ impl Game {
             self.cinematic.tail -= 1;
             self.intelligence.voices.clear();
             self.effects.sounds.clear();
+            self.effects.rumble.clear();
             if self.cinematic.tail == 0 {
                 self.cinematic.active = false;
                 self.music.push(None);

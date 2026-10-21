@@ -45,9 +45,10 @@ static int motID, motMODE, MotionUpdateMode, ActionHalt, gNannido, EngageLevel;
 static int ARMOUR_EQUIPPED_, Criticals, Murders, FriendHits, GlobalAreaMap;
 static int calls, direction, alert, feedback, blood_count, bleed_count, impacts, played, sound_count, sounds[64];
 static uint32_t seed;
+static int rumble[3];
 #define rand rng
 static int rng(void) { seed = seed * 0x41c64e6d + 12345; calls++; return (seed >> 16) & 32767; }
-#define PadShockAR(...) ((void)0)
+static void PadShockAR(int port, int power, int attack, int release) { rumble[0]=power; rumble[1]=attack; rumble[2]=release; }
 #define SetCameraMode(...) ((void)0)
 #undef CONFLICT_OWNER_ITEM
 #define CONFLICT_OWNER_ITEM 0
@@ -126,6 +127,7 @@ int main(void) {
         memset(humans,0,sizeof(humans)); memset(models,0,sizeof(models)); memset(managers,0,sizeof(managers)); memset(ConflictObject,0,sizeof(ConflictObject));
         memset(locations,0,sizeof(locations)); memset(rotations,0,sizeof(rotations));
         seed=initial_seed; calls=0; direction=dir; alert=0; feedback=-1; blood_count=bleed_count=impacts=played=sound_count=0;
+        rumble[0]=rumble[1]=rumble[2]=-1;
         Criticals=Murders=FriendHits=0; ActionHalt=0; DeadHumanoid=0; MotionUpdateMode=0;
         for(int i=0;i<2;i++) {
             for(int j=0;j<15;j++) { models[i][j].id=-1; archives[i].object[j]=&models[i][j]; }
@@ -158,6 +160,7 @@ int main(void) {
             dtV->vx,dtV->vy,dtV->vz,dtR->vy,managers[1].loop,humans[1].vector.vx,humans[1].vector.vz,
             calls,alert,feedback,Criticals,Murders,FriendHits,ConflictObjects,DeadHumanoid?0:-1,
             humans[0].pad.time,managers[0].mask,blood_count,bleed_count,impacts);
-        printf(" %d %d",humans[0].item[1],sound_count); for(int i=0;i<sound_count;i++) printf(" %d",sounds[i]); puts("");
+        printf(" %d %d",humans[0].item[1],sound_count); for(int i=0;i<sound_count;i++) printf(" %d",sounds[i]);
+        printf(" %d %d %d\n",rumble[0],rumble[1],rumble[2]);
     }
 }

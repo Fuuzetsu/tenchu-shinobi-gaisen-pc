@@ -39,8 +39,13 @@ endpoints with XA audio and caption/voice cues. Native input has been exercised
 from boot through character selection into Mission 1, then back through language
 selection and the quick launcher. Controlled final-completion tests cover both
 epilogues, credits, results and retry; these are transition tests, not playthroughs.
-Remaining verification/refinement includes native controller feedback, packaging,
-movie failure/cadence handling and the completed user documentation.
+Controller feedback is connected to the original vibration option and source
+gameplay cues. Damage cue comparisons against C pass; physical motor output
+still needs a supported controller for a hands-on check. Movie cues agree at
+5/15/60 Hz display cadence and repeated early cancellation joins decoder workers.
+Unavailable movies show an explanation and allow continuing into the menu/game.
+Remaining verification/refinement includes packaging and completed user
+documentation, plus a final native navigation/save/resize check.
 
 Use the original nominal game rate (30 game updates per second in this release),
 independent of display rate. Rendering may interpolate but may not mutate the

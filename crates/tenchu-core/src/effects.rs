@@ -193,6 +193,14 @@ pub struct Line {
 }
 
 #[derive(Clone, Debug)]
+pub struct Rumble {
+    pub actor: usize,
+    pub power: u8,
+    pub attack: u16,
+    pub release: u16,
+}
+
+#[derive(Clone, Debug)]
 pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     pub drawings: Vec<Drawing>,
@@ -201,6 +209,7 @@ pub struct Effects {
     pub lines: Vec<Line>,
     pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<(Position, i16)>,
+    pub rumble: Vec<Rumble>,
     pub fades: Vec<(i32, [u8; 3])>,
     pub texture_moves: Vec<TextureMove>,
     cursor: usize,
@@ -217,6 +226,7 @@ impl Default for Effects {
             lines: Vec::new(),
             blood_pools: Vec::new(),
             sounds: Vec::new(),
+            rumble: Vec::new(),
             fades: Vec::new(),
             texture_moves: Vec::new(),
             cursor: 0,
@@ -226,6 +236,15 @@ impl Default for Effects {
 }
 
 impl Effects {
+    pub fn rumble(&mut self, actor: usize, power: u8, attack: u16, release: u16) {
+        self.rumble.push(Rumble {
+            actor,
+            power,
+            attack,
+            release,
+        });
+    }
+
     pub fn reset(&mut self) {
         for slot in &mut self.slots[..200] {
             if !matches!(slot, Some(Effect::TextureScroll(_))) {
@@ -409,6 +428,7 @@ impl Effects {
         self.lines.clear();
         self.blood_pools.clear();
         self.sounds.clear();
+        self.rumble.clear();
         self.fades.clear();
         self.texture_moves.clear();
     }

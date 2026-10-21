@@ -3,6 +3,7 @@ use gilrs::{Axis, Button, EventType, Gilrs};
 use std::{collections::HashSet, mem};
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
+mod rumble;
 
 const BUTTONS: [(Button, u16); 14] = [
     (Button::South, input::CROSS),
@@ -176,6 +177,7 @@ pub struct Controls {
     pending_keys: u16,
     gilrs: Option<Gilrs>,
     pad: Pad,
+    rumble: Option<gilrs::ff::Effect>,
 }
 
 impl Controls {
@@ -211,6 +213,7 @@ impl Controls {
     }
 
     pub fn clear(&mut self) {
+        self.stop_rumble();
         self.keys.clear();
         self.pending_keys = 0;
         self.pad.suppress();
@@ -229,6 +232,7 @@ impl Controls {
         let mut update = Update::default();
         if !focused {
             self.pad.suppress();
+            self.stop_rumble();
         }
         let Some(gilrs) = &mut self.gilrs else {
             return update;
@@ -236,7 +240,10 @@ impl Controls {
         while let Some(event) = gilrs.next_event() {
             let id = usize::from(event.id);
             if event.event == EventType::Disconnected {
-                update.disconnected |= self.pad.disconnect(id);
+                if self.pad.disconnect(id) {
+                    update.disconnected = true;
+                    self.rumble = None;
+                }
                 continue;
             }
             if !matches!(

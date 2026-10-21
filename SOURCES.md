@@ -1012,3 +1012,14 @@ or extracted assets are required at runtime. Native saves replace memory cards.
 | `src/ending.exe/RESULTS.C` | `560d0fa8f915bca27db74e395c14b9166ccee2c0e48fa03df9ae1064a620389a` |
 | `config/symbols.menu.exe.txt` | `c35e2755cdaa0e6a0e2e0276883f281ac292aecc19e10ded06505eb945f9a8b2` |
 | `src/main.exe/PADCMD.C` | `e113fecf2c20e8e26140153569eeb9a746ef57f3ded1b4bb6b83fb36d117c7d0` |
+| `src/main.exe/MOTION.C` | `7d5cddc279921e20a9e1e0066370d08b1f0dd8e81a2b047d46e0995ef5df7a82` |
+| `src/main.exe/tuning.h` | `d24d0528aafd617a572eb1201edb3518d8ff497adaae82e44a9695e7c4d7897e` |
+| `src/main.exe/main.exe.h` | `28ef0d40cd65e3815173ffe8a52a9daea57f44c0e226029a61ba6fd521656206` |
+
+The original vibration option now controls native gamepad feedback. MOTION's
+attack, landing, swimming, ledge, damage and authored stealth-death cues are
+presentation events; the host filters for the player and sends finite effects
+through gilrs. PadProc's envelope advances twice per 60 Hz callback. Its attack
+and release durations are adapted to the host driver's timing resolution;
+motor hardware behavior is not emulated. The original-C damage comparison also
+checks the final vibration request without changing gameplay state or RNG.

@@ -15,6 +15,13 @@ impl Application {
             view.interpolation.tick(&self.campaign.game);
         }
         self.debug.update(&self.campaign.game);
+        self.controls.feedback(
+            &self.campaign.game,
+            self.settings.frontend.rumble
+                && self.focused
+                && self.campaign.playing()
+                && self.demo.is_none(),
+        );
         if let Some(audio) = &mut self.audio {
             if let Err(error) = audio.tick(&self.campaign.game) {
                 eprintln!("Audio: {error}");

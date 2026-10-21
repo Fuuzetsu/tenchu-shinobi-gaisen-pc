@@ -2,7 +2,7 @@ use super::*;
 use crate::math::Position;
 use crate::{
     ai::Difficulty,
-    effects::{Environment, Impact},
+    effects::{Effects, Environment, Impact},
 };
 use tenchu_assets::weapon::kind::KATANAL;
 
@@ -18,19 +18,31 @@ impl Actor {
         *counter = counter.wrapping_add(1);
     }
 
-    fn recoil(&mut self, damage: i16) {
+    fn recoil(&mut self, damage: i16, power: u8, release: u16, effects: &mut Effects) {
         if self.status == 7 {
             self.motion.loops = damage / -3 - 1;
             self.velocity[0] = 0;
             self.velocity[2] = 0;
+            effects.rumble(self.id, power, 10, release);
         }
     }
 
-    fn recoil_source(&mut self, world: &mut ActionContext, id: usize, damage: i16) {
+    fn recoil_source(
+        &mut self,
+        world: &mut ActionContext,
+        ctx: &mut Context,
+        id: usize,
+        damage: i16,
+        power: u8,
+        release: u16,
+    ) {
         if id == self.id {
-            self.recoil(damage);
+            self.recoil(damage, power, release, ctx.effects);
         } else {
-            world.roster.get_mut(id).recoil(damage);
+            world
+                .roster
+                .get_mut(id)
+                .recoil(damage, power, release, ctx.effects);
         }
     }
 
@@ -40,7 +52,14 @@ impl Actor {
         }
     }
 
-    fn feedback(&self, world: &mut ActionContext, attacker: usize) {
+    fn feedback(
+        &self,
+        world: &mut ActionContext,
+        ctx: &mut Context,
+        attacker: usize,
+        release: u16,
+    ) {
+        ctx.effects.rumble(self.id, 127, 10, release);
         let actor = if self.id == world.player && attacker != self.id {
             world.roster.get(attacker)
         } else {
@@ -104,6 +123,7 @@ impl Actor {
                 position[1] = position[1]
                     .wrapping_sub(i32::from(ctx.mission.characters[self.definition].height) / 2);
                 ctx.effects.impact(position, 24576, 2, ctx.random);
+                ctx.effects.rumble(id, 255, 10, 10);
             } else {
                 self.health = 0;
             }
@@ -199,7 +219,7 @@ impl Actor {
                     .wrapping_neg(),
                 0,
             );
-            self.recoil_source(world, source, power);
+            self.recoil_source(world, ctx, source, power, 127, 0);
             self.consume_hit(ctx, hit);
             let point = ctx.scene.world(self.parts[2])?.transform([
                 0,
@@ -211,7 +231,7 @@ impl Actor {
                 let time = (ctx.random.next15() % 20 + 20) as u8;
                 ctx.effects.bleed(point, velocity, time, [255, 255, 0]);
             }
-            self.feedback(world, source);
+            self.feedback(world, ctx, source, 0);
             let rotation = (ctx.random.next15() % 360) as i16;
             ctx.effects.impact_ex(Impact {
                 parent: None,
@@ -324,14 +344,14 @@ impl Actor {
             movement = false;
             world.intelligence.reset_alert();
         }
-        self.recoil_source(world, source, damage);
+        self.recoil_source(world, ctx, source, damage, 255, 10);
         self.consume_hit(ctx, hit);
         let mut position = self.position;
         position[1] =
             position[1].wrapping_sub(i32::from(ctx.mission.characters[self.definition].height) / 2);
         self.blood(ctx, position, 5, 120, world.clock)?;
         ctx.effects.impact(position, 24576, 2, ctx.random);
-        self.feedback(world, source);
+        self.feedback(world, ctx, source, 30);
         let voice = if ctx.random.next15() & 1 != 0 { 6 } else { 7 };
         world.intelligence.voices.push((self.id, voice));
         let sound = if ctx.random.next15() & 1 == 0 && self.health == 0 {
@@ -466,6 +486,8 @@ impl Actor {
         world.intelligence.voices.push((self.id, voice));
         if self.id != world.player {
             world.combat.request_life(self);
+        } else {
+            ctx.effects.rumble(self.id, 255, 10, 20);
         }
         world.intelligence.reset_alert();
         self.finish_damage(ctx, world, next, movement)
@@ -518,6 +540,7 @@ impl Actor {
                     world.intelligence.voices.push((self.id, 0x1d));
                     ctx.effects
                         .smoke_burst(self.position, 500, 30, 30, ctx.random);
+                    ctx.effects.rumble(self.id, 255, 0, 30);
                 }
                 if complete {
                     pending = Some((MOT_DAMAGE_DOWNED, true));

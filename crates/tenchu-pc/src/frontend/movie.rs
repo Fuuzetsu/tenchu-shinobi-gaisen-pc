@@ -225,18 +225,26 @@ impl Player {
             update.audio = self.audio.take();
             self.elapsed = 1.0 / 15.0;
         } else {
-            self.elapsed += elapsed.as_secs_f64().min(0.25);
+            self.elapsed += elapsed.as_secs_f64();
         }
-        if self.elapsed >= 1.0 / 15.0 {
+        while self.elapsed >= 1.0 / 15.0 {
+            if self.next.is_none() && self.frame < self.movie.last_frame() - 1 {
+                match self.decoder.frames.as_ref().unwrap().try_recv() {
+                    Ok(frame) => self.next = Some(frame?),
+                    Err(mpsc::TryRecvError::Empty) => break,
+                    Err(_) => return Err("Movie decoder disconnected".into()),
+                }
+            }
             if let Some(pixels) = self.next.take() {
                 self.pixels = pixels;
                 self.frame += 1;
                 self.elapsed -= 1.0 / 15.0;
                 update.changed = true;
                 // DecodeMovieFrame returns the following STR frame's counter.
-                update.voices = self.captions.frame(self.frame + 1);
+                update.voices.extend(self.captions.frame(self.frame + 1));
             } else if self.frame >= self.movie.last_frame() - 1 {
                 update.finished = true;
+                break;
             }
         }
         Ok(update)
@@ -303,7 +311,7 @@ mod tests {
                 }
                 voices.extend(update.voices);
                 if update.changed {
-                    frames += 1;
+                    frames = player.frame;
                     if [60, 300, 520].contains(&frames)
                         && let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE")
                     {
@@ -333,6 +341,44 @@ mod tests {
                 assert!(!voices.is_empty());
             }
             println!("{movie:?}: {frames} frames, {audio_frames} audio samples, voices {voices:?}");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC and FFmpeg; compares movie cues at varied display cadences and cancels decoder workers"]
+    fn display_cadence_and_early_exit_do_not_lose_movie_cues() {
+        let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+        let assets = GameAssets::open(open_disc(path.as_ref()).unwrap()).unwrap();
+        let mut reference = None;
+        for hz in [60.0, 15.0, 5.0] {
+            let mut player =
+                Player::new(path.as_ref(), &assets, Movie::Training, Language::French).unwrap();
+            let start = Instant::now();
+            let mut voices = Vec::new();
+            let mut tracks = 0;
+            loop {
+                let update = player.advance(Duration::from_secs_f64(1.0 / hz)).unwrap();
+                voices.extend(update.voices);
+                tracks += usize::from(update.audio.is_some());
+                if update.finished {
+                    break;
+                }
+                assert!(start.elapsed() < Duration::from_secs(30));
+                if !update.changed {
+                    thread::sleep(Duration::from_millis(1));
+                }
+            }
+            let result = (player.frame, voices, tracks, player.captions.text.clone());
+            if let Some(reference) = &reference {
+                assert_eq!(&result, reference);
+            } else {
+                reference = Some(result);
+            }
+        }
+        for _ in 0..8 {
+            let player =
+                Player::new(path.as_ref(), &assets, Movie::Opening, Language::English).unwrap();
+            drop(player);
         }
     }
 }

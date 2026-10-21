@@ -343,6 +343,7 @@ impl ApplicationHandler for Application {
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
         self.finish_recording();
+        self.controls.clear();
         self.audio.take();
         self.video.take();
         self.frontend.take();
