@@ -312,8 +312,16 @@ contribute; turn its strength to zero to reduce GPU cost. The filmic curve
 retains bright-light detail but is an optional artistic treatment of the original
 baked colors. All these effects start disabled in Original.
 
-Presentation interpolation could smooth animation at higher display rates while
-keeping the original 30 Hz simulation; it remains a follow-up.
+**F1 → Graphics → Smooth model motion** interpolates character parts, held
+weapons, hinged doors/pitfalls and their dynamic shadows between consecutive
+30 Hz updates. The gameplay camera follows the same timing, so movement can
+look smooth at 60 Hz and higher. Original leaves this off; Enhanced/Cinematic
+enable it. It adds up to one tick (33 ms at normal speed) of presentation delay.
+Collision, hitboxes, AI, RNG and animation logic still use the exact current
+game state. Pause/frame-step show that exact pose; teleports, new actors, mesh
+changes and mission reloads do not blend from unrelated poses. Scripted camera
+cuts remain exact. Particle sprites, trails, projectiles and original blob
+shadows retain their authored 30 Hz presentation.
 
 The export/edit/reload workflow above supports higher-resolution textures and
 replacement models without changing collision or logic. Automatic processing

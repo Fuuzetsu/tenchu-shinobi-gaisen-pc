@@ -123,6 +123,9 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::Interpolation => {
+                self.settings.graphics.interpolation = !self.settings.graphics.interpolation
+            }
             Item::PhotoMode => self.debug.photo_mode = !self.debug.photo_mode,
             Item::Preset => {
                 let current = self.settings.graphics.preset();

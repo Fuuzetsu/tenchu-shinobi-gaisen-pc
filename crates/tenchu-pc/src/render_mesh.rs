@@ -1,4 +1,7 @@
-use crate::visuals::models::Models;
+use crate::visuals::{
+    interpolation::{Frame, Part},
+    models::Models,
+};
 use bytemuck::{Pod, Zeroable};
 use tenchu_assets::{
     model::{Face, Geometry},
@@ -132,19 +135,11 @@ pub fn visit_stage(
     }
 }
 
-pub fn visit_characters(
-    game: &tenchu_core::game::Game,
-    mut visit: impl FnMut(&[Geometry], Matrix),
-) {
-    for &id in &game.visible {
-        visit_actor(game, game.roster.get(id), &mut visit);
-    }
-}
-
 fn visit_actor(
     game: &tenchu_core::game::Game,
     actor: &tenchu_core::actor::Actor,
-    visit: &mut impl FnMut(&[Geometry], Matrix),
+    inspection: bool,
+    visit: &mut impl FnMut(Part, &[Geometry], Matrix),
 ) {
     for (i, (part, matrix)) in game.mission.models[&actor.rendered_mesh_kind]
         .iter()
@@ -152,18 +147,43 @@ fn visit_actor(
         .enumerate()
     {
         if actor.render_mask & (1 << i) != 0 {
-            visit(&part.geometry, matrix);
+            visit(
+                Part::Actor {
+                    root: actor.root_model,
+                    model: actor.parts[i],
+                    kind: actor.rendered_mesh_kind,
+                    inspection,
+                },
+                &part.geometry,
+                matrix,
+            );
         }
     }
     for weapon in actor.weapons[..2].iter().flatten() {
-        visit(&game.mission.weapons.models[&weapon.kind], weapon.rendered);
+        visit(
+            Part::Actor {
+                root: actor.root_model,
+                model: weapon.model,
+                kind: weapon.kind,
+                inspection,
+            },
+            &game.mission.weapons.models[&weapon.kind],
+            weapon.rendered,
+        );
     }
 }
 
-pub fn visit_inspection_characters(
+pub fn visit_character_parts(
     game: &tenchu_core::game::Game,
-    mut visit: impl FnMut(&[Geometry], Matrix),
+    inspection: bool,
+    mut visit: impl FnMut(Part, &[Geometry], Matrix),
 ) {
+    if !inspection {
+        for &id in &game.visible {
+            visit_actor(game, game.roster.get(id), false, &mut visit);
+        }
+        return;
+    }
     for &id in &game.roster.order {
         let source = game.roster.get(id);
         if source.attribute & tenchu_core::ids::ATTR_SUSPEND != 0 {
@@ -178,24 +198,16 @@ pub fn visit_inspection_characters(
                 0
             }
         });
-        visit_actor(game, &actor, &mut visit);
+        visit_actor(game, &actor, true, &mut visit);
     }
 }
 
-pub fn inspection_characters(
+pub fn visit_hinged_parts(
     game: &tenchu_core::game::Game,
-    models: Option<&Models>,
-) -> Vec<Vertex> {
-    let mut vertices = Vec::new();
-    visit_inspection_characters(game, |geometry, matrix| {
-        append_geometry(&mut vertices, geometry, matrix, models)
-    });
-    vertices
-}
-
-pub fn visit_hinged(game: &tenchu_core::game::Game, mut visit: impl FnMut(&[Geometry], Matrix)) {
+    mut visit: impl FnMut(Part, &[Geometry], Matrix),
+) {
     use tenchu_assets::misc::Kind;
-    for object in &game.misc.objects {
+    for (index, object) in game.misc.objects.iter().enumerate() {
         let (data, yaw) = match object.kind {
             Kind::Door { kind, rotation } => (&game.mission.misc.doors[kind], rotation),
             Kind::Pitfall { kind, rotation } => (&game.mission.misc.pitfalls[kind], rotation),
@@ -205,13 +217,22 @@ pub fn visit_hinged(game: &tenchu_core::game::Game, mut visit: impl FnMut(&[Geom
             translation: object.position,
             rotation: game.math.rotate_yxz([0, yaw, 0]),
         };
-        for (mesh, local) in data
+        for (part, (mesh, local)) in data
             .models
             .into_iter()
             .zip(object.hinged_matrices(data, &game.math))
+            .enumerate()
         {
             if let Some(mesh) = mesh {
-                visit(&game.mission.common_models[&mesh], root.compose(&local));
+                visit(
+                    Part::Hinge {
+                        object: index,
+                        part,
+                        mesh,
+                    },
+                    &game.mission.common_models[&mesh],
+                    root.compose(&local),
+                );
             }
         }
     }
@@ -246,11 +267,25 @@ pub fn shadow_stage(mission: &MissionAssets, math: &Math, models: Option<&Models
 }
 
 pub fn shadow_models(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
+    shadow_models_presented(game, models, None)
+}
+
+pub fn shadow_models_presented(
+    game: &tenchu_core::game::Game,
+    models: Option<&Models>,
+    frame: Option<&Frame>,
+) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    let mut append =
-        |geometry: &[Geometry], matrix| append_caster(&mut vertices, geometry, matrix, models);
-    visit_inspection_characters(game, &mut append);
-    visit_hinged(game, &mut append);
+    let mut append = |key, geometry: &[Geometry], matrix| {
+        append_caster(
+            &mut vertices,
+            geometry,
+            Frame::transform(frame, key, matrix),
+            models,
+        )
+    };
+    visit_character_parts(game, true, &mut append);
+    visit_hinged_parts(game, &mut append);
     vertices
 }
 
@@ -263,9 +298,23 @@ pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> V
 }
 
 pub fn characters(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
+    characters_presented(game, models, false, None)
+}
+
+pub fn characters_presented(
+    game: &tenchu_core::game::Game,
+    models: Option<&Models>,
+    inspection: bool,
+    frame: Option<&Frame>,
+) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    visit_characters(game, |geometry, matrix| {
-        append_geometry(&mut vertices, geometry, matrix, models)
+    visit_character_parts(game, inspection, |key, geometry, matrix| {
+        append_geometry(
+            &mut vertices,
+            geometry,
+            Frame::transform(frame, key, matrix),
+            models,
+        )
     });
     vertices
 }

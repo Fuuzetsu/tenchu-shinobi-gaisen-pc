@@ -134,13 +134,23 @@ impl Emitters {
     }
 
     pub fn sources(&self, game: &Game) -> Vec<Source> {
+        self.sources_presented(game, None)
+    }
+
+    pub fn sources_presented(
+        &self,
+        game: &Game,
+        frame: Option<&super::interpolation::Frame>,
+    ) -> Vec<Source> {
         let mut out = self.placed.clone();
-        render_mesh::visit_inspection_characters(game, |geometry, matrix| {
+        render_mesh::visit_character_parts(game, true, |key, geometry, matrix| {
+            let matrix = super::interpolation::Frame::transform(frame, key, matrix);
             if let Some(source) = self.source(geometry, matrix) {
                 out.push(source);
             }
         });
-        render_mesh::visit_hinged(game, |geometry, matrix| {
+        render_mesh::visit_hinged_parts(game, |key, geometry, matrix| {
+            let matrix = super::interpolation::Frame::transform(frame, key, matrix);
             if let Some(source) = self.source(geometry, matrix) {
                 out.push(source);
             }

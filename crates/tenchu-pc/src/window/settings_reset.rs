@@ -21,6 +21,7 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::Interpolation => self.settings.graphics.interpolation = s.graphics.interpolation,
             Item::Preset => self.settings.graphics.set_preset(0),
             Item::PhotoMode => self.debug.photo_mode = false,
             Item::Post => self.settings.graphics.post.enabled = s.graphics.post.enabled,

@@ -27,6 +27,9 @@ pub(super) struct View {
     models: Models,
     model_options: (bool, bool, u16),
     emitters: Emitters,
+    pub(super) interpolation: crate::visuals::interpolation::History,
+    interpolation_enabled: bool,
+    frame: Option<crate::visuals::interpolation::Frame>,
 }
 
 impl View {
@@ -131,6 +134,9 @@ impl View {
             models,
             model_options: model_options(&settings.graphics),
             emitters,
+            interpolation: Default::default(),
+            interpolation_enabled: false,
+            frame: None,
         })
     }
 
@@ -146,6 +152,7 @@ impl View {
     }
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
+        self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
         let result = Models::build(&game.mission, &self.pack, &settings.graphics);
@@ -184,7 +191,20 @@ impl View {
         Ok(count)
     }
 
+    pub(super) fn reset_interpolation(&mut self, game: &Game) {
+        self.frame = None;
+        if self.interpolation_enabled {
+            self.interpolation.reset(game);
+        } else {
+            self.interpolation = Default::default();
+        }
+    }
+
     pub(super) fn settings(&mut self, settings: &Settings, game: &Game) -> Result<()> {
+        if self.interpolation_enabled != settings.graphics.interpolation {
+            self.interpolation_enabled = settings.graphics.interpolation;
+            self.reset_interpolation(game);
+        }
         let options = model_options(&settings.graphics);
         if options != self.model_options {
             self.set_models(
@@ -219,24 +239,32 @@ impl View {
         menu: &Menu,
         fps: f32,
         debug: &crate::debug::Debug,
+        alpha: f32,
     ) {
         let game = &campaign.game;
         if self.vram_revision != game.mission.vram.revision {
             self.renderer.update_vram(&game.mission.vram);
             self.vram_revision = game.mission.vram.revision;
         }
-        self.actor = self.renderer.upload(&if debug.camera.is_some() {
-            render_mesh::inspection_characters(game, Some(&self.models))
+        self.frame = if self.interpolation_enabled {
+            self.interpolation.sample(game.tick, alpha)
         } else {
-            render_mesh::characters(game, Some(&self.models))
-        });
+            None
+        };
+        let frame = self.frame.as_ref();
+        self.actor = self.renderer.upload(&render_mesh::characters_presented(
+            game,
+            Some(&self.models),
+            debug.camera.is_some(),
+            frame,
+        ));
         let sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,
             debug.eye(game),
             debug.light_position(game),
             if settings.graphics.lighting.enabled && settings.graphics.lighting.lamps {
-                self.emitters.sources(game)
+                self.emitters.sources_presented(game, frame)
             } else {
                 Vec::new()
             },
@@ -254,8 +282,11 @@ impl View {
             )));
         }
         self.shadow_models = shadowing.then(|| {
-            self.renderer
-                .upload(&render_mesh::shadow_models(game, Some(&self.models)))
+            self.renderer.upload(&render_mesh::shadow_models_presented(
+                game,
+                Some(&self.models),
+                frame,
+            ))
         });
         let mut geometry =
             if campaign.playing() && (menu.open || !paused || debug.active()) && error.is_none() {
@@ -265,12 +296,13 @@ impl View {
                         batches: Vec::new(),
                     }
                 } else {
-                    render_effects::build_options(
+                    render_effects::build_presented(
                         game,
                         settings.show_hud && !debug.photo_mode,
                         debug.camera.map(|c| c.source_view()),
                         settings.graphics.blob_shadows,
                         Some(&self.models),
+                        frame,
                     )
                 }
             } else {
@@ -359,7 +391,14 @@ impl View {
         ];
         self.renderer.draw_lit(
             target,
-            debug.matrix(game, self.config.width as f32 / self.config.height as f32),
+            if debug.camera.is_some() {
+                debug.matrix(game, self.config.width as f32 / self.config.height as f32)
+            } else {
+                crate::renderer::game_camera(
+                    self.frame.as_ref().map_or(game.rendered_view, |f| f.view),
+                    self.config.width as f32 / self.config.height as f32,
+                )
+            },
             if debug.collision_only { &[] } else { &meshes },
             Some(&self.effects),
             &self.lights,

@@ -292,18 +292,30 @@ pub fn build_options(
     blob_shadows: bool,
     models: Option<&crate::visuals::models::Models>,
 ) -> Geometry {
+    build_presented(game, show_hud, camera, blob_shadows, models, None)
+}
+
+pub fn build_presented(
+    game: &Game,
+    show_hud: bool,
+    camera: Option<Matrix>,
+    blob_shadows: bool,
+    models: Option<&crate::visuals::models::Models>,
+    frame: Option<&crate::visuals::interpolation::Frame>,
+) -> Geometry {
     let inspection = camera.is_some();
-    let view = camera.unwrap_or(game.rendered_view);
+    let view = camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view));
     let mut surfaces = Vec::new();
     let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
         mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
     };
     render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
-    if inspection {
-        render_mesh::visit_inspection_characters(game, &mut translucent);
-    } else {
-        render_mesh::visit_characters(game, &mut translucent);
-    }
+    render_mesh::visit_character_parts(game, inspection, |key, meshes, matrix| {
+        translucent(
+            meshes,
+            crate::visuals::interpolation::Frame::transform(frame, key, matrix),
+        );
+    });
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
         if index == 25 && !blob_shadows {
             continue;
@@ -355,6 +367,7 @@ pub fn build_options(
         );
     }
     for &(index, matrix) in game.items.models.iter().chain(&game.misc.models) {
+        let matrix = frame.map_or(matrix, |frame| frame.hinged(index, matrix));
         mesh_surfaces(
             &mut surfaces,
             &game.mission.common_models[&index],

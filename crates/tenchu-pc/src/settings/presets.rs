@@ -23,6 +23,7 @@ fn preset(index: u16) -> Graphics {
     }
     graphics.set_filtering(if index == 2 { 6 } else { 5 });
     graphics.magnification = if index == 2 { 2 } else { 1 };
+    graphics.interpolation = true;
     graphics.samples = 4;
     graphics.smooth_models = true;
     graphics.model_detail = 1;

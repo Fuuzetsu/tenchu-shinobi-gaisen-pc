@@ -21,7 +21,7 @@ fn hinged_casters_keep_live_angles_without_camera_culling() {
         }
         let before = crate::session::tests::state(&game);
         let mut poses = Vec::new();
-        visit_hinged(&game, |geometry, matrix| {
+        visit_hinged_parts(&game, |_, geometry, matrix| {
             poses.push((geometry.as_ptr(), matrix))
         });
         assert_eq!(crate::session::tests::state(&game), before);
@@ -32,7 +32,7 @@ fn hinged_casters_keep_live_angles_without_camera_culling() {
         game.misc.models.clear();
         let positions = |game: &tenchu_core::game::Game| {
             let mut vertices = Vec::new();
-            visit_hinged(game, |geometry, matrix| {
+            visit_hinged_parts(game, |_, geometry, matrix| {
                 append_caster(&mut vertices, geometry, matrix, None)
             });
             vertices.into_iter().map(|v| v.position).collect::<Vec<_>>()

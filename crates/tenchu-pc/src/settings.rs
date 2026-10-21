@@ -39,6 +39,7 @@ impl Default for Settings {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Graphics {
+    pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
     pub textures: bool,
@@ -61,6 +62,7 @@ pub struct Graphics {
 impl Default for Graphics {
     fn default() -> Self {
         Self {
+            interpolation: false,
             fog: true,
             fog_distance: 100,
             textures: true,

@@ -1,5 +1,6 @@
 pub mod catalog;
 mod export;
+pub mod interpolation;
 pub mod lights;
 pub mod models;
 pub mod obj;

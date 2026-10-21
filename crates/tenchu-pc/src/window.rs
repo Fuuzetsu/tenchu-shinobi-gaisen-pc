@@ -90,6 +90,16 @@ impl Application {
     }
 
     fn update_view(&mut self) {
+        let alpha = if self.is_suspended()
+            || !self.campaign.playing()
+            || self.debug.speed == 0
+            || self.campaign.game.cinematic.active
+                && (self.settings.cutscene_speed == 0 || self.controls.held(KeyCode::Backspace))
+        {
+            1.0
+        } else {
+            self.clock.interpolation()
+        };
         if let Some(view) = &mut self.view {
             view.update(
                 &self.campaign,
@@ -99,6 +109,7 @@ impl Application {
                 &self.menu,
                 self.fps,
                 &self.debug,
+                alpha,
             );
         }
     }
@@ -115,6 +126,9 @@ impl Application {
         self.controls.clear();
         self.last_frame = Instant::now();
         self.clock.discard_host_backlog();
+        if let Some(view) = &mut self.view {
+            view.reset_interpolation(&self.campaign.game);
+        }
     }
 
     fn toggle_menu(&mut self) {
@@ -503,6 +517,7 @@ impl ApplicationHandler for Application {
                 if before != self.campaign.game.tick
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
+                    || self.settings.graphics.interpolation && !suspended && self.campaign.playing()
                 {
                     self.update_view();
                 }

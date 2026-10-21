@@ -297,8 +297,8 @@ mod tests {
                 checked += edited.len();
             };
             render_mesh::visit_stage(&game.mission, &game.math, &mut compare);
-            render_mesh::visit_inspection_characters(&game, &mut compare);
-            render_mesh::visit_hinged(&game, &mut compare);
+            render_mesh::visit_character_parts(&game, true, |_, g, m| compare(g, m));
+            render_mesh::visit_hinged_parts(&game, |_, g, m| compare(g, m));
             assert!(checked > 10000);
             assert_eq!(crate::session::tests::state(&game), before);
             std::fs::remove_dir_all(root).unwrap();

@@ -4,6 +4,7 @@ use crate::{campaign::Action, debug::Debug};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
     Preset,
+    Interpolation,
     PhotoMode,
     Fps,
     Focus,
@@ -446,6 +447,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Close-up textures",
                 ["Smooth", "Crisp", "Cubic", "Pixel"][usize::from(s.graphics.magnification)].into(),
                 "With filtering: crisp edges, cubic curves, or original pixels; distant mipmaps stay on.",
+            ),
+            (
+                Item::Interpolation,
+                "Smooth model motion",
+                on(s.graphics.interpolation),
+                "Visual poses and gameplay camera between 30 Hz ticks; adds up to one tick of display delay.",
             ),
             (
                 Item::Antialiasing,

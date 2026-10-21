@@ -9,6 +9,11 @@ impl Application {
             self.clock.discard_host_backlog();
             return false;
         }
+        if self.settings.graphics.interpolation
+            && let Some(view) = &mut self.view
+        {
+            view.interpolation.tick(&self.campaign.game);
+        }
         self.debug.update(&self.campaign.game);
         if let Some(audio) = &mut self.audio {
             if let Err(error) = audio.tick(&self.campaign.game) {

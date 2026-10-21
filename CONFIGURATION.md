@@ -411,7 +411,23 @@ described above. No game assets or diagnostic captures are included in Git.
   lantern frames. This uses the existing emitter data and geometry, with no
   mission-coordinate overrides. Higher manual unshadowed budgets still leak
   light by design and are identified in the new overlay.
-- [ ] Add optional visual model interpolation between 30 Hz ticks, including
+- [x] Add optional visual model interpolation between 30 Hz ticks, including
   held weapons and discontinuity handling, without changing gameplay state.
+  Presentation-only history captures every simulation tick, including multiple
+  ticks per display. Actor scene/model identities guard swaps and spawns;
+  quaternion interpolation retains rigid rotation across angle wrapping. The
+  same sampled matrices feed opaque/translucent models, hinged props, carried
+  emitters and dynamic shadow casters. The gameplay camera shares that timing;
+  cinematic cuts keep their source view. Pause/step, teleports and reloads clear
+  history. Original defaults remain off. Full state comparisons for both players
+  cover intermediate weapon/body/shadow poses, unchanged exact endpoints and
+  reset behavior. Non-model sprites, trails/projectiles and blob shadows stay
+  at 30 Hz; this adds up to one tick of visual latency at normal speed.
+  Native Ayame movement/jump/attack and pause/step checks pass. Sampling the
+  actual isolated Xvfb framebuffer at 120 Hz for three seconds counted 90 image
+  changes with interpolation off and 309 with it on at 640×360. This establishes
+  between-tick presentation, not a hardware performance benchmark (1280×720
+  Xvfb presentation was limited to about 32 frames/s). No display rate is baked
+  into the interpolation.
 - [ ] Verify actual native controls/rendering, regression checks, Nix packaging,
   portable shared crates and clean Wayland exit; document remaining limits.
