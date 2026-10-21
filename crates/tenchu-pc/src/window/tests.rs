@@ -35,6 +35,8 @@ fn application(options: Options) -> Application {
         fps_frames: 0,
         debug,
         screenshot: false,
+        demo: None,
+        demo_exit: false,
         modifiers: ModifiersState::empty(),
     }
 }

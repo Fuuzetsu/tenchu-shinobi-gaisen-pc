@@ -3,6 +3,7 @@ mod campaign;
 mod capture;
 mod controls;
 mod debug;
+mod demo;
 mod lighting;
 mod recording;
 mod render_effects;
@@ -22,9 +23,28 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS] [--record DIRECTORY]\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection for the campaign or training. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
+            "tenchu-pc play DISC [OPTIONS] [--record DIRECTORY]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the launcher and equipment selection for the campaign or training. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
         );
         return Ok(());
+    }
+    if args[0] == "demo" {
+        if args.get(1).is_some_and(|a| a == "--list") {
+            return demo::Player::list();
+        }
+        if args.len() < 2 || args[1] == "--help" {
+            println!(
+                "tenchu-pc demo DISC [--clips moon,shadows,motion] [--loop | --exit] [--clean] [--mute] [--duration SECONDS] [--catalog FILE]\nUse demo --list to list clips. Space pauses; arrows change clip; Home restarts; Tab opens the clip picker; H toggles captions; V toggles transport; F1 inspects temporary settings; F9 captures a PNG; Esc exits."
+            );
+            return Ok(());
+        }
+        let player = demo::Player::parse(&args[2..])?;
+        let options = session::Options {
+            mission: player.clip().mission,
+            character: player.clip().character,
+            ..Default::default()
+        };
+        let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        return window::run(assets, options, args[1].as_ref(), None, Some(player));
     }
     if args[0] == "export-assets" && args.len() >= 3 {
         let options = session::Options::parse(&args[3..])?;
@@ -47,7 +67,7 @@ fn run() -> Result<()> {
         }
         let options = session::Options::parse(&launch)?;
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        return window::run(assets, options, args[1].as_ref(), recordings);
+        return window::run(assets, options, args[1].as_ref(), recordings, None);
     }
     if args[0] == "replay" && args.len() >= 3 {
         let mut launch = Vec::new();

@@ -119,7 +119,8 @@ impl Application {
             self.campaign.game.activation.keep_all_active = previous.keep_enemies_active;
             return;
         }
-        if self.settings != *previous
+        if self.demo.is_none()
+            && self.settings != *previous
             && let Err(error) = self.settings_store.write(&self.settings)
         {
             eprintln!("Settings: {error}");

@@ -1,3 +1,4 @@
+mod demo;
 mod overlay;
 mod performance;
 mod playback;
@@ -61,6 +62,8 @@ struct Application {
     fps_frames: u32,
     debug: crate::debug::Debug,
     screenshot: bool,
+    demo: Option<crate::demo::Player>,
+    demo_exit: bool,
     modifiers: ModifiersState,
 }
 
@@ -92,7 +95,9 @@ impl Application {
     }
 
     fn update_view(&mut self) {
-        let alpha = if self.is_suspended()
+        let alpha = if let Some(demo) = &self.demo {
+            demo.alpha()
+        } else if self.is_suspended()
             || !self.campaign.playing()
             || self.debug.speed == 0
             || self.campaign.game.cinematic.active
@@ -113,11 +118,16 @@ impl Application {
                 debug: &self.debug,
                 alpha,
             });
+            if self.demo.is_some() {
+                view.labels
+                    .retain(|label| !matches!(label.0, crate::debug::Anchor::BottomLeft(_)));
+            }
         }
     }
 
     fn is_suspended(&self) -> bool {
         self.paused
+            || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
             || (self.menu.open && self.settings.pause_in_menu)
             || (!self.focused && self.settings.pause_on_defocus)
     }
@@ -161,6 +171,9 @@ impl Application {
     }
 
     fn save(&mut self) {
+        if self.demo.is_some() {
+            return;
+        }
         if let Some(save) = self.campaign.save_request.take() {
             match self.storage.write(&save) {
                 Ok(()) => self.campaign.saved = Some(save),
@@ -260,6 +273,12 @@ impl Application {
     }
 
     fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        if self.demo.is_some() {
+            if matches!(command, Command::Pause) {
+                self.set_paused(!self.paused);
+            }
+            return;
+        }
         match command {
             Command::Pause if self.campaign.playing() && !self.faulted => {
                 self.set_paused(!self.paused);
@@ -313,6 +332,11 @@ impl ApplicationHandler for Application {
                         return;
                     }
                     self.view = Some(view);
+                    if let Err(error) = self.start_demo_clip() {
+                        self.error = Some(error);
+                        events.exit();
+                        return;
+                    }
                     self.update_view();
                 }
                 Err(error) => {
@@ -389,6 +413,9 @@ impl ApplicationHandler for Application {
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F9 {
                     self.screenshot = true;
+                    return;
+                }
+                if self.demo_key(code, event.state == ElementState::Pressed) {
                     return;
                 }
                 if self.menu.open {
@@ -498,6 +525,7 @@ impl ApplicationHandler for Application {
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
                 if self.focused
+                    && self.demo.is_none()
                     && !self.menu.open
                     && let Some(camera) = &mut self.debug.camera
                 {
@@ -527,11 +555,16 @@ impl ApplicationHandler for Application {
                     audio.poll();
                 }
                 let before = self.campaign.game.tick;
-                self.advance_simulation(elapsed);
+                if self.demo.is_some() {
+                    self.advance_demo(elapsed);
+                } else {
+                    self.advance_simulation(elapsed);
+                }
                 self.debug.update(&self.campaign.game);
                 timing.simulation = phase.elapsed().as_secs_f32() * 1000.0;
                 let phase = Instant::now();
-                if before != self.campaign.game.tick
+                if self.demo.is_some()
+                    || before != self.campaign.game.tick
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
                     || self.settings.graphics.interpolation && !suspended && self.campaign.playing()
@@ -541,6 +574,14 @@ impl ApplicationHandler for Application {
                 timing.prepare = phase.elapsed().as_secs_f32() * 1000.0;
                 let phase = Instant::now();
                 self.update_overlay();
+                if self.demo_exit
+                    || self
+                        .demo
+                        .as_ref()
+                        .is_some_and(|d| d.finished && d.exit_when_finished)
+                {
+                    events.exit();
+                }
                 timing.overlay = phase.elapsed().as_secs_f32() * 1000.0;
                 if self.screenshot {
                     self.save_screenshot();
@@ -578,6 +619,7 @@ pub fn run(
     options: Options,
     disc: &std::path::Path,
     recording_directory: Option<PathBuf>,
+    demo: Option<crate::demo::Player>,
 ) -> Result<()> {
     let storage = Storage::new()?;
     let settings_store = settings::Store::new()?;
@@ -595,7 +637,18 @@ pub fn run(
         settings.model_directory = directory.to_string_lossy().into_owned();
     }
     let model_directory = settings.model_directory.clone();
-    let mut campaign = Campaign::new(&assets, options, storage.load()?)?;
+    if demo.as_ref().is_some_and(|d| d.muted) {
+        settings.volume = 0;
+    }
+    let mut campaign = Campaign::new(
+        &assets,
+        options,
+        if demo.is_some() {
+            None
+        } else {
+            storage.load()?
+        },
+    )?;
     campaign.game.activation.keep_all_active = settings.keep_enemies_active;
     let debug = crate::debug::Debug::new(&campaign.game)?;
     let mut audio = match crate::audio::Audio::new(disc, &assets, &campaign) {
@@ -638,6 +691,8 @@ pub fn run(
         fps_frames: 0,
         debug,
         screenshot: false,
+        demo,
+        demo_exit: false,
         modifiers: ModifiersState::empty(),
     };
     println!(

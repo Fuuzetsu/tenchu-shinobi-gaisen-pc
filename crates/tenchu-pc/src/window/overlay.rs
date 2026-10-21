@@ -12,6 +12,17 @@ pub(super) struct Overlay {
     screen: egui_wgpu::ScreenDescriptor,
 }
 
+pub(super) struct Extras<'a> {
+    pub labels: &'a [crate::debug::Label],
+    pub performance: &'a mut super::performance::Performance,
+    pub demo: Option<&'a mut crate::demo::Player>,
+}
+
+pub(super) struct Updates {
+    edits: Vec<Edit>,
+    demo: Option<crate::demo::overlay::Action>,
+}
+
 impl Overlay {
     pub fn new(window: &Window, renderer: &Renderer, format: wgpu::TextureFormat) -> Self {
         let context = egui::Context::default();
@@ -56,9 +67,8 @@ impl Overlay {
         renderer: &Renderer,
         menu: &mut Menu,
         state: crate::settings::overlay::State<'_>,
-        labels: &[crate::debug::Label],
-        performance: &mut super::performance::Performance,
-    ) -> Vec<Edit> {
+        mut extras: Extras<'_>,
+    ) -> Updates {
         let mut input = self.state.take_egui_input(window);
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
         if !self.editing() && menu.edit.is_none() {
@@ -67,16 +77,26 @@ impl Overlay {
                 .retain(|event| !matches!(event, egui::Event::Key { .. } | egui::Event::Text(_)));
         }
         let mut edits = Vec::new();
+        let mut demo_action = None;
         let output = self.context.run(input, |ctx| {
-            paint_labels(ctx, labels);
+            paint_labels(ctx, extras.labels);
             let mut show_performance = state.settings.show_performance;
             let profiling = show_performance;
             if show_performance && !state.debug.photo_mode {
-                performance.show(
+                extras.performance.show(
                     ctx,
                     &mut show_performance,
                     menu.open,
                     renderer.timings.is_some(),
+                );
+            }
+            if let Some(demo) = &mut extras.demo {
+                demo_action = crate::demo::overlay::show(
+                    ctx,
+                    demo,
+                    state.settings,
+                    state.debug,
+                    state.paused,
                 );
             }
             edits = crate::settings::overlay::show(ctx, menu, state);
@@ -101,7 +121,10 @@ impl Overlay {
         for id in &output.textures_delta.free {
             self.renderer.free_texture(id);
         }
-        edits
+        Updates {
+            edits,
+            demo: demo_action,
+        }
     }
 
     pub fn draw(&mut self, renderer: &Renderer, target: &wgpu::TextureView) {
@@ -148,11 +171,12 @@ impl Overlay {
 impl super::Application {
     pub(super) fn update_overlay(&mut self) {
         let was_open = self.menu.open;
+        let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let Some(view) = &mut self.view else {
             return;
         };
         self.menu.player_models.clone_from(&view.player_models);
-        let edits = view.overlay.update(
+        let updates = view.overlay.update(
             &view.window,
             &view.renderer,
             &mut self.menu,
@@ -163,9 +187,19 @@ impl super::Application {
                 lights: view.lights.len(),
                 samples: &view.renderer.sample_counts,
             },
-            &view.labels,
-            &mut self.performance,
+            Extras {
+                labels: &view.labels,
+                performance: &mut self.performance,
+                demo: self.demo.as_mut(),
+            },
         );
+        if let Some(action) = updates.demo {
+            self.demo_action(action);
+        }
+        if library_was_open != self.demo.as_ref().is_some_and(|d| d.library) {
+            self.sync_pause();
+        }
+        let edits = updates.edits;
         if edits.is_empty() && was_open == self.menu.open {
             return;
         }

@@ -2,7 +2,7 @@ use super::*;
 use std::time::Duration;
 
 impl Application {
-    fn game_tick(&mut self, buttons: u16) -> bool {
+    pub(super) fn game_tick(&mut self, buttons: u16) -> bool {
         self.record_input(buttons);
         if let Err(error) = self.campaign.tick(buttons) {
             self.pause_error(error);
