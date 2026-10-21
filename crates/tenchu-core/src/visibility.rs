@@ -21,7 +21,7 @@ pub(crate) fn divide(h: u16, z: u16) -> u32 {
     let table = if index == 256 {
         0
     } else {
-        (((0x40000 / (index + 0x100) + 1) / 2) - 0x101) as u8
+        ((0x40000 / (index + 0x100)).div_ceil(2) - 0x101) as u8
     };
     let estimate = 0x101 + u32::from(table);
     let correction = (0x2000080 - d * estimate) >> 8;

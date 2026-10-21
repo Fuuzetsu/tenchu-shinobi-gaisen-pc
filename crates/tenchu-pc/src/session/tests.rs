@@ -647,7 +647,11 @@ fn cinematic_timing_is_independent_of_host_frame_cadence() {
                     cadence[frame % cadence.len()],
                 ));
                 while clock.step().is_some() {
-                    let input = if game.tick % 12 == 0 { SQUARE } else { 0 };
+                    let input = if game.tick.is_multiple_of(12) {
+                        SQUARE
+                    } else {
+                        0
+                    };
                     game.step(input).unwrap();
                     if game.tick == 1050 {
                         break;

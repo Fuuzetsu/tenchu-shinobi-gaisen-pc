@@ -173,7 +173,7 @@ impl Actor {
             && self.map.height == 0
             && world.intelligence.difficulty != Difficulty::Easy
         {
-            let engage = 3 - world.intelligence.difficulty as i32;
+            let engage = world.intelligence.difficulty.reaction_delay();
             if ctx.random.next15() % (engage + 1) != 0
                 || (matches!(self.kind, 0x87 | 0x8a) && ctx.random.next15() & 1 != 0)
             {
@@ -237,7 +237,7 @@ impl Actor {
             if self.attribute & ATTR_WEAPON_DRAWN == 0 {
                 self.health = 0;
             }
-            damage = damage.wrapping_sub(world.intelligence.difficulty as i16 - 2);
+            damage = damage.wrapping_add(world.intelligence.difficulty.damage_bonus());
         } else if self.id != world.player {
             damage /= 3;
         }

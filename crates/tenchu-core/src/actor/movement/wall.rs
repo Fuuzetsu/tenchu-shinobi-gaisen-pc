@@ -193,8 +193,8 @@ impl Actor {
                     .world(self.parts[13 + usize::from(right)])?
                     .translation;
                 let [sin, cos] = ctx.math.pair(angle);
-                start[0] = start[0].wrapping_sub(sin * 500 >> 12);
-                start[2] = start[2].wrapping_sub(cos * 500 >> 12);
+                start[0] = start[0].wrapping_sub((sin * 500) >> 12);
+                start[2] = start[2].wrapping_sub((cos * 500) >> 12);
                 angle = angle.wrapping_add(if right { -512 } else { 512 });
                 world
                     .items

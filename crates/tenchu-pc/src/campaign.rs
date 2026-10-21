@@ -7,7 +7,6 @@ use tenchu_assets::{
     shop::Shop,
 };
 use tenchu_core::{
-    ai::Difficulty,
     game::{Game, events::Outcome},
     progress::{
         Completion, Loadout, Progress, Results,
@@ -171,14 +170,7 @@ impl Campaign {
                     };
                     match self.cursor {
                         2 => self.options.character ^= 1,
-                        3 => {
-                            self.options.difficulty =
-                                match (self.options.difficulty as i32 + delta).rem_euclid(3) {
-                                    0 => Difficulty::Easy,
-                                    1 => Difficulty::Normal,
-                                    _ => Difficulty::Hard,
-                                }
-                        }
+                        3 => self.options.difficulty = self.options.difficulty.cycle(delta),
                         4 => {
                             self.options.mission =
                                 (self.options.mission as i32 + delta).rem_euclid(11) as usize

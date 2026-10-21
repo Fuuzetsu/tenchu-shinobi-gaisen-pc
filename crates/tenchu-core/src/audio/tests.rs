@@ -70,12 +70,12 @@ SoundEx(a[6]?&pp:&pos,a[7]);printf("%d %d\n",volume,pan);
                 [0, -10000, 0],
             ][case % 8]
         } else {
-            std::array::from_fn(|_| i32::from(random.next15()) * 2 - 32768)
+            std::array::from_fn(|_| random.next15() * 2 - 32768)
         };
         let listener = Listener {
             position: [0; 3],
-            yaw: (i32::from(random.next15()) - 16384) as i16,
-            direction: (case % 3 == 0).then(|| (i32::from(random.next15()) - 16384) as i16),
+            yaw: (random.next15() - 16384) as i16,
+            direction: (case % 3 == 0).then(|| (random.next15() - 16384) as i16),
         };
         let local = case % 7 == 0;
         let id = [0x12, 0x11, 0x0b, 0x56][case % 4];

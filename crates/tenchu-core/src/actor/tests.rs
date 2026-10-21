@@ -758,8 +758,8 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                     game.step(TRIANGLE).unwrap();
                 }
                 assert_eq!(
-                    (game.camera.mode, game.camera.old_mode),
-                    (Mode::Direction, Mode::Sight as u8)
+                    (game.camera.mode, game.camera.detail),
+                    (Mode::Direction, crate::camera::Detail::Sight)
                 );
                 assert!(!game.items.sprites.is_empty());
                 assert_eq!(game.player().inventory[25], 1);
@@ -769,7 +769,7 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                 } else if path == 2 {
                     game.step(TRIANGLE | SQUARE).unwrap();
                     assert_eq!(game.player().inventory[1], 3);
-                    assert_eq!(game.camera.old_mode, Mode::Direction as u8);
+                    assert_eq!(game.camera.detail, crate::camera::Detail::Look);
                 } else {
                     let player = game.player_id;
                     with_actor(&mut game, player, |actor, ctx, _| {

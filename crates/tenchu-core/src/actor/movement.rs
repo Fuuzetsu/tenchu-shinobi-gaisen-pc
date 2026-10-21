@@ -127,8 +127,8 @@ impl Actor {
         self.motion.mask = 0x7fff;
         let [x, z] = ctx.body.reflect_move[self.map.angle_high as usize];
         let width = i32::from(ctx.mission.characters[self.definition].width);
-        self.position[0] = self.position[0].wrapping_add(width * i32::from(x) >> 2);
-        self.position[2] = self.position[2].wrapping_add(width * i32::from(z) >> 2);
+        self.position[0] = self.position[0].wrapping_add((width * i32::from(x)) >> 2);
+        self.position[2] = self.position[2].wrapping_add((width * i32::from(z)) >> 2);
         self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
         if self.status == 11 {
             self.motion.count >>= 2;

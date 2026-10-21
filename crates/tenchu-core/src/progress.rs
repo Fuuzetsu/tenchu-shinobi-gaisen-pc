@@ -150,12 +150,12 @@ fn award(stock: &mut [u8; ITEMS], grade: i16, reward: usize, random: &mut Random
     let tier = 4i16.wrapping_sub(grade);
     if tier < 3 {
         let amount = if tier == 1 || tier == 2 { 1 } else { 2 };
-        for item in 1..ITEMS {
-            if item < 9 && stock[item] == LOCKED {
-                stock[item] = stock[item].wrapping_add(2);
+        for (item, stock) in stock.iter_mut().enumerate().skip(1) {
+            if item < 9 && *stock == LOCKED {
+                *stock = stock.wrapping_add(2);
             }
-            if stock[item] != LOCKED {
-                stock[item] = stock[item].wrapping_add(amount);
+            if *stock != LOCKED {
+                *stock = stock.wrapping_add(amount);
             }
         }
         if tier != 1 && tier != 2 && stock[reward] == LOCKED {

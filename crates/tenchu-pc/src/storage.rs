@@ -10,35 +10,6 @@ pub struct Storage {
     path: PathBuf,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn replaces_a_complete_save_and_reports_corruption() {
-        let directory = std::env::temp_dir().join(format!(
-            "tenchu-save-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        let storage = Storage {
-            path: directory.join("nested/progress.sav"),
-        };
-        assert!(storage.load().unwrap().is_none());
-        let mut save = Save::default();
-        storage.write(&save).unwrap();
-        save.progress.stock[0][1] = 42;
-        storage.write(&save).unwrap();
-        assert_eq!(storage.load().unwrap().unwrap(), save);
-        fs::write(&storage.path, b"truncated").unwrap();
-        assert!(storage.load().unwrap_err().contains("Truncated"));
-        fs::remove_dir_all(directory).unwrap();
-    }
-}
-
 impl Storage {
     pub fn new() -> Result<Self> {
         let path = if let Some(path) = std::env::var_os("TENCHU_SAVE") {
@@ -93,4 +64,33 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
     drop(file);
     fs::rename(&temporary, path).map_err(|e| format!("Save {}: {e}", path.display()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replaces_a_complete_save_and_reports_corruption() {
+        let directory = std::env::temp_dir().join(format!(
+            "tenchu-save-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let storage = Storage {
+            path: directory.join("nested/progress.sav"),
+        };
+        assert!(storage.load().unwrap().is_none());
+        let mut save = Save::default();
+        storage.write(&save).unwrap();
+        save.progress.stock[0][1] = 42;
+        storage.write(&save).unwrap();
+        assert_eq!(storage.load().unwrap().unwrap(), save);
+        fs::write(&storage.path, b"truncated").unwrap();
+        assert!(storage.load().unwrap_err().contains("Truncated"));
+        fs::remove_dir_all(directory).unwrap();
+    }
 }

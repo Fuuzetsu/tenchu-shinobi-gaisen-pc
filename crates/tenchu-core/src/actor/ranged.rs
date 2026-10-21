@@ -75,7 +75,9 @@ impl Actor {
             target[1],
             start[2].wrapping_add(i32::from(velocity[2])),
         ];
-        if kind == 21 && ctx.random.next15() % (4 - world.intelligence.difficulty as i32) != 0 {
+        if kind == 21
+            && ctx.random.next15() % (world.intelligence.difficulty.reaction_delay() + 1) != 0
+        {
             end[1] = end[1].wrapping_sub(1000);
         }
         world

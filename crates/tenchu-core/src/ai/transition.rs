@@ -147,7 +147,8 @@ impl Controller<'_, '_> {
                     self.program(1)?
                 };
                 if self.state.detection == Detection::Seen
-                    || (self.attribute & ATTR_HIT != 0 && self.state.detection as i16 > 0)
+                    || (self.attribute & ATTR_HIT != 0
+                        && matches!(self.state.detection, Detection::Seen | Detection::Glimpse))
                 {
                     self.attribute = base | 2;
                     if self.attribute & ATTR_WEAPON_DRAWN == 0 {
@@ -199,7 +200,7 @@ impl Controller<'_, '_> {
                             && self.class() != 3
                         {
                             pad &= 0xf000;
-                        } else if self.random() % 4 - 2 >= self.state.difficulty as i32 {
+                        } else if self.random() % 4 >= 5 - self.state.difficulty.reaction_delay() {
                             pad = 0;
                         }
                     }

@@ -7,20 +7,11 @@ const MAX_PIXELS: usize = 16 * 1024 * 1024;
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
+#[derive(Default)]
 pub struct Material {
     pub texture: Option<String>,
     pub blend: u8,
     pub double_sided: bool,
-}
-
-impl Default for Material {
-    fn default() -> Self {
-        Self {
-            texture: None,
-            blend: 0,
-            double_sided: false,
-        }
-    }
 }
 
 #[derive(Deserialize, Serialize)]

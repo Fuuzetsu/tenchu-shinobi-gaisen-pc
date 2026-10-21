@@ -69,7 +69,7 @@ impl Items {
                 coordinate.local.rotation = ctx
                     .math
                     .rotate_yxz(item.rotation)
-                    .map(|row| row.map(|v| (i32::from(v) * scale >> 12) as i16));
+                    .map(|row| row.map(|v| ((i32::from(v) * scale) >> 12) as i16));
                 coordinate.flags = 0;
                 let grown = item.count >= 16;
                 self.draw_model(id, 2, ctx)?;

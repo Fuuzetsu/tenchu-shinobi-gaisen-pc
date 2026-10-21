@@ -24,7 +24,7 @@ struct Snapshot {
     roots: BTreeMap<usize, [i32; 3]>,
     view: Matrix,
     cinematic: (bool, i16),
-    camera_mode: u8,
+    camera_mode: tenchu_core::camera::Mode,
 }
 
 impl Snapshot {
@@ -52,7 +52,7 @@ impl Snapshot {
                 .collect(),
             view: game.rendered_view,
             cinematic: (game.cinematic.active, game.cinematic.sequence),
-            camera_mode: game.camera.mode as u8,
+            camera_mode: game.camera.mode,
         }
     }
 }
@@ -260,7 +260,7 @@ mod tests {
             roots: BTreeMap::from([(1, [x, 0, 0])]),
             view: pose(-x),
             cinematic: (false, 0),
-            camera_mode: 0,
+            camera_mode: tenchu_core::camera::Mode::Normal,
         };
         let mut history = History {
             previous: Some(snapshot(1, 0)),

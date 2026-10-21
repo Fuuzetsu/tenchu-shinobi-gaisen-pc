@@ -97,7 +97,7 @@ impl Start {
         } else {
             options.layout.to_string()
         };
-        let difficulty = ["easy", "normal", "hard"][options.difficulty as usize];
+        let difficulty = options.difficulty.name();
         let language = match options.language.unwrap_or_default() {
             Language::English => "english",
             Language::French => "french",

@@ -31,9 +31,9 @@ pub(super) fn caption(text: &[u8], star: &[u16; 15], vram: &mut Vram) -> Option<
         let Some(rows) = rows else { continue };
         let mut pixels = [[0u16; 16]; 15];
         for (y, row) in rows.iter().enumerate() {
-            for x in 0..16 {
+            for (x, pixel) in pixels[y].iter_mut().enumerate() {
                 if row & (0x8000 >> x) != 0 {
-                    pixels[y][x] = 0x7fff;
+                    *pixel = 0x7fff;
                 }
             }
         }

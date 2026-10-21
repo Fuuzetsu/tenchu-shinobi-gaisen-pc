@@ -41,7 +41,11 @@ impl Save {
             selection.character,
             selection.stage,
             selection.layout,
-            selection.difficulty as u8,
+            match selection.difficulty {
+                Difficulty::Easy => 0,
+                Difficulty::Normal => 1,
+                Difficulty::Hard => 2,
+            },
             match selection.language {
                 Language::English => 0,
                 Language::French => 1,

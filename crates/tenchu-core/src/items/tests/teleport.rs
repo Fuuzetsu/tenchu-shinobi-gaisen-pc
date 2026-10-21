@@ -68,7 +68,7 @@ fn teleport_release_preserves_source_ray_and_raw_position_write() {
             ctx.camera.position = camera;
             ctx.camera.reference = reference;
             ctx.camera.mode = Mode::Direction;
-            ctx.camera.old_mode = Mode::Sight as u8;
+            ctx.camera.detail = crate::camera::Detail::Sight;
             *ctx.effects = effects::Effects::default();
             items
                 .initialize(1, Processor::Teleport, 24, Some(owner), [0; 3], ctx)
@@ -125,13 +125,13 @@ fn teleport_request_hold_and_forced_disposal_keep_original_camera_rules() {
         let random = *ctx.random;
         items.teleport(id, actors, player, ctx).unwrap();
         assert_eq!(ctx.camera.mode, Mode::Direction);
-        assert_eq!(ctx.camera.old_mode, Mode::Sight as u8);
+        assert_eq!(ctx.camera.detail, crate::camera::Detail::Sight);
         assert_eq!(items.sprites.last().unwrap().blend, 2);
         assert_eq!(ctx.drawing.bytes, bytes + 24);
         assert_eq!(*ctx.random, random);
         items.dispose(id, actors, ctx).unwrap();
         assert_eq!(ctx.camera.mode, Mode::Direction);
-        assert_eq!(ctx.camera.old_mode, Mode::Sight as u8);
+        assert_eq!(ctx.camera.detail, crate::camera::Detail::Sight);
         assert_eq!(actors.get(player).inventory[25], 9);
     });
 }

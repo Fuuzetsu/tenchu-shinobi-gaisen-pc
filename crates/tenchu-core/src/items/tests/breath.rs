@@ -137,7 +137,7 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
             };
             *ctx.random = Random::new(seed);
             ctx.effects.sounds.clear();
-            writeln!(input,"{mode} {remaining} {action} {count} {loops} {halt} {health} {held} {yaw} {case} {} {stock} {} {seed} {} {} {} {} {} {} 0 0 0",i32::from(camera_owner),camera_mode as u8,rotation[0],rotation[1],rotation[2],direction[0],direction[1],direction[2]).unwrap();
+            writeln!(input,"{mode} {remaining} {action} {count} {loops} {halt} {health} {held} {yaw} {case} {} {stock} {} {seed} {} {} {} {} {} {} 0 0 0",i32::from(camera_owner),camera_mode.source_id(),rotation[0],rotation[1],rotation[2],direction[0],direction[1],direction[2]).unwrap();
             items.breath(1, actors, halt, case as i32, ctx).unwrap();
             let item = &items.slots[1];
             let actor = actors.get(player);

@@ -231,7 +231,7 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
         game.clock
     );
     assert_eq!(
-        game.camera.mode as u32,
+        game.camera.mode.source_id(),
         ram.word(0x80089f04),
         "camera mode at {}",
         game.clock

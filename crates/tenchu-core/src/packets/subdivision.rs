@@ -18,7 +18,7 @@ fn midpoint(a: Vertex, b: Vertex) -> Vertex {
 }
 
 fn average<const N: usize>(points: &[Point; N], scale: i32) -> i32 {
-    (points.iter().map(|p| i32::from(p.z)).sum::<i32>() * scale >> 12).clamp(0, 65535)
+    ((points.iter().map(|p| i32::from(p.z)).sum::<i32>() * scale) >> 12).clamp(0, 65535)
 }
 
 enum Decision {

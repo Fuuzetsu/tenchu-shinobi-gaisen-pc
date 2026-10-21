@@ -17,13 +17,25 @@ struct Query {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(i16)]
 pub enum Detection {
-    Gone = -2,
-    Unseen = -1,
-    None = 0,
-    Seen = 1,
-    Glimpse = 2,
+    Gone,
+    Unseen,
+    None,
+    Seen,
+    Glimpse,
+}
+
+#[cfg(test)]
+impl Detection {
+    pub(crate) fn source_value(self) -> i32 {
+        match self {
+            Self::Gone => -2,
+            Self::Unseen => -1,
+            Self::None => 0,
+            Self::Seen => 1,
+            Self::Glimpse => 2,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]

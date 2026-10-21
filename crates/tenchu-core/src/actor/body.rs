@@ -202,8 +202,8 @@ impl Actor {
             return Ok(());
         }
         let [sin, cos] = ctx.math.pair(yaw);
-        let mut dx = sin * i32::from(width) >> 14;
-        let mut dz = cos * i32::from(width) >> 14;
+        let mut dx = (sin * i32::from(width)) >> 14;
+        let mut dz = (cos * i32::from(width)) >> 14;
         let mut difference = i32::from(self.rotation[1]) - i32::from(yaw);
         if difference.abs() >= 2000 {
             difference += if difference > 0 { -4096 } else { 4096 };
@@ -215,7 +215,7 @@ impl Actor {
                 self.motion_velocity(ctx);
             }
             dx >>= 1;
-            dz = (dz & !1) >> 1;
+            dz >>= 1;
         }
         self.position[0] = self.position[0].wrapping_sub(dx);
         self.position[2] = self.position[2].wrapping_sub(dz);

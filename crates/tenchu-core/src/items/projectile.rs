@@ -330,20 +330,21 @@ fn arrange_local(local: &mut Matrix, parent: Matrix) {
             i32::from(m[i][i])
         };
         determinant = determinant.wrapping_mul(diagonal) / 4096;
-        for k in 0..3 {
-            m[i][k] = (i32::from(m[i][k]) * 4096 / diagonal) as i16;
+        for value in &mut m[i] {
+            *value = (i32::from(*value) * 4096 / diagonal) as i16;
         }
         m[i][i] = (4096 * 4096 / diagonal) as i16;
-        for j in 0..3 {
+        let pivot = m[i];
+        for (j, row) in m.iter_mut().enumerate() {
             if j == i {
                 continue;
             }
-            let value = i32::from(m[j][i]);
-            for k in 0..3 {
-                m[j][k] = if k == i {
+            let value = i32::from(row[i]);
+            for (k, cell) in row.iter_mut().enumerate() {
+                *cell = if k == i {
                     (-value * 4096 / diagonal) as i16
                 } else {
-                    m[j][k].wrapping_sub((i32::from(m[i][k]) * value / 4096) as i16)
+                    cell.wrapping_sub((i32::from(pivot[k]) * value / 4096) as i16)
                 };
             }
         }

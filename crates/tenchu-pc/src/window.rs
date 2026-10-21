@@ -218,11 +218,12 @@ impl Application {
                         _ => 0x0a,
                     });
                 }
-                if reload && let Some(view) = &mut self.view {
-                    if let Err(error) = view.reload(&self.campaign.game, &self.settings) {
-                        eprintln!("Visual assets: {error}; using original models");
-                        self.menu.notice = error;
-                    }
+                if reload
+                    && let Some(view) = &mut self.view
+                    && let Err(error) = view.reload(&self.campaign.game, &self.settings)
+                {
+                    eprintln!("Visual assets: {error}; using original models");
+                    self.menu.notice = error;
                 }
                 self.clock = GameClock::default();
                 self.last_frame = Instant::now();
@@ -526,11 +527,11 @@ impl ApplicationHandler for Application {
                 if self.screenshot {
                     self.save_screenshot();
                 }
-                if let Some(view) = &mut self.view {
-                    if let Err(error) = view.draw(&self.campaign.game, &self.debug) {
-                        self.error = Some(error);
-                        events.exit();
-                    }
+                if let Some(view) = &mut self.view
+                    && let Err(error) = view.draw(&self.campaign.game, &self.debug)
+                {
+                    self.error = Some(error);
+                    events.exit();
                 }
             }
             _ => {}

@@ -202,10 +202,15 @@ int main(void) {{
                         input.push_str(&fields.join(" "));
                         input.push('\n');
                         expected.push(
-                            [result as i32, distance, i32::from(sight.direction), calls]
-                                .into_iter()
-                                .chain(ray)
-                                .collect::<Vec<_>>(),
+                            [
+                                result.source_value(),
+                                distance,
+                                i32::from(sight.direction),
+                                calls,
+                            ]
+                            .into_iter()
+                            .chain(ray)
+                            .collect::<Vec<_>>(),
                         );
                     }
                 }

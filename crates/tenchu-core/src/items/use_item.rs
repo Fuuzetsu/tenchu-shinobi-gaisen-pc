@@ -121,9 +121,9 @@ impl Items {
                     .wrapping_add((ctx.random.next15() % 20) as i16);
                 let [sin, cos] = ctx.math.pair(angle);
                 let velocity = [
-                    sin * (-30 - ctx.random.next15() % 200) >> 12,
+                    (sin * (-30 - ctx.random.next15() % 200)) >> 12,
                     -(ctx.random.next15() % 30),
-                    cos * (-30 - ctx.random.next15() % 200) >> 12,
+                    (cos * (-30 - ctx.random.next15() % 200)) >> 12,
                 ];
                 self.throw_rolling(kind, id, start, velocity, actors, ctx)?;
             }
@@ -133,7 +133,7 @@ impl Items {
                 kind,
                 id,
                 start,
-                [sin * -120 >> 12, 0, cos * -120 >> 12],
+                [(sin * -120) >> 12, 0, (cos * -120) >> 12],
                 actors,
                 ctx,
             )?;
@@ -237,7 +237,7 @@ impl Items {
                 self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
             }
-            4 | 5 | 6 | 7 => {
+            4..=7 => {
                 let vector = match kind {
                     4 => [0, -120, -120],
                     5 => [0, 0, -60],

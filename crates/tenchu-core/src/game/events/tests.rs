@@ -230,7 +230,7 @@ int main(void){{
             game.events.time,
             i32::from(game.player().status),
             i32::from(game.intelligence.action_halt),
-            game.camera.mode as i32,
+            game.camera.mode.source_id() as i32,
         ];
         state.extend(
             game.events

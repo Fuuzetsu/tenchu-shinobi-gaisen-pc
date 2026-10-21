@@ -39,7 +39,7 @@ fn decoy_throw_grows_into_the_original_model_and_hitbox() {
             let rotation = game
                 .math
                 .rotate_yxz(game.items.slots[id].rotation)
-                .map(|row| row.map(|v| (i32::from(v) * tick * 256 >> 12) as i16));
+                .map(|row| row.map(|v| ((i32::from(v) * tick * 256) >> 12) as i16));
             assert_eq!(game.scene.models[model].local.rotation, rotation);
         }
         assert_eq!(game.items.slots[id].mode, 2);

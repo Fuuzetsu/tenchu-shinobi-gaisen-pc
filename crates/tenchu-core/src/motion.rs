@@ -269,7 +269,7 @@ impl Motion {
             let root = sample(&clip.root)?;
             let target = [
                 i32::from(root[0]),
-                i32::from(self.pose.root_height) * i32::from(root[1]) >> 12,
+                (i32::from(self.pose.root_height) * i32::from(root[1])) >> 12,
                 i32::from(root[2]),
             ];
             for (v, target) in self.pose.translation[0].iter_mut().zip(target) {

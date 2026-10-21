@@ -19,26 +19,60 @@ use tenchu_assets::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u8)]
 pub enum Mode {
-    Normal = 0,
-    Direction = 1,
-    System = 2,
-    Sight = 3,
-    Critical = 4,
-    Fight = 5,
-    StickLeft = 6,
-    StickRight = 7,
-    Swim = 8,
-    PeepLeft = 9,
-    PeepRight = 10,
-    Crouch = 11,
-    Run = 12,
-    Lock = 13,
-    Fall = 14,
-    Aim = 15,
-    Knockback = 16,
-    Hang = 17,
+    Normal,
+    Direction,
+    System,
+    Sight,
+    Critical,
+    Fight,
+    StickLeft,
+    StickRight,
+    Swim,
+    PeepLeft,
+    PeepRight,
+    Crouch,
+    Run,
+    Lock,
+    Fall,
+    Aim,
+    Knockback,
+    Hang,
+}
+
+#[cfg(test)]
+impl Mode {
+    pub(crate) fn source_id(self) -> u32 {
+        match self {
+            Self::Normal => 0,
+            Self::Direction => 1,
+            Self::System => 2,
+            Self::Sight => 3,
+            Self::Critical => 4,
+            Self::Fight => 5,
+            Self::StickLeft => 6,
+            Self::StickRight => 7,
+            Self::Swim => 8,
+            Self::PeepLeft => 9,
+            Self::PeepRight => 10,
+            Self::Crouch => 11,
+            Self::Run => 12,
+            Self::Lock => 13,
+            Self::Fall => 14,
+            Self::Aim => 15,
+            Self::Knockback => 16,
+            Self::Hang => 17,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Detail {
+    Ordinary,
+    Look,
+    Aim,
+    Sight,
+    Critical(usize),
 }
 
 pub struct Environment<'a> {
@@ -54,7 +88,7 @@ pub struct Camera {
     pub reference: [i32; 3],
     pub target: [i32; 3],
     pub mode: Mode,
-    pub old_mode: u8,
+    pub detail: Detail,
     pub direction: [i16; 2],
     pub snap_pending: bool,
     pub view: Matrix,
@@ -130,7 +164,7 @@ impl Camera {
             reference: start,
             target: [0; 3],
             mode: Mode::Normal,
-            old_mode: 0,
+            detail: Detail::Ordinary,
             direction: [0; 2],
             snap_pending: false,
             view: Matrix::default(),
@@ -201,7 +235,11 @@ impl Camera {
             ];
         }
         self.mode = Mode::Direction;
-        self.old_mode = mode as u8;
+        self.detail = if mode == Mode::Sight {
+            Detail::Sight
+        } else {
+            Detail::Look
+        };
         Ok(())
     }
 
@@ -226,14 +264,15 @@ impl Camera {
             Mode::Aim => {
                 self.direction = [0; 2];
                 self.mode = Mode::Direction;
-                self.old_mode = mode as u8;
+                self.detail = Detail::Aim;
             }
             Mode::Direction | Mode::Sight => self.direction_mode(owner, env.math, mode)?,
             Mode::Critical => {
-                self.old_mode = (rng.next15() % 4) as u8;
+                let mut index = rng.next15() as usize % 4;
                 for _ in 0..4 {
-                    self.old_mode = (self.old_mode + 1) % 4;
-                    let pose = self.tables.critical[self.old_mode as usize];
+                    index = (index + 1) % 4;
+                    self.detail = Detail::Critical(index);
+                    let pose = self.tables.critical[index];
                     let mut rotation = owner.rotation;
                     rotation[0] = rotation[0].wrapping_add(terrain_pitch(owner, env)?);
                     let matrix = Matrix {
@@ -254,7 +293,7 @@ impl Camera {
                         return Ok(());
                     }
                 }
-                self.old_mode = 0;
+                self.detail = Detail::Critical(0);
             }
             _ => self.mode = mode,
         }
@@ -398,10 +437,13 @@ impl Camera {
             _ => None,
         };
         let pose = if self.mode == Mode::Critical {
+            let Detail::Critical(index) = self.detail else {
+                return Err("Missing critical camera pose".into());
+            };
             *self
                 .tables
                 .critical
-                .get(self.old_mode as usize)
+                .get(index)
                 .ok_or("Invalid critical camera index")?
         } else {
             index.map_or(self.tables.ordinary, |i| self.tables.poses[i])
@@ -434,7 +476,8 @@ impl Camera {
         } else {
             0
         };
-        if self.old_mode == Mode::Sight as u8 {
+        // The original shared camera slot also treated critical pose 3 as precision aim.
+        if matches!(self.detail, Detail::Sight | Detail::Critical(3)) {
             x /= 2;
             y /= 2;
         } else if owner.pad.held & L1 == 0 {

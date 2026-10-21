@@ -23,12 +23,46 @@ use crate::{
 use tenchu_assets::executable::Command;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[repr(u8)]
 pub enum Difficulty {
     Easy,
     #[default]
     Normal,
     Hard,
+}
+
+impl Difficulty {
+    pub fn reaction_delay(self) -> i32 {
+        match self {
+            Self::Easy => 3,
+            Self::Normal => 2,
+            Self::Hard => 1,
+        }
+    }
+
+    pub fn damage_bonus(self) -> i16 {
+        match self {
+            Self::Easy => 2,
+            Self::Normal => 1,
+            Self::Hard => 0,
+        }
+    }
+
+    pub fn cycle(self, delta: i32) -> Self {
+        let index = match self {
+            Self::Easy => 0,
+            Self::Normal => 1,
+            Self::Hard => 2,
+        };
+        [Self::Easy, Self::Normal, Self::Hard][(index + delta).rem_euclid(3) as usize]
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Easy => "easy",
+            Self::Normal => "normal",
+            Self::Hard => "hard",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -190,10 +224,10 @@ impl<'a, 'b> Controller<'a, 'b> {
         (self.ctx.mission.characters[self.actor.definition].weapon >> 4) as usize
     }
     fn engage(&self) -> i32 {
-        3 - self.state.difficulty as i32
+        self.state.difficulty.reaction_delay()
     }
     fn random(&mut self) -> i32 {
-        i32::from(self.ctx.random.next15())
+        self.ctx.random.next15()
     }
 
     fn voice(&mut self, id: i16) {
