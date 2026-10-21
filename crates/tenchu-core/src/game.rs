@@ -285,6 +285,7 @@ impl Game {
                             selected_item: self.hud.selected,
                             clock: self.clock,
                         },
+                        self.activation.keep_all_active,
                     )? {
                         self.visible.push(id);
                         if self.intelligence.action_halt == 0 {

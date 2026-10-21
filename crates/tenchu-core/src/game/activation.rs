@@ -19,7 +19,7 @@ pub struct Activation {
 
 impl Activation {
     fn keeps_active(&self, actor: &crate::actor::Actor) -> bool {
-        self.keep_all_active && actor.kind >= 0x80 && actor.kind != 0xa9 && actor.health >= 0
+        self.keep_all_active && !matches!(actor.kind, 0 | 1 | 0xa9) && actor.health >= 0
     }
 
     fn update_budget(&mut self, bytes: u32) {

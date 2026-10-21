@@ -28,6 +28,7 @@ impl Actor {
         commands: &[Command],
         center: Position,
         world: &mut ActionContext,
+        animate_offscreen: bool,
     ) -> Result<bool> {
         let player = self.id == world.player;
         let command = self.pad.consume(commands);
@@ -89,7 +90,7 @@ impl Actor {
         if visible {
             self.draw_fog = ctx.drawing.fog;
         }
-        let pose = visible || self.status == 7;
+        let pose = visible || self.status == 7 || animate_offscreen;
         let animated = pose && self.motion.loops >= 0;
         self.motion
             .play(&ctx.mission.clips, &ctx.math.tables.hermite, pose)?;

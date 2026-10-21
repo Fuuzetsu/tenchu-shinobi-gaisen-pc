@@ -171,7 +171,9 @@ fn falling_clears_attack_hitboxes() {
         for hand in [actor.parts[13], actor.parts[14]] {
             ctx.collision.insert(ctx.scene, hand).unwrap();
         }
-        actor.control(ctx, &[], Position::ZERO, world).unwrap();
+        actor
+            .control(ctx, &[], Position::ZERO, world, false)
+            .unwrap();
         assert_eq!(actor.motion.action, MOT_STATE_FALL);
         for hand in [actor.parts[13], actor.parts[14]] {
             assert!(ctx.scene.models[hand].conflict.is_none());

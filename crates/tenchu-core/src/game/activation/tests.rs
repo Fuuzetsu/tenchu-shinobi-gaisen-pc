@@ -254,6 +254,7 @@ fn always_active_runs_distant_ai_and_restores_retail_activation() {
         .find(|&id| {
             let a = game.roster.get(id);
             a.health > 0
+                && a.kind & 0xf0 == 0x10
                 && a.patrol.is_some()
                 && game
                     .math
