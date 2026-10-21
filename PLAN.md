@@ -6,9 +6,30 @@ Deliver a playable modern Rust reimplementation of Tenchu: Shinobi Gaisen
 SLPS-019.01, equivalent in game functionality to the original `MAIN.EXE`.
 Preserve movement, combat, collision, AI, RNG, item behavior, mission rules and
 glitches. Preserve fixed-width integer and GTE arithmetic wherever it affects
-gameplay. Original main-menu presentation is out of scope; provide a small
-character/difficulty/mission launcher. Continue after each milestone until the
-complete game works.
+gameplay. The original menu and ending are now in scope, using the completed
+decompilation on `tenchu-decomp` master. Keep the small development launcher
+available with F6. Continue after each milestone until the complete game works.
+
+## Original frontend and ending follow-up
+
+Reference `tenchu-decomp` revision `7e13c76e` (matching MENU and ENDING).
+Port ordinary owned state and presentation; do not emulate PS1 executables or
+their hardware scheduling. Read original artwork, animation, movies, captions
+and sound from the supplied disc. Keep platform movie decoding at the host
+boundary and reusable asset/timeline logic portable.
+
+- [ ] Animated title, original character models/motions, localized character
+  selection and mission map, with progress/layout restrictions and records.
+- [ ] Original options presentation and working difficulty, language, sound,
+  controls and save operations adapted to the PC host. Preserve existing PC
+  preferences and saves. Explicitly identify the separate TRIAL mission editor.
+- [ ] Original opening/training movies, character epilogues and credits,
+  including source caption/voice timing, skip rules and final-results handoff.
+- [ ] F6 opens the existing quick launcher; returning to the main menu and F1
+  settings remain convenient. Normal game ticks and demo exports stay isolated.
+- [ ] Meaningful asset/transition/timeline regression tests, native visual and
+  audio checks for both characters/languages, Nix/Clippy/format/WASM validation,
+  documentation and source provenance. Commit coherent implementation stages.
 
 Use the original nominal game rate (30 game updates per second in this release),
 independent of display rate. Rendering may interpolate but may not mutate the
