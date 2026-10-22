@@ -231,6 +231,15 @@ impl Application {
                 self.settings.graphics.upscale =
                     cycle(self.settings.graphics.upscale, &[1, 2, 4], direction)
             }
+            Item::SurfaceDetail => {
+                self.settings.graphics.surface_detail =
+                    cycle(self.settings.graphics.surface_detail, &[0, 1, 2], direction)
+            }
+            Item::SurfaceStrength => {
+                self.settings.graphics.surface_strength =
+                    (i32::from(self.settings.graphics.surface_strength) + direction * 5)
+                        .clamp(0, 100) as u16
+            }
             Item::Magnification => {
                 self.settings.graphics.magnification = cycle(
                     self.settings.graphics.magnification,

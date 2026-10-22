@@ -8,8 +8,9 @@ const DEBUG: u32 = 64u;
 const XRAY: u32 = 128u;
 const UI: u32 = 256u;
 const EMITTER: u32 = 512u;
+const SCENERY: u32 = 1024u;
 
-struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32> }
+struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -59,7 +60,9 @@ struct Fragment {
 }
 
 fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
-    let surface_normal = normalize(cross(dpdy(v.world), dpdx(v.world)));
+    let world_dx = dpdx(v.world);
+    let world_dy = dpdy(v.world);
+    let surface_normal = normalize(cross(world_dy, world_dx));
     var normal = surface_normal;
     if dot(v.normal, v.normal) > 0.0001 {
         normal = normalize(v.normal);
@@ -67,6 +70,9 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     }
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
+    let detail = surface_detail(v, normal, world_dx, world_dy, du, dv);
+    normal = detail.normal;
+    let coordinate = detail.coordinate;
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     let hdr = camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
@@ -76,12 +82,12 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
     var semi = (v.flags & TRANSLUCENT) != 0u;
     if (v.flags & TEXTURED) != 0u {
-        let nearest = vec2<i32>(floor(v.uv + vec2(0.001)));
+        let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         let pixel = texel(nearest, v.page, v.palette);
         let replaced = !screen && material_replaced(v.material);
         var base = rgb(pixel);
         if replaced {
-            let decoded = material_texel(v.material, v.uv);
+            let decoded = material_texel(v.material, coordinate);
             if decoded.a == 0.0 { discard; }
             semi = semi && decoded.a < 0.75;
             base = decoded.rgb;
@@ -92,9 +98,9 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
             if !screen && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
-                color *= material_color(v.material, v.uv, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
+                color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if !screen && camera.options.w != 0.0 {
-                color *= filtered(v.uv, v.page, v.palette, pixel);
+                color *= filtered(coordinate, v.page, v.palette, pixel);
             } else {
                 color *= base;
             }
@@ -106,7 +112,7 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     }
     if semi != translucent_pass { discard; }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
-    if !screen { color = mix(color * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
+    if !screen { color = mix(color * detail.cavity * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
         let haze = 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0);

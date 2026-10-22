@@ -22,6 +22,7 @@ pub const DEBUG: u32 = 64;
 pub const XRAY: u32 = 128;
 pub const UI: u32 = 256;
 pub const EMITTER: u32 = 512;
+pub const SCENERY: u32 = 1024;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -299,6 +300,9 @@ pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> V
     visit_stage(mission, math, |geometry, matrix| {
         append_geometry(&mut vertices, geometry, matrix, models)
     });
+    for vertex in &mut vertices {
+        vertex.flags |= SCENERY;
+    }
     vertices
 }
 

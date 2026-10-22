@@ -24,6 +24,8 @@ pub enum Item {
     Exposure,
     Filtering,
     Magnification,
+    SurfaceDetail,
+    SurfaceStrength,
     Antialiasing,
     Hitboxes,
     Sight,
@@ -483,6 +485,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Close-up textures",
                 ["Smooth", "Crisp", "Cubic", "Pixel"][usize::from(s.graphics.magnification)].into(),
                 "With filtering: crisp edges, cubic curves, or original pixels; distant mipmaps stay on.",
+            ),
+            (
+                Item::SurfaceDetail,
+                "Surface depth",
+                ["Off", "Bump", "Parallax"][usize::from(s.graphics.surface_detail)].into(),
+                "Opaque scenery: inferred grain and seams respond to lights. Parallax adds view-dependent relief; no geometry changes.",
+            ),
+            (
+                Item::SurfaceStrength,
+                "Depth strength",
+                format!("{}%", s.graphics.surface_strength),
+                "Keep subtle: painted brightness is only a height estimate. Asset packs can supply height maps or disable individual materials.",
             ),
             (
                 Item::Interpolation,

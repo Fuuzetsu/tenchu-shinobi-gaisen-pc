@@ -40,6 +40,7 @@ export function ready() {
   document.getElementById("game").focus();
 }
 export function error(message) {
+  document.getElementById("retry").hidden = false;
   document.getElementById("welcome").hidden = false;
   document.getElementById("message").textContent = message;
   document.body.dataset.error = message;

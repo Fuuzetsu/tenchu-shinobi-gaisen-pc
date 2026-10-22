@@ -9,6 +9,7 @@ const start = async quick => {
     await initialized;
     await play(quick);
   } catch (error) {
+    document.getElementById("retry").hidden = false;
     document.getElementById("message").textContent = error.message ?? error;
     document.body.dataset.error = String(error);
     buttons.forEach(button => { button.disabled = false; });
@@ -16,8 +17,16 @@ const start = async quick => {
   }
 };
 document.getElementById("play").onclick = () => start(false);
+document.getElementById("retry").onclick = () => location.reload();
 document.getElementById("quick").onclick = () => start(true);
-document.getElementById("fullscreen").onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.getElementById("game").requestFullscreen();
+document.getElementById("fullscreen").onclick = () => {
+  document.getElementById("game").focus();
+  const action = document.fullscreenElement ? document.exitFullscreen() : document.getElementById("game").requestFullscreen();
+  action.catch(error => { document.getElementById("status").textContent = error.message; });
+};
+document.addEventListener("fullscreenchange", () => {
+  if (document.body.dataset.ready === "true") document.getElementById("game").focus();
+});
 document.getElementById("export").onclick = () => {
   const data = { version: 1, progress: localStorage.getItem("tenchu-pc/progress.sav"), settings: localStorage.getItem("tenchu-pc/settings.json") };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));

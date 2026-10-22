@@ -21,6 +21,8 @@ pub struct Manifest {
     #[serde(default)]
     pub textures: BTreeMap<String, String>,
     #[serde(default)]
+    pub surfaces: BTreeMap<String, super::relief::Rule>,
+    #[serde(default)]
     pub models: BTreeMap<String, String>,
     #[serde(default)]
     pub materials: BTreeMap<String, Material>,
@@ -33,6 +35,7 @@ pub struct Manifest {
 #[derive(Default)]
 pub struct Pack {
     pub textures: BTreeMap<String, Arc<Image>>,
+    pub surfaces: BTreeMap<String, super::relief::Surface>,
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub materials: BTreeMap<String, Material>,
@@ -89,6 +92,29 @@ impl Pack {
             pack.images.insert(id, image);
         }
         pack.materials = manifest.materials;
+        for (id, rule) in manifest.surfaces {
+            if !rule.strength.is_finite() || !(0.0..=2.0).contains(&rule.strength) {
+                return Err(format!("Surface {id}: strength must be 0–2"));
+            }
+            let height = rule
+                .height
+                .map(|path| -> Result<_> {
+                    let image = decode_png(&read(&root, &path, 32 * 1024 * 1024)?)?;
+                    pixels += image.rgba.len() / 4;
+                    if pixels > MAX_PIXELS {
+                        return Err("Texture pack exceeds 16 million decoded pixels".into());
+                    }
+                    Ok(Arc::new(image))
+                })
+                .transpose()?;
+            pack.surfaces.insert(
+                id,
+                super::relief::Surface {
+                    height,
+                    strength: rule.strength,
+                },
+            );
+        }
         for (name, material) in &pack.materials {
             if material.blend > 4
                 || material
@@ -219,6 +245,7 @@ mod tests {
         let mut manifest = Manifest {
             version: 1,
             textures: BTreeMap::from([(id.clone(), "test.png".into())]),
+            surfaces: BTreeMap::new(),
             models: BTreeMap::new(),
             materials: BTreeMap::new(),
             lights: None,
@@ -236,6 +263,26 @@ mod tests {
         manifest.textures = BTreeMap::from([("new_art".into(), "test.png".into())]);
         save(&manifest);
         assert_eq!(Pack::load(&root).unwrap().textures["new_art"].rgba, rgba);
+        manifest.surfaces.insert(
+            "new_art".into(),
+            super::super::relief::Rule {
+                height: Some("test.png".into()),
+                strength: 0.5,
+            },
+        );
+        save(&manifest);
+        assert_eq!(
+            Pack::load(&root).unwrap().surfaces["new_art"]
+                .height
+                .as_ref()
+                .unwrap()
+                .rgba,
+            rgba
+        );
+        manifest.surfaces.get_mut("new_art").unwrap().height = Some("../test.png".into());
+        save(&manifest);
+        assert!(Pack::load(&root).is_err());
+        manifest.surfaces.clear();
         manifest.textures.insert(id, "../test.png".into());
         save(&manifest);
         assert!(Pack::load(&root).is_err());

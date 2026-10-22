@@ -2,6 +2,7 @@ struct Material {
     source: vec4<f32>,
     info: vec4<u32>,
     emission: vec4<f32>,
+    relief: vec4<f32>,
     mips: array<vec4<f32>, MAX_MIPS>,
 }
 @group(2) @binding(0) var material_images: texture_2d_array<f32>;
@@ -37,8 +38,8 @@ fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
     let point = origin + vec2<i32>(clamp(floor(uv * rect.zw), vec2(0.0), rect.zw - vec2(1.0)));
     var opaque = vec4(0.0);
     var semi = vec4(0.0);
-    if (material.info.w & 2u) != 0u { opaque = textureLoad(material_images, point, i32(page * 2u), 0); }
-    if (material.info.w & 4u) != 0u { semi = textureLoad(material_images, point, i32(page * 2u + 1u), 0); }
+    if (material.info.w & 2u) != 0u { opaque = textureLoad(material_images, point, i32(page * select(2u, 3u, (material.info.w & 8u) != 0u)), 0); }
+    if (material.info.w & 4u) != 0u { semi = textureLoad(material_images, point, i32(page * select(2u, 3u, (material.info.w & 8u) != 0u) + 1u), 0); }
     return vec4(opaque.rgb + semi.rgb, opaque.a + semi.a * 0.5);
 }
 
@@ -49,11 +50,11 @@ fn material_level(material: Material, uv: vec2<f32>, level: u32, semi: bool, ble
     let origin = vec2(rect.x - f32(page) * side, rect.y);
     let coordinate = (origin + clamp(uv * rect.zw, vec2(0.5), rect.zw - vec2(0.5))) / side;
     if blended {
-        return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + select(0u, 1u, semi)), 0.0);
+        return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (material.info.w & 8u) != 0u) + select(0u, 1u, semi)), 0.0);
     }
     var color = vec4(0.0);
-    if (material.info.w & 2u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u), 0.0); }
-    if (material.info.w & 4u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 2u + 1u), 0.0); }
+    if (material.info.w & 2u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (material.info.w & 8u) != 0u)), 0.0); }
+    if (material.info.w & 4u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (material.info.w & 8u) != 0u) + 1u), 0.0); }
     return color;
 }
 

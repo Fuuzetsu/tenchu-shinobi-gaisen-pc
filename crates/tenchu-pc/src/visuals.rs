@@ -8,6 +8,7 @@ pub mod models;
 pub mod obj;
 pub mod pack;
 pub mod pixels;
+pub mod relief;
 mod smooth;
 
 #[cfg(not(target_arch = "wasm32"))]

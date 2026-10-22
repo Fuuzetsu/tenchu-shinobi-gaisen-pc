@@ -1,6 +1,6 @@
 use super::Graphics;
 
-pub const NAMES: [&str; 8] = [
+pub const NAMES: [&str; 9] = [
     "Original",
     "Enhanced",
     "Cinematic",
@@ -8,6 +8,7 @@ pub const NAMES: [&str; 8] = [
     "Soft classic",
     "Lantern night",
     "Moonlit",
+    "Surface relief",
     "Custom",
 ];
 pub const CUSTOM: u16 = NAMES.len() as u16 - 1;
@@ -82,6 +83,12 @@ fn preset(index: u16) -> Graphics {
         post.occlusion = 50;
         post.haze = 20;
         post.vignette = 10;
+    }
+    if index == 7 {
+        graphics.surface_detail = 2;
+        graphics.magnification = 2;
+        graphics.surface_strength = 60;
+        light.directional.elevation = 40;
     }
     match index {
         5 => {

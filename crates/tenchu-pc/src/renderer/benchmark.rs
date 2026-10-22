@@ -154,3 +154,155 @@ fn profile_mission_rendering() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and GPU; captures and profiles real roof/wood surfaces without advancing gameplay"]
+fn compare_surface_relief() {
+    use crate::visuals::catalog::{Region, image_id};
+    use glam::Vec3;
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let output = std::env::var_os("TENCHU_RELIEF_OUTPUT")
+        .expect("Set TENCHU_RELIEF_OUTPUT to a private directory");
+    let output = std::path::Path::new(&output);
+    std::fs::create_dir_all(output).unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap())
+            .unwrap();
+    let game = crate::session::Options::default().load(&assets).unwrap();
+    let instance = wgpu::Instance::new(&Default::default());
+    let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+    eprintln!("Surface comparison: {}", adapter.get_info().name);
+    let size = [1280, 720];
+    let mut renderer = pollster::block_on(Renderer::new(
+        &adapter,
+        wgpu::TextureFormat::Rgba8Unorm,
+        size,
+        &game.mission.vram,
+    ))
+    .unwrap();
+    renderer.profiling = true;
+    let target = renderer.device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Surface comparison"),
+        size: wgpu::Extent3d {
+            width: size[0],
+            height: size[1],
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let vertices = render_mesh::stage(&game.mission, &game.math, None);
+    let mesh = renderer.upload(&vertices);
+    let actors = renderer.upload(&render_mesh::characters(&game, None));
+    let mut settings = crate::settings::Graphics::default();
+    settings.set_preset(7);
+    settings.samples = 1;
+    settings.fog = false;
+    settings.lighting.directional.azimuth = 225;
+    // These select diagnostic views only; runtime relief has no texture identity rules.
+    for (name, id) in [
+        ("roof", "1e23cc33aba80f1403a3542164d1d9a6"),
+        ("wood", "237a5cad019a2fe51b455b9efd1e53aa"),
+    ] {
+        let mut candidates = Vec::new();
+        for triangle in vertices.chunks_exact(3) {
+            if triangle[0].flags & render_mesh::TEXTURED == 0 {
+                continue;
+            }
+            let mut bounds = [255, 255, 0, 0];
+            for vertex in triangle {
+                for axis in 0..2 {
+                    bounds[axis] = bounds[axis].min(vertex.uv[axis] as u16);
+                    bounds[axis + 2] = bounds[axis + 2].max(vertex.uv[axis] as u16);
+                }
+            }
+            let region = Region::find(
+                &game.mission.vram,
+                tenchu_assets::model::Texture {
+                    page: triangle[0].page as u16,
+                    palette: triangle[0].palette as u16,
+                },
+                bounds,
+            );
+            if image_id(
+                [region.rect[2], region.rect[3]],
+                &region.pixels(&game.mission.vram),
+            ) != id
+            {
+                continue;
+            }
+            let points: [Vec3; 3] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
+            let normal = -(points[1] - points[0])
+                .cross(points[2] - points[0])
+                .normalize();
+            let center = (points[0] + points[1] + points[2]) / 3.0;
+            let distance = center.distance_squared(Vec3::from(
+                game.player().position.to_array().map(|n| n as f32),
+            ));
+            if name != "roof" || normal.y < -0.1 {
+                candidates.push((distance, center, normal));
+            }
+        }
+        candidates.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let (_, center, normal) = candidates
+            .first()
+            .copied()
+            .expect("Representative surface missing");
+        let mut tangent = normal.cross(Vec3::X).normalize_or_zero();
+        if tangent.y > 0.0 {
+            tangent = -tangent;
+        }
+        for (distance, view_name) in [(2300.0, "near"), (14000.0, "far")] {
+            let eye = center + normal * distance + tangent * distance * 0.65;
+            let camera = Mat4::perspective_rh(
+                55.0_f32.to_radians(),
+                size[0] as f32 / size[1] as f32,
+                20.0,
+                250000.0,
+            ) * Mat4::look_at_rh(eye, center, Vec3::NEG_Y);
+            eprintln!("{name}/{view_name}: eye {eye:?}, target {center:?}");
+            let lights = [crate::lighting::Light {
+                position: center + normal * 1800.0 + Vec3::X * 3000.0 - Vec3::Y * 2000.0,
+                color: [1.0, 0.9, 0.8],
+                radius: 12000.0,
+            }];
+            for mode in 0..3 {
+                settings.surface_detail = mode;
+                renderer.configure(&settings);
+                let mut times = Vec::new();
+                for frame in 0..40 {
+                    renderer
+                        .draw_lit(
+                            &target.create_view(&Default::default()),
+                            camera,
+                            &[&mesh, &actors],
+                            None,
+                            &lights,
+                            &[&mesh, &actors],
+                        )
+                        .unwrap();
+                    renderer.device.poll(wgpu::Maintain::Wait);
+                    if frame > 15
+                        && let Some(sample) = renderer.timings.as_ref().and_then(|t| t.latest)
+                    {
+                        times.push(sample.milliseconds[1]);
+                    }
+                }
+                eprintln!(
+                    "{name}/{view_name} mode {mode}: scene {:.3} ms",
+                    times.iter().sum::<f32>() / times.len().max(1) as f32
+                );
+                crate::capture::read_texture(
+                    &renderer,
+                    &target,
+                    &output.join(format!("{name}-{view_name}-{mode}.png")),
+                )
+                .unwrap();
+            }
+        }
+    }
+}

@@ -100,15 +100,17 @@ impl Renderer {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {};\n{}\n{}\n{}\n{}",
+                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}",
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
                     materials::MAX_MIPS,
                     shadows::NEAR,
+                    crate::visuals::relief::GRADIENT_RANGE,
                     include_str!("scene.wgsl"),
                     include_str!("renderer/palette.wgsl"),
                     include_str!("renderer/lighting.wgsl"),
-                    include_str!("renderer/materials.wgsl")
+                    include_str!("renderer/materials.wgsl"),
+                    include_str!("renderer/relief.wgsl")
                 )
                 .into(),
             ),
@@ -140,7 +142,7 @@ impl Renderer {
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::bytes_of(&[0.0f32; 32]),
+            contents: bytemuck::cast_slice(&[0.0f32; 40]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -266,7 +268,7 @@ impl Renderer {
     }
 
     pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
-        self.materials.set_pack(pack.textures.clone());
+        self.materials.set_pack(pack);
     }
 
     pub fn set_emitters(&mut self, emitters: &crate::visuals::lights::Emitters) {
@@ -418,6 +420,21 @@ impl Renderer {
         } else {
             0.0
         });
+        camera.extend([
+            f32::from(self.graphics.surface_detail),
+            f32::from(self.graphics.surface_strength) / 100.0,
+            0.0,
+            0.0,
+        ]);
+        let inverse = matrix.inverse();
+        let origin = inverse * glam::Vec4::new(0.0, 0.0, 1.0, 0.0);
+        let eye = if origin.w.abs() > 0.000001 {
+            origin.truncate() / origin.w
+        } else {
+            inverse.project_point3(glam::Vec3::ZERO)
+        };
+        camera.extend(eye.to_array());
+        camera.push(0.0);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());

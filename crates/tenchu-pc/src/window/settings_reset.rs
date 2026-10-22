@@ -51,6 +51,12 @@ impl Application {
             Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
             Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
             Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
+            Item::SurfaceDetail => {
+                self.settings.graphics.surface_detail = s.graphics.surface_detail
+            }
+            Item::SurfaceStrength => {
+                self.settings.graphics.surface_strength = s.graphics.surface_strength
+            }
             Item::Magnification => self.settings.graphics.magnification = s.graphics.magnification,
             Item::Performance => self.settings.show_performance = s.show_performance,
             Item::Fps => self.settings.show_fps = s.show_fps,

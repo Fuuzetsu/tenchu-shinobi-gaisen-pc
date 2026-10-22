@@ -176,6 +176,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
     .map_err(|e| e.to_string())?;
     let pack = super::pack::Manifest {
         version: 1,
+        surfaces: BTreeMap::new(),
         textures: manifest
             .textures
             .iter()

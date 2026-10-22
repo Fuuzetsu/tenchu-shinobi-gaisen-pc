@@ -24,13 +24,13 @@ and the Original preset unchanged.
   network reads or loading screens in the simulation path. Cache media in advance.
 - [x] Browser audio and original movies/captions, original menus and F6 launcher,
   local persistent saves/preferences with import/export, useful error recovery.
-- [ ] Real-browser boot, ordinary play, mission changes, audio/movie playback,
+- [x] Real-browser boot, ordinary play, mission changes, audio/movie playback,
   persistence, resize and network-readiness checks; native regressions, Clippy,
   formatting, Nix packaging and WASM checks. Document serving and browser limits.
-- [ ] Investigate roof/wood relief using normal/height mapping and bounded
+- [x] Investigate roof/wood relief using normal/height mapping and bounded
   parallax sampling, with filtered detail at distance. Inspect actual game
   surfaces; avoid pretending brightness is reliable geometry everywhere.
-- [ ] Implement useful optional surface-detail controls and content-based
+- [x] Implement useful optional surface-detail controls and content-based
   material overrides, preserving silhouettes, collision, gameplay and Original.
   Compare native/browser renders and performance at near and distant views.
 - [ ] Document limitations, source references, measured results and usage;
@@ -54,9 +54,29 @@ shared-library/platform split. The browser smoke check covers both characters,
 missions 1 and 5, movement, F1, resize, opening playback/pause/skip, persistent
 saves, screenshots and continued play with the network disconnected. Mission
 entry waits for all gameplay pages, selected-language audio and all movies.
-Nix package validation and material improvements are still in progress.
+Nix x86_64-linux native/browser/core packages and formatting checks passed.
+The final material changes are undergoing package validation.
 Headed Chromium on the NVIDIA Vulkan adapter is used for visual validation;
 the headless compositor did not display WebGPU output reliably in this setup.
+
+Surface depth is implemented in the shared renderer: Off/Bump/Parallax, strength,
+a separate Surface relief preset, inferred height/gradient mip chains and
+content-identity height-map/disable overrides in native packs. Original/defaults
+stay off. Opaque roof tiles with PS1 STP bits remain eligible; actual holes,
+translucent faces, UI and emissive panels are excluded. Automatic inference is
+scenery-only; explicit author maps can target models. No geometry or game state
+changes. The parallax loop reads atlas metadata directly instead of copying whole
+material arrays, uses eight bounded samples and fades to bump at distance.
+Native GPU tests cover exact restoration, unchanged actors/cutouts/distant faces,
+custom maps and per-material disabling. All 90 PC tests pass with the private
+disc/GPU/audio fixtures, along with fixture-free workspace tests and native/WASM
+Clippy. Chromium checks cover depth modes without advancing the simulation and
+exit/restart. Actual roof/wood near/far captures are private local artifacts.
+A 1280×720 GTX 1080 Ti comparison with the same scene, cubic filtering and one
+inspection light measured scene passes around 0.8–1.5 ms Off, 0.9–1.8 ms Bump,
+and 1.0–2.0 ms Parallax; these are GPU scene timings, not whole-game frame times
+or a guarantee for another device. Height is an estimate from painted artwork;
+silhouettes and cast shadows remain geometric, with no recovered HD assets.
 
 ## Original frontend and ending follow-up
 

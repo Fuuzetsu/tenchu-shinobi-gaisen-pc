@@ -63,6 +63,8 @@ pub struct Graphics {
     pub mipmaps: bool,
     pub anisotropy: u16,
     pub magnification: u16,
+    pub surface_detail: u16,
+    pub surface_strength: u16,
     pub asset_pack: bool,
     pub upscale: u16,
     pub smooth_models: bool,
@@ -86,6 +88,8 @@ impl Default for Graphics {
             mipmaps: false,
             anisotropy: 1,
             magnification: 0,
+            surface_detail: 0,
+            surface_strength: 50,
             asset_pack: true,
             upscale: 1,
             smooth_models: false,
@@ -234,6 +238,8 @@ impl Store {
                 }
                 settings.graphics.model_detail = settings.graphics.model_detail.min(2);
                 settings.graphics.magnification = settings.graphics.magnification.min(3);
+                settings.graphics.surface_detail = settings.graphics.surface_detail.min(2);
+                settings.graphics.surface_strength = settings.graphics.surface_strength.min(100);
                 settings.graphics.post.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;

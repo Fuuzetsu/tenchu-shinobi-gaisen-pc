@@ -3,6 +3,7 @@ use crate::{
     visuals::{
         catalog::{self, Region},
         pixels::{Image, Mip},
+        relief::{self, Surface},
     },
 };
 use bytemuck::{Pod, Zeroable};
@@ -18,6 +19,7 @@ struct Material {
     source: [f32; 4],
     info: [u32; 4],
     emission: [f32; 4],
+    relief: [f32; 4],
     mips: [[f32; 4]; MAX_MIPS],
 }
 
@@ -29,21 +31,45 @@ struct Entry {
     replaced: bool,
     dirty: bool,
     mips: Vec<Mip>,
+    detail: Vec<Vec<u8>>,
 }
 
 impl Entry {
-    fn flags(&self) -> u32 {
-        self.image
-            .rgba
-            .chunks_exact(4)
-            .fold(u32::from(self.replaced), |flags, pixel| {
+    fn relief(&self, surface: Option<&Surface>) -> [f32; 4] {
+        let eligible = self.image.size.into_iter().all(|n| n >= 4)
+            && self.image.rgba.chunks_exact(4).all(|p| p[3] != 0);
+        [
+            if eligible {
+                surface.map_or(1.0, |s| s.strength)
+            } else {
+                0.0
+            },
+            f32::from(surface.is_some_and(|s| s.height.is_some())),
+            0.0,
+            0.0,
+        ]
+    }
+
+    fn flags(&self, layers: usize) -> u32 {
+        self.image.rgba.chunks_exact(4).fold(
+            u32::from(self.replaced) | if layers == 3 { 8 } else { 0 },
+            |flags, pixel| {
                 flags
                     | match pixel[3] {
                         0 => 0,
                         1..192 => 4,
                         _ => 2,
                     }
-            })
+            },
+        )
+    }
+
+    fn pixels(&self, mip: usize, class: usize) -> &[u8] {
+        if class < 2 {
+            &self.mips[mip].classes[class]
+        } else {
+            &self.detail[mip]
+        }
     }
 
     fn prepare(&mut self, textures: &BTreeMap<String, Arc<Image>>, enabled: bool, upscale: u16) {
@@ -80,6 +106,8 @@ pub struct Materials {
     atlas: Atlas,
     repack: bool,
     textures: BTreeMap<String, Arc<Image>>,
+    surfaces: BTreeMap<String, Surface>,
+    layers: usize,
     enabled: bool,
     upscale: u16,
     emissions: BTreeMap<Region, [f32; 4]>,
@@ -137,6 +165,8 @@ impl Materials {
             atlas,
             repack: false,
             textures: BTreeMap::new(),
+            surfaces: BTreeMap::new(),
+            layers: 2,
             enabled: true,
             upscale: 1,
             emissions: BTreeMap::new(),
@@ -171,8 +201,13 @@ impl Materials {
         self.repack = true;
     }
 
-    pub fn set_pack(&mut self, textures: BTreeMap<String, Arc<Image>>) {
-        self.textures = textures;
+    pub fn set_pack(&mut self, pack: &crate::visuals::pack::Pack) {
+        self.textures = pack.textures.clone();
+        self.surfaces = pack.surfaces.clone();
+        self.repack = true;
+        for entry in &mut self.entries {
+            entry.dirty = true;
+        }
         self.prepare();
     }
 
@@ -182,6 +217,14 @@ impl Materials {
     }
 
     pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
+        let layers = if graphics.surface_detail != 0 { 3 } else { 2 };
+        if self.layers != layers || self.enabled != graphics.asset_pack {
+            self.layers = layers;
+            self.repack = true;
+            for entry in &mut self.entries {
+                entry.dirty = true;
+            }
+        }
         if self.enabled != graphics.asset_pack || self.upscale != graphics.upscale {
             self.enabled = graphics.asset_pack;
             self.upscale = graphics.upscale;
@@ -212,6 +255,7 @@ impl Materials {
                     replaced: true,
                     dirty: true,
                     mips: Vec::new(),
+                    detail: Vec::new(),
                 });
                 self.external.insert(material.id.clone(), id);
                 id
@@ -279,6 +323,7 @@ impl Materials {
             replaced: false,
             dirty: true,
             mips: Vec::new(),
+            detail: Vec::new(),
         };
         entry.prepare(&self.textures, self.enabled, self.upscale);
         self.entries.push(entry);
@@ -296,9 +341,32 @@ impl Materials {
                 self.repack = true;
             }
             entry.mips = entry.image.mips();
+            entry.detail.clear();
+            if self.layers == 3 {
+                let explicit = self
+                    .enabled
+                    .then(|| self.surfaces.get(&entry.id))
+                    .flatten()
+                    .and_then(|s| s.height.as_deref());
+                let sizes: Vec<_> = entry.mips.iter().map(|m| m.size).collect();
+                let image = self
+                    .enabled
+                    .then(|| self.textures.get(&entry.id))
+                    .flatten()
+                    .map_or(&entry.original, |image| image.as_ref());
+                entry.detail = relief::mips(image, explicit, &sizes);
+                if entry.detail.is_empty() {
+                    entry.detail = sizes
+                        .iter()
+                        .map(|s| [128, 128, 128, 255].repeat((s[0] * s[1]) as usize))
+                        .collect();
+                }
+            }
             if !self.repack {
                 let material = &mut self.atlas.materials[index + 1];
-                material.info[3] = entry.flags();
+                material.info[3] = entry.flags(self.layers);
+                material.relief =
+                    entry.relief(self.enabled.then(|| self.surfaces.get(&entry.id)).flatten());
                 queue.write_buffer(
                     &self.atlas.data,
                     ((index + 1) * std::mem::size_of::<Material>()) as u64,
@@ -308,9 +376,9 @@ impl Materials {
                     let rect = material.mips[mip];
                     let x = rect[0] as u32 % self.atlas.side - 1;
                     let y = rect[1] as u32 - 1;
-                    let layer = rect[0] as u32 / self.atlas.side * 2;
-                    for class in 0..2 {
-                        let bytes = padded(image, class);
+                    let layer = rect[0] as u32 / self.atlas.side * self.layers as u32;
+                    for class in 0..self.layers {
+                        let bytes = padded(image.size, entry.pixels(mip, class));
                         write_texture(
                             queue,
                             &self.atlas.texture,
@@ -363,6 +431,8 @@ impl Materials {
                 .and_then(|r| self.emissions.get(&r))
                 .copied()
                 .unwrap_or([0.0; 4]);
+            let surface = self.enabled.then(|| self.surfaces.get(&entry.id)).flatten();
+            materials[index + 1].relief = entry.relief(surface);
             materials[index + 1].source = entry
                 .region
                 .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
@@ -370,11 +440,11 @@ impl Materials {
                 entry.mips.len() as u32,
                 entry.image.size[0],
                 entry.image.size[1],
-                entry.flags(),
+                entry.flags(self.layers),
             ];
         }
         let page_bytes = (side * side * 4) as usize;
-        let mut pages = vec![vec![0u8; page_bytes]; 2];
+        let mut pages = vec![vec![0u8; page_bytes]; self.layers];
         let (mut x, mut y, mut row_height, mut page) = (0, 0, 0, 0);
         for (entry, mip, image) in tiles {
             if mip >= MAX_MIPS {
@@ -388,10 +458,10 @@ impl Materials {
             }
             if y + height + 2 > side {
                 page += 1;
-                if (page + 1) * 2 > limits.max_texture_array_layers {
+                if (page + 1) * self.layers as u32 > limits.max_texture_array_layers {
                     return Err("Decoded materials exceed the GPU atlas budget".into());
                 }
-                pages.extend([vec![0; page_bytes], vec![0; page_bytes]]);
+                pages.extend((0..self.layers).map(|_| vec![0; page_bytes]));
                 x = 0;
                 y = 0;
                 row_height = 0;
@@ -402,15 +472,16 @@ impl Materials {
                 width as f32,
                 height as f32,
             ];
-            for class in 0..2 {
+            for class in 0..self.layers {
                 for dy in 0..height + 2 {
                     let sy = dy.saturating_sub(1).min(height - 1);
                     for dx in 0..width + 2 {
                         let sx = dx.saturating_sub(1).min(width - 1);
                         let from = ((sy * width + sx) * 4) as usize;
                         let to = (((y + dy) * side + x + dx) * 4) as usize;
-                        pages[page as usize * 2 + class][to..to + 4]
-                            .copy_from_slice(&image.classes[class][from..from + 4]);
+                        pages[page as usize * self.layers + class][to..to + 4].copy_from_slice(
+                            &self.entries[entry].pixels(mip, class)[from..from + 4],
+                        );
                     }
                 }
             }
@@ -423,15 +494,15 @@ impl Materials {
     }
 }
 
-fn padded(mip: &Mip, class: usize) -> Vec<u8> {
-    let [width, height] = mip.size;
+fn padded(size: [u32; 2], pixels: &[u8]) -> Vec<u8> {
+    let [width, height] = size;
     let mut bytes = Vec::with_capacity(((width + 2) * (height + 2) * 4) as usize);
     for y in 0..height + 2 {
         let sy = y.saturating_sub(1).min(height - 1);
         for x in 0..width + 2 {
             let sx = x.saturating_sub(1).min(width - 1);
             let at = ((sy * width + sx) * 4) as usize;
-            bytes.extend_from_slice(&mip.classes[class][at..at + 4]);
+            bytes.extend_from_slice(&pixels[at..at + 4]);
         }
     }
     bytes

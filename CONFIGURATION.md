@@ -443,3 +443,18 @@ described above. No game assets or diagnostic captures are included in Git.
   repeated Escape, returning zero. Its recorded game ticks and saved setting
   confirm those actions were processed. Other platforms and physical gamepads
   remain unverified. The interpolation and rendering limits are listed above.
+
+
+## Browser and surface depth (2026-10-22)
+
+The same F1 overlay, renderer and fixed-rate gameplay now run in WebGPU browsers.
+PNG screenshots download; saves/settings use browser storage with import/export.
+The web build prefills its sparse disc cache and selected-language media while
+the menu is open, and gates mission entry until ready. See README for serving.
+
+Graphics gains Off/Bump/Parallax surface depth and an independent strength slider.
+A new Surface relief preset is opt-in; all previous defaults stay unchanged.
+Inferred gradients and an eight-step parallax path add visual relief to opaque
+scenery, with mip/edge/grazing fades. Native packs accept explicit height maps or
+per-texture disabling via content identities. The shader avoids changing depth,
+collision or silhouettes. The feature is shared by native and browser rendering.

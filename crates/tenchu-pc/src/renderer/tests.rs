@@ -1220,3 +1220,126 @@ fn cubic_cutout_colors_stay_within_the_source_range() {
         "cubic alpha-edge overshoot: {green}, source maximum 123"
     );
 }
+
+#[test]
+#[ignore = "requires a graphics adapter; relief must change lighting/parallax and revert exactly without affecting actors, cutouts or distant faces"]
+fn surface_relief_is_optional_filtered_and_scoped_to_scenery() {
+    let mut vram = Vram::default();
+    vram.images.push(tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [32, 32],
+    });
+    for y in 0..32 {
+        for x in 0..32 {
+            let c = [9, 12, 18, 25, 29, 25, 18, 12][x % 8] - if y % 8 == 0 { 5 } else { 0 };
+            vram.words[y * 1024 + x] =
+                c | (c << 5) | (c << 10) | if x % 2 == 0 { 0x8000 } else { 0 };
+        }
+    }
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for vertex in &mut vertices {
+        vertex.uv = [
+            (vertex.position[0] / 1200.0 + 0.5) * 31.0,
+            (vertex.position[1] / 1200.0 + 0.5) * 31.0,
+        ];
+        vertex.flags |= render_mesh::SCENERY;
+    }
+    let mut settings = crate::settings::Graphics {
+        fog: false,
+        surface_strength: 100,
+        ..Default::default()
+    };
+    settings.set_filtering(2);
+    settings.lighting.enabled = true;
+    settings.lighting.ambient = 25;
+    settings.lighting.directional.azimuth = 225;
+    settings.lighting.directional.elevation = 25;
+    settings.lighting.directional.intensity = 100;
+    let mesh = renderer.upload(&vertices);
+    let capture = |renderer: &mut Renderer, settings: &crate::settings::Graphics, mesh: &Mesh| {
+        renderer.configure(settings);
+        renderer.draw(&view, camera, &[mesh], None).unwrap();
+        read_pixels(renderer, &target)
+    };
+    let original = capture(&mut renderer, &settings, &mesh);
+    settings.surface_detail = 1;
+    let bump = capture(&mut renderer, &settings, &mesh);
+    assert!(
+        original
+            .iter()
+            .zip(&bump)
+            .filter(|(a, b)| a.abs_diff(**b) > 3)
+            .count()
+            > 100
+    );
+    settings.surface_detail = 2;
+    let parallax = capture(&mut renderer, &settings, &mesh);
+    assert_ne!(bump, parallax);
+    settings.surface_detail = 0;
+    assert_eq!(original, capture(&mut renderer, &settings, &mesh));
+    let region = crate::visuals::catalog::Region {
+        page: 256,
+        palette: 0,
+        rect: [0, 0, 32, 32],
+    };
+    let id = crate::visuals::catalog::image_id([32, 32], &region.pixels(&vram));
+    let mut pack = crate::visuals::pack::Pack::default();
+    pack.surfaces.insert(
+        id.clone(),
+        crate::visuals::relief::Surface {
+            height: None,
+            strength: 0.0,
+        },
+    );
+    renderer.set_asset_pack(&pack);
+    settings.surface_detail = 2;
+    assert_eq!(original, capture(&mut renderer, &settings, &mesh));
+    pack.surfaces.insert(
+        id,
+        crate::visuals::relief::Surface {
+            height: Some(std::sync::Arc::new(crate::visuals::pixels::Image {
+                size: [8, 8],
+                rgba: [128, 128, 128, 255].repeat(64),
+            })),
+            strength: 1.0,
+        },
+    );
+    renderer.set_asset_pack(&pack);
+    settings.surface_detail = 1;
+    assert_eq!(original, capture(&mut renderer, &settings, &mesh));
+    renderer.set_asset_pack(&Default::default());
+    for vertex in &mut vertices {
+        vertex.flags &= !render_mesh::SCENERY;
+    }
+    let actor = renderer.upload(&vertices);
+    settings.surface_detail = 2;
+    assert_eq!(original, capture(&mut renderer, &settings, &actor));
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::SCENERY;
+        vertex.position[2] = 60000.0;
+    }
+    let distant = renderer.upload(&vertices);
+    let far_detail = capture(&mut renderer, &settings, &distant);
+    settings.surface_detail = 0;
+    assert_eq!(far_detail, capture(&mut renderer, &settings, &distant));
+    vram.words[0] = 0;
+    renderer.update_vram(&vram);
+    let cutout = capture(&mut renderer, &settings, &mesh);
+    settings.surface_detail = 2;
+    assert_eq!(cutout, capture(&mut renderer, &settings, &mesh));
+}

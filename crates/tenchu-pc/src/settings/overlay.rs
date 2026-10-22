@@ -218,7 +218,9 @@ fn widget(
         }
         return response;
     }
-    if (row.value == "On" || row.value == "Off") && item != Item::Antialiasing {
+    if (row.value == "On" || row.value == "Off")
+        && !matches!(item, Item::Antialiasing | Item::SurfaceDetail)
+    {
         let mut on = row.value == "On";
         let response = ui.checkbox(&mut on, "");
         if response.changed() {
@@ -293,6 +295,7 @@ fn widget(
             "8x aniso",
             "16x aniso",
         ]),
+        Item::SurfaceDetail => strings(&["Off", "Bump", "Parallax"]),
         Item::Magnification => strings(&["Smooth", "Crisp", "Cubic", "Pixel"]),
         Item::Upscale => strings(&["Original", "Scale2x", "Scale4x"]),
         Item::ModelDetail => strings(&["Original", "Subtle", "Rounded"]),
@@ -361,7 +364,7 @@ fn number(text: &str) -> f64 {
 
 fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
     let (min, max, step, scale) = match item {
-        Item::Volume => (0, 100, 5, 1),
+        Item::Volume | Item::SurfaceStrength => (0, 100, 5, 1),
         Item::FogDistance | Item::SightDistance => {
             (if item == Item::FogDistance { 25 } else { 0 }, 400, 25, 1)
         }

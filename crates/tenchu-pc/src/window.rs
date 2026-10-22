@@ -457,6 +457,10 @@ impl ApplicationHandler for Application {
             WindowEvent::CloseRequested => events.exit(),
             WindowEvent::Resized(size) => {
                 if let Some(view) = &mut self.view {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        self.settings.fullscreen = view.window.fullscreen().is_some();
+                    }
                     view.resize(size.width, size.height);
                 }
             }
@@ -789,6 +793,10 @@ pub fn run(
             )
         }
     };
+    #[cfg(target_arch = "wasm32")]
+    {
+        settings.fullscreen = false;
+    }
     if let Some(directory) = std::env::var_os("TENCHU_MODEL_DIR") {
         settings.model_directory = directory.to_string_lossy().into_owned();
     }

@@ -55,6 +55,7 @@ For the optional upgraded look, open **F1 → Graphics → Visual preset**:
   close-up texture sampling.
 - **Lantern night** emphasizes warm local lights and dark surroundings.
 - **Moonlit** adds cool outdoor lighting with gentler color and bloom.
+- **Surface relief** adds inferred bump/parallax depth with cubic filtering and lower-angle sky light.
 
 Each effect remains adjustable. Changes show the preset as **Custom**; R on the
 preset row restores Original. Presets preserve the replacement-artwork switch
@@ -236,7 +237,8 @@ controller vibration and physical-controller behavior have not been verified.
 
 Validated in Chromium 150 with WebGPU/Vulkan: missions 1 and 5, both characters,
 movement, F1, resize, opening playback/pause/skip, persistent saves, PNG downloads
-and continued play after disconnecting the network. This is a browser host check,
+continued play after disconnecting the network, surface-depth modes at an unchanged
+simulation tick, and exit/restart. This is a browser host check,
 not a new full campaign playthrough. Run `./dev.sh node tools/test-web.mjs` against
 the local server to repeat it (a display and working WebGPU adapter are needed).
 Set `TENCHU_WEB_URL` to use another address. For deployment, serve the generated
@@ -478,6 +480,40 @@ these effects. Contact shading uses visible depth, so off-screen objects cannot
 contribute; turn its strength to zero to reduce GPU cost. The filmic curve
 retains bright-light detail but is an optional artistic treatment of the original
 baked colors. All these effects start disabled in Original.
+
+**F1 → Graphics → Surface depth** offers **Off**, **Bump** and **Parallax**,
+with a separate **Depth strength** slider. **Surface relief** is a ready-made
+preset. All existing presets, including Original, keep depth off. Bump changes
+how grain and seams catch dynamic/sky light; Parallax also shifts the texture
+with the viewing angle. Lower strength reduces distortion. Close-up texture
+filtering remains an independent choice (Crisp preserves pixels; Cubic smooths).
+
+The port derives a softened height estimate from each opaque scenery texture,
+removing broad painted brightness before generating mip-filtered gradients.
+There are no mission/texture-name rules or new meshes. Cutout foliage,
+translucent faces, emissive panels, UI and automatic character materials are
+excluded. Detail fades at distance, region edges and grazing views; parallax
+uses at most eight steps. Collision, silhouettes, gameplay and cast-shadow
+geometry are unchanged. Small crevice shading is an approximation, not geometric
+self-shadowing. Painted art does not uniquely describe height: a dark stain can
+still look recessed, and this cannot invent authentic HD detail.
+
+For precise results, add a `surfaces` section to a native asset pack's `pack.json`,
+using texture identities from `export-assets`:
+
+```json
+"surfaces": {
+  "TEXTURE_ID_FOR_ROOF": {"height": "heightmaps/roof.png", "strength": 1.0},
+  "TEXTURE_ID_TO_LEAVE_FLAT": {"strength": 0.0}
+}
+```
+
+Height PNGs use the red channel: black is low, white is high. Their resolution
+can differ from the color texture (up to 1024×1024); strength is 0–2 and multiplies
+the F1 slider. Omitting `height` uses the inferred map. Explicit maps may also
+target model materials. Reload the pack through F1; no model or color-texture edit
+is required. Browser play currently uses the automatic maps; filesystem asset
+packs remain a native feature.
 
 **F1 → Graphics → Smooth model motion** interpolates character parts, held
 weapons, hinged doors/pitfalls and their dynamic shadows between consecutive

@@ -1037,3 +1037,17 @@ implementation, not an emulator or a copy of the parallel TAS execution model.
 [Chromium's GPU testing notes](https://chromium.googlesource.com/chromium/src/%2B/HEAD/docs/gpu/using-gpu-hardware-in-headless-chrome.md)
 informed browser validation; headed Chromium under an isolated X server was
 used because this machine's headless compositor did not capture WebGPU reliably.
+
+
+## Surface relief (2026-10-22)
+
+The new height inference, mip gradients and WGSL implementation are written for
+this port. The bounded ray/height intersection and distance transition follow
+the general method described by Natalya Tatarchuk in
+[Practical Parallax Occlusion Mapping (SIGGRAPH 2006)](https://www.realtimerendering.com/advances/s2006/Chapter5-Parallax_Occlusion_Mapping_for_detailed_surface_rendering.pdf).
+This implementation does not add the paper's geometric silhouettes or
+light-ray self-shadowing. Brightness is explicitly treated as an estimate;
+authored per-texture height maps override it without modifying the game models.
+Actual disc roof/wood textures are used only in private validation captures.
+Their identifiers in the diagnostic test select views and do not select runtime
+material behavior.
