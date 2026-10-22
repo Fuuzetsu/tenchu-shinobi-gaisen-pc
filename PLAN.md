@@ -91,8 +91,17 @@ candidate, not part of the stable pack. The corrected normal Rikimaru outfit,
 his armour and normal Ayame outfit now bring the stable pack to 200 reviewed
 materials (11,919,360 decoded pixels), with 18 model view pairs. The 158-material
 normal-Rikimaru native walk/toggle/reload check restores identical paused pixels
-at tick 80. Remaining outfits, mission actors, equipment and effects are still
-in progress; isolated model views do not replace final whole-mission review.
+at tick 80. The subsequent actor pass completes all 174 actor texture identities
+in the merged Mission 1 catalogue: all five player outfits, both guard bodies,
+Echigoya, Hanbe, both civilians, dogs and cat. The stable pack now has 309
+reviewed materials and 13,584,896 decoded pixels, with 84 model view pairs.
+These preserve the original meshes, UVs and masks; skin, garment patterns and
+fur are authored interpretations of the original low-resolution art. Shared
+hand textures are reused where their UV layouts match. Equipment, world effects
+and whole-mission review remain; isolated model views are not that final review.
+The global common/weapon model archives also contain assets not placed in this
+mission, some referencing VRAM that belongs to other missions. Their raw loaded
+texture count must not be mistaken for actual Mission 1 replacement coverage.
 
 ## Mission 1 material pilot
 
