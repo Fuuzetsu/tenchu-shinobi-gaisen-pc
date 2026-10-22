@@ -10,6 +10,48 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Browser frame-rate follow-up
+
+Target steady 60 FPS in Firefox WebGL2 at 4K on this desktop, preserving the
+Original preset's pixels, full render resolution and fixed-rate game logic.
+
+- [x] Establish repeatable browser measurements for stationary and moving views,
+  separating CPU preparation/submission, GPU rendering and browser presentation.
+- [x] Remove measured bottlenecks with simple shared-renderer or browser-host
+  changes; compare each candidate against the same scene and settings.
+- [x] Check actual rendered images, transparent textures, HUD, lighting and preset
+  changes; exercise multiple missions and native/WebGPU regressions.
+- [x] Document before/after timings and remaining limits; format, run Clippy and
+  Nix checks, and commit validated improvements.
+
+Profiling corrected the initial headless result: Firefox 147 release on the
+GTX 1080 Ti/NVIDIA 580/Wayland desktop renders about 24 FPS at 3840×2124 on a
+60 Hz display. `about:support` identifies `DMABUF_WEBGL` as blocklisted. The
+browser profiler spends substantial time uploading the canvas to its compositor;
+the game callback and a GL completion wait take only a few milliseconds.
+Omitting only the final present blit reaches 60 callbacks/second but freezes the
+display, so that experiment is diagnostic evidence, not a shipped optimization.
+Nightly 160 reaches 60 rendered FPS at the same resolution with Original plus
+model interpolation; Mozilla enables the newer-driver sharing path on Nightly.
+The final fullscreen run also renders 300 frames in five seconds at 3840×2160,
+both in normal play and during free-camera movement, with about 1.1 ms mean CPU
+callback time and the simulation still at 30 Hz. Its `DMABUF_WEBGL` is available.
+No resolution reduction, browser blocklist override or game-rate change is used.
+
+Implemented: retain unchanged browser frames between original ticks and while
+paused, cache unchanged egui shapes, count actual renders for FPS, and separate
+callback/render/tick rates in repeatable browser measurements. Native vsync
+pacing remains intact. F9 explicitly renders a fresh frame before downloading.
+A separate repeated-start hang was traced to CPAL querying Firefox's synchronous
+`outputLatency` getter. Only the game output context replaces that unused
+callback-timestamp estimate; audio scheduling still uses its original clock.
+Regression checks exercise retained images, paused screenshots, menu/resize
+updates, audible PCM and absence of hardware-latency getter calls.
+Firefox 147/160 checks, Chromium WebGL2/WebGPU mission 1/5 checks, 28 fixture-free
+PC tests, native/WASM Clippy and all four x86_64-linux Nix checks pass. Firefox 147
+release's full-resolution presentation ceiling remains an external limitation;
+the documented separate Nightly profile is the measured 4K/60 route.
+
 ## Browser and surface-detail follow-up
 
 Deliver a real browser game using the shared campaign, fixed-rate gameplay,
@@ -76,8 +118,9 @@ fix Firefox's own reported WebGPU assertion crash.
 The 4K slowdown is reproduced with Firefox's NVIDIA WebGL2 adapter: roughly
 60 FPS at 1280×678 versus 19.5 FPS at 3840×2038 in Original. Compile-time shader
 variants remove disabled lighting, filtering, relief and HDR paths; the latter
-test now measures about 42 FPS. These five-second headless measurements reproduce
-the reported resolution dependence, not a guarantee for every scene or compositor.
+early test measured about 42 FPS. These five-second headless measurements reproduce
+the reported resolution dependence, not normal desktop presentation performance;
+the frame-rate follow-up above records the corrected measurements and working setup.
 Distinct shader modules avoid wgpu 24 GL's program cache ignoring override values;
 feature-toggle renderer tests cover both backends. No resolution, game tick or
 Original appearance changes are used to obtain the improvement.

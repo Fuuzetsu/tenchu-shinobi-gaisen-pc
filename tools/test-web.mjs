@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { sceneImage } from "./browser-image.mjs";
+import { installFrameProbe, measureFrames } from "./browser-frames.mjs";
+import { installAudioProbe } from "./browser-audio.mjs";
 const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
 const base = process.env.TENCHU_WEB_URL ?? "http://127.0.0.1:8000";
 const output = process.env.TENCHU_WEB_CAPTURES ?? "private/browser-check";
@@ -17,16 +19,12 @@ const errors = [];
 const context = await browser.newContext({ viewport: { width: 1280, height: 760 } });
 await context.addInitScript(webgl => {
   if (webgl) Object.defineProperty(navigator, "gpu", { value: undefined });
-  window.testMedia = { videos: [], contexts: [], gpuErrors: [] };
+  window.testMedia = { videos: [], gpuErrors: [] };
   const create = document.createElement.bind(document);
   document.createElement = (...args) => {
     const element = create(...args);
     if (args[0] === "video") window.testMedia.videos.push(element);
     return element;
-  };
-  const Audio = window.AudioContext;
-  window.AudioContext = class extends Audio {
-    constructor(...args) { super(...args); window.testMedia.contexts.push(this); }
   };
   if (typeof GPUAdapter !== "undefined") {
     const request = GPUAdapter.prototype.requestDevice;
@@ -38,6 +36,8 @@ await context.addInitScript(webgl => {
     };
   }
 }, webgl);
+await context.addInitScript(installFrameProbe);
+await context.addInitScript(installAudioProbe);
 const page = await context.newPage();
 page.on("pageerror", error => { errors.push(error.stack); console.error(error.stack); });
 page.on("console", message => {
@@ -76,12 +76,22 @@ try {
   assert(after.tick > before.tick);
   assert.notDeepEqual(after.position, before.position);
   assert.equal(after.fault, "");
+  assert(await page.evaluate(() => window.audioProbe.nonSilent), "The mixer must schedule audible samples");
+  assert.equal(await page.evaluate(() => window.audioProbe.latencyReads), 0, "Unused hardware latency must not be queried");
   await shot("mission-1", true);
   const downloading = page.waitForEvent("download");
   await key("F9");
   await (await downloading).saveAs(`${output}/download.png`);
   await key("F3");
   const frozen = await state();
+  const idle = await page.evaluate(measureFrames, 750);
+  assert.equal(idle.frames, 0, "A paused, unchanged scene must retain its image without rendering");
+  const frozenDownload = page.waitForEvent("download");
+  await key("F9");
+  await (await frozenDownload).saveAs(`${output}/paused-download.png`);
+  const downloaded = await page.evaluate(sceneImage, (await readFile(`${output}/paused-download.png`)).toString("base64"));
+  assert(downloaded.colors > 64, "A screenshot of the paused game must contain its retained image");
+  assert.equal((await state()).tick, frozen.tick);
   const original = await shot("frozen-original", true);
   await key("F1"); await key("Tab"); await key("ArrowLeft"); await key("F1");
   const enhanced = await shot("surface-parallax", true);
@@ -158,7 +168,7 @@ try {
   assert(offline.tick > restored.tick);
   assert.equal(offline.fault, "");
   await context.setOffline(false);
-  assert(await page.evaluate(() => window.testMedia.contexts.some(context => context.state === "running")));
+  assert(await page.evaluate(() => window.audioProbe.contexts.some(context => context.state === "running")));
   await page.click("#fullscreen");
   await page.waitForFunction(() => document.fullscreenElement != null);
   await key("F1");

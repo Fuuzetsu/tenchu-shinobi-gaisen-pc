@@ -6,10 +6,12 @@ use winit::{event::WindowEvent, window::Window};
 
 pub(super) struct Overlay {
     pub opaque: bool,
+    pub dirty: bool,
     renderer: egui_wgpu::Renderer,
     state: egui_winit::State,
     context: egui::Context,
     jobs: Vec<egui::ClippedPrimitive>,
+    shapes: Vec<egui::epaint::ClippedShape>,
     screen: egui_wgpu::ScreenDescriptor,
 }
 
@@ -50,10 +52,12 @@ impl Overlay {
         );
         Self {
             opaque: false,
+            dirty: true,
             renderer: egui_wgpu::Renderer::new(&renderer.device, format, None, 1, false),
             state,
             context,
             jobs: Vec::new(),
+            shapes: Vec::new(),
             screen: egui_wgpu::ScreenDescriptor {
                 size_in_pixels: [1, 1],
                 pixels_per_point: 1.0,
@@ -147,9 +151,17 @@ impl Overlay {
         });
         self.state
             .handle_platform_output(window, output.platform_output);
-        self.jobs = self
-            .context
-            .tessellate(output.shapes, output.pixels_per_point);
+        let changed = self.shapes != output.shapes
+            || self.screen.size_in_pixels != renderer.size()
+            || self.screen.pixels_per_point != output.pixels_per_point
+            || !output.textures_delta.is_empty();
+        self.dirty |= changed;
+        if changed {
+            self.shapes = output.shapes;
+            self.jobs = self
+                .context
+                .tessellate(self.shapes.clone(), output.pixels_per_point);
+        }
         self.screen = egui_wgpu::ScreenDescriptor {
             size_in_pixels: renderer.size(),
             pixels_per_point: output.pixels_per_point,

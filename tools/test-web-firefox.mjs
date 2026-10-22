@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { sceneImage } from "./browser-image.mjs";
+import { installFrameProbe, measureFrames } from "./browser-frames.mjs";
+import { installAudioProbe } from "./browser-audio.mjs";
 
 const output = process.env.TENCHU_WEB_CAPTURES ?? "private/browser-firefox";
 await mkdir(output, { recursive: true });
@@ -73,12 +75,19 @@ try {
   } } });
   session = created.sessionId;
   console.log(`Firefox ${created.capabilities.browserVersion}: starting game`);
-  await command("POST", "/window/rect", { width: 1280, height: 800 });
+  const fullscreen = process.env.TENCHU_WEB_FULLSCREEN === "1";
+  if (fullscreen) await command("POST", "/window/fullscreen", {});
+  else await command("POST", "/window/rect", { width: 1280, height: 800 });
   const url = new URL(process.env.TENCHU_WEB_URL ?? "http://127.0.0.1:8000");
   url.searchParams.set("renderer", "webgl2");
   await command("POST", "/url", { url: url.href });
   await run("window.testErrors = []; window.addEventListener('error', event => testErrors.push(event.message)); window.addEventListener('unhandledrejection', event => testErrors.push(String(event.reason)));");
   await run("window.gpuProbes = 0; Object.defineProperty(navigator, 'gpu', { value: { requestAdapter() { window.gpuProbes++; throw new Error('Explicit WebGL2 must not probe WebGPU'); } } });");
+  await run(`const probe = document.createElement("script"); probe.textContent = ${JSON.stringify(`(${installFrameProbe.toString()})();`)}; document.head.append(probe);`);
+  await run(`const probe = document.createElement("script"); probe.textContent = ${JSON.stringify(`(${installAudioProbe.toString()})();`)}; document.head.append(probe);`);
+  if (process.env.TENCHU_WEB_INTERPOLATION === "1") {
+    await run('localStorage.setItem("tenchu-pc/settings.json", JSON.stringify([...new TextEncoder().encode(JSON.stringify({graphics:{interpolation:true}}))]));');
+  }
   await click("#quick");
   await wait("document.body.dataset.ready === 'true'");
   console.log("Game ready");
@@ -86,6 +95,10 @@ try {
   await wait("window.port != null");
   await wait("document.body.dataset.assetsReady === 'true'", 120000);
   console.log("Assets ready");
+  if (fullscreen) {
+    await click("#fullscreen");
+    await wait("document.fullscreenElement?.id === 'game'");
+  }
   await shot("launcher");
   await click("#game");
   await key("\uE006");
@@ -99,32 +112,31 @@ try {
   assert(after.tick > before.tick);
   assert.notDeepEqual(after.position, before.position);
   assert.equal(after.fault, "");
+  assert(await run("return window.audioProbe.nonSilent"), "The mixer must schedule audible samples");
+  assert.equal(await run("return window.audioProbe.latencyReads"), 0, "Unused hardware latency must not be queried");
   await shot("mission-1", true);
   if (process.env.TENCHU_WEB_BENCH === "1") {
-    for (const [width, height] of [[1280, 800], [3840, 2160]]) {
-      await command("POST", "/window/rect", { width, height });
-      await delay(1000);
-      const timing = await command("POST", "/execute/async", { script: `
-        const done = arguments[0], samples = [];
-        let start, previous;
-        const frame = now => {
-          start ??= now;
-          if (previous != null) samples.push(now - previous);
-          previous = now;
-          if (now - start < 5000) { requestAnimationFrame(frame); return; }
-          samples.sort((a, b) => a - b);
-          const canvas = document.getElementById('game'), gl = canvas.getContext('webgl2');
-          const debug = gl.getExtension('WEBGL_debug_renderer_info');
-          done({ size: [canvas.width, canvas.height], fps: samples.length * 1000 / (now - start),
-            median: samples[Math.floor(samples.length / 2)], p95: samples[Math.floor(samples.length * .95)],
-            renderer: gl.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : gl.RENDERER) });
-        }; requestAnimationFrame(frame);`, args: [] });
-      console.log(JSON.stringify(timing));
+    for (const size of fullscreen ? [null] : [{ width: 1280, height: 800 }, { width: 3840, height: 2160 }]) {
+      if (size) await command("POST", "/window/rect", size);
+      await delay(5000);
+      const timing = await command("POST", "/execute/async", {
+        script: `(${measureFrames.toString()})().then(arguments[0]);`, args: [] });
+      console.log(JSON.stringify({ scene: "playing", ...timing }));
+      await key("\uE032"); // Free camera moves independently of the 30 Hz game.
+      await command("POST", "/actions", { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: "d" }] }] });
+      const moving = await command("POST", "/execute/async", {
+        script: `(${measureFrames.toString()})().then(arguments[0]);`, args: [] });
+      await command("DELETE", "/actions");
+      console.log(JSON.stringify({ scene: "moving-camera", ...moving }));
+      await key("\uE032");
     }
-    await command("POST", "/window/rect", { width: 1280, height: 800 });
+    if (!fullscreen) await command("POST", "/window/rect", { width: 1280, height: 800 });
   }
   await key("\uE033");
   const paused = await state();
+  const idle = await command("POST", "/execute/async", {
+    script: `(${measureFrames.toString()})(750).then(arguments[0]);`, args: [] });
+  assert.equal(idle.frames, 0, "A paused, unchanged scene must retain its image without rendering");
   const original = await shot("frozen-original", true);
   await key("\uE031"); await key("\uE004"); await key("\uE012");
   await shot("settings");

@@ -51,6 +51,11 @@ impl Output {
             SampleFormat::U32 => build::<u32>(&device, stream_config, receiver),
             format => return Err(format!("Unsupported output sample format {format}")),
         }?;
+        #[cfg(all(target_arch = "wasm32", not(target_feature = "atomics")))]
+        {
+            let cpal::platform::StreamInner::WebAudio(output) = stream.as_inner();
+            crate::web::configure_game_audio(output.audio_context());
+        }
         stream.play().map_err(|e| e.to_string())?;
         println!("Audio output: {}", device.id().map_err(|e| e.to_string())?);
         Ok(Self {

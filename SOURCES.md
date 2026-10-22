@@ -1030,7 +1030,7 @@ checks the final vibration request without changing gameplay state or RNG.
 Original Rust game/asset/frontend code is shared with native builds. Browser
 platform adapters use [winit's Web API](https://docs.rs/winit/0.30.12/winit/platform/web/index.html),
 [WebGPU](https://www.w3.org/TR/2026/CRD-webgpu-20260521/), wasm-bindgen and CPAL's
-AudioWorklet backend. The native preparation tool uses the existing XA decoder
+Web Audio backend. The native preparation tool uses the existing XA decoder
 and pinned FFmpeg to encode Opus audio and VP9 movies; caption/voice timing still
 uses the original disc commands. Sparse immutable disc pages are this port's
 implementation, not an emulator or a copy of the parallel TAS execution model.
@@ -1054,6 +1054,27 @@ this avoids incomplete textures returning zero under
 [Mozilla's experimental-feature documentation](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features)
 identifies the `dom.webgpu.enabled` preference; enabling it is not required for
 the WebGL2 backend.
+
+Firefox presentation profiling used ordinary Wayland windows on a 60 Hz display,
+GL completion waits, a diagnostic run that omitted presentation, and Mozilla's
+[native profiler](https://firefox-source-docs.mozilla.org/tools/profiler/code-overview.html).
+Firefox 147's `about:support` reports `DMABUF_WEBGL` blocked on this NVIDIA driver.
+[Bug 1924578](https://bugzilla.mozilla.org/show_bug.cgi?id=1924578) records the
+reason for that block; [bug 1981326](https://bugzilla.mozilla.org/show_bug.cgi?id=1981326)
+allows newer NVIDIA drivers on Nightly only. An isolated Nix-packaged Nightly 160
+test reached 60 FPS with interpolation at the same full resolution where 147
+release measured about 24 FPS; a 3840×2160 fullscreen run also maintained 60 FPS
+while moving the camera. Skipping the final blit was a diagnostic only and
+is not an optimization: it stops displaying new images. Runtime changes instead
+retain genuinely unchanged browser frames and cache unchanged egui shapes.
+
+A captured Firefox content-process stack during an intermittent startup hang
+stopped in `AudioContext_Binding::get_outputLatency`, waiting for synchronous
+`audioipc2`/cubeb IPC. CPAL 0.18.2's Web Audio backend reads this property for each
+buffer's callback timestamp; this port ignores that timestamp. The game output
+context supplies zero for that unused estimate, without altering its audio clock,
+buffer scheduling, movie context or the browser's global API. Browser tests check
+that the hardware getter is never called and non-silent PCM is still scheduled.
 
 
 ## Surface relief (2026-10-22)

@@ -22,6 +22,7 @@ pub(super) struct Frame<'a> {
 }
 
 pub(super) struct View {
+    pub dirty: bool,
     pub(super) stage: Mesh,
     pub(super) actor: Mesh,
     shadow_stage: Option<Mesh>,
@@ -210,6 +211,7 @@ impl View {
         );
         let overlay = super::overlay::Overlay::new(&window, &renderer, config.format);
         Ok(Self {
+            dirty: true,
             overlay,
             window,
             surface,
@@ -291,6 +293,7 @@ impl View {
     }
 
     pub(super) fn resize(&mut self, width: u32, height: u32) {
+        self.dirty = true;
         self.size = [width, height];
         if width == 0 || height == 0 {
             return;
@@ -322,6 +325,7 @@ impl View {
     }
 
     fn set_models(&mut self, mut models: Models, game: &Game) {
+        self.dirty = true;
         self.renderer.bind_models(&mut models);
         self.shadow_stage = None;
         self.stage = self.renderer.upload(&render_mesh::stage(
@@ -364,6 +368,7 @@ impl View {
     }
 
     pub(super) fn settings(&mut self, settings: &Settings, game: &Game) -> Result<()> {
+        self.dirty = true;
         if self.interpolation_enabled != settings.graphics.interpolation {
             self.interpolation_enabled = settings.graphics.interpolation;
             self.reset_interpolation(game);
@@ -395,6 +400,7 @@ impl View {
     }
 
     pub(super) fn update(&mut self, frame: Frame<'_>) {
+        self.dirty = true;
         let Frame {
             campaign,
             paused,
@@ -525,18 +531,22 @@ impl View {
         &mut self,
         game: &Game,
         debug: &crate::debug::Debug,
-    ) -> Result<super::performance::DrawTimes> {
-        if self.size.contains(&0) {
-            return Ok(Default::default());
+    ) -> Result<Option<super::performance::DrawTimes>> {
+        // Native presentation also supplies the event loop's vsync pacing.
+        if self.size.contains(&0)
+            || cfg!(target_arch = "wasm32") && !self.dirty && !self.overlay.dirty
+        {
+            return Ok(None);
         }
         let start = Instant::now();
         let frame = match self.surface.get_current_texture() {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
                 self.surface.configure(&self.renderer.device, &self.config);
-                return Ok(Default::default());
+                self.dirty = true;
+                return Ok(None);
             }
-            Err(wgpu::SurfaceError::Timeout) => return Ok(Default::default()),
+            Err(wgpu::SurfaceError::Timeout) => return Ok(None),
             Err(error) => return Err(error.to_string()),
         };
         let acquire = start.elapsed();
@@ -546,10 +556,12 @@ impl View {
         let start = Instant::now();
         self.window.pre_present_notify();
         frame.present();
-        Ok(super::performance::DrawTimes {
+        self.dirty = false;
+        self.overlay.dirty = false;
+        Ok(Some(super::performance::DrawTimes {
             submit: submit.as_secs_f32() * 1000.0,
             wait: (acquire + start.elapsed()).as_secs_f32() * 1000.0,
-        })
+        }))
     }
 
     pub(super) fn render(

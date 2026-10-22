@@ -26,6 +26,7 @@ extern "C" {
     pub fn loading_state(ready: bool);
     pub fn error(message: &str);
     pub fn media_pause(paused: bool);
+    pub fn configure_game_audio(context: &web_sys::AudioContext);
     pub fn movie_volume(master: u16, music: u8);
     pub fn movie_stereo(stereo: bool);
     pub fn movie_error(video: &web_sys::HtmlVideoElement) -> String;

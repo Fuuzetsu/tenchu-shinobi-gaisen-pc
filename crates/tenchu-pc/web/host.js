@@ -72,6 +72,11 @@ export function movie_stereo(value) {
   if (currentMovie) currentMovie.gain.channelCount = stereo ? 2 : 1;
 }
 function audio_context() { return decoder ??= new AudioContext({ sampleRate: 37800 }); }
+export function configure_game_audio(context) {
+  // CPAL reads this on every buffer for timestamps our mixer ignores. Firefox's
+  // synchronous audio-device IPC can deadlock here. Scheduling uses currentTime.
+  Object.defineProperty(context, "outputLatency", { value: 0 });
+}
 function play_movie(video) {
   audio_context().resume().catch(cause => { video.dataset.error = String(cause); });
   video.play().catch(cause => { if (video.dataset.active === "true" && cause.name !== "AbortError") video.dataset.error = String(cause); });

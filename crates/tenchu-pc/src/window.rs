@@ -655,7 +655,6 @@ impl ApplicationHandler for Application {
                     );
                 }
                 self.fps_elapsed += elapsed.as_secs_f32();
-                self.fps_frames += 1;
                 let fps_changed = self.fps_elapsed >= 0.5;
                 if fps_changed {
                     self.fps = self.fps_frames as f32 / self.fps_elapsed;
@@ -719,9 +718,17 @@ impl ApplicationHandler for Application {
                     self.save_screenshot();
                 }
                 if let Some(view) = &mut self.view {
+                    #[cfg(target_arch = "wasm32")]
+                    if self.screenshot {
+                        view.dirty = true;
+                    }
                     view.renderer.profiling = profile;
                     match view.draw(&self.campaign.game, &self.debug) {
-                        Ok(draw) => timing.draw = draw,
+                        Ok(Some(draw)) => {
+                            timing.draw = draw;
+                            self.fps_frames += 1;
+                        }
+                        Ok(None) => (),
                         Err(error) => {
                             self.error = Some(error);
                             events.exit();

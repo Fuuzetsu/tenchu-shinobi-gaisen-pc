@@ -226,10 +226,36 @@ Firefox/NVIDIA/Wayland WebGPU crash has not been diagnosed or fixed inside Firef
 The active backend appears below the game; hover it to see the adapter name.
 WebGL2 supports the visual presets, lighting/shadows and surface depth, but does
 not offer multisample edge anti-aliasing or GPU timestamp measurements.
-Original uses a small shader variant with disabled effects compiled out. A
-Firefox/NVIDIA check improved from about 20 to 42 FPS at 3840×2038, while
-1280×678 stayed near 60 FPS. Full 4K/60 is not guaranteed on WebGL2; a smaller
-window reduces its rendering cost without changing gameplay speed.
+Original uses a small shader variant with disabled effects compiled out. The
+browser retains unchanged frames, including when paused, and reuses unchanged
+overlay meshes. The FPS counter counts frames actually rendered. Original's
+animation changes at 30 Hz; **F1 → Graphics → Smooth model motion** enables
+interpolated poses and camera motion at the display rate, without changing logic.
+The game audio output also avoids repeated hardware-latency queries that could
+hang Firefox's main thread; audio scheduling and mixing remain unchanged.
+
+On this GTX 1080 Ti/NVIDIA 580/Wayland desktop, Firefox 147 release still renders
+about 24 FPS at 3840×2124. Its `about:support` lists `DMABUF_WEBGL` as blocked;
+copying the canvas into the browser compositor dominates the frame time. The
+earlier 42 FPS result was headless and overstates normal-window performance.
+Firefox Nightly 160 in a separate profile reached 60 FPS at the same resolution
+and at 3840×2160 fullscreen, including camera movement, with smooth model motion
+enabled. Mozilla's
+[NVIDIA WebGL sharing change](https://bugzilla.mozilla.org/show_bug.cgi?id=1981326)
+enables this path on Nightly for newer drivers; it does not change release builds.
+The port does not override browser blocklists or reduce resolution automatically.
+Use a 60 Hz display for that comparison; this desktop also has 30 Hz outputs.
+These are Mission 1 measurements, not a guarantee for every preset or device.
+
+To try Nightly through Nix without changing your usual Firefox profile:
+
+```sh
+mkdir -p private/firefox-nightly
+nix run github:nix-community/flake-firefox-nightly#firefox-nightly-bin -- \
+  --no-remote --profile "$PWD/private/firefox-nightly" \
+  'http://127.0.0.1:8000/?renderer=webgl2'
+```
+
 The complete host is also built by `nix build .#web`; it contains no game data.
 `tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
 
@@ -260,8 +286,14 @@ Set `TENCHU_WEBGL=1` to exercise automatic fallback in Chromium. Run
 profile and the explicit WebGL2 path. `FIREFOX_EXECUTABLE` can select an installed
 Firefox binary. These tests check rendered screenshots as well as gameplay state;
 the Firefox check verifies that explicit WebGL2 never probes WebGPU.
-`TENCHU_WEB_BENCH=1` adds a small-window/4K frame-cadence comparison to that check;
-use it without other GPU workloads and inspect the reported adapter and canvas size.
+`TENCHU_WEB_BENCH=1` compares small-window/4K stationary play and moving-camera
+views, reporting actual rendered frames, browser callbacks, simulation ticks and
+CPU callback time separately. `TENCHU_WEB_INTERPOLATION=1` enables smooth motion
+in the isolated test profile. `TENCHU_WEB_FULLSCREEN=1` measures only the current
+display's fullscreen canvas instead of requesting two window sizes. Run it on a 60 Hz
+display without other GPU workloads and inspect the actual reported canvas size;
+tiling window managers may ignore requested sizes. Headless results omit the
+normal desktop presentation path and cannot establish its performance.
 Set `TENCHU_WEB_URL` to use another address. For deployment, serve the generated
 site over HTTPS with `Cross-Origin-Opener-Policy: same-origin` and
 `Cross-Origin-Embedder-Policy: require-corp`, as the local server does.
