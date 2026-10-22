@@ -144,6 +144,11 @@ lighting in the game; a plausible generated photograph is not necessarily a
 usable material. The local Mission 1 experiment lives in `private/m1-hd-pilot`,
 with source artwork/prompts in `private/m1-hd-source` and comparison captures
 in `private/m1-hd-review`. These local assets are not included in Git.
+On the authoring workstation, `./private/m1-hd-pilot/play.sh` launches the pilot
+with the local disc (or a disc path supplied as its first argument). F1 → Visual
+assets → Replacement artwork toggles it. The normal launcher stays unchanged.
+This is a ten-texture native experiment, with original models, foliage and many
+props; generated shading and repeated edges still need art review.
 
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.

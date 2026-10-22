@@ -23,7 +23,7 @@ private; commit reusable authoring tools and evidence.
   image tool; retain prompts, sources and original transparency classes.
 - [x] Package at 512×512 and compare all ten textures in the game. Thirty paired
   captures verify that disabling the pack restores the original pixels exactly.
-- [ ] Check authored roof relief and ordinary native play/reload, provide an easy
+- [x] Check authored roof relief and ordinary native play/reload, provide an easy
   launcher and local comparison gallery, and record visual limitations.
 
 The pilot uses eleven image generations for ten color images and one aligned
@@ -31,6 +31,25 @@ roof height image. Its native pack has 2,883,584 decoded pixels. Review tooling
 finds textures by content identity and stage geometry without runtime material
 name rules. Full-resolution generation sources and prompts are retained in
 `private/m1-hd-source`; the optional pack is `private/m1-hd-pilot`.
+
+Completed: all thirty final views are unobstructed, change with the pack and
+restore pixel-identical originals when disabled. Original alpha/blend classes
+are retained in all ten PNGs. An isolated native session walks, pauses at tick
+81, toggles artwork through F1, reloads and restores the exact paused image.
+The separate roof height map changes close/angled renders and fades at distance;
+its effect is subtle at the pilot's conservative strength. Most of the visible
+improvement comes from the color artwork. Native pack checks, Clippy and all
+four x86_64-linux Nix checks pass. The local comparison page loads all thirty
+view pairs and its original/pack/split controls pass browser checks.
+
+Run `./private/m1-hd-pilot/play.sh` to try the optional native pack using the local
+disc, or supply a disc path as its first argument. F1 → Visual assets → Replacement
+artwork compares live. `private/m1-hd-review/index.html` is the local review page.
+The normal launcher and user preferences are unchanged. This is a ten-texture
+art experiment, not a complete mission remaster: foliage, characters, roof trim
+and many props remain original. Generated painted shading, imperfect repeated
+edges and some layout/palette drift still need curation. No geometry, normal/
+roughness material importer or browser asset-pack support was added.
 
 ## Browser frame-rate follow-up
 
