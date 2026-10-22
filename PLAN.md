@@ -39,6 +39,20 @@ Sources, references, generated images, prompts and review captures remain under
 ignored `private/`. The original ten-image pilot is the starting point, not
 evidence of full coverage or correct material interpretation.
 
+Current progress: both character exports with all three enemy layouts merge to
+370 distinct 3D texture identities, including 100 used by scenery. The searchable
+catalogue records models, triangles, original alpha/blend, map placements, water
+attributes and scrolling. Armour variants and projected world effects still need
+inventory; 370 is not yet a complete denominator for every mission image.
+
+The native pack now contains 22 reviewed materials (4,259,840 decoded pixels),
+including corrected scrolling water, additional roof tiles/ridge/eaves, mossy
+ground, paving edges and timber/plaster framing. All 88 paired stage views are
+unobstructed; the cutout timber frame was revised to cover its original mask.
+The native walk/pause/toggle/reload check restores identical paused pixels.
+The local comparison gallery and existing pilot launcher use the expanded pack.
+These are partial results; most scenery and all actor/equipment artwork remain.
+
 ## Mission 1 material pilot
 
 Try a small optional high-resolution scenery pack using original texture images

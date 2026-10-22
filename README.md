@@ -140,7 +140,12 @@ materials readable names. Captures remain private disc-derived files.
 packages authored images at 512 pixels on their longest edge by default
 (`--size` accepts 16–1024). It retains the original aspect ratio and transparency
 classes and checks the runtime pixel budget. Pillow comes from the pinned Nix
-development shell. Recipe paths are relative to the recipe file:
+development shell. It also checks that authored color covers the original cutout
+before restoring its alpha classes. A rejected frame or leaf needs aligned
+artwork or extra color bleed behind the mask. Run the synthetic cutout regression
+with `./dev.sh python3 tools/test-material-pack.py`.
+
+Recipe paths are relative to the recipe file:
 
 ```json
 {

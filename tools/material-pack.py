@@ -35,7 +35,14 @@ def main():
         size = tuple(max(1, round(n * longest / max(original.size))) for n in original.size)
         with Image.open(args.recipe.parent / entry["color"]) as source:
             color = source.convert("RGBA").resize(size, Image.Resampling.LANCZOS)
-        color.putalpha(original.getchannel("A").resize(size, Image.Resampling.NEAREST))
+        alpha = original.getchannel("A").resize(size, Image.Resampling.NEAREST)
+        visible = sum(mask != 0 for mask in alpha.get_flattened_data())
+        missing = sum(mask != 0 and paint < 128 for mask, paint in zip(
+            alpha.get_flattened_data(), color.getchannel("A").get_flattened_data()))
+        if missing > visible * 0.01:
+            parser.error(f"{identity}: authored color misses {missing / visible:.1%} "
+                         "of the original mask; align the artwork or extend its color bleed")
+        color.putalpha(alpha)
         name = f"textures/{identity}.png"
         prepared.append((name, color))
         pixels += size[0] * size[1]
