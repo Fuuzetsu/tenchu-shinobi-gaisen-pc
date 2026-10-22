@@ -65,6 +65,14 @@ pub struct Disc<S> {
 }
 
 impl<S: ReadAt> Disc<S> {
+    pub fn source(&self) -> &S {
+        &self.source
+    }
+
+    pub fn start_sector(&self) -> u64 {
+        self.start_sector
+    }
+
     pub fn open(source: S, format: SectorFormat, start_sector: u64) -> Result<Self> {
         let length = source.byte_len() / format.layout().0;
         let mut disc = Self {

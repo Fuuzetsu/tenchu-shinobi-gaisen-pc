@@ -1,6 +1,6 @@
 use super::*;
 
-fn equip(campaign: &mut Campaign, assets: &GameAssets<FileSource>, items: &[(usize, usize)]) {
+fn equip(campaign: &mut Campaign, assets: &GameAssets<DiscSource>, items: &[(usize, usize)]) {
     for &(item, count) in items {
         while campaign.shop.order[campaign.cursor] != item {
             campaign.action(Action::Down, assets).unwrap();
@@ -773,7 +773,7 @@ fn save_result(campaign: &mut Campaign, clock: i32) -> Save {
     save
 }
 
-fn save_and_start_next(campaign: &mut Campaign, assets: &GameAssets<FileSource>, clock: i32) {
+fn save_and_start_next(campaign: &mut Campaign, assets: &GameAssets<DiscSource>, clock: i32) {
     let save = save_result(campaign, clock);
     let mut resumed = Campaign::new(assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, assets).unwrap();
@@ -791,7 +791,7 @@ fn save_and_start_next(campaign: &mut Campaign, assets: &GameAssets<FileSource>,
     );
 }
 
-fn save_and_complete(campaign: &mut Campaign, assets: &GameAssets<FileSource>, clock: i32) {
+fn save_and_complete(campaign: &mut Campaign, assets: &GameAssets<DiscSource>, clock: i32) {
     for kind in [0x87, 0x88] {
         let boss = campaign
             .game

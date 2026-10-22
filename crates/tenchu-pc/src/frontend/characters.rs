@@ -1,5 +1,5 @@
 use super::raster::{Blend, Canvas, Vertex};
-use crate::source::FileSource;
+use crate::source::DiscSource;
 use glam::{Vec2, Vec3};
 use tenchu_assets::{
     Result,
@@ -25,7 +25,7 @@ pub struct Characters {
 }
 
 impl Characters {
-    pub fn load(assets: &GameAssets<FileSource>, tables: &Tables) -> Result<Self> {
+    pub fn load(assets: &GameAssets<DiscSource>, tables: &Tables) -> Result<Self> {
         let models = [
             model::archive(&assets.asset("HUMAN/RIKIMARU.MAD")?)?,
             model::archive(&assets.asset("HUMAN/AYAME.MAD")?)?,

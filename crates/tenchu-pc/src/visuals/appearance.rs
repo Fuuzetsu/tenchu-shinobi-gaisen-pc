@@ -8,7 +8,9 @@ use crate::{render_mesh, settings::Graphics};
 use glam::Vec3;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use tenchu_assets::{Result, model, stage::MissionAssets};
+#[cfg(not(target_arch = "wasm32"))]
+use tenchu_assets::stage::MissionAssets;
+use tenchu_assets::{Result, model};
 use tenchu_core::{game::Game, math::Matrix};
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -255,6 +257,7 @@ pub fn visit(
     });
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn exported(mission: &MissionAssets) -> BTreeMap<String, Body> {
     mission
         .models

@@ -1023,3 +1023,17 @@ through gilrs. PadProc's envelope advances twice per 60 Hz callback. Its attack
 and release durations are adapted to the host driver's timing resolution;
 motor hardware behavior is not emulated. The original-C damage comparison also
 checks the final vibration request without changing gameplay state or RNG.
+
+
+## Browser host (2026-10-22)
+
+Original Rust game/asset/frontend code is shared with native builds. Browser
+platform adapters use [winit's Web API](https://docs.rs/winit/0.30.12/winit/platform/web/index.html),
+[WebGPU](https://www.w3.org/TR/2026/CRD-webgpu-20260521/), wasm-bindgen and CPAL's
+AudioWorklet backend. The native preparation tool uses the existing XA decoder
+and pinned FFmpeg to encode Opus audio and VP9 movies; caption/voice timing still
+uses the original disc commands. Sparse immutable disc pages are this port's
+implementation, not an emulator or a copy of the parallel TAS execution model.
+[Chromium's GPU testing notes](https://chromium.googlesource.com/chromium/src/%2B/HEAD/docs/gpu/using-gpu-hardware-in-headless-chrome.md)
+informed browser validation; headed Chromium under an isolated X server was
+used because this machine's headless compositor did not capture WebGPU reliably.

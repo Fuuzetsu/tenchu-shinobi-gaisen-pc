@@ -7,6 +7,7 @@ mod settings_reset;
 #[cfg(test)]
 mod tests;
 mod tools;
+#[cfg(not(target_arch = "wasm32"))]
 mod video;
 mod view;
 use view::View;
@@ -22,13 +23,14 @@ use crate::{
         self, Settings,
         menu::{Item, Menu},
     },
-    source::FileSource,
+    source::DiscSource,
     storage::Storage,
     ui,
 };
-use std::{fs::File, io::BufWriter, path::PathBuf, sync::Arc, time::Instant};
+use std::{fs::File, io::BufWriter, path::PathBuf, sync::Arc};
 use tenchu_assets::{Result, game::GameAssets};
 use tenchu_core::{clock::GameClock, game::Game};
+use web_time::Instant;
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
@@ -39,7 +41,7 @@ use winit::{
 };
 
 struct Application {
-    assets: GameAssets<FileSource>,
+    assets: GameAssets<DiscSource>,
     campaign: Campaign,
     storage: Storage,
     view: Option<View>,
@@ -66,12 +68,17 @@ struct Application {
     screenshot: bool,
     demo: Option<crate::demo::Player>,
     demo_exit: bool,
+    #[cfg(not(target_arch = "wasm32"))]
     video: Option<crate::video::Export>,
     modifiers: ModifiersState,
     frontend: Option<crate::frontend::Frontend>,
 }
 
 impl Application {
+    fn exporting_video(&self) -> bool {
+        cfg!(not(target_arch = "wasm32")) && self.demo.as_ref().is_some_and(|d| d.video.is_some())
+    }
+
     fn recording_error(&mut self, error: String) {
         eprintln!("Recording stopped: {error}");
         self.recording = None;
@@ -99,6 +106,12 @@ impl Application {
     }
 
     fn update_view(&mut self) {
+        #[cfg(target_arch = "wasm32")]
+        crate::web::update_snapshot(
+            &self.campaign,
+            self.is_suspended(),
+            self.fault.as_deref().unwrap_or(""),
+        );
         let alpha = if let Some(demo) = &self.demo {
             demo.alpha()
         } else if self.is_suspended()
@@ -111,6 +124,7 @@ impl Application {
         } else {
             self.clock.interpolation()
         };
+        let offline = self.exporting_video();
         if let Some(view) = &mut self.view {
             view.update(view::Frame {
                 campaign: &self.campaign,
@@ -119,7 +133,7 @@ impl Application {
                 settings: &self.settings,
                 menu: &self.menu,
                 fps: self.fps,
-                offline: self.video.is_some(),
+                offline,
                 debug: &self.debug,
                 alpha,
             });
@@ -146,6 +160,8 @@ impl Application {
 
     fn sync_pause(&mut self) {
         let paused = self.is_suspended();
+        #[cfg(target_arch = "wasm32")]
+        crate::web::media_pause(paused);
         if let Some(audio) = &mut self.audio {
             audio.pause(paused);
         }
@@ -201,6 +217,13 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
+        #[cfg(target_arch = "wasm32")]
+        if matches!(action, Action::Confirm | Action::Replay)
+            && !self.campaign.playing()
+            && !self.browser_ready()
+        {
+            return;
+        }
         let start = if self.recording_directory.is_some()
             && self.debug.sight_percent == 100
             && !self.settings.keep_enemies_active
@@ -344,19 +367,26 @@ impl ApplicationHandler for Application {
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
+        #[cfg(target_arch = "wasm32")]
+        crate::web::closed();
         self.finish_recording();
         self.controls.clear();
         self.audio.take();
+        #[cfg(not(target_arch = "wasm32"))]
         self.video.take();
         self.frontend.take();
         // EGL/Wayland resources must die before winit closes its display connection.
         if let Some(view) = self.view.take() {
+            #[cfg(not(target_arch = "wasm32"))]
             view.renderer.device.poll(wgpu::Maintain::Wait);
             drop(view);
         }
     }
 
-    fn resumed(&mut self, events: &ActiveEventLoop) {
+    fn resumed(&mut self, _events: &ActiveEventLoop) {
+        #[cfg(not(target_arch = "wasm32"))]
+        let events = _events;
+        #[cfg(not(target_arch = "wasm32"))]
         if self.view.is_none() {
             match View::new(events, &self.campaign.game, &self.settings) {
                 Ok(mut view) => {
@@ -404,6 +434,7 @@ impl ApplicationHandler for Application {
                 }
             }
         }
+        self.update_view();
         self.last_frame = Instant::now();
         self.clock.discard_host_backlog();
     }
@@ -571,6 +602,11 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::RedrawRequested => {
+                #[cfg(target_arch = "wasm32")]
+                crate::web::prepare_language(
+                    &self.assets,
+                    self.campaign.options.language.unwrap_or_default(),
+                );
                 let update = self.controls.poll(self.focused);
                 if update.disconnected && self.campaign.playing() {
                     eprintln!("Active controller disconnected; gameplay paused.");
@@ -674,6 +710,7 @@ impl ApplicationHandler for Application {
                     events.exit();
                 }
                 timing.overlay = phase.elapsed().as_secs_f32() * 1000.0;
+                #[cfg(not(target_arch = "wasm32"))]
                 if self.screenshot {
                     self.save_screenshot();
                 }
@@ -693,12 +730,20 @@ impl ApplicationHandler for Application {
                         );
                     }
                 }
+                #[cfg(target_arch = "wasm32")]
+                if self.screenshot {
+                    self.screenshot = false;
+                    crate::web::download_frame();
+                }
             }
             _ => {}
         }
     }
 
-    fn about_to_wait(&mut self, events: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, _events: &ActiveEventLoop) {
+        #[cfg(not(target_arch = "wasm32"))]
+        let events = _events;
+        #[cfg(not(target_arch = "wasm32"))]
         if self.exporting_video() {
             if self.video.is_some() {
                 match self.export_video_frame() {
@@ -725,7 +770,7 @@ pub struct Startup {
 }
 
 pub fn run(
-    assets: GameAssets<FileSource>,
+    assets: GameAssets<DiscSource>,
     mut options: Options,
     disc: &std::path::Path,
     recording_directory: Option<PathBuf>,
@@ -835,6 +880,7 @@ pub fn run(
         screenshot: false,
         demo,
         demo_exit: false,
+        #[cfg(not(target_arch = "wasm32"))]
         video: None,
         modifiers: ModifiersState::empty(),
         frontend,
@@ -852,11 +898,43 @@ pub fn run(
             "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
         );
     }
-    let result = EventLoop::new()
-        .map_err(|e| e.to_string())?
-        .run_app(&mut application)
-        .map_err(|e| e.to_string());
-    application.finish_recording();
-    result?;
-    application.error.map_or(Ok(()), Err)
+    let event_loop = EventLoop::new().map_err(|e| e.to_string())?;
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::EventLoopExtWebSys;
+        let window = View::browser_window(&event_loop)?;
+        wasm_bindgen_futures::spawn_local(async move {
+            let result: Result<()> = async {
+                let mut view =
+                    View::from_window(window, &application.campaign.game, &application.settings)
+                        .await?;
+                if !view
+                    .renderer
+                    .sample_counts
+                    .contains(&application.settings.graphics.samples)
+                {
+                    application.settings.graphics.samples = 1;
+                }
+                view.settings(&application.settings, &application.campaign.game)?;
+                application.view = Some(view);
+                crate::web::ready();
+                event_loop.spawn_app(application);
+                Ok(())
+            }
+            .await;
+            if let Err(error) = result {
+                crate::web::error(&error);
+            }
+        });
+        Ok(())
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let result = event_loop
+            .run_app(&mut application)
+            .map_err(|e| e.to_string());
+        application.finish_recording();
+        result?;
+        application.error.map_or(Ok(()), Err)
+    }
 }

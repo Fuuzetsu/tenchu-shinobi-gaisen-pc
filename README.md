@@ -22,8 +22,8 @@ Game data, captured RAM and disc images must remain outside Git. No BIOS is
 required. This is an early PC port with full campaign and training regression
 routes, native window checks and source/retail comparisons described below.
 Those checks do not establish perfect parity for every possible playthrough.
-A browser host and authored HD content are later work; editable texture/model
-packs are supported. The shared assets, audio and gameplay crates compile for WASM.
+A browser host is being added alongside native play; editable texture/model
+packs are supported. Authored HD content remains separate. The shared assets, audio and gameplay crates compile for WASM.
 
 The visual-upgrade work is tracked in [CONFIGURATION.md](CONFIGURATION.md).
 For a guided tour, run the modular [feature showcase](DEMOS.md):
@@ -200,6 +200,48 @@ same mission/character/layout options as `play`; Mission 1 is the default.
 Captures use Original settings unless `TENCHU_SETTINGS` explicitly names a
 settings file. That also works with `replay --capture`, allowing repeatable
 Original/Enhanced comparisons of the same simulation state.
+
+## Browser build
+
+The browser host uses the same Rust gameplay, renderer and menus through WebGPU.
+Build a static site and prepare server assets from your own raw BIN/CUE disc:
+
+```sh
+./build-web.sh '/path/to/game.cue'
+./dev.sh python3 tools/serve-web.py private/web
+```
+
+Open `http://127.0.0.1:8000` in a WebGPU-capable browser and click **Start game**
+or **Quick launcher**. The first click also enables browser audio. F1 and F6
+keep their native roles. The canvas follows the available browser area; use
+**Fullscreen** below it to fill the display. WebGPU requires localhost or HTTPS.
+The complete host is also built by `nix build .#web`; it contains no game data.
+`tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
+
+The boot set contains the original frontend and initial scene. Remaining game
+pages and audio for the selected language are downloaded in the background.
+Starting a mission waits for those assets while keeping you in the menu; a
+running mission performs no HTTP reads for game state/assets. Movies are also
+cached before mission entry, including both endings and credits. Browser audio/movie exports are compressed for transfer;
+native playback continues to decode the original disc. Keep generated `data/`
+private unless you have permission to distribute its copyrighted contents.
+
+Campaign saves and settings are local to this browser and site address. Use
+**Export save** / **Import save** to back them up or transfer them. Browser storage
+is separate from desktop saves. Closing the tab does not erase saved progress;
+clearing site data does. F9 downloads a PNG. Input recordings, offline 4K exports
+and local filesystem model/texture directories remain native tools; the browser
+uses built-in models and settings. Browser gamepad input uses the Gamepad API;
+controller vibration and physical-controller behavior have not been verified.
+
+Validated in Chromium 150 with WebGPU/Vulkan: missions 1 and 5, both characters,
+movement, F1, resize, opening playback/pause/skip, persistent saves, PNG downloads
+and continued play after disconnecting the network. This is a browser host check,
+not a new full campaign playthrough. Run `./dev.sh node tools/test-web.mjs` against
+the local server to repeat it (a display and working WebGPU adapter are needed).
+Set `TENCHU_WEB_URL` to use another address. For deployment, serve the generated
+site over HTTPS with `Cross-Origin-Opener-Policy: same-origin` and
+`Cross-Origin-Embedder-Policy: require-corp`, as the local server does.
 
 ## Play
 

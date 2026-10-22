@@ -5,7 +5,9 @@ pub mod presets;
 pub use post::Post;
 
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+#[cfg(test)]
+use std::fs;
+use std::path::PathBuf;
 use tenchu_assets::Result;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -182,6 +184,16 @@ pub struct Store {
 
 impl Store {
     pub fn new() -> Result<Self> {
+        #[cfg(target_arch = "wasm32")]
+        return Ok(Self {
+            path: "settings.json".into(),
+        });
+        #[cfg(not(target_arch = "wasm32"))]
+        Self::native()
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn native() -> Result<Self> {
         let path = if let Some(path) = std::env::var_os("TENCHU_SETTINGS") {
             PathBuf::from(path)
         } else {
@@ -204,7 +216,7 @@ impl Store {
     }
 
     pub fn load(&self) -> Result<Settings> {
-        match fs::read(&self.path) {
+        match crate::storage::read(&self.path) {
             Ok(bytes) => {
                 let mut settings: Settings = serde_json::from_slice(&bytes)
                     .map_err(|e| format!("{}: {e}", self.path.display()))?;

@@ -1,5 +1,6 @@
 pub mod afs;
 pub mod audio;
+pub mod cache;
 pub mod camera;
 pub mod cue;
 pub mod disc;

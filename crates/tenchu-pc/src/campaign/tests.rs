@@ -1,7 +1,7 @@
 use super::*;
 mod routes;
 
-fn assets() -> GameAssets<FileSource> {
+fn assets() -> GameAssets<DiscSource> {
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
     GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap()
 }

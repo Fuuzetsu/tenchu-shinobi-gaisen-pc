@@ -1,4 +1,4 @@
-use crate::{session::Options, source::FileSource};
+use crate::{session::Options, source::DiscSource};
 use tenchu_assets::{
     Result,
     executable::Executable,
@@ -56,7 +56,7 @@ pub struct Campaign {
 
 impl Campaign {
     pub fn new(
-        assets: &GameAssets<FileSource>,
+        assets: &GameAssets<DiscSource>,
         mut options: Options,
         saved: Option<Save>,
     ) -> Result<Self> {
@@ -167,7 +167,7 @@ impl Campaign {
         Ok(())
     }
 
-    pub fn action(&mut self, action: Action, assets: &GameAssets<FileSource>) -> Result<bool> {
+    pub fn action(&mut self, action: Action, assets: &GameAssets<DiscSource>) -> Result<bool> {
         match &mut self.screen {
             Screen::Frontend | Screen::Ending(_) => (),
             Screen::Launcher => match action {

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Tenchu: Shinobi Gaisen</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <canvas id="game" tabindex="0" aria-label="Tenchu game"></canvas>
+  <section id="welcome">
+    <p class="eyebrow">立体忍者活劇</p>
+    <h1>Tenchu<span>Shinobi Gaisen</span></h1>
+    <p id="message">The original game, running in your browser.</p>
+    <div class="actions"><button id="play">Start game</button><button id="quick" class="secondary">Quick launcher</button></div>
+    <p class="help">WASD · move &nbsp; Space · jump &nbsp; J · attack<br>Enter · confirm &nbsp; Esc · back &nbsp; F1 · settings &nbsp; F6 · quick launcher</p>
+  </section>
+</main>
+<footer><span id="status">Ready to start</span><nav><button id="fullscreen">Fullscreen</button><button id="export">Export save</button><button id="import">Import save</button><input id="save-file" type="file" accept=".json" hidden></nav></footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

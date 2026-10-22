@@ -268,6 +268,7 @@ pub fn shadow_stage(mission: &MissionAssets, math: &Math, models: Option<&Models
     vertices
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn shadow_models(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
     shadow_models_presented(game, models, None)
 }

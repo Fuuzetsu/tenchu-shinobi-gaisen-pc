@@ -7,7 +7,10 @@ mod tests;
 
 pub use catalog::{Clip, Feature, Shot};
 pub use presentation::{Scene, animate, camera, readout};
-use std::{ffi::OsString, path::PathBuf, time::Duration};
+#[cfg(not(target_arch = "wasm32"))]
+use std::ffi::OsString;
+use std::{path::PathBuf, time::Duration};
+#[cfg(not(target_arch = "wasm32"))]
 use tenchu_assets::Result;
 
 pub struct Player {
@@ -33,6 +36,7 @@ pub struct Player {
 }
 
 impl Player {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn parse(args: &[OsString]) -> Result<Self> {
         let mut catalog = catalog::builtin()?;
         let mut clips = None;
@@ -131,6 +135,7 @@ impl Player {
         })
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn list() -> Result<()> {
         for clip in catalog::builtin()? {
             println!(
@@ -180,6 +185,7 @@ impl Player {
         self.phase += elapsed.as_nanos() * 60;
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn queue_frame(&mut self) {
         self.phase = 1_000_000_000;
     }

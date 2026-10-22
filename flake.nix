@@ -64,10 +64,34 @@
           '';
           meta.mainProgram = "tenchu-pc";
         };
+      web =
+        pkgs:
+        assert pkgs.wasm-bindgen-cli.version == "0.2.121";
+        pkgs.rustPlatform.buildRustPackage {
+          pname = "tenchu-shinobi-gaisen-web";
+          version = "0.1.0";
+          src = source pkgs.lib;
+          cargoLock.lockFile = ./Cargo.lock;
+          nativeBuildInputs = [
+            pkgs.wasm-bindgen-cli
+            pkgs.lld
+          ];
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs.lld}/bin/wasm-ld";
+          buildPhase = ''
+            cargo build --offline --frozen --release --target wasm32-unknown-unknown -p tenchu-pc --lib
+          '';
+          doCheck = false;
+          installPhase = ''
+            mkdir -p "$out/pkg"
+            wasm-bindgen --target web --out-dir "$out/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm
+            cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$out/"
+          '';
+        };
     in
     {
       packages = eachSystem (pkgs: {
         default = native pkgs;
+        web = web pkgs;
       });
       apps = eachSystem (pkgs: {
         default = {
@@ -79,6 +103,9 @@
       devShells = eachSystem (pkgs: {
         default = pkgs.mkShell {
           TENCHU_DEV_SHELL = "1";
+          PLAYWRIGHT_MODULE = "${pkgs.playwright-driver}/index.mjs";
+          BROWSER_EXECUTABLE = pkgs.lib.optionalString pkgs.stdenv.isLinux "${pkgs.chromium}/bin/chromium";
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           TENCHU_FFMPEG = "${pkgs.ffmpeg}/bin/ffmpeg";
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (runtimeLibraries pkgs) + ":/run/opengl-driver/lib";
           packages = with pkgs; [
@@ -92,6 +119,10 @@
             nixfmt
             pkg-config
             ffmpeg
+            wasm-bindgen-cli
+            nodejs
+            python3
+            playwright-driver
           ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
             pkgs.alsa-lib
@@ -102,6 +133,7 @@
       });
       checks = eachSystem (pkgs: {
         native = native pkgs;
+        browser = web pkgs;
         wasm = pkgs.rustPlatform.buildRustPackage {
           pname = "tenchu-portable-core";
           version = "0.1.0";

@@ -2,12 +2,12 @@ use crate::{
     render_effects, render_mesh,
     renderer::{self, Renderer},
     session::Options,
-    source::FileSource,
+    source::DiscSource,
 };
 use std::{fs::File, io::BufWriter, path::Path};
 use tenchu_assets::{Result, game::GameAssets};
 
-pub fn render(assets: &GameAssets<FileSource>, destination: &Path, options: Options) -> Result<()> {
+pub fn render(assets: &GameAssets<DiscSource>, destination: &Path, options: Options) -> Result<()> {
     let mut game = options.load(assets)?;
     for _ in 0..30 {
         game.step(0)?;

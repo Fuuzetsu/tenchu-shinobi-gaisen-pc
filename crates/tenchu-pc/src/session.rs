@@ -1,4 +1,5 @@
-use crate::source::FileSource;
+use crate::source::DiscSource;
+#[cfg(not(target_arch = "wasm32"))]
 use std::{ffi::OsString, path::Path};
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
 use tenchu_core::{ai::Difficulty, game::Game};
@@ -25,6 +26,7 @@ impl Default for Options {
 }
 
 impl Options {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn parse(args: &[OsString]) -> Result<Self> {
         let mut options = Self::default();
         for pair in args.chunks(2) {
@@ -83,7 +85,7 @@ impl Options {
         Ok(options)
     }
 
-    pub fn load(self, assets: &GameAssets<FileSource>) -> Result<Game> {
+    pub fn load(self, assets: &GameAssets<DiscSource>) -> Result<Game> {
         let mut inventory = [0; 20];
         inventory[..4].copy_from_slice(&[255, 10, 5, 2]);
         self.load_equipped(assets, 1, inventory)
@@ -91,7 +93,7 @@ impl Options {
 
     pub fn load_equipped(
         self,
-        assets: &GameAssets<FileSource>,
+        assets: &GameAssets<DiscSource>,
         seed: u32,
         mut inventory: [u8; 20],
     ) -> Result<Game> {
@@ -123,8 +125,9 @@ impl Options {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn replay(
-    assets: &GameAssets<FileSource>,
+    assets: &GameAssets<DiscSource>,
     options: Options,
     path: &Path,
     explicit_options: bool,
@@ -173,6 +176,7 @@ pub fn replay(
     Ok(game)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn parse_inputs(input: &str) -> Result<Vec<(u32, u16)>> {
     let mut runs = Vec::new();
     for (line, text) in input.lines().enumerate() {

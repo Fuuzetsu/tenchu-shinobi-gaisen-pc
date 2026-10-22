@@ -591,6 +591,7 @@ impl Application {
         Ok(())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn save_screenshot(&mut self) {
         self.screenshot = false;
         let result = (|| -> Result<_> {

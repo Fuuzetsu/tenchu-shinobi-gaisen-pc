@@ -1,4 +1,4 @@
-use crate::source::{FileSource, open_disc};
+use crate::source::{DiscSource, open_disc};
 use std::{
     collections::VecDeque,
     path::Path,
@@ -111,7 +111,7 @@ impl Drop for Loader {
 }
 
 fn decode(
-    disc: &Disc<FileSource>,
+    disc: &Disc<DiscSource>,
     track: &Track,
     generation: &AtomicU64,
     serial: u64,

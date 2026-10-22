@@ -3,6 +3,17 @@ use crate::frontend::{Event, Page};
 use tenchu_assets::frontend::Movie;
 
 impl Application {
+    #[cfg(target_arch = "wasm32")]
+    pub(super) fn browser_ready(&mut self) -> bool {
+        match crate::web::mission_ready(self.campaign.options.language.unwrap_or_default()) {
+            Ok(true) => return true,
+            Ok(false) => crate::web::status(
+                "Preparing the campaign in the background — please stay in the menu a moment",
+            ),
+            Err(error) => self.pause_error(error),
+        }
+        false
+    }
     pub(super) fn frontend_visible(&self) -> bool {
         self.frontend.is_some()
             && (matches!(self.campaign.screen, Screen::Frontend | Screen::Ending(_))
@@ -34,6 +45,16 @@ impl Application {
     }
 
     pub(super) fn frontend_action(&mut self, action: Action) {
+        #[cfg(target_arch = "wasm32")]
+        if matches!(action, Action::Confirm)
+            && self
+                .frontend
+                .as_ref()
+                .is_some_and(|f| matches!(f.page, Page::Character | Page::Missions))
+            && !self.browser_ready()
+        {
+            return;
+        }
         if let Some(frontend) = &mut self.frontend
             && let Err(error) = frontend.action(action, &mut self.campaign, &self.assets)
         {

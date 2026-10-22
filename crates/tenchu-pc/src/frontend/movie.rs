@@ -1,5 +1,5 @@
-use super::raster::{Canvas, Sprite};
-use crate::source::{FileSource, open_disc};
+use super::raster::Canvas;
+use crate::source::{DiscSource, open_disc};
 use std::{
     io::{Read, Write},
     path::Path,
@@ -16,7 +16,7 @@ use tenchu_assets::{
     Result,
     audio::stream::{Clip, Stream, Track},
     font::Font,
-    frontend::{Image, Movie, movie_commands},
+    frontend::{Movie, movie_commands},
     game::GameAssets,
     script::Language,
     texture::Vram,
@@ -176,7 +176,7 @@ pub struct Update {
 impl Player {
     pub fn new(
         path: &Path,
-        assets: &GameAssets<FileSource>,
+        assets: &GameAssets<DiscSource>,
         movie: Movie,
         language: Language,
     ) -> Result<Self> {
@@ -251,40 +251,14 @@ impl Player {
     }
     pub fn paint(&mut self, canvas: &mut Canvas) {
         canvas.pixels.copy_from_slice(&self.pixels);
-        let text = &self.captions.text;
-        if text.is_empty() {
-            return;
-        }
-        if let Some(image) = self.font.prepare_caption(text, &mut self.vram) {
-            let image = Image::from_vram(&self.vram, image);
-            canvas.sprite(Sprite::new(&image, 0.0, 99.5));
-        } else {
-            let width: i32 = text.iter().map(|&c| self.font.width(c)).sum();
-            let mut x = -width as f32 / 2.0;
-            let mut y = 92.0;
-            for &code in text {
-                if code == b'\n' {
-                    x = -width as f32 / 2.0;
-                    y += 16.0;
-                    continue;
-                }
-                let (image, nudge) = self.font.glyph(code);
-                let image = Image::from_vram(&self.vram, image);
-                canvas.sprite(Sprite::new(
-                    &image,
-                    x + image.size[0] as f32 / 2.0,
-                    y + f32::from(nudge) + 8.0,
-                ));
-                x += self.font.width(code) as f32;
-            }
-        }
+        super::captions::paint(canvas, &self.captions.text, &mut self.font, &mut self.vram);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Instant;
+    use web_time::Instant;
 
     #[test]
     #[ignore = "requires TENCHU_DISC and FFmpeg; decodes every opening/training/ending frame and XA track"]

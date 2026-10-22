@@ -214,6 +214,13 @@ impl super::Application {
         let was_open = self.menu.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let frontend_visible = self.frontend_visible();
+        #[cfg(not(target_arch = "wasm32"))]
+        let video_time = self
+            .video
+            .as_ref()
+            .map(|v| v.frames as f64 / crate::video::FPS as f64);
+        #[cfg(target_arch = "wasm32")]
+        let video_time = None;
         let Some(view) = &mut self.view else {
             return;
         };
@@ -233,10 +240,7 @@ impl super::Application {
                 labels: &view.labels,
                 performance: &mut self.performance,
                 demo: self.demo.as_mut(),
-                video_time: self
-                    .video
-                    .as_ref()
-                    .map(|v| v.frames as f64 / crate::video::FPS as f64),
+                video_time,
                 frontend: if frontend_visible {
                     self.frontend.as_mut().map(|f| (f, &self.campaign))
                 } else {

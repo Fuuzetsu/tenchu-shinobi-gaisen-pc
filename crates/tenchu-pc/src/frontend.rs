@@ -1,4 +1,6 @@
+mod captions;
 mod characters;
+#[cfg_attr(target_arch = "wasm32", path = "web/movie.rs")]
 mod movie;
 mod paint;
 mod raster;
@@ -7,7 +9,7 @@ mod tests;
 
 use crate::{
     campaign::{Action, Campaign},
-    source::FileSource,
+    source::DiscSource,
 };
 use characters::Characters;
 use raster::Canvas;
@@ -134,7 +136,7 @@ impl Frontend {
         result
     }
     pub fn new(
-        assets: &GameAssets<FileSource>,
+        assets: &GameAssets<DiscSource>,
         disc: &Path,
         campaign: &Campaign,
         mut preferences: Preferences,
@@ -189,7 +191,7 @@ impl Frontend {
         Ok(result)
     }
 
-    fn menu_bank(&mut self, assets: &GameAssets<FileSource>) -> Result<()> {
+    fn menu_bank(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
         let bank = Bank::parse(
             &assets.asset(&format!("{}/STAGE9R.VAB", sound_directory(self.language)))?,
         )?;
@@ -215,7 +217,7 @@ impl Frontend {
         Ok(())
     }
 
-    pub fn language(&mut self, assets: &GameAssets<FileSource>, language: Language) -> Result<()> {
+    pub fn language(&mut self, assets: &GameAssets<DiscSource>, language: Language) -> Result<()> {
         if self.language == language {
             return Ok(());
         }
@@ -233,7 +235,7 @@ impl Frontend {
         Ok(())
     }
 
-    pub fn enter_title(&mut self, assets: &GameAssets<FileSource>) -> Result<()> {
+    pub fn enter_title(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
         self.movie = None;
         self.reset_title();
         self.title.activate();
@@ -270,7 +272,7 @@ impl Frontend {
             }
     }
 
-    pub fn play_movie(&mut self, movie: Movie, assets: &GameAssets<FileSource>) -> Result<()> {
+    pub fn play_movie(&mut self, movie: Movie, assets: &GameAssets<DiscSource>) -> Result<()> {
         self.events.push(Event::Music(None));
         if let Some(path) = movie.voices(self.language) {
             self.events
@@ -287,7 +289,7 @@ impl Frontend {
         Ok(())
     }
 
-    fn movie_finished(&mut self, assets: &GameAssets<FileSource>) -> Result<()> {
+    fn movie_finished(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
         let Page::Movie(movie) = self.page else {
             return Ok(());
         };
@@ -317,7 +319,7 @@ impl Frontend {
         elapsed: Duration,
         suspended: bool,
         campaign: &mut Campaign,
-        assets: &GameAssets<FileSource>,
+        assets: &GameAssets<DiscSource>,
     ) -> Result<()> {
         if suspended {
             return Ok(());
@@ -409,7 +411,7 @@ impl Frontend {
         &mut self,
         action: Action,
         campaign: &mut Campaign,
-        assets: &GameAssets<FileSource>,
+        assets: &GameAssets<DiscSource>,
     ) -> Result<()> {
         if !self.ready() {
             return Ok(());

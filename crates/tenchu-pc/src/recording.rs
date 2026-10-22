@@ -1,12 +1,18 @@
-use crate::{session::Options, source::FileSource};
+use crate::session::Options;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::source::DiscSource;
+#[cfg(not(target_arch = "wasm32"))]
+use std::ffi::OsString;
 use std::{
-    ffi::OsString,
     fs::{File, OpenOptions},
     io::{BufWriter, Write},
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tenchu_assets::{Result, game::GameAssets, script::Language};
+#[cfg(not(target_arch = "wasm32"))]
+use tenchu_assets::game::GameAssets;
+use tenchu_assets::{Result, script::Language};
+#[cfg(not(target_arch = "wasm32"))]
 use tenchu_core::game::Game;
 
 const HEADER: &str = "# tenchu-recording 1";
@@ -19,11 +25,13 @@ pub struct Start {
 }
 
 impl Start {
-    pub fn load(self, assets: &GameAssets<FileSource>) -> Result<Game> {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load(self, assets: &GameAssets<DiscSource>) -> Result<Game> {
         self.options
             .load_equipped(assets, self.seed, self.inventory)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn parse(input: &str) -> Result<Option<Self>> {
         let mut lines = input.lines().filter(|line| !line.trim().is_empty());
         let Some(first) = lines.next().map(str::trim) else {

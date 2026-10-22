@@ -17,12 +17,12 @@ renderer and original frontend. Prepare server assets locally from the user's
 own disc; do not bundle copyrighted data in the repository. Keep native play
 and the Original preset unchanged.
 
-- [ ] Browser build and static deployment through pinned Nix, asynchronous WebGPU
+- [x] Browser build and static deployment through pinned Nix, asynchronous WebGPU
   startup, keyboard/mouse/controller input, resizing and focus behavior.
-- [ ] Small boot asset set, background transfer of remaining game data during
+- [x] Small boot asset set, background transfer of remaining game data during
   menus, and readiness checks before entering a mission. Once play starts, no
   network reads or loading screens in the simulation path. Cache media in advance.
-- [ ] Browser audio and original movies/captions, original menus and F6 launcher,
+- [x] Browser audio and original movies/captions, original menus and F6 launcher,
   local persistent saves/preferences with import/export, useful error recovery.
 - [ ] Real-browser boot, ordinary play, mission changes, audio/movie playback,
   persistence, resize and network-readiness checks; native regressions, Clippy,
@@ -42,6 +42,21 @@ keeping the synchronous source-faithful game loaders independent of HTTP.
 Movies and XA tracks can be converted by the host preparation tool into
 browser media while preserving original caption/voice scheduling. Browser
 storage, audio and decoding stay at the platform boundary.
+
+Implemented browser host: the shared game/frontend/renderer now compile to WASM;
+Chromium with WebGPU renders Mission 1 and advances ordinary 30 Hz gameplay.
+A prepared sparse disc cache supplies synchronous game reads, with a 15.5 MiB
+compressed boot set and remaining gameplay pages fetched during menus. XA tracks
+are exported as Opus and prefetched per selected language, with a bounded decoded
+audio cache; movies use browser decoding and the shared caption renderer. Native
+unit tests, all 87 disc-backed PC tests, and native/WASM Clippy pass after the
+shared-library/platform split. The browser smoke check covers both characters,
+missions 1 and 5, movement, F1, resize, opening playback/pause/skip, persistent
+saves, screenshots and continued play with the network disconnected. Mission
+entry waits for all gameplay pages, selected-language audio and all movies.
+Nix package validation and material improvements are still in progress.
+Headed Chromium on the NVIDIA Vulkan adapter is used for visual validation;
+the headless compositor did not display WebGPU output reliably in this setup.
 
 ## Original frontend and ending follow-up
 

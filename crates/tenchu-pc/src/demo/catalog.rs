@@ -1,4 +1,5 @@
 use serde::Deserialize;
+#[cfg(not(target_arch = "wasm32"))]
 use tenchu_assets::Result;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -68,10 +69,12 @@ pub struct Clip {
     pub shot: Shot,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn builtin() -> Result<Vec<Clip>> {
     parse(include_bytes!("../../data/demos.json"))
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
     let clips: Vec<Clip> =
         serde_json::from_slice(bytes).map_err(|e| format!("Demo catalog: {e}"))?;

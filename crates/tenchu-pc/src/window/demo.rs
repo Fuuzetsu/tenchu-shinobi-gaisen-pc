@@ -224,6 +224,7 @@ impl Application {
         self.run_demo_frames();
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn advance_demo_frame(&mut self) {
         self.demo.as_mut().unwrap().queue_frame();
         self.run_demo_frames();

@@ -1,8 +1,6 @@
-use std::{
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
+#[cfg(not(target_arch = "wasm32"))]
+use std::{fs, io::Write};
 use tenchu_assets::Result;
 use tenchu_core::progress::save::Save;
 
@@ -12,6 +10,16 @@ pub struct Storage {
 
 impl Storage {
     pub fn new() -> Result<Self> {
+        #[cfg(target_arch = "wasm32")]
+        return Ok(Self {
+            path: "progress.sav".into(),
+        });
+        #[cfg(not(target_arch = "wasm32"))]
+        Self::native()
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn native() -> Result<Self> {
         let path = if let Some(path) = std::env::var_os("TENCHU_SAVE") {
             PathBuf::from(path)
         } else {
@@ -34,7 +42,7 @@ impl Storage {
     }
 
     pub fn load(&self) -> Result<Option<Save>> {
-        match fs::read(&self.path) {
+        match read(&self.path) {
             Ok(bytes) => Save::decode(&bytes)
                 .map(Some)
                 .map_err(|e| format!("{}: {e}", self.path.display())),
@@ -50,6 +58,19 @@ impl Storage {
     }
 }
 
+pub fn read(path: &Path) -> std::io::Result<Vec<u8>> {
+    #[cfg(target_arch = "wasm32")]
+    return crate::web::read_saved(path);
+    #[cfg(not(target_arch = "wasm32"))]
+    fs::read(path)
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
+    crate::web::write_saved(path, bytes)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
     let directory = path
         .parent()

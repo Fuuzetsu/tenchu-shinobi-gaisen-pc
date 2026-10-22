@@ -1,10 +1,11 @@
+#[cfg_attr(target_arch = "wasm32", path = "web/audio_loader.rs")]
 mod loader;
 mod output;
 use output::Command;
 
 use crate::{
     campaign::{Campaign, Screen},
-    source::FileSource,
+    source::DiscSource,
 };
 use std::{
     mem::{Discriminant, discriminant},
@@ -32,6 +33,11 @@ pub struct Audio {
 
 impl Audio {
     pub fn preferences(&self, preferences: &crate::frontend::Preferences) {
+        #[cfg(target_arch = "wasm32")]
+        {
+            crate::web::movie_volume(self.volume, preferences.music);
+            crate::web::movie_stereo(preferences.stereo);
+        }
         self.output.send(Command::Balance(
             preferences.music,
             preferences.effects,
@@ -66,7 +72,7 @@ impl Audio {
             _ => (),
         }
     }
-    pub fn new(path: &Path, assets: &GameAssets<FileSource>, campaign: &Campaign) -> Result<Self> {
+    pub fn new(path: &Path, assets: &GameAssets<DiscSource>, campaign: &Campaign) -> Result<Self> {
         let mut audio = Self {
             output: output::Output::new()?,
             loader: loader::Loader::new(path)?,
@@ -83,7 +89,7 @@ impl Audio {
         Ok(audio)
     }
 
-    pub fn reload(&mut self, assets: &GameAssets<FileSource>, game: &Game) -> Result<()> {
+    pub fn reload(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
         let bank = Bank::load(
             assets,
             game.mission.stage.id,
@@ -156,6 +162,8 @@ impl Audio {
 
     pub fn volume(&mut self, percent: u16) {
         self.volume = percent;
+        #[cfg(target_arch = "wasm32")]
+        crate::web::movie_volume(percent, 255);
         self.output
             .send(output::Command::Volume(if self.fast_forward {
                 0

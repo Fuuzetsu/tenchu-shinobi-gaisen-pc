@@ -60,25 +60,65 @@ impl View {
         })
     }
 
+    fn window_attributes() -> winit::window::WindowAttributes {
+        let attributes = Window::default_attributes()
+            .with_title("Tenchu — gameplay preview")
+            .with_inner_size(LogicalSize::new(1280, 720));
+        #[cfg(target_arch = "wasm32")]
+        {
+            use wasm_bindgen::JsCast;
+            use winit::platform::web::WindowAttributesExtWebSys;
+            let canvas = web_sys::window()
+                .unwrap()
+                .document()
+                .unwrap()
+                .get_element_by_id("game")
+                .unwrap()
+                .dyn_into()
+                .unwrap();
+            attributes
+                .with_canvas(Some(canvas))
+                .with_prevent_default(true)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        attributes
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn new(events: &ActiveEventLoop, game: &Game, settings: &Settings) -> Result<Self> {
         let window = Arc::new(
             events
-                .create_window(
-                    Window::default_attributes()
-                        .with_title("Tenchu — gameplay preview")
-                        .with_inner_size(LogicalSize::new(1280, 720)),
-                )
+                .create_window(Self::window_attributes())
                 .map_err(|e| e.to_string())?,
         );
+        pollster::block_on(Self::from_window(window, game, settings))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[allow(deprecated)]
+    pub(super) fn browser_window(events: &EventLoop<()>) -> Result<Arc<Window>> {
+        events
+            .create_window(Self::window_attributes())
+            .map(Arc::new)
+            .map_err(|e| e.to_string())
+    }
+
+    pub(super) async fn from_window(
+        window: Arc<Window>,
+        game: &Game,
+        settings: &Settings,
+    ) -> Result<Self> {
         let instance = wgpu::Instance::new(&Default::default());
         let surface = instance
             .create_surface(window.clone())
             .map_err(|e| e.to_string())?;
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            compatible_surface: Some(&surface),
-            ..Default::default()
-        }))
-        .ok_or("No graphics adapter for this window")?;
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                compatible_surface: Some(&surface),
+                ..Default::default()
+            })
+            .await
+            .ok_or("No graphics adapter for this window")?;
         let size = window.inner_size();
         let mut config = surface
             .get_default_config(&adapter, size.width.max(1), size.height.max(1))
@@ -92,12 +132,13 @@ impl View {
             config.format = format;
         }
         config.present_mode = wgpu::PresentMode::AutoVsync;
-        let mut renderer = pollster::block_on(Renderer::new(
+        let mut renderer = Renderer::new(
             &adapter,
             config.format,
             [config.width, config.height],
             &game.mission.vram,
-        ))?;
+        )
+        .await?;
         let mut pack = Pack::from_env().unwrap_or_else(|error| {
             eprintln!("Asset pack: {error}; using original assets");
             Pack::default()
@@ -318,8 +359,10 @@ impl View {
             self.renderer.set_emitters(&self.emitters);
         }
         self.renderer.configure(&settings.graphics);
-        self.window
-            .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
+        if self.window.fullscreen().is_some() != settings.fullscreen {
+            self.window
+                .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
+        }
         let mode = if settings.vsync {
             wgpu::PresentMode::AutoVsync
         } else {
@@ -522,6 +565,7 @@ impl View {
         Ok(())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn capture(
         &mut self,
         game: &Game,

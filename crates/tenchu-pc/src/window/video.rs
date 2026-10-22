@@ -1,12 +1,8 @@
 use super::{Application, performance::CpuFrame};
-use std::time::Instant;
 use tenchu_assets::Result;
+use web_time::Instant;
 
 impl Application {
-    pub(super) fn exporting_video(&self) -> bool {
-        self.demo.as_ref().is_some_and(|d| d.video.is_some())
-    }
-
     pub(super) fn export_video_frame(&mut self) -> Result<bool> {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last_frame);
