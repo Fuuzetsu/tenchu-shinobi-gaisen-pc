@@ -10,6 +10,39 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Browser and surface-detail follow-up
+
+Deliver a real browser game using the shared campaign, fixed-rate gameplay,
+renderer and original frontend. Prepare server assets locally from the user's
+own disc; do not bundle copyrighted data in the repository. Keep native play
+and the Original preset unchanged.
+
+- [ ] Browser build and static deployment through pinned Nix, asynchronous WebGPU
+  startup, keyboard/mouse/controller input, resizing and focus behavior.
+- [ ] Small boot asset set, background transfer of remaining game data during
+  menus, and readiness checks before entering a mission. Once play starts, no
+  network reads or loading screens in the simulation path. Cache media in advance.
+- [ ] Browser audio and original movies/captions, original menus and F6 launcher,
+  local persistent saves/preferences with import/export, useful error recovery.
+- [ ] Real-browser boot, ordinary play, mission changes, audio/movie playback,
+  persistence, resize and network-readiness checks; native regressions, Clippy,
+  formatting, Nix packaging and WASM checks. Document serving and browser limits.
+- [ ] Investigate roof/wood relief using normal/height mapping and bounded
+  parallax sampling, with filtered detail at distance. Inspect actual game
+  surfaces; avoid pretending brightness is reliable geometry everywhere.
+- [ ] Implement useful optional surface-detail controls and content-based
+  material overrides, preserving silhouettes, collision, gameplay and Original.
+  Compare native/browser renders and performance at near and distant views.
+- [ ] Document limitations, source references, measured results and usage;
+  commit coherent increments until both deliverables are working.
+
+The asset archive is about 84 MiB. The first approach is a small sparse disc
+cache for boot and a background transfer of all remaining gameplay assets,
+keeping the synchronous source-faithful game loaders independent of HTTP.
+Movies and XA tracks can be converted by the host preparation tool into
+browser media while preserving original caption/voice scheduling. Browser
+storage, audio and decoding stay at the platform boundary.
+
 ## Original frontend and ending follow-up
 
 Reference `tenchu-decomp` revision `7e13c76e` (matching MENU and ENDING).
