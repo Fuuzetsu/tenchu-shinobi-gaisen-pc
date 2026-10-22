@@ -33,7 +33,7 @@ and the Original preset unchanged.
 - [x] Implement useful optional surface-detail controls and content-based
   material overrides, preserving silhouettes, collision, gameplay and Original.
   Compare native/browser renders and performance at near and distant views.
-- [ ] Document limitations, source references, measured results and usage;
+- [x] Document limitations, source references, measured results and usage;
   commit coherent increments until both deliverables are working.
 
 The asset archive is about 84 MiB. The first approach is a small sparse disc
@@ -55,7 +55,7 @@ missions 1 and 5, movement, F1, resize, opening playback/pause/skip, persistent
 saves, screenshots and continued play with the network disconnected. Mission
 entry waits for all gameplay pages, selected-language audio and all movies.
 Nix x86_64-linux native/browser/core packages and formatting checks passed.
-The final material changes are undergoing package validation.
+The final material changes pass those checks as well.
 Headed Chromium on the NVIDIA Vulkan adapter is used for visual validation;
 the headless compositor did not display WebGPU output reliably in this setup.
 
@@ -70,8 +70,10 @@ material arrays, uses eight bounded samples and fades to bump at distance.
 Native GPU tests cover exact restoration, unchanged actors/cutouts/distant faces,
 custom maps and per-material disabling. All 90 PC tests pass with the private
 disc/GPU/audio fixtures, along with fixture-free workspace tests and native/WASM
-Clippy. Chromium checks cover depth modes without advancing the simulation and
-exit/restart. Actual roof/wood near/far captures are private local artifacts.
+Clippy. Chromium checks cover depth modes without advancing the simulation,
+fullscreen entry/settings/exit with restored keyboard focus, exit/restart and an
+unavailable asset response with a working Reload action. Actual roof/wood
+near/far captures are private local artifacts.
 A 1280×720 GTX 1080 Ti comparison with the same scene, cubic filtering and one
 inspection light measured scene passes around 0.8–1.5 ms Off, 0.9–1.8 ms Bump,
 and 1.0–2.0 ms Parallax; these are GPU scene timings, not whole-game frame times

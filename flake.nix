@@ -85,6 +85,8 @@
             mkdir -p "$out/pkg"
             wasm-bindgen --target web --out-dir "$out/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm
             cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$out/"
+            mkdir -p "$out/licenses/japanese-font"
+            cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$out/licenses/japanese-font/"
           '';
         };
     in

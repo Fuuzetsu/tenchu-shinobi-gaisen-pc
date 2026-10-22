@@ -236,9 +236,9 @@ uses built-in models and settings. Browser gamepad input uses the Gamepad API;
 controller vibration and physical-controller behavior have not been verified.
 
 Validated in Chromium 150 with WebGPU/Vulkan: missions 1 and 5, both characters,
-movement, F1, resize, opening playback/pause/skip, persistent saves, PNG downloads
+movement, F1, resize, opening playback/pause/skip, persistent saves, PNG downloads,
 continued play after disconnecting the network, surface-depth modes at an unchanged
-simulation tick, and exit/restart. This is a browser host check,
+simulation tick, fullscreen transitions and exit/restart. This is a browser host check,
 not a new full campaign playthrough. Run `./dev.sh node tools/test-web.mjs` against
 the local server to repeat it (a display and working WebGPU adapter are needed).
 Set `TENCHU_WEB_URL` to use another address. For deployment, serve the generated
