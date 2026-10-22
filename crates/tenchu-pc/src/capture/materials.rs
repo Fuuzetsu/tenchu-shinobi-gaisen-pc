@@ -7,27 +7,49 @@ use crate::{
 };
 use glam::{Mat4, Vec3};
 use std::{collections::BTreeMap, fs, path::Path};
-use tenchu_assets::{Result, game::GameAssets, model::Texture};
+use tenchu_assets::{Result, game::GameAssets, model::Texture, texture::Vram};
 
 fn points(triangle: &[Vertex]) -> [Vec3; 3] {
     std::array::from_fn(|i| Vec3::from(triangle[i].position))
 }
 
-fn visible(vertices: &[Vertex], eye: Vec3, center: Vec3) -> bool {
+fn hit(vram: &Vram, triangle: &[Vertex], origin: Vec3, direction: Vec3) -> Option<f32> {
+    let [a, b, c] = points(triangle);
+    let distance = crate::debug::terrain::triangle(origin, direction, [a, b, c])?;
+    if triangle[0].flags & render_mesh::TEXTURED != 0 {
+        let e1 = b - a;
+        let e2 = c - a;
+        let point = origin + direction * distance - a;
+        let d00 = e1.dot(e1);
+        let d01 = e1.dot(e2);
+        let d11 = e2.dot(e2);
+        let denominator = d00 * d11 - d01 * d01;
+        let u = (d11 * point.dot(e1) - d01 * point.dot(e2)) / denominator;
+        let v = (d00 * point.dot(e2) - d01 * point.dot(e1)) / denominator;
+        let uv = std::array::from_fn(|i| {
+            (triangle[0].uv[i] * (1.0 - u - v) + triangle[1].uv[i] * u + triangle[2].uv[i] * v)
+                .floor() as u16
+        });
+        if vram.texel(triangle[0].page as u16, triangle[0].palette as u16, uv) == 0 {
+            return None;
+        }
+    }
+    Some(distance)
+}
+
+fn visible(vram: &Vram, vertices: &[Vertex], eye: Vec3, center: Vec3) -> bool {
     let ray = center - eye;
     !vertices.chunks_exact(3).any(|triangle| {
-        crate::debug::terrain::triangle(eye, ray.normalize(), points(triangle))
+        hit(vram, triangle, eye, ray.normalize())
             .is_some_and(|distance| distance < ray.length() - 10.0)
     })
 }
 
-fn camera_position(vertices: &[Vertex], center: Vec3, offset: Vec3) -> Vec3 {
+fn camera_position(vram: &Vram, vertices: &[Vertex], center: Vec3, offset: Vec3) -> Vec3 {
     let direction = offset.normalize();
     let distance = vertices
         .chunks_exact(3)
-        .filter_map(|triangle| {
-            crate::debug::terrain::triangle(center + direction * 20.0, direction, points(triangle))
-        })
+        .filter_map(|triangle| hit(vram, triangle, center + direction * 20.0, direction))
         .fold(offset.length(), |nearest, hit| nearest.min(hit * 0.9));
     center + direction * distance
 }
@@ -151,7 +173,22 @@ pub fn render(
         let (_, center, normal) = candidates
             .iter()
             .copied()
-            .find(|(_, center, normal)| visible(&vertices, *center + *normal * 2800.0, *center))
+            .find(|(_, center, normal)| {
+                visible(
+                    &game.mission.vram,
+                    &vertices,
+                    *center + *normal * 2800.0,
+                    *center,
+                )
+            })
+            .or_else(|| {
+                candidates.iter().copied().find(|(_, center, normal)| {
+                    let eye =
+                        camera_position(&game.mission.vram, &vertices, *center, *normal * 2800.0);
+                    eye.distance(*center) > 40.0
+                        && visible(&game.mission.vram, &vertices, eye, *center)
+                })
+            })
             .ok_or_else(|| format!("No unobstructed view of {id}"))?;
         let up = if normal.y.abs() > 0.95 {
             Vec3::Z
@@ -166,6 +203,7 @@ pub fn render(
             ("context", 6500.0, 0.5, -1.0),
         ] {
             let eye = camera_position(
+                &game.mission.vram,
                 &vertices,
                 center,
                 (normal + right * offset + up * vertical) * distance,
@@ -194,7 +232,7 @@ pub fn render(
                     &output.join(format!("{id}-{name}-{suffix}.png")),
                 )?;
             }
-            views.push(serde_json::json!({"texture": id, "view": name, "tick": ticks, "eye": eye.to_array(), "target": center.to_array(), "unobstructed": visible(&vertices, eye, center)}));
+            views.push(serde_json::json!({"texture": id, "view": name, "tick": ticks, "eye": eye.to_array(), "target": center.to_array(), "unobstructed": visible(&game.mission.vram, &vertices, eye, center)}));
         }
     }
     fs::write(
@@ -202,4 +240,37 @@ pub fn render(
         serde_json::to_vec_pretty(&views).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bytemuck::Zeroable;
+
+    #[test]
+    fn preview_rays_pass_through_cutouts_but_stop_at_opaque_and_semitransparent_texels() {
+        let mut vram = Vram::default();
+        let mut triangle = [Vertex::zeroed(); 3];
+        for (vertex, point) in triangle.iter_mut().zip([
+            Vec3::new(-100.0, -100.0, 0.0),
+            Vec3::new(100.0, -100.0, 0.0),
+            Vec3::new(0.0, 100.0, 0.0),
+        ]) {
+            vertex.position = point.to_array();
+            vertex.page = 0x100;
+            vertex.flags = render_mesh::TEXTURED;
+        }
+        let eye = Vec3::new(0.0, 0.0, 100.0);
+        let target = Vec3::new(0.0, 0.0, -100.0);
+        assert!(visible(&vram, &triangle, eye, target));
+        for word in [1, 0x8000] {
+            vram.words[0] = word;
+            assert!(!visible(&vram, &triangle, eye, target));
+        }
+        vram.words[0] = 0;
+        for vertex in &mut triangle {
+            vertex.flags = 0;
+        }
+        assert!(!visible(&vram, &triangle, eye, target));
+    }
 }
