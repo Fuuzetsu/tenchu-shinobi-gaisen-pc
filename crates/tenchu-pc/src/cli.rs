@@ -65,9 +65,28 @@ fn run() -> Result<()> {
         );
     }
     if args[0] == "export-assets" && args.len() >= 3 {
-        let options = session::Options::parse(&args[3..])?;
+        let mut launch = Vec::new();
+        let mut armour = 0;
+        for pair in args[3..].chunks(2) {
+            if pair[0] == "--outfit" {
+                armour = match pair.get(1).and_then(|s| s.to_str()) {
+                    Some("normal") => 0,
+                    Some("armour") => 1,
+                    Some("alternate") => 255,
+                    _ => return Err("--outfit requires normal, armour or alternate".into()),
+                };
+            } else {
+                launch.extend_from_slice(pair);
+            }
+        }
+        let options = session::Options::parse(&launch)?;
+        if armour == 255 && options.character != 1 {
+            return Err("The alternate outfit is only available for Ayame".into());
+        }
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        let game = options.load(&assets)?;
+        let mut inventory = [0; 20];
+        inventory[19] = armour;
+        let game = options.load_equipped(&assets, 1, inventory)?;
         return visuals::export(&game.mission, args[2].as_ref());
     }
     if args[0] == "play" && args.len() >= 2 {

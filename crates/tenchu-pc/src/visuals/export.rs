@@ -45,7 +45,16 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         ));
     }
     fs::create_dir_all(directory.join("textures")).map_err(|e| e.to_string())?;
-    let regions = catalog::regions(mission);
+    let mut regions = catalog::regions(mission);
+    for &image in &mission.images {
+        let region = catalog::Region::sprite(&mission.vram, image);
+        regions.entry(region).or_insert_with(|| {
+            catalog::image_id(
+                [region.rect[2], region.rect[3]],
+                &region.original_pixels(&mission.vram),
+            )
+        });
+    }
     let mut textures = BTreeSet::new();
     for (&region, id) in &regions {
         if !textures.insert(id.clone()) {

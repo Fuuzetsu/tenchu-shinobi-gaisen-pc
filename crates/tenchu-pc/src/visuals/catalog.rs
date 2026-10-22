@@ -15,6 +15,23 @@ pub struct Region {
 }
 
 impl Region {
+    pub fn sprite(vram: &Vram, image: tenchu_assets::texture::Image) -> Self {
+        let [u, v] = image.uv.map(u16::from);
+        Self::find(
+            vram,
+            Texture {
+                page: image.page,
+                palette: image.palette,
+            },
+            [
+                u,
+                v,
+                u + image.size[0].saturating_sub(1),
+                v + image.size[1].saturating_sub(1),
+            ],
+        )
+    }
+
     pub fn scroll_offset(self, vram: &Vram) -> Option<[u16; 2]> {
         let image = tenchu_assets::texture::Image {
             page: self.page,

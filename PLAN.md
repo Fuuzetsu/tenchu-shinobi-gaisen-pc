@@ -39,15 +39,18 @@ Sources, references, generated images, prompts and review captures remain under
 ignored `private/`. The original ten-image pilot is the starting point, not
 evidence of full coverage or correct material interpretation.
 
-Current progress: both character exports with all three enemy layouts merge to
-370 distinct 3D texture identities, including 100 used by scenery. The searchable
+Current progress: both character exports with all three enemy layouts, armour
+and alternate outfits merge to 422 distinct 3D texture identities, including
+100 used by scenery, plus 62 shared sprite images. The searchable
 catalogue records models, triangles, original alpha/blend, map placements, water
-attributes and scrolling. Armour variants and projected world effects still need
-inventory; 370 is not yet a complete denominator for every mission image.
+attributes, scrolling and sprite archive indices. The shared sprite archive
+includes interface art and effects used in other missions; actual effect usage
+still needs review. Its presence in the export is not a completion denominator.
 
-The native pack now contains 22 reviewed materials (4,259,840 decoded pixels),
+The native pack now contains 35 reviewed materials (5,111,808 decoded pixels),
 including corrected scrolling water, additional roof tiles/ridge/eaves, mossy
-ground, paving edges and timber/plaster framing. All 88 paired stage views are
+ground, paving edges, timber/plaster framing, stone lanterns, shoji and tatami.
+All 140 paired stage views are
 unobstructed; the cutout timber frame was revised to cover its original mask.
 The native walk/pause/toggle/reload check restores identical paused pixels.
 The local comparison gallery and existing pilot launcher use the expanded pack.

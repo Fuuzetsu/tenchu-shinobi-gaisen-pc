@@ -16,6 +16,7 @@ pub(super) struct Detail {
     alpha: BTreeMap<u8, usize>,
     scrolling: bool,
     models: BTreeMap<String, Usage>,
+    sprites: BTreeSet<usize>,
     terrain_attributes: BTreeSet<u16>,
     map_samples: Vec<[i32; 3]>,
 }
@@ -36,10 +37,19 @@ pub(super) fn collect(
                 alpha,
                 scrolling: region.scroll_offset(&mission.vram).is_some(),
                 models: BTreeMap::new(),
+                sprites: BTreeSet::new(),
                 terrain_attributes: BTreeSet::new(),
                 map_samples: Vec::new(),
             }
         });
+    }
+    for (index, &image) in mission.images.iter().enumerate() {
+        let region = Region::sprite(&mission.vram, image);
+        details
+            .get_mut(&regions[&region])
+            .unwrap()
+            .sprites
+            .insert(index);
     }
     let mut terrain = Vec::new();
     for row in &mission.terrain.rows {

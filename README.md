@@ -131,6 +131,10 @@ An optional `--recipe RECIPE.json` shows authoring status. The resulting local
 HTML catalogue is searchable by model name or texture identity. Terrain flags
 and animation are evidence to inspect, not an automatic material classification.
 Use `--layout random` when exporting to include all enemy layouts.
+`export-assets` also accepts `--outfit normal|armour|alternate`; the alternate
+outfit is Ayame's. Exports include the 62 shared sprite images with their archive
+indices. The catalogue's sprite category includes both world effects and interface
+art; an exported image is not evidence that it is used in the selected mission.
 
 `./dev.sh python3 tools/material-review.py CAPTURES --recipe RECIPE.json`
 adds a local `index.html` with a before/after slider. The optional recipe gives
