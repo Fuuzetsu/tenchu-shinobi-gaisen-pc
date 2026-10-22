@@ -57,8 +57,15 @@ authored cutouts to avoid retaining coarse original holes. Preview cameras trace
 through texture holes so layered pond surfaces can be reviewed.
 The 100-material native walk/pause/toggle/reload check restores identical paused
 pixels at tick 81. The gallery and existing pilot launcher use this expanded pack.
-These are partial results: 35 additional prop/foliage textures and actor/equipment
-and world-effect artwork remain. Their loaded catalogue includes outfit variants;
+The subsequent prop/foliage pass brings the pack to 135 reviewed identities and
+10,846,208 decoded pixels, covering all scenery and placed-prop catalogue entries.
+It adds finer leaf/blossom cutouts, tree bark, barrels, straw bales, pottery,
+treasure chests, lantern panes/framework and folding screens. Two scroll variants
+share the authored painting after checking their original layout; each retains
+its original mask. The gallery now has 540 paired stage views. The 135-material
+native check also restores identical paused pixels at tick 81 after reload.
+These remain partial results: actor/equipment and world-effect artwork remain,
+as does whole-mission review. Their loaded catalogue includes outfit variants;
 interface-only and other-mission effect images still need explicit scope review.
 
 World sprite replacements now preserve cutouts and blend classes while shared
