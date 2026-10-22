@@ -150,6 +150,13 @@ Shared textures retain every outfit label and its per-export face usage when
 catalogues are merged. `tools/test-material-catalog.py` checks this with synthetic
 outfit fixtures.
 
+The export's `mission_usage` records the loaded actors' weapon kinds and the
+stage's environmental placements, including door/pitfall model indices and
+environmental sprite indices. Merged catalogues retain these per export under
+`missions`. Use this evidence when deciding coverage: the global weapon/common
+archives include models unused in this mission, whose textures may not even be
+loaded into its VRAM. Loaded archive entries alone are not a mission checklist.
+
 `./dev.sh python3 tools/material-review.py CAPTURES --recipe RECIPE.json`
 adds a local `index.html` with a before/after slider. The optional recipe gives
 materials readable names. Captures remain private disc-derived files.

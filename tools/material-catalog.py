@@ -18,8 +18,11 @@ def main():
         parser.error("output must be empty; use a new directory to preserve review notes")
     recipe = json.loads(args.recipe.read_text()) if args.recipe else {}
     entries = {}
+    missions = {}
     for directory in args.exports:
         catalog = json.loads((directory / "catalog.json").read_text())
+        if "mission_usage" in catalog:
+            missions[directory.name] = {"stage": catalog["stage"], **catalog["mission_usage"]}
         models = {m["id"]: m["label"] for m in catalog["models"]}
         for identity in catalog["textures"]:
             detail = catalog.get("texture_details", {}).get(identity)
@@ -65,7 +68,7 @@ def main():
         entry["status"] = authored.get("review", "authored" if authored else "todo")
         shutil.copyfile(entry["source"], args.output / "textures" / f'{entry["id"]}.png')
     ordered = sorted(entries.values(), key=lambda e: (e["categories"], -e["triangles"], e["id"]))
-    (args.output / "catalog.json").write_text(json.dumps({"version": 1, "textures": list(entries), "entries": ordered}, indent=2) + "\n")
+    (args.output / "catalog.json").write_text(json.dumps({"version": 1, "textures": list(entries), "entries": ordered, "missions": missions}, indent=2) + "\n")
     for category in ("scenery", "props", "actors", "equipment", "sprites"):
         selected = [e for e in ordered if category in e["categories"]]
         for start in range(0, len(selected), 32):

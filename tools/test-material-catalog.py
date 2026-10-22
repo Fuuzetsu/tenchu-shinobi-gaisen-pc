@@ -20,6 +20,11 @@ class OutfitUsage(unittest.TestCase):
                 (export / "textures").mkdir(parents=True)
                 Image.new("RGBA", (4, 4), (60, 40, 20, 255)).save(export / "textures/shared.png")
                 (export / "catalog.json").write_text(json.dumps({
+                    "stage": "mission1",
+                    "mission_usage": {
+                        "actors": [{"kind": 0, "model": label, "weapon": 19}],
+                        "environment": [{"record": 8, "source": {"kind": "door", "models": [2, 3]}}],
+                    },
                     "models": [{"id": "actors/0000/2", "label": label}],
                     "textures": ["shared"],
                     "texture_details": {"shared": {
@@ -40,6 +45,10 @@ class OutfitUsage(unittest.TestCase):
             self.assertEqual(usage["variants"]["normal"]["triangles"], 7)
             self.assertEqual(usage["variants"]["armour"]["triangles"], 3)
             self.assertEqual(usage["triangles"], 7)
+            for name, label in [("normal", "Normal"), ("armour", "Armour")]:
+                mission = catalogue["missions"][name]
+                self.assertEqual(mission["actors"][0]["model"], label)
+                self.assertEqual(mission["environment"][0]["source"]["models"], [2, 3])
 
 
 if __name__ == "__main__":

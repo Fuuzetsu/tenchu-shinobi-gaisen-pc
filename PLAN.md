@@ -103,6 +103,16 @@ The global common/weapon model archives also contain assets not placed in this
 mission, some referencing VRAM that belongs to other missions. Their raw loaded
 texture count must not be mistaken for actual Mission 1 replacement coverage.
 
+Exports now include `mission_usage`: loaded actor weapon kinds and environmental
+placements with their door/pitfall model and sprite indices. Merged catalogues
+retain this per export. Both fresh normal-player exports preserve every earlier
+PNG byte-for-byte (407/411 images), and the synthetic merge regression, native
+Clippy and release build pass. Mission 1 places common door models 0/1 and 29/30;
+the actor definitions and core weapon attachment rules identify its weapon set.
+Together with common item/effect models, this leaves 15 actual 3D textures to
+author after the 309-material pass. The other 98 loaded 3D identities have no
+use in this mission; their exact IDs and source evidence are recorded privately.
+
 ## Mission 1 material pilot
 
 Try a small optional high-resolution scenery pack using original texture images

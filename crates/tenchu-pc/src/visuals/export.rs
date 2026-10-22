@@ -28,6 +28,7 @@ struct Manifest {
     alpha: &'static str,
     textures: Vec<String>,
     texture_details: BTreeMap<String, usage::Detail>,
+    mission_usage: serde_json::Value,
     models: Vec<Model>,
 }
 
@@ -180,6 +181,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         alpha: "PNG alpha 0 = hole, 128 = PS1 semi-transparency flag, 255 = opaque. Blend mode is still selected by the face.",
         textures: textures.into_iter().collect(),
         texture_details: usage::collect(mission, &regions)?,
+        mission_usage: usage::mission(mission),
         models,
     };
     fs::write(

@@ -21,6 +21,47 @@ pub(super) struct Detail {
     map_samples: Vec<[i32; 3]>,
 }
 
+pub(super) fn mission(mission: &MissionAssets) -> serde_json::Value {
+    use serde_json::json;
+    use tenchu_assets::misc::Kind;
+
+    let actors: Vec<_> = mission
+        .characters
+        .iter()
+        .filter(|actor| mission.models.contains_key(&actor.kind))
+        .map(|actor| json!({"kind":actor.kind,"model":actor.model,"weapon":actor.weapon}))
+        .collect();
+    let environment: Vec<_> = mission
+        .misc
+        .spawns
+        .iter()
+        .map(|spawn| {
+            let source = match &spawn.kind {
+                Kind::Door { rotation, kind } => json!({"kind":"door","rotation":rotation,
+                    "models":mission.misc.doors[*kind].models}),
+                Kind::Pitfall { rotation, kind } => json!({"kind":"pitfall","rotation":rotation,
+                    "models":mission.misc.pitfalls[*kind].models}),
+                Kind::Sprite(index) => {
+                    json!({"kind":"sprite","image":mission.misc.sprites[*index].0})
+                }
+                Kind::Fire => json!({"kind":"fire"}),
+                Kind::Puff(_) => json!({"kind":"puff"}),
+                Kind::Snowfall => json!({"kind":"snowfall"}),
+                Kind::TextureScroll {
+                    rect,
+                    source,
+                    velocity,
+                } => json!({"kind":"texture_scroll",
+                    "rect":rect,"source":source,"velocity":velocity}),
+                Kind::Bonfire(_) => json!({"kind":"bonfire"}),
+                Kind::Sound { index, .. } => json!({"kind":"sound","index":index}),
+            };
+            json!({"record":spawn.record,"position":spawn.position,"source":source})
+        })
+        .collect();
+    json!({"actors":actors,"environment":environment})
+}
+
 pub(super) fn collect(
     mission: &MissionAssets,
     regions: &BTreeMap<Region, String>,
