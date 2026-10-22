@@ -1,4 +1,4 @@
-"""Make a local before/after viewer for preview-materials and preview-models captures."""
+"""Make a local before/after viewer for material, model and sprite captures."""
 
 import argparse
 import json
@@ -17,6 +17,9 @@ def main():
             view["name"] = recipe.get(view["texture"], {}).get("name", view["texture"][:8])
             view["stem"] = view["texture"]
             view["details"] = "Texture " + view["texture"]
+            if "sprite" in view:
+                view["details"] += (f" · Sprite {view['sprite']} · left to right: "
+                                    + ", ".join(view["blends_left_to_right"]))
             if not view.get("unobstructed", True):
                 view["details"] += " · target partly obstructed"
         else:

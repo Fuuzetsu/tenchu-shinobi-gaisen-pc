@@ -5,7 +5,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate]\ntenchu-pc prepare-web DISC DIRECTORY\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
+            "tenchu-pc play DISC [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
         );
         return Ok(());
     }
@@ -64,6 +64,17 @@ fn run() -> Result<()> {
             ticks,
         );
     }
+    if args[0] == "preview-sprites" && args.len() >= 4 {
+        let options = session::Options::parse(&args[4..])?;
+        let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        let game = options.load(&assets)?;
+        let indices = args[3].to_str().ok_or("Sprite indices must be UTF-8")?;
+        return capture::sprites::render(
+            &game.mission,
+            args[2].as_ref(),
+            &indices.split(',').collect::<Vec<_>>(),
+        );
+    }
     if (args[0] == "export-assets" && args.len() >= 3)
         || (args[0] == "preview-models" && args.len() >= 4)
     {
@@ -71,6 +82,7 @@ fn run() -> Result<()> {
         let start = if preview { 4 } else { 3 };
         let mut launch = Vec::new();
         let mut armour = 0;
+        let mut grey_background = false;
         for pair in args[start..].chunks(2) {
             if pair[0] == "--outfit" {
                 armour = match pair.get(1).and_then(|s| s.to_str()) {
@@ -78,6 +90,12 @@ fn run() -> Result<()> {
                     Some("armour") => 1,
                     Some("alternate") => 255,
                     _ => return Err("--outfit requires normal, armour or alternate".into()),
+                };
+            } else if preview && pair[0] == "--background" {
+                grey_background = match pair.get(1).and_then(|s| s.to_str()) {
+                    Some("black") => false,
+                    Some("grey") => true,
+                    _ => return Err("--background requires black or grey".into()),
                 };
             } else {
                 launch.extend_from_slice(pair);
@@ -93,7 +111,12 @@ fn run() -> Result<()> {
         let game = options.load_equipped(&assets, 1, inventory)?;
         return if preview {
             let ids = args[3].to_str().ok_or("Model identities must be UTF-8")?;
-            capture::models::render(&game, args[2].as_ref(), &ids.split(',').collect::<Vec<_>>())
+            capture::models::render(
+                &game,
+                args[2].as_ref(),
+                &ids.split(',').collect::<Vec<_>>(),
+                grey_background,
+            )
         } else {
             visuals::export(&game.mission, args[2].as_ref())
         };

@@ -67,7 +67,7 @@ fn models(game: &Game) -> Result<BTreeMap<String, Model<'_>>> {
     Ok(models)
 }
 
-pub fn render(game: &Game, output: &Path, ids: &[&str]) -> Result<()> {
+pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -> Result<()> {
     let models = models(game)?;
     let mut selected = BTreeSet::new();
     for id in ids {
@@ -83,6 +83,7 @@ pub fn render(game: &Game, output: &Path, ids: &[&str]) -> Result<()> {
     }
     review::prepare_directory(output)?;
     let mut review = Review::new(&game.mission.vram)?;
+    let backdrop = grey_background.then(|| review.backdrop(0.4));
     let mut views = Vec::new();
     for id in selected {
         let model = &models[&id];
@@ -126,6 +127,7 @@ pub fn render(game: &Game, output: &Path, ids: &[&str]) -> Result<()> {
         let center = (min + max) * 0.5;
         let radius = (max - min).length().max(1.0) * 0.5;
         let mesh = review.renderer.upload(&opaque);
+        let meshes: Vec<_> = backdrop.iter().chain(std::iter::once(&mesh)).collect();
         let stem = id.replace('/', "_");
         for (name, direction) in [
             ("front", Vec3::new(0.0, -0.12, -1.0)),
@@ -168,7 +170,7 @@ pub fn render(game: &Game, output: &Path, ids: &[&str]) -> Result<()> {
             for (enabled, suffix) in [(false, "original"), (true, "pack")] {
                 review.capture(
                     camera,
-                    &[&mesh],
+                    &meshes,
                     Some(&effects),
                     enabled,
                     &output.join(format!("{stem}-{name}-{suffix}.png")),
@@ -177,7 +179,8 @@ pub fn render(game: &Game, output: &Path, ids: &[&str]) -> Result<()> {
             views.push(
                 serde_json::json!({"model":id,"name":model.label,"stem":stem,
                 "view":name,"textures":textures,"eye":eye.to_array(),"target":center.to_array(),
-                "pose":"idle after 30 motion updates; no gameplay simulation"}),
+                "pose":"idle after 30 motion updates; no gameplay simulation",
+                "background":if grey_background { "grey" } else { "black" }}),
             );
         }
     }

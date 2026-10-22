@@ -134,6 +134,14 @@ usual mission options and `--outfit normal|armour|alternate`. Review framing
 fits each model automatically and preserves translucent face blends. These
 isolated views supplement actual stage/gameplay review.
 
+`preview-models` accepts `--background grey` to inspect subtractive shadows and
+dark translucent surfaces; black remains the default. For world sprite artwork,
+`preview-sprites DISC EMPTY_DIRECTORY 0,6,14 [OPTIONS]` captures the selected
+sprite archive indices on black, grey and white. Each image shows five columns:
+opaque, average, additive, subtractive and quarter-additive blending. These are
+blend diagnostics, not a claim that a sprite uses all five modes in gameplay.
+The comparison-page tool also accepts these captures.
+
 Fresh `export-assets` catalogues include each texture's model usage, blend modes,
 alpha classes, scrolling status, map positions and matching terrain attributes.
 To combine player/layout exports and browse labelled contact sheets, run

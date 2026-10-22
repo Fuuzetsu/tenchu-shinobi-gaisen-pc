@@ -28,6 +28,20 @@ pub struct Review {
 }
 
 impl Review {
+    pub fn backdrop(&mut self, shade: f32) -> Mesh {
+        self.renderer.upload(&crate::render_effects::quad(
+            [
+                [-1000.0, -120.0, 0.999999],
+                [1000.0, -120.0, 0.999999],
+                [-1000.0, 120.0, 0.999999],
+                [1000.0, 120.0, 0.999999],
+            ],
+            [[shade; 3]; 4],
+            None,
+            0,
+        ))
+    }
+
     pub fn new(vram: &Vram) -> Result<Self> {
         let instance = wgpu::Instance::new(&Default::default());
         let adapter = pollster::block_on(instance.request_adapter(&Default::default()))

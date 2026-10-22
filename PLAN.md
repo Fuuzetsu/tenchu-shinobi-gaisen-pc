@@ -113,6 +113,19 @@ Together with common item/effect models, this leaves 15 actual 3D textures to
 author after the 309-material pass. The other 98 loaded 3D identities have no
 use in this mission; their exact IDs and source evidence are recorded privately.
 
+The equipment pass brings the private pack to 324 reviewed 3D identities and
+13,995,904 decoded pixels. It covers the placed doors, weapon attachments,
+decoy, blood pool and blob shadow; the model gallery has 180 paired views.
+A polearm candidate with misaligned painted edges was replaced with neutral
+brushed steel inside its original cutout. Whole-mission review remains.
+`preview-models --background grey` makes dark cutouts visible, and
+`preview-sprites` exercises all five original blend modes against black, grey
+and white backgrounds through the actual world-sprite renderer. Nine baseline
+pairs remain pixel-identical without matching overrides, and the Vulkan
+world-sprite/HUD/reload regression passes. The scoped remaining artwork is
+44 world/item/effect sprites; the other 18 archive images are interface-only,
+unused or for other stages, with the source-based scope recorded privately.
+
 ## Mission 1 material pilot
 
 Try a small optional high-resolution scenery pack using original texture images

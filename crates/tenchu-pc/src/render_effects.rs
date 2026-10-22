@@ -114,7 +114,7 @@ fn depth(z: f32) -> f32 {
     (far / (far - near) - near * far / ((far - near) * z.max(near))).clamp(0.0, 1.0)
 }
 
-fn quad(
+pub(crate) fn quad(
     points: [[f32; 3]; 4],
     color: [[f32; 3]; 4],
     image: Option<Image>,
