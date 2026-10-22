@@ -15,6 +15,40 @@ pub struct Region {
 }
 
 impl Region {
+    pub fn scroll_offset(self, vram: &Vram) -> Option<[u16; 2]> {
+        let image = tenchu_assets::texture::Image {
+            page: self.page,
+            palette: self.palette,
+            uv: [self.rect[0] as u8, self.rect[1] as u8],
+            size: [self.rect[2], self.rect[3]],
+        };
+        vram.scrolling
+            .iter()
+            .find(|s| {
+                s.image.page & 0x180 == image.page & 0x180
+                    && s.image.word_rect() == image.word_rect()
+            })
+            .map(|s| s.offset)
+    }
+
+    pub fn original_pixels(self, vram: &Vram) -> Vec<u8> {
+        let pixels = self.pixels(vram);
+        let Some([dx, dy]) = self.scroll_offset(vram) else {
+            return pixels;
+        };
+        let [_, _, width, height] = self.rect;
+        let mut original = Vec::with_capacity(pixels.len());
+        for y in 0..height {
+            for x in 0..width {
+                let at = (usize::from((y + height - dy) % height) * usize::from(width)
+                    + usize::from((x + width - dx) % width))
+                    * 4;
+                original.extend_from_slice(&pixels[at..at + 4]);
+            }
+        }
+        original
+    }
+
     pub fn find(vram: &Vram, texture: Texture, bounds: [u16; 4]) -> Self {
         let page = texture.page & 0x19f;
         let palette = if page & 0x180 == 0x100 {
@@ -181,7 +215,7 @@ pub fn regions(mission: &MissionAssets) -> BTreeMap<Region, String> {
                     out.entry(region).or_insert_with(|| {
                         image_id(
                             [region.rect[2], region.rect[3]],
-                            &region.pixels(&mission.vram),
+                            &region.original_pixels(&mission.vram),
                         )
                     });
                 }
@@ -195,6 +229,56 @@ pub fn regions(mission: &MissionAssets) -> BTreeMap<Region, String> {
 mod tests {
     use super::*;
     use tenchu_assets::texture::Image;
+
+    #[test]
+    fn scrolling_identity_is_independent_of_first_visible_frame_and_pixel_mode() {
+        for mode in 0..3 {
+            let mut vram = Vram::default();
+            let image = Image {
+                page: mode << 7,
+                palette: 480 << 6,
+                uv: [0; 2],
+                size: [8, 4],
+            };
+            let width = image.word_rect()[2];
+            for i in 0..256 {
+                vram.words[480 * 1024 + i] = i as u16;
+            }
+            for y in 0..4 {
+                for x in 0..width {
+                    vram.words[usize::from(y) * 1024 + usize::from(x)] = 0x1234 + y * 15 + x;
+                }
+            }
+            vram.images.push(image);
+            for y in 0..2 {
+                for x in 0..2 {
+                    vram.copy_rect(image.word_rect(), [832 + x * width, 256 + y * 4])
+                        .unwrap();
+                }
+            }
+            vram.scrolling.push(tenchu_assets::texture::ScrollingImage {
+                image,
+                source: [832, 256],
+                offset: [0; 2],
+            });
+            let region = Region::find(
+                &vram,
+                Texture {
+                    page: image.page,
+                    palette: image.palette,
+                },
+                [0, 0, 7, 3],
+            );
+            let original = region.pixels(&vram);
+            for (dx, dy) in [(1, 3), (0, 1), (width - 1, 2), (0, 0)] {
+                vram.copy_rect([832 + dx, 256 + dy, width, 4], [0, 0])
+                    .unwrap();
+                assert_eq!(region.scroll_offset(&vram), Some([dx * (4 >> mode), dy]));
+                assert_eq!(region.original_pixels(&vram), original);
+                assert_eq!(region.pixels(&vram) == original, dx == 0 && dy == 0);
+            }
+        }
+    }
 
     #[test]
     fn regions_cross_page_origins_and_keep_palette_and_transparency_classes() {

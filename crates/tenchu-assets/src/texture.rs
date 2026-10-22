@@ -21,10 +21,18 @@ impl Image {
 }
 
 #[derive(Clone)]
+pub struct ScrollingImage {
+    pub image: Image,
+    pub source: [u16; 2],
+    pub offset: [u16; 2],
+}
+
+#[derive(Clone)]
 pub struct Vram {
     pub words: Vec<u16>,
     pub revision: u64,
     pub images: Vec<Image>,
+    pub scrolling: Vec<ScrollingImage>,
 }
 
 impl Default for Vram {
@@ -33,6 +41,7 @@ impl Default for Vram {
             words: vec![0; 1024 * 512],
             revision: 0,
             images: Vec::new(),
+            scrolling: Vec::new(),
         }
     }
 }
@@ -78,6 +87,18 @@ impl Vram {
         for row in 0..h {
             self.words[(dy + row) * 1024 + dx..(dy + row) * 1024 + dx + w]
                 .copy_from_slice(&pixels[row * w..(row + 1) * w]);
+        }
+        for scroll in &mut self.scrolling {
+            if w != 0
+                && h != 0
+                && scroll.image.word_rect() == [dx as u16, dy as u16, w as u16, h as u16]
+            {
+                let scale = 4 >> ((scroll.image.page >> 7) & 3);
+                scroll.offset = [
+                    source[0].wrapping_sub(scroll.source[0]) % w as u16 * scale,
+                    source[1].wrapping_sub(scroll.source[1]) % h as u16,
+                ];
+            }
         }
         self.revision = self.revision.wrapping_add(1);
         Ok(())

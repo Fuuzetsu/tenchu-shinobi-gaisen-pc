@@ -37,6 +37,7 @@ pub fn render(
     output: &Path,
     ids: &[&str],
     options: Options,
+    ticks: u32,
 ) -> Result<()> {
     if ids.is_empty()
         || ids
@@ -53,7 +54,10 @@ pub fn render(
     {
         return Err("Preview output must be an empty directory".into());
     }
-    let game = options.load(assets)?;
+    let mut game = options.load(assets)?;
+    for _ in 0..ticks {
+        game.step(0)?;
+    }
     let pack = Pack::from_env()?;
     let vertices = render_mesh::stage(&game.mission, &game.math, None);
     let player = Vec3::from(game.player().position.to_array().map(|n| n as f32));
@@ -81,7 +85,7 @@ pub fn render(
         let id = regions.entry(region).or_insert_with(|| {
             catalog::image_id(
                 [region.rect[2], region.rect[3]],
-                &region.pixels(&game.mission.vram),
+                &region.original_pixels(&game.mission.vram),
             )
         });
         if !ids.contains(&id.as_str()) {
@@ -155,12 +159,17 @@ pub fn render(
             Vec3::NEG_Y
         };
         let right = normal.cross(up).normalize();
-        for (name, distance, offset) in [
-            ("front", 2800.0, 0.0),
-            ("angle", 3500.0, 0.65),
-            ("wide", 9000.0, 0.3),
+        for (name, distance, offset, vertical) in [
+            ("front", 2800.0, 0.0, 0.0),
+            ("angle", 3500.0, 0.65, 0.0),
+            ("wide", 9000.0, 0.3, 0.0),
+            ("context", 6500.0, 0.5, -1.0),
         ] {
-            let eye = camera_position(&vertices, center, (normal + right * offset) * distance);
+            let eye = camera_position(
+                &vertices,
+                center,
+                (normal + right * offset + up * vertical) * distance,
+            );
             let camera = Mat4::perspective_rh(
                 55.0_f32.to_radians(),
                 size[0] as f32 / size[1] as f32,
@@ -185,7 +194,7 @@ pub fn render(
                     &output.join(format!("{id}-{name}-{suffix}.png")),
                 )?;
             }
-            views.push(serde_json::json!({"texture": id, "view": name, "eye": eye.to_array(), "target": center.to_array(), "unobstructed": visible(&vertices, eye, center)}));
+            views.push(serde_json::json!({"texture": id, "view": name, "tick": ticks, "eye": eye.to_array(), "target": center.to_array(), "unobstructed": visible(&vertices, eye, center)}));
         }
     }
     fs::write(

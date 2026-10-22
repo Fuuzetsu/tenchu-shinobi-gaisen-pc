@@ -20,10 +20,20 @@ fn material_transmits(index: u32, color: vec3<f32>) -> bool {
         && dot(color, vec3(0.2126, 0.7152, 0.0722)) >= emission.a;
 }
 
+fn material_uv(index: u32, uv: vec2<f32>) -> vec2<f32> {
+    if (material_info(index).w & 16u) != 0u { return fract(uv); }
+    return uv;
+}
+
+fn material_point(index: u32, uv: vec2<f32>, size: vec2<f32>) -> vec2<f32> {
+    if (material_info(index).w & 16u) != 0u { return fract(uv) * size; }
+    return clamp(uv * size, vec2(0.5), size - vec2(0.5));
+}
+
 fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
     let source = material_source(index);
     let info = material_info(index);
-    let uv = (coordinate - source.xy + vec2(0.5)) / source.zw;
+    let uv = material_uv(index, (coordinate - source.xy + vec2(0.5)) / source.zw);
     let rect = material_rect(index, 0u);
     let side = textureDimensions(material_images).x;
     let page = u32(rect.x) / side;
@@ -42,7 +52,7 @@ fn material_level(index: u32, uv: vec2<f32>, level: u32, semi: bool, blended: bo
     let side = f32(textureDimensions(material_images).x);
     let page = u32(rect.x) / u32(side);
     let origin = vec2(rect.x - f32(page) * side, rect.y);
-    let coordinate = (origin + clamp(uv * rect.zw, vec2(0.5), rect.zw - vec2(0.5))) / side;
+    let coordinate = (origin + material_point(index, uv, rect.zw)) / side;
     if blended {
         return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (info.w & 8u) != 0u) + select(0u, 1u, semi)), 0.0);
     }

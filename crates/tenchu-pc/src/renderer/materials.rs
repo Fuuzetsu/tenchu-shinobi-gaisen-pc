@@ -30,12 +30,26 @@ struct Entry {
     original: Image,
     image: Image,
     replaced: bool,
+    scroll: Option<[u16; 2]>,
+    scrolling: bool,
     dirty: bool,
     mips: Vec<Mip>,
     detail: Vec<Vec<u8>>,
 }
 
 impl Entry {
+    fn source(&self) -> [f32; 4] {
+        let mut source = self
+            .region
+            .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
+        if self.scrolling {
+            let offset = self.scroll.unwrap_or_default();
+            source[0] -= f32::from(offset[0]);
+            source[1] -= f32::from(offset[1]);
+        }
+        source
+    }
+
     fn relief(&self, surface: Option<&Surface>) -> [f32; 4] {
         let eligible = self.image.size.into_iter().all(|n| n >= 4)
             && self.image.rgba.chunks_exact(4).all(|p| p[3] != 0);
@@ -53,7 +67,9 @@ impl Entry {
 
     fn flags(&self, layers: usize) -> u32 {
         self.image.rgba.chunks_exact(4).fold(
-            u32::from(self.replaced) | if layers == 3 { 8 } else { 0 },
+            u32::from(self.replaced)
+                | if layers == 3 { 8 } else { 0 }
+                | if self.scrolling { 16 } else { 0 },
             |flags, pixel| {
                 flags
                     | match pixel[3] {
@@ -83,9 +99,12 @@ impl Entry {
             |image| (**image).clone(),
         );
         let replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
-        self.dirty |= self.image != image || self.replaced != replaced;
+        let scrolling = replacement.is_some() && self.scroll.is_some();
+        self.dirty |=
+            self.image != image || self.replaced != replaced || self.scrolling != scrolling;
         self.image = image;
         self.replaced = replaced;
+        self.scrolling = scrolling;
     }
 }
 
@@ -174,6 +193,7 @@ impl Materials {
         let changes = Changes::between(&self.vram, vram);
         for entry in &mut self.entries {
             let Some(region) = entry.region else { continue };
+            entry.scroll = region.scroll_offset(vram);
             if !changes.affects(region) {
                 continue;
             }
@@ -185,6 +205,7 @@ impl Materials {
         }
         self.vram.words.clone_from(&vram.words);
         self.vram.images.clone_from(&vram.images);
+        self.vram.scrolling.clone_from(&vram.scrolling);
         self.vram.revision = vram.revision;
     }
 
@@ -250,6 +271,8 @@ impl Materials {
                     original: (*material.image).clone(),
                     image: (*material.image).clone(),
                     replaced: true,
+                    scroll: None,
+                    scrolling: false,
                     dirty: true,
                     mips: Vec::new(),
                     detail: Vec::new(),
@@ -314,10 +337,15 @@ impl Materials {
         };
         let mut entry = Entry {
             region: Some(region),
-            id: catalog::image_id(original.size.map(|n| n as u16), &original.rgba),
+            id: catalog::image_id(
+                original.size.map(|n| n as u16),
+                &region.original_pixels(&self.vram),
+            ),
             image: original.clone(),
             original,
             replaced: false,
+            scroll: region.scroll_offset(&self.vram),
+            scrolling: false,
             dirty: true,
             mips: Vec::new(),
             detail: Vec::new(),
@@ -331,6 +359,14 @@ impl Materials {
     pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<()> {
         self.repack |= self.entries.len() + 1 != self.atlas.materials.len();
         for (index, entry) in self.entries.iter_mut().enumerate() {
+            if !self.repack && self.atlas.materials[index + 1].source != entry.source() {
+                self.atlas.materials[index + 1].source = entry.source();
+                self.atlas.data.write(
+                    queue,
+                    index + 1,
+                    &self.atlas.materials[index + 1..index + 2],
+                );
+            }
             if !entry.dirty {
                 continue;
             }
@@ -373,7 +409,7 @@ impl Materials {
                     let y = rect[1] as u32 - 1;
                     let layer = rect[0] as u32 / self.atlas.side * self.layers as u32;
                     for class in 0..self.layers {
-                        let bytes = padded(image.size, entry.pixels(mip, class));
+                        let bytes = padded(image.size, entry.pixels(mip, class), entry.scrolling);
                         write_texture(
                             queue,
                             &self.atlas.texture,
@@ -433,9 +469,7 @@ impl Materials {
                 .unwrap_or([0.0; 4]);
             let surface = self.enabled.then(|| self.surfaces.get(&entry.id)).flatten();
             materials[index + 1].relief = entry.relief(surface);
-            materials[index + 1].source = entry
-                .region
-                .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
+            materials[index + 1].source = entry.source();
             materials[index + 1].info = [
                 entry.mips.len() as u32,
                 entry.image.size[0],
@@ -476,9 +510,9 @@ impl Materials {
             ];
             for class in 0..self.layers {
                 for dy in 0..height + 2 {
-                    let sy = dy.saturating_sub(1).min(height - 1);
+                    let sy = border_pixel(dy, height, self.entries[entry].scrolling);
                     for dx in 0..width + 2 {
-                        let sx = dx.saturating_sub(1).min(width - 1);
+                        let sx = border_pixel(dx, width, self.entries[entry].scrolling);
                         let from = ((sy * width + sx) * 4) as usize;
                         let to = (((y + dy) * side + x + dx) * 4) as usize;
                         pages[page as usize * self.layers + class][to..to + 4].copy_from_slice(
@@ -496,13 +530,21 @@ impl Materials {
     }
 }
 
-fn padded(size: [u32; 2], pixels: &[u8]) -> Vec<u8> {
+fn border_pixel(coordinate: u32, size: u32, wrap: bool) -> u32 {
+    if wrap {
+        (coordinate + size - 1) % size
+    } else {
+        coordinate.saturating_sub(1).min(size - 1)
+    }
+}
+
+fn padded(size: [u32; 2], pixels: &[u8], wrap: bool) -> Vec<u8> {
     let [width, height] = size;
     let mut bytes = Vec::with_capacity(((width + 2) * (height + 2) * 4) as usize);
     for y in 0..height + 2 {
-        let sy = y.saturating_sub(1).min(height - 1);
+        let sy = border_pixel(y, height, wrap);
         for x in 0..width + 2 {
-            let sx = x.saturating_sub(1).min(width - 1);
+            let sx = border_pixel(x, width, wrap);
             let at = ((sy * width + sx) * 4) as usize;
             bytes.extend_from_slice(&pixels[at..at + 4]);
         }

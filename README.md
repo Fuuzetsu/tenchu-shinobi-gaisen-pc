@@ -106,6 +106,11 @@ with a pack budget of 16 million decoded pixels. Alpha 0 is transparent,
 classes rather than continuous opacity. Higher resolutions retain the original
 UV mapping. New cutouts also affect model shadows. HUD/menu textures stay original.
 `render` and replay captures also accept `TENCHU_ASSET_PACK`.
+Scrolling world textures retain their original animation with replacement art,
+including when the surface first becomes visible after the animation has started.
+The source game's texture-copy phase drives the replacement UVs; image data is
+not rebuilt or uploaded each animation frame. Wrap filtering also joins opposite
+edges. Use a seamless image for these materials.
 
 For material authoring, `preview-materials DISC EMPTY_DIRECTORY ID,ID,...`
 captures matching original/replacement views of selected scenery textures.
@@ -115,6 +120,8 @@ obstructions. Front, angled and wider views share a frozen game state. Default
 review settings disable fog and enable filtered mipmaps; `TENCHU_SETTINGS` can
 provide a different lighting setup. `TENCHU_ASSET_PACK` selects the replacement
 pack. This tool reviews texture/height changes on original scenery geometry.
+`--ticks N` advances the game before freezing the view, useful for checking
+animated replacements. The context view adds an oblique camera along the surface.
 
 `./dev.sh python3 tools/material-review.py CAPTURES --recipe RECIPE.json`
 adds a local `index.html` with a before/after slider. The optional recipe gives
@@ -147,8 +154,10 @@ in `private/m1-hd-review`. These local assets are not included in Git.
 On the authoring workstation, `./private/m1-hd-pilot/play.sh` launches the pilot
 with the local disc (or a disc path supplied as its first argument). F1 → Visual
 assets → Replacement artwork toggles it. The normal launcher stays unchanged.
-This is a ten-texture native experiment, with original models, foliage and many
-props; generated shading and repeated edges still need art review.
+The pilot's incorrectly classified masonry candidate was the canal water;
+it has been replaced with scrolling ripple artwork. The full Mission 1 pack is
+in progress, with original models, foliage and many props still present.
+Generated shading and repeated edges still need art review.
 
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.

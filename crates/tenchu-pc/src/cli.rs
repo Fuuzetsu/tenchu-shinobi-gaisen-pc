@@ -39,7 +39,21 @@ fn run() -> Result<()> {
         );
     }
     if args[0] == "preview-materials" && args.len() >= 4 {
-        let options = session::Options::parse(&args[4..])?;
+        let mut launch = Vec::new();
+        let mut ticks = 0;
+        for pair in args[4..].chunks(2) {
+            if pair[0] == "--ticks" {
+                ticks = pair
+                    .get(1)
+                    .and_then(|s| s.to_str())
+                    .and_then(|s| s.parse::<u32>().ok())
+                    .filter(|&n| n <= 108_000)
+                    .ok_or("--ticks requires 0–108000")?;
+            } else {
+                launch.extend_from_slice(pair);
+            }
+        }
+        let options = session::Options::parse(&launch)?;
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
         let ids = args[3].to_str().ok_or("Texture identities must be UTF-8")?;
         return capture::materials::render(
@@ -47,6 +61,7 @@ fn run() -> Result<()> {
             args[2].as_ref(),
             &ids.split(',').collect::<Vec<_>>(),
             options,
+            ticks,
         );
     }
     if args[0] == "export-assets" && args.len() >= 3 {

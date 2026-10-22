@@ -137,9 +137,8 @@ impl Misc {
                     }
                     let name =
                         exe.string(u32_le(exe.bytes(0x80012788 + p[0] as u32 * 4, 4)?, 0)?)?;
-                    let rect = vram
-                        .upload_tim(&game.asset(&format!("IMAGE/{name}"))?)?
-                        .word_rect();
+                    let image = vram.upload_tim(&game.asset(&format!("IMAGE/{name}"))?)?;
+                    let rect = image.word_rect();
                     if rect[2] == 0 || rect[3] == 0 {
                         return Err("Empty scrolling texture".into());
                     }
@@ -152,6 +151,11 @@ impl Misc {
                         }
                     }
                     let source = scratch;
+                    vram.scrolling.push(crate::texture::ScrollingImage {
+                        image,
+                        source,
+                        offset: [0; 2],
+                    });
                     scratch[1] += 64;
                     if scratch[1] > 512 {
                         scratch[1] = 256;

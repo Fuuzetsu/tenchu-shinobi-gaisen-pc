@@ -5,7 +5,7 @@ fn height_level(index: u32, uv: vec2<f32>, level: u32) -> vec3<f32> {
     let side = f32(textureDimensions(material_images).x);
     let page = u32(rect.x) / u32(side);
     let origin = vec2(rect.x - f32(page) * side, rect.y);
-    let coordinate = (origin + clamp(uv * rect.zw, vec2(0.5), rect.zw - vec2(0.5))) / side;
+    let coordinate = (origin + material_point(index, uv, rect.zw)) / side;
     return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * 3u + 2u), 0.0).rgb;
 }
 
@@ -42,7 +42,7 @@ fn surface_detail(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>, 
     let lod = clamp(log2(max(footprint, 1.0)), 0.0, f32(material_info(index).x - 1u));
     var uv = (v.uv - source.xy + vec2(0.5)) / source.zw;
     let edge = min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y));
-    let strength = camera.detail.y * relief.x * fade * smoothstep(0.0, 0.06, edge);
+    let strength = camera.detail.y * relief.x * fade * select(smoothstep(0.0, 0.06, edge), 1.0, (info.w & 16u) != 0u);
     let height = min(length(tangent), length(bitangent)) * 0.06 * strength;
     let eye = normalize(camera.eye.xyz - v.world);
     let facing = dot(eye, normal);

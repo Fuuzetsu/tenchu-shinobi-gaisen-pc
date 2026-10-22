@@ -3,6 +3,8 @@ use crate::render_mesh;
 use tenchu_assets::model::{Corner, Face, Geometry, Texture};
 use tenchu_core::math::Matrix;
 
+mod scrolling;
+
 fn rectangle(
     z: i16,
     color: u8,

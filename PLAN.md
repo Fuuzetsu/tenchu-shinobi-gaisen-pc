@@ -10,6 +10,35 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Complete Mission 1 texture pack
+
+Extend the optional native pilot into a complete Mission 1 texture pack. Check
+material intent against actual geometry and gameplay, preserving UV layout,
+transparency, animation, game logic and the unchanged default renderer.
+
+- [x] Correct the water replacement and verify the canal in-game. The pilot
+  misclassified its grey ripple image as masonry; that candidate is withdrawn.
+  The corrected water also follows the original texture scrolling. Canonical
+  content identity is stable when first seen mid-animation; the GPU shifts UVs
+  without rebuilding the replacement. Canal comparisons at ticks 0/24/64 show
+  moving ripples, with original fallback and reload covered by rendering tests.
+- [ ] Inventory all Mission 1 materials across both players and their equipment,
+  including scenery, props, foliage, actors, weapons, items and effects. Record
+  usage, blend/alpha classes and review status rather than guessing from thumbnails.
+- [ ] Author coherent building groups, roads, water and landscape materials;
+  verify repeated edges and all distinct uses in actual stage views.
+- [ ] Complete props, foliage, character/equipment and effect artwork while
+  preserving silhouettes, UV islands, readable identity and animation.
+- [ ] Package with explicit coverage accounting and reproducible provenance;
+  validate pack memory, performance, reload and exact restoration when disabled.
+- [ ] Review the whole mission and both player variants, document limitations,
+  format/check and commit reusable tooling and results. Do not count a resized
+  original or an unreviewed candidate as a completed replacement.
+
+Sources, references, generated images, prompts and review captures remain under
+ignored `private/`. The original ten-image pilot is the starting point, not
+evidence of full coverage or correct material interpretation.
+
 ## Mission 1 material pilot
 
 Try a small optional high-resolution scenery pack using original texture images
