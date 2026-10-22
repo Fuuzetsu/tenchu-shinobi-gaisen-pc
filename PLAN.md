@@ -47,15 +47,19 @@ attributes, scrolling and sprite archive indices. The shared sprite archive
 includes interface art and effects used in other missions; actual effect usage
 still needs review. Its presence in the export is not a completion denominator.
 
-The native pack now contains 41 reviewed materials (5,505,024 decoded pixels),
-including corrected scrolling water, additional roof tiles/ridge/eaves, mossy
-ground, paving edges, timber/plaster framing, stone lanterns, shoji, tatami,
-diamond plaster and diagonal gable trim. The gallery has 164 paired stage views;
-the cutout timber frame was revised to cover its original mask. Preview cameras
-now trace through actual texture holes so layered pond surfaces can be reviewed.
-The native walk/pause/toggle/reload check restores identical paused pixels.
-The local comparison gallery and existing pilot launcher use the expanded pack.
-These are partial results; most scenery and all actor/equipment artwork remain.
+The native pack now contains replacements for all 100 scenery texture identities
+(9,535,488 decoded pixels): roofs/gables, timber/plaster, doors/windows, tatami,
+interior paintings and trim, roads, moss/petals, pond layers and scenery lantern
+surfaces. Each material was reviewed in paired stage views; the gallery has 400
+pairs. Some artwork is an interpretation of ambiguous low-resolution details,
+and broader whole-stage review remains. The carved transoms and pond glints use
+authored cutouts to avoid retaining coarse original holes. Preview cameras trace
+through texture holes so layered pond surfaces can be reviewed.
+The 100-material native walk/pause/toggle/reload check restores identical paused
+pixels at tick 81. The gallery and existing pilot launcher use this expanded pack.
+These are partial results: 35 additional prop/foliage textures and actor/equipment
+and world-effect artwork remain. Their loaded catalogue includes outfit variants;
+interface-only and other-mission effect images still need explicit scope review.
 
 World sprite replacements now preserve cutouts and blend classes while shared
 HUD images remain original. Vulkan and OpenGL checks cover filtering, live reload
@@ -63,6 +67,9 @@ and exact disable restoration; all 16 Vulkan renderer regressions pass. The pack
 tool also supports explicitly authored cutout masks for finer foliage and water
 glints, retaining the source's nonzero blend class. Original masks remain the
 default, with a coverage check to reject missing paint under their visible pixels.
+Native and WASM Clippy, synthetic pack-mask checks and all four x86_64-linux Nix
+checks pass. Full prompts, generated atlases, exact crop rectangles, original
+references and rejected alternatives stay in the private authoring directory.
 
 ## Mission 1 material pilot
 
