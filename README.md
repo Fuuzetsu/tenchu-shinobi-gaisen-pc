@@ -125,6 +125,15 @@ pack. This tool reviews texture/height changes on original scenery geometry.
 `--ticks N` advances the game before freezing the view, useful for checking
 animated replacements. The context view adds an oblique camera along the surface.
 
+`preview-models DISC EMPTY_DIRECTORY actors/0000,weapons/0000` captures six
+original/replacement angles of assembled actor and equipment meshes. Use model
+IDs from the export, omitting the final part number for whole actors. Groups such
+as `actors`, `weapons` and `common` select all matching models. Actors use their
+idle pose after 30 animation updates; gameplay is not advanced. It accepts the
+usual mission options and `--outfit normal|armour|alternate`. Review framing
+fits each model automatically and preserves translucent face blends. These
+isolated views supplement actual stage/gameplay review.
+
 Fresh `export-assets` catalogues include each texture's model usage, blend modes,
 alpha classes, scrolling status, map positions and matching terrain attributes.
 To combine player/layout exports and browse labelled contact sheets, run
@@ -137,6 +146,9 @@ Use `--layout random` when exporting to include all enemy layouts.
 outfit is Ayame's. Exports include the 62 shared sprite images with their archive
 indices. The catalogue's sprite category includes both world effects and interface
 art; an exported image is not evidence that it is used in the selected mission.
+Shared textures retain every outfit label and its per-export face usage when
+catalogues are merged. `tools/test-material-catalog.py` checks this with synthetic
+outfit fixtures.
 
 `./dev.sh python3 tools/material-review.py CAPTURES --recipe RECIPE.json`
 adds a local `index.html` with a before/after slider. The optional recipe gives

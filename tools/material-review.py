@@ -1,4 +1,4 @@
-"""Make a local before/after viewer for preview-materials captures."""
+"""Make a local before/after viewer for preview-materials and preview-models captures."""
 
 import argparse
 import json
@@ -13,9 +13,16 @@ def main():
     views = json.loads((args.captures / "views.json").read_text())
     recipe = json.loads(args.recipe.read_text()) if args.recipe else {}
     for view in views:
-        view["name"] = recipe.get(view["texture"], {}).get("name", view["texture"][:8])
+        if "texture" in view:
+            view["name"] = recipe.get(view["texture"], {}).get("name", view["texture"][:8])
+            view["stem"] = view["texture"]
+            view["details"] = "Texture " + view["texture"]
+            if not view.get("unobstructed", True):
+                view["details"] += " · target partly obstructed"
+        else:
+            view["details"] = "Model " + view["model"] + " · " + view["pose"]
         for mode in ("original", "pack"):
-            path = args.captures / f'{view["texture"]}-{view["view"]}-{mode}.png'
+            path = args.captures / f'{view["stem"]}-{view["view"]}-{mode}.png'
             if not path.is_file():
                 parser.error(f"missing capture: {path}")
     data = json.dumps(views).replace("<", "\\u003c")
@@ -42,7 +49,7 @@ h1{font-size:24px}select,button{font:inherit;padding:7px;margin:0 12px 16px 0}
 const views=VIEWS;
 const select=document.getElementById('view'),before=document.getElementById('before'),after=document.getElementById('after'),wipe=document.getElementById('wipe');
 views.forEach((v,i)=>{const o=new Option(v.name.replaceAll('_',' ')+' / '+v.view,i);select.add(o)});
-function update(){const v=views[select.value];const p=v.texture+'-'+v.view;before.src=p+'-original.png';after.src=p+'-pack.png';document.getElementById('details').textContent='Texture '+v.texture+(v.unobstructed?'':' · target partly obstructed');}
+function update(){const v=views[select.value];const p=v.stem+'-'+v.view;before.src=p+'-original.png';after.src=p+'-pack.png';document.getElementById('details').textContent=v.details;}
 function divide(n){wipe.value=n;after.style.clipPath='inset(0 0 0 '+n+'%)'}
 select.onchange=update;wipe.oninput=()=>divide(wipe.value);
 document.getElementById('original').onclick=()=>divide(100);

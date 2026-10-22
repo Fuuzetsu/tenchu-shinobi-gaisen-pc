@@ -8,6 +8,8 @@ use std::{fs::File, io::BufWriter, path::Path};
 use tenchu_assets::{Result, game::GameAssets};
 
 pub mod materials;
+pub mod models;
+mod review;
 
 pub fn render(assets: &GameAssets<DiscSource>, destination: &Path, options: Options) -> Result<()> {
     let mut game = options.load(assets)?;

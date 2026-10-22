@@ -1,9 +1,9 @@
+use super::review::{self, Review};
 use crate::{
     render_mesh::{self, Vertex},
-    renderer::Renderer,
     session::Options,
     source::DiscSource,
-    visuals::{catalog, pack::Pack},
+    visuals::catalog,
 };
 use glam::{Mat4, Vec3};
 use std::{collections::BTreeMap, fs, path::Path};
@@ -68,19 +68,10 @@ pub fn render(
     {
         return Err("Supply comma-separated texture identities from export-assets".into());
     }
-    if output.exists()
-        && fs::read_dir(output)
-            .map_err(|e| e.to_string())?
-            .next()
-            .is_some()
-    {
-        return Err("Preview output must be an empty directory".into());
-    }
     let mut game = options.load(assets)?;
     for _ in 0..ticks {
         game.step(0)?;
     }
-    let pack = Pack::from_env()?;
     let vertices = render_mesh::stage(&game.mission, &game.math, None);
     let player = Vec3::from(game.player().position.to_array().map(|n| n as f32));
     let mut regions = BTreeMap::new();
@@ -132,41 +123,13 @@ pub fn render(
             ));
         }
     }
-    fs::create_dir_all(output).map_err(|e| e.to_string())?;
-    let instance = wgpu::Instance::new(&Default::default());
-    let adapter = pollster::block_on(instance.request_adapter(&Default::default()))
-        .ok_or("No graphics adapter")?;
-    let size = [1280, 720];
-    let format = wgpu::TextureFormat::Rgba8Unorm;
-    let mut renderer =
-        pollster::block_on(Renderer::new(&adapter, format, size, &game.mission.vram))?;
-    renderer.set_asset_pack(&pack);
-    let mesh = renderer.upload(&vertices);
-    let actors = renderer.upload(&render_mesh::characters(&game, None));
-    let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Material review"),
-        size: wgpu::Extent3d {
-            width: size[0],
-            height: size[1],
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
-        view_formats: &[],
-    });
-    let mut graphics = if std::env::var_os("TENCHU_SETTINGS").is_some() {
-        crate::settings::Store::new()?.load()?.graphics
-    } else {
-        let mut graphics = crate::settings::Graphics {
-            fog: false,
-            ..Default::default()
-        };
-        graphics.set_filtering(4);
-        graphics
-    };
+    review::prepare_directory(output)?;
+    let mut review = Review::new(&game.mission.vram)?;
+    let mesh = review.renderer.upload(&vertices);
+    let actors = review
+        .renderer
+        .upload(&render_mesh::characters(&game, None));
+    let size = review::SIZE;
     let mut views = Vec::new();
     for (id, candidates) in &mut surfaces {
         candidates.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -215,20 +178,12 @@ pub fn render(
                 250_000.0,
             ) * Mat4::look_at_rh(eye, center, up);
             for enabled in [false, true] {
-                graphics.asset_pack = enabled;
-                renderer.configure(&graphics);
-                renderer.draw_lit(
-                    &texture.create_view(&Default::default()),
+                let suffix = if enabled { "pack" } else { "original" };
+                review.capture(
                     camera,
                     &[&mesh, &actors],
                     None,
-                    &[],
-                    &[&mesh, &actors],
-                )?;
-                let suffix = if enabled { "pack" } else { "original" };
-                super::read_texture(
-                    &renderer,
-                    &texture,
+                    enabled,
                     &output.join(format!("{id}-{name}-{suffix}.png")),
                 )?;
             }

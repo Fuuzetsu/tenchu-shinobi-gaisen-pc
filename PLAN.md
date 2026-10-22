@@ -78,6 +78,17 @@ Native and WASM Clippy, synthetic pack-mask checks and all four x86_64-linux Nix
 checks pass. Full prompts, generated atlases, exact crop rectangles, original
 references and rejected alternatives stay in the private authoring directory.
 
+Actor/equipment authoring now has `preview-models`: assembled idle actors and
+standalone equipment, six camera angles, texture identity lists and original/pack
+pairs through the normal renderer. The first Mission 1 normal-Rikimaru export
+renders 91 models (546 view pairs). The shared capture setup preserves eight
+existing scenery captures byte-for-byte, and the cutout visibility regression,
+native/WASM Clippy and release build pass. Shared texture metadata now retains
+all outfit labels and per-export triangle counts instead of silently replacing
+the earlier label. This caught missing face-patch attribution during authoring;
+an early generated mask incorrectly included eyes and remains a rejected private
+candidate, not part of the stable pack. Character art is still in progress.
+
 ## Mission 1 material pilot
 
 Try a small optional high-resolution scenery pack using original texture images

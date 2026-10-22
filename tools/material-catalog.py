@@ -36,7 +36,13 @@ def main():
             entry["terrain_attributes"] = sorted(set(entry["terrain_attributes"] + detail["terrain_attributes"]))
             entry["map_samples"] = detail["map_samples"] or entry["map_samples"]
             for model, usage in detail["models"].items():
-                entry["models"][model] = {**usage, "label": models[model]}
+                merged = entry["models"].setdefault(model, {
+                    **usage, "label": models[model], "labels": [], "variants": {},
+                })
+                merged["labels"] = sorted(set(merged["labels"] + [models[model]]))
+                merged["variants"][directory.name] = {**usage, "label": models[model]}
+                merged["triangles"] = max(merged["triangles"], usage["triangles"])
+                merged["blends"] = sorted(set(merged["blends"] + usage["blends"]))
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "textures").mkdir()
     for entry in entries.values():
@@ -73,7 +79,9 @@ def main():
                     scale = min(120 // texture.width, 120 // texture.height)
                     texture = texture.resize((texture.width * scale, texture.height * scale), Image.Resampling.NEAREST)
                     sheet.paste(texture, (x + 4, y + 4), texture)
-                labels = sorted({u["label"].split(", part")[0] for u in entry["models"].values() if not u["label"].startswith("Map part")})
+                labels = sorted({label.split(", part")[0]
+                                 for u in entry["models"].values() for label in u["labels"]
+                                 if not label.startswith("Map part")})
                 if entry["sprites"]:
                     labels.append("Sprites " + ",".join(map(str, entry["sprites"])))
                 draw.text((x + 128, y + 8), str(start + i) + " " + entry["id"][:8], fill="white")
