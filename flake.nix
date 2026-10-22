@@ -125,6 +125,7 @@
             nodejs
             python3
             playwright-driver
+            geckodriver
           ];
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
             pkgs.alsa-lib

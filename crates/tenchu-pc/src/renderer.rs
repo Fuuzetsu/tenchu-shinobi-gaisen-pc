@@ -21,6 +21,16 @@ pub struct Mesh {
     count: u32,
 }
 
+fn array_layers(device: &wgpu::Device, layers: u32) -> u32 {
+    // wgpu 24's GL backend infers square multiples of six as cubemaps, and one
+    // layer as D2. Padding keeps these resources D2Array on that backend.
+    if device.limits().max_storage_buffers_per_shader_stage == 0 {
+        layers.max(2) + u32::from(layers.is_multiple_of(6))
+    } else {
+        layers
+    }
+}
+
 pub struct EffectMesh {
     mesh: Mesh,
     batches: Vec<render_effects::Batch>,
@@ -77,7 +87,8 @@ impl Renderer {
         let sample_counts = [1, 2, 4, 8, 16]
             .into_iter()
             .filter(|&n| {
-                color.sample_count_supported(n)
+                (n == 1 || adapter.get_info().backend != wgpu::Backend::Gl)
+                    && color.sample_count_supported(n)
                     && hdr.sample_count_supported(n)
                     && depth.sample_count_supported(n)
                     && (n == 1
@@ -90,31 +101,19 @@ impl Renderer {
                 &wgpu::DeviceDescriptor {
                     label: Some("Tenchu renderer"),
                     required_features: features,
+                    required_limits: if adapter.get_info().backend == wgpu::Backend::Gl {
+                        wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
+                    } else {
+                        wgpu::Limits::default()
+                    },
                     ..Default::default()
                 },
                 None,
             )
             .await
             .map_err(|e| e.to_string())?;
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Original paletted textures"),
-            source: wgpu::ShaderSource::Wgsl(
-                format!(
-                    "const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}",
-                    crate::lighting::MAX_LIGHTS,
-                    shadows::FACES,
-                    materials::MAX_MIPS,
-                    shadows::NEAR,
-                    crate::visuals::relief::GRADIENT_RANGE,
-                    include_str!("scene.wgsl"),
-                    include_str!("renderer/palette.wgsl"),
-                    include_str!("renderer/lighting.wgsl"),
-                    include_str!("renderer/materials.wgsl"),
-                    include_str!("renderer/relief.wgsl")
-                )
-                .into(),
-            ),
-        });
+        let graphics = crate::settings::Graphics::default();
+        let shader = pipelines::Options::from(&graphics).shader(&device);
         let binding_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Scene bindings"),
             entries: &[
@@ -206,7 +205,7 @@ impl Renderer {
             sample_counts,
             samples: 1,
             multisample: None,
-            graphics: crate::settings::Graphics::default(),
+            graphics,
             shadows,
             materials,
         };
@@ -291,10 +290,16 @@ impl Renderer {
         } else {
             1
         };
-        let rebuild =
+        let attachments_changed =
             samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
+        let options = pipelines::Options::from(graphics);
+        let shader_changed = options != (&self.graphics).into();
+        let pipelines_changed = attachments_changed || shader_changed;
+        if shader_changed {
+            self.shader = options.shader(&self.device);
+        }
         self.graphics = graphics.clone();
-        if rebuild {
+        if pipelines_changed {
             (self.pipeline, self.effects) = pipelines::create(
                 &self.device,
                 self.world_format(),
@@ -302,6 +307,8 @@ impl Renderer {
                 &self.shader,
                 samples,
             );
+        }
+        if attachments_changed {
             self.samples = samples;
             self.resize(self.size);
         }

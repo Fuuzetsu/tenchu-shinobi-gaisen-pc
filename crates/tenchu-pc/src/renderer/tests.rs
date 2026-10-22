@@ -96,7 +96,7 @@ fn read_pixel(renderer: &Renderer, target: &wgpu::Texture) -> [u8; 4] {
 }
 
 fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
-    let instance = wgpu::Instance::new(&Default::default());
+    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
             .expect("No graphics adapter");

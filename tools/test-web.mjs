@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { sceneImage } from "./browser-image.mjs";
 const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
 const base = process.env.TENCHU_WEB_URL ?? "http://127.0.0.1:8000";
 const output = process.env.TENCHU_WEB_CAPTURES ?? "private/browser-check";
+const webgl = process.env.TENCHU_WEBGL === "1";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: process.env.TENCHU_HEADLESS === "1",
   executablePath: process.env.BROWSER_EXECUTABLE || undefined,
-  args: ["--no-sandbox", "--mute-audio", "--enable-unsafe-webgpu", "--ignore-gpu-blocklist",
+  args: ["--no-sandbox", "--mute-audio", ...(!webgl ? ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] : []),
     ...(process.platform === "linux" ? ["--ozone-platform=x11", "--enable-gpu", "--use-angle=vulkan", "--enable-features=Vulkan,VulkanFromANGLE", "--disable-vulkan-surface"] : [])],
 });
 const errors = [];
 const context = await browser.newContext({ viewport: { width: 1280, height: 760 } });
-await context.addInitScript(() => {
+await context.addInitScript(webgl => {
+  if (webgl) Object.defineProperty(navigator, "gpu", { value: undefined });
   window.testMedia = { videos: [], contexts: [], gpuErrors: [] };
   const create = document.createElement.bind(document);
   document.createElement = (...args) => {
@@ -25,24 +28,37 @@ await context.addInitScript(() => {
   window.AudioContext = class extends Audio {
     constructor(...args) { super(...args); window.testMedia.contexts.push(this); }
   };
-  const request = GPUAdapter.prototype.requestDevice;
-  GPUAdapter.prototype.requestDevice = async function (...args) {
-    const device = await request.apply(this, args);
-    device.addEventListener("uncapturederror", event => window.testMedia.gpuErrors.push(event.error.message));
-    device.lost.then(event => { if (event.reason !== "destroyed") window.testMedia.gpuErrors.push(event.message); });
-    return device;
-  };
-});
+  if (typeof GPUAdapter !== "undefined") {
+    const request = GPUAdapter.prototype.requestDevice;
+    GPUAdapter.prototype.requestDevice = async function (...args) {
+      const device = await request.apply(this, args);
+      device.addEventListener("uncapturederror", event => window.testMedia.gpuErrors.push(event.error.message));
+      device.lost.then(event => { if (event.reason !== "destroyed") window.testMedia.gpuErrors.push(event.message); });
+      return device;
+    };
+  }
+}, webgl);
 const page = await context.newPage();
-page.on("pageerror", error => errors.push(error.stack));
-page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+page.on("pageerror", error => { errors.push(error.stack); console.error(error.stack); });
+page.on("console", message => {
+  if (message.type() === "error" || /GL_INVALID_|WebGL: INVALID_/.test(message.text())) {
+    errors.push(message.text()); console.error(message.text());
+  }
+});
 const state = () => page.evaluate(() => JSON.parse(window.port.snapshot()));
-const shot = name => page.screenshot({ path: `${output}/${name}.png` });
+const shot = async (name, scene = false) => {
+  const png = await page.screenshot({ path: `${output}/${name}.png` });
+  const image = scene ? await page.evaluate(sceneImage, png.toString("base64")) : undefined;
+  if (scene) assert(image.colors > 64, `${name}: scene is blank`);
+  if (scene && webgl) assert.equal(await page.evaluate(() => document.getElementById("game").getContext("webgl2").getError()), 0);
+  return image;
+};
 const key = async key => { await page.keyboard.press(key); await page.waitForTimeout(650); };
 try {
   await page.goto(base);
   await page.click("#quick");
   await page.waitForFunction(() => document.body.dataset.ready === "true", null, { timeout: 60000 });
+  assert.equal(await page.evaluate(() => document.body.dataset.renderer), webgl ? "WebGL2" : "WebGPU");
   await page.evaluate(async () => { window.port = await import("./pkg/tenchu_pc.js"); });
   await page.waitForFunction(() => document.body.dataset.assetsReady === "true", null, { timeout: 120000 });
   await shot("launcher");
@@ -60,24 +76,26 @@ try {
   assert(after.tick > before.tick);
   assert.notDeepEqual(after.position, before.position);
   assert.equal(after.fault, "");
-  await shot("mission-1");
+  await shot("mission-1", true);
   const downloading = page.waitForEvent("download");
   await key("F9");
   await (await downloading).saveAs(`${output}/download.png`);
-  await key("p");
+  await key("F3");
   const frozen = await state();
+  const original = await shot("frozen-original", true);
   await key("F1"); await key("Tab"); await key("ArrowLeft"); await key("F1");
-  await shot("surface-parallax");
+  const enhanced = await shot("surface-parallax", true);
+  assert.deepEqual(enhanced.hud, original.hud, "Post-processing must preserve the life medallion");
   assert.equal(await page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-pc/settings.json"))))).graphics.surface_detail), 2);
   await key("F1");
   for (let i = 0; i < 8; i++) await key("ArrowDown");
   await key("ArrowLeft"); await key("F1");
-  await shot("surface-bump");
+  await shot("surface-bump", true);
   await key("F1"); await key("ArrowLeft"); await key("F1");
-  await shot("surface-off");
+  await shot("surface-off", true);
   assert.equal((await state()).tick, frozen.tick);
   assert.equal((await state()).rng, frozen.rng);
-  await key("p");
+  await key("F3");
   await key("F1");
   const paused = await state();
   await page.waitForTimeout(500);
@@ -108,7 +126,7 @@ try {
   assert.equal(mission.character, 1);
   assert.equal(mission.screen, "playing");
   assert.equal(mission.fault, "");
-  await shot("mission-5-ayame");
+  await shot("mission-5-ayame", true);
   assert(await page.evaluate(() => localStorage.getItem("tenchu-pc/progress.sav") != null));
   await page.reload();
   await page.click("#play");

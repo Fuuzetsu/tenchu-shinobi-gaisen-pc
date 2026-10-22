@@ -31,6 +31,7 @@ flate2 = "1"
 cpal.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+wgpu = { workspace = true, features = ["webgl"] }
 cpal = { version = "=0.18.2", features = ["audioworklet"] }
 wasm-bindgen = "=0.2.121"
 wasm-bindgen-futures = "=0.4.71"

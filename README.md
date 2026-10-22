@@ -22,7 +22,7 @@ Game data, captured RAM and disc images must remain outside Git. No BIOS is
 required. This is an early PC port with full campaign and training regression
 routes, native window checks and source/retail comparisons described below.
 Those checks do not establish perfect parity for every possible playthrough.
-A browser host is being added alongside native play; editable texture/model
+A browser host is available alongside native play; editable texture/model
 packs are supported. Authored HD content remains separate. The shared assets, audio and gameplay crates compile for WASM.
 
 The visual-upgrade work is tracked in [CONFIGURATION.md](CONFIGURATION.md).
@@ -204,7 +204,9 @@ Original/Enhanced comparisons of the same simulation state.
 
 ## Browser build
 
-The browser host uses the same Rust gameplay, renderer and menus through WebGPU.
+The browser host uses the same Rust gameplay, renderer and menus through WebGPU
+or WebGL2. Automatic selection checks for a usable WebGPU adapter and falls back
+to WebGL2, including browsers that expose WebGPU but cannot create an adapter.
 Build a static site and prepare server assets from your own raw BIN/CUE disc:
 
 ```sh
@@ -212,10 +214,22 @@ Build a static site and prepare server assets from your own raw BIN/CUE disc:
 ./dev.sh python3 tools/serve-web.py private/web
 ```
 
-Open `http://127.0.0.1:8000` in a WebGPU-capable browser and click **Start game**
+Open `http://127.0.0.1:8000` in a browser and click **Start game**
 or **Quick launcher**. The first click also enables browser audio. F1 and F6
 keep their native roles. The canvas follows the available browser area; use
-**Fullscreen** below it to fill the display. WebGPU requires localhost or HTTPS.
+**Fullscreen** below it to fill the display. Use localhost or HTTPS for browser APIs.
+The welcome screen's **Graphics** choice can force **WebGL2 (compatibility)**;
+`?renderer=webgl2` also bypasses WebGPU completely, including adapter probes.
+Use this if experimental WebGPU support crashes your browser. Firefox 147 on
+Linux runs through WebGL2 without enabling `dom.webgpu.enabled`; the reported
+Firefox/NVIDIA/Wayland WebGPU crash has not been diagnosed or fixed inside Firefox.
+The active backend appears below the game; hover it to see the adapter name.
+WebGL2 supports the visual presets, lighting/shadows and surface depth, but does
+not offer multisample edge anti-aliasing or GPU timestamp measurements.
+Original uses a small shader variant with disabled effects compiled out. A
+Firefox/NVIDIA check improved from about 20 to 42 FPS at 3840×2038, while
+1280×678 stayed near 60 FPS. Full 4K/60 is not guaranteed on WebGL2; a smaller
+window reduces its rendering cost without changing gameplay speed.
 The complete host is also built by `nix build .#web`; it contains no game data.
 `tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
 
@@ -241,6 +255,13 @@ continued play after disconnecting the network, surface-depth modes at an unchan
 simulation tick, fullscreen transitions and exit/restart. This is a browser host check,
 not a new full campaign playthrough. Run `./dev.sh node tools/test-web.mjs` against
 the local server to repeat it (a display and working WebGPU adapter are needed).
+Set `TENCHU_WEBGL=1` to exercise automatic fallback in Chromium. Run
+`./dev.sh node tools/test-web-firefox.mjs` for Firefox, using an isolated temporary
+profile and the explicit WebGL2 path. `FIREFOX_EXECUTABLE` can select an installed
+Firefox binary. These tests check rendered screenshots as well as gameplay state;
+the Firefox check verifies that explicit WebGL2 never probes WebGPU.
+`TENCHU_WEB_BENCH=1` adds a small-window/4K frame-cadence comparison to that check;
+use it without other GPU workloads and inspect the reported adapter and canvas size.
 Set `TENCHU_WEB_URL` to use another address. For deployment, serve the generated
 site over HTTPS with `Cross-Origin-Opener-Policy: same-origin` and
 `Cross-Origin-Embedder-Policy: require-corp`, as the local server does.

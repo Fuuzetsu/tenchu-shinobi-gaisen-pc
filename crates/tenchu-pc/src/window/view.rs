@@ -108,7 +108,17 @@ impl View {
         game: &Game,
         settings: &Settings,
     ) -> Result<Self> {
-        let instance = wgpu::Instance::new(&Default::default());
+        let descriptor = wgpu::InstanceDescriptor::default();
+        #[cfg(target_arch = "wasm32")]
+        let descriptor = wgpu::InstanceDescriptor {
+            backends: match crate::web::graphics_preference().as_str() {
+                "webgl2" => wgpu::Backends::GL,
+                "webgpu" => wgpu::Backends::BROWSER_WEBGPU,
+                _ => wgpu::Backends::all(),
+            },
+            ..descriptor
+        };
+        let instance = wgpu::util::new_instance_with_webgpu_detection(&descriptor).await;
         let surface = instance
             .create_surface(window.clone())
             .map_err(|e| e.to_string())?;
@@ -118,7 +128,16 @@ impl View {
                 ..Default::default()
             })
             .await
-            .ok_or("No graphics adapter for this window")?;
+            .ok_or("No graphics adapter available. Enable hardware acceleration in your browser or graphics driver.")?;
+        #[cfg(target_arch = "wasm32")]
+        crate::web::graphics_backend(
+            if adapter.get_info().backend == wgpu::Backend::Gl {
+                "WebGL2"
+            } else {
+                "WebGPU"
+            },
+            &adapter.get_info().name,
+        );
         let size = window.inner_size();
         let mut config = surface
             .get_default_config(&adapter, size.width.max(1), size.height.max(1))

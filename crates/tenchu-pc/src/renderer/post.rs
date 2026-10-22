@@ -36,6 +36,10 @@ impl Post {
             mag_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
+        let depth_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Unfiltered scene depth"),
+            ..Default::default()
+        });
         let data = buffer(device, 32 * 4);
         let bloom_data = buffer(device, 16);
         let bloom_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -94,6 +98,12 @@ impl Post {
             sampler_entry(5),
             texture_entry(6, true, samples > 1),
             uniform_entry(7),
+            wgpu::BindGroupLayoutEntry {
+                binding: 8,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                count: None,
+            },
         ]);
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Scene finishing"),
@@ -107,9 +117,17 @@ impl Post {
                     include_str!("post.wgsl").replace(
                         "DEPTH_TYPE",
                         if samples > 1 {
-                            "texture_depth_multisampled_2d"
+                            "texture_multisampled_2d<f32>"
                         } else {
-                            "texture_depth_2d"
+                            "texture_2d<f32>"
+                        }
+                    ).replace(
+                        "DEPTH_SAMPLE",
+                        if samples > 1 {
+                            "textureLoad(depth_map, point, i).r"
+                        } else {
+                            // An explicit nearest sampler avoids incomplete depth textures in WebGL.
+                            "textureSampleLevel(depth_map, depth_sampler, (vec2<f32>(point) + vec2(0.5)) / vec2<f32>(textureDimensions(depth_map)), 0.0).r"
                         }
                     )
                 )
@@ -137,6 +155,10 @@ impl Post {
             wgpu::BindGroupEntry {
                 binding: 7,
                 resource: data.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 8,
+                resource: wgpu::BindingResource::Sampler(&depth_sampler),
             },
         ]);
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -274,7 +296,7 @@ fn texture_entry(binding: u32, depth: bool, multisampled: bool) -> wgpu::BindGro
         visibility: wgpu::ShaderStages::FRAGMENT,
         ty: wgpu::BindingType::Texture {
             sample_type: if depth {
-                wgpu::TextureSampleType::Depth
+                wgpu::TextureSampleType::Float { filterable: false }
             } else {
                 wgpu::TextureSampleType::Float { filterable: true }
             },

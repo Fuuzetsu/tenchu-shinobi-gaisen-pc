@@ -133,7 +133,7 @@ impl Shadows {
                     super::materials::MAX_MIPS,
                     include_str!("shadow.wgsl"),
                     include_str!("palette.wgsl"),
-                    include_str!("materials.wgsl").replace("@group(2)", "@group(1)")
+                    super::materials::shader(device).replace("@group(2)", "@group(1)")
                 )
                 .into(),
             ),
@@ -352,7 +352,7 @@ fn maps(
         size: wgpu::Extent3d {
             width: resolution,
             height: resolution,
-            depth_or_array_layers: layers as u32,
+            depth_or_array_layers: super::array_layers(device, layers as u32),
         },
         mip_level_count: 1,
         sample_count: 1,

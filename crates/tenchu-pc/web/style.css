@@ -10,6 +10,8 @@ h1 { margin: .4rem 0 1rem; font-family: Georgia, serif; font-size: clamp(3rem, 8
 h1 span { display: block; font: .85rem system-ui, sans-serif; letter-spacing: .45em; text-transform: uppercase; margin-top: .7rem; }
 #message { max-width: 46rem; line-height: 1.6; overflow-wrap: anywhere; }
 .actions { display: flex; gap: .8rem; margin: 1.5rem; }
+.renderer { color: #bbbcb7; font-size: .9rem; }
+.renderer select { margin-left: .5rem; padding: .35rem; font: inherit; }
 button { cursor: pointer; background: #bda778; color: #161614; border: 1px solid #c6b48b; padding: .8rem 1.3rem; border-radius: 3px; font: inherit; }
 button.secondary { background: transparent; color: #eee8dc; border-color: #65645f; }
 button:hover { filter: brightness(1.15); }
@@ -17,6 +19,6 @@ button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 button:disabled { opacity: .5; cursor: wait; }
 .help { color: #a5a49e; line-height: 1.9; font-size: .85rem; }
 footer { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 4px 14px; gap: 1rem; font-size: 12px; color: #bbbcb7; background: #151819; }
-footer nav { display: flex; flex-shrink: 0; gap: 8px; }
+footer nav { display: flex; align-items: center; flex-shrink: 0; gap: 8px; }
 footer button { padding: 3px 8px; background: none; color: #cccac0; border-color: #414442; font-size: 11px; }
 @media (max-width: 680px) { footer { flex-wrap: wrap; gap: 4px; } }

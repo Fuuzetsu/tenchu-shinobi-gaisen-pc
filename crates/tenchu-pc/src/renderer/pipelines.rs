@@ -1,6 +1,26 @@
+use super::{materials, shadows};
 use crate::render_mesh::Vertex;
 
-pub fn create(
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) struct Options {
+    filtering: bool,
+    lighting: bool,
+    relief: bool,
+    hdr: bool,
+}
+
+impl From<&crate::settings::Graphics> for Options {
+    fn from(graphics: &crate::settings::Graphics) -> Self {
+        Self {
+            filtering: graphics.bilinear || graphics.mipmaps || graphics.magnification != 0,
+            lighting: graphics.lighting.enabled,
+            relief: graphics.surface_detail != 0,
+            hdr: graphics.post.enabled,
+        }
+    }
+}
+
+pub(super) fn create(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
     layout: &wgpu::PipelineLayout,
@@ -62,4 +82,30 @@ pub fn create(
         make_pipeline(Some(blend), "translucent", -2, false)
     });
     (pipeline, effects)
+}
+
+impl Options {
+    pub(super) fn shader(self, device: &wgpu::Device) -> wgpu::ShaderModule {
+        // Distinct modules also avoid wgpu 24 GL's cache ignoring pipeline overrides.
+        device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Original paletted textures"),
+            source: wgpu::ShaderSource::Wgsl(
+                format!(
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}",
+                    self.filtering, self.lighting, self.relief, self.hdr,
+                    crate::lighting::MAX_LIGHTS,
+                    shadows::FACES,
+                    materials::MAX_MIPS,
+                    shadows::NEAR,
+                    crate::visuals::relief::GRADIENT_RANGE,
+                    include_str!("../scene.wgsl"),
+                    include_str!("palette.wgsl"),
+                    include_str!("lighting.wgsl"),
+                    materials::shader(device),
+                    include_str!("relief.wgsl")
+                )
+                .into(),
+            ),
+        })
+    }
 }

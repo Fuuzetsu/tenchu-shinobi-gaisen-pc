@@ -75,8 +75,8 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     let coordinate = detail.coordinate;
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
-    let hdr = camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
-    let linear_lighting = hdr || (!screen && lighting.options.w != 0.0);
+    let hdr = HDR_ENABLED && camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
+    let linear_lighting = hdr || (LIGHTING_ENABLED && !screen && lighting.options.w != 0.0);
     var color = v.color;
     var emission = vec4(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
@@ -97,15 +97,15 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
         }
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
-            if !screen && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
+            if FILTER_MATERIALS && !screen && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
                 color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
-            } else if !screen && camera.options.w != 0.0 {
+            } else if FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);
             } else {
                 color *= base;
             }
         }
-        if !screen && (v.flags & EMITTER) != 0u && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
+        if LIGHTING_ENABLED && !screen && (v.flags & EMITTER) != 0u && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
             emission = material_emission(v.material, base);
             if linear_lighting { emission = vec4(emission.rgb * pow(max(base, vec3(0.0)), vec3(1.2)), emission.a); }
         }
@@ -115,7 +115,7 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     if !screen { color = mix(color * detail.cavity * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
-        let haze = 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0);
+        let haze = select(0.0, 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);
         color = mix(color, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
     }
     if !screen { color *= camera.options.x; }

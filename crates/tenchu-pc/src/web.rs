@@ -17,6 +17,8 @@ extern "C" {
     #[wasm_bindgen(catch)]
     async fn prefetch_media(paths: JsValue) -> std::result::Result<(), JsValue>;
     pub fn status(message: &str);
+    pub fn graphics_backend(name: &str, adapter: &str);
+    pub fn graphics_preference() -> String;
     pub fn frame(tick: u64, playing: bool, fault: &str);
     pub fn ready();
     pub fn closed();

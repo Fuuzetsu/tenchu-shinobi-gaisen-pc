@@ -1,7 +1,7 @@
 struct Detail { coordinate: vec2<f32>, normal: vec3<f32>, cavity: f32 }
 
 fn height_level(index: u32, uv: vec2<f32>, level: u32) -> vec3<f32> {
-    let rect = materials[index].mips[level];
+    let rect = material_rect(index, level);
     let side = f32(textureDimensions(material_images).x);
     let page = u32(rect.x) / u32(side);
     let origin = vec2(rect.x - f32(page) * side, rect.y);
@@ -11,18 +11,18 @@ fn height_level(index: u32, uv: vec2<f32>, level: u32) -> vec3<f32> {
 
 fn height_sample(index: u32, uv: vec2<f32>, lod: f32) -> vec3<f32> {
     let low = u32(lod);
-    return mix(height_level(index, uv, low), height_level(index, uv, min(low + 1u, materials[index].info.x - 1u)), fract(lod));
+    return mix(height_level(index, uv, low), height_level(index, uv, min(low + 1u, material_info(index).x - 1u)), fract(lod));
 }
 
 fn surface_detail(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>, du: vec2<f32>, dv: vec2<f32>) -> Detail {
     var result = Detail(v.uv, normal, 1.0);
-    if camera.detail.x == 0.0 || camera.detail.y == 0.0 || camera.options.y == 0.0
+    if !SURFACE_DETAIL || camera.detail.x == 0.0 || camera.detail.y == 0.0 || camera.options.y == 0.0
         || (v.flags & (SCREEN | DEBUG | EMITTER | TRANSLUCENT | TEXTURED)) != TEXTURED
-        || v.material == 0u || v.material >= arrayLength(&materials) { return result; }
+        || v.material == 0u || v.material >= material_count() { return result; }
     let index = v.material;
-    let source = materials[index].source;
-    let info = materials[index].info;
-    let relief = materials[index].relief;
+    let source = material_source(index);
+    let info = material_info(index);
+    let relief = material_relief(index);
     if (info.w & 8u) == 0u || relief.x == 0.0
         || ((v.flags & SCENERY) == 0u && relief.y == 0.0) { return result; }
     let gx = du / source.zw;
@@ -39,7 +39,7 @@ fn surface_detail(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>, 
     let footprint = max(length(gx * size), length(gy * size));
     let fade = 1.0 - smoothstep(1.0, 8.0, footprint);
     if fade == 0.0 { return result; }
-    let lod = clamp(log2(max(footprint, 1.0)), 0.0, f32(materials[index].info.x - 1u));
+    let lod = clamp(log2(max(footprint, 1.0)), 0.0, f32(material_info(index).x - 1u));
     var uv = (v.uv - source.xy + vec2(0.5)) / source.zw;
     let edge = min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y));
     let strength = camera.detail.y * relief.x * fade * smoothstep(0.0, 0.06, edge);

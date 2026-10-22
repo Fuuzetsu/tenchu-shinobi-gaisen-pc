@@ -1,10 +1,22 @@
 import init, { play, validate_save } from "./pkg/tenchu_pc.js";
 let initialized;
+const renderer = document.getElementById("renderer");
+const preferred = new URL(location.href).searchParams.get("renderer") ?? localStorage.getItem("tenchu-pc/renderer");
+if (["auto", "webgl2", "webgpu"].includes(preferred)) renderer.value = preferred;
+renderer.onchange = () => {
+  localStorage.setItem("tenchu-pc/renderer", renderer.value);
+  const url = new URL(location.href);
+  if (url.searchParams.has("renderer")) {
+    url.searchParams.set("renderer", renderer.value);
+    history.replaceState(null, "", url);
+  }
+  if (document.body.dataset.renderer) location.reload();
+};
 const start = async quick => {
   const buttons = [document.getElementById("play"), document.getElementById("quick")];
   buttons.forEach(button => { button.disabled = true; });
   try {
-    if (!navigator.gpu) throw new Error("This browser needs WebGPU. Use a browser with WebGPU enabled on localhost or HTTPS.");
+    if (!window.isSecureContext) throw new Error("Open this game on localhost or HTTPS. Browser audio and gamepad support require a secure connection.");
     initialized ??= init();
     await initialized;
     await play(quick);

@@ -1038,6 +1038,23 @@ implementation, not an emulator or a copy of the parallel TAS execution model.
 informed browser validation; headed Chromium under an isolated X server was
 used because this machine's headless compositor did not capture WebGPU reliably.
 
+The WebGL2 fallback follows wgpu 24's
+[adapter detection helper](https://docs.rs/wgpu/24.0.5/wgpu/util/fn.new_instance_with_webgpu_detection.html)
+and downlevel limits. Its published `wgpu-hal-24.0.4/src/gles/mod.rs`
+`Texture::get_info_from_desc` explains the square/multiple-of-six cubemap
+heuristic; padding array textures avoids that inference without vendoring the
+dependency. Metadata texture access and the host selector are new port code.
+That backend's `ProgramCacheKey` also omits pipeline override constants;
+specialized scene shaders use distinct modules so toggling effects cannot reuse
+a program compiled with different feature values.
+Its depth textures retain default filtering when fetched without a sampler.
+Post-processing now supplies an explicit nearest sampler for non-MSAA depth;
+this avoids incomplete textures returning zero under
+[WebGL2's texel-fetch rules](https://registry.khronos.org/webgl/specs/latest/2.0/).
+[Mozilla's experimental-feature documentation](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features)
+identifies the `dom.webgpu.enabled` preference; enabling it is not required for
+the WebGL2 backend.
+
 
 ## Surface relief (2026-10-22)
 

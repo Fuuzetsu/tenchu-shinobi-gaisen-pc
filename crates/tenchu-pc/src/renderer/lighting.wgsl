@@ -21,7 +21,7 @@ fn shadow_face(direction: vec3<f32>) -> u32 {
 }
 
 fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32>) -> vec3<f32> {
-    if lighting.options.w == 0.0 { return vec3(1.0); }
+    if !LIGHTING_ENABLED || lighting.options.w == 0.0 { return vec3(1.0); }
     var result = lighting.options.x * mix(vec3(1.0), vec3(0.6, 0.75, 1.0), lighting.lamps.z);
     let sun_diffuse = max(0.0, dot(normal, lighting.sun_direction.xyz));
     if lighting.sun_direction.w > 0.0 && sun_diffuse > 0.0 {

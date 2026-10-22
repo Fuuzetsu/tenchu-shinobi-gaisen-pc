@@ -59,6 +59,29 @@ The final material changes pass those checks as well.
 Headed Chromium on the NVIDIA Vulkan adapter is used for visual validation;
 the headless compositor did not display WebGPU output reliably in this setup.
 
+Browser compatibility correction: the original smoke test explicitly enabled
+Chromium WebGPU and did not establish normal Firefox/Linux startup. The host now
+includes automatic WebGL2 fallback and an explicit graphics selector/query that
+avoids WebGPU probes entirely. Material metadata uses exact integer texture
+records when storage buffers are unavailable. Depth reads use an unfilterable
+float view with an explicit nearest sampler, and GL array textures are padded to
+avoid wgpu 24's cubemap heuristic. The sampler fixes zero depth reads in WebGL
+that hid the life medallion and broke contact shading; browser screenshots check
+that HUD pixels survive post-processing unchanged.
+All 14 renderer tests pass through both Vulkan and GL, including point shadows,
+HDR finishing and surface relief. Edge MSAA and GPU timestamps remain unavailable
+on the compatibility path. Firefox 147 ordinary movement and visual-preset checks
+pass in an isolated profile without enabling experimental WebGPU. This does not
+fix Firefox's own reported WebGPU assertion crash.
+The 4K slowdown is reproduced with Firefox's NVIDIA WebGL2 adapter: roughly
+60 FPS at 1280×678 versus 19.5 FPS at 3840×2038 in Original. Compile-time shader
+variants remove disabled lighting, filtering, relief and HDR paths; the latter
+test now measures about 42 FPS. These five-second headless measurements reproduce
+the reported resolution dependence, not a guarantee for every scene or compositor.
+Distinct shader modules avoid wgpu 24 GL's program cache ignoring override values;
+feature-toggle renderer tests cover both backends. No resolution, game tick or
+Original appearance changes are used to obtain the improvement.
+
 Surface depth is implemented in the shared renderer: Off/Bump/Parallax, strength,
 a separate Surface relief preset, inferred height/gradient mip chains and
 content-identity height-map/disable overrides in native packs. Original/defaults

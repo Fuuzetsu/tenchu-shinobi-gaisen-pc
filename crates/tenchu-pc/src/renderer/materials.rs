@@ -9,7 +9,8 @@ use crate::{
 use bytemuck::{Pod, Zeroable};
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{Result, model::Texture, texture::Vram};
-use wgpu::util::DeviceExt;
+mod data;
+pub(super) use data::shader;
 
 pub const MAX_MIPS: usize = 13;
 
@@ -90,7 +91,7 @@ impl Entry {
 
 struct Atlas {
     texture: wgpu::Texture,
-    data: wgpu::Buffer,
+    data: data::Data,
     materials: Vec<Material>,
     side: u32,
 }
@@ -137,11 +138,7 @@ impl Materials {
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
+                    ty: data::binding_type(device),
                     count: None,
                 },
             ],
@@ -367,11 +364,9 @@ impl Materials {
                 material.info[3] = entry.flags(self.layers);
                 material.relief =
                     entry.relief(self.enabled.then(|| self.surfaces.get(&entry.id)).flatten());
-                queue.write_buffer(
-                    &self.atlas.data,
-                    ((index + 1) * std::mem::size_of::<Material>()) as u64,
-                    bytemuck::bytes_of(material),
-                );
+                self.atlas
+                    .data
+                    .write(queue, index + 1, std::slice::from_ref(material));
                 for (mip, image) in entry.mips.iter().enumerate() {
                     let rect = material.mips[mip];
                     let x = rect[0] as u32 % self.atlas.side - 1;
@@ -421,6 +416,11 @@ impl Materials {
             .clamp(64, 2048)
             .max(largest.next_power_of_two());
         let limits = device.limits();
+        if data::uses_texture(device)
+            && self.entries.len() + 1 > limits.max_texture_dimension_2d as usize
+        {
+            return Err("Material metadata exceeds the GPU texture size limit".into());
+        }
         if side > limits.max_texture_dimension_2d {
             return Err("Decoded material exceeds the GPU texture size limit".into());
         }
@@ -458,7 +458,9 @@ impl Materials {
             }
             if y + height + 2 > side {
                 page += 1;
-                if (page + 1) * self.layers as u32 > limits.max_texture_array_layers {
+                if super::array_layers(device, (page + 1) * self.layers as u32)
+                    > limits.max_texture_array_layers
+                {
                     return Err("Decoded materials exceed the GPU atlas budget".into());
                 }
                 pages.extend((0..self.layers).map(|_| vec![0; page_bytes]));
@@ -551,7 +553,7 @@ fn upload(
         size: wgpu::Extent3d {
             width: side,
             height: side,
-            depth_or_array_layers: pages.len() as u32,
+            depth_or_array_layers: super::array_layers(device, pages.len() as u32),
         },
         mip_level_count: 1,
         sample_count: 1,
@@ -569,11 +571,7 @@ fn upload(
         mag_filter: wgpu::FilterMode::Linear,
         ..Default::default()
     });
-    let data = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Material source regions and mip rectangles"),
-        contents: bytemuck::cast_slice(materials),
-        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-    });
+    let data = data::Data::new(device, queue, materials);
     let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Decoded material bindings"),
         layout,
@@ -590,7 +588,7 @@ fn upload(
             },
             wgpu::BindGroupEntry {
                 binding: 2,
-                resource: data.as_entire_binding(),
+                resource: data.binding(),
             },
         ],
     });

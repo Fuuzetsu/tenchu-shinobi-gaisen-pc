@@ -5,6 +5,16 @@ canvas.width = 320;
 canvas.height = 240;
 const drawing = canvas.getContext("2d", { willReadFrequently: true });
 
+export function graphics_backend(name, adapter) {
+  document.body.dataset.renderer = name;
+  document.body.dataset.adapter = adapter;
+  const label = document.getElementById("graphics-info");
+  label.textContent = name;
+  label.title = adapter;
+}
+
+export function graphics_preference() { return document.getElementById("renderer").value; }
+
 function media(path) {
   if (!cached.has(path)) {
     const request = fetch(path).then(response => {

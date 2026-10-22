@@ -13,6 +13,7 @@ struct Options {
 @group(0) @binding(5) var linear_sampler: sampler;
 @group(0) @binding(6) var depth_map: DEPTH_TYPE;
 @group(0) @binding(7) var<uniform> options: Options;
+@group(0) @binding(8) var depth_sampler: sampler;
 
 struct Fragment { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> }
 struct Output { @location(0) color: vec4<f32>, @builtin(frag_depth) depth: f32 }
@@ -24,7 +25,7 @@ struct Output { @location(0) color: vec4<f32>, @builtin(frag_depth) depth: f32 }
 fn depth_at(pixel: vec2<i32>) -> f32 {
     let point = clamp(pixel, vec2(0), vec2<i32>(textureDimensions(depth_map)) - vec2(1));
     var depth = 1.0;
-    for (var i = 0; i < SAMPLE_COUNT; i++) { depth = min(depth, textureLoad(depth_map, point, i)); }
+    for (var i = 0; i < SAMPLE_COUNT; i++) { depth = min(depth, DEPTH_SAMPLE); }
     return depth;
 }
 
