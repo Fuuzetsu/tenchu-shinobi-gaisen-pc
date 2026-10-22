@@ -16,22 +16,26 @@ Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.
 
+Completed: 368 scoped world texture identities, with the optional pack and
+review hub available locally. Original meshes and interface artwork remain;
+this deliverable replaces Mission 1's world artwork, not its geometry or UI.
+
 - [x] Correct the water replacement and verify the canal in-game. The pilot
   misclassified its grey ripple image as masonry; that candidate is withdrawn.
   The corrected water also follows the original texture scrolling. Canonical
   content identity is stable when first seen mid-animation; the GPU shifts UVs
   without rebuilding the replacement. Canal comparisons at ticks 0/24/64 show
   moving ripples, with original fallback and reload covered by rendering tests.
-- [ ] Inventory all Mission 1 materials across both players and their equipment,
+- [x] Inventory all Mission 1 materials across both players and their equipment,
   including scenery, props, foliage, actors, weapons, items and effects. Record
   usage, blend/alpha classes and review status rather than guessing from thumbnails.
-- [ ] Author coherent building groups, roads, water and landscape materials;
+- [x] Author coherent building groups, roads, water and landscape materials;
   verify repeated edges and all distinct uses in actual stage views.
-- [ ] Complete props, foliage, character/equipment and effect artwork while
+- [x] Complete props, foliage, character/equipment and effect artwork while
   preserving silhouettes, UV islands, readable identity and animation.
-- [ ] Package with explicit coverage accounting and reproducible provenance;
+- [x] Package with explicit coverage accounting and reproducible provenance;
   validate pack memory, performance, reload and exact restoration when disabled.
-- [ ] Review the whole mission and both player variants, document limitations,
+- [x] Review the whole mission and both player variants, document limitations,
   format/check and commit reusable tooling and results. Do not count a resized
   original or an unreviewed candidate as a completed replacement.
 
@@ -135,7 +139,30 @@ This avoids hard, bright edges caused by treating glows as foliage cutouts;
 the synthetic regression checks both conversions. Paired blood/stain sprites
 share exactly the same authored silhouettes. Two atlas crops were realigned to
 remove neighboring item fragments, and the flame atlas was toned down after
-review. Full controller-route captures and final native validation are ongoing.
+review. The final private coverage ledger accounts for all 484 loaded identities:
+368 replacements, 98 model textures not used by Mission 1, and 18 excluded
+interface-only/unused/other-stage sprites. No in-scope identity is missing.
+
+Final review includes 540 scenery/prop pairs, 180 assembled-model pairs, 132
+sprite pairs and 36 gameplay/cinematic pairs spanning both full Mission 1
+controller routes. Both routes finish with exactly matching complete state
+traces with and without replacement artwork (Rikimaru: tick 5,667, 64 HP;
+Ayame: tick 4,834, 94 HP). Separate item-use captures exercise smoke and fire
+in gameplay. Both native walk/pause/disable/reload checks restore identical
+paused pixels and exit normally after repeated Escape, at ticks 81/80.
+
+The pack occupies about 30 MB of PNGs and 15,738,240 decoded pixels. At 4K on
+the GTX 1080 Ti/Vulkan, GPU timestamps for a fixed paused start view measure
+1.73–1.76 ms average with replacements versus 1.05 ms without, with matching
+filtering and fog disabled. These are GPU scene timings on an isolated X server;
+its expensive presentation copies do not establish desktop frame rate. The
+private performance record includes settings and before/after captures.
+All 16 Vulkan renderer regressions pass, including scrolling water and world
+sprites. The disc-dependent character-shadow check was rerun successfully after
+supplying its required fixture. Native Clippy, formatting, synthetic pack checks
+and all four x86_64-linux Nix checks pass. Other build platforms and browser
+loading of this private pack were not exercised. All source images, generated
+atlases, prompts, crop corrections and review evidence remain ignored/private.
 
 ## Mission 1 material pilot
 

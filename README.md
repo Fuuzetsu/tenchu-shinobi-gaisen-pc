@@ -210,16 +210,27 @@ Recipe paths are relative to the recipe file:
 surface depth is enabled. Keep the original exported image and several stage
 views as authoring references. Check pattern scale, repeated edges, palette and
 lighting in the game; a plausible generated photograph is not necessarily a
-usable material. The local Mission 1 experiment lives in `private/m1-hd-pilot`,
-with source artwork/prompts in `private/m1-hd-source` and comparison captures
-in `private/m1-hd-review`. These local assets are not included in Git.
-On the authoring workstation, `./private/m1-hd-pilot/play.sh` launches the pilot
+usable material. The completed local Mission 1 texture pack lives in
+`private/m1-hd-pilot`, with source artwork/prompts in `private/m1-hd-source`.
+These local assets are not included in Git.
+On the authoring workstation, `./private/m1-hd-pilot/play.sh` launches the pack
 with the local disc (or a disc path supplied as its first argument). F1 → Visual
 assets → Replacement artwork toggles it. The normal launcher stays unchanged.
 The pilot's incorrectly classified masonry candidate was the canal water;
-it has been replaced with scrolling ripple artwork. The full Mission 1 pack is
-in progress, with original models, foliage and many props still present.
-Generated shading and repeated edges still need art review.
+it has been replaced with scrolling ripple artwork. The pack covers 368 scoped
+world texture identities: all scenery, props/foliage, both players and all five
+outfits, enemies/civilians/animals, equipment/doors and 44 world/item/effect
+sprites. It retains original geometry, UVs, animation and gameplay; untextured
+faces and interface artwork remain original. Ambiguous tiny source details are
+authored interpretations, not newly recovered original artwork.
+
+`private/m1-review/index.html` links the scenery, assembled-model, sprite and
+full-route comparisons. `private/m1-hd-source/coverage.json` accounts for all
+484 loaded archive identities, including 98 unused model textures and 18
+interface-only/unused/other-stage sprites excluded from Mission 1 world scope.
+The 368 replacements use 15,738,240 decoded pixels, below the 16,777,216 limit.
+Both complete Mission 1 controller routes retain identical gameplay traces;
+native disable/reload restores identical paused images for both players.
 
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.
