@@ -87,7 +87,12 @@ native/WASM Clippy and release build pass. Shared texture metadata now retains
 all outfit labels and per-export triangle counts instead of silently replacing
 the earlier label. This caught missing face-patch attribution during authoring;
 an early generated mask incorrectly included eyes and remains a rejected private
-candidate, not part of the stable pack. Character art is still in progress.
+candidate, not part of the stable pack. The corrected normal Rikimaru outfit,
+his armour and normal Ayame outfit now bring the stable pack to 200 reviewed
+materials (11,919,360 decoded pixels), with 18 model view pairs. The 158-material
+normal-Rikimaru native walk/toggle/reload check restores identical paused pixels
+at tick 80. Remaining outfits, mission actors, equipment and effects are still
+in progress; isolated model views do not replace final whole-mission review.
 
 ## Mission 1 material pilot
 
