@@ -47,14 +47,22 @@ attributes, scrolling and sprite archive indices. The shared sprite archive
 includes interface art and effects used in other missions; actual effect usage
 still needs review. Its presence in the export is not a completion denominator.
 
-The native pack now contains 35 reviewed materials (5,111,808 decoded pixels),
+The native pack now contains 41 reviewed materials (5,505,024 decoded pixels),
 including corrected scrolling water, additional roof tiles/ridge/eaves, mossy
-ground, paving edges, timber/plaster framing, stone lanterns, shoji and tatami.
-All 140 paired stage views are
-unobstructed; the cutout timber frame was revised to cover its original mask.
+ground, paving edges, timber/plaster framing, stone lanterns, shoji, tatami,
+diamond plaster and diagonal gable trim. The gallery has 164 paired stage views;
+the cutout timber frame was revised to cover its original mask. Preview cameras
+now trace through actual texture holes so layered pond surfaces can be reviewed.
 The native walk/pause/toggle/reload check restores identical paused pixels.
 The local comparison gallery and existing pilot launcher use the expanded pack.
 These are partial results; most scenery and all actor/equipment artwork remain.
+
+World sprite replacements now preserve cutouts and blend classes while shared
+HUD images remain original. Vulkan and OpenGL checks cover filtering, live reload
+and exact disable restoration; all 16 Vulkan renderer regressions pass. The pack
+tool also supports explicitly authored cutout masks for finer foliage and water
+glints, retaining the source's nonzero blend class. Original masks remain the
+default, with a coverage check to reject missing paint under their visible pixels.
 
 ## Mission 1 material pilot
 

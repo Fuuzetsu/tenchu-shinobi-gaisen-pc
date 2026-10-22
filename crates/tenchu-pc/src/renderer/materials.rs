@@ -290,7 +290,7 @@ impl Materials {
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
         for triangle in vertices.chunks_exact_mut(3) {
             let first = triangle[0];
-            if first.flags & (render_mesh::SCREEN | render_mesh::DEBUG | render_mesh::TEXTURED)
+            if first.flags & (render_mesh::UI | render_mesh::DEBUG | render_mesh::TEXTURED)
                 != render_mesh::TEXTURED
                 || first.material != 0
             {

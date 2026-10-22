@@ -36,12 +36,25 @@ def main():
         with Image.open(args.recipe.parent / entry["color"]) as source:
             color = source.convert("RGBA").resize(size, Image.Resampling.LANCZOS)
         alpha = original.getchannel("A").resize(size, Image.Resampling.NEAREST)
-        visible = sum(mask != 0 for mask in alpha.get_flattened_data())
-        missing = sum(mask != 0 and paint < 128 for mask, paint in zip(
-            alpha.get_flattened_data(), color.getchannel("A").get_flattened_data()))
-        if missing > visible * 0.01:
-            parser.error(f"{identity}: authored color misses {missing / visible:.1%} "
-                         "of the original mask; align the artwork or extend its color bleed")
+        mode = entry.get("alpha", "original")
+        if mode == "original":
+            visible = sum(mask != 0 for mask in alpha.get_flattened_data())
+            missing = sum(mask != 0 and paint < 128 for mask, paint in zip(
+                alpha.get_flattened_data(), color.getchannel("A").get_flattened_data()))
+            if missing > visible * 0.01:
+                parser.error(f"{identity}: authored color misses {missing / visible:.1%} "
+                             "of the original mask; align the artwork or extend its color bleed")
+        elif mode == "authored":
+            classes = set(alpha.get_flattened_data()) - {0}
+            if len(classes) != 1:
+                parser.error(f"{identity}: authored alpha requires one original nonzero blend class")
+            authored = color.getchannel("A")
+            if alpha.getextrema()[0] == 0 and authored.getextrema()[0] != 0:
+                parser.error(f"{identity}: authored cutout must contain transparent pixels")
+            original_class = classes.pop()
+            alpha = authored.point(lambda value: original_class if value >= 128 else 0)
+        else:
+            parser.error(f"{identity}: alpha must be original or authored")
         color.putalpha(alpha)
         name = f"textures/{identity}.png"
         prepared.append((name, color))

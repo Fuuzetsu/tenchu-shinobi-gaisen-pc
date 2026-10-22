@@ -84,7 +84,7 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         let pixel = texel(nearest, v.page, v.palette);
-        let replaced = !screen && material_replaced(v.material);
+        let replaced = (v.flags & (UI | DEBUG)) == 0u && material_replaced(v.material);
         var base = rgb(pixel);
         if replaced {
             let decoded = material_texel(v.material, coordinate);
@@ -97,7 +97,7 @@ fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
         }
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
-            if FILTER_MATERIALS && !screen && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
+            if FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
                 color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);

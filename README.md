@@ -104,7 +104,9 @@ Textures may be RGB/RGBA, grayscale or indexed PNG, up to 1024 pixels per side,
 with a pack budget of 16 million decoded pixels. Alpha 0 is transparent,
 1–191 selects semi-transparency and 192–255 is opaque; these are game blend
 classes rather than continuous opacity. Higher resolutions retain the original
-UV mapping. New cutouts also affect model shadows. HUD/menu textures stay original.
+UV mapping. New cutouts also affect model shadows. World sprites support
+replacements too; HUD/menu textures stay original, even when they share an image
+with a world effect or item.
 `render` and replay captures also accept `TENCHU_ASSET_PACK`.
 Scrolling world textures retain their original animation with replacement art,
 including when the surface first becomes visible after the animation has started.
@@ -148,6 +150,13 @@ development shell. It also checks that authored color covers the original cutout
 before restoring its alpha classes. A rejected frame or leaf needs aligned
 artwork or extra color bleed behind the mask. Run the synthetic cutout regression
 with `./dev.sh python3 tools/test-material-pack.py`.
+
+The default recipe setting `"alpha": "original"` keeps the original silhouette.
+For finer foliage or glints, opt into `"alpha": "authored"` to use the new PNG's
+cutout instead. Its alpha is thresholded at 128 and mapped to the original blend
+class. This requires a single nonzero original alpha class; mixed opaque and
+semi-transparent images need their original mask. Review authored silhouettes
+in context, including shadows and animation.
 
 Recipe paths are relative to the recipe file:
 
