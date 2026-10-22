@@ -10,6 +10,28 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Mission 1 material pilot
+
+Try a small optional high-resolution scenery pack using original texture images
+and actual stage views as generation references. Preserve gameplay, geometry,
+UVs and default appearance. Keep disc-derived references and candidate artwork
+private; commit reusable authoring tools and evidence.
+
+- [x] Select ten frequently used roof, timber, plaster, earth and stone images;
+  capture their actual surfaces at several angles in the shared renderer.
+- [x] Generate color candidates and a roof height candidate with the built-in
+  image tool; retain prompts, sources and original transparency classes.
+- [x] Package at 512×512 and compare all ten textures in the game. Thirty paired
+  captures verify that disabling the pack restores the original pixels exactly.
+- [ ] Check authored roof relief and ordinary native play/reload, provide an easy
+  launcher and local comparison gallery, and record visual limitations.
+
+The pilot uses eleven image generations for ten color images and one aligned
+roof height image. Its native pack has 2,883,584 decoded pixels. Review tooling
+finds textures by content identity and stage geometry without runtime material
+name rules. Full-resolution generation sources and prompts are retained in
+`private/m1-hd-source`; the optional pack is `private/m1-hd-pilot`.
+
 ## Browser frame-rate follow-up
 
 Target steady 60 FPS in Firefox WebGL2 at 4K on this desktop, preserving the

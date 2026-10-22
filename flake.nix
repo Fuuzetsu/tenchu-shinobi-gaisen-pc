@@ -123,7 +123,7 @@
             ffmpeg
             wasm-bindgen-cli
             nodejs
-            python3
+            (python3.withPackages (p: [ p.pillow ]))
             playwright-driver
             geckodriver
           ];

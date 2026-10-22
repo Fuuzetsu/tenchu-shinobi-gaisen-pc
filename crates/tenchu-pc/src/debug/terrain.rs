@@ -66,7 +66,7 @@ pub fn surfaces(map: &AreaMap) -> Result<Vec<Surface>> {
     Ok(surfaces)
 }
 
-fn triangle(origin: Vec3, direction: Vec3, [a, b, c]: [Vec3; 3]) -> Option<f32> {
+pub(crate) fn triangle(origin: Vec3, direction: Vec3, [a, b, c]: [Vec3; 3]) -> Option<f32> {
     let e1 = b - a;
     let e2 = c - a;
     let h = direction.cross(e2);

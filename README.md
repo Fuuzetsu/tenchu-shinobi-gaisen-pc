@@ -107,6 +107,44 @@ classes rather than continuous opacity. Higher resolutions retain the original
 UV mapping. New cutouts also affect model shadows. HUD/menu textures stay original.
 `render` and replay captures also accept `TENCHU_ASSET_PACK`.
 
+For material authoring, `preview-materials DISC EMPTY_DIRECTORY ID,ID,...`
+captures matching original/replacement views of selected scenery textures.
+Use identities from `catalog.json`; the usual mission options apply. It finds
+nearby surfaces, checks visibility and keeps inspection cameras in front of
+obstructions. Front, angled and wider views share a frozen game state. Default
+review settings disable fog and enable filtered mipmaps; `TENCHU_SETTINGS` can
+provide a different lighting setup. `TENCHU_ASSET_PACK` selects the replacement
+pack. This tool reviews texture/height changes on original scenery geometry.
+
+`./dev.sh python3 tools/material-review.py CAPTURES --recipe RECIPE.json`
+adds a local `index.html` with a before/after slider. The optional recipe gives
+materials readable names. Captures remain private disc-derived files.
+
+`./dev.sh python3 tools/material-pack.py EXPORT RECIPE.json EMPTY_PACK`
+packages authored images at 512 pixels on their longest edge by default
+(`--size` accepts 16–1024). It retains the original aspect ratio and transparency
+classes and checks the runtime pixel budget. Pillow comes from the pinned Nix
+development shell. Recipe paths are relative to the recipe file:
+
+```json
+{
+  "TEXTURE_ID_FROM_CATALOG": {
+    "name": "roof",
+    "color": "roof.png",
+    "height": "roof-height.png",
+    "strength": 0.35
+  }
+}
+```
+
+`height` is optional; without it the renderer uses its automatic estimate when
+surface depth is enabled. Keep the original exported image and several stage
+views as authoring references. Check pattern scale, repeated edges, palette and
+lighting in the game; a plausible generated photograph is not necessarily a
+usable material. The local Mission 1 experiment lives in `private/m1-hd-pilot`,
+with source artwork/prompts in `private/m1-hd-source` and comparison captures
+in `private/m1-hd-review`. These local assets are not included in Git.
+
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.
 It smooths pixel stair-steps without inventing detail, and can change cutout edges.
