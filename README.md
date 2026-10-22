@@ -123,6 +123,15 @@ pack. This tool reviews texture/height changes on original scenery geometry.
 `--ticks N` advances the game before freezing the view, useful for checking
 animated replacements. The context view adds an oblique camera along the surface.
 
+Fresh `export-assets` catalogues include each texture's model usage, blend modes,
+alpha classes, scrolling status, map positions and matching terrain attributes.
+To combine player/layout exports and browse labelled contact sheets, run
+`./dev.sh python3 tools/material-catalog.py EXPORT1 EXPORT2 --output EMPTY_DIRECTORY`.
+An optional `--recipe RECIPE.json` shows authoring status. The resulting local
+HTML catalogue is searchable by model name or texture identity. Terrain flags
+and animation are evidence to inspect, not an automatic material classification.
+Use `--layout random` when exporting to include all enemy layouts.
+
 `./dev.sh python3 tools/material-review.py CAPTURES --recipe RECIPE.json`
 adds a local `index.html` with a before/after slider. The optional recipe gives
 materials readable names. Captures remain private disc-derived files.
@@ -138,6 +147,7 @@ development shell. Recipe paths are relative to the recipe file:
   "TEXTURE_ID_FROM_CATALOG": {
     "name": "roof",
     "color": "roof.png",
+    "size": 512,
     "height": "roof-height.png",
     "strength": 0.35
   }

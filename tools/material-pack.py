@@ -29,7 +29,10 @@ def main():
             parser.error(f"unknown texture identity: {identity}")
         with Image.open(args.export / "textures" / f"{identity}.png") as source:
             original = source.convert("RGBA")
-        size = tuple(max(1, round(n * args.size / max(original.size))) for n in original.size)
+        longest = entry.get("size", args.size)
+        if not isinstance(longest, int) or not 16 <= longest <= 1024:
+            parser.error(f"size for {identity} must be between 16 and 1024")
+        size = tuple(max(1, round(n * longest / max(original.size))) for n in original.size)
         with Image.open(args.recipe.parent / entry["color"]) as source:
             color = source.convert("RGBA").resize(size, Image.Resampling.LANCZOS)
         color.putalpha(original.getchannel("A").resize(size, Image.Resampling.NEAREST))

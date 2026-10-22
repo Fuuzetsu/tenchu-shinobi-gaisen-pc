@@ -9,6 +9,8 @@ use std::{
 };
 use tenchu_assets::{Result, stage::MissionAssets};
 
+mod usage;
+
 #[derive(Serialize)]
 struct Model {
     id: String,
@@ -25,6 +27,7 @@ struct Manifest {
     units: &'static str,
     alpha: &'static str,
     textures: Vec<String>,
+    texture_details: BTreeMap<String, usage::Detail>,
     models: Vec<Model>,
 }
 
@@ -60,7 +63,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         encoder
             .write_header()
             .map_err(|e| e.to_string())?
-            .write_image_data(&region.pixels(&mission.vram))
+            .write_image_data(&region.original_pixels(&mission.vram))
             .map_err(|e| e.to_string())?;
     }
     let mut definitions = BTreeMap::new();
@@ -167,6 +170,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         units: "Original game units; negative Y is up. Actor parts are local to the existing animation rig.",
         alpha: "PNG alpha 0 = hole, 128 = PS1 semi-transparency flag, 255 = opaque. Blend mode is still selected by the face.",
         textures: textures.into_iter().collect(),
+        texture_details: usage::collect(mission, &regions)?,
         models,
     };
     fs::write(
