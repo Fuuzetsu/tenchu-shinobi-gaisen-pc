@@ -60,6 +60,16 @@ class CutoutCoverage(unittest.TestCase):
                 self.assertEqual(packed.getpixel((16, 17))[3], 0)
                 self.assertEqual(packed.getpixel((0, 0))[3], 0)
 
+            recipe["frame"]["alpha"] = "additive"
+            (root / "recipe.json").write_text(json.dumps(recipe))
+            command[-1] = str(root / "additive")
+            succeeded = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(succeeded.returncode, 0, succeeded.stderr)
+            with Image.open(root / "additive/textures/frame.png") as packed:
+                self.assertEqual(packed.getpixel((16, 16)), (16, 31, 47, 128))
+                self.assertEqual(packed.getpixel((16, 17)), (8, 16, 24, 128))
+                self.assertEqual(packed.getpixel((0, 0)), (0, 0, 0, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

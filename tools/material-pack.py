@@ -44,7 +44,7 @@ def main():
             if missing > visible * 0.01:
                 parser.error(f"{identity}: authored color misses {missing / visible:.1%} "
                              "of the original mask; align the artwork or extend its color bleed")
-        elif mode == "authored":
+        elif mode in ("authored", "additive"):
             classes = set(alpha.get_flattened_data()) - {0}
             if len(classes) != 1:
                 parser.error(f"{identity}: authored alpha requires one original nonzero blend class")
@@ -52,9 +52,16 @@ def main():
             if alpha.getextrema()[0] == 0 and authored.getextrema()[0] != 0:
                 parser.error(f"{identity}: authored cutout must contain transparent pixels")
             original_class = classes.pop()
-            alpha = authored.point(lambda value: original_class if value >= 128 else 0)
+            if mode == "additive":
+                if original_class != 128:
+                    parser.error(f"{identity}: additive alpha requires semi-transparent source pixels")
+                # Runtime alpha selects a PS1 blend class; soft particle coverage belongs in RGB.
+                color = Image.alpha_composite(Image.new("RGBA", size, (0, 0, 0, 255)), color)
+                alpha = authored.point(lambda value: original_class if value else 0)
+            else:
+                alpha = authored.point(lambda value: original_class if value >= 128 else 0)
         else:
-            parser.error(f"{identity}: alpha must be original or authored")
+            parser.error(f"{identity}: alpha must be original, authored or additive")
         color.putalpha(alpha)
         name = f"textures/{identity}.png"
         prepared.append((name, color))

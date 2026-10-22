@@ -185,6 +185,13 @@ class. This requires a single nonzero original alpha class; mixed opaque and
 semi-transparent images need their original mask. Review authored silhouettes
 in context, including shadows and animation.
 
+For smoke, fire and other additive particles, use `"alpha": "additive"`.
+This converts soft authored transparency into RGB intensity over black while
+retaining the original semi-transparent blend flag. The runtime's PNG alpha
+selects a blend class, not conventional opacity; thresholding a soft glow as
+foliage would create a hard, overly bright edge. Use this mode only for sprites
+whose game usage is additive or quarter-additive, and review their actual blend.
+
 Recipe paths are relative to the recipe file:
 
 ```json

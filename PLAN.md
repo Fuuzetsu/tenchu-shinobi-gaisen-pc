@@ -126,6 +126,17 @@ world-sprite/HUD/reload regression passes. The scoped remaining artwork is
 44 world/item/effect sprites; the other 18 archive images are interface-only,
 unused or for other stages, with the source-based scope recorded privately.
 
+All 44 scoped world sprites now have reviewed candidates, bringing the private
+pack to 368 identities and 15,738,240 decoded pixels. The sprite gallery has
+132 original/pack pairs across three backgrounds and five blend modes.
+Particle alpha needed a separate packaging conversion: soft coverage is
+premultiplied into RGB over black while PNG alpha retains the PS1 blend flag.
+This avoids hard, bright edges caused by treating glows as foliage cutouts;
+the synthetic regression checks both conversions. Paired blood/stain sprites
+share exactly the same authored silhouettes. Two atlas crops were realigned to
+remove neighboring item fragments, and the flame atlas was toned down after
+review. Full controller-route captures and final native validation are ongoing.
+
 ## Mission 1 material pilot
 
 Try a small optional high-resolution scenery pack using original texture images
