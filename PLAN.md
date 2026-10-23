@@ -129,6 +129,27 @@ view pairs, including path/terrain overlays and the scrolling waterfall.
 Gameplay rendering is unchanged. Formatting, workspace Clippy, the cutout-ray
 regression and the release build pass.
 
+Mission 4 adds 164 reviewed world identities: 73 scenery, 39 prop, 50 actor and
+two equipment images. Matching atlases cover the checkpoint timber, paving,
+bamboo, cedar, ground transitions, shrine objects, clothing and armor. Prominent
+cliff fractures were revised into quieter stone grain after the original UV
+mirroring produced repeated symbols. A mismatched moss transition was repainted
+separately. The gate labels use the original Japanese text with licensed outline
+glyphs fitted to their stretched UV proportions; the blade tip and foliage use
+reviewed authored silhouettes.
+
+Evidence includes 292 map pairs, 48 revised-cliff pairs, nineteen posed models
+from six angles, twelve gameplay endpoints, and river/waterfall captures across
+five moving phases after the opening scene. Both characters complete their
+recorded Mission 4 routes with identical original/replacement traces. The river
+uses the shared world-mapped water material; the waterfall retains its own
+vertical scrolling. Original mesh faceting, UV scale and vertex-lighting joins
+remain. The accepted pack is now candidate19: 799 world/UI images plus one menu
+background, 34.10M world pixels globally and 14.72M at most in an active outfit.
+Missions 1–4 cover all audited world artwork, with the eighteen shared HUD images
+still pending. Mission 5 begins with 252 additional world images; Missions 5–10,
+remaining menu artwork and browser pack delivery remain active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
