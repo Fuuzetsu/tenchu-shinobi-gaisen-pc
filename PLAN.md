@@ -247,6 +247,25 @@ All 1,261 previously accepted PNGs remain byte-identical. Mission 9 begins with
 98 additional world identities. Missions 9–10, menu artwork/fonts and browser
 pack delivery remain active work.
 
+Mission 9 adds 97 reviewed identities: 26 scenery, 27 prop, 42 actor and two
+equipment images. Related atlases cover raked gravel, castle stone, timber,
+screens, gold walls, statues and the three new enemy costumes. Twenty-one
+originally solid statue pieces receive subtle authored bronze grain. The first
+Onikuno face repaint added a second mouth; the corrected single mouth has been
+reviewed on both models. One original Onikerai underside-of-head quad retains
+its unrelated source atlas span as an explicit fallback.
+
+Evidence includes 104 map pairs, twelve models from six angles and twelve
+gameplay endpoints through both completed routes. Original/replacement stdout
+traces match; Rikimaru finishes at tick 6,292 with 3 HP and Ayame at tick 5,741
+with 67 HP. This checks recorded traces, not full serialized-state equality.
+Original UV mirroring, scale, faceting and vertex lighting still expose joins.
+Candidate32 is installed: 1,395 world/UI images plus one menu background,
+56.28M world pixels globally and 16.24M at most in one active mission/outfit.
+All 1,299 previously accepted PNGs remain byte-identical. Mission 10 has 148
+additional world identities; shared HUD/menu artwork, fonts and browser pack
+delivery remain active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
