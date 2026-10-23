@@ -119,6 +119,15 @@ presets and cameras differ only in artwork. Fixed-artwork captions sit at the
 top, leaving the player and item effects visible. Recording files currently
 require the native host; the simulation and camera presentation remain portable.
 
+The local Mission 1 comparison uses
+`private/m1-before-after-video/showcase.json`: 12 original/replacement pairs,
+ten seconds each, with self-contained input excerpts beside the catalog.
+Set `TENCHU_ASSET_PACK="$PWD/private/m1-hd-pilot"` when replaying or exporting it.
+The completed 240-second MP4, 24 embedded/description chapters and validation
+are in that directory. Every one of its 14,400 video timestamps was verified,
+and detail/end frames from each clip were inspected. These private assets and
+recordings are not bundled with the repository.
+
 The normal scene clips disable mission event triggers so the shot is not
 interrupted by a story or result transition. The cinematic clip replays Mission 2's opening at each speed, keeping the
 original script and camera. Inputs for character demonstrations are a small,

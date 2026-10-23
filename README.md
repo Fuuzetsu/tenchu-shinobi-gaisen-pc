@@ -241,6 +241,13 @@ alternate face patch now depicts one closed mouth without invented nostrils.
 The corrected source artwork, prompts and weapon generator are recorded in
 `private/m1-hd-source/corrections-provenance.json`.
 
+The four-minute silent comparison is
+`private/m1-before-after-video/tenchu-mission1-before-after-4k60.mp4`.
+It contains 12 matched before/after pairs at 3840×2160, 60 fps, covering scenery,
+both players and item use. The review hub links the video and its YouTube
+description/chapters. The catalog, input excerpts and frame-timing validation
+are stored beside it; generated footage remains outside Git.
+
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.
 It smooths pixel stair-steps without inventing detail, and can change cutout edges.

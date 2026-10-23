@@ -21,7 +21,7 @@ The synthetic regression failed before the fix and passes on Vulkan and OpenGL
 after it, as do all 17 Vulkan renderer checks. Native/WASM Clippy and formatting
 pass. All 21 item-use comparison pairs were refreshed and retain
 identical original/pack gameplay traces. The repaired original and pack views
-were inspected. A silent 4K/60 before/after video is the remaining follow-up.
+were inspected. The requested before/after recording is complete (details below).
 
 Dynamic-light follow-up: gameplay light/shadow selection now follows player
 position instead of the orbiting camera. The Mission 1 regression preserves the
@@ -33,7 +33,7 @@ Recording preparation adds authored camera paths, fixed artwork states and
 self-contained input excerpts to custom demo catalogs. The excerpt regression
 compares complete gameplay state with direct replay before/after toggling art;
 all seven demo tests pass. Native/WASM Clippy and release build pass. The final
-video is pending the subsequently requested gable-art and animated-seam review.
+video includes the subsequently reviewed gable, water, face and weapon fixes.
 
 The animated seam report refers to water, not player models. Replacement water
 UVs previously omitted one source texel per mesh tile; scroll phases then made
@@ -42,8 +42,7 @@ period across each tile while retaining the original 32-texel animation period.
 The adjacent-tile GPU regression fails before the fix (40-level channel jump)
 and passes after it on Vulkan/OpenGL, alongside phase/reload/disable checks.
 Original artwork retains its previous mapping. Native/WASM Clippy and release
-build pass. Remaining art follow-ups: consistent assembled gables retaining the
-attic frame, Ayame's mouth UV interpretation, and visible weapon improvements.
+build pass. The assembled gable, face and weapon follow-ups are installed below.
 
 Weapon review found that the player's blades are predominantly untextured,
 especially Ayame's kodachi. Texture replacement alone cannot modernize those
@@ -51,8 +50,8 @@ surfaces. The isolated model preview now uses the same OBJ replacement path as
 gameplay, including transparency and material binding, and fits both versions
 with one camera. Six original Ayame preview images remain pixel-identical;
 authored weapon candidates visibly change all six comparison angles. Native
-Clippy, formatting and release build pass. These optional meshes still require
-their in-game attachment/animation review before installation.
+Clippy, formatting and release build pass. The attachment/animation review and
+installation are complete, as recorded below.
 
 Installed follow-ups: ten gable textures now share weathered ceramic/plaster/
 timber styling. The attic was painted as one assembled surface and cut back into
@@ -66,7 +65,7 @@ complete state traces when the pack is toggled. Original assets remain the
 fallback. The model OBJ/round-trip regressions and native/WASM checks pass;
 the browser distribution was rebuilt. The current sources, rejected candidates,
 prompts and generator are indexed in the private corrections provenance ledger.
-The four-minute before/after recording is being framed and exported separately.
+The four-minute before/after recording includes both weapons during attacks.
 
 Recording review exposed a separate pond issue: its static base and edge artwork
 use independently rotated/cropped mesh UVs, beyond the scrolling canal fix.
@@ -79,13 +78,24 @@ Vulkan renderer checks pass. Native/WASM Clippy and the rebuilt browser package
 pass. The corrected bridge view was inspected; phase continuity has a GPU
 regression.
 
+Completed recording: `private/m1-before-after-video/tenchu-mission1-before-after-4k60.mp4`
+is 240 seconds, silent H.264 High at 3840×2160, 60 fps, BT.709 and square pixels.
+All 14,400 presentation timestamps occur exactly once at consecutive 1/60-second
+intervals. The 12 original/replacement pairs use matching settings, camera paths,
+inputs and timing; scenery, both players, interiors and three items are included.
+All 24 embedded chapters match the adjacent YouTube chapter text. Two decoded
+moments per clip (48 frames) were visually inspected, including the final shot
+of each clip. `validation.json`, paired-shot checks, capture input hashes and
+the reproducible catalog/input excerpts remain beside the video. The review hub
+links the MP4 and ready-to-paste description; nothing was uploaded.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.
 
 Completed: 368 scoped world texture identities, with the optional pack and
-review hub available locally. Original meshes and interface artwork remain;
-this deliverable replaces Mission 1's world artwork, not its geometry or UI.
+review hub available locally. Two optional player weapon meshes add detail;
+other meshes and interface artwork retain their original assets.
 
 - [x] Correct the water replacement and verify the canal in-game. The pilot
   misclassified its grey ripple image as masonry; that candidate is withdrawn.
