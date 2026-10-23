@@ -1,7 +1,13 @@
 use super::{catalog, pixels::Image};
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, io::Cursor, path::Path, sync::Arc};
-use tenchu_assets::Result;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    io::Cursor,
+    path::Path,
+    sync::Arc,
+};
+use tenchu_assets::{Result, stage::MissionAssets};
 
 const MAX_PIXELS: usize = 16 * 1024 * 1024;
 
@@ -43,18 +49,55 @@ pub struct Pack {
     pub player_models: BTreeMap<String, super::appearance::Body>,
 }
 
+struct Selection {
+    textures: BTreeSet<String>,
+    models: BTreeSet<String>,
+}
+
+impl Selection {
+    fn mission(mission: &MissionAssets) -> Self {
+        let mut textures: BTreeSet<_> = catalog::regions(mission).into_values().collect();
+        for &image in &mission.vram.images {
+            let region = catalog::Region::sprite(&mission.vram, image);
+            textures.insert(catalog::image_id(
+                [region.rect[2], region.rect[3]],
+                &region.original_pixels(&mission.vram),
+            ));
+        }
+        Self {
+            textures,
+            models: catalog::models(mission)
+                .into_iter()
+                .map(|model| model.id)
+                .collect(),
+        }
+    }
+}
+
 impl Pack {
-    pub fn from_env() -> Result<Self> {
+    pub fn from_env(mission: &MissionAssets) -> Result<Self> {
         match std::env::var_os("TENCHU_ASSET_PACK") {
-            Some(path) => Self::load(Path::new(&path)),
+            Some(path) => Self::load_selected(Path::new(&path), Some(Selection::mission(mission))),
             None => Ok(Self::default()),
         }
     }
 
     pub fn load(root: &Path) -> Result<Self> {
+        Self::load_selected(root, None)
+    }
+
+    fn load_selected(root: &Path, selection: Option<Selection>) -> Result<Self> {
         let root = root.canonicalize().map_err(|e| e.to_string())?;
-        let bytes = read(&root, "pack.json", 1024 * 1024)?;
+        let bytes = read(&root, "pack.json", 4 * 1024 * 1024)?;
         let manifest: Manifest = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        Self::decode(manifest, selection, |name, limit| read(&root, name, limit))
+    }
+
+    fn decode(
+        mut manifest: Manifest,
+        mut selection: Option<Selection>,
+        mut read: impl FnMut(&str, u64) -> Result<Vec<u8>>,
+    ) -> Result<Self> {
         if manifest.version != 1 {
             return Err(format!(
                 "Unsupported asset pack version {}",
@@ -68,6 +111,64 @@ impl Pack {
             }
         }
         pack.lights = manifest.lights;
+        if let Some(selection) = &selection {
+            manifest
+                .models
+                .retain(|id, _| selection.models.contains(id));
+        }
+        let mut models = manifest.models;
+        for (id, body) in &manifest.player_models {
+            if id.is_empty()
+                || !id
+                    .bytes()
+                    .all(|c| c.is_ascii_alphanumeric() || b"_-".contains(&c))
+            {
+                return Err(format!("Invalid player model identity {id:?}"));
+            }
+            body.validate()?;
+            for (index, part) in body.parts.iter().enumerate() {
+                let key = format!("player/{id}/{index}");
+                if let Some(file) = &part.file {
+                    models.insert(key, file.clone());
+                } else {
+                    pack.models.insert(key, Vec::new());
+                }
+            }
+        }
+        pack.player_models = manifest.player_models;
+        let mut materials = BTreeSet::new();
+        let mut triangles = 0;
+        for (id, path) in models {
+            let data = read(&path, 64 * 1024 * 1024)?;
+            let text = std::str::from_utf8(&data).map_err(|e| format!("{path}: {e}"))?;
+            let model = super::obj::decode(text).map_err(|e| format!("{path}: {e}"))?;
+            for triangle in &model {
+                let material = manifest.materials.get(&triangle.material).ok_or_else(|| {
+                    format!(
+                        "{path}: unknown material {:?}; declare it in pack.json",
+                        triangle.material
+                    )
+                })?;
+                materials.insert(triangle.material.clone());
+                if let (Some(selection), Some(texture)) = (&mut selection, &material.texture) {
+                    selection.textures.insert(texture.clone());
+                }
+            }
+            triangles += model.len();
+            if triangles > 1_000_000 {
+                return Err("Asset pack exceeds one million model triangles".into());
+            }
+            pack.models.insert(id, model);
+        }
+        if let Some(selection) = selection {
+            manifest
+                .textures
+                .retain(|id, _| selection.textures.contains(id));
+            manifest
+                .surfaces
+                .retain(|id, _| selection.textures.contains(id));
+            manifest.materials.retain(|id, _| materials.contains(id));
+        }
         let mut pixels = 0;
         for (id, path) in manifest.textures {
             if id.is_empty()
@@ -78,8 +179,8 @@ impl Pack {
             {
                 return Err(format!("Invalid texture identity {id:?}"));
             }
-            let image = decode_png(&read(&root, &path, 32 * 1024 * 1024)?)
-                .map_err(|e| format!("{path}: {e}"))?;
+            let image =
+                decode_png(&read(&path, 32 * 1024 * 1024)?).map_err(|e| format!("{path}: {e}"))?;
             pixels += image.rgba.len() / 4;
             if pixels > MAX_PIXELS {
                 return Err("Texture pack exceeds 16 million decoded pixels".into());
@@ -107,7 +208,7 @@ impl Pack {
             let height = rule
                 .height
                 .map(|path| -> Result<_> {
-                    let image = decode_png(&read(&root, &path, 32 * 1024 * 1024)?)?;
+                    let image = decode_png(&read(&path, 32 * 1024 * 1024)?)?;
                     pixels += image.rgba.len() / 4;
                     if pixels > MAX_PIXELS {
                         return Err("Texture pack exceeds 16 million decoded pixels".into());
@@ -136,45 +237,6 @@ impl Pack {
                     "Invalid blend mode or missing texture in material {name}"
                 ));
             }
-        }
-        let mut models = manifest.models;
-        for (id, body) in &manifest.player_models {
-            if id.is_empty()
-                || !id
-                    .bytes()
-                    .all(|c| c.is_ascii_alphanumeric() || b"_-".contains(&c))
-            {
-                return Err(format!("Invalid player model identity {id:?}"));
-            }
-            body.validate()?;
-            for (index, part) in body.parts.iter().enumerate() {
-                let key = format!("player/{id}/{index}");
-                if let Some(file) = &part.file {
-                    models.insert(key, file.clone());
-                } else {
-                    pack.models.insert(key, Vec::new());
-                }
-            }
-        }
-        pack.player_models = manifest.player_models;
-        let mut triangles = 0;
-        for (id, path) in models {
-            let data = read(&root, &path, 64 * 1024 * 1024)?;
-            let text = std::str::from_utf8(&data).map_err(|e| format!("{path}: {e}"))?;
-            let model = super::obj::decode(text).map_err(|e| format!("{path}: {e}"))?;
-            for triangle in &model {
-                if !pack.materials.contains_key(&triangle.material) {
-                    return Err(format!(
-                        "{path}: unknown material {:?}; declare it in pack.json",
-                        triangle.material
-                    ));
-                }
-            }
-            triangles += model.len();
-            if triangles > 1_000_000 {
-                return Err("Asset pack exceeds one million model triangles".into());
-            }
-            pack.models.insert(id, model);
         }
         Ok(pack)
     }
@@ -234,6 +296,65 @@ pub fn decode_png(bytes: &[u8]) -> Result<Image> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mission_selection_reads_only_used_art_and_model_dependencies() {
+        let manifest = serde_json::json!({
+            "version": 1,
+            "textures": {"roof": "roof.png", "blade": "blade.png", "snow": "missing.png"},
+            "surfaces": {"snow": {"height": "missing-height.png", "strength": 1.0}},
+            "models": {"weapons/1": "blade.obj", "stages/snow/map/0": "missing.obj"},
+            "materials": {
+                "steel": {"texture": "blade"},
+                "unused": {"texture": "unavailable"}
+            }
+        });
+        let mut png = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut png, 1, 1);
+            encoder.set_color(png::ColorType::Rgba);
+            encoder
+                .write_header()
+                .unwrap()
+                .write_image_data(&[255; 4])
+                .unwrap();
+        }
+        let mut reads = Vec::new();
+        let selection = Selection {
+            textures: BTreeSet::from(["roof".into()]),
+            models: BTreeSet::from(["weapons/1".into()]),
+        };
+        let pack = Pack::decode(
+            serde_json::from_value(manifest.clone()).unwrap(),
+            Some(selection),
+            |path, _| {
+                reads.push(path.to_owned());
+                match path {
+                    "roof.png" | "blade.png" => Ok(png.clone()),
+                    "blade.obj" => {
+                        Ok(b"v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl steel\nf 1 2 3\n".to_vec())
+                    }
+                    _ => Err(format!("Unexpected read: {path}")),
+                }
+            },
+        )
+        .unwrap();
+        assert_eq!(reads, ["blade.obj", "blade.png", "roof.png"]);
+        assert_eq!(pack.images.len(), 2);
+        assert_eq!(pack.materials.len(), 1);
+        assert_eq!(pack.models.len(), 1);
+        assert!(pack.surfaces.is_empty());
+
+        let failed = Pack::decode(
+            serde_json::from_value(manifest).unwrap(),
+            Some(Selection {
+                textures: BTreeSet::from(["snow".into()]),
+                models: BTreeSet::new(),
+            }),
+            |path, _| Err(format!("Missing {path}")),
+        );
+        assert_eq!(failed.err().unwrap(), "Missing missing.png");
+    }
 
     #[test]
     fn pack_skips_unchanged_exports_and_rejects_broken_or_escaping_edits() {

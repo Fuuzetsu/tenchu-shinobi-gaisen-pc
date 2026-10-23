@@ -5,7 +5,7 @@ use crate::{
 };
 use glam::Mat4;
 use std::{fs, path::Path};
-use tenchu_assets::{Result, stage::MissionAssets, texture::Vram};
+use tenchu_assets::{Result, stage::MissionAssets};
 
 pub const SIZE: [u32; 2] = [1280, 720];
 
@@ -43,13 +43,14 @@ impl Review {
         ))
     }
 
-    pub fn new(vram: &Vram) -> Result<Self> {
+    pub fn new(mission: &MissionAssets) -> Result<Self> {
         let instance = wgpu::Instance::new(&Default::default());
         let adapter = pollster::block_on(instance.request_adapter(&Default::default()))
             .ok_or("No graphics adapter")?;
         let format = wgpu::TextureFormat::Rgba8Unorm;
-        let mut renderer = pollster::block_on(Renderer::new(&adapter, format, SIZE, vram))?;
-        let pack = Pack::from_env()?;
+        let mut renderer =
+            pollster::block_on(Renderer::new(&adapter, format, SIZE, &mission.vram))?;
+        let pack = Pack::from_env(mission)?;
         renderer.set_asset_pack(&pack);
         let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Asset review"),

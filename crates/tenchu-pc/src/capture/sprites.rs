@@ -16,7 +16,7 @@ pub fn render(mission: &MissionAssets, output: &Path, indices: &[&str]) -> Resul
         })
         .collect::<Result<BTreeSet<_>>>()?;
     review::prepare_directory(output)?;
-    let mut review = Review::new(&mission.vram)?;
+    let mut review = Review::new(mission)?;
     let mut views = Vec::new();
     for index in indices {
         let image = mission.images[index];

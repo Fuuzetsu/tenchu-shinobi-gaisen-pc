@@ -7,6 +7,22 @@ from pathlib import Path
 
 from PIL import Image, ImageStat
 
+MAX_PIXELS = 16 * 1024 * 1024
+
+
+def pixel_budgets(catalogue, sizes, campaign):
+    if not campaign:
+        return {"pack": sum(sizes.values())}
+    entries = {entry["id"]: entry for entry in catalogue.get("entries", [])}
+    budgets = {}
+    for identity, pixels in sizes.items():
+        exports = entries.get(identity, {}).get("exports", [])
+        if not exports:
+            raise ValueError(f"{identity}: campaign budgets need merged catalogue export usage")
+        for export in set(exports):
+            budgets[export] = budgets.get(export, 0) + pixels
+    return budgets
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -14,6 +30,8 @@ def main():
     parser.add_argument("recipe", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--size", type=int, default=512)
+    parser.add_argument("--campaign", action="store_true",
+                        help="budget each mission/outfit from a merged material-catalog export")
     args = parser.parse_args()
     if not 16 <= args.size <= 1024:
         parser.error("--size must be between 16 and 1024")
@@ -25,6 +43,7 @@ def main():
     pack = {"version": 1, "textures": {}, "surfaces": {}}
     prepared = []
     pixels = 0
+    sizes = {}
     for identity, entry in recipe.items():
         if identity not in catalogue["textures"]:
             parser.error(f"unknown texture identity: {identity}")
@@ -67,6 +86,7 @@ def main():
         name = f"textures/{identity}.png"
         prepared.append((name, color))
         pixels += size[0] * size[1]
+        sizes[identity] = size[0] * size[1]
         pack["textures"][identity] = name
         strength = float(entry.get("strength", 0.25))
         if not 0 <= strength <= 2:
@@ -89,14 +109,20 @@ def main():
             name = f"heightmaps/{identity}.png"
             prepared.append((name, height))
             pixels += size[0] * size[1]
+            sizes[identity] += size[0] * size[1]
             rule["height"] = name
         pack["surfaces"][identity] = rule
         before = ImageStat.Stat(original.convert("RGB")).mean
         after = ImageStat.Stat(color.convert("RGB")).mean
         print(entry.get("name", identity), size, "mean RGB:",
               tuple(round(n) for n in before), "->", tuple(round(n) for n in after))
-    if pixels > 16 * 1024 * 1024:
-        parser.error("pack exceeds the runtime's 16 million decoded pixel budget")
+    try:
+        budgets = pixel_budgets(catalogue, sizes, args.campaign)
+    except ValueError as error:
+        parser.error(str(error))
+    for scope, count in budgets.items():
+        if count > MAX_PIXELS:
+            parser.error(f"{scope} exceeds the runtime's 16 million decoded pixel budget: {count:,}")
 
     args.output.mkdir(parents=True, exist_ok=True)
     for name, image in prepared:
@@ -105,6 +131,8 @@ def main():
         image.save(path)
     (args.output / "pack.json").write_text(json.dumps(pack, indent=2) + "\n")
     print(f"Saved {len(recipe)} materials, {pixels:,} decoded pixels to {args.output}")
+    if args.campaign:
+        print(f"Largest active mission/outfit: {max(budgets.values(), default=0):,} decoded pixels")
 
 
 if __name__ == "__main__":

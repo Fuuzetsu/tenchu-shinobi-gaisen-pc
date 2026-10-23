@@ -15,7 +15,6 @@ pub struct Region {
 }
 
 impl Region {
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn sprite(vram: &Vram, image: tenchu_assets::texture::Image) -> Self {
         let [u, v] = image.uv.map(u16::from);
         Self::find(

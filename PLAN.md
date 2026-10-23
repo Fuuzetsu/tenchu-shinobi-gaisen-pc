@@ -12,6 +12,23 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Campaign-wide HD artwork and fonts (active)
 
+Initial inventory exported all ten missions with both characters, all three
+enemy layouts and all five character/outfit combinations: 50 exports and 2,057
+distinct loaded texture identities. The accepted M1 pack supplies 368 of these.
+This is not yet the actual-use count: unused common/weapon archive contents are
+still being distinguished from required art. References and the merged catalogue
+are in `private/campaign-hd-source` and `private/campaign-hd-catalog`.
+
+Campaign loading now selects current mission texture identities and replacement
+model dependencies before opening image files. Mission/outfit reload refreshes
+that selection; F1 reload remains transactional. The 16M decoded-pixel bound now
+applies to the active selection, and the authoring tool checks every exported
+mission/outfit with `--campaign`. The loader regression covers unrelated missing
+files, model texture dependencies and required missing assets. Pack-tool checks,
+native/WASM Clippy and release build pass. M1 and M5 captures are pixel-identical
+before/after selective loading with the accepted M1 pack. This does not yet add
+browser delivery of replacement packs or HD interface rendering.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.

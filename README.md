@@ -101,7 +101,11 @@ The **Replacement artwork** switch compares against the originals. A failed
 reload keeps the previous pack. `pack.json` maps content identities to relative
 PNG paths; it can contain only the replacements you want to distribute.
 Textures may be RGB/RGBA, grayscale or indexed PNG, up to 1024 pixels per side,
-with a pack budget of 16 million decoded pixels. Alpha 0 is transparent,
+with a budget of 16 million decoded pixels per loaded mission/outfit (including
+height maps and replacement model textures). A campaign pack can contain more:
+the loader selects current mission textures and model dependencies before
+reading images, and refreshes that selection on mission/outfit changes.
+Unrelated files consume no decoded-image memory. Alpha 0 is transparent,
 1–191 selects semi-transparency and 192–255 is opaque; these are game blend
 classes rather than continuous opacity. Higher resolutions retain the original
 UV mapping. New cutouts also affect model shadows. World sprites support
@@ -179,6 +183,12 @@ development shell. It also checks that authored color covers the original cutout
 before restoring its alpha classes. A rejected frame or leaf needs aligned
 artwork or extra color bleed behind the mask. Run the synthetic cutout regression
 with `./dev.sh python3 tools/test-material-pack.py`.
+
+For campaign artwork, merge all mission/outfit exports with `material-catalog.py`
+and pass that catalogue to `material-pack.py --campaign`. The tool checks the
+pixel budget for every exported mission/outfit, counting shared artwork in each
+one that uses it. Keep all variants in the catalogue; an incomplete catalogue
+cannot establish complete coverage or a campaign-wide memory bound.
 
 The default recipe setting `"alpha": "original"` keeps the original silhouette.
 For finer foliage or glints, opt into `"alpha": "authored"` to use the new PNG's

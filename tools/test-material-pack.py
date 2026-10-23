@@ -1,6 +1,7 @@
 """Run with the Nix development shell's Python; all fixtures are synthetic."""
 
 import json
+import importlib.util
 from pathlib import Path
 import subprocess
 import sys
@@ -8,6 +9,25 @@ import tempfile
 import unittest
 
 from PIL import Image
+
+spec = importlib.util.spec_from_file_location("material_pack", Path(__file__).with_name("material-pack.py"))
+material_pack = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(material_pack)
+
+
+class CampaignBudget(unittest.TestCase):
+    def test_shared_textures_count_in_each_using_mission_and_require_evidence(self):
+        catalogue = {"entries": [
+            {"id": "player", "exports": ["m1", "m2", "m1"]},
+            {"id": "roof", "exports": ["m1"]},
+            {"id": "snow", "exports": ["m2"]},
+        ]}
+        sizes = {"player": 2_000_000, "roof": 10_000_000, "snow": 12_000_000}
+        self.assertEqual(material_pack.pixel_budgets(catalogue, sizes, True),
+                         {"m1": 12_000_000, "m2": 14_000_000})
+        self.assertEqual(material_pack.pixel_budgets(catalogue, sizes, False), {"pack": 24_000_000})
+        with self.assertRaisesRegex(ValueError, "missing.*export usage"):
+            material_pack.pixel_budgets(catalogue, {"missing": 100}, True)
 
 
 class CutoutCoverage(unittest.TestCase):

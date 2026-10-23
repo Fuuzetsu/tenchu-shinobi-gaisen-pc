@@ -248,7 +248,7 @@ impl Application {
                 )
             }
             Item::ReloadAssets => {
-                let pack = crate::visuals::pack::Pack::from_env()?;
+                let pack = crate::visuals::pack::Pack::from_env(&self.campaign.game.mission)?;
                 let textures = pack.textures.len();
                 if let Some(view) = &mut self.view {
                     let models = view.load_pack(pack, &self.campaign.game, &self.settings)?;

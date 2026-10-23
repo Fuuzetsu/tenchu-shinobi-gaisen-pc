@@ -43,7 +43,7 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         [width, height],
         &game.mission.vram,
     ))?;
-    let pack = crate::visuals::pack::Pack::from_env()?;
+    let pack = crate::visuals::pack::Pack::from_env(&game.mission)?;
     let directory =
         std::env::var("TENCHU_MODEL_DIR").unwrap_or_else(|_| settings.model_directory.clone());
     let bodies = if directory.is_empty() {

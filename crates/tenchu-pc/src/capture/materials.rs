@@ -124,7 +124,7 @@ pub fn render(
         }
     }
     review::prepare_directory(output)?;
-    let mut review = Review::new(&game.mission.vram)?;
+    let mut review = Review::new(&game.mission)?;
     let mesh = review.renderer.upload(&vertices);
     let actors = review
         .renderer

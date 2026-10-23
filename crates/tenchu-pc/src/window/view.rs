@@ -159,7 +159,7 @@ impl View {
             &game.mission.vram,
         )
         .await?;
-        let mut pack = Pack::from_env().unwrap_or_else(|error| {
+        let mut pack = Pack::from_env(&game.mission).unwrap_or_else(|error| {
             eprintln!("Asset pack: {error}; using original assets");
             Pack::default()
         });
@@ -308,6 +308,11 @@ impl View {
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
+        self.pack = Pack::from_env(&game.mission).unwrap_or_else(|error| {
+            eprintln!("Asset pack: {error}; using original assets");
+            Pack::default()
+        });
+        self.renderer.set_asset_pack(&self.pack);
         self.player_models = crate::visuals::appearance::choices(game, &self.bodies);
         let result = self.build_models(game, settings);
         let error = result.as_ref().err().cloned();

@@ -125,7 +125,7 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
         selected.extend(matching);
     }
     review::prepare_directory(output)?;
-    let mut review = Review::new(&game.mission.vram)?;
+    let mut review = Review::new(&game.mission)?;
     let replacements = review.models(&game.mission)?;
     let backdrop = grey_background.then(|| review.backdrop(0.4));
     let mut views = Vec::new();
