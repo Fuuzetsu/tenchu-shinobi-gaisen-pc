@@ -141,6 +141,12 @@ clean exits, with the graphics-before-display shutdown fix retained.
   improvement/asset editing path.
 
 The light budget now offers 1/2/4/8/16 sources with its original default of two.
+Normal gameplay ranks nearby sources around the player, keeping both lights and
+shadow slots stable when the camera orbits. Free-camera and cinematic views rank
+around their own position. Sources still share the configured budgets; travelling
+to another area can select a different set. A Mission 1 regression orbits through
+24 views between two lanterns and confirms that the former camera-distance
+ranking would switch sources there.
 The menu reports actual sources, six shadow views per source and depth memory;
 shadow arrays grow/shrink with active sources and release when disabled. A
 preview action creates a movable light and changes presentation preferences for

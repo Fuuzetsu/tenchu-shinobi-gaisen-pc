@@ -432,7 +432,7 @@ impl View {
         let sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,
-            debug.eye(game),
+            debug.camera.map(|camera| camera.position),
             debug.light_position(game),
             if settings.graphics.lighting.enabled && settings.graphics.lighting.lamps {
                 self.emitters.sources_presented(game, frame)

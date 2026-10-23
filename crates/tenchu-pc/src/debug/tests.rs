@@ -93,7 +93,7 @@ fn inspecting_live_state_does_not_change_the_game() {
                 count: 1,
                 ..Default::default()
             },
-            camera.position,
+            Some(camera.position),
             Some(camera.position),
             Vec::new(),
         );

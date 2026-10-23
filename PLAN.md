@@ -23,6 +23,12 @@ pass. All 21 item-use comparison pairs were refreshed and retain
 identical original/pack gameplay traces. The repaired original and pack views
 were inspected. A silent 4K/60 before/after video is the remaining follow-up.
 
+Dynamic-light follow-up: gameplay light/shadow selection now follows player
+position instead of the orbiting camera. The Mission 1 regression preserves the
+selected lights across 24 camera angles in a scene where the old selection swaps
+sources. Free-camera and cinematic selection still follows those views. Native
+and WASM Clippy pass; configured light/shadow budgets and gameplay are unchanged.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.

@@ -21,13 +21,21 @@ pub struct Source {
 pub fn sources(
     game: &Game,
     settings: &crate::settings::Lighting,
-    camera: Vec3,
+    free_camera: Option<Vec3>,
     debug_light: Option<Vec3>,
     lamps: Vec<Source>,
 ) -> Vec<Source> {
     if !settings.enabled {
         return Vec::new();
     }
+    // Orbiting the player must not reshuffle the limited light and shadow slots.
+    let focus = free_camera.unwrap_or_else(|| {
+        if game.cinematic.active {
+            crate::debug::camera::Camera::from_game(game).position
+        } else {
+            Vec3::from(game.player().position.map(|v| v as f32).to_array())
+        }
+    });
     let radius = f32::from(settings.radius) * 1000.0;
     let mut lights = Vec::new();
     if let Some(position) = debug_light {
@@ -47,13 +55,12 @@ pub fn sources(
     if settings.fires {
         candidates.extend(fire_sources(game, radius));
     }
-    candidates.retain(|s| {
-        camera.distance_squared(s.light.position) < (s.light.radius + 15_000.0).powi(2)
-    });
+    candidates
+        .retain(|s| focus.distance_squared(s.light.position) < (s.light.radius + 15_000.0).powi(2));
     candidates.sort_by(|a, b| {
-        camera
+        focus
             .distance_squared(a.light.position)
-            .total_cmp(&camera.distance_squared(b.light.position))
+            .total_cmp(&focus.distance_squared(b.light.position))
     });
     lights.extend(candidates);
     lights.truncate(usize::from(settings.count).min(MAX_LIGHTS));
@@ -75,4 +82,60 @@ pub fn fire_sources(game: &Game, radius: f32) -> impl Iterator<Item = Source> + 
             },
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; orbiting the gameplay camera preserves light and shadow selection"]
+    fn camera_orbits_do_not_swap_lamps_or_shadow_slots() {
+        let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap())
+                .unwrap();
+        let mut game = crate::session::Options::default().load(&assets).unwrap();
+        for _ in 0..40 {
+            game.step(0).unwrap();
+        }
+        assert!(!game.cinematic.active);
+        let lamps = crate::visuals::lights::Emitters::build(
+            &game,
+            &crate::visuals::pack::Pack::default(),
+            false,
+        )
+        .sources(&game);
+        let settings = crate::settings::Lighting {
+            enabled: true,
+            count: 2,
+            shadow_count: 1,
+            ..Default::default()
+        };
+        let positions = |game: &Game, camera| {
+            sources(game, &settings, camera, None, lamps.clone())
+                .into_iter()
+                .map(|source| source.light.position)
+                .collect::<Vec<_>>()
+        };
+        let expected = positions(&game, None);
+        assert_eq!(expected.len(), 2);
+        let target = (expected[0] + expected[1]) * 0.5;
+        game.roster.get_mut(game.player_id).position =
+            target.to_array().map(|value| value.round() as i32).into();
+        let expected = positions(&game, None);
+        let mut camera = crate::debug::camera::Camera::from_game(&game);
+        let mut camera_selected = Vec::new();
+        for angle in 0..24 {
+            camera.yaw = angle as f32 * std::f32::consts::TAU / 24.0;
+            camera.position = target - camera.forward() * 8000.0;
+            game.rendered_view = camera.source_view();
+            assert_eq!(positions(&game, None), expected);
+            camera_selected.push(positions(&game, Some(camera.position)));
+        }
+        // This scene crosses the old camera-distance ranking boundary.
+        assert!(camera_selected.windows(2).any(|pair| pair[0] != pair[1]));
+        // Free-camera travel still selects lights near the inspected scene.
+        assert!(positions(&game, Some(target + Vec3::splat(500_000.0))).is_empty());
+    }
 }

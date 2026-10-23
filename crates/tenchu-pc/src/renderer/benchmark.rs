@@ -97,7 +97,7 @@ fn profile_mission_rendering() {
     let lights: Vec<_> = crate::lighting::sources(
         &game,
         &options.lighting,
-        camera.position,
+        Some(camera.position),
         None,
         emitters.sources(&game),
     )

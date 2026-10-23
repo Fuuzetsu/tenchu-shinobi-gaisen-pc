@@ -65,7 +65,7 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
     let lights: Vec<_> = crate::lighting::sources(
         game,
         &settings.graphics.lighting,
-        crate::debug::camera::Camera::from_game(game).position,
+        None,
         None,
         emitters.sources(game),
     )
