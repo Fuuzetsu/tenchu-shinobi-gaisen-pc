@@ -248,7 +248,15 @@ accepted atlases, exact prompts and crops. Original geometry and baked shading
 still account for some visible joins. Restart the pack launcher to pick up the
 renderer change; game logic and collision are unchanged.
 
-The four-minute silent comparison is
+The latest silent showcase is
+`private/m1-showcase-v2/tenchu-mission1-showcase-v2-4k60.mp4`: 26 comparisons in
+2:36 at 3840×2160 and 60 fps. Each side lasts three seconds, compared with ten
+previously, while gameplay runs at normal speed. It includes the boundary
+refinements and additional scenery, interiors, characters and props. The watch
+page, frozen capture pack, reproducible catalog and grouped YouTube chapter
+description are beside the video.
+
+The earlier four-minute silent comparison is
 `private/m1-before-after-video/tenchu-mission1-before-after-4k60.mp4`.
 It contains 12 matched before/after pairs at 3840×2160, 60 fps, covering scenery,
 both players and item use. The review hub links the video and its YouTube

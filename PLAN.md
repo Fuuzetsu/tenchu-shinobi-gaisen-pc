@@ -12,6 +12,23 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Complete Mission 1 texture pack
 
+Faster follow-up recording is complete at
+`private/m1-showcase-v2/tenchu-mission1-showcase-v2-4k60.mp4`: 156 seconds,
+26 matched original/replacement pairs, three seconds per side instead of ten.
+The latest pack is frozen beside the catalog, including the terrain/eaves/roof
+refinements below. Fourteen additional comparisons cover garden paths, ground,
+blossoms, lanterns, eaves, interior materials, props, guards and character detail.
+Gameplay remains at its original speed; item excerpts start near the useful
+effect timing. Two obstructed candidate cameras were reframed before capture.
+The silent H.264 High/BT.709 MP4 contains all 9,360 unique consecutive 60 Hz
+presentation timestamps at 3840×2160 and decodes completely without errors.
+Middle/end frames from all 52 shots (104 frames) and a 4K caption crop were
+inspected. All paired cameras/inputs/settings match and capture hashes verify.
+The MP4 has 52 per-shot chapters; the YouTube description groups them into
+13 twelve-second chapters. The review hub features this version and preserves
+the earlier recording. Authoring/render/review scripts and validation remain
+beside the private video; no game or renderer code changed for this edit.
+
 Boundary follow-up: the map review covers all 100 scenery texture identities and
 an audit of 6,780 shared coplanar UV/material edges within exported map parts.
 The audit prioritizes inspection rather than declaring every material change a

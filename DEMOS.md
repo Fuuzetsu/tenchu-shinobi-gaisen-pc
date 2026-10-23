@@ -119,14 +119,27 @@ presets and cameras differ only in artwork. Fixed-artwork captions sit at the
 top, leaving the player and item effects visible. Recording files currently
 require the native host; the simulation and camera presentation remain portable.
 
-The local Mission 1 comparison uses
+The original local Mission 1 comparison uses
 `private/m1-before-after-video/showcase.json`: 12 original/replacement pairs,
 ten seconds each, with self-contained input excerpts beside the catalog.
-Set `TENCHU_ASSET_PACK="$PWD/private/m1-hd-pilot"` when replaying or exporting it.
+Its matching pack is archived at `private/m1-boundaries/previous-pack`; set
+`TENCHU_ASSET_PACK` to that directory to reproduce the earlier artwork.
 The completed 240-second MP4, 24 embedded/description chapters and validation
 are in that directory. Every one of its 14,400 video timestamps was verified,
 and detail/end frames from each clip were inspected. These private assets and
 recordings are not bundled with the repository.
+
+The faster follow-up uses `private/m1-showcase-v2/showcase.json`: **26 pairs,
+three seconds per side, 156 seconds total**, including the later terrain/eaves/
+roof refinements. New views cover path corners, garden ground, blossoms, stone
+lanterns, shoji, carvings, gold screens, props and character details. Recorded
+actions start near their useful moments so item effects remain visible in the
+shorter shots. Gameplay still advances at 30 Hz with 60 Hz presentation.
+`private/m1-showcase-v2/render.sh DISC OUTPUT.mp4` exports it using the frozen
+`capture-pack` beside the catalog. The MP4 has 52 per-shot chapters; its separate
+`youtube-description.txt` groups these into 13 twelve-second chapters to satisfy
+YouTube's ten-second minimum. The local watch page is `index.html` in the same
+directory; the earlier recording remains available.
 
 The normal scene clips disable mission event triggers so the shot is not
 interrupted by a story or result transition. The cinematic clip replays Mission 2's opening at each speed, keeping the
