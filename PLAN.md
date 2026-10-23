@@ -226,6 +226,27 @@ fallbacks above and eighteen shared HUD images. Mission 8 begins with 46 world
 identities. Missions 8–10, menu artwork/fonts and browser pack delivery remain
 active work; original geometry, UV scale and vertex-lighting joins still apply.
 
+Mission 8 adds 38 reviewed identities: fourteen scenery, four prop, nineteen
+actor and one equipment image. Related atlases cover the autumn cliffs, leaf
+transitions, cave stone, foliage, medicinal flower and Tengu clothing/head.
+Three hand pieces reuse authored skin grain while preserving source landmarks.
+The staff rings, flower petals and foliage have reviewed cutout silhouettes;
+Tengu's hair retains its original mixed transparency classes.
+
+Evidence includes 56 map pairs, eleven models from six angles and twelve
+gameplay endpoints through both completed routes. Original/replacement stdout
+traces match: Rikimaru finishes at tick 8,448 with 74 HP and Ayame at tick 8,126
+with 56 HP. Seven common door/pitfall images retain original blank fill or atlas
+fragments; one Tengu sleeve triangle retains an unrelated 208x6 source VRAM
+strip. These eight fallbacks are recorded explicitly, alongside the eighteen
+shared HUD images still awaiting the interface pass.
+
+Candidate30 is installed: 1,298 world/UI images plus one menu background,
+53.40M world pixels globally and 16.21M at most in an active mission/outfit.
+All 1,261 previously accepted PNGs remain byte-identical. Mission 9 begins with
+98 additional world identities. Missions 9–10, menu artwork/fonts and browser
+pack delivery remain active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
