@@ -53,10 +53,20 @@ def main():
         if not isinstance(longest, int) or not 16 <= longest <= 1024:
             parser.error(f"size for {identity} must be between 16 and 1024")
         size = tuple(max(1, round(n * longest / max(original.size))) for n in original.size)
-        with Image.open(args.recipe.parent / entry["color"]) as source:
-            color = source.convert("RGBA").resize(size, Image.Resampling.LANCZOS)
-        alpha = original.getchannel("A").resize(size, Image.Resampling.NEAREST)
         mode = entry.get("alpha", "original")
+        with Image.open(args.recipe.parent / entry["color"]) as source:
+            color = source.convert("RGBA")
+        alpha = original.getchannel("A").resize(size, Image.Resampling.NEAREST)
+        if mode == "classes":
+            classes = set(original.getchannel("A").get_flattened_data())
+            authored = color.getchannel("A")
+            if not classes <= {0, 128, 255} or set(authored.get_flattened_data()) != classes:
+                parser.error(f"{identity}: explicit alpha classes must match the original "
+                             "0/128/255 blend classes exactly")
+            alpha = authored.resize(size, Image.Resampling.NEAREST)
+            color = color.convert("RGB").resize(size, Image.Resampling.LANCZOS)
+        else:
+            color = color.resize(size, Image.Resampling.LANCZOS)
         if mode == "original":
             visible = sum(mask != 0 for mask in alpha.get_flattened_data())
             missing = sum(mask != 0 and paint < 128 for mask, paint in zip(
@@ -80,8 +90,8 @@ def main():
                 alpha = authored.point(lambda value: original_class if value else 0)
             else:
                 alpha = authored.point(lambda value: original_class if value >= 128 else 0)
-        else:
-            parser.error(f"{identity}: alpha must be original, authored or additive")
+        elif mode != "classes":
+            parser.error(f"{identity}: alpha must be original, authored, additive or classes")
         color.putalpha(alpha)
         name = f"textures/{identity}.png"
         prepared.append((name, color))

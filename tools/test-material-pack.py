@@ -31,6 +31,35 @@ class CampaignBudget(unittest.TestCase):
 
 
 class CutoutCoverage(unittest.TestCase):
+    def test_explicit_blend_classes_survive_resizing_without_opacity_interpolation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "textures").mkdir()
+            (root / "catalog.json").write_text(json.dumps({"textures": ["hud"]}))
+            (root / "recipe.json").write_text(json.dumps({
+                "hud": {"color": "color.png", "size": 32, "alpha": "classes"}}))
+            original = Image.new("RGBA", (3, 1))
+            original.putdata([(20, 40, 60, 0), (20, 40, 60, 128), (20, 40, 60, 255)])
+            original.save(root / "textures/hud.png")
+            color = original.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            color.save(root / "color.png")
+            command = [sys.executable, str(Path(__file__).with_name("material-pack.py")),
+                       str(root), str(root / "recipe.json"), str(root / "pack")]
+            succeeded = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(succeeded.returncode, 0, succeeded.stderr)
+            with Image.open(root / "pack/textures/hud.png") as packed:
+                expected = color.getchannel("A").resize(packed.size, Image.Resampling.NEAREST)
+                self.assertEqual(packed.getchannel("A").tobytes(), expected.tobytes())
+                self.assertEqual(set(packed.convert("RGB").get_flattened_data()), {(20, 40, 60)})
+            for invalid in [0, 127, 200, 255]:
+                color.putpixel((1, 0), (20, 40, 60, invalid))
+                color.save(root / "color.png")
+                command[-1] = str(root / f"invalid-{invalid}")
+                failed = subprocess.run(command, capture_output=True, text=True)
+                self.assertNotEqual(failed.returncode, 0)
+                self.assertIn("explicit alpha classes must match", failed.stderr)
+                self.assertFalse(Path(command[-1]).exists())
+
     def test_reject_misalignment_and_preserve_original_alpha_with_color_bleed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

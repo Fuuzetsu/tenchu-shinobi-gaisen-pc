@@ -213,9 +213,15 @@ cannot establish complete coverage or a campaign-wide memory bound.
 The default recipe setting `"alpha": "original"` keeps the original silhouette.
 For finer foliage or glints, opt into `"alpha": "authored"` to use the new PNG's
 cutout instead. Its alpha is thresholded at 128 and mapped to the original blend
-class. This requires a single nonzero original alpha class; mixed opaque and
-semi-transparent images need their original mask. Review authored silhouettes
+class. This requires a single nonzero original alpha class. Review authored silhouettes
 in context, including shadows and animation.
+
+For deliberately painted masks mixing opaque and semi-transparent pixels, use
+`"alpha": "classes"`. The authored PNG must contain exactly the original set of
+alpha values from 0, 128 and 255. These are blend flags, not opacity: the tool
+resizes the class mask with nearest-neighbor sampling and the RGB separately.
+Ordinary partially transparent artwork should use the other modes. This allows
+sharp opaque lettering over a blended HUD glow without changing either blend.
 
 For smoke, fire and other additive particles, use `"alpha": "additive"`.
 This converts soft authored transparency into RGB intensity over black while
