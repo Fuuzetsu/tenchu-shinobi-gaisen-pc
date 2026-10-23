@@ -35,6 +35,16 @@ compares complete gameplay state with direct replay before/after toggling art;
 all seven demo tests pass. Native/WASM Clippy and release build pass. The final
 video is pending the subsequently requested gable-art and animated-seam review.
 
+The animated seam report refers to water, not player models. Replacement water
+UVs previously omitted one source texel per mesh tile; scroll phases then made
+the skipped strip visible at joins. Replacement scrolling now spans one complete
+period across each tile while retaining the original 32-texel animation period.
+The adjacent-tile GPU regression fails before the fix (40-level channel jump)
+and passes after it on Vulkan/OpenGL, alongside phase/reload/disable checks.
+Original artwork retains its previous mapping. Native/WASM Clippy and release
+build pass. Remaining art follow-ups: consistent assembled gables retaining the
+attic frame, Ayame's mouth UV interpretation, and visible weapon improvements.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.

@@ -44,8 +44,13 @@ impl Entry {
             .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
         if self.scrolling {
             let offset = self.scroll.unwrap_or_default();
-            source[0] -= f32::from(offset[0]);
-            source[1] -= f32::from(offset[1]);
+            for axis in 0..2 {
+                let period = source[axis + 2];
+                let span = (period - 1.0).max(1.0);
+                // Mesh UV endpoints are texel centers; each animated tile needs a full period.
+                source[axis] += 0.5 - f32::from(offset[axis]) * span / period;
+                source[axis + 2] = span;
+            }
         }
         source
     }

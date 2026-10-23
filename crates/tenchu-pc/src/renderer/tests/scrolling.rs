@@ -69,6 +69,16 @@ fn replacement_scroll_tracks_original_copies_and_restores_live_water() {
     }
     let (mut renderer, target) = fixture(&vram);
     let mesh = renderer.upload(&vertices);
+    let tiled: Vec<_> = [-1.0, 1.0]
+        .into_iter()
+        .flat_map(|side| {
+            vertices.iter().copied().map(move |mut vertex| {
+                vertex.position[0] = vertex.position[0] * 0.5 + side * 300.0;
+                vertex
+            })
+        })
+        .collect();
+    let tiled = renderer.upload(&tiled);
     let camera = game_camera(Matrix::default(), 1.0);
     let draw = |renderer: &mut Renderer| {
         renderer
@@ -92,6 +102,21 @@ fn replacement_scroll_tracks_original_copies_and_restores_live_water() {
         renderer.update_vram(&vram);
         let moved = draw(&mut renderer);
         assert_ne!(moved, initial, "scrolling at filtering {filtering}");
+        renderer
+            .draw(
+                &target.create_view(&Default::default()),
+                camera,
+                &[&tiled],
+                None,
+            )
+            .unwrap();
+        let joined = read_pixels(&renderer, &target);
+        let a = joined[32 * 256 + 31 * 4];
+        let b = joined[32 * 256 + 32 * 4];
+        assert!(
+            a.abs_diff(b) < 20,
+            "adjacent scrolling tiles skip pixels at filtering {filtering}: {a} -> {b}"
+        );
         renderer.set_asset_pack(&pack);
         assert_eq!(draw(&mut renderer), moved, "reload preserves phase");
 

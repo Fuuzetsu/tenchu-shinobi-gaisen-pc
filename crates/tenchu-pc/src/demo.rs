@@ -169,7 +169,14 @@ impl Player {
             #[cfg(not(target_arch = "wasm32"))]
             return self.load_recording(assets);
             #[cfg(target_arch = "wasm32")]
-            return Err("Demo recording files are currently supported by the desktop host".into());
+            {
+                let recording = self.clip().recording.as_ref().unwrap();
+                return Err(format!(
+                    "Demo recording {} at tick {} requires the desktop host",
+                    recording.path.display(),
+                    recording.start_tick
+                ));
+            }
         }
         let options = crate::session::Options {
             mission: self.clip().mission,
