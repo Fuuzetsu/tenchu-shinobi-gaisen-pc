@@ -42,7 +42,10 @@ fn part(p: f32, count: usize) -> (usize, f32) {
 }
 
 pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera> {
-    if player.clip().shot == Shot::Cinematic {
+    if let Some(path) = &player.clip().camera {
+        return Some(path.sample(player.progress()));
+    }
+    if matches!(player.clip().shot, Shot::Cinematic | Shot::Gameplay) {
         return None;
     }
     let p = player.progress();
@@ -93,6 +96,9 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     let p = player.progress();
     let wave = sweep(p);
     let g = &mut settings.graphics;
+    if let Some(fog) = player.clip().fog {
+        g.fog = fog;
+    }
     match player.clip().feature {
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
         Feature::Lanterns => {
@@ -280,7 +286,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.fog = false;
         }
         Feature::Artwork => {
-            g.asset_pack = section(p, 4) % 2 == 1;
+            g.asset_pack = player.clip().artwork.unwrap_or(section(p, 4) % 2 == 1);
         }
         Feature::LightRange => {
             let (stage, t) = part(p, 2);
@@ -517,6 +523,14 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             }
         )),
         Feature::Performance => text("Live CPU / GPU timings · F1 to freeze or clear".into()),
+        Feature::Artwork if player.clip().artwork.is_some() => text(
+            if g.asset_pack {
+                "AFTER · Replacement artwork"
+            } else {
+                "BEFORE · Original artwork"
+            }
+            .into(),
+        ),
         Feature::Artwork => text(format!(
             "Replacement artwork: {} · original fallback when no pack is loaded",
             on(g.asset_pack)

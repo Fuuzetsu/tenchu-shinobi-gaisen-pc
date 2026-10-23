@@ -101,6 +101,24 @@ stage data. Features are typed Rust programs in `src/demo/presentation.rs`;
 adding a genuinely new animated control belongs there. Playback, transport,
 scene preparation and overlay rendering are separate modules.
 
+Custom clips can set `artwork: false` or `true` to hold a before/after state
+throughout the artwork feature, and `fog: false` for clear distant scenery.
+An optional `camera` object accepts `eye` and `target` world-coordinate triples,
+optional `end_eye`/`end_target`, and `fov` (55 degrees by default). It moves
+smoothly between those endpoints on the same offline timeline.
+
+For matched gameplay comparisons, use `feature: "artwork"`, `shot: "gameplay"`
+and `recording: {"path": "route.inputs", "start_tick": 200}`. Paths are relative
+to the catalog. The self-contained recording supplies the seed, inventory,
+difficulty and language; its character/mission must match the clip. Inputs are
+replayed from the start to the chosen tick with normal event handling, then
+continue at 30 Hz. The file must contain enough inputs for the whole clip.
+Omit `camera` to retain the gameplay/cinematic camera, or provide it for an
+independent presentation view. Paired clips with identical paths, offsets,
+presets and cameras differ only in artwork. Fixed-artwork captions sit at the
+top, leaving the player and item effects visible. Recording files currently
+require the native host; the simulation and camera presentation remain portable.
+
 The normal scene clips disable mission event triggers so the shot is not
 interrupted by a story or result transition. The cinematic clip replays Mission 2's opening at each speed, keeping the
 original script and camera. Inputs for character demonstrations are a small,

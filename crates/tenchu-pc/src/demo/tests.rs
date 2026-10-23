@@ -108,3 +108,86 @@ fn cinematic_acceleration_does_not_spill_into_gameplay() {
     while p.step(false).is_some() {}
     assert_eq!(p.simulation_ticks, 60);
 }
+
+#[test]
+fn authored_camera_paths_reject_crossings_and_keep_the_target_centered() {
+    let mut path: framing::Path = serde_json::from_str(
+        r#"{
+        "eye":[1000,-2000,5000], "target":[0,0,0],
+        "end_eye":[4000,-1000,2000], "end_target":[500,0,500]
+    }"#,
+    )
+    .unwrap();
+    path.validate().unwrap();
+    for step in 0..=60 {
+        let progress = step as f32 / 60.0;
+        let t = progress * progress * (3.0 - 2.0 * progress);
+        let target =
+            glam::Vec3::from(path.target).lerp(glam::Vec3::from(path.end_target.unwrap()), t);
+        let center = path
+            .sample(progress)
+            .matrix(16.0 / 9.0)
+            .project_point3(target);
+        assert!(center.x.abs() < 1e-5 && center.y.abs() < 1e-5);
+    }
+    path.end_eye = Some([-1000.0, 2000.0, -5000.0]);
+    path.end_target = None;
+    assert!(path.validate().is_err());
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; recorded demo excerpts preserve the original seed, inventory, events and input sequence"]
+fn recorded_excerpt_matches_direct_replay_before_and_after_artwork_toggle() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap())
+            .unwrap();
+    let input_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/data/mission1-rikimaru.inputs");
+    let text = std::fs::read_to_string(&input_path).unwrap();
+    let start = crate::recording::Start::parse(&text).unwrap().unwrap();
+    let mut expected = start.load(&assets).unwrap();
+    let runs = crate::session::parse_inputs(&text).unwrap();
+    let mut inputs = runs
+        .into_iter()
+        .flat_map(|(count, buttons)| std::iter::repeat_n(buttons, count as usize));
+    for buttons in inputs.by_ref().take(200) {
+        expected.step(buttons).unwrap();
+    }
+    let initial = crate::session::tests::state(&expected);
+    let mut p = player(&["--clips", "artwork", "--duration", "2"]);
+    let index = p.playlist[0];
+    p.catalog[index].mission = 1;
+    p.catalog[index].character = 0;
+    p.catalog[index].shot = Shot::Gameplay;
+    p.catalog[index].recording = Some(catalog::Recording {
+        path: input_path,
+        start_tick: 200,
+    });
+    let buttons: Vec<_> = inputs.take(60).collect();
+    for &buttons in &buttons {
+        expected.step(buttons).unwrap();
+    }
+    let final_state = crate::session::tests::state(&expected);
+    for artwork in [false, true] {
+        p.reset(0);
+        p.catalog[index].artwork = Some(artwork);
+        let (mut actual, _) = p.load_game(&assets, None).unwrap();
+        assert_eq!(crate::session::tests::state(&actual), initial);
+        let mut settings = crate::settings::Settings::default();
+        let mut debug = crate::debug::Debug::new(&actual).unwrap();
+        for _ in 0..120 {
+            p.queue_frame();
+            let ticks = p.step(false).unwrap();
+            animate(&p, &mut settings, &mut debug);
+            assert_eq!(settings.graphics.asset_pack, artwork);
+            for tick in p.simulation_ticks - ticks as u64..p.simulation_ticks {
+                assert_eq!(p.buttons(tick), buttons[tick as usize]);
+                actual.step(p.buttons(tick)).unwrap();
+            }
+        }
+        assert_eq!(crate::session::tests::state(&actual), final_state);
+    }
+    p.catalog[index].recording.as_mut().unwrap().start_tick = u32::MAX;
+    assert!(p.load_game(&assets, None).is_err());
+}

@@ -53,6 +53,7 @@ pub enum Shot {
     Guard,
     Wide,
     Cinematic,
+    Gameplay,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -67,6 +68,18 @@ pub struct Clip {
     pub preset: u16,
     pub feature: Feature,
     pub shot: Shot,
+    pub artwork: Option<bool>,
+    pub fog: Option<bool>,
+    pub camera: Option<super::framing::Path>,
+    pub recording: Option<Recording>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Recording {
+    pub path: std::path::PathBuf,
+    #[serde(default)]
+    pub start_tick: u32,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -113,6 +126,20 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
                 "Demo '{}' must pair the cinematics feature and cinematic shot",
                 c.id
             ));
+        }
+        if let Some(camera) = &c.camera {
+            camera
+                .validate()
+                .map_err(|e| format!("Demo '{}': {e}", c.id))?;
+        }
+        if c.recording.is_some() && (c.feature != Feature::Artwork || c.shot != Shot::Gameplay) {
+            return Err(format!(
+                "Demo '{}' recordings require the artwork feature and gameplay shot",
+                c.id
+            ));
+        }
+        if c.shot == Shot::Gameplay && c.recording.is_none() {
+            return Err(format!("Demo '{}' gameplay shot needs a recording", c.id));
         }
     }
     Ok(clips)

@@ -21,16 +21,17 @@ pub fn show(
     let mut action = None;
     let clip = player.clip();
     if player.captions {
+        let top = clip.shot == super::Shot::Cinematic || clip.artwork.is_some();
         egui::Area::new("demo-caption".into())
             .anchor(
-                if clip.shot == super::Shot::Cinematic {
+                if top {
                     egui::Align2::LEFT_TOP
                 } else {
                     egui::Align2::LEFT_BOTTOM
                 },
                 [
                     24.0,
-                    if clip.shot == super::Shot::Cinematic {
+                    if top {
                         24.0
                     } else {
                         -24.0
@@ -44,7 +45,7 @@ pub fn show(
                     .corner_radius(8)
                     .inner_margin(16)
                     .show(ui, |ui| {
-                        let width = if clip.shot == super::Shot::Cinematic {
+                        let width = if top {
                             460.0
                         } else {
                             680.0

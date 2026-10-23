@@ -2,6 +2,8 @@ mod catalog;
 pub mod framing;
 pub mod overlay;
 mod presentation;
+#[cfg(not(target_arch = "wasm32"))]
+mod recorded;
 #[cfg(test)]
 mod tests;
 
@@ -10,7 +12,6 @@ pub use presentation::{Scene, animate, camera, readout};
 #[cfg(not(target_arch = "wasm32"))]
 use std::ffi::OsString;
 use std::{path::PathBuf, time::Duration};
-#[cfg(not(target_arch = "wasm32"))]
 use tenchu_assets::Result;
 
 pub struct Player {
@@ -30,6 +31,7 @@ pub struct Player {
     pub muted: bool,
     pub video: Option<PathBuf>,
     pub scene: Scene,
+    inputs: Option<Vec<u16>>,
     phase: u128,
     simulation_phase: u16,
     last_speed: u16,
@@ -83,6 +85,12 @@ impl Player {
                     let path = args.next().ok_or("--catalog needs a JSON filename")?;
                     let bytes = std::fs::read(path).map_err(|e| format!("Demo catalog: {e}"))?;
                     catalog = catalog::parse(&bytes)?;
+                    let parent = std::path::Path::new(path).parent().unwrap();
+                    for clip in &mut catalog {
+                        if let Some(recording) = &mut clip.recording {
+                            recording.path = parent.join(&recording.path);
+                        }
+                    }
                 }
                 other => return Err(format!("Unknown demo option {other}")),
             }
@@ -132,6 +140,7 @@ impl Player {
             muted: muted || video.is_some(),
             video,
             scene: Scene::default(),
+            inputs: None,
         })
     }
 
@@ -148,6 +157,34 @@ impl Player {
 
     pub fn clip(&self) -> &Clip {
         &self.catalog[self.playlist[self.index]]
+    }
+
+    pub fn load_game(
+        &mut self,
+        assets: &tenchu_assets::game::GameAssets<crate::source::DiscSource>,
+        language: Option<tenchu_assets::script::Language>,
+    ) -> Result<(tenchu_core::game::Game, crate::session::Options)> {
+        self.inputs = None;
+        if self.clip().recording.is_some() {
+            #[cfg(not(target_arch = "wasm32"))]
+            return self.load_recording(assets);
+            #[cfg(target_arch = "wasm32")]
+            return Err("Demo recording files are currently supported by the desktop host".into());
+        }
+        let options = crate::session::Options {
+            mission: self.clip().mission,
+            character: self.clip().character,
+            language,
+            ..Default::default()
+        };
+        let mut game = options.load(assets)?;
+        if self.clip().feature != Feature::Cinematics {
+            game.events = Default::default();
+            for _ in 0..30 {
+                game.step(0)?;
+            }
+        }
+        Ok((game, options))
     }
 
     pub fn reset(&mut self, index: usize) {
@@ -238,6 +275,9 @@ impl Player {
     }
 
     pub fn buttons(&self, tick: u64) -> u16 {
+        if let Some(inputs) = &self.inputs {
+            return inputs.get(tick as usize).copied().unwrap_or(0);
+        }
         use tenchu_core::input::{R1, SQUARE};
         match self.clip().feature {
             Feature::Interpolation

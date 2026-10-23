@@ -29,6 +29,12 @@ selected lights across 24 camera angles in a scene where the old selection swaps
 sources. Free-camera and cinematic selection still follows those views. Native
 and WASM Clippy pass; configured light/shadow budgets and gameplay are unchanged.
 
+Recording preparation adds authored camera paths, fixed artwork states and
+self-contained input excerpts to custom demo catalogs. The excerpt regression
+compares complete gameplay state with direct replay before/after toggling art;
+all seven demo tests pass. Native/WASM Clippy and release build pass. The final
+video is pending the subsequently requested gable-art and animated-seam review.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.

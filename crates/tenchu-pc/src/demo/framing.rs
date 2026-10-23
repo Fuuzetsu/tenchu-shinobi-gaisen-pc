@@ -46,3 +46,61 @@ pub fn unobstructed(scene: &mut Scene, vertices: &[Vertex]) -> bool {
     }
     false
 }
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Path {
+    pub eye: [f32; 3],
+    pub target: [f32; 3],
+    pub end_eye: Option<[f32; 3]>,
+    pub end_target: Option<[f32; 3]>,
+    #[serde(default = "default_fov")]
+    pub fov: f32,
+}
+
+fn default_fov() -> f32 {
+    55.0
+}
+
+impl Path {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn validate(&self) -> tenchu_assets::Result<()> {
+        let points = [
+            self.eye,
+            self.target,
+            self.end_eye.unwrap_or(self.eye),
+            self.end_target.unwrap_or(self.target),
+        ]
+        .map(Vec3::from);
+        if !self.fov.is_finite()
+            || !(10.0..=120.0).contains(&self.fov)
+            || points
+                .iter()
+                .any(|p| !p.is_finite() || p.abs().max_element() > 320_000.0)
+        {
+            return Err("Invalid camera position or field of view".into());
+        }
+        let start = points[1] - points[0];
+        let change = points[3] - points[2] - start;
+        let t = (-start.dot(change) / change.length_squared().max(0.0001)).clamp(0.0, 1.0);
+        if (start + change * t).length() < 50.0 {
+            return Err("Camera path crosses its target".into());
+        }
+        Ok(())
+    }
+
+    pub fn sample(&self, progress: f32) -> Camera {
+        let p = progress.clamp(0.0, 1.0);
+        let p = p * p * (3.0 - 2.0 * p);
+        let position = Vec3::from(self.eye).lerp(Vec3::from(self.end_eye.unwrap_or(self.eye)), p);
+        let target =
+            Vec3::from(self.target).lerp(Vec3::from(self.end_target.unwrap_or(self.target)), p);
+        let direction = (target - position).normalize();
+        Camera {
+            position,
+            yaw: direction.x.atan2(direction.z),
+            pitch: (-direction.y).asin(),
+            fov: self.fov,
+        }
+    }
+}

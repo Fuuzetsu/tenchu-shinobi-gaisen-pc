@@ -10,19 +10,7 @@ impl Application {
             return Ok(());
         };
         let clip = player.clip().clone();
-        let options = Options {
-            mission: clip.mission,
-            character: clip.character,
-            language: self.campaign.options.language,
-            ..Default::default()
-        };
-        let mut game = options.load(&self.assets)?;
-        if clip.feature != Feature::Cinematics {
-            game.events = Default::default();
-            for _ in 0..30 {
-                game.step(0)?;
-            }
-        }
+        let (mut game, options) = player.load_game(&self.assets, self.campaign.options.language)?;
         self.settings = Settings {
             volume: self.settings.volume,
             model_directory: self.settings.model_directory.clone(),
@@ -160,7 +148,7 @@ impl Application {
                 scene.yaw += 2.2;
                 demo::framing::unobstructed(&mut scene, &geometry);
             }
-            Shot::Cinematic => {}
+            Shot::Cinematic | Shot::Gameplay => {}
         }
         if matches!(
             clip.feature,
