@@ -253,6 +253,23 @@ lighting in the game; a plausible generated photograph is not necessarily a
 usable material. The completed local Mission 1 texture pack lives in
 `private/m1-hd-pilot`, with source artwork/prompts in `private/m1-hd-source`.
 These local assets are not included in Git.
+
+The completed campaign pack is **`private/campaign-hd-pack`**: Missions 1–10,
+all audited character/outfit families, equipment, world effects, HUD and menu
+artwork. It contains 1,719 texture replacements and the two existing Mission 1
+weapon meshes. Run **`./private/campaign-hd-pack/play.sh`** on the authoring
+workstation; it uses the local disc and separate settings with artwork and
+outline text enabled. A different disc can be supplied as the first argument.
+The original menu opens normally; F6 still opens the quick launcher.
+
+Campaign references, prompts, assembled tile families, recipes and review
+evidence live in `private/campaign-hd-source`. Its `coverage.json` records the
+accepted pack and 22 intentional world fallbacks: invisible weapon faces and
+ambiguous original UV spans. Original geometry, UV scale/mirroring and vertex
+lighting can still expose some joins. Movies remain original. Menu/HUD artwork
+and fonts are covered in all four supported languages; original options retain
+their Japanese wording. The native and browser builds use the same pack format.
+
 On the authoring workstation, `./private/m1-hd-pilot/play.sh` launches the pack
 with the local disc (or a disc path supplied as its first argument). F1 → Visual
 assets → Replacement artwork toggles it. The normal launcher stays unchanged.
@@ -469,8 +486,9 @@ an existing `data/` directory. Only manifest-referenced files are exported.
 The menu artwork for all four languages arrives with the boot set. The remaining
 PNG/model files download in the background before mission entry; only the active
 mission's images are decoded. F1 → **Visual assets → Replacement artwork** and
-**High-definition text** work in the browser as on desktop. They still default
-off. Browser pack reload uses the cached export; rebuild the site and reload
+**High-definition text** work in the browser as on desktop. Outline text defaults
+off; an explicitly supplied pack uses the existing replacement-artwork preference
+(enabled by default). Browser pack reload uses the cached export; rebuild the site and reload
 the page to pick up edited files.
 
 The boot set contains the original frontend and initial scene. Remaining game

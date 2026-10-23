@@ -10,7 +10,42 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Campaign-wide HD artwork and fonts (active)
+## Campaign-wide HD artwork and fonts (complete)
+
+The accepted local pack is `private/campaign-hd-pack` (candidate43): 1,719 PNG
+replacements, comprising 1,561 world/HUD identities and 158 interface identities,
+plus the two existing Mission 1 weapon mesh replacements. It covers all ten
+missions, both players and all audited outfits/actors, scenery, props, equipment,
+world effects, HUD and active illustrated menus. The previous 1,544 accepted
+PNGs are byte-identical. The 22 documented world fallbacks are nine fully
+transparent weapon faces and thirteen anomalous/ambiguous source UV spans;
+these retain their source behavior. Unused menu images, the flat records
+highlight, original bitmap-font fallback and palette-animated title blood remain
+original. Movies and their subtitle artwork were not redrawn.
+
+Shared HUD/menu acceptance includes health bars, Ki glyphs, inventory selection,
+particles, all ten mission previews, four-language character/mission/results
+screens, title art, options/controller/volume panels and populated records.
+Corrections cover explicit blend-class masks, localized text spacing, controller
+callout destinations and the distinct-width French pirate preview. Outline fonts
+also cover runtime titles/ranks, captions and numbers. Source prompts, family
+atlases, crop recipes, fallback reasons and acceptance evidence are private in
+`campaign-hd-source`; `coverage.json`, `ui-acceptance.json` and
+`installed-sha256.json` record the final state. Related tiles were reviewed in
+native map/model/gameplay views; original mesh stretch, UV mirroring and vertex
+lighting can still expose some joins.
+
+`./private/campaign-hd-pack/play.sh` opens the original menu with this pack and
+outline text, using a separate settings file. The browser build is `private/web-hd`:
+207 menu/selection files arrive at boot and 1,516 files download in the background
+(143.4 MiB compressed total). Native installed-pack rendering and final WebGL2
+menu/language changes pass. Both browser backends passed offline loading/rendering
+of all ten missions, with exact frozen-image restoration after artwork toggles
+and reload. The native all-language frontend check covers 96 page/mission
+combinations without altering full gameplay/save state. Native/WASM Clippy,
+formatting, focused pack/export/GPU checks and release builds pass.
+
+The following entries retain the implementation and review history.
 
 Browser exports now include optional asset packs selected by `TENCHU_ASSET_PACK`.
 The boot set carries all menu languages and selection characters; the remaining
