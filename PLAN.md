@@ -68,14 +68,25 @@ the new frontend pipeline was created. Actual browser delivery of packs remains
 pending. The first reviewed interface replacement is the subdued burgundy silk
 options background, with exact generation provenance and original blend classes.
 
-The separate `private/campaign-hd-pack` now contains the 368 accepted M1 textures
-plus 18 Mission 2 textures: three thatch pieces and fifteen gravel/gutter/soil
-pieces. Seventy-two matched map views were inspected. The coarse gravel atlas
-was rejected; its finer revision preserves material scale across adjoining
-pieces. M2 still has 46 uncovered scenery identities, plus remaining actors and
-props. The world pack holds 16,917,888 decoded pixels globally, while its largest
-active mission/outfit uses 14,649,088. Existing geometry stretch and baked vertex
-lighting can still expose some joins. The M1 pack and recordings remain intact.
+The separate `private/campaign-hd-pack` contains the 368 accepted M1 textures,
+64 additional Mission 2 scenery textures and one interface background. The M2
+scenery families were inspected in 256 matched camera pairs: roofs, plaster,
+foundations, streets, timber, brickwork and patterned shop screens. Coarse gravel,
+incorrect roof repeat counts and a mismatched gutter corner were rejected and
+revised. The large circular screen was assembled before repainting, then cut
+with texel-center edge padding. The final scenery selection is candidate08;
+exact prompts, original/generated references and crop recipes remain private.
+Original alpha classes are checked, with explicit authored thatch cutouts.
+M1 images remain byte-identical and its recordings remain intact. Existing
+geometry stretch and baked vertex lighting can still expose some joins.
+
+A conservative usage audit now distinguishes 1,583 reachable world/UI identities
+from the 2,057 loaded identities. It follows actor weapon attachments and actual
+door/pitfall/item mesh references, retaining all actors/outfits, stage objects
+and shared interface/effect sprites. It does not claim every retained resource
+has appeared in a playback. The private `usage.json` records every inclusion and
+exclusion per mission/outfit. Mission 2 still needs its additional actors, props,
+equipment and shared interface artwork; other mission families remain pending.
 
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
