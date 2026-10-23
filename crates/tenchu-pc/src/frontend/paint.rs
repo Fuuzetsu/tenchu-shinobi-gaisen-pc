@@ -482,8 +482,11 @@ impl Frontend {
         }
         self.canvas
             .sprite(Sprite::new(&images[3 + self.mission - 1], -190.0, 65.0));
-        self.canvas
-            .sprite(Sprite::new(&images[13 + self.mission - 1], 80.0, 46.0));
+        self.canvas.label(
+            Sprite::new(&images[13 + self.mission - 1], 80.0, 46.0),
+            labels::mission(self.language, self.mission),
+            Color32::from_rgb(57, 38, 17),
+        );
         let stage = stage_id(campaign, self.mission);
         for (i, record) in campaign.progress.records[campaign.options.character as usize][stage]
             .iter()
@@ -494,18 +497,31 @@ impl Frontend {
             } else {
                 29
             };
-            self.canvas.sprite(
-                Sprite::new(
-                    &images[id],
-                    -42.0 + i as f32 * 120.0,
-                    if id == 29 { 75.0 } else { 77.0 },
-                )
-                .blend(if i == self.layout {
-                    Blend::Opaque
-                } else {
-                    Blend::Quarter
-                }),
-            );
+            let sprite = Sprite::new(
+                &images[id],
+                -42.0 + i as f32 * 120.0,
+                if id == 29 { 75.0 } else { 77.0 },
+            )
+            .blend(if i == self.layout {
+                Blend::Opaque
+            } else {
+                Blend::Quarter
+            });
+            if id == 29 {
+                self.canvas.sprite(sprite);
+            } else {
+                let grade = 27 - id;
+                let color = labels::rank_color(grade);
+                self.canvas.label(
+                    sprite,
+                    labels::rank(self.language, grade),
+                    if i == self.layout {
+                        color
+                    } else {
+                        color.gamma_multiply(0.4)
+                    },
+                );
+            }
         }
     }
 
@@ -607,7 +623,15 @@ impl Frontend {
         );
         if !self.canvas.sharp_text || self.page != Page::Controls {
             self.canvas.label(
-                Sprite::new(&images[4], 0.0, 96.0),
+                Sprite::new(
+                    &images[4],
+                    0.0,
+                    if self.canvas.sharp_text && self.page == Page::Records {
+                        106.0
+                    } else {
+                        96.0
+                    },
+                ),
                 "○ 決定　× キャンセル",
                 Color32::LIGHT_GRAY,
             );
@@ -767,19 +791,35 @@ impl Frontend {
                 continue;
             }
             let y = -65.0 + row as f32 * 15.0;
-            self.canvas.sprite(
+            self.canvas.label(
                 Sprite::new(&images[26], -132.0, y)
                     .row(if mission == 0 { 10 } else { mission - 1 }, 11)
                     .blend(Blend::Add),
+                [
+                    "訓練",
+                    "一乃巻",
+                    "二乃巻",
+                    "三乃巻",
+                    "四乃巻",
+                    "五乃巻",
+                    "六乃巻",
+                    "七乃巻",
+                    "八乃巻",
+                    "九乃巻",
+                    "十乃巻",
+                ][mission],
+                Color32::from_rgb(220, 144, 204),
             );
             for (i, record) in records.iter().enumerate() {
                 if record.played() {
                     self.canvas.sprite(
                         Sprite::new(&images[28], i as f32 * 67.0 - 77.0, y + 1.0).blend(Blend::Add),
                     );
-                    self.canvas.sprite(
-                        Sprite::new(&images[25], i as f32 * 67.0 - 77.0, y)
-                            .row(4 - record.score(stage).grade as usize, 5),
+                    let grade = record.score(stage).grade as usize;
+                    self.canvas.label(
+                        Sprite::new(&images[25], i as f32 * 67.0 - 77.0, y).row(4 - grade, 5),
+                        labels::rank(Language::Japanese, grade),
+                        labels::rank_color(grade),
                     );
                 }
             }
@@ -822,13 +862,32 @@ impl Frontend {
                 6.0,
                 true,
             );
-            self.canvas
-                .sprite(Sprite::new(&images[29], 139.0, y + 2.0).blend(Blend::Add));
+            self.canvas.label(
+                Sprite::new(&images[29], 139.0, y + 2.0).blend(Blend::Add),
+                ":",
+                Color32::WHITE,
+            );
             row += 1;
         }
         if row > 0 {
-            self.canvas
-                .sprite(Sprite::new(&images[27], 25.0, -77.0).blend(Blend::Add));
+            if self.canvas.sharp_text {
+                for (x, width, label) in [
+                    (-77.0, 60, "配置一"),
+                    (-10.0, 60, "配置二"),
+                    (57.0, 60, "配置三"),
+                    (116.0, 12, "点"),
+                    (142.0, 16, "時"),
+                ] {
+                    self.canvas.label(
+                        Sprite::new(&images[27], x, -77.0).region([0, 0, width, 12]),
+                        label,
+                        Color32::from_rgb(104, 202, 104),
+                    );
+                }
+            } else {
+                self.canvas
+                    .sprite(Sprite::new(&images[27], 25.0, -77.0).blend(Blend::Add));
+            }
         }
     }
 
@@ -918,35 +977,20 @@ impl Frontend {
             false,
         );
         let time = record.clock.max(0) / 30;
-        digits(
-            &mut self.canvas,
-            &self.result_numbers,
-            time / 60,
-            65.0,
-            -93.0,
-            12.0,
-            false,
-        );
-        digits(
-            &mut self.canvas,
-            &self.result_numbers,
-            time % 60 / 10,
-            85.0,
-            -93.0,
-            12.0,
-            false,
-        );
-        digits(
-            &mut self.canvas,
-            &self.result_numbers,
-            time % 10,
-            97.0,
-            -93.0,
-            12.0,
-            false,
-        );
+        for (value, x) in [(time / 60, 65.0), (time % 60 / 10, 85.0), (time % 10, 97.0)] {
+            digits(
+                &mut self.canvas,
+                &self.result_numbers,
+                value,
+                x,
+                -93.0,
+                12.0,
+                false,
+            );
+        }
         let rank = &self.result_ranks[score.grade as usize];
-        self.canvas.sprite(
+        let brightness = (self.ticks as f32 * std::f32::consts::TAU / 90.0).sin() * 0.5 + 0.5;
+        self.canvas.label(
             Sprite::new(
                 rank,
                 -29.0 + rank.size[0] as f32 / 2.0,
@@ -954,6 +998,8 @@ impl Frontend {
             )
             .blend(Blend::Add)
             .light(((self.ticks as f32 * std::f32::consts::TAU / 90.0).sin() * 127.0) as i32 + 127),
+            labels::rank(self.language, score.grade as usize),
+            labels::rank_color(score.grade as usize).gamma_multiply(brightness),
         );
         if score.grade == 4 {
             let mission = &campaign.game.mission;

@@ -2,6 +2,7 @@ mod captions;
 mod characters;
 mod draw;
 pub(crate) mod gpu;
+mod labels;
 #[cfg_attr(target_arch = "wasm32", path = "web/movie.rs")]
 mod movie;
 mod paint;

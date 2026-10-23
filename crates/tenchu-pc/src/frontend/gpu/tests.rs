@@ -231,13 +231,31 @@ fn replacement_detail_is_not_reduced_to_the_240_line_canvas() {
 #[ignore = "requires TENCHU_DISC and a GPU; reviews the original frontend through both presentation paths"]
 fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
     use crate::{
-        campaign::Campaign,
+        campaign::{Campaign, Screen},
         frontend::{Frontend, Page, Preferences},
     };
     use tenchu_assets::{game::GameAssets, script::Language};
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
     let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
-    let campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    let record = tenchu_core::game::score::Record {
+        bosses: 1,
+        enemies: 18,
+        criticals: 8,
+        murders: 12,
+        found: 3,
+        friends: 2,
+        clock: 107_970,
+    };
+    campaign.progress.records[0].fill([record; 3]);
+    campaign.screen = Screen::Results(tenchu_core::progress::Results {
+        record,
+        score: record.score(campaign.game.mission.stage.id),
+        best: record,
+        new_best: false,
+        training_place: None,
+    });
+    let progress = campaign.progress.clone();
     let mut frontend =
         Frontend::new(&assets, disc.as_ref(), &campaign, Preferences::default()).unwrap();
     let state = crate::session::tests::state(&campaign.game);
@@ -260,6 +278,7 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
             Page::Volume,
             Page::SoundTest,
             Page::Records,
+            Page::Results,
             Page::Card,
             Page::Choice(1),
             Page::Choice(2),
@@ -325,4 +344,5 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
         }
     }
     assert_eq!(state, crate::session::tests::state(&campaign.game));
+    assert_eq!(progress, campaign.progress);
 }

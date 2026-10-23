@@ -12,6 +12,16 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Campaign-wide HD artwork and fonts (active)
 
+Outline lettering now also covers all ten mission titles and all five ranks in
+English, Japanese, French and Italian. Records retain the source layout and
+rank colors, with the confirmation footer moved below the training row. The
+GPU regression now exercises populated records and results across 15 pages in
+all four languages, retaining identical gameplay and save state. Glyph coverage,
+native/WASM Clippy, formatting and release build pass; captures are in
+`private/campaign-hd-source/frontend-label-review2`. Text baked into menu/result
+background illustrations still needs replacement artwork; movie captions remain
+outside this artwork pass.
+
 Initial inventory exported all ten missions with both characters, all three
 enemy layouts and all five character/outfit combinations: 50 exports and 2,057
 distinct loaded texture identities. The accepted M1 pack supplies 368 of these.
