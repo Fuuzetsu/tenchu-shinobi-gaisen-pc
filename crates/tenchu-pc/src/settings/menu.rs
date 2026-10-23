@@ -341,19 +341,19 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::SharpText,
                 "High-definition text",
                 on(s.sharp_text),
-                "Sharp HUD numbers, subtitles and menu labels; baked artwork keeps its lettering.",
+                "Sharp HUD numbers, subtitles, mission titles, ranks and menu labels.",
             ),
             (
                 Item::AssetPack,
                 "Replacement artwork",
                 on(s.graphics.asset_pack),
-                "Use textures from TENCHU_ASSET_PACK.",
+                "Use the configured texture pack, including world, HUD and menu artwork.",
             ),
             (
                 Item::ReloadAssets,
                 "Reload asset pack",
                 "Enter".into(),
-                "Reload edited files; retain last good pack.",
+                "Reload the configured pack; browsers use the site's cached export. Retain the last good pack on errors.",
             ),
             (
                 Item::Upscale,

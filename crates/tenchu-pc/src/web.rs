@@ -10,6 +10,9 @@ use tenchu_assets::{
 };
 use wasm_bindgen::prelude::*;
 
+mod artwork;
+pub(crate) use artwork::{file as pack_file, manifest as pack_manifest};
+
 #[wasm_bindgen(module = "/web/host.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
@@ -45,6 +48,7 @@ struct State {
     format: SectorFormat,
     start: u64,
     ready: bool,
+    artwork: artwork::Cache,
     movies: bool,
     audio: [bool; 4],
     pending: [bool; 4],
@@ -95,7 +99,7 @@ pub fn mission_ready(language: Language) -> Result<bool> {
     STATE.with_borrow(|state| {
         let s = state.as_ref().ok_or("Browser assets are not initialized")?;
         s.failure.as_ref().map_or(
-            Ok(s.ready && s.movies && s.audio[language_index(language)]),
+            Ok(s.ready && s.artwork.ready && s.movies && s.audio[language_index(language)]),
             |e| Err(e.clone()),
         )
     })
@@ -206,12 +210,14 @@ async fn start(quick: bool) -> Result<()> {
         let bytes = fetch(path, true).await?;
         source.0.borrow_mut().insert(&bytes)?;
     }
+    let artwork = artwork::boot(manifest.artwork.as_ref()).await?;
     STATE.with_borrow_mut(|state| {
         *state = Some(State {
             source: source.clone(),
             format,
             start: manifest.start_sector,
             ready: false,
+            artwork,
             movies: false,
             audio: [false; 4],
             pending: [false; 4],
@@ -235,6 +241,10 @@ async fn start(quick: bool) -> Result<()> {
             }
             STATE.with_borrow_mut(|s| s.as_mut().unwrap().ready = true);
             status("Mission data ready");
+            artwork::finish(manifest.artwork, &source).await?;
+            if !current(&source) {
+                return Ok(());
+            }
             let paths = js_sys::Array::new();
             for path in &manifest.movies {
                 paths.push(&JsValue::from_str(&format!("data/{path}")));

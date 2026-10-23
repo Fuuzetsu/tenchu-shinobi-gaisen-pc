@@ -23,6 +23,8 @@ use tenchu_assets::{
     script::Language,
 };
 
+mod artwork;
+
 const MOVIES: [Movie; 5] = [
     Movie::Opening,
     Movie::Training,
@@ -37,7 +39,10 @@ const LANGUAGES: [Language; 4] = [
     Language::Italian,
 ];
 
-pub fn export(disc: &Path, destination: &Path) -> Result<()> {
+pub fn export(disc: &Path, destination: &Path, artwork_only: bool) -> Result<()> {
+    if artwork_only {
+        return artwork::update(disc, destination);
+    }
     if destination.exists()
         && fs::read_dir(destination)
             .map_err(|e| e.to_string())?
@@ -53,8 +58,10 @@ pub fn export(disc: &Path, destination: &Path) -> Result<()> {
     let assets = GameAssets::open(source::open_disc_recording(disc, Some(trace.clone()))?)?;
     let campaign = Campaign::new(&assets, Options::default(), None)?;
     let mut frontend = Frontend::new(&assets, disc, &campaign, Preferences::default())?;
+    let mut interface = BTreeSet::new();
     for language in LANGUAGES {
         frontend.language(&assets, language)?;
+        interface.extend(frontend.artwork_ids());
         for character in 0..2 {
             let options = Options {
                 character,
@@ -99,6 +106,7 @@ pub fn export(disc: &Path, destination: &Path) -> Result<()> {
         game: vec![],
         audio: vec![],
         movies: vec![],
+        artwork: artwork::configured(destination, &interface)?,
     };
     for (label, pages, files) in [
         (

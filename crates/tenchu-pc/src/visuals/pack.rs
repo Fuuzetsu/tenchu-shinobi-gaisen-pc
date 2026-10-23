@@ -78,23 +78,31 @@ impl Selection {
 
 impl Pack {
     pub fn interface_from_env(textures: BTreeSet<String>) -> Result<Self> {
+        Self::configured(Selection {
+            textures,
+            models: BTreeSet::new(),
+            player_models: false,
+        })
+    }
+    pub fn from_env(mission: &MissionAssets) -> Result<Self> {
+        Self::configured(Selection::mission(mission))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn configured(selection: Selection) -> Result<Self> {
         match std::env::var_os("TENCHU_ASSET_PACK") {
-            Some(path) => Self::load_selected(
-                Path::new(&path),
-                Some(Selection {
-                    textures,
-                    models: BTreeSet::new(),
-                    player_models: false,
-                }),
-            ),
+            Some(path) => Self::load_selected(Path::new(&path), Some(selection)),
             None => Ok(Self::default()),
         }
     }
-    pub fn from_env(mission: &MissionAssets) -> Result<Self> {
-        match std::env::var_os("TENCHU_ASSET_PACK") {
-            Some(path) => Self::load_selected(Path::new(&path), Some(Selection::mission(mission))),
-            None => Ok(Self::default()),
-        }
+
+    #[cfg(target_arch = "wasm32")]
+    fn configured(selection: Selection) -> Result<Self> {
+        let Some(bytes) = crate::web::pack_manifest(selection.player_models)? else {
+            return Ok(Self::default());
+        };
+        let manifest = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        Self::decode(manifest, Some(selection), crate::web::pack_file)
     }
 
     pub fn load(root: &Path) -> Result<Self> {
@@ -260,16 +268,25 @@ impl Pack {
     }
 }
 
-fn read(root: &Path, name: &str, limit: u64) -> Result<Vec<u8>> {
-    let relative = Path::new(name);
-    if relative
-        .components()
-        .any(|c| !matches!(c, std::path::Component::Normal(_)))
+pub(crate) fn validate_path(name: &str) -> Result<()> {
+    if name.is_empty()
+        || name.contains('\\')
+        || name
+            .split('/')
+            .any(|part| part.is_empty() || matches!(part, "." | ".."))
+        || Path::new(name)
+            .components()
+            .any(|c| !matches!(c, std::path::Component::Normal(_)))
     {
         return Err(format!("Asset path must stay inside the pack: {name}"));
     }
+    Ok(())
+}
+
+pub(crate) fn read(root: &Path, name: &str, limit: u64) -> Result<Vec<u8>> {
+    validate_path(name)?;
     let path = root
-        .join(relative)
+        .join(name)
         .canonicalize()
         .map_err(|e| format!("{name}: {e}"))?;
     if !path.starts_with(root) {

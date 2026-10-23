@@ -12,6 +12,25 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Campaign-wide HD artwork and fonts (active)
 
+Browser exports now include optional asset packs selected by `TENCHU_ASSET_PACK`.
+The boot set carries all menu languages and selection characters; the remaining
+compressed PNGs and models download in batches in the background, before mission
+entry. The same scoped loader decodes only the active mission. `build-web.sh`
+refreshes artwork without re-encoding existing movies/audio, and includes the HD
+font license. Native export checks cover dependency partitioning, missing files,
+path escape and excluding authoring sources. Native/WASM Clippy, formatting,
+pack tests and release builds pass.
+
+Actual Chromium WebGPU and WebGL2 checks loaded Missions 1–10 offline with the
+candidate campaign pack. Delayed mission artwork did not prevent the menu from
+opening; toggling/reloading the pack preserved a frozen gameplay snapshot and
+restored the exact HD image. Both runs completed without reported graphics
+errors. Evidence is in `browser-art-webgpu-final` and `browser-art-webgl2-final`.
+The first headless Chromium capture was blank; desktop Wayland rendering works.
+These checks cover loading/presentation, not complete browser mission playthroughs.
+The frontend regression also now captures every mission-selection preview in all
+four languages. Final shared HUD/menu installation and coverage records follow.
+
 Explicit asset-pack replacements now reach the in-game HUD as well as world
 sprites. Original HUD images still bypass generic texture upscaling, lighting
 and grading. GPU checks cover shared world/HUD identities, cutouts, opaque and

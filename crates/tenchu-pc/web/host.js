@@ -33,6 +33,11 @@ export async function fetch_asset(path, compressed) {
   return new Response(response.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
 }
 
+export async function fetch_artwork(paths) {
+  return Promise.all(paths.map(path =>
+    fetch_asset(`data/pack/${path.split("/").map(encodeURIComponent).join("/")}`, false)));
+}
+
 export async function prefetch_media(paths) {
   let next = 0, complete = 0;
   await Promise.all(Array.from({ length: Math.min(6, paths.length) }, async () => {

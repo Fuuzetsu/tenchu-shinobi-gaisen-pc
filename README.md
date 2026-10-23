@@ -67,8 +67,9 @@ subtitles, quick launcher/equipment/pause panels and separate original-menu
 labels with a portable outline font at the window's resolution. English,
 Japanese, French and Italian are supported; the original options screens keep
 their Japanese wording. It defaults to off and does not change text timing,
-navigation or gameplay. Lettering baked into backgrounds, mission/rank artwork
-and movie subtitles still uses its original images.
+navigation or gameplay. It includes all ten mission titles and the five ranks.
+Lettering baked into backgrounds needs replacement artwork; movie subtitles
+retain their original presentation.
 The [font and license](crates/tenchu-pc/data/hd-font/README.md)
 are bundled for both desktop and browser builds.
 
@@ -118,9 +119,10 @@ reading images, and refreshes that selection on mission/outfit changes.
 Unrelated files consume no decoded-image memory. Alpha 0 is transparent,
 1–191 selects semi-transparency and 192–255 is opaque; these are game blend
 classes rather than continuous opacity. Higher resolutions retain the original
-UV mapping. New cutouts also affect model shadows. World sprites support
-replacements too; HUD images stay original, even when they share an image with
-a world effect or item. Original frontend images use the same content-identity
+UV mapping. New cutouts also affect model shadows. World and HUD sprites support
+explicit replacements too. Generic texture reconstruction still preserves the
+original HUD, and HUD artwork bypasses world lighting and grading.
+Original frontend images use the same content-identity
 override format, with their own active-image budget. Only the current language's
 menu images and character-selection textures are loaded. Replacements render
 directly at window resolution, retaining original sprite blending and layout;
@@ -453,6 +455,24 @@ nix run github:nix-community/flake-firefox-nightly#firefox-nightly-bin -- \
 The complete host is also built by `nix build .#web`; it contains no game data.
 `tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
 
+Set `TENCHU_ASSET_PACK` when running `./build-web.sh` to include an optional
+replacement pack. Existing disc/audio/movie exports are reused; the artwork
+is refreshed. For example:
+
+```sh
+TENCHU_ASSET_PACK="$PWD/private/campaign-hd-pack" \
+  ./build-web.sh '/path/to/game.cue' private/web-hd
+```
+
+`prepare-web DISC DIRECTORY --artwork` refreshes only the configured pack in
+an existing `data/` directory. Only manifest-referenced files are exported.
+The menu artwork for all four languages arrives with the boot set. The remaining
+PNG/model files download in the background before mission entry; only the active
+mission's images are decoded. F1 → **Visual assets → Replacement artwork** and
+**High-definition text** work in the browser as on desktop. They still default
+off. Browser pack reload uses the cached export; rebuild the site and reload
+the page to pick up edited files.
+
 The boot set contains the original frontend and initial scene. Remaining game
 pages and audio for the selected language are downloaded in the background.
 Starting a mission waits for those assets while keeping you in the menu; a
@@ -465,8 +485,8 @@ Campaign saves and settings are local to this browser and site address. Use
 **Export save** / **Import save** to back them up or transfer them. Browser storage
 is separate from desktop saves. Closing the tab does not erase saved progress;
 clearing site data does. F9 downloads a PNG. Input recordings, offline 4K exports
-and local filesystem model/texture directories remain native tools; the browser
-uses built-in models and settings. Browser gamepad input uses the Gamepad API;
+and live local filesystem model/texture directories remain native tools; browser
+replacements come from the site's exported pack. Browser gamepad input uses the Gamepad API;
 controller vibration and physical-controller behavior have not been verified.
 
 Validated in Chromium 150 with WebGPU/Vulkan: missions 1 and 5, both characters,

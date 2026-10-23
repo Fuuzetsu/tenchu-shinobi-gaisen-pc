@@ -272,7 +272,7 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
         if std::env::var_os("TENCHU_ASSET_PACK").is_some() {
             frontend.reload_artwork().unwrap();
         }
-        for page in [
+        for (page, mission) in [
             Page::Title,
             Page::Character,
             Page::Missions,
@@ -288,9 +288,20 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
             Page::Choice(6),
             Page::Choice(8),
             Page::Choice(9),
-        ] {
+        ]
+        .into_iter()
+        .flat_map(|page| {
+            (1..=if page == Page::Missions { 10 } else { 1 }).map(move |mission| (page, mission))
+        }) {
             frontend.title.activate();
             frontend.set_page(page);
+            frontend.mission = mission;
+            frontend.cursor = frontend.tables.cursor_targets[mission - 1].map(f32::from);
+            let name = if page == Page::Missions {
+                format!("{page:?}-{mission:02}")
+            } else {
+                format!("{page:?}")
+            };
             frontend.ticks = 120;
             frontend.canvas.sharp_text = false;
             frontend.canvas.frame = None;
@@ -316,7 +327,7 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
                 crate::capture::read_texture(
                     &large.gpu,
                     &large.target,
-                    &directory.join(format!("{language:?}-{page:?}-gpu.png")),
+                    &directory.join(format!("{language:?}-{name}-gpu.png")),
                 )
                 .unwrap();
                 frontend.canvas.sharp_text = true;
@@ -327,7 +338,7 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
                 crate::capture::read_texture(
                     &large.gpu,
                     &large.target,
-                    &directory.join(format!("{language:?}-{page:?}-sharp.png")),
+                    &directory.join(format!("{language:?}-{name}-sharp.png")),
                 )
                 .unwrap();
                 if !frontend.artwork.is_empty() {
@@ -339,7 +350,7 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
                     crate::capture::read_texture(
                         &large.gpu,
                         &large.target,
-                        &directory.join(format!("{language:?}-{page:?}-art.png")),
+                        &directory.join(format!("{language:?}-{name}-art.png")),
                     )
                     .unwrap();
                 }

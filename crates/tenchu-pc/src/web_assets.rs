@@ -12,6 +12,14 @@ pub struct Manifest {
     pub game: Vec<String>,
     pub audio: Vec<String>,
     pub movies: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artwork: Option<Artwork>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Artwork {
+    pub boot: Vec<String>,
+    pub game: Vec<String>,
 }
 
 pub fn track_file(track: &Track) -> String {
