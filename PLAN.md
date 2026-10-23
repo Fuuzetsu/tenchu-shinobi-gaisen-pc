@@ -54,6 +54,20 @@ authored weapon candidates visibly change all six comparison angles. Native
 Clippy, formatting and release build pass. These optional meshes still require
 their in-game attachment/animation review before installation.
 
+Installed follow-ups: ten gable textures now share weathered ceramic/plaster/
+timber styling. The attic was painted as one assembled surface and cut back into
+its original UV pieces with texel-center bleed, preserving the frame corners.
+Ayame's normal/alternate shared mouth patch was corrected and reviewed on both
+assembled outfits. The optional pack includes two authored player weapon meshes:
+1,914 triangles for the ninjato and 1,298 for the kodachi, retaining exact original
+local bounds and original attachment transforms. Six-angle comparisons and
+in-game attacks were reviewed; both characters' attack replays retain identical
+complete state traces when the pack is toggled. Original assets remain the
+fallback. The model OBJ/round-trip regressions and native/WASM checks pass;
+the browser distribution was rebuilt. The current sources, rejected candidates,
+prompts and generator are indexed in the private corrections provenance ledger.
+The four-minute before/after recording is being framed and exported separately.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.

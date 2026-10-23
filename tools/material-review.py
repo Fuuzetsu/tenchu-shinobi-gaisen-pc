@@ -41,7 +41,8 @@ h1{font-size:24px}select,button{font:inherit;padding:7px;margin:0 12px 16px 0}
 .labels{display:flex;justify-content:space-between;max-width:1280px}p{color:#b8bec9}
 </style>
 <h1>Material comparison</h1>
-<p>Matching in-engine captures: same geometry, camera, lighting and simulation state.</p>
+<p>Matching in-engine captures: same camera, lighting and simulation state.
+The optional pack can replace textures and model geometry.</p>
 <label>View <select id="view"></select></label><button id="original">Original</button>
 <button id="split">Split</button><button id="pack">Replacement pack</button>
 <div class="labels"><span>Original</span><span>Replacement pack</span></div>

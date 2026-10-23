@@ -222,8 +222,10 @@ The pilot's incorrectly classified masonry candidate was the canal water;
 it has been replaced with scrolling ripple artwork. The pack covers 368 scoped
 world texture identities: all scenery, props/foliage, both players and all five
 outfits, enemies/civilians/animals, equipment/doors and 44 world/item/effect
-sprites. It retains original geometry, UVs, animation and gameplay; untextured
-faces and interface artwork remain original. Ambiguous tiny source details are
+sprites. It also includes optional replacement meshes for Rikimaru's ninjato
+and Ayame's kodachi, adding beveled steel, wrapped grips and fittings within
+their original local bounds. Animation, attachment transforms and gameplay
+remain original. Other geometry and interface artwork are retained. Ambiguous tiny source details are
 authored interpretations, not newly recovered original artwork.
 
 `private/m1-review/index.html` links the scenery, assembled-model, sprite and
@@ -233,6 +235,11 @@ interface-only/unused/other-stage sprites excluded from Mission 1 world scope.
 The 368 replacements use 15,738,240 decoded pixels, below the 16,777,216 limit.
 Both complete Mission 1 controller routes retain identical gameplay traces;
 native disable/reload restores identical paused images for both players.
+The gable corrections were authored as an assembled attic surface before being
+cut into UV pieces, retaining the wooden opening frame. Ayame's shared normal/
+alternate face patch now depicts one closed mouth without invented nostrils.
+The corrected source artwork, prompts and weapon generator are recorded in
+`private/m1-hd-source/corrections-provenance.json`.
 
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.
