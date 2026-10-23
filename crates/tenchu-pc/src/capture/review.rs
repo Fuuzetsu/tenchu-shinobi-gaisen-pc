@@ -1,13 +1,40 @@
 use crate::{
+    render_effects,
+    render_mesh::Vertex,
     renderer::{EffectMesh, Mesh, Renderer},
     settings::Graphics,
     visuals::{models::Models, pack::Pack},
 };
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use std::{fs, path::Path};
 use tenchu_assets::{Result, stage::MissionAssets};
 
 pub const SIZE: [u32; 2] = [1280, 720];
+
+pub fn effects(surfaces: &[(u8, Vec<Vertex>)], view: Mat4) -> render_effects::Geometry {
+    let mut sorted: Vec<_> = surfaces.iter().collect();
+    let depth = |vertices: &[Vertex]| {
+        vertices
+            .iter()
+            .map(|v| view.transform_point3(Vec3::from(v.position)).z)
+            .sum::<f32>()
+            / vertices.len().max(1) as f32
+    };
+    sorted.sort_by(|(_, a), (_, b)| depth(a).total_cmp(&depth(b)));
+    let mut effects = render_effects::Geometry {
+        vertices: Vec::new(),
+        batches: Vec::new(),
+    };
+    for (blend, vertices) in sorted {
+        let start = effects.vertices.len() as u32;
+        effects.vertices.extend(vertices);
+        effects.batches.push(render_effects::Batch {
+            blend: *blend,
+            range: start..effects.vertices.len() as u32,
+        });
+    }
+    effects
+}
 
 pub fn prepare_directory(output: &Path) -> Result<()> {
     if output.exists()

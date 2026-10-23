@@ -1,6 +1,5 @@
 use super::review::{self, Review};
 use crate::{
-    render_effects,
     render_mesh::{self, Vertex},
     visuals::{catalog, models::Models},
 };
@@ -189,27 +188,7 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
                 .into_iter()
                 .enumerate()
             {
-                let mut surfaces: Vec<_> = variants[index].translucent.iter().collect();
-                let depth = |vertices: &[Vertex]| {
-                    vertices
-                        .iter()
-                        .map(|v| view.transform_point3(Vec3::from(v.position)).z)
-                        .sum::<f32>()
-                        / vertices.len().max(1) as f32
-                };
-                surfaces.sort_by(|(_, a), (_, b)| depth(a).total_cmp(&depth(b)));
-                let mut effects = render_effects::Geometry {
-                    vertices: Vec::new(),
-                    batches: Vec::new(),
-                };
-                for (blend, vertices) in surfaces {
-                    let start = effects.vertices.len() as u32;
-                    effects.vertices.extend(vertices);
-                    effects.batches.push(render_effects::Batch {
-                        blend: *blend,
-                        range: start..effects.vertices.len() as u32,
-                    });
-                }
+                let effects = review::effects(&variants[index].translucent, view);
                 let effects = review.renderer.upload_effects(effects);
                 let meshes: Vec<_> = backdrop
                     .iter()

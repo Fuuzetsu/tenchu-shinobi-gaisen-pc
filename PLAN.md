@@ -121,6 +121,14 @@ contains 73 scenery, 39 prop, 50 actor and two equipment images, plus those 18
 shared interface images. Missions 4–10 and the remaining menu art/browser pack
 delivery are still active work.
 
+The Mission 4 material preview exposed an audit-tool omission: translucent
+scenery was absent from its texture search and captures. Previews now include
+those faces and sort them for each camera using the same helper as model
+reviews. All 73 new Mission 4 scenery identities now produce four original/pack
+view pairs, including path/terrain overlays and the scrolling waterfall.
+Gameplay rendering is unchanged. Formatting, workspace Clippy, the cutout-ray
+regression and the release build pass.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.

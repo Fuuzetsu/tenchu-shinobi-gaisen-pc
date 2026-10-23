@@ -72,7 +72,26 @@ pub fn render(
     for _ in 0..ticks {
         game.step(0)?;
     }
-    let vertices = render_mesh::stage(&game.mission, &game.math, None);
+    let opaque = render_mesh::stage(&game.mission, &game.math, None);
+    let mut translucent = Vec::new();
+    render_mesh::visit_stage(&game.mission, &game.math, |geometries, matrix| {
+        for geometry in geometries {
+            for face in render_mesh::draw_tmd_faces(geometry).filter(|face| face.translucent) {
+                let mut vertices = Vec::new();
+                render_mesh::append_face(&mut vertices, geometry, face, matrix, true);
+                for vertex in &mut vertices {
+                    vertex.flags |= render_mesh::SCENERY;
+                }
+                let blend = face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1);
+                translucent.push((blend, vertices));
+            }
+        }
+    });
+    let vertices: Vec<_> = opaque
+        .iter()
+        .chain(translucent.iter().flat_map(|(_, vertices)| vertices))
+        .copied()
+        .collect();
     let player = Vec3::from(game.player().position.to_array().map(|n| n as f32));
     let mut regions = BTreeMap::new();
     let mut surfaces: BTreeMap<String, Vec<(f32, Vec3, Vec3)>> = BTreeMap::new();
@@ -125,7 +144,7 @@ pub fn render(
     }
     review::prepare_directory(output)?;
     let mut review = Review::new(&game.mission)?;
-    let mesh = review.renderer.upload(&vertices);
+    let mesh = review.renderer.upload(&opaque);
     let actors = review
         .renderer
         .upload(&render_mesh::characters(&game, None));
@@ -171,18 +190,22 @@ pub fn render(
                 center,
                 (normal + right * offset + up * vertical) * distance,
             );
+            let view = Mat4::look_at_rh(eye, center, up);
             let camera = Mat4::perspective_rh(
                 55.0_f32.to_radians(),
                 size[0] as f32 / size[1] as f32,
                 20.0,
                 250_000.0,
-            ) * Mat4::look_at_rh(eye, center, up);
+            ) * view;
+            let effects = review
+                .renderer
+                .upload_effects(review::effects(&translucent, view));
             for enabled in [false, true] {
                 let suffix = if enabled { "pack" } else { "original" };
                 review.capture(
                     camera,
                     &[&mesh, &actors],
-                    None,
+                    Some(&effects),
                     enabled,
                     &output.join(format!("{id}-{name}-{suffix}.png")),
                 )?;
