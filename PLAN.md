@@ -179,6 +179,26 @@ Missions 1–5 cover all audited world artwork; their eighteen shared HUD images
 remain for the UI pass. Mission 6 begins with 98 new world images, while the
 remaining menus, fonts and browser pack delivery remain active work.
 
+Mission 6 adds 98 reviewed world identities: 41 scenery, twelve prop, 38 actor
+and seven equipment images. The temple timber, roofs, stone idol and ground
+transitions use matching families. The temple sign was joined before repainting
+and split with padding at the original UV endpoints. Grilles, railings, torii,
+pine, hanging paper and weapon cutouts retain their original blend classes.
+Review corrected a cropped warrior face and a mistaken skin interpretation of
+the cult leader's red hood and robe. One scrambled original sole UV region uses
+plain sole skin in the optional pack; original geometry and UVs are unchanged.
+
+Evidence includes 164 map pairs, 27 models captured from six angles, a final
+six-angle robe review and twelve gameplay endpoints across both completed routes.
+Original/replacement stdout traces match; the new images contain no scrolling
+textures. Original mesh faceting, UV scale and baked-lighting joins remain.
+Candidate27 is installed: 1,149 world/UI images plus one menu background,
+47.92M world pixels globally and 16.15M at most in an active mission/outfit.
+All 1,052 previously accepted PNGs remain byte-identical. Missions 1–6 now cover
+their audited world artwork, leaving eighteen shared HUD images. Mission 7 has
+124 remaining world identities; Missions 7–10, menu artwork and browser pack
+delivery remain active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
