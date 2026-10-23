@@ -112,6 +112,11 @@ UV mapping. New cutouts also affect model shadows. World sprites support
 replacements too; HUD/menu textures stay original, even when they share an image
 with a world effect or item.
 `render` and replay captures also accept `TENCHU_ASSET_PACK`.
+`export-interface DISC DIRECTORY` exports title, character/mission selection,
+options, results and shared HUD/font images, including all four language
+variants. Its catalogue records each source archive/index and deduplicates
+identical images; Latin font advances and nudges are included for text authoring.
+This inventory command does not enable interface replacements by itself.
 Scrolling world textures retain their original animation with replacement art,
 including when the surface first becomes visible after the animation has started.
 The source game's texture-copy phase drives the replacement UVs; image data is

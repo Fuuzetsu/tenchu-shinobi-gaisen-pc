@@ -29,6 +29,15 @@ native/WASM Clippy and release build pass. M1 and M5 captures are pixel-identica
 before/after selective loading with the accepted M1 pack. This does not yet add
 browser delivery of replacement packs or HD interface rendering.
 
+`export-interface` now inventories the title/options archives, character and
+mission selection in all four languages, localized ranks/results, shared HUD
+sprites and the Latin font with its original glyph advances/nudges. The disc
+export contains 298 source/index references deduplicated to 248 image identities;
+the private catalogue is `private/campaign-hd-interface`. Title, options, English
+mission selection and font reference sheets have been inspected. Native Clippy,
+formatting, release build and the complete disc export pass. Interface replacement
+rendering and the sharper font path remain to be implemented.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.

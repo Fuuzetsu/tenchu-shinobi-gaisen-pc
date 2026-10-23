@@ -9,7 +9,7 @@ use tenchu_assets::{Result, game::GameAssets};
 
 pub mod materials;
 pub mod models;
-mod review;
+pub(crate) mod review;
 pub mod sprites;
 
 pub fn render(assets: &GameAssets<DiscSource>, destination: &Path, options: Options) -> Result<()> {

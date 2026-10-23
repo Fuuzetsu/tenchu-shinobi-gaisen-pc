@@ -13,3 +13,5 @@ mod smooth;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use export::export;
+#[cfg(not(target_arch = "wasm32"))]
+pub use export::interface::export as export_interface;
