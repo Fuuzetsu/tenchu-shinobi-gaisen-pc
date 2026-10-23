@@ -158,6 +158,27 @@ native/WASM Clippy and the release build pass. The 16.12M-pixel candidate now
 loads for native map/model reviews without exceeding the existing limit.
 Mission 5 artwork is still under review, particularly cutout shapes and joins.
 
+Mission 5's accepted pack is candidate24, adding 252 world identities: 120
+scenery, 66 prop, 64 actor and two equipment images. Snow transitions reuse the
+adjacent soil material with the original coverage boundaries. Roof fields were
+revised for quieter contrast; the gold mural and storage shelves were assembled
+before splitting at their original UV endpoints. Reviews also corrected missing
+wall timbers, misplaced robe details, window alpha, an incomplete bow texture,
+and overly sparse foliage. The dojo lettering and stone-basin engraving remain.
+
+Evidence includes 480 first-pass map pairs, 128 revised pairs, 28 final context
+pairs, 38 models captured from six angles, and twelve gameplay endpoints across
+both characters' completed routes with identical original/replacement traces.
+The new Mission 5 identities contain no scrolling textures. The shared water
+material remains in place. Original mesh faceting, UV scale/mirroring and baked
+vertex lighting can still expose joins. Private prompts, crops, rejected passes
+and the acceptance ledger are retained; all previously accepted PNGs are byte
+identical. The pack now has 1,051 world/UI images plus one menu background,
+43.93M world pixels globally and 16.12M at most in an active mission/outfit.
+Missions 1–5 cover all audited world artwork; their eighteen shared HUD images
+remain for the UI pass. Mission 6 begins with 98 new world images, while the
+remaining menus, fonts and browser pack delivery remain active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
