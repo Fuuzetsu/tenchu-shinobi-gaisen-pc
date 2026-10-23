@@ -691,7 +691,8 @@ using texture identities from `export-assets`:
 ```json
 "surfaces": {
   "TEXTURE_ID_FOR_ROOF": {"height": "heightmaps/roof.png", "strength": 1.0},
-  "TEXTURE_ID_TO_LEAVE_FLAT": {"strength": 0.0}
+  "TEXTURE_ID_TO_LEAVE_FLAT": {"strength": 0.0},
+  "TEXTURE_ID_FOR_WATER": {"strength": 0.0, "world_tile": [4000, 4000]}
 }
 ```
 
@@ -701,6 +702,15 @@ the F1 slider. Omitting `height` uses the inferred map. Explicit maps may also
 target model materials. Reload the pack through F1; no model or color-texture edit
 is required. Browser play currently uses the automatic maps; filesystem asset
 packs remain a native feature.
+
+`world_tile` optionally maps replacement artwork across world X/Z coordinates,
+with the two values giving its repeat periods in game units. It joins terrain
+or water patterns across independently rotated/cropped mesh UVs. Use the same
+image and periods for adjoining materials. Original texture scrolling still
+advances at its original rate; color filtering, cutouts and cast shadows share
+the mapping. This requires a replacement image and disables with the artwork;
+it does not change the mesh, original UVs, collision or simulation. Use ordinary
+UVs for characters and materials whose pattern must follow an object.
 
 **F1 → Graphics → Smooth model motion** interpolates character parts, held
 weapons, hinged doors/pitfalls and their dynamic shadows between consecutive

@@ -13,6 +13,14 @@ fn material_replaced(index: u32) -> bool {
     return index != 0u && index < material_count() && (material_info(index).w & 1u) != 0u;
 }
 
+fn material_coordinate(index: u32, world: vec3<f32>, uv: vec2<f32>) -> vec2<f32> {
+    if index != 0u && index < material_count() && (material_info(index).w & 32u) != 0u {
+        let tile = material_relief(index).zw;
+        return world.xz / tile - vec2(0.5);
+    }
+    return uv;
+}
+
 fn material_transmits(index: u32, color: vec3<f32>) -> bool {
     if index == 0u || index >= material_count() { return false; }
     let emission = material_emissive(index);

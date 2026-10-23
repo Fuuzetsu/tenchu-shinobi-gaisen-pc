@@ -68,6 +68,17 @@ the browser distribution was rebuilt. The current sources, rejected candidates,
 prompts and generator are indexed in the private corrections provenance ledger.
 The four-minute before/after recording is being framed and exported separately.
 
+Recording review exposed a separate pond issue: its static base and edge artwork
+use independently rotated/cropped mesh UVs, beyond the scrolling canal fix.
+Optional `surfaces.world_tile` now projects a replacement in world X/Z with
+artist-specified periods. The pond base/edge share a continuous pattern and its
+glints retain their original scroll phase. No game texture identities are built
+into the renderer. The regression compares flipped/cropped UV layouts, live
+scrolling, reload and exact disable restoration on Vulkan and OpenGL; all 17
+Vulkan renderer checks pass. Native/WASM Clippy and the rebuilt browser package
+pass. The corrected bridge view was inspected; phase continuity has a GPU
+regression.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.

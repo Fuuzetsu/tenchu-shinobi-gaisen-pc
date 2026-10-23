@@ -156,4 +156,76 @@ fn replacement_scroll_tracks_original_copies_and_restores_live_water() {
         renderer.update_vram(&vram);
         assert_eq!(draw(&mut renderer), initial, "whole-period wrap");
     }
+
+    // Pond meshes rotate and crop the original UVs independently on adjacent faces.
+    let mut reversed = vertices.clone();
+    for vertex in &mut reversed {
+        vertex.uv = [7.0 - vertex.uv[0], 3.0 - vertex.uv[1]];
+    }
+    let reversed = renderer.upload(&reversed);
+    let draw_mesh = |renderer: &mut Renderer, mesh: &Mesh| {
+        renderer
+            .draw(
+                &target.create_view(&Default::default()),
+                camera,
+                &[mesh],
+                None,
+            )
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    assert_ne!(draw(&mut renderer), draw_mesh(&mut renderer, &reversed));
+    graphics.asset_pack = false;
+    renderer.configure(&graphics);
+    let original = draw(&mut renderer);
+    let mut projected = pack;
+    projected.surfaces.insert(
+        projected.textures.keys().next().unwrap().clone(),
+        crate::visuals::relief::Surface {
+            height: None,
+            strength: 0.0,
+            world_tile: Some([1200.0, 1200.0]),
+        },
+    );
+    renderer.set_asset_pack(&projected);
+    for filtering in [0, 2, 4] {
+        graphics.asset_pack = true;
+        graphics.set_filtering(filtering);
+        renderer.configure(&graphics);
+        let continuous = draw(&mut renderer);
+        assert_eq!(
+            continuous,
+            draw_mesh(&mut renderer, &reversed),
+            "world mapping ignores UV orientation"
+        );
+        assert_eq!(
+            continuous,
+            draw_mesh(&mut renderer, &tiled),
+            "world mapping ignores UV patch boundaries"
+        );
+        vram.copy_rect([835, 257, 8, 4], [0, 0]).unwrap();
+        renderer.update_vram(&vram);
+        let moved = draw(&mut renderer);
+        assert_ne!(
+            moved, continuous,
+            "world mapping retains the original scroll phase"
+        );
+        assert_eq!(moved, draw_mesh(&mut renderer, &reversed));
+        renderer.set_asset_pack(&projected);
+        assert_eq!(
+            moved,
+            draw(&mut renderer),
+            "projected reload preserves phase"
+        );
+        vram.copy_rect([832, 256, 8, 4], [0, 0]).unwrap();
+        renderer.update_vram(&vram);
+        assert_eq!(continuous, draw(&mut renderer));
+    }
+    graphics.asset_pack = false;
+    renderer.configure(&graphics);
+    assert_eq!(
+        original,
+        draw(&mut renderer),
+        "world mapping disables with the artwork"
+    );
 }

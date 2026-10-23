@@ -16,7 +16,7 @@ class CutoutCoverage(unittest.TestCase):
             root = Path(directory)
             (root / "textures").mkdir()
             (root / "catalog.json").write_text(json.dumps({"textures": ["frame"]}))
-            recipe = {"frame": {"color": "color.png", "size": 32}}
+            recipe = {"frame": {"color": "color.png", "size": 32, "world_tile": [4000, 2000]}}
             (root / "recipe.json").write_text(json.dumps(recipe))
             original = Image.new("RGBA", (4, 4))
             for y in range(4):
@@ -36,6 +36,8 @@ class CutoutCoverage(unittest.TestCase):
             color.save(root / "color.png")
             succeeded = subprocess.run(command, capture_output=True, text=True)
             self.assertEqual(succeeded.returncode, 0, succeeded.stderr)
+            manifest = json.loads((root / "pack/pack.json").read_text())
+            self.assertEqual(manifest["surfaces"]["frame"]["world_tile"], [4000, 2000])
             with Image.open(root / "pack/textures/frame.png") as packed:
                 expected = original.getchannel("A").resize((32, 32), Image.Resampling.NEAREST)
                 self.assertEqual(packed.getchannel("A").tobytes(), expected.tobytes())

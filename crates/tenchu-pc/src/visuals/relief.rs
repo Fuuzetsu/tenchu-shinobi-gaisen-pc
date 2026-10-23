@@ -10,6 +10,7 @@ pub const GRADIENT_RANGE: f32 = 32.0;
 pub struct Rule {
     pub height: Option<String>,
     pub strength: f32,
+    pub world_tile: Option<[f32; 2]>,
 }
 
 impl Default for Rule {
@@ -17,6 +18,7 @@ impl Default for Rule {
         Self {
             height: None,
             strength: 1.0,
+            world_tile: None,
         }
     }
 }
@@ -25,6 +27,7 @@ impl Default for Rule {
 pub struct Surface {
     pub height: Option<Arc<Image>>,
     pub strength: f32,
+    pub world_tile: Option<[f32; 2]>,
 }
 
 /// Remove broad painted lighting; retain softened grain, ridges and seams.

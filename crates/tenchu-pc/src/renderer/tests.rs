@@ -1339,6 +1339,7 @@ fn surface_relief_is_optional_filtered_and_scoped_to_scenery() {
         crate::visuals::relief::Surface {
             height: None,
             strength: 0.0,
+            world_tile: None,
         },
     );
     renderer.set_asset_pack(&pack);
@@ -1352,6 +1353,7 @@ fn surface_relief_is_optional_filtered_and_scoped_to_scenery() {
                 rgba: [128, 128, 128, 255].repeat(64),
             })),
             strength: 1.0,
+            world_tile: None,
         },
     );
     renderer.set_asset_pack(&pack);

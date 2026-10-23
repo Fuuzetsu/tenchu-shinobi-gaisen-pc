@@ -59,7 +59,11 @@ struct Fragment {
     return out;
 }
 
-fn shade(v: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
+fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
+    var v = input;
+    if (v.flags & (SCREEN | DEBUG)) == 0u {
+        v.uv = material_coordinate(v.material, v.world, v.uv);
+    }
     let world_dx = dpdx(v.world);
     let world_dy = dpdy(v.world);
     let surface_normal = normalize(cross(world_dy, world_dx));

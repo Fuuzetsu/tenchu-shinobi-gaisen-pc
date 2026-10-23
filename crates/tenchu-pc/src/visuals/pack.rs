@@ -96,6 +96,14 @@ impl Pack {
             if !rule.strength.is_finite() || !(0.0..=2.0).contains(&rule.strength) {
                 return Err(format!("Surface {id}: strength must be 0–2"));
             }
+            if rule.world_tile.is_some_and(|tile| {
+                tile.into_iter()
+                    .any(|n| !n.is_finite() || !(1.0..=1_000_000.0).contains(&n))
+            }) {
+                return Err(format!(
+                    "Surface {id}: world tile periods must be 1–1,000,000 units"
+                ));
+            }
             let height = rule
                 .height
                 .map(|path| -> Result<_> {
@@ -112,6 +120,7 @@ impl Pack {
                 super::relief::Surface {
                     height,
                     strength: rule.strength,
+                    world_tile: rule.world_tile,
                 },
             );
         }
@@ -268,6 +277,7 @@ mod tests {
             super::super::relief::Rule {
                 height: Some("test.png".into()),
                 strength: 0.5,
+                world_tile: Some([4000.0, 2000.0]),
             },
         );
         save(&manifest);
@@ -279,6 +289,14 @@ mod tests {
                 .rgba,
             rgba
         );
+        assert_eq!(
+            Pack::load(&root).unwrap().surfaces["new_art"].world_tile,
+            Some([4000.0, 2000.0])
+        );
+        manifest.surfaces.get_mut("new_art").unwrap().world_tile = Some([0.0, 2000.0]);
+        save(&manifest);
+        assert!(Pack::load(&root).is_err());
+        manifest.surfaces.get_mut("new_art").unwrap().world_tile = None;
         manifest.surfaces.get_mut("new_art").unwrap().height = Some("../test.png".into());
         save(&manifest);
         assert!(Pack::load(&root).is_err());

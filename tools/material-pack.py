@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 from PIL import Image, ImageStat
@@ -71,6 +72,13 @@ def main():
         if not 0 <= strength <= 2:
             parser.error(f"height strength for {identity} must be between 0 and 2")
         rule = {"strength": strength}
+        if "world_tile" in entry:
+            tile = entry["world_tile"]
+            if not isinstance(tile, list) or len(tile) != 2 or not all(
+                isinstance(n, (int, float)) and math.isfinite(n) and 1 <= n <= 1_000_000 for n in tile
+            ):
+                parser.error(f"world_tile for {identity} needs two periods in 1–1,000,000 units")
+            rule["world_tile"] = tile
         if "height" in entry:
             with Image.open(args.recipe.parent / entry["height"]) as source:
                 height = source.convert("RGB").getchannel("R").resize(size, Image.Resampling.LANCZOS)

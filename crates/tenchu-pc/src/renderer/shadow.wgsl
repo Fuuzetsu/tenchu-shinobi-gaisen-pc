@@ -18,6 +18,7 @@ struct Fragment {
     @location(2) @interpolate(flat) palette: u32,
     @location(3) @interpolate(flat) flags: u32,
     @location(4) @interpolate(flat) material: u32,
+    @location(5) world: vec3<f32>,
 }
 
 @vertex fn vertex(v: Vertex) -> Fragment {
@@ -28,6 +29,7 @@ struct Fragment {
     out.palette = v.palette;
     out.flags = v.flags;
     out.material = v.material;
+    out.world = v.position;
     return out;
 }
 
@@ -37,7 +39,7 @@ struct Fragment {
     if (v.flags & 1u) != 0u {
         var color = vec3(0.0);
         if material_replaced(v.material) {
-            let decoded = material_texel(v.material, v.uv);
+            let decoded = material_texel(v.material, material_coordinate(v.material, v.world, v.uv));
             let alpha = decoded.a;
             color = decoded.rgb;
             if alpha == 0.0 || ((v.flags & 4u) != 0u && alpha < 0.75) { discard; }

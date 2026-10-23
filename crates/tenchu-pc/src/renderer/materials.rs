@@ -32,6 +32,7 @@ struct Entry {
     replaced: bool,
     scroll: Option<[u16; 2]>,
     scrolling: bool,
+    world_tile: Option<[f32; 2]>,
     dirty: bool,
     mips: Vec<Mip>,
     detail: Vec<Vec<u8>>,
@@ -42,6 +43,15 @@ impl Entry {
         let mut source = self
             .region
             .map_or([0.0, 0.0, 1.0, 1.0], |r| r.rect.map(f32::from));
+        if self.world_tile.is_some() {
+            let offset = self.scroll.unwrap_or_default();
+            return [
+                -f32::from(offset[0]) / source[2],
+                -f32::from(offset[1]) / source[3],
+                1.0,
+                1.0,
+            ];
+        }
         if self.scrolling {
             let offset = self.scroll.unwrap_or_default();
             for axis in 0..2 {
@@ -65,16 +75,21 @@ impl Entry {
                 0.0
             },
             f32::from(surface.is_some_and(|s| s.height.is_some())),
-            0.0,
-            0.0,
+            self.world_tile.unwrap_or_default()[0],
+            self.world_tile.unwrap_or_default()[1],
         ]
+    }
+
+    fn repeating(&self) -> bool {
+        self.scrolling || self.world_tile.is_some()
     }
 
     fn flags(&self, layers: usize) -> u32 {
         self.image.rgba.chunks_exact(4).fold(
             u32::from(self.replaced)
                 | if layers == 3 { 8 } else { 0 }
-                | if self.scrolling { 16 } else { 0 },
+                | if self.repeating() { 16 } else { 0 }
+                | if self.world_tile.is_some() { 32 } else { 0 },
             |flags, pixel| {
                 flags
                     | match pixel[3] {
@@ -94,7 +109,13 @@ impl Entry {
         }
     }
 
-    fn prepare(&mut self, textures: &BTreeMap<String, Arc<Image>>, enabled: bool, upscale: u16) {
+    fn prepare(
+        &mut self,
+        textures: &BTreeMap<String, Arc<Image>>,
+        surfaces: &BTreeMap<String, Surface>,
+        enabled: bool,
+        upscale: u16,
+    ) {
         let replacement = enabled.then(|| textures.get(&self.id)).flatten();
         let image = replacement.map_or_else(
             || {
@@ -105,11 +126,17 @@ impl Entry {
         );
         let replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
         let scrolling = replacement.is_some() && self.scroll.is_some();
-        self.dirty |=
-            self.image != image || self.replaced != replaced || self.scrolling != scrolling;
+        let world_tile = replacement
+            .and_then(|_| surfaces.get(&self.id))
+            .and_then(|s| s.world_tile);
+        self.dirty |= self.image != image
+            || self.replaced != replaced
+            || self.scrolling != scrolling
+            || self.world_tile != world_tile;
         self.image = image;
         self.replaced = replaced;
         self.scrolling = scrolling;
+        self.world_tile = world_tile;
     }
 }
 
@@ -205,7 +232,7 @@ impl Materials {
             let rgba = region.pixels(vram);
             if rgba != entry.original.rgba {
                 entry.original.rgba = rgba;
-                entry.prepare(&self.textures, self.enabled, self.upscale);
+                entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
             }
         }
         self.vram.words.clone_from(&vram.words);
@@ -257,7 +284,7 @@ impl Materials {
 
     fn prepare(&mut self) {
         for entry in &mut self.entries {
-            entry.prepare(&self.textures, self.enabled, self.upscale);
+            entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
         }
     }
 
@@ -278,6 +305,7 @@ impl Materials {
                     replaced: true,
                     scroll: None,
                     scrolling: false,
+                    world_tile: None,
                     dirty: true,
                     mips: Vec::new(),
                     detail: Vec::new(),
@@ -287,7 +315,7 @@ impl Materials {
             };
             let entry = &mut self.entries[id as usize - 1];
             entry.original = (*material.image).clone();
-            entry.prepare(&self.textures, self.enabled, self.upscale);
+            entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
             id
         });
     }
@@ -351,11 +379,12 @@ impl Materials {
             replaced: false,
             scroll: region.scroll_offset(&self.vram),
             scrolling: false,
+            world_tile: None,
             dirty: true,
             mips: Vec::new(),
             detail: Vec::new(),
         };
-        entry.prepare(&self.textures, self.enabled, self.upscale);
+        entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
         self.entries.push(entry);
         self.regions.insert(region, id);
         id
@@ -414,7 +443,7 @@ impl Materials {
                     let y = rect[1] as u32 - 1;
                     let layer = rect[0] as u32 / self.atlas.side * self.layers as u32;
                     for class in 0..self.layers {
-                        let bytes = padded(image.size, entry.pixels(mip, class), entry.scrolling);
+                        let bytes = padded(image.size, entry.pixels(mip, class), entry.repeating());
                         write_texture(
                             queue,
                             &self.atlas.texture,
@@ -515,9 +544,9 @@ impl Materials {
             ];
             for class in 0..self.layers {
                 for dy in 0..height + 2 {
-                    let sy = border_pixel(dy, height, self.entries[entry].scrolling);
+                    let sy = border_pixel(dy, height, self.entries[entry].repeating());
                     for dx in 0..width + 2 {
-                        let sx = border_pixel(dx, width, self.entries[entry].scrolling);
+                        let sx = border_pixel(dx, width, self.entries[entry].repeating());
                         let from = ((sy * width + sx) * 4) as usize;
                         let to = (((y + dy) * side + x + dx) * 4) as usize;
                         pages[page as usize * self.layers + class][to..to + 4].copy_from_slice(
