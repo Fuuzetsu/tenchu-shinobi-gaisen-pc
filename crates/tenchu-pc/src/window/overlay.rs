@@ -52,10 +52,13 @@ impl Overlay {
             window.theme(),
             Some(renderer.device.limits().max_texture_dimension_2d as usize),
         );
+        let mut overlay_renderer =
+            egui_wgpu::Renderer::new(&renderer.device, format, None, 1, false);
+        crate::frontend::gpu::register(&mut overlay_renderer, format);
         Self {
             opaque: false,
             dirty: true,
-            renderer: egui_wgpu::Renderer::new(&renderer.device, format, None, 1, false),
+            renderer: overlay_renderer,
             state,
             context,
             jobs: Vec::new(),
@@ -121,7 +124,7 @@ impl Overlay {
         let mut frontend_action = None;
         let output = self.context.run(input, |ctx| {
             if let Some((frontend, campaign)) = &mut extras.frontend {
-                frontend_action = frontend.show(ctx, campaign, !menu.open);
+                frontend_action = frontend.show(ctx, campaign, !menu.open, state.settings);
             }
             if !self.opaque {
                 crate::fonts::paint(ctx, ctx.screen_rect(), extras.text);

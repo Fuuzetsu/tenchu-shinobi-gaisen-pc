@@ -63,11 +63,13 @@ and never change gameplay or simulation settings. Source textures still limit
 close-up detail; the editable pack workflow below supplies genuinely new art.
 
 **F1 → Visual assets → High-definition text** draws HUD numbers, in-game
-subtitles and the quick launcher/equipment/pause panels with a portable outline
-font at the window's resolution. English, Japanese, French and Italian are
-supported. It defaults to off and does not change text timing or gameplay.
-Baked lettering in the original frontend artwork and movie subtitles still
-use their original images. The [font and license](crates/tenchu-pc/data/hd-font/README.md)
+subtitles, quick launcher/equipment/pause panels and separate original-menu
+labels with a portable outline font at the window's resolution. English,
+Japanese, French and Italian are supported; the original options screens keep
+their Japanese wording. It defaults to off and does not change text timing,
+navigation or gameplay. Lettering baked into backgrounds, mission/rank artwork
+and movie subtitles still uses its original images.
+The [font and license](crates/tenchu-pc/data/hd-font/README.md)
 are bundled for both desktop and browser builds.
 
 **Graphics → Close-up textures** separates enlargement from distance filtering:
@@ -117,14 +119,19 @@ Unrelated files consume no decoded-image memory. Alpha 0 is transparent,
 1–191 selects semi-transparency and 192–255 is opaque; these are game blend
 classes rather than continuous opacity. Higher resolutions retain the original
 UV mapping. New cutouts also affect model shadows. World sprites support
-replacements too; HUD/menu textures stay original, even when they share an image
-with a world effect or item.
+replacements too; HUD images stay original, even when they share an image with
+a world effect or item. Original frontend images use the same content-identity
+override format, with their own active-image budget. Only the current language's
+menu images and character-selection textures are loaded. Replacements render
+directly at window resolution, retaining original sprite blending and layout;
+filtering stays inside each atlas row or region. F1 reload refreshes them too.
 `render` and replay captures also accept `TENCHU_ASSET_PACK`.
 `export-interface DISC DIRECTORY` exports title, character/mission selection,
 options, results and shared HUD/font images, including all four language
 variants. Its catalogue records each source archive/index and deduplicates
 identical images; Latin font advances and nudges are included for text authoring.
-This inventory command does not enable interface replacements by itself.
+Use these identities in `pack.json` to supply frontend replacements. Exporting
+the unchanged images alone retains the originals.
 Scrolling world textures retain their original animation with replacement art,
 including when the surface first becomes visible after the animation has started.
 The source game's texture-copy phase drives the replacement UVs; image data is

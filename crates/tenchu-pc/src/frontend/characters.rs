@@ -25,6 +25,19 @@ pub struct Characters {
 }
 
 impl Characters {
+    pub fn texture_ids(&self) -> std::collections::BTreeSet<String> {
+        use crate::visuals::catalog;
+        self.models
+            .iter()
+            .flatten()
+            .flat_map(|part| &part.geometry)
+            .chain(self.weapons.iter().flatten())
+            .flat_map(|geometry| &geometry.faces)
+            .filter_map(|face| catalog::face_region(&self.vram, face))
+            .map(|r| catalog::image_id([r.rect[2], r.rect[3]], &r.original_pixels(&self.vram)))
+            .collect()
+    }
+
     pub fn load(assets: &GameAssets<DiscSource>, tables: &Tables) -> Result<Self> {
         let models = [
             model::archive(&assets.asset("HUMAN/RIKIMARU.MAD")?)?,
@@ -137,12 +150,7 @@ impl Characters {
             } else {
                 Blend::Opaque
             };
-            canvas.triangle(vertices, blend, |uv| {
-                texture.map_or(0x7fff, |texture| {
-                    self.vram
-                        .texel(texture.page, texture.palette, [uv.x as u16, uv.y as u16])
-                })
-            });
+            canvas.model_triangle(&self.vram, texture, vertices, blend);
         }
     }
 }

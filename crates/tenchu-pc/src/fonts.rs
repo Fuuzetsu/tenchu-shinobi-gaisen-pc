@@ -28,6 +28,10 @@ fn family() -> FontFamily {
     FontFamily::Name("Game text".into())
 }
 
+pub fn id(size: f32) -> FontId {
+    FontId::new(size, family())
+}
+
 pub fn color(rgb: [f32; 3]) -> Color32 {
     let [r, g, b] = rgb.map(|n| (n.clamp(0.0, 1.0) * 255.0).round() as u8);
     Color32::from_rgb(r, g, b)
@@ -39,7 +43,7 @@ pub fn paint(ctx: &egui::Context, rect: Rect, texts: &[Text]) {
         .with_clip_rect(rect);
     let scale = rect.height() / 240.0;
     for text in texts {
-        let mut font = FontId::new(text.size * scale, family());
+        let mut font = id(text.size * scale);
         let mut galley = painter.layout_no_wrap(text.text.clone(), font.clone(), text.color);
         let width = text.width * scale;
         if galley.size().x > width {

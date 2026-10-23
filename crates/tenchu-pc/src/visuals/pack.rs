@@ -52,6 +52,7 @@ pub struct Pack {
 struct Selection {
     textures: BTreeSet<String>,
     models: BTreeSet<String>,
+    player_models: bool,
 }
 
 impl Selection {
@@ -66,6 +67,7 @@ impl Selection {
         }
         Self {
             textures,
+            player_models: true,
             models: catalog::models(mission)
                 .into_iter()
                 .map(|model| model.id)
@@ -75,6 +77,19 @@ impl Selection {
 }
 
 impl Pack {
+    pub fn interface_from_env(textures: BTreeSet<String>) -> Result<Self> {
+        match std::env::var_os("TENCHU_ASSET_PACK") {
+            Some(path) => Self::load_selected(
+                Path::new(&path),
+                Some(Selection {
+                    textures,
+                    models: BTreeSet::new(),
+                    player_models: false,
+                }),
+            ),
+            None => Ok(Self::default()),
+        }
+    }
     pub fn from_env(mission: &MissionAssets) -> Result<Self> {
         match std::env::var_os("TENCHU_ASSET_PACK") {
             Some(path) => Self::load_selected(Path::new(&path), Some(Selection::mission(mission))),
@@ -112,6 +127,9 @@ impl Pack {
         }
         pack.lights = manifest.lights;
         if let Some(selection) = &selection {
+            if !selection.player_models {
+                manifest.player_models.clear();
+            }
             manifest
                 .models
                 .retain(|id, _| selection.models.contains(id));
@@ -323,6 +341,7 @@ mod tests {
         let selection = Selection {
             textures: BTreeSet::from(["roof".into()]),
             models: BTreeSet::from(["weapons/1".into()]),
+            player_models: true,
         };
         let pack = Pack::decode(
             serde_json::from_value(manifest.clone()).unwrap(),
@@ -350,6 +369,7 @@ mod tests {
             Some(Selection {
                 textures: BTreeSet::from(["snow".into()]),
                 models: BTreeSet::new(),
+                player_models: false,
             }),
             |path, _| Err(format!("Missing {path}")),
         );

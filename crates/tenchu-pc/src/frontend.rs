@@ -1,5 +1,7 @@
 mod captions;
 mod characters;
+mod draw;
+pub(crate) mod gpu;
 #[cfg_attr(target_arch = "wasm32", path = "web/movie.rs")]
 mod movie;
 mod paint;
@@ -103,6 +105,10 @@ pub struct Frontend {
     language: Language,
     pub canvas: Canvas,
     texture: Option<egui::TextureHandle>,
+    artwork: Arc<draw::Artwork>,
+    frame: Option<Arc<draw::Frame>>,
+    high_definition: bool,
+    artwork_enabled: bool,
     dirty: bool,
     elapsed: f64,
     ticks: u32,
@@ -170,6 +176,10 @@ impl Frontend {
             language,
             canvas: Canvas::new(320),
             texture: None,
+            artwork: Arc::default(),
+            frame: None,
+            high_definition: false,
+            artwork_enabled: false,
             dirty: true,
             elapsed: 0.0,
             ticks: 0,
@@ -188,6 +198,9 @@ impl Frontend {
         };
         result.reset_title();
         result.menu_bank(assets)?;
+        if let Err(error) = result.reload_artwork() {
+            eprintln!("Frontend asset pack: {error}");
+        }
         Ok(result)
     }
 
@@ -232,7 +245,30 @@ impl Frontend {
         self.language = language;
         self.menu_bank(assets)?;
         self.dirty = true;
+        if let Err(error) = self.reload_artwork() {
+            self.artwork = Arc::default();
+            eprintln!("Frontend asset pack: {error}");
+        }
         Ok(())
+    }
+
+    pub fn reload_artwork(&mut self) -> Result<usize> {
+        let mut ids: std::collections::BTreeSet<_> = self
+            .title_images
+            .iter()
+            .chain(&self.character_images)
+            .chain(&self.mission_images)
+            .chain(&self.option_images)
+            .chain(&self.result_ranks)
+            .chain([&self.result_background, &self.result_numbers])
+            .map(|image| draw::identity(&draw::pixels(image)))
+            .collect();
+        ids.extend(self.characters.texture_ids());
+        let pack = crate::visuals::pack::Pack::interface_from_env(ids)?;
+        let count = pack.textures.len();
+        self.artwork = Arc::new(pack.textures);
+        self.dirty = true;
+        Ok(count)
     }
 
     pub fn enter_title(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {

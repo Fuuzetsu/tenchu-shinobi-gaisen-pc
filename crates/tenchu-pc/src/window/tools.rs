@@ -255,6 +255,12 @@ impl Application {
                     let models = view.load_pack(pack, &self.campaign.game, &self.settings)?;
                     self.menu.notice = format!("Loaded {textures} textures, {models} model parts");
                 }
+                if let Some(frontend) = &mut self.frontend {
+                    let images = frontend.reload_artwork()?;
+                    self.menu
+                        .notice
+                        .push_str(&format!(", {images} frontend images"));
+                }
             }
             Item::Lighting => {
                 self.settings.graphics.lighting.enabled = !self.settings.graphics.lighting.enabled

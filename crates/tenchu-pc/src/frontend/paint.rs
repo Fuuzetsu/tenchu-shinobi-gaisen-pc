@@ -15,6 +15,18 @@ const OPTIONS: [&str; 10] = [
     "Automatic saving",
     "Language",
 ];
+const ORIGINAL_OPTIONS: [&str; 10] = [
+    "過去記録",
+    "難易度",
+    "サウンドモード",
+    "音量調整",
+    "演奏試聴",
+    "コントローラー",
+    "振動機能",
+    "メモリーカード",
+    "自動記録",
+    "言語選択",
+];
 
 impl Frontend {
     pub fn show(
@@ -22,19 +34,41 @@ impl Frontend {
         ctx: &egui::Context,
         campaign: &Campaign,
         interactive: bool,
+        settings: &crate::settings::Settings,
     ) -> Option<Action> {
+        let high_definition = !matches!(self.page, Page::Movie(_))
+            && (settings.sharp_text || settings.graphics.asset_pack && !self.artwork.is_empty());
+        let artwork = if settings.graphics.asset_pack {
+            self.artwork.clone()
+        } else {
+            Arc::default()
+        };
+        if self.high_definition != high_definition
+            || self.artwork_enabled != settings.graphics.asset_pack
+            || self.canvas.sharp_text != settings.sharp_text
+        {
+            self.high_definition = high_definition;
+            self.artwork_enabled = settings.graphics.asset_pack;
+            self.canvas.sharp_text = settings.sharp_text;
+            self.dirty = true;
+        }
         if self.dirty {
+            self.canvas.frame =
+                high_definition.then(|| draw::Frame::new(self.canvas.size, artwork));
             self.paint(campaign);
-            let image =
-                egui::ColorImage::from_rgba_unmultiplied(self.canvas.size, &self.canvas.pixels);
-            if let Some(texture) = &mut self.texture {
-                texture.set(image, egui::TextureOptions::NEAREST);
-            } else {
-                self.texture = Some(ctx.load_texture(
-                    "Original frontend",
-                    image,
-                    egui::TextureOptions::NEAREST,
-                ));
+            self.frame = self.canvas.frame.take().map(Arc::new);
+            if !high_definition {
+                let image =
+                    egui::ColorImage::from_rgba_unmultiplied(self.canvas.size, &self.canvas.pixels);
+                if let Some(texture) = &mut self.texture {
+                    texture.set(image, egui::TextureOptions::NEAREST);
+                } else {
+                    self.texture = Some(ctx.load_texture(
+                        "Original frontend",
+                        image,
+                        egui::TextureOptions::NEAREST,
+                    ));
+                }
             }
             self.dirty = false;
         }
@@ -44,7 +78,12 @@ impl Frontend {
         let rect = Rect::from_center_size(screen.center() - EVec2::new(0.0, 30.0), size);
         let painter = ctx.layer_painter(egui::LayerId::background());
         painter.rect_filled(screen, 0.0, Color32::BLACK);
-        if let Some(texture) = &self.texture {
+        if let Some(frame) = &self.frame {
+            painter.add(egui_wgpu::Callback::new_paint_callback(
+                rect,
+                gpu::Paint(frame.clone()),
+            ));
+        } else if let Some(texture) = &self.texture {
             painter.image(
                 texture.id(),
                 rect,
@@ -52,12 +91,17 @@ impl Frontend {
                 Color32::WHITE,
             );
         }
+        crate::fonts::paint(ctx, rect, &self.canvas.text);
         let label = self.description(campaign);
         painter.text(
             egui::pos2(screen.center().x, screen.bottom() - 43.0),
             Align2::CENTER_CENTER,
             &label,
-            FontId::proportional(15.0),
+            if settings.sharp_text {
+                crate::fonts::id(15.0)
+            } else {
+                FontId::proportional(15.0)
+            },
             Color32::WHITE,
         );
         let help = if self.notice.is_empty() {
@@ -220,8 +264,16 @@ impl Frontend {
                     .light(128 + ((pulse.cos() + (pulse * 3.0).sin()) * 32.0) as i32)
                     .blend(Blend::Add),
                 );
-                self.canvas
-                    .sprite(Sprite::new(&self.character_images[1], 0.0, -96.0).blend(Blend::Add));
+                self.canvas.label(
+                    Sprite::new(&self.character_images[1], 0.0, -96.0).blend(Blend::Add),
+                    match self.language {
+                        Language::English => "CHARACTER",
+                        Language::Japanese => "主人公の選択",
+                        Language::French => "Personnage",
+                        Language::Italian => "Personaggi",
+                    },
+                    Color32::WHITE,
+                );
             }
             Page::Missions => self.paint_missions(campaign),
             Page::Movie(_) => {
@@ -278,6 +330,7 @@ impl Frontend {
                 1.0 + phase.cos() / 20.0
             }) + Vec2::new(160.0, 120.0)
         };
+        let mut vertices = Vec::with_capacity(16 * 16 * 6);
         for y in 0..16 {
             for x in 0..16 {
                 let v = |x, y| Vertex {
@@ -289,13 +342,11 @@ impl Frontend {
                     [v(x, y), v(x + 1, y), v(x, y + 1)],
                     [v(x + 1, y), v(x + 1, y + 1), v(x, y + 1)],
                 ] {
-                    self.canvas.triangle(triangle, Blend::Opaque, |uv| {
-                        image.pixels[uv.y.clamp(0.0, 239.0) as usize * 320
-                            + uv.x.clamp(0.0, 319.0) as usize]
-                    });
+                    vertices.extend(triangle);
                 }
             }
         }
+        self.canvas.image_triangles(image, &vertices, Blend::Opaque);
         let seals = |canvas: &mut Canvas| {
             let radius = (80 - (200 - seal) * 2) as f32;
             for i in 0..9 {
@@ -389,6 +440,18 @@ impl Frontend {
                         .row(row, 4)
                         .blend(Blend::Subtract),
                 );
+                if self.canvas.sharp_text {
+                    self.canvas.label(
+                        Sprite::new(&images[14], 0.0, y).row(row, 4),
+                        ["任務開始", "忍術指南", "虎の巻", "各種設定"][i],
+                        if i == selected {
+                            Color32::from_rgb(255, 216, 145)
+                        } else {
+                            Color32::LIGHT_GRAY
+                        },
+                    );
+                    continue;
+                }
                 self.canvas
                     .sprite(
                         Sprite::new(&images[14], 0.0, y)
@@ -458,7 +521,7 @@ impl Frontend {
         }
         if self.page == Page::Options {
             let slide = (250 - self.ticks as i32 * 20).max(0) as f32;
-            for i in 0..10 {
+            for (i, label) in ORIGINAL_OPTIONS.iter().enumerate() {
                 let x = if i < 5 { -82.0 - slide } else { 82.0 + slide };
                 let y = (i % 5) as f32 * 34.0 - 68.0;
                 self.canvas.sprite(
@@ -473,6 +536,18 @@ impl Frontend {
                             Blend::Average
                         }),
                 );
+                if self.canvas.sharp_text {
+                    self.canvas.label(
+                        Sprite::new(&images[9], x, y + if i < 5 { 2.0 } else { -2.0 }).row(i, 10),
+                        *label,
+                        if i == self.option_selection {
+                            Color32::from_rgb(240, 72, 54)
+                        } else {
+                            Color32::from_rgb(220, 207, 183)
+                        },
+                    );
+                    continue;
+                }
                 self.canvas.sprite(
                     Sprite::new(&images[9], x, y + if i < 5 { 2.0 } else { -2.0 })
                         .row(i, 10)
@@ -490,9 +565,16 @@ impl Frontend {
                         .blend(Blend::Add),
                 );
             }
-            self.canvas
-                .sprite(Sprite::new(&images[1], 0.0, -96.0).row(0, 6));
-            self.canvas.sprite(Sprite::new(&images[3], 0.0, 96.0));
+            self.canvas.label(
+                Sprite::new(&images[1], 0.0, -96.0).row(0, 6),
+                "各種設定",
+                Color32::WHITE,
+            );
+            self.canvas.label(
+                Sprite::new(&images[3], 0.0, 96.0),
+                "○ 決定　× 終了",
+                Color32::LIGHT_GRAY,
+            );
             return;
         }
         let option = match self.page {
@@ -509,7 +591,7 @@ impl Frontend {
         } else {
             (2, option - 5, 5)
         };
-        self.canvas.sprite(
+        self.canvas.label(
             Sprite::new(
                 &images[header],
                 if self.page == Page::Records {
@@ -520,8 +602,16 @@ impl Frontend {
                 -96.0,
             )
             .row(row, count),
+            ORIGINAL_OPTIONS[option],
+            Color32::WHITE,
         );
-        self.canvas.sprite(Sprite::new(&images[4], 0.0, 96.0));
+        if !self.canvas.sharp_text || self.page != Page::Controls {
+            self.canvas.label(
+                Sprite::new(&images[4], 0.0, 96.0),
+                "○ 決定　× キャンセル",
+                Color32::LIGHT_GRAY,
+            );
+        }
         match self.page {
             Page::Choice(_) | Page::Card => {
                 self.canvas.sprite(Sprite::new(&images[5], 0.0, 0.0));
@@ -542,11 +632,27 @@ impl Frontend {
                     } else {
                         i as f32 * 28.0 - 28.0
                     };
-                    self.canvas.sprite(
+                    let label = if self.page == Page::Card {
+                        ["読込", "保存"][i]
+                    } else {
+                        match option {
+                            1 => ["易", "普", "難"][i],
+                            2 => ["ステレオ", "モノラル"][i],
+                            9 => ["日本語", "英語", "仏蘭西語", "伊太利亜語"][i],
+                            _ => ["する", "しない"][i],
+                        }
+                    };
+                    self.canvas.label(
                         Sprite::new(&images[image], 15.0, y)
                             .row(first + i, count)
                             .light(if i == self.choice { 128 } else { 32 })
                             .blend(Blend::Subtract),
+                        label,
+                        if i == self.choice {
+                            Color32::from_rgb(40, 27, 22)
+                        } else {
+                            Color32::from_rgb(119, 100, 78)
+                        },
                     );
                     if i == self.choice {
                         self.canvas.sprite(
@@ -567,11 +673,23 @@ impl Frontend {
                 for i in 0..2 {
                     let y = i as f32 * 48.0 - 24.0;
                     let image = if self.page == Page::Volume { 16 } else { 17 };
-                    self.canvas.sprite(
+                    self.canvas.label(
                         Sprite::new(&images[image], -25.0, y)
                             .row(i, 2)
                             .light(if i == self.selection { 128 } else { 32 })
                             .blend(Blend::Subtract),
+                        if i == 0 {
+                            "音楽"
+                        } else if self.page == Page::Volume {
+                            "効果音"
+                        } else {
+                            "効果音・音声"
+                        },
+                        if i == self.selection {
+                            Color32::from_rgb(40, 27, 22)
+                        } else {
+                            Color32::from_rgb(119, 100, 78)
+                        },
                     );
                     if self.page == Page::Volume {
                         self.canvas.sprite(Sprite::new(&images[19], 50.0, y));
@@ -588,13 +706,15 @@ impl Frontend {
                     } else {
                         let n = self.sound_choices[i];
                         for (j, digit) in [n / 10, n % 10].into_iter().enumerate() {
-                            self.canvas.sprite(
+                            self.canvas.label(
                                 Sprite::new(&images[21], 65.0 + j as f32 * 16.0, y).region([
                                     digit * 14,
                                     0,
                                     14,
                                     16,
                                 ]),
+                                digit.to_string(),
+                                Color32::WHITE,
                             );
                         }
                     }
@@ -602,17 +722,22 @@ impl Frontend {
             }
             Page::Controls => {
                 self.canvas.sprite(Sprite::new(&images[10], 0.0, 0.0));
-                self.canvas.sprite(
+                self.canvas.label(
                     Sprite::new(&images[12], 0.0, -62.0)
                         .row(self.choice, 4)
                         .blend(Blend::Subtract),
+                    ["通常", "その壱", "その弐", "その参"][self.choice],
+                    Color32::from_rgb(40, 27, 22),
                 );
                 for i in 0..8 {
                     let [x, y] = self.tables.control_positions[i];
-                    self.canvas.sprite(
+                    self.canvas.label(
                         Sprite::new(&images[11], f32::from(x), f32::from(y))
                             .row(self.tables.control_actions[self.choice][i], 6)
                             .blend(Blend::Subtract),
+                        ["忍具選択", "視点変更", "忍具使用", "隠れる", "跳ぶ", "斬る"]
+                            [self.tables.control_actions[self.choice][i]],
+                        Color32::from_rgb(40, 27, 22),
                     );
                 }
             }
@@ -856,6 +981,22 @@ fn digits(
     spacing: f32,
     vertical: bool,
 ) {
+    if canvas.sharp_text {
+        let text = value.to_string();
+        let width = spacing * text.len() as f32;
+        canvas.text.push(crate::fonts::Text {
+            position: egui::pos2(
+                x - (width - spacing) / 2.0 + if vertical { 0.0 } else { 6.0 },
+                y - if vertical { 5.0 } else { 3.0 },
+            ),
+            text,
+            color: Color32::WHITE,
+            size: if vertical { 8.0 } else { 12.0 },
+            width,
+            centered: true,
+        });
+        return;
+    }
     for (i, digit) in value.to_string().bytes().rev().enumerate() {
         let n = if digit == b'-' {
             10

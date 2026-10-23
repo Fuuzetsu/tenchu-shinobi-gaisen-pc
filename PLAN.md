@@ -36,7 +36,7 @@ export contains 298 source/index references deduplicated to 248 image identities
 the private catalogue is `private/campaign-hd-interface`. Title, options, English
 mission selection and font reference sheets have been inspected. Native Clippy,
 formatting, release build and the complete disc export pass. Interface replacement
-rendering remains to be implemented.
+rendering is implemented below; most replacement interface artwork is still pending.
 
 Optional outline text now covers HUD numbers, in-game subtitles and the quick
 launcher/equipment/pause panels, including offline captures. The embedded,
@@ -47,6 +47,35 @@ game state and world geometry; 720p/4K captions and launcher layouts were checke
 and HUD captures inspected. Native/WASM Clippy, font tests and release build
 pass. Original frontend lettering baked into artwork and movie subtitles remain
 original; they are not covered by this first font implementation.
+
+The frontend now accepts scoped PNG replacements using the exported identities
+and renders sprites/selection models on the GPU at window resolution. Pipeline
+creation is lazy; the unmodified default keeps its original raster path. PS1
+opaque/average/add/subtract/quarter blends, cutouts, crop regions and transitions
+are retained, with atlas-region clamping for filtered replacements. Language
+changes and F1 reload refresh the interface selection; missing edits preserve
+the previous successful reload. Sharp text also covers title choices, character
+headings, options, controller bindings and numeric menu values. Baked background
+lettering, mission/rank images and movie captions still need their separate pass.
+
+Three GPU regressions cover all blend modes against the old rasterizer, 4K
+replacement detail plus atlas-row isolation, and 14 menu pages in all four
+languages without changing full gameplay state. The latter records original,
+sharp-text and candidate-art captures in `private/campaign-hd-source/frontend-gpu-review`.
+Vulkan and native/WASM Clippy pass. Blend/detail tests also pass with Mesa
+software OpenGL; the headless NVIDIA OpenGL device failed during setup before
+the new frontend pipeline was created. Actual browser delivery of packs remains
+pending. The first reviewed interface replacement is the subdued burgundy silk
+options background, with exact generation provenance and original blend classes.
+
+The separate `private/campaign-hd-pack` now contains the 368 accepted M1 textures
+plus 18 Mission 2 textures: three thatch pieces and fifteen gravel/gutter/soil
+pieces. Seventy-two matched map views were inspected. The coarse gravel atlas
+was rejected; its finer revision preserves material scale across adjoining
+pieces. M2 still has 46 uncovered scenery identities, plus remaining actors and
+props. The world pack holds 16,917,888 decoded pixels globally, while its largest
+active mission/outfit uses 14,649,088. Existing geometry stretch and baked vertex
+lighting can still expose some joins. The M1 pack and recordings remain intact.
 
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
