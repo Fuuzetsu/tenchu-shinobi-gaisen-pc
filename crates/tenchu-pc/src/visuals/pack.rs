@@ -121,6 +121,7 @@ impl Pack {
                     height,
                     strength: rule.strength,
                     world_tile: rule.world_tile,
+                    uv_tile: rule.uv_tile,
                 },
             );
         }
@@ -278,6 +279,7 @@ mod tests {
                 height: Some("test.png".into()),
                 strength: 0.5,
                 world_tile: Some([4000.0, 2000.0]),
+                uv_tile: true,
             },
         );
         save(&manifest);
@@ -293,6 +295,7 @@ mod tests {
             Pack::load(&root).unwrap().surfaces["new_art"].world_tile,
             Some([4000.0, 2000.0])
         );
+        assert!(Pack::load(&root).unwrap().surfaces["new_art"].uv_tile);
         manifest.surfaces.get_mut("new_art").unwrap().world_tile = Some([0.0, 2000.0]);
         save(&manifest);
         assert!(Pack::load(&root).is_err());

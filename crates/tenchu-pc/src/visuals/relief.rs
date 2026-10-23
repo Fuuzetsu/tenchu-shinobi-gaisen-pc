@@ -11,6 +11,7 @@ pub struct Rule {
     pub height: Option<String>,
     pub strength: f32,
     pub world_tile: Option<[f32; 2]>,
+    pub uv_tile: bool,
 }
 
 impl Default for Rule {
@@ -19,6 +20,7 @@ impl Default for Rule {
             height: None,
             strength: 1.0,
             world_tile: None,
+            uv_tile: false,
         }
     }
 }
@@ -28,6 +30,7 @@ pub struct Surface {
     pub height: Option<Arc<Image>>,
     pub strength: f32,
     pub world_tile: Option<[f32; 2]>,
+    pub uv_tile: bool,
 }
 
 /// Remove broad painted lighting; retain softened grain, ridges and seams.

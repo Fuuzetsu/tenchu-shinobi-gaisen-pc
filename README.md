@@ -697,7 +697,7 @@ using texture identities from `export-assets`:
 
 ```json
 "surfaces": {
-  "TEXTURE_ID_FOR_ROOF": {"height": "heightmaps/roof.png", "strength": 1.0},
+  "TEXTURE_ID_FOR_ROOF": {"height": "heightmaps/roof.png", "strength": 1.0, "uv_tile": true},
   "TEXTURE_ID_TO_LEAVE_FLAT": {"strength": 0.0},
   "TEXTURE_ID_FOR_WATER": {"strength": 0.0, "world_tile": [4000, 4000]}
 }
@@ -718,6 +718,14 @@ advances at its original rate; color filtering, cutouts and cast shadows share
 the mapping. This requires a replacement image and disables with the artwork;
 it does not change the mesh, original UVs, collision or simulation. Use ordinary
 UVs for characters and materials whose pattern must follow an object.
+
+`uv_tile: true` keeps the original UV orientation but fits a complete repeating
+replacement image between the original texel-center endpoints. It avoids losing
+one original texel's worth of artwork at each join, useful for seamless roof or
+ground tiles. Filtering wraps across the image edges, including mipmaps. Leave
+it off for atlas pieces, framed panels and textures with a deliberate outer edge.
+`world_tile` takes precedence when both are supplied. Both options require actual
+replacement artwork; toggling it off restores the original mapping exactly.
 
 **F1 → Graphics → Smooth model motion** interpolates character parts, held
 weapons, hinged doors/pitfalls and their dynamic shadows between consecutive

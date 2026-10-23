@@ -79,6 +79,10 @@ def main():
             ):
                 parser.error(f"world_tile for {identity} needs two periods in 1–1,000,000 units")
             rule["world_tile"] = tile
+        if "uv_tile" in entry:
+            if not isinstance(entry["uv_tile"], bool):
+                parser.error(f"uv_tile for {identity} must be true or false")
+            rule["uv_tile"] = entry["uv_tile"]
         if "height" in entry:
             with Image.open(args.recipe.parent / entry["height"]) as source:
                 height = source.convert("RGB").getchannel("R").resize(size, Image.Resampling.LANCZOS)

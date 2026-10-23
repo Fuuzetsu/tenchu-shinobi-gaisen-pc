@@ -12,6 +12,21 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Complete Mission 1 texture pack
 
+Boundary follow-up: the map review covers all 100 scenery texture identities and
+an audit of 6,780 shared coplanar UV/material edges within exported map parts.
+The audit prioritizes inspection rather than declaring every material change a
+defect. Actual stage captures identified inconsistent path-corner stones,
+garden ground transitions and an eaves-corner stripe phase mismatch. Revised
+artwork is being checked in an isolated candidate pack. Optional `uv_tile`
+extends full-period mapping to static replacement tiles without changing native
+artwork. Its GPU regression fails before the correction (86-level jump across
+the join) and passes after it, including filtering, reload and exact disable
+restoration. Final installed-art and broader check evidence follows below.
+All 18 Vulkan renderer checks pass (the disc-dependent shadow check was rerun
+with its required `TENCHU_DISC` after the first invocation omitted it). Both
+static/animated tiling checks also pass on OpenGL. Pack-loader/tool checks,
+formatting and native/WASM Clippy pass; the release binary was rebuilt.
+
 Follow-up: the white cliff patch visible in the item-use comparisons was three
 untextured backing quads exactly coincident with an earlier textured quad in
 Mission 1 map part 70. The opaque depth test now preserves the earlier face on

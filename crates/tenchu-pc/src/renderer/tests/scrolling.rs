@@ -185,6 +185,7 @@ fn replacement_scroll_tracks_original_copies_and_restores_live_water() {
             height: None,
             strength: 0.0,
             world_tile: Some([1200.0, 1200.0]),
+            uv_tile: false,
         },
     );
     renderer.set_asset_pack(&projected);
@@ -228,4 +229,127 @@ fn replacement_scroll_tracks_original_copies_and_restores_live_water() {
         draw(&mut renderer),
         "world mapping disables with the artwork"
     );
+}
+
+#[test]
+#[ignore = "requires a graphics adapter; static replacement tiles must join and restore original UVs"]
+fn static_replacement_tiles_repeat_without_skipping_border_texels() {
+    let mut vram = Vram::default();
+    vram.images.push(tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0; 2],
+        size: [8, 4],
+    });
+    for y in 0..4 {
+        for x in 0..8 {
+            vram.words[y * 1024 + x] = 1 + (y * 8 + x) as u16 * 31;
+        }
+    }
+    let region = catalog::Region::find(
+        &vram,
+        Texture {
+            page: 256,
+            palette: 0,
+        },
+        [0, 0, 7, 3],
+    );
+    let id = catalog::image_id([8, 4], &region.pixels(&vram));
+    // This continuous periodic ramp changes quickly near the join, exposing an omitted source texel.
+    let image = Arc::new(Image {
+        size: [64, 32],
+        rgba: (0..32)
+            .flat_map(|_| {
+                (0..64).flat_map(|x| {
+                    let value =
+                        (128.0 + 100.0 * (x as f32 * std::f32::consts::TAU / 64.0).sin()) as u8;
+                    [value, value, value, 255]
+                })
+            })
+            .collect(),
+    });
+    let mut pack = Pack {
+        textures: BTreeMap::from([(id.clone(), image)]),
+        surfaces: BTreeMap::from([(
+            id.clone(),
+            crate::visuals::relief::Surface {
+                height: None,
+                strength: 0.0,
+                world_tile: None,
+                uv_tile: true,
+            },
+        )]),
+        ..Default::default()
+    };
+    let vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    let tiled: Vec<_> = [-1.0, 1.0]
+        .into_iter()
+        .flat_map(|side| {
+            vertices.iter().copied().map(move |mut v| {
+                v.uv = [
+                    (v.position[0] + 600.0) / 1200.0 * 7.0,
+                    (v.position[1] + 600.0) / 1200.0 * 3.0,
+                ];
+                v.position[0] = v.position[0] * 0.5 + side * 300.0;
+                v
+            })
+        })
+        .collect();
+    let (mut renderer, target) = fixture(&vram);
+    let mesh = renderer.upload(&tiled);
+    let draw = |renderer: &mut Renderer| {
+        renderer
+            .draw(
+                &target.create_view(&Default::default()),
+                game_camera(Matrix::default(), 1.0),
+                &[&mesh],
+                None,
+            )
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let mut graphics = crate::settings::Graphics::default();
+    for filtering in [0, 2, 4] {
+        graphics.asset_pack = false;
+        graphics.set_filtering(filtering);
+        renderer.configure(&graphics);
+        let original = draw(&mut renderer);
+        renderer.set_asset_pack(&pack);
+        graphics.asset_pack = true;
+        renderer.configure(&graphics);
+        let joined = draw(&mut renderer);
+        let a = joined[32 * 256 + 31 * 4];
+        let b = joined[32 * 256 + 32 * 4];
+        assert!(
+            a.abs_diff(b) < 30,
+            "static tiles skip border texels at filtering {filtering}: {a} -> {b}"
+        );
+        pack.surfaces.get_mut(&id).unwrap().uv_tile = false;
+        renderer.set_asset_pack(&pack);
+        assert_ne!(
+            joined,
+            draw(&mut renderer),
+            "reload must update tiling without changing the PNG"
+        );
+        pack.surfaces.get_mut(&id).unwrap().uv_tile = true;
+        renderer.set_asset_pack(&pack);
+        assert_eq!(joined, draw(&mut renderer));
+        graphics.asset_pack = false;
+        renderer.configure(&graphics);
+        assert_eq!(
+            original,
+            draw(&mut renderer),
+            "disabled pack preserves original UVs"
+        );
+    }
 }

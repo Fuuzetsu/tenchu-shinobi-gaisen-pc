@@ -32,6 +32,7 @@ struct Entry {
     replaced: bool,
     scroll: Option<[u16; 2]>,
     scrolling: bool,
+    uv_tile: bool,
     world_tile: Option<[f32; 2]>,
     dirty: bool,
     mips: Vec<Mip>,
@@ -52,12 +53,12 @@ impl Entry {
                 1.0,
             ];
         }
-        if self.scrolling {
+        if self.scrolling || self.uv_tile {
             let offset = self.scroll.unwrap_or_default();
             for axis in 0..2 {
                 let period = source[axis + 2];
                 let span = (period - 1.0).max(1.0);
-                // Mesh UV endpoints are texel centers; each animated tile needs a full period.
+                // Original mesh endpoints are texel centers; authored tiles need a full period.
                 source[axis] += 0.5 - f32::from(offset[axis]) * span / period;
                 source[axis + 2] = span;
             }
@@ -81,7 +82,7 @@ impl Entry {
     }
 
     fn repeating(&self) -> bool {
-        self.scrolling || self.world_tile.is_some()
+        self.scrolling || self.uv_tile || self.world_tile.is_some()
     }
 
     fn flags(&self, layers: usize) -> u32 {
@@ -126,16 +127,18 @@ impl Entry {
         );
         let replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
         let scrolling = replacement.is_some() && self.scroll.is_some();
-        let world_tile = replacement
-            .and_then(|_| surfaces.get(&self.id))
-            .and_then(|s| s.world_tile);
+        let surface = replacement.and_then(|_| surfaces.get(&self.id));
+        let world_tile = surface.and_then(|s| s.world_tile);
+        let uv_tile = self.region.is_some() && surface.is_some_and(|s| s.uv_tile);
         self.dirty |= self.image != image
             || self.replaced != replaced
             || self.scrolling != scrolling
+            || self.uv_tile != uv_tile
             || self.world_tile != world_tile;
         self.image = image;
         self.replaced = replaced;
         self.scrolling = scrolling;
+        self.uv_tile = uv_tile;
         self.world_tile = world_tile;
     }
 }
@@ -305,6 +308,7 @@ impl Materials {
                     replaced: true,
                     scroll: None,
                     scrolling: false,
+                    uv_tile: false,
                     world_tile: None,
                     dirty: true,
                     mips: Vec::new(),
@@ -379,6 +383,7 @@ impl Materials {
             replaced: false,
             scroll: region.scroll_offset(&self.vram),
             scrolling: false,
+            uv_tile: false,
             world_tile: None,
             dirty: true,
             mips: Vec::new(),
