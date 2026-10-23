@@ -30,7 +30,8 @@ pub(super) fn create(
     let make_pipeline = |blend: Option<wgpu::BlendState>,
                          fragment: &str,
                          bias: i32,
-                         depth_write_enabled: bool| {
+                         depth_write_enabled: bool,
+                         depth_compare: wgpu::CompareFunction| {
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(fragment), layout: Some(layout),
         vertex: wgpu::VertexState {
@@ -43,7 +44,7 @@ pub(super) fn create(
         primitive: wgpu::PrimitiveState { front_face: wgpu::FrontFace::Cw, cull_mode: None, ..Default::default() },
         depth_stencil: Some(wgpu::DepthStencilState {
             format: wgpu::TextureFormat::Depth32Float, depth_write_enabled,
-            depth_compare: wgpu::CompareFunction::LessEqual, stencil: Default::default(),
+            depth_compare, stencil: Default::default(),
             bias: wgpu::DepthBiasState { constant: bias, ..Default::default() },
         }),
         multisample: wgpu::MultisampleState { count: samples, ..Default::default() },
@@ -54,10 +55,11 @@ pub(super) fn create(
         multiview: None, cache: None,
         })
     };
-    let pipeline = make_pipeline(None, "opaque", 0, true);
+    // Earlier TMD faces cover later coplanar authoring/backing faces in the original OT.
+    let pipeline = make_pipeline(None, "opaque", 0, true, wgpu::CompareFunction::Less);
     let effects = std::array::from_fn(|mode| {
         if mode == 0 {
-            return make_pipeline(None, "opaque", -2, true);
+            return make_pipeline(None, "opaque", -2, true, wgpu::CompareFunction::LessEqual);
         }
         let blend = wgpu::BlendState {
             color: wgpu::BlendComponent {
@@ -79,7 +81,13 @@ pub(super) fn create(
             },
             alpha: wgpu::BlendComponent::REPLACE,
         };
-        make_pipeline(Some(blend), "translucent", -2, false)
+        make_pipeline(
+            Some(blend),
+            "translucent",
+            -2,
+            false,
+            wgpu::CompareFunction::LessEqual,
+        )
     });
     (pipeline, effects)
 }

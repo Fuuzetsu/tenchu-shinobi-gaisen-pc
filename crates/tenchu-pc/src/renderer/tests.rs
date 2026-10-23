@@ -911,6 +911,38 @@ fn winding_and_original_texture_blends_render_correctly() {
 }
 
 #[test]
+#[ignore = "requires a graphics adapter; coincident authoring faces must not cover earlier textured scenery"]
+fn coplanar_backing_preserves_textures_and_fills_only_cutouts() {
+    let mut vram = Vram::default();
+    vram.words[0] = 31 << 5;
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for _ in 0..3 {
+        vertices.extend(rectangle(1000, 200, None, false, false, false));
+    }
+    let mesh = renderer.upload(&vertices);
+    let camera = game_camera(Matrix::default(), 1.0);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(read_pixel(&renderer, &target), [0, 255, 0, 255]);
+
+    vram.words[0] = 0;
+    renderer.update_vram(&vram);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(read_pixel(&renderer, &target), [200, 200, 200, 255]);
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; checks camera-forward fog, texture/blend handling and unfogged screen graphics"]
 fn distance_fog_preserves_near_colors_and_screen_graphics() {
     let mut vram = Vram::default();

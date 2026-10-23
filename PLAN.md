@@ -12,6 +12,17 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Complete Mission 1 texture pack
 
+Follow-up: the white cliff patch visible in the item-use comparisons was three
+untextured backing quads exactly coincident with an earlier textured quad in
+Mission 1 map part 70. The opaque depth test now preserves the earlier face on
+equal depth, matching the original ordering-table tie order. Transparent texels
+still reveal backing surfaces; effect blending retains its existing depth rule.
+The synthetic regression failed before the fix and passes on Vulkan and OpenGL
+after it, as do all 17 Vulkan renderer checks. Native/WASM Clippy and formatting
+pass. All 21 item-use comparison pairs were refreshed and retain
+identical original/pack gameplay traces. The repaired original and pack views
+were inspected. A silent 4K/60 before/after video is the remaining follow-up.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.
