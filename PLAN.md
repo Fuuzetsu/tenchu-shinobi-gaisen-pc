@@ -10,6 +10,43 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Campaign-wide HD artwork and fonts (active)
+
+Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
+menus/interface. Keep original artwork as the fallback and preserve gameplay,
+UV meaning, transparency, animation and the current default experience.
+Cutscene artwork is explicitly exempt from this repainting pass.
+
+Deliverables, in implementation order:
+
+1. Export both characters and all enemy layouts for every mission; account for
+   outfits, bosses, props, equipment and effects. Deduplicate by content identity
+   and distinguish actual use from unused archive contents. Inventory menu/UI
+   artwork separately, including all four languages.
+2. Make campaign-sized packs practical: load the assets needed by the current
+   mission/interface, preserve reload and fallback, and keep native/browser
+   resource use bounded. Reuse accepted Mission 1 assets and provenance.
+3. Add optional high-definition fonts with real glyphs, accents and Japanese
+   coverage. Preserve original text, placement, timing and hit targets; review
+   menus, equipment, HUD/results and captions at normal and 4K window sizes.
+4. Author the remaining mission families in coherent groups. Use assembled
+   reference surfaces for adjoining roof/gable/wall/ground tiles; preserve
+   cutouts, terminal edges, scrolling periods and animated-family continuity.
+   Review actual stage geometry before declaring a family complete.
+5. Upgrade menu and interface artwork without repainting letters as guessed
+   symbols. Include title/character/mission/options/equipment/results screens;
+   preserve the quick launcher and existing navigation.
+6. Complete a per-mission/per-menu coverage ledger and before/after gallery.
+   Exercise both characters, outfits, enemies/bosses, item effects, material
+   joins and water/weather motion. Check original fallback, pack reload,
+   native/browser builds and meaningful rendering/gameplay regressions.
+
+Commit coherent stages and continue through the whole scope. Keep generated
+artwork, disc-derived references, candidate history and exact provenance in
+ignored `private/` directories. The completed Mission 1 pack and recordings
+remain intact while the campaign pack is built. Existing decompilation,
+research and viewer repositories remain read-only references.
+
 ## Complete Mission 1 texture pack
 
 Faster follow-up recording is complete at
