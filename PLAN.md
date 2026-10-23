@@ -88,6 +88,19 @@ has appeared in a playback. The private `usage.json` records every inclusion and
 exclusion per mission/outfit. Mission 2 still needs its additional actors, props,
 equipment and shared interface artwork; other mission families remain pending.
 
+Mission 2's additional 87 actor, nine prop and two equipment identities are now
+reviewed and installed. The campaign pack contains 530 world/UI replacements
+plus the first interface background. Seventeen posed models were checked from
+six angles, including cutout baskets/fences, all six new character families and
+four weapon meshes. The hooked weapon's pixel steps were repainted as smooth
+metal before acceptance. Ten matched gameplay captures cover both mission
+routes through completion with identical state traces and 100 HP. All M1 PNGs
+remain byte-identical. Mission 2 now covers 369 of 387 conservatively reachable
+identities; the remaining 18 are shared HUD/interface images, handled separately.
+This also supplies shared characters to Mission 7. Native map/model evidence,
+exact source prompts and acceptance records remain in the private campaign
+directory; browser delivery and the remaining missions are still pending.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
