@@ -45,6 +45,15 @@ Original artwork retains its previous mapping. Native/WASM Clippy and release
 build pass. Remaining art follow-ups: consistent assembled gables retaining the
 attic frame, Ayame's mouth UV interpretation, and visible weapon improvements.
 
+Weapon review found that the player's blades are predominantly untextured,
+especially Ayame's kodachi. Texture replacement alone cannot modernize those
+surfaces. The isolated model preview now uses the same OBJ replacement path as
+gameplay, including transparency and material binding, and fits both versions
+with one camera. Six original Ayame preview images remain pixel-identical;
+authored weapon candidates visibly change all six comparison angles. Native
+Clippy, formatting and release build pass. These optional meshes still require
+their in-game attachment/animation review before installation.
+
 Extend the optional native pilot into a complete Mission 1 texture pack. Check
 material intent against actual geometry and gameplay, preserving UV layout,
 transparency, animation, game logic and the unchanged default renderer.

@@ -1,5 +1,9 @@
 use super::review::{self, Review};
-use crate::{render_effects, render_mesh, visuals::catalog};
+use crate::{
+    render_effects,
+    render_mesh::{self, Vertex},
+    visuals::{catalog, models::Models},
+};
 use glam::{Mat4, Vec3};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -16,6 +20,45 @@ use tenchu_core::{
 struct Model<'a> {
     label: String,
     parts: Vec<(&'a [Geometry], Matrix)>,
+}
+
+#[derive(Default)]
+struct MeshData {
+    opaque: Vec<Vertex>,
+    translucent: Vec<(u8, Vec<Vertex>)>,
+}
+
+impl Model<'_> {
+    fn mesh(&self, replacements: Option<&Models>) -> MeshData {
+        let mut mesh = MeshData::default();
+        for &(geometries, matrix) in &self.parts {
+            if replacements.is_some_and(|models| {
+                models.visit(geometries, matrix, false, |triangle| {
+                    if triangle[0].flags & render_mesh::TRANSLUCENT != 0 {
+                        let blend = ((triangle[0].page >> 5) & 3) as u8 + 1;
+                        mesh.translucent.push((blend, triangle.to_vec()));
+                    } else {
+                        mesh.opaque.extend(triangle);
+                    }
+                })
+            }) {
+                continue;
+            }
+            for geometry in geometries {
+                for face in render_mesh::draw_tmd_faces(geometry) {
+                    if face.translucent {
+                        let mut vertices = Vec::new();
+                        render_mesh::append_face(&mut vertices, geometry, face, matrix, false);
+                        let blend = face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1);
+                        mesh.translucent.push((blend, vertices));
+                    } else {
+                        render_mesh::append_face(&mut mesh.opaque, geometry, face, matrix, false);
+                    }
+                }
+            }
+        }
+        mesh
+    }
 }
 
 fn models(game: &Game) -> Result<BTreeMap<String, Model<'_>>> {
@@ -83,14 +126,14 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
     }
     review::prepare_directory(output)?;
     let mut review = Review::new(&game.mission.vram)?;
+    let replacements = review.models(&game.mission)?;
     let backdrop = grey_background.then(|| review.backdrop(0.4));
     let mut views = Vec::new();
     for id in selected {
         let model = &models[&id];
-        let mut opaque = Vec::new();
-        let mut translucent = Vec::new();
+        let variants = [model.mesh(None), model.mesh(Some(&replacements))];
         let mut textures = BTreeSet::new();
-        for &(geometries, matrix) in &model.parts {
+        for &(geometries, _) in &model.parts {
             for geometry in geometries {
                 for face in render_mesh::draw_tmd_faces(geometry) {
                     if let Some(region) = catalog::face_region(&game.mission.vram, face) {
@@ -99,20 +142,16 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
                             &region.original_pixels(&game.mission.vram),
                         ));
                     }
-                    if face.translucent {
-                        let mut vertices = Vec::new();
-                        render_mesh::append_face(&mut vertices, geometry, face, matrix, false);
-                        let blend = face.texture.map_or(1, |t| ((t.page >> 5) & 3) as u8 + 1);
-                        translucent.push((blend, vertices));
-                    } else {
-                        render_mesh::append_face(&mut opaque, geometry, face, matrix, false);
-                    }
                 }
             }
         }
-        let vertices: Vec<_> = opaque
+        let vertices: Vec<_> = variants
             .iter()
-            .chain(translucent.iter().flat_map(|(_, v)| v))
+            .flat_map(|mesh| {
+                mesh.opaque
+                    .iter()
+                    .chain(mesh.translucent.iter().flat_map(|(_, v)| v))
+            })
             .collect();
         if vertices.is_empty() {
             return Err(format!("Model {id} has no visible faces"));
@@ -126,8 +165,9 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
         );
         let center = (min + max) * 0.5;
         let radius = (max - min).length().max(1.0) * 0.5;
-        let mesh = review.renderer.upload(&opaque);
-        let meshes: Vec<_> = backdrop.iter().chain(std::iter::once(&mesh)).collect();
+        let meshes = variants
+            .each_ref()
+            .map(|mesh| review.renderer.upload(&mesh.opaque));
         let stem = id.replace('/', "_");
         for (name, direction) in [
             ("front", Vec3::new(0.0, -0.12, -1.0)),
@@ -145,29 +185,36 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
                 radius * 0.001,
                 radius * 10.0,
             ) * view;
-            let mut surfaces: Vec<_> = translucent.iter().collect();
-            let depth = |vertices: &[render_mesh::Vertex]| {
-                vertices
+            for (index, (enabled, suffix)) in [(false, "original"), (true, "pack")]
+                .into_iter()
+                .enumerate()
+            {
+                let mut surfaces: Vec<_> = variants[index].translucent.iter().collect();
+                let depth = |vertices: &[Vertex]| {
+                    vertices
+                        .iter()
+                        .map(|v| view.transform_point3(Vec3::from(v.position)).z)
+                        .sum::<f32>()
+                        / vertices.len().max(1) as f32
+                };
+                surfaces.sort_by(|(_, a), (_, b)| depth(a).total_cmp(&depth(b)));
+                let mut effects = render_effects::Geometry {
+                    vertices: Vec::new(),
+                    batches: Vec::new(),
+                };
+                for (blend, vertices) in surfaces {
+                    let start = effects.vertices.len() as u32;
+                    effects.vertices.extend(vertices);
+                    effects.batches.push(render_effects::Batch {
+                        blend: *blend,
+                        range: start..effects.vertices.len() as u32,
+                    });
+                }
+                let effects = review.renderer.upload_effects(effects);
+                let meshes: Vec<_> = backdrop
                     .iter()
-                    .map(|v| view.transform_point3(Vec3::from(v.position)).z)
-                    .sum::<f32>()
-                    / vertices.len().max(1) as f32
-            };
-            surfaces.sort_by(|(_, a), (_, b)| depth(a).total_cmp(&depth(b)));
-            let mut effects = render_effects::Geometry {
-                vertices: Vec::new(),
-                batches: Vec::new(),
-            };
-            for (blend, vertices) in surfaces {
-                let start = effects.vertices.len() as u32;
-                effects.vertices.extend(vertices);
-                effects.batches.push(render_effects::Batch {
-                    blend: *blend,
-                    range: start..effects.vertices.len() as u32,
-                });
-            }
-            let effects = review.renderer.upload_effects(effects);
-            for (enabled, suffix) in [(false, "original"), (true, "pack")] {
+                    .chain(std::iter::once(&meshes[index]))
+                    .collect();
                 review.capture(
                     camera,
                     &meshes,

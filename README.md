@@ -132,7 +132,9 @@ as `actors`, `weapons` and `common` select all matching models. Actors use their
 idle pose after 30 animation updates; gameplay is not advanced. It accepts the
 usual mission options and `--outfit normal|armour|alternate`. Review framing
 fits each model automatically and preserves translucent face blends. These
-isolated views supplement actual stage/gameplay review.
+isolated views supplement actual stage/gameplay review. Pack views include OBJ
+model overrides as well as textures; both versions use a camera that fits their
+combined bounds so geometry changes remain directly comparable.
 
 `preview-models` accepts `--background grey` to inspect subtractive shadows and
 dark translucent surfaces; black remains the default. For world sprite artwork,

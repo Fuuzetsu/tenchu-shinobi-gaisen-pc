@@ -1,11 +1,11 @@
 use crate::{
     renderer::{EffectMesh, Mesh, Renderer},
     settings::Graphics,
-    visuals::pack::Pack,
+    visuals::{models::Models, pack::Pack},
 };
 use glam::Mat4;
 use std::{fs, path::Path};
-use tenchu_assets::{Result, texture::Vram};
+use tenchu_assets::{Result, stage::MissionAssets, texture::Vram};
 
 pub const SIZE: [u32; 2] = [1280, 720];
 
@@ -25,6 +25,7 @@ pub struct Review {
     pub renderer: Renderer,
     texture: wgpu::Texture,
     graphics: Graphics,
+    pack: Pack,
 }
 
 impl Review {
@@ -48,7 +49,8 @@ impl Review {
             .ok_or("No graphics adapter")?;
         let format = wgpu::TextureFormat::Rgba8Unorm;
         let mut renderer = pollster::block_on(Renderer::new(&adapter, format, SIZE, vram))?;
-        renderer.set_asset_pack(&Pack::from_env()?);
+        let pack = Pack::from_env()?;
+        renderer.set_asset_pack(&pack);
         let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Asset review"),
             size: wgpu::Extent3d {
@@ -77,7 +79,16 @@ impl Review {
             renderer,
             texture,
             graphics,
+            pack,
         })
+    }
+
+    pub fn models(&mut self, mission: &MissionAssets) -> Result<Models> {
+        let mut graphics = self.graphics.clone();
+        graphics.asset_pack = true;
+        let mut models = Models::build(mission, &self.pack, &graphics)?;
+        self.renderer.bind_models(&mut models);
+        Ok(models)
     }
 
     pub fn capture(
