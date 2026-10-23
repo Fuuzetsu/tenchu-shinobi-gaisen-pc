@@ -266,6 +266,28 @@ All 1,299 previously accepted PNGs remain byte-identical. Mission 10 has 148
 additional world identities; shared HUD/menu artwork, fonts and browser pack
 delivery remain active work.
 
+Mission 10 adds 148 reviewed identities: 83 scenery, thirteen prop, 44 actor
+and eight equipment images. The large floor seal and snowy paving were assembled
+before repainting and split along their original UV orientations with edge
+padding. Six snow/soil transitions reuse adjacent authored materials beneath
+the original coverage boundaries. Portal and lava images wrap at both edges.
+Review replaced overly coarse dungeon grain with quieter stone and restored
+color beneath the skull door's original mixed-transparency mask.
+
+Evidence includes 332 map pairs, forty revised-dungeon pairs, 25 models from
+six angles, twelve gameplay endpoints and forty scrolling-material pairs across
+five phases. Both recorded final missions complete with matching stdout traces:
+Rikimaru at tick 15,082 with 30 HP, Ayame at tick 16,015 with 7 HP. This does not
+compare full serialized state. Original geometry, UV scale, vertex lighting and
+the seal's coarse cutout mask still expose some boundaries.
+
+Candidate35 is installed: 1,543 world/UI images plus one menu background,
+63.11M world pixels globally and 16.27M at most in an active mission/outfit.
+All 1,396 previously accepted PNGs remain byte-identical. Missions 1–10 now
+cover their audited world art except the 22 documented source fallbacks in
+Missions 7–9. Eighteen shared HUD identities, remaining menu artwork/font work
+and browser pack delivery remain active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
