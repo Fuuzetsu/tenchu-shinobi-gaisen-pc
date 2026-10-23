@@ -150,6 +150,14 @@ Missions 1–4 cover all audited world artwork, with the eighteen shared HUD ima
 still pending. Mission 5 begins with 252 additional world images; Missions 5–10,
 remaining menu artwork and browser pack delivery remain active work.
 
+Mission 5's larger candidate exposed an overbroad pack selection: it included
+every image recorded in VRAM, including unused archive material, instead of the
+mission's actual sprite list. Selection now matches the exported model/sprite
+identities. The disc regression compares those sets for Mission 5; pack tests,
+native/WASM Clippy and the release build pass. The 16.12M-pixel candidate now
+loads for native map/model reviews without exceeding the existing limit.
+Mission 5 artwork is still under review, particularly cutout shapes and joins.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.

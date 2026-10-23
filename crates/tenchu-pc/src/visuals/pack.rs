@@ -58,7 +58,7 @@ struct Selection {
 impl Selection {
     fn mission(mission: &MissionAssets) -> Self {
         let mut textures: BTreeSet<_> = catalog::regions(mission).into_values().collect();
-        for &image in &mission.vram.images {
+        for &image in &mission.images {
             let region = catalog::Region::sprite(&mission.vram, image);
             textures.insert(catalog::image_id(
                 [region.rect[2], region.rect[3]],
@@ -314,6 +314,31 @@ pub fn decode_png(bytes: &[u8]) -> Result<Image> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; checks campaign selection against exported model and sprite artwork"]
+    fn mission_selection_matches_exported_artwork() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let game = crate::session::Options {
+            mission: 5,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        let directory =
+            std::env::temp_dir().join(format!("tenchu-pack-selection-{}", std::process::id()));
+        super::super::export(&game.mission, &directory).unwrap();
+        let manifest: Manifest =
+            serde_json::from_slice(&fs::read(directory.join("pack.json")).unwrap()).unwrap();
+        fs::remove_dir_all(directory).unwrap();
+        assert_eq!(
+            Selection::mission(&game.mission).textures,
+            manifest.textures.into_keys().collect()
+        );
+    }
 
     #[test]
     fn mission_selection_reads_only_used_art_and_model_dependencies() {
