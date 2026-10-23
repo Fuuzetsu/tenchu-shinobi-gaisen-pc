@@ -30,6 +30,7 @@ struct Entry {
     original: Image,
     image: Image,
     replaced: bool,
+    authored: bool,
     scroll: Option<[u16; 2]>,
     scrolling: bool,
     uv_tile: bool,
@@ -90,7 +91,8 @@ impl Entry {
             u32::from(self.replaced)
                 | if layers == 3 { 8 } else { 0 }
                 | if self.repeating() { 16 } else { 0 }
-                | if self.world_tile.is_some() { 32 } else { 0 },
+                | if self.world_tile.is_some() { 32 } else { 0 }
+                | if self.authored { 64 } else { 0 },
             |flags, pixel| {
                 flags
                     | match pixel[3] {
@@ -126,17 +128,20 @@ impl Entry {
             |image| (**image).clone(),
         );
         let replaced = self.region.is_none() || replacement.is_some() || upscale > 1;
+        let authored = replacement.is_some();
         let scrolling = replacement.is_some() && self.scroll.is_some();
         let surface = replacement.and_then(|_| surfaces.get(&self.id));
         let world_tile = surface.and_then(|s| s.world_tile);
         let uv_tile = self.region.is_some() && surface.is_some_and(|s| s.uv_tile);
         self.dirty |= self.image != image
             || self.replaced != replaced
+            || self.authored != authored
             || self.scrolling != scrolling
             || self.uv_tile != uv_tile
             || self.world_tile != world_tile;
         self.image = image;
         self.replaced = replaced;
+        self.authored = authored;
         self.scrolling = scrolling;
         self.uv_tile = uv_tile;
         self.world_tile = world_tile;
@@ -306,6 +311,7 @@ impl Materials {
                     original: (*material.image).clone(),
                     image: (*material.image).clone(),
                     replaced: true,
+                    authored: false,
                     scroll: None,
                     scrolling: false,
                     uv_tile: false,
@@ -327,8 +333,7 @@ impl Materials {
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
         for triangle in vertices.chunks_exact_mut(3) {
             let first = triangle[0];
-            if first.flags & (render_mesh::UI | render_mesh::DEBUG | render_mesh::TEXTURED)
-                != render_mesh::TEXTURED
+            if first.flags & (render_mesh::DEBUG | render_mesh::TEXTURED) != render_mesh::TEXTURED
                 || first.material != 0
             {
                 continue;
@@ -381,6 +386,7 @@ impl Materials {
             image: original.clone(),
             original,
             replaced: false,
+            authored: false,
             scroll: region.scroll_offset(&self.vram),
             scrolling: false,
             uv_tile: false,

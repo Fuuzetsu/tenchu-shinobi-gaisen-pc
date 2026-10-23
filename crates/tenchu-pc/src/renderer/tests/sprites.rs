@@ -3,8 +3,8 @@ use crate::visuals::{catalog, pack::Pack, pixels::Image};
 use std::{collections::BTreeMap, sync::Arc};
 
 #[test]
-#[ignore = "requires a graphics adapter; world sprite overrides preserve holes/blending and never replace a shared HUD image"]
-fn world_sprite_replacements_keep_hud_and_blend_classes() {
+#[ignore = "requires a graphics adapter; world/HUD overrides preserve holes, blending and original fallback"]
+fn world_and_hud_sprite_replacements_preserve_blend_classes() {
     let mut vram = Vram::default();
     let source = tenchu_assets::texture::Image {
         page: 256,
@@ -120,11 +120,17 @@ fn world_sprite_replacements_keep_hud_and_blend_classes() {
             blended[1] > blended[0] && blended[1] < 255 && blended[0] > 0,
             "semi-transparent sprite keeps its blend: {blended:?}"
         );
-        for y in 0..64 {
+        for offset in [0, 32] {
+            assert_eq!(at(&green, 4 + offset), at(&original, 4 + offset), "cutout");
             assert_eq!(
-                &green[y * 256 + 128..(y + 1) * 256],
-                &original[y * 256 + 128..(y + 1) * 256],
-                "shared HUD remains original"
+                at(&green, 14 + offset),
+                [0, 255, 0, 255],
+                "authored HUD/world color"
+            );
+            assert_eq!(
+                at(&green, 27 + offset),
+                blended,
+                "same blend classes in HUD and world"
             );
         }
         renderer.set_asset_pack(&replacement([0, 0, 255]));
@@ -136,5 +142,16 @@ fn world_sprite_replacements_keep_hud_and_blend_classes() {
         graphics.asset_pack = false;
         renderer.configure(&graphics);
         assert_eq!(draw(&mut renderer), original, "exact original restoration");
+        graphics.upscale = 2;
+        renderer.configure(&graphics);
+        let upscaled = draw(&mut renderer);
+        for y in 0..64 {
+            assert_eq!(
+                &upscaled[y * 256 + 128..(y + 1) * 256],
+                &original[y * 256 + 128..(y + 1) * 256],
+                "generic upscaling leaves the original HUD alone"
+            );
+        }
+        graphics.upscale = 1;
     }
 }

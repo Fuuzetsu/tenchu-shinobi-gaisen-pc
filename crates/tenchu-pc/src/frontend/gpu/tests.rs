@@ -269,6 +269,9 @@ fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
         Language::Italian,
     ] {
         frontend.language(&assets, language).unwrap();
+        if std::env::var_os("TENCHU_ASSET_PACK").is_some() {
+            frontend.reload_artwork().unwrap();
+        }
         for page in [
             Page::Title,
             Page::Character,

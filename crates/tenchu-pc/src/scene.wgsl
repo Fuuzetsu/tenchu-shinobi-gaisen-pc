@@ -88,7 +88,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         let pixel = texel(nearest, v.page, v.palette);
-        let replaced = (v.flags & (UI | DEBUG)) == 0u && material_replaced(v.material);
+        let replaced = (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
         var base = rgb(pixel);
         if replaced {
             let decoded = material_texel(v.material, coordinate);

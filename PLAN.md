@@ -12,6 +12,19 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Campaign-wide HD artwork and fonts (active)
 
+Explicit asset-pack replacements now reach the in-game HUD as well as world
+sprites. Original HUD images still bypass generic texture upscaling, lighting
+and grading. GPU checks cover shared world/HUD identities, cutouts, opaque and
+blended pixels, reload, pack-off restoration and the upscale-only fallback;
+Vulkan and Mesa software OpenGL pass, as do native/WASM Clippy, formatting and
+the release build. The headless NVIDIA OpenGL device failed during setup, as in
+the earlier frontend checks. An actual Mission 1 capture confirms the new Ki,
+life-bar and inventory artwork. The 18 shared HUD/effect candidates and 155
+interface candidates remain under review in `private/campaign-hd-source`;
+the accepted campaign pack has not yet been replaced with those candidates.
+Frontend capture checks now fail on an explicitly configured invalid pack path
+instead of silently producing an original-only review.
+
 Outline lettering now also covers all ten mission titles and all five ranks in
 English, Japanese, French and Italian. Records retain the source layout and
 rank colors, with the confirmation footer moved below the training row. The
