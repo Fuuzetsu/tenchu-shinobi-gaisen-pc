@@ -101,6 +101,26 @@ This also supplies shared characters to Mission 7. Native map/model evidence,
 exact source prompts and acceptance records remain in the private campaign
 directory; browser delivery and the remaining missions are still pending.
 
+Mission 3 adds 105 reviewed identities: 36 scenery, 63 actor, three prop and
+three equipment images. Rock faces, prison timber, tree bark, foliage and ground
+were authored as related atlases. The first leaf-litter pass exposed repeated
+dark islands; a second pass reduces that contrast. The narrow iron trim uses
+extended color beneath its original alpha mask, and the bear's mouth was
+corrected separately after the first repaint wrongly added fur inside it.
+The evidence includes 144 map camera pairs, 36 revised-ground pairs, ten models
+from six angles, and twelve original/replacement campaign playback endpoints.
+Both characters complete Mission 3 with matching traces; combat, item effects,
+the bear, Goo and prison scenes were inspected. Original mesh faceting, UV scale
+changes, vertex colors and some coarse original cutout masks remain visible.
+
+The accepted campaign pack is candidate16: 635 world/UI images plus one menu
+background, 25.66M decoded world pixels globally and 14.70M at most in one active
+mission/outfit. Missions 1–3 now cover all audited world images, leaving the same
+18 shared HUD/interface identities for the UI pass. Mission 4's remaining audit
+contains 73 scenery, 39 prop, 50 actor and two equipment images, plus those 18
+shared interface images. Missions 4–10 and the remaining menu art/browser pack
+delivery are still active work.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
