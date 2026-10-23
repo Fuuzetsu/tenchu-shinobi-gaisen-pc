@@ -82,6 +82,7 @@ pub enum Item {
     BlobShadows,
     ShadowPreview,
     AssetPack,
+    SharpText,
     ReloadAssets,
     Upscale,
     SmoothModels,
@@ -336,6 +337,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ]
         }
         7 => vec![
+            (
+                Item::SharpText,
+                "High-definition text",
+                on(s.sharp_text),
+                "Sharp HUD numbers, in-game subtitles and quick-menu text.",
+            ),
             (
                 Item::AssetPack,
                 "Replacement artwork",

@@ -17,6 +17,7 @@ pub(super) struct Overlay {
 
 pub(super) struct Extras<'a> {
     pub labels: &'a [crate::debug::Label],
+    pub text: &'a [crate::fonts::Text],
     pub performance: &'a mut super::performance::Performance,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
@@ -35,6 +36,7 @@ pub(super) struct Updates {
 impl Overlay {
     pub fn new(window: &Window, renderer: &Renderer, format: wgpu::TextureFormat) -> Self {
         let context = egui::Context::default();
+        crate::fonts::install(&context);
         context.set_visuals(egui::Visuals::dark());
         context.style_mut(|s| {
             s.visuals.override_text_color = Some(egui::Color32::from_rgb(222, 229, 238));
@@ -122,6 +124,7 @@ impl Overlay {
                 frontend_action = frontend.show(ctx, campaign, !menu.open);
             }
             if !self.opaque {
+                crate::fonts::paint(ctx, ctx.screen_rect(), extras.text);
                 paint_labels(ctx, extras.labels);
             }
             let mut show_performance = state.settings.show_performance;
@@ -181,43 +184,7 @@ impl Overlay {
     }
 
     pub fn draw(&mut self, renderer: &Renderer, target: &wgpu::TextureView) {
-        if self.jobs.is_empty() {
-            return;
-        }
-        let mut encoder = renderer
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Settings overlay"),
-            });
-        let callbacks = self.renderer.update_buffers(
-            &renderer.device,
-            &renderer.queue,
-            &mut encoder,
-            &self.jobs,
-            &self.screen,
-        );
-        {
-            let mut pass = encoder
-                .begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Settings overlay"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: target,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                })
-                .forget_lifetime();
-            self.renderer.render(&mut pass, &self.jobs, &self.screen);
-        }
-        renderer
-            .queue
-            .submit(callbacks.into_iter().chain([encoder.finish()]));
+        renderer.draw_overlay(target, &mut self.renderer, &self.jobs, &self.screen);
     }
 }
 
@@ -250,6 +217,7 @@ impl super::Application {
             },
             Extras {
                 labels: &view.labels,
+                text: &view.text,
                 performance: &mut self.performance,
                 demo: self.demo.as_mut(),
                 video_time,

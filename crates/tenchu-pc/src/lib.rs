@@ -5,6 +5,7 @@ mod capture;
 mod controls;
 mod debug;
 mod demo;
+mod fonts;
 mod frontend;
 mod lighting;
 mod recording;

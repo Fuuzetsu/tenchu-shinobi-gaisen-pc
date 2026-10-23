@@ -399,6 +399,6 @@ mod tests {
     }
 
     fn render_effects(game: &Game, frame: Option<&Frame>) -> crate::render_effects::Geometry {
-        crate::render_effects::build_presented(game, true, None, true, None, frame)
+        crate::render_effects::build_presented(game, true, None, true, None, frame, false)
     }
 }

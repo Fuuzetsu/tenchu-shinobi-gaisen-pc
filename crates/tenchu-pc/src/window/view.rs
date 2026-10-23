@@ -30,6 +30,7 @@ pub(super) struct View {
     pub(super) lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
     pub(super) labels: Vec<crate::debug::Label>,
+    pub(super) text: Vec<crate::fonts::Text>,
     pub(super) overlay: super::overlay::Overlay,
     pub(super) renderer: Renderer,
     pub(super) surface: wgpu::Surface<'static>,
@@ -224,6 +225,7 @@ impl View {
             lights: Vec::new(),
             effects,
             labels: Vec::new(),
+            text: Vec::new(),
             size: [size.width, size.height],
             vram_revision: game.mission.vram.revision,
             pack,
@@ -464,6 +466,7 @@ impl View {
                 frame,
             ))
         });
+        self.text.clear();
         let mut geometry =
             if campaign.playing() && (menu.open || !paused || debug.active()) && error.is_none() {
                 if debug.collision_only {
@@ -472,6 +475,9 @@ impl View {
                         batches: Vec::new(),
                     }
                 } else {
+                    if settings.sharp_text && !debug.photo_mode {
+                        self.text = crate::fonts::game_text(game, settings.show_hud);
+                    }
                     render_effects::build_presented(
                         game,
                         settings.show_hud && !debug.photo_mode,
@@ -479,13 +485,20 @@ impl View {
                         settings.graphics.blob_shadows,
                         Some(&self.models),
                         frame,
+                        settings.sharp_text,
                     )
                 }
             } else {
-                ui::build(campaign, paused, error)
+                ui::build(
+                    campaign,
+                    paused,
+                    error,
+                    settings.sharp_text.then_some(&mut self.text),
+                )
             };
         if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();
+            self.text.clear();
         }
         self.labels.clear();
         if campaign.playing() && error.is_none() && !debug.photo_mode {

@@ -56,6 +56,9 @@
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
+            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font"
+            cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} \
+              "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font/"
           '';
           postFixup = ''
             wrapProgram "$out/bin/tenchu-pc" \
@@ -87,6 +90,8 @@
             cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$out/"
             mkdir -p "$out/licenses/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$out/licenses/japanese-font/"
+            mkdir -p "$out/licenses/hd-font"
+            cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} "$out/licenses/hd-font/"
           '';
         };
     in
@@ -123,7 +128,10 @@
             ffmpeg
             wasm-bindgen-cli
             nodejs
-            (python3.withPackages (p: [ p.pillow ]))
+            (python3.withPackages (p: [
+              p.pillow
+              p.fonttools
+            ]))
             playwright-driver
             geckodriver
           ];

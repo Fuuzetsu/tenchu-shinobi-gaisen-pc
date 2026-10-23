@@ -430,6 +430,7 @@ mod tests {
                             true,
                             Some(&models),
                             frame.as_ref(),
+                            false,
                         );
                     }
                 }

@@ -100,12 +100,14 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
     } else {
         None
     };
-    let effects = renderer.upload_effects(render_effects::build_options(
+    let effects = renderer.upload_effects(render_effects::build_presented(
         game,
         settings.show_hud,
         None,
         settings.graphics.blob_shadows,
         Some(&models),
+        None,
+        settings.sharp_text,
     ));
     renderer.draw_lit(
         &texture.create_view(&Default::default()),
@@ -115,6 +117,13 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
         &lights,
         &casters.iter().collect::<Vec<_>>(),
     )?;
+    if settings.sharp_text {
+        crate::fonts::capture(
+            &renderer,
+            &texture,
+            &crate::fonts::game_text(game, settings.show_hud),
+        );
+    }
     read_texture(&renderer, &texture, destination)
 }
 

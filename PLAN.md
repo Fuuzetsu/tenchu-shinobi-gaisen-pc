@@ -36,7 +36,17 @@ export contains 298 source/index references deduplicated to 248 image identities
 the private catalogue is `private/campaign-hd-interface`. Title, options, English
 mission selection and font reference sheets have been inspected. Native Clippy,
 formatting, release build and the complete disc export pass. Interface replacement
-rendering and the sharper font path remain to be implemented.
+rendering remains to be implemented.
+
+Optional outline text now covers HUD numbers, in-game subtitles and the quick
+launcher/equipment/pause panels, including offline captures. The embedded,
+OFL-licensed font has 7,193 Unicode mappings for Shift-JIS and supported Latin
+languages, with a pinned, reproducible subset recipe and Nix license packaging.
+The setting defaults off. Real captions in all four languages retain identical
+game state and world geometry; 720p/4K captions and launcher layouts were checked
+and HUD captures inspected. Native/WASM Clippy, font tests and release build
+pass. Original frontend lettering baked into artwork and movie subtitles remain
+original; they are not covered by this first font implementation.
 
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,

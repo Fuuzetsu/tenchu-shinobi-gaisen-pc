@@ -62,6 +62,14 @@ preset row restores Original. Presets preserve the replacement-artwork switch
 and never change gameplay or simulation settings. Source textures still limit
 close-up detail; the editable pack workflow below supplies genuinely new art.
 
+**F1 → Visual assets → High-definition text** draws HUD numbers, in-game
+subtitles and the quick launcher/equipment/pause panels with a portable outline
+font at the window's resolution. English, Japanese, French and Italian are
+supported. It defaults to off and does not change text timing or gameplay.
+Baked lettering in the original frontend artwork and movie subtitles still
+use their original images. The [font and license](crates/tenchu-pc/data/hd-font/README.md)
+are bundled for both desktop and browser builds.
+
 **Graphics → Close-up textures** separates enlargement from distance filtering:
 Smooth is bilinear, Crisp preserves pixel interiors with narrow antialiased
 transitions, Cubic interpolates curves with bounded Catmull–Rom filtering, and

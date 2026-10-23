@@ -227,6 +227,7 @@ impl Application {
             Item::AssetPack => {
                 self.settings.graphics.asset_pack = !self.settings.graphics.asset_pack
             }
+            Item::SharpText => self.settings.sharp_text = !self.settings.sharp_text,
             Item::Upscale => {
                 self.settings.graphics.upscale =
                     cycle(self.settings.graphics.upscale, &[1, 2, 4], direction)

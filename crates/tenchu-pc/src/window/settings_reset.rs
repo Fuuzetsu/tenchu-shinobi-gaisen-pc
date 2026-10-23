@@ -50,6 +50,7 @@ impl Application {
             Item::SmoothModels => self.settings.graphics.smooth_models = s.graphics.smooth_models,
             Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
             Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
+            Item::SharpText => self.settings.sharp_text = s.sharp_text,
             Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
             Item::SurfaceDetail => {
                 self.settings.graphics.surface_detail = s.graphics.surface_detail

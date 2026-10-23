@@ -5,6 +5,7 @@ use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
 mod materials;
+mod overlay;
 mod pipelines;
 mod post;
 mod shadows;

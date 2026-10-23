@@ -292,7 +292,7 @@ pub fn build_options(
     blob_shadows: bool,
     models: Option<&crate::visuals::models::Models>,
 ) -> Geometry {
-    build_presented(game, show_hud, camera, blob_shadows, models, None)
+    build_presented(game, show_hud, camera, blob_shadows, models, None, false)
 }
 
 pub fn build_presented(
@@ -302,6 +302,7 @@ pub fn build_presented(
     blob_shadows: bool,
     models: Option<&crate::visuals::models::Models>,
     frame: Option<&crate::visuals::interpolation::Frame>,
+    sharp_text: bool,
 ) -> Geometry {
     let inspection = camera.is_some();
     let view = camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view));
@@ -531,8 +532,14 @@ pub fn build_presented(
         .items
         .sprites
         .iter()
-        .chain(game.hud.sprites.iter().filter(|_| show_hud))
-        .chain(&game.cinematic.sprites)
+        .chain(game.hud.sprites.iter().filter(|sprite| {
+            show_hud && !(sharp_text && crate::fonts::digit(game, sprite).is_some())
+        }))
+        .chain(game.cinematic.sprites.iter().skip(if sharp_text {
+            crate::fonts::caption_sprites(game)
+        } else {
+            0
+        }))
     {
         let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
         let points = std::array::from_fn(|i| {

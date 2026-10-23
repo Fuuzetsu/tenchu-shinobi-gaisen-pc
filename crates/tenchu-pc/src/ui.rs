@@ -44,7 +44,12 @@ fn count(value: u8) -> String {
     }
 }
 
-pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry {
+pub fn build(
+    campaign: &Campaign,
+    paused: bool,
+    error: Option<&str>,
+    text: Option<&mut Vec<crate::fonts::Text>>,
+) -> Geometry {
     if campaign.playing() && !paused && error.is_none() {
         return render_effects::build(&campaign.game);
     }
@@ -245,5 +250,21 @@ pub fn build(campaign: &Campaign, paused: bool, error: Option<&str>) -> Geometry
             Screen::Playing => {}
         }
     }
-    render_effects::panel(&campaign.game.mission.font, &lines)
+    if let Some(text) = text {
+        text.extend(
+            lines
+                .into_iter()
+                .map(|(x, y, text, color)| crate::fonts::Text {
+                    position: egui::pos2(f32::from(x), f32::from(y) - 3.0),
+                    text,
+                    color: crate::fonts::color(color),
+                    size: 12.0,
+                    width: 300.0 - f32::from(x + 140),
+                    centered: false,
+                }),
+        );
+        render_effects::panel(&campaign.game.mission.font, &[])
+    } else {
+        render_effects::panel(&campaign.game.mission.font, &lines)
+    }
 }
