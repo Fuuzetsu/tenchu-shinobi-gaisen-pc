@@ -199,6 +199,33 @@ their audited world artwork, leaving eighteen shared HUD images. Mission 7 has
 124 remaining world identities; Missions 7–10, menu artwork and browser pack
 delivery remain active work.
 
+Mission 7 adds 111 reviewed identities: 42 scenery, eight prop, 57 actor and
+four equipment images. Ninety-five are new repaints; twelve Balma body/wrap
+pieces and four equipment pieces adapt previously authored material grain while
+retaining original broad shading, tattoos and masks. The image service rejected
+combined limb/weapon atlases; those attempts and the reuse recipe are recorded.
+The ship's deck, carved hull, rigging, rails, sails and harbor curtains use
+related families. The blue curtain's first assembly exposed swapped lower UV
+pieces; the corrected joined repaint now connects on the actual map. Skeleton
+art retains its mixed opaque/semitransparent classes and reviewed cutouts.
+
+Evidence comprises 168 map pairs, sixteen corrected-curtain pairs, twelve models
+from six angles and twelve gameplay endpoints. Both complete Mission 7 routes
+have identical original/replacement stdout traces and finish with 100 HP.
+Nine all-transparent equipment identities remain original; the visible saber
+uses vertex colors. Four off-map `MOKOKU3` prop identities also remain original:
+their crossed planes show unrelated atlas fragments even without replacements.
+Their context is captured near x=74000, z=48000; this pass does not repair those
+source UVs. These exceptions are explicit in the private acceptance ledger.
+
+Candidate29 is installed: 1,260 world/UI images plus one menu background,
+51.90M world pixels globally and 16.19M at most in an active mission/outfit.
+All 1,150 previously accepted PNGs remain byte-identical. Mission 7 covers 379
+of 410 conservative identities; its remaining 31 are the thirteen source
+fallbacks above and eighteen shared HUD images. Mission 8 begins with 46 world
+identities. Missions 8–10, menu artwork/fonts and browser pack delivery remain
+active work; original geometry, UV scale and vertex-lighting joins still apply.
+
 Extend the optional, reviewed Mission 1 pack through Missions 1–10 and the
 menus/interface. Keep original artwork as the fallback and preserve gameplay,
 UV meaning, transparency, animation and the current default experience.
