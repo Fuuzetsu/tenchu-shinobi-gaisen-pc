@@ -240,6 +240,13 @@ cut into UV pieces, retaining the wooden opening frame. Ayame's shared normal/
 alternate face patch now depicts one closed mouth without invented nostrils.
 The corrected source artwork, prompts and weapon generator are recorded in
 `private/m1-hd-source/corrections-provenance.json`.
+The subsequent map-boundary review revises 20 ground/path/eaves textures and
+enables full-period UV mapping for two repeating roofs. Compare original,
+previous and revised artwork in 100 matched views at
+`private/m1-boundaries/index.html`; `provenance.json` alongside it records the
+accepted atlases, exact prompts and crops. Original geometry and baked shading
+still account for some visible joins. Restart the pack launcher to pick up the
+renderer change; game logic and collision are unchanged.
 
 The four-minute silent comparison is
 `private/m1-before-after-video/tenchu-mission1-before-after-4k60.mp4`.
@@ -247,6 +254,8 @@ It contains 12 matched before/after pairs at 3840×2160, 60 fps, covering scener
 both players and item use. The review hub links the video and its YouTube
 description/chapters. The catalog, input excerpts and frame-timing validation
 are stored beside it; generated footage remains outside Git.
+This video predates the boundary refinement; its exact capture pack is archived
+at `private/m1-boundaries/previous-pack`.
 
 **Texture reconstruction** optionally applies
 [Scale2x/Scale4x](https://www.scale2x.it/algorithm) to original world textures.

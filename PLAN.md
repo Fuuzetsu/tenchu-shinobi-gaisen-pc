@@ -16,16 +16,25 @@ Boundary follow-up: the map review covers all 100 scenery texture identities and
 an audit of 6,780 shared coplanar UV/material edges within exported map parts.
 The audit prioritizes inspection rather than declaring every material change a
 defect. Actual stage captures identified inconsistent path-corner stones,
-garden ground transitions and an eaves-corner stripe phase mismatch. Revised
-artwork is being checked in an isolated candidate pack. Optional `uv_tile`
-extends full-period mapping to static replacement tiles without changing native
-artwork. Its GPU regression fails before the correction (86-level jump across
-the join) and passes after it, including filtering, reload and exact disable
-restoration. Final installed-art and broader check evidence follows below.
+garden ground transitions and an eaves-corner stripe phase mismatch. Twenty
+revised textures are installed: nine garden ground, nine path/paving and two
+eaves pieces, authored as related atlases with original alpha and dimensions.
+Optional `uv_tile` extends full-period mapping to static replacement tiles;
+two repeating roofs opt in while terminal roof pieces retain their edge artwork.
+Its GPU regression fails before the correction (86-level jump across the join)
+and passes after it, including filtering, reload and exact disable restoration.
+The 22 changed materials were inspected in 88 matched map views, plus 12
+three-way original/previous/revised gameplay captures. Both characters retain
+identical complete state traces through Mission 1 completion. Original mesh
+distortion and baked vertex lighting still expose some joins; repainting does
+not remove those. `private/m1-boundaries/index.html` provides the comparisons;
+its provenance ledger records accepted/rejected artwork, exact prompts and
+reproducible crops. The earlier video retains its exact capture pack under
+`private/m1-boundaries/previous-pack` and predates this refinement.
 All 18 Vulkan renderer checks pass (the disc-dependent shadow check was rerun
 with its required `TENCHU_DISC` after the first invocation omitted it). Both
 static/animated tiling checks also pass on OpenGL. Pack-loader/tool checks,
-formatting and native/WASM Clippy pass; the release binary was rebuilt.
+formatting and native/WASM Clippy pass; release and browser builds pass.
 
 Follow-up: the white cliff patch visible in the item-use comparisons was three
 untextured backing quads exactly coincident with an earlier textured quad in
