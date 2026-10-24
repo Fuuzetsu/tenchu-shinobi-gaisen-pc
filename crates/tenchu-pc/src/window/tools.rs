@@ -133,6 +133,29 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::Water => {
+                self.settings.graphics.water.enabled = !self.settings.graphics.water.enabled
+            }
+            Item::WaterDetail => {
+                self.settings.graphics.water.detail =
+                    (i32::from(self.settings.graphics.water.detail) + direction).rem_euclid(3)
+                        as u16
+            }
+            Item::WaterRipples
+            | Item::WaterReflections
+            | Item::WaterFlow
+            | Item::WaterFoam
+            | Item::WaterSpray => {
+                let water = &mut self.settings.graphics.water;
+                let (value, step, max) = match item {
+                    Item::WaterRipples => (&mut water.ripples, 5, 100),
+                    Item::WaterReflections => (&mut water.reflections, 5, 100),
+                    Item::WaterFlow => (&mut water.flow, 10, 200),
+                    Item::WaterFoam => (&mut water.foam, 5, 100),
+                    _ => (&mut water.spray, 5, 100),
+                };
+                *value = (i32::from(*value) + direction * step).clamp(0, max) as u16;
+            }
             Item::Weather => {
                 let modes = settings::WeatherMode::ALL;
                 let index = modes

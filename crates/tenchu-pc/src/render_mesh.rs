@@ -28,6 +28,8 @@ pub const STAIN: u32 = 4096;
 pub const SKY: u32 = 8192;
 pub const SOFT: u32 = 16384;
 pub const ORIGINAL_WEATHER: u32 = 32768;
+pub const WATER: u32 = 65536;
+pub const WATERFALL: u32 = 131072;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]

@@ -6,6 +6,8 @@ mod sky;
 pub use sky::Sky;
 mod weather;
 pub use weather::{Weather, WeatherMode};
+mod water;
+pub use water::Water;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -64,6 +66,7 @@ pub struct Graphics {
     pub blood: Blood,
     pub sky: Sky,
     pub weather: Weather,
+    pub water: Water,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -92,6 +95,7 @@ impl Default for Graphics {
             blood: Blood::default(),
             sky: Sky::default(),
             weather: Weather::default(),
+            water: Water::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -121,6 +125,7 @@ impl Graphics {
         self.interpolation
             || self.sky.enabled && self.sky.speed != 0
             || self.weather.mode.precipitates() && self.weather.amount != 0
+            || self.water.enabled && self.water.flow != 0
     }
 
     pub fn filtering(&self) -> u16 {
@@ -264,6 +269,7 @@ impl Store {
                 settings.graphics.blood.validate();
                 settings.graphics.sky.validate();
                 settings.graphics.weather.validate();
+                settings.graphics.water.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

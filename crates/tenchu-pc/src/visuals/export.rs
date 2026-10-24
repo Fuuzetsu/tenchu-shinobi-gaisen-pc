@@ -193,6 +193,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
     let pack = super::pack::Manifest {
         version: 1,
         surfaces: BTreeMap::new(),
+        water: super::water::rules(&Default::default(), false),
         textures: manifest
             .textures
             .iter()

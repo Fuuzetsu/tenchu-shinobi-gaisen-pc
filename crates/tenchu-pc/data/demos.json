@@ -480,5 +480,55 @@
       ],
       "fov": 55
     }
+  },
+  {
+    "id": "water",
+    "title": "Ripples in the garden",
+    "description": "The same pond alternates between original water and moving surface normals with sky reflections. The water remains in its original collision plane.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "water",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -40000,
+        -1800,
+        -16500
+      ],
+      "target": [
+        -31000,
+        0,
+        -16500
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "waterfalls",
+    "title": "A softer waterfall",
+    "description": "Curved render geometry rounds the waterfall lip while preserving its attachment edges. Fine mist follows the falling water; collision remains original.",
+    "seconds": 16,
+    "mission": 4,
+    "character": 0,
+    "preset": 3,
+    "feature": "waterfalls",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -21961.41,
+        -12031.06,
+        33448.08
+      ],
+      "target": [
+        -18116.666,
+        -11333.333,
+        34916.668
+      ],
+      "fov": 55
+    }
   }
 ]

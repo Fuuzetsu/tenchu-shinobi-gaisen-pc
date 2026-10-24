@@ -3,6 +3,13 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Water,
+    WaterRipples,
+    WaterReflections,
+    WaterFlow,
+    WaterFoam,
+    WaterSpray,
+    WaterDetail,
     Weather,
     WeatherAmount,
     WeatherWind,
@@ -185,7 +192,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 14] = [
+pub const PAGES: [&str; 15] = [
     "General",
     "Graphics",
     "Overlays",
@@ -200,10 +207,59 @@ pub const PAGES: [&str; 14] = [
     "Persistent effects",
     "Time of day",
     "Weather",
+    "Water",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        14 => {
+            let water = &s.graphics.water;
+            vec![
+                (
+                    Item::Water,
+                    "Modern water",
+                    on(water.enabled),
+                    "Optional water shading, waterfall curves and spray. Material tags keep terrain, lava and water separate.",
+                ),
+                (
+                    Item::WaterRipples,
+                    "Ripple strength",
+                    format!("{}%", water.ripples),
+                    "Continuous world-space ripples and falling-water filaments; fades distant detail to avoid shimmer.",
+                ),
+                (
+                    Item::WaterReflections,
+                    "Sky reflections",
+                    format!("{}%", water.reflections),
+                    "View-dependent sky sheen and sun/moon highlights; does not mirror scene objects.",
+                ),
+                (
+                    Item::WaterFlow,
+                    "Visual flow",
+                    format!("{}%", water.flow),
+                    "Speed of extra ripples, foam and spray; original texture animation and gameplay are unchanged.",
+                ),
+                (
+                    Item::WaterFoam,
+                    "Foam",
+                    format!("{}%", water.foam),
+                    "Subtle crest foam and moving aerated waterfall streaks.",
+                ),
+                (
+                    Item::WaterSpray,
+                    "Waterfall spray",
+                    format!("{}%", water.spray),
+                    "Soft droplets and mist at open downstream edges of waterfall geometry.",
+                ),
+                (
+                    Item::WaterDetail,
+                    "Waterfall curves",
+                    ["Original", "Curved", "Fine curves"][usize::from(water.detail)].into(),
+                    "Subdivide and curve connected waterfall faces while pinning open boundaries. Original collision stays unchanged.",
+                ),
+            ]
+        }
+
         13 => {
             let weather = &s.graphics.weather;
             vec![

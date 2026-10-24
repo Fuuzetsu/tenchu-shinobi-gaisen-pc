@@ -103,6 +103,28 @@ logic ticks even when model interpolation is off; static paused views stay idle.
 Native/WASM Clippy, formatting and all 42 fixture-free PC tests pass. Browser
 evidence and private review captures are under `private/effects-review`.
 
+Water implementation: an opt-in F1 page controls coherent world-space ripple
+normals, sky Fresnel sheen, shadowed sun/moon glints, foam, flow and bounded mist.
+Reviewed texture fingerprints distinguish water/falls from lava and mixed bank
+tiles; packs can override classifications explicitly. Waterfall detail adds
+four/eight-division cubic patches with pinned open edges, unchanged UVs, a 250-unit
+displacement limit and a shared 262,144-vertex budget. Mist follows exposed steep
+edges and downstream ends, with at most 640 particles. It is drawn after water
+and before HUD overlays. Tagged water does not cast a solid curtain shadow or
+receive solid-surface snow/blood. Original settings restore the original geometry.
+
+Native Mission 1 pond and Mission 4 waterfall comparisons preserve the complete
+game snapshot. Geometry checks cover pinned seams, UVs, finite normals, bounds
+and budget fallback; GPU checks cover animated water-only changes and exact
+restoration, plus original PS1 blends/backing faces. The `water,waterfalls` demos
+provide matching comparisons. Reflection is of the sky and directional light,
+not nearby scene objects; these changes do not simulate fluids or replace original
+collision/swimming. Existing authored UV joins can remain visible. All 43
+fixture-free PC tests and native/WASM Clippy pass. Desktop Chromium WebGPU and
+WebGL2 run water together with rain/snow/daylight, reset each F1 page and preserve
+paused state without graphics errors. Model and secondary-motion work remains
+in progress.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

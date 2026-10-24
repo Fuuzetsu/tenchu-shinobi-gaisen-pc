@@ -15,7 +15,27 @@ fn edge(a: Point, b: Point) -> [Point; 2] {
 }
 
 pub fn prepare(vertices: &mut Vec<Vertex>, lighting: bool, detail: u16) {
-    if !lighting && detail == 0 {
+    curve(
+        vertices,
+        lighting,
+        match detail {
+            0 => 1,
+            1 => 2,
+            _ => 4,
+        },
+        if detail == 1 { 0.35 } else { 0.7 },
+        f32::INFINITY,
+    );
+}
+
+pub fn curve(
+    vertices: &mut Vec<Vertex>,
+    lighting: bool,
+    divisions: usize,
+    strength: f32,
+    maximum: f32,
+) {
+    if !lighting && divisions <= 1 {
         return;
     }
     let faces: Vec<_> = vertices
@@ -70,11 +90,9 @@ pub fn prepare(vertices: &mut Vec<Vertex>, lighting: bool, detail: u16) {
                 .to_array();
         }
     }
-    if detail == 0 {
+    if divisions <= 1 {
         return;
     }
-    let divisions = if detail == 1 { 2 } else { 4 };
-    let strength = if detail == 1 { 0.35 } else { 0.7 };
     let mut curved = Vec::with_capacity(vertices.len() * divisions * divisions);
     for triangle in vertices.chunks_exact(3) {
         let points: [Vec3; 3] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
@@ -121,7 +139,13 @@ pub fn prepare(vertices: &mut Vec<Vertex>, lighting: bool, detail: u16) {
                 }
             }
             let mut vertex = triangle[0];
-            vertex.position = flat.lerp(position, strength).to_array();
+            let curved = flat.lerp(position, strength);
+            vertex.position = if maximum.is_finite() {
+                flat + (curved - flat).clamp_length_max(maximum)
+            } else {
+                curved
+            }
+            .to_array();
             vertex.normal = (0..3)
                 .map(|i| Vec3::from(triangle[i].normal) * weights[i])
                 .sum::<Vec3>()

@@ -679,6 +679,24 @@ limits. Pauses freeze weather; changing missions/models or selecting Original
 clears it. The original game still updates its weather RNG even when hidden.
 `demo --clips rain,snow` reviews both effects on Mission 1's roofs.
 
+**F1 → Water** adds optional moving ripple normals, angle-dependent sky sheen,
+sun/moon highlights, faint foam and waterfall mist. It works with original or
+replacement artwork. Flow, reflections, ripples, foam and spray have independent
+controls; pauses freeze animation. These are sky reflections, not mirrors of
+nearby objects. The waterfall detail choices retain original geometry or add
+curved render patches with pinned attachment edges and at most 250 world units
+of displacement. Collision, swimming and original texture animation are unchanged.
+Fine curves cost more triangles; generated waterfall geometry and spray are capped.
+`demo --clips water,waterfalls` compares the Mission 1 pond and Mission 4 falls.
+
+Water classification uses reviewed original texture fingerprints in
+`crates/tenchu-pc/data/water.json`, not a guess based on animation or color. Mixed
+snow/rock/bank tiles and lava are deliberately excluded. An asset pack can override
+this with a `"water"` map in `pack.json`, mapping texture IDs to `"surface"`,
+`"waterfall"` or `"off"`. The metadata follows model material dependencies when
+exported for the browser. Curves preserve UVs and existing texture boundaries;
+this is not a fluid simulation or a replacement for a fully authored river mesh.
+
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`

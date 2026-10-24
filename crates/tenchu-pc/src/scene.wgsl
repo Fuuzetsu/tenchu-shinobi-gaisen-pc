@@ -13,8 +13,10 @@ const ALPHA: u32 = 2048u;
 const STAIN: u32 = 4096u;
 const SKY: u32 = 8192u;
 const SOFT: u32 = 16384u;
+const WATER: u32 = 65536u;
+const WATERFALL: u32 = 131072u;
 
-struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32> }
+struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -82,7 +84,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
     let detail = surface_detail(v, normal, world_dx, world_dy, du, dv);
-    normal = detail.normal;
+    normal = water_normal(v, detail.normal, world_dx, world_dy);
     let coordinate = detail.coordinate;
     if (v.flags & SKY) != 0u { return sky_color(v.normal); }
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
@@ -130,8 +132,12 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
-    if !screen { color = mix(color * detail.cavity * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
-    if WEATHER_ENABLED && (v.flags & (SCENERY | ALPHA | TRANSLUCENT)) == SCENERY {
+    if !screen {
+        let light = illumination(v.world, normal, surface_normal);
+        color = mix(color * detail.cavity * light, emission.rgb, emission.a);
+        color = water_color(v, color, normal, surface_normal, light, linear_lighting);
+    }
+    if WEATHER_ENABLED && (v.flags & (SCENERY | ALPHA | TRANSLUCENT | WATER)) == SCENERY {
         color = weather_surface(color, normal, v.world, linear_lighting);
     }
     if (v.flags & (FOG | SCREEN)) == FOG {

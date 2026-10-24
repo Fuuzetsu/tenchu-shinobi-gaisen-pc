@@ -1,12 +1,23 @@
 use super::*;
 use crate::visuals::{lights::Emitters, models::Models, pack::Pack};
 
-fn model_options(graphics: &settings::Graphics) -> (bool, bool, u16) {
-    (
-        graphics.asset_pack,
-        graphics.smooth_models,
-        graphics.model_detail,
-    )
+#[derive(Clone, Copy, PartialEq)]
+struct ModelOptions {
+    artwork: bool,
+    smooth: bool,
+    detail: u16,
+    water: bool,
+    water_detail: u16,
+}
+
+fn model_options(graphics: &settings::Graphics) -> ModelOptions {
+    ModelOptions {
+        artwork: graphics.asset_pack,
+        smooth: graphics.smooth_models,
+        detail: graphics.model_detail,
+        water: graphics.water.enabled,
+        water_detail: graphics.water.detail,
+    }
 }
 
 pub(super) struct Frame<'a> {
@@ -43,12 +54,13 @@ pub(super) struct View {
     bodies: Pack,
     pub(super) player_models: Vec<(String, String)>,
     player_selection: String,
-    model_options: (bool, bool, u16),
+    model_options: ModelOptions,
     emitters: Emitters,
     surfaces: Option<crate::visuals::surfaces::Surfaces>,
     pub(super) blood: crate::visuals::blood::Blood,
     sky: crate::visuals::sky::Clock,
     weather: crate::visuals::weather::Weather,
+    spray: crate::visuals::water::Spray,
     pub(super) interpolation: crate::visuals::interpolation::History,
     interpolation_enabled: bool,
     frame: Option<crate::visuals::interpolation::Frame>,
@@ -236,6 +248,15 @@ impl View {
             &game.math,
             Some(&models),
         ));
+        let spray = if models.has_water() {
+            crate::visuals::water::Spray::new(&render_mesh::shadow_stage(
+                &game.mission,
+                &game.math,
+                Some(&models),
+            ))
+        } else {
+            Default::default()
+        };
         let actor = renderer.upload(&render_mesh::characters(game, Some(&models)));
         let effects = renderer.upload_effects(render_effects::build_options(
             game,
@@ -278,6 +299,7 @@ impl View {
             blood: Default::default(),
             sky: Default::default(),
             weather: Default::default(),
+            spray,
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
@@ -382,6 +404,15 @@ impl View {
         self.surfaces = None;
         self.blood = Default::default();
         self.weather = Default::default();
+        self.spray = if models.has_water() {
+            crate::visuals::water::Spray::new(&render_mesh::shadow_stage(
+                &game.mission,
+                &game.math,
+                Some(&models),
+            ))
+        } else {
+            Default::default()
+        };
         self.stage = self.renderer.upload(&render_mesh::stage(
             &game.mission,
             &game.math,
@@ -484,6 +515,8 @@ impl View {
         };
         self.renderer.daylight = self.sky.sample(&settings.graphics.sky, alpha);
         self.renderer.weather = self.weather.sample(&settings.graphics.weather, alpha);
+        self.renderer.water_time =
+            ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;
         let frame = self.frame.as_ref();
         self.actor = self.renderer.upload(&render_mesh::characters_presented(
             game,
@@ -586,6 +619,18 @@ impl View {
             );
             weather.append(geometry);
             geometry = weather;
+        }
+        if campaign.playing()
+            && error.is_none()
+            && !debug.collision_only
+            && settings.graphics.water.enabled
+        {
+            let spray = self.spray.geometry(
+                self.renderer.water_time,
+                self.camera_matrix(game, debug),
+                &settings.graphics.water,
+            );
+            geometry.append(spray);
         }
         if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();

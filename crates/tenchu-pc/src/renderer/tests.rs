@@ -7,6 +7,7 @@ mod scrolling;
 mod sky;
 mod sprites;
 mod stains;
+mod water;
 mod weather;
 
 fn rectangle(

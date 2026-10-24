@@ -2,6 +2,7 @@ struct Face { matrix: mat4x4<f32>, options: vec4<f32> }
 const SCREEN: u32 = 2u;
 const DEBUG: u32 = 64u;
 const ALPHA: u32 = 2048u;
+const WATER: u32 = 65536u;
 @group(0) @binding(0) var<uniform> face: Face;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -37,7 +38,7 @@ struct Fragment {
 }
 
 @fragment fn fragment(v: Fragment) {
-    if (v.flags & (SCREEN | DEBUG | ALPHA)) != 0u { discard; }
+    if (v.flags & (SCREEN | DEBUG | ALPHA | WATER)) != 0u { discard; }
     if (v.flags & 1u) != 0u {
         var color = vec3(0.0);
         if material_replaced(v.material) {

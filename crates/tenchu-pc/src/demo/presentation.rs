@@ -101,6 +101,16 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     }
     match player.clip().feature {
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
+        Feature::Water | Feature::Waterfalls => {
+            g.water.enabled = section(p, 4) % 2 == 1;
+            g.water.detail = 1;
+            if player.clip().feature == Feature::Water {
+                g.sky.enabled = true;
+                g.sky.time = 570;
+                g.water.ripples = 85;
+                g.water.reflections = 85;
+            }
+        }
         Feature::Rain | Feature::Snow => {
             g.sky.enabled = true;
             g.sky.time = 720;
@@ -430,6 +440,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             text("Rain · roof runoff · gradual wetness · shelter-aware surfaces".into())
         }
         Feature::Snow => text("Snow · wind · gradual exposed-surface coverage".into()),
+        Feature::Water | Feature::Waterfalls => text(if g.water.enabled {
+            "Water upgrade · ripples, sky reflections, curved falls and spray".into()
+        } else {
+            "Original water geometry and shading".into()
+        }),
         Feature::Moon => meter("Moon strength (%)", l.directional.intensity, 100),
         Feature::DayCycle => {
             let minutes = (360.0 + player.time() * 72.0) as u32 % 1440;

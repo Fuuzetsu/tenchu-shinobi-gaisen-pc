@@ -211,6 +211,9 @@ pub struct Stamp {
 
 impl Stamp {
     pub fn project(&self, triangle: &[Vertex; 3], out: &mut Vec<Vertex>) {
+        if triangle[0].flags & crate::render_mesh::WATER != 0 {
+            return;
+        }
         let [a, b, c] = triangle.map(|v| Vec3::from(v.position));
         let face_normal = (b - a).cross(c - a).normalize_or_zero();
         if face_normal.dot(self.normal).abs() < 0.3 || self.radius <= 0.0 {

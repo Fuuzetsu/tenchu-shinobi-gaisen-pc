@@ -13,6 +13,8 @@ pub enum Feature {
     DayCycle,
     Rain,
     Snow,
+    Water,
+    Waterfalls,
     TextureSampling,
     Reconstruction,
     Antialiasing,

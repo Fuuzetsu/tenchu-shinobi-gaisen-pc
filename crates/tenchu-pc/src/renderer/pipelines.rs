@@ -8,6 +8,7 @@ pub(super) struct Options {
     relief: bool,
     hdr: bool,
     weather: bool,
+    water: bool,
 }
 
 impl From<&crate::settings::Graphics> for Options {
@@ -18,6 +19,7 @@ impl From<&crate::settings::Graphics> for Options {
             relief: graphics.surface_detail != 0,
             hdr: graphics.post.enabled,
             weather: graphics.weather.mode != crate::settings::WeatherMode::Original,
+            water: graphics.water.enabled,
         }
     }
 }
@@ -110,8 +112,8 @@ impl Options {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}",
-                    self.filtering, self.lighting, self.relief, self.hdr, self.weather,
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}\n{}",
+                    self.filtering, self.lighting, self.relief, self.hdr, self.weather, self.water,
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
                     materials::MAX_MIPS,
@@ -121,7 +123,8 @@ impl Options {
                     include_str!("palette.wgsl"),
                     include_str!("lighting.wgsl"),
                     materials::shader(device),
-                    include_str!("relief.wgsl")
+                    include_str!("relief.wgsl"),
+                    include_str!("water.wgsl")
                 )
                 .into(),
             ),

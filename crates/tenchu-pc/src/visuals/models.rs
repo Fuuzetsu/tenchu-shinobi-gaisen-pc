@@ -22,6 +22,14 @@ pub struct Models {
 }
 
 impl Models {
+    pub fn has_water(&self) -> bool {
+        self.world
+            .meshes
+            .values()
+            .flatten()
+            .any(|v| v.flags & render_mesh::WATER != 0)
+    }
+
     pub fn build(mission: &MissionAssets, pack: &Pack, graphics: &Graphics) -> Result<Self> {
         let world = Meshes::build(mission, pack, graphics, catalog::models(mission), false)?;
         Ok(Self {
@@ -84,6 +92,8 @@ impl Meshes {
     ) -> Result<Self> {
         let mut out = Self::default();
         let rules = super::lights::rules(pack, graphics.asset_pack);
+        let water = super::water::rules(pack, graphics.asset_pack);
+        let mut water_budget = 262144;
         let region_ids = catalog::regions(mission);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
@@ -98,11 +108,13 @@ impl Meshes {
                 .then(|| pack.models.get(&source.id))
                 .flatten();
             let round = source.id.starts_with("actors/") && replacement.is_none();
+            let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
             if !force
                 && emitter.is_none()
                 && replacement.is_none()
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
+                && !water_enabled
             {
                 continue;
             }
@@ -218,6 +230,15 @@ impl Meshes {
                 graphics.smooth_models,
                 if round { graphics.model_detail } else { 0 },
             );
+            if water_enabled {
+                super::water::prepare(
+                    &mut vertices,
+                    &out.materials,
+                    &water,
+                    &graphics.water,
+                    &mut water_budget,
+                );
+            }
             out.meshes
                 .insert(source.geometry.as_ptr() as usize, vertices);
         }

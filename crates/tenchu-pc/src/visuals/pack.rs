@@ -29,6 +29,8 @@ pub struct Manifest {
     #[serde(default)]
     pub surfaces: BTreeMap<String, super::relief::Rule>,
     #[serde(default)]
+    pub water: BTreeMap<String, super::water::Kind>,
+    #[serde(default)]
     pub models: BTreeMap<String, String>,
     #[serde(default)]
     pub materials: BTreeMap<String, Material>,
@@ -42,6 +44,7 @@ pub struct Manifest {
 pub struct Pack {
     pub textures: BTreeMap<String, Arc<Image>>,
     pub surfaces: BTreeMap<String, super::relief::Surface>,
+    pub water: BTreeMap<String, super::water::Kind>,
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub materials: BTreeMap<String, Material>,
@@ -134,6 +137,7 @@ impl Pack {
             }
         }
         pack.lights = manifest.lights;
+        pack.water = manifest.water;
         if let Some(selection) = &selection {
             if !selection.player_models {
                 manifest.player_models.clear();
@@ -187,6 +191,7 @@ impl Pack {
             pack.models.insert(id, model);
         }
         if let Some(selection) = selection {
+            pack.water.retain(|id, _| selection.textures.contains(id));
             manifest
                 .textures
                 .retain(|id, _| selection.textures.contains(id));
@@ -363,6 +368,7 @@ mod tests {
             "version": 1,
             "textures": {"roof": "roof.png", "blade": "blade.png", "snow": "missing.png"},
             "surfaces": {"snow": {"height": "missing-height.png", "strength": 1.0}},
+            "water": {"roof": "off", "blade": "surface", "snow": "waterfall"},
             "models": {"weapons/1": "blade.obj", "stages/snow/map/0": "missing.obj"},
             "materials": {
                 "steel": {"texture": "blade"},
@@ -405,6 +411,13 @@ mod tests {
         assert_eq!(pack.materials.len(), 1);
         assert_eq!(pack.models.len(), 1);
         assert!(pack.surfaces.is_empty());
+        assert_eq!(
+            pack.water,
+            BTreeMap::from([
+                ("roof".into(), super::super::water::Kind::Off),
+                ("blade".into(), super::super::water::Kind::Surface),
+            ])
+        );
 
         let failed = Pack::decode(
             serde_json::from_value(manifest).unwrap(),
@@ -439,6 +452,7 @@ mod tests {
             version: 1,
             textures: BTreeMap::from([(id.clone(), "test.png".into())]),
             surfaces: BTreeMap::new(),
+            water: BTreeMap::new(),
             models: BTreeMap::new(),
             materials: BTreeMap::new(),
             lights: None,

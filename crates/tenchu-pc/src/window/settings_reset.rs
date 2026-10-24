@@ -23,6 +23,15 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::Water => self.settings.graphics.water.enabled = s.graphics.water.enabled,
+            Item::WaterRipples => self.settings.graphics.water.ripples = s.graphics.water.ripples,
+            Item::WaterReflections => {
+                self.settings.graphics.water.reflections = s.graphics.water.reflections
+            }
+            Item::WaterFlow => self.settings.graphics.water.flow = s.graphics.water.flow,
+            Item::WaterFoam => self.settings.graphics.water.foam = s.graphics.water.foam,
+            Item::WaterSpray => self.settings.graphics.water.spray = s.graphics.water.spray,
+            Item::WaterDetail => self.settings.graphics.water.detail = s.graphics.water.detail,
             Item::Weather => self.settings.graphics.weather.mode = s.graphics.weather.mode,
             Item::WeatherAmount => {
                 self.settings.graphics.weather.amount = s.graphics.weather.amount

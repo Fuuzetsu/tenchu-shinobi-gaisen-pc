@@ -62,6 +62,7 @@ pub struct Renderer {
     graphics: crate::settings::Graphics,
     pub daylight: Option<crate::visuals::sky::Daylight>,
     pub weather: crate::visuals::weather::SurfaceWeather,
+    pub water_time: f32,
     shadows: shadows::Shadows,
     materials: materials::Materials,
 }
@@ -145,7 +146,7 @@ impl Renderer {
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::cast_slice(&[0.0f32; 40]),
+            contents: bytemuck::cast_slice(&[0.0f32; 44]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -212,6 +213,7 @@ impl Renderer {
             graphics,
             daylight: None,
             weather: Default::default(),
+            water_time: 0.0,
             shadows,
             materials,
         };
@@ -452,7 +454,14 @@ impl Renderer {
             inverse.project_point3(glam::Vec3::ZERO)
         };
         camera.extend(eye.to_array());
-        camera.push(0.0);
+        camera.push(self.water_time);
+        let water = &self.graphics.water;
+        camera.extend([
+            f32::from(water.ripples) / 100.0,
+            f32::from(water.reflections) / 100.0,
+            f32::from(water.flow) / 100.0,
+            f32::from(water.foam) / 100.0,
+        ]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -529,12 +538,10 @@ impl Renderer {
                 pass.draw(0..mesh.count, 0..1);
             }
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
-                draw_effects(
-                    &mut pass,
-                    &self.effects,
-                    effects,
-                    self.post.as_ref().map(|_| false),
-                );
+                draw_effects(&mut pass, &self.effects, effects, Some(false));
+                if self.post.is_none() {
+                    draw_effects(&mut pass, &self.effects, effects, Some(true));
+                }
             }
         }
         if let Some(timer) = &self.timings {

@@ -20,6 +20,7 @@ await context.addInitScript(() => {
   const settings = { pause_on_defocus: false, sharp_text: true, graphics: {
     blood: { enabled: true }, sky: { enabled: true, time: 720, speed: 10 },
     weather: { mode: "Rain", amount: 100 },
+    water: { enabled: true },
   } };
   localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
   window.effectsGpuErrors = [];
@@ -74,6 +75,9 @@ try {
   const snowy = await state();
   await key("r");
   assert.equal((await settings()).graphics.weather.mode, "Original");
+  await key("Tab"); await key("r");
+  assert.equal((await settings()).graphics.water.enabled, false);
+  await key("Shift+Tab");
   await key("Shift+Tab"); await key("r");
   assert.equal((await settings()).graphics.sky.enabled, false);
   await key("Shift+Tab"); await key("r");
@@ -85,7 +89,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.effectsGpuErrors), []);
   assert.deepEqual(errors, []);
   await writeFile(`${output}/result.json`, JSON.stringify({ backend, rainFrames, state: await state(), errors }, null, 2));
-  console.log(`${backend}: rain, snow, daylight, F1 resets and unchanged paused state passed`);
+  console.log(`${backend}: rain, snow, daylight, water, F1 resets and unchanged paused state passed`);
 } catch (error) {
   await writeFile(`${output}/failure.json`, JSON.stringify({ error: String(error), errors,
     gpuErrors: await page.evaluate(() => window.effectsGpuErrors).catch(() => []),
