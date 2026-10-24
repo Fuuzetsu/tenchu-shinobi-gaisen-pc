@@ -164,6 +164,30 @@ same settled page and animation state, then runs the original menu timing on the
 60 Hz presentation timeline. Gameplay and campaign progress stay frozen, and
 menu interaction is disabled. Captions use the pillarbox margin.
 
+## Campaign artwork recording
+
+The full-campaign recording is
+`private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`: **11:42,
+4K/60, silent**. It contains 95 matched original/HD comparisons, three seconds
+per side, plus short gameplay passages. Distinct views cover all ten missions,
+both players, bosses, weapons, item effects, HUD and four-language menus/fonts.
+Each pair shares its camera, inputs and Crisp classic settings. HUD/menu pairs
+also compare the optional outline text; gameplay runs at the original 30 Hz.
+
+The private directory holds the frozen pack, input recordings, per-chapter
+catalogs, `capture-inputs.json` hashes and `visual-review.json`. `edit.json`
+defines 13 grouped chapters. `render.sh` renders missing chapter MP4s through
+Nix; `assemble.py` joins them without re-encoding. `verify.py` checks every
+presentation timestamp, dimensions, color metadata, chapter bounds and input
+hash, then decodes the entire result. `validation.json` records the outcome.
+
+`index.html` provides playback and chapter seeking. Run
+`./dev.sh python3 private/campaign-showcase/serve.py` to serve it on
+`http://127.0.0.1:44113/`. The adjacent `youtube-description.txt` includes the
+same 13 chapter timestamps for pasting into an upload description. Original
+geometry, UV mappings and some lighting joins remain visible; movies retain
+their original artwork. These private assets and videos are not included in Git.
+
 ## F1 coverage
 
 | F1 page | Clips / scope |

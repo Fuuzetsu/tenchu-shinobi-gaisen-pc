@@ -303,7 +303,16 @@ accepted atlases, exact prompts and crops. Original geometry and baked shading
 still account for some visible joins. Restart the pack launcher to pick up the
 renderer change; game logic and collision are unchanged.
 
-The latest silent showcase is
+The campaign showcase is
+`private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`: **11:42,
+3840×2160, 60 fps, silent**, covering all ten missions, characters/bosses,
+weapons, items, HUD and menus/fonts in four languages. Its 95 matched
+comparisons last three seconds per side, with short gameplay sections between
+them. The directory includes a watch page, 13 embedded/YouTube chapters,
+reproducible capture inputs and frame/encoding verification. See
+[the recording notes](DEMOS.md#campaign-artwork-recording).
+
+The earlier Mission 1 showcase is
 `private/m1-showcase-v2/tenchu-mission1-showcase-v2-4k60.mp4`: 26 comparisons in
 2:36 at 3840×2160 and 60 fps. Each side lasts three seconds, compared with ten
 previously, while gameplay runs at normal speed. It includes the boundary
