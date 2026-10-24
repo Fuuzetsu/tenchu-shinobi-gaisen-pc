@@ -42,8 +42,8 @@ pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pipeline: wgpu::RenderPipeline,
-    effects: [wgpu::RenderPipeline; 5],
-    overlay_effects: [wgpu::RenderPipeline; 5],
+    effects: [wgpu::RenderPipeline; 6],
+    overlay_effects: [wgpu::RenderPipeline; 6],
     post: Option<post::Post>,
     size: [u32; 2],
     bindings: wgpu::BindGroup,
@@ -571,7 +571,7 @@ impl Renderer {
 
 fn draw_effects(
     pass: &mut wgpu::RenderPass<'_>,
-    pipelines: &[wgpu::RenderPipeline; 5],
+    pipelines: &[wgpu::RenderPipeline; 6],
     effects: &EffectMesh,
     overlay: Option<bool>,
 ) {

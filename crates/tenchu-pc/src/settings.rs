@@ -1,5 +1,7 @@
+mod blood;
 pub mod menu;
 pub mod overlay;
+pub use blood::Blood;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -55,6 +57,7 @@ impl Default for Settings {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Graphics {
+    pub blood: Blood,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -80,6 +83,7 @@ pub struct Graphics {
 impl Default for Graphics {
     fn default() -> Self {
         Self {
+            blood: Blood::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -243,6 +247,7 @@ impl Store {
                 settings.graphics.surface_detail = settings.graphics.surface_detail.min(2);
                 settings.graphics.surface_strength = settings.graphics.surface_strength.min(100);
                 settings.graphics.post.validate();
+                settings.graphics.blood.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

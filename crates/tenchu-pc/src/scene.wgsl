@@ -9,6 +9,8 @@ const XRAY: u32 = 128u;
 const UI: u32 = 256u;
 const EMITTER: u32 = 512u;
 const SCENERY: u32 = 1024u;
+const ALPHA: u32 = 2048u;
+const STAIN: u32 = 4096u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -23,6 +25,7 @@ struct Vertex {
     @location(5) flags: u32,
     @location(6) material: u32,
     @location(7) normal: vec3<f32>,
+    @location(8) opacity: f32,
 }
 struct Fragment {
     @builtin(position) position: vec4<f32>,
@@ -35,6 +38,7 @@ struct Fragment {
     @location(6) world: vec3<f32>,
     @location(7) @interpolate(flat) material: u32,
     @location(8) normal: vec3<f32>,
+    @location(9) opacity: f32,
 }
 
 @vertex fn vertex(v: Vertex) -> Fragment {
@@ -56,6 +60,7 @@ struct Fragment {
     out.flags = v.flags;
     out.material = v.material;
     out.normal = v.normal;
+    out.opacity = v.opacity;
     return out;
 }
 
@@ -115,6 +120,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
     }
     if semi != translucent_pass { discard; }
+    if (v.flags & STAIN) != 0u {
+        color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
+    }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
     if !screen { color = mix(color * detail.cavity * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
     if (v.flags & (FOG | SCREEN)) == FOG {
@@ -134,11 +142,18 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 }
 
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    if (v.flags & ALPHA) != 0u { discard; }
     let color = shade(v, front_facing, false);
     return vec4(color.rgb, 1.0);
 }
 
 @fragment fn translucent(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    if (v.flags & ALPHA) != 0u { discard; }
     let color = shade(v, front_facing, true);
     return vec4(color.rgb, 1.0);
+}
+
+@fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    let color = shade(v, front_facing, false);
+    return vec4(color.rgb, clamp(v.opacity, 0.0, 1.0));
 }

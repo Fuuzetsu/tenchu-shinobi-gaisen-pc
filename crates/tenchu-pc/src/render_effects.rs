@@ -142,6 +142,7 @@ pub(crate) fn quad(
             Vertex {
                 material: 0,
                 normal: [0.0; 3],
+                opacity: 1.0,
                 position: points[i],
                 color: color[i],
                 uv,

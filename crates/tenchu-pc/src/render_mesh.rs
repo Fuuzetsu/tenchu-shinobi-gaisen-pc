@@ -23,6 +23,8 @@ pub const XRAY: u32 = 128;
 pub const UI: u32 = 256;
 pub const EMITTER: u32 = 512;
 pub const SCENERY: u32 = 1024;
+pub const ALPHA: u32 = 2048;
+pub const STAIN: u32 = 4096;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -35,13 +37,14 @@ pub struct Vertex {
     pub(crate) flags: u32,
     pub(crate) material: u32,
     pub(crate) normal: [f32; 3],
+    pub(crate) opacity: f32,
 }
 
 pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
     geometry.faces.iter().take_while(|face| face.flags & 1 != 0)
 }
 
-fn append_geometry(
+pub(crate) fn append_geometry(
     vertices: &mut Vec<Vertex>,
     geometries: &[Geometry],
     matrix: Matrix,
@@ -98,6 +101,7 @@ pub(crate) fn append_face(
         vertices.push(Vertex {
             material: 0,
             normal: [0.0; 3],
+            opacity: 1.0,
             position: points[i],
             color: corner
                 .color

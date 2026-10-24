@@ -3,6 +3,11 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Blood,
+    BloodAmount,
+    BloodSeconds,
+    BloodMarks,
+    ClearBlood,
     PlayerModel,
     ReloadModels,
     Preset,
@@ -115,6 +120,7 @@ impl Item {
         matches!(
             self,
             Self::Reset
+                | Self::ClearBlood
                 | Self::ReloadModels
                 | Self::FocusPlayer
                 | Self::FocusActor
@@ -162,7 +168,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 11] = [
+pub const PAGES: [&str; 12] = [
     "General",
     "Graphics",
     "Overlays",
@@ -174,10 +180,43 @@ pub const PAGES: [&str; 11] = [
     "Sky lighting",
     "Image effects",
     "Player model",
+    "Persistent effects",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        11 => vec![
+            (
+                Item::Blood,
+                "Persistent blood",
+                on(s.graphics.blood.enabled),
+                "Wounds stain animated bodies and the environment; cosmetic only. Off clears retained stains.",
+            ),
+            (
+                Item::BloodAmount,
+                "Blood amount",
+                format!("{}%", s.graphics.blood.amount),
+                "Size of stains and frequency of wound drips. Original blood effects are unchanged.",
+            ),
+            (
+                Item::BloodSeconds,
+                "Wound bleeding",
+                format!("{} s", s.graphics.blood.seconds),
+                "How long new wounds drip; 0 keeps stains without extra bleeding.",
+            ),
+            (
+                Item::BloodMarks,
+                "Retained stains",
+                s.graphics.blood.marks.to_string(),
+                "Oldest marks are removed at this limit. A separate geometry budget bounds memory.",
+            ),
+            (
+                Item::ClearBlood,
+                "Clear blood",
+                "Clear".into(),
+                "Remove cosmetic stains and stop current bleeding without changing health.",
+            ),
+        ],
         10 => vec![
             (
                 Item::PlayerModel,

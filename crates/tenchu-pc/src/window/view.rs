@@ -45,12 +45,30 @@ pub(super) struct View {
     player_selection: String,
     model_options: (bool, bool, u16),
     emitters: Emitters,
+    surfaces: Option<crate::visuals::surfaces::Surfaces>,
+    pub(super) blood: crate::visuals::blood::Blood,
     pub(super) interpolation: crate::visuals::interpolation::History,
     interpolation_enabled: bool,
     frame: Option<crate::visuals::interpolation::Frame>,
 }
 
 impl View {
+    pub(super) fn cosmetic_tick(&mut self, game: &Game, settings: &Settings) {
+        if settings.graphics.blood.enabled && settings.graphics.blood.amount != 0 {
+            let surfaces = self.surfaces.get_or_insert_with(|| {
+                crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
+                    &game.mission,
+                    &game.math,
+                    Some(&self.models),
+                ))
+            });
+            self.blood
+                .tick(game, &self.models, surfaces, &settings.graphics.blood);
+        } else {
+            self.blood = Default::default();
+        }
+    }
+
     pub(super) fn nearest_lamp(
         &self,
         game: &Game,
@@ -235,6 +253,8 @@ impl View {
             player_selection: settings.player_model.clone(),
             model_options: model_options(&settings.graphics),
             emitters,
+            surfaces: None,
+            blood: Default::default(),
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
@@ -335,6 +355,8 @@ impl View {
         self.dirty = true;
         self.renderer.bind_models(&mut models);
         self.shadow_stage = None;
+        self.surfaces = None;
+        self.blood = Default::default();
         self.stage = self.renderer.upload(&render_mesh::stage(
             &game.mission,
             &game.math,
@@ -388,6 +410,9 @@ impl View {
             self.reset_interpolation(game);
             self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
             self.renderer.set_emitters(&self.emitters);
+        }
+        if !settings.graphics.blood.enabled {
+            self.blood = Default::default();
         }
         self.renderer.configure(&settings.graphics);
         if self.window.fullscreen().is_some() != settings.fullscreen {
@@ -496,6 +521,26 @@ impl View {
                     settings.sharp_text.then_some(&mut self.text),
                 )
             };
+        if campaign.playing()
+            && error.is_none()
+            && !debug.collision_only
+            && (menu.open || !paused || debug.active())
+            && settings.graphics.blood.enabled
+        {
+            let mut cosmetics = self.blood.geometry(
+                game,
+                &self.models,
+                frame,
+                debug.camera.is_some() || game.activation.keep_all_active,
+                if self.interpolation_enabled {
+                    alpha
+                } else {
+                    1.0
+                },
+            );
+            cosmetics.append(geometry);
+            geometry = cosmetics;
+        }
         if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();
             self.text.clear();

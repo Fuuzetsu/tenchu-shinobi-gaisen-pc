@@ -10,6 +10,61 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Persistent effects, weather, models and water (active goal)
+
+Deliver optional modern presentation features while retaining the original
+default appearance and exact gameplay/collision/AI/RNG. The scope includes the
+subsequently requested water improvements. Keep native, WebGPU and WebGL2
+paths usable, cap memory/work per effect, and commit coherent stages.
+
+1. **Persistent blood:** model-attached wound stains, visible bleeding and
+   projected stains on actual environment surfaces. Respect animation, moving
+   parts, opaque/cutout materials and replacement models; cap retained marks,
+   clear/reset predictably, and avoid staining a new actor after slot reuse.
+2. **Weather and sky:** configurable rain/snow and wind; shelter-aware particles,
+   wet surfaces, restrained optional snow/depression coverage, and roof runoff
+   where surface geometry supports it. Add a controllable sun/moon clock with
+   continuous light/color/shadow changes and a timelapse option. No flooding or
+   gameplay changes are required.
+3. **Vegetation and characters:** improve tree/bush volume and character detail,
+   using the existing HD materials and replaceable geometry. Preserve silhouettes,
+   texture/UV boundaries, animation and weapon attachments. Use explicit portable
+   asset metadata for authored distinctions rather than mission-specific hacks.
+4. **Secondary motion:** stable visual-only hair, clothing and equipment motion,
+   including Ayame. Bound displacement, handle pauses/teleports and changing
+   models, and keep skinning/attachments and shadow silhouettes consistent.
+5. **Water:** improve water and waterfalls with coherent flow, surface detail,
+   foam/spray and optional geometry refinement that softens abrupt visual bends.
+   Preserve original collision and animated texture intent; handle connected
+   tiles and transparent ordering, with affordable quality options.
+
+Each stage includes clear F1 controls, default/reset behavior, focused regression
+checks and actual scene review. Verify fixed-tick state equality with effects
+enabled, bounded resource use and native/browser rendering; extend the feature
+showcase with useful demonstrations. Keep asset authoring/provenance private,
+document genuine limitations, and continue through all five deliverables.
+
+Blood implementation: F1 has an opt-in persistent-effects page with amount,
+bleeding duration, retained-mark budget and clear action. Original damage/blood
+events drive cosmetic wound placement, attached body-part decals and drips.
+A presentation-only surface BVH projects environment marks onto actual triangles;
+hinged doors/trapdoors keep marks in local coordinates. UVs, material cutouts,
+interpolated poses and replacement meshes are preserved. Marks, vertices, wounds
+and drops all have independent bounds; reloads and disabling clear the state.
+No game/core changes or campaign-save format changes are involved.
+
+Native GPU checks cover alpha blending, cutouts, occlusion, clearing and unchanged
+original PS1 blend modes. Both Mission 1 combat tapes produced attached wounds
+and persistent ground stains while matching the unmodified game state (Rikimaru
+5,667 ticks; Ayame 4,834 ticks). Original and HD rendering were reviewed, including
+moving body-part closeups. Native/WASM compilation and geometry/budget checks
+pass. Browser runtime review remains part of the combined-effects stage: the
+native headless GL adapter currently fails at device initialization, so that is
+not evidence of a successful WebGL2 run. Stains are cosmetic and bounded, not
+permanent save-file edits; complex hit locations are inferred from source effects.
+Weather, moving sky, model upgrades, secondary motion, water and expanded demo
+coverage remain active deliverables.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

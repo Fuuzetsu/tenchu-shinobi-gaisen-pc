@@ -235,6 +235,18 @@ pub fn visit(
     frame: Option<&Frame>,
     mut visit: impl FnMut(&[model::Geometry], Matrix),
 ) {
+    visit_parts(game, inspection, models, frame, |_, geometry, matrix| {
+        visit(geometry, matrix)
+    });
+}
+
+pub fn visit_parts(
+    game: &Game,
+    inspection: bool,
+    models: Option<&super::models::Models>,
+    frame: Option<&Frame>,
+    mut visit: impl FnMut(Part, &[model::Geometry], Matrix),
+) {
     let appearance = models.and_then(|m| m.player.as_ref());
     let offsets = appearance.map(|a| a.offsets(game, inspection, frame));
     render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
@@ -249,11 +261,11 @@ pub fn visit(
                 }
             }
             if let Some(index) = game.player().parts.iter().position(|&id| id == model) {
-                visit(&appearance.parts[index].geometry, matrix);
+                visit(key, &appearance.parts[index].geometry, matrix);
                 return;
             }
         }
-        visit(geometry, matrix);
+        visit(key, geometry, matrix);
     });
 }
 

@@ -1,4 +1,5 @@
 pub mod appearance;
+pub mod blood;
 pub mod catalog;
 #[cfg(not(target_arch = "wasm32"))]
 mod export;
@@ -10,6 +11,7 @@ pub mod pack;
 pub mod pixels;
 pub mod relief;
 mod smooth;
+pub mod surfaces;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use export::export;

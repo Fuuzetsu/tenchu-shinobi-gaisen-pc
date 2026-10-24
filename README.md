@@ -641,6 +641,17 @@ asynchronous and optional when the adapter lacks timestamp queries; they exclude
 the egui overlay. CPU and GPU overlap, so their totals should not be added.
 Photo mode hides the charts along with the other inspection overlays.
 
+**F1 → Persistent effects → Persistent blood** keeps cosmetic wound stains on
+animated bodies and projects drops onto scenery, doors and trapdoors. Amount,
+bleeding duration and retained-stain limit are adjustable; **Clear blood** removes
+the cosmetic marks and drips. This is off by default. Damage, health, the original
+blood effects and gameplay RNG are unchanged. Marks retain texture detail/cutouts
+and follow interpolated poses and compatible replacement models. Wound placement
+is inferred from original blood and damage events, rather than adding hit-location
+gameplay. Stains are held in memory, bounded by both count and geometry; changing
+mission, reloading models/artwork or disabling the feature clears them. They are
+not written into campaign saves.
+
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`

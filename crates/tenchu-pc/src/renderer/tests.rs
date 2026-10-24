@@ -5,6 +5,7 @@ use tenchu_core::math::Matrix;
 
 mod scrolling;
 mod sprites;
+mod stains;
 
 fn rectangle(
     z: i16,
@@ -535,6 +536,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         [0, 1, 2, 1, 3, 2].map(|i| Vertex {
             material: 0,
             normal: [0.0; 3],
+            opacity: 1.0,
             position: points[i].to_array(),
             color: [0.5; 3],
             uv: [0.0; 2],
@@ -572,6 +574,8 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     graphics.lighting.ambient = 30;
     renderer.configure(&graphics);
     let lit = draw(&mut renderer, &[light], &[]);
+    let cosmetic = renderer.upload(&quad(blocker_position, 140.0, render_mesh::ALPHA));
+    assert_eq!(draw(&mut renderer, &[light], &[&cosmetic]), lit);
     let shadowed = draw(&mut renderer, &[light], &[&blocker]);
     assert!(lit[0] > shadowed[0] + 25, "{lit:?} versus {shadowed:?}");
     let ambient = (0.5 * 0.3f32.powf(1.0 / 2.2) * 255.0).round() as i32;
@@ -729,6 +733,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         let receiver = renderer.upload(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
             material: 0,
             normal: [0.0; 3],
+            opacity: 1.0,
             position: (origin + points[i]).to_array(),
             color: [0.5; 3],
             uv: [0.0; 2],
@@ -799,6 +804,7 @@ fn directional_shadows_cover_scenery_without_point_sources() {
             flags: render_mesh::DOUBLE_SIDED,
             material: 0,
             normal: [0.0; 3],
+            opacity: 1.0,
         })
     };
     let ground = renderer.upload(&quad(0.0, 1000.0));
@@ -1126,6 +1132,7 @@ fn lanterns_fill_moon_shadows_without_lighting_backfaces_or_clipping() {
             position: (center + points[i]).to_array(),
             color: [color; 3],
             normal: [0.0; 3],
+            opacity: 1.0,
             uv: [0.0; 2],
             page: 0,
             palette: 0,

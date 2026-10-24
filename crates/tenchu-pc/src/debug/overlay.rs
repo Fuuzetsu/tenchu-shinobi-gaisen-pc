@@ -30,6 +30,7 @@ fn vertex(position: [f32; 3], color: [f32; 3], flags: u32) -> Vertex {
     Vertex {
         material: 0,
         normal: [0.0; 3],
+        opacity: 1.0,
         position,
         color,
         flags,

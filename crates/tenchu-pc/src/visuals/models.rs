@@ -139,6 +139,7 @@ impl Meshes {
                             position: corner.position,
                             color: corner.color,
                             normal: corner.normal,
+                            opacity: 1.0,
                             uv: [
                                 corner.uv[0] * rect[2] + rect[0] - 0.5,
                                 (1.0 - corner.uv[1]) * rect[3] + rect[1] - 0.5,

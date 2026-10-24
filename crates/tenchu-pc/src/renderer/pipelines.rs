@@ -26,7 +26,7 @@ pub(super) fn create(
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     samples: u32,
-) -> (wgpu::RenderPipeline, [wgpu::RenderPipeline; 5]) {
+) -> (wgpu::RenderPipeline, [wgpu::RenderPipeline; 6]) {
     let make_pipeline = |blend: Option<wgpu::BlendState>,
                          fragment: &str,
                          bias: i32,
@@ -38,7 +38,7 @@ pub(super) fn create(
             module: shader, entry_point: Some("vertex"), compilation_options: Default::default(),
             buffers: &[wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32, 7 => Float32x3],
+            attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32, 7 => Float32x3, 8 => Float32],
             }],
         },
         primitive: wgpu::PrimitiveState { front_face: wgpu::FrontFace::Cw, cull_mode: None, ..Default::default() },
@@ -60,6 +60,15 @@ pub(super) fn create(
     let effects = std::array::from_fn(|mode| {
         if mode == 0 {
             return make_pipeline(None, "opaque", -2, true, wgpu::CompareFunction::LessEqual);
+        }
+        if mode == 5 {
+            return make_pipeline(
+                Some(wgpu::BlendState::ALPHA_BLENDING),
+                "alpha",
+                -2,
+                false,
+                wgpu::CompareFunction::LessEqual,
+            );
         }
         let blend = wgpu::BlendState {
             color: wgpu::BlendComponent {

@@ -133,6 +133,24 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::Blood => {
+                self.settings.graphics.blood.enabled = !self.settings.graphics.blood.enabled
+            }
+            Item::ClearBlood => {
+                if let Some(view) = &mut self.view {
+                    view.blood.clear();
+                }
+            }
+            Item::BloodAmount | Item::BloodSeconds | Item::BloodMarks => {
+                let blood = &mut self.settings.graphics.blood;
+                let (value, step, min, max) = match item {
+                    Item::BloodAmount => (&mut blood.amount, 10, 0, 200),
+                    Item::BloodSeconds => (&mut blood.seconds, 2, 0, 60),
+                    _ => (&mut blood.marks, 32, 32, 1024),
+                };
+                *value = (i32::from(*value) + direction * step).clamp(min, max) as u16;
+            }
+
             Item::Interpolation => {
                 self.settings.graphics.interpolation = !self.settings.graphics.interpolation
             }

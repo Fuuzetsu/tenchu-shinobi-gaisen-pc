@@ -364,6 +364,9 @@ fn number(text: &str) -> f64 {
 
 fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
     let (min, max, step, scale) = match item {
+        Item::BloodAmount => (0, 200, 10, 1),
+        Item::BloodSeconds => (0, 60, 2, 1),
+        Item::BloodMarks => (32, 1024, 32, 1),
         Item::Volume | Item::SurfaceStrength => (0, 100, 5, 1),
         Item::FogDistance | Item::SightDistance => {
             (if item == Item::FogDistance { 25 } else { 0 }, 400, 25, 1)
