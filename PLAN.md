@@ -146,6 +146,29 @@ Clippy and formatting pass. Combined browser/replay review follows secondary
 motion. These are refinements of the original shapes, not newly sculpted models
 or individual geometric leaves; original default settings remain unchanged.
 
+Secondary motion implementation: independent F1 hair/cloth/equipment switches
+drive bounded fixed-step springs on reviewed material-masked regions of Rikimaru
+and Ayame. Anchored influence ramps keep seams fixed; normals, translucent parts,
+attached wound stains and shadow casters follow the same deformation. Render
+sampling is read-only. Teleports, changing bodies, tick gaps and disabling reset
+state; equipped weapons retain their rigid original transforms. Custom geometry
+requires explicit pack rules. A separate breeze animates classified foliage and
+its point/directional shadows on the GPU, with fixed roots and no CPU mesh upload
+per frame. Weather precipitation wind remains independently adjustable.
+
+Motion defaults off and does not simulate individual strands, cloth collision or
+anatomical deformation. Up to four rules per part and 256 active springs bound
+the work. Native GPU checks exercise both real players and visible foliage/shadow
+movement, fixed roots and exact original-image restoration. CPU checks cover
+bounded impulses, settling, rendering cadence and resets. Both native and WASM
+Clippy and all 104 fixture-free workspace tests pass. Both complete Mission 1
+combat tapes match reference state with the combined effects (5,667 and 4,834
+ticks), including additional intermediate motion samples. Chromium WebGPU and
+WebGL2 render all effects, exercise F1 resets and preserve paused state without
+graphics errors; the short 1280×724 samples reached approximately 58/60 rendered
+fps respectively on this desktop. Those samples are not a broad performance
+guarantee. Final demo-video review and a dedicated blood clip remain in progress.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

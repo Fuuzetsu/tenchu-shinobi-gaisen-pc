@@ -195,6 +195,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
         surfaces: BTreeMap::new(),
         water: super::water::rules(&Default::default(), false),
         vegetation: super::vegetation::rules(&Default::default(), false),
+        motion: super::motion::rules(&Default::default(), false),
         textures: manifest
             .textures
             .iter()

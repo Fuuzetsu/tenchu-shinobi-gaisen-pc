@@ -147,6 +147,15 @@ impl Application {
                 scene.distance = 4200.0;
                 scene.pitch = -0.25;
                 scene.yaw += 2.2;
+                if clip.feature == Feature::SecondaryMotion {
+                    scene.target = origin - Vec3::Y * 800.0;
+                    scene.distance = 1800.0;
+                    scene.yaw -= 1.3;
+                    scene.pitch = -0.1;
+                } else if clip.feature == Feature::CharacterRefinement {
+                    scene.distance = 2400.0;
+                    scene.target = origin - Vec3::Y * 650.0;
+                }
                 demo::framing::unobstructed(&mut scene, &geometry);
             }
             Shot::Cinematic | Shot::Gameplay => {}
@@ -159,7 +168,12 @@ impl Application {
         }
         if matches!(
             clip.feature,
-            Feature::ModelDetail | Feature::PlayerModels | Feature::MovableLight | Feature::Artwork
+            Feature::ModelDetail
+                | Feature::CharacterRefinement
+                | Feature::SecondaryMotion
+                | Feature::PlayerModels
+                | Feature::MovableLight
+                | Feature::Artwork
         ) {
             self.debug.light = Some(scene.target + Vec3::new(-2000.0, -2500.0, -2000.0));
             self.settings.graphics.lighting.ambient = 65;

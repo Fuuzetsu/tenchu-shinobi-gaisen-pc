@@ -27,13 +27,14 @@ struct Fragment {
 
 @vertex fn vertex(v: Vertex) -> Fragment {
     var out: Fragment;
-    out.position = face.matrix * vec4(v.position, 1.0);
+    let position = foliage_position(v.position, v.flags, face.options.y, face.options.z);
+    out.position = face.matrix * vec4(position, 1.0);
     out.uv = v.uv;
     out.page = v.page;
     out.palette = v.palette;
     out.flags = v.flags;
     out.material = v.material;
-    out.world = v.position;
+    out.world = position;
     return out;
 }
 

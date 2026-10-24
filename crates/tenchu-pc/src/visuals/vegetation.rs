@@ -35,6 +35,36 @@ fn root(parents: &mut [usize], mut i: usize) -> usize {
     i
 }
 
+pub fn wind(vertices: &mut [Vertex], materials: &[Material], rules: &BTreeMap<String, Kind>) {
+    let kinds: BTreeMap<_, _> = materials
+        .iter()
+        .enumerate()
+        .filter_map(|(i, m)| {
+            rules
+                .get(&m.id)
+                .filter(|&&kind| kind != Kind::Off)
+                .map(|&kind| (i as u32 + 1, kind))
+        })
+        .collect();
+    let (top, bottom) = vertices
+        .iter()
+        .filter(|v| kinds.contains_key(&v.material))
+        .fold((f32::INFINITY, f32::NEG_INFINITY), |(a, b), v| {
+            (a.min(v.position[1]), b.max(v.position[1]))
+        });
+    let height = (bottom - top).max(100.0);
+    for vertex in vertices {
+        if let Some(&kind) = kinds.get(&vertex.material) {
+            let weight =
+                (((bottom - vertex.position[1]) / height).clamp(0.0, 1.0) * 255.0).round() as u32;
+            vertex.flags |= render_mesh::FOLIAGE | weight << render_mesh::WIND_WEIGHT_SHIFT;
+            if kind != Kind::Trunk {
+                vertex.flags |= render_mesh::FLUTTER;
+            }
+        }
+    }
+}
+
 pub fn prepare(
     vertices: &mut Vec<Vertex>,
     materials: &[Material],

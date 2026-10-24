@@ -400,6 +400,8 @@ fn number(text: &str) -> f64 {
 
 fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
     let (min, max, step, scale) = match item {
+        Item::MotionStrength => (0, 200, 5, 1),
+        Item::MotionResponse | Item::MotionWind => (0, 100, 5, 1),
         Item::WeatherAmount | Item::WeatherWind | Item::Wetness | Item::SnowCover => (0, 100, 5, 1),
         Item::WeatherHeading => (0, 345, 15, 1),
         Item::WaterRipples | Item::WaterReflections | Item::WaterFoam | Item::WaterSpray => {

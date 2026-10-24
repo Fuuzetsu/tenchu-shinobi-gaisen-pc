@@ -38,7 +38,7 @@ fn water_ripples_are_visual_scoped_and_optional() {
     graphics.water.reflections = 100;
     renderer.configure(&graphics);
     let first = capture(&mut renderer);
-    renderer.water_time = 1.0;
+    renderer.visual_time = 1.0;
     let second = capture(&mut renderer);
     assert!(
         first
@@ -163,7 +163,7 @@ fn water_and_waterfalls_on_actual_geometry() {
                     geometry.vertices.len()
                 );
                 let effects = review.renderer.upload_effects(geometry);
-                review.renderer.water_time = 5.0;
+                review.renderer.visual_time = 5.0;
                 review
                     .capture(
                         camera,

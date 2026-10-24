@@ -716,6 +716,32 @@ mesh when a budget is exhausted. This builds on the current artwork, rather than
 claiming entirely new sculpted characters or individual geometric leaves.
 `demo --clips vegetation,character-refinement` shows the choices.
 
+**F1 → Secondary motion** independently enables hair, loose cloth and carried
+equipment flex, with strength and spring stiffness controls. Reviewed regions of
+Rikimaru and Ayame react to their original animations; attachment regions stay
+fixed. Equipped weapon transforms, hitboxes and gameplay remain unchanged. These
+are bounded spring deformations of existing surfaces, without strand simulation,
+cloth collision or anatomical deformation. Original is the default: all three
+switches are off. Changing bodies, teleporting or reloading resets the springs.
+Attached blood stains and shadow geometry follow the same deformed surfaces.
+
+**Breeze** moves classified foliage and its shadows with anchored roots, and adds
+a small force to enabled hair/cloth/equipment motion. It is independent of the
+precipitation wind controls. Cosmetic motion advances with the fixed game clock,
+interpolates between ticks and freezes when paused; rendering more frames does
+not advance physics. `demo --clips secondary-motion,equipment-motion,breeze`
+shows both characters and the Mission 1 garden.
+
+The reviewed player regions live in `crates/tenchu-pc/data/motion.json`. Packs may
+provide a `"motion"` map in `pack.json`, keyed by model-part ID such as
+`"actors/0001/2"` or `"player/my-body/2"`. Each part supports up to four rules:
+`kind` (`"hair"`, `"cloth"`, `"equipment"`), a unit `axis`, `start`/`end` coordinates
+along it, a local `anchor`, a bounded `limit`, optional `absolute` axis distance,
+and optional texture-ID `materials`. The influence ramps smoothly from fixed to
+flexible across that interval; `limit` cannot exceed one quarter of its length.
+Replacement geometry needs its own explicit rules; original-body masks are not
+silently applied to custom meshes. Metadata is included in browser exports.
+
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`

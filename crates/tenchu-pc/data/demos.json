@@ -566,5 +566,52 @@
     "preset": 3,
     "feature": "character-refinement",
     "shot": "player"
+  },
+  {
+    "id": "secondary-motion",
+    "title": "Hair and loose cloth in motion",
+    "description": "Ayame\u2019s hair and bow gain bounded follow-through during the original animations. Anchored fabric, weapon attachment and gameplay remain unchanged.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 1,
+    "preset": 3,
+    "feature": "secondary-motion",
+    "shot": "player"
+  },
+  {
+    "id": "equipment-motion",
+    "title": "Cloth and equipment flex",
+    "description": "Rikimaru\u2019s garment hems and carried equipment react subtly to motion. Their attachment regions stay fixed and the weapons keep their original animation.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "secondary-motion",
+    "shot": "player"
+  },
+  {
+    "id": "breeze",
+    "title": "A breeze through the garden",
+    "description": "Wind moves tagged foliage and its shadows with fixed roots. The breeze follows simulation time and freezes when paused.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "breeze",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -40000,
+        -1800,
+        -16500
+      ],
+      "target": [
+        -31000,
+        -1000,
+        -16500
+      ],
+      "fov": 55
+    }
   }
 ]

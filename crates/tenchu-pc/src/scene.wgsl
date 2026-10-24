@@ -16,7 +16,7 @@ const SOFT: u32 = 16384u;
 const WATER: u32 = 65536u;
 const WATERFALL: u32 = 131072u;
 
-struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32> }
+struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32>, motion: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var vram: texture_2d<u32>;
 
@@ -47,16 +47,17 @@ struct Fragment {
 
 @vertex fn vertex(v: Vertex) -> Fragment {
     var out: Fragment;
+    let position = foliage_position(v.position, v.flags, camera.eye.w, camera.motion.x);
     if (v.flags & SCREEN) != 0u {
         let half_width = select(120.0 * camera.viewport.x, 160.0, (v.flags & SCREEN_WIDE) != 0u);
         out.position = vec4(v.position.x / half_width, -v.position.y / 120.0, v.position.z, 1.0);
         out.depth = 0.0;
     } else {
-        out.position = camera.matrix * vec4(v.position, 1.0);
+        out.position = camera.matrix * vec4(position, 1.0);
         out.depth = out.position.w;
         if (v.flags & XRAY) != 0u { out.position.z = 0.0; }
     }
-    out.world = v.position;
+    out.world = position;
     out.color = v.color;
     out.uv = v.uv;
     out.page = v.page;

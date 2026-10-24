@@ -1,0 +1,220 @@
+{
+  "actors/0000/0": [
+    {
+      "kind": "cloth",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 0,
+      "end": 152,
+      "anchor": [
+        0,
+        130,
+        70
+      ],
+      "limit": 20,
+      "materials": [
+        "1269624e0694bad9539ced56bf817ee2",
+        "11b6f36247e6edeca9c2a5c0dde41259",
+        "6c2a74a169eecbe6d2ff58637deac63d"
+      ]
+    }
+  ],
+  "actors/0000/1": [
+    {
+      "kind": "equipment",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": -300,
+      "end": 32,
+      "anchor": [
+        0,
+        -50,
+        220
+      ],
+      "limit": 5,
+      "materials": [
+        "3c9b31cd9b09be3e58693c36706e3d89"
+      ]
+    }
+  ],
+  "actors/0000/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        -1,
+        0
+      ],
+      "start": 105,
+      "end": 161,
+      "anchor": [
+        0,
+        -155,
+        0
+      ],
+      "limit": 8,
+      "materials": [
+        "6302e7faed3a7db7e92b405083abe4f0",
+        "bafc4375cd591e054b205aa694a2439d"
+      ]
+    }
+  ],
+  "actors/0002/0": [
+    {
+      "kind": "cloth",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": 0,
+      "end": 152,
+      "anchor": [
+        0,
+        130,
+        70
+      ],
+      "limit": 20,
+      "materials": [
+        "1269624e0694bad9539ced56bf817ee2",
+        "11b6f36247e6edeca9c2a5c0dde41259",
+        "6c2a74a169eecbe6d2ff58637deac63d"
+      ]
+    }
+  ],
+  "actors/0002/1": [
+    {
+      "kind": "equipment",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "start": -300,
+      "end": 32,
+      "anchor": [
+        0,
+        -50,
+        220
+      ],
+      "limit": 5,
+      "materials": [
+        "3c9b31cd9b09be3e58693c36706e3d89"
+      ]
+    }
+  ],
+  "actors/0002/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        -1,
+        0
+      ],
+      "start": 105,
+      "end": 161,
+      "anchor": [
+        0,
+        -155,
+        0
+      ],
+      "limit": 8,
+      "materials": [
+        "6302e7faed3a7db7e92b405083abe4f0",
+        "bafc4375cd591e054b205aa694a2439d"
+      ]
+    }
+  ],
+  "actors/0001/0": [
+    {
+      "kind": "cloth",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "start": 145,
+      "end": 263,
+      "anchor": [
+        230,
+        -40,
+        110
+      ],
+      "limit": 20,
+      "absolute": true,
+      "materials": [
+        "da9ce2637d4bbd3e7ef01dcb297cfdff"
+      ]
+    }
+  ],
+  "actors/0001/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "start": 30,
+      "end": 165,
+      "anchor": [
+        100,
+        -80,
+        130
+      ],
+      "limit": 25,
+      "materials": [
+        "125bf04f46edcffb7cf0ddb89436485a"
+      ]
+    }
+  ],
+  "actors/0003/0": [
+    {
+      "kind": "cloth",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "start": 145,
+      "end": 263,
+      "anchor": [
+        230,
+        -40,
+        110
+      ],
+      "limit": 20,
+      "absolute": true,
+      "materials": [
+        "da9ce2637d4bbd3e7ef01dcb297cfdff"
+      ]
+    }
+  ],
+  "actors/0003/2": [
+    {
+      "kind": "hair",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "start": 30,
+      "end": 165,
+      "anchor": [
+        100,
+        -80,
+        130
+      ],
+      "limit": 25,
+      "materials": [
+        "125bf04f46edcffb7cf0ddb89436485a"
+      ]
+    }
+  ]
+}

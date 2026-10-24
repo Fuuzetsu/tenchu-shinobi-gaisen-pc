@@ -19,6 +19,7 @@ pub struct Models {
     world: Meshes,
     pub(super) player: Option<super::appearance::Appearance>,
     pub replacements: usize,
+    pub motion: super::motion::Frame,
 }
 
 impl Models {
@@ -36,6 +37,7 @@ impl Models {
             replacements: world.replacements,
             world,
             player: None,
+            motion: Default::default(),
         })
     }
 
@@ -73,6 +75,42 @@ impl Models {
         }
         self.world.visit(geometry, matrix, fog, visit)
     }
+
+    pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
+        self.player
+            .as_ref()
+            .and_then(|p| p.meshes.motion.get(&geometry))
+            .or_else(|| self.world.motion.get(&geometry))
+            .map(Vec::as_slice)
+    }
+
+    pub fn deformation(
+        &self,
+        part: super::interpolation::Part,
+        matrix: Matrix,
+    ) -> Option<super::motion::Deformation<'_>> {
+        let pose = self.motion.get(&part.canonical())?;
+        super::motion::Deformation::new(self.motion_rules(pose.geometry)?, pose, matrix)
+    }
+
+    pub fn visit_part(
+        &self,
+        part: super::interpolation::Part,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        fog: bool,
+        mut visit: impl FnMut([Vertex; 3]),
+    ) -> bool {
+        let deformation = self.deformation(part, matrix);
+        self.visit(geometry, matrix, fog, |mut triangle| {
+            if let Some(deformation) = &deformation {
+                for vertex in &mut triangle {
+                    deformation.vertex(vertex);
+                }
+            }
+            visit(triangle);
+        })
+    }
 }
 
 #[derive(Default)]
@@ -80,6 +118,7 @@ pub(super) struct Meshes {
     meshes: BTreeMap<usize, Vec<Vertex>>,
     materials: Vec<Material>,
     pub replacements: usize,
+    motion: BTreeMap<usize, Vec<super::motion::BoundRule>>,
 }
 
 impl Meshes {
@@ -97,6 +136,7 @@ impl Meshes {
         let vegetation = super::vegetation::rules(pack, graphics.asset_pack);
         let mut refinement_budget = 1_048_576;
         let mut foliage_budget = 524_288;
+        let motion = super::motion::rules(pack, graphics.asset_pack);
         let region_ids = catalog::regions(mission);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
@@ -113,7 +153,11 @@ impl Meshes {
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
             let foliage = graphics.models.foliage != 0 && source.id.starts_with("stages/");
+            let wind = graphics.motion.wind != 0 && source.id.starts_with("stages/");
             let refined = round && graphics.models.characters != 0;
+            let secondary = graphics.motion.actors()
+                && motion.contains_key(&source.id)
+                && (replacement.is_none() || pack.motion.contains_key(&source.id));
             if !force
                 && emitter.is_none()
                 && replacement.is_none()
@@ -122,6 +166,8 @@ impl Meshes {
                 && !water_enabled
                 && !foliage
                 && !refined
+                && !secondary
+                && !wind
             {
                 continue;
             }
@@ -264,6 +310,18 @@ impl Meshes {
                     &mut water_budget,
                 );
             }
+            if wind {
+                super::vegetation::wind(&mut vertices, &out.materials, &vegetation);
+            }
+            if secondary {
+                let rules: Vec<_> = motion[&source.id]
+                    .iter()
+                    .filter_map(|rule| super::motion::BoundRule::new(rule, &out.materials))
+                    .collect();
+                if !rules.is_empty() {
+                    out.motion.insert(source.geometry.as_ptr() as usize, rules);
+                }
+            }
             out.meshes
                 .insert(source.geometry.as_ptr() as usize, vertices);
         }
@@ -272,6 +330,9 @@ impl Meshes {
 
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
         let handles: Vec<_> = self.materials.iter().map(&mut bind).collect();
+        for rule in self.motion.values_mut().flatten() {
+            rule.bind(&handles);
+        }
         for vertex in self.meshes.values_mut().flatten() {
             if vertex.material != 0 {
                 vertex.material = handles[vertex.material as usize - 1];

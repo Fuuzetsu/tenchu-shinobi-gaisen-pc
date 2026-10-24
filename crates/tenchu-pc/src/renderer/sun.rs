@@ -71,6 +71,8 @@ pub struct Frame {
     pub tint: f32,
     pub weather: crate::visuals::weather::SurfaceWeather,
     pub weather_resolution: u32,
+    pub visual_time: f32,
+    pub wind: f32,
 }
 
 impl Frame {
@@ -84,6 +86,8 @@ impl Frame {
             tint: f32::from(settings.sky_tint) / 100.0,
             weather: Default::default(),
             weather_resolution: 1,
+            visual_time: 0.0,
+            wind: 0.0,
         };
         if let Some(sky) = daylight {
             frame.settings.enabled = true;
@@ -95,6 +99,12 @@ impl Frame {
             frame.tint = sky.tint;
         }
         frame
+    }
+
+    pub fn with_motion(mut self, time: f32, settings: &crate::settings::Motion) -> Self {
+        self.visual_time = time;
+        self.wind = f32::from(settings.wind) / 100.0;
+        self
     }
 
     pub fn with_weather(

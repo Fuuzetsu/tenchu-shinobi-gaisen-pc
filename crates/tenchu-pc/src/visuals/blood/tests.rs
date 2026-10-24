@@ -39,8 +39,21 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         std::fs::create_dir_all(path).unwrap();
         crate::capture::review::Review::new(&game.mission).unwrap()
     });
-    let graphics = settings::Graphics::default();
-    let models = review.as_mut().map_or_else(
+    let mut graphics = settings::Graphics::default();
+    graphics.water.enabled = true;
+    graphics.models.characters = 1;
+    graphics.models.foliage = 1;
+    graphics.motion = settings::Motion {
+        hair: true,
+        cloth: true,
+        equipment: true,
+        wind: 60,
+        ..Default::default()
+    };
+    if let Some(review) = &mut review {
+        review.configure(graphics.clone());
+    }
+    let mut models = review.as_mut().map_or_else(
         || Models::build(&game.mission, &Default::default(), &graphics).unwrap(),
         |review| review.models(&game.mission).unwrap(),
     );
@@ -61,6 +74,7 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         ..Default::default()
     };
     let mut blood = Blood::default();
+    let mut motion = crate::visuals::motion::Motion::default();
     let settings = settings::Blood {
         enabled: true,
         ..Default::default()
@@ -76,6 +90,8 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         for _ in 0..count {
             game.step(buttons).unwrap();
             original.step(buttons).unwrap();
+            motion.tick(&game, &models, &graphics.motion);
+            models.motion = motion.sample(1.0);
             blood.tick(&game, &models, &surfaces, &settings);
             weather_settings.mode = if game.tick % 1800 < 900 {
                 settings::WeatherMode::Rain
@@ -130,6 +146,18 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
                     crate::session::tests::state(&game),
                     crate::session::tests::state(&original)
                 );
+                for alpha in [0.0, 0.5, 1.0] {
+                    models.motion = motion.sample(alpha);
+                    let vertices =
+                        render_mesh::characters_presented(&game, Some(&models), true, None);
+                    assert!(
+                        vertices.iter().all(|v| v
+                            .position
+                            .iter()
+                            .chain(&v.normal)
+                            .all(|f| f.is_finite()))
+                    );
+                }
                 let mesh = blood.geometry(&game, &models, None, true, 0.5);
                 assert!(mesh.vertices.len() <= VERTEX_LIMIT + DROP_LIMIT * 6);
                 assert!(

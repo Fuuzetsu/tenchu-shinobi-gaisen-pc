@@ -4,6 +4,7 @@ use tenchu_assets::model::{Corner, Face, Geometry, Texture};
 use tenchu_core::math::Matrix;
 
 mod models;
+mod motion;
 mod scrolling;
 mod sky;
 mod sprites;

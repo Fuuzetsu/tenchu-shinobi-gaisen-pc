@@ -6,6 +6,7 @@ mod export;
 pub mod interpolation;
 pub mod lights;
 pub mod models;
+pub mod motion;
 pub mod obj;
 pub mod pack;
 pub mod pixels;

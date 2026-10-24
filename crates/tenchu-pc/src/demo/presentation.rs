@@ -106,6 +106,23 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.models.characters = [0, 1, 2][section(p, 3)];
             g.model_detail = 0;
             g.interpolation = true;
+            g.lighting.enabled = true;
+        }
+        Feature::SecondaryMotion => {
+            let enabled = section(p, 4) % 2 == 1;
+            g.motion.hair = enabled;
+            g.motion.cloth = enabled;
+            g.motion.equipment = enabled;
+            g.motion.strength = 150;
+            g.models.characters = 1;
+            g.interpolation = true;
+            g.lighting.enabled = true;
+        }
+        Feature::Breeze => {
+            g.motion.wind = (wave * 100.0) as u16;
+            g.models.foliage = 1;
+            g.sky.enabled = true;
+            g.sky.time = 720;
         }
         Feature::Water | Feature::Waterfalls => {
             g.water.enabled = section(p, 4) % 2 == 1;
@@ -458,6 +475,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             .into(),
         ),
         Feature::Lanterns => meter("Point-light strength (%)", l.intensity, 220),
+        Feature::SecondaryMotion => text(format!(
+            "Hair, loose cloth and equipment motion {} · original weapons and gameplay",
+            on(g.motion.hair)
+        )),
+        Feature::Breeze => meter("Breeze (%)", g.motion.wind, 100),
         Feature::Rain => {
             text("Rain · roof runoff · gradual wetness · shelter-aware surfaces".into())
         }

@@ -228,18 +228,6 @@ impl Appearance {
     }
 }
 
-pub fn visit(
-    game: &Game,
-    inspection: bool,
-    models: Option<&super::models::Models>,
-    frame: Option<&Frame>,
-    mut visit: impl FnMut(&[model::Geometry], Matrix),
-) {
-    visit_parts(game, inspection, models, frame, |_, geometry, matrix| {
-        visit(geometry, matrix)
-    });
-}
-
 pub fn visit_parts(
     game: &Game,
     inspection: bool,
@@ -379,12 +367,12 @@ mod tests {
                         for inspection in [false, true] {
                             let offsets = appearance.offsets(&game, inspection, frame.as_ref());
                             let mut presented = Vec::new();
-                            visit(
+                            visit_parts(
                                 &game,
                                 inspection,
                                 Some(&models),
                                 frame.as_ref(),
-                                |geometry, matrix| {
+                                |_, geometry, matrix| {
                                     presented.push((geometry.as_ptr(), matrix));
                                 },
                             );

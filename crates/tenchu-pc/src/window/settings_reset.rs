@@ -23,6 +23,18 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::HairMotion => self.settings.graphics.motion.hair = s.graphics.motion.hair,
+            Item::ClothMotion => self.settings.graphics.motion.cloth = s.graphics.motion.cloth,
+            Item::EquipmentMotion => {
+                self.settings.graphics.motion.equipment = s.graphics.motion.equipment
+            }
+            Item::MotionStrength => {
+                self.settings.graphics.motion.strength = s.graphics.motion.strength
+            }
+            Item::MotionResponse => {
+                self.settings.graphics.motion.response = s.graphics.motion.response
+            }
+            Item::MotionWind => self.settings.graphics.motion.wind = s.graphics.motion.wind,
             Item::CharacterRefinement => {
                 self.settings.graphics.models.characters = s.graphics.models.characters
             }

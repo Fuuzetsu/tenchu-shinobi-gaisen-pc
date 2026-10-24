@@ -62,7 +62,7 @@ pub struct Renderer {
     graphics: crate::settings::Graphics,
     pub daylight: Option<crate::visuals::sky::Daylight>,
     pub weather: crate::visuals::weather::SurfaceWeather,
-    pub water_time: f32,
+    pub visual_time: f32,
     shadows: shadows::Shadows,
     materials: materials::Materials,
 }
@@ -146,7 +146,7 @@ impl Renderer {
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::cast_slice(&[0.0f32; 44]),
+            contents: bytemuck::cast_slice(&[0.0f32; 48]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -213,7 +213,7 @@ impl Renderer {
             graphics,
             daylight: None,
             weather: Default::default(),
-            water_time: 0.0,
+            visual_time: 0.0,
             shadows,
             materials,
         };
@@ -454,7 +454,7 @@ impl Renderer {
             inverse.project_point3(glam::Vec3::ZERO)
         };
         camera.extend(eye.to_array());
-        camera.push(self.water_time);
+        camera.push(self.visual_time);
         let water = &self.graphics.water;
         camera.extend([
             f32::from(water.ripples) / 100.0,
@@ -462,6 +462,7 @@ impl Renderer {
             f32::from(water.flow) / 100.0,
             f32::from(water.foam) / 100.0,
         ]);
+        camera.extend([f32::from(self.graphics.motion.wind) / 100.0, 0.0, 0.0, 0.0]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -471,7 +472,8 @@ impl Renderer {
             timer.begin(&self.device, &mut encoder);
         }
         let lighting = sun::Frame::new(&self.graphics.lighting, daylight)
-            .with_weather(self.weather, &self.graphics.weather);
+            .with_weather(self.weather, &self.graphics.weather)
+            .with_motion(self.visual_time, &self.graphics.motion);
         self.shadows
             .configure(&self.device, &lighting, lights.len());
         self.shadows.draw(

@@ -3,6 +3,12 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    HairMotion,
+    ClothMotion,
+    EquipmentMotion,
+    MotionStrength,
+    MotionResponse,
+    MotionWind,
     CharacterRefinement,
     FoliageDetail,
     Water,
@@ -194,7 +200,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 16] = [
+pub const PAGES: [&str; 17] = [
     "General",
     "Graphics",
     "Overlays",
@@ -211,10 +217,52 @@ pub const PAGES: [&str; 16] = [
     "Weather",
     "Water",
     "Model refinement",
+    "Secondary motion",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        16 => {
+            let motion = &s.graphics.motion;
+            vec![
+                (
+                    Item::HairMotion,
+                    "Hair motion",
+                    on(motion.hair),
+                    "Bounded inertia on authored hair regions. The original pose, face, collision and gameplay stay unchanged.",
+                ),
+                (
+                    Item::ClothMotion,
+                    "Loose cloth",
+                    on(motion.cloth),
+                    "Cosmetic follow-through on loose garment hems and Ayame's bow. Anchored portions remain attached.",
+                ),
+                (
+                    Item::EquipmentMotion,
+                    "Equipment flex",
+                    on(motion.equipment),
+                    "Restrained flex of supported carried equipment. Weapon animation and hitboxes remain original.",
+                ),
+                (
+                    Item::MotionStrength,
+                    "Motion strength",
+                    format!("{}%", motion.strength),
+                    "Scales the bounded displacement. Hair, clothing and equipment use separate authored limits.",
+                ),
+                (
+                    Item::MotionResponse,
+                    "Spring stiffness",
+                    format!("{}%", motion.response),
+                    "Higher values settle more quickly; lower values allow softer follow-through.",
+                ),
+                (
+                    Item::MotionWind,
+                    "Breeze",
+                    format!("{}%", motion.wind),
+                    "Gentle wind in tagged vegetation and enabled hair/cloth/equipment. Tree roots stay fixed and shadows follow the same deformation.",
+                ),
+            ]
+        }
         15 => vec![
             (
                 Item::CharacterRefinement,

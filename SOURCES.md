@@ -1089,3 +1089,20 @@ authored per-texture height maps override it without modifying the game models.
 Actual disc roof/wood textures are used only in private validation captures.
 Their identifiers in the diagnostic test select views and do not select runtime
 material behavior.
+
+## Optional effects and geometry refinement (2026-10-24)
+
+Persistent stains, surface queries, weather particles/coatings, the sky clock,
+water shading/curves and secondary-motion springs are new presentation code for
+this port. They consume original game state without changing core simulation.
+Character and shrub subdivision uses the general Loop subdivision rules described
+in [Charles Loop's thesis](https://www.microsoft.com/en-us/research/publication/smooth-subdivision-surfaces-based-on-triangles/),
+with local displacement bounds and pinned open/nonmanifold edges for these assets.
+Connected foliage layers preserve source UV/material boundaries.
+
+`data/water.json`, `data/vegetation.json` and `data/motion.json` record explicit
+classifications and reviewed player regions from the user's disc. Fingerprints
+identify source assets; no texture pixels, models or captured game memory are
+included in those metadata files. The existing private campaign HD artwork is
+reused without new image generation. Original/HD scene reviews, recorded combat
+checks and browser results are under the ignored `private/effects-review` folder.

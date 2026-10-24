@@ -141,11 +141,12 @@ impl Shadows {
             label: Some("Paletted cutout shadows"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const MAX_MIPS: u32 = {}u;\n{}\n{}\n{}",
+                    "const MAX_MIPS: u32 = {}u;\n{}\n{}\n{}\n{}",
                     super::materials::MAX_MIPS,
                     include_str!("shadow.wgsl"),
                     include_str!("palette.wgsl"),
-                    super::materials::shader(device).replace("@group(2)", "@group(1)")
+                    super::materials::shader(device).replace("@group(2)", "@group(1)"),
+                    include_str!("foliage.wgsl")
                 )
                 .into(),
             ),
@@ -264,7 +265,19 @@ impl Shadows {
                 let index = i * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
-                self.draw_face(encoder, queue, index, *matrix, settings.lamps, geometry);
+                self.draw_face(
+                    encoder,
+                    queue,
+                    index,
+                    *matrix,
+                    [
+                        u8::from(settings.lamps) as f32,
+                        frame.visual_time,
+                        frame.wind,
+                        0.0,
+                    ],
+                    geometry,
+                );
             }
         }
         let sun_matrix = super::sun::matrix(&settings.directional, camera, frame.direction);
@@ -274,7 +287,19 @@ impl Shadows {
         let sun_shadows =
             settings.enabled && settings.shadows && settings.directional.intensity > 0;
         if sun_shadows {
-            self.draw_face(encoder, queue, index, sun_matrix, settings.lamps, geometry);
+            self.draw_face(
+                encoder,
+                queue,
+                index,
+                sun_matrix,
+                [
+                    u8::from(settings.lamps) as f32,
+                    frame.visual_time,
+                    frame.wind,
+                    0.0,
+                ],
+                geometry,
+            );
         }
         data.extend([
             frame.ambient,
@@ -308,7 +333,14 @@ impl Shadows {
             0.0,
         ]);
         if self.weather_resolution > 1 {
-            self.draw_face(encoder, queue, FACES, weather_matrix, false, geometry);
+            self.draw_face(
+                encoder,
+                queue,
+                FACES,
+                weather_matrix,
+                [0.0, frame.visual_time, frame.wind, 0.0],
+                geometry,
+            );
         }
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
     }
@@ -319,7 +351,7 @@ impl Shadows {
         queue: &wgpu::Queue,
         index: usize,
         matrix: Mat4,
-        lamps: bool,
+        options: [f32; 4],
         geometry: &Geometry,
     ) {
         let target = if index == FACES {
@@ -331,7 +363,7 @@ impl Shadows {
         };
         let (buffer, bindings) = &self.faces[index];
         let mut face = matrix.to_cols_array().to_vec();
-        face.extend([u8::from(lamps) as f32, 0.0, 0.0, 0.0]);
+        face.extend(options);
         queue.write_buffer(buffer, 0, bytemuck::cast_slice(&face));
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Shadow face"),

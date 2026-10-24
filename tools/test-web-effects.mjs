@@ -21,6 +21,8 @@ await context.addInitScript(() => {
     blood: { enabled: true }, sky: { enabled: true, time: 720, speed: 10 },
     weather: { mode: "Rain", amount: 100 },
     water: { enabled: true },
+    models: { characters: 1, foliage: 1 },
+    motion: { hair: true, cloth: true, equipment: true, wind: 60 },
   } };
   localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
   window.effectsGpuErrors = [];
@@ -77,6 +79,19 @@ try {
   assert.equal((await settings()).graphics.weather.mode, "Original");
   await key("Tab"); await key("r");
   assert.equal((await settings()).graphics.water.enabled, false);
+  await key("Tab"); await key("r");
+  await key("ArrowDown"); await key("r");
+  assert.equal((await settings()).graphics.models.characters, 0);
+  assert.equal((await settings()).graphics.models.foliage, 0);
+  await key("Tab"); await key("r");
+  await key("ArrowDown"); await key("r");
+  await key("ArrowDown"); await key("r");
+  for (let i=0;i<3;i++) await key("ArrowDown");
+  await key("r");
+  const motion = (await settings()).graphics.motion;
+  assert.equal(motion.hair, false); assert.equal(motion.cloth, false);
+  assert.equal(motion.equipment, false); assert.equal(motion.wind, 0);
+  await key("Shift+Tab"); await key("Shift+Tab");
   await key("Shift+Tab");
   await key("Shift+Tab"); await key("r");
   assert.equal((await settings()).graphics.sky.enabled, false);
@@ -89,7 +104,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.effectsGpuErrors), []);
   assert.deepEqual(errors, []);
   await writeFile(`${output}/result.json`, JSON.stringify({ backend, rainFrames, state: await state(), errors }, null, 2));
-  console.log(`${backend}: rain, snow, daylight, water, F1 resets and unchanged paused state passed`);
+  console.log(`${backend}: weather, daylight, water, model refinement, secondary motion, F1 resets and unchanged paused state passed`);
 } catch (error) {
   await writeFile(`${output}/failure.json`, JSON.stringify({ error: String(error), errors,
     gpuErrors: await page.evaluate(() => window.effectsGpuErrors).catch(() => []),

@@ -10,6 +10,8 @@ struct ModelOptions {
     water_detail: u16,
     characters: u16,
     foliage: u16,
+    secondary: bool,
+    wind: bool,
 }
 
 fn model_options(graphics: &settings::Graphics) -> ModelOptions {
@@ -21,6 +23,8 @@ fn model_options(graphics: &settings::Graphics) -> ModelOptions {
         water_detail: graphics.water.detail,
         characters: graphics.models.characters,
         foliage: graphics.models.foliage,
+        secondary: graphics.motion.actors(),
+        wind: graphics.motion.wind != 0,
     }
 }
 
@@ -65,6 +69,8 @@ pub(super) struct View {
     sky: crate::visuals::sky::Clock,
     weather: crate::visuals::weather::Weather,
     spray: crate::visuals::water::Spray,
+    motion: crate::visuals::motion::Motion,
+    motion_options: settings::Motion,
     pub(super) interpolation: crate::visuals::interpolation::History,
     interpolation_enabled: bool,
     frame: Option<crate::visuals::interpolation::Frame>,
@@ -78,6 +84,8 @@ impl View {
         debug: &crate::debug::Debug,
     ) {
         self.sky.tick(game.tick, &settings.graphics.sky);
+        self.motion
+            .tick(game, &self.models, &settings.graphics.motion);
         let blood = settings.graphics.blood.enabled && settings.graphics.blood.amount != 0;
         let weather = settings.graphics.weather.mode != settings::WeatherMode::Original;
         if blood || weather {
@@ -304,6 +312,8 @@ impl View {
             sky: Default::default(),
             weather: Default::default(),
             spray,
+            motion: Default::default(),
+            motion_options: settings.graphics.motion.clone(),
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
@@ -408,6 +418,7 @@ impl View {
         self.surfaces = None;
         self.blood = Default::default();
         self.weather = Default::default();
+        self.motion = Default::default();
         self.spray = if models.has_water() {
             crate::visuals::water::Spray::new(&render_mesh::shadow_stage(
                 &game.mission,
@@ -449,6 +460,8 @@ impl View {
 
     pub(super) fn reset_interpolation(&mut self, game: &Game) {
         self.frame = None;
+        self.motion = Default::default();
+        self.models.motion.clear();
         if self.interpolation_enabled {
             self.interpolation.reset(game);
         } else {
@@ -458,6 +471,20 @@ impl View {
 
     pub(super) fn settings(&mut self, settings: &Settings, game: &Game) -> Result<()> {
         self.dirty = true;
+        let motion = &settings.graphics.motion;
+        let previous = &self.motion_options;
+        if (motion.hair, motion.cloth, motion.equipment, motion.actors())
+            != (
+                previous.hair,
+                previous.cloth,
+                previous.equipment,
+                previous.actors(),
+            )
+        {
+            self.motion = Default::default();
+            self.models.motion.clear();
+        }
+        self.motion_options = motion.clone();
         if self.interpolation_enabled != settings.graphics.interpolation {
             self.interpolation_enabled = settings.graphics.interpolation;
             self.reset_interpolation(game);
@@ -518,8 +545,9 @@ impl View {
             None
         };
         self.renderer.daylight = self.sky.sample(&settings.graphics.sky, alpha);
+        self.models.motion = self.motion.sample(alpha);
         self.renderer.weather = self.weather.sample(&settings.graphics.weather, alpha);
-        self.renderer.water_time =
+        self.renderer.visual_time =
             ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;
         let frame = self.frame.as_ref();
         self.actor = self.renderer.upload(&render_mesh::characters_presented(
@@ -630,7 +658,7 @@ impl View {
             && settings.graphics.water.enabled
         {
             let spray = self.spray.geometry(
-                self.renderer.water_time,
+                self.renderer.visual_time,
                 self.camera_matrix(game, debug),
                 &settings.graphics.water,
             );

@@ -33,6 +33,8 @@ pub struct Manifest {
     #[serde(default)]
     pub vegetation: BTreeMap<String, super::vegetation::Kind>,
     #[serde(default)]
+    pub motion: BTreeMap<String, Vec<super::motion::Rule>>,
+    #[serde(default)]
     pub models: BTreeMap<String, String>,
     #[serde(default)]
     pub materials: BTreeMap<String, Material>,
@@ -48,6 +50,7 @@ pub struct Pack {
     pub surfaces: BTreeMap<String, super::relief::Surface>,
     pub water: BTreeMap<String, super::water::Kind>,
     pub vegetation: BTreeMap<String, super::vegetation::Kind>,
+    pub motion: BTreeMap<String, Vec<super::motion::Rule>>,
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub materials: BTreeMap<String, Material>,
@@ -142,6 +145,15 @@ impl Pack {
         pack.lights = manifest.lights;
         pack.water = manifest.water;
         pack.vegetation = manifest.vegetation;
+        for rules in manifest.motion.values() {
+            if rules.len() > 4 {
+                return Err("A model part supports at most four secondary-motion rules".into());
+            }
+            for rule in rules {
+                rule.validate()?;
+            }
+        }
+        pack.motion = manifest.motion;
         if let Some(selection) = &selection {
             if !selection.player_models {
                 manifest.player_models.clear();
@@ -460,6 +472,7 @@ mod tests {
             surfaces: BTreeMap::new(),
             water: BTreeMap::new(),
             vegetation: BTreeMap::new(),
+            motion: BTreeMap::new(),
             models: BTreeMap::new(),
             materials: BTreeMap::new(),
             lights: None,

@@ -290,6 +290,7 @@ impl Player {
             Feature::Interpolation
             | Feature::ModelDetail
             | Feature::CharacterRefinement
+            | Feature::SecondaryMotion
             | Feature::PlayerModels
             | Feature::Step
             | Feature::Simulation => match tick % 120 {

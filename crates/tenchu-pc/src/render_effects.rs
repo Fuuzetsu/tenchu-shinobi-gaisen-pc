@@ -321,13 +321,32 @@ pub fn build_presented(
     {
         vertex.flags |= render_mesh::SCENERY;
     }
-    crate::visuals::appearance::visit(
+    crate::visuals::appearance::visit_parts(
         game,
         inspection || game.activation.keep_all_active,
         models,
         frame,
-        |meshes, matrix| {
+        |key, meshes, matrix| {
+            let start = surfaces.len();
             mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
+            if let Some(deformation) = models.and_then(|models| models.deformation(key, matrix)) {
+                for surface in &mut surfaces[start..] {
+                    for vertex in &mut surface.vertices {
+                        deformation.vertex(vertex);
+                    }
+                    surface.depth = surface
+                        .vertices
+                        .iter()
+                        .map(|v| {
+                            (0..3)
+                                .map(|i| v.position[i] * f32::from(view.rotation[2][i]) / 4096.0)
+                                .sum::<f32>()
+                                + view.translation[2] as f32
+                        })
+                        .sum::<f32>()
+                        / surface.vertices.len() as f32;
+                }
+            }
         },
     );
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {

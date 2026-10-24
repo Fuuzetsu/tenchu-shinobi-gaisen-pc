@@ -17,6 +17,8 @@ pub enum Feature {
     Waterfalls,
     Vegetation,
     CharacterRefinement,
+    SecondaryMotion,
+    Breeze,
     TextureSampling,
     Reconstruction,
     Antialiasing,

@@ -205,6 +205,7 @@ their original artwork. These private assets and videos are not included in Git.
 | Weather | `rain` and `snow`: precipitation over Mission 1 roofs, gradual exposed-surface coatings, shelter and roof runoff. |
 | Water | `water` and `waterfalls`: matching views of pond ripples/sky sheen and curved falls with restrained spray. |
 | Model refinement | `vegetation` and `character-refinement`: fuller cutout clusters, refined trunks and character surfaces with original joints/UVs. |
+| Secondary motion | `secondary-motion`, `equipment-motion`, `breeze`: Ayame's hair/bow, Rikimaru's garment/equipment flex and a wind sweep through the garden with matching shadows. |
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
 | Player model | `bodies`: compatible disc bodies and configured folder bodies, with original animation and weapons. |
 

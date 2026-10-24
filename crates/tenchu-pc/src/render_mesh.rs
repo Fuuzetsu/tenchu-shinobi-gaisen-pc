@@ -31,6 +31,8 @@ pub const ORIGINAL_WEATHER: u32 = 32768;
 pub const WATER: u32 = 65536;
 pub const WATERFALL: u32 = 131072;
 pub const FOLIAGE: u32 = 262144;
+pub const FLUTTER: u32 = 524288;
+pub const WIND_WEIGHT_SHIFT: u32 = 24;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -299,8 +301,8 @@ pub fn shadow_models_presented(
         )
     };
     visit_hinged_parts(game, &mut append);
-    crate::visuals::appearance::visit(game, true, models, frame, |geometry, matrix| {
-        append_caster(&mut vertices, geometry, matrix, models);
+    crate::visuals::appearance::visit_parts(game, true, models, frame, |key, geometry, matrix| {
+        append_character(&mut vertices, geometry, matrix, models, key, true);
     });
     vertices
 }
@@ -327,8 +329,38 @@ pub fn characters_presented(
     frame: Option<&Frame>,
 ) -> Vec<Vertex> {
     let mut vertices = Vec::new();
-    crate::visuals::appearance::visit(game, inspection, models, frame, |geometry, matrix| {
-        append_geometry(&mut vertices, geometry, matrix, models)
-    });
+    crate::visuals::appearance::visit_parts(
+        game,
+        inspection,
+        models,
+        frame,
+        |key, geometry, matrix| {
+            append_character(&mut vertices, geometry, matrix, models, key, false)
+        },
+    );
     vertices
+}
+
+fn append_character(
+    vertices: &mut Vec<Vertex>,
+    geometry: &[Geometry],
+    matrix: Matrix,
+    models: Option<&Models>,
+    key: Part,
+    shadow: bool,
+) {
+    if models.is_some_and(|models| {
+        models.visit_part(key, geometry, matrix, !shadow, |triangle| {
+            if shadow || triangle[0].flags & TRANSLUCENT == 0 {
+                vertices.extend(triangle);
+            }
+        })
+    }) {
+        return;
+    }
+    if shadow {
+        append_caster(vertices, geometry, matrix, models);
+    } else {
+        append_geometry(vertices, geometry, matrix, models);
+    }
 }

@@ -133,6 +133,24 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::HairMotion => {
+                self.settings.graphics.motion.hair = !self.settings.graphics.motion.hair
+            }
+            Item::ClothMotion => {
+                self.settings.graphics.motion.cloth = !self.settings.graphics.motion.cloth
+            }
+            Item::EquipmentMotion => {
+                self.settings.graphics.motion.equipment = !self.settings.graphics.motion.equipment
+            }
+            Item::MotionStrength | Item::MotionResponse | Item::MotionWind => {
+                let motion = &mut self.settings.graphics.motion;
+                let (value, max) = match item {
+                    Item::MotionStrength => (&mut motion.strength, 200),
+                    Item::MotionResponse => (&mut motion.response, 100),
+                    _ => (&mut motion.wind, 100),
+                };
+                *value = (i32::from(*value) + direction * 5).clamp(0, max) as u16;
+            }
             Item::CharacterRefinement | Item::FoliageDetail => {
                 let options = &mut self.settings.graphics.models;
                 let value = if item == Item::CharacterRefinement {

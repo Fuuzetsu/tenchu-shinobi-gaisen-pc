@@ -10,6 +10,8 @@ mod water;
 pub use water::Water;
 mod models;
 pub use models::Models;
+mod motion;
+pub use motion::Motion;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -70,6 +72,7 @@ pub struct Graphics {
     pub weather: Weather,
     pub water: Water,
     pub models: Models,
+    pub motion: Motion,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -100,6 +103,7 @@ impl Default for Graphics {
             weather: Weather::default(),
             water: Water::default(),
             models: Models::default(),
+            motion: Motion::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -130,6 +134,8 @@ impl Graphics {
             || self.sky.enabled && self.sky.speed != 0
             || self.weather.mode.precipitates() && self.weather.amount != 0
             || self.water.enabled && self.water.flow != 0
+            || self.motion.actors()
+            || self.motion.wind != 0
     }
 
     pub fn filtering(&self) -> u16 {
@@ -275,6 +281,7 @@ impl Store {
                 settings.graphics.weather.validate();
                 settings.graphics.water.validate();
                 settings.graphics.models.validate();
+                settings.graphics.motion.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

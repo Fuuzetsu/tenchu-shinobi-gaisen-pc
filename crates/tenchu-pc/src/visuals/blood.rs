@@ -64,20 +64,6 @@ pub struct Blood {
     seed: u32,
 }
 
-fn canonical(part: Part) -> Part {
-    match part {
-        Part::Actor {
-            root, model, kind, ..
-        } => Part::Actor {
-            root,
-            model,
-            kind,
-            inspection: false,
-        },
-        other => other,
-    }
-}
-
 fn translation(matrix: Matrix) -> Vec3 {
     Vec3::from(matrix.translation.map(|v| v as f32).to_array())
 }
@@ -90,7 +76,7 @@ fn transforms(
 ) -> BTreeMap<Part, Matrix> {
     let mut parts = BTreeMap::new();
     appearance::visit_parts(game, inspection, Some(models), frame, |key, _, matrix| {
-        parts.insert(canonical(key), matrix);
+        parts.insert(key.canonical(), matrix);
     });
     render_mesh::visit_hinged_parts(game, |key, _, matrix| {
         parts.insert(key, Frame::transform(frame, key, matrix));
@@ -222,7 +208,7 @@ impl Blood {
             {
                 let mut vertices = Vec::new();
                 render_mesh::append_geometry(&mut vertices, geometry, matrix, Some(models));
-                parts.push((canonical(key), matrix, vertices));
+                parts.push((key.canonical(), matrix, vertices));
             }
         });
         let approach = game
@@ -516,10 +502,21 @@ impl Blood {
                         continue;
                     }
                     let normal = rotation.inverse().transpose();
-                    vertices.extend(patch.vertices.iter().map(|v| Vertex {
-                        position: (rotation * Vec3::from(v.position) + offset).to_array(),
-                        normal: (normal * Vec3::from(v.normal)).to_array(),
-                        ..*v
+                    let deformation = patch.part.and_then(|key| {
+                        transforms
+                            .get(&key)
+                            .and_then(|&matrix| models.deformation(key, matrix))
+                    });
+                    vertices.extend(patch.vertices.iter().map(|v| {
+                        let mut vertex = Vertex {
+                            position: (rotation * Vec3::from(v.position) + offset).to_array(),
+                            normal: (normal * Vec3::from(v.normal)).to_array(),
+                            ..*v
+                        };
+                        if let Some(deformation) = &deformation {
+                            deformation.vertex(&mut vertex);
+                        }
+                        vertex
                     }));
                 }
             }

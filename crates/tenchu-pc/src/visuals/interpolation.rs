@@ -21,6 +21,22 @@ pub enum Part {
     },
 }
 
+impl Part {
+    pub fn canonical(self) -> Self {
+        match self {
+            Self::Actor {
+                root, model, kind, ..
+            } => Self::Actor {
+                root,
+                model,
+                kind,
+                inspection: false,
+            },
+            other => other,
+        }
+    }
+}
+
 struct Snapshot {
     tick: u64,
     parts: BTreeMap<Part, Matrix>,
