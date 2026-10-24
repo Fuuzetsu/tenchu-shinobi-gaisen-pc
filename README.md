@@ -641,6 +641,16 @@ asynchronous and optional when the adapter lacks timestamp queries; they exclude
 the egui overlay. CPU and GPU overlap, so their totals should not be added.
 Photo mode hides the charts along with the other inspection overlays.
 
+**F1 → Experiment** provides mission-only tools: god mode (health is preserved,
+with normal hit reactions), never-noticed stealth, and click-to-teleport. Close
+F1 and left-click a collision floor to teleport repeatedly; Escape cancels the
+mode. It works with the normal camera or the free camera. Item sliders edit
+carried quantities, including 0 to remove and 255 for unlimited; Give all
+supplies ten of each and Clear empties the equipment. Armour protection can be
+toggled independently of the outfit selected at mission load. Internal item
+timers and campaign stock/unlocks are preserved. These edits end input recording;
+a new mission restores ordinary gameplay. Cutscenes retain their scripted behavior.
+
 **F1 → Persistent effects → Persistent blood** keeps cosmetic wound stains on
 animated bodies and projects drops onto scenery, doors and trapdoors. Amount,
 bleeding duration and retained-stain limit are adjustable; **Clear blood** removes
@@ -665,20 +675,29 @@ The cycle is off by default. `demo --clips day-cycle` shows a day in twenty seco
 scenery as daylight rises, so midday can look like daytime while preserving the
 artwork. Set it to 0 to keep all original vertex shading throughout the cycle.
 
-**F1 → Weather** selects Original, Clear, Rain or Snow. Original is the default
-and retains the mission's original weather; overrides change presentation only.
-Precipitation, wind strength/direction, detail, wetness, snow cover and roof runoff
-are adjustable. Rain stops on static stage geometry, splashes and runs down
-sloped surfaces before dripping over edges. Wet shading builds gradually and
-dries in clear weather; a thin snow coat builds on exposed upward surfaces and
-melts after snow stops. A top-down shelter map respects actual model cutouts and
-keeps covered floors dry. These are bounded cosmetic particles and surface
-coatings, without fluid volumes, snow collision, footprints or flood simulation.
-Low/Medium/High detail caps precipitation at 384/896/1792 particles and uses a
-256/512/1024 shelter map around the camera. Runoff and splashes have separate
-limits. Pauses freeze weather; changing missions/models or selecting Original
-clears it. The original game still updates its weather RNG even when hidden.
+**F1 → Weather** selects Original, Clear, Rain or Snow. Original retains the
+mission's weather; overrides change presentation only. Precipitation, wind,
+detail, particle distance, wetness, snow cover and roof runoff are adjustable.
+Wind carries particles under eaves, while walls shelter areas downwind. Rain
+splashes, runs down sloped surfaces and drips over edges. Wetness builds gradually
+and dries in clear weather; snow coats exposed upward surfaces and slowly melts.
+Near and whole-stage shelter maps respect scenery cutouts. Moving actors cast
+lighting shadows without erasing snow beneath them. Fog and particle distance do
+not limit accumulated ground coverage. Model/artwork changes preserve accumulation.
+
+Snow footprints follow players' and humanoid enemies' animated feet and project
+onto actual ground triangles. Fresh snowfall buries them gradually; F1 controls
+the burial time and provides a clear action. Ground blood stains absorb the snow
+material. Tracks, particles and decals are bounded cosmetic effects; collision
+is unchanged and there is no fluid/flood simulation. Low/Medium/High weather
+caps precipitation at 384/896/1792 particles, shared between near and distant
+layers, with 256/512/1024 shelter maps. Pauses freeze weather; changing missions
+or selecting Original clears it. Original weather RNG still updates when hidden.
 `demo --clips rain,snow` reviews both effects on Mission 1's roofs.
+
+With dynamic lighting enabled, **F1 → Lighting → Fire / explosion lights** also
+lights grenades, kaen and their burning embers. Flashes fade with the real effects,
+cluster nearby particles, and share the existing light/shadow budgets.
 
 **F1 → Water** adds optional moving ripple normals, angle-dependent sky sheen,
 sun/moon highlights, faint foam and waterfall mist. It works with original or

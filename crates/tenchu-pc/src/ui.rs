@@ -4,7 +4,7 @@ use crate::{
 };
 use tenchu_core::progress::{INFINITE, LOCKED, Loadout};
 
-const ITEMS: [&str; 20] = [
+pub(crate) const ITEMS: [&str; 20] = [
     "Grappling hook",
     "Shuriken",
     "Caltrops",

@@ -87,6 +87,7 @@ pub struct Brain {
 pub struct Intelligence {
     pub difficulty: Difficulty,
     pub sight_percent: u16,
+    pub ignore_player: bool,
     pub attack_clock: i32,
     pub alert: i32,
     pub strain: i32,
@@ -108,6 +109,7 @@ impl Default for Intelligence {
         Self {
             difficulty: Difficulty::Normal,
             sight_percent: 100,
+            ignore_player: false,
             attack_clock: 0,
             alert: 0,
             strain: 0,
@@ -128,7 +130,9 @@ impl Default for Intelligence {
 
 impl Intelligence {
     pub fn reset_alert(&mut self) {
-        self.alert = if self.difficulty == Difficulty::Hard {
+        self.alert = if self.ignore_player {
+            0
+        } else if self.difficulty == Difficulty::Hard {
             600
         } else {
             300

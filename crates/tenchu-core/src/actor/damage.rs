@@ -115,7 +115,9 @@ impl Actor {
                 };
                 let damage =
                     ctx.mission.weapons.attacks[enemy.attack_id(ctx, enemy.motion.action)].power;
-                self.health = self.health.wrapping_sub(damage);
+                if !self.invulnerable {
+                    self.health = self.health.wrapping_sub(damage);
+                }
                 if self.health < 0 || self.attribute & ATTR_WEAPON_DRAWN == 0 {
                     self.health = 0;
                 }
@@ -255,7 +257,7 @@ impl Actor {
         self.snap_attack(ctx);
         let mut damage = power;
         if source == world.player {
-            if self.attribute & ATTR_WEAPON_DRAWN == 0 {
+            if self.attribute & ATTR_WEAPON_DRAWN == 0 && !self.invulnerable {
                 self.health = 0;
             }
             damage = damage.wrapping_add(world.intelligence.difficulty.damage_bonus());
@@ -304,7 +306,9 @@ impl Actor {
             MOT_DAMAGE_BACK_HEAVY,
             MOT_DAMAGE_LAUNCH_FORE,
         ];
-        self.health = self.health.wrapping_sub(damage);
+        if !self.invulnerable {
+            self.health = self.health.wrapping_sub(damage);
+        }
         let (mut next, movement);
         if self.health <= 0 {
             self.health = 0;
@@ -467,7 +471,9 @@ impl Actor {
         if self.id == world.player && world.combat.armor {
             damage = damage * 7 / 10;
         }
-        self.health = self.health.wrapping_sub(damage);
+        if !self.invulnerable {
+            self.health = self.health.wrapping_sub(damage);
+        }
         let voice = if self.health <= 0 {
             self.health = 0;
             if !matches!(next, MOT_DAMAGE_LAUNCH_BACK | MOT_DAMAGE_LAUNCH_FORE) {

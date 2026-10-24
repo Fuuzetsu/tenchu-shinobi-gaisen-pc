@@ -17,7 +17,7 @@ impl Application {
         ];
         let (origin, direction) =
             crate::debug::camera::ray(self.debug.matrix(&self.campaign.game, aspect), ndc);
-        if self.debug.teleport_armed {
+        if self.debug.teleport_armed || self.debug.click_teleport {
             if let Some(point) =
                 crate::debug::terrain::pick(&self.debug.surfaces, origin, direction)
             {
@@ -52,6 +52,48 @@ impl Application {
             self.menu.notice = "Recording ended before gameplay edit".into();
             eprintln!("Recording ended before gameplay edit; the saved prefix remains replayable.");
         }
+    }
+
+    fn mission_edit(&self) -> Result<()> {
+        if !self.campaign.playing()
+            || self.campaign.game.cinematic.active
+            || self.campaign.game.player().health <= 0
+        {
+            return Err("Experiment controls require a living player outside a cutscene".into());
+        }
+        Ok(())
+    }
+
+    pub(super) fn set_god_mode(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            self.mission_edit()?;
+        }
+        self.stop_edited_recording();
+        let player = self.campaign.game.player_id;
+        self.campaign.game.roster.get_mut(player).invulnerable = enabled;
+        self.debug.update(&self.campaign.game);
+        Ok(())
+    }
+
+    pub(super) fn set_stealth(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            self.mission_edit()?;
+        }
+        self.stop_edited_recording();
+        self.campaign.game.intelligence.ignore_player = enabled;
+        if enabled {
+            self.campaign.game.intelligence.alert = 0;
+        }
+        self.debug.update(&self.campaign.game);
+        Ok(())
+    }
+
+    pub(super) fn set_inventory(&mut self, slot: usize, count: u8) -> Result<()> {
+        self.mission_edit()?;
+        self.stop_edited_recording();
+        self.campaign.game.set_inventory(slot, count)?;
+        self.debug.update(&self.campaign.game);
+        Ok(())
     }
 
     pub(super) fn set_sight(&mut self, value: u16) {
@@ -133,6 +175,36 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,
+            Item::Stealth => self.set_stealth(!self.debug.stealth)?,
+            Item::ClickTeleport => {
+                self.mission_edit()?;
+                self.debug.click_teleport = !self.debug.click_teleport;
+            }
+            Item::Inventory(slot) => {
+                let count = (i32::from(self.debug.inventory[slot]) + direction).clamp(0, 255) as u8;
+                self.set_inventory(slot, count)?;
+            }
+            Item::GiveItems | Item::ClearItems => {
+                for slot in 0..19 {
+                    self.set_inventory(
+                        slot,
+                        if item == Item::ClearItems {
+                            0
+                        } else if slot == 0 {
+                            255
+                        } else {
+                            10
+                        },
+                    )?;
+                }
+            }
+            Item::Armor => {
+                self.mission_edit()?;
+                self.stop_edited_recording();
+                self.campaign.game.combat.armor = !self.campaign.game.combat.armor;
+                self.debug.update(&self.campaign.game);
+            }
             Item::HairMotion => {
                 self.settings.graphics.motion.hair = !self.settings.graphics.motion.hair
             }
@@ -601,6 +673,8 @@ impl Application {
                     (i32::from(self.settings.volume) + direction * 5).clamp(0, 100) as u16
             }
             Item::Reset => {
+                self.set_god_mode(false)?;
+                self.set_stealth(false)?;
                 self.keep_enemies_active(false);
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
@@ -747,6 +821,9 @@ impl Application {
                 self.menu.open = false;
             }
             Item::ResetTweaks => {
+                self.set_god_mode(false)?;
+                self.set_stealth(false)?;
+                self.debug.click_teleport = false;
                 self.debug.speed = 100;
                 self.set_sight(100);
                 self.keep_enemies_active(false);

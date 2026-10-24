@@ -8,6 +8,25 @@ use crate::{
 };
 
 impl Game {
+    pub fn set_inventory(&mut self, kind: usize, count: u8) -> Result<()> {
+        if kind >= 19 {
+            return Err("Only equipment slots can be edited".into());
+        }
+        if self.cinematic.active || self.player().health <= 0 {
+            return Err("Inventory editing requires a living player outside a cutscene".into());
+        }
+        self.roster.get_mut(self.player_id).inventory[kind] = count;
+        if self
+            .hud
+            .selected
+            .is_none_or(|slot| self.player().inventory[slot] == 0)
+        {
+            self.hud.selected = self.player().inventory[..19].iter().position(|&n| n != 0);
+            self.hud.cursor = self.hud.selected.unwrap_or(0);
+        }
+        Ok(())
+    }
+
     pub fn teleport_player(&mut self, mut position: Position, snap_to_floor: bool) -> Result<()> {
         if self.cinematic.active || self.player().scripted || self.player().health <= 0 {
             return Err("Teleport requires a living player outside a cutscene".into());

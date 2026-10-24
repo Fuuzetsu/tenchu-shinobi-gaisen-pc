@@ -47,8 +47,13 @@ read-only state and bounded geometry; native GPU checks cover distant coating,
 stains, footprints and restoration when disabled. Grenades, embers and kaen now contribute short-lived, clustered light sources
 using actual effect lifetimes, with two priority slots in the existing light
 budget. Real-disc item-use tests verify flashes appear, expire and leave game
-state untouched; camera-orbit stability still passes. Experimentation controls
-and final combined/browser validation remain in progress.
+state untouched; camera-orbit stability still passes. F1 now has a mission-only Experiment page: god mode, never-noticed stealth,
+left-click teleport, per-item quantities (255 unlimited), refill/clear and armour
+protection. Inventory edits preserve internal timers and stop ordinary recording;
+cheats reset with a new mission. Real combat verifies both characters retain
+health and hit reactions, then take damage after disabling; an alerted guard
+returns idle under stealth and detects again when disabled. Inventory validation
+and actual item use pass. Final combined/browser validation remains in progress.
 
 ## Persistent effects, weather, models and water (complete)
 

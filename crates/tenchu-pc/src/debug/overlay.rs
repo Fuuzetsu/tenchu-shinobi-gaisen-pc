@@ -136,6 +136,13 @@ pub fn light_markers(
             ));
         }
     }
+    if debug.click_teleport && debug.camera.is_none() {
+        labels.push(Label(
+            Anchor::BottomLeft([10.0, 24.0]),
+            "TELEPORT  Click a floor · Esc: cancel".into(),
+            [0.7, 0.95, 1.0],
+        ));
+    }
     let count = lines.vertices.len() as u32;
     let geometry = Geometry {
         vertices: lines.vertices,
@@ -368,12 +375,19 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
         ));
         labels.push(Label(
             Anchor::BottomLeft([10.0, 24.0]),
-            if debug.teleport_armed {
+            if debug.teleport_armed || debug.click_teleport {
                 "Click collision floor to teleport"
             } else {
                 "RMB: look  Click: actor  F2: return"
             }
             .into(),
+            [0.7, 0.95, 1.0],
+        ));
+    }
+    if debug.click_teleport && debug.camera.is_none() {
+        labels.push(Label(
+            Anchor::BottomLeft([10.0, 24.0]),
+            "TELEPORT  Click a floor · Esc: cancel".into(),
             [0.7, 0.95, 1.0],
         ));
     }

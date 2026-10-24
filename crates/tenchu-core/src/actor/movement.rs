@@ -567,7 +567,9 @@ impl Actor {
                             } else {
                                 MOT_DAMAGE_SLAM_FORE
                             };
-                            self.health = self.health.wrapping_sub(10).max(0);
+                            if !self.invulnerable {
+                                self.health = self.health.wrapping_sub(10).max(0);
+                            }
                             world.intelligence.voices.push((self.id, 8));
                             world.combat.request_life(self);
                             (action, false)

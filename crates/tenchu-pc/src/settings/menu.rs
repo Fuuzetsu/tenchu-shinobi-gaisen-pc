@@ -3,6 +3,13 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    GodMode,
+    Stealth,
+    ClickTeleport,
+    Inventory(usize),
+    GiveItems,
+    ClearItems,
+    Armor,
     HairMotion,
     ClothMotion,
     EquipmentMotion,
@@ -156,6 +163,8 @@ impl Item {
         matches!(
             self,
             Self::Reset
+                | Self::GiveItems
+                | Self::ClearItems
                 | Self::ClearBlood
                 | Self::ClearFootprints
                 | Self::ReloadModels
@@ -205,7 +214,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 17] = [
+pub const PAGES: [&str; 18] = [
     "General",
     "Graphics",
     "Overlays",
@@ -223,10 +232,57 @@ pub const PAGES: [&str; 17] = [
     "Water",
     "Model refinement",
     "Secondary motion",
+    "Experiment",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        17 => {
+            let mut rows = vec![
+                (
+                    Item::GodMode,
+                    "God mode",
+                    on(d.god_mode),
+                    "Prevent combat and fall damage. Hit reactions still play; enabling does not refill health.",
+                ),
+                (
+                    Item::Stealth,
+                    "Never noticed",
+                    on(d.stealth),
+                    "Enemies ignore the player and return to their idle/patrol behavior. Cutscene scripts remain active.",
+                ),
+                (
+                    Item::ClickTeleport,
+                    "Click to teleport",
+                    on(d.click_teleport),
+                    "Close F1, then left-click a collision floor to move there. Works in the normal or free camera; Escape cancels the mode.",
+                ),
+                (
+                    Item::GiveItems,
+                    "Give all equipment",
+                    "10 each".into(),
+                    "Refill mission equipment and the grappling hook. No edits to campaign stock or unlocks.",
+                ),
+                (
+                    Item::ClearItems,
+                    "Clear equipment",
+                    "Clear".into(),
+                    "Empty carried equipment. Already active items finish normally.",
+                ),
+                (
+                    Item::Armor,
+                    "Armour protection",
+                    on(d.armor),
+                    "Toggle the armour damage reduction. The equipped outfit is chosen when the mission loads.",
+                ),
+            ];
+            rows.extend(d.inventory.iter().enumerate().map(|(slot, count)| (
+                Item::Inventory(slot), crate::ui::ITEMS[slot], format!("{count}"),
+                "Edit the mission quantity: 0 removes the item, 255 is unlimited. Internal item timers are preserved.",
+            )));
+            rows
+        }
+
         16 => {
             let motion = &s.graphics.motion;
             vec![

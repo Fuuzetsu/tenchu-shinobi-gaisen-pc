@@ -484,9 +484,9 @@ impl ApplicationHandler for Application {
             WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. }
                 if self.menu.open || self.demo.is_some() => {}
             WindowEvent::MouseInput { state, button, .. }
-                if self.debug.camera.is_some() && self.focused =>
+                if (self.debug.camera.is_some() || self.debug.click_teleport) && self.focused =>
             {
-                if button == MouseButton::Right {
+                if button == MouseButton::Right && self.debug.camera.is_some() {
                     if state == ElementState::Released {
                         self.release_pointer();
                     } else if let Some(view) = &self.view {
@@ -580,6 +580,12 @@ impl ApplicationHandler for Application {
                         }
                         self.release_pointer();
                         self.sync_pause();
+                        self.update_view();
+                        return;
+                    }
+                    if code == KeyCode::Escape && self.debug.click_teleport {
+                        self.debug.click_teleport = false;
+                        self.release_pointer();
                         self.update_view();
                         return;
                     }

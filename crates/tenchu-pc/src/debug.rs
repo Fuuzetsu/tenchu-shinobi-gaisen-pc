@@ -32,6 +32,11 @@ pub struct Debug {
     pub target: tenchu_core::math::Position,
     pub snap_to_floor: bool,
     pub teleport_armed: bool,
+    pub click_teleport: bool,
+    pub god_mode: bool,
+    pub stealth: bool,
+    pub inventory: [u8; 19],
+    pub armor: bool,
     pub speed: u16,
     pub sight_percent: u16,
     pub frame_step: bool,
@@ -66,6 +71,11 @@ impl Debug {
             target: game.player().position,
             snap_to_floor: true,
             teleport_armed: false,
+            click_teleport: false,
+            god_mode: game.player().invulnerable,
+            stealth: game.intelligence.ignore_player,
+            inventory: game.player().inventory[..19].try_into().unwrap(),
+            armor: game.combat.armor,
             speed: 100,
             sight_percent: 100,
             frame_step: false,
@@ -80,6 +90,8 @@ impl Debug {
     }
 
     pub fn reload(&mut self, game: &Game) -> Result<()> {
+        self.click_teleport = false;
+        self.update(game);
         self.camera = None;
         self.looking = false;
         self.bookmark = None;
@@ -178,6 +190,11 @@ impl Debug {
     }
 
     pub fn update(&mut self, game: &Game) {
+        self.god_mode = game.player().invulnerable;
+        self.stealth = game.intelligence.ignore_player;
+        self.inventory
+            .copy_from_slice(&game.player().inventory[..19]);
+        self.armor = game.combat.armor;
         if self.last_tick != game.tick {
             if game.tick < self.last_tick {
                 self.trail.clear();
@@ -198,6 +215,7 @@ impl Debug {
 
     pub fn active(&self) -> bool {
         self.camera.is_some()
+            || self.click_teleport
             || self.hitboxes
             || self.sight
             || self.collision

@@ -23,6 +23,15 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::GodMode => self.set_god_mode(false)?,
+            Item::Stealth => self.set_stealth(false)?,
+            Item::ClickTeleport => self.debug.click_teleport = false,
+            Item::Inventory(slot) => self.set_inventory(slot, 0)?,
+            Item::Armor => {
+                if self.debug.armor {
+                    self.apply_item(Item::Armor, 1)?;
+                }
+            }
             Item::HairMotion => self.settings.graphics.motion.hair = s.graphics.motion.hair,
             Item::ClothMotion => self.settings.graphics.motion.cloth = s.graphics.motion.cloth,
             Item::EquipmentMotion => {

@@ -106,6 +106,29 @@ impl Controller<'_, '_> {
             )?;
             self.state.probe_attribute[i] = self.ctx.cursor.attribute;
         }
+        if self.state.ignore_player
+            && !player
+            && !self.actor.scripted
+            && (self.player_target() || self.actor.target.is_none())
+        {
+            if self.attribute & ATTR_PHASE != 0 {
+                self.actor.clear_attack(self.ctx, 3)?;
+                self.actor.attribute = base;
+                let action = self.actor.return_normal(self.ctx, self.player.id)?;
+                self.actor.enter(self.ctx, action, true);
+            }
+            self.attribute = base;
+            self.state.alert = 0;
+            let pad = if matches!(self.actor.think[0], 8 | 9) {
+                0
+            } else {
+                self.program(0)?
+            };
+            self.attribute &= !(ATTR_PHASE | ATTR_SEARCH);
+            self.state.detection = Detection::Gone;
+            self.finish(pad & !(SQUARE | TRIANGLE), saved_strain);
+            return Ok(());
+        }
         let mut pad = match self.attribute & ATTR_PHASE {
             0 => {
                 self.state.strain = self.state.strain.min(player_distance);
