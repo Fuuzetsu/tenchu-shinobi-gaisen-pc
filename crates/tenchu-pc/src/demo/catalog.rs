@@ -10,6 +10,7 @@ pub enum Feature {
     FireLights,
     Shadows,
     Moon,
+    DayCycle,
     TextureSampling,
     Reconstruction,
     Antialiasing,

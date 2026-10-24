@@ -47,6 +47,7 @@ pub(super) struct View {
     emitters: Emitters,
     surfaces: Option<crate::visuals::surfaces::Surfaces>,
     pub(super) blood: crate::visuals::blood::Blood,
+    sky: crate::visuals::sky::Clock,
     pub(super) interpolation: crate::visuals::interpolation::History,
     interpolation_enabled: bool,
     frame: Option<crate::visuals::interpolation::Frame>,
@@ -54,6 +55,7 @@ pub(super) struct View {
 
 impl View {
     pub(super) fn cosmetic_tick(&mut self, game: &Game, settings: &Settings) {
+        self.sky.tick(game.tick, &settings.graphics.sky);
         if settings.graphics.blood.enabled && settings.graphics.blood.amount != 0 {
             let surfaces = self.surfaces.get_or_insert_with(|| {
                 crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
@@ -255,6 +257,7 @@ impl View {
             emitters,
             surfaces: None,
             blood: Default::default(),
+            sky: Default::default(),
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
@@ -327,6 +330,7 @@ impl View {
     }
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
+        self.sky = Default::default();
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
@@ -454,6 +458,7 @@ impl View {
         } else {
             None
         };
+        self.renderer.daylight = self.sky.sample(&settings.graphics.sky, alpha);
         let frame = self.frame.as_ref();
         self.actor = self.renderer.upload(&render_mesh::characters_presented(
             game,
@@ -473,10 +478,11 @@ impl View {
             },
         );
         self.lights = sources.iter().map(|s| s.light).collect();
-        let shadowing = settings.graphics.lighting.enabled
+        let shadowing = (settings.graphics.lighting.enabled || settings.graphics.sky.enabled)
             && settings.graphics.lighting.shadows
             && ((settings.graphics.lighting.shadow_count > 0 && !self.lights.is_empty())
-                || settings.graphics.lighting.directional.intensity > 0);
+                || settings.graphics.lighting.directional.intensity > 0
+                || settings.graphics.sky.enabled);
         if shadowing && self.shadow_stage.is_none() {
             self.shadow_stage = Some(self.renderer.upload(&render_mesh::shadow_stage(
                 &game.mission,

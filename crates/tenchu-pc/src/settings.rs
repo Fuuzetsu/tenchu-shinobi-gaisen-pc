@@ -2,6 +2,8 @@ mod blood;
 pub mod menu;
 pub mod overlay;
 pub use blood::Blood;
+mod sky;
+pub use sky::Sky;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -58,6 +60,7 @@ impl Default for Settings {
 #[serde(default)]
 pub struct Graphics {
     pub blood: Blood,
+    pub sky: Sky,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -84,6 +87,7 @@ impl Default for Graphics {
     fn default() -> Self {
         Self {
             blood: Blood::default(),
+            sky: Sky::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -248,6 +252,7 @@ impl Store {
                 settings.graphics.surface_strength = settings.graphics.surface_strength.min(100);
                 settings.graphics.post.validate();
                 settings.graphics.blood.validate();
+                settings.graphics.sky.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

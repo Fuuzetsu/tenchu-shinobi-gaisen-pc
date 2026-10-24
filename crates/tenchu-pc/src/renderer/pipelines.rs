@@ -13,7 +13,7 @@ impl From<&crate::settings::Graphics> for Options {
     fn from(graphics: &crate::settings::Graphics) -> Self {
         Self {
             filtering: graphics.bilinear || graphics.mipmaps || graphics.magnification != 0,
-            lighting: graphics.lighting.enabled,
+            lighting: graphics.lighting.enabled || graphics.sky.enabled,
             relief: graphics.surface_detail != 0,
             hdr: graphics.post.enabled,
         }

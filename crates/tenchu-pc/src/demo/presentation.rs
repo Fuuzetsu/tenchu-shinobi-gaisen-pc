@@ -101,6 +101,13 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     }
     match player.clip().feature {
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
+        Feature::DayCycle => {
+            g.sky.enabled = true;
+            g.sky.time = 360;
+            g.sky.speed = 72;
+            g.lighting.enabled = true;
+            g.lighting.count = 4;
+        }
         Feature::Lanterns => {
             g.lighting.enabled = true;
             g.lighting.intensity = (wave * 220.0).round() as u16;
@@ -404,6 +411,14 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         Feature::Presets => text(crate::settings::presets::NAMES[g.preset() as usize].into()),
         Feature::Lanterns => meter("Point-light strength (%)", l.intensity, 220),
         Feature::Moon => meter("Moon strength (%)", l.directional.intensity, 100),
+        Feature::DayCycle => {
+            let minutes = (360.0 + player.time() * 72.0) as u32 % 1440;
+            text(format!(
+                "{:02}:{:02} · moving sun/moon shadows · original game logic",
+                minutes / 60,
+                minutes % 60
+            ))
+        }
         Feature::FireLights => text(format!("Authored fire lights: {}", on(l.fires))),
         Feature::Shadows => {
             text(["Shadows off", "Hard model shadows", "Soft model shadows"][section(p, 3)].into())

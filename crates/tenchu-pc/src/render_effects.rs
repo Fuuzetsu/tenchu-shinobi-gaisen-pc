@@ -308,16 +308,23 @@ pub fn build_presented(
     let inspection = camera.is_some();
     let view = camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view));
     let mut surfaces = Vec::new();
-    let mut translucent = |meshes: &[tenchu_assets::model::Geometry], matrix| {
+    render_mesh::visit_stage(&game.mission, &game.math, |meshes, matrix| {
         mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
-    };
-    render_mesh::visit_stage(&game.mission, &game.math, &mut translucent);
+    });
+    for vertex in surfaces
+        .iter_mut()
+        .flat_map(|surface| &mut surface.vertices)
+    {
+        vertex.flags |= render_mesh::SCENERY;
+    }
     crate::visuals::appearance::visit(
         game,
         inspection || game.activation.keep_all_active,
         models,
         frame,
-        &mut translucent,
+        |meshes, matrix| {
+            mesh_surfaces(&mut surfaces, meshes, matrix, view, true, true, models);
+        },
     );
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
         if index == 25 && !blob_shadows {

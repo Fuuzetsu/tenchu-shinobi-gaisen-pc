@@ -265,13 +265,31 @@ fn widget(
         return response;
     }
     if let Some((min, max, step, scale)) = range(item) {
-        let current = number(&row.value) / scale;
+        let current = if item == Item::TimeOfDay {
+            clock_minutes(&row.value).unwrap_or(0.0)
+        } else {
+            number(&row.value) / scale
+        };
         let mut value = current;
         let response = ui.add(
             egui::Slider::new(&mut value, min..=max)
                 .clamping(egui::SliderClamping::Edits)
                 .step_by(step)
-                .custom_formatter(|v, _| format!("{}", (v * scale).round() as i32)),
+                .custom_formatter(move |v, _| {
+                    let value = (v * scale).round() as i32;
+                    if item == Item::TimeOfDay {
+                        format!("{:02}:{:02}", value / 60, value % 60)
+                    } else {
+                        value.to_string()
+                    }
+                })
+                .custom_parser(move |text| {
+                    if item == Item::TimeOfDay {
+                        clock_minutes(text)
+                    } else {
+                        text.parse().ok()
+                    }
+                }),
         );
         if response.changed() {
             let delta = ((value - current) / step).round() as i32;
@@ -353,6 +371,16 @@ fn widget(
     .response
 }
 
+fn clock_minutes(text: &str) -> Option<f64> {
+    if let Some((hours, minutes)) = text.trim().split_once(':') {
+        let hours: u16 = hours.parse().ok()?;
+        let minutes: u16 = minutes.parse().ok()?;
+        (hours < 24 && minutes < 60).then_some(f64::from(hours * 60 + minutes))
+    } else {
+        text.parse().ok()
+    }
+}
+
 fn strings(values: &[&str]) -> Vec<String> {
     values.iter().map(|v| (*v).into()).collect()
 }
@@ -364,6 +392,11 @@ fn number(text: &str) -> f64 {
 
 fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
     let (min, max, step, scale) = match item {
+        Item::TimeOfDay => (0, 1425, 15, 1),
+        Item::TimeSpeed => (0, 120, 1, 1),
+        Item::SunPath => (0, 345, 15, 1),
+        Item::SunStrength | Item::MoonStrength => (0, 200, 5, 1),
+        Item::DayAmbient | Item::NightAmbient | Item::DayRelighting => (0, 100, 5, 1),
         Item::BloodAmount => (0, 200, 10, 1),
         Item::BloodSeconds => (0, 60, 2, 1),
         Item::BloodMarks => (32, 1024, 32, 1),
@@ -411,6 +444,8 @@ mod tests {
             (Item::Exposure, "135%"),
             (Item::Temperature, "-8"),
             (Item::Volume, "37%"),
+            (Item::TimeOfDay, "08:07"),
+            (Item::TimeOfDay, "23:59"),
         ] {
             let ctx = egui::Context::default();
             let mut menu = Menu::default();

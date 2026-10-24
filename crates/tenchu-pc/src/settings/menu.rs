@@ -3,6 +3,15 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    TimeClock,
+    TimeOfDay,
+    TimeSpeed,
+    SunStrength,
+    MoonStrength,
+    DayAmbient,
+    NightAmbient,
+    SunPath,
+    DayRelighting,
     Blood,
     BloodAmount,
     BloodSeconds,
@@ -168,7 +177,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 12] = [
+pub const PAGES: [&str; 13] = [
     "General",
     "Graphics",
     "Overlays",
@@ -181,10 +190,88 @@ pub const PAGES: [&str; 12] = [
     "Image effects",
     "Player model",
     "Persistent effects",
+    "Time of day",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        12 => {
+            let sky = &s.graphics.sky;
+            vec![
+                (
+                    Item::TimeClock,
+                    "Sun / moon cycle",
+                    on(sky.enabled),
+                    "Optional moving sky and lighting; replaces the manual sky light while enabled.",
+                ),
+                (
+                    Item::TimeOfDay,
+                    "Start time",
+                    format!("{:02}:{:02}", sky.time / 60, sky.time % 60),
+                    "24-hour clock. Editing restarts the visual clock here; 06:00 sunrise, 18:00 sunset.",
+                ),
+                (
+                    Item::TimeSpeed,
+                    "Time lapse",
+                    format!("{} min/s", sky.speed),
+                    "Game minutes per second of simulation; 0 holds the selected time. Pausing also pauses the sky.",
+                ),
+                (
+                    Item::SunStrength,
+                    "Sun strength",
+                    format!("{}%", sky.sun),
+                    "Daylight intensity; sunrise and sunset fade smoothly.",
+                ),
+                (
+                    Item::MoonStrength,
+                    "Moon strength",
+                    format!("{}%", sky.moon),
+                    "Moonlight is weaker than sunlight at the same percentage.",
+                ),
+                (
+                    Item::DayAmbient,
+                    "Day ambient",
+                    format!("{}%", sky.day_ambient),
+                    "Diffuse sky light at midday; blends through twilight.",
+                ),
+                (
+                    Item::NightAmbient,
+                    "Night ambient",
+                    format!("{}%", sky.night_ambient),
+                    "Diffuse sky light at midnight; local lamps still fill shadows.",
+                ),
+                (
+                    Item::SunPath,
+                    "Sun path compass",
+                    format!("{} deg", sky.heading),
+                    "Rotate the whole sun and moon path around the stage.",
+                ),
+                (
+                    Item::DayRelighting,
+                    "Daylight relighting",
+                    format!("{}%", sky.relighting),
+                    "Fade the original baked night shading in daylight; texture artwork and actual moving shadows remain.",
+                ),
+                (
+                    Item::Shadows,
+                    "Dynamic shadows",
+                    on(s.graphics.lighting.shadows),
+                    "Cast shadows from models, weapons and scenery as the light moves.",
+                ),
+                (
+                    Item::DirectionalResolution,
+                    "Sky shadow resolution",
+                    s.graphics.lighting.directional.resolution.to_string(),
+                    "Shared with the manual sky light; one shadow map for the current sun or moon.",
+                ),
+                (
+                    Item::DirectionalRadius,
+                    "Shadow coverage radius",
+                    format!("{}k", s.graphics.lighting.directional.radius),
+                    "Larger area trades nearby shadow detail for coverage.",
+                ),
+            ]
+        }
         11 => vec![
             (
                 Item::Blood,

@@ -10,6 +10,7 @@ pub mod obj;
 pub mod pack;
 pub mod pixels;
 pub mod relief;
+pub mod sky;
 mod smooth;
 pub mod surfaces;
 

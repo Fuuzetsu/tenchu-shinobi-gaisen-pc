@@ -33,7 +33,7 @@ For a guided tour, run the modular [feature showcase](DEMOS.md):
 ./dev.sh cargo run --release -- demo '/path/to/game.cue' --clips moon,shadows,motion --loop
 ```
 
-Its 37 clips stage visual, simulation and inspection comparisons with animated
+Its clips stage visual, simulation and inspection comparisons with animated
 controls and short captions. Tab opens the clip picker; Space pauses, arrows
 change clip, Home restarts, H hides captions and V hides transport controls.
 Use `demo --list` for clip IDs or `--clean` for uncaptioned recording. Each clip
@@ -651,6 +651,18 @@ is inferred from original blood and damage events, rather than adding hit-locati
 gameplay. Stains are held in memory, bounded by both count and geometry; changing
 mission, reloading models/artwork or disabling the feature clears them. They are
 not written into campaign saves.
+
+**F1 → Time of day → Sun / moon cycle** replaces the manual sky light with a
+continuous day/night cycle, sky gradient and moving shadows. Set the start time
+with the 24-hour slider (or type `12:30`), and use **Time lapse** for game minutes
+per second; 0 holds that time. Sun/moon intensity, day/night ambient light and
+path orientation are independent controls. The original 30 Hz simulation drives
+the cosmetic clock, with interpolated lighting between ticks; pauses freeze it.
+The clock is separate from mission scripts and the AI's lighting/detection rules.
+The cycle is off by default. `demo --clips day-cycle` shows a day in twenty seconds.
+**Daylight relighting** fades the original baked night shading on textured
+scenery as daylight rises, so midday can look like daytime while preserving the
+artwork. Set it to 0 to keep all original vertex shading throughout the cycle.
 
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally

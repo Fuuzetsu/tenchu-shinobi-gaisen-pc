@@ -56,6 +56,11 @@ pub struct Review {
 }
 
 impl Review {
+    #[cfg(test)]
+    pub fn configure(&mut self, graphics: Graphics) {
+        self.graphics = graphics;
+    }
+
     pub fn backdrop(&mut self, shade: f32) -> Mesh {
         self.renderer.upload(&crate::render_effects::quad(
             [

@@ -9,6 +9,7 @@ mod overlay;
 mod pipelines;
 mod post;
 mod shadows;
+mod sky;
 mod sun;
 pub mod timing;
 
@@ -59,6 +60,7 @@ pub struct Renderer {
     samples: u32,
     multisample: Option<wgpu::TextureView>,
     graphics: crate::settings::Graphics,
+    pub daylight: Option<crate::visuals::sky::Daylight>,
     shadows: shadows::Shadows,
     materials: materials::Materials,
 }
@@ -207,6 +209,7 @@ impl Renderer {
             samples: 1,
             multisample: None,
             graphics,
+            daylight: None,
             shadows,
             materials,
         };
@@ -422,7 +425,12 @@ impl Renderer {
                 u8::from(self.graphics.bilinear) as f32
             },
         ]);
-        camera.extend(self.graphics.post.fog_color());
+        let daylight = self.graphics.sky.enabled.then_some(self.daylight).flatten();
+        let fog_color = daylight.map_or_else(
+            || self.graphics.post.fog_color(),
+            |sky| sky.horizon.to_array(),
+        );
+        camera.extend(fog_color);
         camera.push(if self.post.is_some() {
             f32::from(self.graphics.post.haze) / 100.0
         } else {
@@ -431,8 +439,8 @@ impl Renderer {
         camera.extend([
             f32::from(self.graphics.surface_detail),
             f32::from(self.graphics.surface_strength) / 100.0,
-            0.0,
-            0.0,
+            daylight.map_or(0.0, |sky| sky.relighting),
+            daylight.map_or(0.0, |sky| sky.day),
         ]);
         let inverse = matrix.inverse();
         let origin = inverse * glam::Vec4::new(0.0, 0.0, 1.0, 0.0);
@@ -451,12 +459,13 @@ impl Renderer {
         {
             timer.begin(&self.device, &mut encoder);
         }
+        let lighting = sun::Frame::new(&self.graphics.lighting, daylight);
         self.shadows
-            .configure(&self.device, &self.graphics.lighting, lights.len());
+            .configure(&self.device, &lighting.settings, lights.len());
         self.shadows.draw(
             &mut encoder,
             &self.queue,
-            &self.graphics.lighting,
+            &lighting,
             matrix,
             lights,
             &shadows::Geometry {
@@ -472,8 +481,9 @@ impl Renderer {
             post.prepare(&self.queue, matrix, &self.graphics);
         }
         {
+            let sky = daylight.map(|_| self.upload(&sky::geometry(matrix)));
             let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
-            let clear = self.graphics.post.fog_color().map(f64::from);
+            let clear = fog_color.map(f64::from);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Scene"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -504,6 +514,10 @@ impl Renderer {
             pass.set_bind_group(0, &self.bindings, &[]);
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
+            if let Some(sky) = &sky {
+                pass.set_vertex_buffer(0, sky.buffer.slice(..));
+                pass.draw(0..sky.count, 0..1);
+            }
             for mesh in meshes {
                 if mesh.count == 0 {
                     continue;

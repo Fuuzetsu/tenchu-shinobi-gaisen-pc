@@ -11,6 +11,7 @@ const EMITTER: u32 = 512u;
 const SCENERY: u32 = 1024u;
 const ALPHA: u32 = 2048u;
 const STAIN: u32 = 4096u;
+const SKY: u32 = 8192u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -89,6 +90,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     var color = v.color;
     var emission = vec4(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
+    if (v.flags & (SCENERY | TEXTURED)) == (SCENERY | TEXTURED) {
+        color = mix(color, vec3(1.0), camera.detail.z);
+    }
     var semi = (v.flags & TRANSLUCENT) != 0u;
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
@@ -143,6 +147,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
+    if (v.flags & SKY) != 0u { return sky_color(v.normal); }
     let color = shade(v, front_facing, false);
     return vec4(color.rgb, 1.0);
 }
@@ -156,4 +161,18 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     let color = shade(v, front_facing, false);
     return vec4(color.rgb, clamp(v.opacity, 0.0, 1.0));
+}
+
+fn sky_color(direction: vec3<f32>) -> vec4<f32> {
+    let ray = normalize(direction);
+    let height = clamp(-ray.y, 0.0, 1.0);
+    let top = mix(vec3(0.00015, 0.0004, 0.0015), vec3(0.018, 0.08, 0.23), camera.detail.w);
+    var color = mix(camera.fog_color.rgb, top, pow(height, 0.45));
+    let alignment = max(0.0, dot(ray, lighting.sun_direction.xyz));
+    let disc = smoothstep(cos(0.007), cos(0.0045), alignment);
+    let halo = pow(alignment, 500.0) * 0.12;
+    color += lighting.sun_color.rgb * (disc * 2.0 + halo) * min(1.0, lighting.sun_direction.w * 12.0);
+    color *= camera.options.x;
+    if camera.viewport.z == 0.0 { color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)); }
+    return vec4(color, 1.0);
 }

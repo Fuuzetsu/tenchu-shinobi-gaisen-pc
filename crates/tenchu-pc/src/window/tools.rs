@@ -133,6 +133,37 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::TimeClock => {
+                self.settings.graphics.sky.enabled = !self.settings.graphics.sky.enabled
+            }
+            Item::TimeOfDay => {
+                self.settings.graphics.sky.time = (i32::from(self.settings.graphics.sky.time)
+                    + direction * 15)
+                    .rem_euclid(1440) as u16
+            }
+            Item::SunPath => {
+                self.settings.graphics.sky.heading = (i32::from(self.settings.graphics.sky.heading)
+                    + direction * 15)
+                    .rem_euclid(360) as u16
+            }
+            Item::TimeSpeed
+            | Item::SunStrength
+            | Item::MoonStrength
+            | Item::DayAmbient
+            | Item::NightAmbient
+            | Item::DayRelighting => {
+                let sky = &mut self.settings.graphics.sky;
+                let (value, step, max) = match item {
+                    Item::TimeSpeed => (&mut sky.speed, 1, 120),
+                    Item::SunStrength => (&mut sky.sun, 5, 200),
+                    Item::MoonStrength => (&mut sky.moon, 5, 200),
+                    Item::DayAmbient => (&mut sky.day_ambient, 5, 100),
+                    Item::DayRelighting => (&mut sky.relighting, 5, 100),
+                    _ => (&mut sky.night_ambient, 5, 100),
+                };
+                *value = (i32::from(*value) + direction * step).clamp(0, max) as u16;
+            }
+
             Item::Blood => {
                 self.settings.graphics.blood.enabled = !self.settings.graphics.blood.enabled
             }

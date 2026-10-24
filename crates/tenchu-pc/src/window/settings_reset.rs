@@ -23,6 +23,19 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::TimeClock => self.settings.graphics.sky.enabled = s.graphics.sky.enabled,
+            Item::TimeOfDay => self.settings.graphics.sky.time = s.graphics.sky.time,
+            Item::TimeSpeed => self.settings.graphics.sky.speed = s.graphics.sky.speed,
+            Item::SunStrength => self.settings.graphics.sky.sun = s.graphics.sky.sun,
+            Item::MoonStrength => self.settings.graphics.sky.moon = s.graphics.sky.moon,
+            Item::DayAmbient => self.settings.graphics.sky.day_ambient = s.graphics.sky.day_ambient,
+            Item::NightAmbient => {
+                self.settings.graphics.sky.night_ambient = s.graphics.sky.night_ambient
+            }
+            Item::SunPath => self.settings.graphics.sky.heading = s.graphics.sky.heading,
+            Item::DayRelighting => {
+                self.settings.graphics.sky.relighting = s.graphics.sky.relighting
+            }
             Item::Blood => self.settings.graphics.blood.enabled = s.graphics.blood.enabled,
             Item::BloodAmount => self.settings.graphics.blood.amount = s.graphics.blood.amount,
             Item::BloodSeconds => self.settings.graphics.blood.seconds = s.graphics.blood.seconds,

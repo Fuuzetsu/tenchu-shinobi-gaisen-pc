@@ -217,11 +217,12 @@ impl Shadows {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         queue: &wgpu::Queue,
-        settings: &Lighting,
+        frame: &super::sun::Frame,
         camera: Mat4,
         lights: &[Light],
         geometry: &Geometry,
     ) {
+        let settings = &frame.settings;
         let count = if settings.enabled {
             lights.len().min(MAX_LIGHTS)
         } else {
@@ -242,7 +243,7 @@ impl Shadows {
                 self.draw_face(encoder, queue, index, *matrix, settings.lamps, geometry);
             }
         }
-        let sun_matrix = super::sun::matrix(&settings.directional, camera);
+        let sun_matrix = super::sun::matrix(&settings.directional, camera, frame.direction);
         let index = FACES - 1;
         data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
             .copy_from_slice(&sun_matrix.to_cols_array());
@@ -252,7 +253,7 @@ impl Shadows {
             self.draw_face(encoder, queue, index, sun_matrix, settings.lamps, geometry);
         }
         data.extend([
-            f32::from(settings.ambient) / 100.0,
+            frame.ambient,
             f32::from(settings.intensity) / 100.0,
             count as f32,
             if !settings.enabled {
@@ -266,16 +267,12 @@ impl Shadows {
         data.extend([
             u8::from(settings.lamps) as f32,
             f32::from(settings.softness),
-            f32::from(settings.sky_tint) / 100.0,
+            frame.tint,
             0.0,
         ]);
         data.extend(sun_matrix.inverse().to_cols_array());
-        data.extend(
-            super::sun::direction(&settings.directional)
-                .extend(f32::from(settings.directional.intensity) / 400.0)
-                .to_array(),
-        );
-        data.extend(super::sun::color(&settings.directional));
+        data.extend(frame.direction.extend(frame.strength).to_array());
+        data.extend(frame.color.to_array());
         data.push(u8::from(sun_shadows) as f32);
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
     }

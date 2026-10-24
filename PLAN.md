@@ -65,6 +65,19 @@ permanent save-file edits; complex hit locations are inferred from source effect
 Weather, moving sky, model upgrades, secondary motion, water and expanded demo
 coverage remain active deliverables.
 
+Time-of-day implementation: an optional F1 page drives a continuous, interpolated
+sun/moon path, twilight color, separate day/night ambient levels, configurable
+path orientation, sky gradient and real directional shadows. The clock follows
+simulation ticks and pauses, with a midnight-safe interpolation path. An explicit
+daylight-relighting control fades baked night vertex shading on textured scenery;
+without this, the original assets remain visibly night-lit even under noon sun.
+Turning the cycle off restores the original manual-light behavior. The built-in
+`day-cycle` clip stages Mission 1 rooftops for a twenty-second day. Geometry/GPU
+checks confirm moving shadows and exact restoration when disabled; an actual
+scene comparison isolates shadows and baked shading. Native and WASM checks pass.
+Weather/coverage/runoff, improved models, secondary motion, water and combined
+browser/demo review are still required.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

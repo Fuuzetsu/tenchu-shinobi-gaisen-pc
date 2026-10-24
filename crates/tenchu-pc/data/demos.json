@@ -405,5 +405,30 @@
     "preset": 1,
     "feature": "artwork",
     "shot": "player"
+  },
+  {
+    "id": "day-cycle",
+    "title": "From sunrise to moonlight",
+    "description": "A complete day in twenty seconds. Sun and moon shadows move across the original scenery; warm lamps remain visible after dark.",
+    "seconds": 20,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "day-cycle",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -48300,
+        -7600,
+        -39400
+      ],
+      "target": [
+        -44667,
+        -5000,
+        -34667
+      ],
+      "fov": 55
+    }
   }
 ]
