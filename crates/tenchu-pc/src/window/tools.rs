@@ -197,6 +197,19 @@ impl Application {
                     (i32::from(self.settings.graphics.weather.quality) + direction).rem_euclid(3)
                         as u16;
             }
+            Item::Footprints => {
+                self.settings.graphics.weather.footprints =
+                    !self.settings.graphics.weather.footprints
+            }
+            Item::FootprintSeconds => {
+                let seconds = &mut self.settings.graphics.weather.footprint_seconds;
+                *seconds = (i32::from(*seconds) + direction * 10).clamp(10, 180) as u16;
+            }
+            Item::ClearFootprints => {
+                if let Some(view) = &mut self.view {
+                    view.footprints.clear();
+                }
+            }
             Item::WeatherDistance => {
                 let distance = &mut self.settings.graphics.weather.distance;
                 *distance = (i32::from(*distance) + direction * 20).clamp(20, 240) as u16;

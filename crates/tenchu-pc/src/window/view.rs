@@ -68,6 +68,7 @@ pub(super) struct View {
     pub(super) blood: crate::visuals::blood::Blood,
     sky: crate::visuals::sky::Clock,
     weather: crate::visuals::weather::Weather,
+    pub(super) footprints: crate::visuals::footprints::Footprints,
     spray: crate::visuals::water::Spray,
     motion: crate::visuals::motion::Motion,
     motion_options: settings::Motion,
@@ -104,6 +105,14 @@ impl View {
                 let center = debug.eye(game);
                 self.weather
                     .tick(game.tick, center, surfaces, &settings.graphics.weather);
+                self.footprints.tick(
+                    game,
+                    &self.models,
+                    surfaces,
+                    &settings.graphics.weather,
+                    self.weather.sample(&settings.graphics.weather, 1.0).snow,
+                    center,
+                );
             }
         }
         if !blood {
@@ -111,6 +120,7 @@ impl View {
         }
         if !weather {
             self.weather = Default::default();
+            self.footprints.clear();
         }
     }
 
@@ -311,6 +321,7 @@ impl View {
             blood: Default::default(),
             sky: Default::default(),
             weather: Default::default(),
+            footprints: Default::default(),
             spray,
             motion: Default::default(),
             motion_options: settings.graphics.motion.clone(),
@@ -388,6 +399,7 @@ impl View {
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
         self.sky = Default::default();
         self.weather = Default::default();
+        self.footprints = Default::default();
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
@@ -504,6 +516,11 @@ impl View {
         }
         if settings.graphics.weather.mode == settings::WeatherMode::Original {
             self.weather = Default::default();
+        }
+        if settings.graphics.weather.mode == settings::WeatherMode::Original
+            || !settings.graphics.weather.footprints
+        {
+            self.footprints.clear();
         }
         self.renderer.configure(&settings.graphics);
         if self.window.fullscreen().is_some() != settings.fullscreen {
@@ -644,6 +661,9 @@ impl View {
             && !debug.collision_only
             && settings.graphics.weather.mode != settings::WeatherMode::Original
         {
+            let mut footprints = self.footprints.geometry(&settings.graphics.weather);
+            footprints.append(geometry);
+            geometry = footprints;
             geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
             let mut weather = self.weather.geometry(
                 self.camera_matrix(game, debug),

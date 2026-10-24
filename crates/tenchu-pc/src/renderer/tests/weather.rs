@@ -170,3 +170,79 @@ fn weather_on_actual_roofs() {
     }
     assert_eq!(state, crate::session::tests::state(&game));
 }
+
+#[test]
+#[ignore = "requires a GPU; distant snow and projected blood/footprints share the snow surface"]
+fn distant_snow_and_surface_stains() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let p = [
+        [-100000.0, 0.0, -100000.0],
+        [100000.0, 0.0, -100000.0],
+        [-100000.0, 0.0, 100000.0],
+        [100000.0, 0.0, 100000.0],
+    ];
+    let vertices = [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+        position: p[i],
+        normal: Vec3::NEG_Y.to_array(),
+        color: [0.15; 3],
+        flags: render_mesh::DOUBLE_SIDED | render_mesh::SCENERY,
+        opacity: 1.0,
+        ..Vertex::zeroed()
+    });
+    let ground = renderer.upload(&vertices);
+    let camera = Mat4::orthographic_rh(-100000.0, 100000.0, -100000.0, 100000.0, 1.0, 300000.0)
+        * Mat4::look_at_rh(Vec3::new(0.0, -200000.0, 0.0), Vec3::ZERO, Vec3::Z);
+    let capture = |renderer: &mut Renderer, effect: Option<&EffectMesh>| {
+        renderer
+            .draw_lit(&view, camera, &[&ground], effect, &[], &[&ground])
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let original = capture(&mut renderer, None);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.weather.mode = crate::settings::WeatherMode::Snow;
+    renderer.configure(&graphics);
+    renderer.weather.snow = 1.0;
+    let snow = capture(&mut renderer, None);
+    for x in [6, 32, 58] {
+        assert!(
+            snow[(32 * 64 + x) * 4] > original[(32 * 64 + x) * 4] + 70,
+            "snow at x={x}"
+        );
+    }
+    let mut decal = |flag| {
+        renderer.upload_effects(render_effects::Geometry {
+            vertices: vertices
+                .iter()
+                .map(|v| Vertex {
+                    flags: v.flags | render_mesh::ALPHA | flag,
+                    ..*v
+                })
+                .collect(),
+            batches: vec![render_effects::Batch {
+                blend: 5,
+                range: 0..6,
+            }],
+        })
+    };
+    let blood = decal(render_mesh::STAIN);
+    let foot = decal(render_mesh::FOOTPRINT);
+    let stain = capture(&mut renderer, Some(&blood));
+    let track = capture(&mut renderer, Some(&foot));
+    let at = (32 * 64 + 32) * 4;
+    assert!(stain[at] > stain[at + 1] + 40);
+    assert!(track[at] < snow[at] - 30 && track[at] > original[at] + 30);
+    renderer.weather.snow = 0.0;
+    let bare_blood = capture(&mut renderer, Some(&blood));
+    assert!(
+        stain[at] > bare_blood[at] + 30,
+        "blood should stain the white snow rather than expose the dark substrate"
+    );
+    assert_eq!(
+        capture(&mut renderer, Some(&foot)),
+        capture(&mut renderer, None)
+    );
+    renderer.configure(&crate::settings::Graphics::default());
+    assert_eq!(capture(&mut renderer, Some(&foot)), original);
+}

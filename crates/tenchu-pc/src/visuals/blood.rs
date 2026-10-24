@@ -158,6 +158,7 @@ impl Blood {
             radius,
             depth: 15.0,
             seed: self.seed,
+            shape: None,
         };
         let patch = if let Some(index) = hinge {
             let (key, matrix, surface) = &surfaces.hinges[index];
@@ -271,6 +272,7 @@ impl Blood {
             radius: 120.0 + f32::from(settings.amount.min(200)) * 0.8,
             depth: 32.0,
             seed: self.seed,
+            shape: None,
         };
         let mut patches = Vec::new();
         for &(key, matrix, ref vertices) in &parts {

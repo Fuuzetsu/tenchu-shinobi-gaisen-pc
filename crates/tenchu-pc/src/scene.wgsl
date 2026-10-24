@@ -15,6 +15,7 @@ const SKY: u32 = 8192u;
 const SOFT: u32 = 16384u;
 const WATER: u32 = 65536u;
 const WATERFALL: u32 = 131072u;
+const FOOTPRINT: u32 = 1048576u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32>, motion: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -129,7 +130,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
     }
     if semi != translucent_pass { discard; }
-    if (v.flags & STAIN) != 0u {
+    if (v.flags & (STAIN | SCENERY)) == STAIN {
         color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
@@ -138,8 +139,18 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);
     }
-    if WEATHER_ENABLED && (v.flags & (SCENERY | ALPHA | TRANSLUCENT | WATER)) == SCENERY {
+    let surface_decal = (v.flags & (STAIN | FOOTPRINT)) != 0u;
+    if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY
+        && ((v.flags & ALPHA) == 0u || surface_decal) {
         color = weather_surface(color, normal, v.world, linear_lighting);
+    }
+    if (v.flags & (SCENERY | STAIN)) == (SCENERY | STAIN) {
+        var absorption = vec3(0.52, 0.025, 0.045);
+        if linear_lighting { absorption = pow(absorption, vec3(2.2)); }
+        color *= absorption;
+    }
+    if (v.flags & FOOTPRINT) != 0u {
+        color *= vec3(0.55, 0.62, 0.73);
     }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
@@ -172,6 +183,10 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     let color = shade(v, front_facing, false);
     var opacity = v.opacity;
+    if (v.flags & FOOTPRINT) != 0u {
+        if !WEATHER_ENABLED { discard; }
+        opacity *= weather_snow(normalize(v.normal), v.world);
+    }
     if (v.flags & SOFT) != 0u { opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv)); }
     return vec4(color.rgb, clamp(opacity, 0.0, 1.0));
 }

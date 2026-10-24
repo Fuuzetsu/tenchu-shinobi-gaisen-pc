@@ -213,6 +213,7 @@ pub struct Stamp {
     pub radius: f32,
     pub depth: f32,
     pub seed: u32,
+    pub shape: Option<(Vec3, f32)>,
 }
 
 impl Stamp {
@@ -225,15 +226,24 @@ impl Stamp {
         if face_normal.dot(self.normal).abs() < 0.3 || self.radius <= 0.0 {
             return;
         }
-        let tangent = self.normal.any_orthonormal_vector();
+        let mut tangent = self.shape.map_or_else(
+            || self.normal.any_orthonormal_vector(),
+            |(forward, _)| (forward - self.normal * forward.dot(self.normal)).normalize_or_zero(),
+        );
+        if tangent.length_squared() < 0.5 {
+            tangent = self.normal.any_orthonormal_vector();
+        }
         let bitangent = self.normal.cross(tangent);
         let mut polygon = triangle.to_vec();
         let planes = std::array::from_fn::<_, 12, _>(|side| {
             let angle =
                 (side as f32 + (self.seed % 32) as f32 / 32.0) * std::f32::consts::TAU / 12.0;
             let normal = tangent * angle.cos() + bitangent * angle.sin();
-            let radius =
-                self.radius * (0.85 + 0.15 * ((side as u32 * 7 + self.seed) % 11) as f32 / 10.0);
+            let radius = self.radius
+                * self.shape.map_or_else(
+                    || 0.85 + 0.15 * ((side as u32 * 7 + self.seed) % 11) as f32 / 10.0,
+                    |(_, width)| (angle.cos().powi(2) + (angle.sin() * width).powi(2)).sqrt(),
+                );
             (normal, radius)
         });
         for (normal, radius) in planes {
@@ -346,6 +356,7 @@ mod tests {
             radius: 5.,
             depth: 0.2,
             seed: 1,
+            shape: None,
         };
         let projected = surface.project(&stamp);
         assert!(!projected.is_empty());

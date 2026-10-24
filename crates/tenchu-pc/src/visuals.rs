@@ -3,6 +3,7 @@ pub mod blood;
 pub mod catalog;
 #[cfg(not(target_arch = "wasm32"))]
 mod export;
+pub mod footprints;
 pub mod interpolation;
 pub mod lights;
 pub mod models;

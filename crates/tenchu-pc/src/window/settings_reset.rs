@@ -65,6 +65,13 @@ impl Application {
                 self.settings.graphics.weather.distance = s.graphics.weather.distance
             }
             Item::Wetness => self.settings.graphics.weather.wetness = s.graphics.weather.wetness,
+            Item::Footprints => {
+                self.settings.graphics.weather.footprints = s.graphics.weather.footprints
+            }
+            Item::FootprintSeconds => {
+                self.settings.graphics.weather.footprint_seconds =
+                    s.graphics.weather.footprint_seconds
+            }
             Item::SnowCover => self.settings.graphics.weather.snow = s.graphics.weather.snow,
             Item::RoofRunoff => self.settings.graphics.weather.runoff = s.graphics.weather.runoff,
             Item::TimeClock => self.settings.graphics.sky.enabled = s.graphics.sky.enabled,

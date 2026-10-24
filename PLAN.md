@@ -39,8 +39,13 @@ precipitation direction, and a bounded distant particle layer has an F1 range
 control independent of fog. Four CPU regressions cover accumulation, particle
 bounds, wind entering eaves and wall shelter. Two native GPU regressions cover
 coatings, original restoration, moving actor exclusion and shifted wind shelter.
-Footprints, stained snow, item lights, experimentation controls and final scene/
-browser validation remain in progress.
+Footprints now follow both players' and humanoid enemies' animated feet, project
+onto actual ground triangles, and fade beneath fresh snowfall. F1 exposes a
+toggle, burial time and clear action. Ground blood absorbs the snowy material
+instead of revealing the substrate. Real-disc walking checks cover both players,
+read-only state and bounded geometry; native GPU checks cover distant coating,
+stains, footprints and restoration when disabled. Item lights, experimentation
+controls and final combined/browser validation remain in progress.
 
 ## Persistent effects, weather, models and water (complete)
 

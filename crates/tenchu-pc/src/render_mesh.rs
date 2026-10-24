@@ -32,6 +32,7 @@ pub const WATER: u32 = 65536;
 pub const WATERFALL: u32 = 131072;
 pub const FOLIAGE: u32 = 262144;
 pub const FLUTTER: u32 = 524288;
+pub const FOOTPRINT: u32 = 1048576;
 pub const WIND_WEIGHT_SHIFT: u32 = 24;
 
 #[repr(C)]

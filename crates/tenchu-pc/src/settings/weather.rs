@@ -38,6 +38,8 @@ pub struct Weather {
     pub wetness: u16,
     pub snow: u16,
     pub runoff: bool,
+    pub footprints: bool,
+    pub footprint_seconds: u16,
 }
 
 impl Default for Weather {
@@ -52,6 +54,8 @@ impl Default for Weather {
             wetness: 70,
             snow: 60,
             runoff: true,
+            footprints: true,
+            footprint_seconds: 60,
         }
     }
 }
@@ -65,6 +69,7 @@ impl Weather {
         self.distance = self.distance.clamp(20, 240);
         self.wetness = self.wetness.min(100);
         self.snow = self.snow.min(100);
+        self.footprint_seconds = self.footprint_seconds.clamp(10, 180);
     }
 
     pub fn particles(&self) -> usize {

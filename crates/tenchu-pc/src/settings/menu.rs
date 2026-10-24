@@ -26,6 +26,9 @@ pub enum Item {
     WeatherDistance,
     Wetness,
     SnowCover,
+    Footprints,
+    FootprintSeconds,
+    ClearFootprints,
     RoofRunoff,
     TimeClock,
     TimeOfDay,
@@ -154,6 +157,7 @@ impl Item {
             self,
             Self::Reset
                 | Self::ClearBlood
+                | Self::ClearFootprints
                 | Self::ReloadModels
                 | Self::FocusPlayer
                 | Self::FocusActor
@@ -376,6 +380,24 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Snow cover",
                     format!("{}%", weather.snow),
                     "Thin cosmetic coverage grows on exposed upward surfaces, then melts when snow stops.",
+                ),
+                (
+                    Item::Footprints,
+                    "Snow footprints",
+                    on(weather.footprints),
+                    "Players and humanoid enemies leave grounded tracks in snow. Fresh snowfall gradually covers them.",
+                ),
+                (
+                    Item::FootprintSeconds,
+                    "Fresh-snow burial",
+                    format!("{} s", weather.footprint_seconds),
+                    "Time for full snowfall to cover tracks; lighter snow takes longer. Tracks also fade slowly when snowfall stops.",
+                ),
+                (
+                    Item::ClearFootprints,
+                    "Clear footprints",
+                    "Clear".into(),
+                    "Remove retained tracks without resetting snow coverage.",
                 ),
                 (
                     Item::RoofRunoff,

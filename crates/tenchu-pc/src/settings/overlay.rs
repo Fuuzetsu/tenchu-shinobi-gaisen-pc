@@ -404,6 +404,7 @@ fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
         Item::MotionResponse | Item::MotionWind => (0, 100, 5, 1),
         Item::WeatherAmount | Item::WeatherWind | Item::Wetness | Item::SnowCover => (0, 100, 5, 1),
         Item::WeatherHeading => (0, 345, 15, 1),
+        Item::FootprintSeconds => (10, 180, 10, 1),
         Item::WeatherDistance => (20, 240, 20, 1),
         Item::WaterRipples | Item::WaterReflections | Item::WaterFoam | Item::WaterSpray => {
             (0, 100, 5, 1)

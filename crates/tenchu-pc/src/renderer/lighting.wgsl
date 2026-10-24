@@ -54,6 +54,13 @@ fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
     return shelter;
 }
 
+fn weather_snow(normal: vec3<f32>, position: vec3<f32>) -> f32 {
+    let slope = clamp(-normal.y, 0.0, 1.0);
+    let coverage = lighting.weather.y * weather_exposure(normal, position) * smoothstep(0.35, 0.85, slope);
+    let variation = weather_noise(position / 450.0);
+    return smoothstep(variation * 0.55, variation * 0.55 + 0.45, coverage);
+}
+
 fn weather_surface(input: vec3<f32>, normal: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y <= 0.0 { return input; }
     let slope = clamp(-normal.y, 0.0, 1.0);
