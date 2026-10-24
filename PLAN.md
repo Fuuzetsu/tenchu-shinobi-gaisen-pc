@@ -183,24 +183,30 @@ blood, sky/weather, water, model and motion demonstrations. Private review
 artifacts and machine-readable validation are under `private/effects-review`.
 Original defaults and game/core source are unchanged throughout this goal.
 
-## Effects showcase recording (in progress)
+## Effects showcase recording (complete)
 
-Prepare a focused recording of the new features: water/falls, moving sky,
-rain/runoff, snow coating, vegetation and breeze, character refinement,
-Ayame/Rikimaru secondary motion and persistent blood. The curated catalog has
-eleven chapters and a 186-second timeline, with shorter comparisons and longer
-weather/combat holds. Use the existing offline 4K/60 silent export, freeze the
-artwork/executable/catalog, inspect each section, verify every frame timestamp
-and full decoding, and supply a local watch page plus YouTube chapter text.
-The capture lives under `private/effects-showcase`; reusable validation is now
-available through `tools/verify-demo-video.py`.
+Delivered `private/effects-showcase/tenchu-effects-showcase-4k60.mp4`: **3:06,
+3840×2160, 60 fps, silent**, with eleven chapters covering water/falls, moving
+sky, rain/runoff, snow coating, vegetation and breeze, character refinement,
+Ayame/Rikimaru secondary motion and persistent blood. Comparisons switch quickly;
+weather and combat have longer holds. The existing campaign HD artwork remains
+constant. The frozen executable, catalog, isolated settings and asset hashes sit
+beside the recording, together with a live launcher and reproducible export script.
 
-The first export passed complete decoding and timestamp checks. Scene review
-found that bottom captions covered garment motion in the closeups. Player-shot
-captions now sit at the top, and the two model comparison features use fixed
-morning light to make their shapes readable. Weather demonstrations use the
-highest bounded particle detail. Formatting, workspace Clippy and all six
-fixture-free demo tests pass; the revised recording is being reviewed.
+All 11,160 presentation timestamps occur exactly once. Full decoding reports no
+errors; 4K/60, progressive H.264/BT.709, silent output, fast-start layout, chapter
+titles/durations and unchanged input hashes pass. Forty-four sampled frames,
+four per chapter, were visually inspected. Player-shot captions now sit above
+the action; fixed morning light makes character refinement and secondary motion
+clearer. Weather demonstrations use the highest bounded particle detail.
+Formatting, workspace Clippy and all six fixture-free demo tests pass.
+
+The watch page at `http://127.0.0.1:44115/` passed actual browser playback and all
+eleven chapter jumps without media or page errors. `youtube-description.txt`
+contains the upload chapter text; nothing was uploaded. Run
+`./private/effects-showcase/play.sh` for the live sequence and its clip picker,
+or `./private/effects-showcase/render.sh /path/to/new-video.mp4` to export again.
+The reusable `tools/verify-demo-video.py` checks any offline demo export.
 
 ## Campaign artwork showcase (complete)
 

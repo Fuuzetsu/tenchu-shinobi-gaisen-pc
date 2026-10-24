@@ -74,7 +74,8 @@ cancels the export and removes its temporary files.
 
 Captions are scaled for 4K; transport controls are hidden. `--clean` also hides
 captions. Character closeups place captions above the action, with fixed daylight
-for the refinement and secondary-motion comparisons. `--clips`, `--catalog` and `--duration` work as in live playback;
+for the refinement and secondary-motion comparisons. `--clips`, `--catalog` and
+`--duration` work as in live playback;
 `--loop` is rejected. Interactive input is ignored and preferences are never saved.
 Profiling/FPS demonstrations still measure real host work, including readback
 and encoder waits, and their captions identify this. Those numbers are not a
@@ -199,6 +200,41 @@ hash, then decodes the entire result. `validation.json` records the outcome.
 same 13 chapter timestamps for pasting into an upload description. Original
 geometry, UV mappings and some lighting joins remain visible; movies retain
 their original artwork. These private assets and videos are not included in Git.
+
+## Effects showcase recording
+
+The focused effects reel is
+`private/effects-showcase/tenchu-effects-showcase-4k60.mp4`: **3:06, 4K/60,
+silent, 11 chapters**. It covers pond water, waterfall bends, a full day/night
+cycle, rain/runoff, snow coating, vegetation, wind, character refinement, both
+players' secondary motion and persistent blood. Short off/on comparisons share
+the same camera; weather and combat get longer holds. Existing HD artwork stays
+enabled throughout.
+
+Run the curated sequence live, or export another copy:
+
+```sh
+./private/effects-showcase/play.sh
+./private/effects-showcase/render.sh /path/to/new-video.mp4
+```
+
+The live controls are the same as the main demo: Left/Right changes chapters,
+Space pauses, Tab opens the picker, F1 opens temporary settings, H hides captions
+and V hides transport. `--clips rain,snow` selects just those clips; `--loop`
+repeats live playback. `TENCHU_DISC` overrides the local disc path.
+
+The adjacent `capture-inputs.json` records hashes for the frozen executable,
+catalog, isolated preferences and artwork. `validation.json` records every video
+timestamp, complete decoding and chapter checks. These private artifacts are
+excluded from Git. Run `./dev.sh python3 private/effects-showcase/serve.py` for the
+watch page at `http://127.0.0.1:44115/`; `youtube-description.txt` contains chapter
+timestamps for uploading. Nothing is uploaded automatically.
+
+The same feature clips work from a normal checkout with the user's own assets:
+
+```sh
+./dev.sh cargo run --release -- demo '/path/to/game.cue' --clips water,waterfalls,day-cycle,rain,snow,vegetation,breeze,character-refinement,secondary-motion,equipment-motion,blood
+```
 
 ## F1 coverage
 
