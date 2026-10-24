@@ -387,6 +387,7 @@ impl View {
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
         self.sky = Default::default();
+        self.weather = Default::default();
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
@@ -417,7 +418,7 @@ impl View {
         self.shadow_stage = None;
         self.surfaces = None;
         self.blood = Default::default();
-        self.weather = Default::default();
+        self.weather.invalidate_surfaces();
         self.motion = Default::default();
         self.spray = if models.has_water() {
             crate::visuals::water::Spray::new(&render_mesh::shadow_stage(

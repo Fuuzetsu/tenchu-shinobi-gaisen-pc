@@ -51,6 +51,62 @@ fn rain_and_snow_respect_shelter_and_restore_original_pixels() {
 }
 
 #[test]
+#[ignore = "requires a GPU; moving actors do not erase snow and wind shifts shelter past roofs"]
+fn snowfall_shelter_excludes_actors_and_follows_the_wind() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let quad = |y: f32, size: f32, flags| {
+        let p = [
+            [-size, y, -size],
+            [size, y, -size],
+            [-size, y, size],
+            [size, y, size],
+        ];
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: p[i],
+            color: [0.5; 3],
+            flags: flags | render_mesh::DOUBLE_SIDED,
+            opacity: 1.0,
+            ..Vertex::zeroed()
+        })
+    };
+    let ground = renderer.upload(&quad(0.0, 1500.0, render_mesh::SCENERY));
+    let roof = renderer.upload(&quad(-500.0, 400.0, render_mesh::SCENERY));
+    let actor = renderer.upload(&quad(-500.0, 400.0, 0));
+    let camera = Mat4::orthographic_rh(-1500.0, 1500.0, -1500.0, 1500.0, 1.0, 10000.0)
+        * Mat4::look_at_rh(Vec3::new(0.0, -3000.0, 0.0), Vec3::ZERO, Vec3::Z);
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.weather.mode = crate::settings::WeatherMode::Snow;
+    graphics.weather.wind = 0;
+    renderer.configure(&graphics);
+    renderer.weather.snow = 1.0;
+    let capture = |renderer: &mut Renderer, extra: Option<&Mesh>| {
+        let mut casters = vec![&ground];
+        casters.extend(extra);
+        renderer
+            .draw_lit(&view, camera, &[&ground], None, &[], &casters)
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let open = capture(&mut renderer, None);
+    assert_eq!(open, capture(&mut renderer, Some(&actor)));
+    let calm = capture(&mut renderer, Some(&roof));
+    let at = |image: &[u8], x: usize| image[(32 * 64 + x) * 4];
+    assert!(at(&calm, 32) + 20 < at(&open, 32));
+    graphics.weather.wind = 100;
+    graphics.weather.heading = 90;
+    renderer.configure(&graphics);
+    renderer.weather.snow = 1.0;
+    let wind = capture(&mut renderer, Some(&roof));
+    assert!(at(&wind, 32) > at(&calm, 32) + 20);
+    assert!(
+        wind.iter()
+            .zip(&open)
+            .any(|(&a, &b)| i16::from(b) - i16::from(a) > 30)
+    );
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC, TENCHU_WEATHER_REVIEW and a GPU; reviews precipitation on actual roofs"]
 fn weather_on_actual_roofs() {
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");

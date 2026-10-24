@@ -10,6 +10,38 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Weather integration and experimentation tools (in progress)
+
+Address the follow-up from actual play, preserving default gameplay and portable
+native/browser rendering. Commit and verify each coherent stage.
+
+1. Preserve snow/wetness across model-detail and artwork changes. Separate
+   precipitation shelter from moving actor shadows, cover distant visible terrain,
+   and trace wind-driven rain/snow past roofs and against walls.
+2. Add bounded, ground-projected footprints that fresh snow gradually covers.
+   Make blood stains blend with snowy surfaces instead of exposing the old ground.
+3. Give kaen and explosions transient dynamic light using actual item/effect
+   state, while respecting the existing lighting switch and budgets.
+4. Add an F1 experimentation page with editable mission inventory, god mode,
+   never-noticed stealth and persistent click-to-teleport. Keep cheats opt-in,
+   avoid invalid inventory states, and stop ordinary input recording before edits.
+5. Make loaded replacement-artwork status explicit and document the full campaign
+   pack launcher. Verify the on/off comparison with that pack.
+
+Exercise combined snow, blood, lighting and model changes in real scenes. Check
+weather bounds/shelter and footprint lifetime, gameplay with cheats disabled,
+item effects and inventory edits, native and browser paths, formatting and Clippy.
+
+Weather integration: model rebuilds now invalidate particle/surface references
+without clearing accumulation; mission loads still reset it. Moving actors no
+longer cut dry silhouettes into snow. Near and whole-stage shelter maps follow
+precipitation direction, and a bounded distant particle layer has an F1 range
+control independent of fog. Four CPU regressions cover accumulation, particle
+bounds, wind entering eaves and wall shelter. Two native GPU regressions cover
+coatings, original restoration, moving actor exclusion and shifted wind shelter.
+Footprints, stained snow, item lights, experimentation controls and final scene/
+browser validation remain in progress.
+
 ## Persistent effects, weather, models and water (complete)
 
 Deliver optional modern presentation features while retaining the original

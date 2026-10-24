@@ -39,6 +39,12 @@ impl Surfaces {
         self.nodes.first().map_or(0.0, |node| node.bounds.min.y)
     }
 
+    pub fn exposed(&self, position: Vec3, velocity: Vec3) -> bool {
+        let rise = (position.y - self.top() + 100.0).max(100.0);
+        let start = position - velocity * (rise / velocity.y.max(0.001));
+        self.cast(start, position).is_none()
+    }
+
     pub fn new(vertices: &[Vertex]) -> Self {
         let mut out = Self {
             triangles: vertices

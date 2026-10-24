@@ -4,10 +4,10 @@ fn surfaces() -> Surfaces {
     let mut vertices = Vec::new();
     for points in [
         [
-            [-30000.0, 1000.0, -30000.0],
-            [30000.0, 1000.0, -30000.0],
-            [-30000.0, 1000.0, 30000.0],
-            [30000.0, 1000.0, 30000.0],
+            [-500000.0, 1000.0, -500000.0],
+            [500000.0, 1000.0, -500000.0],
+            [-500000.0, 1000.0, 500000.0],
+            [500000.0, 1000.0, 500000.0],
         ],
         [
             [-6000.0, -2000.0, -6000.0],
@@ -94,5 +94,67 @@ fn rendering_cadence_is_read_only_and_teleports_discard_old_particles() {
         }
     }
     a.tick(90, Vec3::new(100000.0, 0.0, 0.0), &surfaces, &settings);
-    assert!(a.particles.iter().all(|p| p.position.x > 80000.0));
+    assert!(a.particles.iter().all(|p| p.previous == p.position));
+}
+
+#[test]
+fn mesh_changes_preserve_accumulation_and_distant_precipitation_is_bounded() {
+    let surfaces = surfaces();
+    let settings = Settings {
+        mode: WeatherMode::Snow,
+        ..Default::default()
+    };
+    let mut weather = Weather::default();
+    for tick in 0..900 {
+        weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
+    }
+    assert!(
+        weather
+            .particles
+            .iter()
+            .any(|p| p.position.x.abs() > 40000.0)
+    );
+    let snow = weather.sample(&settings, 1.0).snow;
+    weather.invalidate_surfaces();
+    assert!(weather.particles.is_empty());
+    assert_eq!(weather.sample(&settings, 1.0).snow, snow);
+    weather.tick(900, Vec3::ZERO, &surfaces, &settings);
+    assert!(weather.sample(&settings, 1.0).snow >= snow);
+    assert!(weather.particles.len() <= settings.particles());
+}
+
+#[test]
+fn wind_can_enter_under_eaves_and_walls_block_upwind_trajectories() {
+    let points = [
+        [-500.0, -1000.0, -500.0],
+        [500.0, -1000.0, -500.0],
+        [-500.0, -1000.0, 500.0],
+        [500.0, -1000.0, 500.0],
+    ];
+    let mut vertices: Vec<_> = [0, 1, 2, 1, 3, 2]
+        .map(|i| Vertex {
+            position: points[i],
+            ..Vertex::zeroed()
+        })
+        .into();
+    let roof = Surfaces::new(&vertices);
+    let sheltered = Vec3::ZERO;
+    let wind = Vec3::new(2.0, 1.0, 0.0);
+    assert!(!roof.exposed(sheltered, Vec3::Y));
+    assert!(roof.exposed(sheltered, wind));
+    let points = [
+        [-700.0, -2000.0, -1000.0],
+        [-700.0, 500.0, -1000.0],
+        [-700.0, -2000.0, 1000.0],
+        [-700.0, 500.0, 1000.0],
+    ];
+    vertices.extend([0, 1, 2, 1, 3, 2].map(|i| Vertex {
+        position: points[i],
+        ..Vertex::zeroed()
+    }));
+    let walled = Surfaces::new(&vertices);
+    assert!(!walled.exposed(sheltered, wind));
+    let open = Vec3::new(0.0, 0.0, 750.0);
+    assert!(walled.exposed(open, Vec3::Y));
+    assert!(!walled.exposed(open, wind));
 }

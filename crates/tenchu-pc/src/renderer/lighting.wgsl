@@ -7,15 +7,15 @@ struct Lighting {
     sun_inverse: mat4x4<f32>,
     sun_direction: vec4<f32>,
     sun_color: vec4<f32>,
-    weather_matrix: mat4x4<f32>,
-    weather_inverse: mat4x4<f32>,
+    weather_matrix: array<mat4x4<f32>, 2>,
+    weather_inverse: array<mat4x4<f32>, 2>,
     weather: vec4<f32>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
 @group(1) @binding(2) var shadow_sampler: sampler_comparison;
 @group(1) @binding(3) var sun_map: texture_depth_2d;
-@group(1) @binding(4) var weather_map: texture_depth_2d;
+@group(1) @binding(4) var weather_map: texture_depth_2d_array;
 
 fn weather_noise(p: vec3<f32>) -> f32 {
     let cell = floor(p);
@@ -36,19 +36,28 @@ fn weather_noise(p: vec3<f32>) -> f32 {
     return value;
 }
 
+fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
+    let direction = normalize((lighting.weather_inverse[0] * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
+    var shelter = 0.0;
+    for (var layer = 1; layer >= 0; layer--) {
+        let p = lighting.weather_matrix[layer] * vec4(position - direction * 35.0, 1.0);
+        let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
+        if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { continue; }
+        let plane = transpose(lighting.weather_inverse[layer]) * vec4(normal, -dot(normal, position));
+        var gradient = vec2(0.0);
+        if abs(plane.z) > 0.00001 { gradient = vec2(-2.0, 2.0) * plane.xy / plane.z; }
+        let reference = p.z - dot(abs(gradient), vec2(0.5) / vec2<f32>(textureDimensions(weather_map)));
+        let exposed = textureSampleCompareLevel(weather_map, shadow_sampler, uv, layer, reference);
+        let weight = select(1.0 - smoothstep(0.75, 0.95, max(abs(p.x), abs(p.y))), 1.0, layer == 1);
+        shelter = mix(shelter, exposed, weight);
+    }
+    return shelter;
+}
+
 fn weather_surface(input: vec3<f32>, normal: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y <= 0.0 { return input; }
-    let p = lighting.weather_matrix * vec4(position - vec3(0.0, 35.0, 0.0), 1.0);
-    let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
-    if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { return input; }
-    let plane = transpose(lighting.weather_inverse) * vec4(normal, -dot(normal, position));
-    var gradient = vec2(0.0);
-    if abs(plane.z) > 0.00001 { gradient = vec2(-2.0, 2.0) * plane.xy / plane.z; }
-    let reference = p.z - dot(abs(gradient), vec2(0.5) / vec2<f32>(textureDimensions(weather_map)));
-    let exposed = textureSampleCompareLevel(weather_map, shadow_sampler, uv, reference);
-    let edge = 1.0 - smoothstep(0.8, 1.0, max(abs(p.x), abs(p.y)));
     let slope = clamp(-normal.y, 0.0, 1.0);
-    let shelter = exposed * edge;
+    let shelter = weather_exposure(normal, position);
     let variation = weather_noise(position / 450.0);
     let wet = lighting.weather.x * shelter * (0.3 + 0.7 * slope);
     var color = input * (1.0 - wet * 0.32);

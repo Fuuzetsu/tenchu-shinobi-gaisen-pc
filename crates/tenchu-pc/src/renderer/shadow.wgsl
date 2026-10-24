@@ -39,6 +39,7 @@ struct Fragment {
 }
 
 @fragment fn fragment(v: Fragment) {
+    if face.options.w != 0.0 && (v.flags & 1024u) == 0u { discard; }
     if (v.flags & (SCREEN | DEBUG | ALPHA | WATER)) != 0u { discard; }
     if (v.flags & 1u) != 0u {
         var color = vec3(0.0);

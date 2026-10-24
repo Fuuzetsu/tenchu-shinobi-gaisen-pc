@@ -23,6 +23,7 @@ pub enum Item {
     WeatherWind,
     WeatherHeading,
     WeatherQuality,
+    WeatherDistance,
     Wetness,
     SnowCover,
     RoofRunoff,
@@ -357,6 +358,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Weather detail",
                     ["Low", "Medium", "High"][usize::from(weather.quality)].into(),
                     "Particle budget and shelter-map resolution. Low is useful for browsers and large windows.",
+                ),
+                (
+                    Item::WeatherDistance,
+                    "Particle distance",
+                    format!("{}k units", weather.distance),
+                    "Near and distant precipitation share a bounded particle budget. Ground snow/wetness covers the whole stage independently.",
                 ),
                 (
                     Item::Wetness,

@@ -197,6 +197,10 @@ impl Application {
                     (i32::from(self.settings.graphics.weather.quality) + direction).rem_euclid(3)
                         as u16;
             }
+            Item::WeatherDistance => {
+                let distance = &mut self.settings.graphics.weather.distance;
+                *distance = (i32::from(*distance) + direction * 20).clamp(20, 240) as u16;
+            }
             Item::WeatherHeading => {
                 self.settings.graphics.weather.heading =
                     (i32::from(self.settings.graphics.weather.heading) + direction * 15)

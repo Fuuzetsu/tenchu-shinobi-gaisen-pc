@@ -27,6 +27,7 @@ pub struct Shadows {
     sun: wgpu::TextureView,
     sun_resolution: u32,
     weather: wgpu::TextureView,
+    weather_layers: [wgpu::TextureView; 2],
     weather_resolution: u32,
 }
 
@@ -81,14 +82,14 @@ impl Shadows {
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Depth,
-                        view_dimension: wgpu::TextureViewDimension::D2,
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
                         multisampled: false,
                     },
                     count: None,
                 },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 68) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 100) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -97,7 +98,7 @@ impl Shadows {
             ..Default::default()
         });
         let sun = super::sun::target(device, 1);
-        let weather = super::sun::target(device, 1);
+        let (weather, weather_layers) = weather_targets(device, 1);
         let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1, [&sun, &weather]);
         let face_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Shadow face"),
@@ -115,7 +116,7 @@ impl Shadows {
                 },
             ],
         });
-        let faces = (0..=FACES)
+        let faces = (0..FACES + 2)
             .map(|_| {
                 let data = buffer(device, 80);
                 let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -192,6 +193,7 @@ impl Shadows {
             sun,
             sun_resolution: 1,
             weather,
+            weather_layers,
             weather_resolution: 1,
         }
     }
@@ -218,7 +220,7 @@ impl Shadows {
         let weather_changed = self.weather_resolution != frame.weather_resolution;
         if weather_changed {
             self.weather_resolution = frame.weather_resolution;
-            self.weather = super::sun::target(device, self.weather_resolution);
+            (self.weather, self.weather_layers) = weather_targets(device, self.weather_resolution);
         }
         if self.resolution != resolution
             || self.views.len() != layers
@@ -323,9 +325,18 @@ impl Shadows {
         data.extend(frame.direction.extend(frame.strength).to_array());
         data.extend(frame.color.to_array());
         data.push(u8::from(sun_shadows) as f32);
-        let weather_matrix = weather_matrix(camera, self.weather_resolution);
-        data.extend(weather_matrix.to_cols_array());
-        data.extend(weather_matrix.inverse().to_cols_array());
+        let weather_matrices = weather_matrices(
+            camera,
+            self.weather_resolution,
+            frame.precipitation,
+            geometry.meshes,
+        );
+        for matrix in weather_matrices {
+            data.extend(matrix.to_cols_array());
+        }
+        for matrix in weather_matrices {
+            data.extend(matrix.inverse().to_cols_array());
+        }
         data.extend([
             frame.weather.wet,
             frame.weather.snow,
@@ -333,14 +344,16 @@ impl Shadows {
             0.0,
         ]);
         if self.weather_resolution > 1 {
-            self.draw_face(
-                encoder,
-                queue,
-                FACES,
-                weather_matrix,
-                [0.0, frame.visual_time, frame.wind, 0.0],
-                geometry,
-            );
+            for (layer, matrix) in weather_matrices.into_iter().enumerate() {
+                self.draw_face(
+                    encoder,
+                    queue,
+                    FACES + layer,
+                    matrix,
+                    [0.0, frame.visual_time, frame.wind, 1.0],
+                    geometry,
+                );
+            }
         }
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
     }
@@ -354,8 +367,8 @@ impl Shadows {
         options: [f32; 4],
         geometry: &Geometry,
     ) {
-        let target = if index == FACES {
-            &self.weather
+        let target = if index >= FACES {
+            &self.weather_layers[index - FACES]
         } else if index == FACES - 1 {
             &self.sun
         } else {
@@ -473,16 +486,75 @@ fn maps(
     (bindings, views)
 }
 
-fn weather_matrix(camera: Mat4, resolution: u32) -> Mat4 {
+fn weather_targets(
+    device: &wgpu::Device,
+    resolution: u32,
+) -> (wgpu::TextureView, [wgpu::TextureView; 2]) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Near and stage-wide precipitation shelter"),
+        size: wgpu::Extent3d {
+            width: resolution,
+            height: resolution,
+            depth_or_array_layers: 2,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Depth32Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let layers = std::array::from_fn(|index| {
+        texture.create_view(&wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            base_array_layer: index as u32,
+            array_layer_count: Some(1),
+            ..Default::default()
+        })
+    });
+    (
+        texture.create_view(&wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2Array),
+            ..Default::default()
+        }),
+        layers,
+    )
+}
+
+fn weather_matrices(camera: Mat4, resolution: u32, direction: Vec3, meshes: &[&Mesh]) -> [Mat4; 2] {
     let inverse = camera.inverse();
     let near = inverse.project_point3(Vec3::ZERO);
-    let direction = (inverse.project_point3(Vec3::Z) - near).normalize_or_zero();
-    let mut center = near + direction * 6000.0;
-    let texel = 40000.0 / resolution as f32;
-    center.x = (center.x / texel).floor() * texel;
-    center.z = (center.z / texel).floor() * texel;
-    Mat4::orthographic_rh(-20000.0, 20000.0, -20000.0, 20000.0, 1.0, 200000.0)
-        * Mat4::look_at_rh(center - Vec3::Y * 100000.0, center, Vec3::Z)
+    let forward = (inverse.project_point3(Vec3::Z) - near).normalize_or_zero();
+    let view = Mat4::look_to_rh(Vec3::ZERO, direction, Vec3::Z);
+    let focus = view.transform_point3(near + forward * 6000.0);
+    let mut min = focus - Vec3::splat(20000.0);
+    let mut max = focus + Vec3::splat(20000.0);
+    for [a, b] in meshes.iter().filter_map(|mesh| mesh.bounds) {
+        for x in [a.x, b.x] {
+            for y in [a.y, b.y] {
+                for z in [a.z, b.z] {
+                    let p = view.transform_point3(Vec3::new(x, y, z));
+                    min = min.min(p);
+                    max = max.max(p);
+                }
+            }
+        }
+    }
+    let far_center = (min + max) * 0.5;
+    let far_radius = ((max.x - min.x).max(max.y - min.y) * 0.5 + 2000.0).max(20000.0);
+    [(focus, 20000.0), (far_center, far_radius)].map(|(mut center, radius)| {
+        let texel = radius * 2.0 / resolution as f32;
+        center.x = (center.x / texel).floor() * texel;
+        center.y = (center.y / texel).floor() * texel;
+        Mat4::orthographic_rh(
+            center.x - radius,
+            center.x + radius,
+            center.y - radius,
+            center.y + radius,
+            -max.z - 1000.0,
+            -min.z + 1000.0,
+        ) * view
+    })
 }
 
 fn matrices(light: &Light) -> [Mat4; 6] {

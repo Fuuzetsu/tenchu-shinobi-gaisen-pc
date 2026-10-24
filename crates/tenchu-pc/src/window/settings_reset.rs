@@ -61,6 +61,9 @@ impl Application {
             Item::WeatherQuality => {
                 self.settings.graphics.weather.quality = s.graphics.weather.quality
             }
+            Item::WeatherDistance => {
+                self.settings.graphics.weather.distance = s.graphics.weather.distance
+            }
             Item::Wetness => self.settings.graphics.weather.wetness = s.graphics.weather.wetness,
             Item::SnowCover => self.settings.graphics.weather.snow = s.graphics.weather.snow,
             Item::RoofRunoff => self.settings.graphics.weather.runoff = s.graphics.weather.runoff,

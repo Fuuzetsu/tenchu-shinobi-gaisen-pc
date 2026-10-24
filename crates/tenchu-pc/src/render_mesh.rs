@@ -278,6 +278,9 @@ pub fn shadow_stage(mission: &MissionAssets, math: &Math, models: Option<&Models
     visit_stage(mission, math, |geometry, matrix| {
         append_caster(&mut vertices, geometry, matrix, models)
     });
+    for vertex in &mut vertices {
+        vertex.flags |= SCENERY;
+    }
     vertices
 }
 
@@ -301,6 +304,9 @@ pub fn shadow_models_presented(
         )
     };
     visit_hinged_parts(game, &mut append);
+    for vertex in &mut vertices {
+        vertex.flags |= SCENERY;
+    }
     crate::visuals::appearance::visit_parts(game, true, models, frame, |key, geometry, matrix| {
         append_character(&mut vertices, geometry, matrix, models, key, true);
     });

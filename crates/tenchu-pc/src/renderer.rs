@@ -21,6 +21,7 @@ mod tests;
 pub struct Mesh {
     buffer: wgpu::Buffer,
     count: u32,
+    bounds: Option<[glam::Vec3; 2]>,
 }
 
 fn array_layers(device: &wgpu::Device, layers: u32) -> u32 {
@@ -340,6 +341,15 @@ impl Renderer {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
         Mesh {
+            bounds: vertices
+                .iter()
+                .filter(|v| v.flags & crate::render_mesh::SCENERY != 0)
+                .map(|v| glam::Vec3::from(v.position))
+                .fold(None, |bounds, p| {
+                    Some(bounds.map_or([p, p], |[min, max]: [glam::Vec3; 2]| {
+                        [min.min(p), max.max(p)]
+                    }))
+                }),
             buffer: self
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {

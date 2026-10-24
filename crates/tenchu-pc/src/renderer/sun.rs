@@ -71,6 +71,7 @@ pub struct Frame {
     pub tint: f32,
     pub weather: crate::visuals::weather::SurfaceWeather,
     pub weather_resolution: u32,
+    pub precipitation: Vec3,
     pub visual_time: f32,
     pub wind: f32,
 }
@@ -86,6 +87,7 @@ impl Frame {
             tint: f32::from(settings.sky_tint) / 100.0,
             weather: Default::default(),
             weather_resolution: 1,
+            precipitation: Vec3::Y,
             visual_time: 0.0,
             wind: 0.0,
         };
@@ -114,6 +116,7 @@ impl Frame {
     ) -> Self {
         if settings.mode != crate::settings::WeatherMode::Original {
             self.weather = weather;
+            self.precipitation = settings.direction();
             if weather.wet > 0.0 || weather.snow > 0.0 {
                 self.weather_resolution = [256, 512, 1024][usize::from(settings.quality.min(2))];
             }

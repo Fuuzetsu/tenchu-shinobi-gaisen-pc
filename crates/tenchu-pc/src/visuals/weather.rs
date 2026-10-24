@@ -59,6 +59,10 @@ impl Weather {
         self.splashes.clear();
     }
 
+    pub fn invalidate_surfaces(&mut self) {
+        self.reset_particles(self.mode);
+    }
+
     pub fn sample(&self, settings: &Settings, alpha: f32) -> SurfaceWeather {
         if settings.mode == WeatherMode::Original {
             return SurfaceWeather::default();
@@ -118,7 +122,8 @@ impl Weather {
                 landings.push(hit);
                 return false;
             }
-            p.life != 0 && (p.position - center).abs().max_element() < RADIUS * 1.5
+            p.life != 0
+                && (p.position - center).abs().max_element() < f32::from(settings.distance) * 1500.0
         });
         self.runoff.retain_mut(|p| {
             p.previous = p.position;
@@ -184,35 +189,37 @@ impl Weather {
     }
 
     fn spawn(&mut self, center: Vec3, surfaces: &Surfaces, settings: &Settings) {
+        let distant = self.particles.len() % 3 == 2;
+        let radius = if distant {
+            f32::from(settings.distance) * 1000.0
+        } else {
+            RADIUS
+        };
         let position = center
             + Vec3::new(
-                (self.random() * 2.0 - 1.0) * RADIUS,
+                (self.random() * 2.0 - 1.0) * radius,
                 -self.random() * HEIGHT - 100.0,
-                (self.random() * 2.0 - 1.0) * RADIUS,
+                (self.random() * 2.0 - 1.0) * radius,
             );
-        let top = surfaces.top().min(position.y - 100.0) - 100.0;
-        if surfaces
-            .cast(Vec3::new(position.x, top, position.z), position)
-            .is_some()
-        {
+        let snow = self.mode == WeatherMode::Snow;
+        let velocity = settings.velocity(if snow {
+            24.0 + self.random() * 24.0
+        } else {
+            330.0 + self.random() * 100.0
+        });
+        if !surfaces.exposed(position, velocity) {
             return;
         }
-        let heading = f32::from(settings.heading).to_radians();
-        let wind = Vec3::new(heading.sin(), 0.0, heading.cos()) * f32::from(settings.wind);
-        let snow = self.mode == WeatherMode::Snow;
-        let velocity = wind * if snow { 0.65 } else { 1.0 }
-            + Vec3::Y
-                * if snow {
-                    24.0 + self.random() * 24.0
-                } else {
-                    330.0 + self.random() * 100.0
-                };
         let life = if snow { 450 } else { 70 };
         let hit = surfaces.cast(position, position + velocity * f32::from(life));
         let size = if snow {
             9.0 + self.random() * 11.0
         } else {
             1.8 + self.random() * 1.4
+        } * if distant {
+            (radius / RADIUS).sqrt()
+        } else {
+            1.0
         };
         self.particles.push(Particle {
             previous: position,
@@ -262,7 +269,10 @@ impl Weather {
             } else {
                 p.velocity.length() * 0.75
             };
-            let fade = ((forward.dot(position - near) - 60.0) / 500.0).clamp(0.0, 1.0);
+            let distance = position.distance(near);
+            let limit = f32::from(settings.distance) * 1000.0;
+            let fade = ((forward.dot(position - near) - 60.0) / 500.0).clamp(0.0, 1.0)
+                * ((limit - distance) / (limit * 0.2)).clamp(0.0, 1.0);
             quad(
                 &mut vertices,
                 position,
