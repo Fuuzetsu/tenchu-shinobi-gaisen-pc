@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Persistent effects, weather, models and water (active goal)
+## Persistent effects, weather, models and water (complete)
 
 Deliver optional modern presentation features while retaining the original
 default appearance and exact gameplay/collision/AI/RNG. The scope includes the
@@ -62,8 +62,7 @@ pass. Browser runtime review remains part of the combined-effects stage: the
 native headless GL adapter currently fails at device initialization, so that is
 not evidence of a successful WebGL2 run. Stains are cosmetic and bounded, not
 permanent save-file edits; complex hit locations are inferred from source effects.
-Subsequent sky and weather work is recorded below; model upgrades, secondary
-motion, water and combined demo coverage remain active deliverables.
+Subsequent stages and combined validation are recorded below.
 
 Time-of-day implementation: an optional F1 page drives a continuous, interpolated
 sun/moon path, twilight color, separate day/night ambient levels, configurable
@@ -75,8 +74,6 @@ Turning the cycle off restores the original manual-light behavior. The built-in
 `day-cycle` clip stages Mission 1 rooftops for a twenty-second day. Geometry/GPU
 checks confirm moving shadows and exact restoration when disabled; an actual
 scene comparison isolates shadows and baked shading. Native and WASM checks pass.
-Improved models, secondary motion, water and their combined review are still
-required.
 
 Weather implementation: an optional F1 page selects Original/Clear/Rain/Snow,
 wind, density, detail, wetness, snow cover and runoff. Bounded particles stop at
@@ -122,8 +119,8 @@ not nearby scene objects; these changes do not simulate fluids or replace origin
 collision/swimming. Existing authored UV joins can remain visible. All 43
 fixture-free PC tests and native/WASM Clippy pass. Desktop Chromium WebGPU and
 WebGL2 run water together with rain/snow/daylight, reset each F1 page and preserve
-paused state without graphics errors. Model and secondary-motion work remains
-in progress.
+paused state without graphics errors. Combined model and secondary-motion
+validation is recorded below.
 
 Model refinement implementation: F1 offers independent Original/Refined/Fine
 character surfaces and Original/Fuller/Dense vegetation. Character refinement
@@ -142,8 +139,8 @@ finite geometry and budget fallback. Native Mission 1/4/5 reviews include both
 players, garden context, cherry/cedar/grass/shrubs and snow-covered branches,
 with exact game snapshots preserved. The `vegetation,character-refinement`
 demos exercise the controls. All 45 fixture-free PC tests, native and WASM
-Clippy and formatting pass. Combined browser/replay review follows secondary
-motion. These are refinements of the original shapes, not newly sculpted models
+Clippy and formatting pass. Combined browser/replay review is recorded below.
+These are refinements of the original shapes, not newly sculpted models
 or individual geometric leaves; original default settings remain unchanged.
 
 Secondary motion implementation: independent F1 hair/cloth/equipment switches
@@ -179,7 +176,12 @@ stages a frontal guard encounter using ordinary combat; fixed framing with wider
 clearance avoids foreground branches after knockback. Body wounds and stains on
 the stone bank were inspected in the final capture. Native Clippy, demo tests,
 formatting, release and browser builds pass. All five feature areas and their F1
-controls/demos are implemented; final Nix packaging is the remaining gate.
+controls/demos are implemented. Final x86_64-linux Nix desktop/browser packages,
+portable WASM libraries and formatting checks pass at implementation commit
+`566bf23`. The packaged demo catalog contains all 48 clips, including the new
+blood, sky/weather, water, model and motion demonstrations. Private review
+artifacts and machine-readable validation are under `private/effects-review`.
+Original defaults and game/core source are unchanged throughout this goal.
 
 ## Campaign artwork showcase (complete)
 
