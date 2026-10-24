@@ -21,10 +21,18 @@ fn projected_blood_blends_without_filling_cutouts_or_occluding_foreground() {
     );
     let mesh = renderer.upload(&source);
     let background = renderer.upload(&rectangle(1500, 102, None, false, false, false));
-    let mut vertices = source.clone();
+    let mut vertices = crate::visuals::surfaces::Surfaces::new(&source).project(
+        &crate::visuals::surfaces::Stamp {
+            center: glam::Vec3::new(0.0, 0.0, 1000.0),
+            normal: glam::Vec3::NEG_Z,
+            radius: 400.0,
+            depth: 1.0,
+            seed: 0,
+            shape: None,
+        },
+    );
     for v in &mut vertices {
-        v.flags |= render_mesh::ALPHA | render_mesh::STAIN;
-        v.opacity = 0.5;
+        v.opacity *= 0.5;
     }
     let count = vertices.len() as u32;
     let effect = renderer.upload_effects(render_effects::Geometry {

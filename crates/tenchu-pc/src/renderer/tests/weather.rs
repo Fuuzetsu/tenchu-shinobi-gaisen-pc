@@ -246,3 +246,82 @@ fn distant_snow_and_surface_stains() {
     renderer.configure(&crate::settings::Graphics::default());
     assert_eq!(capture(&mut renderer, Some(&foot)), original);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_WEATHER_REVIEW and a GPU; reviews blood on actual snow-covered terrain"]
+fn blood_on_actual_snow_covered_terrain() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let output = std::path::PathBuf::from(
+        std::env::var_os("TENCHU_WEATHER_REVIEW").expect("Set TENCHU_WEATHER_REVIEW"),
+    );
+    std::fs::create_dir_all(&output).unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut game = crate::session::Options::default().load(&assets).unwrap();
+    for _ in 0..30 {
+        game.step(0).unwrap();
+    }
+    let state = crate::session::tests::state(&game);
+    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+    let models = review.models(&game.mission).unwrap();
+    let vertices = render_mesh::stage(&game.mission, &game.math, Some(&models));
+    let surfaces = crate::visuals::surfaces::Surfaces::new(&vertices);
+    let center = Vec3::from(game.player().position.map(|n| n as f32).to_array());
+    let mut blood = Vec::new();
+    for (i, delta) in [
+        [1000.0, 0.0, 500.0],
+        [1000.0, 0.0, 1200.0],
+        [1800.0, 0.0, 900.0],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let point = center + Vec3::from(delta);
+        let hit = surfaces
+            .cast(point - Vec3::Y * 2000.0, point + Vec3::Y * 2000.0)
+            .unwrap();
+        blood.extend(surfaces.project(&crate::visuals::surfaces::Stamp {
+            center: hit.position,
+            normal: hit.normal,
+            radius: 200.0,
+            depth: 100.0,
+            seed: i as u32,
+            shape: None,
+        }));
+    }
+    assert!(!blood.is_empty());
+    let effects = review.renderer.upload_effects(render_effects::Geometry {
+        batches: vec![render_effects::Batch {
+            blend: 5,
+            range: 0..blood.len() as u32,
+        }],
+        vertices: blood,
+    });
+    let stage = review.renderer.upload(&vertices);
+    let actors = review
+        .renderer
+        .upload(&render_mesh::characters(&game, Some(&models)));
+    let camera = Mat4::perspective_rh(55.0_f32.to_radians(), 1280.0 / 720.0, 10.0, 200000.0)
+        * Mat4::look_at_rh(
+            center + Vec3::new(3500.0, -5500.0, -4500.0),
+            center + Vec3::new(1000.0, 0.0, 500.0),
+            Vec3::NEG_Y,
+        );
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.weather.mode = crate::settings::WeatherMode::Snow;
+    graphics.weather.wind = 0;
+    graphics.fog = false;
+    review.configure(graphics);
+    review.renderer.weather.snow = 1.0;
+    review
+        .capture(
+            camera,
+            &[&stage, &actors],
+            Some(&effects),
+            true,
+            &output.join("blood-on-snow.png"),
+        )
+        .unwrap();
+    assert_eq!(state, crate::session::tests::state(&game));
+}

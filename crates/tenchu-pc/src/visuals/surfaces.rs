@@ -275,18 +275,54 @@ impl Stamp {
             let depth = (self.depth - delta.dot(self.normal).abs()) / (self.depth * 0.4);
             v.opacity =
                 (margin / (self.radius * 0.3)).clamp(0.0, 1.0) * depth.clamp(0.0, 1.0) * 0.92;
+            v.position = (Vec3::from(v.position) + self.normal * 0.5).to_array();
             v.flags = (v.flags & !crate::render_mesh::EMITTER)
                 | crate::render_mesh::ALPHA
                 | crate::render_mesh::STAIN;
             v
         };
         for i in 0..polygon.len() {
-            out.extend([
-                finish(center),
-                finish(polygon[i]),
-                finish(polygon[(i + 1) % polygon.len()]),
-            ]);
+            stamp_triangle(
+                [center, polygon[i], polygon[(i + 1) % polygon.len()]],
+                0,
+                &finish,
+                out,
+            );
         }
+    }
+}
+
+// Sample the opacity field inside clipped triangles; interpolating only their
+// boundary values creates pale wedges where a decal crosses terrain edges.
+fn stamp_triangle(
+    triangle: [Vertex; 3],
+    depth: u8,
+    finish: &impl Fn(Vertex) -> Vertex,
+    out: &mut Vec<Vertex>,
+) {
+    let vertices = triangle.map(finish);
+    let middle =
+        std::array::from_fn::<_, 3, _>(|i| interpolate(triangle[i], triangle[(i + 1) % 3], 0.5));
+    let center = interpolate(
+        interpolate(triangle[0], triangle[1], 0.5),
+        triangle[2],
+        1.0 / 3.0,
+    );
+    let error =
+        (finish(center).opacity - vertices.iter().map(|v| v.opacity).sum::<f32>() / 3.0).abs();
+    let split = error > 0.04
+        || middle.iter().enumerate().any(|(i, &v)| {
+            (finish(v).opacity - (vertices[i].opacity + vertices[(i + 1) % 3].opacity) * 0.5).abs()
+                > 0.04
+        });
+    if depth < 3 && split {
+        let [a, b, c] = triangle;
+        let [ab, bc, ca] = middle;
+        for triangle in [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]] {
+            stamp_triangle(triangle, depth + 1, finish, out);
+        }
+    } else {
+        out.extend(vertices);
     }
 }
 
@@ -361,7 +397,7 @@ mod tests {
         let projected = surface.project(&stamp);
         assert!(!projected.is_empty());
         for v in projected {
-            assert!(v.position[1].abs() < 0.001);
+            assert!((v.position[1] + 0.5).abs() < 0.001);
             assert!((v.uv[0] - v.position[0]).abs() < 0.001);
             assert!((v.uv[1] - v.position[2]).abs() < 0.001);
             assert!((0.0..=1.0).contains(&v.opacity));

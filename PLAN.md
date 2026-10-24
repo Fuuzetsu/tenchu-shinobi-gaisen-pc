@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Weather integration and experimentation tools (in progress)
+## Weather integration and experimentation tools (complete)
 
 Address the follow-up from actual play, preserving default gameplay and portable
 native/browser rendering. Commit and verify each coherent stage.
@@ -44,16 +44,33 @@ onto actual ground triangles, and fade beneath fresh snowfall. F1 exposes a
 toggle, burial time and clear action. Ground blood absorbs the snowy material
 instead of revealing the substrate. Real-disc walking checks cover both players,
 read-only state and bounded geometry; native GPU checks cover distant coating,
-stains, footprints and restoration when disabled. Grenades, embers and kaen now contribute short-lived, clustered light sources
+stains, footprints and restoration when disabled. Ground-projected decals sample
+opacity within their triangles, avoiding pale wedges at terrain joins, and have
+a small surface offset to prevent depth artifacts. Grenades, embers and kaen
+contribute short-lived, clustered light sources
 using actual effect lifetimes, with two priority slots in the existing light
 budget. Real-disc item-use tests verify flashes appear, expire and leave game
-state untouched; camera-orbit stability still passes. F1 now has a mission-only Experiment page: god mode, never-noticed stealth,
+state untouched; camera-orbit stability still passes. F1 has a mission-only
+Experiment page: god mode, never-noticed stealth,
 left-click teleport, per-item quantities (255 unlimited), refill/clear and armour
 protection. Inventory edits preserve internal timers and stop ordinary recording;
 cheats reset with a new mission. Real combat verifies both characters retain
 health and hit reactions, then take damage after disabling; an alerted guard
 returns idle under stealth and detects again when disabled. Inventory validation
-and actual item use pass. Final combined/browser validation remains in progress.
+and actual item use pass. C-oracle damage and fall comparisons still pass with
+cheats disabled. Combat replays retain matching game state over 5,667 ticks for
+Rikimaru and 4,834 ticks for Ayame.
+
+F1 Visual assets reports active-mission texture/model counts, the native pack
+folder and load errors. Plain play still requires TENCHU_ASSET_PACK; the existing
+private/campaign-hd-pack/play.sh loads the full campaign artwork. Browser tests
+exercise actual item use, god/stealth reset, repeated normal-camera teleport,
+artwork comparison and accumulated snow across model changes on both WebGPU and
+WebGL2, with no GPU/page errors. Mission 1 loads 327 textures and two models for
+Rikimaru; switching artwork visibly changes the scene. Native scene review covers
+both players' tracks, wind shelter, blood on snow and grenade/kaen light spill.
+Evidence is in private/weather-followup. Workspace tests, formatting, Clippy and
+native/WASM builds pass; original gameplay/default presentation remain intact.
 
 ## Persistent effects, weather, models and water (complete)
 

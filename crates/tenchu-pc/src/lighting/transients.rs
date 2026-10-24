@@ -34,9 +34,9 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
                 "Explosion",
                 e,
                 match e.mode {
-                    0 => 1.4,
-                    1 => 1.0,
-                    _ => f32::from(e.time) / 5.0,
+                    0 => 3.0,
+                    1 => 2.0,
+                    _ => 1.4 * f32::from(e.time) / 5.0,
                 },
                 0.9,
             ),
@@ -54,7 +54,8 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
         };
         add(
             name,
-            Vec3::from(effect.position.map(|n| n as f32).to_array()) - Vec3::Y * 200.0,
+            Vec3::from(effect.position.map(|n| n as f32).to_array())
+                - Vec3::Y * (effect.scale as f32 / 4096.0 * 100.0).clamp(200.0, 1000.0),
             strength,
             reach,
         );
@@ -64,7 +65,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
             continue;
         }
         if let Some(model) = game.scene.models.get(item.model) {
-            let strength = (1.0 - f32::from(item.napalm.count) / 22.0).max(0.0);
+            let strength = 1.8 * (1.0 - f32::from(item.napalm.count) / 22.0).max(0.0);
             add(
                 "Kaen flame",
                 Vec3::from(model.local.translation.map(|n| n as f32).to_array()),
@@ -95,6 +96,7 @@ mod tests {
                 .load_equipped(&assets, 1, inventory)
                 .unwrap();
             let mut seen = false;
+            let mut lit_ticks = 0;
             let settings = crate::settings::Lighting {
                 enabled: true,
                 count: 1,
@@ -110,6 +112,15 @@ mod tests {
                 let state = crate::session::tests::state(&game);
                 let lights = sources(&game, 12000.0);
                 if lights.iter().any(|source| source.name == name) {
+                    lit_ticks += 1;
+                    if lit_ticks == 5
+                        && let Some(output) = std::env::var_os("TENCHU_LIGHT_REVIEW")
+                    {
+                        let output = std::path::PathBuf::from(output);
+                        std::fs::create_dir_all(&output).unwrap();
+                        crate::capture::frame(&game, &output.join(format!("item-{kind}.png")))
+                            .unwrap();
+                    }
                     seen = true;
                     let selected = super::super::sources(
                         &game,

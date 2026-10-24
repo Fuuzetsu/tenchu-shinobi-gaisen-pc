@@ -50,6 +50,12 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         wind: 60,
         ..Default::default()
     };
+    if std::env::var_os("TENCHU_BLOOD_REVIEW_SNOW").is_some() {
+        graphics.weather.mode = settings::WeatherMode::Snow;
+        if let Some(review) = &mut review {
+            review.renderer.weather.snow = 1.0;
+        }
+    }
     if let Some(review) = &mut review {
         review.configure(graphics.clone());
     }
