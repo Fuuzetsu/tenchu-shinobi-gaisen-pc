@@ -45,6 +45,9 @@ impl Application {
     }
 
     pub(super) fn frontend_action(&mut self, action: Action) {
+        if self.demo.is_some() {
+            return;
+        }
         #[cfg(target_arch = "wasm32")]
         if matches!(action, Action::Confirm)
             && self

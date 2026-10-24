@@ -146,6 +146,24 @@ interrupted by a story or result transition. The cinematic clip replays Mission 
 original script and camera. Inputs for character demonstrations are a small,
 repeatable attack/crouch sequence. Restarts use the same initial RNG seed.
 
+## Menu and text clips
+
+Artwork clips also accept `hud: true` and `sharp_text: true` to include the
+in-game HUD and outline lettering. Both default off, preserving existing catalogs.
+For an animated original-menu clip, use `shot: "wide"`, `feature: "artwork"`,
+a mission from 1–10, no camera/recording, and for example:
+
+```json
+"frontend": {"page": "missions", "language": "ja"}
+```
+
+Pages are `title`, `character`, `missions`, `options`, `controls`, `volume` and
+`language`; language codes are `en` (default), `ja`, `fr` and `it`. The clip's
+mission and character select the preview and ninja. Each clip starts from the
+same settled page and animation state, then runs the original menu timing on the
+60 Hz presentation timeline. Gameplay and campaign progress stay frozen, and
+menu interaction is disabled. Captions use the pillarbox margin.
+
 ## F1 coverage
 
 | F1 page | Clips / scope |

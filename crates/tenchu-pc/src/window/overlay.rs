@@ -124,7 +124,12 @@ impl Overlay {
         let mut frontend_action = None;
         let output = self.context.run(input, |ctx| {
             if let Some((frontend, campaign)) = &mut extras.frontend {
-                frontend_action = frontend.show(ctx, campaign, !menu.open, state.settings);
+                frontend_action = frontend.show(
+                    ctx,
+                    campaign,
+                    !menu.open && extras.demo.is_none(),
+                    state.settings,
+                );
             }
             if !self.opaque {
                 crate::fonts::paint(ctx, ctx.screen_rect(), extras.text);

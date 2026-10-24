@@ -72,6 +72,11 @@ pub struct Clip {
     pub fog: Option<bool>,
     pub camera: Option<super::framing::Path>,
     pub recording: Option<Recording>,
+    #[serde(default)]
+    pub hud: bool,
+    #[serde(default)]
+    pub sharp_text: bool,
+    pub frontend: Option<crate::frontend::showcase::Scene>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -140,6 +145,19 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
         }
         if c.shot == Shot::Gameplay && c.recording.is_none() {
             return Err(format!("Demo '{}' gameplay shot needs a recording", c.id));
+        }
+        if let Some(scene) = &c.frontend {
+            scene.validate()?;
+            if c.feature != Feature::Artwork
+                || c.shot != Shot::Wide
+                || c.camera.is_some()
+                || !(1..=10).contains(&c.mission)
+            {
+                return Err(format!(
+                    "Demo '{}' frontend needs artwork, wide, mission 1–10 and no camera",
+                    c.id
+                ));
+            }
         }
     }
     Ok(clips)

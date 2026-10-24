@@ -14,7 +14,8 @@ impl Application {
         self.settings = Settings {
             volume: self.settings.volume,
             model_directory: self.settings.model_directory.clone(),
-            show_hud: false,
+            show_hud: clip.hud,
+            sharp_text: clip.sharp_text,
             pause_on_defocus: false,
             ..Default::default()
         };
@@ -175,6 +176,12 @@ impl Application {
         self.campaign.options = options;
         self.campaign.screen = Screen::Playing;
         self.campaign.save_request = None;
+        if let Some(scene) = &clip.frontend {
+            self.frontend
+                .as_mut()
+                .ok_or("Demo frontend is not loaded")?
+                .stage_showcase(scene, &self.assets, &mut self.campaign)?;
+        }
         self.menu.open = false;
         self.paused = false;
         self.faulted = false;
@@ -236,11 +243,25 @@ impl Application {
                 return;
             }
             let first = player.simulation_ticks - ticks as u64;
-            let inputs = (0..ticks)
+            let frontend = player.clip().frontend.is_some();
+            let inputs = (0..if frontend { 0 } else { ticks })
                 .map(|i| player.buttons(first + i as u64))
                 .collect::<Vec<_>>();
             let previous = self.settings.clone();
             demo::animate(player, &mut self.settings, &mut self.debug);
+            if frontend {
+                let frontend = self.frontend.as_mut().unwrap();
+                if let Err(error) = frontend.advance(
+                    Duration::from_nanos(16_666_667),
+                    false,
+                    &mut self.campaign,
+                    &self.assets,
+                ) {
+                    self.pause_error(error);
+                    return;
+                }
+                frontend.events.clear();
+            }
             self.campaign.game.activation.keep_all_active = self.settings.keep_enemies_active;
             self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
             if let Some(audio) = &mut self.audio {

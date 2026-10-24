@@ -238,3 +238,56 @@ fn final_completion_hands_off_through_both_epilogues_to_results() {
         assert_eq!(frontend.page, Page::Title);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; exercises deterministic showcase menus without campaign updates"]
+fn showcase_pages_restart_identically_without_advancing_gameplay() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    campaign.options.mission = 7;
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    let state = crate::session::tests::state(&campaign.game);
+    let progress = campaign.progress.clone();
+    for page in [
+        showcase::Menu::Title,
+        showcase::Menu::Character,
+        showcase::Menu::Missions,
+    ] {
+        for language in ["en", "ja", "fr", "it"] {
+            let scene = showcase::Scene {
+                page,
+                language: language.into(),
+            };
+            let mut previous = None;
+            for _ in 0..2 {
+                frontend
+                    .stage_showcase(&scene, &assets, &mut campaign)
+                    .unwrap();
+                for _ in 0..120 {
+                    frontend
+                        .advance(
+                            Duration::from_nanos(16_666_667),
+                            false,
+                            &mut campaign,
+                            &assets,
+                        )
+                        .unwrap();
+                }
+                frontend.paint(&campaign);
+                if let Some(previous) = previous {
+                    assert_eq!(frontend.canvas.pixels, previous);
+                }
+                previous = Some(frontend.canvas.pixels.clone());
+                assert!(frontend.events.iter().all(|event| !matches!(
+                    event,
+                    Event::Save | Event::Load | Event::Launch | Event::Quit
+                )));
+            }
+        }
+    }
+    assert_eq!(state, crate::session::tests::state(&campaign.game));
+    assert_eq!(progress, campaign.progress);
+    assert!(campaign.save_request.is_none());
+}

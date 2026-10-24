@@ -96,6 +96,15 @@ fn catalog_rejects_duplicate_ids_and_invalid_scene_pairings() {
         serde_json::from_slice(include_bytes!("../../data/demos.json")).unwrap();
     json[0]["shot"] = "cinematic".into();
     assert!(catalog::parse(&serde_json::to_vec(&json).unwrap()).is_err());
+    json[0]["shot"] = "wide".into();
+    json[0]["feature"] = "artwork".into();
+    json[0]["frontend"] = serde_json::json!({"page":"missions", "language":"ja"});
+    assert!(catalog::parse(&serde_json::to_vec(&json).unwrap()).is_ok());
+    json[0]["mission"] = 0.into();
+    assert!(catalog::parse(&serde_json::to_vec(&json).unwrap()).is_err());
+    json[0]["mission"] = 1.into();
+    json[0]["frontend"]["language"] = "unknown".into();
+    assert!(catalog::parse(&serde_json::to_vec(&json).unwrap()).is_err());
     assert_eq!(sweep(0.0), 0.0);
     assert_eq!(sweep(0.5), 1.0);
     assert_eq!(sweep(1.0), 0.0);

@@ -21,6 +21,7 @@ pub fn show(
     let mut action = None;
     let clip = player.clip();
     if player.captions {
+        let frontend = clip.frontend.is_some();
         let top = clip.shot == super::Shot::Cinematic || clip.artwork.is_some();
         egui::Area::new("demo-caption".into())
             .anchor(
@@ -45,24 +46,30 @@ pub fn show(
                     .corner_radius(8)
                     .inner_margin(16)
                     .show(ui, |ui| {
-                        let width = if top {
+                        let width = if frontend {
+                            140.0
+                        } else if top {
                             460.0
                         } else {
                             680.0
                         };
-                        ui.set_width((ctx.screen_rect().width() - 80.0).clamp(240.0, width));
+                        ui.set_width((ctx.screen_rect().width() - 80.0).clamp(140.0, width));
                         ui.label(
-                            egui::RichText::new(format!(
+                            egui::RichText::new(if frontend {
+                                "TENCHU / INTERFACE".into()
+                            } else {
+                                format!(
                                 "TENCHU / NATIVE SHOWCASE    {:02} / {:02}    MISSION {}",
                                 player.index + 1,
                                 player.playlist.len(),
                                 clip.mission
-                            ))
+                                )
+                            })
                             .size(11.0)
                             .color(egui::Color32::from_rgb(120, 187, 210)),
                         );
                         ui.add_space(5.0);
-                        ui.label(egui::RichText::new(&clip.title).size(25.0).strong());
+                        ui.label(egui::RichText::new(&clip.title).size(if frontend { 18.0 } else { 25.0 }).strong());
                         ui.add_space(3.0);
                         ui.label(egui::RichText::new(&clip.description).size(15.0));
                         if player.video.is_some()

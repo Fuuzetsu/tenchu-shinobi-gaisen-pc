@@ -10,6 +10,21 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Campaign artwork showcase (in progress)
+
+Prepare a silent 4K/60 campaign tour in `private/campaign-showcase`: concise
+matched artwork comparisons, distinct scenery and gameplay from all ten missions,
+weapons/items/HUD and the four-language menus/fonts. The first edit is 11:42
+with 95 before/after pairs, three seconds per side. Preserve all offline frames,
+review every shot, and deliver an MP4 with useful YouTube chapter timestamps.
+
+The demo catalog now supports animated frontend pages, explicit HUD visibility
+and outline text. Menu staging is deterministic and keeps gameplay/progress
+frozen; interaction is disabled during showcase playback. A disc-backed regression
+checks repeatable pages in all four languages, and a 4K preview checks character,
+mission-selection and options rendering. Native/WASM Clippy and demo timeline
+checks pass. Full campaign rendering and final encoding review remain pending.
+
 ## Campaign-wide HD artwork and fonts (complete)
 
 The accepted local pack is `private/campaign-hd-pack` (candidate43): 1,719 PNG

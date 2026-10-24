@@ -7,6 +7,7 @@ mod labels;
 mod movie;
 mod paint;
 mod raster;
+pub(crate) mod showcase;
 #[cfg(test)]
 mod tests;
 

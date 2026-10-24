@@ -844,6 +844,16 @@ pub fn run(
             frontend.play_movie(tenchu_assets::frontend::Movie::Opening, &assets)?;
         }
         Some(frontend)
+    } else if demo
+        .as_ref()
+        .is_some_and(|d| d.catalog.iter().any(|clip| clip.frontend.is_some()))
+    {
+        Some(crate::frontend::Frontend::new(
+            &assets,
+            disc,
+            &campaign,
+            settings.frontend.clone(),
+        )?)
     } else {
         None
     };
