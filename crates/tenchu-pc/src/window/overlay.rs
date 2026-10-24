@@ -212,6 +212,7 @@ impl super::Application {
             return;
         };
         self.menu.player_models.clone_from(&view.player_models);
+        self.menu.artwork_status = view.artwork_status();
         let updates = view.overlay.update(
             &view.window,
             &view.renderer,

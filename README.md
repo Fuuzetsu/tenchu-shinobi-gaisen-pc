@@ -260,7 +260,19 @@ artwork. It contains 1,719 texture replacements and the two existing Mission 1
 weapon meshes. Run **`./private/campaign-hd-pack/play.sh`** on the authoring
 workstation; it uses the local disc and separate settings with artwork and
 outline text enabled. A different disc can be supplied as the first argument.
-The original menu opens normally; F6 still opens the quick launcher.
+The original menu opens normally; F6 still opens the quick launcher. Plain
+`play DISC` uses original assets unless `TENCHU_ASSET_PACK` is set; ticking
+Replacement artwork does not download or discover the local pack. F1 → Visual
+assets reports the loaded texture/model counts and the pack folder, or a load
+error. To keep your usual settings while loading the whole pack:
+
+```sh
+TENCHU_ASSET_PACK="$PWD/private/campaign-hd-pack" \
+  ./dev.sh cargo run --release -- play '/path/to/game.cue'
+```
+
+Lantern emission, lighting and material shaders are separate settings, so they
+can still improve original artwork with the replacement switch off.
 
 Campaign references, prompts, assembled tile families, recipes and review
 evidence live in `private/campaign-hd-source`. Its `coverage.json` records the

@@ -208,6 +208,7 @@ pub struct Menu {
     pub reveal_row: bool,
     pub player_models: Vec<(String, String)>,
     pub model_directory: String,
+    pub artwork_status: String,
 }
 
 fn on(value: bool) -> String {

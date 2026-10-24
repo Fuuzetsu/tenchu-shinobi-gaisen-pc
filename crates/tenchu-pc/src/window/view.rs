@@ -58,6 +58,7 @@ pub(super) struct View {
     pub(super) size: [u32; 2],
     pub(super) vram_revision: u64,
     pack: Pack,
+    pack_error: Option<String>,
     models: Models,
     bodies: Pack,
     pub(super) player_models: Vec<(String, String)>,
@@ -233,13 +234,16 @@ impl View {
             &game.mission.vram,
         )
         .await?;
+        let mut pack_error = None;
         let mut pack = Pack::from_env(&game.mission).unwrap_or_else(|error| {
             eprintln!("Asset pack: {error}; using original assets");
+            pack_error = Some(error);
             Pack::default()
         });
         let mut models =
             Models::build(&game.mission, &pack, &settings.graphics).unwrap_or_else(|error| {
                 eprintln!("Asset pack: {error}; using original assets");
+                pack_error = Some(error);
                 pack = Pack::default();
                 Models::build(&game.mission, &pack, &settings.graphics).unwrap()
             });
@@ -311,6 +315,7 @@ impl View {
             size: [size.width, size.height],
             vram_revision: game.mission.vram.revision,
             pack,
+            pack_error,
             models,
             bodies,
             player_models,
@@ -403,8 +408,10 @@ impl View {
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
+        self.pack_error = None;
         self.pack = Pack::from_env(&game.mission).unwrap_or_else(|error| {
             eprintln!("Asset pack: {error}; using original assets");
+            self.pack_error = Some(error);
             Pack::default()
         });
         self.renderer.set_asset_pack(&self.pack);
@@ -449,6 +456,26 @@ impl View {
         self.models = models;
     }
 
+    pub(super) fn artwork_status(&self) -> String {
+        if let Some(error) = &self.pack_error {
+            return format!("Asset pack failed to load: {error}");
+        }
+        if self.pack.textures.is_empty() && self.pack.models.is_empty() {
+            return "No replacement textures or models loaded for this mission. The artwork switch needs a pack supplied at launch.".into();
+        }
+        let status = format!(
+            "Loaded for this mission: {} textures, {} models",
+            self.pack.textures.len(),
+            self.pack.models.len()
+        );
+        #[cfg(not(target_arch = "wasm32"))]
+        let status = match std::env::var_os("TENCHU_ASSET_PACK") {
+            Some(path) => format!("{status}\n{}", std::path::Path::new(&path).display()),
+            None => status,
+        };
+        status
+    }
+
     pub(super) fn load_pack(
         &mut self,
         pack: Pack,
@@ -466,6 +493,7 @@ impl View {
         self.renderer.set_asset_pack(&pack);
         self.set_models(models, game);
         self.pack = pack;
+        self.pack_error = None;
         self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
         self.renderer.set_emitters(&self.emitters);
         Ok(count)

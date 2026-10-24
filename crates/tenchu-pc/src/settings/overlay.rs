@@ -70,6 +70,10 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
                 ui.add_space(10.0);
                 ui.vertical(|ui| {
                     ui.set_min_width(335.0);
+                    if menu.page == 7 {
+                        ui.label(&menu.artwork_status);
+                        ui.separator();
+                    }
                     if menu.page == 10 {
                         ui.label("Model folder (optional)");
                         ui.add(
