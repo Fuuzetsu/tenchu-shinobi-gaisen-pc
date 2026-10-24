@@ -1,3 +1,4 @@
+mod transients;
 use glam::Vec3;
 use tenchu_assets::misc::Kind;
 use tenchu_core::game::Game;
@@ -62,6 +63,18 @@ pub fn sources(
             .distance_squared(a.light.position)
             .total_cmp(&focus.distance_squared(b.light.position))
     });
+    if settings.fires {
+        let mut flashes = transients::sources(game, radius);
+        flashes.retain(|s| {
+            focus.distance_squared(s.light.position) < (s.light.radius + 15000.0).powi(2)
+        });
+        flashes.sort_by(|a, b| {
+            focus
+                .distance_squared(a.light.position)
+                .total_cmp(&focus.distance_squared(b.light.position))
+        });
+        lights.extend(flashes.into_iter().take(2));
+    }
     lights.extend(candidates);
     lights.truncate(usize::from(settings.count).min(MAX_LIGHTS));
     lights

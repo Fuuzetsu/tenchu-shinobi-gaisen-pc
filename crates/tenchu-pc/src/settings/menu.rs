@@ -1129,9 +1129,9 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
                 (
                     Item::FireLights,
-                    "Authored fires",
+                    "Fire / explosion lights",
                     on(light.fires),
-                    "Nearest fire/bonfire emitters supply lights.",
+                    "Fires, grenades, burning embers and kaen flames illuminate nearby surfaces. Transient lights share the light and shadow budgets.",
                 ),
                 (
                     Item::LightCount,

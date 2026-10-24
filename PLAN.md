@@ -44,8 +44,11 @@ onto actual ground triangles, and fade beneath fresh snowfall. F1 exposes a
 toggle, burial time and clear action. Ground blood absorbs the snowy material
 instead of revealing the substrate. Real-disc walking checks cover both players,
 read-only state and bounded geometry; native GPU checks cover distant coating,
-stains, footprints and restoration when disabled. Item lights, experimentation
-controls and final combined/browser validation remain in progress.
+stains, footprints and restoration when disabled. Grenades, embers and kaen now contribute short-lived, clustered light sources
+using actual effect lifetimes, with two priority slots in the existing light
+budget. Real-disc item-use tests verify flashes appear, expire and leave game
+state untouched; camera-orbit stability still passes. Experimentation controls
+and final combined/browser validation remain in progress.
 
 ## Persistent effects, weather, models and water (complete)
 
