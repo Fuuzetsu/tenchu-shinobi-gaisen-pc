@@ -15,7 +15,7 @@ impl Application {
             view.interpolation.tick(&self.campaign.game);
         }
         if let Some(view) = &mut self.view {
-            view.cosmetic_tick(&self.campaign.game, &self.settings);
+            view.cosmetic_tick(&self.campaign.game, &self.settings, &self.debug);
         }
         self.debug.update(&self.campaign.game);
         self.controls.feedback(

@@ -69,6 +69,8 @@ pub struct Frame {
     pub strength: f32,
     pub ambient: f32,
     pub tint: f32,
+    pub weather: crate::visuals::weather::SurfaceWeather,
+    pub weather_resolution: u32,
 }
 
 impl Frame {
@@ -80,6 +82,8 @@ impl Frame {
             strength: f32::from(settings.directional.intensity) / 400.0,
             ambient: f32::from(settings.ambient) / 100.0,
             tint: f32::from(settings.sky_tint) / 100.0,
+            weather: Default::default(),
+            weather_resolution: 1,
         };
         if let Some(sky) = daylight {
             frame.settings.enabled = true;
@@ -91,5 +95,19 @@ impl Frame {
             frame.tint = sky.tint;
         }
         frame
+    }
+
+    pub fn with_weather(
+        mut self,
+        weather: crate::visuals::weather::SurfaceWeather,
+        settings: &crate::settings::Weather,
+    ) -> Self {
+        if settings.mode != crate::settings::WeatherMode::Original {
+            self.weather = weather;
+            if weather.wet > 0.0 || weather.snow > 0.0 {
+                self.weather_resolution = [256, 512, 1024][usize::from(settings.quality.min(2))];
+            }
+        }
+        self
     }
 }

@@ -48,15 +48,23 @@ pub(super) struct View {
     surfaces: Option<crate::visuals::surfaces::Surfaces>,
     pub(super) blood: crate::visuals::blood::Blood,
     sky: crate::visuals::sky::Clock,
+    weather: crate::visuals::weather::Weather,
     pub(super) interpolation: crate::visuals::interpolation::History,
     interpolation_enabled: bool,
     frame: Option<crate::visuals::interpolation::Frame>,
 }
 
 impl View {
-    pub(super) fn cosmetic_tick(&mut self, game: &Game, settings: &Settings) {
+    pub(super) fn cosmetic_tick(
+        &mut self,
+        game: &Game,
+        settings: &Settings,
+        debug: &crate::debug::Debug,
+    ) {
         self.sky.tick(game.tick, &settings.graphics.sky);
-        if settings.graphics.blood.enabled && settings.graphics.blood.amount != 0 {
+        let blood = settings.graphics.blood.enabled && settings.graphics.blood.amount != 0;
+        let weather = settings.graphics.weather.mode != settings::WeatherMode::Original;
+        if blood || weather {
             let surfaces = self.surfaces.get_or_insert_with(|| {
                 crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
                     &game.mission,
@@ -64,10 +72,21 @@ impl View {
                     Some(&self.models),
                 ))
             });
-            self.blood
-                .tick(game, &self.models, surfaces, &settings.graphics.blood);
-        } else {
+            if blood {
+                self.blood
+                    .tick(game, &self.models, surfaces, &settings.graphics.blood);
+            }
+            if weather {
+                let center = debug.eye(game);
+                self.weather
+                    .tick(game.tick, center, surfaces, &settings.graphics.weather);
+            }
+        }
+        if !blood {
             self.blood = Default::default();
+        }
+        if !weather {
+            self.weather = Default::default();
         }
     }
 
@@ -258,6 +277,7 @@ impl View {
             surfaces: None,
             blood: Default::default(),
             sky: Default::default(),
+            weather: Default::default(),
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
@@ -361,6 +381,7 @@ impl View {
         self.shadow_stage = None;
         self.surfaces = None;
         self.blood = Default::default();
+        self.weather = Default::default();
         self.stage = self.renderer.upload(&render_mesh::stage(
             &game.mission,
             &game.math,
@@ -418,6 +439,9 @@ impl View {
         if !settings.graphics.blood.enabled {
             self.blood = Default::default();
         }
+        if settings.graphics.weather.mode == settings::WeatherMode::Original {
+            self.weather = Default::default();
+        }
         self.renderer.configure(&settings.graphics);
         if self.window.fullscreen().is_some() != settings.fullscreen {
             self.window
@@ -459,6 +483,7 @@ impl View {
             None
         };
         self.renderer.daylight = self.sky.sample(&settings.graphics.sky, alpha);
+        self.renderer.weather = self.weather.sample(&settings.graphics.weather, alpha);
         let frame = self.frame.as_ref();
         self.actor = self.renderer.upload(&render_mesh::characters_presented(
             game,
@@ -478,11 +503,12 @@ impl View {
             },
         );
         self.lights = sources.iter().map(|s| s.light).collect();
-        let shadowing = (settings.graphics.lighting.enabled || settings.graphics.sky.enabled)
-            && settings.graphics.lighting.shadows
-            && ((settings.graphics.lighting.shadow_count > 0 && !self.lights.is_empty())
-                || settings.graphics.lighting.directional.intensity > 0
-                || settings.graphics.sky.enabled);
+        let shadowing = (settings.graphics.weather.mode != settings::WeatherMode::Original)
+            || (settings.graphics.lighting.enabled || settings.graphics.sky.enabled)
+                && settings.graphics.lighting.shadows
+                && ((settings.graphics.lighting.shadow_count > 0 && !self.lights.is_empty())
+                    || settings.graphics.lighting.directional.intensity > 0
+                    || settings.graphics.sky.enabled);
         if shadowing && self.shadow_stage.is_none() {
             self.shadow_stage = Some(self.renderer.upload(&render_mesh::shadow_stage(
                 &game.mission,
@@ -546,6 +572,20 @@ impl View {
             );
             cosmetics.append(geometry);
             geometry = cosmetics;
+        }
+        if campaign.playing()
+            && error.is_none()
+            && !debug.collision_only
+            && settings.graphics.weather.mode != settings::WeatherMode::Original
+        {
+            geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
+            let mut weather = self.weather.geometry(
+                self.camera_matrix(game, debug),
+                alpha,
+                &settings.graphics.weather,
+            );
+            weather.append(geometry);
+            geometry = weather;
         }
         if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();
@@ -633,6 +673,18 @@ impl View {
         }))
     }
 
+    fn camera_matrix(&self, game: &Game, debug: &crate::debug::Debug) -> glam::Mat4 {
+        let aspect = self.config.width as f32 / self.config.height as f32;
+        if debug.camera.is_some() {
+            debug.matrix(game, aspect)
+        } else {
+            crate::renderer::game_camera(
+                self.frame.as_ref().map_or(game.rendered_view, |f| f.view),
+                aspect,
+            )
+        }
+    }
+
     pub(super) fn render(
         &mut self,
         target: &wgpu::TextureView,
@@ -647,14 +699,7 @@ impl View {
         if !self.overlay.opaque {
             self.renderer.draw_lit(
                 target,
-                if debug.camera.is_some() {
-                    debug.matrix(game, self.config.width as f32 / self.config.height as f32)
-                } else {
-                    crate::renderer::game_camera(
-                        self.frame.as_ref().map_or(game.rendered_view, |f| f.view),
-                        self.config.width as f32 / self.config.height as f32,
-                    )
-                },
+                self.camera_matrix(game, debug),
                 if debug.collision_only { &[] } else { &meshes },
                 Some(&self.effects),
                 &self.lights,

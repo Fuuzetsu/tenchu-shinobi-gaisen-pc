@@ -697,7 +697,9 @@ impl ApplicationHandler for Application {
                     || before != self.campaign.game.tick
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
-                    || self.settings.graphics.interpolation && !suspended && self.campaign.playing()
+                    || self.settings.graphics.animated_presentation()
+                        && !suspended
+                        && self.campaign.playing()
                 {
                     self.update_view();
                 }

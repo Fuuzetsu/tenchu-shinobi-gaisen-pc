@@ -26,6 +26,8 @@ pub const SCENERY: u32 = 1024;
 pub const ALPHA: u32 = 2048;
 pub const STAIN: u32 = 4096;
 pub const SKY: u32 = 8192;
+pub const SOFT: u32 = 16384;
+pub const ORIGINAL_WEATHER: u32 = 32768;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]

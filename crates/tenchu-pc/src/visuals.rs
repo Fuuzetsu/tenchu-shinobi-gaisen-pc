@@ -13,6 +13,7 @@ pub mod relief;
 pub mod sky;
 mod smooth;
 pub mod surfaces;
+pub mod weather;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use export::export;

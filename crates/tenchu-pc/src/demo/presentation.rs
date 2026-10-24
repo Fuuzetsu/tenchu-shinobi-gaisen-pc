@@ -101,6 +101,22 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     }
     match player.clip().feature {
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
+        Feature::Rain | Feature::Snow => {
+            g.sky.enabled = true;
+            g.sky.time = 720;
+            g.weather.mode = if player.clip().feature == Feature::Rain {
+                crate::settings::WeatherMode::Rain
+            } else {
+                crate::settings::WeatherMode::Snow
+            };
+            g.weather.amount = 100;
+            g.weather.wind = 30;
+            g.weather.heading = 90;
+            g.weather.wetness = 90;
+            g.weather.snow = 75;
+            g.lighting.enabled = true;
+            g.lighting.count = 4;
+        }
         Feature::DayCycle => {
             g.sky.enabled = true;
             g.sky.time = 360;
@@ -410,6 +426,10 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
     match player.clip().feature {
         Feature::Presets => text(crate::settings::presets::NAMES[g.preset() as usize].into()),
         Feature::Lanterns => meter("Point-light strength (%)", l.intensity, 220),
+        Feature::Rain => {
+            text("Rain · roof runoff · gradual wetness · shelter-aware surfaces".into())
+        }
+        Feature::Snow => text("Snow · wind · gradual exposed-surface coverage".into()),
         Feature::Moon => meter("Moon strength (%)", l.directional.intensity, 100),
         Feature::DayCycle => {
             let minutes = (360.0 + player.time() * 72.0) as u32 % 1440;

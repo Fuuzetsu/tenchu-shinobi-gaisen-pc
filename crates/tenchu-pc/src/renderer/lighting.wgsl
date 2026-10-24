@@ -7,11 +7,70 @@ struct Lighting {
     sun_inverse: mat4x4<f32>,
     sun_direction: vec4<f32>,
     sun_color: vec4<f32>,
+    weather_matrix: mat4x4<f32>,
+    weather_inverse: mat4x4<f32>,
+    weather: vec4<f32>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
 @group(1) @binding(2) var shadow_sampler: sampler_comparison;
 @group(1) @binding(3) var sun_map: texture_depth_2d;
+@group(1) @binding(4) var weather_map: texture_depth_2d;
+
+fn weather_noise(p: vec3<f32>) -> f32 {
+    let cell = floor(p);
+    let f = smoothstep(vec3(0.0), vec3(1.0), fract(p));
+    var value = 0.0;
+    for (var z = 0; z <= 1; z++) {
+        for (var y = 0; y <= 1; y++) {
+            for (var x = 0; x <= 1; x++) {
+                let corner = vec3(f32(x), f32(y), f32(z));
+                let weight = mix(vec3(1.0) - f, f, corner);
+                var h = fract((cell + corner) * 0.1031);
+                h += dot(h, h.yzx + vec3(33.33));
+                let hash = fract((h.x + h.y) * h.z);
+                value += hash * weight.x * weight.y * weight.z;
+            }
+        }
+    }
+    return value;
+}
+
+fn weather_surface(input: vec3<f32>, normal: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<f32> {
+    if lighting.weather.x + lighting.weather.y <= 0.0 { return input; }
+    let p = lighting.weather_matrix * vec4(position - vec3(0.0, 35.0, 0.0), 1.0);
+    let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
+    if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { return input; }
+    let plane = transpose(lighting.weather_inverse) * vec4(normal, -dot(normal, position));
+    var gradient = vec2(0.0);
+    if abs(plane.z) > 0.00001 { gradient = vec2(-2.0, 2.0) * plane.xy / plane.z; }
+    let reference = p.z - dot(abs(gradient), vec2(0.5) / vec2<f32>(textureDimensions(weather_map)));
+    let exposed = textureSampleCompareLevel(weather_map, shadow_sampler, uv, reference);
+    let edge = 1.0 - smoothstep(0.8, 1.0, max(abs(p.x), abs(p.y)));
+    let slope = clamp(-normal.y, 0.0, 1.0);
+    let shelter = exposed * edge;
+    let variation = weather_noise(position / 450.0);
+    let wet = lighting.weather.x * shelter * (0.3 + 0.7 * slope);
+    var color = input * (1.0 - wet * 0.32);
+    let view = normalize(camera.eye.xyz - position);
+    let fresnel = pow(1.0 - max(0.0, dot(normal, view)), 4.0);
+    let sky = mix(vec3(0.035, 0.055, 0.09), vec3(0.18, 0.22, 0.25), camera.detail.w);
+    var reflection = sky * wet * slope * (0.06 + 0.4 * fresnel) * (0.5 + variation * 0.5);
+    if lighting.sun_direction.w > 0.0 {
+        let half_vector = normalize(view + lighting.sun_direction.xyz);
+        reflection += lighting.sun_color.rgb * lighting.sun_direction.w * wet * 0.3
+            * pow(max(0.0, dot(normal, half_vector)), 80.0) * sun_visibility(position, normal);
+    }
+    if !linear { reflection = pow(max(reflection, vec3(0.0)), vec3(1.0 / 2.2)) * 0.35; }
+    color += reflection;
+    if lighting.weather.y == 0.0 { return color; }
+    let coverage = lighting.weather.y * shelter * smoothstep(0.35, 0.85, slope);
+    let snow = smoothstep(variation * 0.55, variation * 0.55 + 0.45, coverage);
+    let grain = weather_noise(position / 18.0);
+    var white = vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1);
+    if linear { white = pow(white, vec3(2.2)); }
+    return mix(color, white * illumination(position, normal, normal), snow);
+}
 
 fn shadow_face(direction: vec3<f32>) -> u32 {
     let a = abs(direction);

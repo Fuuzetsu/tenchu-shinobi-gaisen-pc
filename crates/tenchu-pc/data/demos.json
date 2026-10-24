@@ -288,7 +288,7 @@
   {
     "id": "collision",
     "title": "Inspect the playable geometry",
-    "description": "Collision surfaces, hazard colors and event regions reveal the structure under the artwork. These are the game’s own data.",
+    "description": "Collision surfaces, hazard colors and event regions reveal the structure under the artwork. These are the game\u2019s own data.",
     "seconds": 12,
     "mission": 2,
     "character": 1,
@@ -415,6 +415,56 @@
     "character": 0,
     "preset": 3,
     "feature": "day-cycle",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -48300,
+        -7600,
+        -39400
+      ],
+      "target": [
+        -44667,
+        -5000,
+        -34667
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "rain",
+    "title": "Rain on the rooftops",
+    "description": "Rain hits roofs, runs down their slopes and drips over the eaves. Exposed surfaces gradually darken and reflect the sky; covered ground stays dry.",
+    "seconds": 24,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "rain",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -48300,
+        -7600,
+        -39400
+      ],
+      "target": [
+        -44667,
+        -5000,
+        -34667
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "snow",
+    "title": "A fresh dusting of snow",
+    "description": "Wind carries soft flakes through the scene. A thin coat gradually settles on exposed upward surfaces; walls and sheltered floors retain their artwork.",
+    "seconds": 30,
+    "mission": 1,
+    "character": 1,
+    "preset": 3,
+    "feature": "snow",
     "shot": "wide",
     "fog": false,
     "camera": {

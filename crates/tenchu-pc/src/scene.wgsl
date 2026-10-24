@@ -12,6 +12,7 @@ const SCENERY: u32 = 1024u;
 const ALPHA: u32 = 2048u;
 const STAIN: u32 = 4096u;
 const SKY: u32 = 8192u;
+const SOFT: u32 = 16384u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -83,6 +84,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     let detail = surface_detail(v, normal, world_dx, world_dy, du, dv);
     normal = detail.normal;
     let coordinate = detail.coordinate;
+    if (v.flags & SKY) != 0u { return sky_color(v.normal); }
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     let hdr = HDR_ENABLED && camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
@@ -129,6 +131,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
     if !screen { color = mix(color * detail.cavity * illumination(v.world, normal, surface_normal), emission.rgb, emission.a); }
+    if WEATHER_ENABLED && (v.flags & (SCENERY | ALPHA | TRANSLUCENT)) == SCENERY {
+        color = weather_surface(color, normal, v.world, linear_lighting);
+    }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
         let haze = select(0.0, 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);
@@ -147,7 +152,6 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
-    if (v.flags & SKY) != 0u { return sky_color(v.normal); }
     let color = shade(v, front_facing, false);
     return vec4(color.rgb, 1.0);
 }
@@ -160,7 +164,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     let color = shade(v, front_facing, false);
-    return vec4(color.rgb, clamp(v.opacity, 0.0, 1.0));
+    var opacity = v.opacity;
+    if (v.flags & SOFT) != 0u { opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv)); }
+    return vec4(color.rgb, clamp(opacity, 0.0, 1.0));
 }
 
 fn sky_color(direction: vec3<f32>) -> vec4<f32> {

@@ -35,6 +35,10 @@ pub struct Surfaces {
 }
 
 impl Surfaces {
+    pub fn top(&self) -> f32 {
+        self.nodes.first().map_or(0.0, |node| node.bounds.min.y)
+    }
+
     pub fn new(vertices: &[Vertex]) -> Self {
         let mut out = Self {
             triangles: vertices

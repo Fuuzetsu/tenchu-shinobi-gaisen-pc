@@ -313,6 +313,11 @@ fn widget(
             "8x aniso",
             "16x aniso",
         ]),
+        Item::Weather => super::WeatherMode::ALL
+            .iter()
+            .map(|mode| mode.name().into())
+            .collect(),
+        Item::WeatherQuality => strings(&["Low", "Medium", "High"]),
         Item::SurfaceDetail => strings(&["Off", "Bump", "Parallax"]),
         Item::Magnification => strings(&["Smooth", "Crisp", "Cubic", "Pixel"]),
         Item::Upscale => strings(&["Original", "Scale2x", "Scale4x"]),
@@ -392,6 +397,8 @@ fn number(text: &str) -> f64 {
 
 fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
     let (min, max, step, scale) = match item {
+        Item::WeatherAmount | Item::WeatherWind | Item::Wetness | Item::SnowCover => (0, 100, 5, 1),
+        Item::WeatherHeading => (0, 345, 15, 1),
         Item::TimeOfDay => (0, 1425, 15, 1),
         Item::TimeSpeed => (0, 120, 1, 1),
         Item::SunPath => (0, 345, 15, 1),

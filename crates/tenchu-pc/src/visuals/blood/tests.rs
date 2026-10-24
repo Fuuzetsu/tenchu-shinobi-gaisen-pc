@@ -49,6 +49,17 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         &game.math,
         Some(&models),
     ));
+    let mut weather = crate::visuals::weather::Weather::default();
+    let mut weather_settings = settings::Weather {
+        mode: settings::WeatherMode::Rain,
+        ..Default::default()
+    };
+    let mut sky = crate::visuals::sky::Clock::default();
+    let sky_settings = settings::Sky {
+        enabled: true,
+        speed: 72,
+        ..Default::default()
+    };
     let mut blood = Blood::default();
     let settings = settings::Blood {
         enabled: true,
@@ -66,6 +77,20 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
             game.step(buttons).unwrap();
             original.step(buttons).unwrap();
             blood.tick(&game, &models, &surfaces, &settings);
+            weather_settings.mode = if game.tick % 1800 < 900 {
+                settings::WeatherMode::Rain
+            } else {
+                settings::WeatherMode::Snow
+            };
+            let camera = crate::renderer::view_matrix(game.rendered_view)
+                .inverse()
+                .transform_point3(Vec3::ZERO);
+            weather.tick(game.tick, camera, &surfaces, &weather_settings);
+            sky.tick(game.tick, &sky_settings);
+            for alpha in [0.0, 0.5, 1.0] {
+                weather.sample(&weather_settings, alpha);
+                sky.sample(&sky_settings, alpha);
+            }
             max_wounds = max_wounds.max(blood.wounds.len());
             max_attached = max_attached.max(
                 blood

@@ -664,6 +664,21 @@ The cycle is off by default. `demo --clips day-cycle` shows a day in twenty seco
 scenery as daylight rises, so midday can look like daytime while preserving the
 artwork. Set it to 0 to keep all original vertex shading throughout the cycle.
 
+**F1 → Weather** selects Original, Clear, Rain or Snow. Original is the default
+and retains the mission's original weather; overrides change presentation only.
+Precipitation, wind strength/direction, detail, wetness, snow cover and roof runoff
+are adjustable. Rain stops on static stage geometry, splashes and runs down
+sloped surfaces before dripping over edges. Wet shading builds gradually and
+dries in clear weather; a thin snow coat builds on exposed upward surfaces and
+melts after snow stops. A top-down shelter map respects actual model cutouts and
+keeps covered floors dry. These are bounded cosmetic particles and surface
+coatings, without fluid volumes, snow collision, footprints or flood simulation.
+Low/Medium/High detail caps precipitation at 384/896/1792 particles and uses a
+256/512/1024 shelter map around the camera. Runoff and splashes have separate
+limits. Pauses freeze weather; changing missions/models or selecting Original
+clears it. The original game still updates its weather RNG even when hidden.
+`demo --clips rain,snow` reviews both effects on Mission 1's roofs.
+
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`

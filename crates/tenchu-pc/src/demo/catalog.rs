@@ -11,6 +11,8 @@ pub enum Feature {
     Shadows,
     Moon,
     DayCycle,
+    Rain,
+    Snow,
     TextureSampling,
     Reconstruction,
     Antialiasing,

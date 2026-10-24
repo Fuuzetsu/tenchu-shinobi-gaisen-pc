@@ -3,6 +3,14 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Weather,
+    WeatherAmount,
+    WeatherWind,
+    WeatherHeading,
+    WeatherQuality,
+    Wetness,
+    SnowCover,
+    RoofRunoff,
     TimeClock,
     TimeOfDay,
     TimeSpeed,
@@ -177,7 +185,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 13] = [
+pub const PAGES: [&str; 14] = [
     "General",
     "Graphics",
     "Overlays",
@@ -191,10 +199,65 @@ pub const PAGES: [&str; 13] = [
     "Player model",
     "Persistent effects",
     "Time of day",
+    "Weather",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        13 => {
+            let weather = &s.graphics.weather;
+            vec![
+                (
+                    Item::Weather,
+                    "Weather",
+                    weather.mode.name().into(),
+                    "Original retains the mission weather. Clear, Rain and Snow replace its presentation only.",
+                ),
+                (
+                    Item::WeatherAmount,
+                    "Precipitation",
+                    format!("{}%", weather.amount),
+                    "Rain or snow density; shelter and surfaces stop falling particles.",
+                ),
+                (
+                    Item::WeatherWind,
+                    "Wind strength",
+                    format!("{}%", weather.wind),
+                    "Wind carries rain and snow; gameplay is unchanged.",
+                ),
+                (
+                    Item::WeatherHeading,
+                    "Wind compass",
+                    format!("{} deg", weather.heading),
+                    "Direction of the wind around the stage.",
+                ),
+                (
+                    Item::WeatherQuality,
+                    "Weather detail",
+                    ["Low", "Medium", "High"][usize::from(weather.quality)].into(),
+                    "Particle budget and shelter-map resolution. Low is useful for browsers and large windows.",
+                ),
+                (
+                    Item::Wetness,
+                    "Surface wetness",
+                    format!("{}%", weather.wetness),
+                    "Maximum wet shading and reflections; builds in rain, dries slowly in clear weather. No flooding.",
+                ),
+                (
+                    Item::SnowCover,
+                    "Snow cover",
+                    format!("{}%", weather.snow),
+                    "Thin cosmetic coverage grows on exposed upward surfaces, then melts when snow stops.",
+                ),
+                (
+                    Item::RoofRunoff,
+                    "Roof runoff",
+                    on(weather.runoff),
+                    "Raindrops run downhill on sloped roofs and drip from edges.",
+                ),
+            ]
+        }
+
         12 => {
             let sky = &s.graphics.sky;
             vec![

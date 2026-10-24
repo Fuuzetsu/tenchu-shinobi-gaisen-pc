@@ -133,6 +133,38 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::Weather => {
+                let modes = settings::WeatherMode::ALL;
+                let index = modes
+                    .iter()
+                    .position(|&mode| mode == self.settings.graphics.weather.mode)
+                    .unwrap_or(0);
+                self.settings.graphics.weather.mode =
+                    modes[(index as i32 + direction).rem_euclid(modes.len() as i32) as usize];
+            }
+            Item::WeatherQuality => {
+                self.settings.graphics.weather.quality =
+                    (i32::from(self.settings.graphics.weather.quality) + direction).rem_euclid(3)
+                        as u16;
+            }
+            Item::WeatherHeading => {
+                self.settings.graphics.weather.heading =
+                    (i32::from(self.settings.graphics.weather.heading) + direction * 15)
+                        .rem_euclid(360) as u16;
+            }
+            Item::RoofRunoff => {
+                self.settings.graphics.weather.runoff = !self.settings.graphics.weather.runoff
+            }
+            Item::WeatherAmount | Item::WeatherWind | Item::Wetness | Item::SnowCover => {
+                let weather = &mut self.settings.graphics.weather;
+                let value = match item {
+                    Item::WeatherAmount => &mut weather.amount,
+                    Item::WeatherWind => &mut weather.wind,
+                    Item::Wetness => &mut weather.wetness,
+                    _ => &mut weather.snow,
+                };
+                *value = (i32::from(*value) + direction * 5).clamp(0, 100) as u16;
+            }
             Item::TimeClock => {
                 self.settings.graphics.sky.enabled = !self.settings.graphics.sky.enabled
             }

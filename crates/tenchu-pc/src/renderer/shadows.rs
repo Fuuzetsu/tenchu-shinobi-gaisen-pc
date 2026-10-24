@@ -2,7 +2,6 @@ use super::{EffectMesh, Mesh};
 use crate::{
     lighting::{Light, MAX_LIGHTS, MAX_SHADOW_LIGHTS},
     render_mesh::Vertex,
-    settings::Lighting,
 };
 use glam::{Mat4, Vec3};
 
@@ -27,6 +26,8 @@ pub struct Shadows {
     resolution: u32,
     sun: wgpu::TextureView,
     sun_resolution: u32,
+    weather: wgpu::TextureView,
+    weather_resolution: u32,
 }
 
 impl Shadows {
@@ -75,9 +76,19 @@ impl Shadows {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 32) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 68) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -86,7 +97,8 @@ impl Shadows {
             ..Default::default()
         });
         let sun = super::sun::target(device, 1);
-        let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1, &sun);
+        let weather = super::sun::target(device, 1);
+        let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1, [&sun, &weather]);
         let face_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Shadow face"),
             entries: &[
@@ -103,7 +115,7 @@ impl Shadows {
                 },
             ],
         });
-        let faces = (0..FACES)
+        let faces = (0..=FACES)
             .map(|_| {
                 let data = buffer(device, 80);
                 let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -178,10 +190,13 @@ impl Shadows {
             resolution: 1,
             sun,
             sun_resolution: 1,
+            weather,
+            weather_resolution: 1,
         }
     }
 
-    pub fn configure(&mut self, device: &wgpu::Device, settings: &Lighting, count: usize) {
+    pub fn configure(&mut self, device: &wgpu::Device, frame: &super::sun::Frame, count: usize) {
+        let settings = &frame.settings;
         let count = count
             .min(usize::from(settings.shadow_count))
             .min(MAX_SHADOW_LIGHTS);
@@ -199,7 +214,16 @@ impl Shadows {
             self.sun = super::sun::target(device, sun_resolution);
             self.sun_resolution = sun_resolution;
         }
-        if self.resolution != resolution || self.views.len() != layers || sun_changed {
+        let weather_changed = self.weather_resolution != frame.weather_resolution;
+        if weather_changed {
+            self.weather_resolution = frame.weather_resolution;
+            self.weather = super::sun::target(device, self.weather_resolution);
+        }
+        if self.resolution != resolution
+            || self.views.len() != layers
+            || sun_changed
+            || weather_changed
+        {
             (self.bindings, self.views) = maps(
                 device,
                 &self.layout,
@@ -207,7 +231,7 @@ impl Shadows {
                 &self.sampler,
                 resolution,
                 layers,
-                &self.sun,
+                [&self.sun, &self.weather],
             );
             self.resolution = resolution;
         }
@@ -274,6 +298,18 @@ impl Shadows {
         data.extend(frame.direction.extend(frame.strength).to_array());
         data.extend(frame.color.to_array());
         data.push(u8::from(sun_shadows) as f32);
+        let weather_matrix = weather_matrix(camera, self.weather_resolution);
+        data.extend(weather_matrix.to_cols_array());
+        data.extend(weather_matrix.inverse().to_cols_array());
+        data.extend([
+            frame.weather.wet,
+            frame.weather.snow,
+            frame.weather.time,
+            0.0,
+        ]);
+        if self.weather_resolution > 1 {
+            self.draw_face(encoder, queue, FACES, weather_matrix, false, geometry);
+        }
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
     }
 
@@ -286,7 +322,9 @@ impl Shadows {
         lamps: bool,
         geometry: &Geometry,
     ) {
-        let target = if index == FACES - 1 {
+        let target = if index == FACES {
+            &self.weather
+        } else if index == FACES - 1 {
             &self.sun
         } else {
             &self.views[index]
@@ -342,7 +380,7 @@ fn maps(
     sampler: &wgpu::Sampler,
     resolution: u32,
     layers: usize,
-    sun: &wgpu::TextureView,
+    sky_maps: [&wgpu::TextureView; 2],
 ) -> (wgpu::BindGroup, Vec<wgpu::TextureView>) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Point shadow depth array"),
@@ -381,7 +419,11 @@ fn maps(
             },
             wgpu::BindGroupEntry {
                 binding: 3,
-                resource: wgpu::BindingResource::TextureView(sun),
+                resource: wgpu::BindingResource::TextureView(sky_maps[0]),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: wgpu::BindingResource::TextureView(sky_maps[1]),
             },
         ],
     });
@@ -397,6 +439,18 @@ fn maps(
         })
         .collect();
     (bindings, views)
+}
+
+fn weather_matrix(camera: Mat4, resolution: u32) -> Mat4 {
+    let inverse = camera.inverse();
+    let near = inverse.project_point3(Vec3::ZERO);
+    let direction = (inverse.project_point3(Vec3::Z) - near).normalize_or_zero();
+    let mut center = near + direction * 6000.0;
+    let texel = 40000.0 / resolution as f32;
+    center.x = (center.x / texel).floor() * texel;
+    center.z = (center.z / texel).floor() * texel;
+    Mat4::orthographic_rh(-20000.0, 20000.0, -20000.0, 20000.0, 1.0, 200000.0)
+        * Mat4::look_at_rh(center - Vec3::Y * 100000.0, center, Vec3::Z)
 }
 
 fn matrices(light: &Light) -> [Mat4; 6] {

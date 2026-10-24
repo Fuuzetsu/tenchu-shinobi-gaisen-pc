@@ -16,6 +16,10 @@ pub struct Geometry {
 
 impl Geometry {
     pub fn hide_ui(&mut self) {
+        self.remove_flag(render_mesh::UI);
+    }
+
+    pub fn remove_flag(&mut self, flag: u32) {
         let vertices = std::mem::take(&mut self.vertices);
         let batches = std::mem::take(&mut self.batches);
         for batch in batches {
@@ -23,7 +27,7 @@ impl Geometry {
             self.vertices.extend(
                 vertices[batch.range.start as usize..batch.range.end as usize]
                     .chunks_exact(3)
-                    .filter(|triangle| triangle[0].flags & render_mesh::UI == 0)
+                    .filter(|triangle| triangle[0].flags & flag == 0)
                     .flatten()
                     .copied(),
             );
@@ -466,10 +470,22 @@ pub fn build_presented(
             p = [p[0] * cos - p[1] * sin, p[0] * sin + p[1] * cos];
             [xy[0] + p[0], xy[1] + p[1], depth(z)]
         });
+        let mut vertices = quad(points, [color; 4], image, blend);
+        if matches!(
+            drawing.graphic,
+            Graphic::Sprite {
+                image: 55,
+                blend: 2
+            }
+        ) {
+            for vertex in &mut vertices {
+                vertex.flags |= render_mesh::ORIGINAL_WEATHER;
+            }
+        }
         surfaces.push(Surface {
             depth: z,
             blend,
-            vertices: quad(points, [color; 4], image, blend),
+            vertices,
         });
     }
     let actor_trails = game

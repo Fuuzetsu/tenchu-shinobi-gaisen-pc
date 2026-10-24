@@ -23,6 +23,20 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::Weather => self.settings.graphics.weather.mode = s.graphics.weather.mode,
+            Item::WeatherAmount => {
+                self.settings.graphics.weather.amount = s.graphics.weather.amount
+            }
+            Item::WeatherWind => self.settings.graphics.weather.wind = s.graphics.weather.wind,
+            Item::WeatherHeading => {
+                self.settings.graphics.weather.heading = s.graphics.weather.heading
+            }
+            Item::WeatherQuality => {
+                self.settings.graphics.weather.quality = s.graphics.weather.quality
+            }
+            Item::Wetness => self.settings.graphics.weather.wetness = s.graphics.weather.wetness,
+            Item::SnowCover => self.settings.graphics.weather.snow = s.graphics.weather.snow,
+            Item::RoofRunoff => self.settings.graphics.weather.runoff = s.graphics.weather.runoff,
             Item::TimeClock => self.settings.graphics.sky.enabled = s.graphics.sky.enabled,
             Item::TimeOfDay => self.settings.graphics.sky.time = s.graphics.sky.time,
             Item::TimeSpeed => self.settings.graphics.sky.speed = s.graphics.sky.speed,

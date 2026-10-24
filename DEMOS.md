@@ -202,6 +202,7 @@ their original artwork. These private assets and videos are not included in Git.
 | Visual assets | `artwork`, `reconstruction`, `models`: pack fallback, reconstruction, normals and contours. |
 | Sky lighting | `moon`, `sky-direction`, `sky-quality`: strength, direction, color, sky tint, coverage and resolution. |
 | Time of day | `day-cycle`: sunrise, daylight, sunset and moonlight with continuous shadow movement and local lanterns after dark. |
+| Weather | `rain` and `snow`: precipitation over Mission 1 roofs, gradual exposed-surface coatings, shelter and roof runoff. |
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
 | Player model | `bodies`: compatible disc bodies and configured folder bodies, with original animation and weapons. |
 

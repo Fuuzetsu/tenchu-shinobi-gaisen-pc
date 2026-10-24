@@ -62,8 +62,8 @@ pass. Browser runtime review remains part of the combined-effects stage: the
 native headless GL adapter currently fails at device initialization, so that is
 not evidence of a successful WebGL2 run. Stains are cosmetic and bounded, not
 permanent save-file edits; complex hit locations are inferred from source effects.
-Weather, moving sky, model upgrades, secondary motion, water and expanded demo
-coverage remain active deliverables.
+Subsequent sky and weather work is recorded below; model upgrades, secondary
+motion, water and combined demo coverage remain active deliverables.
 
 Time-of-day implementation: an optional F1 page drives a continuous, interpolated
 sun/moon path, twilight color, separate day/night ambient levels, configurable
@@ -75,8 +75,33 @@ Turning the cycle off restores the original manual-light behavior. The built-in
 `day-cycle` clip stages Mission 1 rooftops for a twenty-second day. Geometry/GPU
 checks confirm moving shadows and exact restoration when disabled; an actual
 scene comparison isolates shadows and baked shading. Native and WASM checks pass.
-Weather/coverage/runoff, improved models, secondary motion, water and combined
-browser/demo review are still required.
+Improved models, secondary motion, water and their combined review are still
+required.
+
+Weather implementation: an optional F1 page selects Original/Clear/Rain/Snow,
+wind, density, detail, wetness, snow cover and runoff. Bounded particles stop at
+static stage triangles; sloped hits create downhill droplets that spill over
+edges. A separate top-down cutout-aware depth pass controls nearby surface
+exposure, including moving shadow geometry. Wetness grows and dries; thin snow
+cover grows and melts, favors upward surfaces, and preserves sheltered floors.
+There is no fluid volume, depression filling, snow collision or footprint model.
+Particle shelter checks use solid static triangles, conservatively treating
+texture holes as covered; surface shading uses the actual texture masks.
+All cosmetic state is independent of game RNG, bounded and reset on reload.
+Original mission snow keeps updating in the core when its drawing is overridden.
+
+Native checks cover roof/floor intersections, budgets, weather transitions,
+render-cadence independence, sheltered pixels and exact restoration on disable.
+The 5,667-tick Rikimaru combat tape still matches reference state with blood,
+alternating rain/snow and the day clock. Mission 1 roof reviews and a 54-second
+4K/60 capture exercise the new `rain,snow` clips. Chromium WebGL2 and desktop
+Wayland WebGPU exercise precipitation, daylight, F1 resets and unchanged paused
+state. WebGPU caught a sky-return/derivative uniformity error accepted by native
+Vulkan; moving the sky return after derivative evaluation fixes it. Both browser
+paths now pass without graphics errors. Animated effects can refresh between
+logic ticks even when model interpolation is off; static paused views stay idle.
+Native/WASM Clippy, formatting and all 42 fixture-free PC tests pass. Browser
+evidence and private review captures are under `private/effects-review`.
 
 ## Campaign artwork showcase (complete)
 

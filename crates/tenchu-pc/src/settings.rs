@@ -4,6 +4,8 @@ pub mod overlay;
 pub use blood::Blood;
 mod sky;
 pub use sky::Sky;
+mod weather;
+pub use weather::{Weather, WeatherMode};
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -61,6 +63,7 @@ impl Default for Settings {
 pub struct Graphics {
     pub blood: Blood,
     pub sky: Sky,
+    pub weather: Weather,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -88,6 +91,7 @@ impl Default for Graphics {
         Self {
             blood: Blood::default(),
             sky: Sky::default(),
+            weather: Weather::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -113,6 +117,12 @@ impl Default for Graphics {
 }
 
 impl Graphics {
+    pub fn animated_presentation(&self) -> bool {
+        self.interpolation
+            || self.sky.enabled && self.sky.speed != 0
+            || self.weather.mode.precipitates() && self.weather.amount != 0
+    }
+
     pub fn filtering(&self) -> u16 {
         if self.mipmaps {
             2 + self.anisotropy.ilog2() as u16
@@ -253,6 +263,7 @@ impl Store {
                 settings.graphics.post.validate();
                 settings.graphics.blood.validate();
                 settings.graphics.sky.validate();
+                settings.graphics.weather.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

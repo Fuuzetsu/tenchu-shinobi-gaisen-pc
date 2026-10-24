@@ -61,6 +61,7 @@ pub struct Renderer {
     multisample: Option<wgpu::TextureView>,
     graphics: crate::settings::Graphics,
     pub daylight: Option<crate::visuals::sky::Daylight>,
+    pub weather: crate::visuals::weather::SurfaceWeather,
     shadows: shadows::Shadows,
     materials: materials::Materials,
 }
@@ -210,6 +211,7 @@ impl Renderer {
             multisample: None,
             graphics,
             daylight: None,
+            weather: Default::default(),
             shadows,
             materials,
         };
@@ -459,9 +461,10 @@ impl Renderer {
         {
             timer.begin(&self.device, &mut encoder);
         }
-        let lighting = sun::Frame::new(&self.graphics.lighting, daylight);
+        let lighting = sun::Frame::new(&self.graphics.lighting, daylight)
+            .with_weather(self.weather, &self.graphics.weather);
         self.shadows
-            .configure(&self.device, &lighting.settings, lights.len());
+            .configure(&self.device, &lighting, lights.len());
         self.shadows.draw(
             &mut encoder,
             &self.queue,

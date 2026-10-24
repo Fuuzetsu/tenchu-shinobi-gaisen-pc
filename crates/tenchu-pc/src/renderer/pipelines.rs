@@ -7,6 +7,7 @@ pub(super) struct Options {
     lighting: bool,
     relief: bool,
     hdr: bool,
+    weather: bool,
 }
 
 impl From<&crate::settings::Graphics> for Options {
@@ -16,6 +17,7 @@ impl From<&crate::settings::Graphics> for Options {
             lighting: graphics.lighting.enabled || graphics.sky.enabled,
             relief: graphics.surface_detail != 0,
             hdr: graphics.post.enabled,
+            weather: graphics.weather.mode != crate::settings::WeatherMode::Original,
         }
     }
 }
@@ -108,8 +110,8 @@ impl Options {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}",
-                    self.filtering, self.lighting, self.relief, self.hdr,
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}",
+                    self.filtering, self.lighting, self.relief, self.hdr, self.weather,
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
                     materials::MAX_MIPS,
