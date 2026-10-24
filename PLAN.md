@@ -195,6 +195,13 @@ and full decoding, and supply a local watch page plus YouTube chapter text.
 The capture lives under `private/effects-showcase`; reusable validation is now
 available through `tools/verify-demo-video.py`.
 
+The first export passed complete decoding and timestamp checks. Scene review
+found that bottom captions covered garment motion in the closeups. Player-shot
+captions now sit at the top, and the two model comparison features use fixed
+morning light to make their shapes readable. Weather demonstrations use the
+highest bounded particle detail. Formatting, workspace Clippy and all six
+fixture-free demo tests pass; the revised recording is being reviewed.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

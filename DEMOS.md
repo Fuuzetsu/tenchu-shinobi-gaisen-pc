@@ -73,7 +73,8 @@ it need not be 4K and does not display the exported frames. Esc or closing it
 cancels the export and removes its temporary files.
 
 Captions are scaled for 4K; transport controls are hidden. `--clean` also hides
-captions. `--clips`, `--catalog` and `--duration` work as in live playback;
+captions. Character closeups place captions above the action, with fixed daylight
+for the refinement and secondary-motion comparisons. `--clips`, `--catalog` and `--duration` work as in live playback;
 `--loop` is rejected. Interactive input is ignored and preferences are never saved.
 Profiling/FPS demonstrations still measure real host work, including readback
 and encoder waits, and their captions identify this. Those numbers are not a

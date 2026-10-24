@@ -22,7 +22,8 @@ pub fn show(
     let clip = player.clip();
     if player.captions {
         let frontend = clip.frontend.is_some();
-        let top = clip.shot == super::Shot::Cinematic || clip.artwork.is_some();
+        let top = matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
+            || clip.artwork.is_some();
         egui::Area::new("demo-caption".into())
             .anchor(
                 if top {

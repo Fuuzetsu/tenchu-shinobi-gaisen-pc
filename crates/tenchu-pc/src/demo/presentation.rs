@@ -112,6 +112,8 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.model_detail = 0;
             g.interpolation = true;
             g.lighting.enabled = true;
+            g.sky.enabled = true;
+            g.sky.time = 600;
         }
         Feature::SecondaryMotion => {
             let enabled = section(p, 4) % 2 == 1;
@@ -122,6 +124,8 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.models.characters = 1;
             g.interpolation = true;
             g.lighting.enabled = true;
+            g.sky.enabled = true;
+            g.sky.time = 600;
         }
         Feature::Breeze => {
             g.motion.wind = (wave * 100.0) as u16;
@@ -148,6 +152,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                 crate::settings::WeatherMode::Snow
             };
             g.weather.amount = 100;
+            g.weather.quality = 2;
             g.weather.wind = 30;
             g.weather.heading = 90;
             g.weather.wetness = 90;
