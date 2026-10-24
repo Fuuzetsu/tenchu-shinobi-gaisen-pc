@@ -183,6 +183,18 @@ blood, sky/weather, water, model and motion demonstrations. Private review
 artifacts and machine-readable validation are under `private/effects-review`.
 Original defaults and game/core source are unchanged throughout this goal.
 
+## Effects showcase recording (in progress)
+
+Prepare a focused recording of the new features: water/falls, moving sky,
+rain/runoff, snow coating, vegetation and breeze, character refinement,
+Ayame/Rikimaru secondary motion and persistent blood. The curated catalog has
+eleven chapters and a 186-second timeline, with shorter comparisons and longer
+weather/combat holds. Use the existing offline 4K/60 silent export, freeze the
+artwork/executable/catalog, inspect each section, verify every frame timestamp
+and full decoding, and supply a local watch page plus YouTube chapter text.
+The capture lives under `private/effects-showcase`; reusable validation is now
+available through `tools/verify-demo-video.py`.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

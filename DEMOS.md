@@ -88,6 +88,17 @@ chapter. The default catalog meets these requirements; short custom selections
 may not. The encoding follows the [YouTube SDR upload recommendations](https://support.google.com/youtube/answer/1722171).
 Nothing is uploaded automatically.
 
+Verify an export using the same Nix environment:
+
+```sh
+./dev.sh python3 tools/verify-demo-video.py '/path/to/showcase.mp4' --catalog '/path/to/catalog.json' --youtube
+```
+
+The verifier checks 4K/60 encoding, every presentation timestamp, chapter titles
+and durations, absence of audio and fast-start metadata, then decodes the
+complete video. It writes an adjacent `.validation.json`. Omit `--catalog` when
+no exact catalog is available; omit `--youtube` for clips shorter than ten seconds.
+
 ## Authoring clips
 
 The built-in catalog is [demos.json](crates/tenchu-pc/data/demos.json).
