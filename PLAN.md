@@ -125,6 +125,27 @@ WebGL2 run water together with rain/snow/daylight, reset each F1 page and preser
 paused state without graphics errors. Model and secondary-motion work remains
 in progress.
 
+Model refinement implementation: F1 offers independent Original/Refined/Fine
+character surfaces and Original/Fuller/Dense vegetation. Character refinement
+uses bounded subdivision with welded positions, separate UVs, pinned open or
+nonmanifold joints and smooth normals; it supersedes the older contour control
+while active. Custom replacement characters and weapon geometry remain supplied
+as authored. Explicit reviewed material metadata distinguishes leaves/grass,
+dense shrubs, trunks and excluded flat bamboo stalks. Connected multi-texture
+branches share their added layer transforms, while dense shrubs use rounded
+surfaces instead of overlapping leaf cards. Existing original/HD artwork is reused.
+No new copyrighted or generated bitmap assets are committed.
+
+Separate 1,048,576/524,288 generated-vertex budgets bound character refinement
+and vegetation. Tests cover joint/UV preservation, connected material borders,
+finite geometry and budget fallback. Native Mission 1/4/5 reviews include both
+players, garden context, cherry/cedar/grass/shrubs and snow-covered branches,
+with exact game snapshots preserved. The `vegetation,character-refinement`
+demos exercise the controls. All 45 fixture-free PC tests, native and WASM
+Clippy and formatting pass. Combined browser/replay review follows secondary
+motion. These are refinements of the original shapes, not newly sculpted models
+or individual geometric leaves; original default settings remain unchanged.
+
 ## Campaign artwork showcase (complete)
 
 Delivered `private/campaign-showcase/tenchu-campaign-hd-showcase-4k60.mp4`:

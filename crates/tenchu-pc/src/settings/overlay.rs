@@ -318,6 +318,8 @@ fn widget(
             .map(|mode| mode.name().into())
             .collect(),
         Item::WaterDetail => strings(&["Original", "Curved", "Fine curves"]),
+        Item::CharacterRefinement => strings(&["Original", "Refined", "Fine"]),
+        Item::FoliageDetail => strings(&["Original", "Fuller", "Dense"]),
         Item::WeatherQuality => strings(&["Low", "Medium", "High"]),
         Item::SurfaceDetail => strings(&["Off", "Bump", "Parallax"]),
         Item::Magnification => strings(&["Smooth", "Crisp", "Cubic", "Pixel"]),

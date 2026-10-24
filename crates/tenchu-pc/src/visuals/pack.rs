@@ -31,6 +31,8 @@ pub struct Manifest {
     #[serde(default)]
     pub water: BTreeMap<String, super::water::Kind>,
     #[serde(default)]
+    pub vegetation: BTreeMap<String, super::vegetation::Kind>,
+    #[serde(default)]
     pub models: BTreeMap<String, String>,
     #[serde(default)]
     pub materials: BTreeMap<String, Material>,
@@ -45,6 +47,7 @@ pub struct Pack {
     pub textures: BTreeMap<String, Arc<Image>>,
     pub surfaces: BTreeMap<String, super::relief::Surface>,
     pub water: BTreeMap<String, super::water::Kind>,
+    pub vegetation: BTreeMap<String, super::vegetation::Kind>,
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
     pub materials: BTreeMap<String, Material>,
@@ -138,6 +141,7 @@ impl Pack {
         }
         pack.lights = manifest.lights;
         pack.water = manifest.water;
+        pack.vegetation = manifest.vegetation;
         if let Some(selection) = &selection {
             if !selection.player_models {
                 manifest.player_models.clear();
@@ -192,6 +196,8 @@ impl Pack {
         }
         if let Some(selection) = selection {
             pack.water.retain(|id, _| selection.textures.contains(id));
+            pack.vegetation
+                .retain(|id, _| selection.textures.contains(id));
             manifest
                 .textures
                 .retain(|id, _| selection.textures.contains(id));
@@ -453,6 +459,7 @@ mod tests {
             textures: BTreeMap::from([(id.clone(), "test.png".into())]),
             surfaces: BTreeMap::new(),
             water: BTreeMap::new(),
+            vegetation: BTreeMap::new(),
             models: BTreeMap::new(),
             materials: BTreeMap::new(),
             lights: None,

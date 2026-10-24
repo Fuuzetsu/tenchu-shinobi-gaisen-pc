@@ -8,6 +8,8 @@ struct ModelOptions {
     detail: u16,
     water: bool,
     water_detail: u16,
+    characters: u16,
+    foliage: u16,
 }
 
 fn model_options(graphics: &settings::Graphics) -> ModelOptions {
@@ -17,6 +19,8 @@ fn model_options(graphics: &settings::Graphics) -> ModelOptions {
         detail: graphics.model_detail,
         water: graphics.water.enabled,
         water_detail: graphics.water.detail,
+        characters: graphics.models.characters,
+        foliage: graphics.models.foliage,
     }
 }
 

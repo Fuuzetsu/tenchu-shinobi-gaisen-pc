@@ -23,6 +23,12 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::CharacterRefinement => {
+                self.settings.graphics.models.characters = s.graphics.models.characters
+            }
+            Item::FoliageDetail => {
+                self.settings.graphics.models.foliage = s.graphics.models.foliage
+            }
             Item::Water => self.settings.graphics.water.enabled = s.graphics.water.enabled,
             Item::WaterRipples => self.settings.graphics.water.ripples = s.graphics.water.ripples,
             Item::WaterReflections => {

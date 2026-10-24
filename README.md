@@ -697,6 +697,25 @@ this with a `"water"` map in `pack.json`, mapping texture IDs to `"surface"`,
 exported for the browser. Curves preserve UVs and existing texture boundaries;
 this is not a fluid simulation or a replacement for a fully authored river mesh.
 
+**F1 → Model refinement** offers Refined/Fine character surfaces and Fuller/Dense
+vegetation. Character subdivision welds coincident positions across texture seams,
+retains separate UVs, pins open/nonmanifold joints and limits contour changes per
+pass. It replaces the older contour option while enabled; authored replacement
+characters and weapon meshes remain as supplied. Existing animation, attachments,
+collision and AI visibility are unchanged. Original is the default for both options.
+
+Vegetation adds angled layers to connected cutout clusters and refines selected
+trunks and dense shrubs, reusing the original or installed HD textures. Connected material tiles
+share their pivot so branch/leaf textures remain joined. Explicit fingerprints
+in `data/vegetation.json` cover reviewed cherry, pine, cedar, shrubs, grass and
+snow-covered branches. Flat bamboo-stalk cutouts keep their original geometry.
+Pack authors can provide a `"vegetation"` map from texture IDs to `"leaves"`,
+`"grass"`, `"shrub"`, `"trunk"` or `"off"`; these rules also travel with browser exports.
+Refinement and foliage have independent geometry budgets and retain the original
+mesh when a budget is exhausted. This builds on the current artwork, rather than
+claiming entirely new sculpted characters or individual geometric leaves.
+`demo --clips vegetation,character-refinement` shows the choices.
+
 Preferences save separately from progress in
 `$XDG_CONFIG_HOME/tenchu-shinobi-gaisen-pc/settings.json` (normally
 `~/.config/tenchu-shinobi-gaisen-pc/settings.json` on Linux). `TENCHU_SETTINGS`

@@ -101,6 +101,12 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     }
     match player.clip().feature {
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
+        Feature::Vegetation => g.models.foliage = [0, 1, 2][section(p, 3)],
+        Feature::CharacterRefinement => {
+            g.models.characters = [0, 1, 2][section(p, 3)];
+            g.model_detail = 0;
+            g.interpolation = true;
+        }
         Feature::Water | Feature::Waterfalls => {
             g.water.enabled = section(p, 4) % 2 == 1;
             g.water.detail = 1;
@@ -435,6 +441,22 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
     let on = |yes| if yes { "On" } else { "Off" };
     match player.clip().feature {
         Feature::Presets => text(crate::settings::presets::NAMES[g.preset() as usize].into()),
+        Feature::Vegetation => text(
+            [
+                "Original foliage",
+                "Fuller leaf clusters and refined trunks",
+                "Denser leaf clusters and refined trunks",
+            ][usize::from(g.models.foliage)]
+            .into(),
+        ),
+        Feature::CharacterRefinement => text(
+            [
+                "Original character geometry",
+                "Refined surfaces · original joints and UV seams",
+                "Fine surfaces · original animation and attachments",
+            ][usize::from(g.models.characters)]
+            .into(),
+        ),
         Feature::Lanterns => meter("Point-light strength (%)", l.intensity, 220),
         Feature::Rain => {
             text("Rain · roof runoff · gradual wetness · shelter-aware surfaces".into())

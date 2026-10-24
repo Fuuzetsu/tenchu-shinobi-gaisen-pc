@@ -289,6 +289,7 @@ impl Player {
         match self.clip().feature {
             Feature::Interpolation
             | Feature::ModelDetail
+            | Feature::CharacterRefinement
             | Feature::PlayerModels
             | Feature::Step
             | Feature::Simulation => match tick % 120 {

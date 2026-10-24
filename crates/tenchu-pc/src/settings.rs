@@ -8,6 +8,8 @@ mod weather;
 pub use weather::{Weather, WeatherMode};
 mod water;
 pub use water::Water;
+mod models;
+pub use models::Models;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -67,6 +69,7 @@ pub struct Graphics {
     pub sky: Sky,
     pub weather: Weather,
     pub water: Water,
+    pub models: Models,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -96,6 +99,7 @@ impl Default for Graphics {
             sky: Sky::default(),
             weather: Weather::default(),
             water: Water::default(),
+            models: Models::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -270,6 +274,7 @@ impl Store {
                 settings.graphics.sky.validate();
                 settings.graphics.weather.validate();
                 settings.graphics.water.validate();
+                settings.graphics.models.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

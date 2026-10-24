@@ -133,6 +133,15 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::CharacterRefinement | Item::FoliageDetail => {
+                let options = &mut self.settings.graphics.models;
+                let value = if item == Item::CharacterRefinement {
+                    &mut options.characters
+                } else {
+                    &mut options.foliage
+                };
+                *value = (i32::from(*value) + direction).rem_euclid(3) as u16;
+            }
             Item::Water => {
                 self.settings.graphics.water.enabled = !self.settings.graphics.water.enabled
             }

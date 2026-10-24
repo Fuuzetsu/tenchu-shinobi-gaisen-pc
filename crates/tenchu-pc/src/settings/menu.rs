@@ -3,6 +3,8 @@ use crate::{campaign::Action, debug::Debug};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    CharacterRefinement,
+    FoliageDetail,
     Water,
     WaterRipples,
     WaterReflections,
@@ -192,7 +194,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 15] = [
+pub const PAGES: [&str; 16] = [
     "General",
     "Graphics",
     "Overlays",
@@ -208,10 +210,25 @@ pub const PAGES: [&str; 15] = [
     "Time of day",
     "Weather",
     "Water",
+    "Model refinement",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
     let entries = match page {
+        15 => vec![
+            (
+                Item::CharacterRefinement,
+                "Character surfaces",
+                ["Original", "Refined", "Fine"][usize::from(s.graphics.models.characters)].into(),
+                "Refine coarse character faces with welded subdivision and smooth normals. Open joint boundaries and original UV seams stay attached; custom replacement models are retained.",
+            ),
+            (
+                Item::FoliageDetail,
+                "Vegetation volume",
+                ["Original", "Fuller", "Dense"][usize::from(s.graphics.models.foliage)].into(),
+                "Add angled leaf clusters and refine tree trunks using explicit foliage materials. UVs and cutout masks are preserved; collision and AI visibility remain original.",
+            ),
+        ],
         14 => {
             let water = &s.graphics.water;
             vec![

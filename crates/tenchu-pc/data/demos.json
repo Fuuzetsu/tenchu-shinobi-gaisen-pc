@@ -530,5 +530,41 @@
       ],
       "fov": 55
     }
+  },
+  {
+    "id": "vegetation",
+    "title": "Fuller trees and bushes",
+    "description": "Connected leaf tiles gain angled layers; tree trunks gain smooth contours. Original, fuller and dense versions share the same camera and textures.",
+    "seconds": 15,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "vegetation",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -40000,
+        -1800,
+        -16500
+      ],
+      "target": [
+        -31000,
+        -1000,
+        -16500
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "character-refinement",
+    "title": "Refining the original character shapes",
+    "description": "Additional surface geometry and smooth normals soften coarse faces while joint boundaries, UV seams and weapon attachments remain intact.",
+    "seconds": 15,
+    "mission": 1,
+    "character": 1,
+    "preset": 3,
+    "feature": "character-refinement",
+    "shot": "player"
   }
 ]

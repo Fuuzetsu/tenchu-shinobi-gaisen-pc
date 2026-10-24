@@ -94,6 +94,9 @@ impl Meshes {
         let rules = super::lights::rules(pack, graphics.asset_pack);
         let water = super::water::rules(pack, graphics.asset_pack);
         let mut water_budget = 262144;
+        let vegetation = super::vegetation::rules(pack, graphics.asset_pack);
+        let mut refinement_budget = 1_048_576;
+        let mut foliage_budget = 524_288;
         let region_ids = catalog::regions(mission);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
@@ -109,12 +112,16 @@ impl Meshes {
                 .flatten();
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
+            let foliage = graphics.models.foliage != 0 && source.id.starts_with("stages/");
+            let refined = round && graphics.models.characters != 0;
             if !force
                 && emitter.is_none()
                 && replacement.is_none()
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
                 && !water_enabled
+                && !foliage
+                && !refined
             {
                 continue;
             }
@@ -225,11 +232,29 @@ impl Meshes {
                     }
                 }
             }
-            smooth::prepare(
-                &mut vertices,
-                graphics.smooth_models,
-                if round { graphics.model_detail } else { 0 },
-            );
+            if refined {
+                super::refine::prepare(
+                    &mut vertices,
+                    graphics.models.characters,
+                    0.025,
+                    &mut refinement_budget,
+                );
+            } else {
+                smooth::prepare(
+                    &mut vertices,
+                    graphics.smooth_models,
+                    if round { graphics.model_detail } else { 0 },
+                );
+            }
+            if foliage {
+                super::vegetation::prepare(
+                    &mut vertices,
+                    &out.materials,
+                    &vegetation,
+                    graphics.models.foliage,
+                    &mut foliage_budget,
+                );
+            }
             if water_enabled {
                 super::water::prepare(
                     &mut vertices,

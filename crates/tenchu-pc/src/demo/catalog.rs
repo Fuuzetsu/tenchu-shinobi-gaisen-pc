@@ -15,6 +15,8 @@ pub enum Feature {
     Snow,
     Water,
     Waterfalls,
+    Vegetation,
+    CharacterRefinement,
     TextureSampling,
     Reconstruction,
     Antialiasing,
