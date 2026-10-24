@@ -522,6 +522,7 @@ impl ApplicationHandler for Application {
                 }
                 if event.state == ElementState::Pressed
                     && code == KeyCode::F6
+                    && self.demo.is_none()
                     && self.frontend.is_some()
                     && !self.campaign.playing()
                 {
