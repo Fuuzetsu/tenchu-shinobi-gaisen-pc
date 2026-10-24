@@ -65,7 +65,7 @@ BT.709 limited-range 4:2:0, fast start). The Nix package and shell supply FFmpeg
 `TENCHU_FFMPEG` can select another installation. The destination directory must
 exist, and existing video/chapter files are never overwritten.
 
-The full catalog is 502 seconds / 30,120 frames. No display capture is involved:
+The full catalog is 706 seconds / 42,360 frames. No display capture is involved:
 the renderer waits for GPU readback and encoding before advancing the exact
 60 Hz timeline. Host speed changes completion time, never output cadence.
 Mission loading adds no video time. The window is only a host for the renderer;
@@ -208,6 +208,7 @@ their original artwork. These private assets and videos are not included in Git.
 | Secondary motion | `secondary-motion`, `equipment-motion`, `breeze`: Ayame's hair/bow, Rikimaru's garment/equipment flex and a wind sweep through the garden with matching shadows. |
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
 | Player model | `bodies`: compatible disc bodies and configured folder bodies, with original animation and weapons. |
+| Persistent effects | `blood`: a staged guard encounter produces attached wounds and ground stains through ordinary combat. |
 
 Reload/export/reset actions and external-file selection are workflows rather
 than visual comparisons. The demo does not export disc assets, invent replacement

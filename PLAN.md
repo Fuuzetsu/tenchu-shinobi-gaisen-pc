@@ -167,7 +167,19 @@ ticks), including additional intermediate motion samples. Chromium WebGPU and
 WebGL2 render all effects, exercise F1 resets and preserve paused state without
 graphics errors; the short 1280×724 samples reached approximately 58/60 rendered
 fps respectively on this desktop. Those samples are not a broad performance
-guarantee. Final demo-video review and a dedicated blood clip remain in progress.
+guarantee.
+
+Combined visual review: a 56-second 4K/60 capture covers the pond, waterfall bend,
+vegetation refinement, character surfaces, both players' secondary motion and
+foliage breeze. All 3,360 frames decode correctly. Water glints now use slowly
+varying intersecting waves, breaking up the overly uniform reflection bands
+seen in the first capture. The actual-water GPU regressions and both browser
+paths pass again after this adjustment. A separate twenty-second `blood` clip
+stages a frontal guard encounter using ordinary combat; fixed framing with wider
+clearance avoids foreground branches after knockback. Body wounds and stains on
+the stone bank were inspected in the final capture. Native Clippy, demo tests,
+formatting, release and browser builds pass. All five feature areas and their F1
+controls/demos are implemented; final Nix packaging is the remaining gate.
 
 ## Campaign artwork showcase (complete)
 

@@ -11,9 +11,13 @@ fn water_normal(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>) ->
         let pulses = sin(v.world.y * 0.014 - time * 14.0 + dot(v.world, across) * 0.008);
         gradient = across * filaments * 0.13 + down * pulses * 0.035;
     } else {
-        let a = dot(v.world.xz, vec2(0.007, 0.011)) + time * 2.1;
-        let b = dot(v.world.xz, vec2(0.021, -0.014)) + time * 3.3;
-        gradient = vec3(cos(a) * 0.12 + cos(b) * 0.055, 0.0, cos(a) * 0.17 - cos(b) * 0.037);
+        let warp = sin(dot(v.world.xz, vec2(0.0017, 0.0023)) + time * 0.35) * 1.3
+            + sin(dot(v.world.xz, vec2(-0.0031, 0.0011)) - time * 0.27) * 0.7;
+        let a = dot(v.world.xz, vec2(0.007, 0.011)) + time * 2.1 + warp;
+        let b = dot(v.world.xz, vec2(0.021, -0.014)) + time * 3.3 - warp * 0.6;
+        let c = dot(v.world.xz, vec2(0.013, 0.027)) - time * 2.7 + sin(a * 0.43) * 0.8;
+        gradient = vec3(cos(a) * 0.1 + cos(b) * 0.06 + cos(c) * 0.03,
+            0.0, cos(a) * 0.15 - cos(b) * 0.04 + cos(c) * 0.05);
     }
     return normalize(normal + gradient * camera.water.x * fade);
 }

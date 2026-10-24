@@ -27,6 +27,10 @@ fn blocked(vertices: &[Vertex], eye: Vec3, target: Vec3) -> bool {
 }
 
 pub fn unobstructed(scene: &mut Scene, vertices: &[Vertex]) -> bool {
+    unobstructed_area(scene, vertices, 0.0)
+}
+
+pub fn unobstructed_area(scene: &mut Scene, vertices: &[Vertex], radius: f32) -> bool {
     let yaw = scene.yaw;
     for pitch in [scene.pitch, -0.3, -0.65, -1.45] {
         for angle in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8] {
@@ -37,7 +41,10 @@ pub fn unobstructed(scene: &mut Scene, vertices: &[Vertex]) -> bool {
                 fov: 55.0,
             };
             let eye = scene.target - candidate.forward() * scene.distance;
-            if !blocked(vertices, eye, scene.target) {
+            if [Vec3::ZERO, Vec3::X, Vec3::NEG_X, Vec3::Z, Vec3::NEG_Z]
+                .into_iter()
+                .all(|offset| !blocked(vertices, eye, scene.target + offset * radius))
+            {
                 scene.yaw = candidate.yaw;
                 scene.pitch = pitch;
                 return true;

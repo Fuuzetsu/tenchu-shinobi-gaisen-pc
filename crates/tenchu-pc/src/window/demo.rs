@@ -132,6 +132,24 @@ impl Application {
                 scene.actor = Some(actor);
                 self.settings.graphics.fog = false;
                 self.debug.selected_actor = actor;
+                if clip.feature == Feature::Blood {
+                    let guard = position(actor);
+                    let offset = Vec3::from(
+                        game.math
+                            .velocity(game.roster.get(actor).rotation[1], 1500, 0)
+                            .map(f32::from),
+                    );
+                    game.teleport_player(
+                        (guard + offset).to_array().map(|v| v as i32).into(),
+                        true,
+                    )?;
+                    scene.player_start = game.player().position;
+                    scene.actor = None;
+                    scene.target = guard - Vec3::Y * 600.0;
+                    scene.distance = 4200.0;
+                    scene.pitch = -0.55;
+                    demo::framing::unobstructed_area(&mut scene, &geometry, 1200.0);
+                }
                 if !far {
                     self.settings.keep_enemies_active = true;
                     game.activation.keep_all_active = true;
@@ -171,6 +189,7 @@ impl Application {
             Feature::ModelDetail
                 | Feature::CharacterRefinement
                 | Feature::SecondaryMotion
+                | Feature::Blood
                 | Feature::PlayerModels
                 | Feature::MovableLight
                 | Feature::Artwork

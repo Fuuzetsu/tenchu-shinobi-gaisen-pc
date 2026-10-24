@@ -19,6 +19,7 @@ pub enum Feature {
     CharacterRefinement,
     SecondaryMotion,
     Breeze,
+    Blood,
     TextureSampling,
     Reconstruction,
     Antialiasing,

@@ -287,6 +287,13 @@ impl Player {
         }
         use tenchu_core::input::{R1, SQUARE};
         match self.clip().feature {
+            Feature::Blood => {
+                if tick >= 60 && tick.is_multiple_of(35) {
+                    SQUARE
+                } else {
+                    0
+                }
+            }
             Feature::Interpolation
             | Feature::ModelDetail
             | Feature::CharacterRefinement

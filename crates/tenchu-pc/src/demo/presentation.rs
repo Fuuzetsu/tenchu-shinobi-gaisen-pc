@@ -100,6 +100,11 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         g.fog = fog;
     }
     match player.clip().feature {
+        Feature::Blood => {
+            g.blood.enabled = true;
+            g.interpolation = true;
+            g.lighting.enabled = true;
+        }
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
         Feature::Vegetation => g.models.foliage = [0, 1, 2][section(p, 3)],
         Feature::CharacterRefinement => {
@@ -457,6 +462,9 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
     };
     let on = |yes| if yes { "On" } else { "Off" };
     match player.clip().feature {
+        Feature::Blood => {
+            text("Wounds follow bodies; drops stain the ground · cosmetic only".into())
+        }
         Feature::Presets => text(crate::settings::presets::NAMES[g.preset() as usize].into()),
         Feature::Vegetation => text(
             [

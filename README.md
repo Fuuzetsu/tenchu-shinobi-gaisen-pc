@@ -651,6 +651,7 @@ is inferred from original blood and damage events, rather than adding hit-locati
 gameplay. Stains are held in memory, bounded by both count and geometry; changing
 mission, reloading models/artwork or disabling the feature clears them. They are
 not written into campaign saves.
+`demo --clips blood` stages an ordinary guard encounter to show the effect.
 
 **F1 → Time of day → Sun / moon cycle** replaces the manual sky light with a
 continuous day/night cycle, sky gradient and moving shadows. Set the start time
