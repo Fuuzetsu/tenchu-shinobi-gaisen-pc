@@ -54,6 +54,20 @@ pub struct SurfaceWeather {
 }
 
 impl Weather {
+    pub fn prewarm(
+        &mut self,
+        tick: u64,
+        center: Vec3,
+        surfaces: &Surfaces,
+        settings: &Settings,
+        seconds: u16,
+    ) {
+        for step in 0..u64::from(seconds) * 30 {
+            self.tick(step, center, surfaces, settings);
+        }
+        self.tick = Some(tick);
+    }
+
     fn random(&mut self) -> f32 {
         self.seed = self.seed.wrapping_mul(1664525).wrapping_add(1013904223);
         (self.seed >> 8) as f32 / 16777216.0

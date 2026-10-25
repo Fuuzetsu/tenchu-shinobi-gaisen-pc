@@ -10,6 +10,18 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Weather follow-up showcase (in progress)
+
+Record only additions since the 3:06 effects showcase at `289d25a`: stronger wet
+reflections, puddles, rain haze and recurring eave drips; directional rain/snow
+shelter; snow footprints and blood staining; grenade/kaen light spill; and F1
+inventory, god/stealth and click-teleport tools. Hold the full campaign HD pack
+constant. Use short, clearly framed clips, pre-settled snow where useful, captions,
+silent 4K/60 offline rendering and YouTube chapters. Preserve earlier recordings,
+normal preferences and campaign saves. Review decoded frames from every clip,
+check every timestamp and full decode, and retain a reproducible live/export
+playlist plus frozen capture inputs. Explain the existing full-texture launcher.
+
 ## Directional weather follow-up (complete)
 
 Use the same incoming direction for rain/snow particles, shelter and surface

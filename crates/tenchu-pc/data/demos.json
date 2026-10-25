@@ -288,7 +288,7 @@
   {
     "id": "collision",
     "title": "Inspect the playable geometry",
-    "description": "Collision surfaces, hazard colors and event regions reveal the structure under the artwork. These are the game\u2019s own data.",
+    "description": "Collision surfaces, hazard colors and event regions reveal the structure under the artwork. These are the game’s own data.",
     "seconds": 12,
     "mission": 2,
     "character": 1,
@@ -620,7 +620,7 @@
   {
     "id": "secondary-motion",
     "title": "Hair and loose cloth in motion",
-    "description": "Ayame\u2019s hair and bow gain bounded follow-through during the original animations. Anchored fabric, weapon attachment and gameplay remain unchanged.",
+    "description": "Ayame’s hair and bow gain bounded follow-through during the original animations. Anchored fabric, weapon attachment and gameplay remain unchanged.",
     "seconds": 16,
     "mission": 1,
     "character": 1,
@@ -631,7 +631,7 @@
   {
     "id": "equipment-motion",
     "title": "Cloth and equipment flex",
-    "description": "Rikimaru\u2019s garment hems and carried equipment react subtly to motion. Their attachment regions stay fixed and the weapons keep their original animation.",
+    "description": "Rikimaru’s garment hems and carried equipment react subtly to motion. Their attachment regions stay fixed and the weapons keep their original animation.",
     "seconds": 16,
     "mission": 1,
     "character": 0,
@@ -674,5 +674,218 @@
     "preset": 3,
     "feature": "blood",
     "shot": "guard"
+  },
+  {
+    "id": "rain-puddles",
+    "title": "Rain pools and ripples",
+    "description": "Faster pooling wets the ground and forms shallow reflective patches. Ripples cross texture borders.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "rain-puddles",
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -45500,
+        -1800,
+        -44700
+      ],
+      "target": [
+        -42000,
+        -800,
+        -36500
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "roof-drips",
+    "title": "Recurring drips from the eaves",
+    "description": "Look beneath the roof edge. Rivulets spill into small falling streams; rain streaks are hidden here.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "roof-drips",
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -45500,
+        -2100,
+        -42300
+      ],
+      "target": [
+        -43400,
+        -2300,
+        -39500
+      ],
+      "fov": 48
+    },
+    "weather_warmup": 12
+  },
+  {
+    "id": "rain-wind",
+    "title": "Rain respects the wind",
+    "description": "Reverse the wind: exposed slopes get wet while roofs and walls protect the surfaces behind them.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "rain-wind",
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -48300,
+        -7600,
+        -39400
+      ],
+      "target": [
+        -44667,
+        -5000,
+        -34667
+      ],
+      "fov": 55
+    },
+    "weather_warmup": 12
+  },
+  {
+    "id": "snow-wind",
+    "title": "Snow follows shelter downwind",
+    "description": "Changing the incoming direction moves the sheltered area. Snow can blow under eaves and dust windward walls.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "snow-wind",
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -48300,
+        -7600,
+        -39400
+      ],
+      "target": [
+        -44667,
+        -5000,
+        -34667
+      ],
+      "fov": 55
+    },
+    "weather_warmup": 35
+  },
+  {
+    "id": "snow-footprints",
+    "title": "Footprints, then fresh snow",
+    "description": "Walk through settled snow, then watch new snowfall gradually bury the tracks.",
+    "seconds": 20,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "snow-footprints",
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 35
+  },
+  {
+    "id": "blood-snow",
+    "title": "Blood stains the snow",
+    "description": "An ordinary guard encounter leaves blood on the snow instead of exposing the bare ground underneath.",
+    "seconds": 18,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "blood-snow",
+    "shot": "guard",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 35
+  },
+  {
+    "id": "grenade-light",
+    "title": "Explosions light the surroundings",
+    "description": "Two throws from the same spot. Watch the ground, walls and character when explosion lighting switches on.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "grenade-light",
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -40300,
+        -3600,
+        -38000
+      ],
+      "target": [
+        -42500,
+        -600,
+        -43000
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "kaen-light",
+    "title": "Light spills from kaen flames",
+    "description": "Compare the same fire-breath item with its light disabled and enabled. Illumination follows the live flame.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "kaen-light",
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -40300,
+        -3600,
+        -38000
+      ],
+      "target": [
+        -42500,
+        -600,
+        -43000
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "experiment",
+    "title": "Tools for experimenting in a mission",
+    "description": "Give equipment, enable god mode and stealth, then click the floor to teleport. These tools are optional.",
+    "seconds": 24,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "experiment",
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "camera": {
+      "eye": [
+        -39000,
+        -6500,
+        -48000
+      ],
+      "target": [
+        -42500,
+        -200,
+        -43000
+      ],
+      "fov": 55
+    }
   }
 ]

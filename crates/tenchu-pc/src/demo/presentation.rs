@@ -105,6 +105,20 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.interpolation = true;
             g.lighting.enabled = true;
         }
+        Feature::GrenadeLight | Feature::KaenLight => {
+            g.lighting.enabled = true;
+            g.lighting.fires = p >= 0.5;
+            g.lighting.intensity = 140;
+            g.lighting.directional.intensity = 0;
+            g.lighting.count = 4;
+            g.interpolation = true;
+        }
+        Feature::Experiment => {
+            settings.pause_in_menu = false;
+            settings.show_hud = true;
+            settings.sharp_text = true;
+            g.interpolation = true;
+        }
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
         Feature::Vegetation => g.models.foliage = [0, 1, 2][section(p, 3)],
         Feature::CharacterRefinement => {
@@ -143,13 +157,25 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                 g.water.reflections = 85;
             }
         }
-        Feature::Rain | Feature::RainReflections | Feature::RainHaze | Feature::Snow => {
+        Feature::Rain
+        | Feature::RainReflections
+        | Feature::RainHaze
+        | Feature::Snow
+        | Feature::RainPuddles
+        | Feature::RoofDrips
+        | Feature::RainWind
+        | Feature::SnowWind
+        | Feature::SnowFootprints
+        | Feature::BloodSnow => {
             g.sky.enabled = true;
             g.sky.time = 720;
-            g.weather.mode = if player.clip().feature != Feature::Snow {
-                crate::settings::WeatherMode::Rain
-            } else {
+            g.weather.mode = if matches!(
+                player.clip().feature,
+                Feature::Snow | Feature::SnowWind | Feature::SnowFootprints | Feature::BloodSnow
+            ) {
                 crate::settings::WeatherMode::Snow
+            } else {
+                crate::settings::WeatherMode::Rain
             };
             g.weather.amount = 100;
             g.weather.quality = 2;
@@ -177,6 +203,38 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             }
             g.lighting.enabled = true;
             g.lighting.count = 4;
+            g.interpolation = true;
+            match player.clip().feature {
+                Feature::RainPuddles => {
+                    g.weather.pooling = 1000;
+                    g.weather.puddles = 100;
+                    g.weather.reflections = 200;
+                    g.weather.haze = 0;
+                    g.sky.time = 540;
+                }
+                Feature::RoofDrips => {
+                    g.weather.streaks = 0;
+                    g.weather.haze = 0;
+                    g.weather.runoff = p >= 0.2;
+                    g.weather.reflections = 100;
+                }
+                Feature::RainWind | Feature::SnowWind => {
+                    g.weather.wind = 100;
+                    g.weather.heading = [0, 180, 0][section(p, 3)];
+                    g.weather.snow = 100;
+                    g.weather.haze = 0;
+                    g.weather.reflections = 0;
+                }
+                Feature::SnowFootprints | Feature::BloodSnow => {
+                    g.weather.wind = 0;
+                    g.weather.snow = 100;
+                    g.weather.footprint_seconds = 10;
+                    g.blob_shadows = false;
+                    g.blood.enabled = player.clip().feature == Feature::BloodSnow;
+                    g.sky.time = 600;
+                }
+                _ => {}
+            }
         }
         Feature::DayCycle => {
             g.sky.enabled = true;
@@ -488,6 +546,38 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         Feature::Blood => {
             text("Wounds follow bodies; drops stain the ground · cosmetic only".into())
         }
+        Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),
+        Feature::GrenadeLight | Feature::KaenLight => text(format!(
+            "Fire / explosion lights {} · original item behavior",
+            on(l.fires)
+        )),
+        Feature::Experiment => text(
+            match section(p, 4) {
+                0 => "F1 → Experiment · refill and edit mission inventory",
+                1 => "God mode and never-noticed stealth · optional gameplay tools",
+                _ => "Click a collision surface to teleport · no campaign-save changes",
+            }
+            .into(),
+        ),
+        Feature::RainPuddles => {
+            text("Pooling 10× · shallow puddles and moving rain ripples".into())
+        }
+        Feature::RoofDrips => text(format!(
+            "Eave drips {} · falling rain streaks hidden for clarity",
+            on(g.weather.runoff)
+        )),
+        Feature::RainWind | Feature::SnowWind => text(format!(
+            "Wind toward {}° · exposed faces receive weather; cover shields the rest",
+            g.weather.heading
+        )),
+        Feature::SnowFootprints => text(
+            if p < 0.2 {
+                "Walking leaves grounded tracks in settled snow"
+            } else {
+                "Fresh snowfall buries the tracks · 10-second burial setting"
+            }
+            .into(),
+        ),
         Feature::Presets => text(crate::settings::presets::NAMES[g.preset() as usize].into()),
         Feature::Vegetation => text(
             [

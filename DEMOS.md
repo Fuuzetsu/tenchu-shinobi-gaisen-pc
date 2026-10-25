@@ -120,6 +120,11 @@ An optional `camera` object accepts `eye` and `target` world-coordinate triples,
 optional `end_eye`/`end_target`, and `fov` (55 degrees by default). It moves
 smoothly between those endpoints on the same offline timeline.
 
+`weather_warmup: 35` settles 35 seconds of cosmetic weather before the clip starts
+(0–60 seconds, default 0). Gameplay does not advance during this pre-roll. The
+particles and accumulation then continue on the normal game clock; this keeps
+snow/footprint demonstrations short without substituting a painted snow mask.
+
 For matched gameplay comparisons, use `feature: "artwork"`, `shot: "gameplay"`
 and `recording: {"path": "route.inputs", "start_tick": 200}`. Paths are relative
 to the catalog. The self-contained recording supplies the seed, inventory,
@@ -250,13 +255,19 @@ The same feature clips work from a normal checkout with the user's own assets:
 | Visual assets | `artwork`, `reconstruction`, `models`: pack fallback, reconstruction, normals and contours. |
 | Sky lighting | `moon`, `sky-direction`, `sky-quality`: strength, direction, color, sky tint, coverage and resolution. |
 | Time of day | `day-cycle`: sunrise, daylight, sunset and moonlight with continuous shadow movement and local lanterns after dark. |
-| Weather | `rain` and `snow`: precipitation over Mission 1 roofs, gradual exposed-surface coatings, shelter and roof runoff. |
+| Weather | `rain`, `snow`, `rain-reflections`, `rain-puddles`, `rain-haze`, `roof-drips`, `rain-wind`, `snow-wind`, `snow-footprints`: coatings, wet highlights, pooling/ripples, visibility, eave streams, directional shelter and fresh-snow track burial. |
 | Water | `water` and `waterfalls`: matching views of pond ripples/sky sheen and curved falls with restrained spray. |
 | Model refinement | `vegetation` and `character-refinement`: fuller cutout clusters, refined trunks and character surfaces with original joints/UVs. |
 | Secondary motion | `secondary-motion`, `equipment-motion`, `breeze`: Ayame's hair/bow, Rikimaru's garment/equipment flex and a wind sweep through the garden with matching shadows. |
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
 | Player model | `bodies`: compatible disc bodies and configured folder bodies, with original animation and weapons. |
-| Persistent effects | `blood`: a staged guard encounter produces attached wounds and ground stains through ordinary combat. |
+| Persistent effects | `blood`, `blood-snow`: a staged guard encounter produces attached wounds and ground stains through ordinary combat, including blood staining the snow. |
+| Experiment | `experiment`: refill/edit mission equipment, god/stealth toggles and two real collision-floor clicks to teleport. Only this staged clip enables these gameplay tools. |
+
+`grenade-light` and `kaen-light` use each item twice, once with Fire / explosion
+lights off and once on. Both use the original item inputs and effect lifetimes;
+the full campaign artwork remains constant. Very short `--duration` overrides
+can end before a grenade's fuse expires; use the authored lengths for recording.
 
 Reload/export/reset actions and external-file selection are workflows rather
 than visual comparisons. The demo does not export disc assets, invent replacement

@@ -23,16 +23,27 @@ pub fn show(
     if player.captions {
         let frontend = clip.frontend.is_some();
         let top = matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
-            || clip.artwork.is_some();
+            || clip.artwork.is_some()
+            || matches!(
+                clip.feature,
+                super::Feature::BloodSnow
+                    | super::Feature::RainReflections
+                    | super::Feature::RainPuddles
+                    | super::Feature::RainHaze
+                    | super::Feature::Experiment
+            );
+        let right = clip.feature == super::Feature::Experiment;
         egui::Area::new("demo-caption".into())
             .anchor(
-                if top {
+                if right {
+                    egui::Align2::RIGHT_TOP
+                } else if top {
                     egui::Align2::LEFT_TOP
                 } else {
                     egui::Align2::LEFT_BOTTOM
                 },
                 [
-                    24.0,
+                    if right { -24.0 } else { 24.0 },
                     if top {
                         24.0
                     } else {
@@ -107,6 +118,38 @@ pub fn show(
                         );
                     });
             });
+    }
+    if clip.feature == super::Feature::Experiment
+        && player.progress() >= 0.375
+        && let Some(camera) = debug.camera
+    {
+        let rect = ctx.screen_rect();
+        let p = camera
+            .matrix(rect.width() / rect.height())
+            .project_point3(glam::Vec3::from(debug.target.map(|v| v as f32).to_array()));
+        let center = egui::pos2(
+            rect.left() + (p.x + 1.0) * rect.width() * 0.5,
+            rect.top() + (1.0 - p.y) * rect.height() * 0.5,
+        );
+        let painter = ctx.layer_painter(egui::LayerId::new(
+            egui::Order::Foreground,
+            "demo-click".into(),
+        ));
+        let click =
+            (player.progress() - 0.5).abs() < 0.025 || (player.progress() - 0.75).abs() < 0.025;
+        let color = if click {
+            egui::Color32::WHITE
+        } else {
+            egui::Color32::from_rgb(116, 197, 215)
+        };
+        painter.circle_stroke(center, if click { 12.0 } else { 20.0 }, (2.0, color));
+        painter.text(
+            center + egui::vec2(0.0, -30.0),
+            egui::Align2::CENTER_CENTER,
+            if click { "CLICK" } else { "Teleport target" },
+            egui::FontId::proportional(14.0),
+            color,
+        );
     }
     if player.transport {
         egui::Area::new("demo-transport".into())

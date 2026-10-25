@@ -6,7 +6,15 @@ fn player(args: &[&str]) -> Player {
 
 #[test]
 fn timeline_and_speed_changes_do_not_depend_on_display_cadence() {
-    for id in ["moon", "motion", "speed", "cinematics", "step"] {
+    for id in [
+        "moon",
+        "motion",
+        "speed",
+        "cinematics",
+        "step",
+        "snow-footprints",
+        "experiment",
+    ] {
         let run = |fps: u64| {
             let mut p = player(&["--clips", id]);
             let mut samples = Vec::new();
@@ -66,7 +74,15 @@ fn playlist_order_resets_and_end_behavior_are_explicit() {
 
 #[test]
 fn offline_frames_match_the_live_timeline_without_rounding_or_wall_clock() {
-    for id in ["moon", "motion", "speed", "cinematics", "step"] {
+    for id in [
+        "moon",
+        "motion",
+        "speed",
+        "cinematics",
+        "step",
+        "snow-footprints",
+        "experiment",
+    ] {
         let mut live = player(&["--clips", id]);
         let mut offline = player(&["--clips", id, "--video", "out.mp4"]);
         assert!(!offline.transport && offline.captions && offline.muted);
@@ -82,6 +98,35 @@ fn offline_frames_match_the_live_timeline_without_rounding_or_wall_clock() {
             assert_eq!(offline.simulation_ticks, live.simulation_ticks);
             assert!((offline.alpha() - live.alpha()).abs() < 1e-5);
         }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; both halves of the item-light demos must produce real item effects"]
+fn item_light_comparisons_use_working_items_on_both_sides() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    for (id, light_name) in [("grenade-light", "Explosion"), ("kaen-light", "Kaen flame")] {
+        let mut p = player(&["--clips", id]);
+        let (mut game, _) = p.load_game(&assets, None).unwrap();
+        let mut seen = [false; 2];
+        let ticks = u64::from(p.clip().seconds) * 30;
+        let lighting = crate::settings::Lighting {
+            enabled: true,
+            lamps: false,
+            ..Default::default()
+        };
+        for tick in 0..ticks {
+            game.step(p.buttons(tick)).unwrap();
+            let sources = crate::lighting::sources(&game, &lighting, None, None, Vec::new());
+            seen[usize::from(tick >= ticks / 2)] |= sources.iter().any(|s| s.name == light_name);
+        }
+        assert_eq!(
+            seen, [true; 2],
+            "{id}: an item failed to activate in one comparison"
+        );
     }
 }
 

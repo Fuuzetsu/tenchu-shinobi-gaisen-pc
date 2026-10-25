@@ -1,6 +1,38 @@
 use super::*;
 
 #[test]
+fn prewarmed_weather_continues_at_the_game_tick_without_clearing() {
+    let surfaces = surfaces();
+    for mode in [WeatherMode::Rain, WeatherMode::Snow] {
+        let settings = Settings {
+            mode,
+            amount: 100,
+            ..Default::default()
+        };
+        let mut weather = Weather::default();
+        weather.prewarm(30, Vec3::ZERO, &surfaces, &settings, 35);
+        assert!(
+            if mode == WeatherMode::Rain {
+                weather.wet
+            } else {
+                weather.snow
+            } > 0.99
+        );
+        let old: Vec<_> = weather.particles.iter().map(|p| p.position).collect();
+        weather.tick(31, Vec3::ZERO, &surfaces, &settings);
+        assert!(weather.particles.iter().any(|p| old.contains(&p.previous)));
+        assert!(
+            if mode == WeatherMode::Rain {
+                weather.wet
+            } else {
+                weather.snow
+            } > 0.99
+        );
+        assert_eq!(weather.sample(&settings, 0.0).time, 31.0 / 30.0);
+    }
+}
+
+#[test]
 fn changing_wind_redirects_existing_rain_and_snow_and_rechecks_shelter() {
     let surfaces = surfaces();
     for mode in [WeatherMode::Rain, WeatherMode::Snow] {

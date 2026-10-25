@@ -14,6 +14,15 @@ pub enum Feature {
     Rain,
     RainReflections,
     RainHaze,
+    RainPuddles,
+    RoofDrips,
+    RainWind,
+    SnowWind,
+    SnowFootprints,
+    BloodSnow,
+    GrenadeLight,
+    KaenLight,
+    Experiment,
     Snow,
     Water,
     Waterfalls,
@@ -88,6 +97,8 @@ pub struct Clip {
     pub hud: bool,
     #[serde(default)]
     pub sharp_text: bool,
+    #[serde(default)]
+    pub weather_warmup: u16,
     pub frontend: Option<crate::frontend::showcase::Scene>,
 }
 
@@ -130,6 +141,7 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
             || c.mission > 10
             || !(0..=1).contains(&c.character)
             || c.preset >= crate::settings::presets::CUSTOM
+            || c.weather_warmup > 60
             || c.title.trim().is_empty()
             || c.description.trim().is_empty()
         {

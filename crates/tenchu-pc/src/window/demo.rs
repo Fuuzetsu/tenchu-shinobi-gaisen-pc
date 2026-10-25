@@ -4,6 +4,8 @@ use crate::demo::{self, Feature, Shot};
 use glam::Vec3;
 use std::time::Duration;
 
+mod additions;
+
 impl Application {
     pub(super) fn start_demo_clip(&mut self) -> Result<()> {
         let Some(player) = &mut self.demo else {
@@ -132,7 +134,7 @@ impl Application {
                 scene.actor = Some(actor);
                 self.settings.graphics.fog = false;
                 self.debug.selected_actor = actor;
-                if clip.feature == Feature::Blood {
+                if matches!(clip.feature, Feature::Blood | Feature::BloodSnow) {
                     let guard = position(actor);
                     let offset = Vec3::from(
                         game.math
@@ -146,7 +148,11 @@ impl Application {
                     scene.player_start = game.player().position;
                     scene.actor = None;
                     scene.target = guard - Vec3::Y * 600.0;
-                    scene.distance = 4200.0;
+                    scene.distance = if clip.feature == Feature::BloodSnow {
+                        6200.0
+                    } else {
+                        4200.0
+                    };
                     scene.pitch = -0.55;
                     demo::framing::unobstructed_area(&mut scene, &geometry, 1200.0);
                 }
@@ -173,6 +179,14 @@ impl Application {
                 } else if clip.feature == Feature::CharacterRefinement {
                     scene.distance = 2400.0;
                     scene.target = origin - Vec3::Y * 650.0;
+                } else if clip.feature == Feature::SnowFootprints {
+                    scene.target = origin;
+                    scene.distance = 8500.0;
+                    scene.pitch = -1.0;
+                } else if matches!(clip.feature, Feature::GrenadeLight | Feature::KaenLight) {
+                    scene.target = origin + Vec3::new(2500.0, -600.0, 0.0);
+                    scene.distance = 9000.0;
+                    scene.pitch = -0.6;
                 }
                 demo::framing::unobstructed(&mut scene, &geometry);
             }
@@ -190,6 +204,7 @@ impl Application {
                 | Feature::CharacterRefinement
                 | Feature::SecondaryMotion
                 | Feature::Blood
+                | Feature::BloodSnow
                 | Feature::PlayerModels
                 | Feature::MovableLight
                 | Feature::Artwork
@@ -223,6 +238,12 @@ impl Application {
         self.clock = GameClock::default();
         self.performance = Default::default();
         view.settings(&self.settings, &self.campaign.game)?;
+        view.prewarm_weather(
+            &self.campaign.game,
+            &self.settings,
+            &self.debug,
+            clip.weather_warmup,
+        );
         view.reset_interpolation(&self.campaign.game);
         if let Some(audio) = &mut self.audio {
             audio.reload(&self.assets, &self.campaign.game)?;
@@ -324,6 +345,10 @@ impl Application {
                 }
             }
             if self.faulted {
+                return;
+            }
+            if let Err(error) = self.advance_demo_tools() {
+                self.pause_error(error);
                 return;
             }
             let player = self.demo.as_mut().unwrap();

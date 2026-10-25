@@ -191,6 +191,19 @@ impl Player {
                 game.step(0)?;
             }
         }
+        if matches!(
+            self.clip().feature,
+            Feature::GrenadeLight | Feature::KaenLight
+        ) {
+            game.set_inventory(
+                if self.clip().feature == Feature::GrenadeLight {
+                    4
+                } else {
+                    17
+                },
+                255,
+            )?;
+        }
         Ok((game, options))
     }
 
@@ -285,11 +298,28 @@ impl Player {
         if let Some(inputs) = &self.inputs {
             return inputs.get(tick as usize).copied().unwrap_or(0);
         }
-        use tenchu_core::input::{R1, SQUARE};
+        use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
-            Feature::Blood => {
+            Feature::Blood | Feature::BloodSnow => {
                 if tick >= 60 && tick.is_multiple_of(35) {
                     SQUARE
+                } else {
+                    0
+                }
+            }
+            Feature::SnowFootprints => {
+                if tick < u64::from(self.clip().seconds) * 6 {
+                    UP
+                } else {
+                    0
+                }
+            }
+            Feature::GrenadeLight | Feature::KaenLight => {
+                let half = u64::from(self.clip().seconds) * 15;
+                if tick == 0 {
+                    R2
+                } else if tick == 2 || tick == half + 2 {
+                    TRIANGLE
                 } else {
                     0
                 }

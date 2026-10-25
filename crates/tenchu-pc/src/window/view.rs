@@ -79,6 +79,28 @@ pub(super) struct View {
 }
 
 impl View {
+    pub(super) fn prewarm_weather(
+        &mut self,
+        game: &Game,
+        settings: &Settings,
+        debug: &crate::debug::Debug,
+        seconds: u16,
+    ) {
+        if seconds == 0 {
+            return;
+        }
+        self.cosmetic_tick(game, settings, debug);
+        if let Some(surfaces) = &self.surfaces {
+            self.weather.prewarm(
+                game.tick,
+                debug.eye(game),
+                surfaces,
+                &settings.graphics.weather,
+                seconds,
+            );
+        }
+    }
+
     pub(super) fn cosmetic_tick(
         &mut self,
         game: &Game,
