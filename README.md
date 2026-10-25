@@ -64,6 +64,13 @@ lantern panels diffuse their own light; caps and surrounding objects still cast
 shadows. Daylight reduces lantern fill on sunlit surfaces while sheltered lamps
 remain useful. This approximates area lighting with shadow maps.
 
+**Model refinement → Vegetation volume** now includes Botanical and Botanical
+dense. These add folded leaf sprays and round bamboo stalks using existing
+materials. **Varied tree shapes** gives repeated placements different crowns and
+proportions while holding their roots fixed. Breeze bends trunks gently and
+moves branches/leaves separately; matching shadows follow the deformation.
+Autumn trees, snowy bushes and bamboo are included alongside cherries and pines.
+
 For the optional upgraded look, open **F1 → Graphics → Visual preset**:
 
 - **Original** restores the original presentation settings and is the factory default.

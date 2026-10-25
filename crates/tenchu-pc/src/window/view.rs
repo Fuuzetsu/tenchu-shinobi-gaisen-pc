@@ -10,6 +10,7 @@ struct ModelOptions {
     water_detail: u16,
     characters: u16,
     foliage: u16,
+    variation: bool,
     secondary: bool,
     wind: bool,
 }
@@ -23,6 +24,7 @@ fn model_options(graphics: &settings::Graphics) -> ModelOptions {
         water_detail: graphics.water.detail,
         characters: graphics.models.characters,
         foliage: graphics.models.foliage,
+        variation: graphics.models.variation,
         secondary: graphics.motion.actors(),
         wind: graphics.motion.wind != 0,
     }

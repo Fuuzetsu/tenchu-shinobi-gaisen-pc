@@ -245,6 +245,9 @@ impl Application {
                 };
                 *value = (i32::from(*value) + direction * 5).clamp(0, max) as u16;
             }
+            Item::VegetationVariation => {
+                self.settings.graphics.models.variation = !self.settings.graphics.models.variation
+            }
             Item::CharacterRefinement | Item::FoliageDetail => {
                 let options = &mut self.settings.graphics.models;
                 let value = if item == Item::CharacterRefinement {
@@ -252,7 +255,9 @@ impl Application {
                 } else {
                     &mut options.foliage
                 };
-                *value = (i32::from(*value) + direction).rem_euclid(3) as u16;
+                *value = (i32::from(*value) + direction)
+                    .rem_euclid(if item == Item::FoliageDetail { 5 } else { 3 })
+                    as u16;
             }
             Item::Water => {
                 self.settings.graphics.water.enabled = !self.settings.graphics.water.enabled

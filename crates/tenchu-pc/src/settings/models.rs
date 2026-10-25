@@ -5,11 +5,12 @@ use serde::{Deserialize, Serialize};
 pub struct Models {
     pub characters: u16,
     pub foliage: u16,
+    pub variation: bool,
 }
 
 impl Models {
     pub fn validate(&mut self) {
         self.characters = self.characters.min(2);
-        self.foliage = self.foliage.min(2);
+        self.foliage = self.foliage.min(4);
     }
 }

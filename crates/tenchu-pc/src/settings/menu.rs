@@ -18,6 +18,7 @@ pub enum Item {
     MotionWind,
     CharacterRefinement,
     FoliageDetail,
+    VegetationVariation,
     Water,
     WaterRipples,
     WaterReflections,
@@ -350,10 +351,23 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Refine coarse character faces with welded subdivision and smooth normals. Open joint boundaries and original UV seams stay attached; custom replacement models are retained.",
             ),
             (
+                Item::VegetationVariation,
+                "Varied tree shapes",
+                on(s.graphics.models.variation),
+                "Stable per-tree crown shapes, proportions and branch asymmetry. Trunk bases stay anchored; collision remains original.",
+            ),
+            (
                 Item::FoliageDetail,
                 "Vegetation volume",
-                ["Original", "Fuller", "Dense"][usize::from(s.graphics.models.foliage)].into(),
-                "Add angled leaf clusters and refine tree trunks using explicit foliage materials. UVs and cutout masks are preserved; collision and AI visibility remain original.",
+                [
+                    "Original",
+                    "Fuller",
+                    "Dense",
+                    "Botanical",
+                    "Botanical dense",
+                ][usize::from(s.graphics.models.foliage)]
+                .into(),
+                "Botanical adds folded leaf sprays around the original canopy and refines shrubs/trunks. Collision and AI visibility remain original.",
             ),
         ],
         14 => {

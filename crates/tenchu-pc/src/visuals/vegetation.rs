@@ -1,3 +1,5 @@
+mod bamboo;
+pub mod botanical;
 use super::{models::Material, pack::Pack};
 use crate::render_mesh::{self, Vertex};
 use glam::{Mat3, Vec3};
@@ -9,6 +11,9 @@ use std::collections::BTreeMap;
 pub enum Kind {
     Off,
     Leaves,
+    Blossoms,
+    Autumn,
+    Bamboo,
     Grass,
     Shrub,
     Trunk,
@@ -57,6 +62,11 @@ pub fn wind(vertices: &mut [Vertex], materials: &[Material], rules: &BTreeMap<St
         if let Some(&kind) = kinds.get(&vertex.material) {
             let weight =
                 (((bottom - vertex.position[1]) / height).clamp(0.0, 1.0) * 255.0).round() as u32;
+            let weight = if kind == Kind::Trunk {
+                weight / 4
+            } else {
+                weight
+            };
             vertex.flags |= render_mesh::FOLIAGE | weight << render_mesh::WIND_WEIGHT_SHIFT;
             if kind != Kind::Trunk {
                 vertex.flags |= render_mesh::FLUTTER;
@@ -72,6 +82,8 @@ pub fn prepare(
     detail: u16,
     budget: &mut usize,
 ) {
+    let modern = detail >= 3;
+    let dense = detail >= 4;
     let detail = detail.min(2);
     let mut groups: BTreeMap<Kind, Vec<Vertex>> = BTreeMap::new();
     let mut unchanged = Vec::new();
@@ -99,6 +111,9 @@ pub fn prepare(
                 for vertex in &mut group {
                     vertex.flags |= render_mesh::FOLIAGE;
                 }
+            }
+            if modern && kind == Kind::Shrub {
+                group = botanical::canopy(&group, materials, kind, dense, budget);
             }
             unchanged.extend(group);
             continue;
@@ -143,6 +158,14 @@ pub fn prepare(
             } else {
                 (b - a).normalize_or_zero()
             };
+            if modern && kind == Kind::Bamboo {
+                unchanged.extend(bamboo::stalks(&cluster, materials, budget));
+                continue;
+            }
+            if modern && kind != Kind::Grass {
+                unchanged.extend(botanical::canopy(&cluster, materials, kind, dense, budget));
+                continue;
+            }
             let cost = cluster.len() * (usize::from(detail) + 1) * 4;
             if span < 20.0 || cost > *budget {
                 unchanged.extend(cluster);

@@ -146,3 +146,116 @@ fn refined_characters_and_foliage_preserve_game_state() {
         assert_eq!(state, crate::session::tests::state(&game));
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_MODEL_REVIEW and a GPU; inspect varied botanical trees including autumn, bamboo and snowy shrubs"]
+fn botanical_foliage_review() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let output = std::path::PathBuf::from(
+        std::env::var_os("TENCHU_MODEL_REVIEW").expect("Set TENCHU_MODEL_REVIEW"),
+    );
+    std::fs::create_dir_all(&output).unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    for mission in [1, 3, 4, 5] {
+        let game = crate::session::Options {
+            mission,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        let state = crate::session::tests::state(&game);
+        let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+        for level in [0, 3, 4] {
+            let mut graphics = crate::settings::Graphics::default();
+            graphics.set_preset(3);
+            graphics.models.foliage = level;
+            graphics.models.variation = level != 0;
+            graphics.lighting.enabled = true;
+            graphics.lighting.ambient = 80;
+            graphics.lighting.directional.intensity = 50;
+            review.configure(graphics);
+            let models = review.models(&game.mission).unwrap();
+            for source in crate::visuals::catalog::models(&game.mission)
+                .into_iter()
+                .filter(|s| {
+                    [
+                        "SAKURA", "MATU2", "TUTUZI", "KTAKE", "AKIWOD00", "BTUTU", "KSUGI",
+                    ]
+                    .contains(&s.label.as_str())
+                })
+            {
+                let mut vertices = Vec::new();
+                render_mesh::append_geometry(
+                    &mut vertices,
+                    source.geometry,
+                    Matrix::default(),
+                    Some(&models),
+                );
+                assert!(
+                    vertices.len() < 150000,
+                    "{} vertices for {}",
+                    vertices.len(),
+                    source.label
+                );
+                assert!(vertices.iter().all(
+                    |v| Vec3::from(v.position).is_finite() && Vec3::from(v.normal).is_finite()
+                ));
+                let (min, max) = vertices.iter().fold(
+                    (Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)),
+                    |(min, max), v| (min.min(v.position.into()), max.max(v.position.into())),
+                );
+                let center = (min + max) * 0.5;
+                let radius = (max - min).length() * 0.5;
+                let camera =
+                    Mat4::perspective_rh(55.0_f32.to_radians(), 1280.0 / 720.0, 10.0, 200000.0)
+                        * Mat4::look_at_rh(
+                            center + Vec3::new(-0.7, -0.3, -1.0).normalize() * radius * 2.8,
+                            center,
+                            Vec3::NEG_Y,
+                        );
+                let mesh = review.renderer.upload(&vertices);
+                let backdrop = review.backdrop(0.2);
+                eprintln!(
+                    "m{mission} {} level {level}: {} vertices",
+                    source.label,
+                    vertices.len()
+                );
+                review
+                    .capture(
+                        camera,
+                        &[&backdrop, &mesh],
+                        None,
+                        true,
+                        &output.join(format!("m{mission}-{}-{level}.png", source.label)),
+                    )
+                    .unwrap();
+            }
+            if mission == 1 {
+                let mesh = review.renderer.upload(&render_mesh::stage(
+                    &game.mission,
+                    &game.math,
+                    Some(&models),
+                ));
+                let camera =
+                    Mat4::perspective_rh(55.0_f32.to_radians(), 1280.0 / 720.0, 10.0, 200000.0)
+                        * Mat4::look_at_rh(
+                            Vec3::new(-40000.0, -1800.0, -16500.0),
+                            Vec3::new(-31000.0, -1000.0, -16500.0),
+                            Vec3::NEG_Y,
+                        );
+                review
+                    .capture(
+                        camera,
+                        &[&mesh],
+                        None,
+                        true,
+                        &output.join(format!("garden-{level}.png")),
+                    )
+                    .unwrap();
+            }
+        }
+        assert_eq!(state, crate::session::tests::state(&game));
+    }
+}

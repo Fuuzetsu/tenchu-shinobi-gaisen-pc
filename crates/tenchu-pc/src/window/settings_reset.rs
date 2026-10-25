@@ -47,6 +47,9 @@ impl Application {
             Item::CharacterRefinement => {
                 self.settings.graphics.models.characters = s.graphics.models.characters
             }
+            Item::VegetationVariation => {
+                self.settings.graphics.models.variation = s.graphics.models.variation
+            }
             Item::FoliageDetail => {
                 self.settings.graphics.models.foliage = s.graphics.models.foliage
             }

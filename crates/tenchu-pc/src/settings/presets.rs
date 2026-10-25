@@ -151,7 +151,8 @@ fn modern(ultra: bool) -> Graphics {
     g.water.enabled = true;
     g.water.detail = if ultra { 2 } else { 1 };
     g.models.characters = if ultra { 2 } else { 1 };
-    g.models.foliage = 2;
+    g.models.foliage = if ultra { 4 } else { 3 };
+    g.models.variation = true;
     g.motion.hair = true;
     g.motion.cloth = true;
     g.motion.equipment = true;

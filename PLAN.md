@@ -58,7 +58,16 @@ point. Solid caps and other geometry still occlude light. Sun-exposed surfaces
 suppress local fill while covered areas retain it. Synthetic GPU tests cover
 grated occluders, sunlight/indoor balance, moon fill, opaque/cutout geometry and
 shadow budgets; actual Mission 1 lantern captures were reviewed. Native/WASM
-builds pass. Contact effects, vegetation and combined browser/video review remain.
+builds pass. Contact effects and combined browser/video review remain.
+
+Vegetation stage: Botanical/Botanical dense build folded leaf sprays and rounded
+bamboo stalks from the disc materials. Added autumn, snowy shrub and bamboo
+classifications; material sharing no longer bends bare wooden props as trees.
+Optional per-placement crown variants keep root vertices anchored. Trunks,
+branches and leaves use distinct wind motion in both visible and shadow passes.
+Actual models from missions 1/3/4/5 and the mission 1 garden were reviewed;
+geometry budgets, stable variants, unchanged game state and matching wind/shadow
+checks pass. Falling foliage and ground interactions are the next stage.
 
 ## Weather follow-up showcase (baseline captured)
 

@@ -117,6 +117,7 @@ impl Models {
 pub(super) struct Meshes {
     meshes: BTreeMap<usize, Vec<Vertex>>,
     materials: Vec<Material>,
+    variants: BTreeMap<usize, super::vegetation::botanical::Shape>,
     pub replacements: usize,
     motion: BTreeMap<usize, Vec<super::motion::BoundRule>>,
 }
@@ -152,7 +153,8 @@ impl Meshes {
                 .flatten();
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
-            let foliage = graphics.models.foliage != 0 && source.id.starts_with("stages/");
+            let foliage = (graphics.models.foliage != 0 || graphics.models.variation)
+                && source.id.starts_with("stages/");
             let wind = graphics.motion.wind != 0 && source.id.starts_with("stages/");
             let refined = round && graphics.models.characters != 0;
             let secondary = graphics.motion.actors()
@@ -292,7 +294,19 @@ impl Meshes {
                     if round { graphics.model_detail } else { 0 },
                 );
             }
-            if foliage {
+            let plant = vertices.iter().any(|v| {
+                v.material
+                    .checked_sub(1)
+                    .and_then(|i| out.materials.get(i as usize))
+                    .and_then(|m| vegetation.get(&m.id))
+                    .is_some_and(|k| {
+                        !matches!(
+                            k,
+                            super::vegetation::Kind::Off | super::vegetation::Kind::Trunk
+                        )
+                    })
+            });
+            if foliage && plant && graphics.models.foliage != 0 {
                 super::vegetation::prepare(
                     &mut vertices,
                     &out.materials,
@@ -310,7 +324,7 @@ impl Meshes {
                     &mut water_budget,
                 );
             }
-            if wind {
+            if wind && plant {
                 super::vegetation::wind(&mut vertices, &out.materials, &vegetation);
             }
             if secondary {
@@ -321,6 +335,12 @@ impl Meshes {
                 if !rules.is_empty() {
                     out.motion.insert(source.geometry.as_ptr() as usize, rules);
                 }
+            }
+            if plant && graphics.models.variation && source.id.contains("/objects/") {
+                out.variants.insert(
+                    source.geometry.as_ptr() as usize,
+                    super::vegetation::botanical::Shape::new(&vertices),
+                );
             }
             out.meshes
                 .insert(source.geometry.as_ptr() as usize, vertices);
@@ -350,12 +370,19 @@ impl Meshes {
         let Some(vertices) = self.meshes.get(&(geometry.as_ptr() as usize)) else {
             return false;
         };
+        let variant = self
+            .variants
+            .get(&(geometry.as_ptr() as usize))
+            .map(|shape| shape.variant(matrix.translation.to_array()));
         let rotation = rotation(matrix);
         let normal = rotation.inverse().transpose();
         let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
         for triangle in vertices.chunks_exact(3) {
             visit(std::array::from_fn(|i| {
                 let mut vertex = triangle[i];
+                if let Some(variant) = &variant {
+                    variant.vertex(&mut vertex);
+                }
                 vertex.position = (rotation * Vec3::from(vertex.position) + translation).to_array();
                 vertex.normal = (normal * Vec3::from(vertex.normal))
                     .normalize_or_zero()
