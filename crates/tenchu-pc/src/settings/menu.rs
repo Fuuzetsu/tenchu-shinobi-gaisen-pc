@@ -62,6 +62,8 @@ pub enum Item {
     PlayerModel,
     ReloadModels,
     Preset,
+    GameplayPreset,
+    Retro,
     Interpolation,
     PhotoMode,
     Fps,
@@ -246,6 +248,11 @@ pub const PAGES: [&str; 18] = [
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
+    let gameplay = || {
+        let preset = super::gameplay::current(s, d).map(|i| &super::gameplay::PRESETS[i]);
+        (Item::GameplayPreset, "Gameplay preset", preset.map_or("Custom", |p| p.name).into(),
+            preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
+    };
     let entries = match page {
         17 => {
             let mut rows = vec![
@@ -833,6 +840,19 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         0 => vec![
+            gameplay(),
+            (
+                Item::Preset,
+                "Graphics preset",
+                super::presets::NAMES[s.graphics.preset() as usize].into(),
+                "Modern High and Ultra enable the visual improvements together. Weather type and gameplay remain your choice.",
+            ),
+            (
+                Item::Retro,
+                "Retro comparison (F8)",
+                on(s.retro),
+                "Preview Original graphics, textures, fonts and models. Toggle back to your exact visual settings; gameplay settings stay unchanged.",
+            ),
             (
                 Item::Fps,
                 "FPS and tick counter",
@@ -889,6 +909,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         1 => vec![
+            (
+                Item::Retro,
+                "Retro comparison (F8)",
+                on(s.retro),
+                "Preview Original graphics, textures, fonts and models. Toggle back to your exact visual settings; gameplay settings stay unchanged.",
+            ),
             (
                 Item::Preset,
                 "Visual preset",
@@ -1156,6 +1182,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         5 => vec![
+            gameplay(),
             (
                 Item::Pause,
                 "Pause simulation / F3",

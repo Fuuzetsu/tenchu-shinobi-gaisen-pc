@@ -260,9 +260,10 @@ impl super::Application {
             let result = match edit {
                 Edit::Change(item, steps) => self.apply_item(item, steps),
                 Edit::Preset(index) => {
-                    self.settings.graphics.set_preset(index);
+                    self.settings.set_visual_preset(index);
                     Ok(())
                 }
+                Edit::GameplayPreset(index) => self.set_gameplay_preset(index),
                 Edit::Reset(item) => self.reset_item(item),
                 Edit::PlayerModel(id) => {
                     self.settings.player_model = id;

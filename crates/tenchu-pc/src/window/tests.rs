@@ -321,3 +321,44 @@ fn showcase_settings_are_temporary_even_when_edited_through_f1() {
     assert_eq!(app.settings_store.load().unwrap(), app.settings);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; graphics comparison and gameplay profiles remain independent"]
+fn remake_presets_keep_graphics_inventory_and_gameplay_separate() {
+    let mut app = application(Options::default());
+    for _ in 0..40 {
+        app.campaign.tick(0).unwrap();
+    }
+    app.settings
+        .set_visual_preset(settings::presets::MODERN_HIGH);
+    let graphics = app.settings.graphics.clone();
+    app.set_inventory(1, 17).unwrap();
+    let inventory = app.debug.inventory;
+    for index in 0..settings::gameplay::PRESETS.len() {
+        app.set_gameplay_preset(index).unwrap();
+        assert_eq!(
+            settings::gameplay::current(&app.settings, &app.debug),
+            Some(index)
+        );
+        assert_eq!(app.debug.inventory, inventory);
+        assert_eq!(app.settings.graphics, graphics);
+        assert_eq!(
+            app.campaign.game.intelligence.sight_percent,
+            app.settings.sight_percent
+        );
+        let state = crate::session::tests::state(&app.campaign.game);
+        let selected = app.settings.clone();
+        app.apply_item(Item::Retro, 1).unwrap();
+        let _ = app.settings.rendering();
+        assert_eq!(crate::session::tests::state(&app.campaign.game), state);
+        app.apply_item(Item::Retro, 1).unwrap();
+        assert_eq!(app.settings, selected);
+    }
+    app.set_gameplay_preset(0).unwrap();
+    assert!(!app.campaign.game.player().invulnerable);
+    assert!(!app.campaign.game.intelligence.ignore_player);
+    assert!(!app.campaign.game.activation.keep_all_active);
+    assert!(!app.debug.click_teleport);
+    assert_eq!(app.settings.sight_percent, 100);
+    assert_eq!(app.debug.inventory, inventory);
+}

@@ -1,6 +1,6 @@
 use super::Graphics;
 
-pub const NAMES: [&str; 9] = [
+pub const NAMES: [&str; 11] = [
     "Original",
     "Enhanced",
     "Cinematic",
@@ -9,8 +9,12 @@ pub const NAMES: [&str; 9] = [
     "Lantern night",
     "Moonlit",
     "Surface relief",
+    "Modern High",
+    "Modern Ultra",
     "Custom",
 ];
+pub const MODERN_HIGH: u16 = 8;
+pub const MODERN_ULTRA: u16 = 9;
 pub const CUSTOM: u16 = NAMES.len() as u16 - 1;
 
 impl Graphics {
@@ -22,7 +26,7 @@ impl Graphics {
             .unwrap_or(CUSTOM)
     }
 
-    pub fn cycle_preset(&mut self, direction: i32) {
+    pub fn cycle_preset(&mut self, direction: i32) -> u16 {
         let current = self.preset();
         let index = if current == CUSTOM {
             if direction < 0 { CUSTOM - 1 } else { 0 }
@@ -30,12 +34,17 @@ impl Graphics {
             (i32::from(current) + direction).rem_euclid(i32::from(CUSTOM)) as u16
         };
         self.set_preset(index);
+        index
     }
 
     pub fn set_preset(&mut self, index: u16) {
         let artwork = self.asset_pack;
+        let weather = self.weather.mode;
         *self = preset(index);
         self.asset_pack = artwork;
+        if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
+            self.weather.mode = weather;
+        }
     }
 }
 
@@ -43,6 +52,9 @@ fn preset(index: u16) -> Graphics {
     let mut graphics = Graphics::default();
     if index == 0 {
         return graphics;
+    }
+    if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
+        return modern(index == MODERN_ULTRA);
     }
     if matches!(index, 3 | 4) {
         graphics.set_filtering(6);
@@ -118,6 +130,52 @@ fn preset(index: u16) -> Graphics {
         _ => {}
     }
     graphics
+}
+
+fn modern(ultra: bool) -> Graphics {
+    let mut g = Graphics {
+        fog: false,
+        blob_shadows: false,
+        interpolation: true,
+        smooth_models: true,
+        model_detail: 1,
+        magnification: 1,
+        surface_detail: if ultra { 2 } else { 1 },
+        surface_strength: 40,
+        samples: if ultra { 4 } else { 2 },
+        ..Default::default()
+    };
+    g.set_filtering(if ultra { 6 } else { 5 });
+    g.blood.enabled = true;
+    g.blood.marks = if ultra { 768 } else { 384 };
+    g.water.enabled = true;
+    g.water.detail = if ultra { 2 } else { 1 };
+    g.models.characters = if ultra { 2 } else { 1 };
+    g.models.foliage = 2;
+    g.motion.hair = true;
+    g.motion.cloth = true;
+    g.motion.equipment = true;
+    g.motion.strength = 80;
+    g.motion.wind = 20;
+    g.weather.quality = if ultra { 2 } else { 1 };
+    g.sky.enabled = true;
+    g.sky.time = 1320;
+    g.sky.moon = 35;
+    g.lighting.enabled = true;
+    g.lighting.count = 8;
+    g.lighting.shadow_count = 4;
+    g.lighting.radius = 18;
+    g.lighting.intensity = 120;
+    g.lighting.ambient = 50;
+    g.lighting.softness = 3;
+    g.lighting.resolution = if ultra { 2048 } else { 1024 };
+    g.lighting.directional.resolution = if ultra { 4096 } else { 2048 };
+    g.lighting.directional.radius = 45;
+    g.post.enabled = true;
+    g.post.bloom = 12;
+    g.post.occlusion = 25;
+    g.post.sharpen = 10;
+    g
 }
 
 #[cfg(test)]

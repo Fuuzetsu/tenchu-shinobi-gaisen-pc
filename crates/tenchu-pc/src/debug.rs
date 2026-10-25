@@ -78,7 +78,7 @@ impl Debug {
             inventory: game.player().inventory[..19].try_into().unwrap(),
             armor: game.combat.armor,
             speed: 100,
-            sight_percent: 100,
+            sight_percent: game.intelligence.sight_percent,
             frame_step: false,
             pause_view: false,
             photo_mode: false,

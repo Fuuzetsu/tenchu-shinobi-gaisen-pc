@@ -42,6 +42,21 @@ Add `--video /path/to/showcase.mp4` for a silent 4K/60 fps offline export with
 every frame preserved, embedded chapters and a YouTube description timestamp
 file. See [DEMOS.md](DEMOS.md#4k-video-export-and-chapters).
 
+**F1 → General → Gameplay preset** groups independent gameplay choices: Original,
+Living world (all guards active), Keen guards (125% sight), Relaxed stealth (75%
+sight), and Practice (god mode, never noticed, click teleport). The middle three
+also accelerate cutscenes to 4x. Inventory and graphics are kept. Practice requires
+a living player in a mission; cheats remain session-only. Sight range and guard
+activation are saved preferences.
+
+**F8**, or **F1 → Graphics → Retro comparison**, temporarily shows original
+artwork, geometry, text and effects. Press it again to restore your selected
+visual settings. Gameplay settings and simulation are unaffected. Modern High
+and Modern Ultra enable the integrated visual improvements with 2x/4x MSAA,
+respectively, and remove black sight fog and round blob shadows. They preserve
+your weather choice and artwork-pack preference. Unsupported MSAA falls back to
+the adapter's supported settings.
+
 For the optional upgraded look, open **F1 → Graphics → Visual preset**:
 
 - **Original** restores the original presentation settings and is the factory default.

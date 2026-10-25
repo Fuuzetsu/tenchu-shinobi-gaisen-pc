@@ -212,6 +212,8 @@ impl View {
         game: &Game,
         settings: &Settings,
     ) -> Result<Self> {
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         let descriptor = wgpu::InstanceDescriptor::default();
         #[cfg(target_arch = "wasm32")]
         let descriptor = wgpu::InstanceDescriptor {
@@ -377,6 +379,8 @@ impl View {
     }
 
     fn build_models(&self, game: &Game, settings: &Settings) -> Result<Models> {
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         Models::build(&game.mission, &self.pack, &settings.graphics)?.with_player(
             game,
             self.selected_player(settings),
@@ -392,6 +396,8 @@ impl View {
         game: &Game,
         settings: &Settings,
     ) -> Result<()> {
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         let bodies = load_bodies(directory)?;
         let choices = crate::visuals::appearance::choices(game, &bodies);
         if !directory.is_empty() && choices.iter().all(|(id, _)| !id.starts_with("pack:")) {
@@ -430,6 +436,8 @@ impl View {
     }
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         self.sky = Default::default();
         self.weather = Default::default();
         self.footprints = Default::default();
@@ -510,6 +518,8 @@ impl View {
         game: &Game,
         settings: &Settings,
     ) -> Result<usize> {
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         let models = Models::build(&game.mission, &pack, &settings.graphics)?.with_player(
             game,
             self.selected_player(settings),
@@ -539,6 +549,9 @@ impl View {
     }
 
     pub(super) fn settings(&mut self, settings: &Settings, game: &Game) -> Result<()> {
+        let configured = settings;
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         self.dirty = true;
         let motion = &settings.graphics.motion;
         let previous = &self.motion_options;
@@ -567,14 +580,14 @@ impl View {
             self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
             self.renderer.set_emitters(&self.emitters);
         }
-        if !settings.graphics.blood.enabled {
+        if !configured.graphics.blood.enabled {
             self.blood = Default::default();
         }
-        if settings.graphics.weather.mode == settings::WeatherMode::Original {
+        if configured.graphics.weather.mode == settings::WeatherMode::Original {
             self.weather = Default::default();
         }
-        if settings.graphics.weather.mode == settings::WeatherMode::Original
-            || !settings.graphics.weather.footprints
+        if configured.graphics.weather.mode == settings::WeatherMode::Original
+            || !configured.graphics.weather.footprints
         {
             self.footprints.clear();
         }
@@ -608,6 +621,8 @@ impl View {
             debug,
             alpha,
         } = frame;
+        let rendered = settings.rendering();
+        let settings = &*rendered;
         let game = &campaign.game;
         if self.vram_revision != game.mission.vram.revision {
             self.renderer.update_vram(&game.mission.vram);
@@ -619,7 +634,11 @@ impl View {
             None
         };
         self.renderer.daylight = self.sky.sample(&settings.graphics.sky, alpha);
-        self.models.motion = self.motion.sample(alpha);
+        self.models.motion = if settings.graphics.motion.actors() {
+            self.motion.sample(alpha)
+        } else {
+            Default::default()
+        };
         self.renderer.weather = self.weather.sample(&settings.graphics.weather, alpha);
         self.renderer.visual_time =
             ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;

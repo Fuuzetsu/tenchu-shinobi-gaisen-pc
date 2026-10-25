@@ -45,7 +45,10 @@ uses continuous coverage, filtered grain and adjustable world-space shelter
 softness; a clear action removes weather/accumulation/tracks and stops falling
 precipitation. Sight overlays now trace the original collision terrain from the
 guard's eye rather than drawing uninterrupted bounds through walls. Verification
-and preset/lighting/effect/vegetation stages remain in progress.
+and lighting/effect/vegetation stages remain in progress. Modern High/Ultra,
+independent gameplay profiles, persistent sight range and reversible F8 retro
+rendering are implemented. Settings round-trip and actual-disc checks verify
+graphics/gameplay separation and unchanged inventory; browser checks remain.
 
 ## Weather follow-up showcase (baseline captured)
 

@@ -12,6 +12,7 @@ mod models;
 pub use models::Models;
 mod motion;
 pub use motion::Motion;
+pub mod gameplay;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -30,6 +31,8 @@ pub struct Settings {
     pub pause_on_defocus: bool,
     pub pause_in_menu: bool,
     pub keep_enemies_active: bool,
+    pub sight_percent: u16,
+    pub retro: bool,
     pub fullscreen: bool,
     pub vsync: bool,
     pub show_hud: bool,
@@ -50,6 +53,8 @@ impl Default for Settings {
             pause_on_defocus: true,
             pause_in_menu: true,
             keep_enemies_active: false,
+            sight_percent: 100,
+            retro: false,
             fullscreen: false,
             vsync: true,
             show_hud: true,
@@ -60,6 +65,31 @@ impl Default for Settings {
             player_model: String::new(),
             model_directory: String::new(),
             frontend: crate::frontend::Preferences::default(),
+        }
+    }
+}
+
+impl Settings {
+    pub fn rendering(&self) -> std::borrow::Cow<'_, Self> {
+        if !self.retro {
+            return std::borrow::Cow::Borrowed(self);
+        }
+        let mut original = self.clone();
+        original.retro = false;
+        original.graphics = Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        original.sharp_text = false;
+        original.player_model.clear();
+        std::borrow::Cow::Owned(original)
+    }
+
+    pub fn set_visual_preset(&mut self, index: u16) {
+        self.retro = false;
+        self.graphics.set_preset(index);
+        if (presets::MODERN_HIGH..presets::CUSTOM).contains(&index) {
+            self.sharp_text = true;
         }
     }
 }
@@ -260,6 +290,7 @@ impl Store {
                 let mut settings: Settings = serde_json::from_slice(&bytes)
                     .map_err(|e| format!("{}: {e}", self.path.display()))?;
                 settings.volume = settings.volume.min(100);
+                settings.sight_percent = settings.sight_percent.min(400);
                 if ![0, 1, 2, 4, 8, 16].contains(&settings.cutscene_speed) {
                     settings.cutscene_speed = 1;
                 }
@@ -323,6 +354,46 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn retro_is_a_rendering_view_and_restores_all_preferences() {
+        let mut settings = Settings {
+            keep_enemies_active: true,
+            sight_percent: 125,
+            cutscene_speed: 4,
+            volume: 25,
+            player_model: "pack:custom".into(),
+            ..Default::default()
+        };
+        settings.set_visual_preset(presets::MODERN_HIGH);
+        settings.graphics.weather.mode = WeatherMode::Snow;
+        let selected = settings.clone();
+        settings.retro = true;
+        let original = settings.rendering();
+        assert_eq!(
+            original.graphics,
+            Graphics {
+                asset_pack: false,
+                ..Default::default()
+            }
+        );
+        assert_eq!(original.sight_percent, 125);
+        assert!(original.keep_enemies_active);
+        assert_eq!(original.cutscene_speed, 4);
+        assert_eq!(original.volume, 25);
+        assert!(original.player_model.is_empty());
+        let stored = serde_json::to_vec(&settings).unwrap();
+        settings = serde_json::from_slice(&stored).unwrap();
+        settings.retro = false;
+        assert_eq!(settings, selected);
+        assert!(matches!(
+            settings.rendering(),
+            std::borrow::Cow::Borrowed(_)
+        ));
+        settings.set_visual_preset(presets::MODERN_ULTRA);
+        assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
+        assert_eq!(settings.sight_percent, 125);
+    }
 
     #[test]
     fn settings_upgrade_and_atomic_replacement_do_not_touch_campaign_saves() {

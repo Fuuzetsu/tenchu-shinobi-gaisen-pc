@@ -8,6 +8,7 @@ use egui::{Color32, RichText, Ui};
 pub enum Edit {
     Change(Item, i32),
     Preset(u16),
+    GameplayPreset(usize),
     Reset(Item),
     Coordinate(usize, i32),
     PlayerModel(String),
@@ -56,6 +57,9 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
                     ui.weak("F1 / Esc: close · Tab / Shift+Tab: category");
                 });
             });
+            if settings.retro {
+                ui.label("Retro comparison is on. F8 restores your selected graphics; edits below are kept for that view.");
+            }
             ui.separator();
             ui.horizontal_top(|ui| {
                 ui.vertical(|ui| {
@@ -313,6 +317,10 @@ fn widget(
         return response;
     }
     let choices: Vec<String> = match item {
+        Item::GameplayPreset => super::gameplay::PRESETS
+            .iter()
+            .map(|p| p.name.to_string())
+            .collect(),
         Item::Preset => super::presets::NAMES[..super::presets::CUSTOM as usize]
             .iter()
             .map(|s| s.to_string())
@@ -372,6 +380,8 @@ fn widget(
                     {
                         edits.push(if item == Item::Preset {
                             Edit::Preset(index as u16)
+                        } else if item == Item::GameplayPreset {
+                            Edit::GameplayPreset(index)
                         } else {
                             Edit::Change(item, index as i32 - current.unwrap_or(0) as i32)
                         });

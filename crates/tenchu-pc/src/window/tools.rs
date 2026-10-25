@@ -100,6 +100,7 @@ impl Application {
         if self.debug.sight_percent != value {
             self.stop_edited_recording();
         }
+        self.settings.sight_percent = value;
         self.debug.sight_percent = value;
         self.campaign.game.intelligence.sight_percent = value;
     }
@@ -159,6 +160,7 @@ impl Application {
             self.menu.notice = error;
             self.settings = previous.clone();
             self.campaign.game.activation.keep_all_active = previous.keep_enemies_active;
+            self.set_sight(previous.sight_percent);
             return;
         }
         if self.demo.is_none()
@@ -171,6 +173,26 @@ impl Application {
         if let Some(audio) = &mut self.audio {
             audio.volume(self.settings.volume);
         }
+    }
+
+    pub(super) fn set_gameplay_preset(&mut self, index: usize) -> Result<()> {
+        let preset = settings::gameplay::PRESETS
+            .get(index)
+            .ok_or("Unknown gameplay preset")?;
+        if preset.practice {
+            self.mission_edit()?;
+        }
+        self.keep_enemies_active(preset.active);
+        self.set_sight(preset.sight);
+        self.settings.cutscene_speed = preset.cutscenes;
+        self.debug.speed = 100;
+        self.set_god_mode(preset.practice)?;
+        self.set_stealth(preset.practice)?;
+        self.debug.click_teleport = preset.practice;
+        if self.debug.armor {
+            self.apply_item(Item::Armor, 1)?;
+        }
+        Ok(())
     }
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
@@ -417,8 +439,19 @@ impl Application {
                         format!("{} player bodies available", view.player_models.len() - 1);
                 }
             }
+            Item::GameplayPreset => {
+                let presets = &settings::gameplay::PRESETS;
+                let current = settings::gameplay::current(&self.settings, &self.debug);
+                let index = current.map_or_else(
+                    || if direction < 0 { presets.len() - 1 } else { 0 },
+                    |i| (i as i32 + direction).rem_euclid(presets.len() as i32) as usize,
+                );
+                self.set_gameplay_preset(index)?;
+            }
+            Item::Retro => self.settings.retro = !self.settings.retro,
             Item::Preset => {
-                self.settings.graphics.cycle_preset(direction);
+                let index = self.settings.graphics.cycle_preset(direction);
+                self.settings.set_visual_preset(index);
             }
             Item::Post => {
                 self.settings.graphics.post.enabled = !self.settings.graphics.post.enabled
@@ -706,8 +739,8 @@ impl Application {
                     self.stop_edited_recording();
                 }
                 self.settings = Settings::default();
-                self.debug = crate::debug::Debug::new(&self.campaign.game)?;
                 self.campaign.game.intelligence.sight_percent = 100;
+                self.debug = crate::debug::Debug::new(&self.campaign.game)?;
             }
             Item::Fog => self.settings.graphics.fog = !self.settings.graphics.fog,
             Item::FogDistance => {

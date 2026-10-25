@@ -516,6 +516,13 @@ impl ApplicationHandler for Application {
                     self.toggle_menu();
                     return;
                 }
+                if event.state == ElementState::Pressed && code == KeyCode::F8 {
+                    let previous = self.settings.clone();
+                    self.settings.retro = !self.settings.retro;
+                    self.apply_settings(&previous);
+                    self.update_view();
+                    return;
+                }
                 if event.state == ElementState::Pressed && code == KeyCode::F9 {
                     self.screenshot = true;
                     return;
@@ -834,6 +841,7 @@ pub fn run(
     }
     let mut campaign = Campaign::new(&assets, options, saved)?;
     campaign.game.activation.keep_all_active = settings.keep_enemies_active;
+    campaign.game.intelligence.sight_percent = settings.sight_percent;
     let frontend = if demo.is_none() {
         campaign.frontend = true;
         campaign.quick_launcher = false;
