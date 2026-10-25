@@ -288,7 +288,7 @@
   {
     "id": "collision",
     "title": "Inspect the playable geometry",
-    "description": "Collision surfaces, hazard colors and event regions reveal the structure under the artwork. These are the game’s own data.",
+    "description": "Collision surfaces, hazard colors and event regions reveal the structure under the artwork. These are the game\u2019s own data.",
     "seconds": 12,
     "mission": 2,
     "character": 1,
@@ -620,7 +620,7 @@
   {
     "id": "secondary-motion",
     "title": "Hair and loose cloth in motion",
-    "description": "Ayame’s hair and bow gain bounded follow-through during the original animations. Anchored fabric, weapon attachment and gameplay remain unchanged.",
+    "description": "Ayame\u2019s hair and bow gain bounded follow-through during the original animations. Anchored fabric, weapon attachment and gameplay remain unchanged.",
     "seconds": 16,
     "mission": 1,
     "character": 1,
@@ -631,7 +631,7 @@
   {
     "id": "equipment-motion",
     "title": "Cloth and equipment flex",
-    "description": "Rikimaru’s garment hems and carried equipment react subtly to motion. Their attachment regions stay fixed and the weapons keep their original animation.",
+    "description": "Rikimaru\u2019s garment hems and carried equipment react subtly to motion. Their attachment regions stay fixed and the weapons keep their original animation.",
     "seconds": 16,
     "mission": 1,
     "character": 0,
@@ -887,5 +887,325 @@
       ],
       "fov": 55
     }
+  },
+  {
+    "id": "remake-modern-presets",
+    "title": "Modern High and Ultra",
+    "description": "Useful graphics improvements together, without black distance fog or original blob shadows. High uses 2x MSAA; Ultra uses 4x.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "modern-presets"
+    },
+    "shot": "lamp",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-retro",
+    "title": "One-key retro comparison",
+    "description": "F8 compares your current visual settings with Original and restores them, keeping gameplay choices untouched.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "retro"
+    },
+    "shot": "lamp",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-gameplay-profiles",
+    "title": "Independent gameplay profiles",
+    "description": "Original, Living world, Keen guards, Relaxed stealth and Practice group gameplay choices separately from graphics.",
+    "seconds": 15,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "gameplay-profiles"
+    },
+    "shot": "guard",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-snow-drift",
+    "title": "Softer snow shelter",
+    "description": "Continuous snow coverage and softened shelter edges avoid rectangular patches and rigid tree silhouettes.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "snow-drift"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 40
+  },
+  {
+    "id": "remake-snow-tracks",
+    "title": "Tracks slowly disappear",
+    "description": "A short walk leaves tracks. Fresh snow gradually fills them while the camera holds on the path.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "snow-tracks"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 40
+  },
+  {
+    "id": "remake-clear-weather",
+    "title": "Clear the experiment",
+    "description": "One button clears snow, rain, puddles, footprints and weather particles so a new experiment starts cleanly.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "clear-weather"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 40
+  },
+  {
+    "id": "remake-sight-bounds",
+    "title": "Sight stops at walls",
+    "description": "Inspection bounds trace the stage geometry instead of extending through walls. Enemy AI is unchanged.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "sight-bounds"
+    },
+    "shot": "guard",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-daylight-lamps",
+    "title": "Sunlight dominates lanterns",
+    "description": "Local lamps illuminate the night and covered areas; their contribution recedes on sunlit surfaces at noon.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "daylight-lamps"
+    },
+    "shot": "lamp",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-area-lamps",
+    "title": "Diffuse lantern light",
+    "description": "Paper panels act as diffuse sources, softening grating patterns. Solid caps and nearby geometry still cast shadows.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "area-lamps"
+    },
+    "shot": "lamp",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-shadow-coverage",
+    "title": "Shadows beyond arm\u2019s reach",
+    "description": "Approach a lantern with wider shadow coverage and stable light slots. Budget changes fade instead of snapping.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "shadow-coverage"
+    },
+    "shot": "lamp",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-botanical-garden",
+    "title": "More dimensional garden foliage",
+    "description": "Folded leaf sprays supplement the original cherry and azalea canopy, using its existing materials.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "botanical"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-botanical-autumn",
+    "title": "Autumn trees join in",
+    "description": "Autumn foliage is now classified and receives the botanical geometry and wind improvements too.",
+    "seconds": 10,
+    "mission": 3,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "botanical"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-tree-variation",
+    "title": "Every crown a little different",
+    "description": "Stable per-placement proportions and crown shapes vary repeated trees while their roots stay anchored.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "tree-variation"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-branch-wind",
+    "title": "Branches and leaves in the breeze",
+    "description": "Trunks remain anchored. Low-frequency branch sway and faster leaf flutter move independently in the light and shadow passes.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "branch-wind"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-petal-fall",
+    "title": "Falling cherry petals",
+    "description": "Petals drift down, settle on the ground and scatter underfoot. Temporary litter gradually fades.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": {
+      "remake": "seasonal-fall"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 30
+  },
+  {
+    "id": "remake-leaf-fall",
+    "title": "Falling autumn leaves",
+    "description": "Autumn leaves use their tree\u2019s material colors, settle on terrain and react to movement.",
+    "seconds": 12,
+    "mission": 3,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "seasonal-fall"
+    },
+    "shot": "wide",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 30
+  },
+  {
+    "id": "remake-grapple",
+    "title": "A sharper grappling hook",
+    "description": "Compare the original effect with a round braided rope, refined hook, hot fragments and a brief impact light.",
+    "seconds": 12,
+    "mission": 0,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "grapple"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-water-contact",
+    "title": "Water splashes and shore wetting",
+    "description": "Compare the old contact sprite with droplets and spreading ripples. Droplets reaching nearby land leave temporary wet marks.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "water-contact"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 0
+  },
+  {
+    "id": "remake-snow-scatter",
+    "title": "Walking, running, landing in snow",
+    "description": "Small puffs respond to movement speed and landing impact. All added particles are cosmetic.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": {
+      "remake": "snow-scatter"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 40
+  },
+  {
+    "id": "remake-puddle-scatter",
+    "title": "Steps disturb the puddles",
+    "description": "Wet-ground footsteps and landings throw droplets and ripples; stronger movement creates more disturbance.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "remake": "puddle-scatter"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 40
   }
 ]

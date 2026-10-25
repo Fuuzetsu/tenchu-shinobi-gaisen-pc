@@ -22,7 +22,13 @@ impl Graphics {
         let mut current = self.clone();
         current.asset_pack = true;
         (0..CUSTOM)
-            .find(|&index| current == preset(index))
+            .find(|&index| {
+                let mut candidate = preset(index);
+                if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
+                    candidate.weather.mode = current.weather.mode;
+                }
+                current == candidate
+            })
             .unwrap_or(CUSTOM)
     }
 
@@ -168,6 +174,8 @@ fn modern(ultra: bool) -> Graphics {
     g.sky.enabled = true;
     g.sky.time = 1320;
     g.sky.moon = 35;
+    g.sky.night_ambient = 50;
+    g.exposure = 125;
     g.lighting.enabled = true;
     g.lighting.count = 8;
     g.lighting.shadow_count = if ultra { 8 } else { 6 };
@@ -188,6 +196,19 @@ fn modern(ultra: bool) -> Graphics {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn modern_presets_keep_the_weather_choice_when_cycling() {
+        let mut graphics = Graphics::default();
+        graphics.weather.mode = crate::settings::WeatherMode::Snow;
+        graphics.set_preset(MODERN_HIGH);
+        assert_eq!(graphics.preset(), MODERN_HIGH);
+        graphics.cycle_preset(1);
+        assert_eq!(graphics.preset(), MODERN_ULTRA);
+        assert_eq!(graphics.weather.mode, crate::settings::WeatherMode::Snow);
+        graphics.cycle_preset(-1);
+        assert_eq!(graphics.preset(), MODERN_HIGH);
+    }
 
     #[test]
     fn presets_cycle_and_identify_without_changing_asset_preferences() {

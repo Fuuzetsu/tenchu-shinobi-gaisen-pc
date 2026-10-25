@@ -147,99 +147,8 @@ impl Contact {
             };
         }
         self.tick = Some(game.tick);
+        self.advance(surfaces, graphics, eye);
         let options = &graphics.effects;
-        let wind_strength = if graphics.weather.mode.precipitates() {
-            graphics.weather.wind
-        } else {
-            graphics.motion.wind
-        };
-        let heading = f32::from(graphics.weather.heading).to_radians();
-        let wind = Vec3::new(heading.sin(), 0.0, heading.cos()) * f32::from(wind_strength) * 0.5;
-        let mut wet_hits = Vec::new();
-        for p in &mut self.particles {
-            p.previous = p.position;
-            p.age += 1.0 / 30.0;
-            if p.ground.is_some() {
-                continue;
-            }
-            let foliage = matches!(p.kind, Kind::Petal | Kind::Leaf);
-            if foliage {
-                p.velocity = p.velocity.lerp(wind + Vec3::Y * 12.0, 0.035);
-                p.velocity += Vec3::new(
-                    (p.age * 3.0 + p.phase).sin(),
-                    0.0,
-                    (p.age * 2.3 + p.phase).cos(),
-                ) * 0.8;
-            } else {
-                p.velocity.y += if p.kind == Kind::Snow { 2.0 } else { 7.0 };
-                if p.kind != Kind::Spark {
-                    p.velocity += wind * 0.015;
-                }
-            }
-            let next = p.position + p.velocity;
-            if let Some(hit) = surfaces.cast_excluding(p.position, next, render_mesh::FOLIAGE) {
-                p.position = hit.position + hit.normal * 2.0;
-                if foliage && hit.normal.y < -0.3 {
-                    p.ground = Some(hit.normal);
-                    p.velocity = Vec3::ZERO;
-                } else {
-                    if p.kind == Kind::Drop
-                        && hit.position.y <= p.origin.y + 80.0
-                        && hit.position.distance_squared(p.origin) < 1800.0_f32.powi(2)
-                    {
-                        wet_hits.push(hit);
-                    }
-                    p.age = p.life;
-                }
-            } else {
-                p.position = next;
-            }
-        }
-        self.particles.retain(|p| {
-            p.age < p.life
-                && p.position.distance_squared(eye) < 100000.0_f32.powi(2)
-                && match p.kind {
-                    Kind::Petal | Kind::Leaf => options.leaves || options.scatter,
-                    Kind::Drop => options.splashes || options.scatter,
-                    Kind::Snow => options.scatter,
-                    Kind::Spark => options.sparks,
-                }
-        });
-        self.rings.iter_mut().for_each(|r| r.age += 1.0 / 30.0);
-        self.rings
-            .retain(|r| r.age < 1.2 && (options.splashes || options.scatter));
-        self.wet.iter_mut().for_each(|m| m.age += 1.0 / 30.0);
-        self.wet
-            .retain(|m| m.age < 20.0 && (options.splashes || options.scatter));
-        self.flashes.iter_mut().for_each(|f| f.age += 1.0 / 30.0);
-        self.flashes.retain(|f| f.age < 0.35 && options.sparks);
-        for hit in wet_hits.into_iter().take(4) {
-            self.wet_mark(hit, surfaces);
-        }
-        if options.leaves && options.leaf_density > 0 {
-            for index in 0..self.canopies.len() {
-                let tree = self.canopies[index];
-                if ((tree.min + tree.max) * 0.5).distance_squared(eye) > 60000.0_f32.powi(2)
-                    || self.random() > f32::from(options.leaf_density) / 100.0 * 0.055
-                {
-                    continue;
-                }
-                let position = tree.min
-                    + (tree.max - tree.min)
-                        * Vec3::new(self.random(), 0.1 + self.random() * 0.6, self.random());
-                self.particle(
-                    if tree.blossom {
-                        Kind::Petal
-                    } else {
-                        Kind::Leaf
-                    },
-                    position,
-                    wind + Vec3::Y * 10.0,
-                    tree.color,
-                    if tree.blossom { 18.0 } else { 35.0 },
-                );
-            }
-        }
         let mut splash_slots = BTreeMap::new();
         let mut wire_slots = BTreeMap::new();
         for (slot, effect) in game
@@ -354,6 +263,108 @@ impl Contact {
             }
         }
     }
+    pub fn prewarm(&mut self, surfaces: &Surfaces, graphics: &Graphics, eye: Vec3, seconds: u16) {
+        for _ in 0..u32::from(seconds) * 30 {
+            self.advance(surfaces, graphics, eye);
+        }
+    }
+
+    fn advance(&mut self, surfaces: &Surfaces, graphics: &Graphics, eye: Vec3) {
+        let options = &graphics.effects;
+        let wind_strength = if graphics.weather.mode.precipitates() {
+            graphics.weather.wind
+        } else {
+            graphics.motion.wind
+        };
+        let heading = f32::from(graphics.weather.heading).to_radians();
+        let wind = Vec3::new(heading.sin(), 0.0, heading.cos()) * f32::from(wind_strength) * 0.5;
+        let mut wet_hits = Vec::new();
+        for p in &mut self.particles {
+            p.previous = p.position;
+            p.age += 1.0 / 30.0;
+            if p.ground.is_some() {
+                continue;
+            }
+            let foliage = matches!(p.kind, Kind::Petal | Kind::Leaf);
+            if foliage {
+                p.velocity = p.velocity.lerp(wind + Vec3::Y * 12.0, 0.035);
+                p.velocity += Vec3::new(
+                    (p.age * 3.0 + p.phase).sin(),
+                    0.0,
+                    (p.age * 2.3 + p.phase).cos(),
+                ) * 0.8;
+            } else {
+                p.velocity.y += if p.kind == Kind::Snow { 2.0 } else { 7.0 };
+                if p.kind != Kind::Spark {
+                    p.velocity += wind * 0.015;
+                }
+            }
+            let next = p.position + p.velocity;
+            if let Some(hit) = surfaces.cast_excluding(p.position, next, render_mesh::FOLIAGE) {
+                p.position = hit.position + hit.normal * 2.0;
+                if foliage && hit.normal.y < -0.3 {
+                    p.ground = Some(hit.normal);
+                    p.velocity = Vec3::ZERO;
+                } else {
+                    if p.kind == Kind::Drop
+                        && hit.position.y <= p.origin.y + 80.0
+                        && hit.position.distance_squared(p.origin) < 1800.0_f32.powi(2)
+                    {
+                        wet_hits.push(hit);
+                    }
+                    p.age = p.life;
+                }
+            } else {
+                p.position = next;
+            }
+        }
+        self.particles.retain(|p| {
+            p.age < p.life
+                && p.position.distance_squared(eye) < 100000.0_f32.powi(2)
+                && match p.kind {
+                    Kind::Petal | Kind::Leaf => options.leaves || options.scatter,
+                    Kind::Drop => options.splashes || options.scatter,
+                    Kind::Snow => options.scatter,
+                    Kind::Spark => options.sparks,
+                }
+        });
+        self.rings.iter_mut().for_each(|r| r.age += 1.0 / 30.0);
+        self.rings
+            .retain(|r| r.age < 1.2 && (options.splashes || options.scatter));
+        self.wet.iter_mut().for_each(|m| m.age += 1.0 / 30.0);
+        self.wet
+            .retain(|m| m.age < 20.0 && (options.splashes || options.scatter));
+        self.flashes.iter_mut().for_each(|f| f.age += 1.0 / 30.0);
+        self.flashes.retain(|f| f.age < 0.35 && options.sparks);
+        for hit in wet_hits.into_iter().take(4) {
+            self.wet_mark(hit, surfaces);
+        }
+        if options.leaves && options.leaf_density > 0 {
+            for index in 0..self.canopies.len() {
+                let tree = self.canopies[index];
+                if ((tree.min + tree.max) * 0.5).distance_squared(eye) > 60000.0_f32.powi(2)
+                    || self.random() > f32::from(options.leaf_density) / 100.0 * 0.055
+                {
+                    continue;
+                }
+                let position = tree.min
+                    + (tree.max - tree.min)
+                        * Vec3::new(self.random(), 0.1 + self.random() * 0.6, self.random());
+                self.particle(
+                    if tree.blossom {
+                        Kind::Petal
+                    } else {
+                        Kind::Leaf
+                    },
+                    position,
+                    wind + Vec3::Y * 10.0,
+                    tree.color,
+                    if tree.blossom { 18.0 } else { 35.0 },
+                );
+            }
+        }
+    }
+
     fn ripple(&mut self, position: Vec3, strength: f32) {
         if self.rings.len() < 96 {
             self.rings.push(Ripple {

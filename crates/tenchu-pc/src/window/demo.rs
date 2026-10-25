@@ -5,6 +5,7 @@ use glam::Vec3;
 use std::time::Duration;
 
 mod additions;
+mod remake;
 
 impl Application {
     pub(super) fn start_demo_clip(&mut self) -> Result<()> {
@@ -212,6 +213,13 @@ impl Application {
             self.debug.light = Some(scene.target + Vec3::new(-2000.0, -2500.0, -2000.0));
             self.settings.graphics.lighting.ambient = 65;
         }
+        if matches!(clip.feature, Feature::Remake(_)) {
+            let presented = render_mesh::stage(&game.mission, &game.math, Some(&view.models));
+            remake::setup(&clip, &mut game, &mut scene, &view.models, &presented)?;
+            if let Some(actor) = scene.actor {
+                self.debug.selected_actor = actor;
+            }
+        }
         scene.current_player = Vec3::from(game.player().position.map(|v| v as f32).to_array());
         scene.previous_player = scene.current_player;
         player.cinematic_active = game.cinematic.active;
@@ -347,7 +355,10 @@ impl Application {
             if self.faulted {
                 return;
             }
-            if let Err(error) = self.advance_demo_tools() {
+            if let Err(error) = self
+                .advance_remake_tools()
+                .and_then(|_| self.advance_demo_tools())
+            {
                 self.pause_error(error);
                 return;
             }

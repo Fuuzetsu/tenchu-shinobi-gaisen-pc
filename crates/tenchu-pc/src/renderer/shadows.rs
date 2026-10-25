@@ -31,6 +31,8 @@ pub struct Shadows {
     weather_layers: [wgpu::TextureView; 2],
     weather_resolution: u32,
     selection: crate::lighting::shadows::Selection,
+    readable: ReadableDepth,
+    gl: bool,
 }
 
 impl Shadows {
@@ -38,6 +40,7 @@ impl Shadows {
         device: &wgpu::Device,
         vram: &wgpu::Texture,
         materials: &wgpu::BindGroupLayout,
+        gl: bool,
     ) -> Self {
         let uniform = wgpu::BindGroupLayoutEntry {
             binding: 0,
@@ -89,6 +92,26 @@ impl Shadows {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
             ],
         });
         let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 108) * 4);
@@ -101,7 +124,19 @@ impl Shadows {
         });
         let sun = super::sun::target(device, 1);
         let (weather, weather_layers) = weather_targets(device, 1);
-        let (bindings, views) = maps(device, &layout, &data, &sampler, 1, 1, [&sun, &weather]);
+        let (bindings, views, readable) = maps(
+            device,
+            &layout,
+            &data,
+            &sampler,
+            1,
+            1,
+            MapTargets {
+                views: [&sun, &weather],
+                sizes: [1, 1],
+                gl,
+            },
+        );
         let face_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Shadow face"),
             entries: &[
@@ -188,9 +223,17 @@ impl Shadows {
                 multisample: Default::default(),
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
-                    entry_point: Some("fragment"),
+                    entry_point: Some(if gl { "readable_depth" } else { "fragment" }),
                     compilation_options: Default::default(),
-                    targets: &[],
+                    targets: if gl {
+                        &[Some(wgpu::ColorTargetState {
+                            format: wgpu::TextureFormat::R32Float,
+                            blend: None,
+                            write_mask: wgpu::ColorWrites::RED,
+                        })]
+                    } else {
+                        &[]
+                    },
                 }),
                 multiview: None,
                 cache: None,
@@ -221,6 +264,8 @@ impl Shadows {
             weather_layers,
             weather_resolution: 1,
             selection: Default::default(),
+            readable,
+            gl,
         }
     }
 
@@ -253,14 +298,18 @@ impl Shadows {
             || sun_changed
             || weather_changed
         {
-            (self.bindings, self.views) = maps(
+            (self.bindings, self.views, self.readable) = maps(
                 device,
                 &self.layout,
                 &self.data,
                 &self.sampler,
                 resolution,
                 layers,
-                [&self.sun, &self.weather],
+                MapTargets {
+                    views: [&self.sun, &self.weather],
+                    sizes: [self.sun_resolution, self.weather_resolution],
+                    gl: self.gl,
+                },
             );
             self.resolution = resolution;
         }
@@ -425,9 +474,17 @@ impl Shadows {
         let mut face = matrix.to_cols_array().to_vec();
         face.extend(options);
         queue.write_buffer(buffer, 0, bytemuck::cast_slice(&face));
+        let colors = [Some(wgpu::RenderPassColorAttachment {
+            view: self.readable.face(index),
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
+                store: wgpu::StoreOp::Store,
+            },
+        })];
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Shadow face"),
-            color_attachments: &[],
+            color_attachments: if self.gl { &colors } else { &[] },
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: target,
                 depth_ops: Some(wgpu::Operations {
@@ -446,6 +503,7 @@ impl Shadows {
         });
         pass.set_bind_group(0, bindings, &[]);
         pass.set_bind_group(1, geometry.materials, &[]);
+        let frustum = super::culling::Frustum::new(matrix);
         for mesh in geometry
             .meshes
             .iter()
@@ -454,7 +512,13 @@ impl Shadows {
         {
             if mesh.count != 0 {
                 pass.set_vertex_buffer(0, mesh.buffer.slice(..));
-                pass.draw(0..mesh.count, 0..1);
+                if mesh.shadow_chunks.is_empty() {
+                    pass.draw(0..mesh.count, 0..1);
+                } else {
+                    for range in frustum.ranges(&mesh.shadow_chunks, options[2]) {
+                        pass.draw(range, 0..1);
+                    }
+                }
             }
         }
     }
@@ -469,6 +533,67 @@ fn buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {
     })
 }
 
+struct MapTargets<'a> {
+    views: [&'a wgpu::TextureView; 2],
+    sizes: [u32; 2],
+    gl: bool,
+}
+struct ReadableDepth {
+    point: (wgpu::TextureView, Vec<wgpu::TextureView>),
+    weather: (wgpu::TextureView, Vec<wgpu::TextureView>),
+    sun: wgpu::TextureView,
+}
+impl ReadableDepth {
+    fn new(device: &wgpu::Device, sizes: [u32; 3], layers: usize) -> Self {
+        let array = |size, count| {
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Readable shadow depth"),
+                size: wgpu::Extent3d {
+                    width: size,
+                    height: size,
+                    depth_or_array_layers: super::array_layers(device, count),
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::R32Float,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+            let all = texture.create_view(&wgpu::TextureViewDescriptor {
+                dimension: Some(wgpu::TextureViewDimension::D2Array),
+                ..Default::default()
+            });
+            let faces = (0..count)
+                .map(|layer| {
+                    texture.create_view(&wgpu::TextureViewDescriptor {
+                        dimension: Some(wgpu::TextureViewDimension::D2),
+                        base_array_layer: layer,
+                        array_layer_count: Some(1),
+                        ..Default::default()
+                    })
+                })
+                .collect();
+            (all, faces)
+        };
+        Self {
+            point: array(sizes[0], layers as u32),
+            sun: array(sizes[1], 1).1.pop().unwrap(),
+            weather: array(sizes[2], 2),
+        }
+    }
+    fn face(&self, index: usize) -> &wgpu::TextureView {
+        if index >= FACES {
+            &self.weather.1[index - FACES]
+        } else if index == FACES - 1 {
+            &self.sun
+        } else {
+            &self.point.1[index]
+        }
+    }
+}
+
 fn maps(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
@@ -476,8 +601,17 @@ fn maps(
     sampler: &wgpu::Sampler,
     resolution: u32,
     layers: usize,
-    sky_maps: [&wgpu::TextureView; 2],
-) -> (wgpu::BindGroup, Vec<wgpu::TextureView>) {
+    sky: MapTargets<'_>,
+) -> (wgpu::BindGroup, Vec<wgpu::TextureView>, ReadableDepth) {
+    let readable = ReadableDepth::new(
+        device,
+        if sky.gl {
+            [resolution, sky.sizes[0], sky.sizes[1]]
+        } else {
+            [1; 3]
+        },
+        layers,
+    );
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Point shadow depth array"),
         size: wgpu::Extent3d {
@@ -515,11 +649,19 @@ fn maps(
             },
             wgpu::BindGroupEntry {
                 binding: 3,
-                resource: wgpu::BindingResource::TextureView(sky_maps[0]),
+                resource: wgpu::BindingResource::TextureView(sky.views[0]),
             },
             wgpu::BindGroupEntry {
                 binding: 4,
-                resource: wgpu::BindingResource::TextureView(sky_maps[1]),
+                resource: wgpu::BindingResource::TextureView(sky.views[1]),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: wgpu::BindingResource::TextureView(&readable.point.0),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: wgpu::BindingResource::TextureView(&readable.weather.0),
             },
         ],
     });
@@ -534,7 +676,7 @@ fn maps(
             })
         })
         .collect();
-    (bindings, views)
+    (bindings, views, readable)
 }
 
 fn weather_targets(

@@ -43,8 +43,9 @@ vertex budget after 3–5 seconds of walking. Compact footprint tessellation and
 reserved fade capacity now preserve old marks and retire them gradually. Snow
 uses continuous coverage, filtered grain and adjustable world-space shelter
 softness; a clear action removes weather/accumulation/tracks and stops falling
-precipitation. Sight overlays now trace the original collision terrain from the
-guard's eye rather than drawing uninterrupted bounds through walls. Verification
+precipitation. Sight overlays trace stage geometry from the guard's eye rather than drawing
+uninterrupted bounds through walls. A cached spatial index avoids repeated
+small-step terrain queries while guards move. Verification
 and lighting/effect/vegetation stages remain in progress. Modern High/Ultra,
 independent gameplay profiles, persistent sight range and reversible F8 retro
 rendering are implemented. Settings round-trip and actual-disc checks verify
@@ -80,6 +81,25 @@ cover seasonal trees in missions 1/3, settling, walking/running/landing, one-sho
 grapple bursts, water wetting, finite rope geometry and unchanged core state.
 GPU wet-mark/emission checks pass. Combined browser/live visual review and the new
 showcase remain outstanding.
+
+Combined validation: 63 PC unit checks and eight focused native GPU/actual-disc
+checks pass. Both Chromium WebGPU and WebGL2 exercise High/Ultra, F8 round-trip,
+independent gameplay profiles, weather clearing and the contact-effects controls
+without GPU/page errors. WebGL2's shader translator cannot load depth textures;
+a same-pass R32F attachment supplies blocker/shelter depths instead. Spatial
+shadow batches cull against each light face with wind padding; a real-stage GPU
+comparison matches the unculled render exactly. Sight overlays now use a cached
+triangle BVH, avoiding the expensive per-frame terrain marching. Original combat
+sparks remain present: filtering their generic yellow sprite would also remove
+unrelated weapon/item effects.
+
+The new built-in remake playlist has 20 clips totaling 3:45, with actual hook
+impacts, water contact, footprint burial, seasonal litter and independent presets.
+Native scene review fixed the snow camera and moved the sight view away from dense
+foliage. Native/WASM builds, formatting and workspace Clippy pass. At roughly
+1340×758 the full High preset measures about 30 FPS on Chromium WebGPU and 6–7 FPS
+on WebGL2 on this GTX 1080 Ti; these heavy presets are not a browser performance
+claim. Final 4K export, decoded-frame review and chapter verification remain.
 
 ## Weather follow-up showcase (baseline captured)
 

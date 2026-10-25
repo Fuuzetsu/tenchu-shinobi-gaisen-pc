@@ -63,7 +63,7 @@ fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
         if lighting.weather.y > 0.0 && lighting.rain.w > 0.0 {
             let size = vec2<f32>(textureDimensions(weather_map));
             let pixel = vec2<i32>(clamp(uv * size, vec2(0.0), size - vec2(1.0)));
-            let blocker = (inverse * vec4(p.xy, textureLoad(weather_map, pixel, layer, 0), 1.0)).xyz;
+            let blocker = (inverse * vec4(p.xy, shelter_depth(pixel, layer), 1.0)).xyz;
             let gap = max(0.0, dot(position - blocker, direction));
             let radius = (65.0 + min(gap * 0.08, 250.0)) * lighting.rain.w;
             let span = vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;

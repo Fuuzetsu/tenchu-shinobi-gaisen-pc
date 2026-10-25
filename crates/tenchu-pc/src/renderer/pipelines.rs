@@ -106,13 +106,13 @@ pub(super) fn create(
 }
 
 impl Options {
-    pub(super) fn shader(self, device: &wgpu::Device) -> wgpu::ShaderModule {
+    pub(super) fn shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
         // Distinct modules also avoid wgpu 24 GL's cache ignoring pipeline overrides.
         device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
                     self.filtering, self.lighting, self.relief, self.hdr, self.weather, self.water,
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
@@ -126,7 +126,8 @@ impl Options {
                     materials::shader(device),
                     include_str!("relief.wgsl"),
                     include_str!("water.wgsl"),
-                    include_str!("foliage.wgsl")
+                    include_str!("foliage.wgsl"),
+                    if gl { include_str!("depth_gl.wgsl") } else { include_str!("depth.wgsl") }
                 )
                 .into(),
             ),

@@ -498,15 +498,9 @@ pub fn build_presented(
             || matches!(drawing.graphic, Graphic::Bleed)
                 && drawing.color[2] > drawing.color[0]
                 && u16::from(drawing.color[0]) * 5 > u16::from(drawing.color[2]) * 4;
-        let spark = matches!(drawing.graphic, Graphic::Bleed)
-            && drawing.color[0] == drawing.color[1]
-            && drawing.color[0] > drawing.color[2].saturating_add(20);
         for v in &mut vertices {
             if splash {
                 v.flags |= render_mesh::ORIGINAL_SPLASH;
-            }
-            if spark {
-                v.flags |= render_mesh::ORIGINAL_SPARK;
             }
         }
 

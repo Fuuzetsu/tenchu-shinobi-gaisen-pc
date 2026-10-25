@@ -45,13 +45,23 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     if let Some(path) = &player.clip().camera {
         return Some(path.sample(player.progress()));
     }
-    if matches!(player.clip().shot, Shot::Cinematic | Shot::Gameplay) {
+    if matches!(player.clip().shot, Shot::Cinematic | Shot::Gameplay)
+        || matches!(
+            player.clip().feature,
+            Feature::Remake(super::remake::Feature::Grapple | super::remake::Feature::WaterContact)
+        )
+    {
         return None;
     }
     let p = player.progress();
     let scene = &player.scene;
     let mut target = scene.target;
-    if player.clip().shot == Shot::Player && player.clip().feature != Feature::Teleport {
+    if player.clip().shot == Shot::Player
+        && !matches!(
+            player.clip().feature,
+            Feature::Teleport | Feature::Remake(_)
+        )
+    {
         let alpha = if interpolate { player.alpha() } else { 1.0 };
         target += scene.previous_player.lerp(scene.current_player, alpha)
             - Vec3::from(scene.player_start.map(|v| v as f32).to_array());
@@ -71,6 +81,10 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     };
     let mut distance = scene.distance;
     match player.clip().feature {
+        Feature::Remake(super::remake::Feature::ShadowCoverage) => {
+            distance *= 2.5 - sweep(p) * 1.5;
+            camera.yaw += (p - 0.5) * 0.25;
+        }
         Feature::FreeCamera => {
             camera.yaw += p * 1.5;
             camera.pitch = -0.25 - sweep(p) * 0.5;
@@ -100,6 +114,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         g.fog = fog;
     }
     match player.clip().feature {
+        Feature::Remake(feature) => super::remake::animate(feature, player, settings, debug),
         Feature::Blood => {
             g.blood.enabled = true;
             g.interpolation = true;
@@ -543,6 +558,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
     };
     let on = |yes| if yes { "On" } else { "Off" };
     match player.clip().feature {
+        Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
         Feature::Blood => {
             text("Wounds follow bodies; drops stain the ground · cosmetic only".into())
         }

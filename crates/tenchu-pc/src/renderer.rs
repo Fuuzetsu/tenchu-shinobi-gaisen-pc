@@ -4,6 +4,7 @@ use tenchu_assets::{Result, texture::Vram};
 use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
+mod culling;
 mod materials;
 mod overlay;
 mod pipelines;
@@ -22,6 +23,7 @@ pub struct Mesh {
     buffer: wgpu::Buffer,
     count: u32,
     bounds: Option<[glam::Vec3; 2]>,
+    shadow_chunks: Vec<culling::Chunk>,
 }
 
 fn array_layers(device: &wgpu::Device, layers: u32) -> u32 {
@@ -55,6 +57,7 @@ pub struct Renderer {
     format: wgpu::TextureFormat,
     layout: wgpu::PipelineLayout,
     shader: wgpu::ShaderModule,
+    gl: bool,
     pub sample_counts: Vec<u32>,
     pub timings: Option<timing::Timer>,
     pub profiling: bool,
@@ -120,7 +123,8 @@ impl Renderer {
             .await
             .map_err(|e| e.to_string())?;
         let graphics = crate::settings::Graphics::default();
-        let shader = pipelines::Options::from(&graphics).shader(&device);
+        let gl = adapter.get_info().backend == wgpu::Backend::Gl;
+        let shader = pipelines::Options::from(&graphics).shader(&device, gl);
         let binding_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Scene bindings"),
             entries: &[
@@ -166,7 +170,7 @@ impl Renderer {
             view_formats: &[],
         });
         let materials = materials::Materials::new(&device, &queue, vram);
-        let shadows = shadows::Shadows::new(&device, &texture, &materials.layout);
+        let shadows = shadows::Shadows::new(&device, &texture, &materials.layout, gl);
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Scene and effects"),
             bind_group_layouts: &[&binding_layout, &shadows.layout, &materials.layout],
@@ -209,6 +213,7 @@ impl Renderer {
             format,
             layout,
             shader,
+            gl,
             sample_counts,
             samples: 1,
             multisample: None,
@@ -307,7 +312,7 @@ impl Renderer {
         let shader_changed = options != (&self.graphics).into();
         let pipelines_changed = attachments_changed || shader_changed;
         if shader_changed {
-            self.shader = options.shader(&self.device);
+            self.shader = options.shader(&self.device, self.gl);
         }
         self.graphics = graphics.clone();
         if pipelines_changed {
@@ -339,10 +344,15 @@ impl Renderer {
         );
     }
 
+    pub fn upload_shadow(&mut self, vertices: &[Vertex]) -> Mesh {
+        self.upload(&culling::spatial(vertices))
+    }
+
     pub fn upload(&mut self, vertices: &[Vertex]) -> Mesh {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
         Mesh {
+            shadow_chunks: culling::chunks(&vertices),
             bounds: vertices
                 .iter()
                 .filter(|v| v.flags & crate::render_mesh::SCENERY != 0)

@@ -38,7 +38,7 @@ struct Fragment {
     return out;
 }
 
-@fragment fn fragment(v: Fragment) {
+fn cutout(v: Fragment) {
     if face.options.w != 0.0 && (v.flags & 1024u) == 0u { discard; }
     if (v.flags & (SCREEN | DEBUG | ALPHA | WATER)) != 0u { discard; }
     if (v.flags & 512u) != 0u && face.emitter.w > 0.0 && distance(v.world, face.emitter.xyz) < face.emitter.w * 4.0 { discard; }
@@ -58,4 +58,10 @@ struct Fragment {
     } else if (v.flags & 4u) != 0u {
         discard;
     }
+}
+
+@fragment fn fragment(v: Fragment) { cutout(v); }
+@fragment fn readable_depth(v: Fragment) -> @location(0) f32 {
+    cutout(v);
+    return v.position.z;
 }

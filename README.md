@@ -448,6 +448,17 @@ foliage, varied tree shapes and anchored branch/leaf wind motion. Original stays
 unchanged. F8 temporarily compares your current visual setup with Original;
 press it again to restore it. Gameplay profiles in F1 remain independent.
 
+The built-in `remake-*` demos cover this batch in short, separate clips. For example:
+
+```sh
+TENCHU_ASSET_PACK=private/campaign-hd-pack ./dev.sh target/release/tenchu-pc demo '/path/to/game.cue' --clips remake-snow-tracks,remake-area-lamps,remake-petal-fall --mute
+```
+
+Use `demo --list` for all clip IDs. Modern High/Ultra are demanding settings;
+WebGPU or the native renderer is preferable to WebGL2 for their multiple shadowed
+lights and denser foliage. Shadow views cull distant geometry, and WebGL2 uses a
+readable depth attachment for the same soft-light/weather calculations.
+
 ## Build and inspect a disc
 
 Nix supplies the pinned Rust toolchain and dependencies:

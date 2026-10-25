@@ -20,6 +20,7 @@ pub struct Debug {
     pub flight_speed: u16,
     pub hitboxes: bool,
     pub sight: bool,
+    sight_occluders: std::cell::OnceCell<sight::Occluders>,
     pub sight_stance: u8,
     pub collision: bool,
     pub collision_only: bool,
@@ -59,6 +60,7 @@ impl Debug {
             flight_speed: 12,
             hitboxes: false,
             sight: false,
+            sight_occluders: Default::default(),
             sight_stance: 0,
             collision: false,
             collision_only: false,
@@ -102,6 +104,7 @@ impl Debug {
         self.selected_actor = game.player_id;
         self.target = game.player().position;
         self.surfaces = terrain::surfaces(&game.mission.terrain)?;
+        self.sight_occluders.take();
         self.trail.clear();
         self.last_tick = game.tick;
         Ok(())

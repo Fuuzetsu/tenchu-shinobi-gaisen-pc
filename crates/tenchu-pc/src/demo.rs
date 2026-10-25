@@ -4,6 +4,7 @@ pub mod overlay;
 mod presentation;
 #[cfg(not(target_arch = "wasm32"))]
 mod recorded;
+pub mod remake;
 #[cfg(test)]
 mod tests;
 
@@ -300,6 +301,7 @@ impl Player {
         }
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
+            Feature::Remake(feature) => remake::buttons(feature, tick, self.clip().seconds),
             Feature::Blood | Feature::BloodSnow => {
                 if tick >= 60 && tick.is_multiple_of(35) {
                     SQUARE

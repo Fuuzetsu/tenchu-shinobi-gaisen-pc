@@ -35,7 +35,6 @@ pub const FLUTTER: u32 = 524288;
 pub const FOOTPRINT: u32 = 1048576;
 pub const WET_CONTACT: u32 = 2097152;
 pub const ORIGINAL_SPLASH: u32 = 4194304;
-pub const ORIGINAL_SPARK: u32 = 8388608;
 pub const WIND_WEIGHT_SHIFT: u32 = 24;
 
 #[repr(C)]

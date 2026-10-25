@@ -257,6 +257,13 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                 2 => true,
                 _ => matches!(game.player().status, 11 | 12),
             };
+            let occluders = debug.sight_occluders.get_or_init(|| {
+                super::sight::Occluders::new(&crate::render_mesh::stage(
+                    &game.mission,
+                    &game.math,
+                    None,
+                ))
+            });
             let profile = tenchu_core::actor::sight::profile(sneaking, debug.sight_percent);
             let eye = position
                 + Vec3::Y * (300.0 - f32::from(game.mission.characters[actor.definition].height));
@@ -278,7 +285,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                                 / 4096.0;
                             let target =
                                 eye + Vec3::new(-angle.sin() * radius, dy, -angle.cos() * radius);
-                            super::sight::endpoint(&game.mission.terrain, eye, target)
+                            occluders.endpoint(eye, target)
                         })
                         .collect();
                     for pair in points.windows(2) {

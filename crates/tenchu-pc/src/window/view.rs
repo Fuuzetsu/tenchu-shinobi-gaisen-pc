@@ -66,7 +66,7 @@ pub(super) struct View {
     pub(super) vram_revision: u64,
     pack: Pack,
     pack_error: Option<String>,
-    models: Models,
+    pub(super) models: Models,
     bodies: Pack,
     pub(super) player_models: Vec<(String, String)>,
     player_selection: String,
@@ -99,6 +99,10 @@ impl View {
         }
         self.cosmetic_tick(game, settings, debug);
         if let Some(surfaces) = &self.surfaces {
+            if settings.graphics.effects.leaves {
+                self.contact
+                    .prewarm(surfaces, &settings.graphics, debug.eye(game), seconds);
+            }
             self.weather.prewarm(
                 game.tick,
                 debug.eye(game),
@@ -711,18 +715,19 @@ impl View {
                     || settings.graphics.lighting.directional.intensity > 0
                     || settings.graphics.sky.enabled);
         if shadowing && self.shadow_stage.is_none() {
-            self.shadow_stage = Some(self.renderer.upload(&render_mesh::shadow_stage(
+            self.shadow_stage = Some(self.renderer.upload_shadow(&render_mesh::shadow_stage(
                 &game.mission,
                 &game.math,
                 Some(&self.models),
             )));
         }
         self.shadow_models = shadowing.then(|| {
-            self.renderer.upload(&render_mesh::shadow_models_presented(
-                game,
-                Some(&self.models),
-                frame,
-            ))
+            self.renderer
+                .upload_shadow(&render_mesh::shadow_models_presented(
+                    game,
+                    Some(&self.models),
+                    frame,
+                ))
         });
         self.text.clear();
         let mut geometry =
@@ -805,9 +810,6 @@ impl View {
         }
         if campaign.playing() && error.is_none() && !debug.collision_only {
             let options = &settings.graphics.effects;
-            if options.sparks {
-                geometry.remove_flag(render_mesh::ORIGINAL_SPARK);
-            }
             if options.splashes {
                 geometry.remove_flag(render_mesh::ORIGINAL_SPLASH);
             }

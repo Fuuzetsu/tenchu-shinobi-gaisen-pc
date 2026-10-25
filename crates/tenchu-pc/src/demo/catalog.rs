@@ -5,6 +5,7 @@ use tenchu_assets::Result;
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum Feature {
+    Remake(super::remake::Feature),
     Presets,
     Lanterns,
     FireLights,

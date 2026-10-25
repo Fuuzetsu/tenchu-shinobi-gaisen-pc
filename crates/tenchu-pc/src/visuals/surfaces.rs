@@ -25,6 +25,7 @@ pub struct Hit {
     pub position: Vec3,
     pub normal: Vec3,
     pub fraction: f32,
+    pub flags: u32,
 }
 
 /// Presentation geometry only; never used by game collision or AI.
@@ -183,6 +184,7 @@ pub fn intersect(triangle: &[Vertex; 3], start: Vec3, end: Vec3) -> Option<Hit> 
         position: start + direction * fraction,
         normal,
         fraction,
+        flags: triangle[0].flags,
     })
 }
 

@@ -138,7 +138,7 @@ fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>
         for (var i = 0; i < 5; i++) {
             let offset = select(vec2(0.0), vec2(select(-1.0, 1.0, (i & 1) != 0), select(-1.0, 1.0, (i & 2) != 0)) * search, i < 4);
             let pixel = clamp(vec2<i32>((uv + offset) * vec2<f32>(size)), vec2(0), size - vec2(1));
-            let depth = textureLoad(shadow_maps, pixel, i32(layer), 0);
+            let depth = point_depth(pixel, i32(layer), light.position.w);
             if depth < p.z / p.w + dot(gradient, offset) - 0.00001 {
                 let blocker = SHADOW_NEAR * light.position.w / max(0.001, light.position.w - depth * (light.position.w - SHADOW_NEAR));
                 blockers += blocker;
