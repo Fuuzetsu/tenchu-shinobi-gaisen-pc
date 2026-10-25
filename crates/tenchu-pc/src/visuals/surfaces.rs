@@ -119,6 +119,9 @@ impl Surfaces {
     }
 
     pub fn cast(&self, start: Vec3, end: Vec3) -> Option<Hit> {
+        self.cast_excluding(start, end, 0)
+    }
+    pub fn cast_excluding(&self, start: Vec3, end: Vec3, excluded: u32) -> Option<Hit> {
         let mut nearest: Option<Hit> = None;
         self.visit(
             Bounds {
@@ -126,7 +129,8 @@ impl Surfaces {
                 max: start.max(end),
             },
             |triangle| {
-                if let Some(hit) = intersect(triangle, start, end)
+                if triangle[0].flags & excluded == 0
+                    && let Some(hit) = intersect(triangle, start, end)
                     && nearest.is_none_or(|old| hit.fraction < old.fraction)
                 {
                     nearest = Some(hit);

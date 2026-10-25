@@ -19,10 +19,41 @@ pub struct Models {
     world: Meshes,
     pub(super) player: Option<super::appearance::Appearance>,
     pub replacements: usize,
+    pub grapple: bool,
     pub motion: super::motion::Frame,
 }
 
 impl Models {
+    pub fn canopies(&self, game: &tenchu_core::game::Game) -> Vec<super::contact::foliage::Canopy> {
+        let mut out = Vec::new();
+        render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
+            let key = geometry.as_ptr() as usize;
+            if let Some(canopies) = self.world.canopies.get(&key) {
+                let variant = self
+                    .world
+                    .variants
+                    .get(&key)
+                    .map(|s| s.variant(matrix.translation.to_array()));
+                let rotation = rotation(matrix);
+                let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
+                for canopy in canopies {
+                    out.push(canopy.transformed(|position| {
+                        use bytemuck::Zeroable;
+                        let mut v = Vertex {
+                            position: position.to_array(),
+                            ..Vertex::zeroed()
+                        };
+                        if let Some(variant) = &variant {
+                            variant.vertex(&mut v);
+                        }
+                        rotation * Vec3::from(v.position) + translation
+                    }));
+                }
+            }
+        });
+        out
+    }
+
     pub fn has_water(&self) -> bool {
         self.world
             .meshes
@@ -35,6 +66,7 @@ impl Models {
         let world = Meshes::build(mission, pack, graphics, catalog::models(mission), false)?;
         Ok(Self {
             replacements: world.replacements,
+            grapple: graphics.models.grapple,
             world,
             player: None,
             motion: Default::default(),
@@ -118,6 +150,7 @@ pub(super) struct Meshes {
     meshes: BTreeMap<usize, Vec<Vertex>>,
     materials: Vec<Material>,
     variants: BTreeMap<usize, super::vegetation::botanical::Shape>,
+    canopies: BTreeMap<usize, Vec<super::contact::foliage::Canopy>>,
     pub replacements: usize,
     motion: BTreeMap<usize, Vec<super::motion::BoundRule>>,
 }
@@ -151,9 +184,13 @@ impl Meshes {
                 .asset_pack
                 .then(|| pack.models.get(&source.id))
                 .flatten();
+            let grapple = graphics.models.grapple && source.id == "common/26";
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
-            let foliage = (graphics.models.foliage != 0 || graphics.models.variation)
+            let foliage = (graphics.models.foliage != 0
+                || graphics.models.variation
+                || graphics.effects.leaves
+                || graphics.effects.scatter)
                 && source.id.starts_with("stages/");
             let wind = graphics.motion.wind != 0 && source.id.starts_with("stages/");
             let refined = round && graphics.models.characters != 0;
@@ -170,6 +207,7 @@ impl Meshes {
                 && !refined
                 && !secondary
                 && !wind
+                && !grapple
             {
                 continue;
             }
@@ -280,7 +318,9 @@ impl Meshes {
                     }
                 }
             }
-            if refined {
+            if grapple {
+                super::refine::prepare(&mut vertices, 2, 0.015, &mut refinement_budget);
+            } else if refined {
                 super::refine::prepare(
                     &mut vertices,
                     graphics.models.characters,
@@ -293,6 +333,14 @@ impl Meshes {
                     graphics.smooth_models,
                     if round { graphics.model_detail } else { 0 },
                 );
+            }
+            if graphics.effects.leaves || graphics.effects.scatter {
+                let canopies =
+                    super::contact::foliage::Canopy::local(&vertices, &out.materials, &vegetation);
+                if !canopies.is_empty() {
+                    out.canopies
+                        .insert(source.geometry.as_ptr() as usize, canopies);
+                }
             }
             let plant = vertices.iter().any(|v| {
                 v.material
@@ -324,7 +372,7 @@ impl Meshes {
                     &mut water_budget,
                 );
             }
-            if wind && plant {
+            if (wind || graphics.effects.leaves || graphics.effects.scatter) && plant {
                 super::vegetation::wind(&mut vertices, &out.materials, &vegetation);
             }
             if secondary {

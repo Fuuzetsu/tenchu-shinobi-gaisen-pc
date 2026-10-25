@@ -18,6 +18,13 @@ pub enum Item {
     MotionWind,
     CharacterRefinement,
     FoliageDetail,
+    GrappleDetail,
+    ContactSparks,
+    SparkDensity,
+    ContactSplashes,
+    ContactScatter,
+    FallingLeaves,
+    LeafDensity,
     VegetationVariation,
     Water,
     WaterRipples,
@@ -228,7 +235,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 18] = [
+pub const PAGES: [&str; 19] = [
     "General",
     "Graphics",
     "Overlays",
@@ -247,6 +254,7 @@ pub const PAGES: [&str; 18] = [
     "Model refinement",
     "Secondary motion",
     "Experiment",
+    "Contact effects",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -256,6 +264,50 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        18 => vec![
+            (
+                Item::GrappleDetail,
+                "Detailed rope / hook",
+                on(s.graphics.models.grapple),
+                "Braided round rope and refined hook geometry. The original grapple path, timing and collisions are unchanged.",
+            ),
+            (
+                Item::ContactSparks,
+                "Grapple impact sparks",
+                on(s.graphics.effects.sparks),
+                "Small hot fragments and a short local light at hook contact; cosmetic only.",
+            ),
+            (
+                Item::SparkDensity,
+                "Spark amount",
+                format!("{}%", s.graphics.effects.spark_density),
+                "0-300% visual particles; does not consume gameplay RNG.",
+            ),
+            (
+                Item::ContactSplashes,
+                "Water contact splashes",
+                on(s.graphics.effects.splashes),
+                "Replace the original water sprite with droplets and ripples; nearby dry ground receives fading splash marks.",
+            ),
+            (
+                Item::ContactScatter,
+                "Footstep / landing scatter",
+                on(s.graphics.effects.scatter),
+                "Walk, run and land through snow, puddles and fallen petals/leaves. Amount follows movement; game rules remain unchanged.",
+            ),
+            (
+                Item::FallingLeaves,
+                "Falling petals / leaves",
+                on(s.graphics.effects.leaves),
+                "Seasonal foliage drifts from tagged tree canopies, settles briefly, then fades. Wind redirects it.",
+            ),
+            (
+                Item::LeafDensity,
+                "Falling foliage amount",
+                format!("{}%", s.graphics.effects.leaf_density),
+                "0-200%; airborne and ground litter have bounded budgets.",
+            ),
+        ],
         17 => {
             let mut rows = vec![
                 (

@@ -10,6 +10,8 @@ mod water;
 pub use water::Water;
 mod models;
 pub use models::Models;
+mod effects;
+pub use effects::Effects;
 mod motion;
 pub use motion::Motion;
 pub mod gameplay;
@@ -103,6 +105,7 @@ pub struct Graphics {
     pub water: Water,
     pub models: Models,
     pub motion: Motion,
+    pub effects: Effects,
     pub interpolation: bool,
     pub fog: bool,
     pub fog_distance: u16,
@@ -134,6 +137,7 @@ impl Default for Graphics {
             water: Water::default(),
             models: Models::default(),
             motion: Motion::default(),
+            effects: Effects::default(),
             interpolation: false,
             fog: true,
             fog_distance: 100,
@@ -166,6 +170,7 @@ impl Graphics {
             || self.water.enabled && self.water.flow != 0
             || self.motion.actors()
             || self.motion.wind != 0
+            || self.effects.active()
     }
 
     pub fn filtering(&self) -> u16 {
@@ -315,6 +320,7 @@ impl Store {
                 settings.graphics.water.validate();
                 settings.graphics.models.validate();
                 settings.graphics.motion.validate();
+                settings.graphics.effects.validate();
                 if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
                     settings.graphics.samples = 1;
                 }

@@ -129,7 +129,7 @@ fn rain_ripples(position: vec3<f32>, footprint: f32) -> vec3<f32> {
     return vec3(gradient.x, 0.0, gradient.y) * fade * lighting.rain.z * 0.075;
 }
 
-fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, puddle: f32) -> vec3<f32> {
+fn surface_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, puddle: f32) -> vec3<f32> {
     let view = normalize(camera.eye.xyz - position);
     let fresnel = 0.025 + 0.975 * pow(1.0 - max(0.0, dot(normal, view)), 5.0);
     let sky = rain_color();
@@ -156,7 +156,11 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
                 * glint * specular * point_visibility(light, position, surface) * local_exposure(position, surface);
         }
     }
-    return reflection * lighting.rain.x;
+    return reflection;
+}
+
+fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, puddle: f32) -> vec3<f32> {
+    return surface_reflection(position, normal, surface, puddle) * lighting.rain.x;
 }
 
 fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool) -> vec3<f32> {

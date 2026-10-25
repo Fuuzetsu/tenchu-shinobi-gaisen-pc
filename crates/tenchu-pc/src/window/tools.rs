@@ -197,6 +197,29 @@ impl Application {
 
     pub(super) fn apply_item(&mut self, item: Item, direction: i32) -> Result<()> {
         match item {
+            Item::GrappleDetail => {
+                self.settings.graphics.models.grapple = !self.settings.graphics.models.grapple
+            }
+            Item::ContactSparks => {
+                self.settings.graphics.effects.sparks = !self.settings.graphics.effects.sparks
+            }
+            Item::ContactSplashes => {
+                self.settings.graphics.effects.splashes = !self.settings.graphics.effects.splashes
+            }
+            Item::ContactScatter => {
+                self.settings.graphics.effects.scatter = !self.settings.graphics.effects.scatter
+            }
+            Item::FallingLeaves => {
+                self.settings.graphics.effects.leaves = !self.settings.graphics.effects.leaves
+            }
+            Item::SparkDensity | Item::LeafDensity => {
+                let (value, max) = if item == Item::SparkDensity {
+                    (&mut self.settings.graphics.effects.spark_density, 300)
+                } else {
+                    (&mut self.settings.graphics.effects.leaf_density, 200)
+                };
+                *value = (i32::from(*value) + direction * 10).clamp(0, max) as u16;
+            }
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,
             Item::Stealth => self.set_stealth(!self.debug.stealth)?,
             Item::ClickTeleport => {

@@ -33,3 +33,7 @@
   will use explicit overrides with original assets as the fallback.
 - A diagnostic checkpoint or scripted successful route does not prove a complete
   game. Report exactly what is supported and exercise ordinary interactive play.
+
+- When adding useful presentation features, review Modern High/Ultra presets and
+  the demo catalog so the feature is discoverable. Keep Original unchanged and
+  keep graphical presets/retro comparisons separate from gameplay settings.

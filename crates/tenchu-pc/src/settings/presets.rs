@@ -153,6 +153,12 @@ fn modern(ultra: bool) -> Graphics {
     g.models.characters = if ultra { 2 } else { 1 };
     g.models.foliage = if ultra { 4 } else { 3 };
     g.models.variation = true;
+    g.models.grapple = true;
+    g.effects.sparks = true;
+    g.effects.splashes = true;
+    g.effects.scatter = true;
+    g.effects.leaves = true;
+    g.effects.leaf_density = if ultra { 100 } else { 70 };
     g.motion.hair = true;
     g.motion.cloth = true;
     g.motion.equipment = true;

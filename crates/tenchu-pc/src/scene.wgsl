@@ -16,6 +16,7 @@ const SOFT: u32 = 16384u;
 const WATER: u32 = 65536u;
 const WATERFALL: u32 = 131072u;
 const FOOTPRINT: u32 = 1048576u;
+const WET_CONTACT: u32 = 2097152u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32>, motion: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -135,11 +136,11 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
     if !screen {
-        let light = illumination(v.world, normal, surface_normal);
+        let light = select(illumination(v.world, normal, surface_normal), vec3(1.0), (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER));
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);
     }
-    let surface_decal = (v.flags & (STAIN | FOOTPRINT)) != 0u;
+    let surface_decal = (v.flags & (STAIN | FOOTPRINT | WET_CONTACT)) != 0u;
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY
         && ((v.flags & ALPHA) == 0u || surface_decal) {
         color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting);
@@ -152,6 +153,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     if (v.flags & FOOTPRINT) != 0u {
         color *= vec3(0.55, 0.62, 0.73);
     }
+    if (v.flags & WET_CONTACT) != 0u { color = color * 0.62 + surface_reflection(v.world, normal, surface_normal, 0.15) * 0.45; }
     if (v.flags & (FOG | SCREEN)) == FOG {
         let fog = clamp(camera.fog.x / max(v.depth, 1.0) + camera.fog.y, 0.0, 1.0);
         let haze = select(0.0, 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);

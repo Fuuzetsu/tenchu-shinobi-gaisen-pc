@@ -69,6 +69,18 @@ Actual models from missions 1/3/4/5 and the mission 1 garden were reviewed;
 geometry budgets, stable variants, unchanged game state and matching wind/shadow
 checks pass. Falling foliage and ground interactions are the next stage.
 
+Contact-effects stage implemented: rounded braided rope geometry with the original
+hook path, refined hook mesh, impact sparks and a brief light, water contact
+spray/rings and temporary nearby wet marks. Seasonal foliage comes from classified
+cherry/autumn materials, settles through canopy cards onto terrain, fades and
+scatters underfoot. Snow/puddle scatter scales with movement and landing impact.
+All particles have bounded lifetimes/budgets and an independent cosmetic RNG.
+F1 has a Contact effects page; High/Ultra enable the additions. Actual-disc checks
+cover seasonal trees in missions 1/3, settling, walking/running/landing, one-shot
+grapple bursts, water wetting, finite rope geometry and unchanged core state.
+GPU wet-mark/emission checks pass. Combined browser/live visual review and the new
+showcase remain outstanding.
+
 ## Weather follow-up showcase (baseline captured)
 
 Record only additions since the 3:06 effects showcase at `289d25a`: stronger wet

@@ -6,6 +6,7 @@ pub struct Models {
     pub characters: u16,
     pub foliage: u16,
     pub variation: bool,
+    pub grapple: bool,
 }
 
 impl Models {

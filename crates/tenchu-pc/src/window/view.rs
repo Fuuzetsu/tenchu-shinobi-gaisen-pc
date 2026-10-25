@@ -11,6 +11,8 @@ struct ModelOptions {
     characters: u16,
     foliage: u16,
     variation: bool,
+    grapple: bool,
+    leaves: bool,
     secondary: bool,
     wind: bool,
 }
@@ -25,6 +27,8 @@ fn model_options(graphics: &settings::Graphics) -> ModelOptions {
         characters: graphics.models.characters,
         foliage: graphics.models.foliage,
         variation: graphics.models.variation,
+        grapple: graphics.models.grapple,
+        leaves: graphics.effects.leaves || graphics.effects.scatter,
         secondary: graphics.motion.actors(),
         wind: graphics.motion.wind != 0,
     }
@@ -74,6 +78,7 @@ pub(super) struct View {
     weather: crate::visuals::weather::Weather,
     pub(super) footprints: crate::visuals::footprints::Footprints,
     spray: crate::visuals::water::Spray,
+    contact: crate::visuals::contact::Contact,
     motion: crate::visuals::motion::Motion,
     motion_options: settings::Motion,
     pub(super) interpolation: crate::visuals::interpolation::History,
@@ -107,6 +112,7 @@ impl View {
     pub(super) fn clear_weather(&mut self) {
         self.weather = Default::default();
         self.footprints.clear();
+        self.contact.clear_weather();
         self.dirty = true;
     }
 
@@ -121,7 +127,8 @@ impl View {
             .tick(game, &self.models, &settings.graphics.motion);
         let blood = settings.graphics.blood.enabled && settings.graphics.blood.amount != 0;
         let weather = settings.graphics.weather.mode != settings::WeatherMode::Original;
-        if blood || weather {
+        let contact = settings.graphics.effects.active();
+        if blood || weather || contact {
             let surfaces = self.surfaces.get_or_insert_with(|| {
                 crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
                     &game.mission,
@@ -144,6 +151,15 @@ impl View {
                     &settings.graphics.weather,
                     self.weather.sample(&settings.graphics.weather, 1.0).snow,
                     center,
+                );
+            }
+            if contact {
+                self.contact.tick(
+                    game,
+                    surfaces,
+                    &settings.graphics,
+                    self.weather.sample(&settings.graphics.weather, 1.0),
+                    debug.eye(game),
                 );
             }
         }
@@ -330,6 +346,8 @@ impl View {
             adapter.get_info().backend
         );
         let overlay = super::overlay::Overlay::new(&window, &renderer, config.format);
+        let mut contact = crate::visuals::contact::Contact::default();
+        contact.canopies = models.canopies(game);
         Ok(Self {
             dirty: true,
             overlay,
@@ -361,6 +379,7 @@ impl View {
             sky: Default::default(),
             weather: Default::default(),
             footprints: Default::default(),
+            contact,
             spray,
             motion: Default::default(),
             motion_options: settings.graphics.motion.clone(),
@@ -445,6 +464,7 @@ impl View {
         self.sky = Default::default();
         self.weather = Default::default();
         self.footprints = Default::default();
+        self.contact = Default::default();
         self.reset_interpolation(game);
         self.renderer.reset_vram(&game.mission.vram);
         self.vram_revision = game.mission.vram.revision;
@@ -493,6 +513,7 @@ impl View {
             &game.math,
             Some(&models),
         ));
+        self.contact.canopies = models.canopies(game);
         self.models = models;
     }
 
@@ -584,6 +605,9 @@ impl View {
             self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
             self.renderer.set_emitters(&self.emitters);
         }
+        if !configured.graphics.effects.active() {
+            self.contact.clear();
+        }
         if !configured.graphics.blood.enabled {
             self.blood = Default::default();
         }
@@ -653,7 +677,7 @@ impl View {
             debug.camera.is_some() || game.activation.keep_all_active,
             frame,
         ));
-        let sources = crate::lighting::sources(
+        let mut sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,
             debug.camera.map(|camera| camera.position),
@@ -664,6 +688,14 @@ impl View {
                 Vec::new()
             },
         );
+        if settings.graphics.lighting.enabled && settings.graphics.effects.sparks {
+            let mut sparks = self.contact.lights();
+            sparks.append(&mut sources);
+            sparks.truncate(
+                usize::from(settings.graphics.lighting.count).min(crate::lighting::MAX_LIGHTS),
+            );
+            sources = sparks;
+        }
         self.lights = sources.iter().map(|s| s.light).collect();
         let now = Instant::now();
         self.renderer.shadow_elapsed = Some(if offline {
@@ -770,6 +802,25 @@ impl View {
                 &settings.graphics.water,
             );
             geometry.append(spray);
+        }
+        if campaign.playing() && error.is_none() && !debug.collision_only {
+            let options = &settings.graphics.effects;
+            if options.sparks {
+                geometry.remove_flag(render_mesh::ORIGINAL_SPARK);
+            }
+            if options.splashes {
+                geometry.remove_flag(render_mesh::ORIGINAL_SPLASH);
+            }
+            if settings.graphics.models.grapple {
+                geometry.append(crate::visuals::contact::rope::geometry(game));
+            }
+            if options.active() {
+                let mut contact =
+                    self.contact
+                        .geometry(self.camera_matrix(game, debug), alpha, options);
+                contact.append(geometry);
+                geometry = contact;
+            }
         }
         if campaign.playing() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();

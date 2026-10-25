@@ -434,6 +434,20 @@ authored replacement geometry unrounded. These options start off; finer
 geometry costs more to transform and shadow. They can soften the original
 shapes but cannot invent new costume or facial detail.
 
+## Contact effects and remake presets
+
+F1 → **Contact effects** controls detailed grapple rope/hook geometry, impact
+sparks and light, water splashes, footstep/landing scatter, and falling cherry
+petals/autumn leaves. Splashes can leave small temporary wet marks on nearby
+land. Fallen foliage settles on terrain, fades away, and scatters underfoot;
+snow and puddles respond more strongly to running and landing than walking.
+These effects use bounded cosmetic state and do not consume gameplay RNG.
+
+**Modern High** and **Modern Ultra** enable these effects alongside botanical
+foliage, varied tree shapes and anchored branch/leaf wind motion. Original stays
+unchanged. F8 temporarily compares your current visual setup with Original;
+press it again to restore it. Gameplay profiles in F1 remain independent.
+
 ## Build and inspect a disc
 
 Nix supplies the pinned Rust toolchain and dependencies:

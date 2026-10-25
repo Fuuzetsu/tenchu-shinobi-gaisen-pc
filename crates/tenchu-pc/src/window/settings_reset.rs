@@ -23,6 +23,28 @@ impl Application {
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
+            Item::GrappleDetail => {
+                self.settings.graphics.models.grapple = s.graphics.models.grapple
+            }
+            Item::ContactSparks => {
+                self.settings.graphics.effects.sparks = s.graphics.effects.sparks
+            }
+            Item::ContactSplashes => {
+                self.settings.graphics.effects.splashes = s.graphics.effects.splashes
+            }
+            Item::ContactScatter => {
+                self.settings.graphics.effects.scatter = s.graphics.effects.scatter
+            }
+            Item::FallingLeaves => {
+                self.settings.graphics.effects.leaves = s.graphics.effects.leaves
+            }
+            Item::SparkDensity => {
+                self.settings.graphics.effects.spark_density = s.graphics.effects.spark_density
+            }
+            Item::LeafDensity => {
+                self.settings.graphics.effects.leaf_density = s.graphics.effects.leaf_density
+            }
+
             Item::GodMode => self.set_god_mode(false)?,
             Item::Stealth => self.set_stealth(false)?,
             Item::ClickTeleport => self.debug.click_teleport = false,

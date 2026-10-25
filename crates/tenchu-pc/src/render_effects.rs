@@ -386,7 +386,11 @@ pub fn build_presented(
                 models,
             );
         }
-        for &(points, sort_depth) in wire.lines.iter().filter(|_| !inspection) {
+        for &(points, sort_depth) in wire
+            .lines
+            .iter()
+            .filter(|_| !inspection && !models.is_some_and(|m| m.grapple))
+        {
             line(&mut surfaces, points, sort_depth, [80, 72, 56], 0);
         }
     }
@@ -490,6 +494,22 @@ pub fn build_presented(
             [xy[0] + p[0], xy[1] + p[1], depth(z)]
         });
         let mut vertices = quad(points, [color; 4], image, blend);
+        let splash = matches!(drawing.graphic, Graphic::Splash)
+            || matches!(drawing.graphic, Graphic::Bleed)
+                && drawing.color[2] > drawing.color[0]
+                && u16::from(drawing.color[0]) * 5 > u16::from(drawing.color[2]) * 4;
+        let spark = matches!(drawing.graphic, Graphic::Bleed)
+            && drawing.color[0] == drawing.color[1]
+            && drawing.color[0] > drawing.color[2].saturating_add(20);
+        for v in &mut vertices {
+            if splash {
+                v.flags |= render_mesh::ORIGINAL_SPLASH;
+            }
+            if spark {
+                v.flags |= render_mesh::ORIGINAL_SPARK;
+            }
+        }
+
         if matches!(
             drawing.graphic,
             Graphic::Sprite {

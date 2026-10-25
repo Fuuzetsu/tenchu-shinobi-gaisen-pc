@@ -3,6 +3,7 @@ use crate::render_mesh;
 use tenchu_assets::model::{Corner, Face, Geometry, Texture};
 use tenchu_core::math::Matrix;
 
+mod contact;
 mod models;
 mod motion;
 mod scrolling;

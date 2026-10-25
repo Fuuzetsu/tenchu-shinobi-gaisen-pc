@@ -468,6 +468,8 @@ fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
         Item::LightRadius => (2, 50, 1, 1),
         Item::LightIntensity => (0, 400, 10, 1),
         Item::LightAmbient => (0, 100, 5, 1),
+        Item::SparkDensity => (0, 300, 10, 1),
+        Item::LeafDensity => (0, 200, 10, 1),
         Item::ShadowSoftness => (0, 8, 1, 1),
         Item::LightSourceSize => (0, 400, 10, 1),
         Item::SkyTint => (0, 100, 10, 1),
