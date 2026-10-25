@@ -10,6 +10,31 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Rain presentation follow-up (in progress)
+
+Make rain legible in actual play without changing gameplay or Original weather.
+Add independently adjustable wet reflections, shallow puddle coverage/build-up,
+rain haze and streak visibility. Wet highlights should respond to nearby lights
+and sky, with shared world-space ripples rather than texture-tile seams. Improve
+roof runoff so small streams travel downhill and visibly drip from eaves, with
+an amount control and bounded work. Keep wind/shelter and accumulated snow intact.
+
+Verify accumulation/decay, pause and render-cadence independence, roof runoff
+and geometry bounds, shader shelter/light response, native scene captures and
+WebGPU/WebGL2 controls. Update the rain demo and document what the cosmetic
+puddles/reflections approximate. Format, lint and commit coherent increments.
+
+Implemented separate F1 controls for wet highlights (including shadowed point
+lights), puddle coverage, 0.25–10x pooling, shelter-aware rain haze, streak visibility
+and roof drips. Puddle masks/ripples share world coordinates across texture tiles.
+Catchment probes seed downhill rivulets independently of visible rain particles;
+discovered eaves emit recurring drips, bounded to 96 sources and 192 runoff drops.
+Streaks trail behind falling drops rather than extending through their impact
+surface. Cosmetic state preserves pause, model-rebuild and mission-reset behavior.
+Native GPU checks cover reflection/ripple/haze controls and shelter; Mission 1
+roof/ground captures were reviewed. Six CPU weather checks and workspace tests
+pass. Three focused rain demos are present. Browser integration review is next.
+
 ## Weather integration and experimentation tools (complete)
 
 Address the follow-up from actual play, preserving default gameplay and portable

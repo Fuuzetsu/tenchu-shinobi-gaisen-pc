@@ -36,8 +36,14 @@ pub struct Weather {
     pub quality: u16,
     pub distance: u16,
     pub wetness: u16,
+    pub reflections: u16,
+    pub puddles: u16,
+    pub pooling: u16,
+    pub haze: u16,
+    pub streaks: u16,
     pub snow: u16,
     pub runoff: bool,
+    pub runoff_amount: u16,
     pub footprints: bool,
     pub footprint_seconds: u16,
 }
@@ -52,8 +58,14 @@ impl Default for Weather {
             quality: 1,
             distance: 160,
             wetness: 70,
+            reflections: 100,
+            puddles: 55,
+            pooling: 100,
+            haze: 25,
+            streaks: 100,
             snow: 60,
             runoff: true,
+            runoff_amount: 70,
             footprints: true,
             footprint_seconds: 60,
         }
@@ -68,6 +80,12 @@ impl Weather {
         self.quality = self.quality.min(2);
         self.distance = self.distance.clamp(20, 240);
         self.wetness = self.wetness.min(100);
+        self.reflections = self.reflections.min(300);
+        self.puddles = self.puddles.min(100);
+        self.pooling = self.pooling.clamp(25, 1000);
+        self.haze = self.haze.min(100);
+        self.streaks = self.streaks.min(200);
+        self.runoff_amount = self.runoff_amount.min(100);
         self.snow = self.snow.min(100);
         self.footprint_seconds = self.footprint_seconds.clamp(10, 180);
     }

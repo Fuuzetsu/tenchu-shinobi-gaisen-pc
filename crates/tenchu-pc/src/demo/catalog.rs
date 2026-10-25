@@ -12,6 +12,8 @@ pub enum Feature {
     Moon,
     DayCycle,
     Rain,
+    RainReflections,
+    RainHaze,
     Snow,
     Water,
     Waterfalls,

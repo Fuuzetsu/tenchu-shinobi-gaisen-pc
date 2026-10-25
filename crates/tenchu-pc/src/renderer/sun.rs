@@ -70,6 +70,7 @@ pub struct Frame {
     pub ambient: f32,
     pub tint: f32,
     pub weather: crate::visuals::weather::SurfaceWeather,
+    pub rain: [f32; 4],
     pub weather_resolution: u32,
     pub precipitation: Vec3,
     pub visual_time: f32,
@@ -86,6 +87,7 @@ impl Frame {
             ambient: f32::from(settings.ambient) / 100.0,
             tint: f32::from(settings.sky_tint) / 100.0,
             weather: Default::default(),
+            rain: [0.0; 4],
             weather_resolution: 1,
             precipitation: Vec3::Y,
             visual_time: 0.0,
@@ -116,8 +118,23 @@ impl Frame {
     ) -> Self {
         if settings.mode != crate::settings::WeatherMode::Original {
             self.weather = weather;
+            let amount = if settings.mode == crate::settings::WeatherMode::Rain {
+                f32::from(settings.amount) / 100.0
+            } else {
+                0.0
+            };
+            self.rain = [
+                f32::from(settings.reflections) / 100.0,
+                amount * f32::from(settings.haze) / 100.0,
+                amount,
+                0.0,
+            ];
             self.precipitation = settings.direction();
-            if weather.wet > 0.0 || weather.snow > 0.0 {
+            if weather.wet > 0.0
+                || weather.snow > 0.0
+                || weather.puddles > 0.0
+                || self.rain[1] > 0.0
+            {
                 self.weather_resolution = [256, 512, 1024][usize::from(settings.quality.min(2))];
             }
         }

@@ -294,12 +294,30 @@ impl Application {
             Item::RoofRunoff => {
                 self.settings.graphics.weather.runoff = !self.settings.graphics.weather.runoff
             }
-            Item::WeatherAmount | Item::WeatherWind | Item::Wetness | Item::SnowCover => {
+            Item::RainReflections | Item::RainStreaks | Item::PoolingSpeed => {
+                let weather = &mut self.settings.graphics.weather;
+                let (value, step, min, max) = match item {
+                    Item::RainReflections => (&mut weather.reflections, 10, 0, 300),
+                    Item::RainStreaks => (&mut weather.streaks, 10, 0, 200),
+                    _ => (&mut weather.pooling, 25, 25, 1000),
+                };
+                *value = (i32::from(*value) + direction * step).clamp(min, max) as u16;
+            }
+            Item::WeatherAmount
+            | Item::WeatherWind
+            | Item::Wetness
+            | Item::SnowCover
+            | Item::PuddleCoverage
+            | Item::RainHaze
+            | Item::RunoffAmount => {
                 let weather = &mut self.settings.graphics.weather;
                 let value = match item {
                     Item::WeatherAmount => &mut weather.amount,
                     Item::WeatherWind => &mut weather.wind,
                     Item::Wetness => &mut weather.wetness,
+                    Item::PuddleCoverage => &mut weather.puddles,
+                    Item::RainHaze => &mut weather.haze,
+                    Item::RunoffAmount => &mut weather.runoff_amount,
                     _ => &mut weather.snow,
                 };
                 *value = (i32::from(*value) + direction * 5).clamp(0, 100) as u16;

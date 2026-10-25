@@ -142,7 +142,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     let surface_decal = (v.flags & (STAIN | FOOTPRINT)) != 0u;
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY
         && ((v.flags & ALPHA) == 0u || surface_decal) {
-        color = weather_surface(color, normal, v.world, linear_lighting);
+        color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting);
     }
     if (v.flags & (SCENERY | STAIN)) == (SCENERY | STAIN) {
         var absorption = vec3(0.52, 0.025, 0.045);
@@ -157,7 +157,10 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         let haze = select(0.0, 1.0 - exp(-max(v.depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);
         color = mix(color, camera.fog_color.rgb, 1.0 - (1.0 - fog) * (1.0 - haze));
     }
-    if !screen { color *= camera.options.x; }
+    if !screen {
+        color = rain_atmosphere(color, v.world, linear_lighting);
+        color *= camera.options.x;
+    }
     if hdr { return vec4(max(color, vec3(0.0)), select(0.0, 1.0, semi)); }
     if linear_lighting {
         // Preserve hue and texture contrast instead of clipping bright lamp pools to white.
@@ -200,6 +203,9 @@ fn sky_color(direction: vec3<f32>) -> vec4<f32> {
     let disc = smoothstep(cos(0.007), cos(0.0045), alignment);
     let halo = pow(alignment, 500.0) * 0.12;
     color += lighting.sun_color.rgb * (disc * 2.0 + halo) * min(1.0, lighting.sun_direction.w * 12.0);
+    if WEATHER_ENABLED {
+        color = mix(color, rain_color(), lighting.rain.y * (0.5 + 0.4 * (1.0 - height)));
+    }
     color *= camera.options.x;
     if camera.viewport.z == 0.0 { color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)); }
     return vec4(color, 1.0);

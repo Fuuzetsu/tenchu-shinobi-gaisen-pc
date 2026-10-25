@@ -707,6 +707,34 @@ layers, with 256/512/1024 shelter maps. Pauses freeze weather; changing missions
 or selecting Original clears it. Original weather RNG still updates when hidden.
 `demo --clips rain,snow` reviews both effects on Mission 1's roofs.
 
+Rain has additional controls on that same page:
+
+- **Wet reflections** (0–300%) controls sky and shadowed sun/moon/lamp highlights.
+  Lamp highlights need dynamic lighting. These are wet-surface highlights rather
+  than mirror images of buildings or characters.
+- **Puddle coverage** adds shallow reflective patches with animated raindrop
+  ripples on nearly level, exposed surfaces. Their pattern uses world coordinates,
+  so it continues across texture tiles. Coverage approximates small irregularities;
+  it does not solve terrain drainage or fill real depressions with fluid.
+- **Pooling speed** (0.25–10x) changes wetness and puddle build-up. At full rain,
+  1x wets surfaces in about 20 seconds and builds puddles over a minute; 10x takes
+  roughly 2 and 7 seconds. Drying is gradual and independent of that multiplier.
+- **Rain haze** obscures distant views independently of black fog, with less haze
+  along sheltered portions of the view. It does not change enemy detection.
+- **Rain streak visibility** changes drop/splash visibility without increasing
+  the particle count. **Roof drip amount** controls rivulets and recurring eave
+  drips; runoff has its own bounded budget and still works with streak visibility
+  set to zero. Roof catchment is inferred from exposed sloped scene triangles.
+
+For a heavy downpour, try precipitation 100%, wetness 100%, reflections 180%,
+puddles 75%, pooling 5x, haze 60%, streaks 130% and roof drips 100%.
+The `rain`, `rain-reflections` and `rain-haze` demo clips show these separately:
+
+```sh
+./dev.sh cargo run --release -- demo '/path/to/game.cue' \
+  --clips rain,rain-reflections,rain-haze
+```
+
 With dynamic lighting enabled, **F1 → Lighting → Fire / explosion lights** also
 lights grenades, kaen and their burning embers. Flashes fade with the real effects,
 cluster nearby particles, and share the existing light/shadow budgets.

@@ -9,7 +9,10 @@ use glam::{Mat4, Vec3};
 
 const RADIUS: f32 = 10000.0;
 const HEIGHT: f32 = 8000.0;
-const RUNOFF_LIMIT: usize = 128;
+const RUNOFF_LIMIT: usize = 192;
+const EAVE_LIMIT: usize = 96;
+
+mod runoff;
 const SPLASH_LIMIT: usize = 192;
 
 struct Particle {
@@ -33,8 +36,10 @@ pub struct Weather {
     center: Option<Vec3>,
     particles: Vec<Particle>,
     runoff: Vec<Particle>,
+    eaves: Vec<runoff::Eave>,
     splashes: Vec<Splash>,
     wet: f32,
+    puddles: f32,
     snow: f32,
     seed: u32,
 }
@@ -42,6 +47,7 @@ pub struct Weather {
 #[derive(Clone, Copy, Default)]
 pub struct SurfaceWeather {
     pub wet: f32,
+    pub puddles: f32,
     pub snow: f32,
     pub time: f32,
 }
@@ -56,6 +62,7 @@ impl Weather {
         self.mode = mode;
         self.particles.clear();
         self.runoff.clear();
+        self.eaves.clear();
         self.splashes.clear();
     }
 
@@ -69,6 +76,7 @@ impl Weather {
         }
         SurfaceWeather {
             wet: self.wet * f32::from(settings.wetness) / 100.0,
+            puddles: self.puddles * f32::from(settings.puddles) / 100.0,
             snow: self.snow * f32::from(settings.snow) / 100.0,
             time: ((self.tick.unwrap_or(0) % 36000) as f32 + alpha.clamp(0.0, 1.0)) / 30.0,
         }
@@ -97,9 +105,16 @@ impl Weather {
         let intensity = f32::from(settings.amount) / 100.0;
         self.wet = (self.wet
             + if self.mode == WeatherMode::Rain {
-                intensity / 600.0
+                intensity * f32::from(settings.pooling) / 60000.0
             } else {
                 -1.0 / 3600.0
+            })
+        .clamp(0.0, 1.0);
+        self.puddles = (self.puddles
+            + if self.mode == WeatherMode::Rain {
+                intensity * self.wet * f32::from(settings.pooling) / 180000.0
+            } else {
+                -1.0 / 5400.0
             })
         .clamp(0.0, 1.0);
         self.snow = (self.snow
@@ -125,58 +140,13 @@ impl Weather {
             p.life != 0
                 && (p.position - center).abs().max_element() < f32::from(settings.distance) * 1500.0
         });
-        self.runoff.retain_mut(|p| {
-            p.previous = p.position;
-            p.life = p.life.saturating_sub(1);
-            if let Some(surface) = p.hit {
-                let downhill = Vec3::Y - surface.normal * surface.normal.y;
-                p.velocity = (p.velocity + downhill * 12.0).clamp_length_max(110.0);
-                let next = p.position + p.velocity;
-                if let Some(hit) = surfaces.cast(next - Vec3::Y * 100.0, next + Vec3::Y * 160.0) {
-                    p.position = hit.position + hit.normal * 4.0;
-                    p.hit = Some(hit);
-                    if hit.normal.y < -0.98 {
-                        return false;
-                    }
-                } else {
-                    p.position = next;
-                    p.hit = None;
-                }
-            } else {
-                p.velocity.y += 8.0;
-                p.position += p.velocity;
-                if let Some(hit) = surfaces.cast(p.previous, p.position) {
-                    landings.push(hit);
-                    return false;
-                }
-            }
-            p.life != 0
-        });
+        self.update_runoff(center, surfaces, settings, &mut landings);
         if self.mode == WeatherMode::Rain {
             for hit in landings {
                 if self.splashes.len() < SPLASH_LIMIT {
                     self.splashes.push(Splash { hit, age: 0 });
                 }
-                if settings.runoff
-                    && self.runoff.len() < RUNOFF_LIMIT
-                    && hit.normal.y < -0.2
-                    && hit.normal.y > -0.95
-                    && self.random() < 0.12
-                {
-                    let downhill = Vec3::Y - hit.normal * hit.normal.y;
-                    self.runoff.push(Particle {
-                        previous: hit.position + hit.normal * 4.0,
-                        position: hit.position + hit.normal * 4.0,
-                        velocity: downhill * 45.0,
-                        hit: Some(hit),
-                        life: 180,
-                        size: 3.0,
-                    });
-                }
             }
-        }
-        if !settings.runoff {
-            self.runoff.clear();
         }
         if !self.mode.precipitates() {
             return;
@@ -215,7 +185,7 @@ impl Weather {
         let size = if snow {
             9.0 + self.random() * 11.0
         } else {
-            1.8 + self.random() * 1.4
+            3.5 + self.random() * 2.5
         } * if distant {
             (radius / RADIUS).sqrt()
         } else {
@@ -245,13 +215,24 @@ impl Weather {
         let right = forward.cross(Vec3::NEG_Y).normalize_or_zero();
         let up = right.cross(forward).normalize_or_zero();
         let alpha = alpha.clamp(0.0, 1.0);
-        let mut particles: Vec<_> = self.particles.iter().chain(&self.runoff).collect();
-        particles.sort_unstable_by(|a, b| {
+        let mut particles: Vec<_> = self
+            .particles
+            .iter()
+            .map(|p| (p, false))
+            .chain(self.runoff.iter().map(|p| (p, true)))
+            .collect();
+        particles.sort_unstable_by(|(a, _), (b, _)| {
             forward
                 .dot(b.position - near)
                 .total_cmp(&forward.dot(a.position - near))
         });
-        for p in particles {
+        for (p, runoff) in particles {
+            if runoff && (!settings.runoff || settings.runoff_amount == 0) {
+                continue;
+            }
+            if !runoff && self.mode == WeatherMode::Rain && settings.streaks == 0 {
+                continue;
+            }
             let position = p.previous.lerp(p.position, alpha);
             let snow = self.mode == WeatherMode::Snow;
             let axis = if snow {
@@ -267,23 +248,43 @@ impl Weather {
             let length = if snow {
                 p.size
             } else {
-                p.velocity.length() * 0.75
+                (p.velocity.length() * if runoff { 1.8 } else { 0.8 }).min(650.0)
             };
             let distance = position.distance(near);
             let limit = f32::from(settings.distance) * 1000.0;
             let fade = ((forward.dot(position - near) - 60.0) / 500.0).clamp(0.0, 1.0)
                 * ((limit - distance) / (limit * 0.2)).clamp(0.0, 1.0);
+            let strength = if snow || runoff {
+                1.0
+            } else {
+                f32::from(settings.streaks) / 100.0
+            };
+            let width = if snow {
+                p.size
+            } else {
+                p.size.max((distance * 0.0005).min(60.0)) * strength.sqrt()
+            };
             quad(
                 &mut vertices,
-                position,
-                side * p.size,
-                axis * length,
+                if snow {
+                    position
+                } else {
+                    position - axis * length * 0.5
+                },
+                side * width,
+                axis * length * if snow { 1.0 } else { 0.5 },
                 if snow {
                     [0.8, 0.84, 0.9]
                 } else {
-                    [0.55, 0.65, 0.78]
+                    [0.65, 0.75, 0.86]
                 },
-                fade * if snow { 0.65 } else { 0.23 },
+                fade * if snow {
+                    0.65
+                } else if runoff {
+                    0.55
+                } else {
+                    0.34 * strength
+                },
             );
         }
         for splash in &self.splashes {
@@ -303,7 +304,7 @@ impl Weather {
                     ray * 12.0,
                     normal.cross(ray) * 3.0,
                     [0.55, 0.65, 0.78],
-                    (1.0 - age) * 0.2,
+                    (1.0 - age) * 0.3 * f32::from(settings.streaks) / 100.0,
                 );
             }
         }

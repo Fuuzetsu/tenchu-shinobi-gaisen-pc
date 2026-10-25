@@ -74,6 +74,22 @@ impl Application {
                 self.settings.graphics.weather.distance = s.graphics.weather.distance
             }
             Item::Wetness => self.settings.graphics.weather.wetness = s.graphics.weather.wetness,
+            Item::RainReflections => {
+                self.settings.graphics.weather.reflections = s.graphics.weather.reflections
+            }
+            Item::PuddleCoverage => {
+                self.settings.graphics.weather.puddles = s.graphics.weather.puddles
+            }
+            Item::PoolingSpeed => {
+                self.settings.graphics.weather.pooling = s.graphics.weather.pooling
+            }
+            Item::RainHaze => self.settings.graphics.weather.haze = s.graphics.weather.haze,
+            Item::RainStreaks => {
+                self.settings.graphics.weather.streaks = s.graphics.weather.streaks
+            }
+            Item::RunoffAmount => {
+                self.settings.graphics.weather.runoff_amount = s.graphics.weather.runoff_amount
+            }
             Item::Footprints => {
                 self.settings.graphics.weather.footprints = s.graphics.weather.footprints
             }

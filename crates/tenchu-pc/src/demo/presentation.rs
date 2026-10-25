@@ -143,10 +143,10 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                 g.water.reflections = 85;
             }
         }
-        Feature::Rain | Feature::Snow => {
+        Feature::Rain | Feature::RainReflections | Feature::RainHaze | Feature::Snow => {
             g.sky.enabled = true;
             g.sky.time = 720;
-            g.weather.mode = if player.clip().feature == Feature::Rain {
+            g.weather.mode = if player.clip().feature != Feature::Snow {
                 crate::settings::WeatherMode::Rain
             } else {
                 crate::settings::WeatherMode::Snow
@@ -157,6 +157,24 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.weather.heading = 90;
             g.weather.wetness = 90;
             g.weather.snow = 75;
+            g.weather.pooling = 600;
+            g.weather.puddles = 75;
+            g.weather.reflections = 160;
+            g.weather.streaks = 130;
+            g.weather.runoff_amount = 100;
+            g.weather.haze = 15;
+            if player.clip().feature == Feature::RainReflections {
+                g.sky.time = 540;
+                g.weather.haze = 0;
+                g.weather.reflections = if p < 0.2 {
+                    0
+                } else {
+                    (sweep((p - 0.2) / 0.8) * 240.0) as u16
+                };
+            }
+            if player.clip().feature == Feature::RainHaze {
+                g.weather.haze = (wave * 100.0) as u16;
+            }
             g.lighting.enabled = true;
             g.lighting.count = 4;
         }
@@ -493,9 +511,9 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             on(g.motion.hair)
         )),
         Feature::Breeze => meter("Breeze (%)", g.motion.wind, 100),
-        Feature::Rain => {
-            text("Rain · roof runoff · gradual wetness · shelter-aware surfaces".into())
-        }
+        Feature::Rain => text("Roof rivulets · recurring eave drips · shelter-aware rain".into()),
+        Feature::RainReflections => meter("Wet reflections (%)", g.weather.reflections, 240),
+        Feature::RainHaze => meter("Rain haze (%)", g.weather.haze, 100),
         Feature::Snow => text("Snow · wind · gradual exposed-surface coverage".into()),
         Feature::Water | Feature::Waterfalls => text(if g.water.enabled {
             "Water upgrade · ripples, sky reflections, curved falls and spray".into()

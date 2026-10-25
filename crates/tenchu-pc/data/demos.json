@@ -434,12 +434,62 @@
   {
     "id": "rain",
     "title": "Rain on the rooftops",
-    "description": "Rain hits roofs, runs down their slopes and drips over the eaves. Exposed surfaces gradually darken and reflect the sky; covered ground stays dry.",
+    "description": "Water gathers on exposed roof slopes, travels downhill and drips repeatedly from the eaves. Wind and shelter follow the scene geometry.",
     "seconds": 24,
     "mission": 1,
     "character": 0,
     "preset": 3,
     "feature": "rain",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -48300,
+        -7600,
+        -39400
+      ],
+      "target": [
+        -44667,
+        -5000,
+        -34667
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "rain-reflections",
+    "title": "Wet streets and puddles",
+    "description": "Shallow puddles build faster for this demonstration. Sky and shadowed lamp highlights brighten as reflection strength rises; ripples disturb the wet surface.",
+    "seconds": 18,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "rain-reflections",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -45500,
+        -1800,
+        -44700
+      ],
+      "target": [
+        -42000,
+        -800,
+        -36500
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "rain-haze",
+    "title": "Rain across the village",
+    "description": "Rain haze reduces distant visibility independently of the original black fog. Covered sections of the view stay clearer. Gameplay and enemy detection are unchanged.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "rain-haze",
     "shot": "wide",
     "fog": false,
     "camera": {

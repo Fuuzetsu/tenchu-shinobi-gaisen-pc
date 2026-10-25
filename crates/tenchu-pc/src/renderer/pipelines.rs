@@ -112,7 +112,7 @@ impl Options {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
                     self.filtering, self.lighting, self.relief, self.hdr, self.weather, self.water,
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
@@ -122,6 +122,7 @@ impl Options {
                     include_str!("../scene.wgsl"),
                     include_str!("palette.wgsl"),
                     include_str!("lighting.wgsl"),
+                    include_str!("weather.wgsl"),
                     materials::shader(device),
                     include_str!("relief.wgsl"),
                     include_str!("water.wgsl"),

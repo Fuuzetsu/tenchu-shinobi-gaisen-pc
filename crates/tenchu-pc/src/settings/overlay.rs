@@ -271,6 +271,8 @@ fn widget(
     if let Some((min, max, step, scale)) = range(item) {
         let current = if item == Item::TimeOfDay {
             clock_minutes(&row.value).unwrap_or(0.0)
+        } else if item == Item::PoolingSpeed {
+            number(&row.value) * 100.0
         } else {
             number(&row.value) / scale
         };
@@ -283,6 +285,8 @@ fn widget(
                     let value = (v * scale).round() as i32;
                     if item == Item::TimeOfDay {
                         format!("{:02}:{:02}", value / 60, value % 60)
+                    } else if item == Item::PoolingSpeed {
+                        format!("{:.2}x", v / 100.0)
                     } else {
                         value.to_string()
                     }
@@ -290,6 +294,11 @@ fn widget(
                 .custom_parser(move |text| {
                     if item == Item::TimeOfDay {
                         clock_minutes(text)
+                    } else if item == Item::PoolingSpeed {
+                        text.trim_end_matches('x')
+                            .parse::<f64>()
+                            .ok()
+                            .map(|v| v * 100.0)
                     } else {
                         text.parse().ok()
                     }
@@ -406,7 +415,16 @@ fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
     let (min, max, step, scale) = match item {
         Item::MotionStrength => (0, 200, 5, 1),
         Item::MotionResponse | Item::MotionWind => (0, 100, 5, 1),
-        Item::WeatherAmount | Item::WeatherWind | Item::Wetness | Item::SnowCover => (0, 100, 5, 1),
+        Item::WeatherAmount
+        | Item::WeatherWind
+        | Item::Wetness
+        | Item::SnowCover
+        | Item::PuddleCoverage
+        | Item::RainHaze
+        | Item::RunoffAmount => (0, 100, 5, 1),
+        Item::RainReflections => (0, 300, 10, 1),
+        Item::RainStreaks => (0, 200, 10, 1),
+        Item::PoolingSpeed => (25, 1000, 25, 1),
         Item::WeatherHeading => (0, 345, 15, 1),
         Item::Inventory(_) => (0, 255, 1, 1),
         Item::FootprintSeconds => (10, 180, 10, 1),
@@ -469,6 +487,8 @@ mod tests {
             (Item::Volume, "37%"),
             (Item::TimeOfDay, "08:07"),
             (Item::TimeOfDay, "23:59"),
+            (Item::PoolingSpeed, "0.25x"),
+            (Item::PoolingSpeed, "10.00x"),
         ] {
             let ctx = egui::Context::default();
             let mut menu = Menu::default();

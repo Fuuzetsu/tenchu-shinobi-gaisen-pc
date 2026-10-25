@@ -89,7 +89,7 @@ impl Shadows {
                 },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 100) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 104) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -341,8 +341,9 @@ impl Shadows {
             frame.weather.wet,
             frame.weather.snow,
             frame.weather.time,
-            0.0,
+            frame.weather.puddles,
         ]);
+        data.extend(frame.rain);
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
                 self.draw_face(

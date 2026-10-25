@@ -3,6 +3,83 @@ use bytemuck::Zeroable;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires a GPU; wet reflections respond to lights, puddles ripple and rain obscures distance with black fog off"]
+fn rain_controls_change_reflections_ripples_and_visibility() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let p = [
+        [-5000.0, 0.0, -5000.0],
+        [5000.0, 0.0, -5000.0],
+        [-5000.0, 0.0, 5000.0],
+        [5000.0, 0.0, 5000.0],
+    ];
+    let ground = renderer.upload(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
+        position: p[i],
+        normal: Vec3::NEG_Y.to_array(),
+        color: [0.25; 3],
+        flags: render_mesh::DOUBLE_SIDED | render_mesh::SCENERY,
+        opacity: 1.0,
+        ..Vertex::zeroed()
+    }));
+    let camera = Mat4::perspective_rh(1.0, 1.0, 10.0, 30000.0)
+        * Mat4::look_at_rh(Vec3::new(0.0, -1500.0, -2000.0), Vec3::ZERO, Vec3::NEG_Y);
+    let light = crate::lighting::Light {
+        position: Vec3::new(0.0, -1500.0, 2000.0),
+        color: [1.0, 0.45, 0.15],
+        radius: 10000.0,
+    };
+    let capture = |renderer: &mut Renderer, lights: &[crate::lighting::Light]| {
+        renderer
+            .draw_lit(&view, camera, &[&ground], None, lights, &[&ground])
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let original = capture(&mut renderer, &[light]);
+    let mut graphics = crate::settings::Graphics {
+        fog: false,
+        ..Default::default()
+    };
+    graphics.weather.mode = crate::settings::WeatherMode::Rain;
+    graphics.weather.haze = 0;
+    graphics.weather.reflections = 0;
+    graphics.lighting.enabled = true;
+    graphics.lighting.directional.intensity = 0;
+    renderer.configure(&graphics);
+    renderer.weather.wet = 1.0;
+    renderer.weather.puddles = 1.0;
+    let matte = capture(&mut renderer, &[light]);
+    graphics.weather.reflections = 200;
+    renderer.configure(&graphics);
+    let reflected = capture(&mut renderer, &[light]);
+    assert!(
+        reflected
+            .chunks_exact(4)
+            .zip(matte.chunks_exact(4))
+            .any(|(a, b)| i16::from(a[0]) - i16::from(b[0]) > 25)
+    );
+    let no_light = capture(&mut renderer, &[]);
+    assert_ne!(reflected, no_light);
+    renderer.weather.time = 0.6;
+    assert_ne!(
+        reflected,
+        capture(&mut renderer, &[light]),
+        "Puddle ripples must move with cosmetic time"
+    );
+    graphics.weather.haze = 100;
+    renderer.configure(&graphics);
+    let haze = capture(&mut renderer, &[light]);
+    graphics.weather.haze = 0;
+    renderer.configure(&graphics);
+    assert_ne!(
+        haze,
+        capture(&mut renderer, &[light]),
+        "Rain haze must work with original fog disabled"
+    );
+    renderer.configure(&crate::settings::Graphics::default());
+    assert_eq!(original, capture(&mut renderer, &[light]));
+}
+
+#[test]
 #[ignore = "requires a GPU; checks shelter, snow, wet surfaces and unchanged original rendering"]
 fn rain_and_snow_respect_shelter_and_restore_original_pixels() {
     let (mut renderer, target) = fixture(&Vram::default());
@@ -35,6 +112,7 @@ fn rain_and_snow_respect_shelter_and_restore_original_pixels() {
     let original = capture(&mut renderer);
     let mut graphics = crate::settings::Graphics::default();
     graphics.weather.mode = crate::settings::WeatherMode::Rain;
+    graphics.weather.haze = 0;
     renderer.configure(&graphics);
     renderer.weather.wet = 1.0;
     let rain = capture(&mut renderer);
@@ -167,6 +245,102 @@ fn weather_on_actual_roofs() {
                 &output.join(format!("{name}.png")),
             )
             .unwrap();
+    }
+    assert_eq!(state, crate::session::tests::state(&game));
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_WEATHER_REVIEW and a GPU; reviews wet lamps, puddles, haze and eave drips in Mission 1"]
+fn rain_on_actual_roofs_and_ground() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let output = std::path::PathBuf::from(
+        std::env::var_os("TENCHU_WEATHER_REVIEW").expect("Set TENCHU_WEATHER_REVIEW"),
+    );
+    std::fs::create_dir_all(&output).unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut game = crate::session::Options::default().load(&assets).unwrap();
+    for _ in 0..30 {
+        game.step(0).unwrap();
+    }
+    let state = crate::session::tests::state(&game);
+    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+    let models = review.models(&game.mission).unwrap();
+    let mut vertices = render_mesh::stage(&game.mission, &game.math, Some(&models));
+    let surfaces = crate::visuals::surfaces::Surfaces::new(&vertices);
+    vertices.extend(render_mesh::characters(&game, Some(&models)));
+    let mesh = review.renderer.upload(&vertices);
+    let pack = crate::visuals::pack::Pack::from_env(&game.mission).unwrap();
+    let emitters = crate::visuals::lights::Emitters::build(&game, &pack, true);
+    review.renderer.set_emitters(&emitters);
+    for (shot, eye, target) in [
+        (
+            "roof",
+            Vec3::new(-48300.0, -7600.0, -39400.0),
+            Vec3::new(-44667.0, -5000.0, -34667.0),
+        ),
+        (
+            "ground",
+            Vec3::new(-45500.0, -1800.0, -44700.0),
+            Vec3::new(-42000.0, -800.0, -36500.0),
+        ),
+    ] {
+        let camera = Mat4::perspective_rh(55.0_f32.to_radians(), 1280.0 / 720.0, 10.0, 200000.0)
+            * Mat4::look_at_rh(eye, target, Vec3::NEG_Y);
+        let mut graphics = crate::settings::Graphics::default();
+        graphics.set_preset(3);
+        graphics.fog = false;
+        graphics.sky.enabled = true;
+        graphics.sky.time = 600;
+        graphics.weather.mode = crate::settings::WeatherMode::Rain;
+        graphics.weather.amount = 100;
+        graphics.weather.pooling = 600;
+        graphics.weather.quality = 2;
+        graphics.weather.wetness = 100;
+        graphics.weather.puddles = 80;
+        graphics.weather.runoff_amount = 100;
+        graphics.weather.reflections = 180;
+        let mut weather = crate::visuals::weather::Weather::default();
+        for tick in 0..600 {
+            weather.tick(tick, eye, &surfaces, &graphics.weather);
+        }
+        review.lights = crate::lighting::sources(
+            &game,
+            &graphics.lighting,
+            Some(eye),
+            None,
+            emitters.sources(&game),
+        )
+        .into_iter()
+        .map(|source| source.light)
+        .collect();
+        review.renderer.daylight = Some(crate::visuals::sky::Daylight::at(600.0, &graphics.sky));
+        for (name, reflections, haze, streaks) in [
+            ("matte", 0, 0, 100),
+            ("wet", 180, 0, 100),
+            ("storm", 180, 80, 150),
+            ("drips", 180, 0, 0),
+        ] {
+            graphics.weather.reflections = reflections;
+            graphics.weather.haze = haze;
+            graphics.weather.streaks = streaks;
+            review.renderer.weather = weather.sample(&graphics.weather, 0.5);
+            let effects =
+                review
+                    .renderer
+                    .upload_effects(weather.geometry(camera, 0.5, &graphics.weather));
+            review.configure(graphics.clone());
+            review
+                .capture(
+                    camera,
+                    &[&mesh],
+                    Some(&effects),
+                    true,
+                    &output.join(format!("{shot}-{name}.png")),
+                )
+                .unwrap();
+        }
     }
     assert_eq!(state, crate::session::tests::state(&game));
 }

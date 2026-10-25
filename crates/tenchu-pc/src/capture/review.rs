@@ -50,6 +50,7 @@ pub fn prepare_directory(output: &Path) -> Result<()> {
 
 pub struct Review {
     pub renderer: Renderer,
+    pub lights: Vec<crate::lighting::Light>,
     texture: wgpu::Texture,
     graphics: Graphics,
     pack: Pack,
@@ -110,6 +111,7 @@ impl Review {
         };
         Ok(Self {
             renderer,
+            lights: Vec::new(),
             texture,
             graphics,
             pack,
@@ -139,7 +141,7 @@ impl Review {
             camera,
             meshes,
             effects,
-            &[],
+            &self.lights,
             meshes,
         )?;
         super::read_texture(&self.renderer, &self.texture, output)

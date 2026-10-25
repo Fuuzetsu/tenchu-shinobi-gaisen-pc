@@ -34,13 +34,18 @@ fn precipitation_stops_at_roofs_and_stays_bounded_through_weather_changes() {
         ..Default::default()
     };
     let mut runoff = 0;
+    let mut eaves = 0;
+    let mut falling = 0;
     let mut splashes = 0;
     for tick in 0..2400 {
         weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
         runoff = runoff.max(weather.runoff.len());
+        eaves = eaves.max(weather.eaves.len());
+        falling = falling.max(weather.runoff.iter().filter(|p| p.hit.is_none()).count());
         splashes = splashes.max(weather.splashes.len());
         assert!(weather.particles.len() <= settings.particles());
         assert!(weather.runoff.len() <= RUNOFF_LIMIT && weather.splashes.len() <= SPLASH_LIMIT);
+        assert!(weather.eaves.len() <= EAVE_LIMIT);
         for p in &weather.particles {
             assert!(p.position.is_finite());
             assert!(p.position.y < 1001.0);
@@ -50,7 +55,7 @@ fn precipitation_stops_at_roofs_and_stays_bounded_through_weather_changes() {
             );
         }
     }
-    assert!(runoff > 0 && splashes > 0);
+    assert!(runoff > 0 && splashes > 0 && eaves > 0 && falling > 0);
     assert!(weather.sample(&settings, 1.0).wet > 0.6);
     settings.mode = WeatherMode::Snow;
     for tick in 2400..4200 {
@@ -157,4 +162,83 @@ fn wind_can_enter_under_eaves_and_walls_block_upwind_trajectories() {
     let open = Vec3::new(0.0, 0.0, 750.0);
     assert!(walled.exposed(open, Vec3::Y));
     assert!(!walled.exposed(open, wind));
+}
+
+#[test]
+fn pooling_speed_changes_build_up_but_not_pause_drying_or_particle_budget() {
+    let surfaces = surfaces();
+    let mut settings = Settings {
+        mode: WeatherMode::Rain,
+        amount: 100,
+        ..Default::default()
+    };
+    let mut slow = Weather::default();
+    let mut fast = Weather::default();
+    for tick in 0..300 {
+        settings.pooling = 100;
+        slow.tick(tick, Vec3::ZERO, &surfaces, &settings);
+        settings.pooling = 1000;
+        fast.tick(tick, Vec3::ZERO, &surfaces, &settings);
+    }
+    assert!(fast.puddles > 0.95 && slow.puddles < 0.05);
+    let before = fast.sample(&settings, 0.0);
+    for alpha in [0.0, 0.3, 0.7, 1.0] {
+        fast.tick(299, Vec3::ZERO, &surfaces, &settings);
+        let _ = fast.geometry(Mat4::IDENTITY, alpha, &settings);
+    }
+    assert_eq!(before.puddles, fast.sample(&settings, 0.0).puddles);
+    fast.invalidate_surfaces();
+    assert_eq!(before.puddles, fast.sample(&settings, 0.0).puddles);
+    settings.mode = WeatherMode::Clear;
+    for tick in 300..900 {
+        fast.tick(tick, Vec3::ZERO, &surfaces, &settings);
+    }
+    assert!(fast.puddles < 1.0 && fast.puddles > 0.8);
+    assert!(fast.particles.is_empty() && fast.eaves.is_empty());
+    settings.mode = WeatherMode::Original;
+    fast.tick(900, Vec3::ZERO, &surfaces, &settings);
+    assert_eq!(fast.puddles, 0.0);
+}
+
+#[test]
+fn hidden_rain_streaks_keep_roof_drips_and_runoff_toggle_clears_them() {
+    let surfaces = surfaces();
+    let mut settings = Settings {
+        mode: WeatherMode::Rain,
+        amount: 100,
+        quality: 0,
+        streaks: 0,
+        pooling: 1000,
+        ..Default::default()
+    };
+    let mut weather = Weather::default();
+    for tick in 0..900 {
+        weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
+    }
+    assert!(!weather.runoff.is_empty() && !weather.eaves.is_empty());
+    assert!(
+        weather
+            .runoff
+            .iter()
+            .all(|p| p.position.is_finite() && p.velocity.is_finite())
+    );
+    let camera = Mat4::perspective_rh(1.0, 1.0, 10.0, 100000.0)
+        * Mat4::look_at_rh(
+            Vec3::new(-10000.0, -5000.0, -10000.0),
+            Vec3::ZERO,
+            Vec3::NEG_Y,
+        );
+    let geometry = weather.geometry(camera, 0.5, &settings);
+    assert!(geometry.vertices.iter().any(|v| v.opacity > 0.3));
+    assert!(geometry.vertices.len() <= (RUNOFF_LIMIT + SPLASH_LIMIT * 8) * 6);
+    settings.runoff = false;
+    weather.tick(900, Vec3::ZERO, &surfaces, &settings);
+    assert!(weather.runoff.is_empty() && weather.eaves.is_empty());
+    assert!(
+        weather
+            .geometry(camera, 0.5, &settings)
+            .vertices
+            .iter()
+            .all(|v| v.opacity == 0.0)
+    );
 }
