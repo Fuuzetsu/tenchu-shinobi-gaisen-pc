@@ -34,6 +34,7 @@ pub struct Weather {
     mode: WeatherMode,
     tick: Option<u64>,
     center: Option<Vec3>,
+    direction: Option<Vec3>,
     particles: Vec<Particle>,
     runoff: Vec<Particle>,
     eaves: Vec<runoff::Eave>,
@@ -126,8 +127,18 @@ impl Weather {
         .clamp(0.0, 1.0);
         self.splashes.iter_mut().for_each(|s| s.age += 1);
         self.splashes.retain(|s| s.age < 14);
+        let direction = settings.direction();
+        let wind_changed = self.direction != Some(direction);
+        self.direction = Some(direction);
         let mut landings = Vec::new();
         self.particles.retain_mut(|p| {
+            if wind_changed {
+                p.velocity = settings.velocity(p.velocity.y);
+                if !surfaces.exposed(p.position, p.velocity) {
+                    return false;
+                }
+                p.hit = surfaces.cast(p.position, p.position + p.velocity * f32::from(p.life));
+            }
             p.previous = p.position;
             p.position += p.velocity;
             p.life = p.life.saturating_sub(1);

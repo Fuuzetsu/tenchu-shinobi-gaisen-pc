@@ -1,5 +1,56 @@
 use super::*;
 
+#[test]
+fn changing_wind_redirects_existing_rain_and_snow_and_rechecks_shelter() {
+    let surfaces = surfaces();
+    for mode in [WeatherMode::Rain, WeatherMode::Snow] {
+        let mut weather = Weather::default();
+        let mut settings = Settings {
+            mode,
+            amount: 100,
+            wind: 100,
+            heading: 90,
+            ..Default::default()
+        };
+        for tick in 0..90 {
+            weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
+        }
+        assert!(weather.particles.len() > 50);
+        let wet = weather.wet;
+        let snow = weather.snow;
+        for (tick, heading) in [(90, 270), (91, 0), (92, 180)] {
+            let old: Vec<_> = weather.particles.iter().map(|p| p.position).collect();
+            settings.heading = heading;
+            weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
+            assert!(
+                weather.particles.iter().any(|p| old.contains(&p.previous)),
+                "Wind changes should redirect existing drops, not clear them all"
+            );
+            for p in &weather.particles {
+                assert!(
+                    p.velocity
+                        .normalize()
+                        .abs_diff_eq(settings.direction(), 0.00001)
+                );
+                assert!(surfaces.exposed(p.position, p.velocity));
+                assert!(
+                    surfaces.cast(p.previous, p.position).is_none(),
+                    "A changed wind sent a particle through a roof/wall"
+                );
+            }
+        }
+        assert!(weather.wet >= wet - 0.001 && weather.snow >= snow - 0.002);
+        settings.wind = 0;
+        weather.tick(93, Vec3::ZERO, &surfaces, &settings);
+        assert!(
+            weather
+                .particles
+                .iter()
+                .all(|p| p.velocity.x == 0.0 && p.velocity.z == 0.0)
+        );
+    }
+}
+
 fn surfaces() -> Surfaces {
     let mut vertices = Vec::new();
     for points in [

@@ -11,6 +11,7 @@ mod sprites;
 mod stains;
 mod water;
 mod weather;
+mod weather_wind;
 
 fn rectangle(
     z: i16,

@@ -19,6 +19,7 @@ impl Weather {
             self.eaves.clear();
             return;
         }
+        let wind = settings.velocity(380.0) * Vec3::new(0.06, 0.0, 0.06);
         let mut edges = Vec::new();
         self.runoff.retain_mut(|p| {
             p.previous = p.position;
@@ -39,6 +40,8 @@ impl Weather {
                     edges.push((next, p.velocity * 0.2));
                 }
             } else {
+                p.velocity.x += (wind.x - p.velocity.x) * 0.04;
+                p.velocity.z += (wind.z - p.velocity.z) * 0.04;
                 p.velocity.y = (p.velocity.y + 12.0).min(300.0);
                 p.position += p.velocity;
                 if let Some(hit) = surfaces.cast(p.previous, p.position) {
@@ -107,6 +110,7 @@ impl Weather {
             };
             if hit.normal.y >= -0.2
                 || hit.normal.y <= -0.98
+                || hit.normal.dot(settings.direction()) >= 0.0
                 || hit.position.distance_squared(center) > RADIUS * RADIUS
                 || !surfaces.exposed(hit.position + hit.normal * 5.0, settings.direction())
             {

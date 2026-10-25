@@ -23,6 +23,7 @@ pub struct Shadows {
     views: Vec<wgpu::TextureView>,
     faces: Vec<(wgpu::Buffer, wgpu::BindGroup)>,
     pipeline: wgpu::RenderPipeline,
+    weather_pipeline: wgpu::RenderPipeline,
     resolution: u32,
     sun: wgpu::TextureView,
     sun_resolution: u32,
@@ -157,30 +158,52 @@ impl Shadows {
             bind_group_layouts: &[&face_layout, materials],
             push_constant_ranges: &[],
         });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Point light shadow caster"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader, entry_point: Some("vertex"), compilation_options: Default::default(),
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32],
-                }],
+        let attributes = wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32];
+        let pipeline = |label, bias| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(label),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some("vertex"),
+                    compilation_options: Default::default(),
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as u64,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &attributes,
+                    }],
+                },
+                primitive: wgpu::PrimitiveState {
+                    cull_mode: None,
+                    ..Default::default()
+                },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: wgpu::TextureFormat::Depth32Float,
+                    depth_write_enabled: true,
+                    depth_compare: wgpu::CompareFunction::LessEqual,
+                    stencil: Default::default(),
+                    bias,
+                }),
+                multisample: Default::default(),
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some("fragment"),
+                    compilation_options: Default::default(),
+                    targets: &[],
+                }),
+                multiview: None,
+                cache: None,
+            })
+        };
+        let weather_pipeline = pipeline("Precipitation shelter", wgpu::DepthBiasState::default());
+        let pipeline = pipeline(
+            "Point light shadow caster",
+            wgpu::DepthBiasState {
+                constant: 2,
+                slope_scale: 2.0,
+                clamp: 0.0,
             },
-            primitive: wgpu::PrimitiveState { cull_mode: None, ..Default::default() },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: wgpu::TextureFormat::Depth32Float,
-                depth_write_enabled: true, depth_compare: wgpu::CompareFunction::LessEqual,
-                stencil: Default::default(),
-                bias: wgpu::DepthBiasState { constant: 2, slope_scale: 2.0, clamp: 0.0 },
-            }),
-            multisample: Default::default(),
-            fragment: Some(wgpu::FragmentState {
-                module: &shader, entry_point: Some("fragment"),
-                compilation_options: Default::default(), targets: &[],
-            }),
-            multiview: None, cache: None,
-        });
+        );
         Self {
             layout,
             bindings,
@@ -189,6 +212,7 @@ impl Shadows {
             views,
             faces,
             pipeline,
+            weather_pipeline,
             resolution: 1,
             sun,
             sun_resolution: 1,
@@ -393,7 +417,11 @@ impl Shadows {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
-        pass.set_pipeline(&self.pipeline);
+        pass.set_pipeline(if index >= FACES {
+            &self.weather_pipeline
+        } else {
+            &self.pipeline
+        });
         pass.set_bind_group(0, bindings, &[]);
         pass.set_bind_group(1, geometry.materials, &[]);
         for mesh in geometry

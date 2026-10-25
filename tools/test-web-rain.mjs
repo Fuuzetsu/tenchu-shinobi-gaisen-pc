@@ -50,6 +50,12 @@ const tab = async target => {
 const select = async target => {
   while (row !== target) { await key(row < target ? "ArrowDown" : "ArrowUp"); row += row < target ? 1 : -1; }
 };
+const weatherValue = async (index, name, target, step = 5) => {
+  await select(index);
+  const current = (await settings()).graphics.weather[name];
+  for (let n = 0; n < Math.abs(target - current) / step; n++) await key(target > current ? "ArrowRight" : "ArrowLeft");
+  assert.equal((await settings()).graphics.weather[name], target);
+};
 const shot = async name => {
   const png = await page.screenshot({ path: `${output}/${name}.png` });
   assert((await page.evaluate(sceneImage, png.toString("base64"))).colors > 64, `${name}: blank scene`);
@@ -69,6 +75,21 @@ const difference = async (a,b) => page.evaluate(async ([a,b]) => {
   const n = aa.length * 3/4;
   return { delta: delta/n, a: brightnessA/n, b: brightnessB/n };
 },[a,b]);
+const compareWind = async mode => {
+  await weatherValue(2, "wind", 100);
+  await weatherValue(3, "heading", 0, 15);
+  const frozen = await state();
+  const first = await shot(`${mode}-wind-0`);
+  await weatherValue(3, "heading", 180, 15);
+  const reversed = await shot(`${mode}-wind-180`);
+  const changed = await difference(first, reversed);
+  assert(changed.delta > 0.25, `${mode}: reversing wind did not visibly change surface exposure`);
+  await weatherValue(2, "wind", 0);
+  await shot(`${mode}-calm`);
+  assert.deepEqual(await state(), frozen, "wind controls changed paused game state");
+  await weatherValue(2, "wind", 100);
+  return changed;
+};
 try {
   await page.goto(`${base}/?renderer=${backend}`);
   await page.click("#quick");
@@ -105,14 +126,29 @@ try {
   await key("F1"); await shot("storm-playing");
   const rainFrames = await page.evaluate(measureFrames,1500);
   await key("F1");
+  await weatherValue(7, "reflections", 0, 10);
+  await weatherValue(10, "haze", 0);
+  const rainWindDifference = await compareWind("rain");
+  await weatherValue(6, "wetness", 0);
+  await weatherValue(8, "puddles", 0);
+  await weatherValue(12, "snow", 100);
+  await select(0); await key("ArrowRight");
+  assert.equal((await settings()).graphics.weather.mode, "Snow");
+  const snowStart = (await state()).tick;
+  await key("F1");
+  await page.waitForFunction(start => Number(document.body.dataset.tick) >= start + 910, snowStart, { timeout: 90000 });
+  await key("F1");
+  const snowWindDifference = await compareWind("snow");
+  await key("F1"); await page.waitForTimeout(1500); await shot("snow-wind-playing");
+  await key("F1");
   await select(0); await key("r");
   assert.equal((await settings()).graphics.weather.mode,"Original");
   await key("F1"); await shot("original-weather");
   const originalFrames = await page.evaluate(measureFrames,1500);
   assert.equal((await state()).fault,"");
   assert.deepEqual(await page.evaluate(() => window.effectsGpuErrors),[]); assert.deepEqual(errors,[]);
-  await writeFile(`${output}/result.json`,JSON.stringify({backend,reflectionDifference,hazeDifference,rainFrames,originalFrames,state:await state(),errors},null,2));
-  console.log(`${backend}: visible wet reflections and rain haze, pooling/streak/runoff controls, resets and unchanged paused game state passed`);
+  await writeFile(`${output}/result.json`,JSON.stringify({backend,reflectionDifference,hazeDifference,rainWindDifference,snowWindDifference,rainFrames,originalFrames,state:await state(),errors},null,2));
+  console.log(`${backend}: wet reflections, haze, directional rain/snow, weather controls, resets and unchanged paused game state passed`);
 } catch (error) {
   await page.screenshot({path:`${output}/failure.png`}).catch(()=>{});
   await writeFile(`${output}/failure.json`,JSON.stringify({error:String(error),errors,gpuErrors:await page.evaluate(()=>window.effectsGpuErrors).catch(()=>[]),state:await state().catch(()=>null)},null,2));

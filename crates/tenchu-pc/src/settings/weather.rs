@@ -96,7 +96,7 @@ impl Weather {
 
     pub fn velocity(&self, speed: f32) -> glam::Vec3 {
         let heading = f32::from(self.heading).to_radians();
-        let wind = f32::from(self.wind)
+        let wind = f32::from(self.wind) * speed / self.fall_speed()
             * if self.mode == WeatherMode::Snow {
                 0.65
             } else {
@@ -106,11 +106,14 @@ impl Weather {
     }
 
     pub fn direction(&self) -> glam::Vec3 {
-        self.velocity(if self.mode == WeatherMode::Snow {
+        self.velocity(self.fall_speed()).normalize()
+    }
+
+    fn fall_speed(&self) -> f32 {
+        if self.mode == WeatherMode::Snow {
             36.0
         } else {
             380.0
-        })
-        .normalize()
+        }
     }
 }

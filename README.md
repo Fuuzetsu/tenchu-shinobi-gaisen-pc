@@ -690,16 +690,24 @@ artwork. Set it to 0 to keep all original vertex shading throughout the cycle.
 **F1 → Weather** selects Original, Clear, Rain or Snow. Original retains the
 mission's weather; overrides change presentation only. Precipitation, wind,
 detail, particle distance, wetness, snow cover and roof runoff are adjustable.
-Wind carries particles under eaves, while walls shelter areas downwind. Rain
-splashes, runs down sloped surfaces and drips over edges. Wetness builds gradually
-and dries in clear weather; snow coats exposed upward surfaces and slowly melts.
+Wind carries particles under eaves, while walls shelter areas downwind. **Wind
+compass** is the direction precipitation travels toward. Both rain and snow use
+that direction for falling particles and surface exposure: windward walls get
+wet or lightly dusted, leeward walls stay clear, and calm vertical precipitation
+leaves vertical walls dry. Wind edits redirect airborne particles and recheck
+their collisions without resetting accumulation. Rain splashes, runs down sloped
+surfaces and drips over edges. Wetness builds gradually and dries in clear weather;
+snow coats exposed upward surfaces more heavily and slowly melts. Coverage follows
+the current wind and shelter; it does not retain separate weather histories for
+individual surfaces.
 Near and whole-stage shelter maps respect scenery cutouts. Moving actors cast
 lighting shadows without erasing snow beneath them. Fog and particle distance do
 not limit accumulated ground coverage. Model/artwork changes preserve accumulation.
 
 Snow footprints follow players' and humanoid enemies' animated feet and project
-onto actual ground triangles. Fresh snowfall buries them gradually; F1 controls
-the burial time and provides a clear action. Ground blood stains absorb the snow
+onto actual ground triangles. Fresh snowfall buries exposed tracks gradually;
+turning the wind updates which tracks receive snow. F1 controls the burial time
+and provides a clear action. Ground blood stains absorb the snow
 material. Tracks, particles and decals are bounded cosmetic effects; collision
 is unchanged and there is no fluid/flood simulation. Low/Medium/High weather
 caps precipitation at 384/896/1792 particles, shared between near and distant

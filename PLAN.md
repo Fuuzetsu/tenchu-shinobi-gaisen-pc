@@ -10,6 +10,36 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Directional weather follow-up (complete)
+
+Use the same incoming direction for rain/snow particles, shelter and surface
+deposition. Remove wetness from leeward/parallel walls; allow windward snow dusting
+while retaining stronger coverage on upward surfaces. Wind edits must redirect
+airborne particles and recompute their roof/wall hits without clearing accumulated
+weather. Recheck footprint burial when wind changes shelter. Verify reversed/calm
+wind, covered walls, grazing roofs and live changes on CPU/GPU and in browsers;
+preserve Original presentation and gameplay, then format, lint and commit.
+
+Rain/snow velocities now share the shelter-map direction at every particle fall
+speed. Wind changes redirect existing particles, discard newly sheltered ones
+and retrace their remaining paths. Wetness uses incoming surface incidence;
+snow combines it with stronger retention on upward surfaces and a light coating
+on windward walls. Footprint burial rechecks shelter after wind edits. Airborne
+roof drips respond to wind, and catchment rejects slopes facing away from rain.
+
+Weather has an unbiased depth pass and four plane-corrected depth comparisons,
+fixing rain leaking through close upstream walls at grazing angles/low quality.
+Lighting shadows retain their existing depth bias. Nine native GPU weather checks
+pass, including calm/reversed wind, both wall faces, a wall only 100 units behind
+cover at low/high quality, roof shelter, distant coverage and snow stains. Mission
+1 roof/wall captures were reviewed with HD artwork. CPU regressions verify live
+particle redirection, collision/shelter, retained accumulation and track burial.
+Workspace tests (111 passing), formatting, Clippy and native/WASM builds pass.
+Chromium WebGPU/WebGL2 comparisons show changed rain/snow exposure when reversing
+wind, preserve paused gameplay state and report no graphics/page errors. Evidence
+is under private/wind-review. Accumulation still uses a global amount with the
+current wind/shelter mask, not a separate weather history for each surface.
+
 ## Rain presentation follow-up (complete)
 
 Make rain legible in actual play without changing gameplay or Original weather.

@@ -19,6 +19,7 @@ const VERTEX_LIMIT: usize = 65_536;
 
 struct Mark {
     vertices: Vec<Vertex>,
+    position: Vec3,
     age: f32,
     burial: f32,
     exposed: bool,
@@ -36,6 +37,7 @@ impl Mark {
 #[derive(Default)]
 pub struct Footprints {
     tick: Option<u64>,
+    direction: Option<Vec3>,
     rigs: BTreeMap<i16, Vec<(usize, [i16; 3])>>,
     last: BTreeMap<Part, Vec3>,
     marks: VecDeque<Mark>,
@@ -78,6 +80,16 @@ fn feet(parts: &[model::Part]) -> Vec<(usize, [i16; 3])> {
 }
 
 impl Footprints {
+    fn update_shelter(&mut self, surfaces: &Surfaces, direction: Vec3) {
+        if self.direction == Some(direction) {
+            return;
+        }
+        self.direction = Some(direction);
+        for mark in &mut self.marks {
+            mark.exposed = surfaces.exposed(mark.position - Vec3::Y * 5.0, direction);
+        }
+    }
+
     pub fn clear(&mut self) {
         self.marks.clear();
         self.last.clear();
@@ -104,6 +116,7 @@ impl Footprints {
             self.clear();
         }
         self.tick = Some(game.tick);
+        self.update_shelter(surfaces, settings.direction());
         let falling = if settings.mode == WeatherMode::Snow {
             f32::from(settings.amount) / 100.0
         } else {
@@ -185,6 +198,7 @@ impl Footprints {
             self.last.insert(key, position);
             self.marks.push_back(Mark {
                 vertices,
+                position: hit.position,
                 age: 0.0,
                 burial: 0.0,
                 exposed: surfaces.exposed(hit.position - Vec3::Y * 5.0, settings.direction()),
@@ -227,6 +241,7 @@ mod tests {
     fn fresh_snow_buries_tracks_without_an_abrupt_expiry() {
         let mut mark = Mark {
             vertices: Vec::new(),
+            position: Vec3::ZERO,
             age: 0.0,
             burial: 0.0,
             exposed: true,
@@ -237,6 +252,37 @@ mod tests {
         assert!(mark.opacity(60) > 0.15 && mark.opacity(60) < 0.3);
         mark.burial = 60.0;
         assert_eq!(mark.opacity(60), 0.0);
+    }
+
+    #[test]
+    fn turning_the_wind_rechecks_shelter_for_existing_tracks() {
+        use bytemuck::Zeroable;
+        let points = [
+            [-500.0, -1000.0, -500.0],
+            [500.0, -1000.0, -500.0],
+            [-500.0, -1000.0, 500.0],
+            [500.0, -1000.0, 500.0],
+        ];
+        let surfaces = Surfaces::new(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: points[i],
+            ..Vertex::zeroed()
+        }));
+        let mut prints = Footprints::default();
+        prints.marks.push_back(Mark {
+            vertices: Vec::new(),
+            position: Vec3::ZERO,
+            age: 1.0,
+            burial: 0.5,
+            exposed: true,
+        });
+        prints.update_shelter(&surfaces, Vec3::Y);
+        assert!(!prints.marks[0].exposed);
+        prints.update_shelter(&surfaces, Vec3::new(2.0, 1.0, 0.0).normalize());
+        assert!(prints.marks[0].exposed);
+        assert_eq!(prints.marks[0].burial, 0.5);
+        assert_eq!(prints.marks[0].age, 1.0);
+        prints.update_shelter(&surfaces, Vec3::Y);
+        assert!(!prints.marks[0].exposed);
     }
 }
 

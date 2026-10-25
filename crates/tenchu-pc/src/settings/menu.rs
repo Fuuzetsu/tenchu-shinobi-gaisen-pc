@@ -412,13 +412,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::WeatherWind,
                     "Wind strength",
                     format!("{}%", weather.wind),
-                    "Wind carries rain and snow; gameplay is unchanged.",
+                    "Wind tilts rain and snow, wetting/dusting windward surfaces while roofs and walls shelter areas downwind. Gameplay is unchanged.",
                 ),
                 (
                     Item::WeatherHeading,
                     "Wind compass",
                     format!("{} deg", weather.heading),
-                    "Direction of the wind around the stage.",
+                    "Direction rain and snow travel around the stage. Turning it changes which walls receive precipitation.",
                 ),
                 (
                     Item::WeatherQuality,
@@ -472,7 +472,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::SnowCover,
                     "Snow cover",
                     format!("{}%", weather.snow),
-                    "Thin cosmetic coverage grows on exposed upward surfaces, then melts when snow stops.",
+                    "Snow builds on exposed upward surfaces and dusts windward walls. Sheltered and leeward surfaces stay clear; coverage melts when snow stops.",
                 ),
                 (
                     Item::Footprints,
