@@ -1062,7 +1062,20 @@
     "shot": "wide",
     "fog": false,
     "sharp_text": true,
-    "weather_warmup": 0
+    "weather_warmup": 0,
+    "camera": {
+      "eye": [
+        -30665,
+        -3255,
+        -29817
+      ],
+      "target": [
+        -35803,
+        -2400,
+        -24678
+      ],
+      "fov": 55
+    }
   },
   {
     "id": "remake-botanical-autumn",
@@ -1110,7 +1123,20 @@
     "shot": "wide",
     "fog": false,
     "sharp_text": true,
-    "weather_warmup": 0
+    "weather_warmup": 0,
+    "camera": {
+      "eye": [
+        -30665,
+        -3255,
+        -29817
+      ],
+      "target": [
+        -35803,
+        -2400,
+        -24678
+      ],
+      "fov": 55
+    }
   },
   {
     "id": "remake-petal-fall",

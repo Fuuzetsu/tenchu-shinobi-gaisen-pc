@@ -115,6 +115,8 @@ pub fn animate(feature: Feature, player: &Player, settings: &mut Settings, debug
             g.motion.wind = 15;
         }
         Feature::Grapple => {
+            g.sky.time = 720;
+            g.sky.day_ambient = 80;
             g.models.grapple = after;
             g.effects.sparks = after;
             g.effects.spark_density = 130;

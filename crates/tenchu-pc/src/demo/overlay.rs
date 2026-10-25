@@ -21,8 +21,19 @@ pub fn show(
     let mut action = None;
     let clip = player.clip();
     if player.captions {
+        let (number, total) = if player.video.is_some() {
+            (player.playlist[player.index] + 1, player.catalog.len())
+        } else {
+            (player.index + 1, player.playlist.len())
+        };
         let frontend = clip.frontend.is_some();
-        let top = matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
+        let right = matches!(
+            clip.feature,
+            super::Feature::Experiment
+                | super::Feature::Remake(super::remake::Feature::GameplayProfiles)
+        );
+        let top = right
+            || matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
             || clip.artwork.is_some()
             || matches!(
                 clip.feature,
@@ -32,7 +43,6 @@ pub fn show(
                     | super::Feature::RainHaze
                     | super::Feature::Experiment
             );
-        let right = clip.feature == super::Feature::Experiment;
         egui::Area::new("demo-caption".into())
             .anchor(
                 if right {
@@ -72,8 +82,8 @@ pub fn show(
                             } else {
                                 format!(
                                 "TENCHU / NATIVE SHOWCASE    {:02} / {:02}    MISSION {}",
-                                player.index + 1,
-                                player.playlist.len(),
+                                number,
+                                total,
                                 clip.mission
                                 )
                             })

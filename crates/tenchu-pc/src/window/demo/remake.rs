@@ -179,7 +179,7 @@ pub(super) fn setup(
                 })
                 .ok_or("Water-contact demo needs a water surface")?;
             game.teleport_player(center.as_ivec3().to_array().into(), true)?;
-            for _ in 0..5 {
+            for _ in 0..60 {
                 game.step(0)?;
             }
             scene.target =

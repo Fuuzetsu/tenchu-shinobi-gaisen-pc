@@ -827,8 +827,8 @@ this with a `"water"` map in `pack.json`, mapping texture IDs to `"surface"`,
 exported for the browser. Curves preserve UVs and existing texture boundaries;
 this is not a fluid simulation or a replacement for a fully authored river mesh.
 
-**F1 → Model refinement** offers Refined/Fine character surfaces and Fuller/Dense
-vegetation. Character subdivision welds coincident positions across texture seams,
+**F1 → Model refinement** offers Refined/Fine character surfaces and
+Fuller/Dense/Botanical/Botanical dense vegetation. Character subdivision welds coincident positions across texture seams,
 retains separate UVs, pins open/nonmanifold joints and limits contour changes per
 pass. It replaces the older contour option while enabled; authored replacement
 characters and weapon meshes remain as supplied. Existing animation, attachments,
@@ -838,12 +838,15 @@ Vegetation adds angled layers to connected cutout clusters and refines selected
 trunks and dense shrubs, reusing the original or installed HD textures. Connected material tiles
 share their pivot so branch/leaf textures remain joined. Explicit fingerprints
 in `data/vegetation.json` cover reviewed cherry, pine, cedar, shrubs, grass and
-snow-covered branches. Flat bamboo-stalk cutouts keep their original geometry.
+snow-covered branches, autumn trees and bamboo. Botanical levels add folded leaf
+sprays and rounded bamboo stalks; the lower levels retain the original stalk cards.
+**Tree variation** gives repeated placements stable crown shapes and proportions.
 Pack authors can provide a `"vegetation"` map from texture IDs to `"leaves"`,
-`"grass"`, `"shrub"`, `"trunk"` or `"off"`; these rules also travel with browser exports.
+`"blossoms"`, `"autumn"`, `"bamboo"`, `"grass"`, `"shrub"`, `"trunk"` or `"off"`;
+these rules also travel with browser exports.
 Refinement and foliage have independent geometry budgets and retain the original
-mesh when a budget is exhausted. This builds on the current artwork, rather than
-claiming entirely new sculpted characters or individual geometric leaves.
+mesh when a budget is exhausted. The new botanical geometry reuses the current
+artwork; character refinement remains a bounded change to the supplied mesh.
 `demo --clips vegetation,character-refinement` shows the choices.
 
 **F1 → Secondary motion** independently enables hair, loose cloth and carried
@@ -855,7 +858,8 @@ cloth collision or anatomical deformation. Original is the default: all three
 switches are off. Changing bodies, teleporting or reloading resets the springs.
 Attached blood stains and shadow geometry follow the same deformed surfaces.
 
-**Breeze** moves classified foliage and its shadows with anchored roots, and adds
+**Breeze** keeps roots anchored, gives trunks restrained motion and adds separate
+branch gusts and leaf flutter in both visible geometry and shadows. It also adds
 a small force to enabled hair/cloth/equipment motion. It is independent of the
 precipitation wind controls. Cosmetic motion advances with the fixed game clock,
 interpolates between ticks and freezes when paused; rendering more frames does
@@ -952,18 +956,25 @@ remains; replacement artwork can remove it for a fully relit look.
 This is a new visual treatment over the original baked colors.
 **Point-light budget** allows 0/1/2/4/8/16 simultaneous sources (default 2).
 Nearest sources fill the budget; the movable light takes priority.
-**Shadowed point lights** independently limits shadow rendering to the nearest
-0–4 lights. Unshadowed lights are cheaper but can shine through walls.
+**Shadowed point lights** independently limits shadow rendering to 0–8 lights.
+Stable slots and gradual handovers avoid abrupt nearby activation. Unshadowed
+lights are cheaper but can shine through walls.
 The menu shows active lights, shadow views and depth-map memory. Each shadowed
 point light costs six extra scene passes and about 6 MiB at 512 or 96 MiB at 2048.
+WebGL2 keeps an additional readable depth copy for soft-light filtering.
 Maps are allocated only for active shadowed lights; disabling shadows releases
-them. Filtering radius 0 retains bilinear depth comparisons; 1–8 adds nine-tap
-filtering. This softens edges, rather than simulating a full area light.
+them. Each view culls geometry outside its frustum. **Source size** controls
+blocker-dependent penumbrae: finite lanterns use a wider soft filter, while zero
+retains point-source filtering. Nearby emitting paper panels diffuse their own
+light instead of projecting their painted grating as hard shadows. Solid caps and
+other objects still occlude it. Sun-exposed surfaces suppress local-light contrast
+at midday; covered areas retain useful lantern fill. This approximates a diffuse
+finite source without a ray-traced lighting simulation.
 
 **Lantern / prop lights** recognizes names such as AKARI, TORO and ANDON from
 the disc, then samples bright side surfaces to locate/color the emitter.
 Placements and carried-weapon transforms supply world positions. Bright panels
-glow and transmit light; their darker frames and solid caps still cast shadows.
+glow and diffuse their own light; solid caps and other objects still cast shadows.
 Emission is scoped to those models, so shared wall textures and snowy roofs do
 not become light sources. This is a
 reusable heuristic, not recovered original lighting data. **Light source
@@ -1008,9 +1019,9 @@ baked colors. All these effects start disabled in Original.
 
 **F1 → Graphics → Surface depth** offers **Off**, **Bump** and **Parallax**,
 with a separate **Depth strength** slider. **Surface relief** is a ready-made
-preset. All existing presets, including Original, keep depth off. Bump changes
-how grain and seams catch dynamic/sky light; Parallax also shifts the texture
-with the viewing angle. Lower strength reduces distortion. Close-up texture
+preset. Original keeps depth off; Modern High uses Bump and Modern Ultra uses
+Parallax. Bump changes how grain and seams catch dynamic/sky light; Parallax also
+shifts the texture with the viewing angle. Lower strength reduces distortion. Close-up texture
 filtering remains an independent choice (Crisp preserves pixels; Cubic smooths).
 
 The port derives a softened height estimate from each opaque scenery texture,

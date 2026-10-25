@@ -123,6 +123,8 @@ impl Export {
                     .map_or(4, |n| n.get().min(16))
                     .to_string(),
             )
+            .arg("-force_key_frames")
+            .arg(chapters.starts.iter().map(|frame| (frame / FPS).to_string()).collect::<Vec<_>>().join(","))
             .args(["-f", "mp4"])
             .arg(files.directory.join("video.mp4"))
             .stdin(Stdio::piped())
