@@ -419,6 +419,7 @@ fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
         | Item::WeatherWind
         | Item::Wetness
         | Item::SnowCover
+        | Item::SnowDrift
         | Item::PuddleCoverage
         | Item::RainHaze
         | Item::RunoffAmount => (0, 100, 5, 1),

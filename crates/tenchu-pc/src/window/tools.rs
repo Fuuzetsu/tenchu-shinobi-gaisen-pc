@@ -277,6 +277,12 @@ impl Application {
                 let seconds = &mut self.settings.graphics.weather.footprint_seconds;
                 *seconds = (i32::from(*seconds) + direction * 10).clamp(10, 180) as u16;
             }
+            Item::ClearWeather => {
+                self.settings.graphics.weather.mode = settings::WeatherMode::Clear;
+                if let Some(view) = &mut self.view {
+                    view.clear_weather();
+                }
+            }
             Item::ClearFootprints => {
                 if let Some(view) = &mut self.view {
                     view.footprints.clear();
@@ -307,6 +313,7 @@ impl Application {
             | Item::WeatherWind
             | Item::Wetness
             | Item::SnowCover
+            | Item::SnowDrift
             | Item::PuddleCoverage
             | Item::RainHaze
             | Item::RunoffAmount => {
@@ -318,6 +325,7 @@ impl Application {
                     Item::PuddleCoverage => &mut weather.puddles,
                     Item::RainHaze => &mut weather.haze,
                     Item::RunoffAmount => &mut weather.runoff_amount,
+                    Item::SnowDrift => &mut weather.snow_drift,
                     _ => &mut weather.snow,
                 };
                 *value = (i32::from(*value) + direction * 5).clamp(0, 100) as u16;

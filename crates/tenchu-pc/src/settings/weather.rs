@@ -42,6 +42,7 @@ pub struct Weather {
     pub haze: u16,
     pub streaks: u16,
     pub snow: u16,
+    pub snow_drift: u16,
     pub runoff: bool,
     pub runoff_amount: u16,
     pub footprints: bool,
@@ -64,6 +65,7 @@ impl Default for Weather {
             haze: 25,
             streaks: 100,
             snow: 60,
+            snow_drift: 65,
             runoff: true,
             runoff_amount: 70,
             footprints: true,
@@ -87,6 +89,7 @@ impl Weather {
         self.streaks = self.streaks.min(200);
         self.runoff_amount = self.runoff_amount.min(100);
         self.snow = self.snow.min(100);
+        self.snow_drift = self.snow_drift.min(100);
         self.footprint_seconds = self.footprint_seconds.clamp(10, 180);
     }
 

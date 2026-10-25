@@ -23,6 +23,7 @@ struct Mark {
     age: f32,
     burial: f32,
     exposed: bool,
+    retirement: Option<f32>,
 }
 
 impl Mark {
@@ -31,6 +32,7 @@ impl Mark {
             .clamp(0.0, 1.0)
             .powi(2)
             * (1.0 - self.age / 600.0).clamp(0.0, 1.0)
+            * self.retirement.unwrap_or(1.0)
     }
 }
 
@@ -124,6 +126,9 @@ impl Footprints {
         };
         for mark in &mut self.marks {
             mark.age += 1.0 / 30.0;
+            if let Some(fade) = &mut mark.retirement {
+                *fade = (*fade - 1.0 / 45.0).max(0.0);
+            }
             if mark.exposed {
                 mark.burial += falling / 30.0;
             }
@@ -165,6 +170,7 @@ impl Footprints {
         });
         self.last
             .retain(|key, _| contacts.iter().any(|(part, _, _)| part == key));
+        let mut vertex_count: usize = self.marks.iter().map(|m| m.vertices.len()).sum();
         for (key, position, forward) in contacts {
             if self
                 .last
@@ -195,18 +201,39 @@ impl Footprints {
                 v.normal = hit.normal.to_array();
                 v.flags = (v.flags & !render_mesh::STAIN) | render_mesh::FOOTPRINT;
             }
+            if self.marks.len() == MARK_LIMIT || vertex_count + vertices.len() > VERTEX_LIMIT {
+                continue;
+            }
+            vertex_count += vertices.len();
             self.last.insert(key, position);
             self.marks.push_back(Mark {
                 vertices,
                 position: hit.position,
                 age: 0.0,
                 burial: 0.0,
+                retirement: None,
                 exposed: surfaces.exposed(hit.position - Vec3::Y * 5.0, settings.direction()),
             });
         }
-        let mut vertices: usize = self.marks.iter().map(|mark| mark.vertices.len()).sum();
-        while self.marks.len() > MARK_LIMIT || vertices > VERTEX_LIMIT {
-            vertices -= self.marks.pop_front().unwrap().vertices.len();
+        self.retire_to_budget();
+    }
+
+    fn retire_to_budget(&mut self) {
+        let mut count = 0;
+        let mut vertices = 0;
+        for mark in self.marks.iter().filter(|m| m.retirement.is_none()) {
+            count += 1;
+            vertices += mark.vertices.len();
+        }
+        for mark in &mut self.marks {
+            if count <= MARK_LIMIT * 3 / 4 && vertices <= VERTEX_LIMIT * 3 / 4 {
+                break;
+            }
+            if mark.retirement.is_none() {
+                mark.retirement = Some(1.0);
+                count -= 1;
+                vertices -= mark.vertices.len();
+            }
         }
     }
 
@@ -245,6 +272,7 @@ mod tests {
             age: 0.0,
             burial: 0.0,
             exposed: true,
+            retirement: None,
         };
         assert_eq!(mark.opacity(60), 1.0);
         mark.age = 30.0;
@@ -252,6 +280,35 @@ mod tests {
         assert!(mark.opacity(60) > 0.15 && mark.opacity(60) < 0.3);
         mark.burial = 60.0;
         assert_eq!(mark.opacity(60), 0.0);
+    }
+
+    #[test]
+    fn crowded_tracks_retire_without_deleting_visible_marks() {
+        let mut prints = Footprints::default();
+        for _ in 0..MARK_LIMIT {
+            prints.marks.push_back(Mark {
+                vertices: Vec::new(),
+                position: Vec3::ZERO,
+                age: 0.0,
+                burial: 0.0,
+                exposed: true,
+                retirement: None,
+            });
+        }
+        prints.retire_to_budget();
+        assert_eq!(prints.marks.len(), MARK_LIMIT);
+        assert_eq!(prints.marks.front().unwrap().opacity(60), 1.0);
+        assert_eq!(
+            prints
+                .marks
+                .iter()
+                .filter(|m| m.retirement.is_some())
+                .count(),
+            MARK_LIMIT / 4
+        );
+        prints.marks.front_mut().unwrap().retirement = Some(0.5);
+        assert_eq!(prints.marks.front().unwrap().opacity(60), 0.5);
+        assert_eq!(prints.marks.back().unwrap().opacity(60), 1.0);
     }
 
     #[test]
@@ -274,6 +331,7 @@ mod tests {
             age: 1.0,
             burial: 0.5,
             exposed: true,
+            retirement: None,
         });
         prints.update_shelter(&surfaces, Vec3::Y);
         assert!(!prints.marks[0].exposed);
@@ -330,6 +388,10 @@ mod retail_tests {
                 "character {character}: {} tracks, rigs {:?}",
                 prints.marks.len(),
                 prints.rigs
+            );
+            assert!(
+                prints.marks.front().unwrap().age > 7.0,
+                "Geometry pressure retired footprints before they could fade"
             );
             let count = prints.marks.len();
             prints.tick(&game, &models, &surfaces, &settings, 1.0, Vec3::ZERO);

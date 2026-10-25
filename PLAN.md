@@ -10,7 +10,44 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Weather follow-up showcase (in progress)
+## Remake presentation and usability follow-up (in progress)
+
+Complete the requested improvements, then record a new showcase of these changes
+only. Keep the preceding weather/tools recording as the comparison baseline.
+Preserve Original rendering, fixed gameplay arithmetic and portable native/WASM
+paths. Add opt-in effects and new preset choices, commit coherent stages, and
+validate the combined result in real stages before recording.
+
+1. Snow: smoothly fade buried footprints; remove rectangular coverage artifacts;
+   soften shelter silhouettes with spatially stable wind variation; add a Weather
+   clear action for accumulation, particles and tracks.
+2. Inspection and settings: clip enemy sight bounds to walls; add Modern High and
+   Ultra graphical presets that enable useful additions without black sight fog
+   or blob shadows; add a reversible Original/modern graphics toggle that keeps
+   gameplay preferences; group non-graphical remake settings into named presets.
+3. Lighting: balance local lights against daylight, soften lantern self-shadow
+   patterns as area illumination, and remove abrupt nearby shadow activation.
+4. Contact effects: improved cosmetic grappling sparks/light and rope/hook detail;
+   water-entry/step splashes with nearby ground wetting; snow/puddle/litter scatter
+   scaled by walking, running and landing, without touching collision or RNG.
+5. Vegetation: cover currently unaffected families, add improved tree/shrub models
+   and stable per-instance variation, branch/leaf motion with anchored trunks,
+   falling cherry petals/autumn leaves and bounded temporary ground litter.
+6. Integrate the new options into appropriate graphical presets, keep weather
+   choice and gameplay presets deliberate, verify native/WebGPU/WebGL2 and useful
+   regressions, then create a brief chaptered silent 4K/60 showcase containing only
+   this follow-up's changes. Retain reproducible inputs and verify every frame.
+
+Snow/inspection stage implemented: footprint stamps previously exhausted their
+vertex budget after 3–5 seconds of walking. Compact footprint tessellation and
+reserved fade capacity now preserve old marks and retire them gradually. Snow
+uses continuous coverage, filtered grain and adjustable world-space shelter
+softness; a clear action removes weather/accumulation/tracks and stops falling
+precipitation. Sight overlays now trace the original collision terrain from the
+guard's eye rather than drawing uninterrupted bounds through walls. Verification
+and preset/lighting/effect/vegetation stages remain in progress.
+
+## Weather follow-up showcase (baseline captured)
 
 Record only additions since the 3:06 effects showcase at `289d25a`: stronger wet
 reflections, puddles, rain haze and recurring eave drips; directional rain/snow
@@ -21,6 +58,11 @@ silent 4K/60 offline rendering and YouTube chapters. Preserve earlier recordings
 normal preferences and campaign saves. Review decoded frames from every clip,
 check every timestamp and full decode, and retain a reproducible live/export
 playlist plus frozen capture inputs. Explain the existing full-texture launcher.
+
+The baseline is captured under private/weather-showcase (2:46, 9,960 frames,
+11 chapters). Full decoding and exact 60 Hz timestamp checks pass. The later
+18-item follow-up supersedes delivery of this reel; its new showcase must also
+improve the footprint camera, which follows too far past the visible actor.
 
 ## Directional weather follow-up (complete)
 

@@ -377,6 +377,16 @@ fn distant_snow_and_surface_stains() {
     let mut graphics = crate::settings::Graphics::default();
     graphics.weather.mode = crate::settings::WeatherMode::Snow;
     renderer.configure(&graphics);
+    renderer.weather.snow = 0.6;
+    let settled = capture(&mut renderer, None);
+    let open: Vec<_> = (8..56)
+        .flat_map(|y| (8..56).map(move |x| (y * 64 + x) * 4))
+        .map(|i| settled[i])
+        .collect();
+    assert!(
+        open.iter().max().unwrap() - open.iter().min().unwrap() < 20,
+        "Open snow should form a continuous layer, not rectangular noise patches"
+    );
     renderer.weather.snow = 1.0;
     let snow = capture(&mut renderer, None);
     for x in [6, 32, 58] {
@@ -405,6 +415,29 @@ fn distant_snow_and_surface_stains() {
     let stain = capture(&mut renderer, Some(&blood));
     let track = capture(&mut renderer, Some(&foot));
     let at = (32 * 64 + 32) * 4;
+    let mut previous = track[at];
+    for opacity in [0.75, 0.5, 0.25, 0.01] {
+        let fade = renderer.upload_effects(render_effects::Geometry {
+            vertices: vertices
+                .iter()
+                .map(|v| Vertex {
+                    flags: v.flags | render_mesh::ALPHA | render_mesh::FOOTPRINT,
+                    opacity,
+                    ..*v
+                })
+                .collect(),
+            batches: vec![render_effects::Batch {
+                blend: 5,
+                range: 0..6,
+            }],
+        });
+        let faded = capture(&mut renderer, Some(&fade))[at];
+        assert!(
+            faded > previous,
+            "Footprint burial must lighten the rendered mark continuously"
+        );
+        previous = faded;
+    }
     assert!(stain[at] > stain[at + 1] + 40);
     assert!(track[at] < snow[at] - 30 && track[at] > original[at] + 30);
     renderer.weather.snow = 0.0;

@@ -127,7 +127,7 @@ impl Frame {
                 f32::from(settings.reflections) / 100.0,
                 amount * f32::from(settings.haze) / 100.0,
                 amount,
-                0.0,
+                f32::from(settings.snow_drift) / 100.0,
             ];
             self.precipitation = settings.direction();
             if weather.wet > 0.0

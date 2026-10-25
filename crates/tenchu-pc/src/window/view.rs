@@ -101,6 +101,12 @@ impl View {
         }
     }
 
+    pub(super) fn clear_weather(&mut self) {
+        self.weather = Default::default();
+        self.footprints.clear();
+        self.dirty = true;
+    }
+
     pub(super) fn cosmetic_tick(
         &mut self,
         game: &Game,

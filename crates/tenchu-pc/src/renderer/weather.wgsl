@@ -28,47 +28,78 @@ fn weather_incidence(normal: vec3<f32>) -> f32 {
     return clamp(-dot(normal, direction) / max(direction.y, 0.001), 0.0, 1.0);
 }
 
+fn weather_compare(uv: vec2<f32>, depth: f32, gradient: vec2<f32>, layer: i32) -> f32 {
+    let size = vec2<f32>(textureDimensions(weather_map));
+    let pixel = uv * size - vec2(0.5);
+    let blend = fract(pixel);
+    var exposed = 0.0;
+    for (var y = 0; y < 2; y++) {
+        for (var x = 0; x < 2; x++) {
+            let corner = vec2(f32(x), f32(y));
+            let sample_uv = (clamp(floor(pixel) + corner, vec2(0.0), size - vec2(1.0)) + vec2(0.5)) / size;
+            let reference = depth + dot(gradient, sample_uv - uv);
+            let weight = mix(vec2(1.0) - blend, blend, corner);
+            exposed += weight.x * weight.y
+                * textureSampleCompareLevel(weather_map, shadow_sampler, sample_uv, layer, reference);
+        }
+    }
+    return exposed;
+}
+
 fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
     let direction = weather_direction();
     var shelter = 0.0;
-    for (var layer = 1; layer >= 0; layer--) {
+    var remaining = 1.0;
+    for (var layer = 0; layer < 2; layer++) {
+        if remaining < 0.001 { break; }
         let p = lighting.weather_matrix[layer] * vec4(position - direction * 35.0, 1.0);
         let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
         if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { continue; }
-        let plane = transpose(lighting.weather_inverse[layer]) * vec4(normal, -dot(normal, position));
+        let inverse = lighting.weather_inverse[layer];
+        let plane = transpose(inverse) * vec4(normal, -dot(normal, position));
         var gradient = vec2(0.0);
         if abs(plane.z) > 0.00001 { gradient = vec2(-2.0, 2.0) * plane.xy / plane.z; }
-        // Correct each depth comparison to the receiving plane. A single slope
-        // bias leaks rain through nearby walls when the wind grazes a surface.
-        let size = vec2<f32>(textureDimensions(weather_map));
-        let pixel = uv * size - vec2(0.5);
-        let blend = fract(pixel);
-        var exposed = 0.0;
-        for (var y = 0; y < 2; y++) {
-            for (var x = 0; x < 2; x++) {
-                let corner = vec2(f32(x), f32(y));
-                let sample_uv = (clamp(floor(pixel) + corner, vec2(0.0), size - vec2(1.0)) + vec2(0.5)) / size;
-                let reference = p.z + dot(gradient, sample_uv - uv);
-                let weight = mix(vec2(1.0) - blend, blend, corner);
-                exposed += weight.x * weight.y
-                    * textureSampleCompareLevel(weather_map, shadow_sampler, sample_uv, layer, reference);
+        var exposed = weather_compare(uv, p.z, gradient, layer);
+        if lighting.weather.y > 0.0 && lighting.rain.w > 0.0 {
+            let size = vec2<f32>(textureDimensions(weather_map));
+            let pixel = vec2<i32>(clamp(uv * size, vec2(0.0), size - vec2(1.0)));
+            let blocker = (inverse * vec4(p.xy, textureLoad(weather_map, pixel, layer, 0), 1.0)).xyz;
+            let gap = max(0.0, dot(position - blocker, direction));
+            let radius = (65.0 + min(gap * 0.08, 250.0)) * lighting.rain.w;
+            let span = vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;
+            let turn = mat2x2(vec2(0.92388, 0.382683), vec2(-0.382683, 0.92388));
+            exposed *= 4.0;
+            for (var y = -1; y <= 1; y++) {
+                for (var x = -1; x <= 1; x++) {
+                    if x == 0 && y == 0 { continue; }
+                    let offset = turn * vec2(f32(x), f32(y)) * radius / span;
+                    let weight = select(1.0, 2.0, x == 0 || y == 0);
+                    exposed += weight * weather_compare(uv + offset, p.z + dot(gradient, offset), gradient, layer);
+                }
             }
+            exposed /= 16.0;
         }
-        let weight = select(1.0 - smoothstep(0.75, 0.95, max(abs(p.x), abs(p.y))), 1.0, layer == 1);
-        shelter = mix(shelter, exposed, weight);
+        let weight = select(1.0 - smoothstep(0.75, 0.95, max(abs(p.x), abs(p.y))), remaining, layer == 1);
+        shelter += exposed * weight;
+        remaining -= weight;
     }
     return shelter;
+}
+
+fn snow_variation(position: vec3<f32>) -> f32 {
+    let p = vec3(position.x * 0.8 + position.z * 0.6, position.y, position.z * 0.8 - position.x * 0.6) / 450.0;
+    return weather_noise(p) * 0.7 + weather_noise(p * 2.1 + vec3(17.0, 4.0, 29.0)) * 0.3;
 }
 
 fn snow_coverage(normal: vec3<f32>, exposure: f32, variation: f32) -> f32 {
     let retention = 0.35 * (1.0 - smoothstep(0.0, 0.3, normal.y))
         + 0.65 * smoothstep(0.3, 0.85, -normal.y);
-    let coverage = lighting.weather.y * exposure * weather_incidence(normal);
-    return retention * smoothstep(variation * 0.55, variation * 0.55 + 0.45, coverage);
+    let coverage = lighting.weather.y * weather_incidence(normal);
+    return retention * exposure * smoothstep(0.04 + variation * 0.2, 0.5 + variation * 0.2, coverage);
 }
 
 fn weather_snow(normal: vec3<f32>, position: vec3<f32>) -> f32 {
-    return snow_coverage(normal, weather_exposure(normal, position), weather_noise(position / 450.0));
+    return snow_coverage(normal, weather_exposure(normal, position), snow_variation(position));
 }
 
 fn rain_color() -> vec3<f32> {
@@ -148,8 +179,8 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
         color += reflection;
     }
     if lighting.weather.y == 0.0 { return color; }
-    let snow = snow_coverage(surface, shelter, variation);
-    let grain = weather_noise(position / 18.0);
+    let snow = snow_coverage(surface, shelter, snow_variation(position));
+    let grain = mix(weather_noise(position / 18.0), 0.5, smoothstep(8.0, 30.0, footprint));
     var white = vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1);
     if linear { white = pow(white, vec3(2.2)); }
     return mix(color, white * illumination(position, normal, surface), snow);

@@ -285,6 +285,7 @@ impl Stamp {
             stamp_triangle(
                 [center, polygon[i], polygon[(i + 1) % polygon.len()]],
                 0,
+                if self.shape.is_some() { 1 } else { 3 },
                 &finish,
                 out,
             );
@@ -297,6 +298,7 @@ impl Stamp {
 fn stamp_triangle(
     triangle: [Vertex; 3],
     depth: u8,
+    max_depth: u8,
     finish: &impl Fn(Vertex) -> Vertex,
     out: &mut Vec<Vertex>,
 ) {
@@ -315,11 +317,11 @@ fn stamp_triangle(
             (finish(v).opacity - (vertices[i].opacity + vertices[(i + 1) % 3].opacity) * 0.5).abs()
                 > 0.04
         });
-    if depth < 3 && split {
+    if depth < max_depth && split {
         let [a, b, c] = triangle;
         let [ab, bc, ca] = middle;
         for triangle in [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]] {
-            stamp_triangle(triangle, depth + 1, finish, out);
+            stamp_triangle(triangle, depth + 1, max_depth, finish, out);
         }
     } else {
         out.extend(vertices);

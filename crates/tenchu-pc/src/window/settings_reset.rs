@@ -98,6 +98,9 @@ impl Application {
                     s.graphics.weather.footprint_seconds
             }
             Item::SnowCover => self.settings.graphics.weather.snow = s.graphics.weather.snow,
+            Item::SnowDrift => {
+                self.settings.graphics.weather.snow_drift = s.graphics.weather.snow_drift
+            }
             Item::RoofRunoff => self.settings.graphics.weather.runoff = s.graphics.weather.runoff,
             Item::TimeClock => self.settings.graphics.sky.enabled = s.graphics.sky.enabled,
             Item::TimeOfDay => self.settings.graphics.sky.time = s.graphics.sky.time,

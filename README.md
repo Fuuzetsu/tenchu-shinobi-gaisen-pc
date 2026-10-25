@@ -704,9 +704,17 @@ Near and whole-stage shelter maps respect scenery cutouts. Moving actors cast
 lighting shadows without erasing snow beneath them. Fog and particle distance do
 not limit accumulated ground coverage. Model/artwork changes preserve accumulation.
 
+**Clear weather now** removes accumulation, tracks, runoff and airborne particles
+immediately and selects Clear. Select Rain or Snow again to restart precipitation.
+**Snow drift softness** broadens shelter silhouettes in world units to approximate
+varying wind, independently of weather detail. Settled snow forms a continuous
+layer; grain is filtered at distance instead of becoming large square patches.
+
 Snow footprints follow players' and humanoid enemies' animated feet and project
 onto actual ground triangles. Fresh snowfall buries exposed tracks gradually;
-turning the wind updates which tracks receive snow. F1 controls the burial time
+turning the wind updates which tracks receive snow. Projected tracks use compact
+geometry, and older tracks fade under budget pressure instead of disappearing.
+F1 controls the burial time
 and provides a clear action. Ground blood stains absorb the snow
 material. Tracks, particles and decals are bounded cosmetic effects; collision
 is unchanged and there is no fluid/flood simulation. Low/Medium/High weather

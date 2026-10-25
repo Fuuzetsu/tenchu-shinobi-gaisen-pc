@@ -258,6 +258,8 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                 _ => matches!(game.player().status, 11 | 12),
             };
             let profile = tenchu_core::actor::sight::profile(sneaking, debug.sight_percent);
+            let eye = position
+                + Vec3::Y * (300.0 - f32::from(game.mission.characters[actor.definition].height));
             for (range, color) in [
                 (profile.clear, [0.35, 1.0, 0.3]),
                 (profile.sight, [1.0, 0.75, 0.2]),
@@ -267,21 +269,25 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                         continue;
                     }
                     let radius = ((range as f32).powi(2) - dy * dy).sqrt();
-                    let points: Vec<_> = (0..=32)
+                    let points: Vec<_> = (0..=64)
                         .map(|i| {
                             let angle = (f32::from(actor.rotation[1])
                                 - f32::from(profile.half_angle)
-                                + 2.0 * f32::from(profile.half_angle) * i as f32 / 32.0)
+                                + 2.0 * f32::from(profile.half_angle) * i as f32 / 64.0)
                                 * std::f32::consts::TAU
                                 / 4096.0;
-                            position + Vec3::new(-angle.sin() * radius, dy, -angle.cos() * radius)
+                            let target =
+                                eye + Vec3::new(-angle.sin() * radius, dy, -angle.cos() * radius);
+                            super::sight::endpoint(&game.mission.terrain, eye, target)
                         })
                         .collect();
                     for pair in points.windows(2) {
-                        lines.line(pair[0], pair[1], color);
+                        if pair[0].distance(pair[1]) < radius * 0.15 {
+                            lines.line(pair[0], pair[1], color);
+                        }
                     }
-                    lines.line(position + Vec3::Y * dy, points[0], color);
-                    lines.line(position + Vec3::Y * dy, points[32], color);
+                    lines.line(eye, points[0], color);
+                    lines.line(eye, points[64], color);
                 }
             }
         }

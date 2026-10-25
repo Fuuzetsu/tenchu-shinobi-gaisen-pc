@@ -1,5 +1,6 @@
 pub mod camera;
 mod overlay;
+mod sight;
 pub use overlay::{Anchor, Label, Overlay, light_markers};
 pub mod terrain;
 

@@ -39,9 +39,11 @@ pub enum Item {
     RainStreaks,
     RunoffAmount,
     SnowCover,
+    SnowDrift,
     Footprints,
     FootprintSeconds,
     ClearFootprints,
+    ClearWeather,
     RoofRunoff,
     TimeClock,
     TimeOfDay,
@@ -173,6 +175,7 @@ impl Item {
                 | Self::ClearItems
                 | Self::ClearBlood
                 | Self::ClearFootprints
+                | Self::ClearWeather
                 | Self::ReloadModels
                 | Self::FocusPlayer
                 | Self::FocusActor
@@ -403,6 +406,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Original retains the mission weather. Clear, Rain and Snow replace its presentation only.",
                 ),
                 (
+                    Item::ClearWeather,
+                    "Clear weather now",
+                    "Clear".into(),
+                    "Remove snow, wetness, puddles, tracks and particles immediately. Stops precipitation; select Rain or Snow to restart.",
+                ),
+                (
                     Item::WeatherAmount,
                     "Precipitation",
                     format!("{}%", weather.amount),
@@ -473,6 +482,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Snow cover",
                     format!("{}%", weather.snow),
                     "Snow builds on exposed upward surfaces and dusts windward walls. Sheltered and leeward surfaces stay clear; coverage melts when snow stops.",
+                ),
+                (
+                    Item::SnowDrift,
+                    "Snow drift softness",
+                    format!("{}%", weather.snow_drift),
+                    "Broaden snow shelter edges to approximate varying wind. High weather detail improves accuracy without sharpening tree silhouettes.",
                 ),
                 (
                     Item::Footprints,
@@ -971,7 +986,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::Sight,
                 "Enemy sight bounds",
                 on(d.sight),
-                "Calm-state bounds; occlusion not drawn.",
+                "Calm-state sight bounds clipped by collision walls, floors and ceilings. No AI edits.",
             ),
             (
                 Item::SightStance,
