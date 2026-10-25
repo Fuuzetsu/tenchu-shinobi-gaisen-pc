@@ -179,9 +179,22 @@ impl Contact {
                 Effect::FlyWire(w) if options.sparks => {
                     wire_slots.insert(slot, w.mode);
                     if w.mode == 1 && self.wires.get(&slot) != Some(&1) {
-                        let position = surfaces
-                            .cast_excluding(point(w.start), point(w.end), render_mesh::FOLIAGE)
+                        let hit = surfaces.cast_excluding(
+                            point(w.start),
+                            point(w.end),
+                            render_mesh::FOLIAGE,
+                        );
+                        let position = hit
                             .map_or_else(|| point(w.end), |hit| hit.position + hit.normal * 40.0);
+                        let normal = hit.map_or_else(
+                            || {
+                                (point(w.start) - point(w.end))
+                                    .try_normalize()
+                                    .unwrap_or(Vec3::NEG_Y)
+                            },
+                            |hit| hit.normal,
+                        );
+                        let first = self.particles.len();
                         self.burst(
                             Kind::Spark,
                             position,
@@ -189,6 +202,10 @@ impl Contact {
                             24 * usize::from(options.spark_density) / 100,
                             [1.0, 0.64, 0.2],
                         );
+                        let rotation = glam::Quat::from_rotation_arc(Vec3::NEG_Y, normal);
+                        for particle in &mut self.particles[first..] {
+                            particle.velocity = rotation * particle.velocity;
+                        }
                         if self.flashes.len() < 8 && options.spark_density > 0 {
                             self.flashes.push(Flash { position, age: 0.0 });
                         }

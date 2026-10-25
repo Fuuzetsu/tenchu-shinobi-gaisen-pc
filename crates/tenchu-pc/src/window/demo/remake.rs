@@ -252,12 +252,38 @@ mod tests {
             let mut wire = false;
             let mut splash = false;
             let mut impacts = 0;
+            let surfaces = Surfaces::new(&vertices);
+            let mut contact = crate::visuals::contact::Contact::default();
+            let mut flash = false;
             let camera = demo::camera(&player, &game, true)
                 .unwrap_or_else(|| debug::camera::Camera::from_game(&game));
             let matrix = camera.matrix(16.0 / 9.0);
             let mut bounds = Vec3::ZERO;
             for tick in 0..u64::from(clip.seconds) * 15 {
                 game.step(player.buttons(tick)).unwrap();
+                if id == "remake-grapple" {
+                    let camera = debug::camera::Camera::from_game(&game);
+                    contact.tick(
+                        &game,
+                        &surfaces,
+                        &settings.graphics,
+                        Default::default(),
+                        camera.position,
+                    );
+                    if !flash && let Some(source) = contact.lights().first() {
+                        let ndc = camera
+                            .matrix(16.0 / 9.0)
+                            .project_point3(source.light.position);
+                        eprintln!(
+                            "grapple impact at tick {tick}: {:?}, NDC {ndc}",
+                            source.light.position
+                        );
+                        assert!(
+                            ndc.x.abs() < 0.9 && ndc.y.abs() < 0.9 && (0.0..1.0).contains(&ndc.z)
+                        );
+                        flash = true;
+                    }
+                }
                 for effect in game.effects.slots.iter().flatten() {
                     match effect {
                         tenchu_core::effects::Effect::FlyWire(w) => {
@@ -279,7 +305,10 @@ mod tests {
                 player.scene.target
             );
             if id == "remake-grapple" {
-                assert!(wire && impacts > 0, "grapple demo did not hit anything");
+                assert!(
+                    wire && impacts > 0 && flash,
+                    "grapple demo did not show a visible lit impact"
+                );
             }
             if id == "remake-water-contact" {
                 assert!(splash, "water demo did not generate a splash");

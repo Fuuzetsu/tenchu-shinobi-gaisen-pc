@@ -198,6 +198,50 @@ fn contact_effects_follow_contacts_without_changing_gameplay() {
             .iter()
             .all(|v| Vec3::from(v.position).is_finite() && Vec3::from(v.normal).is_finite())
     );
+    for normal in [Vec3::Y, Vec3::X] {
+        let rotation = glam::Quat::from_rotation_arc(Vec3::NEG_Y, normal);
+        let mut triangles = floor(Vec3::ZERO, 0);
+        for vertex in &mut triangles {
+            vertex.position = (origin + rotation * Vec3::from(vertex.position)).to_array();
+            vertex.normal = normal.to_array();
+        }
+        let surfaces = Surfaces::new(&triangles);
+        contact.clear();
+        game.effects.reset();
+        game.effects
+            .fly_wire(
+                (origin + normal * 3000.0).as_ivec3().to_array().into(),
+                (origin - normal * 100.0).as_ivec3().to_array().into(),
+                &game.math,
+                &mut game.random,
+            )
+            .unwrap();
+        for effect in game.effects.slots.iter_mut().flatten() {
+            if let Effect::FlyWire(w) = effect {
+                w.mode = 1;
+                w.count = 1;
+            }
+        }
+        game.tick += 1;
+        contact.tick(&game, &surfaces, &graphics, weather, origin);
+        let sparks = contact.particles.len();
+        assert!(sparks > 0);
+        for _ in 0..6 {
+            game.tick += 1;
+            contact.tick(&game, &surfaces, &graphics, weather, origin);
+        }
+        assert_eq!(
+            contact.particles.len(),
+            sparks,
+            "ceiling/wall impacts must spray into open space, not into the surface"
+        );
+        assert!(
+            contact
+                .particles
+                .iter()
+                .all(|p| (p.position - origin).dot(normal) > 40.0)
+        );
+    }
     eprintln!(
         "walk/run/landing strength: {strengths:?}/{}; splash and grapple events passed",
         landing[0].strength
