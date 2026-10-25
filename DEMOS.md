@@ -65,7 +65,7 @@ BT.709 limited-range 4:2:0, fast start). The Nix package and shell supply FFmpeg
 `TENCHU_FFMPEG` can select another installation. The destination directory must
 exist, and existing video/chapter files are never overwritten.
 
-The full catalog is 706 seconds / 42,360 frames. No display capture is involved:
+The full catalog is 1,101 seconds / 66,060 frames. No display capture is involved:
 the renderer waits for GPU readback and encoding before advancing the exact
 60 Hz timeline. Host speed changes completion time, never output cadence.
 Mission loading adds no video time. The window is only a host for the renderer;
@@ -81,7 +81,9 @@ Profiling/FPS demonstrations still measure real host work, including readback
 and encoder waits, and their captions identify this. Those numbers are not a
 real-time gameplay benchmark. The video still plays at 60 fps.
 
-Each selected clip becomes an embedded MP4 chapter. The adjacent
+Each selected clip becomes an embedded MP4 chapter, with a closed keyframe at its
+start so chapters can be edited without re-encoding. Captions retain the full
+catalog's numbering when exporting a subset. The adjacent
 `tenchu-showcase.chapters.txt` contains the same titles/timestamps for the
 YouTube description. Paste that file into the video's description when
 uploading: [YouTube reads chapters from description timestamps](https://support.google.com/youtube/answer/9884579),
@@ -106,7 +108,7 @@ no exact catalog is available; omit `--youtube` for clips shorter than ten secon
 The built-in catalog is [demos.json](crates/tenchu-pc/data/demos.json).
 Copy it outside the repository, keep/edit the clips you want, and launch with
 `--catalog /path/to/my-demos.json`. IDs must be unique; descriptions, titles,
-duration (2–120 seconds), mission (0–10), character (0/1), preset (0–6), shot and
+duration (2–120 seconds), mission (0–10), character (0/1), preset (0–9), shot and
 feature are validated. `--clips` also works with a custom catalog.
 
 A shot chooses a player, lamp, fire, guard, wide or cinematic anchor from the actual
@@ -241,12 +243,42 @@ The same feature clips work from a normal checkout with the user's own assets:
 ./dev.sh cargo run --release -- demo '/path/to/game.cue' --clips water,waterfalls,day-cycle,rain,snow,vegetation,breeze,character-refinement,secondary-motion,equipment-motion,blood
 ```
 
+## Remake follow-up recording
+
+`private/remake-showcase/tenchu-remake-showcase-4k60.mp4` is the focused **3:45,
+silent 4K/60** follow-up. Its 20 chapters show only the latest changes: Modern
+High/Ultra and independent gameplay profiles, F8 retro comparison, smoother snow
+shelter and gradual track burial, weather clearing, wall-clipped sight bounds,
+daylight-balanced diffuse lamps and wider shadow coverage, botanical foliage and
+varied crowns, branch motion, falling/scattered petals and leaves, and grapple,
+water, snow and puddle contact effects. Existing HD artwork remains enabled
+except during the explicit retro comparison.
+
+```sh
+./private/remake-showcase/play.sh
+./private/remake-showcase/render.sh /path/to/new-video.mp4
+```
+
+The frozen catalog, executable, artwork and input hashes are beside the video.
+`assemble.py` records the replacement chapters and joins closed GOPs without
+re-encoding. `validation.json` verifies all 13,500 consecutive frame timestamps,
+complete decoding and 20 embedded chapters; `visual-review.json` records sampled
+frames from every clip. The local watch page has chapter buttons, and
+`youtube-description.txt` includes timestamps for upload. These private files
+are excluded from Git; nothing is uploaded automatically.
+
+Snow and seasonal litter are pre-settled where useful. The hook comparison uses
+an actual ceiling impact; water and footstep effects come from ordinary movement.
+The botanical geometry is procedural, using existing materials. Wet marks,
+foliage litter and scatter are bounded visual effects. Offline 60 fps output does
+not imply that High/Ultra sustain 60 fps on every renderer, especially WebGL2.
+
 ## F1 coverage
 
 | F1 page | Clips / scope |
 |---|---|
-| General | `interface`, `profiler`: HUD, clear FPS text, live CPU/GPU history. Focus/menu pause, volume, fullscreen and vsync remain usable preferences; they are not repeatedly changed during recording. |
-| Graphics | `presets`, `surfaces`, `textures`, `filtering`, `edges`, `motion`, `atmosphere`: all visual controls, with supported GPU MSAA levels only. |
+| General | `interface`, `profiler`, `remake-modern-presets`, `remake-gameplay-profiles`: HUD, clear FPS text, live CPU/GPU history, visual and independent gameplay presets. Focus/menu pause, volume, fullscreen and vsync remain usable preferences; they are not repeatedly changed during recording. |
+| Graphics | `presets`, `surfaces`, `textures`, `filtering`, `edges`, `motion`, `atmosphere`, `remake-retro`: visual controls and the reversible Original comparison, with supported GPU MSAA levels only. |
 | Overlays | `inspection`, `sight-distance`, `collision`, `teleport`: labels, hitboxes, sight/stance bounds, patrols, event regions, terrain, x-ray and trail. |
 | Camera | `camera`, `photo`: independent camera, framing, FOV, overhead and clean photo view. Bookmark/flight controls remain available in F1. |
 | Teleport / actor | `inspection`, `enemies`, `teleport`: actor selection/state, explicit position changes and collision-floor placement. |
@@ -262,7 +294,12 @@ The same feature clips work from a normal checkout with the user's own assets:
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
 | Player model | `bodies`: compatible disc bodies and configured folder bodies, with original animation and weapons. |
 | Persistent effects | `blood`, `blood-snow`: a staged guard encounter produces attached wounds and ground stains through ordinary combat, including blood staining the snow. |
-| Experiment | `experiment`: refill/edit mission equipment, god/stealth toggles and two real collision-floor clicks to teleport. Only this staged clip enables these gameplay tools. |
+| Experiment | `experiment`: refill/edit mission equipment, god/stealth toggles and two real collision-floor clicks to teleport. These tools are enabled by explicit demo setup or gameplay profiles. |
+| Contact effects | `remake-grapple`, `remake-water-contact`, `remake-petal-fall`, `remake-leaf-fall`, `remake-snow-scatter`, `remake-puddle-scatter`: rope/hook detail, lit sparks, splashes, seasonal litter and movement-scaled scatter. |
+
+The other `remake-*` clips compare snow shelter, track burial and weather clearing;
+wall-clipped sight overlays; diffuse daylight-balanced lamps and stable shadow
+coverage; and botanical models, varied crowns and separate branch/leaf motion.
 
 `grenade-light` and `kaen-light` use each item twice, once with Fire / explosion
 lights off and once on. Both use the original item inputs and effect lifetimes;
@@ -287,7 +324,7 @@ PNG capture and repeated Escape exit. Private save/settings sentinels remained
 byte-for-byte unchanged. Desktop regression checks, Clippy, formatting and Nix
 native-package/portable-WASM checks pass. Captures and disc data stay outside Git.
 
-Offline exports were checked at 4K, including the full default 502-second
+Offline exports were checked at 4K, including the original 502-second
 sequence: 30,120 video packets, unique consecutive 1/60-second timestamps, no
 audio stream, BT.709 color tags, square pixels, progressive H.264 High, fast-start
 MP4 and all 37 chapter/title boundaries. Decoded previews from every clip and

@@ -10,96 +10,73 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Remake presentation and usability follow-up (in progress)
+## Remake presentation and usability follow-up (complete)
 
-Complete the requested improvements, then record a new showcase of these changes
-only. Keep the preceding weather/tools recording as the comparison baseline.
-Preserve Original rendering, fixed gameplay arithmetic and portable native/WASM
-paths. Add opt-in effects and new preset choices, commit coherent stages, and
-validate the combined result in real stages before recording.
+Implemented the requested 18 improvements and recorded a focused showcase of
+this batch. Original rendering and gameplay remain available; new visual presets
+and gameplay profiles are independent. Native and portable WASM paths share the
+presentation logic.
 
-1. Snow: smoothly fade buried footprints; remove rectangular coverage artifacts;
-   soften shelter silhouettes with spatially stable wind variation; add a Weather
-   clear action for accumulation, particles and tracks.
-2. Inspection and settings: clip enemy sight bounds to walls; add Modern High and
-   Ultra graphical presets that enable useful additions without black sight fog
-   or blob shadows; add a reversible Original/modern graphics toggle that keeps
-   gameplay preferences; group non-graphical remake settings into named presets.
-3. Lighting: balance local lights against daylight, soften lantern self-shadow
-   patterns as area illumination, and remove abrupt nearby shadow activation.
-4. Contact effects: improved cosmetic grappling sparks/light and rope/hook detail;
-   water-entry/step splashes with nearby ground wetting; snow/puddle/litter scatter
-   scaled by walking, running and landing, without touching collision or RNG.
-5. Vegetation: cover currently unaffected families, add improved tree/shrub models
-   and stable per-instance variation, branch/leaf motion with anchored trunks,
-   falling cherry petals/autumn leaves and bounded temporary ground litter.
-6. Integrate the new options into appropriate graphical presets, keep weather
-   choice and gameplay presets deliberate, verify native/WebGPU/WebGL2 and useful
-   regressions, then create a brief chaptered silent 4K/60 showcase containing only
-   this follow-up's changes. Retain reproducible inputs and verify every frame.
+- Snow footprints use compact tessellation and reserved fade capacity, avoiding
+  abrupt disappearance when their geometry budget fills. Fresh cover gradually
+  buries them. Continuous coverage, filtered grain and world-space shelter
+  softness remove rectangular patches and soften directional tree silhouettes.
+  Weather's clear action removes accumulation, tracks and weather particles.
+- Sight inspection bounds stop at stage geometry using a cached triangle BVH.
+  This is a visual diagnostic; the original AI is unchanged. Moving doors are not
+  part of this static inspection mesh.
+- Modern High/Ultra integrate useful effects with 2x/4x MSAA, no black sight fog
+  and no original blob shadows. They preserve weather choice and artwork-pack
+  preference. F8 temporarily compares Original visuals and restores the selected
+  settings. Independent gameplay profiles group guard activation, sight range,
+  cutscene speed and opt-in practice tools without changing inventory or graphics.
+  AGENTS.md now requires reviewing these presets when adding presentation features.
+- Local lighting supports eight shadow slots, stable assignments and 0.3-second
+  handovers. High/Ultra select six/eight. Finite sources use blocker-dependent
+  penumbrae; emitting paper panels diffuse their own light while caps and other
+  solid geometry still occlude it. Sunlight suppresses local fill on exposed
+  surfaces while covered lanterns remain useful. Spatial shadow batches cull
+  against each face with wind padding.
+- Botanical/Botanical dense build folded leaf sprays and rounded bamboo stalks
+  from existing materials. Autumn, snowy shrub and bamboo families participate.
+  Stable per-placement crown variants keep roots anchored; trunks, branches and
+  leaves have separate matching visible/shadow wind motion. These are procedural
+  geometry improvements, not a replacement set of hand-authored tree assets.
+- Contact effects add round braided grapple rope, refined hook geometry, impact
+  sparks and a brief light; water droplets/ripples and temporary nearby wet marks;
+  falling cherry petals/autumn leaves that settle, fade and scatter; and snow/
+  puddle scatter scaled by walking, running and landing. Cosmetic state has
+  bounded budgets and its own RNG. Ceiling/wall sparks spray away from the struck
+  surface instead of immediately colliding with it. Generic original combat
+  sparks remain, because they also serve unrelated weapon and item effects.
 
-Snow/inspection stage implemented: footprint stamps previously exhausted their
-vertex budget after 3–5 seconds of walking. Compact footprint tessellation and
-reserved fade capacity now preserve old marks and retire them gradually. Snow
-uses continuous coverage, filtered grain and adjustable world-space shelter
-softness; a clear action removes weather/accumulation/tracks and stops falling
-precipitation. Sight overlays trace stage geometry from the guard's eye rather than drawing
-uninterrupted bounds through walls. A cached spatial index avoids repeated
-small-step terrain queries while guards move. Verification
-and lighting/effect/vegetation stages remain in progress. Modern High/Ultra,
-independent gameplay profiles, persistent sight range and reversible F8 retro
-rendering are implemented. Settings round-trip and actual-disc checks verify
-graphics/gameplay separation and unchanged inventory; browser checks remain.
+Verification: 63 PC unit checks and focused native GPU/actual-disc checks pass.
+The real-stage shadow-culling comparison matches the unculled render exactly.
+Tests cover snow shelter/burial, daylight and finite-source shadows, vegetation
+budgets/anchoring, contact lifetimes/wetting, ceiling/wall sparks, visual/gameplay
+preset separation and unchanged core state. Real models from missions 1/3/4/5
+were exercised. Formatting, workspace/all-target Clippy, release native build and
+WASM checking pass. Chromium WebGPU and WebGL2 exercise High/Ultra, F8 round-trip,
+gameplay profiles, clear weather and contact controls without GPU/page errors.
+WebGL2 uses a same-pass R32F attachment for readable blocker/shelter depth.
 
-Lighting stage implemented: eight point-shadow slots are available, with stable
-assignments and 0.3-second handovers. High/Ultra use six/eight shadowed lights.
-Finite-size sources use blocker-dependent penumbrae; nearby emissive paper panels
-act as diffuse emitters instead of projecting their painted grating from a single
-point. Solid caps and other geometry still occlude light. Sun-exposed surfaces
-suppress local fill while covered areas retain it. Synthetic GPU tests cover
-grated occluders, sunlight/indoor balance, moon fill, opaque/cutout geometry and
-shadow budgets; actual Mission 1 lantern captures were reviewed. Native/WASM
-builds pass. Contact effects and combined browser/video review remain.
+The final recording is
+`private/remake-showcase/tenchu-remake-showcase-4k60.mp4`: **3:45, silent 4K/60,
+20 chapters**. Every one of its 13,500 consecutive timestamps, full decoding,
+chapter metadata and local browser chapter playback pass. Decoded samples from
+every chapter were reviewed. The snow view holds the path; tree cameras frame
+roots/crowns; the grapple comparison shows an actual lit ceiling impact. Frozen
+inputs, input hashes, isolated settings, original/pickup footage, packet-copy
+assembly, a watch page and YouTube chapter text are preserved beside the video.
+The 20 `remake-*` clips are also in the built-in demo catalog. Private capture and
+review evidence remains outside Git under `private/remake-review` and
+`private/remake-showcase`.
 
-Vegetation stage: Botanical/Botanical dense build folded leaf sprays and rounded
-bamboo stalks from the disc materials. Added autumn, snowy shrub and bamboo
-classifications; material sharing no longer bends bare wooden props as trees.
-Optional per-placement crown variants keep root vertices anchored. Trunks,
-branches and leaves use distinct wind motion in both visible and shadow passes.
-Actual models from missions 1/3/4/5 and the mission 1 garden were reviewed;
-geometry budgets, stable variants, unchanged game state and matching wind/shadow
-checks pass. Falling foliage and ground interactions are the next stage.
-
-Contact-effects stage implemented: rounded braided rope geometry with the original
-hook path, refined hook mesh, impact sparks and a brief light, water contact
-spray/rings and temporary nearby wet marks. Seasonal foliage comes from classified
-cherry/autumn materials, settles through canopy cards onto terrain, fades and
-scatters underfoot. Snow/puddle scatter scales with movement and landing impact.
-All particles have bounded lifetimes/budgets and an independent cosmetic RNG.
-F1 has a Contact effects page; High/Ultra enable the additions. Actual-disc checks
-cover seasonal trees in missions 1/3, settling, walking/running/landing, one-shot
-grapple bursts, water wetting, finite rope geometry and unchanged core state.
-GPU wet-mark/emission checks pass. Combined browser/live visual review and the new
-showcase remain outstanding.
-
-Combined validation: 63 PC unit checks and eight focused native GPU/actual-disc
-checks pass. Both Chromium WebGPU and WebGL2 exercise High/Ultra, F8 round-trip,
-independent gameplay profiles, weather clearing and the contact-effects controls
-without GPU/page errors. WebGL2's shader translator cannot load depth textures;
-a same-pass R32F attachment supplies blocker/shelter depths instead. Spatial
-shadow batches cull against each light face with wind padding; a real-stage GPU
-comparison matches the unculled render exactly. Sight overlays now use a cached
-triangle BVH, avoiding the expensive per-frame terrain marching. Original combat
-sparks remain present: filtering their generic yellow sprite would also remove
-unrelated weapon/item effects.
-
-The new built-in remake playlist has 20 clips totaling 3:45, with actual hook
-impacts, water contact, footprint burial, seasonal litter and independent presets.
-Native scene review fixed the snow camera and moved the sight view away from dense
-foliage. Native/WASM builds, formatting and workspace Clippy pass. At roughly
-1340×758 the full High preset measures about 30 FPS on Chromium WebGPU and 6–7 FPS
-on WebGL2 on this GTX 1080 Ti; these heavy presets are not a browser performance
-claim. Final 4K export, decoded-frame review and chapter verification remain.
+Limits: litter, wet marks and scatter are bounded visual approximations, not a
+fluid/ecosystem simulation. High/Ultra are demanding: at roughly 1340×758 on this
+GTX 1080 Ti, High measured about 30 FPS on Chromium WebGPU and 6–7 FPS on WebGL2.
+Offline 4K/60 capture preserves every frame but is not a real-time performance
+claim. Normal preferences and campaign saves are preserved by the showcase.
 
 ## Weather follow-up showcase (baseline captured)
 
