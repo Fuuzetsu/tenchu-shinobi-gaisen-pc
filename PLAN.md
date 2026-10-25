@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Rain presentation follow-up (in progress)
+## Rain presentation follow-up (complete)
 
 Make rain legible in actual play without changing gameplay or Original weather.
 Add independently adjustable wet reflections, shallow puddle coverage/build-up,
@@ -33,7 +33,16 @@ Streaks trail behind falling drops rather than extending through their impact
 surface. Cosmetic state preserves pause, model-rebuild and mission-reset behavior.
 Native GPU checks cover reflection/ripple/haze controls and shelter; Mission 1
 roof/ground captures were reviewed. Six CPU weather checks and workspace tests
-pass. Three focused rain demos are present. Browser integration review is next.
+pass. Native playback completes all three rain demos. Chromium WebGPU and WebGL2
+checks visibly compare wet reflections and haze with fog off, edit/reset the new
+F1 values, retain identical paused game state and report no graphics/page errors.
+In the 1280×724 smoke check, WebGPU sustains 60 FPS; WebGL2 is functional but
+slower (about 15 FPS with rain and four lights, versus 19 with weather Original
+and those lights still enabled). This is not a 4K performance claim. Native/WASM
+builds, formatting, Clippy and the point-light/shadow regressions pass. Private
+captures, browser results and demo logs are under private/rain-review. Puddles
+approximate shallow surface variation; reflections include sky/light highlights,
+not mirrored scenery or a fluid/drainage simulation.
 
 ## Weather integration and experimentation tools (complete)
 
