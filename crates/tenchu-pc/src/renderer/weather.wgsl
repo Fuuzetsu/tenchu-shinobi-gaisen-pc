@@ -153,7 +153,7 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
             if glint < 0.001 { continue; }
             let falloff = 1.0 - smoothstep(0.0, 1.0, distance / light.position.w);
             reflection += light.color.rgb * lighting.options.y * falloff * falloff
-                * glint * specular * point_visibility(light, position, surface);
+                * glint * specular * point_visibility(light, position, surface) * local_exposure(position, surface);
         }
     }
     return reflection * lighting.rain.x;

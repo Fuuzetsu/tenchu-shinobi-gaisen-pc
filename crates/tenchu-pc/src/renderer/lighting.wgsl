@@ -11,6 +11,7 @@ struct Lighting {
     weather_inverse: array<mat4x4<f32>, 2>,
     weather: vec4<f32>,
     rain: vec4<f32>,
+    source: vec4<f32>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
@@ -25,6 +26,12 @@ fn shadow_face(direction: vec3<f32>) -> u32 {
     return select(5u, 4u, direction.z >= 0.0);
 }
 
+fn local_exposure(position: vec3<f32>, surface: vec3<f32>) -> f32 {
+    if lighting.source.y == 0.0 || lighting.sun_direction.w == 0.0 { return 1.0; }
+    let daylight = lighting.source.y * lighting.sun_direction.w * sun_visibility(position, surface);
+    return 1.0 / (1.0 + 24.0 * daylight);
+}
+
 fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32>) -> vec3<f32> {
     if !LIGHTING_ENABLED || lighting.options.w == 0.0 { return vec3(1.0); }
     var result = lighting.options.x * mix(vec3(1.0), vec3(0.6, 0.75, 1.0), lighting.lamps.z);
@@ -33,6 +40,7 @@ fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32
         result += lighting.sun_color.rgb * lighting.sun_direction.w
             * sun_diffuse * sun_visibility(position, surface_normal);
     }
+    let local = local_exposure(position, surface_normal);
     for (var i = 0u; i < u32(lighting.options.z); i++) {
         let light = lighting.lights[i];
         let delta = position - light.position.xyz;
@@ -43,7 +51,7 @@ fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32
         let visibility = point_visibility(light, position, surface_normal);
         let falloff = 1.0 - smoothstep(0.0, 1.0, distance / light.position.w);
         result += light.color.rgb * lighting.options.y * falloff * falloff
-            * diffuse * visibility;
+            * diffuse * visibility * local;
     }
     return result;
 }
@@ -74,11 +82,21 @@ fn sun_visibility(position: vec3<f32>, normal: vec3<f32>) -> f32 {
     return mix(visibility, 1.0, smoothstep(0.85, 1.0, edge));
 }
 
-fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>) -> f32 {
+fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>, penumbra: f32) -> f32 {
     let size = vec2<f32>(textureDimensions(shadow_maps));
     let reference = depth - dot(abs(gradient), vec2(0.5) / size);
-    if lighting.lamps.y == 0.0 {
+    if lighting.lamps.y == 0.0 && penumbra == 0.0 {
         return textureSampleCompareLevel(shadow_maps, shadow_sampler, uv, i32(layer), reference);
+    }
+    if penumbra > 1.0 / size.x {
+        var visibility = 0.0;
+        for (var i = 0; i < 32; i++) {
+            let angle = f32(i) * 2.3999632;
+            let radius = sqrt((f32(i) + 0.5) / 32.0) * penumbra;
+            let point = clamp(uv + vec2(cos(angle), sin(angle)) * radius, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+            visibility += textureSampleCompareLevel(shadow_maps, shadow_sampler, point, i32(layer), reference + dot(gradient, point - uv));
+        }
+        return visibility / 32.0;
     }
     let step = lighting.lamps.y / size;
     var visibility = 0.0;
@@ -96,7 +114,7 @@ fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>
     if light.color.w == 0.0 { return 1.0; }
     let delta = position - light.position.xyz;
     let distance = max(length(delta), 1.0);
-    let layer = u32(light.color.w - 1.0) * 6u + shadow_face(delta);
+    let layer = u32(floor(light.color.w) - 1.0) * 6u + shadow_face(delta);
     let matrix = lighting.matrices[layer];
     let receiver = position - delta / distance * 2.0;
     let p = matrix * vec4(receiver, 1.0);
@@ -111,5 +129,27 @@ fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>
         gradient = 2.0 * projection / plane
             * vec2(-dot(surface_normal, right), dot(surface_normal, up));
     }
-    return shadow_visibility(uv, layer, p.z / p.w, gradient);
+    var penumbra = 0.0;
+    if lighting.source.x > 0.0 {
+        let size = vec2<i32>(textureDimensions(shadow_maps));
+        let search = min(0.1, lighting.source.x / max(p.w, 1.0));
+        var blockers = 0.0;
+        var count = 0.0;
+        for (var i = 0; i < 5; i++) {
+            let offset = select(vec2(0.0), vec2(select(-1.0, 1.0, (i & 1) != 0), select(-1.0, 1.0, (i & 2) != 0)) * search, i < 4);
+            let pixel = clamp(vec2<i32>((uv + offset) * vec2<f32>(size)), vec2(0), size - vec2(1));
+            let depth = textureLoad(shadow_maps, pixel, i32(layer), 0);
+            if depth < p.z / p.w + dot(gradient, offset) - 0.00001 {
+                let blocker = SHADOW_NEAR * light.position.w / max(0.001, light.position.w - depth * (light.position.w - SHADOW_NEAR));
+                blockers += blocker;
+                count += 1.0;
+            }
+        }
+        if count > 0.0 {
+            let blocker = max(blockers / count, SHADOW_NEAR);
+            penumbra = clamp(lighting.source.x * (p.w - blocker) / (2.0 * blocker * p.w), 0.0, 0.25);
+        }
+    }
+    let visibility = shadow_visibility(uv, layer, p.z / p.w, gradient, penumbra);
+    return mix(1.0, visibility, fract(light.color.w) * 2.0);
 }

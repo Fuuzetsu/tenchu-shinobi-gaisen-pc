@@ -30,6 +30,7 @@ pub struct Shadows {
     weather: wgpu::TextureView,
     weather_layers: [wgpu::TextureView; 2],
     weather_resolution: u32,
+    selection: crate::lighting::shadows::Selection,
 }
 
 impl Shadows {
@@ -90,7 +91,7 @@ impl Shadows {
                 },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 104) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 108) * 4);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -119,7 +120,7 @@ impl Shadows {
         });
         let faces = (0..FACES + 2)
             .map(|_| {
-                let data = buffer(device, 80);
+                let data = buffer(device, 96);
                 let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("Shadow face and original texture"),
                     layout: &face_layout,
@@ -219,6 +220,7 @@ impl Shadows {
             weather,
             weather_layers,
             weather_resolution: 1,
+            selection: Default::default(),
         }
     }
 
@@ -265,7 +267,7 @@ impl Shadows {
     }
 
     pub fn draw(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         queue: &wgpu::Queue,
         frame: &super::sun::Frame,
@@ -279,16 +281,27 @@ impl Shadows {
         } else {
             0
         };
+        let selected = self.selection.update(
+            &lights[..count],
+            if settings.shadows {
+                usize::from(settings.shadow_count)
+                    .min(MAX_SHADOW_LIGHTS)
+                    .min(count)
+            } else {
+                0
+            },
+            frame.elapsed,
+        );
         let mut data = vec![0.0f32; LIGHT_WORDS + FACES * 16];
         for (i, light) in lights.iter().take(count).enumerate() {
             data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
             data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
-            if !settings.shadows || i >= usize::from(settings.shadow_count).min(MAX_SHADOW_LIGHTS) {
+            let Some((slot, strength)) = selected[i] else {
                 continue;
-            }
-            data[i * 8 + 7] = (i + 1) as f32;
+            };
+            data[i * 8 + 7] = (slot + 1) as f32 + strength * 0.5;
             for (face, matrix) in matrices(light).iter().enumerate() {
-                let index = i * 6 + face;
+                let index = slot * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
                 self.draw_face(
@@ -301,6 +314,10 @@ impl Shadows {
                         frame.visual_time,
                         frame.wind,
                         0.0,
+                        light.position.x,
+                        light.position.y,
+                        light.position.z,
+                        f32::from(settings.source_size),
                     ],
                     geometry,
                 );
@@ -322,6 +339,10 @@ impl Shadows {
                     u8::from(settings.lamps) as f32,
                     frame.visual_time,
                     frame.wind,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
                     0.0,
                 ],
                 geometry,
@@ -368,6 +389,7 @@ impl Shadows {
             frame.weather.puddles,
         ]);
         data.extend(frame.rain);
+        data.extend([f32::from(settings.source_size), frame.day, 0.0, 0.0]);
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
                 self.draw_face(
@@ -375,7 +397,7 @@ impl Shadows {
                     queue,
                     FACES + layer,
                     matrix,
-                    [0.0, frame.visual_time, frame.wind, 1.0],
+                    [0.0, frame.visual_time, frame.wind, 1.0, 0.0, 0.0, 0.0, 0.0],
                     geometry,
                 );
             }
@@ -389,7 +411,7 @@ impl Shadows {
         queue: &wgpu::Queue,
         index: usize,
         matrix: Mat4,
-        options: [f32; 4],
+        options: [f32; 8],
         geometry: &Geometry,
     ) {
         let target = if index >= FACES {

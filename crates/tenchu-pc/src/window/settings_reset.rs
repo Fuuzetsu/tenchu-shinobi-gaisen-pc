@@ -204,6 +204,9 @@ impl Application {
             Item::Shadows => self.settings.graphics.lighting.shadows = s.graphics.lighting.shadows,
             Item::FireLights => self.settings.graphics.lighting.fires = s.graphics.lighting.fires,
             Item::LightCount => self.settings.graphics.lighting.count = s.graphics.lighting.count,
+            Item::LightSourceSize => {
+                self.settings.graphics.lighting.source_size = s.graphics.lighting.source_size
+            }
             Item::ShadowSoftness => {
                 self.settings.graphics.lighting.softness = s.graphics.lighting.softness
             }

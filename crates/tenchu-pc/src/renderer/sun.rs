@@ -75,6 +75,8 @@ pub struct Frame {
     pub precipitation: Vec3,
     pub visual_time: f32,
     pub wind: f32,
+    pub day: f32,
+    pub elapsed: Option<f32>,
 }
 
 impl Frame {
@@ -92,6 +94,8 @@ impl Frame {
             precipitation: Vec3::Y,
             visual_time: 0.0,
             wind: 0.0,
+            day: 0.0,
+            elapsed: None,
         };
         if let Some(sky) = daylight {
             frame.settings.enabled = true;
@@ -101,6 +105,7 @@ impl Frame {
             frame.strength = sky.strength;
             frame.ambient = sky.ambient;
             frame.tint = sky.tint;
+            frame.day = sky.day;
         }
         frame
     }

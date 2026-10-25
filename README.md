@@ -57,6 +57,13 @@ respectively, and remove black sight fog and round blob shadows. They preserve
 your weather choice and artwork-pack preference. Unsupported MSAA falls back to
 the adapter's supported settings.
 
+Point-light shadows now support up to eight sources. High/Ultra select six/eight,
+with gradual shadow-budget handovers as you travel. **Lighting → Light source
+size** controls finite-emitter softness (0 restores point-source shadows). Paper
+lantern panels diffuse their own light; caps and surrounding objects still cast
+shadows. Daylight reduces lantern fill on sunlit surfaces while sheltered lamps
+remain useful. This approximates area lighting with shadow maps.
+
 For the optional upgraded look, open **F1 → Graphics → Visual preset**:
 
 - **Original** restores the original presentation settings and is the factory default.

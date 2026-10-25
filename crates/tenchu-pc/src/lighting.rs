@@ -1,10 +1,11 @@
+pub mod shadows;
 mod transients;
 use glam::Vec3;
 use tenchu_assets::misc::Kind;
 use tenchu_core::game::Game;
 
 pub const MAX_LIGHTS: usize = 16;
-pub const MAX_SHADOW_LIGHTS: usize = 4;
+pub const MAX_SHADOW_LIGHTS: usize = 8;
 
 #[derive(Clone, Copy)]
 pub struct Light {

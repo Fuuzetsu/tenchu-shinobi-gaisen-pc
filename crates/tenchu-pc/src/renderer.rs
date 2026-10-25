@@ -64,6 +64,7 @@ pub struct Renderer {
     pub daylight: Option<crate::visuals::sky::Daylight>,
     pub weather: crate::visuals::weather::SurfaceWeather,
     pub visual_time: f32,
+    pub shadow_elapsed: Option<f32>,
     shadows: shadows::Shadows,
     materials: materials::Materials,
 }
@@ -215,6 +216,7 @@ impl Renderer {
             daylight: None,
             weather: Default::default(),
             visual_time: 0.0,
+            shadow_elapsed: None,
             shadows,
             materials,
         };
@@ -481,9 +483,10 @@ impl Renderer {
         {
             timer.begin(&self.device, &mut encoder);
         }
-        let lighting = sun::Frame::new(&self.graphics.lighting, daylight)
+        let mut lighting = sun::Frame::new(&self.graphics.lighting, daylight)
             .with_weather(self.weather, &self.graphics.weather)
             .with_motion(self.visual_time, &self.graphics.motion);
+        lighting.elapsed = self.shadow_elapsed;
         self.shadows
             .configure(&self.device, &lighting, lights.len());
         self.shadows.draw(

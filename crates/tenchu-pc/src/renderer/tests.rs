@@ -577,6 +577,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     let original = draw(&mut renderer, &[light], &[&blocker]);
     let mut graphics = crate::settings::Graphics::default();
     graphics.lighting.enabled = true;
+    graphics.lighting.source_size = 0;
     graphics.lighting.ambient = 30;
     renderer.configure(&graphics);
     let lit = draw(&mut renderer, &[light], &[]);
@@ -1394,4 +1395,190 @@ fn surface_relief_is_optional_filtered_and_scoped_to_scenery() {
     let cutout = capture(&mut renderer, &settings, &mesh);
     settings.surface_detail = 2;
     assert_eq!(cutout, capture(&mut renderer, &settings, &mesh));
+}
+
+#[test]
+#[ignore = "requires a graphics adapter; finite lamps soften grating and sunlight dominates local illumination while covered lamps remain useful"]
+fn finite_lamps_and_daylight_keep_local_shadows_balanced() {
+    use crate::lighting::Light;
+    use glam::Vec3;
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let matrix = Mat4::orthographic_rh(-1000.0, 1000.0, -1000.0, 1000.0, 1.0, 5000.0)
+        * Mat4::look_to_rh(Vec3::new(0.0, 0.0, -2000.0), Vec3::Z, Vec3::NEG_Y);
+    let quad = |center: Vec3, extent: glam::Vec2| {
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: (center
+                + Vec3::new(
+                    if i % 2 == 0 { -extent.x } else { extent.x },
+                    if i / 2 == 0 { -extent.y } else { extent.y },
+                    0.0,
+                ))
+            .to_array(),
+            color: [0.5; 3],
+            normal: [0.0; 3],
+            opacity: 1.0,
+            uv: [0.0; 2],
+            page: 0,
+            palette: 0,
+            material: 0,
+            flags: render_mesh::DOUBLE_SIDED,
+        })
+    };
+    let receiver = renderer.upload(&quad(Vec3::ZERO, glam::Vec2::splat(1000.0)));
+    let lamp = Light {
+        position: Vec3::new(0.0, 0.0, -1200.0),
+        color: [1.0; 3],
+        radius: 5000.0,
+    };
+    let grating: Vec<_> = (-2..=2)
+        .flat_map(|x| {
+            quad(
+                Vec3::new(x as f32 * 60.0, 0.0, -1000.0),
+                glam::Vec2::new(10.0, 200.0),
+            )
+        })
+        .collect();
+    let grating = renderer.upload(&grating);
+    let draw = |renderer: &mut Renderer, lights: &[Light], casters: &[&Mesh]| {
+        renderer
+            .draw_lit(&view, matrix, &[&receiver], None, lights, casters)
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let mean =
+        |pixels: &[u8]| pixels.chunks_exact(4).map(|p| f32::from(p[0])).sum::<f32>() / 4096.0;
+    let mut graphics = crate::settings::Graphics {
+        fog: false,
+        ..Default::default()
+    };
+    graphics.lighting.enabled = true;
+    graphics.lighting.ambient = 20;
+    graphics.lighting.source_size = 0;
+    graphics.lighting.resolution = 1024;
+    renderer.configure(&graphics);
+    let hard = draw(&mut renderer, &[lamp], &[&grating]);
+    graphics.lighting.source_size = 120;
+    renderer.configure(&graphics);
+    let soft = draw(&mut renderer, &[lamp], &[&grating]);
+    let dark = |p: &[u8]| p.chunks_exact(4).filter(|p| p[0] < 75).count();
+    assert!(
+        dark(&soft) < dark(&hard) / 2,
+        "hard {}, soft {}",
+        dark(&hard),
+        dark(&soft)
+    );
+    let night_unlit = mean(&draw(&mut renderer, &[], &[]));
+    let night_lit = mean(&draw(&mut renderer, &[lamp], &[]));
+    let mut sky = crate::visuals::sky::Daylight::at(720.0, &graphics.sky);
+    sky.direction = Vec3::new(0.0, -0.6, -0.8);
+    renderer.daylight = Some(sky);
+    graphics.sky.enabled = true;
+    graphics.lighting.directional.radius = 10;
+    graphics.lighting.directional.resolution = 2048;
+    renderer.configure(&graphics);
+    let noon_unlit = mean(&draw(&mut renderer, &[], &[]));
+    let noon_lit = mean(&draw(&mut renderer, &[lamp], &[]));
+    assert!(
+        noon_lit - noon_unlit < (night_lit - night_unlit) * 0.15,
+        "noon {noon_lit}/{noon_unlit}, night {night_lit}/{night_unlit}"
+    );
+    let roof = renderer.upload(&quad(
+        Vec3::new(0.0, -650.0, -500.0),
+        glam::Vec2::new(1500.0, 400.0),
+    ));
+    let covered_unlit = mean(&draw(&mut renderer, &[], &[&roof]));
+    let covered_lit = mean(&draw(&mut renderer, &[lamp], &[&roof]));
+    assert!(
+        covered_lit - covered_unlit > (noon_lit - noon_unlit) * 2.0,
+        "covered {covered_lit}/{covered_unlit}, noon {noon_lit}/{noon_unlit}"
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_LIGHT_REVIEW and a GPU; inspect actual lantern grating and daytime fill"]
+fn actual_lantern_area_light_review() {
+    use glam::Vec3;
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let output = std::path::PathBuf::from(
+        std::env::var_os("TENCHU_LIGHT_REVIEW").expect("Set TENCHU_LIGHT_REVIEW"),
+    );
+    std::fs::create_dir_all(&output).unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut game = crate::session::Options::default().load(&assets).unwrap();
+    for _ in 0..40 {
+        game.step(0).unwrap();
+    }
+    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+    let pack = crate::visuals::pack::Pack::from_env(&game.mission).unwrap();
+    let emitters = crate::visuals::lights::Emitters::build(&game, &pack, true);
+    review.renderer.set_emitters(&emitters);
+    let models = review.models(&game.mission).unwrap();
+    let geometry = render_mesh::stage(&game.mission, &game.math, Some(&models));
+    let stage = review.renderer.upload(&geometry);
+    let player = Vec3::from(game.player().position.map(|v| v as f32).to_array());
+    let source = emitters
+        .sources(&game)
+        .into_iter()
+        .min_by(|a, b| {
+            a.light
+                .position
+                .distance_squared(player)
+                .total_cmp(&b.light.position.distance_squared(player))
+        })
+        .unwrap();
+    let p = source.light.position;
+    eprintln!("Lantern {} at {p:?}", source.name);
+    let mut scene = crate::demo::Scene {
+        target: p + Vec3::Y * 400.0,
+        distance: 5000.0,
+        pitch: -0.4,
+        ..Default::default()
+    };
+    assert!(crate::demo::framing::unobstructed_area(
+        &mut scene, &geometry, 700.0
+    ));
+    let mut camera = crate::debug::camera::Camera {
+        position: Vec3::ZERO,
+        yaw: scene.yaw,
+        pitch: scene.pitch,
+        fov: 55.0,
+    };
+    camera.position = scene.target - camera.forward() * scene.distance;
+    let camera = camera.matrix(1280.0 / 720.0);
+    for (name, time, size) in [
+        ("night-hard", 0.0, 0),
+        ("night-area", 0.0, 100),
+        ("day-hard", 720.0, 0),
+        ("day-area", 720.0, 100),
+    ] {
+        let mut graphics = crate::settings::Graphics::default();
+        graphics.set_preset(crate::settings::presets::MODERN_HIGH);
+        graphics.lighting.source_size = size;
+        graphics.lighting.softness = 0;
+        graphics.post.enabled = false;
+        review.lights = crate::lighting::sources(
+            &game,
+            &graphics.lighting,
+            Some(p),
+            None,
+            emitters.sources(&game),
+        )
+        .iter()
+        .map(|s| s.light)
+        .collect();
+        review.renderer.daylight = Some(crate::visuals::sky::Daylight::at(time, &graphics.sky));
+        review.configure(graphics);
+        review
+            .capture(
+                camera,
+                &[&stage],
+                None,
+                true,
+                &output.join(format!("{name}.png")),
+            )
+            .unwrap();
+    }
 }

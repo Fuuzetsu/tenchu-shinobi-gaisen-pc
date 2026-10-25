@@ -198,6 +198,7 @@ pub struct Lighting {
     pub lamps: bool,
     pub markers: bool,
     pub softness: u16,
+    pub source_size: u16,
     pub sky_tint: u16,
     pub directional: Directional,
 }
@@ -217,6 +218,7 @@ impl Default for Lighting {
             lamps: true,
             markers: false,
             softness: 0,
+            source_size: 100,
             sky_tint: 0,
             directional: Directional::default(),
         }
@@ -321,6 +323,7 @@ impl Store {
                 light.intensity = light.intensity.min(400);
                 light.ambient = light.ambient.min(100);
                 light.softness = light.softness.min(8);
+                light.source_size = light.source_size.min(400);
                 light.sky_tint = light.sky_tint.min(100);
                 let sun = &mut light.directional;
                 sun.intensity = sun.intensity.min(200);

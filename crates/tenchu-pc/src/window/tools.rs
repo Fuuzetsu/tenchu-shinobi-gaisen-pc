@@ -603,10 +603,15 @@ impl Application {
                     (i32::from(self.settings.graphics.lighting.softness) + direction).clamp(0, 8)
                         as u16
             }
+            Item::LightSourceSize => {
+                self.settings.graphics.lighting.source_size =
+                    (i32::from(self.settings.graphics.lighting.source_size) + direction * 10)
+                        .clamp(0, 400) as u16;
+            }
             Item::ShadowCount => {
                 self.settings.graphics.lighting.shadow_count = cycle(
                     self.settings.graphics.lighting.shadow_count,
-                    &[0, 1, 2, 3, 4],
+                    &[0, 1, 2, 3, 4, 6, 8],
                     direction,
                 )
             }

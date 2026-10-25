@@ -129,6 +129,7 @@ pub enum Item {
     LightCount,
     ShadowCount,
     ShadowSoftness,
+    LightSourceSize,
     LampLights,
     LightMarkers,
     FocusLight,
@@ -1356,7 +1357,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::ShadowCount,
                     "Shadowed point lights",
                     light.shadow_count.to_string(),
-                    "0-4 nearest lights; six views per source.",
+                    "0-8 nearby lights; gradual handovers, six views per source. High/Ultra cover more lights before you approach.",
                 ),
                 (
                     Item::LightMarkers,
@@ -1369,6 +1370,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Inspect nearest lantern",
                     "Enter".into(),
                     "Focus free camera and show source labels.",
+                ),
+                (
+                    Item::LightSourceSize,
+                    "Light source size",
+                    light.source_size.to_string(),
+                    "Finite emitter radius in world units. Softens grating shadows as they travel; 0 restores point sources.",
                 ),
                 (
                     Item::ShadowSoftness,

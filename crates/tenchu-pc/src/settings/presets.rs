@@ -163,7 +163,7 @@ fn modern(ultra: bool) -> Graphics {
     g.sky.moon = 35;
     g.lighting.enabled = true;
     g.lighting.count = 8;
-    g.lighting.shadow_count = 4;
+    g.lighting.shadow_count = if ultra { 8 } else { 6 };
     g.lighting.radius = 18;
     g.lighting.intensity = 120;
     g.lighting.ambient = 50;

@@ -46,6 +46,7 @@ pub(super) struct View {
     pub(super) actor: Mesh,
     shadow_stage: Option<Mesh>,
     shadow_models: Option<Mesh>,
+    lighting_updated: Instant,
     pub(super) lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
     pub(super) labels: Vec<crate::debug::Label>,
@@ -338,6 +339,7 @@ impl View {
             actor,
             shadow_stage: None,
             shadow_models: None,
+            lighting_updated: Instant::now(),
             lights: Vec::new(),
             effects,
             labels: Vec::new(),
@@ -661,6 +663,13 @@ impl View {
             },
         );
         self.lights = sources.iter().map(|s| s.light).collect();
+        let now = Instant::now();
+        self.renderer.shadow_elapsed = Some(if offline {
+            1.0 / 60.0
+        } else {
+            now.duration_since(self.lighting_updated).as_secs_f32()
+        });
+        self.lighting_updated = now;
         let shadowing = (settings.graphics.weather.mode != settings::WeatherMode::Original)
             || (settings.graphics.lighting.enabled || settings.graphics.sky.enabled)
                 && settings.graphics.lighting.shadows

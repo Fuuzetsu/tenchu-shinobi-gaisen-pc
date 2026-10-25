@@ -50,6 +50,16 @@ independent gameplay profiles, persistent sight range and reversible F8 retro
 rendering are implemented. Settings round-trip and actual-disc checks verify
 graphics/gameplay separation and unchanged inventory; browser checks remain.
 
+Lighting stage implemented: eight point-shadow slots are available, with stable
+assignments and 0.3-second handovers. High/Ultra use six/eight shadowed lights.
+Finite-size sources use blocker-dependent penumbrae; nearby emissive paper panels
+act as diffuse emitters instead of projecting their painted grating from a single
+point. Solid caps and other geometry still occlude light. Sun-exposed surfaces
+suppress local fill while covered areas retain it. Synthetic GPU tests cover
+grated occluders, sunlight/indoor balance, moon fill, opaque/cutout geometry and
+shadow budgets; actual Mission 1 lantern captures were reviewed. Native/WASM
+builds pass. Contact effects, vegetation and combined browser/video review remain.
+
 ## Weather follow-up showcase (baseline captured)
 
 Record only additions since the 3:06 effects showcase at `289d25a`: stronger wet
