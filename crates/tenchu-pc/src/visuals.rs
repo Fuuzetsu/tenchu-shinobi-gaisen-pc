@@ -7,6 +7,7 @@ mod export;
 pub mod footprints;
 pub mod interpolation;
 pub mod lights;
+pub mod model_patch;
 pub mod models;
 pub mod motion;
 pub mod obj;

@@ -37,6 +37,8 @@ pub struct Manifest {
     #[serde(default)]
     pub models: BTreeMap<String, String>,
     #[serde(default)]
+    pub model_patches: BTreeMap<String, Vec<super::model_patch::Patch>>,
+    #[serde(default)]
     pub materials: BTreeMap<String, Material>,
     #[serde(default)]
     pub lights: Option<Vec<super::lights::Rule>>,
@@ -53,6 +55,7 @@ pub struct Pack {
     pub motion: BTreeMap<String, Vec<super::motion::Rule>>,
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
+    pub model_patches: BTreeMap<String, Vec<super::model_patch::Patch>>,
     pub materials: BTreeMap<String, Material>,
     pub lights: Option<Vec<super::lights::Rule>>,
     pub player_models: BTreeMap<String, super::appearance::Body>,
@@ -154,7 +157,18 @@ impl Pack {
             }
         }
         pack.motion = manifest.motion;
+        for patches in manifest.model_patches.values() {
+            if patches.len() > 4096 {
+                return Err("A model supports at most 4096 triangle patches".into());
+            }
+            for patch in patches {
+                patch.validate()?;
+            }
+        }
+        pack.model_patches = manifest.model_patches;
         if let Some(selection) = &selection {
+            pack.model_patches
+                .retain(|id, _| selection.models.contains(id));
             if !selection.player_models {
                 manifest.player_models.clear();
             }
@@ -474,6 +488,7 @@ mod tests {
             vegetation: BTreeMap::new(),
             motion: BTreeMap::new(),
             models: BTreeMap::new(),
+            model_patches: BTreeMap::new(),
             materials: BTreeMap::new(),
             lights: None,
             player_models: BTreeMap::new(),

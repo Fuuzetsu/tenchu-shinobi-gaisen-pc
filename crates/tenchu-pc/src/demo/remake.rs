@@ -31,7 +31,8 @@ pub enum Feature {
 pub fn animate(feature: Feature, player: &Player, settings: &mut Settings, debug: &mut Debug) {
     let p = player.progress();
     if feature == Feature::ModernPresets {
-        settings.set_visual_preset(if p < 0.5 { 8 } else { 9 });
+        use crate::settings::presets::{MODERN_HIGH, MODERN_ULTRA, SHOWCASE};
+        settings.set_visual_preset([MODERN_HIGH, MODERN_ULTRA, SHOWCASE][section(p, 3)]);
         return;
     }
     let g = &mut settings.graphics;

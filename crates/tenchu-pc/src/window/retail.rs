@@ -275,6 +275,11 @@ impl ApplicationHandler for Recorder {
                 &view.renderer,
                 view.config.format,
             )?);
+            std::fs::write(
+                self.output.with_extension("settings.json"),
+                serde_json::to_vec_pretty(&view.recording_settings()).map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
             self.view = Some(view);
             self.menu(0)
         })();
@@ -338,7 +343,7 @@ pub fn record(
         return Err("Invalid video frame range".into());
     }
     let mut settings = Settings::default();
-    settings.set_visual_preset(crate::settings::presets::MODERN_ULTRA);
+    settings.set_visual_preset(crate::settings::presets::SHOWCASE);
     settings.graphics.asset_pack = true;
     let options = tape.missions[0].initial.options(1)?;
     let campaign = Campaign::new(&assets, options, None)?;

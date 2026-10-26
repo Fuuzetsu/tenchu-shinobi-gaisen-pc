@@ -96,15 +96,13 @@ fn models(game: &Game) -> Result<BTreeMap<String, Model<'_>>> {
         );
     }
     for model in catalog::models(mission) {
-        if !model.id.starts_with("actors/") {
-            models.insert(
-                model.id,
-                Model {
-                    label: model.label,
-                    parts: vec![(model.geometry, Matrix::default())],
-                },
-            );
-        }
+        models.insert(
+            model.id,
+            Model {
+                label: model.label,
+                parts: vec![(model.geometry, Matrix::default())],
+            },
+        );
     }
     Ok(models)
 }
@@ -113,6 +111,10 @@ pub fn render(game: &Game, output: &Path, ids: &[&str], grey_background: bool) -
     let models = models(game)?;
     let mut selected = BTreeSet::new();
     for id in ids {
+        if models.contains_key(*id) {
+            selected.insert((*id).to_owned());
+            continue;
+        }
         let matching: Vec<_> = models
             .keys()
             .filter(|key| key.as_str() == *id || key.starts_with(&format!("{id}/")))

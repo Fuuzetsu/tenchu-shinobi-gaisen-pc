@@ -202,6 +202,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
             .map(|id| (id.clone(), format!("textures/{id}.png")))
             .collect(),
         models: BTreeMap::new(),
+        model_patches: BTreeMap::new(),
         materials: definitions,
         lights: Some(super::lights::defaults()),
         player_models: super::appearance::exported(mission),

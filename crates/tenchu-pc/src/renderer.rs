@@ -299,6 +299,11 @@ impl Renderer {
         self.update_vram(vram);
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn graphics(&self) -> &crate::settings::Graphics {
+        &self.graphics
+    }
+
     pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
         self.materials.configure(graphics);
         let samples = if self.sample_counts.contains(&graphics.samples) {

@@ -196,7 +196,7 @@ pub fn visit_character_parts(
     inspection: bool,
     mut visit: impl FnMut(Part, &[Geometry], Matrix),
 ) {
-    if !inspection {
+    if !inspection && game.drawing.step == tenchu_core::drawing::Step::Normal {
         for &id in &game.visible {
             visit_actor(game, game.roster.get(id), false, &mut visit);
         }
@@ -216,7 +216,9 @@ pub fn visit_character_parts(
                 0
             }
         });
-        visit_actor(game, &actor, true, &mut visit);
+        // Console draw skips suppress submission, not actor existence. Rebuild only
+        // presentation transforms; the source pose, visibility and caches stay intact.
+        visit_actor(game, &actor, inspection, &mut visit);
     }
 }
 

@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 
 def run(*args, **kwargs):
@@ -46,6 +47,8 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--binary", type=Path, default=Path("target/release/tenchu-pc"))
     parser.add_argument("--asset-pack", type=Path, required=True)
+    parser.add_argument("--jobs", type=int, choices=range(1, 5), default=1,
+                        help="Independent chapter renders; each needs its own GPU memory")
     args = parser.parse_args()
     for key, value in vars(args).items():
         if isinstance(value, Path):
@@ -62,8 +65,8 @@ def main():
         "asset_pack": str(args.asset_pack),
         "artwork": {str(p.relative_to(args.asset_pack)): digest(p)
                     for p in sorted(args.asset_pack.rglob("*"))
-                    if p.is_file() and p.suffix in (".json", ".png", ".bin")},
-        "graphics": "Modern Ultra; original weather; full artwork; sharp text; visual interpolation",
+                    if p.is_file() and p.suffix in (".json", ".png", ".bin", ".obj")},
+        "graphics": "Showcase; original weather; fixed sky; full artwork; sharp text; visual interpolation",
         "presentation": "Original field timing. Native title/mission/results screens replace boot and loading intervals. All gameplay and in-engine cutscenes replay the validated tape.",
         "audio_source": "Lossless console audio from the identical continuous boot tape; no speed change.",
     }
@@ -79,19 +82,34 @@ def main():
     chapters = ";FFMETADATA1\ntitle=Tenchu Shinobi Gaisen - Ayame full campaign - Native PC\n"
     youtube = []
     clips = []
+    applied_settings = None
     env = dict(os.environ, TENCHU_ASSET_PACK=str(args.asset_pack))
-    for i, (start, end, title) in enumerate(zip(starts, starts[1:] + [total], titles)):
+
+    def render(part):
+        i, (start, end, title) = part
         path = parts / f"{i:02d}.mp4"
-        clips.append(path)
-        seconds = start // 60
-        youtube.append(f"{seconds // 60:02d}:{seconds % 60:02d} {title}")
-        chapters += f"\n[CHAPTER]\nTIMEBASE=1/60\nSTART={start}\nEND={end}\ntitle={title}\n"
         if not path.exists():
             print(f"Rendering {title}: frames {start}–{end}", flush=True)
             with (parts / f"{i:02d}.log").open("w") as log:
                 run(str(args.binary), "record-retail", str(args.disc), str(args.tape), str(path),
                     str(start), str(end), env=env, stdout=log, stderr=subprocess.STDOUT)
         check_video(path, end - start)
+        print(f"Verified {title}: {end - start} frames", flush=True)
+
+    ranges = list(zip(starts, starts[1:] + [total], titles))
+    with ThreadPoolExecutor(max_workers=args.jobs) as workers:
+        list(workers.map(render, enumerate(ranges)))
+    for i, (start, end, title) in enumerate(ranges):
+        path = parts / f"{i:02d}.mp4"
+        clips.append(path)
+        seconds = start // 60
+        youtube.append(f"{seconds // 60:02d}:{seconds % 60:02d} {title}")
+        chapters += f"\n[CHAPTER]\nTIMEBASE=1/60\nSTART={start}\nEND={end}\ntitle={title}\n"
+        configured = json.loads(path.with_suffix(".settings.json").read_text())
+        if applied_settings is None:
+            applied_settings = configured
+        else:
+            assert configured == applied_settings, f"Renderer settings changed in {path}"
     metadata = parts / "chapters.ffmetadata"
     metadata.write_text(chapters)
     args.output.with_suffix(".chapters.txt").write_text("\n".join(youtube) + "\n")
@@ -127,7 +145,7 @@ def main():
     os.link(temporary, args.output)
     report = {"frames": total, "duration": total / 60, "all_timestamps_verified": True,
               "full_decode_passed": True, "sha256": digest(args.output), "probe": details,
-              "inputs": source}
+              "inputs": source, "applied_settings": applied_settings}
     args.output.with_suffix(".verification.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"Saved {args.output}: {total} frames / 4K60 / synchronized AAC audio", flush=True)
 

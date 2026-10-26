@@ -184,6 +184,10 @@ impl Meshes {
                 .asset_pack
                 .then(|| pack.models.get(&source.id))
                 .flatten();
+            let patches = graphics
+                .asset_pack
+                .then(|| pack.model_patches.get(&source.id))
+                .flatten();
             let grapple = graphics.models.grapple && source.id == "common/26";
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
@@ -200,6 +204,7 @@ impl Meshes {
             if !force
                 && emitter.is_none()
                 && replacement.is_none()
+                && patches.is_none()
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
                 && !water_enabled
@@ -306,6 +311,13 @@ impl Meshes {
                             }
                         }
                     }
+                }
+            }
+            if replacement.is_none()
+                && let Some(patches) = patches
+            {
+                for patch in patches {
+                    patch.apply(&mut vertices, &out.materials);
                 }
             }
             if let Some(rule) = emitter {

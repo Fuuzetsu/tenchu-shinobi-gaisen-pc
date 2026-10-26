@@ -87,6 +87,14 @@ pub(super) struct View {
 }
 
 impl View {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) fn recording_settings(&self) -> serde_json::Value {
+        serde_json::json!({
+            "graphics": self.renderer.graphics(),
+            "model_interpolation": self.interpolation_enabled,
+        })
+    }
+
     pub(super) fn prewarm_weather(
         &mut self,
         game: &Game,
@@ -235,6 +243,7 @@ impl View {
         game: &Game,
         settings: &Settings,
     ) -> Result<Self> {
+        let configured = settings;
         let rendered = settings.rendering();
         let settings = &*rendered;
         let descriptor = wgpu::InstanceDescriptor::default();
@@ -352,7 +361,7 @@ impl View {
         let overlay = super::overlay::Overlay::new(&window, &renderer, config.format);
         let mut contact = crate::visuals::contact::Contact::default();
         contact.canopies = models.canopies(game);
-        Ok(Self {
+        let mut view = Self {
             dirty: true,
             overlay,
             window,
@@ -390,7 +399,9 @@ impl View {
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
-        })
+        };
+        view.settings(configured, game)?;
+        Ok(view)
     }
 
     fn selected_player<'a>(&self, settings: &'a Settings) -> &'a str {
@@ -981,5 +992,36 @@ fn load_bodies(directory: &str) -> Result<Pack> {
         Ok(Pack::default())
     } else {
         Pack::load(std::path::Path::new(directory))
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC and X11 GPU; a newly constructed view must apply graphics and interpolation before its first frame"]
+    fn new_view_applies_the_selected_rendering_configuration() {
+        use winit::platform::x11::EventLoopBuilderExtX11;
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+        let game = Options::default().load(&assets).unwrap();
+        let mut settings = Settings::default();
+        settings.set_visual_preset(settings::presets::SHOWCASE);
+        let mut builder = EventLoop::builder();
+        builder.with_x11().with_any_thread(true);
+        let events = builder.build().unwrap();
+        #[allow(deprecated)]
+        let window = events
+            .create_window(Window::default_attributes().with_visible(false))
+            .unwrap();
+        let before = crate::session::tests::state(&game);
+        let view =
+            pollster::block_on(View::from_window(Arc::new(window), &game, &settings)).unwrap();
+        assert_eq!(view.renderer.graphics(), &settings.graphics);
+        assert!(view.interpolation_enabled);
+        assert_eq!(before, crate::session::tests::state(&game));
+        view.renderer.device.poll(wgpu::Maintain::Wait);
+        drop(view);
     }
 }

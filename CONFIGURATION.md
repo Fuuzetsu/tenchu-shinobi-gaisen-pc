@@ -256,6 +256,16 @@ patches soften only original actors. Original vertices, open seams, scenery and
 authored replacement contours stay fixed. The stronger setting is intentionally
 stylized; replacement art is still needed for new costume/face detail.
 
+Small UV/color repairs can use `model_patches` in `pack.json` instead of replacing
+an entire model. Each model ID maps to an array of patches with a `texture`
+identity and three `corners`, each containing `position`, normalized OBJ `uv`
+(V points up), and RGB `color` modulation. A patch requires all three original
+positions and the texture identity to match. It runs before optional refinement,
+only with replacement artwork enabled; geometry, animation and simulation stay
+unchanged. This can repair collapsed UVs or inconsistent baked colors while
+retaining the original model's outfit and secondary motion. `preview-models`
+accepts an individual part such as `actors/0001/2` for close-up inspection.
+
 The disc round-trip check exports/reloads both players' Mission 1 assets and
 compares live actors/weapons, scenery and hinged objects without changing game
 state. It caught an omitted degenerate quad; export now preserves that source

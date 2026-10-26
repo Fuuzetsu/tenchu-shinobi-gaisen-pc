@@ -890,8 +890,8 @@
   },
   {
     "id": "remake-modern-presets",
-    "title": "Modern High and Ultra",
-    "description": "Useful graphics improvements together, without black distance fog or original blob shadows. High uses 2x MSAA; Ultra uses 4x.",
+    "title": "Modern High, Ultra and Showcase",
+    "description": "Useful graphics improvements together, without black distance fog or original blob shadows. High uses 2x MSAA; Ultra uses 4x. Showcase adds stronger lighting, water, surface depth and contact effects.",
     "seconds": 10,
     "mission": 1,
     "character": 0,

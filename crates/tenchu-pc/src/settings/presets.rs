@@ -1,6 +1,6 @@
 use super::Graphics;
 
-pub const NAMES: [&str; 11] = [
+pub const NAMES: [&str; 12] = [
     "Original",
     "Enhanced",
     "Cinematic",
@@ -11,10 +11,12 @@ pub const NAMES: [&str; 11] = [
     "Surface relief",
     "Modern High",
     "Modern Ultra",
+    "Showcase",
     "Custom",
 ];
 pub const MODERN_HIGH: u16 = 8;
 pub const MODERN_ULTRA: u16 = 9;
+pub const SHOWCASE: u16 = 10;
 pub const CUSTOM: u16 = NAMES.len() as u16 - 1;
 
 impl Graphics {
@@ -24,7 +26,7 @@ impl Graphics {
         (0..CUSTOM)
             .find(|&index| {
                 let mut candidate = preset(index);
-                if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
+                if matches!(index, MODERN_HIGH | MODERN_ULTRA | SHOWCASE) {
                     candidate.weather.mode = current.weather.mode;
                 }
                 current == candidate
@@ -48,7 +50,7 @@ impl Graphics {
         let weather = self.weather.mode;
         *self = preset(index);
         self.asset_pack = artwork;
-        if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
+        if matches!(index, MODERN_HIGH | MODERN_ULTRA | SHOWCASE) {
             self.weather.mode = weather;
         }
     }
@@ -61,6 +63,23 @@ fn preset(index: u16) -> Graphics {
     }
     if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
         return modern(index == MODERN_ULTRA);
+    }
+    if index == SHOWCASE {
+        let mut g = modern(true);
+        g.surface_strength = 60;
+        g.lighting.count = 16;
+        g.lighting.intensity = 180;
+        g.lighting.ambient = 35;
+        g.sky.moon = 65;
+        g.sky.night_ambient = 40;
+        g.motion.strength = 100;
+        g.water.reflections = 75;
+        g.water.foam = 65;
+        g.water.spray = 80;
+        g.effects.spark_density = 200;
+        g.post.bloom = 18;
+        g.post.occlusion = 35;
+        return g;
     }
     if matches!(index, 3 | 4) {
         graphics.set_filtering(6);

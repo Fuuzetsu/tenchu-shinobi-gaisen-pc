@@ -912,7 +912,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::Preset,
                 "Graphics preset",
                 super::presets::NAMES[s.graphics.preset() as usize].into(),
-                "Modern High and Ultra enable the visual improvements together. Weather type and gameplay remain your choice.",
+                "High, Ultra and Showcase enable the visual improvements together. Showcase emphasizes lighting and effects. Weather type and gameplay remain your choice.",
             ),
             (
                 Item::Retro,

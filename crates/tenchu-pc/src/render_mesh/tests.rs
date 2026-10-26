@@ -2,6 +2,70 @@ use super::*;
 use tenchu_assets::game::GameAssets;
 
 #[test]
+#[ignore = "requires TENCHU_DISC and TENCHU_RETAIL_TAPE; recorded skips must not blank presentation or mutate the validated core"]
+fn recorded_skips_keep_character_poses_without_changing_core_state() {
+    use crate::retail::tape::Tape;
+    use std::path::Path;
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let tape = std::env::var_os("TENCHU_RETAIL_TAPE").expect("TENCHU_RETAIL_TAPE");
+    let assets = GameAssets::open(crate::source::open_disc(Path::new(&disc)).unwrap()).unwrap();
+    let tape = Tape::open(Path::new(&tape)).unwrap();
+    let mut skipped = 0;
+    for (index, mission) in tape.missions.iter().enumerate() {
+        let mut game = mission.initial.load(&assets).unwrap();
+        for update in &mission.updates {
+            update.apply(&mut game).unwrap();
+            for effect in game.effects.slots.iter().flatten() {
+                if let tenchu_core::effects::Effect::FlyWire(wire) = effect
+                    && wire.mode == 1
+                    && wire.count == 0
+                {
+                    eprintln!(
+                        "Grapple impact: mission {} field {}",
+                        index + 1,
+                        update.field
+                    );
+                }
+            }
+            if update.skip == 0 {
+                continue;
+            }
+            skipped += 1;
+            assert!(game.visible.is_empty());
+            let before = crate::session::tests::state(&game);
+            let mut parts = 0;
+            visit_character_parts(&game, false, |key, _, matrix| {
+                let Part::Actor {
+                    root, inspection, ..
+                } = key
+                else {
+                    unreachable!()
+                };
+                assert!(!inspection);
+                assert!(matrix.rotation.iter().flatten().any(|&v| v != 0));
+                let actor = game
+                    .roster
+                    .order
+                    .iter()
+                    .map(|&id| game.roster.get(id))
+                    .find(|actor| actor.root_model == root)
+                    .unwrap();
+                assert_eq!(actor.attribute & tenchu_core::ids::ATTR_SUSPEND, 0);
+                parts += 1;
+            });
+            assert!(
+                parts > 0,
+                "mission {} field {} lost every actor",
+                index + 1,
+                update.field
+            );
+            assert_eq!(before, crate::session::tests::state(&game));
+        }
+    }
+    assert_eq!(skipped, 349);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; hinged shadow casters match live poses and remain present outside the gameplay draw list"]
 fn hinged_casters_keep_live_angles_without_camera_culling() {
     use tenchu_assets::misc::Kind;

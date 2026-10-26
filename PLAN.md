@@ -10,6 +10,47 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Full campaign showcase revision (in progress)
+
+Re-record the validated campaign with the visual enhancements actually applied:
+dynamic lantern/moon lighting and shadows, surface relief, refined characters
+and vegetation, hair/cloth motion, grapple geometry/sparks/light, blood, improved
+water/waterfalls, splashes and foliage effects. Preserve original mission weather
+and use a fixed sky; do not add weather or time cycles. Keep all core input,
+recorded skip decisions, cutscenes and audio timing unchanged.
+
+The first recording selected Modern Ultra but did not configure its GPU renderer.
+View construction now applies settings before the first frame. A disc/GPU check
+verifies the applied renderer configuration and interpolation without mutating
+game state. Each recording writes its actual renderer settings beside the clip.
+The new Showcase preset makes this configuration available in F1 and the preset
+demo, preserving independent artwork/weather/gameplay choices.
+
+Recorded PS1 draw skips deliberately leave the authoritative actor draw list
+empty. Presentation now rebuilds non-suspended visible model parts from cloned
+actors on those updates instead of blanking every model. All 349 skips in the
+33,404-update campaign pass a pose/state-independence regression, including
+mission/cinematic transitions. Core draw lists and caches remain untouched.
+
+Ayame's nose underside had collapsed UVs and an extra green tint on its three
+vertices. The artwork pack now carries a targeted triangle UV/color repair,
+matched by original texture identity and all three local positions. Geometry,
+outfits and hair motion stay intact. A generic optional `model_patches` format
+keeps this asset correction out of engine code. Six original/replacement head
+views and an actual 4K Mission 2 close-up were reviewed; the green strip is gone.
+Original captures differ at most by one channel value at a few filtering pixels.
+
+GPU previews show lit grapple sparks, the braided rope and real lantern shadows.
+Native unit tests (65), workspace/all-target Clippy, formatting and portable WASM
+checking pass. The actual renderer settings include all requested effects and
+original mission weather. Offline capture can render independent chapters in
+parallel with separate logs and consistent actual-settings checks.
+
+Remaining: review water/cutscene samples, freeze the corrected build/artwork, record and shorten all ten
+missions, verify every frame/audio alignment, and deliver the revised video.
+Keep the previous recording and its provenance intact under `private/retail-campaign`;
+new capture/review evidence belongs in `private/retail-showcase`.
+
 ## Archived full campaign replay and recording (complete)
 
 Replay the fixed Ayame/Normal boot-to-ending campaign identified by
