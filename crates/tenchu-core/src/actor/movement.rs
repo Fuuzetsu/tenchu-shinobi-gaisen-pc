@@ -77,7 +77,9 @@ impl Actor {
             self.enter_unless_scripted(ctx, action, movement);
         }
         ctx.scene.set_translation(self.root_model, self.position);
-        let visible = if player {
+        let visible = if ctx.drawing.step != crate::drawing::Step::Normal {
+            false
+        } else if player {
             true
         } else if let Some(clip) =
             crate::visibility::model(ctx.scene, ctx.camera.view, self.root_model)?

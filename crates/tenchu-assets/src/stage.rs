@@ -105,6 +105,7 @@ pub struct MissionAssets {
     pub object_names: Vec<String>,
     pub placements: Vec<Placement>,
     pub terrain: AreaMap,
+    pub balma_terrain: Option<AreaMap>,
     pub vram: Vram,
     pub images: Vec<crate::texture::Image>,
     pub characters: Vec<Character>,
@@ -259,6 +260,9 @@ impl MissionAssets {
             }
         }
         let terrain = AreaMap::parse(asset(&area)?)?;
+        let balma_terrain = (id == 4)
+            .then(|| AreaMap::parse(asset("BALMER.ACM")?))
+            .transpose()?;
         let exe = Executable::new(&game.executable)?;
         let mut characters = exe.characters()?;
         if armour != 0 {
@@ -365,6 +369,7 @@ impl MissionAssets {
             object_names,
             placements,
             terrain,
+            balma_terrain,
             vram,
             images,
             characters,

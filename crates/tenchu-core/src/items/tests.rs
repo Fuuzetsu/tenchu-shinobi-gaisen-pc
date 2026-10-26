@@ -180,6 +180,15 @@ int main(void) {{
         .iter()
         .flat_map(|r| (0..r.count).map(move |i| r.list + i * 16))
         .collect();
+    let hint_nodes: Vec<_> = nodes
+        .iter()
+        .map(|&at| game.mission.terrain.node(at).unwrap())
+        .collect();
+    let hint_id = |hint: Option<tenchu_assets::terrain::Node>| {
+        hint.map_or(0, |node| {
+            hint_nodes.iter().position(|&n| n == node).unwrap() as i32 + 1
+        })
+    };
     for case in 0..4096 {
         let at = nodes[cases.next15() as usize % nodes.len()];
         let node = game.mission.terrain.node(at).unwrap();
@@ -192,7 +201,7 @@ int main(void) {{
         position[1] += cases.next15() % 3000 - 1500;
         position[2] += cases.next15() % 3000 - 1500;
         let mut rolling = Rolling {
-            hint: if case % 3 == 0 { Some(at) } else { None },
+            hint: if case % 3 == 0 { Some(node) } else { None },
             velocity: std::array::from_fn(|_| (cases.next15() as u16 * 2) as i16),
             status: (case % 6) as u8,
         };
@@ -212,12 +221,12 @@ int main(void) {{
             0,
         )
         .unwrap();
-        let hint1 = hint.map_or(0, |h| h + 1) as i32;
+        let hint1 = hint_id(hint);
         let probe = terrain::vector(&game.mission.terrain, &mut cursor, position, 500, 0).unwrap();
         let second =
             terrain::particle_floor(&game.mission.terrain, &mut cursor, position, &mut hint, 0)
                 .unwrap();
-        let hint2 = hint.map_or(0, |h| h + 1) as i32;
+        let hint2 = hint_id(hint);
         let reflection = game.body.reflect_move[usize::from(probe.vector)];
         let queries = if rolling.status == 4 {
             0
@@ -233,7 +242,7 @@ int main(void) {{
             i32::from(rolling.velocity[1]),
             i32::from(rolling.velocity[2]),
             i32::from(rolling.status),
-            rolling.hint.map_or(0, |h| h + 1) as i32,
+            hint_id(rolling.hint),
             seed as i32,
             first,
             hint1,
@@ -269,7 +278,7 @@ int main(void) {{
             i32::from(rolling.velocity[1]),
             i32::from(rolling.velocity[2]),
             i32::from(rolling.status),
-            rolling.hint.map_or(0, |h| h + 1) as i32,
+            hint_id(rolling.hint),
             game.random.seed as i32,
             game.random.calls as i32,
             splashes,

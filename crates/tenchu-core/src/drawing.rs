@@ -6,8 +6,32 @@ use crate::{
 };
 use tenchu_assets::stage::MissionAssets;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Step {
+    #[default]
+    Normal,
+    Skipped,
+    AfterLoad,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Cadence {
+    pub step: Step,
+    pub display_swap: bool,
+}
+
+impl Default for Cadence {
+    fn default() -> Self {
+        Self {
+            step: Step::Normal,
+            display_swap: true,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Drawing {
+    pub step: Step,
     pub fog: bool,
     pub bytes: u32,
     pub sampled_bytes: u32,
@@ -16,7 +40,7 @@ pub struct Drawing {
 
 impl Drawing {
     pub fn finish(&mut self, clock: i32) {
-        if clock % 30 == 0 {
+        if clock % 30 == 0 && self.step == Step::Normal {
             self.sampled_bytes = self.bytes.min(65536);
         }
     }

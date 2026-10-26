@@ -45,7 +45,7 @@ impl Game {
                 }
             }
         }
-        if self.clock % 30 != 0 {
+        if self.clock % 30 != 0 || self.drawing.step != crate::drawing::Step::Normal {
             return Ok(());
         }
         let focus = self.player_id;

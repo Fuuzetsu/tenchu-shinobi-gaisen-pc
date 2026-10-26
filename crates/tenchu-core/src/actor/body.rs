@@ -99,8 +99,11 @@ impl Actor {
             } else {
                 0
             };
-        ctx.cursor.area = self.map.area;
-        ctx.cursor.row = self.map.row;
+        // Balma inherits the preceding query's terrain cache (HUMAN.C).
+        if self.kind != 0x85 {
+            ctx.cursor.area = self.map.area;
+            ctx.cursor.row = self.map.row;
+        }
         let position = if self.status == 7
             || (self.status != 11
                 && self.map.height == 0

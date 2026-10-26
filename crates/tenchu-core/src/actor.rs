@@ -43,6 +43,26 @@ pub struct Context<'a> {
     pub drawing: &'a mut crate::drawing::Drawing,
 }
 
+impl Context<'_> {
+    pub(crate) fn swap_balma_terrain(&mut self) -> Result<()> {
+        let alternate = self
+            .mission
+            .balma_terrain
+            .as_mut()
+            .ok_or("Missing Balma terrain")?;
+        std::mem::swap(&mut self.mission.terrain, alternate);
+        self.cursor.row = 0;
+        let first = self
+            .mission
+            .terrain
+            .rows
+            .first()
+            .ok_or("Empty Balma terrain")?;
+        self.cursor.area = first.lookup.unwrap_or(first.list);
+        Ok(())
+    }
+}
+
 pub struct ActionContext<'a> {
     pub items: &'a mut crate::items::Items,
     pub roster: &'a mut crate::roster::Roster,

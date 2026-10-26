@@ -247,29 +247,31 @@ pub fn particle_floor(
     map: &AreaMap,
     cursor: &mut Cursor,
     position: Position,
-    hint: &mut Option<usize>,
+    hint: &mut Option<Node>,
     mode: u16,
 ) -> Result<i32> {
     let Position { x, y, z } = position.map(|v| v / 10);
-    if let Some(at) = *hint {
-        let node = map.node(at)?;
-        if i32::from(node.y) - 200 <= y && y <= i32::from(node.y) && node.contains(x, z) {
-            return if node.dy == 0 {
-                Ok(i32::from(node.y) * 10)
+    // A particle can retain a node from Balma's map after the active map swaps.
+    if let Some(node) = *hint
+        && i32::from(node.y) - 200 <= y
+        && y <= i32::from(node.y)
+        && node.contains(x, z)
+    {
+        return if node.dy == 0 {
+            Ok(i32::from(node.y) * 10)
+        } else {
+            let value = node_level(node, x, z)?;
+            Ok(if value == NONE {
+                NONE
             } else {
-                let value = node_level(node, x, z)?;
-                Ok(if value == NONE {
-                    NONE
-                } else {
-                    value.wrapping_mul(10)
-                })
-            };
-        }
+                value.wrapping_mul(10)
+            })
+        };
     }
     let query = Position::new(position.x, position.y.wrapping_sub(300), position.z);
     let floor = level(map, cursor, query, mode)?;
     if position.y <= floor && map.node(cursor.area)?.division == u16::MAX {
-        *hint = Some(cursor.area);
+        *hint = Some(map.node(cursor.area)?);
     }
     Ok(floor)
 }
@@ -353,13 +355,34 @@ mod tests {
             particle_floor(&map, &mut cursor, Position::new(0, -100, 0), &mut hint, 0).unwrap(),
             0
         );
-        assert_eq!(hint, Some(32));
+        assert_eq!(hint, Some(map.node(32).unwrap()));
         cursor.last_y = 12345;
         assert_eq!(
             particle_floor(&map, &mut cursor, Position::new(10, -200, 10), &mut hint, 0).unwrap(),
             0
         );
         assert_eq!(cursor.last_y, 12345);
+    }
+
+    #[test]
+    fn particle_hint_survives_switching_to_a_different_area_map() {
+        let map = flat_map();
+        let mut cursor = Cursor::new(&map);
+        cursor.last_y = 987;
+        let mut hint = Some(Node {
+            y: -50,
+            ..map.node(32).unwrap()
+        });
+        assert_eq!(
+            particle_floor(&map, &mut cursor, Position::new(0, -600, 0), &mut hint, 0).unwrap(),
+            -500
+        );
+        assert_eq!(cursor.last_y, 987);
+        assert_eq!(
+            particle_floor(&map, &mut cursor, Position::new(0, -200, 0), &mut hint, 0).unwrap(),
+            0
+        );
+        assert_eq!(hint, Some(map.node(32).unwrap()));
     }
 
     #[test]

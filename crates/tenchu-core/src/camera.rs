@@ -41,9 +41,8 @@ pub enum Mode {
     Hang,
 }
 
-#[cfg(test)]
 impl Mode {
-    pub(crate) fn source_id(self) -> u32 {
+    pub fn source_id(self) -> u32 {
         match self {
             Self::Normal => 0,
             Self::Direction => 1,
@@ -145,8 +144,7 @@ fn terrain_pitch(owner: &Actor, env: &Environment) -> Result<i16> {
 }
 
 impl Camera {
-    #[cfg(test)]
-    pub(crate) fn smoothing_state(&self) -> [[i16; 6]; 2] {
+    pub fn smoothing_state(&self) -> [[i16; 6]; 2] {
         std::array::from_fn(|i| self.smoothing[i].state())
     }
 

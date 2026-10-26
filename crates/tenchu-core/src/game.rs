@@ -146,6 +146,24 @@ impl Game {
     }
 
     pub fn step(&mut self, input: u16) -> Result<()> {
+        self.step_recorded(input, crate::drawing::Cadence::default())
+    }
+
+    /// Replays observed console cadence without tying simulation to host rendering.
+    pub fn step_recorded(&mut self, input: u16, cadence: crate::drawing::Cadence) -> Result<()> {
+        if self.begin_recorded_update(input, cadence.step)? {
+            self.finish_recorded_update(cadence.display_swap)?;
+        }
+        Ok(())
+    }
+
+    /// Stops before EndDrawing so a reference replay can inspect the update.
+    pub fn begin_recorded_update(
+        &mut self,
+        input: u16,
+        step: crate::drawing::Step,
+    ) -> Result<bool> {
+        self.drawing.step = step;
         self.tick += 1;
         self.music.clear();
         for movement in self.effects.texture_moves.drain(..).rev() {
@@ -162,7 +180,7 @@ impl Game {
                 self.cinematic.active = false;
                 self.music.push(None);
             }
-            return Ok(());
+            return Ok(false);
         }
         if !self.cinematic.active {
             self.input = input;
@@ -174,7 +192,7 @@ impl Game {
         self.drawing.bytes = 0;
         self.stage_sequence()?;
         if self.events.outcome != events::Outcome::Running {
-            return Ok(());
+            return Ok(false);
         }
         self.visible.clear();
         self.cinematic.frame = self.cinematic.active;
@@ -217,6 +235,10 @@ impl Game {
             let id = self.roster.order[index];
             if self.roster.get(id).attribute & crate::ids::ATTR_SUSPEND == 0 {
                 let mut actor = self.roster.take(id);
+                let balma = actor.kind == 0x85;
+                if balma {
+                    context.swap_balma_terrain()?;
+                }
                 let result = (|| -> Result<()> {
                     let center = if context.scene.models[actor.parts[0]].conflict.is_some() {
                         let center = actor.collision_center(&context);
@@ -302,6 +324,9 @@ impl Game {
                     }
                     Ok(())
                 })();
+                if balma {
+                    context.swap_balma_terrain()?;
+                }
                 self.roster.restore(actor);
                 result?;
             }
@@ -319,13 +344,15 @@ impl Game {
         if !self.cinematic.active {
             self.activate()?;
         }
-        self.drawing.fog = true;
-        self.drawing.bytes += self.construction.packets(
-            &self.mission,
-            &mut self.scene,
-            &self.camera,
-            &self.drawing.subdivision,
-        )?;
+        if self.drawing.step != crate::drawing::Step::Skipped {
+            self.drawing.fog = true;
+            self.drawing.bytes += self.construction.packets(
+                &self.mission,
+                &mut self.scene,
+                &self.camera,
+                &self.drawing.subdivision,
+            )?;
+        }
         self.effects.step(
             &mut self.random,
             crate::effects::View {
@@ -418,8 +445,14 @@ impl Game {
             )?;
         }
         self.drawing.finish(self.clock);
-        self.scene.finish_tick();
         self.rendered_view = self.camera.view;
+        Ok(true)
+    }
+
+    pub fn finish_recorded_update(&mut self, display_swap: bool) -> Result<()> {
+        if display_swap {
+            self.scene.finish_tick();
+        }
         self.advance_cinematic()?;
         Ok(())
     }

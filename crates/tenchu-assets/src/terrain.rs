@@ -1,6 +1,6 @@
 use crate::{Result, i16_le, slice, u16_le, u32_le};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Node {
     pub y: i16,
     pub dy: i16,

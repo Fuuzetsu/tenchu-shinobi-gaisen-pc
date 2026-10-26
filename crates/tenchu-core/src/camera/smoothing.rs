@@ -25,7 +25,6 @@ impl From<[i16; 6]> for Smooth {
 }
 
 impl Smooth {
-    #[cfg(test)]
     pub(super) fn state(&self) -> [i16; 6] {
         [
             self.shift,

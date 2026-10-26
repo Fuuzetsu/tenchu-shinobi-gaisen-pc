@@ -2,6 +2,68 @@ use super::*;
 use crate::math::Position;
 
 #[test]
+fn expired_blood_can_overwrite_itself_with_a_droplet_in_a_full_pool() {
+    let mut effects = Effects::default();
+    effects.slots[..200].fill(Some(Effect::Bleed(Bleed {
+        position: Position::new(0, 0, 2000),
+        velocity: [0; 3],
+        color: [0; 3],
+        time: 20,
+        mode: 1,
+    })));
+    // Mission 4, clock 2033: translated into the synthetic flat terrain.
+    effects.slots[47] = Some(Effect::Blood(Blood {
+        hint: None,
+        position: Position::new(-1044, -874, 4298),
+        velocity: [-58, 92, -39],
+        scale: 9016,
+        rotation: 589824,
+        time: 0,
+        brightness: 128,
+        sprite: 1,
+        mode: 0,
+        gore: false,
+    }));
+    let map = flat_map();
+    let mut cursor = Cursor::new(&map);
+    let mut env = Environment {
+        terrain: &map,
+        cursor: &mut cursor,
+        clock: 2033,
+        owner_position: Position::ZERO,
+        reference: Position::ZERO,
+    };
+    let mut rng = Random::new(0x69f1ffb3);
+    let view = View {
+        position: Position::ZERO,
+        matrix: Matrix::default(),
+    };
+    let mut scene = Scene::default();
+    effects.step(&mut rng, view, &mut scene, &mut env).unwrap();
+    assert_eq!(rng.seed, 0x5582e40f);
+    assert_eq!(rng.calls, 4);
+    assert_eq!(effects.cursor, 48);
+    let Some(Effect::Bleed(bleed)) = &effects.slots[47] else {
+        panic!("Expired slot must retain its replacement");
+    };
+    assert_eq!(bleed.position, Position::new(-1024, 1778, 4262));
+    assert_eq!(bleed.velocity, [-29, 51, -19]);
+    assert_eq!(bleed.time, 10);
+    assert!(effects.slots[200].is_none());
+    assert_eq!(
+        effects.drawings.iter().map(Drawing::bytes).sum::<u32>(),
+        199 * 24
+    );
+    effects.step(&mut rng, view, &mut scene, &mut env).unwrap();
+    let Some(Effect::Bleed(bleed)) = &effects.slots[47] else {
+        panic!("Replacement must continue on the next update");
+    };
+    assert_eq!(bleed.position, Position::new(-1053, 1829, 4243));
+    assert_eq!(bleed.time, 9);
+    assert_eq!(rng.calls, 4);
+}
+
+#[test]
 fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
     let mut effects = Effects::default();
     let map = flat_map();

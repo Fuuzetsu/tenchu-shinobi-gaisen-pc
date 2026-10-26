@@ -3,7 +3,7 @@ use crate::math::Position;
 
 #[derive(Clone, Debug)]
 pub struct Blood {
-    pub hint: Option<usize>,
+    pub hint: Option<tenchu_assets::terrain::Node>,
     pub position: Position,
     pub velocity: [i16; 3],
     pub scale: i32,
@@ -25,7 +25,7 @@ impl Effects {
         env: &mut Environment,
     ) -> Result<()> {
         terrain::level(env.terrain, env.cursor, position, 0)?;
-        let hint = Some(env.cursor.area);
+        let hint = Some(env.terrain.node(env.cursor.area)?);
         for _ in 0..count {
             let slot = self.allocate();
             let sprite = (rng.next15() % 2) as u8;
@@ -173,6 +173,7 @@ impl Effects {
                     alive = previous > 0;
                 }
                 if blood.gore || env.clock & 1 != 0 {
+                    let released = if alive { None } else { self.visiting.take() };
                     let radius = if blood.gore { 60 } else { 80 };
                     let position = blood.position.map(|p| {
                         p.wrapping_sub(radius)
@@ -184,6 +185,13 @@ impl Effects {
                         (rng.next15() % 10 + 10) as u8
                     };
                     self.bleed(position, blood.velocity.map(|v| v / 2), time, [127, 16, 23]);
+                    if let Some(slot) = released
+                        && let Some(Effect::Bleed(bleed)) = &mut self.slots[slot]
+                    {
+                        blood.reused_by(bleed);
+                        self.draw_blood(blood, view, false);
+                        return Ok(false);
+                    }
                 }
             }
         }
@@ -219,5 +227,24 @@ impl Effects {
                 depth: (z >> 2).clamp(0, 1249),
             });
         }
+    }
+}
+
+impl Blood {
+    fn reused_by(&mut self, bleed: &mut Bleed) {
+        // DrawBlood frees an expired slot before spawning its droplet. A full
+        // pool can reuse that same union, then the old routine finishes moving
+        // and drawing the overwritten fields (EFFECT.C DrawBlood/DrawGore).
+        self.position = Position::new(bleed.position.y, bleed.position.z, 0);
+        self.scale =
+            i32::from(bleed.velocity[0] as u16) | (i32::from(bleed.velocity[1] as u16) << 16);
+        self.rotation = i32::from(bleed.velocity[2] as u16);
+        self.velocity[0] = i16::from_le_bytes([bleed.color[2], bleed.time]);
+        self.velocity[1] = i16::from_le_bytes([bleed.mode, self.velocity[1].to_le_bytes()[1]]);
+        self.position = self
+            .position
+            .wrapping_add(self.velocity.map(i32::from).into());
+        bleed.position.y = self.position.x;
+        bleed.position.z = self.position.y;
     }
 }

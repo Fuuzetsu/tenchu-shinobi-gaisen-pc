@@ -3,7 +3,7 @@ use crate::{Result, actor::Context, terrain};
 
 #[derive(Clone, Debug, Default)]
 pub struct Rolling {
-    pub hint: Option<usize>,
+    pub hint: Option<tenchu_assets::terrain::Node>,
     pub velocity: [i16; 3],
     pub status: u8,
 }
