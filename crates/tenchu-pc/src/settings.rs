@@ -21,10 +21,8 @@ pub mod presets;
 pub use post::Post;
 
 use serde::{Deserialize, Serialize};
-#[cfg(test)]
-use std::fs;
-use std::path::PathBuf;
-use tenchu_assets::Result;
+mod store;
+pub use store::Store;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -73,6 +71,15 @@ impl Default for Settings {
 }
 
 impl Settings {
+    fn validate(&mut self) {
+        self.volume = self.volume.min(100);
+        self.sight_percent = self.sight_percent.min(400);
+        if ![0, 1, 2, 4, 8, 16].contains(&self.cutscene_speed) {
+            self.cutscene_speed = 1;
+        }
+        self.graphics.validate();
+    }
+
     pub fn rendering(&self) -> std::borrow::Cow<'_, Self> {
         if !self.retro {
             return std::borrow::Cow::Borrowed(self);
@@ -164,6 +171,33 @@ impl Default for Graphics {
 }
 
 impl Graphics {
+    fn validate(&mut self) {
+        self.fog_distance = self.fog_distance.clamp(25, 400);
+        self.exposure = self.exposure.clamp(25, 300);
+        if ![1, 2, 4, 8, 16].contains(&self.anisotropy) {
+            self.anisotropy = 1;
+        }
+        if ![1, 2, 4].contains(&self.upscale) {
+            self.upscale = 1;
+        }
+        self.model_detail = self.model_detail.min(2);
+        self.magnification = self.magnification.min(3);
+        self.surface_detail = self.surface_detail.min(2);
+        self.surface_strength = self.surface_strength.min(100);
+        self.post.validate();
+        self.blood.validate();
+        self.sky.validate();
+        self.weather.validate();
+        self.water.validate();
+        self.models.validate();
+        self.motion.validate();
+        self.effects.validate();
+        if ![1, 2, 4, 8, 16].contains(&self.samples) {
+            self.samples = 1;
+        }
+        self.lighting.validate();
+    }
+
     pub fn animated_presentation(&self) -> bool {
         self.interpolation
             || self.sky.enabled && self.sky.speed != 0
@@ -255,115 +289,42 @@ impl Default for Directional {
     }
 }
 
-pub struct Store {
-    pub path: PathBuf,
-}
-
-impl Store {
-    pub fn new() -> Result<Self> {
-        #[cfg(target_arch = "wasm32")]
-        return Ok(Self {
-            path: "settings.json".into(),
-        });
-        #[cfg(not(target_arch = "wasm32"))]
-        Self::native()
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn native() -> Result<Self> {
-        let path = if let Some(path) = std::env::var_os("TENCHU_SETTINGS") {
-            PathBuf::from(path)
-        } else {
-            let root = if let Some(path) = std::env::var_os("XDG_CONFIG_HOME") {
-                PathBuf::from(path)
-            } else if cfg!(target_os = "windows") {
-                PathBuf::from(std::env::var_os("APPDATA").ok_or("Set APPDATA or TENCHU_SETTINGS")?)
-            } else {
-                PathBuf::from(std::env::var_os("HOME").ok_or("Set HOME or TENCHU_SETTINGS")?).join(
-                    if cfg!(target_os = "macos") {
-                        "Library/Application Support"
-                    } else {
-                        ".config"
-                    },
-                )
-            };
-            root.join("tenchu-shinobi-gaisen-pc/settings.json")
-        };
-        Ok(Self { path })
-    }
-
-    pub fn load(&self) -> Result<Settings> {
-        match crate::storage::read(&self.path) {
-            Ok(bytes) => {
-                let mut settings: Settings = serde_json::from_slice(&bytes)
-                    .map_err(|e| format!("{}: {e}", self.path.display()))?;
-                settings.volume = settings.volume.min(100);
-                settings.sight_percent = settings.sight_percent.min(400);
-                if ![0, 1, 2, 4, 8, 16].contains(&settings.cutscene_speed) {
-                    settings.cutscene_speed = 1;
-                }
-                settings.graphics.fog_distance = settings.graphics.fog_distance.clamp(25, 400);
-                settings.graphics.exposure = settings.graphics.exposure.clamp(25, 300);
-                if ![1, 2, 4, 8, 16].contains(&settings.graphics.anisotropy) {
-                    settings.graphics.anisotropy = 1;
-                }
-                if ![1, 2, 4].contains(&settings.graphics.upscale) {
-                    settings.graphics.upscale = 1;
-                }
-                settings.graphics.model_detail = settings.graphics.model_detail.min(2);
-                settings.graphics.magnification = settings.graphics.magnification.min(3);
-                settings.graphics.surface_detail = settings.graphics.surface_detail.min(2);
-                settings.graphics.surface_strength = settings.graphics.surface_strength.min(100);
-                settings.graphics.post.validate();
-                settings.graphics.blood.validate();
-                settings.graphics.sky.validate();
-                settings.graphics.weather.validate();
-                settings.graphics.water.validate();
-                settings.graphics.models.validate();
-                settings.graphics.motion.validate();
-                settings.graphics.effects.validate();
-                if ![1, 2, 4, 8, 16].contains(&settings.graphics.samples) {
-                    settings.graphics.samples = 1;
-                }
-                let light = &mut settings.graphics.lighting;
-                light.radius = light.radius.clamp(2, 50);
-                light.intensity = light.intensity.min(400);
-                light.ambient = light.ambient.min(100);
-                light.softness = light.softness.min(8);
-                light.source_size = light.source_size.min(400);
-                light.sky_tint = light.sky_tint.min(100);
-                let sun = &mut light.directional;
-                sun.intensity = sun.intensity.min(200);
-                sun.color = sun.color.min(2);
-                sun.azimuth %= 360;
-                sun.elevation = sun.elevation.clamp(10, 85);
-                sun.radius = sun.radius.clamp(10, 60);
-                if ![512, 1024, 2048, 4096].contains(&sun.resolution) {
-                    sun.resolution = 2048;
-                }
-                light.count = light.count.min(crate::lighting::MAX_LIGHTS as u16);
-                light.shadow_count = light
-                    .shadow_count
-                    .min(crate::lighting::MAX_SHADOW_LIGHTS as u16);
-                if ![256, 512, 1024, 2048].contains(&light.resolution) {
-                    light.resolution = 512;
-                }
-                Ok(settings)
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Settings::default()),
-            Err(error) => Err(format!("{}: {error}", self.path.display())),
+impl Lighting {
+    fn validate(&mut self) {
+        self.radius = self.radius.clamp(2, 50);
+        self.intensity = self.intensity.min(400);
+        self.ambient = self.ambient.min(100);
+        self.softness = self.softness.min(8);
+        self.source_size = self.source_size.min(400);
+        self.sky_tint = self.sky_tint.min(100);
+        self.directional.validate();
+        self.count = self.count.min(crate::lighting::MAX_LIGHTS as u16);
+        self.shadow_count = self
+            .shadow_count
+            .min(crate::lighting::MAX_SHADOW_LIGHTS as u16);
+        if ![256, 512, 1024, 2048].contains(&self.resolution) {
+            self.resolution = 512;
         }
     }
+}
 
-    pub fn write(&self, settings: &Settings) -> Result<()> {
-        let bytes = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
-        crate::storage::atomic_write(&self.path, &bytes)
+impl Directional {
+    fn validate(&mut self) {
+        self.intensity = self.intensity.min(200);
+        self.color = self.color.min(2);
+        self.azimuth %= 360;
+        self.elevation = self.elevation.clamp(10, 85);
+        self.radius = self.radius.clamp(10, 60);
+        if ![512, 1024, 2048, 4096].contains(&self.resolution) {
+            self.resolution = 2048;
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn retro_is_a_rendering_view_and_restores_all_preferences() {

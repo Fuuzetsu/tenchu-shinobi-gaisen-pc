@@ -1,6 +1,10 @@
 use std::path::{Path, PathBuf};
 #[cfg(not(target_arch = "wasm32"))]
-use std::{fs, io::Write};
+use std::{
+    fs,
+    io::Write,
+    sync::atomic::{AtomicU64, Ordering},
+};
 use tenchu_assets::Result;
 use tenchu_core::progress::save::Save;
 
@@ -8,37 +12,68 @@ pub struct Storage {
     path: PathBuf,
 }
 
-impl Storage {
-    pub fn new() -> Result<Self> {
+pub enum UserFile {
+    Progress,
+    Settings,
+}
+
+impl UserFile {
+    pub fn path(self) -> Result<PathBuf> {
         #[cfg(target_arch = "wasm32")]
-        return Ok(Self {
-            path: "progress.sav".into(),
-        });
+        return Ok(match self {
+            Self::Progress => "progress.sav",
+            Self::Settings => "settings.json",
+        }
+        .into());
         #[cfg(not(target_arch = "wasm32"))]
-        Self::native()
+        self.native_path()
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn native() -> Result<Self> {
-        let path = if let Some(path) = std::env::var_os("TENCHU_SAVE") {
-            PathBuf::from(path)
-        } else {
-            let root = if let Some(path) = std::env::var_os("XDG_DATA_HOME") {
-                PathBuf::from(path)
-            } else if cfg!(target_os = "windows") {
-                PathBuf::from(std::env::var_os("APPDATA").ok_or("Set APPDATA or TENCHU_SAVE")?)
-            } else {
-                let root =
-                    PathBuf::from(std::env::var_os("HOME").ok_or("Set HOME or TENCHU_SAVE")?);
-                root.join(if cfg!(target_os = "macos") {
-                    "Library/Application Support"
-                } else {
-                    ".local/share"
-                })
-            };
-            root.join("tenchu-shinobi-gaisen-pc/progress.sav")
+    fn native_path(self) -> Result<PathBuf> {
+        let (name, override_env, xdg, fallback) = match self {
+            Self::Progress => (
+                "progress.sav",
+                "TENCHU_SAVE",
+                "XDG_DATA_HOME",
+                ".local/share",
+            ),
+            Self::Settings => (
+                "settings.json",
+                "TENCHU_SETTINGS",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
         };
-        Ok(Self { path })
+        if let Some(path) = std::env::var_os(override_env) {
+            return Ok(path.into());
+        }
+        let root = if let Some(path) = std::env::var_os(xdg) {
+            PathBuf::from(path)
+        } else if cfg!(target_os = "windows") {
+            PathBuf::from(
+                std::env::var_os("APPDATA")
+                    .ok_or_else(|| format!("Set APPDATA or {override_env}"))?,
+            )
+        } else {
+            PathBuf::from(
+                std::env::var_os("HOME").ok_or_else(|| format!("Set HOME or {override_env}"))?,
+            )
+            .join(if cfg!(target_os = "macos") {
+                "Library/Application Support"
+            } else {
+                fallback
+            })
+        };
+        Ok(root.join("tenchu-shinobi-gaisen-pc").join(name))
+    }
+}
+
+impl Storage {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            path: UserFile::Progress.path()?,
+        })
     }
 
     pub fn load(&self) -> Result<Option<Save>> {
@@ -72,19 +107,32 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
+    static NEXT_FILE: AtomicU64 = AtomicU64::new(0);
     let directory = path
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or(std::path::Path::new("."));
     fs::create_dir_all(directory).map_err(|e| e.to_string())?;
-    let temporary = path.with_extension("tmp");
-    let mut file = fs::File::create(&temporary).map_err(|e| e.to_string())?;
-    file.write_all(bytes)
-        .and_then(|_| file.sync_all())
-        .map_err(|e| e.to_string())?;
+    let (temporary, mut file) = loop {
+        let sequence = NEXT_FILE.fetch_add(1, Ordering::Relaxed);
+        let temporary = directory.join(format!(".tenchu-{}-{sequence}.tmp", std::process::id()));
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+        {
+            Ok(file) => break (temporary, file),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(format!("Save {}: {error}", path.display())),
+        }
+    };
+    let result = file.write_all(bytes).and_then(|()| file.sync_all());
     drop(file);
-    fs::rename(&temporary, path).map_err(|e| format!("Save {}: {e}", path.display()))?;
-    Ok(())
+    let result = result.and_then(|()| fs::rename(&temporary, path));
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result.map_err(|e| format!("Save {}: {e}", path.display()))
 }
 
 #[cfg(test)]
@@ -107,9 +155,40 @@ mod tests {
         assert!(storage.load().unwrap().is_none());
         let mut save = Save::default();
         storage.write(&save).unwrap();
+        let sibling = storage.path.with_extension("tmp");
+        fs::write(&sibling, b"unrelated file").unwrap();
         save.progress.stock[0][1] = 42;
         storage.write(&save).unwrap();
         assert_eq!(storage.load().unwrap().unwrap(), save);
+        assert_eq!(fs::read(&sibling).unwrap(), b"unrelated file");
+
+        let barrier = std::sync::Barrier::new(8);
+        std::thread::scope(|scope| {
+            for count in 0..8 {
+                let barrier = &barrier;
+                let path = &storage.path;
+                let mut candidate = save.clone();
+                candidate.progress.stock[0][1] = count;
+                scope.spawn(move || {
+                    barrier.wait();
+                    atomic_write(path, &candidate.encode()).unwrap();
+                });
+            }
+        });
+        let loaded = storage.load().unwrap().unwrap();
+        assert!(loaded.progress.stock[0][1] < 8);
+        save.progress.stock[0][1] = loaded.progress.stock[0][1];
+        assert_eq!(loaded, save);
+        assert_eq!(fs::read(&sibling).unwrap(), b"unrelated file");
+
+        let parent = storage.path.parent().unwrap();
+        assert!(atomic_write(parent, b"cannot replace a directory").is_err());
+        let entries: Vec<_> = fs::read_dir(parent).unwrap().collect();
+        assert_eq!(
+            entries.len(),
+            2,
+            "failed writes must remove their temporary file"
+        );
         fs::write(&storage.path, b"truncated").unwrap();
         assert!(storage.load().unwrap_err().contains("Truncated"));
         fs::remove_dir_all(directory).unwrap();

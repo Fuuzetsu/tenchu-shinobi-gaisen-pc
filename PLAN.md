@@ -35,6 +35,14 @@ steps, wraparound and resets. The comparison harness/results stay in ignored
 `private/code-polish`; existing UI regressions remain in the suite. The 67 PC
 unit tests, eight disc-backed host tests and strict workspace Clippy pass.
 
+Persistence cleanup: settings own their validation and a small store module owns
+JSON I/O. Saves and preferences share the platform-directory rules without
+changing existing paths or formats. Atomic writes use exclusively created,
+unique sibling files instead of clobbering a fixed `.tmp` path. The save test
+now exercises eight simultaneous writers, unrelated-file preservation and
+cleanup after a failed rename. Storage/settings tests, strict workspace Clippy
+and WASM checking pass.
+
 ## Screen and health-bar repairs (complete)
 
 Mission 5's folding screen belongs to Bizenya's root model alongside his body
