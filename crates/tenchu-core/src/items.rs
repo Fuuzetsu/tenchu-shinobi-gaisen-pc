@@ -258,26 +258,23 @@ impl Items {
         }
         let item = &mut self.slots[id];
         match item.processor {
-            Some(Processor::Grapple) => item.mode = 0,
             Some(Processor::SightShot) => {
                 actors
                     .get_mut(item.owner.ok_or("Aimed item has no owner")?)
                     .inventory[25] = 0;
-                item.mode = 0;
             }
             Some(Processor::Shuriken | Processor::Darts) => {
                 item.trail = None;
-                item.mode = 0;
             }
             Some(Processor::Charm) => {
                 actors
                     .get_mut(item.owner.ok_or("Protection charm has no owner")?)
                     .active_item = 0;
-                item.mode = 0;
             }
-            Some(_) => item.mode = 0,
+            Some(_) => {}
             None => return Ok(()),
         }
+        item.mode = 0;
         ctx.collision.remove(ctx.scene, item.model);
         item.owner = None;
         item.processor = None;

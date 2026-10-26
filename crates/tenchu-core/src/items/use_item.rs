@@ -149,7 +149,7 @@ impl Items {
             &ctx.mission.common_motions,
             &ctx.mission.clips,
         );
-        actor.status = (action >> 8) as i8 as i16;
+        actor.status = i16::from((action >> 8) as i8);
         actor.motion_velocity(ctx);
     }
 

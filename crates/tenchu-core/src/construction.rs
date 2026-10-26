@@ -236,12 +236,10 @@ impl Construction {
                 let mesh = self.geometry(object, mission)?;
                 bytes += if bucket != 0 {
                     packets::draw_tmd(mesh, &matrix, true)
+                } else if object.subdivisions != 0 {
+                    subdivision.count(mesh, &matrix, object.subdivisions)?
                 } else {
-                    if object.subdivisions != 0 {
-                        subdivision.count(mesh, &matrix, object.subdivisions)?
-                    } else {
-                        packets::sdk_plain(mesh, &matrix)?
-                    }
+                    packets::sdk_plain(mesh, &matrix)?
                 };
                 if bucket != 0 && bytes > 25600 {
                     return Ok(bytes);

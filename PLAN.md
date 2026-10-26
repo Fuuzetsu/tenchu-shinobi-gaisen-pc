@@ -52,6 +52,15 @@ dependencies are scoped to the native target. All 126 workspace unit tests,
 strict Clippy, WASM checking and seven disc/GPU model/menu/sprite checks pass,
 including the folding-screen repair and both players' weapon attachments.
 
+Core cleanup removes sixteen unused motion constants, shares item disposal's
+common reset and makes context-only helpers independent of actor/item borrows.
+Lossless sign extension uses `From` while retaining the deliberate narrowing
+casts and arithmetic order. All 33,404 recorded campaign updates (349 draw
+skips) pass the full retail RAM comparison with no state corrections; the entire
+report equals the pre-cleanup report. Workspace tests, the serialized campaign
+replay and both players' explosive-item regression also pass. The three remaining
+`repr(C)` declarations describe GPU buffer layouts and are required.
+
 ## Screen and health-bar repairs (complete)
 
 Mission 5's folding screen belongs to Bizenya's root model alongside his body

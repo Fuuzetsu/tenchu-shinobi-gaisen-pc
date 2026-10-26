@@ -431,7 +431,7 @@ impl Actor {
         {
             return false;
         }
-        self.status = (action >> 8) as i8 as i16;
+        self.status = i16::from((action >> 8) as i8);
         if movement {
             self.motion_velocity(ctx);
         }

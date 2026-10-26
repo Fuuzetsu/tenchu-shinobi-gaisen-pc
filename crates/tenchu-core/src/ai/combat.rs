@@ -79,7 +79,7 @@ impl Controller<'_, '_> {
         {
             self.state.detection = Detection::None;
         }
-        let turn = ((4 - class as i32) * self.turn()) as i16 as i32;
+        let turn = i32::from(((4 - class as i32) * self.turn()) as i16);
         let mut pad = if self.degree() > turn {
             RIGHT
         } else if self.degree() < -turn {

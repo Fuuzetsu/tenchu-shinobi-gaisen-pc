@@ -3,7 +3,7 @@ use crate::collision;
 use crate::math::Position;
 
 impl Items {
-    fn explosion(&mut self, position: Position, mine: bool, ctx: &mut Context) -> Result<()> {
+    fn explosion(position: Position, mine: bool, ctx: &mut Context) -> Result<()> {
         ctx.effects.explosion(position, [0, -25, 0], ctx.random);
         ctx.effects.embers(
             position,
@@ -85,7 +85,7 @@ impl Items {
                 self.slots[id].mode = 1;
             }
             1 => {
-                self.explosion(position, false, ctx)?;
+                Self::explosion(position, false, ctx)?;
                 self.contact(id, 1500, collision::HIT, ctx)?;
                 self.slots[id].mode = 2;
                 self.slots[id].count = 3;
@@ -138,7 +138,7 @@ impl Items {
                 }
             }
             2 => {
-                self.explosion(ctx.scene.models[model].local.translation, true, ctx)?;
+                Self::explosion(ctx.scene.models[model].local.translation, true, ctx)?;
                 self.slots[id].mode = 3;
                 self.slots[id].count = 3;
                 intelligence.reset_alert();

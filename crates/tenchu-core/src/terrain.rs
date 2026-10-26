@@ -90,10 +90,10 @@ pub struct Probe {
 
 pub fn node_level(node: Node, x: i32, z: i32) -> Result<i32> {
     let [x1, z1, x2, z2] = node.bounds.map(|v| i32::from(v as u16));
-    let dx = x.wrapping_sub(x1) as i16 as i32;
-    let dz = z.wrapping_sub(z1) as i16 as i32;
-    let xs = (x2 - x1 + 1) as i16 as i32;
-    let zs = (z2 - z1 + 1) as i16 as i32;
+    let dx = i32::from(x.wrapping_sub(x1) as i16);
+    let dz = i32::from(z.wrapping_sub(z1) as i16);
+    let xs = i32::from((x2 - x1 + 1) as i16);
+    let zs = i32::from((z2 - z1 + 1) as i16);
     if xs == 0 || zs == 0 {
         return Err("Zero terrain span".into());
     }
@@ -106,7 +106,7 @@ pub fn node_level(node: Node, x: i32, z: i32) -> Result<i32> {
         0x8000 => dz * i32::from(node.dy) / zs,
         _ => 0,
     };
-    Ok((i32::from(node.y) + slope) as i16 as i32)
+    Ok(i32::from((i32::from(node.y) + slope) as i16))
 }
 
 pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) -> Result<i32> {
