@@ -92,3 +92,16 @@ checks every video timestamp and decodes the entire result before publishing.
 It writes YouTube chapter text and a verification report beside the MP4. Retained
 parts and their logs allow a failed render to resume without starting over. Keep
 all recordings and extracted replay data outside Git, normally under `private/`.
+
+Measure soundtrack alignment at several non-silent points across the finished run:
+
+```sh
+./dev.sh python3 tools/retail-capture/check_audio.py \
+  MATCHING-LOSSLESS-AUDIO.wav OUTPUT.mp4 100 750 1400 > audio-alignment.json
+```
+
+The check searches ±150 ms, then refines the best lag to one 12 kHz sample. It
+requires near-zero lag and correlation above 0.995; silence is not accepted as
+alignment evidence. Codec priming is handled by the standard AAC mux timestamps.
+The export uses MP4/H.264 High, closed GOPs, 4:2:0 BT.709 and stereo AAC at 48 kHz,
+following [YouTube's upload format recommendations](https://support.google.com/youtube/answer/1722171?hl=en).
