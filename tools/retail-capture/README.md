@@ -86,6 +86,8 @@ joins them without re-encoding and adds 48 kHz stereo AAC audio. Audio must come
 from the **identical continuous tape starting at field zero**, not an unrelated
 playthrough. It preserves source speed and pads only the fractional final video
 frame. The soundtrack is console audio, not output from the native sound mixer.
+Joins use frame-count durations explicitly, since MP4 chapter tracks round to
+milliseconds and can otherwise introduce small video timestamp gaps.
 
 The script freezes binary/tape/audio/artwork hashes, refuses mixed-input resumes,
 checks every video timestamp and decodes the entire result before publishing.
@@ -122,5 +124,7 @@ Measure soundtrack alignment at several non-silent points across the finished ru
 The check searches ±150 ms, then refines the best lag to one 12 kHz sample. It
 requires near-zero lag and correlation above 0.995; silence is not accepted as
 alignment evidence. Codec priming is handled by the standard AAC mux timestamps.
+Sample extraction starts on the common 44.1/48/12 kHz grid, avoiding resampling
+phase differences when testing fractional-second positions across an edit.
 The export uses MP4/H.264 High, closed GOPs, 4:2:0 BT.709 and stereo AAC at 48 kHz,
 following [YouTube's upload format recommendations](https://support.google.com/youtube/answer/1722171?hl=en).

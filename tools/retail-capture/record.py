@@ -97,7 +97,10 @@ def main():
     args.output.with_suffix(".chapters.txt").write_text("\n".join(youtube) + "\n")
     # These generated relative names contain no quoting-sensitive characters.
     concat = parts / "concat.txt"
-    concat.write_text("".join(f"file '{p.name}'\n" for p in clips))
+    # MP4 chapter tracks round to milliseconds; use video frame counts for joins.
+    concat.write_text("".join(
+        f"file '{p.name}'\nduration {(end - start) / 60:.9f}\n"
+        for p, start, end in zip(clips, starts, starts[1:] + [total])))
     temporary = parts / "assembled.mp4"
     temporary.unlink(missing_ok=True)
     run("ffmpeg", "-hide_banner", "-loglevel", "warning", "-nostdin",

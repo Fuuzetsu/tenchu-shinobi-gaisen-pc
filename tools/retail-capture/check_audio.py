@@ -10,16 +10,22 @@ import subprocess
 
 RATE = 12000
 MARGIN = RATE // 5
+ALIGNMENT = RATE // math.gcd(RATE, 44100, 48000)
 
 
 def samples(path, time):
+    start = round((time - 0.2) * RATE)
+    # Align decoding to the shared 44.1/48/12 kHz sample grid before resampling.
+    base = start // ALIGNMENT * ALIGNMENT
+    offset = start - base
     data = subprocess.check_output([
-        "ffmpeg", "-hide_banner", "-v", "error", "-ss", str(time - 0.2), "-i", path,
-        "-t", "1.4", "-map", "0:a:0", "-ac", "1", "-ar", str(RATE),
+        "ffmpeg", "-hide_banner", "-v", "error", "-ss", f"{base / RATE:.9f}", "-i", path,
+        "-t", f"{1.4 + offset / RATE:.9f}", "-map", "0:a:0", "-ac", "1", "-ar", str(RATE),
         "-f", "f32le", "-",
     ])
     result = array("f")
     result.frombytes(data)
+    result = result[offset:offset + RATE + 2 * MARGIN]
     if len(result) < RATE + 2 * MARGIN:
         raise ValueError(f"Truncated audio at {time}s")
     return result

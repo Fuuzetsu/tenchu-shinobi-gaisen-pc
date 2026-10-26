@@ -116,7 +116,9 @@ def main():
     metadata.write_text(chapters)
     args.output.with_suffix(".chapters.txt").write_text("\n".join(description) + "\n")
     concat = work / "concat.txt"
-    concat.write_text("".join(f"file '{i:02d}.mp4'\n" for i in range(len(segments))))
+    concat.write_text("".join(
+        f"file '{i:02d}.mp4'\nduration {(s['output_end_frame'] - s['output_start_frame']) / 60:.9f}\n"
+        for i, s in enumerate(segments)))
     temporary = work / "assembled.mp4"
     temporary.unlink(missing_ok=True)
     run("ffmpeg", "-hide_banner", "-v", "warning", "-nostdin", "-f", "concat", "-safe", "1",
