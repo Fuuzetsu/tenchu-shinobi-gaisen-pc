@@ -10,6 +10,31 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Shipping cleanup (in progress)
+
+Keep this pass focused on DRY, KISS and YAGNI. Preserve game behavior, existing
+save/pack formats and native/browser controls; do not add speculative frameworks
+or make a new recording.
+
+- Consolidate repeated F1 preference edits, resets and slider limits. Compare
+  the previous and revised control behavior before committing.
+- Simplify asset/presentation ownership and duplicate pixel conversion; remove
+  unused declarations and unnecessary native code/dependencies from the browser.
+- Separate settings validation from file access and share platform path rules.
+  Review tests/comments for actual value; keep source arithmetic and retail
+  regressions instead of deleting useful coverage to reduce the test count.
+- Run formatting, strict Clippy, workspace tests, targeted disc/replay checks,
+  native packaging and the browser build/smoke checks. Record what was verified
+  and any platform/release limitations rather than claim universal readiness.
+
+F1 preference cleanup: 37 toggles and 59 numeric preferences now share field
+access for editing/reset; mouse sliders and keyboard edits use the same limits.
+Gameplay actions retain their explicit host handlers. All 2,220 before/after
+cases across Original, Modern High and Showcase match exactly, including large
+steps, wraparound and resets. The comparison harness/results stay in ignored
+`private/code-polish`; existing UI regressions remain in the suite. The 67 PC
+unit tests, eight disc-backed host tests and strict workspace Clippy pass.
+
 ## Screen and health-bar repairs (complete)
 
 Mission 5's folding screen belongs to Bizenya's root model alongside his body

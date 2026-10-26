@@ -20,31 +20,12 @@ impl Application {
     }
 
     pub(super) fn reset_item(&mut self, item: Item) -> Result<()> {
+        if item.reset_setting(&mut self.settings) {
+            return Ok(());
+        }
         let s = Settings::default();
         let d = crate::debug::Debug::new(&self.campaign.game)?;
         match item {
-            Item::GrappleDetail => {
-                self.settings.graphics.models.grapple = s.graphics.models.grapple
-            }
-            Item::ContactSparks => {
-                self.settings.graphics.effects.sparks = s.graphics.effects.sparks
-            }
-            Item::ContactSplashes => {
-                self.settings.graphics.effects.splashes = s.graphics.effects.splashes
-            }
-            Item::ContactScatter => {
-                self.settings.graphics.effects.scatter = s.graphics.effects.scatter
-            }
-            Item::FallingLeaves => {
-                self.settings.graphics.effects.leaves = s.graphics.effects.leaves
-            }
-            Item::SparkDensity => {
-                self.settings.graphics.effects.spark_density = s.graphics.effects.spark_density
-            }
-            Item::LeafDensity => {
-                self.settings.graphics.effects.leaf_density = s.graphics.effects.leaf_density
-            }
-
             Item::GodMode => self.set_god_mode(false)?,
             Item::Stealth => self.set_stealth(false)?,
             Item::ClickTeleport => self.debug.click_teleport = false,
@@ -54,202 +35,44 @@ impl Application {
                     self.apply_item(Item::Armor, 1)?;
                 }
             }
-            Item::HairMotion => self.settings.graphics.motion.hair = s.graphics.motion.hair,
-            Item::ClothMotion => self.settings.graphics.motion.cloth = s.graphics.motion.cloth,
-            Item::EquipmentMotion => {
-                self.settings.graphics.motion.equipment = s.graphics.motion.equipment
-            }
-            Item::MotionStrength => {
-                self.settings.graphics.motion.strength = s.graphics.motion.strength
-            }
-            Item::MotionResponse => {
-                self.settings.graphics.motion.response = s.graphics.motion.response
-            }
-            Item::MotionWind => self.settings.graphics.motion.wind = s.graphics.motion.wind,
             Item::CharacterRefinement => {
                 self.settings.graphics.models.characters = s.graphics.models.characters
-            }
-            Item::VegetationVariation => {
-                self.settings.graphics.models.variation = s.graphics.models.variation
             }
             Item::FoliageDetail => {
                 self.settings.graphics.models.foliage = s.graphics.models.foliage
             }
-            Item::Water => self.settings.graphics.water.enabled = s.graphics.water.enabled,
-            Item::WaterRipples => self.settings.graphics.water.ripples = s.graphics.water.ripples,
-            Item::WaterReflections => {
-                self.settings.graphics.water.reflections = s.graphics.water.reflections
-            }
-            Item::WaterFlow => self.settings.graphics.water.flow = s.graphics.water.flow,
-            Item::WaterFoam => self.settings.graphics.water.foam = s.graphics.water.foam,
-            Item::WaterSpray => self.settings.graphics.water.spray = s.graphics.water.spray,
             Item::WaterDetail => self.settings.graphics.water.detail = s.graphics.water.detail,
             Item::Weather => self.settings.graphics.weather.mode = s.graphics.weather.mode,
-            Item::WeatherAmount => {
-                self.settings.graphics.weather.amount = s.graphics.weather.amount
-            }
-            Item::WeatherWind => self.settings.graphics.weather.wind = s.graphics.weather.wind,
-            Item::WeatherHeading => {
-                self.settings.graphics.weather.heading = s.graphics.weather.heading
-            }
             Item::WeatherQuality => {
                 self.settings.graphics.weather.quality = s.graphics.weather.quality
             }
-            Item::WeatherDistance => {
-                self.settings.graphics.weather.distance = s.graphics.weather.distance
-            }
-            Item::Wetness => self.settings.graphics.weather.wetness = s.graphics.weather.wetness,
-            Item::RainReflections => {
-                self.settings.graphics.weather.reflections = s.graphics.weather.reflections
-            }
-            Item::PuddleCoverage => {
-                self.settings.graphics.weather.puddles = s.graphics.weather.puddles
-            }
-            Item::PoolingSpeed => {
-                self.settings.graphics.weather.pooling = s.graphics.weather.pooling
-            }
-            Item::RainHaze => self.settings.graphics.weather.haze = s.graphics.weather.haze,
-            Item::RainStreaks => {
-                self.settings.graphics.weather.streaks = s.graphics.weather.streaks
-            }
-            Item::RunoffAmount => {
-                self.settings.graphics.weather.runoff_amount = s.graphics.weather.runoff_amount
-            }
-            Item::Footprints => {
-                self.settings.graphics.weather.footprints = s.graphics.weather.footprints
-            }
-            Item::FootprintSeconds => {
-                self.settings.graphics.weather.footprint_seconds =
-                    s.graphics.weather.footprint_seconds
-            }
-            Item::SnowCover => self.settings.graphics.weather.snow = s.graphics.weather.snow,
-            Item::SnowDrift => {
-                self.settings.graphics.weather.snow_drift = s.graphics.weather.snow_drift
-            }
-            Item::RoofRunoff => self.settings.graphics.weather.runoff = s.graphics.weather.runoff,
-            Item::TimeClock => self.settings.graphics.sky.enabled = s.graphics.sky.enabled,
-            Item::TimeOfDay => self.settings.graphics.sky.time = s.graphics.sky.time,
-            Item::TimeSpeed => self.settings.graphics.sky.speed = s.graphics.sky.speed,
-            Item::SunStrength => self.settings.graphics.sky.sun = s.graphics.sky.sun,
-            Item::MoonStrength => self.settings.graphics.sky.moon = s.graphics.sky.moon,
-            Item::DayAmbient => self.settings.graphics.sky.day_ambient = s.graphics.sky.day_ambient,
-            Item::NightAmbient => {
-                self.settings.graphics.sky.night_ambient = s.graphics.sky.night_ambient
-            }
-            Item::SunPath => self.settings.graphics.sky.heading = s.graphics.sky.heading,
-            Item::DayRelighting => {
-                self.settings.graphics.sky.relighting = s.graphics.sky.relighting
-            }
-            Item::Blood => self.settings.graphics.blood.enabled = s.graphics.blood.enabled,
-            Item::BloodAmount => self.settings.graphics.blood.amount = s.graphics.blood.amount,
-            Item::BloodSeconds => self.settings.graphics.blood.seconds = s.graphics.blood.seconds,
-            Item::BloodMarks => self.settings.graphics.blood.marks = s.graphics.blood.marks,
             Item::PlayerModel => self.settings.player_model.clear(),
-            Item::Interpolation => self.settings.graphics.interpolation = s.graphics.interpolation,
             Item::GameplayPreset => self.set_gameplay_preset(0)?,
             Item::Preset => self.settings.set_visual_preset(0),
-            Item::Retro => self.settings.retro = false,
             Item::PhotoMode => self.debug.photo_mode = false,
-            Item::Post => self.settings.graphics.post.enabled = s.graphics.post.enabled,
-            Item::Bloom => self.settings.graphics.post.bloom = s.graphics.post.bloom,
-            Item::BloomThreshold => {
-                self.settings.graphics.post.bloom_threshold = s.graphics.post.bloom_threshold
-            }
-            Item::Occlusion => self.settings.graphics.post.occlusion = s.graphics.post.occlusion,
-            Item::OcclusionRadius => {
-                self.settings.graphics.post.occlusion_radius = s.graphics.post.occlusion_radius
-            }
-            Item::Filmic => self.settings.graphics.post.filmic = s.graphics.post.filmic,
-            Item::Contrast => self.settings.graphics.post.contrast = s.graphics.post.contrast,
-            Item::Saturation => self.settings.graphics.post.saturation = s.graphics.post.saturation,
             Item::Temperature => {
                 self.settings.graphics.post.temperature = s.graphics.post.temperature
             }
-            Item::Gamma => self.settings.graphics.post.gamma = s.graphics.post.gamma,
-            Item::Vignette => self.settings.graphics.post.vignette = s.graphics.post.vignette,
-            Item::Sharpen => self.settings.graphics.post.sharpen = s.graphics.post.sharpen,
             Item::FogTint => self.settings.graphics.post.fog_tint = s.graphics.post.fog_tint,
-            Item::Haze => self.settings.graphics.post.haze = s.graphics.post.haze,
-            Item::SmoothModels => self.settings.graphics.smooth_models = s.graphics.smooth_models,
             Item::ModelDetail => self.settings.graphics.model_detail = s.graphics.model_detail,
-            Item::AssetPack => self.settings.graphics.asset_pack = s.graphics.asset_pack,
-            Item::SharpText => self.settings.sharp_text = s.sharp_text,
             Item::Upscale => self.settings.graphics.upscale = s.graphics.upscale,
             Item::SurfaceDetail => {
                 self.settings.graphics.surface_detail = s.graphics.surface_detail
             }
-            Item::SurfaceStrength => {
-                self.settings.graphics.surface_strength = s.graphics.surface_strength
-            }
             Item::Magnification => self.settings.graphics.magnification = s.graphics.magnification,
-            Item::Performance => self.settings.show_performance = s.show_performance,
-            Item::Fps => self.settings.show_fps = s.show_fps,
-            Item::Focus => self.settings.pause_on_defocus = s.pause_on_defocus,
-            Item::MenuPause => self.settings.pause_in_menu = s.pause_in_menu,
-            Item::Fullscreen => self.settings.fullscreen = s.fullscreen,
-            Item::Vsync => self.settings.vsync = s.vsync,
-            Item::Hud => self.settings.show_hud = s.show_hud,
-            Item::Volume => self.settings.volume = s.volume,
-            Item::Fog => self.settings.graphics.fog = s.graphics.fog,
-            Item::FogDistance => self.settings.graphics.fog_distance = s.graphics.fog_distance,
-            Item::Textures => self.settings.graphics.textures = s.graphics.textures,
-            Item::Shading => self.settings.graphics.shading = s.graphics.shading,
-            Item::BlobShadows => self.settings.graphics.blob_shadows = s.graphics.blob_shadows,
-            Item::Exposure => self.settings.graphics.exposure = s.graphics.exposure,
             Item::Filtering => self.settings.graphics.set_filtering(s.graphics.filtering()),
             Item::Antialiasing => self.settings.graphics.samples = s.graphics.samples,
-            Item::Lighting => self.settings.graphics.lighting.enabled = s.graphics.lighting.enabled,
-            Item::SkyTint => {
-                self.settings.graphics.lighting.sky_tint = s.graphics.lighting.sky_tint
-            }
-            Item::DirectionalIntensity => {
-                self.settings.graphics.lighting.directional.intensity =
-                    s.graphics.lighting.directional.intensity
-            }
             Item::DirectionalColor => {
                 self.settings.graphics.lighting.directional.color =
                     s.graphics.lighting.directional.color
-            }
-            Item::DirectionalAzimuth => {
-                self.settings.graphics.lighting.directional.azimuth =
-                    s.graphics.lighting.directional.azimuth
-            }
-            Item::DirectionalElevation => {
-                self.settings.graphics.lighting.directional.elevation =
-                    s.graphics.lighting.directional.elevation
-            }
-            Item::DirectionalRadius => {
-                self.settings.graphics.lighting.directional.radius =
-                    s.graphics.lighting.directional.radius
             }
             Item::DirectionalResolution => {
                 self.settings.graphics.lighting.directional.resolution =
                     s.graphics.lighting.directional.resolution
             }
-            Item::Shadows => self.settings.graphics.lighting.shadows = s.graphics.lighting.shadows,
-            Item::FireLights => self.settings.graphics.lighting.fires = s.graphics.lighting.fires,
             Item::LightCount => self.settings.graphics.lighting.count = s.graphics.lighting.count,
-            Item::LightSourceSize => {
-                self.settings.graphics.lighting.source_size = s.graphics.lighting.source_size
-            }
-            Item::ShadowSoftness => {
-                self.settings.graphics.lighting.softness = s.graphics.lighting.softness
-            }
             Item::ShadowCount => {
                 self.settings.graphics.lighting.shadow_count = s.graphics.lighting.shadow_count
-            }
-            Item::LampLights => self.settings.graphics.lighting.lamps = s.graphics.lighting.lamps,
-            Item::LightMarkers => {
-                self.settings.graphics.lighting.markers = s.graphics.lighting.markers
-            }
-            Item::LightRadius => {
-                self.settings.graphics.lighting.radius = s.graphics.lighting.radius
-            }
-            Item::LightIntensity => {
-                self.settings.graphics.lighting.intensity = s.graphics.lighting.intensity
-            }
-            Item::LightAmbient => {
-                self.settings.graphics.lighting.ambient = s.graphics.lighting.ambient
             }
             Item::LightResolution => {
                 self.settings.graphics.lighting.resolution = s.graphics.lighting.resolution

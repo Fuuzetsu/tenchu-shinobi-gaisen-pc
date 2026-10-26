@@ -272,7 +272,13 @@ fn widget(
         }
         return response;
     }
-    if let Some((min, max, step, scale)) = range(item) {
+    if let Some(slider) = item.slider() {
+        let (min, max, step, scale) = (
+            f64::from(slider.min),
+            f64::from(slider.max),
+            f64::from(slider.step),
+            f64::from(slider.scale),
+        );
         let current = if item == Item::TimeOfDay {
             clock_minutes(&row.value).unwrap_or(0.0)
         } else if item == Item::PoolingSpeed {
@@ -425,69 +431,6 @@ fn number(text: &str) -> f64 {
     text.trim_end_matches(|c: char| !c.is_ascii_digit())
         .parse()
         .unwrap_or(0.0)
-}
-
-fn range(item: Item) -> Option<(f64, f64, f64, f64)> {
-    let (min, max, step, scale) = match item {
-        Item::MotionStrength => (0, 200, 5, 1),
-        Item::MotionResponse | Item::MotionWind => (0, 100, 5, 1),
-        Item::WeatherAmount
-        | Item::WeatherWind
-        | Item::Wetness
-        | Item::SnowCover
-        | Item::SnowDrift
-        | Item::PuddleCoverage
-        | Item::RainHaze
-        | Item::RunoffAmount => (0, 100, 5, 1),
-        Item::RainReflections => (0, 300, 10, 1),
-        Item::RainStreaks => (0, 200, 10, 1),
-        Item::PoolingSpeed => (25, 1000, 25, 1),
-        Item::WeatherHeading => (0, 345, 15, 1),
-        Item::Inventory(_) => (0, 255, 1, 1),
-        Item::FootprintSeconds => (10, 180, 10, 1),
-        Item::WeatherDistance => (20, 240, 20, 1),
-        Item::WaterRipples | Item::WaterReflections | Item::WaterFoam | Item::WaterSpray => {
-            (0, 100, 5, 1)
-        }
-        Item::WaterFlow => (0, 200, 10, 1),
-        Item::TimeOfDay => (0, 1425, 15, 1),
-        Item::TimeSpeed => (0, 120, 1, 1),
-        Item::SunPath => (0, 345, 15, 1),
-        Item::SunStrength | Item::MoonStrength => (0, 200, 5, 1),
-        Item::DayAmbient | Item::NightAmbient | Item::DayRelighting => (0, 100, 5, 1),
-        Item::BloodAmount => (0, 200, 10, 1),
-        Item::BloodSeconds => (0, 60, 2, 1),
-        Item::BloodMarks => (32, 1024, 32, 1),
-        Item::Volume | Item::SurfaceStrength => (0, 100, 5, 1),
-        Item::FogDistance | Item::SightDistance => {
-            (if item == Item::FogDistance { 25 } else { 0 }, 400, 25, 1)
-        }
-        Item::Exposure => (25, 300, 25, 1),
-        Item::FlightSpeed => (2, 100, 2, 1),
-        Item::Fov => (20, 110, 5, 1),
-        Item::LightRadius => (2, 50, 1, 1),
-        Item::LightIntensity => (0, 400, 10, 1),
-        Item::LightAmbient => (0, 100, 5, 1),
-        Item::SparkDensity => (0, 300, 10, 1),
-        Item::LeafDensity => (0, 200, 10, 1),
-        Item::ShadowSoftness => (0, 8, 1, 1),
-        Item::LightSourceSize => (0, 400, 10, 1),
-        Item::SkyTint => (0, 100, 10, 1),
-        Item::DirectionalIntensity => (0, 200, 10, 1),
-        Item::DirectionalAzimuth => (0, 345, 15, 1),
-        Item::DirectionalElevation => (10, 85, 5, 1),
-        Item::DirectionalRadius => (10, 60, 5, 1),
-        Item::Bloom | Item::Occlusion | Item::Vignette | Item::Sharpen | Item::Haze => {
-            (0, 100, 5, 1)
-        }
-        Item::BloomThreshold => (25, 300, 25, 1),
-        Item::OcclusionRadius => (2, 20, 1, 100),
-        Item::Contrast | Item::Gamma => (50, 150, 5, 1),
-        Item::Saturation => (0, 200, 5, 1),
-        Item::Temperature => (-50, 50, 5, 1),
-        _ => return None,
-    };
-    Some((min as f64, max as f64, step as f64, scale as f64))
 }
 
 #[cfg(test)]
