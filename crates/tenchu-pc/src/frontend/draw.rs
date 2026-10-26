@@ -37,20 +37,8 @@ pub fn pixels(image: &frontend::Image) -> Image {
         rgba: image
             .pixels
             .iter()
-            .flat_map(|&word| {
-                [
-                    ((word & 31) * 255 / 31) as u8,
-                    (((word >> 5) & 31) * 255 / 31) as u8,
-                    (((word >> 10) & 31) * 255 / 31) as u8,
-                    if word == 0 {
-                        0
-                    } else if word & 0x8000 != 0 {
-                        128
-                    } else {
-                        255
-                    },
-                ]
-            })
+            .copied()
+            .flat_map(tenchu_assets::texture::rgba8)
             .collect(),
     }
 }

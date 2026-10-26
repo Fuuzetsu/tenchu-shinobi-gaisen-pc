@@ -1,7 +1,7 @@
 use super::models::Material;
 use crate::render_mesh::Vertex;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::LazyLock};
 use tenchu_assets::Result;
 
 #[derive(Deserialize, Serialize)]
@@ -22,9 +22,12 @@ pub struct Patch {
     pub translation: [f32; 3],
 }
 
-pub fn corrections() -> BTreeMap<String, Vec<Patch>> {
-    serde_json::from_str(include_str!("../../data/model_corrections.json"))
-        .expect("built-in model corrections")
+pub fn corrections() -> &'static BTreeMap<String, Vec<Patch>> {
+    static CORRECTIONS: LazyLock<BTreeMap<String, Vec<Patch>>> = LazyLock::new(|| {
+        serde_json::from_str(include_str!("../../data/model_corrections.json"))
+            .expect("built-in model corrections")
+    });
+    &CORRECTIONS
 }
 
 impl Patch {
@@ -57,7 +60,7 @@ impl Patch {
     }
 
     pub fn apply(&self, vertices: &mut [Vertex], materials: &[Material]) {
-        for triangle in vertices.chunks_exact_mut(3) {
+        for triangle in vertices.as_chunks_mut::<3>().0 {
             let Some(material) = triangle[0]
                 .material
                 .checked_sub(1)
@@ -69,12 +72,13 @@ impl Patch {
                 continue;
             };
             if let Some(corners) = &self.corners {
-                let matched: Option<Vec<_>> = triangle
-                    .iter()
+                let [Some(a), Some(b), Some(c)] = triangle
+                    .each_ref()
                     .map(|v| corners.iter().find(|c| c.position == v.position))
-                    .collect();
-                let Some(matched) = matched else { continue };
-                for (vertex, corner) in triangle.iter_mut().zip(matched) {
+                else {
+                    continue;
+                };
+                for (vertex, corner) in triangle.iter_mut().zip([a, b, c]) {
                     vertex.uv = [
                         corner.uv[0] * f32::from(region.rect[2]) + f32::from(region.rect[0]) - 0.5,
                         (1.0 - corner.uv[1]) * f32::from(region.rect[3])

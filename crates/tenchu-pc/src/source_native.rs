@@ -6,12 +6,12 @@ use std::{
     path::Path,
     sync::{Arc, Mutex},
 };
-use tenchu_assets::{ReadAt, Result, check_span, cue, disc::Disc};
+use tenchu_assets::{ReadAt, Result, cache::PAGE_SIZE, check_span, cue, disc::Disc};
 
 pub struct DiscSource {
     file: RefCell<File>,
     length: u64,
-    pub trace: Option<Arc<Mutex<BTreeSet<u32>>>>,
+    trace: Option<Arc<Mutex<BTreeSet<u32>>>>,
 }
 
 impl DiscSource {
@@ -34,7 +34,9 @@ impl ReadAt for DiscSource {
         check_span(offset, output.len() as u64, self.length)?;
         if let Some(trace) = &self.trace {
             let mut pages = trace.lock().map_err(|e| e.to_string())?;
-            for page in offset / 65536..(offset + output.len() as u64).div_ceil(65536) {
+            for page in
+                offset / PAGE_SIZE as u64..(offset + output.len() as u64).div_ceil(PAGE_SIZE as u64)
+            {
                 pages.insert(page as u32);
             }
         }

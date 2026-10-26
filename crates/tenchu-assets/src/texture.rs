@@ -1,5 +1,18 @@
 use crate::{Result, relative, slice, u16_le, u32_le};
 
+/// Alpha retains the transparent, semi-transparent and opaque PS1 texture classes.
+pub fn rgba8(word: u16) -> [u8; 4] {
+    let [r, g, b] = [0, 5, 10].map(|shift| (((word >> shift) & 31) * 255 / 31) as u8);
+    let alpha = if word == 0 {
+        0
+    } else if word & 0x8000 != 0 {
+        128
+    } else {
+        255
+    };
+    [r, g, b, alpha]
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Image {
     pub page: u16,

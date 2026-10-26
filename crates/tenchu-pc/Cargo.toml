@@ -17,7 +17,6 @@ egui.workspace = true
 egui-wgpu.workspace = true
 egui-winit.workspace = true
 glam.workspace = true
-pollster.workspace = true
 bytemuck.workspace = true
 png.workspace = true
 gilrs.workspace = true
@@ -25,10 +24,11 @@ serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 web-time = "1.1"
-flate2 = "1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 cpal.workspace = true
+pollster.workspace = true
+flate2 = "1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { workspace = true, features = ["webgl"] }

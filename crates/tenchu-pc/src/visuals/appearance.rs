@@ -7,7 +7,7 @@ use super::{
 use crate::{render_mesh, settings::Graphics};
 use glam::Vec3;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::BTreeMap};
 #[cfg(not(target_arch = "wasm32"))]
 use tenchu_assets::stage::MissionAssets;
 use tenchu_assets::{Result, model};
@@ -74,7 +74,7 @@ pub fn choices(game: &Game, pack: &Pack) -> Vec<(String, String)> {
         }
     }
     for (id, body) in &pack.player_models {
-        if body.parts.iter().map(|p| p.parent).collect::<Vec<_>>() == rig {
+        if body.parts.iter().map(|p| p.parent).eq(rig.iter().copied()) {
             choices.push((format!("pack:{id}"), format!("{} — folder", body.name)));
         }
     }
@@ -168,10 +168,13 @@ impl Appearance {
         inspection: bool,
         frame: Option<&Frame>,
     ) -> BTreeMap<usize, Vec3> {
-        let mut player = game.player().clone();
-        if inspection {
+        let player = if inspection {
+            let mut player = game.player().clone();
             player.initialize_rendered(&game.scene, &game.math);
-        }
+            Cow::Owned(player)
+        } else {
+            Cow::Borrowed(game.player())
+        };
         let original = &game.mission.models[&player.rendered_mesh_kind];
         let matrices: Vec<_> = player
             .rendered

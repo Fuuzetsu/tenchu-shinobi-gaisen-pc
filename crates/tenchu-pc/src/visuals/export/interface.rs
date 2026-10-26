@@ -36,21 +36,8 @@ pub fn export(assets: &GameAssets<DiscSource>, directory: &Path) -> Result<()> {
             let rgba: Vec<_> = image
                 .pixels
                 .iter()
-                .flat_map(|&word| {
-                    let alpha = if word == 0 {
-                        0
-                    } else if word & 0x8000 != 0 {
-                        128
-                    } else {
-                        255
-                    };
-                    [
-                        ((word & 31) * 255 / 31) as u8,
-                        (((word >> 5) & 31) * 255 / 31) as u8,
-                        (((word >> 10) & 31) * 255 / 31) as u8,
-                        alpha,
-                    ]
-                })
+                .copied()
+                .flat_map(tenchu_assets::texture::rgba8)
                 .collect();
             let id = catalog::image_id(image.size.map(|n| n as u16), &rgba);
             if !entries.contains_key(&id) {

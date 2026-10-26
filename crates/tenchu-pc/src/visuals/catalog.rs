@@ -127,16 +127,7 @@ impl Region {
         for v in y..y + height {
             for u in x..x + width {
                 let word = vram.texel(self.page, self.palette, [u, v]);
-                pixels.extend(
-                    [0, 5, 10].map(|shift| (((word >> shift) & 31) as u32 * 255 / 31) as u8),
-                );
-                pixels.push(if word == 0 {
-                    0
-                } else if word & 0x8000 != 0 {
-                    128
-                } else {
-                    255
-                });
+                pixels.extend(tenchu_assets::texture::rgba8(word));
             }
         }
         pixels

@@ -43,6 +43,15 @@ now exercises eight simultaneous writers, unrelated-file preservation and
 cleanup after a failed rename. Storage/settings tests, strict workspace Clippy
 and WASM checking pass.
 
+Asset/presentation cleanup: menu, world textures and exported artwork share one
+PS1 color/alpha conversion. Triangle patches use fixed arrays instead of heap
+allocation; immutable built-in corrections are decoded once. Model swaps borrow
+the player during ordinary rendering and compare rig iterators directly. Disc
+tracing uses the cache's page-size constant; native capture/compression
+dependencies are scoped to the native target. All 126 workspace unit tests,
+strict Clippy, WASM checking and seven disc/GPU model/menu/sprite checks pass,
+including the folding-screen repair and both players' weapon attachments.
+
 ## Screen and health-bar repairs (complete)
 
 Mission 5's folding screen belongs to Bizenya's root model alongside his body

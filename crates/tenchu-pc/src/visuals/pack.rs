@@ -11,9 +11,8 @@ use tenchu_assets::{Result, stage::MissionAssets};
 
 const MAX_PIXELS: usize = 16 * 1024 * 1024;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
-#[derive(Default)]
 pub struct Material {
     pub texture: Option<String>,
     pub blend: u8,
