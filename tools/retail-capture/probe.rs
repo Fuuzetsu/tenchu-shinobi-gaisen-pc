@@ -21,6 +21,7 @@ struct Probe {
     error: u64,
     previous: Vec<u8>,
     captured: bool,
+    detail: Option<(u32, u32)>,
 }
 
 unsafe fn word(base: *const u8, offset: usize) -> u32 {
@@ -69,6 +70,7 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
             | 0x800170c8
             | 0x80017234
             | 0x8001ac88
+            | 0x80039bf0
     ) {
         return;
     }
@@ -78,6 +80,13 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
     }
     let p = unsafe { &mut *address };
     if p.failed {
+        return;
+    }
+    if pc == 0x80039bf0
+        && !p
+            .detail
+            .is_some_and(|(start, end)| (start..=end).contains(&p.field))
+    {
         return;
     }
     // These executable words distinguish MAIN from MENU/ENDING while their
@@ -104,7 +113,10 @@ extern "C" fn observe(timestamp: i32, pc: u32) {
     if initial {
         p.stage = stage;
     }
-    let snapshot = initial || pc == 0x800170c8;
+    let snapshot = initial
+        || pc == 0x800170c8
+        || p.detail
+            .is_some_and(|(start, end)| (start..=end).contains(&p.field));
     let size = 56 + if snapshot { RAM_BYTES + 65536 } else { 0 };
     if p.bytes.len() + size > CAPACITY {
         p.failed = true;
@@ -194,6 +206,19 @@ pub extern "C" fn retail_probe_begin(cpu: *const u8, ram: *const u8) -> *const (
         error: 0,
         previous: vec![0; RAM_BYTES],
         captured: false,
+        detail: std::env::var("TENCHU_RETAIL_PHASE_FIELDS")
+            .ok()
+            .map(|value| {
+                let (start, end) = value
+                    .split_once(':')
+                    .expect("TENCHU_RETAIL_PHASE_FIELDS needs START:END");
+                let (start, end) = (
+                    start.parse().expect("Invalid first detail field"),
+                    end.parse().expect("Invalid last detail field"),
+                );
+                assert!(start <= end, "Invalid detail field range");
+                (start, end)
+            }),
     });
     ACTIVE.store(Box::into_raw(p), Ordering::SeqCst);
     observe as *const ()

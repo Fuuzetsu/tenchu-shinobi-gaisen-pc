@@ -12,6 +12,8 @@ mod recording;
 mod render_effects;
 mod render_mesh;
 mod renderer;
+#[cfg(not(target_arch = "wasm32"))]
+mod retail;
 mod session;
 mod settings;
 mod source;

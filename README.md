@@ -1266,7 +1266,15 @@ loadout, and aligns the initial player pose and ambient-sound deadlines once.
 The original loading sequence left those deadlines at clock 644; the PC launcher
 starts them at zero. All subsequent actor, camera, RNG, collision and drawing state advances
 in the port without corrections from the recordings. This is finite coverage,
-not a claim of full-campaign parity.
+and does not cover every possible playthrough.
+
+The exact-boundary checker additionally validates the archived full Ayame/Normal
+campaign: all 33,404 gameplay/cutscene updates, 349 skipped draws, ten completions
+and the original result clocks/scores. Recorded skips are explicit replay input;
+ordinary play remains independent of console or host rendering performance.
+See [retail capture instructions](tools/retail-capture/README.md) for capturing
+and checking another reference. The checker imports initial mission state once
+and never corrects later native state from the reference.
 
 Terrain collision probes retain the original diagonal sample positions and mask
 order. A private comparison runs the original C probe with the executable's

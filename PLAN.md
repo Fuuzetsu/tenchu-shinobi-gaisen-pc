@@ -48,7 +48,23 @@ endpoint. Lossless changed-page storage reproduces every record/snapshot from
 the full-RAM observer (10,311 events, 645 snapshots), reducing that trial from
 424 MB to 13 MB. The observer reuses the archive's hash-pinned core/CPU mapping
 checks and handles MAIN/MENU address overlap explicitly; source repositories and
-the archived run are unchanged. Full update capture and native comparison remain.
+the archived run are unchanged.
+
+Full native validation now passes: **33,404 consecutive gameplay/cinematic
+updates, all ten mission completions and all archived score components**. The
+349 skipped draws and display swaps are explicit replay input. Comparisons cover
+RNG, actor state/commands/inventory, AI, camera/history, collision results, model
+matrices, activation budgets, drawing packets and mission statistics. Mission
+initialization carries the recorded seed, inventory/settings, display epoch,
+loader terrain caches and ambient sound timers; there are no state corrections
+after initialization. Native and console result clocks/scores agree throughout.
+
+The corpus exposed missing source behavior: expired blood can overwrite its own
+effect slot while spawning a droplet; Balma temporarily uses BALMER.ACM, and
+particles retain their terrain node across that map swap. These are general core
+fixes, covered by targeted checks and the continuous campaign replay. Normal
+play keeps fixed-rate updates and never derives console skips from host speed.
+The checker and private JSON evidence are ready; enhanced video capture remains.
 
 ## Remake presentation and usability follow-up (complete)
 
