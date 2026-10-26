@@ -93,11 +93,30 @@ It writes YouTube chapter text and a verification report beside the MP4. Retaine
 parts and their logs allow a failed render to resume without starting over. Keep
 all recordings and extracted replay data outside Git, normally under `private/`.
 
+For the shorter viewing edit, reuse the rendered parts:
+
+```sh
+./dev.sh python3 tools/retail-capture/shorten.py REPLAY.json \
+  MATCHING-LOSSLESS-AUDIO.wav OUTPUT.parts YOUTUBE.mp4
+```
+
+This keeps about three seconds of title, the complete gameplay and in-engine
+cutscenes, the mission results, roughly one second of each loading transition,
+and four seconds of the final result. Cuts use actual closed-GOP keyframes and
+copy the video packets without re-encoding. Audio uses the identical retained
+intervals, with 10 ms fades at joins to avoid clicks. A frame/sample edit map,
+input hashes, exact timestamp checks and a complete decode accompany the MP4.
+The short title shares Mission 1's chapter so every YouTube chapter exceeds ten
+seconds. The uncut source parts remain available.
+
 Measure soundtrack alignment at several non-silent points across the finished run:
 
 ```sh
 ./dev.sh python3 tools/retail-capture/check_audio.py \
   MATCHING-LOSSLESS-AUDIO.wav OUTPUT.mp4 100 750 1400 > audio-alignment.json
+# For an edited video, choose sample times from its shorter timeline:
+./dev.sh python3 tools/retail-capture/check_audio.py \
+  MATCHING-LOSSLESS-AUDIO.wav YOUTUBE.mp4 30 140 --timeline YOUTUBE.edit.json
 ```
 
 The check searches ±150 ms, then refines the best lag to one 12 kHz sample. It

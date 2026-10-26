@@ -34,7 +34,9 @@ and copyrighted evidence stay in the port's ignored `private/retail-campaign`.
    play's existing fixed-rate behavior and native/WASM portability.
 4. Add reproducible offline full-run capture with enhanced graphics, full HD
    artwork, smooth 60 fps presentation and synchronized game sound. Preserve
-   source gameplay timing and document menu/loading timing choices explicitly.
+   source gameplay timing. Shorten boot and loading gaps as requested while
+   retaining every gameplay update and in-engine cutscene; make identical audio
+   cuts and preserve an explicit frame/sample edit map.
 5. Produce a YouTube-compatible 3840×2160 H.264/AAC MP4 with mission chapters.
    Verify every timestamp, audio/video synchronization and full decoding; review
    gameplay and chapter boundaries. Preserve executable/settings/tape hashes,
@@ -72,8 +74,10 @@ to exact 60 Hz, preserving the archived lossless soundtrack's duration. Native
 title/mission/results screens cover original boot/loading intervals; those menus
 are presentation, outside the exact gameplay validation. Resumable chapter
 rendering, audio muxing, timestamp/decode verification and input hashes are in
-`tools/retail-capture/record.py`. Short 4K gameplay/results samples pass; the full
-24½-minute recording remains to render and review.
+`tools/retail-capture/record.py`. Short 4K gameplay/results samples pass. The
+24½-minute source recording is rendering; `shorten.py` produces the requested
+viewing edit from its retained chapter parts without re-encoding. Final edited
+video, audio alignment across the joins and delivery review remain in progress.
 
 ## Remake presentation and usability follow-up (complete)
 
