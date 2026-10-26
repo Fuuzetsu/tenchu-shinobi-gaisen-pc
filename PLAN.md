@@ -10,6 +10,46 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Archived full campaign replay and recording (in progress)
+
+Replay the fixed Ayame/Normal boot-to-ending campaign identified by
+`~/tenchu-searches/FINAL-RUN.txt`. The archive is
+`~/tenchu-searches/mission-1-action-repair-20261013/exports/final-campaign-20261021/replay`:
+88,075 emulator fields, ten mission OTAS jobs and one continuous boot/menu
+controller stream. Preserve the archive and ongoing searches. All new captures
+and copyrighted evidence stay in the port's ignored `private/retail-campaign`.
+
+1. Freeze tape/provenance hashes and replay the continuous stream in the pinned
+   BizHawk runtime. Observe mission entries, RNG, consumed controller latches,
+   draw skips/display swaps and gameplay comparison state. Verify original
+   checkpoint/final RAM; distinguish field samples from exact update boundaries.
+2. Add an explicit recorded-cadence replay path to the scalar port. Import only
+   required initial state at mission boundaries; subsequent gameplay must run
+   from recorded inputs without correcting state from the reference trace.
+   Original source skip decisions affect animation/collision caches/activation;
+   keep them separate from host rendering and never derive them from PC speed.
+3. Validate all ten missions, cinematic transitions and results against the
+   reference. Diagnose the first divergence and fix general source behavior;
+   do not substitute a successful but different controller route. Keep ordinary
+   play's existing fixed-rate behavior and native/WASM portability.
+4. Add reproducible offline full-run capture with enhanced graphics, full HD
+   artwork, smooth 60 fps presentation and synchronized game sound. Preserve
+   source gameplay timing and document menu/loading timing choices explicitly.
+5. Produce a YouTube-compatible 3840×2160 H.264/AAC MP4 with mission chapters.
+   Verify every timestamp, audio/video synchronization and full decoding; review
+   gameplay and chapter boundaries. Preserve executable/settings/tape hashes,
+   validation reports and a replay/export launcher. Commit coherent increments.
+
+Reference capture: a continuous cold-boot replay with field telemetry matched
+all 77 archived endpoint RAM images byte-for-byte. A separate read-only update
+observer now records controller latches, source phases, draw/swap decisions and
+RAM at EndDrawing. Its 1,292-field first-mission trial also matches the archived
+endpoint. Lossless changed-page storage reproduces every record/snapshot from
+the full-RAM observer (10,311 events, 645 snapshots), reducing that trial from
+424 MB to 13 MB. The observer reuses the archive's hash-pinned core/CPU mapping
+checks and handles MAIN/MENU address overlap explicitly; source repositories and
+the archived run are unchanged. Full update capture and native comparison remain.
+
 ## Remake presentation and usability follow-up (complete)
 
 Implemented the requested 18 improvements and recorded a focused showcase of
