@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Full campaign showcase revision (in progress)
+## Full campaign showcase revision (complete)
 
 Re-record the validated campaign with the visual enhancements actually applied:
 dynamic lantern/moon lighting and shadows, surface relief, refined characters
@@ -46,10 +46,31 @@ checking pass. The actual renderer settings include all requested effects and
 original mission weather. Offline capture can render independent chapters in
 parallel with separate logs and consistent actual-settings checks.
 
-Remaining: review water/cutscene samples, freeze the corrected build/artwork, record and shorten all ten
-missions, verify every frame/audio alignment, and deliver the revised video.
-Keep the previous recording and its provenance intact under `private/retail-campaign`;
-new capture/review evidence belongs in `private/retail-showcase`.
+The completed viewing edit is
+`private/retail-showcase/render/tenchu-ayame-showcase-4k60-youtube.mp4`:
+**19:44.8, 3840×2160, exactly 60 fps, H.264/AAC game sound and ten chapters**
+(7.80 GB). All 71,088 video timestamps and complete video/audio decoding pass.
+Twenty soundtrack comparisons across all missions have zero measured lag at
+12 kHz and correlation above 0.9998. The edit retains all 33,404 updates and
+cutscenes, removing only 4:44.6 of boot/loading waits. The unshortened 24:29.4
+version also passes all 88,164 timestamps and full decoding.
+
+The frozen build is `b77eb9c`. All eleven source chapters share the audited GPU
+settings, and the executable, tape, soundtrack and all 1,724 artwork files match
+the input manifest after capture. The Showcase fill/exposure was adjusted after
+rooftop review to retain readable unlit surfaces without changing the night sky.
+Visual review covers 58 gameplay/cutscene frames across all ten missions, extra
+combat/closing samples, both sides of all ten joins, the title and final result.
+Actors remain present in the sampled recorded skips. Tight camera views during
+acrobatics and the cave/cliff route match the previous validated run.
+
+Frozen executable/artwork, reproduction scripts, actual settings, frame/sample
+edit map, validation reports, visual evidence and a YouTube description/chapters
+are preserved under `private/retail-showcase`. The previous recording and its
+original artwork snapshot remain intact under `private/retail-campaign`.
+This revision changes presentation only; original mission weather, core replay
+timing, ordinary preferences and saves are unchanged. As before, the source tape
+ends at the ending movie's start; the video ends after the final result.
 
 ## Archived full campaign replay and recording (complete)
 
@@ -108,8 +129,9 @@ particles retain their terrain node across that map swap. These are general core
 fixes, covered by targeted checks and the continuous campaign replay. Normal
 play keeps fixed-rate updates and never derives console skips from host speed.
 The checker and private JSON evidence are ready. The compact replay export now
-replays all ten missions independently with every RNG/clock check. Offline capture
-uses Modern Ultra, the full artwork pack and sharp text without reading/writing
+replays all ten missions independently with every RNG/clock check. The first offline
+capture selected Modern Ultra (the GPU application defect is fixed in the revision
+above), the full artwork pack and sharp text without reading/writing
 ordinary preferences or saves. It converts the original rational NTSC field rate
 to exact 60 Hz, preserving the archived lossless soundtrack's duration. Native
 title/mission/results screens cover original boot/loading intervals; those menus
