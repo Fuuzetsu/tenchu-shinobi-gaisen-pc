@@ -1,6 +1,7 @@
 use super::models::Material;
 use crate::render_mesh::Vertex;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use tenchu_assets::Result;
 
 #[derive(Deserialize, Serialize)]
@@ -15,12 +16,27 @@ pub struct Corner {
 #[serde(deny_unknown_fields)]
 pub struct Patch {
     pub texture: String,
-    pub corners: [Corner; 3],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corners: Option<[Corner; 3]>,
+    #[serde(default)]
+    pub translation: [f32; 3],
+}
+
+pub fn corrections() -> BTreeMap<String, Vec<Patch>> {
+    serde_json::from_str(include_str!("../../data/model_corrections.json"))
+        .expect("built-in model corrections")
 }
 
 impl Patch {
     pub fn validate(&self) -> Result<()> {
-        for corner in &self.corners {
+        if self
+            .translation
+            .iter()
+            .any(|v| !v.is_finite() || v.abs() > 1_000_000.0)
+        {
+            return Err("Invalid model patch translation".into());
+        }
+        for corner in self.corners.iter().flatten() {
             if corner
                 .position
                 .iter()
@@ -52,18 +68,24 @@ impl Patch {
             let Some(region) = material.region.filter(|_| material.id == self.texture) else {
                 continue;
             };
-            let corners: Option<Vec<_>> = triangle
-                .iter()
-                .map(|v| self.corners.iter().find(|c| c.position == v.position))
-                .collect();
-            let Some(corners) = corners else { continue };
-            for (vertex, corner) in triangle.iter_mut().zip(corners) {
-                vertex.uv = [
-                    corner.uv[0] * f32::from(region.rect[2]) + f32::from(region.rect[0]) - 0.5,
-                    (1.0 - corner.uv[1]) * f32::from(region.rect[3]) + f32::from(region.rect[1])
-                        - 0.5,
-                ];
-                vertex.color = corner.color;
+            if let Some(corners) = &self.corners {
+                let matched: Option<Vec<_>> = triangle
+                    .iter()
+                    .map(|v| corners.iter().find(|c| c.position == v.position))
+                    .collect();
+                let Some(matched) = matched else { continue };
+                for (vertex, corner) in triangle.iter_mut().zip(matched) {
+                    vertex.uv = [
+                        corner.uv[0] * f32::from(region.rect[2]) + f32::from(region.rect[0]) - 0.5,
+                        (1.0 - corner.uv[1]) * f32::from(region.rect[3])
+                            + f32::from(region.rect[1])
+                            - 0.5,
+                    ];
+                    vertex.color = corner.color;
+                }
+            }
+            for vertex in triangle {
+                vertex.position = std::array::from_fn(|i| vertex.position[i] + self.translation[i]);
             }
         }
     }
@@ -80,7 +102,8 @@ mod tests {
     fn patch_matches_the_complete_face_and_preserves_geometry() {
         let patch = Patch {
             texture: "skin".into(),
-            corners: [
+            translation: [0.0; 3],
+            corners: Some([
                 Corner {
                     position: [0.0, 0.0, 0.0],
                     uv: [0.5, 1.0],
@@ -96,7 +119,7 @@ mod tests {
                     uv: [0.0, 0.0],
                     color: [0.7; 3],
                 },
-            ],
+            ]),
         };
         let materials = [Material {
             id: "skin".into(),
@@ -111,7 +134,7 @@ mod tests {
             }),
         }];
         let mut vertices = [2, 0, 1].map(|i| Vertex {
-            position: patch.corners[i].position,
+            position: patch.corners.as_ref().unwrap()[i].position,
             material: 1,
             flags: 15,
             normal: [0.0, 0.0, 1.0],
@@ -136,5 +159,54 @@ mod tests {
         different[0].id = "cloth".into();
         patch.apply(&mut vertices, &different);
         assert!(vertices.iter().all(|v| v.uv == [0.0; 2]));
+    }
+
+    #[test]
+    fn material_translation_keeps_other_surfaces_and_attributes() {
+        let mut patch: Patch =
+            serde_json::from_str(r#"{"texture":"screen","translation":[0,0,256]}"#).unwrap();
+        patch.validate().unwrap();
+        let materials: Vec<_> = ["screen", "robe"]
+            .into_iter()
+            .map(|id| Material {
+                id: id.into(),
+                region: Some(Region {
+                    page: 0,
+                    palette: 0,
+                    rect: [0, 0, 32, 32],
+                }),
+                image: Arc::new(Image {
+                    size: [1, 1],
+                    rgba: vec![255; 4],
+                }),
+            })
+            .collect();
+        let mut vertices = [1, 2]
+            .into_iter()
+            .flat_map(|material| {
+                [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [0.0, 10.0, 0.0]].map(|position| Vertex {
+                    position,
+                    material,
+                    uv: [7.5, 12.5],
+                    color: [0.5; 3],
+                    flags: 19,
+                    ..Vertex::zeroed()
+                })
+            })
+            .collect::<Vec<_>>();
+        let mut expected = vertices.clone();
+        for vertex in &mut expected[..3] {
+            vertex.position[2] += 256.0;
+        }
+        patch.apply(&mut vertices, &materials);
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&vertices),
+            bytemuck::cast_slice::<_, u8>(&expected)
+        );
+        patch.translation[2] = f32::NAN;
+        assert!(patch.validate().is_err());
+        for patch in corrections().values().flatten() {
+            patch.validate().unwrap();
+        }
     }
 }

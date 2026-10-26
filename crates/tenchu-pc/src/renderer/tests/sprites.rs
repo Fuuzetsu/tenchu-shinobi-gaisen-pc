@@ -3,6 +3,52 @@ use crate::visuals::{catalog, pack::Pack, pixels::Image};
 use std::{collections::BTreeMap, sync::Arc};
 
 #[test]
+#[ignore = "requires TENCHU_DISC, TENCHU_MODEL_REVIEW and a GPU; inspect composed health bars at several crop lengths"]
+fn composed_health_bar_review() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let output = std::path::PathBuf::from(
+        std::env::var_os("TENCHU_MODEL_REVIEW").expect("TENCHU_MODEL_REVIEW"),
+    );
+    std::fs::create_dir_all(&output).unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut game = crate::session::Options::default().load(&assets).unwrap();
+    game.events = Default::default();
+    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+    let background = review.backdrop(0.3);
+    for health in [100, 75, 50, 25, 1] {
+        game.roster.get_mut(game.player_id).health = health;
+        for (i, health) in [100, 75, 50, 25, 0].into_iter().enumerate() {
+            game.hud.request_life(i + 1000, health, 100);
+        }
+        game.step(0).unwrap();
+        let state = crate::session::tests::state(&game);
+        let mut geometry = render_effects::build(&game);
+        // Retain only the real HUD layers, without world sprites or shadows.
+        for vertex in &mut geometry.vertices {
+            if vertex.flags & render_mesh::UI == 0 {
+                vertex.flags |= render_mesh::FOG;
+            }
+        }
+        geometry.remove_flag(render_mesh::FOG);
+        let effects = review.renderer.upload_effects(geometry);
+        for (enabled, suffix) in [(false, "original"), (true, "pack")] {
+            review
+                .capture(
+                    Mat4::IDENTITY,
+                    &[&background],
+                    Some(&effects),
+                    enabled,
+                    &output.join(format!("health-{health}-{suffix}.png")),
+                )
+                .unwrap();
+        }
+        assert_eq!(state, crate::session::tests::state(&game));
+    }
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; world/HUD overrides preserve holes, blending and original fallback"]
 fn world_and_hud_sprite_replacements_preserve_blend_classes() {
     let mut vram = Vram::default();

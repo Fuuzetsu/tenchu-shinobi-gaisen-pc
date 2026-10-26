@@ -10,6 +10,41 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Screen and health-bar repairs (complete)
+
+Mission 5's folding screen belongs to Bizenya's root model alongside his body
+and furniture. Character refinement incorrectly relaxed edges joining opposite
+faces, producing scalloped, cloth-like borders. Subdivision now treats those
+edges as boundaries; the real screen retains its planar area at both refinement
+levels. Its replacement tiles were also misclassified as costume cloth. A
+joined gold-leaf repaint now supplies four consistent, padded 256px tiles.
+
+The missing half was a separate depth-buffer problem: the original screen
+penetrates the room's rear wall by roughly 110–170 world units at the reviewed
+camera. Four texture-matched presentation corrections move only its panels 256
+local Z units into the room. They apply with original or replacement artwork;
+custom replacement models own their geometry. Animation, collisions, RNG and
+actor placement are unchanged. The existing patch format now supports optional
+material-wide translations while retaining the earlier triangle UV/color repair.
+
+The health artwork had misregistered generated outlines and color composited
+over the original sprites. Four revised player/enemy layers now share the
+source crop layout, with one frame and an interior fill. Additive-neutral black
+pixels stay black. The live campaign pack contains these eight corrected
+textures; other pack files and the frozen recording artwork remain intact.
+Reproducible sources, prompt and mask registration are under
+`private/campaign-hd-source/{m05-screen-v2,ui-hud-v2,fix_hud_screen.py}`.
+
+Validation: 67 native unit tests, workspace/all-target Clippy, formatting,
+portable WASM checking and the release build pass. Focused disc checks preserve
+the entire gameplay state, all non-screen vertices and the screen's area.
+Actual retail cutscene stills confirm all four panels with both artwork paths,
+including a later animated pose. Composed HUD previews cover five player health
+levels and enemy bars from full to empty; all five original-art captures remain
+pixel-identical. Evidence, prior artwork and installation hashes are under
+`private/fixes-hud-screen`. No recording was made or replaced. Future recordings
+require an explicit user request; the withdrawn lighting question needs no change.
+
 ## Full campaign showcase revision (complete)
 
 Re-record the validated campaign with the visual enhancements actually applied:

@@ -171,10 +171,12 @@ impl Meshes {
         let mut refinement_budget = 1_048_576;
         let mut foliage_budget = 524_288;
         let motion = super::motion::rules(pack, graphics.asset_pack);
+        let corrections = super::model_patch::corrections();
         let region_ids = catalog::regions(mission);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
         for source in sources {
+            let correction = corrections.get(&source.id);
             let emitter = rules
                 .iter()
                 .rev()
@@ -205,6 +207,7 @@ impl Meshes {
                 && emitter.is_none()
                 && replacement.is_none()
                 && patches.is_none()
+                && correction.is_none()
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
                 && !water_enabled
@@ -313,10 +316,12 @@ impl Meshes {
                     }
                 }
             }
-            if replacement.is_none()
-                && let Some(patches) = patches
-            {
-                for patch in patches {
+            if replacement.is_none() {
+                for patch in patches
+                    .into_iter()
+                    .flatten()
+                    .chain(correction.into_iter().flatten())
+                {
                     patch.apply(&mut vertices, &out.materials);
                 }
             }
@@ -466,6 +471,81 @@ pub fn rotation(matrix: Matrix) -> Mat3 {
 mod tests {
     use super::*;
     use tenchu_assets::game::GameAssets;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; the Mission 5 folding screen clears the wall without moving the merchant or warping refined panels"]
+    fn folding_screen_correction_is_visual_and_preserves_panels() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+        let game = crate::session::Options {
+            mission: 5,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        let state = crate::session::tests::state(&game);
+        let corrections = super::super::model_patch::corrections();
+        let screen = &corrections["actors/0094/0"];
+        let geometry = &game.mission.models[&0x94][0].geometry;
+        let mut original = Vec::new();
+        render_mesh::append_geometry(&mut original, geometry, Matrix::default(), None);
+        let mut area = 0.0;
+        for level in 0..=2 {
+            let mut graphics = Graphics {
+                asset_pack: false,
+                ..Default::default()
+            };
+            graphics.models.characters = level;
+            let models = Models::build(&game.mission, &Pack::default(), &graphics).unwrap();
+            let mut edited = Vec::new();
+            assert!(models.visit(geometry, Matrix::default(), true, |t| edited.extend(t)));
+            let is_screen = |v: &Vertex| {
+                v.material != 0
+                    && screen.iter().any(|patch| {
+                        patch.texture == models.world.materials[v.material as usize - 1].id
+                    })
+            };
+            if level == 0 {
+                assert_eq!(edited.len(), original.len());
+                assert_eq!(edited.iter().filter(|v| is_screen(v)).count(), 96);
+                for (v, source) in edited.iter().zip(&original) {
+                    let mut position = source.position;
+                    if is_screen(v) {
+                        position[2] += 256.0;
+                    }
+                    assert_eq!(v.position, position);
+                    assert_eq!(v.uv, source.uv);
+                    assert_eq!(v.color, source.color);
+                }
+            }
+            let panels: Vec<_> = edited
+                .chunks_exact(3)
+                .filter(|t| is_screen(&t[0]))
+                .collect();
+            let refined_area: f64 = panels
+                .iter()
+                .map(|t| {
+                    let [a, b, c] = std::array::from_fn(|i| Vec3::from(t[i].position).as_dvec3());
+                    (b - a).cross(c - a).length() * 0.5
+                })
+                .sum();
+            if level == 0 {
+                area = refined_area;
+            }
+            assert!(
+                (refined_area - area).abs() < 1.0,
+                "level {level}: {refined_area} vs {area}"
+            );
+            assert!(
+                panels
+                    .iter()
+                    .flat_map(|t| t.iter())
+                    .all(|v| (v.position[0] - 1389.0).abs() < 0.001
+                        || (v.position[2] + 2896.0).abs() < 0.001)
+            );
+            assert_eq!(state, crate::session::tests::state(&game));
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; exported models preserve texture UVs, blends, winding and animation attachments through the replacement path"]

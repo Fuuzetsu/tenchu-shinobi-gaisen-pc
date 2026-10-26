@@ -147,3 +147,36 @@ impl Review {
         super::read_texture(&self.renderer, &self.texture, output)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC, TENCHU_RETAIL_TAPE, TENCHU_REVIEW_FIELD, TENCHU_REVIEW_IMAGE and a GPU; review one exact replay state without recording a video"]
+    fn retail_frame_review() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let tape = std::env::var_os("TENCHU_RETAIL_TAPE").expect("TENCHU_RETAIL_TAPE");
+        let field: u32 = std::env::var("TENCHU_REVIEW_FIELD")
+            .unwrap()
+            .parse()
+            .unwrap();
+        let output = std::env::var_os("TENCHU_REVIEW_IMAGE").expect("TENCHU_REVIEW_IMAGE");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let tape = crate::retail::tape::Tape::open(Path::new(&tape)).unwrap();
+        let mission = tape
+            .missions
+            .iter()
+            .find(|m| field >= m.entry_field && field < m.result_field)
+            .expect("field inside gameplay/cutscene");
+        let mut game = mission.initial.load(&assets).unwrap();
+        for update in mission.updates.iter().take_while(|u| u.field <= field) {
+            update.apply(&mut game).unwrap();
+        }
+        let state = crate::session::tests::state(&game);
+        crate::capture::frame(&game, Path::new(&output)).unwrap();
+        assert_eq!(state, crate::session::tests::state(&game));
+    }
+}

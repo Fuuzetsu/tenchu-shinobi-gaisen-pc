@@ -15,6 +15,10 @@ fn edge(a: Point, b: Point) -> [Point; 2] {
     if a < b { [a, b] } else { [b, a] }
 }
 
+fn continuous(adjacent: &[(Point, Vec3)]) -> bool {
+    adjacent.len() == 2 && adjacent[0].1.dot(adjacent[1].1) > -0.5
+}
+
 pub fn prepare(vertices: &mut Vec<Vertex>, levels: u16, maximum: f32, budget: &mut usize) {
     let cost = vertices
         .len()
@@ -41,9 +45,11 @@ pub fn prepare(vertices: &mut Vec<Vertex>, levels: u16, maximum: f32, budget: &m
 fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
     let mut positions = BTreeMap::new();
     let mut neighbors: BTreeMap<Point, BTreeSet<Point>> = BTreeMap::new();
-    let mut opposite: BTreeMap<[Point; 2], Vec<Point>> = BTreeMap::new();
+    let mut opposite: BTreeMap<[Point; 2], Vec<(Point, Vec3)>> = BTreeMap::new();
     for triangle in vertices.chunks_exact(3) {
         let keys: [_; 3] = std::array::from_fn(|i| key(triangle[i].position));
+        let [a, b, c] = std::array::from_fn(|i| Vec3::from(triangle[i].position));
+        let normal = (b - a).cross(c - a).normalize_or_zero();
         for i in 0..3 {
             positions.insert(keys[i], Vec3::from(triangle[i].position));
             neighbors
@@ -53,12 +59,12 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
             opposite
                 .entry(edge(keys[i], keys[(i + 1) % 3]))
                 .or_default()
-                .push(keys[(i + 2) % 3]);
+                .push((keys[(i + 2) % 3], normal));
         }
     }
     let pinned: BTreeSet<_> = opposite
         .iter()
-        .filter(|(_, faces)| faces.len() != 2)
+        .filter(|(_, faces)| !continuous(faces))
         .flat_map(|(edge, _)| *edge)
         .collect();
     let corners: BTreeMap<_, _> = positions
@@ -81,8 +87,8 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
             let a = positions[&pair[0]];
             let b = positions[&pair[1]];
             let center = (a + b) * 0.5;
-            let target = if adjacent.len() == 2 {
-                (a + b) * 0.375 + (positions[&adjacent[0]] + positions[&adjacent[1]]) * 0.125
+            let target = if continuous(adjacent) {
+                (a + b) * 0.375 + (positions[&adjacent[0].0] + positions[&adjacent[1].0]) * 0.125
             } else {
                 center
             };
@@ -123,6 +129,41 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
 mod tests {
     use super::*;
     use bytemuck::Zeroable;
+
+    #[test]
+    fn back_to_back_panels_keep_their_flat_faces_and_straight_borders() {
+        let points = [
+            [-100.0, -100.0, 0.0],
+            [0.0, -100.0, 0.0],
+            [100.0, -100.0, 0.0],
+            [-100.0, 100.0, 0.0],
+            [0.0, 100.0, 0.0],
+            [100.0, 100.0, 0.0],
+        ];
+        let front = [[0, 1, 3], [3, 1, 4], [1, 2, 4], [4, 2, 5]];
+        let mut vertices: Vec<_> = front
+            .into_iter()
+            .flat_map(|t| [t, [t[2], t[1], t[0]]])
+            .flatten()
+            .map(|i| Vertex {
+                position: points[i],
+                ..Vertex::zeroed()
+            })
+            .collect();
+        prepare(&mut vertices, 2, 0.025, &mut 10000);
+        let area: f32 = vertices
+            .chunks_exact(3)
+            .map(|t| {
+                let [a, b, c] = std::array::from_fn(|i| Vec3::from(t[i].position));
+                (b - a).cross(c - a).length() * 0.5
+            })
+            .sum();
+        assert!((area - 80000.0).abs() < 0.1, "panel area {area}");
+        for p in points {
+            assert!(vertices.iter().any(|v| v.position == p), "corner {p:?}");
+        }
+        assert!(vertices.iter().all(|v| v.position[2] == 0.0));
+    }
 
     #[test]
     fn refinement_welds_material_seams_and_pins_open_joints() {
