@@ -25,7 +25,7 @@ size, PC, field, skip, 64-bit CPU cycle, game clock, stage, latched pad, RNG,
 display epoch, caller, v0, a0. Snapshots contain a patch count followed by
 (offset, length, bytes) runs over 2 MiB RAM. The first snapshot covers all RAM.
 Later patches replace changed 256-byte pages, coalescing adjacent pages. This is
-lossless; ordinary events have no payload. `inspect.py` validates the stream and
+lossless; ordinary events have no payload. `inspect_trace.py` validates the stream and
 can compare its decoded events/RAM against another capture.
 
 The native checker initializes at the first StageSequence of each mission,
