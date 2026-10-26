@@ -69,9 +69,10 @@ fn preset(index: u16) -> Graphics {
         g.surface_strength = 60;
         g.lighting.count = 16;
         g.lighting.intensity = 180;
-        g.lighting.ambient = 35;
+        g.lighting.ambient = 50;
         g.sky.moon = 65;
-        g.sky.night_ambient = 40;
+        g.sky.night_ambient = 65;
+        g.exposure = 135;
         g.motion.strength = 100;
         g.water.reflections = 75;
         g.water.foam = 65;
