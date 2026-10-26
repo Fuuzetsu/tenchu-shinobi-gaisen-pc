@@ -30,7 +30,7 @@ struct Files {
     chapters: PathBuf,
 }
 
-struct Chapters {
+pub struct Chapters {
     metadata: String,
     description: String,
     starts: Vec<u64>,
@@ -40,6 +40,15 @@ struct Chapters {
 impl Export {
     pub fn new(player: &Player, renderer: &Renderer, format: wgpu::TextureFormat) -> Result<Self> {
         let output = player.video.as_ref().ok_or("No video destination")?;
+        Self::timeline(output, Chapters::new(player), renderer, format)
+    }
+
+    pub fn timeline(
+        output: &Path,
+        chapters: Chapters,
+        renderer: &Renderer,
+        format: wgpu::TextureFormat,
+    ) -> Result<Self> {
         if !output
             .extension()
             .is_some_and(|s| s.eq_ignore_ascii_case("mp4"))
@@ -52,7 +61,6 @@ impl Export {
             _ => return Err(format!("Video capture format {format:?} is unsupported")),
         };
         let files = Files::new(output)?;
-        let chapters = Chapters::new(player);
         fs::write(
             files.directory.join("chapters.ffmetadata"),
             &chapters.metadata,
@@ -124,7 +132,7 @@ impl Export {
                     .to_string(),
             )
             .arg("-force_key_frames")
-            .arg(chapters.starts.iter().map(|frame| (frame / FPS).to_string()).collect::<Vec<_>>().join(","))
+            .arg(chapters.starts.iter().map(|frame| ( *frame as f64 / FPS as f64).to_string()).collect::<Vec<_>>().join(","))
             .args(["-f", "mp4"])
             .arg(files.directory.join("video.mp4"))
             .stdin(Stdio::piped())
@@ -170,7 +178,15 @@ impl Export {
     }
 
     pub fn write(&mut self, renderer: &Renderer, player: &Player) -> Result<()> {
-        if self.frames != self.chapters.starts[player.index] + player.frame {
+        self.write_frame(
+            renderer,
+            self.chapters.starts[player.index] + player.frame,
+            &player.clip().id,
+        )
+    }
+
+    pub fn write_frame(&mut self, renderer: &Renderer, frame: u64, label: &str) -> Result<()> {
+        if self.frames != frame {
             return Err("Video timeline skipped or repeated a frame".into());
         }
         let input = self.input.as_mut().ok_or("Video encoder is closed")?;
@@ -196,7 +212,7 @@ impl Export {
                 self.total,
                 self.frames as f64 * 100.0 / self.total as f64,
                 rate,
-                player.clip().id
+                label
             );
             self.reported = Instant::now();
         }
@@ -280,18 +296,49 @@ impl Drop for Files {
 
 impl Chapters {
     fn new(player: &Player) -> Self {
-        let mut result = Self {
-            metadata: ";FFMETADATA1\ntitle=Tenchu: Shinobi Gaisen — Native PC Showcase\n".into(),
-            description: String::new(),
-            starts: Vec::new(),
-            frames: 0,
-        };
+        let mut total = 0;
+        let mut starts = Vec::new();
         for &index in &player.playlist {
             let clip = &player.catalog[index];
-            let title = clip.title.replace(['\n', '\r'], " ");
-            let start = result.frames;
-            result.starts.push(start);
-            result.frames += u64::from(clip.seconds) * FPS;
+            starts.push((total, clip.title.clone()));
+            total += u64::from(clip.seconds) * FPS;
+        }
+        Self::timeline(
+            "Tenchu: Shinobi Gaisen — Native PC Showcase",
+            &starts,
+            total,
+        )
+        .unwrap()
+    }
+
+    pub fn timeline(title: &str, starts: &[(u64, String)], frames: u64) -> Result<Self> {
+        if frames == 0
+            || starts.first().is_none_or(|(frame, _)| *frame != 0)
+            || starts.last().is_some_and(|(frame, _)| *frame >= frames)
+            || starts.windows(2).any(|s| s[0].0 >= s[1].0)
+        {
+            return Err("Invalid video chapter timeline".into());
+        }
+        fn escape(title: &str) -> String {
+            title
+                .replace(['\n', '\r'], " ")
+                .chars()
+                .flat_map(|c| {
+                    matches!(c, '\\' | '=' | ';' | '#')
+                        .then_some('\\')
+                        .into_iter()
+                        .chain([c])
+                })
+                .collect()
+        }
+        let mut result = Self {
+            metadata: format!(";FFMETADATA1\ntitle={}\n", escape(title)),
+            description: String::new(),
+            starts: starts.iter().map(|s| s.0).collect(),
+            frames,
+        };
+        for (index, (start, title)) in starts.iter().enumerate() {
+            let title = title.replace(['\n', '\r'], " ");
             let seconds = start / FPS;
             let timestamp = if seconds >= 3600 {
                 format!(
@@ -306,21 +353,13 @@ impl Chapters {
             result
                 .description
                 .push_str(&format!("{timestamp} {title}\n"));
-            let escaped: String = title
-                .chars()
-                .flat_map(|c| {
-                    matches!(c, '\\' | '=' | ';' | '#')
-                        .then_some('\\')
-                        .into_iter()
-                        .chain([c])
-                })
-                .collect();
+            let end = starts.get(index + 1).map_or(frames, |s| s.0);
             result.metadata.push_str(&format!(
-                "\n[CHAPTER]\nTIMEBASE=1/60\nSTART={start}\nEND={}\ntitle={escaped}\n",
-                result.frames
+                "\n[CHAPTER]\nTIMEBASE=1/60\nSTART={start}\nEND={end}\ntitle={}\n",
+                escape(&title)
             ));
         }
-        result
+        Ok(result)
     }
 }
 

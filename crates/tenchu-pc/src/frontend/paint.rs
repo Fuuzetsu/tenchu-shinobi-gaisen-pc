@@ -34,6 +34,7 @@ impl Frontend {
         ctx: &egui::Context,
         campaign: &Campaign,
         interactive: bool,
+        clean: bool,
         settings: &crate::settings::Settings,
     ) -> Option<Action> {
         let high_definition = !matches!(self.page, Page::Movie(_))
@@ -73,7 +74,10 @@ impl Frontend {
             self.dirty = false;
         }
         let screen = ctx.screen_rect();
-        let height = (screen.height() - 60.0).min(screen.width() * 0.75).max(1.0);
+        let margin = if clean { 0.0 } else { 60.0 };
+        let height = (screen.height() - margin)
+            .min(screen.width() * 0.75)
+            .max(1.0);
         let size = EVec2::new(height * 4.0 / 3.0, height);
         let rect = Rect::from_center_size(screen.center() - EVec2::new(0.0, 30.0), size);
         let painter = ctx.layer_painter(egui::LayerId::background());
@@ -92,6 +96,9 @@ impl Frontend {
             );
         }
         crate::fonts::paint(ctx, rect, &self.canvas.text);
+        if clean {
+            return None;
+        }
         let label = self.description(campaign);
         painter.text(
             egui::pos2(screen.center().x, screen.bottom() - 43.0),

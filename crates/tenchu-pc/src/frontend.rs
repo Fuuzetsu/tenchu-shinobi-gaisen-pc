@@ -304,6 +304,11 @@ impl Frontend {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn recorded_results(&mut self) {
+        self.set_page(Page::Results);
+    }
+
     pub fn ready(&self) -> bool {
         self.ticks
             >= match self.page {

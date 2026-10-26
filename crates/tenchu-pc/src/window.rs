@@ -3,6 +3,8 @@ mod frontend;
 mod overlay;
 mod performance;
 mod playback;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod retail;
 mod settings_reset;
 #[cfg(test)]
 mod tests;

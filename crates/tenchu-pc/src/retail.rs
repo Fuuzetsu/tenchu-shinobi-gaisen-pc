@@ -1,67 +1,12 @@
 mod compare;
 mod observation;
+pub mod tape;
 
 use crate::source::DiscSource;
-use observation::{Observation, Ram, Reader};
+use observation::Reader;
 use std::path::Path;
-use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
+use tenchu_assets::{Result, game::GameAssets};
 use tenchu_core::{drawing::Step, game::Game};
-
-fn initial_game(assets: &GameAssets<DiscSource>, row: &Observation, ram: &Ram) -> Result<Game> {
-    if row.clock != 0 {
-        return Err("Replay must begin at the initial mission boundary".into());
-    }
-    let character = i16::from(ram.byte(0x80010004));
-    let language = match ram.byte(0x8001005e) {
-        0 => tenchu_assets::script::Language::English,
-        1 => tenchu_assets::script::Language::French,
-        2 => tenchu_assets::script::Language::Italian,
-        3 => tenchu_assets::script::Language::Japanese,
-        _ => return Err("Invalid recorded language".into()),
-    };
-    let inventory = ram.bytes(0x80010007, 20);
-    let mission = MissionAssets::load_equipped(
-        assets,
-        row.stage as usize,
-        character,
-        usize::from(ram.byte(0x80010006)) + 1,
-        language,
-        inventory[19],
-    )?;
-    let mut game = Game::new(
-        mission,
-        &Executable::new(&assets.executable)?,
-        character,
-        row.seed,
-    )?;
-    game.random.seed = row.seed;
-    game.intelligence.difficulty = match ram.byte(0x80010058) {
-        0 => tenchu_core::ai::Difficulty::Easy,
-        1 => tenchu_core::ai::Difficulty::Normal,
-        2 => tenchu_core::ai::Difficulty::Hard,
-        _ => return Err("Invalid recorded difficulty".into()),
-    };
-    game.combat.armor = inventory[19] != 0;
-    game.roster
-        .get_mut(game.player_id)
-        .inventory
-        .copy_from_slice(ram.bytes(ram.word(0x80097c60) + 0xb4, 26));
-    game.scene.epoch = row.epoch;
-    let terrain = ram.word(0x800976e4);
-    for index in 0..game.roster.order.len() {
-        let address = ram.word(0x800be7b8 + index as u32 * 4);
-        let actor = game.roster.get_mut(game.roster.order[index]);
-        // These cached terrain pointers retain the loader's search history.
-        actor.map.area = ram.word(address + 0x30).wrapping_sub(terrain) as usize;
-        actor.map.row = (ram.word(address + 0x34).wrapping_sub(terrain) / 16) as usize;
-    }
-    for (index, object) in game.misc.objects.iter_mut().enumerate() {
-        if matches!(object.kind, tenchu_assets::misc::Kind::Sound { .. }) {
-            object.count = ram.word(0x800c0958 + index as u32 * 36 + 24) as i32;
-        }
-    }
-    Ok(game)
-}
 
 #[derive(serde::Serialize)]
 struct MissionReport {
@@ -100,7 +45,14 @@ fn complete(game: &mut Game, report: &mut MissionReport) -> Result<()> {
     Ok(())
 }
 
-pub fn check(assets: &GameAssets<DiscSource>, path: &Path, limit: Option<u64>) -> Result<()> {
+pub fn check(
+    assets: &GameAssets<DiscSource>,
+    path: &Path,
+    limit: Option<u64>,
+    export: Option<(&Path, &Path)>,
+) -> Result<()> {
+    let mut tape = tape::Tape::default();
+    let mut pending_update = None;
     let mut reader = Reader::open(path)?;
     let mut game: Option<Game> = None;
     let mut checked = 0;
@@ -116,7 +68,16 @@ pub fn check(assets: &GameAssets<DiscSource>, path: &Path, limit: Option<u64>) -
             if let Some(previous) = &mut game {
                 complete(previous, reports.last_mut().unwrap())?;
             }
-            let native = initial_game(assets, &row, &reader.ram)?;
+            let mut initial = tape::Initial::capture(&row, &reader.ram)?;
+            let mut native = initial.load(assets)?;
+            initial.capture_sounds(&mut native, &reader.ram);
+            tape.missions.push(tape::Mission {
+                initial,
+                entry_field: row.field,
+                result_field: 0,
+                result_end: 0,
+                updates: Vec::new(),
+            });
             eprintln!(
                 "Mission {} initialized at field {} seed {:08x}",
                 native.mission.stage.order, row.field, row.seed
@@ -156,6 +117,14 @@ pub fn check(assets: &GameAssets<DiscSource>, path: &Path, limit: Option<u64>) -
             compare::state(native, &reader.ram)
                 .map_err(|e| format!("Field {} clock {}: {e}", row.field, row.clock))?;
             before_epoch = Some(row.epoch);
+            pending_update = Some(tape::Update {
+                field: row.field,
+                input: row.pad as u16,
+                skip: row.skip as u8,
+                swap: false,
+                clock: row.clock,
+                seed: row.seed,
+            });
             checked += 1;
             let report = reports.last_mut().unwrap();
             report.updates += 1;
@@ -172,6 +141,10 @@ pub fn check(assets: &GameAssets<DiscSource>, path: &Path, limit: Option<u64>) -
                 1 => native.finish_recorded_update(true)?,
                 _ => return Err("Unexpected recorded display epoch".into()),
             }
+            let mut update = pending_update.take().ok_or("Missing pending input")?;
+            update.field = row.field;
+            update.swap = row.epoch != epoch;
+            tape.missions.last_mut().unwrap().updates.push(update);
         }
     }
     if checked == 0 {
@@ -182,6 +155,12 @@ pub fn check(assets: &GameAssets<DiscSource>, path: &Path, limit: Option<u64>) -
             return Err("Recording ends during an update".into());
         }
         complete(game.as_mut().unwrap(), reports.last_mut().unwrap())?;
+    }
+    if let Some((archive, output)) = export {
+        if limit.is_some() {
+            return Err("Cannot export an incomplete validation".into());
+        }
+        tape.save(archive, path, output)?;
     }
     println!("{}", serde_json::to_string_pretty(&serde_json::json!({
         "matched_updates": checked, "reached_end_of_recording": limit.is_none(), "missions": reports,

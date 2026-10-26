@@ -128,6 +128,7 @@ impl Overlay {
                     ctx,
                     campaign,
                     !menu.open && extras.demo.is_none(),
+                    extras.video_time.is_some(),
                     state.settings,
                 );
             }

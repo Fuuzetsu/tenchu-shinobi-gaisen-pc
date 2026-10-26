@@ -64,7 +64,16 @@ effect slot while spawning a droplet; Balma temporarily uses BALMER.ACM, and
 particles retain their terrain node across that map swap. These are general core
 fixes, covered by targeted checks and the continuous campaign replay. Normal
 play keeps fixed-rate updates and never derives console skips from host speed.
-The checker and private JSON evidence are ready; enhanced video capture remains.
+The checker and private JSON evidence are ready. The compact replay export now
+replays all ten missions independently with every RNG/clock check. Offline capture
+uses Modern Ultra, the full artwork pack and sharp text without reading/writing
+ordinary preferences or saves. It converts the original rational NTSC field rate
+to exact 60 Hz, preserving the archived lossless soundtrack's duration. Native
+title/mission/results screens cover original boot/loading intervals; those menus
+are presentation, outside the exact gameplay validation. Resumable chapter
+rendering, audio muxing, timestamp/decode verification and input hashes are in
+`tools/retail-capture/record.py`. Short 4K gameplay/results samples pass; the full
+24½-minute recording remains to render and review.
 
 ## Remake presentation and usability follow-up (complete)
 
