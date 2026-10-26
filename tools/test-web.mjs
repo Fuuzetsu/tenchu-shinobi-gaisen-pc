@@ -93,7 +93,9 @@ try {
   assert(downloaded.colors > 64, "A screenshot of the paused game must contain its retained image");
   assert.equal((await state()).tick, frozen.tick);
   const original = await shot("frozen-original", true);
-  await key("F1"); await key("Tab"); await key("ArrowLeft"); await key("F1");
+  await key("F1"); await key("Tab"); await key("ArrowDown");
+  for (let i = 0; i < 7; i++) await key("ArrowRight");
+  await key("F1");
   const enhanced = await shot("surface-parallax", true);
   assert.deepEqual(enhanced.hud, original.hud, "Post-processing must preserve the life medallion");
   assert.equal(await page.evaluate(() => JSON.parse(new TextDecoder().decode(new Uint8Array(JSON.parse(localStorage.getItem("tenchu-pc/settings.json"))))).graphics.surface_detail), 2);

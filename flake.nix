@@ -145,6 +145,17 @@
       checks = eachSystem (pkgs: {
         native = native pkgs;
         browser = web pkgs;
+        clippy = (native pkgs).overrideAttrs (old: {
+          pname = "tenchu-clippy";
+          nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
+          buildPhase = ''
+            cargo clippy --offline --frozen --workspace --all-targets -- -D warnings
+          '';
+          doCheck = false;
+          installPhase = ''touch "$out"'';
+          postInstall = "";
+          postFixup = "";
+        });
         wasm = pkgs.rustPlatform.buildRustPackage {
           pname = "tenchu-portable-core";
           version = "0.1.0";

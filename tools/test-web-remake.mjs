@@ -35,7 +35,7 @@ try {
  await page.locator('#game').click();await page.mouse.move(5,5);await key('Enter');await key('Enter');
  await page.waitForFunction(()=>Number(document.body.dataset.tick)>=60,null,{timeout:90000});
  await key('F1'); const frozen=await state();
- await select(1);await key('ArrowLeft');await key('ArrowLeft');
+ await select(1);await key('ArrowLeft');await key('ArrowLeft');await key('ArrowLeft');
  let high=await settings();assert.equal(high.graphics.models.foliage,3);assert.equal(high.graphics.fog,false);assert.equal(high.graphics.blob_shadows,false);assert.equal(high.graphics.samples,2);assert.equal(high.graphics.effects.leaves,true);
  await shot('modern-high');assert.deepEqual(await state(),frozen);
  await select(0);await key('ArrowRight');

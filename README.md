@@ -473,7 +473,9 @@ cargo fmt --all -- --check
 
 `./dev.sh cargo ...` enters the same environment for one command. Use `nix build`
 for the native package, `nix run -- inspect /path/to/game.cue` to run it, and
-`nix flake check` for tests, formatting and a WASM build of the reusable crates.
+`nix flake check` for workspace tests, strict Clippy, formatting, the native
+package and browser builds. Checks need no disc; retail and GPU regressions
+remain opt-in because they require private game data or graphics hardware.
 ISO files and raw BIN data tracks also work. Disc data is read on demand; it is
 never an input to the Nix package or copied into the Nix store.
 

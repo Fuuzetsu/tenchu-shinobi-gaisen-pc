@@ -108,7 +108,7 @@ no exact catalog is available; omit `--youtube` for clips shorter than ten secon
 The built-in catalog is [demos.json](crates/tenchu-pc/data/demos.json).
 Copy it outside the repository, keep/edit the clips you want, and launch with
 `--catalog /path/to/my-demos.json`. IDs must be unique; descriptions, titles,
-duration (2–120 seconds), mission (0–10), character (0/1), preset (0–9), shot and
+duration (2–120 seconds), mission (0–10), character (0/1), preset (0–10), shot and
 feature are validated. `--clips` also works with a custom catalog.
 
 A shot chooses a player, lamp, fire, guard, wide or cinematic anchor from the actual

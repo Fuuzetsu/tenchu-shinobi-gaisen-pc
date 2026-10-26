@@ -183,10 +183,14 @@ mod tests {
 
         let parent = storage.path.parent().unwrap();
         assert!(atomic_write(parent, b"cannot replace a directory").is_err());
-        let entries: Vec<_> = fs::read_dir(parent).unwrap().collect();
         assert_eq!(
-            entries.len(),
+            fs::read_dir(parent).unwrap().count(),
             2,
+            "successful writes must consume their temporary files"
+        );
+        assert_eq!(
+            fs::read_dir(&directory).unwrap().count(),
+            1,
             "failed writes must remove their temporary file"
         );
         fs::write(&storage.path, b"truncated").unwrap();

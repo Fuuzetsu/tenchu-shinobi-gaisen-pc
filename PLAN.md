@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Shipping cleanup (in progress)
+## Shipping cleanup (complete)
 
 Keep this pass focused on DRY, KISS and YAGNI. Preserve game behavior, existing
 save/pack formats and native/browser controls; do not add speculative frameworks
@@ -60,6 +60,24 @@ skips) pass the full retail RAM comparison with no state corrections; the entire
 report equals the pre-cleanup report. Workspace tests, the serialized campaign
 replay and both players' explosive-item regression also pass. The three remaining
 `repr(C)` declarations describe GPU buffer layouts and are required.
+
+Release checks now include strict Clippy in `nix flake check`. All five
+`x86_64-linux` checks pass: native package/tests, browser package, portable WASM
+crates, formatting and Clippy. The packaged native executable reads the disc and
+renders with Vulkan outside the development shell. The original-C damage oracle
+also passes. Browser smoke scripts now follow the current F1 preset layout;
+Chromium WebGPU and WebGL2 pass gameplay/input/audio, save/restart, movie/title,
+resize/fullscreen, offline readiness, surface-relief and High/Ultra controls.
+Retro mode, independent gameplay preferences, Shift+Tab, hovered reset and clear
+weather preserve the expected state. Captures were reviewed and contain the
+rendered scenes; no GPU or JavaScript errors were reported.
+
+Validation evidence is kept in ignored `private/code-polish`. The browser visual
+checks used a virtual X11 display; Chromium's headless launch produced a black
+canvas on this machine. Windows, macOS, ARM and Firefox were not revalidated in
+this pass. These checks protect the refactored behavior and the recorded retail
+route, rather than establish exhaustive game parity or universal driver support.
+No dependencies were added; game formats and recordings are unchanged.
 
 ## Screen and health-bar repairs (complete)
 
