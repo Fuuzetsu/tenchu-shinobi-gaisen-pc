@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Archived full campaign replay and recording (in progress)
+## Archived full campaign replay and recording (complete)
 
 Replay the fixed Ayame/Normal boot-to-ending campaign identified by
 `~/tenchu-searches/FINAL-RUN.txt`. The archive is
@@ -74,10 +74,28 @@ to exact 60 Hz, preserving the archived lossless soundtrack's duration. Native
 title/mission/results screens cover original boot/loading intervals; those menus
 are presentation, outside the exact gameplay validation. Resumable chapter
 rendering, audio muxing, timestamp/decode verification and input hashes are in
-`tools/retail-capture/record.py`. Short 4K gameplay/results samples pass. The
-24½-minute source recording is rendering; `shorten.py` produces the requested
-viewing edit from its retained chapter parts without re-encoding. Final edited
-video, audio alignment across the joins and delivery review remain in progress.
+`tools/retail-capture/record.py`. The completed viewing edit is
+`private/retail-campaign/render/tenchu-ayame-campaign-4k60-youtube.mp4`:
+**19:44.8, 3840×2160, exactly 60 fps, H.264/AAC with game sound and ten chapters**.
+It removes 4:44.6 of boot/loading waits while retaining every gameplay update and
+in-engine cutscene at source speed. The source tape ends as the ending movie
+begins; the export ends after the final result, without that movie or credits.
+
+All 71,088 consecutive timestamps and full video/audio decoding pass. Twenty
+audio samples across all ten missions have zero measured lag against the original
+lossless console soundtrack, with correlation above 0.9998. Cuts copy video
+packets and retain exactly matching audio intervals, with 10 ms fades at joins.
+The frame/sample edit map and original rendered parts are preserved. Gameplay
+and cinematic samples from every mission, the title, results and shortened
+transitions were visually reviewed against the console reference where relevant.
+
+Capture found and fixed MP4 chapter-duration rounding at joins, and fractional
+audio-seek resampling phase differences in the validation utility. Format/Clippy
+and focused recording checks pass; an intentional 80 ms audio offset is rejected.
+The frozen native executable, reproduction scripts, source/artwork hashes,
+verification reports and YouTube description are beside the MP4. The executable,
+tape, soundtrack and all 1,722 artwork files were rechecked after rendering.
+Normal preferences, saves, the source archive and ongoing searches are unchanged.
 
 ## Remake presentation and usability follow-up (complete)
 
