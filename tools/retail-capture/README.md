@@ -59,13 +59,21 @@ and ambient sound timers as well as RNG; RNG alone is insufficient. The recordin
 checks every update's clock/RNG again and never imports subsequent console state.
 Frame ranges always replay their entire prefix, including cosmetic ticks.
 
-The recorder uses Modern Ultra, sharp fonts and the specified artwork pack. It
+The recorder uses Showcase, sharp fonts and the specified artwork pack. It
 does not load/write normal preferences or saves, and does not apply gameplay
 modifiers. Presentation interpolates models with one source update of visual
 latency. The original NTSC field rate is converted rationally to exactly 60 fps:
 88,075 fields produce 88,164 video frames, rather than accelerating the source
 timeline by treating console fields as 60 Hz. Every frame is rendered offline;
 GPU speed affects export time only.
+
+Showcase enables local/sky shadows, refined models, hair/cloth motion, improved
+water/waterfalls, grapple/contact effects, surface relief and post-processing.
+Weather remains original and sky time is fixed. Actual applied GPU settings and
+interpolation state are saved to `SILENT.settings.json`. Recorded draw skips still
+affect the authoritative simulation; presentation reconstructs actor transforms
+without mutating those caches, so a skipped console submission does not blank
+models in the PC video.
 
 Boot/loading intervals retain their duration but display the port's native title,
 mission-selection and results screens. They are a presentation of the original
@@ -80,6 +88,12 @@ For a resumable full export with the matching console soundtrack:
 ./dev.sh python3 tools/retail-capture/record.py DISC REPLAY.json \
   MATCHING-LOSSLESS-AUDIO.wav OUTPUT.mp4 --asset-pack PACK
 ```
+
+`--jobs 2` renders two independent chapters concurrently, if GPU memory permits.
+The default is one. Each chapter has its own log and actual-settings sidecar;
+assembly refuses inconsistent settings. Keep a copy of the executable and pack
+when exact reproduction matters. Artwork hashes include OBJ models as well as
+PNG/JSON/binary assets.
 
 This renders separate chapter parts, verifies their format/frame counts, then
 joins them without re-encoding and adds 48 kHz stereo AAC audio. Audio must come
