@@ -232,6 +232,26 @@ impl Pack {
             manifest.materials.retain(|id, _| materials.contains(id));
         }
         let mut pixels = 0;
+        let mut decoded: BTreeMap<String, Arc<Image>> = BTreeMap::new();
+        let mut load_image = |path: &str| -> Result<(String, Arc<Image>)> {
+            let image =
+                decode_png(&read(path, 32 * 1024 * 1024)?).map_err(|e| format!("{path}: {e}"))?;
+            let id = catalog::image_id(image.size.map(|n| n as u16), &image.rgba);
+            let shared = if let Some(shared) = decoded.get(&id) {
+                shared.clone()
+            } else {
+                pixels += image.rgba.len() / 4;
+                if pixels > MAX_PIXELS {
+                    return Err(format!(
+                        "Texture pack exceeds 16 million unique decoded pixels while loading {path}"
+                    ));
+                }
+                let image = Arc::new(image);
+                decoded.insert(id.clone(), image.clone());
+                image
+            };
+            Ok((id, shared))
+        };
         for (id, path) in manifest.textures {
             if id.is_empty()
                 || id.len() > 128
@@ -241,14 +261,8 @@ impl Pack {
             {
                 return Err(format!("Invalid texture identity {id:?}"));
             }
-            let image =
-                decode_png(&read(&path, 32 * 1024 * 1024)?).map_err(|e| format!("{path}: {e}"))?;
-            pixels += image.rgba.len() / 4;
-            if pixels > MAX_PIXELS {
-                return Err("Texture pack exceeds 16 million decoded pixels".into());
-            }
-            let changed = catalog::image_id(image.size.map(|n| n as u16), &image.rgba) != id;
-            let image = Arc::new(image);
+            let (content, image) = load_image(&path)?;
+            let changed = content != id;
             if changed {
                 pack.textures.insert(id.clone(), image.clone());
             }
@@ -269,14 +283,7 @@ impl Pack {
             }
             let height = rule
                 .height
-                .map(|path| -> Result<_> {
-                    let image = decode_png(&read(&path, 32 * 1024 * 1024)?)?;
-                    pixels += image.rgba.len() / 4;
-                    if pixels > MAX_PIXELS {
-                        return Err("Texture pack exceeds 16 million decoded pixels".into());
-                    }
-                    Ok(Arc::new(image))
-                })
+                .map(|path| load_image(&path).map(|(_, image)| image))
                 .transpose()?;
             pack.surfaces.insert(
                 id,
@@ -439,6 +446,7 @@ mod tests {
         .unwrap();
         assert_eq!(reads, ["blade.obj", "blade.png", "roof.png"]);
         assert_eq!(pack.images.len(), 2);
+        assert!(Arc::ptr_eq(&pack.images["roof"], &pack.images["blade"]));
         assert_eq!(pack.materials.len(), 1);
         assert_eq!(pack.models.len(), 1);
         assert!(pack.surfaces.is_empty());

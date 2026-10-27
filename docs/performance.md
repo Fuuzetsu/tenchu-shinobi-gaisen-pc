@@ -70,3 +70,8 @@ fallback) gives:
 GPU work is unchanged within measurement variation. The high-resolution shadow
 and scene passes remain the limiting cost in the heavier Ultra scenes on this
 GPU. This change does not reduce mesh detail, effects, shadow quality or AI.
+
+Pack loading subsequently gained content-based image sharing. Mission 5 exceeded
+its 64 MiB decoded-image budget by about 72 KiB; shared duplicate artwork now fits
+without raising that budget. A complete-pack Mission 5 capture succeeds. The
+table above deliberately keeps the old fallback in both runs for comparability.

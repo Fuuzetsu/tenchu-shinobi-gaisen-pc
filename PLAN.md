@@ -58,6 +58,12 @@ the transparency pass. Fixed Ultra benchmarks reduce CPU p95 by 66–82% (17–3
 to 5–10 ms), with unchanged GPU costs. The regression compares retained triangle
 order and complete vertex bytes under different transforms, fog and vegetation
 variation. This removes work without reducing visual settings or touching logic.
+All 41 renderer regressions pass after the transform change. Pack loading now
+shares identical decoded images between texture identities and height maps;
+Mission 5 was only about 72 KiB above its 64 MiB limit because duplicates were
+counted and retained separately. It renders with the complete pack after sharing,
+without increasing the memory budget. The asset-selection regression verifies
+that duplicate identities share their image allocation.
 
 ## Automated build artifacts (implemented; hosted run pending)
 
