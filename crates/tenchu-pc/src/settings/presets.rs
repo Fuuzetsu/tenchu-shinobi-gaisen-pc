@@ -24,6 +24,10 @@ pub const MODERN_MEDIUM: u16 = 12;
 pub const QUALITY: [u16; 4] = [MODERN_LOW, MODERN_MEDIUM, MODERN_HIGH, MODERN_ULTRA];
 pub const CUSTOM: u16 = NAMES.len() as u16 - 1;
 
+pub fn sharp_text(index: u16) -> bool {
+    QUALITY.contains(&index) || index == SHOWCASE
+}
+
 impl Graphics {
     pub fn preset(&self) -> u16 {
         let mut current = self.clone();

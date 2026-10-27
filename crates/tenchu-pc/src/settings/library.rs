@@ -129,7 +129,8 @@ impl Library {
             return Some(Choice::User(i));
         }
         let index = settings.graphics.preset();
-        (index < presets::CUSTOM).then_some(Choice::Builtin(index))
+        (index < presets::CUSTOM && settings.sharp_text == presets::sharp_text(index))
+            .then_some(Choice::Builtin(index))
     }
 
     pub fn apply(&self, choice: Choice, settings: &mut Settings) -> Result<()> {
@@ -307,6 +308,13 @@ mod tests {
             notice: String::new(),
         };
         let mut source = Settings::default();
+        for index in 0..presets::CUSTOM {
+            let choice = Choice::Builtin(index);
+            manager.library.apply(choice, &mut source).unwrap();
+            assert_eq!(manager.library.current(&source), Some(choice));
+            source.sharp_text = !source.sharp_text;
+            assert_eq!(manager.library.current(&source), None);
+        }
         source.set_visual_preset(presets::MODERN_HIGH);
         source.graphics.weather.mode = super::super::WeatherMode::Snow;
         manager.save(&source).unwrap();

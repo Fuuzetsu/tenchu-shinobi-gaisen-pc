@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Performance, presets and first launch (active)
+## Performance, presets and first launch (implemented)
 
 Preserve gameplay and visual quality while making performance measurable and
 the port straightforward to configure and launch. Commit these deliverables in
@@ -95,7 +95,17 @@ Nix packages build; the Linux archive starts and resolves its runtime libraries,
 including the new portal D-Bus dependency, with `/nix` hidden. Linux uses the
 desktop portal or Zenity fallback; the Nix package supplies Zenity. macOS and
 physical Windows/ARM GPU hardware remain outside available local validation.
-The concise README and final documentation checks remain in progress.
+The README now provides a brief platform/download/build/run guide and links to
+the relocated detailed guide. Relative links and current default descriptions
+are corrected. Both complete WebGPU and WebGL2 browser smoke runs pass: gameplay,
+surface effects, paused captures, menus, resize, persistence, movies, offline
+play, fullscreen, shutdown/restart and download failure/retry. Preset identity
+also includes the HUD text setting, so a modified text preference shows Custom.
+Measured gains and the remaining GPU-heavy Ultra costs are documented rather
+than hidden by a visual downgrade. Final x86-64 Linux `nix flake check` passes,
+including the Windows cross-build and browser build; all three distributable
+archives build too. Documentation links and anchors pass. Hosted builds still
+await a configured Git remote; no new recording was made.
 
 ## Automated build artifacts (implemented; hosted run pending)
 

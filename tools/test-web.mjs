@@ -92,9 +92,11 @@ try {
   const downloaded = await page.evaluate(sceneImage, (await readFile(`${output}/paused-download.png`)).toString("base64"));
   assert(downloaded.colors > 64, "A screenshot of the paused game must contain its retained image");
   assert.equal((await state()).tick, frozen.tick);
-  const original = await shot("frozen-original", true);
   await key("F1"); await key("Tab"); await key("ArrowDown");
   await key("r"); // Compare surface treatments from the Original reference preset.
+  await key("F1");
+  const original = await shot("frozen-original", true);
+  await key("F1");
   for (let i = 0; i < 7; i++) await key("ArrowRight");
   await key("F1");
   const enhanced = await shot("surface-parallax", true);

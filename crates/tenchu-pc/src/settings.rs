@@ -99,7 +99,7 @@ impl Settings {
     pub fn set_visual_preset(&mut self, index: u16) {
         self.retro = false;
         self.graphics.set_preset(index);
-        self.sharp_text = (presets::MODERN_HIGH..presets::CUSTOM).contains(&index);
+        self.sharp_text = presets::sharp_text(index);
     }
 }
 
