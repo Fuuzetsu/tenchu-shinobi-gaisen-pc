@@ -117,6 +117,18 @@ garden in both checks; rain haze also has a repeatable scene-dependent inversion
 CPU observations, every graphical control's cost model and unmeasured sustained
 combat/accumulation limits. No runtime settings, game logic or visuals changed.
 
+The follow-up auto tuner uses those measurements to order individual changes,
+starting at Ultra instead of descending through whole presets. It distinguishes
+CPU/GPU pressure, replays all four scenes for each candidate, and reverts changes
+that do not clearly improve the measured time over budget. It preserves cheap
+enhancements, artwork and all weather parameters, skips the unexpectedly costly
+Fuller/Curved foliage modes, and reports unmet targets without falling back to
+Original. Display-limited runs retain quality; timestamped offscreen tuning uses
+CPU/GPU work rather than serialized frame intervals. The UI and JSON explain
+each decision. Focused regressions cover bottlenecks, rollback, missing GPU
+timings, display limits, supported MSAA and preservation of settings. Runtime
+validation is in progress.
+
 ## Automated build artifacts (implemented; hosted run pending)
 
 Build Linux x86-64, Linux ARM64, Windows x86-64 and the WASM browser package on

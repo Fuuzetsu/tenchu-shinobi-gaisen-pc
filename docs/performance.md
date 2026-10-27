@@ -30,14 +30,40 @@ your selected weather; they do not add rain, snow or a day cycle.
 Original remains available as the original-presentation reference. Replacement
 artwork still needs an installed pack; no preset supplies game assets.
 
-**Auto-optimise graphics** tests Ultra down through Low, with Original as a
-fallback. Choose a 30/60/120 FPS target and keep the game focused at your intended
-playing resolution. A tier must pass all four scenes: CPU/GPU p95 below 85% of
-the frame budget and observed frame p95 within 12% of the target interval.
-A failed scene immediately advances to the next tier. Each case has 60 warm-up
-frames and 240 measured frames. The best passing tier is saved and applied as
-**Auto-optimised** when the original session is restored. Cancellation changes
-nothing. If even Original cannot meet the target, the result says so.
+**Auto-optimise graphics** starts at Ultra and tunes individual controls using
+the [per-setting measurements](graphics-performance.md) as an ordering heuristic.
+Choose a 30/60/120 FPS target and keep the game focused at your intended playing
+resolution. This can take several minutes; close heavy background workloads.
+
+- GPU pressure first tests smaller local shadow maps, 2× MSAA, fewer local
+  shadows, smaller sun/moon maps and contact shading. Further reductions to
+  those budgets, surface relief, filtering, post-processing and light count
+  are available if needed. It keeps dynamic lighting and shadows enabled.
+- CPU pressure first tests character refinement and botanical foliage density.
+  It skips the Fuller/Curved foliage modes: their additional overlapping cards
+  can cost more than Botanical on the measured paths.
+- Hair/cloth, interpolation, modern water, grapple/particle enhancements and
+  blood remain at Ultra settings. Artwork and **all** selected weather parameters
+  are retained. It never adds black sight fog or switches to Original as a fallback.
+
+Every candidate runs all four scenes, with 60 warm-up and 240 measured frames
+each. A candidate is kept if it passes the target or reduces the aggregate
+normalized time over budget by at least 3%; otherwise it is reverted. This
+compares measured costs on the current device, rather than assuming the same
+millisecond savings on every GPU. It is a bounded search, not an exhaustive
+search of every setting combination.
+
+A passing result needs CPU/GPU p95 below 85% of the frame budget and observed
+frame p95 within 12% of the target interval in **every** scene. If CPU/GPU work
+fits but presentation is slow, the tuner keeps quality and reports a possible
+display/compositor/browser limit. Offscreen runs with GPU timestamps use only
+CPU/GPU budgets: their serialized frame intervals are not interactive pacing.
+
+The result is saved and applied as **Auto-optimised** when the original session
+is restored. Cancellation changes nothing. If no candidate meets the target,
+it retains the best measured configuration and says the target was missed.
+Expand **Tuning decisions** in the results to see each accepted/reverted change;
+JSON reports include trial scene ranges and the selected trial too.
 
 This is a short sample, not a guarantee for every scene or unusual weather/mod.
 Re-run after changing resolution, artwork or hardware. Missing GPU timestamps
@@ -50,10 +76,11 @@ the preferences (`TENCHU_PRESETS` overrides it); browsers use local storage.
 For a non-persistent automatic report, use `benchmark DISC --auto 60 --output
 report.json`. CLI benchmarks never overwrite preferences or preset libraries.
 
-The full-artwork 4K offscreen test on the hardware below selected Low at 60 FPS:
+The earlier whole-tier tuner selected Low in a full-artwork 4K offscreen test at 60 FPS:
 its four GPU p95 values were 5.47, 3.24, 9.21 and 4.08 ms. Medium failed the garden
 at 16.74 ms GPU p95; High and Ultra failed the first scene. This describes that
-machine and serialized offscreen test, not a universal default or FPS promise.
+machine and the former serialized offscreen selection rule, not a universal
+default or FPS promise. Individual adjustment tuning supersedes that tier search.
 
 For reproducible native reports:
 
