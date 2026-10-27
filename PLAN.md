@@ -65,6 +65,20 @@ counted and retained separately. It renders with the complete pack after sharing
 without increasing the memory budget. The asset-selection regression verifies
 that duplicate identities share their image allocation.
 
+Low/Medium now complement High/Ultra with complete visual budgets, and fresh
+preferences use Low. Quality changes retain selected weather and gameplay.
+The F1 preset library supports persisted new/save/overwrite, separate rename,
+apply and delete with protected built-ins. Automatic tuning tests tiers against
+CPU/GPU and observed-frame p95, saves Auto-optimised and restores the session.
+CLI tuning only reports. A full-artwork 4K sweep selects Low for 60 FPS on the
+local GTX 1080 Ti; the native windowed UI selects High at a 30 FPS target and
+returns to the same paused tick. Save/overwrite/rename were exercised through
+the UI. All 131 workspace unit tests, eight disc-backed host/menu regressions,
+and native/WASM strict Clippy pass. Browser UI checks cover save, overwrite,
+rename, reload, cancellation and exact tick/RNG/position restoration. Browser
+auto-tuning completes and persists its result too. First-launch improvements
+and the concise README remain in progress.
+
 ## Automated build artifacts (implemented; hosted run pending)
 
 Build Linux x86-64, Linux ARM64, Windows x86-64 and the WASM browser package on

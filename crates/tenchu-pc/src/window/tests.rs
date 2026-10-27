@@ -33,6 +33,10 @@ fn application(options: Options) -> Application {
         fps: 0.0,
         performance: Default::default(),
         benchmarks: Default::default(),
+        presets: settings::library::Manager::new(std::env::temp_dir().join(format!(
+            "tenchu-unused-test-presets-{}.json",
+            std::process::id()
+        ))),
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

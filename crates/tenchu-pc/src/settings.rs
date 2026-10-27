@@ -16,6 +16,7 @@ pub use effects::Effects;
 mod motion;
 pub use motion::Motion;
 pub mod gameplay;
+pub mod library;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -98,9 +99,7 @@ impl Settings {
     pub fn set_visual_preset(&mut self, index: u16) {
         self.retro = false;
         self.graphics.set_preset(index);
-        if (presets::MODERN_HIGH..presets::CUSTOM).contains(&index) {
-            self.sharp_text = true;
-        }
+        self.sharp_text = (presets::MODERN_HIGH..presets::CUSTOM).contains(&index);
     }
 }
 
@@ -372,7 +371,9 @@ mod tests {
         let store = Store {
             path: root.join("config/settings.json"),
         };
-        assert_eq!(store.load().unwrap(), Settings::default());
+        let mut initial = Settings::default();
+        initial.set_visual_preset(presets::MODERN_LOW);
+        assert_eq!(store.load().unwrap(), initial);
         let settings = Settings {
             show_fps: true,
             pause_on_defocus: false,

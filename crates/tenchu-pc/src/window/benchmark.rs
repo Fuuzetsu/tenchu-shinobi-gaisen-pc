@@ -2,6 +2,13 @@ use super::*;
 use serde::Serialize;
 
 const WARMUP: u64 = 60;
+const AUTO_QUALITIES: [u16; 5] = [
+    settings::presets::MODERN_ULTRA,
+    settings::presets::MODERN_HIGH,
+    settings::presets::MODERN_MEDIUM,
+    settings::presets::MODERN_LOW,
+    0,
+];
 
 #[derive(Clone)]
 pub struct Options {
@@ -11,6 +18,7 @@ pub struct Options {
     pub output: Option<PathBuf>,
     pub exit: bool,
     pub offscreen: bool,
+    pub auto_target: Option<u16>,
 }
 
 impl Default for Options {
@@ -22,6 +30,7 @@ impl Default for Options {
             output: None,
             exit: false,
             offscreen: false,
+            auto_target: None,
         }
     }
 }
@@ -32,6 +41,7 @@ pub(super) struct Benchmarks {
     pub run: Option<Run>,
     pub report: Option<Report>,
     pub open: bool,
+    target_fps: u16,
 }
 
 struct Saved {
@@ -55,6 +65,7 @@ pub(super) struct Run {
     pub frame: u64,
     pub scene: usize,
     pub title: String,
+    quality_step: usize,
 }
 
 #[derive(Serialize, Default, Debug)]
@@ -86,6 +97,8 @@ impl Distribution {
 
 #[derive(Serialize)]
 pub(super) struct SceneResult {
+    quality: String,
+    graphics: settings::Graphics,
     id: String,
     title: String,
     artwork: String,
@@ -114,6 +127,7 @@ pub(super) struct Report {
     artwork: String,
     scenes: Vec<SceneResult>,
     cancelled: Option<String>,
+    recommendation: Option<settings::library::Auto>,
 }
 
 #[derive(Default)]
@@ -165,6 +179,12 @@ impl Run {
             return;
         }
         self.report.scenes.push(SceneResult {
+            quality: self
+                .options
+                .preset
+                .map_or("Current graphics", |i| settings::presets::NAMES[i as usize])
+                .into(),
+            graphics: self.settings.graphics.clone(),
             id: player.clip().id.clone(),
             title: self.title.clone(),
             artwork: self.artwork.clone(),
@@ -186,7 +206,58 @@ impl Run {
     }
 }
 
+impl SceneResult {
+    fn meets_target(&self, fps: u16) -> bool {
+        meets_target(&self.frame, &self.cpu_work, &self.gpu, fps)
+    }
+}
+
+fn meets_target(frame: &Distribution, cpu: &Distribution, gpu: &Distribution, fps: u16) -> bool {
+    let budget = 1000.0 / f32::from(fps);
+    frame.samples >= 60
+        && cpu.p95_ms <= budget * 0.85
+        && frame.p95_ms <= budget * 1.12
+        && (gpu.samples == 0 || gpu.p95_ms <= budget * 0.85)
+}
+
+impl Run {
+    fn recommend(&mut self, passed: bool) {
+        let fps = self.options.auto_target.unwrap();
+        let quality = settings::presets::NAMES[self.options.preset.unwrap() as usize];
+        let gpu = self
+            .report
+            .scenes
+            .iter()
+            .filter(|s| s.quality == quality)
+            .all(|s| s.gpu.samples > 0);
+        let mut note = if passed {
+            "Highest tested tier meeting the frame target, with CPU/GPU headroom. Re-run after changing resolution, artwork or hardware.".to_owned()
+        } else {
+            "No tier met the target at this resolution. Using Original as a fallback; try a lower resolution or frame target. Display/compositor limits can also prevent reaching the target.".to_owned()
+        };
+        if !gpu {
+            note.push_str(" GPU timestamps unavailable: selection uses observed frames and CPU work, with less certainty about GPU headroom.");
+        }
+        self.report.recommendation = Some(settings::library::Auto {
+            visual: settings::library::Visual::capture(&self.settings),
+            quality: quality.into(),
+            adapter: self.report.adapter.clone(),
+            size: self.report.size,
+            target_fps: fps,
+            met_target: passed,
+            note,
+        });
+    }
+}
+
 impl Benchmarks {
+    pub fn new(pending: Option<Options>) -> Self {
+        Self {
+            pending,
+            target_fps: 60,
+            ..Default::default()
+        }
+    }
     pub fn show(&mut self, ctx: &egui::Context) -> bool {
         let mut cancel = false;
         if let Some(run) = &self.run {
@@ -195,6 +266,9 @@ impl Benchmarks {
                 .anchor(egui::Align2::LEFT_TOP, [16.0, 16.0])
                 .show(ctx, |ui| {
                     ui.label(&run.title);
+                    if run.options.auto_target.is_some() {
+                        ui.strong(settings::presets::NAMES[run.options.preset.unwrap() as usize]);
+                    }
                     ui.label(format!(
                         "Scene {} · {} / {} frames",
                         run.scene + 1,
@@ -215,24 +289,35 @@ impl Benchmarks {
                 if ui.button("Benchmark current graphics").clicked() {
                     self.pending = Some(Options::default());
                 }
+                ui.horizontal(|ui| {
+                    if self.target_fps == 0 { self.target_fps = 60; }
+                    egui::ComboBox::from_id_salt("benchmark-target").selected_text(format!("{} FPS", self.target_fps)).show_ui(ui, |ui| {
+                        for fps in [30, 60, 120] { ui.selectable_value(&mut self.target_fps, fps, format!("{fps} FPS")); }
+                    });
+                    if ui.button("Auto-optimise graphics").clicked() {
+                        self.pending = Some(Options { auto_target: Some(self.target_fps), seconds: 5, ..Default::default() });
+                    }
+                });
+                ui.weak("Automatic optimisation tests quality tiers and applies the best passing result as Auto-optimised. Gameplay settings are kept.");
                 if let Some(report) = &self.report {
                     ui.separator();
                     ui.label(format!("{} · {} · {} × {}", report.adapter, report.backend, report.size[0], report.size[1]));
                     ui.weak(&report.artwork);
                     if let Some(reason) = &report.cancelled { ui.colored_label(egui::Color32::YELLOW, reason); }
                     ui.weak("Times in milliseconds. Lower is better; p95 includes the slowest 5% boundary.");
-                    egui::Grid::new("benchmark-results").striped(true).show(ui, |ui| {
-                        for heading in ["Scene", "FPS", "Frame p95", "CPU p95", "GPU p95"] { ui.strong(heading); }
+                    if let Some(auto) = &report.recommendation { ui.strong(format!("Auto-optimised: {}", auto.quality)); ui.label(&auto.note); }
+                    egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| { egui::Grid::new("benchmark-results").striped(true).show(ui, |ui| {
+                        for heading in ["Quality / scene", "FPS", "Frame p95", "CPU p95", "GPU p95"] { ui.strong(heading); }
                         ui.end_row();
                         for scene in &report.scenes {
-                            ui.label(&scene.title);
+                            ui.label(format!("{}\n{}", scene.quality, scene.title));
                             ui.label(format!("{:.0}", 1000.0 / scene.frame.mean_ms.max(0.001)));
                             ui.label(format!("{:.2}", scene.frame.p95_ms));
                             ui.label(format!("{:.2}", scene.cpu_work.p95_ms));
                             ui.label(if scene.gpu.samples == 0 { "Unavailable".into() } else { format!("{:.2}", scene.gpu.p95_ms) });
                             ui.end_row();
                         }
-                    });
+                    }); });
                     ui.weak("GPU passes: shadows, scene, post-processing, HUD. Browser frame rate may be limited by the display; missing GPU timestamps do not mean zero cost.");
                 }
             });
@@ -242,7 +327,7 @@ impl Benchmarks {
 }
 
 impl Application {
-    pub(super) fn start_benchmark(&mut self, options: Options) -> Result<()> {
+    pub(super) fn start_benchmark(&mut self, mut options: Options) -> Result<()> {
         if self.demo.is_some() || self.benchmarks.run.is_some() {
             return Err("Finish the current demo first".into());
         }
@@ -267,6 +352,9 @@ impl Application {
             recording: self.recording.take(),
         };
         let mut settings = self.settings.rendering().into_owned();
+        if options.auto_target.is_some() {
+            options.preset = Some(AUTO_QUALITIES[0]);
+        }
         if let Some(preset) = options.preset {
             settings.set_visual_preset(preset);
         }
@@ -303,6 +391,7 @@ impl Application {
             artwork: view.artwork_status(),
             scenes: Vec::new(),
             cancelled: None,
+            recommendation: None,
         };
         self.benchmarks.run = Some(Run {
             target: options.offscreen.then(|| {
@@ -333,6 +422,7 @@ impl Application {
             frame: 0,
             scene: 0,
             title: String::new(),
+            quality_step: 0,
         });
         self.demo = Some(player);
         self.benchmarks.open = false;
@@ -349,9 +439,41 @@ impl Application {
         };
         let player = self.demo.as_mut().unwrap();
         if player.ended() {
+            if run.samples.cpu.is_empty() {
+                return self.finish_benchmark(Some(
+                    "No frames were measured; keep the game visible".into(),
+                ));
+            }
             run.finish_scene(player);
-            if !player.next() {
-                return self.finish_benchmark(None);
+            let failed = run
+                .options
+                .auto_target
+                .is_some_and(|fps| !run.report.scenes.last().unwrap().meets_target(fps));
+            if failed || !player.next() {
+                if run.options.auto_target.is_some() {
+                    if !failed || run.quality_step + 1 == AUTO_QUALITIES.len() {
+                        run.recommend(!failed);
+                        return self.finish_benchmark(None);
+                    }
+                    run.quality_step += 1;
+                    let preset = AUTO_QUALITIES[run.quality_step];
+                    run.options.preset = Some(preset);
+                    run.settings.set_visual_preset(preset);
+                    run.settings.graphics.samples = self
+                        .view
+                        .as_ref()
+                        .unwrap()
+                        .renderer
+                        .sample_counts
+                        .iter()
+                        .copied()
+                        .filter(|&n| n <= run.settings.graphics.samples)
+                        .max()
+                        .unwrap_or(1);
+                    player.reset(0);
+                } else {
+                    return self.finish_benchmark(None);
+                }
             }
             run.frame = 0;
             if let Err(error) = self.start_demo_clip() {
@@ -387,13 +509,27 @@ impl Application {
         self.faulted = self.fault.is_some();
         self.menu.open = run.saved.menu_open;
         self.recording = run.saved.recording;
+        let optimisation = if !run.options.exit && run.report.cancelled.is_none() {
+            run.report
+                .recommendation
+                .as_ref()
+                .map(|auto| {
+                    self.presets.save_auto(auto.clone())?;
+                    auto.visual.apply(&mut self.settings);
+                    self.settings_store.write(&self.settings)
+                })
+                .transpose()
+        } else {
+            Ok(None)
+        };
         self.benchmarks.report = Some(run.report);
         self.benchmarks.open = true;
         self.demo_exit = run.options.exit;
         let report = self.benchmarks.report.as_ref().unwrap();
         for s in &report.scenes {
             println!(
-                "Benchmark {}: {:.1} FPS, frame p95 {:.2} ms, CPU p95 {:.2} ms, GPU p95 {:.2} ms ({} samples)",
+                "Benchmark {} / {}: {:.1} FPS, frame p95 {:.2} ms, CPU p95 {:.2} ms, GPU p95 {:.2} ms ({} samples)",
+                s.quality,
                 s.id,
                 1000.0 / s.frame.mean_ms.max(0.001),
                 s.frame.p95_ms,
@@ -424,6 +560,7 @@ impl Application {
         self.controls.clear();
         self.sync_pause();
         self.update_view();
+        optimisation?;
         export?;
         Ok(())
     }
@@ -452,6 +589,33 @@ impl View {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tuning_checks_slow_frames_and_headroom_instead_of_average_fps() {
+        let measured = |ms| Distribution::new(std::iter::repeat_n(ms, 240));
+        let frame = measured(16.7);
+        let cpu = measured(3.0);
+        assert!(meets_target(&frame, &cpu, &measured(12.0), 60));
+        assert!(!meets_target(&frame, &cpu, &measured(15.0), 60));
+        assert!(!meets_target(&frame, &measured(15.0), &measured(3.0), 60));
+        let stutters =
+            Distribution::new(std::iter::repeat_n(12.0, 220).chain(std::iter::repeat_n(32.0, 20)));
+        assert!(stutters.mean_ms < 16.7);
+        assert!(!meets_target(&stutters, &cpu, &measured(3.0), 60));
+        assert!(meets_target(&frame, &cpu, &Distribution::default(), 60));
+        assert!(!meets_target(
+            &measured(33.3),
+            &cpu,
+            &Distribution::default(),
+            60
+        ));
+        assert!(!meets_target(
+            &Distribution::default(),
+            &cpu,
+            &measured(3.0),
+            60
+        ));
+    }
 
     #[test]
     fn warmup_delayed_and_duplicate_gpu_samples_do_not_pollute_the_measurement() {

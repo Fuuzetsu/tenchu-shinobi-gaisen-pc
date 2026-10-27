@@ -1,12 +1,55 @@
 # Performance measurements
 
-F1 → General → **Performance benchmarks** runs four fixed scenes using the
+F1 → General → **Benchmarks…** runs four fixed scenes using the
 current graphics: village lanterns/characters, Mission 5's courtyard, a garden
 with vegetation/water, and a waterfall. Each scene advances the same 60 Hz
 presentation timeline and original 30 Hz simulation. Loading and the first 60
 frames are excluded. Escape cancels. The current game, preferences and input
 recording are restored afterwards; temporary presentation particles are rebuilt.
 Changing the window size or losing focus cancels a windowed measurement.
+
+## Quality and automatic tuning
+
+Fresh installations start with **Modern Low**. Existing preferences are kept.
+F1 → General → **Presets / save as…** provides Low, Medium, High and Ultra,
+plus named user presets. These affect graphics and HUD text only. Gameplay,
+controls, audio and window preferences are separate. The modern tiers retain
+your selected weather; they do not add rain, snow or a day cycle.
+
+| Tier | Main trade-offs |
+| --- | --- |
+| Low | Interpolation, clear text, lighting/shadows, water, hair/cloth, grapple effects and blood; two local lights, one local shadow, small shadow maps, original foliage geometry, no MSAA/post-processing. |
+| Medium | Four local lights, two local shadows, character/foliage refinement, surface relief, bloom, falling/scattered foliage. |
+| High | Eight lights, six local shadows, larger shadow maps, botanical foliage, stronger water detail, contact shading and 2× MSAA. |
+| Ultra | All useful visual enhancements, highest character/foliage detail, parallax, eight local shadows, largest shadow maps and 4× MSAA. |
+
+Original remains available as the original-presentation reference. Replacement
+artwork still needs an installed pack; no preset supplies game assets.
+
+**Auto-optimise graphics** tests Ultra down through Low, with Original as a
+fallback. Choose a 30/60/120 FPS target and keep the game focused at your intended
+playing resolution. A tier must pass all four scenes: CPU/GPU p95 below 85% of
+the frame budget and observed frame p95 within 12% of the target interval.
+A failed scene immediately advances to the next tier. Each case has 60 warm-up
+frames and 240 measured frames. The best passing tier is saved and applied as
+**Auto-optimised** when the original session is restored. Cancellation changes
+nothing. If even Original cannot meet the target, the result says so.
+
+This is a short sample, not a guarantee for every scene or unusual weather/mod.
+Re-run after changing resolution, artwork or hardware. Missing GPU timestamps
+are reported; that selection uses observed frames and CPU time. Display refresh
+and compositor limits can prevent a high target regardless of graphics quality.
+
+User presets support new names, overwrite, apply, separate rename and delete.
+Built-ins and Auto-optimised are protected. The library is `presets.json` next to
+the preferences (`TENCHU_PRESETS` overrides it); browsers use local storage.
+For a non-persistent automatic report, use `benchmark DISC --auto 60 --output
+report.json`. CLI benchmarks never overwrite preferences or preset libraries.
+
+The full-artwork 4K offscreen test on the hardware below selected Low at 60 FPS:
+its four GPU p95 values were 5.47, 3.24, 9.21 and 4.08 ms. Medium failed the garden
+at 16.74 ms GPU p95; High and Ultra failed the first scene. This describes that
+machine and serialized offscreen test, not a universal default or FPS promise.
 
 For reproducible native reports:
 

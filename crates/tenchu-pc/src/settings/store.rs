@@ -21,7 +21,11 @@ impl Store {
                 settings.validate();
                 Ok(settings)
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Settings::default()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let mut settings = Settings::default();
+                settings.set_visual_preset(super::presets::MODERN_LOW);
+                Ok(settings)
+            }
             Err(error) => Err(format!("{}: {error}", self.path.display())),
         }
     }

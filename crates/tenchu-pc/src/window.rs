@@ -66,6 +66,7 @@ struct Application {
     fps: f32,
     performance: performance::Performance,
     benchmarks: benchmark::Benchmarks,
+    presets: settings::library::Manager,
     fps_elapsed: f32,
     fps_frames: u32,
     debug: crate::debug::Debug,
@@ -875,6 +876,7 @@ pub fn run(
 ) -> Result<()> {
     let storage = Storage::new()?;
     let settings_store = settings::Store::new()?;
+    let presets = settings::library::Manager::new(crate::storage::UserFile::Presets.path()?);
     let (mut settings, notice) = match settings_store.load() {
         Ok(settings) => (settings, String::new()),
         Err(error) => {
@@ -985,10 +987,8 @@ pub fn run(
         pointer: [0.0; 2],
         fps: 0.0,
         performance: Default::default(),
-        benchmarks: benchmark::Benchmarks {
-            pending: startup.benchmark,
-            ..Default::default()
-        },
+        benchmarks: benchmark::Benchmarks::new(startup.benchmark),
+        presets,
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

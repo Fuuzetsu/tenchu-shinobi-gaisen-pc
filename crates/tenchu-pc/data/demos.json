@@ -890,8 +890,8 @@
   },
   {
     "id": "remake-modern-presets",
-    "title": "Modern High, Ultra and Showcase",
-    "description": "Useful graphics improvements together, without black distance fog or original blob shadows. High uses 2x MSAA; Ultra uses 4x. Showcase adds stronger lighting, water, surface depth and contact effects.",
+    "title": "Modern quality: Low to Ultra",
+    "description": "Low, Medium, High and Ultra balance lighting, shadows, model detail, water, motion and effects together. All retain original gameplay and the selected weather. Use F1 benchmarks to choose a tier for your hardware.",
     "seconds": 10,
     "mission": 1,
     "character": 0,

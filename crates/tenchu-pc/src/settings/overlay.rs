@@ -7,12 +7,13 @@ use egui::{Color32, RichText, Ui};
 
 pub enum Edit {
     Change(Item, i32),
-    Preset(u16),
+    Preset(super::library::Choice),
     GameplayPreset(usize),
     Reset(Item),
     Coordinate(usize, i32),
     PlayerModel(String),
     Benchmark,
+    PresetLibrary,
 }
 
 #[derive(Clone, Copy)]
@@ -24,7 +25,12 @@ pub struct State<'a> {
     pub samples: &'a [u32],
 }
 
-pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit> {
+pub fn show(
+    ctx: &egui::Context,
+    menu: &mut Menu,
+    state: State<'_>,
+    library: Option<&super::library::Library>,
+) -> Vec<Edit> {
     let State {
         settings,
         debug,
@@ -76,9 +82,10 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
                 ui.vertical(|ui| {
                     ui.set_min_width(335.0);
                     if menu.page == 0 {
-                        if ui.button("Performance benchmarks…").clicked() {
-                            edits.push(Edit::Benchmark);
-                        }
+                        ui.horizontal(|ui| {
+                            if ui.button("Benchmarks…").clicked() { edits.push(Edit::Benchmark); }
+                            if ui.button("Presets / save as…").clicked() { edits.push(Edit::PresetLibrary); }
+                        });
                         ui.separator();
                     }
                     if menu.page == 7 {
@@ -137,8 +144,11 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
                                                         .wrap(),
                                                 )
                                                 .on_hover_text(row.help);
-                                            let response =
-                                                widget(ui, row, menu, samples, &mut edits);
+                                            let response = if row.item == Item::Preset && let Some(library) = library {
+                                                preset_widget(ui, library, settings, &mut edits)
+                                            } else {
+                                                widget(ui, row, menu, samples, &mut edits)
+                                            };
                                             let rect = label.rect.union(response.rect);
                                             if label.hovered() || response.hovered() {
                                                 menu.hovered = Some(row.item);
@@ -194,6 +204,31 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
         });
     menu.open &= open;
     edits
+}
+
+fn preset_widget(
+    ui: &mut Ui,
+    library: &super::library::Library,
+    settings: &Settings,
+    edits: &mut Vec<Edit>,
+) -> egui::Response {
+    let choices = library.choices();
+    let current = library.current(settings);
+    let name = choices
+        .iter()
+        .find(|(choice, _)| Some(*choice) == current)
+        .map_or("Custom", |(_, name)| name.as_str());
+    egui::ComboBox::from_id_salt("visual-preset")
+        .width(143.0)
+        .selected_text(name)
+        .show_ui(ui, |ui| {
+            for (choice, name) in choices {
+                if ui.selectable_label(Some(choice) == current, name).clicked() {
+                    edits.push(Edit::Preset(choice));
+                }
+            }
+        })
+        .response
 }
 
 fn widget(
@@ -398,7 +433,7 @@ fn widget(
                         .clicked()
                     {
                         edits.push(if item == Item::Preset {
-                            Edit::Preset(index as u16)
+                            Edit::Preset(super::library::Choice::Builtin(index as u16))
                         } else if item == Item::GameplayPreset {
                             Edit::GameplayPreset(index)
                         } else {

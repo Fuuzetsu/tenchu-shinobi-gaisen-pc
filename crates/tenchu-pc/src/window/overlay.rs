@@ -20,6 +20,7 @@ pub(super) struct Extras<'a> {
     pub text: &'a [crate::fonts::Text],
     pub performance: &'a mut super::performance::Performance,
     pub benchmarks: Option<&'a mut super::benchmark::Benchmarks>,
+    pub presets: Option<&'a mut crate::settings::library::Manager>,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
     pub frontend: Option<(
@@ -159,7 +160,18 @@ impl Overlay {
                     state.paused,
                 );
             }
-            edits = crate::settings::overlay::show(ctx, menu, state);
+            edits = crate::settings::overlay::show(
+                ctx,
+                menu,
+                state,
+                extras.presets.as_ref().map(|p| &p.library),
+            );
+            if menu.open
+                && let Some(presets) = &mut extras.presets
+                && let Some(choice) = presets.show(ctx, state.settings)
+            {
+                edits.push(Edit::Preset(choice));
+            }
             if let Some(benchmarks) = &mut extras.benchmarks {
                 cancel_benchmark = benchmarks.show(ctx);
             }
@@ -237,6 +249,7 @@ impl super::Application {
                 text: &view.text,
                 performance: &mut self.performance,
                 benchmarks: Some(&mut self.benchmarks),
+                presets: Some(&mut self.presets),
                 demo: self.demo.as_mut(),
                 video_time,
                 frontend: if frontend_visible {
@@ -274,13 +287,14 @@ impl super::Application {
             self.menu.notice.clear();
             let result = match edit {
                 Edit::Change(item, steps) => self.apply_item(item, steps),
-                Edit::Preset(index) => {
-                    self.settings.set_visual_preset(index);
-                    Ok(())
-                }
+                Edit::Preset(choice) => self.presets.library.apply(choice, &mut self.settings),
                 Edit::GameplayPreset(index) => self.set_gameplay_preset(index),
                 Edit::Benchmark => {
                     self.benchmarks.open = true;
+                    Ok(())
+                }
+                Edit::PresetLibrary => {
+                    self.presets.open = true;
                     Ok(())
                 }
                 Edit::Reset(item) => self.reset_item(item),

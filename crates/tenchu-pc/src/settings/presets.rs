@@ -1,6 +1,6 @@
 use super::Graphics;
 
-pub const NAMES: [&str; 12] = [
+pub const NAMES: [&str; 14] = [
     "Original",
     "Enhanced",
     "Cinematic",
@@ -12,11 +12,16 @@ pub const NAMES: [&str; 12] = [
     "Modern High",
     "Modern Ultra",
     "Showcase",
+    "Modern Low",
+    "Modern Medium",
     "Custom",
 ];
 pub const MODERN_HIGH: u16 = 8;
 pub const MODERN_ULTRA: u16 = 9;
 pub const SHOWCASE: u16 = 10;
+pub const MODERN_LOW: u16 = 11;
+pub const MODERN_MEDIUM: u16 = 12;
+pub const QUALITY: [u16; 4] = [MODERN_LOW, MODERN_MEDIUM, MODERN_HIGH, MODERN_ULTRA];
 pub const CUSTOM: u16 = NAMES.len() as u16 - 1;
 
 impl Graphics {
@@ -26,7 +31,7 @@ impl Graphics {
         (0..CUSTOM)
             .find(|&index| {
                 let mut candidate = preset(index);
-                if matches!(index, MODERN_HIGH | MODERN_ULTRA | SHOWCASE) {
+                if QUALITY.contains(&index) || index == SHOWCASE {
                     candidate.weather.mode = current.weather.mode;
                 }
                 current == candidate
@@ -34,23 +39,12 @@ impl Graphics {
             .unwrap_or(CUSTOM)
     }
 
-    pub fn cycle_preset(&mut self, direction: i32) -> u16 {
-        let current = self.preset();
-        let index = if current == CUSTOM {
-            if direction < 0 { CUSTOM - 1 } else { 0 }
-        } else {
-            (i32::from(current) + direction).rem_euclid(i32::from(CUSTOM)) as u16
-        };
-        self.set_preset(index);
-        index
-    }
-
     pub fn set_preset(&mut self, index: u16) {
         let artwork = self.asset_pack;
         let weather = self.weather.mode;
         *self = preset(index);
         self.asset_pack = artwork;
-        if matches!(index, MODERN_HIGH | MODERN_ULTRA | SHOWCASE) {
+        if QUALITY.contains(&index) || index == SHOWCASE {
             self.weather.mode = weather;
         }
     }
@@ -63,6 +57,31 @@ fn preset(index: u16) -> Graphics {
     }
     if matches!(index, MODERN_HIGH | MODERN_ULTRA) {
         return modern(index == MODERN_ULTRA);
+    }
+    if matches!(index, MODERN_LOW | MODERN_MEDIUM) {
+        let medium = index == MODERN_MEDIUM;
+        let mut g = modern(false);
+        g.set_filtering(if medium { 4 } else { 3 });
+        g.samples = 1;
+        g.model_detail = 0;
+        g.models.characters = u16::from(medium);
+        g.models.foliage = u16::from(medium);
+        g.surface_detail = u16::from(medium);
+        g.blood.marks = if medium { 256 } else { 128 };
+        g.effects.leaves = medium;
+        g.effects.scatter = medium;
+        g.effects.leaf_density = 40;
+        g.water.detail = 0;
+        g.water.spray = if medium { 50 } else { 25 };
+        g.weather.quality = u16::from(medium);
+        g.lighting.count = if medium { 4 } else { 2 };
+        g.lighting.shadow_count = if medium { 2 } else { 1 };
+        g.lighting.resolution = 512;
+        g.lighting.directional.resolution = if medium { 1024 } else { 512 };
+        g.lighting.softness = 2;
+        g.post.enabled = medium;
+        g.post.occlusion = 0;
+        return g;
     }
     if index == SHOWCASE {
         let mut g = modern(true);
@@ -218,35 +237,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn modern_presets_keep_the_weather_choice_when_cycling() {
+    fn modern_presets_keep_the_weather_choice() {
         let mut graphics = Graphics::default();
         graphics.weather.mode = crate::settings::WeatherMode::Snow;
         graphics.set_preset(MODERN_HIGH);
         assert_eq!(graphics.preset(), MODERN_HIGH);
-        graphics.cycle_preset(1);
+        graphics.set_preset(MODERN_ULTRA);
         assert_eq!(graphics.preset(), MODERN_ULTRA);
         assert_eq!(graphics.weather.mode, crate::settings::WeatherMode::Snow);
-        graphics.cycle_preset(-1);
+        graphics.set_preset(MODERN_HIGH);
         assert_eq!(graphics.preset(), MODERN_HIGH);
     }
 
     #[test]
-    fn presets_cycle_and_identify_without_changing_asset_preferences() {
+    fn presets_identify_without_changing_asset_preferences() {
         let mut graphics = Graphics {
             asset_pack: false,
             ..Default::default()
         };
         for index in 0..CUSTOM {
+            graphics.set_preset(index);
             assert_eq!(graphics.preset(), index);
             assert!(!graphics.asset_pack);
-            graphics.cycle_preset(1);
         }
-        assert_eq!(graphics.preset(), 0);
-        graphics.cycle_preset(-1);
-        assert_eq!(graphics.preset(), CUSTOM - 1);
         graphics.fog_distance = 177;
         assert_eq!(graphics.preset(), CUSTOM);
-        graphics.cycle_preset(1);
-        assert_eq!(graphics.preset(), 0);
     }
 }

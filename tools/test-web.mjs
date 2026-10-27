@@ -94,6 +94,7 @@ try {
   assert.equal((await state()).tick, frozen.tick);
   const original = await shot("frozen-original", true);
   await key("F1"); await key("Tab"); await key("ArrowDown");
+  await key("r"); // Compare surface treatments from the Original reference preset.
   for (let i = 0; i < 7; i++) await key("ArrowRight");
   await key("F1");
   const enhanced = await shot("surface-parallax", true);

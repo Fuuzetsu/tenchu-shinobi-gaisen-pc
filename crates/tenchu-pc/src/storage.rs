@@ -15,6 +15,7 @@ pub struct Storage {
 pub enum UserFile {
     Progress,
     Settings,
+    Presets,
 }
 
 impl UserFile {
@@ -23,6 +24,7 @@ impl UserFile {
         return Ok(match self {
             Self::Progress => "progress.sav",
             Self::Settings => "settings.json",
+            Self::Presets => "presets.json",
         }
         .into());
         #[cfg(not(target_arch = "wasm32"))]
@@ -41,6 +43,12 @@ impl UserFile {
             Self::Settings => (
                 "settings.json",
                 "TENCHU_SETTINGS",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
+            Self::Presets => (
+                "presets.json",
+                "TENCHU_PRESETS",
                 "XDG_CONFIG_HOME",
                 ".config",
             ),

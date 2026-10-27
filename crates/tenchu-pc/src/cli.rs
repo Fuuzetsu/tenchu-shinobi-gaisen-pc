@@ -30,7 +30,7 @@ fn run() -> Result<()> {
     if args[0] == "benchmark" {
         if args.len() < 2 || args[1] == "--help" {
             println!(
-                "tenchu-pc benchmark DISC [--preset NAME] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nRuns fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
+                "tenchu-pc benchmark DISC [--preset NAME | --auto 30|60|120] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nRuns fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
             );
             return Ok(());
         }
@@ -64,6 +64,15 @@ fn run() -> Result<()> {
                         .filter(|n| (2..=120).contains(n))
                         .ok_or("--seconds needs 2–120 seconds per scene")?
                 }
+                "--auto" => {
+                    benchmark.auto_target = Some(
+                        value
+                            .parse::<u16>()
+                            .ok()
+                            .filter(|fps| [30, 60, 120].contains(fps))
+                            .ok_or("--auto needs a target of 30, 60 or 120 FPS")?,
+                    )
+                }
                 "--size" => {
                     let (w, h) = value.split_once('x').ok_or("--size needs WIDTHxHEIGHT")?;
                     let dimension = |s: &str| {
@@ -77,6 +86,9 @@ fn run() -> Result<()> {
                 "--output" => benchmark.output = Some(value.into()),
                 other => return Err(format!("Unknown benchmark option {other}")),
             }
+        }
+        if benchmark.auto_target.is_some() && benchmark.preset.is_some() {
+            return Err("Choose --auto or --preset, not both".into());
         }
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
         return window::run(

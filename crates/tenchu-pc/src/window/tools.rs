@@ -321,8 +321,18 @@ impl Application {
                 self.set_gameplay_preset(index)?;
             }
             Item::Preset => {
-                let index = self.settings.graphics.cycle_preset(direction);
-                self.settings.set_visual_preset(index);
+                let choices = self.presets.library.choices();
+                let current = self.presets.library.current(&self.settings);
+                let index = choices
+                    .iter()
+                    .position(|(choice, _)| Some(*choice) == current)
+                    .map_or_else(
+                        || if direction < 0 { choices.len() - 1 } else { 0 },
+                        |i| (i as i32 + direction).rem_euclid(choices.len() as i32) as usize,
+                    );
+                self.presets
+                    .library
+                    .apply(choices[index].0, &mut self.settings)?;
             }
             Item::FogTint => {
                 self.settings.graphics.post.fog_tint = cycle(
