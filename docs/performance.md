@@ -51,3 +51,22 @@ triangles are being transformed and then discarded. GPU costs are concentrated
 in shadows and scene shading, with a smaller post-processing contribution.
 
 Raw reports and profiling captures are kept in ignored `private/performance`.
+
+## Filter before transformation
+
+The transparency pass now selects triangles before applying instance transforms,
+vegetation variation and normal transforms. Triangle order and every retained
+vertex attribute are byte-identical to the previous transform-then-filter path.
+The same 1,140-frame-per-scene Ultra run (including the same Mission 5 artwork
+fallback) gives:
+
+| Scene | CPU p95 before | CPU p95 after | Reduction | GPU p95 after |
+| --- | ---: | ---: | ---: | ---: |
+| Village lights | 17.35 ms | 5.94 ms | 66% | 31.98 ms |
+| Snow courtyard | 27.11 ms | 4.94 ms | 82% | 17.99 ms |
+| Garden water | 16.75 ms | 5.23 ms | 69% | 53.62 ms |
+| Waterfall | 33.05 ms | 10.46 ms | 68% | 19.51 ms |
+
+GPU work is unchanged within measurement variation. The high-resolution shadow
+and scene passes remain the limiting cost in the heavier Ultra scenes on this
+GPU. This change does not reduce mesh detail, effects, shadow quality or AI.

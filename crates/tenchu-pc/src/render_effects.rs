@@ -221,32 +221,35 @@ fn mesh_surfaces(
     models: Option<&crate::visuals::models::Models>,
 ) {
     if models.is_some_and(|models| {
-        models.visit(meshes, matrix, fog, |triangle| {
-            let face = triangle[0];
-            if translucent_only && face.flags & TRANSLUCENT == 0 {
-                return;
-            }
-            let blend = if face.flags & TRANSLUCENT == 0 {
-                0
-            } else {
-                ((face.page >> 5) & 3) as u8 + 1
-            };
-            let depth = triangle
-                .iter()
-                .map(|vertex| {
-                    (0..3)
-                        .map(|i| vertex.position[i] * f32::from(view.rotation[2][i]) / 4096.0)
-                        .sum::<f32>()
-                        + view.translation[2] as f32
-                })
-                .sum::<f32>()
-                / 3.0;
-            surfaces.push(Surface {
-                depth,
-                blend,
-                vertices: triangle.to_vec(),
-            });
-        })
+        models.visit_filtered(
+            meshes,
+            matrix,
+            fog,
+            if translucent_only { TRANSLUCENT } else { 0 },
+            |triangle| {
+                let face = triangle[0];
+                let blend = if face.flags & TRANSLUCENT == 0 {
+                    0
+                } else {
+                    ((face.page >> 5) & 3) as u8 + 1
+                };
+                let depth = triangle
+                    .iter()
+                    .map(|vertex| {
+                        (0..3)
+                            .map(|i| vertex.position[i] * f32::from(view.rotation[2][i]) / 4096.0)
+                            .sum::<f32>()
+                            + view.translation[2] as f32
+                    })
+                    .sum::<f32>()
+                    / 3.0;
+                surfaces.push(Surface {
+                    depth,
+                    blend,
+                    vertices: triangle.to_vec(),
+                });
+            },
+        )
     }) {
         return;
     }

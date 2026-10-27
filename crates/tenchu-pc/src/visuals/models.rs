@@ -98,14 +98,28 @@ impl Models {
         geometry: &[Geometry],
         matrix: Matrix,
         fog: bool,
+        visit: impl FnMut([Vertex; 3]),
+    ) -> bool {
+        self.visit_filtered(geometry, matrix, fog, 0, visit)
+    }
+
+    pub fn visit_filtered(
+        &self,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        fog: bool,
+        required_flags: u32,
         mut visit: impl FnMut([Vertex; 3]),
     ) -> bool {
         if let Some(player) = &self.player
-            && player.meshes.visit(geometry, matrix, fog, &mut visit)
+            && player
+                .meshes
+                .visit(geometry, matrix, fog, required_flags, &mut visit)
         {
             return true;
         }
-        self.world.visit(geometry, matrix, fog, visit)
+        self.world
+            .visit(geometry, matrix, fog, required_flags, visit)
     }
 
     pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
@@ -430,6 +444,7 @@ impl Meshes {
         geometry: &[Geometry],
         matrix: Matrix,
         fog: bool,
+        required_flags: u32,
         mut visit: impl FnMut([Vertex; 3]),
     ) -> bool {
         let Some(vertices) = self.meshes.get(&(geometry.as_ptr() as usize)) else {
@@ -442,7 +457,10 @@ impl Meshes {
         let rotation = rotation(matrix);
         let normal = rotation.inverse().transpose();
         let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
-        for triangle in vertices.chunks_exact(3) {
+        for triangle in vertices
+            .chunks_exact(3)
+            .filter(|t| t[0].flags & required_flags == required_flags)
+        {
             visit(std::array::from_fn(|i| {
                 let mut vertex = triangle[i];
                 if let Some(variant) = &variant {
@@ -471,6 +489,72 @@ pub fn rotation(matrix: Matrix) -> Mat3 {
 mod tests {
     use super::*;
     use tenchu_assets::game::GameAssets;
+
+    #[test]
+    fn filtering_before_transforms_preserves_triangle_order_and_all_vertex_attributes() {
+        use bytemuck::Zeroable;
+        let geometry = vec![Geometry {
+            vertices: Vec::new(),
+            normals: Vec::new(),
+            faces: Vec::new(),
+        }];
+        let key = geometry.as_ptr() as usize;
+        let vertices: Vec<_> = (0..18)
+            .map(|i| Vertex {
+                position: [
+                    (i % 3) as f32 * 120.0,
+                    -(i as f32) * 200.0,
+                    (i % 5) as f32 * 90.0,
+                ],
+                normal: [0.0, -1.0, 0.0],
+                color: [0.8, 0.4, 0.2],
+                uv: [i as f32, 12.0],
+                palette: 42,
+                page: 5,
+                opacity: 0.7,
+                flags: render_mesh::FOLIAGE
+                    | if i / 3 % 2 == 0 {
+                        render_mesh::TRANSLUCENT
+                    } else {
+                        0
+                    },
+                ..Vertex::zeroed()
+            })
+            .collect();
+        let mut models = Models::default();
+        models.world.variants.insert(
+            key,
+            super::super::vegetation::botanical::Shape::new(&vertices),
+        );
+        models.world.meshes.insert(key, vertices);
+        for fog in [false, true] {
+            for translation in [[0, 0, 0], [1200, -500, 2100]] {
+                let matrix = Matrix {
+                    rotation: [[4096, 0, 0], [0, 0, -4096], [0, 4096, 0]],
+                    translation: translation.into(),
+                };
+                let mut reference = Vec::new();
+                models.visit(&geometry, matrix, fog, |triangle| {
+                    if triangle[0].flags & render_mesh::TRANSLUCENT != 0 {
+                        reference.extend(triangle);
+                    }
+                });
+                let mut filtered = Vec::new();
+                assert!(models.visit_filtered(
+                    &geometry,
+                    matrix,
+                    fog,
+                    render_mesh::TRANSLUCENT,
+                    |triangle| filtered.extend(triangle)
+                ));
+                assert_eq!(reference.len(), 9);
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&reference),
+                    bytemuck::cast_slice::<_, u8>(&filtered)
+                );
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; the Mission 5 folding screen clears the wall without moving the merchant or warping refined panels"]

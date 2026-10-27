@@ -53,6 +53,12 @@ The native F1 benchmark also completed all four scenes and returned to the same
 paused Mission 1 tick, camera and settings; Escape cancellation restores the
 session too. GPU warm-up/duplicate handling has a focused regression test.
 
+Profiling led to filtering opaque triangles before transforming geometry for
+the transparency pass. Fixed Ultra benchmarks reduce CPU p95 by 66–82% (17–33 ms
+to 5–10 ms), with unchanged GPU costs. The regression compares retained triangle
+order and complete vertex bytes under different transforms, fog and vegetation
+variation. This removes work without reducing visual settings or touching logic.
+
 ## Automated build artifacts (implemented; hosted run pending)
 
 Build Linux x86-64, Linux ARM64, Windows x86-64 and the WASM browser package on
