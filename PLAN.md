@@ -10,6 +10,49 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Performance, presets and first launch (active)
+
+Preserve gameplay and visual quality while making performance measurable and
+the port straightforward to configure and launch. Commit these deliverables in
+coherent stages:
+
+1. Repeatable native/browser benchmarks using the live renderer, fixed scene
+   paths, excluded loading/warm-up and CPU/GPU frame distributions. Provide F1
+   controls, cancellation/session restoration and a native JSON report command.
+2. Profile representative scenes before changing algorithms. Address measured
+   bottlenecks and simplify duplicated work; record settings, resolution,
+   hardware, before/after results and any untested limits.
+3. Coherent Low/Medium/High/Ultra visual tiers and measured auto-optimisation.
+   Ultra includes the useful lighting, shadow, model, motion, water and effect
+   enhancements. Do not force weather changes or alter gameplay preferences.
+4. A persistent user preset library with save/overwrite, separate rename and
+   deletion, protected built-ins and an Auto-optimised result. Keep preset
+   storage out of per-frame settings clones.
+5. Friendly no-disc startup with a native file picker and actionable validation
+   errors for the supported Shinobi Gaisen disc. Preserve streamed browser
+   startup and keep copyrighted data out of packages.
+6. A brief build/run/download README linked to detailed documentation.
+
+Validate statistics/selection and persistence with meaningful tests; exercise
+the benchmark and settings UI, native and WASM builds, strict Clippy, formatting
+and relevant gameplay/render regressions. A benchmark is a sampling tool, not a
+guarantee that every scene meets its target on every machine. Existing hosted
+artifact checks still await a configured Git remote.
+
+The first benchmark implementation uses the live window/render loop and shared
+demo scene setup. It has F1 controls, cancellation/session restoration, native
+JSON reports, CPU phase and GPU pass percentiles, and an explicit offscreen mode
+for profiling without virtual-display waits. Warm-up, delayed GPU results and
+duplicate timestamps are excluded. Native and WASM strict Clippy pass; workspace
+tests and focused statistics checks pass. Four 4K Original/Ultra baselines and
+a CPU profile identify discarded opaque vegetation transforms as a major CPU
+cost; Mission 5 also hits the existing replacement-pack pixel budget. Measurements
+and their limits are recorded in `docs/performance.md`. Auto-tuning, preset
+management, measured optimisations and first-launch improvements remain pending.
+The native F1 benchmark also completed all four scenes and returned to the same
+paused Mission 1 tick, camera and settings; Escape cancellation restores the
+session too. GPU warm-up/duplicate handling has a focused regression test.
+
 ## Automated build artifacts (implemented; hosted run pending)
 
 Build Linux x86-64, Linux ARM64, Windows x86-64 and the WASM browser package on

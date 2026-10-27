@@ -24,6 +24,9 @@ impl Application {
         };
         self.settings.graphics.set_preset(clip.preset);
         self.settings.graphics.asset_pack = std::env::var_os("TENCHU_ASSET_PACK").is_some();
+        if let Some(run) = &self.benchmarks.run {
+            self.settings = run.settings.clone();
+        }
         self.debug = debug::Debug::new(&game)?;
         let view = self.view.as_mut().ok_or("Demo window is not ready")?;
         view.reload(&game, &self.settings)?;
@@ -224,7 +227,11 @@ impl Application {
         scene.previous_player = scene.current_player;
         player.cinematic_active = game.cinematic.active;
         player.scene = scene;
-        demo::animate(player, &mut self.settings, &mut self.debug);
+        if let Some(run) = &self.benchmarks.run {
+            self.settings = run.settings.clone();
+        } else {
+            demo::animate(player, &mut self.settings, &mut self.debug);
+        }
         self.debug.camera = demo::camera(player, &game, self.settings.graphics.interpolation);
         game.activation.keep_all_active = self.settings.keep_enemies_active;
         game.intelligence.sight_percent = self.debug.sight_percent;
@@ -253,8 +260,12 @@ impl Application {
             clip.weather_warmup,
         );
         view.reset_interpolation(&self.campaign.game);
+        if let Some(run) = &mut self.benchmarks.run {
+            run.artwork = view.artwork_status();
+        }
         if let Some(audio) = &mut self.audio {
             audio.reload(&self.assets, &self.campaign.game)?;
+            audio.volume(self.settings.volume);
             audio.screen(&self.campaign.screen);
             audio.pause(false);
         }
@@ -281,7 +292,6 @@ impl Application {
         self.run_demo_frames();
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn advance_demo_frame(&mut self) {
         self.demo.as_mut().unwrap().queue_frame();
         self.run_demo_frames();
@@ -310,7 +320,9 @@ impl Application {
                 .map(|i| player.buttons(first + i as u64))
                 .collect::<Vec<_>>();
             let previous = self.settings.clone();
-            demo::animate(player, &mut self.settings, &mut self.debug);
+            if self.benchmarks.run.is_none() {
+                demo::animate(player, &mut self.settings, &mut self.debug);
+            }
             if frontend {
                 let frontend = self.frontend.as_mut().unwrap();
                 if let Err(error) = frontend.advance(
@@ -398,7 +410,7 @@ impl Application {
                 self.pause_error(error);
                 return;
             }
-            if player.ended() {
+            if player.ended() && self.benchmarks.run.is_none() {
                 if player.next() {
                     if let Err(error) = self.start_demo_clip() {
                         self.pause_error(error);

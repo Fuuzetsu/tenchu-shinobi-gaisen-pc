@@ -47,6 +47,7 @@ pub(super) struct Frame<'a> {
 }
 
 pub(super) struct View {
+    pub(super) adapter: wgpu::AdapterInfo,
     pub dirty: bool,
     pub(super) stage: Mesh,
     pub(super) actor: Mesh,
@@ -362,6 +363,7 @@ impl View {
         let mut contact = crate::visuals::contact::Contact::default();
         contact.canopies = models.canopies(game);
         let mut view = Self {
+            adapter: adapter.get_info(),
             dirty: true,
             overlay,
             window,

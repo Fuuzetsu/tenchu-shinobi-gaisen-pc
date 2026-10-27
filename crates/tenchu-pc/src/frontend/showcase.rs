@@ -35,7 +35,6 @@ impl Scene {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn validate(&self) -> Result<()> {
         self.language().map(|_| ())
     }

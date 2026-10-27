@@ -32,6 +32,7 @@ fn application(options: Options) -> Application {
         pointer: [0.0; 2],
         fps: 0.0,
         performance: Default::default(),
+        benchmarks: Default::default(),
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

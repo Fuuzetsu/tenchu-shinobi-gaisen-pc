@@ -5,7 +5,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
+            "tenchu-pc play DISC [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
         );
         return Ok(());
     }
@@ -25,6 +25,70 @@ fn run() -> Result<()> {
             args[3].as_ref(),
             number(4)?.unwrap_or(0),
             number(5)?,
+        );
+    }
+    if args[0] == "benchmark" {
+        if args.len() < 2 || args[1] == "--help" {
+            println!(
+                "tenchu-pc benchmark DISC [--preset NAME] [--size WIDTHxHEIGHT] [--seconds 2..120] [--output REPORT.json] [--offscreen]\nRuns fixed scenes through the live renderer, excludes loading and 60 warm-up frames per scene, reports CPU/GPU distributions, and exits. The default uses your current graphics. Keep the window focused; Esc cancels. No preferences or saves are written. --offscreen excludes window presentation and waits for each GPU frame; use it for profiling on a virtual display, not as a prediction of interactive FPS."
+            );
+            return Ok(());
+        }
+        let mut benchmark = window::benchmark::Options {
+            exit: true,
+            ..Default::default()
+        };
+        let mut arguments = args[2..].iter();
+        while let Some(option) = arguments.next() {
+            if option == "--offscreen" {
+                benchmark.offscreen = true;
+                continue;
+            }
+            let value = arguments
+                .next()
+                .and_then(|s| s.to_str())
+                .ok_or("Benchmark options need a value")?;
+            match option.to_str().ok_or("Invalid benchmark option")? {
+                "--preset" => {
+                    benchmark.preset = Some(
+                        crate::settings::presets::NAMES[..crate::settings::presets::CUSTOM as usize]
+                            .iter()
+                            .position(|name| name.eq_ignore_ascii_case(value))
+                            .ok_or("Unknown visual preset name")? as u16,
+                    );
+                }
+                "--seconds" => {
+                    benchmark.seconds = value
+                        .parse::<u16>()
+                        .ok()
+                        .filter(|n| (2..=120).contains(n))
+                        .ok_or("--seconds needs 2–120 seconds per scene")?
+                }
+                "--size" => {
+                    let (w, h) = value.split_once('x').ok_or("--size needs WIDTHxHEIGHT")?;
+                    let dimension = |s: &str| {
+                        s.parse::<u32>()
+                            .ok()
+                            .filter(|n| (320..=7680).contains(n))
+                            .ok_or("Benchmark dimensions must be 320–7680 pixels")
+                    };
+                    benchmark.size = Some([dimension(w)?, dimension(h)?]);
+                }
+                "--output" => benchmark.output = Some(value.into()),
+                other => return Err(format!("Unknown benchmark option {other}")),
+            }
+        }
+        let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
+        return window::run(
+            assets,
+            session::Options::default(),
+            args[1].as_ref(),
+            None,
+            None,
+            window::Startup {
+                benchmark: Some(benchmark),
+                ..Default::default()
+            },
         );
     }
     if args[0] == "prepare-retail" && args.len() == 5 {

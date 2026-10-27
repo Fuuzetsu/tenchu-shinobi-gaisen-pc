@@ -209,6 +209,7 @@ impl Recorder {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                benchmarks: None,
                 labels: &view.labels,
                 text: &view.text,
                 performance: &mut self.performance,

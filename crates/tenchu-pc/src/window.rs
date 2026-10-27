@@ -1,3 +1,4 @@
+pub mod benchmark;
 mod demo;
 mod frontend;
 mod overlay;
@@ -64,6 +65,7 @@ struct Application {
     pointer: [f64; 2],
     fps: f32,
     performance: performance::Performance,
+    benchmarks: benchmark::Benchmarks,
     fps_elapsed: f32,
     fps_frames: u32,
     debug: crate::debug::Debug,
@@ -126,7 +128,7 @@ impl Application {
         } else {
             self.clock.interpolation()
         };
-        let offline = self.exporting_video();
+        let offline = self.exporting_video() || self.benchmarks.run.is_some();
         if let Some(view) = &mut self.view {
             view.update(view::Frame {
                 campaign: &self.campaign,
@@ -458,6 +460,16 @@ impl ApplicationHandler for Application {
         match event {
             WindowEvent::CloseRequested => events.exit(),
             WindowEvent::Resized(size) => {
+                if self.benchmarks.run.as_ref().is_some_and(|r| r.frame > 1)
+                    && self
+                        .view
+                        .as_ref()
+                        .is_some_and(|v| v.size != [size.width, size.height])
+                    && let Err(error) =
+                        self.finish_benchmark(Some("Cancelled: window size changed".into()))
+                {
+                    self.pause_error(error);
+                }
                 if let Some(view) = &mut self.view {
                     #[cfg(target_arch = "wasm32")]
                     {
@@ -467,6 +479,17 @@ impl ApplicationHandler for Application {
                 }
             }
             WindowEvent::Focused(focused) => {
+                if !focused
+                    && self
+                        .benchmarks
+                        .run
+                        .as_ref()
+                        .is_some_and(|r| r.target.is_none())
+                    && let Err(error) =
+                        self.finish_benchmark(Some("Cancelled: window lost focus".into()))
+                {
+                    self.pause_error(error);
+                }
                 if !focused {
                     self.modifiers = ModifiersState::empty();
                     self.flush_recording();
@@ -514,6 +537,15 @@ impl ApplicationHandler for Application {
                 let PhysicalKey::Code(code) = event.physical_key else {
                     return;
                 };
+                if self.benchmarks.run.is_some() {
+                    if code == KeyCode::Escape
+                        && event.state == ElementState::Pressed
+                        && let Err(error) = self.finish_benchmark(Some("Cancelled by user".into()))
+                    {
+                        self.pause_error(error);
+                    }
+                    return;
+                }
                 if event.state == ElementState::Pressed && code == KeyCode::F1 {
                     self.toggle_menu();
                     return;
@@ -627,7 +659,20 @@ impl ApplicationHandler for Application {
                     &self.assets,
                     self.campaign.options.language.unwrap_or_default(),
                 );
-                let update = self.controls.poll(self.focused);
+                if let Some(options) = self.benchmarks.pending.take() {
+                    let exit = options.exit;
+                    if let Err(error) = self.start_benchmark(options) {
+                        if exit {
+                            self.error = Some(error);
+                            events.exit();
+                            return;
+                        }
+                        self.menu.notice = error;
+                    }
+                }
+                let update = self
+                    .controls
+                    .poll(self.focused && self.benchmarks.run.is_none());
                 if update.disconnected && self.campaign.playing() {
                     eprintln!("Active controller disconnected; gameplay paused.");
                     self.set_paused(true);
@@ -677,7 +722,7 @@ impl ApplicationHandler for Application {
                     self.fps_elapsed = 0.0;
                     self.fps_frames = 0;
                 }
-                let profile = self.settings.show_performance;
+                let profile = self.settings.show_performance || self.benchmarks.run.is_some();
                 let mut timing = performance::CpuFrame {
                     interval: elapsed.as_secs_f32() * 1000.0,
                     ..Default::default()
@@ -689,7 +734,15 @@ impl ApplicationHandler for Application {
                     audio.poll();
                 }
                 let before = self.campaign.game.tick;
-                if self.demo.is_some() {
+                if self.benchmarks.run.is_some() {
+                    if let Err(error) = self.benchmark_frame() {
+                        if self.demo_exit {
+                            self.error = Some(error);
+                        } else {
+                            self.pause_error(error);
+                        }
+                    }
+                } else if self.demo.is_some() {
                     self.advance_demo(elapsed);
                 } else if self.frontend_visible() {
                     if let Err(error) = self.frontend.as_mut().unwrap().advance(
@@ -741,10 +794,23 @@ impl ApplicationHandler for Application {
                         view.dirty = true;
                     }
                     view.renderer.profiling = profile;
-                    match view.draw(&self.campaign.game, &self.debug) {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    let target = self.benchmarks.run.as_ref().and_then(|r| r.target.as_ref());
+                    #[cfg(not(target_arch = "wasm32"))]
+                    let drawn = if let Some(target) = target {
+                        view.benchmark_draw(target, &self.campaign.game, &self.debug)
+                    } else {
+                        view.draw(&self.campaign.game, &self.debug)
+                    };
+                    #[cfg(target_arch = "wasm32")]
+                    let drawn = view.draw(&self.campaign.game, &self.debug);
+                    match drawn {
                         Ok(Some(draw)) => {
                             timing.draw = draw;
                             self.fps_frames += 1;
+                            if let Some(run) = &mut self.benchmarks.run {
+                                run.record(timing, view.renderer.timings.as_ref());
+                            }
                         }
                         Ok(None) => (),
                         Err(error) => {
@@ -796,6 +862,7 @@ impl ApplicationHandler for Application {
 pub struct Startup {
     pub quick_launcher: bool,
     pub difficulty: Option<tenchu_core::ai::Difficulty>,
+    pub benchmark: Option<benchmark::Options>,
 }
 
 pub fn run(
@@ -844,7 +911,7 @@ pub fn run(
     let mut campaign = Campaign::new(&assets, options, saved)?;
     campaign.game.activation.keep_all_active = settings.keep_enemies_active;
     campaign.game.intelligence.sight_percent = settings.sight_percent;
-    let frontend = if demo.is_none() {
+    let frontend = if demo.is_none() && startup.benchmark.is_none() {
         campaign.frontend = true;
         campaign.quick_launcher = false;
         if let Some(save) = &campaign.saved {
@@ -918,6 +985,10 @@ pub fn run(
         pointer: [0.0; 2],
         fps: 0.0,
         performance: Default::default(),
+        benchmarks: benchmark::Benchmarks {
+            pending: startup.benchmark,
+            ..Default::default()
+        },
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

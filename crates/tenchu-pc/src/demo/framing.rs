@@ -70,7 +70,6 @@ fn default_fov() -> f32 {
 }
 
 impl Path {
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn validate(&self) -> tenchu_assets::Result<()> {
         let points = [
             self.eye,

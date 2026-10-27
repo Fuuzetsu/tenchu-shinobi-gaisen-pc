@@ -39,6 +39,18 @@ pub struct Player {
 }
 
 impl Player {
+    pub fn benchmark(seconds: u16) -> Result<Self> {
+        let mut catalog = catalog::parse(include_bytes!("../data/benchmarks.json"))?;
+        for clip in &mut catalog {
+            clip.seconds = seconds;
+        }
+        let mut player = Self::new(catalog);
+        player.captions = false;
+        player.transport = false;
+        player.muted = true;
+        Ok(player)
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     pub fn parse(args: &[OsString]) -> Result<Self> {
         let mut catalog = catalog::builtin()?;
@@ -120,11 +132,25 @@ impl Player {
         } else {
             (0..catalog.len()).collect()
         };
-        let selected = (0..catalog.len()).map(|i| playlist.contains(&i)).collect();
-        Ok(Self {
+        let mut player = Self::new(catalog);
+        player.selected = (0..player.catalog.len())
+            .map(|i| playlist.contains(&i))
+            .collect();
+        player.playlist = playlist;
+        player.captions = !clean;
+        player.transport = !clean && video.is_none();
+        player.repeat = repeat;
+        player.exit_when_finished = exit_when_finished;
+        player.muted = muted || video.is_some();
+        player.video = video;
+        Ok(player)
+    }
+
+    fn new(catalog: Vec<Clip>) -> Self {
+        Self {
+            playlist: (0..catalog.len()).collect(),
+            selected: vec![true; catalog.len()],
             catalog,
-            playlist,
-            selected,
             index: 0,
             frame: 0,
             simulation_ticks: 0,
@@ -134,15 +160,15 @@ impl Player {
             last_speed: 100,
             finished: false,
             library: false,
-            captions: !clean,
-            transport: !clean && video.is_none(),
-            repeat,
-            exit_when_finished,
-            muted: muted || video.is_some(),
-            video,
+            captions: true,
+            transport: true,
+            repeat: false,
+            exit_when_finished: false,
+            muted: false,
+            video: None,
             scene: Scene::default(),
             inputs: None,
-        })
+        }
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -243,7 +269,6 @@ impl Player {
         self.phase += elapsed.as_nanos() * 60;
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn queue_frame(&mut self) {
         self.phase = 1_000_000_000;
     }

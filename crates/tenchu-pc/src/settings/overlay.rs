@@ -12,6 +12,7 @@ pub enum Edit {
     Reset(Item),
     Coordinate(usize, i32),
     PlayerModel(String),
+    Benchmark,
 }
 
 #[derive(Clone, Copy)]
@@ -74,6 +75,12 @@ pub fn show(ctx: &egui::Context, menu: &mut Menu, state: State<'_>) -> Vec<Edit>
                 ui.add_space(10.0);
                 ui.vertical(|ui| {
                     ui.set_min_width(335.0);
+                    if menu.page == 0 {
+                        if ui.button("Performance benchmarks…").clicked() {
+                            edits.push(Edit::Benchmark);
+                        }
+                        ui.separator();
+                    }
                     if menu.page == 7 {
                         ui.label(&menu.artwork_status);
                         ui.separator();

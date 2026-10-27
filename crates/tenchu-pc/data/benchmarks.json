@@ -1,0 +1,96 @@
+[
+  {
+    "id": "village-lights",
+    "title": "Village: lanterns and characters",
+    "description": "Near-field lights, shadows, character animation and foliage.",
+    "seconds": 8,
+    "mission": 1,
+    "character": 1,
+    "preset": 0,
+    "feature": "performance",
+    "shot": "lamp",
+    "hud": true
+  },
+  {
+    "id": "snow-courtyard",
+    "title": "Snow courtyard: long view",
+    "description": "Wide camera sweep across snowy architecture and overlapping surfaces.",
+    "seconds": 8,
+    "mission": 5,
+    "character": 0,
+    "preset": 0,
+    "feature": "performance",
+    "shot": "wide",
+    "hud": true
+  },
+  {
+    "id": "garden-water",
+    "title": "Garden: vegetation and water",
+    "description": "Dense foliage, distant geometry, water and transparent effects.",
+    "seconds": 8,
+    "mission": 1,
+    "character": 1,
+    "preset": 0,
+    "feature": "performance",
+    "shot": "wide",
+    "hud": true,
+    "camera": {
+      "eye": [
+        -40000,
+        -1800,
+        -16500
+      ],
+      "target": [
+        -31000,
+        -1000,
+        -16500
+      ],
+      "end_eye": [
+        -39500,
+        -2600,
+        -14000
+      ],
+      "end_target": [
+        -31000,
+        -1000,
+        -15000
+      ],
+      "fov": 55
+    }
+  },
+  {
+    "id": "waterfall",
+    "title": "Waterfall: water and spray",
+    "description": "Waterfall geometry, surface shading and transparent spray.",
+    "seconds": 8,
+    "mission": 4,
+    "character": 0,
+    "preset": 0,
+    "feature": "performance",
+    "shot": "wide",
+    "hud": true,
+    "camera": {
+      "eye": [
+        -21961.41,
+        -12031.06,
+        33448.08
+      ],
+      "target": [
+        -18116.666,
+        -11333.333,
+        34916.668
+      ],
+      "end_eye": [
+        -24000,
+        -13000,
+        30000
+      ],
+      "end_target": [
+        -18116.666,
+        -11333.333,
+        34916.668
+      ],
+      "fov": 55
+    }
+  }
+]

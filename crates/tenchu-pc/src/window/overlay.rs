@@ -19,6 +19,7 @@ pub(super) struct Extras<'a> {
     pub labels: &'a [crate::debug::Label],
     pub text: &'a [crate::fonts::Text],
     pub performance: &'a mut super::performance::Performance,
+    pub benchmarks: Option<&'a mut super::benchmark::Benchmarks>,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
     pub frontend: Option<(
@@ -31,6 +32,7 @@ pub(super) struct Updates {
     edits: Vec<Edit>,
     demo: Option<crate::demo::overlay::Action>,
     frontend: Option<crate::campaign::Action>,
+    cancel_benchmark: bool,
 }
 
 impl Overlay {
@@ -122,6 +124,7 @@ impl Overlay {
         let mut edits = Vec::new();
         let mut demo_action = None;
         let mut frontend_action = None;
+        let mut cancel_benchmark = false;
         let output = self.context.run(input, |ctx| {
             if let Some((frontend, campaign)) = &mut extras.frontend {
                 frontend_action = frontend.show(
@@ -157,6 +160,9 @@ impl Overlay {
                 );
             }
             edits = crate::settings::overlay::show(ctx, menu, state);
+            if let Some(benchmarks) = &mut extras.benchmarks {
+                cancel_benchmark = benchmarks.show(ctx);
+            }
             if show_performance != profiling {
                 edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
             }
@@ -189,6 +195,7 @@ impl Overlay {
             edits,
             demo: demo_action,
             frontend: frontend_action,
+            cancel_benchmark,
         }
     }
 
@@ -229,6 +236,7 @@ impl super::Application {
                 labels: &view.labels,
                 text: &view.text,
                 performance: &mut self.performance,
+                benchmarks: Some(&mut self.benchmarks),
                 demo: self.demo.as_mut(),
                 video_time,
                 frontend: if frontend_visible {
@@ -238,6 +246,12 @@ impl super::Application {
                 },
             },
         );
+        if updates.cancel_benchmark {
+            if let Err(error) = self.finish_benchmark(Some("Cancelled by user".into())) {
+                self.pause_error(error);
+            }
+            return;
+        }
         if let Some(action) = updates.demo {
             self.demo_action(action);
         }
@@ -265,6 +279,10 @@ impl super::Application {
                     Ok(())
                 }
                 Edit::GameplayPreset(index) => self.set_gameplay_preset(index),
+                Edit::Benchmark => {
+                    self.benchmarks.open = true;
+                    Ok(())
+                }
                 Edit::Reset(item) => self.reset_item(item),
                 Edit::PlayerModel(id) => {
                     self.settings.player_model = id;

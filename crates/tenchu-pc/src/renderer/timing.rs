@@ -35,6 +35,10 @@ pub struct Timer {
 }
 
 impl Timer {
+    pub fn submitted_serial(&self) -> u64 {
+        self.serial
+    }
+
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Option<Self> {
         device.features().contains(FEATURES).then(|| Self {
             queries: device.create_query_set(&wgpu::QuerySetDescriptor {
