@@ -128,11 +128,26 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
     };
     let result = file.write_all(bytes).and_then(|()| file.sync_all());
     drop(file);
-    let result = result.and_then(|()| fs::rename(&temporary, path));
+    let result = result.and_then(|()| replace_file(&temporary, path));
     if result.is_err() {
         let _ = fs::remove_file(&temporary);
     }
     result.map_err(|e| format!("Save {}: {e}", path.display()))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn replace_file(source: &Path, destination: &Path) -> std::io::Result<()> {
+    // Windows can briefly deny replacement while another writer finishes renaming.
+    #[cfg(target_os = "windows")]
+    for delay in [1, 2, 4, 8, 16] {
+        match fs::rename(source, destination) {
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                std::thread::sleep(std::time::Duration::from_millis(delay));
+            }
+            result => return result,
+        }
+    }
+    fs::rename(source, destination)
 }
 
 #[cfg(test)]
