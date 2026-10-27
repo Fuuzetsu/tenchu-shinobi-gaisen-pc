@@ -140,7 +140,7 @@ impl Export {
             .stderr(log)
             .spawn()
             .map_err(|e| {
-                format!("Cannot start FFmpeg: {e}. Use the Nix shell or TENCHU_FFMPEG.")
+                format!("Cannot start FFmpeg: {e}. Install FFmpeg or set TENCHU_FFMPEG.")
             })?;
         let input = encoder.stdin.take();
         let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {

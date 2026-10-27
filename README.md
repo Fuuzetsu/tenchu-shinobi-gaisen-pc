@@ -474,10 +474,40 @@ cargo fmt --all -- --check
 `./dev.sh cargo ...` enters the same environment for one command. Use `nix build`
 for the native package, `nix run -- inspect /path/to/game.cue` to run it, and
 `nix flake check` for workspace tests, strict Clippy, formatting, the native
-package and browser builds. Checks need no disc; retail and GPU regressions
-remain opt-in because they require private game data or graphics hardware.
+package and browser builds, plus Windows cross-compilation on x86-64 Linux.
+Checks need no disc; retail and GPU regressions remain opt-in because they
+require private game data or graphics hardware.
 ISO files and raw BIN data tracks also work. Disc data is read on demand; it is
 never an input to the Nix package or copied into the Nix store.
+
+On x86-64 Linux, `nix build .#windows` builds `result/bin/tenchu-pc.exe` with the
+same pinned Rust compiler. Copy the executable to Windows and run it from
+PowerShell:
+
+```powershell
+.\tenchu-pc.exe play 'C:\Games\Tenchu\game.cue'
+```
+
+Keep the CUE and its referenced BIN files together. Opening/ending movies and
+video export also need a Windows `ffmpeg.exe` on `PATH`, or an explicit
+`$env:TENCHU_FFMPEG = 'C:\Tools\ffmpeg\bin\ffmpeg.exe'`. FFmpeg links Windows
+builds from its [download page](https://ffmpeg.org/download.html). `--quick`
+opens the development launcher directly. Saves/settings use the existing
+`TENCHU_SAVE`/`TENCHU_SETTINGS` overrides or `%APPDATA%\tenchu-shinobi-gaisen-pc`.
+
+The Linux Windows-test shell includes Wine and the cross-linker:
+
+```sh
+WINEPREFIX="$PWD/private/windows-wine" nix develop .#windows --command cargo test --workspace
+nix develop .#windows --command cargo clippy --workspace --all-targets -- -D warnings
+```
+
+Linux and Wine runs cover live gameplay, Vulkan rendering, audio, preferences,
+saving and clean shutdown. ARM64 Linux unit tests run under QEMU. Wine/QEMU
+coverage does not validate physical Windows drivers or ARM graphics hardware.
+Apple Silicon macOS has Nix package/check definitions but still needs a real
+Mac build and runtime test. The pinned Nixpkgs has removed Intel macOS support,
+so this flake no longer advertises an unusable `x86_64-darwin` output.
 
 ```sh
 ./dev.sh cargo run --release -- audit '/path/to/game.cue'

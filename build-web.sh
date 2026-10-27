@@ -14,7 +14,7 @@ if [[ ! -e "$web_output/data/manifest.json" ]]; then
 elif [[ -n ${TENCHU_ASSET_PACK:-} ]]; then
     ./dev.sh target/release/tenchu-pc prepare-web "$web_disc" "$web_output/data" --artwork
 fi
-./dev.sh cargo build --locked --release --target wasm32-unknown-unknown -p tenchu-pc --lib
+./dev.sh cargo rustc --locked --release --target wasm32-unknown-unknown -p tenchu-pc --lib --crate-type cdylib
 ./dev.sh wasm-bindgen --target web --out-dir "$web_output/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm
 cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$web_output/"
 mkdir -p "$web_output/licenses/japanese-font"

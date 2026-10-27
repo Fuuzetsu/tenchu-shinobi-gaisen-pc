@@ -10,6 +10,50 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Platform validation (complete for available hosts)
+
+Check native Linux and the Windows executable, with macOS and ARM where the
+available environment permits. Keep compatibility-layer/emulated checks distinct
+from testing on physical target hardware. No remote CI or Mac runner is configured.
+
+The x86-64 Linux release passes all 126 unit tests, 41 renderer and three menu GPU
+regressions. Live X11 gameplay exercises movement/jumping, Modern High, F8,
+resize, screenshots, save and repeated-Escape exit with PulseAudio output. The
+Windows executable exercises Win32 window/input, WASAPI output and Vulkan
+under Wine 11, including gameplay, preferences, a 1000×700 client resize and
+clean shutdown. Its Original capture is pixel-identical to Linux. All 33,404
+updates in the ten-mission retail
+comparison pass on Windows with zero state corrections and an identical report.
+The same 44 GPU regressions also pass on Windows. Both movie regressions decode
+all five opening/training/ending streams, including captions/audio and early
+exit, with a checksum-verified Gyan Windows FFmpeg 8.1.2 build. Live opening,
+pause/skip and title were inspected. The Windows test shell must retain the
+Windows `TENCHU_FFMPEG` path; the ordinary Linux dev shell selects Linux FFmpeg.
+Missing-decoder/encoder messages now explain the portable FFmpeg override.
+All 126 workspace tests also execute as ARM64 Linux binaries under QEMU; ARM
+graphics/audio devices were not tested.
+
+Windows testing exposed concurrent replacement failures while a second rename
+still holds the destination. Save replacement now retries transient permission
+errors with 31 ms of total backoff, retaining atomic rename and cleanup on
+permanent error.
+The eight-writer save regression passes twenty repetitions under Wine. Another
+failure came from building an unused native `cdylib`: debug Windows exceeded the
+PE export limit. Native builds now use an ordinary Rust library; browser builds
+explicitly request `cdylib` through `cargo rustc`. Windows unit tests and Clippy
+pass, and browser package generation and WebGPU/WebGL2 smoke checks still work.
+
+`nix build .#windows` produces the Windows executable, and `nix develop .#windows`
+provides the pinned compiler, linker, Wine runner and Clippy. Linux Nix checks now
+include Windows compilation; all six checks pass. A verified Windows test ZIP
+with the executable, instructions and font licenses is available at
+`private/platform-check/tenchu-windows-x64.zip`, without game assets or FFmpeg.
+Apple Silicon package/check expressions evaluate; actual Metal, CoreAudio and
+macOS execution require a Mac. The pinned Nixpkgs
+has removed Intel macOS, so the invalid `x86_64-darwin` output is no longer
+advertised. Windows DirectX/physical drivers and controllers remain unverified.
+Evidence and captured images stay in ignored `private/platform-check`.
+
 ## Shipping cleanup (complete)
 
 Keep this pass focused on DRY, KISS and YAGNI. Preserve game behavior, existing

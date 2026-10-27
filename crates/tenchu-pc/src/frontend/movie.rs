@@ -63,7 +63,9 @@ impl Decoder {
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
-            .map_err(|e| format!("Start movie decoder: {e}. Run through the Nix dev shell."))?;
+            .map_err(|e| {
+                format!("Start movie decoder: {e}. Install FFmpeg or set TENCHU_FFMPEG.")
+            })?;
         let mut input = child.stdin.take().unwrap();
         let mut output = child.stdout.take().unwrap();
         let cancelled = Arc::new(AtomicBool::new(false));

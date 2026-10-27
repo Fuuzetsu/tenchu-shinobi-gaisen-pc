@@ -4,9 +4,6 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 tenchu-assets.workspace = true
 tenchu-audio.workspace = true
