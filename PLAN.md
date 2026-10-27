@@ -76,8 +76,26 @@ returns to the same paused tick. Save/overwrite/rename were exercised through
 the UI. All 131 workspace unit tests, eight disc-backed host/menu regressions,
 and native/WASM strict Clippy pass. Browser UI checks cover save, overwrite,
 rename, reload, cancellation and exact tick/RNG/position restoration. Browser
-auto-tuning completes and persists its result too. First-launch improvements
-and the concise README remain in progress.
+auto-tuning completes and persists its result too.
+
+Starting without arguments (or `play` without a disc) now explains the required
+SLPS-019.01 CUE/BIN files and opens a native picker. Bare disc paths also launch
+play, supporting Windows drag-and-drop. Invalid selections show the reason and
+allow another selection; Cancel exits. Native play and browser preparation
+verify DATA.VOL, MENU.EXE and ENDING.EXE with SHA-256, alongside the existing
+MAIN.EXE verification. The full check takes about 57 ms on the local cached SSD,
+so no validation cache or new startup state machine is needed. Browser streaming
+still verifies pages as downloaded; it does not fetch the full archive to boot.
+`verify DISC` exposes the same check without starting the game.
+
+The picker was exercised on Linux (including missing-BIN error and recovery)
+and the Windows executable under Wine, both reaching the game. Native/WASM
+strict Clippy and all 132 workspace unit tests pass. Linux, Windows and browser
+Nix packages build; the Linux archive starts and resolves its runtime libraries,
+including the new portal D-Bus dependency, with `/nix` hidden. Linux uses the
+desktop portal or Zenity fallback; the Nix package supplies Zenity. macOS and
+physical Windows/ARM GPU hardware remain outside available local validation.
+The concise README and final documentation checks remain in progress.
 
 ## Automated build artifacts (implemented; hosted run pending)
 

@@ -2,10 +2,20 @@ use crate::{capture, demo, session, source, visuals, window};
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
 
 fn run() -> Result<()> {
-    let args: Vec<_> = std::env::args_os().skip(1).collect();
-    if args.is_empty() || args[0] == "--help" {
+    let mut args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.is_empty() || disc_argument(&args[0]) {
+        args.insert(0, "play".into());
+    }
+    if args[0] == "--help" {
         println!(
-            "tenchu-pc play DISC [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nDISC: SLPS-019.01 .cue, raw .bin or .iso.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
+            "tenchu-pc play [DISC] [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc verify DISC\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nStart without arguments to choose your game disc. You can also drag its CUE onto the executable.\nDISC: original Shinobi Gaisen SLPS-019.01 .cue with its referenced .bin files. Raw .bin/.iso are accepted, but CUE is recommended for complete audio/movie data. Native play verifies the executable and base artwork hashes.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."
+        );
+        return Ok(());
+    }
+    if args[0] == "verify" && args.len() == 2 {
+        crate::startup::open(args[1].as_ref())?;
+        println!(
+            "Verified Shinobi Gaisen SLPS-019.01: MAIN.EXE, MENU.EXE, ENDING.EXE and DATA.VOL (SHA-256)."
         );
         return Ok(());
     }
@@ -237,11 +247,20 @@ fn run() -> Result<()> {
             visuals::export(&game.mission, args[2].as_ref())
         };
     }
-    if args[0] == "play" && args.len() >= 2 {
+    if args[0] == "play" && args.get(1).is_some_and(|s| s == "--help") {
+        println!(
+            "tenchu-pc play [DISC.cue] [--quick] [--record DIRECTORY]\nWithout DISC, opens a file picker. Keep the referenced BIN files with the CUE. Requires original Shinobi Gaisen SLPS-019.01; the executable and base artwork are checked with SHA-256. F1: settings and benchmarks. F6: quick launcher."
+        );
+        return Ok(());
+    }
+    if args[0] == "play" {
+        let disc = args
+            .get(1)
+            .filter(|p| !p.to_string_lossy().starts_with("--"));
         let mut launch = Vec::new();
         let mut recordings = None;
         let mut startup = window::Startup::default();
-        let mut arguments = args[2..].iter();
+        let mut arguments = args[if disc.is_some() { 2 } else { 1 }..].iter();
         while let Some(key) = arguments.next() {
             if key == "--quick" {
                 startup.quick_launcher = true;
@@ -262,8 +281,14 @@ fn run() -> Result<()> {
             .chunks(2)
             .any(|p| p[0] == "--difficulty")
             .then_some(options.difficulty);
-        let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
-        return window::run(assets, options, args[1].as_ref(), recordings, None, startup);
+        let selected = match disc {
+            Some(path) => Some((path.into(), crate::startup::open(path.as_ref())?)),
+            None => crate::startup::choose()?,
+        };
+        let Some((path, assets)) = selected else {
+            return Ok(());
+        };
+        return window::run(assets, options, &path, recordings, None, startup);
     }
     if args[0] == "replay" && args.len() >= 3 {
         let mut launch = Vec::new();
@@ -365,8 +390,23 @@ fn run() -> Result<()> {
 }
 
 pub fn main() {
+    let first = std::env::args_os().nth(1);
+    let interactive = first.as_ref().is_none_or(|arg| disc_argument(arg))
+        || (first.as_ref().is_some_and(|arg| arg == "play")
+            && std::env::args_os().nth(2).is_none());
     if let Err(error) = run() {
         eprintln!("{error}");
+        if interactive {
+            crate::startup::show_error(&error);
+        }
         std::process::exit(1);
     }
+}
+
+fn disc_argument(argument: &std::ffi::OsStr) -> bool {
+    std::path::Path::new(argument).extension().is_some_and(|e| {
+        ["cue", "bin", "iso"]
+            .iter()
+            .any(|s| e.eq_ignore_ascii_case(s))
+    })
 }

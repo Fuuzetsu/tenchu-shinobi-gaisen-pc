@@ -40,6 +40,7 @@ const LANGUAGES: [Language; 4] = [
 ];
 
 pub fn export(disc: &Path, destination: &Path, artwork_only: bool) -> Result<()> {
+    crate::startup::open(disc)?;
     if artwork_only {
         return artwork::update(disc, destination);
     }

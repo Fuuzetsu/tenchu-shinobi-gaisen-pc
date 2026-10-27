@@ -17,6 +17,8 @@ mod retail;
 mod session;
 mod settings;
 mod source;
+#[cfg(not(target_arch = "wasm32"))]
+mod startup;
 mod storage;
 mod ui;
 #[cfg(not(target_arch = "wasm32"))]

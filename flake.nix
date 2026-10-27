@@ -24,6 +24,7 @@
             libXcursor
             libXi
             libXrandr
+            dbus
           ]
         );
       source =
@@ -62,7 +63,7 @@
           postFixup = pkgs.lib.optionalString (!pkgs.stdenv.hostPlatform.isWindows) ''
             wrapProgram "$out/bin/tenchu-pc" \
               --set-default TENCHU_FFMPEG "${pkgs.ffmpeg}/bin/ffmpeg" \
-              ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''--prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib"''}
+              ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''--prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib" --prefix PATH : "${pkgs.zenity}/bin"''}
           '';
           meta.mainProgram = "tenchu-pc";
         };
@@ -135,26 +136,29 @@
             PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
             TENCHU_FFMPEG = "${pkgs.ffmpeg}/bin/ffmpeg";
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (runtimeLibraries pkgs) + ":/run/opengl-driver/lib";
-            packages = with pkgs; [
-              cargo
-              rustc
-              rustfmt
-              clippy
-              rust-analyzer
-              gcc
-              lld
-              nixfmt
-              pkg-config
-              ffmpeg
-              wasm-bindgen-cli
-              nodejs
-              (python3.withPackages (p: [
-                p.pillow
-                p.fonttools
-              ]))
-              playwright-driver
-              geckodriver
-            ];
+            packages =
+              with pkgs;
+              [
+                cargo
+                rustc
+                rustfmt
+                clippy
+                rust-analyzer
+                gcc
+                lld
+                nixfmt
+                pkg-config
+                ffmpeg
+                wasm-bindgen-cli
+                nodejs
+                (python3.withPackages (p: [
+                  p.pillow
+                  p.fonttools
+                ]))
+                playwright-driver
+                geckodriver
+              ]
+              ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.zenity ];
             buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
               pkgs.alsa-lib
               pkgs.udev
