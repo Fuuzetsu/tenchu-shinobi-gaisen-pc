@@ -509,6 +509,38 @@ Apple Silicon macOS has Nix package/check definitions but still needs a real
 Mac build and runtime test. The pinned Nixpkgs has removed Intel macOS support,
 so this flake no longer advertises an unusable `x86_64-darwin` output.
 
+### Automated downloads
+
+[Build downloads](.github/workflows/build.yml) runs on pushes to `master` and
+`main`, and supports **Run workflow** in GitHub Actions. Download the artifacts
+from the completed run; each includes an archive and `SHA256SUMS`. They are
+retained for 14 days and named with the source commit. These are Actions
+artifacts, not GitHub Releases.
+
+| Artifact | Contents |
+| --- | --- |
+| `linux-x86_64` | Linux launcher, executable, loader and shared libraries |
+| `linux-aarch64` | The same bundle built/tested on a native ARM64 Linux runner |
+| `windows-x86_64` | Windows executable and font licenses |
+| `wasm32` | Browser website, WASM, JavaScript bindings and Python server |
+
+Extract Linux archives with `tar -xzf`, keep the whole directory together and
+run `./tenchu-pc play /path/to/game.cue`. Nix is **not required** to run these
+bundles. They use the installed GPU drivers; FFmpeg remains an external
+dependency on both Linux and Windows. Browser downloads need a `data/` directory
+prepared from your own disc with `tenchu-pc prepare-web`; see the included
+`README.txt`. Archives include build provenance and never include disc assets.
+
+The workflow runs the native package's unit tests on both Linux architectures,
+checks formatting/Clippy and the portable WASM crates, and tests Linux startup
+and dynamically loaded libraries with `/nix` hidden. A Windows runner starts
+the downloaded executable. These checks do not exercise GPU gameplay on hosted
+runners, which have no game disc.
+
+The same downloads can be built locally with `nix build .#linux-archive`,
+`.#windows-archive` or `.#web-archive`; files appear in `result/`.
+The ARM64 archive uses `packages.aarch64-linux.linux-archive` on an ARM64 builder.
+
 ```sh
 ./dev.sh cargo run --release -- audit '/path/to/game.cue'
 ./dev.sh cargo run --release -- render '/path/to/game.cue' /tmp/mission1.png

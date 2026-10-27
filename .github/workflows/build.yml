@@ -1,0 +1,98 @@
+name: Build downloads
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: builds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            runner: ubuntu-24.04
+            package: linux-archive
+          - target: linux-aarch64
+            runner: ubuntu-24.04-arm
+            package: linux-archive
+          - target: windows-x86_64
+            runner: ubuntu-24.04
+            package: windows-archive
+          - target: wasm32
+            runner: ubuntu-24.04
+            package: web-archive
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # 31.11.3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            max-jobs = 1
+      - name: Workflow, formatting, Clippy and portable core
+        if: matrix.target == 'linux-x86_64'
+        run: >-
+          nix build --no-link --print-build-logs
+          .#checks.x86_64-linux.formatting
+          .#checks.x86_64-linux.clippy
+          .#checks.x86_64-linux.wasm
+          .#checks.x86_64-linux.ci
+      - name: Build archive
+        env:
+          PACKAGE: ${{ matrix.package }}
+        run: |
+          nix build --print-build-logs ".#$PACKAGE"
+          mkdir dist
+          cp -L result/* dist/
+          cd dist
+          sha256sum --check SHA256SUMS
+      - name: Test Linux archive without the Nix store
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          bwrap=$(nix build --inputs-from . nixpkgs#bubblewrap --no-link --print-out-paths)/bin/bwrap
+          mkdir unpacked
+          tar -xzf dist/*.tar.gz -C unpacked
+          bundle=$(realpath unpacked/tenchu-linux-*)
+          sudo "$bwrap" --ro-bind / / --tmpfs /nix --dev-bind /dev /dev --proc /proc \
+            --unsetenv LD_LIBRARY_PATH -- "$bundle/tenchu-pc" --help
+          cc packaging/check-libraries.c -o unpacked/check-libraries -ldl
+          sudo "$bwrap" --ro-bind / / --tmpfs /nix --dev-bind /dev /dev --proc /proc \
+            --unsetenv LD_LIBRARY_PATH -- "$bundle"/lib/ld-linux-*.so.* \
+            --library-path "$bundle/lib" "$PWD/unpacked/check-libraries"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tenchu-${{ matrix.target }}-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  windows-smoke:
+    name: Windows executable startup
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tenchu-windows-x86_64-${{ github.sha }}
+          path: dist
+      - name: Extract and start the executable
+        shell: pwsh
+        run: |
+          Expand-Archive dist/tenchu-windows-x86_64.zip -DestinationPath unpacked
+          & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

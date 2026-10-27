@@ -10,6 +10,39 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Automated build artifacts (implemented; hosted run pending)
+
+Build Linux x86-64, Linux ARM64, Windows x86-64 and the WASM browser package on
+pushes to `master` and `main`, with manual dispatch as well. Use the pinned Nix
+toolchain and publish downloadable archives with instructions, font licenses,
+commit identity and checksums. Exercise the archives, not only the build outputs.
+Keep all disc assets out of CI. Linux downloads must account for their runtime
+libraries rather than distribute an executable with unavailable Nix store paths.
+There is no Git remote configured here, so hosted execution will need the first
+push to GitHub; validate the workflow and packaging locally in the meantime.
+
+One matrix workflow builds `linux-archive` on x86-64 and native ARM64 runners,
+`windows-archive` with the existing MinGW cross-toolchain, and `web-archive` with
+the pinned wasm-bindgen. Artifacts include SHA256SUMS, instructions, font
+licenses and build provenance, with 14-day retention. Windows startup also runs
+on a Windows runner after downloading the archive. The workflow is validated
+with actionlint and shellcheck through a Nix check.
+
+Linux archives include a relocatable loader/library set, PulseAudio and
+X11/Wayland/Vulkan/OpenGL dispatch libraries, keyboard data and ALSA configuration.
+They use host GPU drivers and external FFmpeg, leaving the normal Nix package
+unchanged. The launcher keeps its libc search path out of child processes so
+system FFmpeg uses its own libraries. The x86-64 archive is about 25 MiB; it
+starts and loads all graphics/audio dispatch libraries with `/nix` hidden, and
+renders Mission 1 through the host NVIDIA Vulkan driver. Windows ZIP startup
+passes under Wine. The extracted browser package serves its JS/WASM/HTML with
+the correct MIME types. The ARM64 archive expression evaluates; its build and
+isolated-library checks await the hosted ARM64 runner. No gameplay code changed.
+The final Linux archive also passes live X11 input, PulseAudio initialization,
+screenshots, save and repeated-Escape shutdown. All seven local Nix checks,
+strict Clippy, formatting and archive checksums pass. Validation outputs remain
+in ignored `private/ci-packaging`.
+
 ## Platform validation (complete for available hosts)
 
 Check native Linux and the Windows executable, with macOS and ARM where the

@@ -97,14 +97,25 @@
     {
       packages = eachSystem (
         pkgs:
+        let
+          windows =
+            if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then
+              (native pkgs.pkgsCross.mingwW64).overrideAttrs { doCheck = false; }
+            else
+              null;
+        in
         {
           default = native pkgs;
           web = web pkgs;
         }
-        // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
-          windows = (native pkgs.pkgsCross.mingwW64).overrideAttrs {
-            doCheck = false;
-          };
+        // pkgs.lib.optionalAttrs (windows != null) { inherit windows; }
+        // import ./packaging/artifacts.nix {
+          inherit pkgs windows;
+          native = native pkgs;
+          web = web pkgs;
+          runtimeLibraries = runtimeLibraries pkgs;
+          revision = self.rev or self.dirtyRev or "unknown";
+          nixpkgsRevision = nixpkgs.rev;
         }
       );
       apps = eachSystem (pkgs: {
@@ -181,6 +192,19 @@
         {
           native = native pkgs;
           browser = web pkgs;
+          ci =
+            pkgs.runCommand "tenchu-ci-check"
+              {
+                nativeBuildInputs = [
+                  pkgs.actionlint
+                  pkgs.shellcheck
+                ];
+              }
+              ''
+                actionlint ${./.github/workflows/build.yml}
+                shellcheck ${./packaging/tenchu-linux.sh}
+                touch "$out"
+              '';
           clippy = (native pkgs).overrideAttrs (old: {
             pname = "tenchu-clippy";
             nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
