@@ -107,6 +107,16 @@ including the Windows cross-build and browser build; all three distributable
 archives build too. Documentation links and anchors pass. Hosted builds still
 await a configured Git remote; no new recording was made.
 
+The follow-up per-setting audit runs 55 native 4K benchmark configurations and
+repeat checks across 220 scenes. Three Ultra GPU references differ by at most
+0.20 ms; concurrent TAS work makes fine CPU comparisons unreliable. Local shadow
+maps dominate the ordinary Ultra workload, and custom rain/snow add substantial
+scene-shader cost. Fuller vegetation is slower than Botanical dense in the
+garden in both checks; rain haze also has a repeatable scene-dependent inversion.
+`docs/graphics-performance.md` records individual GPU deltas, limited character
+CPU observations, every graphical control's cost model and unmeasured sustained
+combat/accumulation limits. No runtime settings, game logic or visuals changed.
+
 ## Automated build artifacts (implemented; hosted run pending)
 
 Build Linux x86-64, Linux ARM64, Windows x86-64 and the WASM browser package on

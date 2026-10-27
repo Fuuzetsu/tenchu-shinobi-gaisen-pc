@@ -8,6 +8,10 @@ frames are excluded. Escape cancels. The current game, preferences and input
 recording are restored afterwards; temporary presentation particles are rebuilt.
 Changing the window size or losing focus cancels a windowed measurement.
 
+For individual controls, see the [graphics setting cost breakdown](graphics-performance.md):
+4K measurements with one option changed at a time, plus the cost model for the
+remaining sliders and event-driven effects.
+
 ## Quality and automatic tuning
 
 Fresh installations start with **Modern Low**. Existing preferences are kept.
