@@ -12,16 +12,18 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation (implemented; hosted validation pending)
 
-Add version-tagged downloads and a rolling HEAD prerelease for the default
-branch, retaining temporary Actions artifacts. Release notes come from a
+Add version-tagged downloads and a rolling HEAD prerelease for `master`, the
+default branch, retaining temporary Actions artifacts. Release notes come from a
 user-facing CHANGELOG, with tag/Cargo version agreement and complete checked
 download sets before publication. Preserve published version tags and reject
 stale HEAD reruns. Carry dependency notices, corresponding native-library
 sources/patches, build recipes and build identity with downloadable releases.
 
 Review tracked files and Git history, source provenance, runtime dependencies,
-platform evidence and documentation. Keep disc/browser assets, private HD packs
-and captures out of public downloads. Record unresolved publication decisions
+platform evidence and documentation. Keep disc/browser assets and captures out
+of public downloads. Ship the project's HD artwork with the source and game;
+its ignored authoring directory does not make it a private pack. Audit mixed
+original/generated composites before importing it. Record unresolved publication decisions
 and validation in `docs/releases.md`; do not claim an untested platform or
 publish a version before one has been chosen.
 

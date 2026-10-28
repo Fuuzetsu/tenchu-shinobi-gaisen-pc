@@ -37,14 +37,14 @@ class ReleaseTests(unittest.TestCase):
             ("## Unreleased\n## 0.1.0 — 2026-01-01\n", "refs/tags/v0.1.0"),
             ("## Unreleased\n", "refs/tags/v1.0.0"),
             ("## Unreleased\n", "refs/tags/v0.1.0;echo"),
-            ("## Unreleased\n## Unreleased\n", "refs/heads/main"),
+            ("## Unreleased\n## Unreleased\n", "refs/heads/master"),
             ("## Unreleased\n## 0.1.0 — 9999-01-01\n- Future.\n", "refs/tags/v0.1.0"),
         ]:
             with self.subTest(ref=ref, changelog=changelog), self.assertRaises(ValueError):
                 self.notes(changelog, ref)
 
     def test_head_after_tag_can_have_empty_unreleased(self):
-        self.assertIn("No user-facing changes", self.notes("## Unreleased\n", "refs/heads/main"))
+        self.assertIn("No user-facing changes", self.notes("## Unreleased\n", "refs/heads/master"))
 
     def archives(self):
         for i, name in enumerate(release.ARCHIVES):
@@ -81,7 +81,7 @@ class ReleaseTests(unittest.TestCase):
             release.collect(self.root / "artifacts", self.root / "dist", "commit", "0.1.0")
         self.assertFalse((self.root / "dist").exists())
 
-    def publish(self, ref="refs/heads/main", **environment):
+    def publish(self, ref="refs/heads/master", **environment):
         self.archives()
         (self.root / "CHANGELOG.md").write_text("## Unreleased\n- New.\n## 0.1.0 — 2026-01-01\n- First.\n")
         scripts = self.root / "packaging"
@@ -109,7 +109,7 @@ elif args[:2] == ["release", "view"]:
         result = subprocess.run(
             ["bash", "packaging/publish.sh"], cwd=self.root, capture_output=True, text=True,
             env={**os.environ, "PATH": f"{self.root}:{os.environ['PATH']}", "GH_REPO": "test/test",
-                 "GITHUB_SHA": "commit", "GITHUB_REF": ref, "DEFAULT_BRANCH": "main", **environment},
+                 "GITHUB_SHA": "commit", "GITHUB_REF": ref, "DEFAULT_BRANCH": "master", **environment},
         )
         self.assertTrue((self.root / "calls.jsonl").exists(), result.stderr)
         calls = [json.loads(line) for line in (self.root / "calls.jsonl").read_text().splitlines()]

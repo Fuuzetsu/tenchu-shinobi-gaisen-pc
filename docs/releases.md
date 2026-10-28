@@ -7,8 +7,8 @@ revision; native `tenchu-pc --version` also identifies its build.
 
 ## Development downloads
 
-Pushes to `main`/`master` build and test all targets. Successful builds of the
-repository's **default branch** update the `head` tag and **HEAD (development)**
+Keep `master` as the repository's default branch. Pushes to `master` build and
+test all targets. Successful builds update the `head` tag and **HEAD (development)**
 prerelease. HEAD does not replace the latest stable release. Other branches and
 pull requests only produce temporary Actions artifacts.
 
@@ -71,10 +71,10 @@ It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
   reverse-engineering provenance in [SOURCES.md](../SOURCES.md) does
   not grant rights to the original game or claim clean-room development.
 - **No remote or version tags configured yet.** The hosted workflow and actual
-  public downloads need verification after the repository's first push. This
-  checkout uses `main`, despite older instructions referring to `master`.
+  public downloads need verification after the repository's first push. The
+  local branch is `master`; select it as the hosted default branch too.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
-  captures, recordings/reference screenshots and `private/` artwork packs.
+  captures and recordings/reference screenshots.
   The entire reachable Git history was checked: its only binary file paths are
   the two documented OFL fonts. No obvious credentials or private output paths
   were found. A filename/content scan is not a legal certification of the code.
@@ -83,9 +83,16 @@ It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
   sources. The Linux bundle contains LGPL libraries; preserve the source archive
   alongside redistribution. It includes upstream sources, applied patches,
   complete pinned Nixpkgs recipes and this port's packaging code.
-- **Artwork:** the private HD campaign pack is not installed by the replacement
-  artwork checkbox and is not in the downloads. Its images/provenance need a
-  separate distribution review before offering it publicly.
+- **Artwork is intended to ship with the source and game.** Its current ignored
+  location, `private/campaign-hd-pack`, is authoring storage, not a distribution
+  policy. The 1,719-entry pack is about 144 MiB and includes generated repaints,
+  typeset interface art and two procedurally authored weapon meshes. Some entries
+  instead add generated detail to original RGB or composite over original pixels;
+  many also retain source transparency masks. These must be distinguished from
+  fresh paintings. The proposed public location is `assets/hd`, included in
+  platform downloads and discovered automatically. Decide how to reconstruct
+  the mixed entries from the user's disc or repaint them before importing the
+  pack; do not describe the current composites as entirely generated artwork.
 - **Platform limits:** local Linux gameplay and browser tests exist; Windows has
   Wine coverage and CI startup checks. Physical Windows/ARM GPU gameplay and a
   real Apple Silicon build/runtime still need testing. No macOS binary is offered.

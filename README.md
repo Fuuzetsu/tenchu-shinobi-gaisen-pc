@@ -12,10 +12,10 @@ The separate original mission editor (`TRIAL.EXE`) is not ported.
 ## Download and play
 
 In this repository on GitHub, open **Releases**. Choose a versioned release for
-normal play, or **HEAD (development)** for the latest successful default-branch
+normal play, or **HEAD (development)** for the latest successful `master`
 build. Download your platform's archive under **Assets** and extract it completely.
 The [workflow](.github/workflows/build.yml) publishes version tags and refreshes
-HEAD on `main`/`master`; release downloads do not have the Actions artifact expiry.
+HEAD on `master`; release downloads do not have the Actions artifact expiry.
 [What's changed](CHANGELOG.md).
 
 | Platform | Download | Run |
