@@ -16,6 +16,7 @@ pub enum UserFile {
     Progress,
     Settings,
     Presets,
+    Controls,
 }
 
 impl UserFile {
@@ -25,6 +26,7 @@ impl UserFile {
             Self::Progress => "progress.sav",
             Self::Settings => "settings.json",
             Self::Presets => "presets.json",
+            Self::Controls => "controls.json",
         }
         .into());
         #[cfg(not(target_arch = "wasm32"))]
@@ -49,6 +51,12 @@ impl UserFile {
             Self::Presets => (
                 "presets.json",
                 "TENCHU_PRESETS",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
+            Self::Controls => (
+                "controls.json",
+                "TENCHU_CONTROLS",
                 "XDG_CONFIG_HOME",
                 ".config",
             ),

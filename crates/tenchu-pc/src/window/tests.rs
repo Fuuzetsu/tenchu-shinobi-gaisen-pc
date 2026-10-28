@@ -15,7 +15,7 @@ fn application(options: Options) -> Application {
         view: None,
         clock: GameClock::default(),
         last_frame: Instant::now(),
-        controls: Controls::new(),
+        controls: Controls::default(),
         paused: false,
         faulted: false,
         fault: None,

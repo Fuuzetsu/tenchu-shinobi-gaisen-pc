@@ -211,6 +211,7 @@ impl Recorder {
             Extras {
                 benchmarks: None,
                 presets: None,
+                controls: None,
                 labels: &view.labels,
                 text: &view.text,
                 performance: &mut self.performance,

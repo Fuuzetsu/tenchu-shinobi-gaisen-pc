@@ -1,55 +1,22 @@
 use crate::campaign::Action;
-use gilrs::{Axis, Button, EventType, Gilrs};
-use std::{collections::HashSet, mem};
+use gilrs::{Button, EventType, Gilrs};
+use std::{collections::HashSet, mem, path::PathBuf};
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
+mod bindings;
+mod editor;
 mod rumble;
-
-const BUTTONS: [(Button, u16); 14] = [
-    (Button::South, input::CROSS),
-    (Button::East, input::CIRCLE),
-    (Button::West, input::SQUARE),
-    (Button::North, input::TRIANGLE),
-    (Button::LeftTrigger, input::L1),
-    (Button::RightTrigger, input::R1),
-    (Button::LeftTrigger2, input::L2),
-    (Button::RightTrigger2, input::R2),
-    (Button::Select, input::SELECT),
-    (Button::Start, input::START),
-    (Button::DPadUp, input::UP),
-    (Button::DPadDown, input::DOWN),
-    (Button::DPadLeft, input::LEFT),
-    (Button::DPadRight, input::RIGHT),
-];
+use bindings::{Bindings, PadInput, StickAxis};
 
 pub enum Command {
     Pause,
     Menu(Action),
 }
 
-fn key_button(code: KeyCode) -> u16 {
-    match code {
-        KeyCode::KeyW | KeyCode::ArrowUp => input::UP,
-        KeyCode::KeyS | KeyCode::ArrowDown => input::DOWN,
-        KeyCode::KeyA | KeyCode::ArrowLeft => input::LEFT,
-        KeyCode::KeyD | KeyCode::ArrowRight => input::RIGHT,
-        KeyCode::Space => input::CROSS,
-        KeyCode::ShiftLeft | KeyCode::ShiftRight => input::CIRCLE,
-        KeyCode::KeyJ => input::SQUARE,
-        KeyCode::KeyE => input::TRIANGLE,
-        KeyCode::KeyQ => input::L1,
-        KeyCode::KeyZ => input::L2,
-        KeyCode::KeyC => input::R2,
-        KeyCode::KeyM | KeyCode::Tab => input::SELECT,
-        _ => 0,
-    }
-}
-
 pub fn keyboard_command(code: KeyCode, playing: bool) -> Option<Command> {
     Some(match code {
         KeyCode::Escape => Command::Menu(Action::Back),
         KeyCode::F5 => Command::Menu(Action::Replay),
-        KeyCode::KeyP if playing => Command::Pause,
         _ if !playing => Command::Menu(match code {
             KeyCode::Enter => Action::Confirm,
             KeyCode::ArrowUp => Action::Up,
@@ -104,7 +71,7 @@ struct Pad {
     raw: u16,
     blocked: u16,
     pending: u16,
-    stick: [i8; 2],
+    stick: [i8; 4],
 }
 
 fn direction(value: f32, previous: i8) -> i8 {
@@ -127,23 +94,12 @@ impl Pad {
         self.pending = 0;
     }
 
-    fn sample(&mut self, id: usize, buttons: u16, axes: [f32; 2], focused: bool) -> u16 {
+    fn sample(&mut self, id: usize, buttons: u16, focused: bool) -> u16 {
         if self.active.is_some_and(|active| active != id) || self.active.is_none() && !focused {
             return 0;
         }
         let before = self.buttons();
-        self.stick = std::array::from_fn(|i| direction(axes[i], self.stick[i]));
-        self.raw = buttons
-            | match self.stick[0] {
-                -1 => input::LEFT,
-                1 => input::RIGHT,
-                _ => 0,
-            }
-            | match self.stick[1] {
-                -1 => input::DOWN,
-                1 => input::UP,
-                _ => 0,
-            };
+        self.raw = buttons;
         if self.raw != 0 {
             self.active = Some(id);
         }
@@ -173,6 +129,9 @@ pub struct Update {
 
 #[derive(Default)]
 pub struct Controls {
+    bindings: Bindings,
+    pub editor: editor::Editor,
+    bindings_path: Option<PathBuf>,
     keys: HashSet<KeyCode>,
     pending_keys: u16,
     gilrs: Option<Gilrs>,
@@ -193,17 +152,72 @@ impl Controls {
                 None
             }
         };
-        Self {
+        let mut controls = Self {
             gilrs,
             ..Self::default()
+        };
+        let load = || {
+            let path = crate::storage::UserFile::Controls.path()?;
+            let bindings = match crate::storage::read(&path) {
+                Ok(bytes) => Bindings::decode(&bytes)?,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Bindings::default(),
+                Err(e) => return Err(e.to_string()),
+            };
+            Ok((path, bindings))
+        };
+        match load() {
+            Ok((path, bindings)) => {
+                controls.bindings_path = Some(path);
+                controls.bindings = bindings;
+            }
+            Err(error) => {
+                controls.editor.notice =
+                    format!("Could not load controls; using defaults: {error}");
+                eprintln!("{}", controls.editor.notice);
+                controls.bindings_path = crate::storage::UserFile::Controls.path().ok();
+            }
         }
+        controls
+    }
+
+    fn save_bindings(&mut self) {
+        self.clear();
+        if let Some(gilrs) = &self.gilrs
+            && let Some((_, gamepad)) = gilrs
+                .gamepads()
+                .find(|(id, _)| Some(usize::from(*id)) == self.pad.active)
+        {
+            self.pad.raw = self
+                .bindings
+                .controller(|button| gamepad.is_pressed(button), self.pad.stick);
+            self.pad.suppress();
+        }
+        let save = || {
+            let path = self
+                .bindings_path
+                .as_ref()
+                .ok_or("No controls storage available")?;
+            let bytes = serde_json::to_vec_pretty(&self.bindings).map_err(|e| e.to_string())?;
+            crate::storage::atomic_write(path, &bytes)
+        };
+        self.editor.notice = match save() {
+            Ok(()) => "Saved. Release the new input before continuing.".into(),
+            Err(error) => {
+                format!("Bindings apply for this session, but could not be saved: {error}")
+            }
+        };
+    }
+
+    pub fn key_command(&self, code: KeyCode, playing: bool, paused: bool) -> Option<Command> {
+        keyboard_command(code, playing)
+            .or_else(|| gamepad_command(self.bindings.key(code), playing, paused))
     }
 
     pub fn key(&mut self, code: KeyCode, pressed: bool) -> bool {
         if pressed {
             let changed = self.keys.insert(code);
             if changed {
-                self.pending_keys |= key_button(code);
+                self.pending_keys |= self.bindings.key(code);
             }
             changed
         } else {
@@ -225,7 +239,7 @@ impl Controls {
             | mem::take(&mut self.pending_keys);
         self.keys
             .iter()
-            .fold(buttons, |buttons, key| buttons | key_button(*key))
+            .fold(buttons, |buttons, key| buttons | self.bindings.key(*key))
     }
 
     pub fn poll(&mut self, focused: bool) -> Update {
@@ -237,6 +251,7 @@ impl Controls {
         let Some(gilrs) = &mut self.gilrs else {
             return update;
         };
+        let mut captured = None;
         while let Some(event) = gilrs.next_event() {
             let id = usize::from(event.id);
             if event.event == EventType::Disconnected {
@@ -255,25 +270,53 @@ impl Controls {
             ) {
                 continue;
             }
+            if self.pad.active.is_some_and(|active| active != id) {
+                continue;
+            }
             let gamepad = gilrs.gamepad(event.id);
             let before = self.pad.active;
-            let buttons = BUTTONS.iter().fold(0, |held, &(button, bit)| {
-                held | if gamepad.is_pressed(button) { bit } else { 0 }
+            let previous_stick = self.pad.stick;
+            self.pad.stick = std::array::from_fn(|i| {
+                direction(gamepad.value(StickAxis::ALL[i].axis()), previous_stick[i])
             });
-            update.pressed |= self.pad.sample(
-                id,
-                buttons,
-                [
-                    gamepad.value(Axis::LeftStickX),
-                    gamepad.value(Axis::LeftStickY),
-                ],
-                focused,
-            );
+            if focused && self.editor.open && captured.is_none() {
+                captured = match event.event {
+                    EventType::ButtonPressed(button, _) if button != Button::Unknown => {
+                        Some(PadInput::Button(button))
+                    }
+                    EventType::AxisChanged(axis, _, _) => {
+                        StickAxis::ALL.iter().enumerate().find_map(|(i, &stick)| {
+                            (stick.axis() == axis
+                                && self.pad.stick[i] != 0
+                                && self.pad.stick[i] != previous_stick[i])
+                                .then_some(PadInput::Stick {
+                                    axis: stick,
+                                    positive: self.pad.stick[i] > 0,
+                                })
+                        })
+                    }
+                    _ => None,
+                };
+                if captured.is_some() {
+                    self.pad.active = Some(id);
+                }
+            }
+            let buttons = self
+                .bindings
+                .controller(|button| gamepad.is_pressed(button), self.pad.stick);
+            update.pressed |= self.pad.sample(id, buttons, focused);
             if before != self.pad.active {
                 println!("Controller: {}", gamepad.name());
             }
         }
         gilrs.inc();
+        if let Some(input) = captured {
+            self.editor_button(input);
+        }
+        if self.editor.open {
+            self.pad.suppress();
+            update.pressed = 0;
+        }
         update
     }
 }

@@ -21,6 +21,7 @@ pub(super) struct Extras<'a> {
     pub performance: &'a mut super::performance::Performance,
     pub benchmarks: Option<&'a mut super::benchmark::Benchmarks>,
     pub presets: Option<&'a mut crate::settings::library::Manager>,
+    pub controls: Option<&'a mut crate::controls::Controls>,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
     pub frontend: Option<(
@@ -117,7 +118,10 @@ impl Overlay {
             ));
         }
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
-        if !self.editing() && menu.edit.is_none() {
+        if !self.editing()
+            && menu.edit.is_none()
+            && !extras.controls.as_ref().is_some_and(|c| c.editor.open)
+        {
             input
                 .events
                 .retain(|event| !matches!(event, egui::Event::Key { .. } | egui::Event::Text(_)));
@@ -174,6 +178,11 @@ impl Overlay {
             }
             if let Some(benchmarks) = &mut extras.benchmarks {
                 cancel_benchmark = benchmarks.show(ctx);
+            }
+            if menu.open
+                && let Some(controls) = &mut extras.controls
+            {
+                controls.show_bindings(ctx);
             }
             if show_performance != profiling {
                 edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
@@ -250,6 +259,7 @@ impl super::Application {
                 performance: &mut self.performance,
                 benchmarks: Some(&mut self.benchmarks),
                 presets: Some(&mut self.presets),
+                controls: Some(&mut self.controls),
                 demo: self.demo.as_mut(),
                 video_time,
                 frontend: if frontend_visible {
@@ -297,6 +307,12 @@ impl super::Application {
                     self.presets.open = true;
                     Ok(())
                 }
+                Edit::Controls => {
+                    self.controls.editor.open = true;
+                    self.controls.cancel_capture();
+                    self.controls.clear();
+                    Ok(())
+                }
                 Edit::Reset(item) => self.reset_item(item),
                 Edit::PlayerModel(id) => {
                     self.settings.player_model = id;
@@ -314,7 +330,7 @@ impl super::Application {
         self.apply_settings(&previous);
         if !self.menu.open {
             self.view.as_mut().unwrap().overlay.jobs.clear();
-            self.controls.clear();
+            self.controls.close_editor();
         }
         self.release_pointer();
         self.sync_pause();

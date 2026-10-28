@@ -808,6 +808,18 @@ labels differ between controller brands.
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
 Quick keyboard and controller taps are retained until the next gameplay tick.
 
+**F1 → General → Controls** remaps the keyboard and controller, including both
+sticks, shoulder buttons, triggers and Pause. Select a primary or alternate
+binding and press the new input. Assigning an input moves it from its previous
+action; × clears it. Each device has a reset-to-defaults button. Changes save
+automatically to `controls.json` beside settings (override with `TENCHU_CONTROLS`),
+or to browser local storage. Graphics/gameplay presets do not change bindings.
+The action labels describe original layout 1; selecting another original
+controller layout still changes the meaning of those virtual PS1 buttons.
+Escape cancels capture; Escape, Enter and F1–F12 retain menu/tool shortcuts,
+and Backspace retains cutscene fast-forward. Bindings use physical key positions.
+Free-camera/tool navigation keeps its separate shortcuts.
+
 **F1** opens a compact settings overlay from any screen. Click categories,
 checkboxes and dropdowns; drag sliders or double-click numbers to type.
 Drag the title bar to move the panel, resize its width, and scroll long pages.

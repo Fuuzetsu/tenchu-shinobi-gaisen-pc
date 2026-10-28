@@ -14,6 +14,7 @@ pub enum Edit {
     PlayerModel(String),
     Benchmark,
     PresetLibrary,
+    Controls,
 }
 
 #[derive(Clone, Copy)]
@@ -85,6 +86,7 @@ pub fn show(
                         ui.horizontal(|ui| {
                             if ui.button("Benchmarks…").clicked() { edits.push(Edit::Benchmark); }
                             if ui.button("Presets / save as…").clicked() { edits.push(Edit::PresetLibrary); }
+                            if ui.button("Controls…").clicked() { edits.push(Edit::Controls); }
                         });
                         ui.separator();
                     }

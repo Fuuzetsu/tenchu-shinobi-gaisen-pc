@@ -455,6 +455,25 @@ impl ApplicationHandler for Application {
             }
             return;
         }
+        if self.menu.open
+            && self.controls.capturing()
+            && let WindowEvent::KeyboardInput {
+                event,
+                is_synthetic,
+                ..
+            } = &event
+            && let PhysicalKey::Code(code) = event.physical_key
+            && code != KeyCode::F1
+        {
+            if self.focused
+                && !is_synthetic
+                && !event.repeat
+                && event.state == ElementState::Pressed
+            {
+                self.controls.editor_key(code);
+            }
+            return;
+        }
         if let Some(view) = &mut self.view {
             view.overlay.event(&view.window, &event);
         }
@@ -492,6 +511,7 @@ impl ApplicationHandler for Application {
                     self.pause_error(error);
                 }
                 if !focused {
+                    self.controls.cancel_capture();
                     self.modifiers = ModifiersState::empty();
                     self.flush_recording();
                     self.release_pointer();
@@ -548,7 +568,14 @@ impl ApplicationHandler for Application {
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F1 {
+                    self.controls.close_editor();
                     self.toggle_menu();
+                    return;
+                }
+                if self.menu.open && self.controls.editor.open {
+                    if event.state == ElementState::Pressed {
+                        self.controls.editor_key(code);
+                    }
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F8 {
@@ -649,7 +676,10 @@ impl ApplicationHandler for Application {
                 {
                     return;
                 }
-                if let Some(command) = controls::keyboard_command(code, self.campaign.playing()) {
+                if let Some(command) =
+                    self.controls
+                        .key_command(code, self.campaign.playing(), self.paused)
+                {
                     self.command(command, events);
                 }
             }
@@ -677,7 +707,7 @@ impl ApplicationHandler for Application {
                 if update.disconnected && self.campaign.playing() {
                     eprintln!("Active controller disconnected; gameplay paused.");
                     self.set_paused(true);
-                } else if self.focused && self.menu.open {
+                } else if self.focused && self.menu.open && !self.controls.editor.open {
                     if update.pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0 {
                         self.menu
                             .page(if update.pressed & tenchu_core::input::L1 != 0 {
@@ -1010,7 +1040,7 @@ pub fn run(
         );
     } else {
         println!(
-            "Keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nController: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
+            "Default keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nDefault controller: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nRemap keyboard/controller inputs in F1 > General > Controls. Saved bindings override these defaults.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
         );
     }
     let event_loop = EventLoop::new().map_err(|e| e.to_string())?;

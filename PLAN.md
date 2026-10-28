@@ -27,6 +27,18 @@ match that inventory; no unused source components remain. Linux startup passes
 with `/nix` hidden. Formatting, strict native Clippy, all-system Nix evaluation
 and 12 release-policy tests pass. Hosted ARM bundle validation remains a CI gate.
 
+Keyboard/controller remapping is implemented in F1 → General → Controls, with
+two bindings per virtual PS1 button, both sticks, conflict reassignment, clearing,
+per-device resets and separate native/browser persistence. The original layout
+selection still applies after host remapping. Menu/tool escape keys stay fixed.
+Seven focused checks cover short taps, aliases, remapped Pause, conflicts,
+serialization, capture cancellation, disconnection and focus suppression.
+Native UI testing saves Jump on K and records its exact one-tick Cross input in
+Mission 1. The browser editor captures keyboard keys, stick clicks/directions
+and analog triggers, saves them in local storage and reassigns conflicts.
+Strict native Clippy, formatting and the full WASM host build pass. Physical
+controller/Windows tests remain separate from the synthetic Gamepad API check.
+
 Local workspace cleanup removed 64.28 GiB of rebuildable caches, extracted test
 assets and intermediate video parts. Final recordings, editable artwork, input
 tapes, validation fixtures and release uploads remain; the checkout now occupies

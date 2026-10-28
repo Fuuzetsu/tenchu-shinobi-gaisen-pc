@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+### Added
+
+- Keyboard and controller remapping in F1 → General → Controls, including both
+  sticks, alternate bindings, conflict reassignment and per-device reset. Bindings
+  persist across launches on desktop and in the browser.
+
 ### Changed
 
 - Smaller dependency-source download, limited to the copyleft libraries bundled
