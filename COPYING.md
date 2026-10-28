@@ -9,8 +9,11 @@ is provided as is, without warranty; see LICENSE for the full terms.
 Third-party components retain their respective licenses. Binary downloads carry
 their notices in `licenses/`; the Nix package installs them under
 `share/doc/tenchu-shinobi-gaisen-pc/`. The separate dependency-sources download
-contains the bundled native libraries' source, patches and build recipes, plus
-the Rust dependencies and toolchain source. Keep it available beside the binaries.
+contains matching source, patches and build recipes for the copyleft shared
+libraries in the portable Linux download. Keep it available beside that bundle.
+`bundled-libraries.json` identifies the shipped libraries and their source entries.
+Permissively licensed components retain their notices without a duplicate source
+download; the archive excludes the Rust compiler and Cargo dependency sources.
 
 The outline and Japanese bitmap fonts are modified, renamed/subsetted OFL fonts;
 their provenance and upstream notices are in their respective data directories.

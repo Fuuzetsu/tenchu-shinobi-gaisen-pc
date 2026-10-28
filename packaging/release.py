@@ -69,18 +69,46 @@ def release_notes(root, ref):
     return body
 
 
-def build_info(archive):
+def metadata(archive, filename):
     if archive.suffix == ".zip":
         with zipfile.ZipFile(archive) as bundle:
-            paths = [n for n in bundle.namelist() if n.count("/") == 1 and n.endswith("/build-info.json")]
+            paths = [n for n in bundle.namelist() if n.count("/") == 1 and n.endswith(f"/{filename}")]
             if len(paths) != 1:
-                raise ValueError(f"Missing or ambiguous build identity in {archive.name}")
+                raise ValueError(f"Missing or ambiguous {filename} in {archive.name}")
             return json.loads(bundle.read(paths[0]))
     with tarfile.open(archive) as bundle:
-        paths = [m for m in bundle if m.name.count("/") == 1 and m.name.endswith("/build-info.json")]
+        paths = [m for m in bundle if m.name.count("/") == 1 and m.name.endswith(f"/{filename}")]
         if len(paths) != 1:
-            raise ValueError(f"Missing or ambiguous build identity in {archive.name}")
+            raise ValueError(f"Missing or ambiguous {filename} in {archive.name}")
         return json.load(bundle.extractfile(paths[0]))
+
+
+def verify_library_sources(archives):
+    source = archives["tenchu-dependency-sources.tar.gz"]
+    components = metadata(source, "source-packages.json")["components"]
+    indexed = {c["name"]: c for c in components}
+    if len(indexed) != len(components):
+        raise ValueError("Duplicate dependency source components")
+    with tarfile.open(source) as bundle:
+        members = {m.name.partition("/")[2]: m for m in bundle}
+    required = set()
+    for name in ("tenchu-linux-x86_64.tar.gz", "tenchu-linux-aarch64.tar.gz"):
+        for library in metadata(archives[name], "bundled-libraries.json").values():
+            path = library["source_archive"]
+            if path is None:
+                continue
+            component = indexed.get(library["component"])
+            if component is None or component["source"] != path:
+                raise ValueError(f"Missing matching source for {library['component']} in {name}")
+            member = members.get(path)
+            if member is None or not (member.isfile() or member.isdir()):
+                raise ValueError(f"Missing dependency source: {path}")
+            for file in [component["recipe"], *component["patches"]]:
+                if file not in members or not members[file].isfile():
+                    raise ValueError(f"Missing dependency build file: {file}")
+            required.add(component["name"])
+    if required != set(indexed):
+        raise ValueError(f"Sources for libraries absent from Linux bundles: {sorted(set(indexed) - required)}")
 
 
 def collect(source, destination, revision, version):
@@ -95,10 +123,11 @@ def collect(source, destination, revision, version):
         checksums = (archive.parent / "SHA256SUMS").read_text().splitlines()
         if f"{digest}  {name}" not in checksums:
             raise ValueError(f"Checksum mismatch for {name}")
-        info = build_info(archive)
+        info = metadata(archive, "build-info.json")
         if info["revision"] != revision or info["version"] != version:
             raise ValueError(f"Build identity mismatch for {name}")
         verified.append((archive, digest))
+    verify_library_sources({archive.name: archive for archive, _ in verified})
     destination.mkdir(parents=True, exist_ok=False)
     for archive, _ in verified:
         shutil.copyfile(archive, destination / archive.name)

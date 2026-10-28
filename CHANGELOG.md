@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+### Changed
+
+- Smaller dependency-source download, limited to the copyleft libraries bundled
+  with Linux and their build recipes. The Linux archive now lists its included
+  shared libraries and matching source entries.
+
 ## 0.1.0 — 2026-10-28
 
 ### Added

@@ -1,22 +1,29 @@
 Tenchu PC — dependency sources
 
-This archive accompanies the native and browser downloads from the same release.
-It is not needed to run the game. Keep it available alongside redistributed
-binary archives. Each component retains its own upstream license.
+This archive supplies matching sources for the copyleft shared libraries included
+in the portable Linux download. It is not needed to run the game or to build the
+port normally with Nix. Keep it available alongside redistributed Linux bundles.
+Each component retains its upstream license; the game remains MIT-licensed.
 
-upstream/: exact native-library, Rust toolchain and MinGW source archives/trees.
+upstream/: exact sources for bundled GPL/LGPL library components.
   Original archives retain their contents but are named for their package;
   use tar -xf FILE to unpack an archive. Some entries are already directories.
+  Packages built from the same source share one copy, including systemd variants.
 patches/: patches applied by the pinned Nixpkgs package definitions.
-native-dependencies.json: package names, source identities, patches and licenses.
-rust-crates/: complete locked Cargo dependencies, including embedded font notices.
-nixpkgs/: complete pinned Nix build recipes, local patches and helper scripts.
+source-packages.json: component-to-source, patch and recipe mapping, with the
+  exact Nixpkgs revision. Compare it with bundled-libraries.json in the Linux
+  download to see which distributed libraries it covers.
+recipes/: relevant Nixpkgs package definitions, local patches and shared build
+  helpers. This is a reviewable subset, not a standalone Nixpkgs checkout.
 port/: source of this port, including flake.nix/flake.lock and packaging scripts.
 
 Build from port/ using the README. Nix fetches the pinned build tools and inputs;
 this is corresponding dependency source, not an offline Nix binary cache.
-For native libraries, their recipes are in nixpkgs/pkgs/ and identify configure
-flags and additional patch steps. The port changes ELF loader/search paths when
+The original upstream GCC archive is included for the libgcc runtime we ship;
+we do not distribute the compiler executable. Rust compiler sources, Cargo
+dependencies, unrelated Nixpkgs packages and permissively licensed library
+sources are omitted. Their required license notices remain in the game downloads.
+The port changes ELF loader/search paths when
 assembling Linux archives; see port/packaging/bundle-linux.py and tenchu-linux.sh.
 Libraries stay separate and dynamically linked so they can be replaced.
 

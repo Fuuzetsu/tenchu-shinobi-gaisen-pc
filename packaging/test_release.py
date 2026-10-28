@@ -48,7 +48,7 @@ class ReleaseTests(unittest.TestCase):
     def test_head_after_tag_can_have_empty_unreleased(self):
         self.assertIn("No user-facing changes", self.notes("## Unreleased\n", "refs/heads/master"))
 
-    def archives(self):
+    def archives(self, omit_source=False, unshipped_source=False):
         for i, name in enumerate(release.ARCHIVES):
             directory = self.root / "artifacts" / str(i)
             directory.mkdir(parents=True)
@@ -59,9 +59,25 @@ class ReleaseTests(unittest.TestCase):
                     archive.writestr("bundle/build-info.json", info)
             else:
                 with tarfile.open(path, "w:gz") as archive:
-                    member = tarfile.TarInfo("bundle/build-info.json")
-                    member.size = len(info)
-                    archive.addfile(member, io.BytesIO(info))
+                    def add(name, data):
+                        member = tarfile.TarInfo(f"bundle/{name}")
+                        member.size = len(data)
+                        archive.addfile(member, io.BytesIO(data))
+                    add("build-info.json", info)
+                    if name.startswith("tenchu-linux-"):
+                        add("bundled-libraries.json", json.dumps({"lib/libexample.so": {
+                            "component": "example", "source_archive": "upstream/example",
+                        }}).encode())
+                    if name == "tenchu-dependency-sources.tar.gz":
+                        components = [{"name": "example", "source": "upstream/example",
+                                       "recipe": "recipes/example.nix", "patches": []}]
+                        if unshipped_source:
+                            components.append({"name": "unshipped", "source": "upstream/unshipped",
+                                               "recipe": "recipes/unshipped.nix", "patches": []})
+                        add("source-packages.json", json.dumps({"components": components}).encode())
+                        if not omit_source:
+                            add("upstream/example", b"library source")
+                        add("recipes/example.nix", b"build recipe")
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             (directory / "SHA256SUMS").write_text(f"{digest}  {name}\n")
 
@@ -80,6 +96,18 @@ class ReleaseTests(unittest.TestCase):
             release.collect(self.root / "artifacts", self.root / "dist", "commit", "0.1.0")
         path.unlink()
         with self.assertRaises(ValueError):
+            release.collect(self.root / "artifacts", self.root / "dist", "commit", "0.1.0")
+        self.assertFalse((self.root / "dist").exists())
+
+    def test_missing_library_source_prevents_publication(self):
+        self.archives(omit_source=True)
+        with self.assertRaisesRegex(ValueError, "Missing dependency source"):
+            release.collect(self.root / "artifacts", self.root / "dist", "commit", "0.1.0")
+        self.assertFalse((self.root / "dist").exists())
+
+    def test_unshipped_library_source_prevents_publication(self):
+        self.archives(unshipped_source=True)
+        with self.assertRaisesRegex(ValueError, "Sources for libraries absent"):
             release.collect(self.root / "artifacts", self.root / "dist", "commit", "0.1.0")
         self.assertFalse((self.root / "dist").exists())
 

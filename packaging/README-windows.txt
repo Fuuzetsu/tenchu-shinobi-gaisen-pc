@@ -27,6 +27,6 @@ Auto-optimised preset for your FPS target. Presets / save as offers Low, Medium,
 High, Ultra and persistent named user presets. Fresh preferences use Modern Low.
 
 build-info.json and --version identify this download. Keep licenses/ with the
-program. The matching dependency-source archive is provided on the release page
-for rebuilding/redistribution; it is not needed to play. This executable is not
+program. The dependency-source download covers shared libraries in the Linux
+bundle; it is not needed for this Windows download. This executable is not
 code-signed; obtain it from the project's release page and check SHA256SUMS.

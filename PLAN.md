@@ -12,6 +12,28 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation (implemented; hosted validation pending)
 
+Post-release follow-up: reduce the dependency-source archive to the copyleft
+libraries actually shipped in the portable Linux bundle, preserving their
+upstream sources, patches and build recipes. Add a library/source inventory and
+publication checks; retain all license notices. Remove redundant compiler,
+Cargo and unrelated Nixpkgs sources. Next add persistent keyboard/controller
+bindings, then remember the last verified disc path for launches without an
+explicit path. Keep existing tags unchanged and commit these on `master`.
+
+The source archive is now about 149.3 MiB instead of 817.8 MiB. It contains 11
+library components sharing 10 upstream inputs, their x86-64/ARM patches and
+selected build recipes. The actual Linux x86-64 bundle's 130 library filenames
+match that inventory; no unused source components remain. Linux startup passes
+with `/nix` hidden. Formatting, strict native Clippy, all-system Nix evaluation
+and 12 release-policy tests pass. Hosted ARM bundle validation remains a CI gate.
+
+Local workspace cleanup removed 64.28 GiB of rebuildable caches, extracted test
+assets and intermediate video parts. Final recordings, editable artwork, input
+tapes, validation fixtures and release uploads remain; the checkout now occupies
+about 87 GiB, mostly that retained private material. No tracked files or sibling
+repositories were removed. The detailed local inventory is
+`private/cleanup-2026-10-28.json`.
+
 The first release is prepared as **v0.1.0**, dated 2026-10-28, with an empty
 Unreleased section for subsequent changes. `origin` is configured for
 `Fuuzetsu/tenchu-shinobi-gaisen-pc`; `master` remains the default branch.
@@ -76,8 +98,8 @@ sets, dated changelog extraction, prerelease handling, stale-HEAD rejection and
 published-version protection. Added MIT licensing for original project
 code/resources at the user's request; third-party fonts/libraries retain their
 notices. Archives include build identity, license notices and a separate source
-download covering the bundled native components, locked Rust dependencies and
-pinned build recipes. Bundling rejects libraries outside that source inventory.
+download covering the copyleft native components and pinned build recipes.
+Bundling rejects libraries outside the license inventory.
 
 Validation passed: 137 ordinary tests, native/WASM strict Clippy, formatting,
 all-system Nix evaluation, workflow/shell checks and ten release-policy tests.

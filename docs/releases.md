@@ -141,9 +141,13 @@ Do not merge or push any older, unfiltered history back into this repository.
   filename/content scan is not a legal certification of the code.
 - **Publish with the binaries:** changelog, concise run instructions, checksums,
   build identity, font/Rust/native-library notices and corresponding dependency
-  sources. The Linux bundle contains LGPL libraries; preserve the source archive
-  alongside redistribution. It includes upstream sources, applied patches,
-  complete pinned Nixpkgs recipes and this port's packaging code.
+  sources. The Linux bundle contains copyleft libraries; preserve the source
+  archive alongside redistribution. It includes their upstream sources, applied
+  patches, relevant pinned Nixpkgs recipes and this port's packaging code.
+  `bundled-libraries.json` maps the shipped libraries to `source-packages.json`;
+  publication checks that every required source and recipe is present and that
+  no source component is unrelated to the Linux bundles. Windows/browser
+  downloads retain notices but do not need this Linux source archive.
 - **HD artwork is a separate download.** The pack contains 1,418 direct generated PNG
   replacements and 301 disc-backed recipes (1,719 texture identities), generated
   technical layers and two authored weapon meshes: 142.7 MiB of referenced inputs.
@@ -201,7 +205,15 @@ this is asset-load work, not a per-frame cost.
 
 Updated archives have verified checksums/build identity, complete notices and
 no HD PNG/OBJ inputs: Linux x86-64 26.6 MiB, Windows x86-64 17.7 MiB, WASM 6.5 MiB.
-The separate artwork download is 141.8 MiB; dependency sources are 817.8 MiB.
+The separate artwork download is 141.8 MiB. The v0.1.0 dependency-source archive
+was 817.8 MiB; the follow-up on `master` reduces it to about 149.3 MiB by keeping
+only copyleft libraries shipped with Linux. Shared upstream inputs are deduplicated,
+and patches for both x86-64 and ARM are included. Rust compiler/Cargo sources,
+permissive-library sources and unrelated Nixpkgs packages are omitted; all
+required license notices remain. The source inventory matches the actual x86-64
+bundle, and its launcher starts with `/nix` hidden. Formatting, strict native
+Clippy, all-system Nix evaluation and 12 release-policy tests pass. The final
+two-architecture inventory check also runs before hosted publication.
 Linux library loading passes with `/nix` hidden. Windows/Wine automatically finds
 the neighbouring archive and exports all 1,722 inputs with matching hashes.
 The browser shows its menu before mission artwork finishes downloading, loads

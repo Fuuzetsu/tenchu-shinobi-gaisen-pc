@@ -47,4 +47,13 @@ for name, path in sorted(dependencies.items()):
     if not name.startswith("ld-linux-"):
         subprocess.run(["patchelf", "--set-rpath", "$ORIGIN", str(copied)], check=True)
 
+inventory = {}
+for name, path in sorted(dependencies.items()):
+    component = next(c for c in components if any(path.is_relative_to(output) for output in c["outputs"]))
+    inventory[f"lib/{name}"] = {
+        "component": component["name"],
+        "source_archive": component["source_archive"],
+    }
+(destination / "bundled-libraries.json").write_text(json.dumps(inventory, indent=2) + "\n")
+
 subprocess.run(["patchelf", "--set-rpath", "$ORIGIN/../lib", str(program)], check=True)

@@ -81,4 +81,5 @@ disc in Rust; no Python or image service is needed to play.
 This is an unofficial port. Original project code/resources use the [MIT License](LICENSE),
 without warranty. See [third-party attribution](COPYING.md) and
 [release status / maintainer instructions](docs/releases.md). The dependency-source
-archive is for redistribution/rebuilding; it is not needed to play.
+archive supplies source for copyleft libraries bundled with Linux; it is not
+needed to play or for Windows/browser redistribution.
