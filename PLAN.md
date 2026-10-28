@@ -10,7 +10,7 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
-## Release preparation (implemented; hosted validation pending)
+## Release preparation
 
 F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
 cues. Explicit event categories cover every vibration call, including shared
@@ -26,9 +26,19 @@ The F1 UI and native restart preserve the settings; the full WASM build and
 packaging checks also pass. No new graphics preset or visual demo is needed
 for controller-only preferences.
 
-Publish v0.2.0 with these controls and the pending input remapping, remembered-disc
-and smaller source-download changes. v0.1.0, rolling HEAD and artwork-v1 are
-confirmed published; retain versioned tags and reuse the compatible artwork pack.
+Release **v0.2.0** includes these controls, input remapping, remembered-disc
+startup and the smaller source download. Hosted publication gates cover native
+tests/Clippy, Linux x86-64/ARM64, Windows startup, WASM and complete matching
+archive inventories. v0.1.0, rolling HEAD and artwork-v1 are confirmed published;
+retain versioned tags and reuse the compatible artwork pack.
+
+The v0.2.0 Linux x86-64, Windows and WASM archives build locally with matching
+checksums and version metadata. Linux starts with `/nix` hidden; Windows starts
+under Wine. The reduced 149.3 MiB source archive covers all 11 copyleft components
+in the Linux inventory. Nix native tests, strict Clippy, formatting, workflow
+checks and evaluation for all supported systems pass. Hosted Linux ARM64 and
+real Windows startup remain publication gates; physical controller feel and
+Windows/ARM/Mac GPU gameplay are not inferred from those checks.
 
 Post-release follow-up: reduce the dependency-source archive to the copyleft
 libraries actually shipped in the portable Linux bundle, preserving their
@@ -78,12 +88,11 @@ about 87 GiB, mostly that retained private material. No tracked files or sibling
 repositories were removed. The detailed local inventory is
 `private/cleanup-2026-10-28.json`.
 
-The first release is prepared as **v0.1.0**, dated 2026-10-28, with an empty
-Unreleased section for subsequent changes. `origin` is configured for
-`Fuuzetsu/tenchu-shinobi-gaisen-pc`; `master` remains the default branch.
-Publish the compatible `artwork-v1` download before pushing the game tag that
-triggers the versioned release. Hosted builds and public downloads still need
-verification after the first push.
+The first release **v0.1.0**, rolling HEAD and the compatible **artwork-v1** pack
+were published on 2026-10-28. Both hosted game workflows passed and all downloads
+are present. `origin` is `Fuuzetsu/tenchu-shinobi-gaisen-pc`; `master` remains the
+default branch. Each new tag gets a dated changelog section, with an empty
+Unreleased section for subsequent changes.
 
 HD distribution follow-up: bounded texture recipes now run in Rust for native
 and WASM loading. All 301 converted recipes match the accepted artwork byte for
@@ -112,7 +121,7 @@ the old asset objects were pruned. The temporary publication checkout was
 removed: develop and publish from the usual repository on `master`. The editable
 pack and release tarball remain outside Git, with the archive checksum verified
 after cleanup. Rebuild release artifacts to use the rewritten commit IDs.
-No public upload has been performed. The archive/directory comparisons pass on
+The archive/directory comparisons pass on
 Linux and Windows/Wine for both characters in all missions/training and all menu
 languages. The browser loads all ten missions offline after background prefetch.
 Archive extraction rejects unsafe paths, links, corrupt frames and excessive
@@ -152,9 +161,9 @@ and metadata. The Linux archive starts/loads libraries with `/nix` hidden and
 renders Mission 1 on Vulkan; Windows startup passes under Wine/X11; the WASM
 site serves its module with correct headers. The pre-HD history audit found
 only the documented OFL font binaries; the later full audit above also found
-no credential-pattern matches or private outputs. No release has been published;
-hosted and physical-platform validation remain. See `docs/releases.md` for the
-review and release procedure.
+no credential-pattern matches or private outputs. These local checks preceded
+the successful v0.1.0 hosted builds; physical-platform validation remains.
+See `docs/releases.md` for the review and release procedure.
 
 ## Performance, presets and first launch (implemented)
 

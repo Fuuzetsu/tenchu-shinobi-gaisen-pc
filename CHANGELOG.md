@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.2.0 — 2026-10-28
+
 ### Added
 
 - F1 → Vibration controls with a global intensity slider and separate sliders

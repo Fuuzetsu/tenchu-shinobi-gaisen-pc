@@ -34,7 +34,7 @@ See [GitHub's release immutability documentation](https://docs.github.com/en/cod
 2. Choose the version. Set `[workspace.package].version` in `Cargo.toml`, then
    run `./dev.sh cargo check --workspace` to update the workspace packages in
    `Cargo.lock`. Nix reads the same version; there is no second version to edit.
-3. Move the release's entries beneath `## 0.1.0 — YYYY-MM-DD` (use the actual
+3. Move the release's entries beneath `## 0.2.0 — YYYY-MM-DD` (use the actual
    version/date). Leave an empty `## Unreleased` above it for subsequent work.
    The initial Unreleased section describes the first public release, not a
    history of releases that never happened.
@@ -42,8 +42,8 @@ See [GitHub's release immutability documentation](https://docs.github.com/en/cod
    Push the commit, then create and push an annotated tag, for example:
 
    ```sh
-   git tag -a v0.1.0 -m 'Tenchu PC 0.1.0'
-   git push origin v0.1.0
+   git tag -a v0.2.0 -m 'Tenchu PC 0.2.0'
+   git push origin v0.2.0
    ```
 
 Tags must be `vMAJOR.MINOR.PATCH`, optionally `-alpha.N`, `-beta.N` or `-rc.N`.
@@ -56,7 +56,7 @@ Do not move a published tag or silently replace its binaries.
 ```sh
 nix flake check
 nix build .#linux-archive .#windows-archive .#web-archive .#dependency-sources-archive
-python3 packaging/release.py notes refs/tags/v0.1.0 /tmp/tenchu-release-notes.md
+python3 packaging/release.py notes refs/tags/v0.2.0 /tmp/tenchu-release-notes.md
 ```
 
 Use the intended tag in the last command. No retail disc is required by hosted
@@ -129,11 +129,11 @@ Do not merge or push any older, unfiltered history back into this repository.
   distinguishes the project's license from third-party notices. The
   reverse-engineering provenance in [SOURCES.md](../SOURCES.md) does
   not grant rights to the original game or claim clean-room development.
-- **v0.1.0 is prepared locally.** Cargo and the dated changelog agree on 0.1.0;
-  the compatible HD pack is `artwork-v1`. `origin` points to
-  `Fuuzetsu/tenchu-shinobi-gaisen-pc`. The hosted workflow and actual public
-  downloads need verification after the first push. Keep `master` as the hosted
-  default branch and publish the artwork before pushing the game tag.
+- **v0.1.0 and artwork-v1 are published.** Both initial hosted game workflows
+  completed successfully; Linux x86-64/ARM64, Windows, WASM, source downloads
+  and checksums are public. `master` is the hosted default branch in
+  `Fuuzetsu/tenchu-shinobi-gaisen-pc`. The v0.2.0 release reuses `artwork-v1` and
+  adds input remapping, vibration controls, remembered discs and smaller sources.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
   captures and recordings/reference screenshots.
   Full-history findings and the completed history cleanup are above.
@@ -192,8 +192,8 @@ its dynamic libraries with `/nix` hidden; the extracted bundle rendered Mission 
 on NVIDIA Vulkan. Windows `--version` passed under Wine/X11 (Wine's Wayland
 initialisation failed independently of the game). The browser archive serves its
 module with the proper WASM MIME type and isolation headers. These are local
-packaging checks, not evidence that the GitHub workflow has run or that physical
-Windows/ARM/macOS GPU gameplay is validated.
+packaging checks. The later v0.1.0 hosted workflows passed too; neither result
+validates physical Windows/ARM/macOS GPU gameplay.
 
 HD-distribution verification passed: 143 ordinary workspace tests, focused
 archive safety tests on Linux and Windows/Wine, native/Windows/WASM strict Clippy,
