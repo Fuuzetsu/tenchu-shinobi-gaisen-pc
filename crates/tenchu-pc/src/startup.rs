@@ -16,7 +16,75 @@ pub fn open(path: &Path) -> Result<Assets> {
     load().map_err(|error: String| format!("{}: {error}\n\n{DISC_HELP}", path.display()))
 }
 
-pub fn choose() -> Result<Option<(PathBuf, Assets)>> {
+pub fn select(explicit: Option<&Path>) -> Result<Option<(PathBuf, Assets)>> {
+    let remembered = crate::storage::UserFile::LastDisc
+        .path()
+        .inspect_err(|error| eprintln!("Disc path will not be remembered: {error}"))
+        .ok();
+    select_with(explicit, remembered.as_deref(), open, choose)
+}
+
+fn select_with<T>(
+    explicit: Option<&Path>,
+    saved: Option<&Path>,
+    open: impl Fn(&Path) -> Result<T>,
+    choose: impl FnOnce() -> Result<Option<(PathBuf, T)>>,
+) -> Result<Option<(PathBuf, T)>> {
+    let selected = if let Some(path) = explicit {
+        Some((path.to_owned(), open(path)?))
+    } else {
+        let previous = saved
+            .and_then(remembered_path)
+            .and_then(|path| match open(&path) {
+                Ok(assets) => {
+                    println!("Using previous disc: {}", path.display());
+                    Some((path, assets))
+                }
+                Err(error) => {
+                    eprintln!("Previous disc could not be opened; choose it again: {error}");
+                    None
+                }
+            });
+        match previous {
+            Some(previous) => Some(previous),
+            None => choose()?,
+        }
+    };
+    if let Some((path, _)) = &selected
+        && let Some(saved) = saved
+    {
+        let remember = || {
+            let absolute = std::path::absolute(path).map_err(|e| e.to_string())?;
+            let bytes = serde_json::to_vec(&absolute).map_err(|e| e.to_string())?;
+            crate::storage::atomic_write(saved, &bytes)
+        };
+        if let Err(error) = remember() {
+            eprintln!("Game disc opened, but its path could not be saved: {error}");
+        }
+    }
+    Ok(selected)
+}
+
+fn remembered_path(saved: &Path) -> Option<PathBuf> {
+    let load = || {
+        let bytes = match crate::storage::read(saved) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error.to_string()),
+        };
+        let path: PathBuf = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        Ok((path.is_absolute() && path.is_file()).then_some(path))
+    };
+    load().unwrap_or_else(|error: String| {
+        eprintln!(
+            "Could not read previous disc path from {}: {error}",
+            saved.display()
+        );
+        None
+    })
+}
+
+fn choose() -> Result<Option<(PathBuf, Assets)>> {
     eprintln!("{DISC_HELP}\n\nCommand line: tenchu-pc play '/path/to/game.cue'");
     if cfg!(target_os = "linux")
         && std::env::var_os("DISPLAY").is_none()
@@ -59,3 +127,6 @@ pub fn show_error(error: &str) {
         .set_description(error)
         .show();
 }
+
+#[cfg(test)]
+mod tests;

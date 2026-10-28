@@ -17,6 +17,8 @@ pub enum UserFile {
     Settings,
     Presets,
     Controls,
+    #[cfg(not(target_arch = "wasm32"))]
+    LastDisc,
 }
 
 impl UserFile {
@@ -57,6 +59,12 @@ impl UserFile {
             Self::Controls => (
                 "controls.json",
                 "TENCHU_CONTROLS",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
+            Self::LastDisc => (
+                "last-disc.json",
+                "TENCHU_LAST_DISC",
                 "XDG_CONFIG_HOME",
                 ".config",
             ),

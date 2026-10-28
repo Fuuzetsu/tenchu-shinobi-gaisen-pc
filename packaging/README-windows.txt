@@ -4,6 +4,10 @@ Extract the archive and double-click tenchu-pc.exe to choose your game CUE,
 or run from PowerShell:
   .\tenchu-pc.exe play 'C:\Games\Tenchu\game.cue'
 
+The last verified disc is remembered. Double-click to reuse it next time; if it
+is missing or invalid, the picker opens again. An explicit path takes priority.
+F1 > General > Controls remaps keyboard/controller inputs and saves the bindings.
+
 Install Windows FFmpeg and add its bin directory to PATH for opening/ending
 movies and video export, or set:
   $env:TENCHU_FFMPEG = 'C:\Tools\ffmpeg\bin\ffmpeg.exe'

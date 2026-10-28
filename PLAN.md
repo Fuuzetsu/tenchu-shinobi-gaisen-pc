@@ -39,6 +39,20 @@ and analog triggers, saves them in local storage and reassigns conflicts.
 Strict native Clippy, formatting and the full WASM host build pass. Physical
 controller/Windows tests remain separate from the synthetic Gamepad API check.
 
+Native startup now remembers successful, verified disc selections in a separate
+`last-disc.json` preference. Without an explicit path it verifies and reopens
+the saved disc, or falls back to the picker if it is missing/damaged. Explicit
+paths retain strict precedence, even when invalid. Stored paths are absolute
+without resolving CUE symlinks, so their relative BIN references remain intact;
+preference-write failures do not block play. Focused tests cover precedence,
+cancellation, invalid/missing preferences and unwritable storage. A real Linux
+restart from a different working directory reopens the saved CUE without
+arguments; invalid explicit paths and missing CUE/BIN recovery also pass. All
+148 ordinary workspace tests, strict native Clippy, formatting, CI packaging
+checks and all-system Nix evaluation pass. The updated Windows build passes
+startup under Wine. Browser controls retain their mappings after reload and
+drive actual Mission 1 jumps/Pause through both keyboard and the synthetic pad.
+
 Local workspace cleanup removed 64.28 GiB of rebuildable caches, extracted test
 assets and intermediate video parts. Final recordings, editable artwork, input
 tapes, validation fixtures and release uploads remain; the checkout now occupies

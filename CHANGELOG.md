@@ -10,6 +10,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Keyboard and controller remapping in F1 → General → Controls, including both
   sticks, alternate bindings, conflict reassignment and per-device reset. Bindings
   persist across launches on desktop and in the browser.
+- Desktop startup remembers the last verified disc path. Launching without a
+  path reuses it when available; missing or invalid discs return to the picker.
+  An explicitly supplied path always takes priority.
 
 ### Changed
 

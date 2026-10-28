@@ -3,6 +3,10 @@ Tenchu: Shinobi Gaisen PC — Linux
 Extract the whole archive and run ./tenchu-pc to choose your game CUE, or:
   ./tenchu-pc play '/path/to/game.cue'
 
+The last verified disc is remembered. Run without a path to reuse it next time;
+if it is missing or invalid, the picker opens again. An explicit path takes priority.
+F1 > General > Controls remaps keyboard/controller inputs and saves the bindings.
+
 This archive includes the program's shared libraries and dynamic loader. Nix
 is not required. Keep lib/, libexec/ and share/ beside the tenchu-pc launcher;
 do not launch libexec/tenchu-pc directly. Use the archive matching your CPU:

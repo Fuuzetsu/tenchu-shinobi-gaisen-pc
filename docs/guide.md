@@ -521,8 +521,13 @@ require private game data or graphics hardware.
 ISO files and raw BIN data tracks also work. Disc data is read on demand; it is
 never an input to the Nix package or copied into the Nix store.
 
-Starting without arguments, or using `play` without a disc path, opens a native
-file picker. Windows also accepts dragging a CUE onto the executable. Keep its
+Starting without arguments, or using `play` without a disc path, reopens the
+last verified disc when it is still available. Otherwise it opens a native
+file picker. An explicitly supplied path always takes priority, including errors;
+it never silently opens a different disc. Successful selections are saved as an
+absolute path in `last-disc.json` beside settings (`TENCHU_LAST_DISC` overrides
+that preference-file location). Delete that file to forget the selection.
+Windows also accepts dragging a CUE onto the executable. Keep its
 referenced BIN files beside it. Linux uses a desktop file-picker portal or
 Zenity; the Nix package includes Zenity. If neither is available in a portable
 Linux installation, pass the CUE path explicitly.

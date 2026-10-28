@@ -31,6 +31,8 @@ HEAD on `master`; release downloads do not have the Actions artifact expiry.
 Or launch directly: `tenchu-pc play "/path/to/game.cue"` (Windows:
 `.\tenchu-pc.exe play "C:\Games\Tenchu\game.cue"`). Linux downloads include their
 shared libraries; Nix is not needed to run them. Use your OS's GPU drivers.
+The last verified disc is remembered. Next time, launch without a path to reuse
+it; an explicit path always wins, and missing/invalid discs reopen the picker.
 Install **FFmpeg** for opening/ending movies, or place `ffmpeg.exe` beside the
 Windows executable. [Platform details](docs/guide.md#build-and-inspect-a-disc).
 
