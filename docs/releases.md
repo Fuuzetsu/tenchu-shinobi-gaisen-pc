@@ -101,25 +101,27 @@ recipes execute from local disc textures in WASM. Native and browser binaries
 build independently of the artwork download. There is no automatic network
 fetch during gameplay.
 
-## Preparing public history
+## Public history
 
 The full audit through the separation commit (270 reachable commits,
 4,545 unique blobs) found 1,710 unique PNG blobs, all introduced under `assets/hd/`
 in the recent HD import, plus the two documented OFL font binaries. It found no
 disc/retail executables, BIOS, RAM captures, screenshots or recording files,
 and no matches for the checked credential patterns.
-The PNG/OBJ inputs now live outside the tracked tree, but the import remains
-in this development history.
 
-Keep this repository intact. Before the first public push, create a separate
-clone and filter **only `assets/hd/`** from all its history using `git filter-repo`.
-Audit the filtered clone again before adding its public remote. This retains the
-useful code history while removing the large artwork blobs. A clean initial
-snapshot is also possible, but the audit found no reason to discard all prior
-code commits. Preserve the development history; the filtered publication copy
-should have an identical current source tree and no HD blobs reachable in its
-history. Rebuild from that copy because filtering changes commit IDs. Do not
-push or merge the unfiltered development history into the public repository.
+Before publication, `assets/hd/` was removed from this repository's entire
+history using `git filter-repo`. The cleanup retained all 272 existing commits
+and left the current source tree unchanged. A fresh history audit found only
+the two documented OFL font binaries, no HD PNG/OBJ inputs, no suspect resource
+paths and no matches for the checked credential patterns. Git's integrity check
+passed with no unreachable objects; the old asset blobs were pruned.
+
+Continue development and publish from the usual
+`~/programming/tenchu-shinobi-gaisen-pc` directory on `master`. The temporary
+`private/public-repository` checkout was removed; there is only one repository
+to maintain. The editable HD pack and its release tarball remain outside Git.
+Rebuild release artifacts from the rewritten history because commit IDs changed.
+Do not merge or push any older, unfiltered history back into this repository.
 
 ## Publication review (2026-10-28)
 
@@ -132,7 +134,7 @@ push or merge the unfiltered development history into the public repository.
   local branch is `master`; select it as the hosted default branch too.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
   captures and recordings/reference screenshots.
-  Full-history findings and the recommended separate-clone cleanup are above.
+  Full-history findings and the completed history cleanup are above.
   Generated composites and original reference assets remain ignored. A
   filename/content scan is not a legal certification of the code.
 - **Publish with the binaries:** changelog, concise run instructions, checksums,

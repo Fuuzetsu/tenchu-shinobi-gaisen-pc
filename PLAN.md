@@ -31,14 +31,18 @@ inputs. Browser exports include recipe dependencies in menu
 or background prefetch, and only the selected scene's final images enter the
 existing memory budget. The game ships no Python interpreter or Pillow runtime.
 Public packaging includes image-algorithm attribution and an inventory/hash
-check. The complete 270-commit history audit found only the documented fonts
-and authored HD PNG/OBJ inputs as binary/model resources. The latter still occur
-in the previous import commit; filter `assets/hd/` from a separate public clone
-before publication, preserving this development repository and checking that
-the publication copy has identical current source files. No public upload has
-been performed. The archive/directory comparisons pass on Linux and Windows/Wine
-for both characters in all missions/training and all menu languages. The browser
-loads all ten missions offline after background prefetch. Archive extraction
+check. The full history audit found only the documented fonts and authored HD
+PNG/OBJ inputs as binary/model resources. The HD import was then removed from
+this repository's history, retaining all 272 existing commits and the identical
+current source tree. A fresh audit found only the two documented font binaries;
+the old asset objects were pruned. The temporary publication checkout was
+removed: develop and publish from the usual repository on `master`. The editable
+pack and release tarball remain outside Git, with the archive checksum verified
+after cleanup. Rebuild release artifacts to use the rewritten commit IDs.
+No public upload has been performed. The archive/directory comparisons pass on
+Linux and Windows/Wine for both characters in all missions/training and all menu
+languages. The browser loads all ten missions offline after background prefetch.
+Archive extraction
 rejects unsafe paths, links, corrupt frames and excessive sizes. Native, Windows
 and WASM strict Clippy, 143 ordinary tests, packaging checks and updated Linux/
 Windows/WASM/source archive builds pass. The game archives are now 26.6/17.7/6.5
