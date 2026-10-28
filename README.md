@@ -42,6 +42,7 @@ Ultra are available under **Presets / save as…**, along with save/rename for y
 own presets. New installs use Modern Low; existing preferences are kept.
 **F8** toggles original graphics; **F6** opens the quick launcher from the menu.
 **F1 → General → Controls** remaps keyboard/controller inputs and saves your bindings.
+**F1 → Vibration** sets global and per-action controller strength.
 [Controls](docs/guide.md#play) · [Benchmarks and measured improvements](docs/performance.md)
 
 ## Build from source

@@ -38,7 +38,8 @@ impl Actor {
         self.clear_attack(ctx, 3)?;
         if self.id == world.player {
             ctx.camera.mode = crate::camera::Mode::Swim;
-            ctx.effects.rumble(self.id, 255, 10, 0);
+            ctx.effects
+                .rumble(self.id, RumbleAction::WaterEntry, 255, 10, 0);
         }
         world.intelligence.action_halt = 0;
         self.hide_body(ctx.scene, true);

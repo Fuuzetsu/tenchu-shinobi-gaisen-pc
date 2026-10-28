@@ -7,6 +7,7 @@ or run from PowerShell:
 The last verified disc is remembered. Double-click to reuse it next time; if it
 is missing or invalid, the picker opens again. An explicit path takes priority.
 F1 > General > Controls remaps keyboard/controller inputs and saves the bindings.
+F1 > Vibration adjusts global and per-action controller strength (0-200%).
 
 Install Windows FFmpeg and add its bin directory to PATH for opening/ending
 movies and video export, or set:

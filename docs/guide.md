@@ -825,6 +825,17 @@ Escape cancels capture; Escape, Enter and F1–F12 retain menu/tool shortcuts,
 and Backspace retains cutscene fast-forward. Bindings use physical key positions.
 Free-camera/tool navigation keeps its separate shortcuts.
 
+**F1 → Vibration** adjusts global intensity and each of the 17 gameplay cues
+independently: swings, clashes, successful/blocked hits, blocking, melee and
+item/trap damage, animal/target hits, body slams, stealth kills and their
+uneven-ground interruption, jump collisions, normal/heavy/flip landings, ledge
+grabs and entering water. Each slider spans 0–200%; 100% preserves the existing
+strength, 0 disables it. Global and action strengths multiply, scaling both
+motors up to their hardware maximum without changing timing or gameplay.
+Changes save with settings and are independent of graphics/gameplay presets.
+R or right-click resets a slider. The enable switch is shared with the original
+menu; a force-feedback-capable controller and host driver are required.
+
 **F1** opens a compact settings overlay from any screen. Click categories,
 checkboxes and dropdowns; drag sliders or double-click numbers to type.
 Drag the title bar to move the panel, resize its width, and scroll long pages.

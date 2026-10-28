@@ -163,6 +163,14 @@ impl Application {
             self.set_sight(previous.sight_percent);
             return;
         }
+        if self.settings.vibration != previous.vibration
+            || self.settings.frontend.rumble != previous.frontend.rumble
+        {
+            self.controls.stop_rumble();
+        }
+        if let Some(frontend) = &mut self.frontend {
+            frontend.set_rumble(self.settings.frontend.rumble);
+        }
         if self.demo.is_none()
             && self.settings != *previous
             && let Err(error) = self.settings_store.write(&self.settings)

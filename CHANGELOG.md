@@ -7,6 +7,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ### Added
 
+- F1 → Vibration controls with a global intensity slider and separate sliders
+  for all 17 vibration actions, including hits, blocks, stealth kills, landings,
+  ledge grabs and water entry. Settings persist, scale both motors and share the
+  original menu's enable switch; graphics presets leave them unchanged.
 - Keyboard and controller remapping in F1 → General → Controls, including both
   sticks, alternate bindings, conflict reassignment and per-device reset. Bindings
   persist across launches on desktop and in the browser.

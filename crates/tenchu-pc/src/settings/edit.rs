@@ -10,6 +10,7 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Item::VibrationIntensity | Item::VibrationAction(_) => (0, 200, 5, 1),
             Item::MotionStrength => (0, 200, 5, 1),
             Item::MotionResponse | Item::MotionWind => (0, 100, 5, 1),
             Item::WeatherAmount
@@ -78,6 +79,7 @@ impl Item {
 
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
+            Self::Vibration => &mut settings.frontend.rumble,
             Self::GrappleDetail => &mut settings.graphics.models.grapple,
             Self::ContactSparks => &mut settings.graphics.effects.sparks,
             Self::ContactSplashes => &mut settings.graphics.effects.splashes,
@@ -121,6 +123,10 @@ impl Item {
 
     fn number(self, settings: &mut Settings) -> Option<&mut u16> {
         Some(match self {
+            Self::VibrationIntensity => &mut settings.vibration.intensity,
+            Self::VibrationAction(action) => {
+                settings.vibration.actions.entry(action).or_insert(100)
+            }
             Self::SparkDensity => &mut settings.graphics.effects.spark_density,
             Self::LeafDensity => &mut settings.graphics.effects.leaf_density,
             Self::MotionStrength => &mut settings.graphics.motion.strength,

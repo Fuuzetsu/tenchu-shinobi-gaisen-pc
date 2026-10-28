@@ -192,9 +192,56 @@ pub struct Line {
     pub color: [u8; 3],
 }
 
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum RumbleAction {
+    Attack,
+    WeaponClash,
+    Hit,
+    HitBlocked,
+    Block,
+    Damage,
+    ItemDamage,
+    TargetHit,
+    Knockdown,
+    StealthKill,
+    StealthInterrupted,
+    JumpCollision,
+    Landing,
+    HeavyLanding,
+    FlipLanding,
+    LedgeGrab,
+    WaterEntry,
+}
+
+impl RumbleAction {
+    pub const ALL: [Self; 17] = [
+        Self::Attack,
+        Self::WeaponClash,
+        Self::Hit,
+        Self::HitBlocked,
+        Self::Block,
+        Self::Damage,
+        Self::ItemDamage,
+        Self::TargetHit,
+        Self::Knockdown,
+        Self::StealthKill,
+        Self::StealthInterrupted,
+        Self::JumpCollision,
+        Self::Landing,
+        Self::HeavyLanding,
+        Self::FlipLanding,
+        Self::LedgeGrab,
+        Self::WaterEntry,
+    ];
+}
+
 #[derive(Clone, Debug)]
 pub struct Rumble {
     pub actor: usize,
+    pub action: RumbleAction,
     pub power: u8,
     pub attack: u16,
     pub release: u16,
@@ -236,9 +283,17 @@ impl Default for Effects {
 }
 
 impl Effects {
-    pub fn rumble(&mut self, actor: usize, power: u8, attack: u16, release: u16) {
+    pub fn rumble(
+        &mut self,
+        actor: usize,
+        action: RumbleAction,
+        power: u8,
+        attack: u16,
+        release: u16,
+    ) {
         self.rumble.push(Rumble {
             actor,
+            action,
             power,
             attack,
             release,

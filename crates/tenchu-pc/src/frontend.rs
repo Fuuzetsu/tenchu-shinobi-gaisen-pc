@@ -129,6 +129,16 @@ pub struct Frontend {
 }
 
 impl Frontend {
+    pub fn set_rumble(&mut self, enabled: bool) {
+        if self.preferences.rumble != enabled {
+            self.preferences.rumble = enabled;
+            if self.page == Page::Choice(6) {
+                self.choice = usize::from(!enabled);
+            }
+            self.dirty = true;
+        }
+    }
+
     pub fn buttons(&self, buttons: u16) -> u16 {
         let mut result = buttons;
         for (source, target) in self.tables.button_assign[0]

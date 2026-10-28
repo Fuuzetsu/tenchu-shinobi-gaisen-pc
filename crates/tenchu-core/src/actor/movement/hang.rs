@@ -98,7 +98,8 @@ impl Actor {
             self.position.y = self.position.y.wrapping_sub(105i32.wrapping_sub(y));
         }
         self.enter_unless_scripted(ctx, MOT_HANG_CATCH, true);
-        ctx.effects.rumble(self.id, 127, 0, 30);
+        ctx.effects
+            .rumble(self.id, RumbleAction::LedgeGrab, 127, 0, 30);
         ctx.effects.sounds.push((self.position, 0x1b));
         Ok(true)
     }

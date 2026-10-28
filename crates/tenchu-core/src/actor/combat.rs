@@ -221,7 +221,8 @@ impl Actor {
                 .ok_or("Clash collision index exceeds loaded BattleDB")?;
             self.motion.loops = battle.power / -3 - 1;
             world.intelligence.voices.push((self.id, 0x36));
-            ctx.effects.rumble(self.id, 255, 10, 0);
+            ctx.effects
+                .rumble(self.id, RumbleAction::WeaponClash, 255, 10, 0);
             break;
         }
         Ok(())
@@ -477,7 +478,7 @@ impl Actor {
                 }
             }
             world.intelligence.voices.push((self.id, 2));
-            ctx.effects.rumble(self.id, 255, 5, 0);
+            ctx.effects.rumble(self.id, RumbleAction::Attack, 255, 5, 0);
         } else if self.motion.count == battle.end {
             self.clear_attack(ctx, 1)?;
         }

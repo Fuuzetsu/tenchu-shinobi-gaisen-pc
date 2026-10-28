@@ -125,6 +125,31 @@ fn menu_navigation_does_not_change_preferences_or_gameplay() {
         .action(Action::Back, &mut campaign, &assets)
         .unwrap();
     assert_eq!(frontend.preferences.music, 96);
+    frontend.option_selection = 6;
+    frontend.open_option(&campaign);
+    frontend.ticks = 16;
+    frontend.set_rumble(false);
+    assert_eq!(frontend.choice, 1);
+    frontend
+        .action(Action::Confirm, &mut campaign, &assets)
+        .unwrap();
+    assert!(!frontend.preferences.rumble);
+    frontend.set_rumble(true);
+    frontend.open_option(&campaign);
+    frontend.ticks = 16;
+    assert_eq!(frontend.choice, 0);
+    frontend
+        .action(Action::Down, &mut campaign, &assets)
+        .unwrap();
+    frontend.set_rumble(true);
+    assert_eq!(
+        frontend.choice, 1,
+        "unrelated F1 edits must preserve an unconfirmed choice"
+    );
+    frontend
+        .action(Action::Confirm, &mut campaign, &assets)
+        .unwrap();
+    assert!(!frontend.preferences.rumble);
     for scheme in 0..4 {
         frontend.preferences.control_scheme = scheme;
         for (source, target) in frontend.tables.button_assign[0]

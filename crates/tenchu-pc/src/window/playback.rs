@@ -24,6 +24,7 @@ impl Application {
                 && self.focused
                 && self.campaign.playing()
                 && self.demo.is_none(),
+            &self.settings.vibration,
         );
         if let Some(audio) = &mut self.audio {
             if let Err(error) = audio.tick(&self.campaign.game) {

@@ -1,4 +1,5 @@
 use super::Controls;
+use crate::settings::Vibration;
 use gilrs::ff::{BaseEffect, BaseEffectType, EffectBuilder, Envelope, Repeat, Replay, Ticks};
 use tenchu_core::{effects::Rumble, game::Game};
 
@@ -9,8 +10,8 @@ impl Controls {
         }
     }
 
-    pub fn feedback(&mut self, game: &Game, enabled: bool) {
-        if !enabled || game.cinematic.active {
+    pub fn feedback(&mut self, game: &Game, enabled: bool, vibration: &Vibration) {
+        if !enabled || vibration.intensity == 0 || game.cinematic.active {
             self.stop_rumble();
             return;
         }
@@ -24,6 +25,10 @@ impl Controls {
             return;
         };
         self.stop_rumble();
+        let gain = vibration.gain(request.action);
+        if gain == 0.0 {
+            return;
+        }
         let Some(gilrs) = &mut self.gilrs else {
             return;
         };
@@ -33,7 +38,7 @@ impl Controls {
         else {
             return;
         };
-        let mut builder = effect(request);
+        let mut builder = effect(request, gain);
         match builder.gamepads(&[id]).finish(gilrs).and_then(|effect| {
             effect.play()?;
             Ok(effect)
@@ -44,7 +49,7 @@ impl Controls {
     }
 }
 
-fn effect(request: &Rumble) -> EffectBuilder {
+fn effect(request: &Rumble, gain: f32) -> EffectBuilder {
     // PadProc advances the source envelope twice per 60 Hz callback. The host
     // force-feedback driver quantizes these durations to its supported cadence.
     let duration = |n: u16| Ticks::from_ms((u32::from(n) * 1000).div_ceil(120));
@@ -52,10 +57,11 @@ fn effect(request: &Rumble) -> EffectBuilder {
     let release = duration(request.release);
     let total = attack + release + Ticks::from_ms(1);
     let mut effect = EffectBuilder::new();
+    // Scale the motors directly; gilrs' effect-level gain mutes values below 5%.
     effect.add_effect(BaseEffect {
         kind: BaseEffectType::Strong {
             magnitude: u16::from(request.power) * 257,
-        },
+        } * gain,
         scheduling: Replay {
             play_for: total,
             ..Default::default()
@@ -70,7 +76,7 @@ fn effect(request: &Rumble) -> EffectBuilder {
         effect.add_effect(BaseEffect {
             kind: BaseEffectType::Weak {
                 magnitude: u16::MAX,
-            },
+            } * gain,
             scheduling: Replay {
                 play_for: attack,
                 with_delay: total,

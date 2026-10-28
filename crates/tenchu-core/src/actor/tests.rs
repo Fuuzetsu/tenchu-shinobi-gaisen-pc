@@ -160,6 +160,10 @@ fn weapon_clash_uses_collision_index_for_stun_and_keeps_the_slot() {
     assert_eq!(game.scene.models[hand].attribute & crate::scene::COLLIDE, 0);
     assert_eq!(game.collision.slots[own_slot].results[hit], 0xc1);
     assert_eq!(game.intelligence.voices, [(player, 0x36)]);
+    assert_eq!(
+        game.effects.rumble.last().unwrap().action,
+        RumbleAction::WeaponClash
+    );
 }
 
 #[test]
@@ -231,6 +235,7 @@ fn both_characters_finish_each_stealth_pair_and_leave_a_corpse() {
             let mut critical_camera = false;
             let mut gore = false;
             let mut blood_pool = false;
+            let mut vibration = false;
             for _ in 0..250 {
                 game.step(0).unwrap_or_else(|e| {
                     panic!(
@@ -246,12 +251,17 @@ fn both_characters_finish_each_stealth_pair_and_leave_a_corpse() {
                     .flatten()
                     .any(|e| matches!(e, crate::effects::Effect::Blood(b) if b.gore));
                 blood_pool |= !game.effects.blood_pools.is_empty();
+                vibration |= game
+                    .effects
+                    .rumble
+                    .iter()
+                    .any(|r| r.actor == player && r.action == RumbleAction::StealthKill);
             }
             let expects_gore = game.mission.death_events[variant as usize]
                 .iter()
                 .any(|event| matches!(event.action, 3 | 4) && event.payload[0] != -1);
             assert!(
-                critical_camera && blood_pool,
+                critical_camera && blood_pool && vibration,
                 "character {character}, variant {variant}"
             );
             assert_eq!(

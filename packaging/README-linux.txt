@@ -6,6 +6,7 @@ Extract the whole archive and run ./tenchu-pc to choose your game CUE, or:
 The last verified disc is remembered. Run without a path to reuse it next time;
 if it is missing or invalid, the picker opens again. An explicit path takes priority.
 F1 > General > Controls remaps keyboard/controller inputs and saves the bindings.
+F1 > Vibration adjusts global and per-action controller strength (0-200%).
 
 This archive includes the program's shared libraries and dynamic loader. Nix
 is not required. Keep lib/, libexec/ and share/ beside the tenchu-pc launcher;

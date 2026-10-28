@@ -12,6 +12,24 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation (implemented; hosted validation pending)
 
+F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
+cues. Explicit event categories cover every vibration call, including shared
+hit/block helpers, the three landings and uneven-ground stealth interruption.
+Both motors keep their original envelopes; the enable switch stays synchronized
+with the original menu. Percentages persist independently of visual/gameplay
+presets. Linux virtual-controller testing measures exact full/half/quarter
+motor commands, per-action muting, hardware saturation, 0.25% combined output
+and global/off muting. Physical motor feel remains a hands-on check. All 149
+ordinary tests, 33 disc-backed actor checks (including the C damage oracle),
+frontend option synchronization, formatting and strict native Clippy pass.
+The F1 UI and native restart preserve the settings; the full WASM build and
+packaging checks also pass. No new graphics preset or visual demo is needed
+for controller-only preferences.
+
+Publish v0.2.0 with these controls and the pending input remapping, remembered-disc
+and smaller source-download changes. v0.1.0, rolling HEAD and artwork-v1 are
+confirmed published; retain versioned tags and reuse the compatible artwork pack.
+
 Post-release follow-up: reduce the dependency-source archive to the copyleft
 libraries actually shipped in the portable Linux bundle, preserving their
 upstream sources, patches and build recipes. Add a library/source inventory and

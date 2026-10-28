@@ -1,5 +1,6 @@
 use super::Settings;
 use crate::{campaign::Action, debug::Debug};
+use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
@@ -82,6 +83,9 @@ pub enum Item {
     Vsync,
     Hud,
     Volume,
+    Vibration,
+    VibrationIntensity,
+    VibrationAction(RumbleAction),
     Reset,
     Fog,
     FogDistance,
@@ -235,7 +239,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 19] = [
+pub const PAGES: [&str; 20] = [
     "General",
     "Graphics",
     "Overlays",
@@ -255,6 +259,7 @@ pub const PAGES: [&str; 19] = [
     "Secondary motion",
     "Experiment",
     "Contact effects",
+    "Vibration",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -264,6 +269,32 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        19 => {
+            let mut rows = vec![
+                (
+                    Item::Vibration,
+                    "Controller vibration",
+                    on(s.frontend.rumble),
+                    "Enable controller motors. Shared with the original menu's vibration option; requires a controller with force feedback.",
+                ),
+                (
+                    Item::VibrationIntensity,
+                    "Global intensity",
+                    format!("{}%", s.vibration.intensity),
+                    "0-200%, multiplied by each action's strength. 100% preserves the original strength; 0 mutes all vibration. Motor output is capped at hardware maximum.",
+                ),
+            ];
+            rows.extend(RumbleAction::ALL.map(|action| {
+                let (label, help) = super::vibration::description(action);
+                (
+                    Item::VibrationAction(action),
+                    label,
+                    format!("{}%", s.vibration.intensity(action)),
+                    help,
+                )
+            }));
+            rows
+        }
         18 => vec![
             (
                 Item::GrappleDetail,

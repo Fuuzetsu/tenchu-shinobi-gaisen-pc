@@ -20,6 +20,7 @@ use crate::{
     Result,
     camera::Camera,
     collision::Collision,
+    effects::RumbleAction,
     ids::*,
     input::Pad,
     math::{Math, Matrix},
