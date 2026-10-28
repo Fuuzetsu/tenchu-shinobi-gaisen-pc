@@ -9,6 +9,11 @@ use std::{
 };
 use tenchu_assets::{Result, stage::MissionAssets};
 
+#[cfg(not(target_arch = "wasm32"))]
+mod location;
+#[cfg(not(target_arch = "wasm32"))]
+pub use location::configured_root;
+
 const MAX_PIXELS: usize = 16 * 1024 * 1024;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
@@ -121,8 +126,8 @@ impl Pack {
 
     #[cfg(not(target_arch = "wasm32"))]
     fn configured(selection: Selection) -> Result<Self> {
-        match std::env::var_os("TENCHU_ASSET_PACK") {
-            Some(path) => Self::load_selected(Path::new(&path), Some(selection)),
+        match configured_root() {
+            Some(path) => Self::load_selected(&path, Some(selection)),
             None => Ok(Self::default()),
         }
     }
@@ -448,6 +453,78 @@ mod tests {
             Selection::mission(&game.mission).textures,
             manifest.textures.into_keys().collect()
         );
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC and TENCHU_EXPECTED_PACK; compares native disc-backed recipes across menus and missions"]
+    fn bundled_artwork_matches_reference_with_real_disc_sources() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let expected = std::env::var_os("TENCHU_EXPECTED_PACK").expect("TENCHU_EXPECTED_PACK");
+        let root = configured_root().expect("Configured HD pack");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let compare = |selection: Selection, label: &str| {
+            let started = std::time::Instant::now();
+            let actual = Pack::load_selected(
+                &root,
+                Some(Selection {
+                    originals: selection.originals.clone(),
+                    textures: selection.textures.clone(),
+                    models: selection.models.clone(),
+                    player_models: selection.player_models,
+                }),
+            )
+            .unwrap();
+            let elapsed = started.elapsed();
+            let reference = Pack::load_selected(Path::new(&expected), Some(selection)).unwrap();
+            assert_eq!(
+                actual.images.keys().collect::<Vec<_>>(),
+                reference.images.keys().collect::<Vec<_>>(),
+                "{label}"
+            );
+            for (id, image) in &actual.images {
+                assert!(**image == *reference.images[id], "{label}: {id}");
+            }
+            println!("{label}: {} textures, {:?}", actual.textures.len(), elapsed);
+        };
+        for character in 0..2 {
+            for mission in 0..=10 {
+                let game = crate::session::Options {
+                    character,
+                    mission,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                compare(
+                    Selection::mission(&game.mission),
+                    &format!("character {character}, mission {mission}"),
+                );
+            }
+        }
+        let campaign = crate::campaign::Campaign::new(&assets, Default::default(), None).unwrap();
+        let mut frontend =
+            crate::frontend::Frontend::new(&assets, disc.as_ref(), &campaign, Default::default())
+                .unwrap();
+        for language in [
+            tenchu_assets::script::Language::English,
+            tenchu_assets::script::Language::Japanese,
+            tenchu_assets::script::Language::French,
+            tenchu_assets::script::Language::Italian,
+        ] {
+            frontend.language(&assets, language).unwrap();
+            let originals = frontend.artwork_images();
+            compare(
+                Selection {
+                    textures: originals.keys().cloned().collect(),
+                    originals,
+                    models: BTreeSet::new(),
+                    player_models: false,
+                },
+                &format!("menu {language:?}"),
+            );
+        }
     }
 
     #[test]

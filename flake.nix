@@ -66,13 +66,16 @@
             pkgs.udev
           ];
           postInstall = ''
+            mkdir -p "$out/share/tenchu-shinobi-gaisen-pc"
+            cp -R ${./assets/hd} "$out/share/tenchu-shinobi-gaisen-pc/hd"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
             cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
             cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
-            cp -R crates/tenchu-pc/data/image-compat "$out/share/doc/tenchu-shinobi-gaisen-pc/"
+            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat"
+            cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/image-compat/"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font"
             cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font/"
@@ -103,7 +106,8 @@
           '';
           doCheck = false;
           installPhase = ''
-            mkdir -p "$out/pkg"
+            mkdir -p "$out/pkg" "$out/assets"
+            cp -R ${./assets/hd} "$out/assets/hd"
             wasm-bindgen --target web --out-dir "$out/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm
             cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$out/"
             cp -R ${(distribution pkgs).notices} "$out/licenses"
@@ -111,7 +115,8 @@
             cp COPYING.md LICENSE "$out/licenses/"
             mkdir -p "$out/licenses/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$out/licenses/japanese-font/"
-            cp -R crates/tenchu-pc/data/image-compat "$out/licenses/"
+            mkdir -p "$out/licenses/image-compat"
+            cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$out/licenses/image-compat/"
             mkdir -p "$out/licenses/hd-font"
             cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} "$out/licenses/hd-font/"
           '';
@@ -241,6 +246,7 @@
                 shellcheck ${./packaging/publish.sh}
                 cp -R ${./packaging} packaging
                 python3 -m unittest discover -s packaging -p 'test_*.py'
+                python3 packaging/check-artwork.py ${./assets/hd}
                 touch "$out"
               '';
           clippy = (native pkgs).overrideAttrs (old: {

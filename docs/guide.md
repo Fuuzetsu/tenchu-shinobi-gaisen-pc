@@ -320,21 +320,23 @@ usable material. The completed local Mission 1 texture pack lives in
 `private/m1-hd-pilot`, with source artwork/prompts in `private/m1-hd-source`.
 These local assets are not included in Git.
 
-The completed campaign pack is **`private/campaign-hd-pack`**: Missions 1–10,
-all audited character/outfit families, equipment, world effects, HUD and menu
-artwork. It contains 1,719 texture replacements and the two existing Mission 1
-weapon meshes. Run **`./private/campaign-hd-pack/play.sh`** on the authoring
-workstation; it uses the local disc and separate settings with artwork and
-outline text enabled. A different disc can be supplied as the first argument.
-The original menu opens normally; F6 still opens the quick launcher. Plain
-`play DISC` uses original assets unless `TENCHU_ASSET_PACK` is set; ticking
-Replacement artwork does not download or discover the local pack. F1 → Visual
-assets reports the loaded texture/model counts and the pack folder, or a load
-error. To keep your usual settings while loading the whole pack:
+The campaign pack is bundled at **`assets/hd`** in the source tree and Windows/
+browser archives, or `share/tenchu-shinobi-gaisen-pc/hd` in Linux/Nix packages.
+It covers 1,719 texture identities across Missions 1–10, character/outfit families,
+equipment, world effects, HUD and menus, plus two authored weapon meshes.
+Plain `play DISC` discovers it automatically. F1 → **Visual assets → Replacement
+artwork** controls its use; Modern presets enable it. F1 reports the active
+folder, loaded textures/models and any load error. Existing preferences are kept.
+F6 opens the quick launcher; F8 compares original graphics.
+
+The pack ships generated artwork and 301 Rust recipes. Mixed source colour,
+cutout masks and snow coverage are reconstructed from your disc at asset load,
+without Python or online generation. See [pack provenance](../assets/hd/README.md).
+To use a custom pack, set `TENCHU_ASSET_PACK` to its directory. An explicitly empty
+value disables loading the bundled pack. To play with the included pack:
 
 ```sh
-TENCHU_ASSET_PACK="$PWD/private/campaign-hd-pack" \
-  ./dev.sh cargo run --release -- play '/path/to/game.cue'
+./dev.sh cargo run --release -- play '/path/to/game.cue'
 ```
 
 Lantern emission, lighting and material shaders are separate settings, so they
@@ -488,7 +490,7 @@ press it again to restore it. Gameplay profiles in F1 remain independent.
 The built-in `remake-*` demos cover this batch in short, separate clips. For example:
 
 ```sh
-TENCHU_ASSET_PACK=private/campaign-hd-pack ./dev.sh target/release/tenchu-pc demo '/path/to/game.cue' --clips remake-snow-tracks,remake-area-lamps,remake-petal-fall --mute
+./dev.sh target/release/tenchu-pc demo '/path/to/game.cue' --clips remake-snow-tracks,remake-area-lamps,remake-petal-fall --mute
 ```
 
 Use `demo --list` for all clip IDs. Modern High/Ultra are demanding settings;
@@ -664,13 +666,12 @@ nix run github:nix-community/flake-firefox-nightly#firefox-nightly-bin -- \
 The complete host is also built by `nix build .#web`; it contains no game data.
 `tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
 
-Set `TENCHU_ASSET_PACK` when running `./build-web.sh` to include an optional
-replacement pack. Existing disc/audio/movie exports are reused; the artwork
-is refreshed. For example:
+The bundled HD artwork is included automatically by `./build-web.sh`. Set
+`TENCHU_ASSET_PACK` to override it (an empty value disables it). Existing
+disc/audio/movie exports are reused; artwork is refreshed. For example:
 
 ```sh
-TENCHU_ASSET_PACK="$PWD/private/campaign-hd-pack" \
-  ./build-web.sh '/path/to/game.cue' private/web-hd
+./build-web.sh '/path/to/game.cue' private/web-hd
 ```
 
 `prepare-web DISC DIRECTORY --artwork` refreshes only the configured pack in
@@ -679,8 +680,7 @@ The menu artwork for all four languages arrives with the boot set. The remaining
 PNG/model files download in the background before mission entry; only the active
 mission's images are decoded. F1 → **Visual assets → Replacement artwork** and
 **High-definition text** work in the browser as on desktop. The modern tiers
-enable outline text; an explicitly supplied pack uses the replacement-artwork preference
-(enabled by default). Browser pack reload uses the cached export; rebuild the site and reload
+enable outline text and use the replacement-artwork preference (enabled by default). Browser pack reload uses the cached export; rebuild the site and reload
 the page to pick up edited files.
 
 The boot set contains the original frontend and initial scene. Remaining game

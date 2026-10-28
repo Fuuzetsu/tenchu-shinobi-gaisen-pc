@@ -23,7 +23,14 @@ impl Application {
             ..Default::default()
         };
         self.settings.graphics.set_preset(clip.preset);
-        self.settings.graphics.asset_pack = std::env::var_os("TENCHU_ASSET_PACK").is_some();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.settings.graphics.asset_pack = crate::visuals::pack::configured_root().is_some();
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.settings.graphics.asset_pack = crate::web::pack_manifest(false)?.is_some();
+        }
         if let Some(run) = &self.benchmarks.run {
             self.settings = run.settings.clone();
         }

@@ -12,15 +12,21 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation (implemented; hosted validation pending)
 
-HD distribution follow-up: implement bounded, declarative texture recipes in
-Rust, shared by native and WASM loading. Reconstruct mixed artwork using the
-user's decoded disc textures, with generated layers and recipe data in the pack.
-Keep Python confined to authoring/verification. All 301 converted recipes now
-match the accepted artwork byte for byte, covering mixed RGB, sampled colours,
-snow coverage, source cutouts and interface blend masks. Verify the reconstructed pixels
-against the accepted pack, export all recipe inputs for browser prefetch, and
-bundle the reviewed pack with source/platform downloads. Preserve original-art
-toggles, custom packs, mission filtering and pack memory/path limits.
+HD distribution follow-up: bounded texture recipes now run in Rust for native
+and WASM loading. All 301 converted recipes match the accepted artwork byte for
+byte, covering mixed RGB, sampled colours, snow coverage, source cutouts and
+interface blend masks. Both characters in training/all ten missions and all four
+menu languages load the same final pixels directly from the disc. Measured
+release-mode pack decoding is 65–216 ms per tested scene/menu on this desktop
+with a warm filesystem cache, including its PNG inputs; this excludes disc opening and GPU uploads.
+
+The reviewed pack is versioned at `assets/hd`, included in platform/source
+packages and discovered automatically. Explicit custom packs and an empty-env
+disable remain available. Browser exports include recipe dependencies in menu
+or background prefetch, and only the selected scene's final images enter the
+existing memory budget. The game ships no Python interpreter or Pillow runtime.
+Public packaging includes image-algorithm attribution and an inventory/hash
+check; final updated archive/browser checks and publication review follow below.
 
 Add version-tagged downloads and a rolling HEAD prerelease for `master`, the
 default branch, retaining temporary Actions artifacts. Release notes come from a

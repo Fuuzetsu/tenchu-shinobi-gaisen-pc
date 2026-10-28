@@ -72,6 +72,7 @@ let
         mkdir -p "$out/share/X11" "$out/licenses"
         cp -RL ${pkgs.xkeyboard_config}/share/X11/xkb "$out/share/X11/"
         cp -RL ${pkgs.alsa-lib}/share/alsa "$out/share/"
+        cp -R ${native}/share/tenchu-shinobi-gaisen-pc "$out/share/"
         cp -R ${native}/share/doc/tenchu-shinobi-gaisen-pc/. "$out/licenses/"
         substitute ${./tenchu-linux.sh} "$out/tenchu-pc" \
           --replace-fail '@loader@' '${builtins.baseNameOf pkgs.stdenv.cc.bintools.dynamicLinker}' \
@@ -85,7 +86,8 @@ let
     cp ${../tools/serve-web.py} "$out/serve-web.py"
   '';
   win = pkgs.runCommand "tenchu-windows-x86_64" { } ''
-    mkdir -p "$out/licenses"
+    mkdir -p "$out/licenses" "$out/assets"
+    cp -R ${windows}/share/tenchu-shinobi-gaisen-pc/hd "$out/assets/hd"
     cp ${windows}/bin/tenchu-pc.exe "$out/"
     cp -R ${windows}/share/doc/tenchu-shinobi-gaisen-pc/. "$out/licenses/"
   '';

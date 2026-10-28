@@ -539,7 +539,7 @@ impl View {
             return format!("Asset pack failed to load: {error}");
         }
         if self.pack.textures.is_empty() && self.pack.models.is_empty() {
-            return "No replacement textures or models loaded for this mission. The artwork switch needs a pack supplied at launch.".into();
+            return "No replacement textures or models loaded for this mission. Check the bundled pack or your custom artwork directory.".into();
         }
         let status = format!(
             "Loaded for this mission: {} textures, {} models",
@@ -547,8 +547,8 @@ impl View {
             self.pack.models.len()
         );
         #[cfg(not(target_arch = "wasm32"))]
-        let status = match std::env::var_os("TENCHU_ASSET_PACK") {
-            Some(path) => format!("{status}\n{}", std::path::Path::new(&path).display()),
+        let status = match crate::visuals::pack::configured_root() {
+            Some(path) => format!("{status}\n{}", path.display()),
             None => status,
         };
         status

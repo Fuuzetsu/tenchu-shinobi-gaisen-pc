@@ -7,6 +7,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ### Added
 
+- Bundled campaign HD artwork is found automatically on native builds and
+  included by browser preparation; custom packs and original-art toggles remain available.
+
 - Disc-backed HD texture recipes run in native Rust and WASM at asset load,
   preserving the existing artwork without shipping original colour/mask data
   in those textures or requiring Python.

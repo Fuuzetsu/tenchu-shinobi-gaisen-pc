@@ -75,24 +75,29 @@ It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
   local branch is `master`; select it as the hosted default branch too.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
   captures and recordings/reference screenshots.
-  The entire reachable Git history was checked: its only binary file paths are
-  the two documented OFL fonts. No obvious credentials or private output paths
-  were found. A filename/content scan is not a legal certification of the code.
+  The previous reachable-history audit found only the documented OFL fonts as
+  binary files. This change adds the explicitly inventoried HD PNG/OBJ inputs;
+  generated composites and original reference assets remain ignored. A filename/content scan is not a legal certification of the code.
 - **Publish with the binaries:** changelog, concise run instructions, checksums,
   build identity, font/Rust/native-library notices and corresponding dependency
   sources. The Linux bundle contains LGPL libraries; preserve the source archive
   alongside redistribution. It includes upstream sources, applied patches,
   complete pinned Nixpkgs recipes and this port's packaging code.
-- **Artwork is intended to ship with the source and game.** Its current ignored
-  location, `private/campaign-hd-pack`, is authoring storage, not a distribution
-  policy. The 1,719-entry pack is about 144 MiB and includes generated repaints,
-  typeset interface art and two procedurally authored weapon meshes. Some entries
-  instead add generated detail to original RGB or composite over original pixels;
-  many also retain source transparency masks. These must be distinguished from
-  fresh paintings. The proposed public location is `assets/hd`, included in
-  platform downloads and discovered automatically. Decide how to reconstruct
-  the mixed entries from the user's disc or repaint them before importing the
-  pack; do not describe the current composites as entirely generated artwork.
+- **HD artwork is included.** `assets/hd` contains 1,418 direct generated PNG
+  replacements and 301 disc-backed recipes (1,719 texture identities), generated
+  technical layers and two authored weapon meshes: 142.7 MiB of referenced inputs.
+  Native packages discover the pack automatically; browser preparation exports its
+  recipe dependencies for prefetch. Mixed RGB, sampled colours, cutouts, snow
+  coverage and interface blend masks are reconstructed from the user's disc in
+  Rust. No Python interpreter or online generator is used by the game.
+  All 301 recipes match the accepted artwork byte for byte. Actual disc-backed
+  loading also matches the previous pack for both characters in training/all ten
+  missions and all four menu languages. `packaging/check-artwork.py` checks the
+  manifest, referenced files, provenance inventory and hashes in CI.
+  [Artwork provenance](../assets/hd/README.md) explicitly records use of original
+  references; reconstruction removes embedded source pixels, not the underlying
+  original character/environment designs. The MIT grant covers original
+  contributions and is not a legal clearance for Tenchu's intellectual property.
 - **Platform limits:** local Linux gameplay and browser tests exist; Windows has
   Wine coverage and CI startup checks. Physical Windows/ARM GPU gameplay and a
   real Apple Silicon build/runtime still need testing. No macOS binary is offered.

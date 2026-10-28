@@ -120,7 +120,7 @@ For reproducible native reports:
   --preset 'Modern Ultra' --size 3840x2160 --seconds 20 --output report.json
 ```
 
-Set `TENCHU_ASSET_PACK` to use replacement artwork. Reports contain the actual
+The bundled HD pack is discovered automatically; `TENCHU_ASSET_PACK` can override it. Reports contain the actual
 graphics, adapter/backend, resolution, artwork status, sample counts and
 mean/p50/p95/p99 milliseconds for each CPU phase and GPU pass. GPU timestamps
 may be unavailable on some browsers/backends; missing measurements are not zero

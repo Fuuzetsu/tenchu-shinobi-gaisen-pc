@@ -11,7 +11,7 @@ web_output=$(realpath -m -- "${2:-private/web}")
 ./dev.sh cargo build --locked --release -p tenchu-pc
 if [[ ! -e "$web_output/data/manifest.json" ]]; then
     ./dev.sh target/release/tenchu-pc prepare-web "$web_disc" "$web_output/data"
-elif [[ -n ${TENCHU_ASSET_PACK:-} ]]; then
+else
     ./dev.sh target/release/tenchu-pc prepare-web "$web_disc" "$web_output/data" --artwork
 fi
 ./dev.sh cargo rustc --locked --release --target wasm32-unknown-unknown -p tenchu-pc --lib --crate-type cdylib
@@ -21,4 +21,6 @@ mkdir -p "$web_output/licenses/japanese-font"
 cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$web_output/licenses/japanese-font/"
 mkdir -p "$web_output/licenses/hd-font"
 cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} "$web_output/licenses/hd-font/"
+mkdir -p "$web_output/licenses/image-compat"
+cp crates/tenchu-pc/data/image-compat/{LICENSE,README.md} "$web_output/licenses/image-compat/"
 printf 'Built %s\nServe with: ./dev.sh python3 tools/serve-web.py %q\n' "$web_output" "$web_output"

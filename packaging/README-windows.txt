@@ -14,9 +14,11 @@ together. Startup verifies MAIN.EXE, MENU.EXE, ENDING.EXE and DATA.VOL against
 the original SLPS-019.01 SHA-256 hashes. Add --quick to open the development launcher. F1 opens PC settings;
 F6 opens the development launcher from the original menu.
 
-Optional replacement artwork: set TENCHU_ASSET_PACK to your artwork directory.
+HD artwork is included and found automatically. F1 > Visual assets controls it.
+Set TENCHU_ASSET_PACK to use another pack, or empty to disable pack loading.
+Mixed textures are reconstructed from your disc in Rust; Python is not needed.
 Saves/settings use %APPDATA%\tenchu-shinobi-gaisen-pc, unless TENCHU_SAVE or
-TENCHU_SETTINGS overrides the paths. No game assets or FFmpeg are bundled.
+TENCHU_SETTINGS overrides the paths. No original disc assets or FFmpeg are bundled.
 
 F1 > General > Benchmarks runs fixed performance scenes and can select an
 Auto-optimised preset for your FPS target. Presets / save as offers Low, Medium,

@@ -5,8 +5,15 @@ pub(super) fn configured(
     destination: &Path,
     interface: &BTreeSet<String>,
 ) -> Result<Option<crate::web_assets::Artwork>> {
-    std::env::var_os("TENCHU_ASSET_PACK")
-        .map(|root| export(Path::new(&root), destination, interface))
+    let browser_pack = destination.parent().map(|path| path.join("assets/hd"));
+    let root = if std::env::var_os("TENCHU_ASSET_PACK").is_none()
+        && let Some(path) = browser_pack.filter(|p| p.join("pack.json").is_file())
+    {
+        Some(path)
+    } else {
+        pack::configured_root()
+    };
+    root.map(|root| export(&root, destination, interface))
         .transpose()
 }
 
@@ -93,9 +100,7 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
         frontend.language(&assets, language)?;
         interface.extend(frontend.artwork_images().into_keys());
     }
-    manifest.artwork = Some(
-        configured(destination, &interface)?.ok_or("Set TENCHU_ASSET_PACK to export artwork")?,
-    );
+    manifest.artwork = configured(destination, &interface)?;
     fs::write(
         path,
         serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,

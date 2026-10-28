@@ -5,7 +5,7 @@ training, original menus and endings. Faithful game logic at its original rate,
 with optional modern graphics and smooth rendering. No PlayStation BIOS needed.
 
 **Bring your own original game disc:** select its **`.cue`** and keep all referenced
-**`.bin` files** beside it. Assets are not included. Other Tenchu releases are not
+**`.bin` files** beside it. Original game data is not included. Other Tenchu releases are not
 supported. Startup checks the game/menu executables and base artwork with SHA-256.
 The separate original mission editor (`TRIAL.EXE`) is not ported.
 
@@ -66,8 +66,11 @@ renderer selector. Assets load from your server and cache in the browser.
 From source, `./build-web.sh '/path/to/game.cue'` builds and prepares the site.
 [Browser details](docs/guide.md#browser-build).
 
-Replacement artwork is optional: set `TENCHU_ASSET_PACK` to your pack directory
-before launching. The checkbox alone does not install a pack.
+The HD artwork pack is included and found automatically. **F1 → Visual assets →
+Replacement artwork** enables it; Modern presets enable it too. Some textures
+are reconstructed locally from your disc when needed. No Python or online image
+service is required to play. Set `TENCHU_ASSET_PACK` to use a different pack, or
+to an empty string to skip artwork loading. [Artwork/provenance](assets/hd/README.md).
 [Full feature guide](docs/guide.md) · [Demos](DEMOS.md) · [Development plan](PLAN.md)
 
 This is an unofficial port. Original project code/resources use the [MIT License](LICENSE),
