@@ -3,6 +3,7 @@ name = "tenchu-assets"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 sha2.workspace = true
