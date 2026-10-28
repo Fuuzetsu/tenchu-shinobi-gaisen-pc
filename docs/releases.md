@@ -103,10 +103,11 @@ fetch during gameplay.
 
 ## Preparing public history
 
-The full audit of 269 reachable commits (4,520 unique blobs, before this
-separation change) found 1,710 unique PNG blobs, all introduced under `assets/hd/`
+The full audit through the separation commit (270 reachable commits,
+4,545 unique blobs) found 1,710 unique PNG blobs, all introduced under `assets/hd/`
 in the recent HD import, plus the two documented OFL font binaries. It found no
-disc/retail executables, BIOS, RAM captures, screenshots or recording files.
+disc/retail executables, BIOS, RAM captures, screenshots or recording files,
+and no matches for the checked credential patterns.
 The PNG/OBJ inputs now live outside the tracked tree, but the import remains
 in this development history.
 
@@ -115,8 +116,10 @@ clone and filter **only `assets/hd/`** from all its history using `git filter-re
 Audit the filtered clone again before adding its public remote. This retains the
 useful code history while removing the large artwork blobs. A clean initial
 snapshot is also possible, but the audit found no reason to discard all prior
-code commits. Neither rewrite has been performed here. Do not push this
-unfiltered development history if the public source must exclude HD blobs.
+code commits. Preserve the development history; the filtered publication copy
+should have an identical current source tree and no HD blobs reachable in its
+history. Rebuild from that copy because filtering changes commit IDs. Do not
+push or merge the unfiltered development history into the public repository.
 
 ## Publication review (2026-10-28)
 
@@ -183,3 +186,21 @@ initialisation failed independently of the game). The browser archive serves its
 module with the proper WASM MIME type and isolation headers. These are local
 packaging checks, not evidence that the GitHub workflow has run or that physical
 Windows/ARM/macOS GPU gameplay is validated.
+
+HD-distribution verification passed: 143 ordinary workspace tests, focused
+archive safety tests on Linux and Windows/Wine, native/Windows/WASM strict Clippy,
+formatting, all-system Nix evaluation and release-policy checks. Both platforms
+load the archive with pixel-identical results for both characters in training,
+all ten missions and all four menu languages. Release-mode native scene/menu
+loads take about 60–200 ms with a warm filesystem cache on the test desktop;
+this is asset-load work, not a per-frame cost.
+
+Updated archives have verified checksums/build identity, complete notices and
+no HD PNG/OBJ inputs: Linux x86-64 26.6 MiB, Windows x86-64 17.7 MiB, WASM 6.5 MiB.
+The separate artwork download is 141.8 MiB; dependency sources are 817.8 MiB.
+Linux library loading passes with `/nix` hidden. Windows/Wine automatically finds
+the neighbouring archive and exports all 1,722 inputs with matching hashes.
+The browser shows its menu before mission artwork finishes downloading, loads
+all ten missions offline, and preserves paused state and image restoration
+across artwork toggles, with no reported WebGL2/page errors. These checks do
+not replace physical Windows/ARM GPU or Mac testing.

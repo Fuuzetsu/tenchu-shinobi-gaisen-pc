@@ -18,22 +18,32 @@ byte, covering mixed RGB, sampled colours, snow coverage, source cutouts and
 interface blend masks. Both characters in training/all ten missions and all four
 menu languages load the same final pixels directly from the disc. Measured
 release-mode pack decoding is 65–216 ms per tested scene/menu on this desktop
-with a warm filesystem cache, including its PNG inputs; this excludes disc opening and GPU uploads.
+with a warm filesystem cache, including its PNG inputs; this excludes disc
+opening and GPU uploads.
 
 The reviewed pack is a separate `tenchu-hd.tar.zst` release download; only its
 manifest, provenance and version/checksum metadata remain tracked in `artwork/`.
 Native loading and browser preparation accept archives or unpacked directories.
 Archives extract once into a content-addressed user cache with bounded pure-Rust
 decoding and safe paths. Explicit custom packs and an empty-env disable remain
-available. Native/browser/source packages build without the large artwork inputs. Browser exports include recipe dependencies in menu
+available. Native/browser/source packages build without the large artwork
+inputs. Browser exports include recipe dependencies in menu
 or background prefetch, and only the selected scene's final images enter the
 existing memory budget. The game ships no Python interpreter or Pillow runtime.
 Public packaging includes image-algorithm attribution and an inventory/hash
-check. The complete 269-commit history audit found only the documented fonts
+check. The complete 270-commit history audit found only the documented fonts
 and authored HD PNG/OBJ inputs as binary/model resources. The latter still occur
 in the previous import commit; filter `assets/hd/` from a separate public clone
-before publication, preserving this development repository. No history rewrite
-or public upload has been performed. Updated archive/browser checks follow below.
+before publication, preserving this development repository and checking that
+the publication copy has identical current source files. No public upload has
+been performed. The archive/directory comparisons pass on Linux and Windows/Wine
+for both characters in all missions/training and all menu languages. The browser
+loads all ten missions offline after background prefetch. Archive extraction
+rejects unsafe paths, links, corrupt frames and excessive sizes. Native, Windows
+and WASM strict Clippy, 143 ordinary tests, packaging checks and updated Linux/
+Windows/WASM/source archive builds pass. The game archives are now 26.6/17.7/6.5
+MiB respectively; the shared artwork download is 141.8 MiB. See the detailed
+publication review for remaining hosted and physical-platform checks.
 
 Add version-tagged downloads and a rolling HEAD prerelease for `master`, the
 default branch, retaining temporary Actions artifacts. Release notes come from a
@@ -46,7 +56,8 @@ Review tracked files and Git history, source provenance, runtime dependencies,
 platform evidence and documentation. Keep disc/browser assets and captures out
 of public downloads. Publish the project's HD artwork as a separately versioned
 GitHub Release, linked from game releases; it is not a private pack. Preserve
-original/generated reconstruction recipes and their provenance in the source. Record unresolved publication decisions
+original/generated reconstruction recipes and their provenance in the source.
+Record unresolved publication decisions
 and validation in `docs/releases.md`; do not claim an untested platform or
 publish a version before one has been chosen.
 
