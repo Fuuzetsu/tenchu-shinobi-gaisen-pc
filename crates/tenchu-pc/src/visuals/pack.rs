@@ -25,6 +25,8 @@ pub struct Manifest {
     pub version: u32,
     #[serde(default)]
     pub textures: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub recipes: BTreeMap<String, super::texture_recipe::Recipe>,
     #[serde(default)]
     pub surfaces: BTreeMap<String, super::relief::Rule>,
     #[serde(default)]
@@ -61,6 +63,7 @@ pub struct Pack {
 }
 
 struct Selection {
+    originals: BTreeMap<String, Image>,
     textures: BTreeSet<String>,
     models: BTreeSet<String>,
     player_models: bool,
@@ -68,16 +71,32 @@ struct Selection {
 
 impl Selection {
     fn mission(mission: &MissionAssets) -> Self {
-        let mut textures: BTreeSet<_> = catalog::regions(mission).into_values().collect();
-        for &image in &mission.images {
-            let region = catalog::Region::sprite(&mission.vram, image);
-            textures.insert(catalog::image_id(
-                [region.rect[2], region.rect[3]],
-                &region.original_pixels(&mission.vram),
-            ));
+        let mut originals: BTreeMap<_, _> = catalog::regions(mission)
+            .into_iter()
+            .map(|(region, id)| {
+                (
+                    id,
+                    Image {
+                        size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
+                        rgba: region.original_pixels(&mission.vram),
+                    },
+                )
+            })
+            .collect();
+        for &sprite in &mission.images {
+            let region = catalog::Region::sprite(&mission.vram, sprite);
+            let image = Image {
+                size: [u32::from(region.rect[2]), u32::from(region.rect[3])],
+                rgba: region.original_pixels(&mission.vram),
+            };
+            originals.insert(
+                catalog::image_id(image.size.map(|n| n as u16), &image.rgba),
+                image,
+            );
         }
         Self {
-            textures,
+            textures: originals.keys().cloned().collect(),
+            originals,
             player_models: true,
             models: catalog::models(mission)
                 .into_iter()
@@ -88,9 +107,10 @@ impl Selection {
 }
 
 impl Pack {
-    pub fn interface_from_env(textures: BTreeSet<String>) -> Result<Self> {
+    pub fn interface_from_env(originals: BTreeMap<String, Image>) -> Result<Self> {
         Self::configured(Selection {
-            textures,
+            textures: originals.keys().cloned().collect(),
+            originals,
             models: BTreeSet::new(),
             player_models: false,
         })
@@ -137,6 +157,14 @@ impl Pack {
                 "Unsupported asset pack version {}",
                 manifest.version
             ));
+        }
+        for (id, recipe) in &manifest.recipes {
+            if manifest.textures.contains_key(id) {
+                return Err(format!("Texture {id} declares both a PNG and a recipe"));
+            }
+            recipe
+                .validate()
+                .map_err(|error| format!("Texture {id}: {error}"))?;
         }
         let mut pack = Self::default();
         if let Some(rules) = &manifest.lights {
@@ -219,12 +247,15 @@ impl Pack {
             }
             pack.models.insert(id, model);
         }
-        if let Some(selection) = selection {
+        if let Some(selection) = &selection {
             pack.water.retain(|id, _| selection.textures.contains(id));
             pack.vegetation
                 .retain(|id, _| selection.textures.contains(id));
             manifest
                 .textures
+                .retain(|id, _| selection.textures.contains(id));
+            manifest
+                .recipes
                 .retain(|id, _| selection.textures.contains(id));
             manifest
                 .surfaces
@@ -233,9 +264,7 @@ impl Pack {
         }
         let mut pixels = 0;
         let mut decoded: BTreeMap<String, Arc<Image>> = BTreeMap::new();
-        let mut load_image = |path: &str| -> Result<(String, Arc<Image>)> {
-            let image =
-                decode_png(&read(path, 32 * 1024 * 1024)?).map_err(|e| format!("{path}: {e}"))?;
+        let mut share_image = |image: Image, label: &str| -> Result<(String, Arc<Image>)> {
             let id = catalog::image_id(image.size.map(|n| n as u16), &image.rgba);
             let shared = if let Some(shared) = decoded.get(&id) {
                 shared.clone()
@@ -243,7 +272,7 @@ impl Pack {
                 pixels += image.rgba.len() / 4;
                 if pixels > MAX_PIXELS {
                     return Err(format!(
-                        "Texture pack exceeds 16 million unique decoded pixels while loading {path}"
+                        "Texture pack exceeds 16 million unique decoded pixels while loading {label}"
                     ));
                 }
                 let image = Arc::new(image);
@@ -252,7 +281,15 @@ impl Pack {
             };
             Ok((id, shared))
         };
-        for (id, path) in manifest.textures {
+        let mut load_image = |path: &str| -> Result<Image> {
+            decode_png(&read(path, 32 * 1024 * 1024)?).map_err(|e| format!("{path}: {e}"))
+        };
+        let ids: BTreeSet<_> = manifest
+            .textures
+            .keys()
+            .chain(manifest.recipes.keys())
+            .collect();
+        for id in ids {
             if id.is_empty()
                 || id.len() > 128
                 || !id
@@ -261,12 +298,25 @@ impl Pack {
             {
                 return Err(format!("Invalid texture identity {id:?}"));
             }
-            let (content, image) = load_image(&path)?;
-            let changed = content != id;
+            let image = if let Some(recipe) = manifest.recipes.get(id) {
+                let original = selection
+                    .as_ref()
+                    .and_then(|s| s.originals.get(id))
+                    .ok_or_else(|| {
+                        format!("Texture recipe {id} needs its original disc texture")
+                    })?;
+                recipe
+                    .apply(original, &mut load_image)
+                    .map_err(|e| format!("Texture {id}: {e}"))?
+            } else {
+                load_image(&manifest.textures[id])?
+            };
+            let (content, image) = share_image(image, id)?;
+            let changed = content != *id;
             if changed {
                 pack.textures.insert(id.clone(), image.clone());
             }
-            pack.images.insert(id, image);
+            pack.images.insert(id.clone(), image);
         }
         pack.materials = manifest.materials;
         for (id, rule) in manifest.surfaces {
@@ -283,7 +333,7 @@ impl Pack {
             }
             let height = rule
                 .height
-                .map(|path| load_image(&path).map(|(_, image)| image))
+                .map(|path| share_image(load_image(&path)?, &path).map(|(_, image)| image))
                 .transpose()?;
             pack.surfaces.insert(
                 id,
@@ -404,7 +454,11 @@ mod tests {
     fn mission_selection_reads_only_used_art_and_model_dependencies() {
         let manifest = serde_json::json!({
             "version": 1,
-            "textures": {"roof": "roof.png", "blade": "blade.png", "snow": "missing.png"},
+            "textures": {"blade": "blade.png", "snow": "missing.png"},
+            "recipes": {
+                "roof": {"steps": [{"op":"overlay", "image":"roof.png"}]},
+                "unused": {"steps": [{"op":"overlay", "image":"unavailable.png"}]}
+            },
             "surfaces": {"snow": {"height": "missing-height.png", "strength": 1.0}},
             "water": {"roof": "off", "blade": "surface", "snow": "waterfall"},
             "models": {"weapons/1": "blade.obj", "stages/snow/map/0": "missing.obj"},
@@ -425,6 +479,13 @@ mod tests {
         }
         let mut reads = Vec::new();
         let selection = Selection {
+            originals: BTreeMap::from([(
+                "roof".into(),
+                Image {
+                    size: [1, 1],
+                    rgba: vec![0; 4],
+                },
+            )]),
             textures: BTreeSet::from(["roof".into()]),
             models: BTreeSet::from(["weapons/1".into()]),
             player_models: true,
@@ -461,6 +522,7 @@ mod tests {
         let failed = Pack::decode(
             serde_json::from_value(manifest).unwrap(),
             Some(Selection {
+                originals: BTreeMap::new(),
                 textures: BTreeSet::from(["snow".into()]),
                 models: BTreeSet::new(),
                 player_models: false,
@@ -489,6 +551,7 @@ mod tests {
         fs::write(root.join("test.png"), &png).unwrap();
         let mut manifest = Manifest {
             version: 1,
+            recipes: BTreeMap::new(),
             textures: BTreeMap::from([(id.clone(), "test.png".into())]),
             surfaces: BTreeMap::new(),
             water: BTreeMap::new(),

@@ -30,6 +30,12 @@ fn export(
     for (id, path) in &manifest.textures {
         add(path.as_str(), 32 * 1024 * 1024, interface.contains(id));
     }
+    for (id, recipe) in &manifest.recipes {
+        recipe.validate()?;
+        for path in recipe.files() {
+            add(path, 32 * 1024 * 1024, interface.contains(id));
+        }
+    }
     for (id, surface) in &manifest.surfaces {
         if let Some(path) = &surface.height {
             add(path.as_str(), 32 * 1024 * 1024, interface.contains(id));
@@ -85,7 +91,7 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
     let mut interface = BTreeSet::new();
     for language in LANGUAGES {
         frontend.language(&assets, language)?;
-        interface.extend(frontend.artwork_ids());
+        interface.extend(frontend.artwork_images().into_keys());
     }
     manifest.artwork = Some(
         configured(destination, &interface)?.ok_or("Set TENCHU_ASSET_PACK to export artwork")?,
@@ -109,7 +115,11 @@ mod tests {
         fs::create_dir_all(source.join("images")).unwrap();
         let manifest = serde_json::json!({
             "version": 1,
-            "textures": {"menu": "images/menu.png", "world": "images/world.png"},
+            "textures": {"world": "images/world.png"},
+            "recipes": {
+                "menu": {"steps": [{"op":"overlay", "image":"images/layer.png"}]},
+                "unused": {"steps": [{"op":"overlay", "image":"images/layer.png"}]}
+            },
             "surfaces": {"menu": {"height": "images/height.png", "strength": 0.5}},
             "models": {"weapon": "weapon.obj"},
             "player_models": {"custom": {"name": "Custom", "parts": [{"file": "body.obj", "parent": null, "position": [0, 0, 0]}]} }
@@ -120,7 +130,7 @@ mod tests {
         )
         .unwrap();
         for name in [
-            "images/menu.png",
+            "images/layer.png",
             "images/world.png",
             "images/height.png",
             "weapon.obj",
@@ -132,7 +142,7 @@ mod tests {
         let files = export(&source, &output, &["menu".into()].into()).unwrap();
         assert_eq!(
             files.boot,
-            ["images/height.png", "images/menu.png", "pack.json"]
+            ["images/height.png", "images/layer.png", "pack.json"]
         );
         assert_eq!(files.game, ["body.obj", "images/world.png", "weapon.obj"]);
         assert!(!output.join("pack/reference.png").exists());

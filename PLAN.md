@@ -12,6 +12,16 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation (implemented; hosted validation pending)
 
+HD distribution follow-up: implement bounded, declarative texture recipes in
+Rust, shared by native and WASM loading. Reconstruct mixed artwork using the
+user's decoded disc textures, with generated layers and recipe data in the pack.
+Keep Python confined to authoring/verification. All 301 converted recipes now
+match the accepted artwork byte for byte, covering mixed RGB, sampled colours,
+snow coverage, source cutouts and interface blend masks. Verify the reconstructed pixels
+against the accepted pack, export all recipe inputs for browser prefetch, and
+bundle the reviewed pack with source/platform downloads. Preserve original-art
+toggles, custom packs, mission filtering and pack memory/path limits.
+
 Add version-tagged downloads and a rolling HEAD prerelease for `master`, the
 default branch, retaining temporary Actions artifacts. Release notes come from a
 user-facing CHANGELOG, with tag/Cargo version agreement and complete checked

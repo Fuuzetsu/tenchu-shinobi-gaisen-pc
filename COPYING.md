@@ -14,7 +14,9 @@ the Rust dependencies and toolchain source. Keep it available beside the binarie
 
 The outline and Japanese bitmap fonts are modified, renamed/subsetted OFL fonts;
 their provenance and upstream notices are in their respective data directories.
-The egui default fonts are covered by the Rust dependency notices.
+The egui default fonts are covered by the Rust dependency notices. Image recipe
+resampling/compositing carries the Pillow/PIL MIT-CMU notice in
+`crates/tenchu-pc/data/image-compat/`.
 
 This is an unofficial reimplementation. Tenchu's original game data, artwork,
 music and trademarks are not licensed by this project. Supply your own supported

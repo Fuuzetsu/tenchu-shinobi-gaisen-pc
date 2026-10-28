@@ -62,7 +62,7 @@ pub fn export(disc: &Path, destination: &Path, artwork_only: bool) -> Result<()>
     let mut interface = BTreeSet::new();
     for language in LANGUAGES {
         frontend.language(&assets, language)?;
-        interface.extend(frontend.artwork_ids());
+        interface.extend(frontend.artwork_images().into_keys());
         for character in 0..2 {
             let options = Options {
                 character,

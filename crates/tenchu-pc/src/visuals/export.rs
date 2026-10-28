@@ -192,6 +192,7 @@ pub fn export(mission: &MissionAssets, directory: &Path) -> Result<()> {
     .map_err(|e| e.to_string())?;
     let pack = super::pack::Manifest {
         version: 1,
+        recipes: BTreeMap::new(),
         surfaces: BTreeMap::new(),
         water: super::water::rules(&Default::default(), false),
         vegetation: super::vegetation::rules(&Default::default(), false),

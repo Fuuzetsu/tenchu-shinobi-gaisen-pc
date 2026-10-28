@@ -254,8 +254,10 @@ impl Frontend {
         Ok(())
     }
 
-    pub(crate) fn artwork_ids(&self) -> std::collections::BTreeSet<String> {
-        let mut ids: std::collections::BTreeSet<_> = self
+    pub(crate) fn artwork_images(
+        &self,
+    ) -> std::collections::BTreeMap<String, crate::visuals::pixels::Image> {
+        let mut images: std::collections::BTreeMap<_, _> = self
             .title_images
             .iter()
             .chain(&self.character_images)
@@ -263,14 +265,17 @@ impl Frontend {
             .chain(&self.option_images)
             .chain(&self.result_ranks)
             .chain([&self.result_background, &self.result_numbers])
-            .map(|image| draw::identity(&draw::pixels(image)))
+            .map(|image| {
+                let image = draw::pixels(image);
+                (draw::identity(&image), image)
+            })
             .collect();
-        ids.extend(self.characters.texture_ids());
-        ids
+        images.extend(self.characters.texture_images());
+        images
     }
 
     pub fn reload_artwork(&mut self) -> Result<usize> {
-        let pack = crate::visuals::pack::Pack::interface_from_env(self.artwork_ids())?;
+        let pack = crate::visuals::pack::Pack::interface_from_env(self.artwork_images())?;
         let count = pack.textures.len();
         self.artwork = Arc::new(pack.textures);
         self.dirty = true;

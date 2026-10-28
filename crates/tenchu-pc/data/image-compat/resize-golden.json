@@ -1,0 +1,457 @@
+[
+  {
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "d935a7e8d0b9fa404eb12088cf5a07fd",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "74a1e3a3b8896629e02b94ae5c487b0b",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "80da249e623cf8dd4d11e77b0aff2c7e",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "4604a2c4708082da7fb82e4d6c1124ea",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bilinear",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "18e3415d71c8817fda816b7839da8cd1",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bilinear",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "62c305b5d107e748f77795cc31c12090",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bilinear",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "42273111b17e77b3589350b871bb4458",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bilinear",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "b141282f82daecf0067d9762e865566e",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bicubic",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "aa53014090f19a13e067a326b2197dde",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bicubic",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "fd920685de957b5f12a681b3c6196187",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bicubic",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "d558e362297fae4197ee0f4e66a4342d",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "bicubic",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "e62d8a00c27fa123652552da21af1203",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "lanczos",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "969fb07f9be8481f8af7801d7c9faf28",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "lanczos",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "e4625fd5a679bc3c27a9865987435dff",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "lanczos",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "7e66ec508cd6442494e9a9e4d5ef6d43",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": false,
+    "filter": "lanczos",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "b931ac106dcb8b2da4e707a4211545f9",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "nearest",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "0735eb26bf9ef27c4277abbe6d3a3231",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "nearest",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "213dba82674fb1e2529cf69af85f3d5e",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "nearest",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "6149da39bdbe54fce65790b4164c90c1",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "nearest",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "653d406d0327044d76326446aca25d34",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bilinear",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "b1c5ce3fab70645b553fcae23f91bff4",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bilinear",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "df807a9e5e93d676658294cf5f9fafdc",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bilinear",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "f38fbe316749dcb718c790eea4a545e3",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bilinear",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "931e4f5ba14c24e33c48267ad196436f",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bicubic",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "2d26fad6170a42e509fe179da5b3dfca",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bicubic",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "4fa999c2243e958daf608c4cc45fc576",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bicubic",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "21f39cddc1edab4eb2fd4f44ae459509",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "bicubic",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "2d5f3065f0a2c76700cb5e8a30439d61",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "lanczos",
+    "size": [
+      3,
+      2
+    ],
+    "hash": "2fe7fa163c62efdc0e07cec5ad9044a5",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "lanczos",
+    "size": [
+      13,
+      9
+    ],
+    "hash": "b6855563626b76985ccbc8f16ed189cd",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "lanczos",
+    "size": [
+      7,
+      11
+    ],
+    "hash": "7eb567a154605eb13cd447b6d5d89ff1",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "opaque": true,
+    "filter": "lanczos",
+    "size": [
+      11,
+      5
+    ],
+    "hash": "8186dbdb1ada7f1826aa9b738c393b34",
+    "input": [
+      7,
+      5
+    ]
+  },
+  {
+    "input": [
+      16,
+      48
+    ],
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      43,
+      128
+    ],
+    "hash": "fcfd2907e0533f1a04533cd8ddc22bd5"
+  },
+  {
+    "input": [
+      16,
+      92
+    ],
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      22,
+      128
+    ],
+    "hash": "34a97fa170d38085b1bfab77b5b26ebb"
+  },
+  {
+    "input": [
+      132,
+      48
+    ],
+    "opaque": false,
+    "filter": "nearest",
+    "size": [
+      512,
+      186
+    ],
+    "hash": "9f41833fe8b9058918c77e95a111d3c1"
+  }
+]

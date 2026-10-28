@@ -25,7 +25,9 @@ pub struct Characters {
 }
 
 impl Characters {
-    pub fn texture_ids(&self) -> std::collections::BTreeSet<String> {
+    pub fn texture_images(
+        &self,
+    ) -> std::collections::BTreeMap<String, crate::visuals::pixels::Image> {
         use crate::visuals::catalog;
         self.models
             .iter()
@@ -34,7 +36,18 @@ impl Characters {
             .chain(self.weapons.iter().flatten())
             .flat_map(|geometry| &geometry.faces)
             .filter_map(|face| catalog::face_region(&self.vram, face))
-            .map(|r| catalog::image_id([r.rect[2], r.rect[3]], &r.original_pixels(&self.vram)))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .map(|r| {
+                let image = crate::visuals::pixels::Image {
+                    size: [u32::from(r.rect[2]), u32::from(r.rect[3])],
+                    rgba: r.original_pixels(&self.vram),
+                };
+                (
+                    catalog::image_id([r.rect[2], r.rect[3]], &image.rgba),
+                    image,
+                )
+            })
             .collect()
     }
 

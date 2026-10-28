@@ -1106,3 +1106,12 @@ identify source assets; no texture pixels, models or captured game memory are
 included in those metadata files. The existing private campaign HD artwork is
 reused without new image generation. Original/HD scene reviews, recorded combat
 checks and browser results are under the ignored `private/effects-review` folder.
+
+## Runtime texture recipes (2026-10-28)
+
+Portable Rust recipes reconstruct mixed HD textures from the user's disc and
+shipped generated layers at menu/mission load. Integer compositing and resampling
+rounding follow Pillow/PIL; [the compatibility notice](crates/tenchu-pc/data/image-compat/README.md)
+records the exact source files and MIT-CMU license. Synthetic golden tests and
+private accepted-pack comparisons verify the result. No Python, Pillow, network
+image generator or interpreter is needed by the game, including its WASM build.

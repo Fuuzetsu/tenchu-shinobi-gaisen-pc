@@ -7,6 +7,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ### Added
 
+- Disc-backed HD texture recipes run in native Rust and WASM at asset load,
+  preserving the existing artwork without shipping original colour/mask data
+  in those textures or requiring Python.
+
 - Play all ten missions and training as Rikimaru or Ayame, with the original
   menus, equipment selection, saves, cutscenes and endings. English, Japanese,
   French and Italian use the supported Shinobi Gaisen disc.

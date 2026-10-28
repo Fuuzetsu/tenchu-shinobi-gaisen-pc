@@ -18,6 +18,7 @@ pub mod relief;
 pub mod sky;
 mod smooth;
 pub mod surfaces;
+pub mod texture_recipe;
 pub mod vegetation;
 pub mod water;
 pub mod weather;

@@ -72,6 +72,7 @@
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
+            cp -R crates/tenchu-pc/data/image-compat "$out/share/doc/tenchu-shinobi-gaisen-pc/"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font"
             cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/hd-font/"
@@ -110,6 +111,7 @@
             cp COPYING.md LICENSE "$out/licenses/"
             mkdir -p "$out/licenses/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$out/licenses/japanese-font/"
+            cp -R crates/tenchu-pc/data/image-compat "$out/licenses/"
             mkdir -p "$out/licenses/hd-font"
             cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} "$out/licenses/hd-font/"
           '';

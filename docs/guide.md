@@ -145,6 +145,38 @@ Unchanged exported textures are skipped, preserving the live original fallback.
 The **Replacement artwork** switch compares against the originals. A failed
 reload keeps the previous pack. `pack.json` maps content identities to relative
 PNG paths; it can contain only the replacements you want to distribute.
+A `recipes` map can instead reconstruct selected textures from the supplied disc
+and generated PNG layers at load/reload time. This runs in Rust, also in the
+browser; it needs no Python, AI service or per-frame processing. Do not include
+an identity in both `textures` and `recipes`. For example:
+
+```json
+"recipes": {
+  "source-texture-id": {
+    "steps": [
+      {"op": "opaque"},
+      {"op": "resize", "size": [128, 128], "filter": "bicubic"},
+      {"op": "grain", "image": "layers/detail.png", "smooth": "layers/smooth.png", "gain": 0.7},
+      {"op": "alpha", "mask": {}}
+    ]
+  }
+}
+```
+
+The default base and mask source is `"original"`, meaning the decoded disc
+texture with that identity; a base can also be `{"file": "generated.png"}`.
+Masks can use `original`, `current` or a file, select `alpha`, `red` or `luma`,
+and apply optional 256-entry `before`/`after` lookup tables around resampling.
+`intermediate_size` preserves a deliberately staged mask resize. Filters are
+`nearest` (default for masks), `bilinear`, `bicubic` and `lanczos`.
+Other operations are `overlay` (RGBA composition), `blend` (weighted RGB),
+`mask_blend` (two RGB layers), `matte` (flatten RGB while retaining alpha), and
+`clear_alpha` (a rectangular cutout). Layers must match the current image size.
+Recipes allow at most 16 operations and obey the same image/path limits as PNGs.
+Only their final images enter the mission's decoded-image budget; temporary
+layers are freed. Browser preparation exports and prefetches all recipe inputs.
+The bundled pack's manifest contains working examples.
+
 Textures may be RGB/RGBA, grayscale or indexed PNG, up to 1024 pixels per side,
 with a budget of 16 million decoded pixels per loaded mission/outfit (including
 height maps and replacement model textures). A campaign pack can contain more:
