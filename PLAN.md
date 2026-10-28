@@ -12,6 +12,13 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation (implemented; hosted validation pending)
 
+The first release is prepared as **v0.1.0**, dated 2026-10-28, with an empty
+Unreleased section for subsequent changes. `origin` is configured for
+`Fuuzetsu/tenchu-shinobi-gaisen-pc`; `master` remains the default branch.
+Publish the compatible `artwork-v1` download before pushing the game tag that
+triggers the versioned release. Hosted builds and public downloads still need
+verification after the first push.
+
 HD distribution follow-up: bounded texture recipes now run in Rust for native
 and WASM loading. All 301 converted recipes match the accepted artwork byte for
 byte, covering mixed RGB, sampled colours, snow coverage, source cutouts and
@@ -42,8 +49,8 @@ after cleanup. Rebuild release artifacts to use the rewritten commit IDs.
 No public upload has been performed. The archive/directory comparisons pass on
 Linux and Windows/Wine for both characters in all missions/training and all menu
 languages. The browser loads all ten missions offline after background prefetch.
-Archive extraction
-rejects unsafe paths, links, corrupt frames and excessive sizes. Native, Windows
+Archive extraction rejects unsafe paths, links, corrupt frames and excessive
+sizes. Native, Windows
 and WASM strict Clippy, 143 ordinary tests, packaging checks and updated Linux/
 Windows/WASM/source archive builds pass. The game archives are now 26.6/17.7/6.5
 MiB respectively; the shared artwork download is 141.8 MiB. See the detailed
@@ -62,8 +69,7 @@ of public downloads. Publish the project's HD artwork as a separately versioned
 GitHub Release, linked from game releases; it is not a private pack. Preserve
 original/generated reconstruction recipes and their provenance in the source.
 Record unresolved publication decisions
-and validation in `docs/releases.md`; do not claim an untested platform or
-publish a version before one has been chosen.
+and validation in `docs/releases.md`; do not claim an untested platform.
 
 Implemented tag and default-branch publication with checked complete download
 sets, dated changelog extraction, prerelease handling, stale-HEAD rejection and
@@ -80,8 +86,9 @@ and metadata. The Linux archive starts/loads libraries with `/nix` hidden and
 renders Mission 1 on Vulkan; Windows startup passes under Wine/X11; the WASM
 site serves its module with correct headers. The pre-HD history audit found
 only the documented OFL font binaries; the later full audit above also found
-no credential-pattern matches or private outputs. No release was published: a Git remote/version tag and hosted/platform
-validation remain. See `docs/releases.md` for the review and release procedure.
+no credential-pattern matches or private outputs. No release has been published;
+hosted and physical-platform validation remain. See `docs/releases.md` for the
+review and release procedure.
 
 ## Performance, presets and first launch (implemented)
 

@@ -11,9 +11,11 @@ The separate original mission editor (`TRIAL.EXE`) is not ported.
 
 ## Download and play
 
-In this repository on GitHub, open **Releases**. Choose a versioned release for
-normal play, or **HEAD (development)** for the latest successful `master`
-build. Download your platform's archive under **Assets** and extract it completely.
+Open [Releases](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases).
+Choose a versioned release for normal play, or
+[HEAD (development)](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/head)
+for the latest successful `master` build. Download your platform's archive under
+**Assets** and extract it completely.
 The [workflow](.github/workflows/build.yml) publishes version tags and refreshes
 HEAD on `master`; release downloads do not have the Actions artifact expiry.
 [What's changed](CHANGELOG.md).
@@ -66,7 +68,8 @@ renderer selector. Assets load from your server and cache in the browser.
 From source, `./build-web.sh '/path/to/game.cue'` builds and prepares the site.
 [Browser details](docs/guide.md#browser-build).
 
-For HD artwork, download **`tenchu-hd.tar.zst`** from the **artwork-v1** release
+For HD artwork, download **`tenchu-hd.tar.zst`** from the
+[artwork-v1 release](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v1)
 and place it beside the executable/launcher (or in the source checkout). It is
 found and cached automatically. **F1 → Visual assets → Replacement artwork**
 enables it; Modern presets enable it too. `TENCHU_ASSET_PACK` also accepts a

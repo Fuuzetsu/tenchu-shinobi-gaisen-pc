@@ -129,9 +129,11 @@ Do not merge or push any older, unfiltered history back into this repository.
   distinguishes the project's license from third-party notices. The
   reverse-engineering provenance in [SOURCES.md](../SOURCES.md) does
   not grant rights to the original game or claim clean-room development.
-- **No remote or version tags configured yet.** The hosted workflow and actual
-  public downloads need verification after the repository's first push. The
-  local branch is `master`; select it as the hosted default branch too.
+- **v0.1.0 is prepared locally.** Cargo and the dated changelog agree on 0.1.0;
+  the compatible HD pack is `artwork-v1`. `origin` points to
+  `Fuuzetsu/tenchu-shinobi-gaisen-pc`. The hosted workflow and actual public
+  downloads need verification after the first push. Keep `master` as the hosted
+  default branch and publish the artwork before pushing the game tag.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
   captures and recordings/reference screenshots.
   Full-history findings and the completed history cleanup are above.
@@ -176,7 +178,7 @@ Do not merge or push any older, unfiltered history back into this repository.
 
 The ordinary game remains independent of sibling research repositories; optional
 retail/oracle tests need private fixtures and are explicitly ignored by normal CI.
-Prefer a first **release candidate** while the hosted/platform checks are exercised.
+Hosted checks must pass before the workflow publishes the versioned download.
 
 Local preparation checks passed: 137 ordinary workspace tests, native/WASM
 Clippy, formatting, all-system Nix evaluation, actionlint/shellcheck and ten

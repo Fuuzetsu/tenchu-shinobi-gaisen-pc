@@ -5,16 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.1.0 — 2026-10-28
+
 ### Added
 
 - Separately downloadable campaign HD artwork is discovered automatically.
   Native loading and browser preparation accept `.tar.zst` archives or editable
   unpacked directories, with cached extraction and original-art toggles.
-
 - Disc-backed HD texture recipes run in native Rust and WASM at asset load,
   preserving the existing artwork without shipping original colour/mask data
   in those textures or requiring Python.
-
 - Play all ten missions and training as Rikimaru or Ayame, with the original
   menus, equipment selection, saves, cutscenes and endings. English, Japanese,
   French and Italian use the supported Shinobi Gaisen disc.
