@@ -58,7 +58,7 @@ fn extraction_is_atomic_and_reuses_the_complete_cache() {
     let root = unpack_cached(bytes.as_slice(), &temporary.0, "pack").unwrap();
     assert!(complete(&root));
     assert_eq!(
-        fs::read(root.join("textures/test.png")).unwrap(),
+        super::super::read(&root, "textures/test.png", 1024).unwrap(),
         b"synthetic image data"
     );
     assert_eq!(

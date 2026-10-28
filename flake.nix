@@ -214,7 +214,7 @@
                 cross.stdenv.cc.bintools
                 pkgs.wineWow64Packages.stable
               ];
-              buildInputs = [ cross.windows.pthreads ];
+              CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = "-L native=${cross.windows.pthreads}/lib";
               RUSTC = "${cross.buildPackages.rustc}/bin/rustc";
               RUSTDOC = "${cross.buildPackages.rustc}/bin/rustdoc";
               SYSROOT = "${cross.buildPackages.rustc-unwrapped}";

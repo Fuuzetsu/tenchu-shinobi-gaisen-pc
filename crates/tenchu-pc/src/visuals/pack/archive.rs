@@ -86,11 +86,12 @@ fn complete(root: &Path) -> bool {
 }
 
 fn unpack_cached(source: impl Read, cache: &Path, id: &str) -> Result<PathBuf> {
+    fs::create_dir_all(cache).map_err(|e| e.to_string())?;
+    let cache = cache.canonicalize().map_err(|e| e.to_string())?;
     let destination = cache.join(id);
     if complete(&destination) {
         return Ok(destination);
     }
-    fs::create_dir_all(cache).map_err(|e| e.to_string())?;
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let temporary = cache.join(format!(
         "{id}.{}-{}.tmp",
