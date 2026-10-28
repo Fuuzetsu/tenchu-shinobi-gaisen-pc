@@ -306,9 +306,11 @@ impl Benchmarks {
                     if let Some(auto) = &report.recommendation { ui.strong(format!("Auto-optimised: {}", auto.quality)); ui.label(&auto.note); }
                     if !report.trials.is_empty() {
                         ui.collapsing("Tuning decisions", |ui| {
-                            for (index, trial) in report.trials.iter().enumerate() {
-                                ui.label(format!("{}{}. {}: {}", if report.selected_trial == Some(index) { "Selected · " } else { "" }, index + 1, trial.change, trial.reason));
-                            }
+                            egui::ScrollArea::vertical().id_salt("tuning-decisions").max_height(160.0).show(ui, |ui| {
+                                for (index, trial) in report.trials.iter().enumerate() {
+                                    ui.label(format!("{}{}. {}: {}", if report.selected_trial == Some(index) { "Selected · " } else { "" }, index + 1, trial.change, trial.reason));
+                                }
+                            });
                         });
                     }
                     egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| { egui::Grid::new("benchmark-results").striped(true).show(ui, |ui| {
@@ -458,11 +460,14 @@ impl Application {
             run.finish_scene(player);
             if !player.next() {
                 if let Some(tuner) = &mut run.tuner {
-                    if !tuner.advance(
+                    let more = tuner.advance(
                         &mut run.settings.graphics,
                         &run.report.scenes[run.trial_start..],
                         run.trial_start,
-                    ) {
+                    );
+                    let trial = tuner.trials.last().unwrap();
+                    println!("Auto tuning: {} — {}", trial.change, trial.reason);
+                    if !more {
                         run.recommend();
                         return self.finish_benchmark(None);
                     }

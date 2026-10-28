@@ -82,6 +82,37 @@ at 16.74 ms GPU p95; High and Ultra failed the first scene. This describes that
 machine and the former serialized offscreen selection rule, not a universal
 default or FPS promise. Individual adjustment tuning supersedes that tier search.
 
+The individual tuner was also exercised at 4K with the full artwork pack and
+**always-active enemies** enabled, while the existing TAS searches continued.
+It measured 18 configurations / 72 scenes (240 CPU and 239 GPU samples each),
+kept the requested weather/artwork and cheap enhancements, and correctly reported
+that the 60 FPS target was **not** reached:
+
+| Scene | Initial Ultra GPU p95 | Selected GPU p95 | Selected CPU p95 |
+| --- | ---: | ---: | ---: |
+| Village lights | 32.10 ms | 8.33 ms | 9.62 ms |
+| Snow courtyard | 20.61 ms | 4.97 ms | 8.96 ms |
+| Garden water | 48.51 ms | 13.46 ms | 9.53 ms |
+| Waterfall | 19.21 ms | 5.88 ms | 15.80 ms |
+
+The selected configuration retained eight local lights, one local shadow at 512,
+a 2048 sun/moon map and 2× MSAA. Character/foliage refinement, surface relief and
+post-processing were removed; motion, water, particles, blood and artwork stayed.
+The waterfall CPU p95 exceeds the 14.17 ms work allowance for 60 FPS. CPU spikes
+also caused some useful GPU reductions to be rejected by the aggregate comparison;
+this is why tuning should be repeated with other heavy work idle. These are
+stress-run observations, not recommended universal settings. CLI preferences and
+saves remained unchanged, and the recommendation matches the selected trial's
+actual graphics. Raw results are in ignored `private/performance/heuristics`.
+
+A Chromium/WebGPU run with base artwork at 1400×864 passed the 30 FPS target
+using observed frame/CPU timing (GPU timestamps were unavailable). Its selection
+kept refined characters, Botanical foliage, parallax, bloom/sharpen, motion,
+water and effects, with one 1024 local shadow, a 4096 sun/moon map, no MSAA and
+no contact shading. Cancellation and completion restored the exact game state;
+the selected preset survived a page reload. This also exercises the missing-GPU-
+timing path rather than assuming every browser exposes native GPU measurements.
+
 For reproducible native reports:
 
 ```sh

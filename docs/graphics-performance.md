@@ -24,6 +24,11 @@ repeated to check drift; small differences should not be interpreted as precise
 speedups. These short scenes are not sustained combat or fully accumulated
 weather stress tests.
 
+These results now guide [automatic tuning](performance.md#quality-and-automatic-tuning):
+F1 → General → Benchmarks → Auto-optimise graphics. They determine which controls
+to try first; the tuner measures the candidates on the user's device rather than
+hard-coding these GPU costs or dropping a whole preset tier.
+
 ## Measurements
 
 55 complete runs, 220 scene measurements. Reference GPU means

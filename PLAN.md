@@ -126,8 +126,18 @@ Fuller/Curved foliage modes, and reports unmet targets without falling back to
 Original. Display-limited runs retain quality; timestamped offscreen tuning uses
 CPU/GPU work rather than serialized frame intervals. The UI and JSON explain
 each decision. Focused regressions cover bottlenecks, rollback, missing GPU
-timings, display limits, supported MSAA and preservation of settings. Runtime
-validation is in progress.
+timings, display limits, supported MSAA and preservation of settings. All 137
+workspace tests and native/WASM strict Clippy pass. A full-artwork 4K stress run
+with always-active enemies measures 18 configurations / 72 scenes; GPU p95 falls
+to 5–13.5 ms, while the waterfall's 15.8 ms CPU p95 correctly prevents a 60 FPS
+success claim. Concurrent TAS work also affects candidate comparisons. The
+browser run, using base artwork at 1400×864 without GPU timestamps, meets its
+30 FPS target and persists the selected mixed-quality configuration. Both
+cancellation and completion restore the exact tick/RNG/position/inventory;
+reload preserves the saved preset. CLI preferences remain byte-identical and
+no save/preset files are written.
+The results UI has a bounded decision list, and CLI runs log decisions as they
+finish. Measurements and limits are in `docs/performance.md`.
 
 ## Automated build artifacts (implemented; hosted run pending)
 
