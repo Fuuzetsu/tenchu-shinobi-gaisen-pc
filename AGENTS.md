@@ -37,3 +37,6 @@
 - When adding useful presentation features, review Modern High/Ultra presets and
   the demo catalog so the feature is discoverable. Keep Original unchanged and
   keep graphical presets/retro comparisons separate from gameplay settings.
+- Record user-facing features, fixes and compatibility changes under Unreleased
+  in CHANGELOG.md. Omit refactors, formatting and test-only changes. Follow
+  docs/releases.md when preparing a version tag; never rewrite a published tag.

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Tenchu PC — Rust dependency notices</title>
+<style>body{font:16px sans-serif;max-width:70em;margin:2em auto;padding:0 1em}pre{white-space:pre-wrap}section{border-top:1px solid #888}</style>
+<h1>Rust dependency notices</h1>
+<p>These notices cover the Rust dependencies, including embedded egui fonts.
+The port's fonts and native libraries have separate notices beside this file.
+This list includes build dependencies and dependencies for other platforms.</p>
+{{#each licenses}}
+<section>
+<h2>{{name}}</h2>
+<ul>{{#each used_by}}
+<li>{{crate.name}} {{crate.version}} — {{crate.repository}}</li>
+{{/each}}</ul>
+<pre>{{text}}</pre>
+</section>
+{{/each}}
+</html>

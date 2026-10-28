@@ -7,21 +7,23 @@ with optional modern graphics and smooth rendering. No PlayStation BIOS needed.
 **Bring your own original game disc:** select its **`.cue`** and keep all referenced
 **`.bin` files** beside it. Assets are not included. Other Tenchu releases are not
 supported. Startup checks the game/menu executables and base artwork with SHA-256.
+The separate original mission editor (`TRIAL.EXE`) is not ported.
 
 ## Download and play
 
-In this repository on GitHub, open **Actions → Build downloads → a successful
-run → Artifacts**. The [workflow](.github/workflows/build.yml) publishes builds on
-`main`/`master` pushes; [downloads require a GitHub login](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
-and expire after 14 days.
-Extract the artifact ZIP, then the archive inside it.
+In this repository on GitHub, open **Releases**. Choose a versioned release for
+normal play, or **HEAD (development)** for the latest successful default-branch
+build. Download your platform's archive under **Assets** and extract it completely.
+The [workflow](.github/workflows/build.yml) publishes version tags and refreshes
+HEAD on `main`/`master`; release downloads do not have the Actions artifact expiry.
+[What's changed](CHANGELOG.md).
 
 | Platform | Download | Run |
 | --- | --- | --- |
-| Windows x64 | `tenchu-windows-x86_64-…` | Double-click `tenchu-pc.exe` and choose your CUE. |
-| Linux Intel/AMD | `tenchu-linux-x86_64-…` | Run `./tenchu-pc`; keep the whole extracted directory together. |
-| Linux ARM64 | `tenchu-linux-aarch64-…` | Same as Linux above. |
-| Browser | `tenchu-wasm32-…` | Prepare your disc assets and serve the folder; see below. |
+| Windows x64 | `tenchu-windows-x86_64.zip` | Double-click `tenchu-pc.exe` and choose your CUE. |
+| Linux Intel/AMD | `tenchu-linux-x86_64.tar.gz` | Run `./tenchu-pc`; keep the whole extracted directory together. |
+| Linux ARM64 | `tenchu-linux-aarch64.tar.gz` | Same as Linux above. |
+| Browser | `tenchu-wasm32.tar.gz` | Prepare your disc assets and serve the folder; see below. |
 | Apple Silicon Mac | Build from source below | A real Mac runtime test is still needed. |
 
 Or launch directly: `tenchu-pc play "/path/to/game.cue"` (Windows:
@@ -67,3 +69,8 @@ From source, `./build-web.sh '/path/to/game.cue'` builds and prepares the site.
 Replacement artwork is optional: set `TENCHU_ASSET_PACK` to your pack directory
 before launching. The checkbox alone does not install a pack.
 [Full feature guide](docs/guide.md) · [Demos](DEMOS.md) · [Development plan](PLAN.md)
+
+This is an unofficial port. Original project code/resources use the [MIT License](LICENSE),
+without warranty. See [third-party attribution](COPYING.md) and
+[release status / maintainer instructions](docs/releases.md). The dependency-source
+archive is for redistribution/rebuilding; it is not needed to play.

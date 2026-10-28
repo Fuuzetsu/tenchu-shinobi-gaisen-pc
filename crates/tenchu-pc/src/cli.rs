@@ -6,6 +6,14 @@ fn run() -> Result<()> {
     if args.is_empty() || disc_argument(&args[0]) {
         args.insert(0, "play".into());
     }
+    if args[0] == "--version" {
+        println!(
+            "tenchu-pc {} ({})",
+            env!("CARGO_PKG_VERSION"),
+            option_env!("TENCHU_BUILD_REVISION").unwrap_or("local build")
+        );
+        return Ok(());
+    }
     if args[0] == "--help" {
         println!(
             "tenchu-pc play [DISC] [OPTIONS] [--quick] [--record DIRECTORY]\ntenchu-pc benchmark DISC [--preset NAME] [--output REPORT.json]\ntenchu-pc demo DISC [--clips IDS] [--loop] [--clean]\ntenchu-pc demo --list\ntenchu-pc replay DISC INPUT.txt [OPTIONS] [--capture OUTPUT.png]\ntenchu-pc check-retail DISC UPDATES.ram.gz [UPDATE_LIMIT]\ntenchu-pc prepare-retail DISC UPDATES.ram.gz ARCHIVE.json REPLAY.json\ntenchu-pc record-retail DISC REPLAY.json VIDEO.mp4 [START_FRAME [END_FRAME]]\ntenchu-pc verify DISC\ntenchu-pc inspect DISC [ASSET]\ntenchu-pc audit DISC\ntenchu-pc render DISC OUTPUT.png [OPTIONS]\ntenchu-pc export-assets DISC DIRECTORY [OPTIONS]\ntenchu-pc export-interface DISC DIRECTORY\ntenchu-pc preview-materials DISC DIRECTORY TEXTURE_IDS [OPTIONS]\ntenchu-pc preview-models DISC DIRECTORY MODEL_IDS [OPTIONS] [--outfit normal|armour|alternate] [--background black|grey]\ntenchu-pc preview-sprites DISC DIRECTORY SPRITE_INDICES [OPTIONS]\ntenchu-pc prepare-web DISC DIRECTORY [--artwork]\n\nStart without arguments to choose your game disc. You can also drag its CUE onto the executable.\nDISC: original Shinobi Gaisen SLPS-019.01 .cue with its referenced .bin files. Raw .bin/.iso are accepted, but CUE is recommended for complete audio/movie data. Native play verifies the executable and base artwork hashes.\nOPTIONS: --character rikimaru|ayame --mission 1..10|training --layout 1..3|random --difficulty easy|normal|hard --language english|french|italian|japanese\nplay opens the original menu; F6 opens the quick launcher, or use --quick at launch. F1 opens PC settings. replay reads a recorded session or lines of tick count and hex buttons, and prints a state trace. --record writes a separate input file for each mission attempt.\ninspect lists mission resources; audit validates mission assets and animation; render captures the selected mission after 30 ticks. Explicit TENCHU_SETTINGS applies visual settings to render/replay captures."

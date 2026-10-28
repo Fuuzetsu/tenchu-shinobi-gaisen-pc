@@ -5,6 +5,8 @@
   outputs =
     { self, nixpkgs }:
     let
+      version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
+      revision = self.rev or self.dirtyRev or "unknown";
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -35,13 +37,24 @@
             ./Cargo.toml
             ./Cargo.lock
             ./crates
+            ./COPYING.md
+            ./LICENSE
           ];
+        };
+      distribution =
+        pkgs:
+        import ./packaging/dependencies.nix {
+          inherit pkgs;
+          nixpkgsSource = nixpkgs;
+          cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
+          source = source pkgs.lib;
         };
       native =
         pkgs:
         pkgs.rustPlatform.buildRustPackage {
           pname = "tenchu-shinobi-gaisen-pc";
-          version = "0.1.0";
+          inherit version;
+          TENCHU_BUILD_REVISION = revision;
           src = source pkgs.lib;
           cargoLock.lockFile = ./Cargo.lock;
           nativeBuildInputs = [
@@ -53,6 +66,9 @@
             pkgs.udev
           ];
           postInstall = ''
+            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
+            cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
+            cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
@@ -66,13 +82,14 @@
               ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''--prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath (runtimeLibraries pkgs)}:/run/opengl-driver/lib" --prefix PATH : "${pkgs.zenity}/bin"''}
           '';
           meta.mainProgram = "tenchu-pc";
+          meta.license = pkgs.lib.licenses.mit;
         };
       web =
         pkgs:
         assert pkgs.wasm-bindgen-cli.version == "0.2.121";
         pkgs.rustPlatform.buildRustPackage {
           pname = "tenchu-shinobi-gaisen-web";
-          version = "0.1.0";
+          inherit version;
           src = source pkgs.lib;
           cargoLock.lockFile = ./Cargo.lock;
           nativeBuildInputs = [
@@ -88,11 +105,15 @@
             mkdir -p "$out/pkg"
             wasm-bindgen --target web --out-dir "$out/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm
             cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$out/"
+            cp -R ${(distribution pkgs).notices} "$out/licenses"
+            chmod u+w "$out/licenses"
+            cp COPYING.md LICENSE "$out/licenses/"
             mkdir -p "$out/licenses/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$out/licenses/japanese-font/"
             mkdir -p "$out/licenses/hd-font"
             cp crates/tenchu-pc/data/hd-font/{OFL-1.1.txt,README.md} "$out/licenses/hd-font/"
           '';
+          meta.license = pkgs.lib.licenses.mit;
         };
     in
     {
@@ -108,14 +129,21 @@
         {
           default = native pkgs;
           web = web pkgs;
+          dependency-notices = (distribution pkgs).notices;
         }
         // pkgs.lib.optionalAttrs (windows != null) { inherit windows; }
         // import ./packaging/artifacts.nix {
-          inherit pkgs windows;
+          inherit
+            pkgs
+            windows
+            revision
+            version
+            ;
           native = native pkgs;
           web = web pkgs;
+          dependencies = distribution pkgs;
+          portSource = self;
           runtimeLibraries = runtimeLibraries pkgs;
-          revision = self.rev or self.dirtyRev or "unknown";
           nixpkgsRevision = nixpkgs.rev;
         }
       );
@@ -202,11 +230,15 @@
                 nativeBuildInputs = [
                   pkgs.actionlint
                   pkgs.shellcheck
+                  pkgs.python3
                 ];
               }
               ''
                 actionlint ${./.github/workflows/build.yml}
                 shellcheck ${./packaging/tenchu-linux.sh}
+                shellcheck ${./packaging/publish.sh}
+                cp -R ${./packaging} packaging
+                python3 -m unittest discover -s packaging -p 'test_*.py'
                 touch "$out"
               '';
           clippy = (native pkgs).overrideAttrs (old: {
@@ -222,7 +254,7 @@
           });
           wasm = pkgs.rustPlatform.buildRustPackage {
             pname = "tenchu-portable-core";
-            version = "0.1.0";
+            inherit version;
             src = source pkgs.lib;
             cargoLock.lockFile = ./Cargo.lock;
             nativeBuildInputs = [ pkgs.lld ];

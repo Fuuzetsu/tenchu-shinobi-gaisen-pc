@@ -14,3 +14,7 @@ WebGPU is preferred; WebGL2 is available as a compatibility renderer.
 Keep index.html, app.js, style.css, pkg/ and your data/ directory together.
 No disc image or extracted game assets are included. Do not redistribute the
 data directory created from your disc.
+
+build-info.json identifies this download. Keep licenses/ with the site. The
+matching dependency-source archive is provided on the release page for
+rebuilding/redistribution; it is not needed to play.

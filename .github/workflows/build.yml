@@ -1,8 +1,10 @@
-name: Build downloads
+name: Build and release
 
 on:
   push:
     branches: [master, main]
+    tags: ['v*']
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -10,10 +12,23 @@ permissions:
 
 concurrency:
   group: builds-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check version and user-facing release notes
+        env:
+          REF: ${{ github.ref }}
+        run: python3 packaging/release.py notes "$REF" release-notes.md
+
   build:
+    needs: validate
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -33,6 +48,9 @@ jobs:
           - target: wasm32
             runner: ubuntu-24.04
             package: web-archive
+          - target: dependency-sources
+            runner: ubuntu-24.04
+            package: dependency-sources-archive
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -96,3 +114,35 @@ jobs:
           Expand-Archive dist/tenchu-windows-x86_64.zip -DestinationPath unpacked
           & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe --help
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./unpacked/tenchu-windows-x86_64/tenchu-pc.exe --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  publish:
+    name: Publish complete downloads
+    needs: [build, windows-smoke]
+    if: >-
+      github.event_name != 'pull_request' &&
+      (startsWith(github.ref, 'refs/tags/v') ||
+       github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: publish-releases
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: tenchu-*-${{ github.sha }}
+          path: artifacts
+      - name: Publish version or rolling HEAD
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash packaging/publish.sh

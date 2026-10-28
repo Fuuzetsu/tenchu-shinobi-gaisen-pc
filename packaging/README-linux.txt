@@ -28,3 +28,7 @@ High, Ultra and persistent named user presets. Fresh preferences use Modern Low.
 
 The file picker uses your desktop portal, with Zenity as a fallback. If neither
 is installed, use the explicit play command above.
+
+build-info.json and --version identify this download. Keep licenses/ with the
+program. The matching dependency-source archive is provided on the release page
+for rebuilding/redistribution; it is not needed to play.

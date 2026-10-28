@@ -1,10 +1,12 @@
 import re
+import json
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-binary, destination, *libraries = map(Path, sys.argv[1:])
+binary, destination, manifest, *libraries = map(Path, sys.argv[1:])
+components = json.loads(manifest.read_text())
 lib = destination / "lib"
 lib.mkdir(parents=True)
 (destination / "libexec").mkdir()
@@ -30,6 +32,13 @@ for root in roots:
         previous = dependencies.setdefault(path.name, path.resolve())
         if previous != path.resolve() and previous.read_bytes() != path.read_bytes():
             raise RuntimeError(f"Conflicting libraries named {path.name}: {previous}, {path}")
+
+uncovered = {
+    path for path in dependencies.values()
+    if not any(path.is_relative_to(output) for c in components for output in c["outputs"])
+}
+if uncovered:
+    raise RuntimeError(f"No dependency source/notice entries for {sorted(map(str, uncovered))}")
 
 for name, path in sorted(dependencies.items()):
     copied = lib / name

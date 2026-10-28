@@ -10,6 +10,39 @@ gameplay. The original menu and ending are now in scope, using the completed
 decompilation on `tenchu-decomp` master. Keep the small development launcher
 available with F6. Continue after each milestone until the complete game works.
 
+## Release preparation (implemented; hosted validation pending)
+
+Add version-tagged downloads and a rolling HEAD prerelease for the default
+branch, retaining temporary Actions artifacts. Release notes come from a
+user-facing CHANGELOG, with tag/Cargo version agreement and complete checked
+download sets before publication. Preserve published version tags and reject
+stale HEAD reruns. Carry dependency notices, corresponding native-library
+sources/patches, build recipes and build identity with downloadable releases.
+
+Review tracked files and Git history, source provenance, runtime dependencies,
+platform evidence and documentation. Keep disc/browser assets, private HD packs
+and captures out of public downloads. Record unresolved publication decisions
+and validation in `docs/releases.md`; do not claim an untested platform or
+publish a version before one has been chosen.
+
+Implemented tag and default-branch publication with checked complete download
+sets, dated changelog extraction, prerelease handling, stale-HEAD rejection and
+published-version protection. Added MIT licensing for original project
+code/resources at the user's request; third-party fonts/libraries retain their
+notices. Archives include build identity, license notices and a separate source
+download covering the bundled native components, locked Rust dependencies and
+pinned build recipes. Bundling rejects libraries outside that source inventory.
+
+Validation passed: 137 ordinary tests, native/WASM strict Clippy, formatting,
+all-system Nix evaluation, workflow/shell checks and ten release-policy tests.
+Linux x86-64, Windows x86-64, WASM and source archives built with verified hashes
+and metadata. The Linux archive starts/loads libraries with `/nix` hidden and
+renders Mission 1 on Vulkan; Windows startup passes under Wine/X11; the WASM
+site serves its module with correct headers. Reachable Git history contains
+only the documented OFL font binaries and no detected credentials/private
+outputs. No release was published: a Git remote/version tag and hosted/platform
+validation remain. See `docs/releases.md` for the review and release procedure.
+
 ## Performance, presets and first launch (implemented)
 
 Preserve gameplay and visual quality while making performance measurable and

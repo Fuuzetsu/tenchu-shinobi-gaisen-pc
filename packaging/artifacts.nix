@@ -6,6 +6,9 @@
   runtimeLibraries,
   revision,
   nixpkgsRevision,
+  version,
+  dependencies,
+  portSource,
 }:
 let
   inherit (pkgs) lib;
@@ -17,13 +20,13 @@ let
       }
       ''
         mkdir -p staging/${name} "$out"
-        cp -RL ${contents}/. staging/${name}/
+        cp -R ${contents}/. staging/${name}/
         chmod -R u+w staging
         cp ${instructions} staging/${name}/README.txt
         cp ${
           pkgs.writeText "build-info.json" (
             builtins.toJSON {
-              inherit revision nixpkgsRevision;
+              inherit revision nixpkgsRevision version;
               target = name;
             }
           )
@@ -56,7 +59,7 @@ let
         ];
       }
       ''
-        python3 ${./bundle-linux.py} ${native}/bin/.tenchu-pc-wrapped "$out" \
+        python3 ${./bundle-linux.py} ${native}/bin/.tenchu-pc-wrapped "$out" ${dependencies.manifest} \
           ${lib.escapeShellArgs (
             map (p: "${lib.getLib p}") (
               runtimeLibraries
@@ -86,9 +89,15 @@ let
     cp ${windows}/bin/tenchu-pc.exe "$out/"
     cp -R ${windows}/share/doc/tenchu-shinobi-gaisen-pc/. "$out/licenses/"
   '';
+  sources = pkgs.runCommand "tenchu-dependency-sources" { } ''
+    mkdir -p "$out"
+    cp -R ${dependencies.sources}/. "$out/"
+    cp -R ${portSource} "$out/port"
+  '';
 in
 {
   web-archive = archive "tenchu-wasm32" browser ./README-wasm.txt false;
+  dependency-sources-archive = archive "tenchu-dependency-sources" sources ./README-sources.txt false;
 }
 // lib.optionalAttrs pkgs.stdenv.isLinux {
   linux-bundle = linux;

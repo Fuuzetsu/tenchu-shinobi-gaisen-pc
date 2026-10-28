@@ -530,18 +530,20 @@ so this flake no longer advertises an unusable `x86_64-darwin` output.
 
 ### Automated downloads
 
-[Build downloads](../.github/workflows/build.yml) runs on pushes to `master` and
-`main`, and supports **Run workflow** in GitHub Actions. Download the artifacts
-from the completed run; each includes an archive and `SHA256SUMS`. They are
-retained for 14 days and named with the source commit. These are Actions
-artifacts, not GitHub Releases.
+[Build and release](../.github/workflows/build.yml) runs on pushes to `master` and
+`main`, version tags, pull requests and **Run workflow** in GitHub Actions.
+**Releases** contains versioned downloads and **HEAD (development)**, a rolling
+prerelease of the latest successful default-branch build. These downloads include
+`SHA256SUMS` and do not expire after 14 days. Per-run Actions artifacts remain
+available for 14 days for diagnostics. See [releasing](releases.md).
 
 | Artifact | Contents |
 | --- | --- |
 | `linux-x86_64` | Linux launcher, executable, loader and shared libraries |
 | `linux-aarch64` | The same bundle built/tested on a native ARM64 Linux runner |
-| `windows-x86_64` | Windows executable and font licenses |
+| `windows-x86_64` | Windows executable and dependency/font notices |
 | `wasm32` | Browser website, WASM, JavaScript bindings and Python server |
+| `dependency-sources` | Optional dependency sources, patches and pinned build recipes |
 
 Extract Linux archives with `tar -xzf`, keep the whole directory together and
 run `./tenchu-pc play /path/to/game.cue`. Nix is **not required** to run these
