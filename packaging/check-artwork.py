@@ -1,13 +1,13 @@
 """Check the reviewed pack inventory and hashes; this is not a provenance classifier."""
 
+import argparse
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import struct
-import sys
 
 
-def check(root):
+def check(root, metadata_only=False):
     manifest_bytes = (root / "pack.json").read_bytes()
     manifest = json.loads(manifest_bytes)
     provenance = json.loads((root / "provenance.json").read_text())
@@ -38,6 +38,8 @@ def check(root):
         path = PurePosixPath(name)
         if path.is_absolute() or any(p in ("", ".", "..") for p in name.split("/")) or "\\" in name:
             raise ValueError(f"Invalid pack path: {name}")
+        if metadata_only:
+            continue
         if (root / name).is_symlink() or not (root / name).resolve().is_relative_to(root.resolve()):
             raise ValueError(f"Pack path escapes: {name}")
         data = (root / name).read_bytes()
@@ -51,6 +53,9 @@ def check(root):
         elif path.suffix != ".obj":
             raise ValueError(f"Unexpected shipped format: {name}")
         total += len(data)
+    if metadata_only:
+        print(f"HD metadata: {len(textures)} PNG entries, {len(recipes)} recipes, {len(files)} inputs")
+        return
     actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
     if actual != files | {"pack.json", "provenance.json", "README.md", "LICENSE"}:
         raise ValueError("Unreferenced or missing files in pack")
@@ -58,4 +63,8 @@ def check(root):
 
 
 if __name__ == "__main__":
-    check(Path(sys.argv[1]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("root", type=Path)
+    parser.add_argument("--metadata-only", action="store_true")
+    args = parser.parse_args()
+    check(args.root, args.metadata_only)

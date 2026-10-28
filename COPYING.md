@@ -21,8 +21,8 @@ resampling/compositing carries the Pillow/PIL MIT-CMU notice in
 This is an unofficial reimplementation. Tenchu's original game data, artwork,
 music and trademarks are not licensed by this project. Supply your own supported
 disc. Do not redistribute the disc, extracted `data/` directories, BIOS files,
-emulator memory captures or private reference images. The bundled generated HD
-pack and disc-backed recipes have their own [provenance record](assets/hd/README.md);
+emulator memory captures or private reference images. The separately distributed HD
+pack and disc-backed recipes have their own [provenance record](artwork/README.md);
 the MIT grant covers original contributions, not underlying Tenchu designs or
 trademarks. Additional artwork packs need their own distribution review.
 

@@ -20,13 +20,20 @@ menu languages load the same final pixels directly from the disc. Measured
 release-mode pack decoding is 65–216 ms per tested scene/menu on this desktop
 with a warm filesystem cache, including its PNG inputs; this excludes disc opening and GPU uploads.
 
-The reviewed pack is versioned at `assets/hd`, included in platform/source
-packages and discovered automatically. Explicit custom packs and an empty-env
-disable remain available. Browser exports include recipe dependencies in menu
+The reviewed pack is a separate `tenchu-hd.tar.zst` release download; only its
+manifest, provenance and version/checksum metadata remain tracked in `artwork/`.
+Native loading and browser preparation accept archives or unpacked directories.
+Archives extract once into a content-addressed user cache with bounded pure-Rust
+decoding and safe paths. Explicit custom packs and an empty-env disable remain
+available. Native/browser/source packages build without the large artwork inputs. Browser exports include recipe dependencies in menu
 or background prefetch, and only the selected scene's final images enter the
 existing memory budget. The game ships no Python interpreter or Pillow runtime.
 Public packaging includes image-algorithm attribution and an inventory/hash
-check; final updated archive/browser checks and publication review follow below.
+check. The complete 269-commit history audit found only the documented fonts
+and authored HD PNG/OBJ inputs as binary/model resources. The latter still occur
+in the previous import commit; filter `assets/hd/` from a separate public clone
+before publication, preserving this development repository. No history rewrite
+or public upload has been performed. Updated archive/browser checks follow below.
 
 Add version-tagged downloads and a rolling HEAD prerelease for `master`, the
 default branch, retaining temporary Actions artifacts. Release notes come from a
@@ -37,9 +44,9 @@ sources/patches, build recipes and build identity with downloadable releases.
 
 Review tracked files and Git history, source provenance, runtime dependencies,
 platform evidence and documentation. Keep disc/browser assets and captures out
-of public downloads. Ship the project's HD artwork with the source and game;
-its ignored authoring directory does not make it a private pack. Audit mixed
-original/generated composites before importing it. Record unresolved publication decisions
+of public downloads. Publish the project's HD artwork as a separately versioned
+GitHub Release, linked from game releases; it is not a private pack. Preserve
+original/generated reconstruction recipes and their provenance in the source. Record unresolved publication decisions
 and validation in `docs/releases.md`; do not claim an untested platform or
 publish a version before one has been chosen.
 
@@ -56,9 +63,9 @@ all-system Nix evaluation, workflow/shell checks and ten release-policy tests.
 Linux x86-64, Windows x86-64, WASM and source archives built with verified hashes
 and metadata. The Linux archive starts/loads libraries with `/nix` hidden and
 renders Mission 1 on Vulkan; Windows startup passes under Wine/X11; the WASM
-site serves its module with correct headers. Reachable Git history contains
-only the documented OFL font binaries and no detected credentials/private
-outputs. No release was published: a Git remote/version tag and hosted/platform
+site serves its module with correct headers. The pre-HD history audit found
+only the documented OFL font binaries; the later full audit above also found
+no credential-pattern matches or private outputs. No release was published: a Git remote/version tag and hosted/platform
 validation remain. See `docs/releases.md` for the review and release procedure.
 
 ## Performance, presets and first launch (implemented)

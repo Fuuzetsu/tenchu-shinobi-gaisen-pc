@@ -10,6 +10,8 @@ use std::{
 use tenchu_assets::{Result, stage::MissionAssets};
 
 #[cfg(not(target_arch = "wasm32"))]
+mod archive;
+#[cfg(not(target_arch = "wasm32"))]
 mod location;
 #[cfg(not(target_arch = "wasm32"))]
 pub use location::configured_root;
@@ -146,6 +148,9 @@ impl Pack {
     }
 
     fn load_selected(root: &Path, selection: Option<Selection>) -> Result<Self> {
+        #[cfg(not(target_arch = "wasm32"))]
+        let root = archive::directory(root)?;
+        #[cfg(target_arch = "wasm32")]
         let root = root.canonicalize().map_err(|e| e.to_string())?;
         let bytes = read(&root, "pack.json", 4 * 1024 * 1024)?;
         let manifest: Manifest = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
@@ -368,6 +373,18 @@ impl Pack {
 
 pub(crate) fn validate_path(name: &str) -> Result<()> {
     if name.is_empty()
+        || name.contains(':')
+        || name.chars().any(char::is_control)
+        || name.split('/').any(|part| {
+            let device = part.split('.').next().unwrap_or("").to_ascii_uppercase();
+            part.ends_with([' ', '.'])
+                || matches!(device.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+                || ["COM", "LPT"].iter().any(|prefix| {
+                    device.strip_prefix(prefix).is_some_and(|n| {
+                        matches!(n, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
+                    })
+                })
+        })
         || name.contains('\\')
         || name
             .split('/')
@@ -379,6 +396,11 @@ pub(crate) fn validate_path(name: &str) -> Result<()> {
         return Err(format!("Asset path must stay inside the pack: {name}"));
     }
     Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn unpack(root: &Path) -> Result<std::path::PathBuf> {
+    archive::directory(root)
 }
 
 pub(crate) fn read(root: &Path, name: &str, limit: u64) -> Result<Vec<u8>> {
@@ -457,7 +479,7 @@ mod tests {
 
     #[test]
     #[ignore = "requires TENCHU_DISC and TENCHU_EXPECTED_PACK; compares native disc-backed recipes across menus and missions"]
-    fn bundled_artwork_matches_reference_with_real_disc_sources() {
+    fn configured_artwork_matches_reference_with_real_disc_sources() {
         let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
         let expected = std::env::var_os("TENCHU_EXPECTED_PACK").expect("TENCHU_EXPECTED_PACK");
         let root = configured_root().expect("Configured HD pack");

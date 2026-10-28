@@ -66,8 +66,6 @@
             pkgs.udev
           ];
           postInstall = ''
-            mkdir -p "$out/share/tenchu-shinobi-gaisen-pc"
-            cp -R ${./assets/hd} "$out/share/tenchu-shinobi-gaisen-pc/hd"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
             cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
             cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
@@ -106,8 +104,7 @@
           '';
           doCheck = false;
           installPhase = ''
-            mkdir -p "$out/pkg" "$out/assets"
-            cp -R ${./assets/hd} "$out/assets/hd"
+            mkdir -p "$out/pkg"
             wasm-bindgen --target web --out-dir "$out/pkg" target/wasm32-unknown-unknown/release/tenchu_pc.wasm
             cp crates/tenchu-pc/web/{index.html,app.js,style.css} "$out/"
             cp -R ${(distribution pkgs).notices} "$out/licenses"
@@ -184,6 +181,8 @@
                 nixfmt
                 pkg-config
                 ffmpeg
+                gnutar
+                zstd
                 wasm-bindgen-cli
                 nodejs
                 (python3.withPackages (p: [
@@ -246,7 +245,8 @@
                 shellcheck ${./packaging/publish.sh}
                 cp -R ${./packaging} packaging
                 python3 -m unittest discover -s packaging -p 'test_*.py'
-                python3 packaging/check-artwork.py ${./assets/hd}
+                shellcheck ${./tools/package-artwork.sh}
+                python3 packaging/check-artwork.py --metadata-only ${./artwork}
                 touch "$out"
               '';
           clippy = (native pkgs).overrideAttrs (old: {

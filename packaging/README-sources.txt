@@ -20,5 +20,7 @@ flags and additional patch steps. The port changes ELF loader/search paths when
 assembling Linux archives; see port/packaging/bundle-linux.py and tenchu-linux.sh.
 Libraries stay separate and dynamically linked so they can be replaced.
 
-The generated HD pack and texture recipes are in port/assets/hd. Original disc
-assets, BIOS, reference screenshots and reconstructed composites are not included.
+HD artwork is a separate tenchu-hd.tar.zst download in the artwork-v1 release.
+port/artwork contains its manifest, recipes, provenance and editing instructions.
+Original disc assets, BIOS, reference screenshots and reconstructed composites
+are not included.

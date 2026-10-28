@@ -66,11 +66,13 @@ renderer selector. Assets load from your server and cache in the browser.
 From source, `./build-web.sh '/path/to/game.cue'` builds and prepares the site.
 [Browser details](docs/guide.md#browser-build).
 
-The HD artwork pack is included and found automatically. **F1 → Visual assets →
-Replacement artwork** enables it; Modern presets enable it too. Some textures
-are reconstructed locally from your disc when needed. No Python or online image
-service is required to play. Set `TENCHU_ASSET_PACK` to use a different pack, or
-to an empty string to skip artwork loading. [Artwork/provenance](assets/hd/README.md).
+For HD artwork, download **`tenchu-hd.tar.zst`** from the **artwork-v1** release
+and place it beside the executable/launcher (or in the source checkout). It is
+found and cached automatically. **F1 → Visual assets → Replacement artwork**
+enables it; Modern presets enable it too. `TENCHU_ASSET_PACK` also accepts a
+custom archive or unpacked directory. Some textures are reconstructed from your
+disc in Rust; no Python or image service is needed to play.
+[Artwork, editing and provenance](artwork/README.md).
 [Full feature guide](docs/guide.md) · [Demos](DEMOS.md) · [Development plan](PLAN.md)
 
 This is an unofficial port. Original project code/resources use the [MIT License](LICENSE),

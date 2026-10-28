@@ -18,10 +18,11 @@ fn discover(executable: Option<&Path>, directory: Option<&Path>) -> Option<PathB
         .flat_map(|root| {
             [
                 root.join("assets/hd"),
+                root.join("tenchu-hd.tar.zst"),
                 root.join("share/tenchu-shinobi-gaisen-pc/hd"),
             ]
         })
-        .find(|path| path.join("pack.json").is_file())
+        .find(|path| path.join("pack.json").is_file() || path.is_file())
 }
 
 #[cfg(test)]
@@ -59,6 +60,14 @@ mod tests {
         }
         assert_eq!(discover(None, Some(&cwd)), Some(cwd.join("assets/hd")));
         assert_eq!(discover(None, Some(&root)), None);
+        let archive = root.join("download/tenchu-hd.tar.zst");
+        fs::create_dir(archive.parent().unwrap()).unwrap();
+        fs::write(&archive, []).unwrap();
+        assert_eq!(
+            discover(Some(&root.join("download/libexec/tenchu-pc")), Some(&cwd)),
+            Some(archive.clone())
+        );
+        assert_eq!(discover(None, archive.parent()), Some(archive));
         fs::remove_dir_all(root).unwrap();
     }
 }

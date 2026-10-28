@@ -22,7 +22,7 @@ fn export(
     destination: &Path,
     interface: &BTreeSet<String>,
 ) -> Result<crate::web_assets::Artwork> {
-    let root = root.canonicalize().map_err(|e| e.to_string())?;
+    let root = pack::unpack(root)?;
     let bytes = pack::read(&root, "pack.json", 4 * 1024 * 1024)?;
     let manifest: pack::Manifest = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     if manifest.version != 1 {

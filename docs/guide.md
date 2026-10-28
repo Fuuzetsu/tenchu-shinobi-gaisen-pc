@@ -320,8 +320,10 @@ usable material. The completed local Mission 1 texture pack lives in
 `private/m1-hd-pilot`, with source artwork/prompts in `private/m1-hd-source`.
 These local assets are not included in Git.
 
-The campaign pack is bundled at **`assets/hd`** in the source tree and Windows/
-browser archives, or `share/tenchu-shinobi-gaisen-pc/hd` in Linux/Nix packages.
+The campaign pack is a separate **`tenchu-hd.tar.zst`** download in the
+**artwork-v1** release. Place it beside the executable/launcher or in your working
+directory. For editing, unpack it into `assets/hd/` or set `TENCHU_ASSET_PACK`
+to another directory. The game caches archive extraction by content hash.
 It covers 1,719 texture identities across Missions 1–10, character/outfit families,
 equipment, world effects, HUD and menus, plus two authored weapon meshes.
 Plain `play DISC` discovers it automatically. F1 → **Visual assets → Replacement
@@ -331,9 +333,9 @@ F6 opens the quick launcher; F8 compares original graphics.
 
 The pack ships generated artwork and 301 Rust recipes. Mixed source colour,
 cutout masks and snow coverage are reconstructed from your disc at asset load,
-without Python or online generation. See [pack provenance](../assets/hd/README.md).
-To use a custom pack, set `TENCHU_ASSET_PACK` to its directory. An explicitly empty
-value disables loading the bundled pack. To play with the included pack:
+without Python or online generation. See [pack provenance/editing](../artwork/README.md).
+To use a custom pack, set `TENCHU_ASSET_PACK` to its directory or `.tar.zst` file.
+An explicitly empty value disables loading. With the download in place:
 
 ```sh
 ./dev.sh cargo run --release -- play '/path/to/game.cue'
@@ -666,7 +668,7 @@ nix run github:nix-community/flake-firefox-nightly#firefox-nightly-bin -- \
 The complete host is also built by `nix build .#web`; it contains no game data.
 `tenchu-pc prepare-web DISC DIRECTORY` prepares that site's `data/` directory.
 
-The bundled HD artwork is included automatically by `./build-web.sh`. Set
+A downloaded HD pack is included automatically by `./build-web.sh`. Set
 `TENCHU_ASSET_PACK` to override it (an empty value disables it). Existing
 disc/audio/movie exports are reused; artwork is refreshed. For example:
 

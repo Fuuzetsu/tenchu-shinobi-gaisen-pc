@@ -64,6 +64,60 @@ CI. It checks native unit tests, Clippy, formatting, WASM builds, workflow/scrip
 Linux startup/library loading without `/nix`, and Windows executable startup.
 It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
 
+## Artwork releases
+
+Host the HD pack in this same repository's GitHub Releases, independently of
+code releases. The compatible tag, archive name, size and checksum are recorded
+in `artwork/release.json`; game release notes link that tag. `artwork-v1` does
+not match the `v*` workflow trigger and does not become a game release. Keep
+`master` as the default branch.
+
+1. Keep the editable pack outside tracked source. Update the reviewed
+   `artwork/pack.json` and `artwork/provenance.json` when its inputs change.
+   Original disc exports and precomposited source pixels stay out of the pack.
+2. Package the reviewed directory using pinned tools:
+
+   ```sh
+   ./dev.sh bash tools/package-artwork.sh /path/to/reviewed-pack /path/to/new-output
+   ```
+
+   This checks all referenced inputs and hashes, writes a deterministic
+   `tenchu-hd.tar.zst` with `pack.json` at its root, and produces `SHA256SUMS`.
+   Use ordinary files/directories, no symlinks; extraction accepts at most
+   8,192 entries, 512 MiB total, 64 MiB per file and a 4 MiB manifest.
+3. Record the resulting checksum/size and the new `artwork-vN` tag in
+   `artwork/release.json`. Verify packed and unpacked loading and browser export.
+   Commit metadata, instructions and provenance, never the archive or PNG/OBJ blobs.
+4. After the public repository exists, create a draft release at that commit,
+   titled **HD artwork vN**, tag `artwork-vN`. Upload the tarball and checksum,
+   explain compatibility and the disc requirement, then publish with **Set as
+   latest release** disabled. Publish this before game releases that link it.
+   Do not replace published artwork: make `artwork-v2` for changed contents.
+
+The game extracts the archive with pure Rust into a content-addressed user cache,
+without external tools. Unpacked folders remain editable. Browser preparation
+copies the same referenced files into menu/background prefetch groups; generated
+recipes execute from local disc textures in WASM. Native and browser binaries
+build independently of the artwork download. There is no automatic network
+fetch during gameplay.
+
+## Preparing public history
+
+The full audit of 269 reachable commits (4,520 unique blobs, before this
+separation change) found 1,710 unique PNG blobs, all introduced under `assets/hd/`
+in the recent HD import, plus the two documented OFL font binaries. It found no
+disc/retail executables, BIOS, RAM captures, screenshots or recording files.
+The PNG/OBJ inputs now live outside the tracked tree, but the import remains
+in this development history.
+
+Keep this repository intact. Before the first public push, create a separate
+clone and filter **only `assets/hd/`** from all its history using `git filter-repo`.
+Audit the filtered clone again before adding its public remote. This retains the
+useful code history while removing the large artwork blobs. A clean initial
+snapshot is also possible, but the audit found no reason to discard all prior
+code commits. Neither rewrite has been performed here. Do not push this
+unfiltered development history if the public source must exclude HD blobs.
+
 ## Publication review (2026-10-28)
 
 - **MIT license for original project code/resources.** [COPYING.md](../COPYING.md)
@@ -75,15 +129,15 @@ It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
   local branch is `master`; select it as the hosted default branch too.
 - **Keep private:** disc images, extracted browser `data/`, BIOS, RAM/trace
   captures and recordings/reference screenshots.
-  The previous reachable-history audit found only the documented OFL fonts as
-  binary files. This change adds the explicitly inventoried HD PNG/OBJ inputs;
-  generated composites and original reference assets remain ignored. A filename/content scan is not a legal certification of the code.
+  Full-history findings and the recommended separate-clone cleanup are above.
+  Generated composites and original reference assets remain ignored. A
+  filename/content scan is not a legal certification of the code.
 - **Publish with the binaries:** changelog, concise run instructions, checksums,
   build identity, font/Rust/native-library notices and corresponding dependency
   sources. The Linux bundle contains LGPL libraries; preserve the source archive
   alongside redistribution. It includes upstream sources, applied patches,
   complete pinned Nixpkgs recipes and this port's packaging code.
-- **HD artwork is included.** `assets/hd` contains 1,418 direct generated PNG
+- **HD artwork is a separate download.** The pack contains 1,418 direct generated PNG
   replacements and 301 disc-backed recipes (1,719 texture identities), generated
   technical layers and two authored weapon meshes: 142.7 MiB of referenced inputs.
   Native packages discover the pack automatically; browser preparation exports its
@@ -93,8 +147,8 @@ It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
   All 301 recipes match the accepted artwork byte for byte. Actual disc-backed
   loading also matches the previous pack for both characters in training/all ten
   missions and all four menu languages. `packaging/check-artwork.py` checks the
-  manifest, referenced files, provenance inventory and hashes in CI.
-  [Artwork provenance](../assets/hd/README.md) explicitly records use of original
+  manifest/provenance metadata in CI and every input hash when packaging.
+  [Artwork provenance](../artwork/README.md) explicitly records use of original
   references; reconstruction removes embedded source pixels, not the underlying
   original character/environment designs. The MIT grant covers original
   contributions and is not a legal clearance for Tenchu's intellectual property.

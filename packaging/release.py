@@ -4,6 +4,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import re
 import shutil
 import tarfile
@@ -49,12 +50,21 @@ def release_notes(root, ref):
     else:
         body = "Development build of the default branch. It may contain unfinished changes.\n\n"
         body += changes["Unreleased"].strip() or "No user-facing changes recorded since the last tagged release."
+    artwork = json.loads((root / "artwork/release.json").read_text())
+    tag = artwork["tag"]
+    if not re.fullmatch(r"artwork-v[1-9][0-9]*", tag):
+        raise ValueError("Invalid artwork release tag")
+    repository = os.environ.get("GH_REPO", os.environ.get("GITHUB_REPOSITORY", ""))
+    label = f"[{tag}](https://github.com/{repository}/releases/tag/{tag})" if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) else tag
     body += (
-        "\n\nSupply your own Shinobi Gaisen SLPS-019.01 CUE and BIN files; game assets are not included. "
+        "\n\nSupply your own Shinobi Gaisen SLPS-019.01 CUE and BIN files; original disc assets are not included. "
         "FFmpeg is needed separately for native movies/video export. "
         "The browser archive needs assets prepared with the matching native build.\n\n"
         "Download the archive for your platform and extract it completely. "
         "SHA256SUMS verifies the downloads. Dependency sources are an optional separate download.\n"
+        f"\nOptional HD artwork: download `tenchu-hd.tar.zst` from the separate {label} release "
+        "and place it beside the executable/launcher. Reuse it across game updates; "
+        "unpacked custom packs are supported too.\n"
     )
     return body
 

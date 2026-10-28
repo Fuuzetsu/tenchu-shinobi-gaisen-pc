@@ -20,6 +20,8 @@ class ReleaseTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / "Cargo.toml").write_text('[workspace.package]\nversion = "0.1.0"\n')
+        (self.root / "artwork").mkdir()
+        (self.root / "artwork/release.json").write_text('{"tag":"artwork-v1"}')
 
     def notes(self, changelog, ref="refs/tags/v0.1.0"):
         (self.root / "CHANGELOG.md").write_text(changelog)
