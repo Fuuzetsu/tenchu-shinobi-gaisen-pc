@@ -4,6 +4,34 @@ const canvas = document.createElement("canvas");
 canvas.width = 320;
 canvas.height = 240;
 const drawing = canvas.getContext("2d", { willReadFrequently: true });
+let editing = false, pasted = "";
+const gameEditing = () => editing && document.activeElement?.id === "game";
+document.addEventListener("keydown", event => {
+  if (gameEditing() && (event.ctrlKey || event.metaKey) && event.code === "KeyV") {
+    // Let the browser issue Paste before winit prevents the default key action.
+    event.stopPropagation();
+  }
+}, true);
+document.addEventListener("paste", event => {
+  if (!gameEditing()) return;
+  pasted = event.clipboardData?.getData("text/plain") ?? "";
+  if (pasted.length > 65536) {
+    pasted = "";
+    status("Clipboard text exceeds 64 KiB");
+  }
+  event.preventDefault();
+});
+export function clipboard_editing(value) { editing = value; }
+export function clipboard_paste() {
+  const text = pasted;
+  pasted = "";
+  return text;
+}
+export function clipboard_copy(text) {
+  const fallback = () => window.prompt("Copy this text:", text);
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(fallback);
+  else fallback();
+}
 
 export function graphics_backend(name, adapter) {
   document.body.dataset.renderer = name;

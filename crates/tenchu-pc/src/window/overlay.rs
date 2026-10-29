@@ -95,6 +95,18 @@ impl Overlay {
     ) -> Updates {
         self.opaque = extras.frontend.is_some();
         let mut input = self.state.take_egui_input(window);
+        #[cfg(target_arch = "wasm32")]
+        {
+            input
+                .events
+                .retain(|event| !matches!(event, egui::Event::Paste(_)));
+            let pasted = crate::web::clipboard_paste();
+            if self.editing() && !pasted.is_empty() {
+                input
+                    .events
+                    .push(egui::Event::Paste(pasted.replace("\r\n", "\n")));
+            }
+        }
         if let Some(time) = extras.video_time {
             self.context.set_zoom_factor(3.0);
             self.context.style_mut(|s| s.animation_time = 0.0);
@@ -211,6 +223,15 @@ impl Overlay {
                 edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
             }
         });
+        #[cfg(target_arch = "wasm32")]
+        {
+            crate::web::clipboard_editing(self.editing());
+            for command in &output.platform_output.commands {
+                if let egui::OutputCommand::CopyText(text) = command {
+                    crate::web::clipboard_copy(text);
+                }
+            }
+        }
         self.state
             .handle_platform_output(window, output.platform_output);
         let changed = self.shapes != output.shapes

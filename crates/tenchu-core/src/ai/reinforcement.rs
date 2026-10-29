@@ -3,12 +3,8 @@ use super::*;
 impl Controller<'_, '_> {
     fn breed(&mut self, yaw: i16) -> Result<usize> {
         let choice = self.random() as usize % 2;
-        self.roster.spawn(
-            self.ctx.mission.reinforcements[choice],
-            self.actor.position,
-            yaw,
-            self.ctx,
-        )
+        self.roster
+            .spawn_reinforcement(choice, self.actor.position, yaw, self.ctx)
     }
 
     fn equip_guard(&mut self, id: usize) {
@@ -110,8 +106,8 @@ impl Controller<'_, '_> {
                     // The type RNG precedes the caller's raw rotation write.
                     let choice = self.random() as usize % 2;
                     self.actor.rotation[1] = self.actor.rotation[1].wrapping_add(degree);
-                    let id = self.roster.spawn(
-                        self.ctx.mission.reinforcements[choice],
+                    let id = self.roster.spawn_reinforcement(
+                        choice,
                         self.actor.position,
                         self.actor.rotation[1],
                         self.ctx,

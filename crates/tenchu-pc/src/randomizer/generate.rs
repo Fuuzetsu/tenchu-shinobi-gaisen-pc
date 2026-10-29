@@ -1,5 +1,9 @@
 use super::*;
-use crate::{session::Options, source::DiscSource, visuals::appearance::library::Library};
+use crate::{
+    session::Options,
+    source::DiscSource,
+    visuals::appearance::library::{Body, Library},
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use tenchu_assets::{
@@ -266,56 +270,9 @@ impl Run {
                         .id,
                     )
                     .unwrap();
-                let behavior = if body.character.is_some() {
-                    body
-                } else {
-                    library
-                        .bodies
-                        .iter()
-                        .filter(|b| {
-                            b.character
-                                .as_ref()
-                                .is_some_and(|c| c.kind & 0xf0 == 0xa0 && c.health > 0)
-                        })
-                        .min_by_key(|b| {
-                            (
-                                b.parts.len().abs_diff(body.parts.len()),
-                                b.character.as_ref().unwrap().health,
-                            )
-                        })
-                        .ok_or("No animal behavior is available for this resource-only model")?
-                };
-                let (source, voice) = if let Some(&source) = imported.get(&body.id) {
-                    source
-                } else {
-                    let mut character = behavior.character.clone().unwrap();
-                    if !character.motions.iter().any(|r| r.action == MOT_NORMAL)
-                        && let Some(idle) = behavior.idle
-                    {
-                        character.motions.push(MotionRegistration {
-                            action: MOT_NORMAL,
-                            clip: behavior.clips[idle].id,
-                        });
-                    }
-                    character.health = character.health.max(1);
-                    character.width = character.width.max(1);
-                    character.turn = character.turn.max(1);
-                    let source = game.mission.import_actor(
-                        character,
-                        body.parts.clone(),
-                        &behavior.clips,
-                        body.vram.clone(),
-                    )?;
-                    let voice = behavior.voice.map(|voice| {
-                        let program = 128 + game.mission.imported_voices.len() as i16;
-                        game.mission.imported_voices.push(voice);
-                        program
-                    });
-                    imported.insert(body.id.clone(), (source, voice));
-                    (source, voice)
-                };
-                game.replace_actor(id, source, behavior.think)?;
-                game.roster.get_mut(id).voice_program = voice;
+                let source = import_body(game, library, body, &mut imported)?;
+                game.replace_actor(id, source.actor, source.think)?;
+                game.roster.get_mut(id).voice_program = source.voice;
             }
             let actor = game.roster.get_mut(id);
             actor.rotation[1] = facing;
@@ -330,8 +287,106 @@ impl Run {
             actor.max_health = health;
             actor.initialize_rendered(&game.scene, &game.math);
         }
+        for slot in 0..2 {
+            let source = if rules.enemies == Enemies::Original {
+                None
+            } else {
+                let (domain, entry) = if rules.enemies == Enemies::Uniform {
+                    ("enemy", 0)
+                } else {
+                    ("reinforcement", slot as u32)
+                };
+                let choice = self
+                    .document
+                    .random(self.round, domain, entry)
+                    .index(pool.len());
+                Some(import_body(
+                    game,
+                    library,
+                    library.get(&pool[choice].id).unwrap(),
+                    &mut imported,
+                )?)
+            };
+            game.mission.reinforcement_overrides[slot] =
+                Some(tenchu_assets::stage::imports::Reinforcement {
+                    actor: source.map(|s| s.actor),
+                    voice: source.and_then(|s| s.voice),
+                    health_percent: rules.enemy_health.sample(&mut self.document.random(
+                        self.round,
+                        "reinforcement-health",
+                        slot as u32,
+                    )),
+                });
+        }
         Ok(())
     }
+}
+
+#[derive(Clone, Copy)]
+struct Imported {
+    actor: tenchu_assets::stage::imports::Actor,
+    voice: Option<i16>,
+    think: i16,
+}
+
+fn import_body(
+    game: &mut Game,
+    library: &Library,
+    body: &Body,
+    imported: &mut BTreeMap<String, Imported>,
+) -> Result<Imported> {
+    if let Some(&source) = imported.get(&body.id) {
+        return Ok(source);
+    }
+    let behavior = if body.character.is_some() {
+        body
+    } else {
+        library
+            .bodies
+            .iter()
+            .filter(|b| {
+                b.character
+                    .as_ref()
+                    .is_some_and(|c| c.kind & 0xf0 == 0xa0 && c.health > 0)
+            })
+            .min_by_key(|b| {
+                (
+                    b.parts.len().abs_diff(body.parts.len()),
+                    b.character.as_ref().unwrap().health,
+                )
+            })
+            .ok_or("No animal behavior is available for this resource-only model")?
+    };
+    let mut character = behavior.character.clone().unwrap();
+    if !character.motions.iter().any(|r| r.action == MOT_NORMAL)
+        && let Some(idle) = behavior.idle
+    {
+        character.motions.push(MotionRegistration {
+            action: MOT_NORMAL,
+            clip: behavior.clips[idle].id,
+        });
+    }
+    character.health = character.health.max(1);
+    character.width = character.width.max(1);
+    character.turn = character.turn.max(1);
+    let actor = game.mission.import_actor(
+        character,
+        body.parts.clone(),
+        &behavior.clips,
+        body.vram.clone(),
+    )?;
+    let voice = behavior.voice.map(|voice| {
+        let program = 128 + game.mission.imported_voices.len() as i16;
+        game.mission.imported_voices.push(voice);
+        program
+    });
+    let source = Imported {
+        actor,
+        voice,
+        think: behavior.think,
+    };
+    imported.insert(body.id.clone(), source);
+    Ok(source)
 }
 
 impl Plan {

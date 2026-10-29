@@ -517,14 +517,19 @@ impl Editor {
                 }
             }
         });
-        ui.add(
-            egui::TextEdit::multiline(&mut self.share)
-                .code_editor()
-                .desired_width(f32::INFINITY)
-                .desired_rows(16)
-                .char_limit(65536)
-                .hint_text("Paste an exported randomizer JSON document here"),
-        );
+        egui::ScrollArea::vertical()
+            .id_salt("randomizer-seed-text")
+            .max_height(280.0)
+            .show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(&mut self.share)
+                        .code_editor()
+                        .desired_width(f32::INFINITY)
+                        .desired_rows(12)
+                        .char_limit(65536)
+                        .hint_text("Paste an exported randomizer JSON document here"),
+                );
+            });
         ui.weak("You can select/copy/paste this text even if the browser blocks clipboard access. Share both the seed document and the game version for an exact gameplay replay.");
     }
 }

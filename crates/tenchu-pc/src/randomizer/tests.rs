@@ -212,6 +212,40 @@ fn invalid_or_incompatible_documents_fail_before_generating() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; reinforcement templates obey the same enemy exclusions, imported voices and HP rules"]
+fn reinforcement_templates_obey_exclusions_and_health_rules() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let library = Library::load(&assets).unwrap();
+    let catalog = Catalog::new(&library, &assets.stages().unwrap());
+    let mut run = Run::new(Document::default());
+    let r = &mut run.document.rules;
+    r.player = Player::Chosen;
+    r.character = 1;
+    r.health = Some(Range::new(999, 999));
+    r.enemies = Enemies::Uniform;
+    r.enemy_pool = Pool::all();
+    r.enemy_pool.blocked = catalog
+        .actors
+        .iter()
+        .filter(|a| a.id != "disc:135")
+        .map(|a| a.id.clone())
+        .collect();
+    r.enemy_health = Range::new(175, 175);
+    let (game, _) = run.load(&assets, &library).unwrap();
+    for template in game.mission.reinforcement_overrides {
+        let template = template.unwrap();
+        let source = template.actor.unwrap();
+        assert_eq!(game.mission.characters[source.definition].kind, 0x87);
+        assert_eq!(template.health_percent, 175);
+        assert!(template.voice.is_some_and(|p| p >= 128));
+        assert!(game.mission.imported_models.contains_key(&source.model));
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; exercises every disc model as a foreign enemy and player with deterministic starts"]
 fn every_model_can_be_randomized_across_missions() {
     let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");

@@ -10,7 +10,8 @@ This is an opt-in mode; normal play is unchanged.
   player movement overrides and idle-taunt suppression.
 - **Enemies:** independent rolls or one type per mission, HP range, facing,
   optional civilian replacement. Models, motions, weapons, textures and voices
-  come from the full disc, including bosses and animals.
+  come from the full disc, including bosses and animals. Called reinforcements
+  follow the same enemy pool and HP rules.
 - **Stages:** a chosen mission, random missions, or a shuffled tour without repeats.
   Training can be included too.
 - **Items:** number of item types, quantities, unlimited supplies, a guaranteed
@@ -49,3 +50,8 @@ selection is kept. Ordinary input-tape recording is disabled during randomized
 runs because its format does not describe these changes. Share the game version
 alongside the seed document when comparing gameplay, since future logic fixes can
 change input replays. Unsupported seed-format versions are rejected.
+
+The browser seed-sharing check runs against a prepared, served build:
+`TENCHU_WEB_URL=http://127.0.0.1:8000 TENCHU_HEADLESS=1 ./dev.sh node tools/test-web-randomizer.mjs`.
+It uses an isolated browser profile and checks clipboard import/export, invalid
+imports, language loading, resume and campaign save isolation.

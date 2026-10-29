@@ -19,6 +19,8 @@ title, character selection, mission map and options are ported from `MENU.EXE`.
 The opening/training movies, both character epilogues, credits and final results
 from `ENDING.EXE` play from the disc. **F6** opens the previous quick launcher;
 **Esc** there returns to the title. **F1** still opens PC settings.
+**F7** opens the [randomizer](randomizer.md), with full-disc actor pools,
+stage/item blacklists and shareable seeds. Runs keep separate progress.
 
 See [AGENTS.md](../AGENTS.md) for development conventions.
 

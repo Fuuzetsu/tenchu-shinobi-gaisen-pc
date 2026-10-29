@@ -118,6 +118,49 @@ impl Roster {
         yaw: i16,
         ctx: &mut Context,
     ) -> Result<usize> {
+        self.spawn_with(ctx, |id, ctx| Actor::new(id, kind, position, yaw, ctx))
+    }
+
+    pub fn spawn_reinforcement(
+        &mut self,
+        choice: usize,
+        position: Position,
+        yaw: i16,
+        ctx: &mut Context,
+    ) -> Result<usize> {
+        let kind = ctx.mission.reinforcements[choice];
+        let replacement = ctx.mission.reinforcement_overrides[choice];
+        self.spawn_with(ctx, |id, ctx| {
+            let mut actor = if let Some(source) = replacement.and_then(|r| r.actor) {
+                let mut actor = Actor::from_definition(
+                    id,
+                    source.definition,
+                    source.model,
+                    position,
+                    yaw,
+                    ctx,
+                )?;
+                actor.script_kind = Some(kind);
+                actor
+            } else {
+                Actor::new(id, kind, position, yaw, ctx)?
+            };
+            if let Some(replacement) = replacement {
+                actor.voice_program = replacement.voice;
+                actor.health = (i32::from(actor.max_health) * i32::from(replacement.health_percent)
+                    / 100)
+                    .clamp(1, 32767) as i16;
+                actor.max_health = actor.health;
+            }
+            Ok(actor)
+        })
+    }
+
+    fn spawn_with(
+        &mut self,
+        ctx: &mut Context,
+        create: impl FnOnce(usize, &mut Context) -> Result<Actor>,
+    ) -> Result<usize> {
         if self.order.len() == 40 {
             return Err("Humanoid pool exhausted".into());
         }
@@ -127,7 +170,7 @@ impl Roster {
             .enumerate()
             .position(|(i, actor)| actor.is_none() && self.reserved != Some(i))
             .unwrap_or(self.actors.len());
-        let actor = Actor::new(id, kind, position, yaw, ctx)?;
+        let actor = create(id, ctx)?;
         if id == self.actors.len() {
             self.actors.push(Some(actor));
         } else {

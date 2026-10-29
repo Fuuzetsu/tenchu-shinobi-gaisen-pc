@@ -700,6 +700,13 @@ impl ApplicationHandler for Application {
                     &self.assets,
                     self.campaign.options.language.unwrap_or_default(),
                 );
+                #[cfg(target_arch = "wasm32")]
+                if self.randomizer.open {
+                    crate::web::prepare_language(
+                        &self.assets,
+                        self.randomizer.setup.document.rules.language.game(),
+                    );
+                }
                 if let Some(options) = self.benchmarks.pending.take() {
                     let exit = options.exit;
                     if let Err(error) = self.start_benchmark(options) {

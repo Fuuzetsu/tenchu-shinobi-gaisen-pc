@@ -41,6 +41,9 @@ extern "C" {
     pub fn movie_pixels(video: &web_sys::HtmlVideoElement)
     -> std::result::Result<JsValue, JsValue>;
     pub fn movie_close(video: &web_sys::HtmlVideoElement);
+    pub fn clipboard_editing(editing: bool);
+    pub fn clipboard_paste() -> String;
+    pub fn clipboard_copy(text: &str);
 }
 
 struct State {

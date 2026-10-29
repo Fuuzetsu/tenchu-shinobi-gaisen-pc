@@ -20,6 +20,13 @@ pub struct Actor {
     pub model: i16,
 }
 
+#[derive(Clone, Copy)]
+pub struct Reinforcement {
+    pub actor: Option<Actor>,
+    pub voice: Option<i16>,
+    pub health_percent: u16,
+}
+
 impl MissionAssets {
     pub fn import_actor(
         &mut self,
