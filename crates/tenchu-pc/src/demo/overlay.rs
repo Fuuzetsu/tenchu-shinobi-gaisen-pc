@@ -27,25 +27,31 @@ pub fn show(
             (player.index + 1, player.playlist.len())
         };
         let frontend = clip.frontend.is_some();
-        let right = matches!(
-            clip.feature,
-            super::Feature::Experiment
-                | super::Feature::Remake(super::remake::Feature::GameplayProfiles)
-        );
-        let top = right
-            || matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
-            || clip.artwork.is_some()
+        let randomizer_menu = player.randomizer_tab().is_some();
+        let right = randomizer_menu
+            || clip.randomizer.is_some() && clip.shot == super::Shot::Guard
             || matches!(
                 clip.feature,
-                super::Feature::BloodSnow
-                    | super::Feature::RainReflections
-                    | super::Feature::RainPuddles
-                    | super::Feature::RainHaze
-                    | super::Feature::Experiment
+                super::Feature::Experiment
+                    | super::Feature::Remake(super::remake::Feature::GameplayProfiles)
             );
+        let top = !randomizer_menu
+            && (right
+                || matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
+                || clip.artwork.is_some()
+                || matches!(
+                    clip.feature,
+                    super::Feature::BloodSnow
+                        | super::Feature::RainReflections
+                        | super::Feature::RainPuddles
+                        | super::Feature::RainHaze
+                        | super::Feature::Experiment
+                ));
         egui::Area::new("demo-caption".into())
             .anchor(
-                if right {
+                if randomizer_menu {
+                    egui::Align2::RIGHT_BOTTOM
+                } else if right {
                     egui::Align2::RIGHT_TOP
                 } else if top {
                     egui::Align2::LEFT_TOP
@@ -70,6 +76,8 @@ pub fn show(
                     .show(ui, |ui| {
                         let width = if frontend {
                             140.0
+                        } else if randomizer_menu {
+                            390.0
                         } else if top {
                             460.0
                         } else {
@@ -79,6 +87,8 @@ pub fn show(
                         ui.label(
                             egui::RichText::new(if frontend {
                                 "TENCHU / INTERFACE".into()
+                            } else if clip.randomizer.is_some() {
+                                format!("TENCHU / RANDOMIZER    {:02} / {:02}    MISSION {}", number, total, clip.mission)
                             } else {
                                 format!(
                                 "TENCHU / NATIVE SHOWCASE    {:02} / {:02}    MISSION {}",

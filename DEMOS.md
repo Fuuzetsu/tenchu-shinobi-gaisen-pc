@@ -60,7 +60,7 @@ playback, not an input recording or a campaign/fidelity regression route.
 ```
 
 This renders every presentation frame at **3840×2160, 60 fps** and streams it to
-FFmpeg. It produces a silent H.264 High Profile MP4 (CRF 16, up to 68 Mbps,
+FFmpeg. It produces an H.264 High Profile MP4 (CRF 16, up to 68 Mbps,
 BT.709 limited-range 4:2:0, fast start). The Nix package and shell supply FFmpeg;
 `TENCHU_FFMPEG` can select another installation. The destination directory must
 exist, and existing video/chapter files are never overwritten.
@@ -92,6 +92,14 @@ chapter. The default catalog meets these requirements; short custom selections
 may not. The encoding follows the [YouTube SDR upload recommendations](https://support.google.com/youtube/answer/1722171).
 Nothing is uploaded automatically.
 
+Add `--sound` to capture synchronized game effects, voices and music as 48 kHz
+stereo AAC. Audio is mixed at exactly 800 sample frames per video frame, without
+an audio device or real-time capture. Exports remain silent when this flag is
+omitted. Clips may supply a `music` cue (0–18) for staged scenes that skip the
+original opening; consecutive clips using the same cue keep the music playing.
+Game events can still change it. Offline sound uses the default mix, independent
+of your system or saved master volume. Use `--sound` with the verifier too.
+
 Verify an export using the same Nix environment:
 
 ```sh
@@ -99,7 +107,7 @@ Verify an export using the same Nix environment:
 ```
 
 The verifier checks 4K/60 encoding, every presentation timestamp, chapter titles
-and durations, absence of audio and fast-start metadata, then decodes the
+and durations, the requested audio mode and fast-start metadata, then decodes the
 complete video. It writes an adjacent `.validation.json`. Omit `--catalog` when
 no exact catalog is available; omit `--youtube` for clips shorter than ten seconds.
 
@@ -237,6 +245,14 @@ excluded from Git. Run `./dev.sh python3 private/effects-showcase/serve.py` for 
 watch page at `http://127.0.0.1:44115/`; `youtube-description.txt` contains chapter
 timestamps for uploading. Nothing is uploaded automatically.
 
+Add `--sound` to capture synchronized game effects, voices and music as 48 kHz
+stereo AAC. Audio is mixed at exactly 800 sample frames per video frame, without
+an audio device or real-time capture. Exports remain silent when this flag is
+omitted. Clips may supply a `music` cue (0–18) for staged scenes that skip the
+original opening; consecutive clips using the same cue keep the music playing.
+Game events can still change it. Offline sound uses the default mix, independent
+of your system or saved master volume. Use `--sound` with the verifier too.
+
 The same feature clips work from a normal checkout with the user's own assets:
 
 ```sh
@@ -337,3 +353,28 @@ The showcase and video export currently use the native window host. No browser
 demo host or authored HD pack is bundled. Rendered scene/timeline state is
 repeatable; performance measurements still depend on the host. Other operating
 systems were not exercised.
+
+## Randomizer showcase
+
+```sh
+./dev.sh cargo run --release -- demo '/path/to/game.cue' \
+  --catalog crates/tenchu-pc/data/randomizer-demos.json \
+  --video "$HOME/Videos/tenchu-randomizer.mp4" --sound
+```
+
+This 135-second sequence uses real version-1 randomizer runs with the Showcase
+graphics preset and installed HD artwork. It demonstrates bosses and animals as
+players, foreign enemy combat, pools and exclusions, equipment, low HP, a stage
+tour, preview and sharing. Short shots are intended for quick editing; group
+adjacent clips into chapters of at least ten seconds for YouTube.
+
+A `randomizer` scene contains an exported `run` and optional `(ticks, buttons)`
+`inputs`, `spawn`, `facing`, selected `item`, camera `distance`, and `menu_tabs`
+(0–6). `engage: true` with a guard shot places the player in front of a patrol
+for a readable encounter. These are staged demonstrations, not a complete
+playthrough. The ordinary seed still controls actors, HP, equipment and mission;
+Cameras, a presentation fill light and starting encounter positions are staged,
+and opening scripts are skipped.
+The catalog's mission/character must match its roll. Editor demonstrations never
+write randomizer preferences or campaign progress. Each nested `run` can also be
+imported through F7 to play that challenge normally.

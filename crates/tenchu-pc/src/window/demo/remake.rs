@@ -238,7 +238,7 @@ mod tests {
         ] {
             let mut player = demo::Player::parse(&["--clips".into(), id.into()]).unwrap();
             let clip = player.clip().clone();
-            let (mut game, _) = player.load_game(&assets, None).unwrap();
+            let (mut game, _) = player.load_game(&assets, None, None).unwrap();
             let mut settings = Settings::default();
             settings.set_visual_preset(8);
             let models =

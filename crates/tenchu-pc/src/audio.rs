@@ -90,30 +90,16 @@ impl Audio {
     }
 
     pub fn reload(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
-        let mut bank = Bank::load(
-            assets,
-            game.mission.stage.id,
-            game.player().kind,
-            game.mission.scripts.language,
-        )?;
-        let mut sources = std::collections::BTreeMap::new();
-        for source in &game.mission.imported_voices {
-            let donor = match sources.entry((source.stage, source.character)) {
-                std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
-                std::collections::btree_map::Entry::Vacant(entry) => entry.insert(Bank::load(
-                    assets,
-                    source.stage,
-                    source.character,
-                    game.mission.scripts.language,
-                )?),
-            };
-            bank.import_program(donor, source.program)?;
-        }
+        let bank = game_bank(assets, game)?;
         self.catalog = Catalog::load(&assets.executable, game.mission.scripts.language)?;
         self.track(None);
         self.output.send(output::Command::Bank(Arc::new(bank)));
         self.screen = None;
         Ok(())
+    }
+
+    pub fn music(&mut self, cue: u8) {
+        self.track(self.catalog.music(i32::from(cue)).cloned());
     }
 
     fn track(&mut self, track: Option<Track>) {
@@ -218,4 +204,27 @@ impl Audio {
             }
         }
     }
+}
+
+pub(super) fn game_bank(assets: &GameAssets<DiscSource>, game: &Game) -> Result<Bank> {
+    let mut bank = Bank::load(
+        assets,
+        game.mission.stage.id,
+        game.player().kind,
+        game.mission.scripts.language,
+    )?;
+    let mut sources = std::collections::BTreeMap::new();
+    for source in &game.mission.imported_voices {
+        let donor = match sources.entry((source.stage, source.character)) {
+            std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
+            std::collections::btree_map::Entry::Vacant(entry) => entry.insert(Bank::load(
+                assets,
+                source.stage,
+                source.character,
+                game.mission.scripts.language,
+            )?),
+        };
+        bank.import_program(donor, source.program)?;
+    }
+    Ok(bank)
 }

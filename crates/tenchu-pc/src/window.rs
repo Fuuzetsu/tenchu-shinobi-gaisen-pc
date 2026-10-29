@@ -160,7 +160,7 @@ impl Application {
 
     fn is_suspended(&self) -> bool {
         self.paused
-            || self.randomizer.open
+            || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
             || (self.menu.open && self.settings.pause_in_menu)
             || (!self.focused && self.settings.pause_on_defocus)

@@ -13,7 +13,15 @@ impl Application {
             return Ok(());
         };
         let clip = player.clip().clone();
-        let (mut game, options) = player.load_game(&self.assets, self.campaign.options.language)?;
+        let view = self.view.as_mut().ok_or("Demo window is not ready")?;
+        if clip.randomizer.is_some() && view.model_library.is_none() {
+            view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
+        }
+        let (mut game, options) = player.load_game(
+            &self.assets,
+            self.campaign.options.language,
+            view.model_library.as_ref(),
+        )?;
         self.settings = Settings {
             volume: self.settings.volume,
             model_directory: self.settings.model_directory.clone(),
@@ -35,9 +43,19 @@ impl Application {
             self.settings = run.settings.clone();
         }
         self.debug = debug::Debug::new(&game)?;
-        let view = self.view.as_mut().ok_or("Demo window is not ready")?;
+        if clip.randomizer.is_some() {
+            self.settings.keep_enemies_active = game.activation.keep_all_active;
+            self.debug.sight_percent = game.intelligence.sight_percent;
+        }
+        view.randomizer_player = player
+            .randomizer_plan()
+            .map(|plan| plan.player_model.clone().unwrap_or_default());
         view.reload(&game, &self.settings)?;
-        let geometry = render_mesh::stage(&game.mission, &game.math, None);
+        let geometry = render_mesh::stage(
+            &game.mission,
+            &game.math,
+            clip.randomizer.as_ref().map(|_| &view.models),
+        );
         let origin = Vec3::from(game.player().position.map(|v| v as f32).to_array());
         let mut scene = demo::Scene {
             target: origin - Vec3::Y * 900.0,
@@ -121,7 +139,8 @@ impl Application {
                         id != game.player_id
                             && actor.health > 0
                             && actor.patrol.is_some()
-                            && actor.weapons.iter().any(Option::is_some)
+                            && (clip.randomizer.is_some() && actor.script_kind.is_some()
+                                || actor.weapons.iter().any(Option::is_some))
                             && actor.attribute & tenchu_core::ids::ATTR_CUSTOMAI != 0
                     })
                     .collect::<Vec<_>>();
@@ -145,7 +164,9 @@ impl Application {
                 scene.actor = Some(actor);
                 self.settings.graphics.fog = false;
                 self.debug.selected_actor = actor;
-                if matches!(clip.feature, Feature::Blood | Feature::BloodSnow) {
+                if matches!(clip.feature, Feature::Blood | Feature::BloodSnow)
+                    || clip.randomizer.as_ref().is_some_and(|s| s.engage)
+                {
                     let guard = position(actor);
                     let offset = Vec3::from(
                         game.math
@@ -156,8 +177,19 @@ impl Application {
                         (guard + offset).to_array().map(|v| v as i32).into(),
                         true,
                     )?;
+                    if clip.randomizer.is_some() {
+                        let enemy = game.roster.get(actor).position;
+                        let player = game.player().position;
+                        let delta = tenchu_core::math::Position::new(
+                            enemy.x - player.x,
+                            enemy.y - player.y,
+                            enemy.z - player.z,
+                        );
+                        let facing = game.math.atan2(-delta.x, -delta.z)?;
+                        game.roster.get_mut(game.player_id).rotation[1] = facing;
+                    }
                     scene.player_start = game.player().position;
-                    scene.actor = None;
+                    scene.actor = clip.randomizer.as_ref().map(|_| actor);
                     scene.target = guard - Vec3::Y * 600.0;
                     scene.distance = if clip.feature == Feature::BloodSnow {
                         6200.0
@@ -203,6 +235,22 @@ impl Application {
             }
             Shot::Cinematic | Shot::Gameplay => {}
         }
+        if let Some(staged) = &clip.randomizer {
+            if let Some(distance) = staged.distance {
+                scene.distance = distance;
+                demo::framing::unobstructed_area(&mut scene, &geometry, 800.0);
+            }
+            eprintln!(
+                "Randomizer scene {}: player {:?}, camera target {:?}, yaw {}, pitch {}, distance {}, guard {:?}",
+                clip.id,
+                game.player().position,
+                scene.target,
+                scene.yaw,
+                scene.pitch,
+                scene.distance,
+                scene.actor
+            );
+        }
         if matches!(
             clip.feature,
             Feature::LightBudget | Feature::DistanceFiltering
@@ -222,6 +270,15 @@ impl Application {
         ) {
             self.debug.light = Some(scene.target + Vec3::new(-2000.0, -2500.0, -2000.0));
             self.settings.graphics.lighting.ambient = 65;
+        }
+        if clip.randomizer.is_some() {
+            let camera = debug::camera::Camera {
+                position: Vec3::ZERO,
+                yaw: scene.yaw,
+                pitch: scene.pitch,
+                fov: 55.0,
+            };
+            self.debug.light = Some(scene.target - camera.forward() * 2500.0 - Vec3::Y * 1600.0);
         }
         if matches!(clip.feature, Feature::Remake(_)) {
             let presented = render_mesh::stage(&game.mission, &game.math, Some(&view.models));
@@ -274,7 +331,14 @@ impl Application {
             audio.reload(&self.assets, &self.campaign.game)?;
             audio.volume(self.settings.volume);
             audio.screen(&self.campaign.screen);
+            if let Some(cue) = clip.music {
+                audio.music(cue);
+            }
             audio.pause(false);
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
+            sound.reload(&self.assets, &self.campaign.game, clip.music)?;
         }
         println!(
             "Demo {}/{}: {} — {}",

@@ -32,6 +32,13 @@ impl Application {
             }
             audio.screen(&self.campaign.screen);
         }
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut())
+            && let Err(error) = sound.tick(&self.assets, &self.campaign.game)
+        {
+            self.pause_error(error);
+            return false;
+        }
         if !self.campaign.playing() {
             self.finish_recording();
             self.controls.clear();

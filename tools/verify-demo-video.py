@@ -1,4 +1,4 @@
-"""Check a silent 4K/60 demo export, every timestamp, chapters and full decoding."""
+"""Check a 4K/60 demo export, every timestamp, chapters and full decoding."""
 
 import argparse
 from fractions import Fraction
@@ -37,12 +37,13 @@ def fast_start(video):
     return atoms.index(b"moov") < atoms.index(b"mdat")
 
 
-def verify(video, catalog=None, youtube=False):
+def verify(video, catalog=None, youtube=False, sound=False):
     metadata = probe(video, "-show_streams", "-show_chapters")
     streams = metadata["streams"]
     videos = [stream for stream in streams if stream["codec_type"] == "video"]
     require(len(videos) == 1, "Expected one video stream")
-    require(not any(s["codec_type"] == "audio" for s in streams), "Expected silent output")
+    audio = [s for s in streams if s["codec_type"] == "audio"]
+    require(len(audio) == int(sound), "Unexpected number of audio streams; use --sound for game audio")
     stream = videos[0]
     expected = {
         "width": 3840, "height": 2160, "codec_name": "h264", "profile": "High",
@@ -54,6 +55,12 @@ def verify(video, catalog=None, youtube=False):
         require(stream.get(key) == value, f"{key}: expected {value}, got {stream.get(key)}")
     frames = int(stream["nb_frames"])
     duration = Fraction(stream["duration"])
+    if sound:
+        require(audio[0]["codec_name"] == "aac" and audio[0]["sample_rate"] == "48000"
+                and audio[0]["channels"] == 2, "Expected 48 kHz stereo AAC")
+        require(abs(Fraction(audio[0]["duration"]) - duration) < Fraction(1, 60),
+                "Audio duration differs from the video")
+        require(Fraction(audio[0].get("start_time", "0")) == 0, "Audio starts late")
     require(duration * 60 == frames, "Duration does not match frame count")
     packets = probe(video, "-select_streams", "v:0", "-show_packets",
                     "-show_entries", "packet=pts,duration")["packets"]
@@ -85,7 +92,7 @@ def verify(video, catalog=None, youtube=False):
           flush=True)
     decoded = subprocess.run(
         ["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-threads", "8", "-i", str(video),
-         "-map", "0:v:0", "-f", "null", "-"], capture_output=True, text=True, check=True
+         "-map", "0:v:0", "-map", "0:a?", "-f", "null", "-"], capture_output=True, text=True, check=True
     )
     require(not decoded.stderr.strip(), decoded.stderr)
     with video.open("rb") as source:
@@ -93,7 +100,7 @@ def verify(video, catalog=None, youtube=False):
     return {
         "file": video.name, "duration_seconds": float(duration), "frames": frames,
         "size_bytes": video.stat().st_size, "sha256": digest, "video": expected,
-        "audio_streams": 0, "fast_start": True, "complete_60_hz_timestamps": True,
+        "audio_streams": len(audio), "fast_start": True, "complete_60_hz_timestamps": True,
         "full_decode_errors": 0, "youtube_chapters": youtube,
         "chapters": [{"start": float(c["start_time"]), "end": float(c["end_time"]),
                       "title": c["tags"]["title"]} for c in chapters],
@@ -105,9 +112,10 @@ def main():
     parser.add_argument("video", type=Path)
     parser.add_argument("--catalog", type=Path)
     parser.add_argument("--youtube", action="store_true")
+    parser.add_argument("--sound", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    result = verify(args.video, args.catalog, args.youtube)
+    result = verify(args.video, args.catalog, args.youtube, args.sound)
     output = args.output or args.video.with_suffix(".validation.json")
     output.write_text(json.dumps(result, indent=2) + "\n")
     print(f"Passed: {args.video} ({result['frames']:,} frames). Wrote {output}.")

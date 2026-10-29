@@ -207,7 +207,7 @@ impl Document {
         Ok(document)
     }
 
-    pub(super) fn validate_format(&self) -> Result<()> {
+    pub(crate) fn validate_format(&self) -> Result<()> {
         if self.format != "tenchu-randomizer" || self.version != 1 {
             return Err(
                 "Unsupported randomizer format/version; use a version 1 seed document".into(),

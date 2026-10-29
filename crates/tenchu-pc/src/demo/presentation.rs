@@ -72,6 +72,14 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
         .and_then(Option::as_ref)
     {
         target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
+        if player.clip().randomizer.as_ref().is_some_and(|s| s.engage) {
+            target = (target
+                + scene
+                    .previous_player
+                    .lerp(scene.current_player, player.alpha())
+                - Vec3::Y * 700.0)
+                * 0.5;
+        }
     }
     let mut camera = Camera {
         position: Vec3::ZERO,
@@ -81,6 +89,9 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     };
     let mut distance = scene.distance;
     match player.clip().feature {
+        Feature::Randomizer if player.clip().shot != Shot::Guard => {
+            camera.yaw += (p - 0.5) * 0.25;
+        }
         Feature::Remake(super::remake::Feature::ShadowCoverage) => {
             distance *= 2.5 - sweep(p) * 1.5;
             camera.yaw += (p - 0.5) * 0.25;
@@ -114,6 +125,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         g.fog = fog;
     }
     match player.clip().feature {
+        Feature::Randomizer => {}
         Feature::Remake(feature) => super::remake::animate(feature, player, settings, debug),
         Feature::Blood => {
             g.blood.enabled = true;
@@ -558,6 +570,28 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
     };
     let on = |yes| if yes { "On" } else { "Off" };
     match player.clip().feature {
+        Feature::Randomizer => {
+            let (run, plan) = player.randomized.as_ref().unwrap();
+            let body = plan
+                .player_model
+                .as_ref()
+                .and_then(|id| player.scene.bodies.iter().find(|(key, _)| key == id))
+                .map_or(
+                    if plan.character == 0 {
+                        "Rikimaru"
+                    } else {
+                        "Ayame"
+                    },
+                    |(_, name)| name.as_str(),
+                );
+            text(format!(
+                "{} · {} HP · seed: {} · roll {}",
+                body,
+                plan.health.map_or("original".into(), |hp| hp.to_string()),
+                run.document.seed,
+                u64::from(run.round) + 1
+            ))
+        }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
         Feature::Blood => {
             text("Wounds follow bodies; drops stain the ground · cosmetic only".into())

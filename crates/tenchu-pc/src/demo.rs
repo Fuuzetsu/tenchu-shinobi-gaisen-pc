@@ -2,6 +2,7 @@ mod catalog;
 pub mod framing;
 pub mod overlay;
 mod presentation;
+mod randomized;
 #[cfg(not(target_arch = "wasm32"))]
 mod recorded;
 pub mod remake;
@@ -31,6 +32,9 @@ pub struct Player {
     pub exit_when_finished: bool,
     pub muted: bool,
     pub video: Option<PathBuf>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub sound: bool,
+    pub randomized: Option<(crate::randomizer::Run, crate::randomizer::Plan)>,
     pub scene: Scene,
     inputs: Option<Vec<u16>>,
     phase: u128,
@@ -61,6 +65,7 @@ impl Player {
         let mut exit_when_finished = false;
         let mut muted = false;
         let mut video = None;
+        let mut sound = false;
         let mut args = args.iter();
         while let Some(arg) = args.next() {
             match arg.to_str().ok_or("Invalid demo option")? {
@@ -68,6 +73,7 @@ impl Player {
                 "--clean" => clean = true,
                 "--exit" => exit_when_finished = true,
                 "--mute" => muted = true,
+                "--sound" => sound = true,
                 "--video" => {
                     if video.is_some() {
                         return Err("Choose one --video OUTPUT.mp4".into());
@@ -114,6 +120,9 @@ impl Player {
         if video.is_some() && repeat {
             return Err("Video exports play the selected clips once; omit --loop".into());
         }
+        if sound && (video.is_none() || muted) {
+            return Err("--sound needs --video and cannot be combined with --mute".into());
+        }
         if let Some(seconds) = duration {
             for clip in &mut catalog {
                 clip.seconds = seconds;
@@ -143,6 +152,7 @@ impl Player {
         player.exit_when_finished = exit_when_finished;
         player.muted = muted || video.is_some();
         player.video = video;
+        player.sound = sound;
         Ok(player)
     }
 
@@ -166,6 +176,9 @@ impl Player {
             exit_when_finished: false,
             muted: false,
             video: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            sound: false,
+            randomized: None,
             scene: Scene::default(),
             inputs: None,
         }
@@ -190,8 +203,16 @@ impl Player {
         &mut self,
         assets: &tenchu_assets::game::GameAssets<crate::source::DiscSource>,
         language: Option<tenchu_assets::script::Language>,
+        library: Option<&crate::visuals::appearance::library::Library>,
     ) -> Result<(tenchu_core::game::Game, crate::session::Options)> {
         self.inputs = None;
+        self.randomized = None;
+        if self.clip().randomizer.is_some() {
+            return self.load_randomized(
+                assets,
+                library.ok_or("Randomizer demo needs the full model library")?,
+            );
+        }
         if self.clip().recording.is_some() {
             #[cfg(not(target_arch = "wasm32"))]
             return self.load_recording(assets);

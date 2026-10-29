@@ -4,6 +4,7 @@ use tenchu_assets::Result;
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum Feature {
+    Randomizer,
     Remake(super::remake::Feature),
     Presets,
     Lanterns,
@@ -100,6 +101,8 @@ pub struct Clip {
     #[serde(default)]
     pub weather_warmup: u16,
     pub frontend: Option<crate::frontend::showcase::Scene>,
+    pub music: Option<u8>,
+    pub randomizer: Option<super::randomized::Scene>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -141,6 +144,7 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
             || !(0..=1).contains(&c.character)
             || c.preset >= crate::settings::presets::CUSTOM
             || c.weather_warmup > 60
+            || c.music.is_some_and(|cue| cue > 18)
             || c.title.trim().is_empty()
             || c.description.trim().is_empty()
         {
@@ -160,13 +164,29 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
                 .validate()
                 .map_err(|e| format!("Demo '{}': {e}", c.id))?;
         }
+        if (c.feature == Feature::Randomizer) != c.randomizer.is_some() {
+            return Err(format!(
+                "Demo '{}' needs a randomizer scene with its feature",
+                c.id
+            ));
+        }
+        if let Some(scene) = &c.randomizer {
+            scene.validate()?;
+            if c.recording.is_some()
+                || c.frontend.is_some()
+                || c.shot == Shot::Cinematic
+                || scene.engage && c.shot != Shot::Guard
+            {
+                return Err(format!("Invalid randomizer shot in '{}'", c.id));
+            }
+        }
         if c.recording.is_some() && (c.feature != Feature::Artwork || c.shot != Shot::Gameplay) {
             return Err(format!(
                 "Demo '{}' recordings require the artwork feature and gameplay shot",
                 c.id
             ));
         }
-        if c.shot == Shot::Gameplay && c.recording.is_none() {
+        if c.shot == Shot::Gameplay && c.recording.is_none() && c.randomizer.is_none() {
             return Err(format!("Demo '{}' gameplay shot needs a recording", c.id));
         }
         if let Some(scene) = &c.frontend {

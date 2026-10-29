@@ -67,8 +67,74 @@ fn playlist_order_resets_and_end_behavior_are_explicit() {
         vec!["--clips", ""],
         vec!["--video", "out.mp4", "--loop"],
         vec!["--video"],
+        vec!["--sound"],
+        vec!["--sound", "--mute", "--video", "out.mp4"],
     ] {
         assert!(Player::parse(&args.into_iter().map(OsString::from).collect::<Vec<_>>()).is_err());
+    }
+}
+
+#[test]
+fn randomizer_catalog_and_input_tracks_are_bounded() {
+    let bytes = include_bytes!("../../data/randomizer-demos.json");
+    let clips = catalog::parse(bytes).unwrap();
+    assert!(clips.iter().all(|c| c.feature == Feature::Randomizer));
+    for invalid in [
+        serde_json::json!({"inputs": [[0, 0]]}),
+        serde_json::json!({"inputs": [[3601, 0]]}),
+        serde_json::json!({"menu_tabs": [7]}),
+        serde_json::json!({"item": 20}),
+        serde_json::json!({"run": {"document": {"format": "other", "version": 1, "seed": "a", "rules": {}} , "round": 0}}),
+    ] {
+        let mut edited: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+        for (key, value) in invalid.as_object().unwrap() {
+            edited[0]["randomizer"][key] = value.clone();
+        }
+        assert!(catalog::parse(&serde_json::to_vec(&edited).unwrap()).is_err());
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; validates showcase seeds, models and item inputs against actual disc data"]
+fn randomizer_showcase_rolls_match_their_scenes() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let library = crate::visuals::appearance::library::Library::load(&assets).unwrap();
+    let mut player =
+        Player::new(catalog::parse(include_bytes!("../../data/randomizer-demos.json")).unwrap());
+    loop {
+        let (mut game, _) = player.load_game(&assets, None, Some(&library)).unwrap();
+        let initial_health = game.player().health;
+        let selected = player.clip().randomizer.as_ref().unwrap().item;
+        let mut used = false;
+        for tick in 0..u64::from(player.clip().seconds) * 30 {
+            game.step(player.buttons(tick)).unwrap();
+            game.sounds().unwrap();
+            used |= selected.is_some_and(|kind| {
+                game.items.slots.iter().any(|item| {
+                    item.kind == kind
+                        && item.owner == Some(game.player_id)
+                        && item.processor.is_some()
+                })
+            });
+        }
+        assert!(
+            selected.is_none() || used,
+            "{} never used its selected item",
+            player.clip().id
+        );
+        eprintln!(
+            "{}: {:?}, HP {initial_health} -> {}, {} imported bodies",
+            player.clip().id,
+            player.randomizer_plan(),
+            game.player().health,
+            game.mission.imported_models.len()
+        );
+        if !player.next() {
+            break;
+        }
     }
 }
 
@@ -110,7 +176,7 @@ fn item_light_comparisons_use_working_items_on_both_sides() {
             .unwrap();
     for (id, light_name) in [("grenade-light", "Explosion"), ("kaen-light", "Kaen flame")] {
         let mut p = player(&["--clips", id]);
-        let (mut game, _) = p.load_game(&assets, None).unwrap();
+        let (mut game, _) = p.load_game(&assets, None, None).unwrap();
         let mut seen = [false; 2];
         let ticks = u64::from(p.clip().seconds) * 30;
         let lighting = crate::settings::Lighting {
@@ -226,7 +292,7 @@ fn recorded_excerpt_matches_direct_replay_before_and_after_artwork_toggle() {
     for artwork in [false, true] {
         p.reset(0);
         p.catalog[index].artwork = Some(artwork);
-        let (mut actual, _) = p.load_game(&assets, None).unwrap();
+        let (mut actual, _) = p.load_game(&assets, None, None).unwrap();
         assert_eq!(crate::session::tests::state(&actual), initial);
         let mut settings = crate::settings::Settings::default();
         let mut debug = crate::debug::Debug::new(&actual).unwrap();
@@ -243,5 +309,5 @@ fn recorded_excerpt_matches_direct_replay_before_and_after_artwork_toggle() {
         assert_eq!(crate::session::tests::state(&actual), final_state);
     }
     p.catalog[index].recording.as_mut().unwrap().start_tick = u32::MAX;
-    assert!(p.load_game(&assets, None).is_err());
+    assert!(p.load_game(&assets, None, None).is_err());
 }

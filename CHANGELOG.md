@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add a short randomizer showcase catalog and optional synchronized game audio
+  for offline 4K/60 demo exports (`--sound`).
+
 - Add an optional randomizer with full-disc player/enemy models and movesets,
   configurable HP, equipment, pickups, stages and guard behavior. F7, the title
   screen and F1 open its searchable pools, blacklists, presets and seed sharing.

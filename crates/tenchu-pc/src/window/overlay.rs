@@ -214,10 +214,12 @@ impl Overlay {
                             }
                         });
                 }
-                randomizer_action =
-                    randomizer
-                        .editor
-                        .show(ctx, randomizer.catalog.as_ref(), randomizer.active);
+                randomizer_action = randomizer.editor.show(
+                    ctx,
+                    randomizer.catalog.as_ref(),
+                    randomizer.active,
+                    extras.demo.is_none(),
+                );
             }
             if show_performance != profiling {
                 edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
@@ -291,6 +293,13 @@ impl super::Application {
             .map(|v| v.frames as f64 / crate::video::FPS as f64);
         #[cfg(target_arch = "wasm32")]
         let video_time = None;
+        if let Some(player) = &self.demo {
+            if let Some((run, _)) = &player.randomized {
+                self.randomizer.stage_showcase(run, player.randomizer_tab());
+            } else {
+                self.randomizer.open = false;
+            }
+        }
         let Some(view) = &mut self.view else {
             return;
         };
@@ -313,6 +322,7 @@ impl super::Application {
         }
         self.menu.player_models.clone_from(&view.player_models);
         self.menu.artwork_status = view.artwork_status();
+        let demo_run = self.demo.as_ref().and_then(|d| d.randomized.clone());
         let updates = view.overlay.update(
             &view.window,
             &view.renderer,
@@ -331,20 +341,27 @@ impl super::Application {
                 benchmarks: Some(&mut self.benchmarks),
                 presets: Some(&mut self.presets),
                 controls: Some(&mut self.controls),
-                randomizer: self.demo.is_none().then(|| crate::randomizer::MenuState {
-                    catalog: self
-                        .randomizer
-                        .open
-                        .then(|| {
-                            view.model_library.as_ref().map(|library| {
-                                crate::randomizer::Catalog::new(library, &self.campaign.stages)
+                randomizer: (self.demo.is_none() || self.randomizer.open).then(|| {
+                    crate::randomizer::MenuState {
+                        catalog: self
+                            .randomizer
+                            .open
+                            .then(|| {
+                                view.model_library.as_ref().map(|library| {
+                                    crate::randomizer::Catalog::new(library, &self.campaign.stages)
+                                })
                             })
-                        })
-                        .flatten(),
-                    editor: &mut self.randomizer,
-                    active: self.campaign.randomized.as_ref().map(|r| (&r.run, &r.plan)),
-                    launcher: frontend_visible
-                        || matches!(self.campaign.screen, crate::campaign::Screen::Launcher),
+                            .flatten(),
+                        editor: &mut self.randomizer,
+                        active: demo_run
+                            .as_ref()
+                            .map(|(run, plan)| (run, plan))
+                            .or_else(|| {
+                                self.campaign.randomized.as_ref().map(|r| (&r.run, &r.plan))
+                            }),
+                        launcher: frontend_visible
+                            || matches!(self.campaign.screen, crate::campaign::Screen::Launcher),
+                    }
                 }),
                 models: Some(crate::visuals::appearance::picker::State {
                     picker: &mut view.model_picker,

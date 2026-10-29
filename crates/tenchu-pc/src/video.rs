@@ -8,6 +8,8 @@ use std::{
 };
 use tenchu_assets::Result;
 
+mod sound;
+
 pub const SIZE: [u32; 2] = [3840, 2160];
 pub const FPS: u64 = 60;
 
@@ -15,6 +17,7 @@ pub struct Export {
     pub texture: wgpu::Texture,
     pub frames: u64,
     pub total: u64,
+    pub sound: Option<sound::Sound>,
     readback: Readback,
     encoder: Child,
     input: Option<ChildStdin>,
@@ -40,7 +43,13 @@ pub struct Chapters {
 impl Export {
     pub fn new(player: &Player, renderer: &Renderer, format: wgpu::TextureFormat) -> Result<Self> {
         let output = player.video.as_ref().ok_or("No video destination")?;
-        Self::timeline(output, Chapters::new(player), renderer, format)
+        let mut export = Self::timeline(output, Chapters::new(player), renderer, format)?;
+        if player.sound {
+            export.sound = Some(sound::Sound::new(
+                &export.files.directory.join("audio.f32le"),
+            )?);
+        }
+        Ok(export)
     }
 
     pub fn timeline(
@@ -167,6 +176,7 @@ impl Export {
             texture,
             frames: 0,
             total: chapters.frames,
+            sound: None,
             readback,
             encoder,
             input,
@@ -204,6 +214,9 @@ impl Export {
             })
             .map_err(|e| format!("Video frame {}: {e}\n{}", self.frames, self.files.log()))?;
         self.frames += 1;
+        if let Some(sound) = &mut self.sound {
+            sound.frame()?;
+        }
         if self.reported.elapsed().as_secs() >= 10 {
             let rate = self.frames as f64 / self.started.elapsed().as_secs_f64();
             eprintln!(
@@ -231,9 +244,52 @@ impl Export {
         if !status.success() {
             return Err(format!("FFmpeg {status}: {}", self.files.log()));
         }
+        let mut encoded = self.files.directory.join("video.mp4");
+        if let Some(sound) = &mut self.sound {
+            if sound.frames != self.frames {
+                return Err("Video and audio frame counts differ".into());
+            }
+            sound.flush()?;
+            let output = self.files.directory.join("with-audio.mp4");
+            let result =
+                Command::new(std::env::var_os("TENCHU_FFMPEG").unwrap_or_else(|| "ffmpeg".into()))
+                    .args(["-hide_banner", "-loglevel", "error", "-nostdin", "-i"])
+                    .arg(&encoded)
+                    .args(["-f", "f32le", "-ar", "48000", "-ac", "2", "-i"])
+                    .arg(self.files.directory.join("audio.f32le"))
+                    .args([
+                        "-map",
+                        "0:v:0",
+                        "-map",
+                        "1:a:0",
+                        "-map_metadata",
+                        "0",
+                        "-map_chapters",
+                        "0",
+                        "-c:v",
+                        "copy",
+                        "-c:a",
+                        "aac",
+                        "-b:a",
+                        "384k",
+                        "-movflags",
+                        "+faststart",
+                        "-video_track_timescale",
+                        "60000",
+                    ])
+                    .arg(&output)
+                    .output()
+                    .map_err(|e| e.to_string())?;
+            if !result.status.success() {
+                return Err(format!(
+                    "Audio mux: {}",
+                    String::from_utf8_lossy(&result.stderr)
+                ));
+            }
+            encoded = output;
+        }
         // Publishing with a hard link refuses to replace a file created during export.
-        fs::hard_link(self.files.directory.join("video.mp4"), &self.files.output)
-            .map_err(|e| e.to_string())?;
+        fs::hard_link(encoded, &self.files.output).map_err(|e| e.to_string())?;
         fs::hard_link(
             self.files.directory.join("chapters.txt"),
             &self.files.chapters,

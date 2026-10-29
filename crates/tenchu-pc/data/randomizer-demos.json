@@ -1,0 +1,2359 @@
+[
+  {
+    "id": "opening",
+    "title": "TENCHU / SHUFFLE THE RULES",
+    "description": "A seeded randomizer for the native PC port. New bodies, moves, enemies, equipment and routes.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "guard",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "shadow-carnival-12",
+          "rules": {
+            "stages": "chosen",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 300,
+              "max": 400
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "engage": true,
+      "distance": 5600
+    }
+  },
+  {
+    "id": "onikage",
+    "title": "Play as the rival",
+    "description": "Onikage\u2019s moves. Rikimaru\u2019s story. Optional player locomotion keeps movement responsive.",
+    "seconds": 7,
+    "mission": 3,
+    "character": 0,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "rival-path-18",
+          "rules": {
+            "stages": "chosen",
+            "mission": 3,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "distance": 3900,
+      "spawn": [
+        -3000,
+        0,
+        9390
+      ]
+    },
+    "camera": {
+      "eye": [
+        -5000,
+        -2300,
+        15000
+      ],
+      "target": [
+        -3000,
+        -900,
+        9390
+      ],
+      "end_eye": [
+        -6500,
+        -2100,
+        14300
+      ]
+    }
+  },
+  {
+    "id": "meioh",
+    "title": "Borrow a boss\u2019s moveset",
+    "description": "Player models and attacks can come from anywhere on the disc, not just this mission.",
+    "seconds": 7,
+    "mission": 7,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "lord-of-darkness-24",
+          "rules": {
+            "stages": "chosen",
+            "mission": 7,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "distance": 4700
+    }
+  },
+  {
+    "id": "cat",
+    "title": "Cat burglar. Literally.",
+    "description": "Animals are in the pool too. Keep their motions, or mix them with player movement.",
+    "seconds": 6,
+    "mission": 1,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": false,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "cat-burglar-12",
+          "rules": {
+            "stages": "chosen",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": false,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          6,
+          0
+        ],
+        [
+          38,
+          4096
+        ],
+        [
+          1,
+          4160
+        ],
+        [
+          22,
+          4096
+        ],
+        [
+          18,
+          8192
+        ],
+        [
+          26,
+          4096
+        ],
+        [
+          15,
+          0
+        ],
+        [
+          1,
+          128
+        ]
+      ],
+      "distance": 2800
+    }
+  },
+  {
+    "id": "bear",
+    "title": "A bear in the village",
+    "description": "Bosses, guards, civilians and animals: 58 bodies, with separate player and enemy pools.",
+    "seconds": 7,
+    "mission": 5,
+    "character": 0,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "winter-bear-16",
+          "rules": {
+            "stages": "chosen",
+            "mission": 5,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": false,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          6,
+          0
+        ],
+        [
+          38,
+          4096
+        ],
+        [
+          1,
+          4160
+        ],
+        [
+          22,
+          4096
+        ],
+        [
+          18,
+          8192
+        ],
+        [
+          26,
+          4096
+        ],
+        [
+          15,
+          0
+        ],
+        [
+          1,
+          128
+        ]
+      ],
+      "distance": 4500
+    }
+  },
+  {
+    "id": "enemy-combat",
+    "title": "The guards hit back",
+    "description": "Imported enemies bring their combat logic, attack timing and voices. This is a real fight.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "guard",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "rivals-at-the-gate-32",
+          "rules": {
+            "stages": "chosen",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "chosen",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 200,
+              "max": 350
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "uniform",
+            "enemy_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          70,
+          0
+        ],
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "engage": true,
+      "distance": 6200
+    }
+  },
+  {
+    "id": "mixed-patrols",
+    "title": "A new roster around every corner",
+    "description": "Mix enemies across missions while keeping the original patrols and story objectives.",
+    "seconds": 8,
+    "mission": 4,
+    "character": 0,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "guard",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "pirate-party",
+          "rules": {
+            "stages": "chosen",
+            "mission": 4,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "chosen",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 220,
+              "max": 300
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "engage": true,
+      "distance": 6500
+    }
+  },
+  {
+    "id": "boss-patrols",
+    "title": "Or make everyone a boss",
+    "description": "Uniform encounters use one rolled enemy type. Adjustable HP and sight let you tune the challenge.",
+    "seconds": 8,
+    "mission": 5,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "guard",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "boss-patrol-41",
+          "rules": {
+            "stages": "chosen",
+            "mission": 5,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "chosen",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 400,
+              "max": 500
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "uniform",
+            "enemy_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          65,
+          0
+        ],
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "engage": true,
+      "distance": 7800
+    }
+  },
+  {
+    "id": "pools",
+    "title": "Choose what chaos is allowed",
+    "description": "F7 opens the editor. Include whole groups or exclude specific bodies; player and enemy pools are independent.",
+    "seconds": 9,
+    "mission": 6,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": false,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "pick-your-chaos",
+          "rules": {
+            "stages": "tour",
+            "mission": 1,
+            "blocked_stages": [
+              0,
+              5
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": [
+                "disc:166",
+                "disc:167",
+                "resource:HUMAN/KARASU.MAD"
+              ]
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [
+              7,
+              8
+            ],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards",
+                "bosses",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "menu_tabs": [
+        1,
+        2
+      ],
+      "distance": 5000
+    }
+  },
+  {
+    "id": "exclusions",
+    "title": "Blacklists are part of the seed",
+    "description": "Exclude stages and items, protect story actors, pick difficulty and decide how the stage order works.",
+    "seconds": 9,
+    "mission": 6,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": false,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "pick-your-chaos",
+          "rules": {
+            "stages": "tour",
+            "mission": 1,
+            "blocked_stages": [
+              0,
+              5
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": [
+                "disc:166",
+                "disc:167",
+                "resource:HUMAN/KARASU.MAD"
+              ]
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [
+              7,
+              8
+            ],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards",
+                "bosses",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "menu_tabs": [
+        3,
+        4
+      ],
+      "distance": 5000
+    }
+  },
+  {
+    "id": "grenade",
+    "title": "Roll your equipment",
+    "description": "Item types, counts, unlimited supplies and guaranteed grapple are independent options. Ground pickups can shuffle too.",
+    "seconds": 8,
+    "mission": 1,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "guard",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "lucky-loadout",
+          "rules": {
+            "stages": "chosen",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "chosen",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 4
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [
+              1,
+              2,
+              3,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              18,
+              19
+            ],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          6,
+          0
+        ],
+        [
+          1,
+          16
+        ],
+        [
+          85,
+          0
+        ],
+        [
+          1,
+          16
+        ],
+        [
+          95,
+          0
+        ]
+      ],
+      "engage": true,
+      "item": 4,
+      "distance": 6700
+    }
+  },
+  {
+    "id": "fire-eater",
+    "title": "A very different toolkit",
+    "description": "Fire-eater scrolls, explosives, ninja dogs, decoys and more. The original item effects still work.",
+    "seconds": 8,
+    "mission": 9,
+    "character": 0,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "firestarter",
+          "rules": {
+            "stages": "chosen",
+            "mission": 9,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "chosen",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 2,
+              "max": 2
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": true,
+            "keep_grapple": true,
+            "blocked_items": [
+              1,
+              2,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              18,
+              19
+            ],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          8,
+          0
+        ],
+        [
+          1,
+          16
+        ],
+        [
+          100,
+          0
+        ],
+        [
+          1,
+          16
+        ]
+      ],
+      "engage": false,
+      "item": 17,
+      "distance": 7200
+    },
+    "camera": {
+      "eye": [
+        4300,
+        20272,
+        -48234
+      ],
+      "target": [
+        8622,
+        21100,
+        -49355
+      ],
+      "end_eye": [
+        3800,
+        20000,
+        -49000
+      ],
+      "fov": 75
+    }
+  },
+  {
+    "id": "scavenger",
+    "title": "Build your own challenge",
+    "description": "Low maximum HP and a sparse loadout turn a familiar mission into a scavenger run.",
+    "seconds": 7,
+    "mission": 2,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "one-bad-step",
+          "rules": {
+            "stages": "chosen",
+            "mission": 2,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "chosen",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "players",
+                "guards",
+                "bosses",
+                "civilians",
+                "animals"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 20,
+              "max": 40
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 0,
+              "max": 1
+            },
+            "item_count": {
+              "min": 1,
+              "max": 2
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          6,
+          0
+        ],
+        [
+          38,
+          4096
+        ],
+        [
+          1,
+          4160
+        ],
+        [
+          22,
+          4096
+        ],
+        [
+          18,
+          8192
+        ],
+        [
+          26,
+          4096
+        ],
+        [
+          15,
+          0
+        ],
+        [
+          1,
+          128
+        ]
+      ],
+      "distance": 4700
+    }
+  },
+  {
+    "id": "tour-1",
+    "title": "One seed. A world tour.",
+    "description": "Each next roll changes the mission, player and encounters. Tour visits every allowed stage before repeating.",
+    "seconds": 5,
+    "mission": 9,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "world-tour",
+          "rules": {
+            "stages": "tour",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "players",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "distance": 4600
+    }
+  },
+  {
+    "id": "tour-2",
+    "title": "One seed. A world tour.",
+    "description": "Each next roll changes the mission, player and encounters. Tour visits every allowed stage before repeating.",
+    "seconds": 5,
+    "mission": 2,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "world-tour",
+          "rules": {
+            "stages": "tour",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "players",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 1
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "distance": 4600
+    }
+  },
+  {
+    "id": "tour-3",
+    "title": "One seed. A world tour.",
+    "description": "Each next roll changes the mission, player and encounters. Tour visits every allowed stage before repeating.",
+    "seconds": 5,
+    "mission": 6,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": true,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "world-tour",
+          "rules": {
+            "stages": "tour",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 0,
+            "player_pool": {
+              "groups": [
+                "players",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards",
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 2
+      },
+      "inputs": [
+        [
+          12,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          26,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          35,
+          0
+        ],
+        [
+          1,
+          128
+        ],
+        [
+          25,
+          0
+        ]
+      ],
+      "distance": 4600
+    }
+  },
+  {
+    "id": "preview",
+    "title": "Preview before you commit",
+    "description": "Inspect the next mission, body, HP and equipment. Retry regenerates the exact same roll; Next roll changes it.",
+    "seconds": 7,
+    "mission": 1,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": false,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "share-the-chaos-16",
+          "rules": {
+            "stages": "chosen",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "menu_tabs": [
+        5
+      ],
+      "distance": 4300
+    }
+  },
+  {
+    "id": "share",
+    "title": "Share the whole challenge",
+    "description": "Copy or import one versioned JSON seed with every rule and exclusion. Normal campaign progress stays separate.",
+    "seconds": 9,
+    "mission": 1,
+    "character": 1,
+    "preset": 10,
+    "feature": "randomizer",
+    "shot": "player",
+    "hud": false,
+    "sharp_text": true,
+    "fog": false,
+    "music": 0,
+    "randomizer": {
+      "run": {
+        "document": {
+          "format": "tenchu-randomizer",
+          "version": 1,
+          "seed": "share-the-chaos-16",
+          "rules": {
+            "stages": "chosen",
+            "mission": 1,
+            "blocked_stages": [
+              0
+            ],
+            "layout": 1,
+            "difficulty": 1,
+            "language": "english",
+            "player": "models",
+            "character": 1,
+            "player_pool": {
+              "groups": [
+                "bosses"
+              ],
+              "blocked": []
+            },
+            "model_moveset": true,
+            "player_movement": true,
+            "no_idle_taunts": true,
+            "health": {
+              "min": 130,
+              "max": 240
+            },
+            "equipment": true,
+            "item_types": {
+              "min": 4,
+              "max": 8
+            },
+            "item_count": {
+              "min": 2,
+              "max": 8
+            },
+            "infinite_items": false,
+            "keep_grapple": true,
+            "blocked_items": [],
+            "pickups": true,
+            "enemies": "mixed",
+            "enemy_pool": {
+              "groups": [
+                "guards"
+              ],
+              "blocked": []
+            },
+            "replace_civilians": false,
+            "protect_story": true,
+            "enemy_health": {
+              "min": 80,
+              "max": 120
+            },
+            "random_facing": false,
+            "sight": {
+              "min": 100,
+              "max": 100
+            },
+            "keep_active": true
+          }
+        },
+        "round": 0
+      },
+      "menu_tabs": [
+        6
+      ],
+      "distance": 4300
+    }
+  }
+]

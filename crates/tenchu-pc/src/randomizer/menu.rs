@@ -33,6 +33,16 @@ pub struct Editor {
 }
 
 impl Editor {
+    pub fn stage_showcase(&mut self, run: &Run, tab: Option<usize>) {
+        self.open = tab.is_some();
+        if let Some(tab) = tab {
+            self.setup = run.clone();
+            self.current = None;
+            self.tab = tab;
+            self.share = run.export();
+            self.notice.clear();
+        }
+    }
     pub fn new(path: PathBuf) -> Self {
         let mut editor = Self {
             open: false,
@@ -82,6 +92,7 @@ impl Editor {
         ctx: &egui::Context,
         catalog: Option<&Catalog>,
         active: Option<(&Run, &Plan)>,
+        persist: bool,
     ) -> Option<Event> {
         if !self.open {
             return None;
@@ -94,6 +105,7 @@ impl Editor {
             .open(&mut open)
             .collapsible(false)
             .default_size([750.0, 620.0])
+            .default_pos([24.0, 24.0])
             .min_width(480.0)
             .max_width((screen.width() - 24.0).max(480.0))
             .max_height((screen.height() - 30.0).max(250.0))
@@ -215,7 +227,7 @@ impl Editor {
                 }
             });
         self.open &= open;
-        if before != self.setup {
+        if persist && before != self.setup {
             self.save();
         }
         event
