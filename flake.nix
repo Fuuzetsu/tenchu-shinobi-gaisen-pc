@@ -172,6 +172,8 @@
               with pkgs;
               [
                 cargo
+                git
+                gh
                 rustc
                 rustfmt
                 clippy
@@ -237,12 +239,16 @@
                   pkgs.actionlint
                   pkgs.shellcheck
                   pkgs.python3
+                  pkgs.git
+                  pkgs.cargo
+                  pkgs.rustc
                 ];
               }
               ''
                 actionlint ${./.github/workflows/build.yml}
                 shellcheck ${./packaging/tenchu-linux.sh}
                 shellcheck ${./packaging/publish.sh}
+                shellcheck ${./release.sh}
                 cp -R ${./packaging} packaging
                 python3 -m unittest discover -s packaging -p 'test_*.py'
                 shellcheck ${./tools/package-artwork.sh}

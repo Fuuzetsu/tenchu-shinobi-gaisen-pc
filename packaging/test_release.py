@@ -53,7 +53,7 @@ class ReleaseTests(unittest.TestCase):
             directory = self.root / "artifacts" / str(i)
             directory.mkdir(parents=True)
             path = directory / name
-            info = json.dumps({"revision": "commit", "version": "0.1.0"}).encode()
+            info = json.dumps({"revision": "commit", "version": "0.1.0", "nixpkgsRevision": "pinned"}).encode()
             if name.endswith(".zip"):
                 with zipfile.ZipFile(path, "w") as archive:
                     archive.writestr("bundle/build-info.json", info)
@@ -110,6 +110,36 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Sources for libraries absent"):
             release.collect(self.root / "artifacts", self.root / "dist", "commit", "0.1.0")
         self.assertFalse((self.root / "dist").exists())
+
+    def test_public_downloads_require_complete_matching_bytes_and_identity(self):
+        self.archives()
+        destination = self.root / "dist"
+        release.collect(self.root / "artifacts", destination, "commit", "0.1.0")
+        assets = [{"name": p.name, "size": p.stat().st_size,
+                   "digest": "sha256:" + hashlib.sha256(p.read_bytes()).hexdigest()}
+                  for p in destination.iterdir()]
+        release.verify_downloads(destination, assets, "commit", "0.1.0", "pinned")
+        with self.assertRaisesRegex(ValueError, "download set"):
+            release.verify_downloads(destination, assets[:-1], "commit", "0.1.0", "pinned")
+        for revision, version, nixpkgs in [("other", "0.1.0", "pinned"), ("commit", "0.2.0", "pinned"), ("commit", "0.1.0", "other")]:
+            with self.subTest(revision=revision, version=version, nixpkgs=nixpkgs), self.assertRaisesRegex(ValueError, "Build identity"):
+                release.verify_downloads(destination, assets, revision, version, nixpkgs)
+        path = destination / release.ARCHIVES[0]
+        path.write_bytes(path.read_bytes() + b"corruption")
+        with self.assertRaisesRegex(ValueError, "size/digest mismatch"):
+            release.verify_downloads(destination, assets, "commit", "0.1.0", "pinned")
+
+    def test_public_checksum_file_cannot_omit_or_duplicate_an_archive(self):
+        self.archives()
+        destination = self.root / "dist"
+        release.collect(self.root / "artifacts", destination, "commit", "0.1.0")
+        checksums = destination / "SHA256SUMS"
+        lines = checksums.read_text().splitlines()
+        assets = [{"name": name} for name in (*release.ARCHIVES, "SHA256SUMS")]
+        for altered in [lines[:-1], lines + lines[:1]]:
+            checksums.write_text("\n".join(altered) + "\n")
+            with self.assertRaisesRegex(ValueError, "checksum list"):
+                release.verify_downloads(destination, assets, "commit", "0.1.0", "pinned")
 
     def publish(self, ref="refs/heads/master", **environment):
         self.archives()

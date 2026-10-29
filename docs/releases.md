@@ -28,23 +28,42 @@ See [GitHub's release immutability documentation](https://docs.github.com/en/cod
 
 ## Versioned releases
 
-1. Add user-facing features, fixes and compatibility changes to `CHANGELOG.md`
-   under `Unreleased` as work lands. Do not copy the commit log or record internal
-   refactors, formatting or test-only changes there.
-2. Choose the version. Set `[workspace.package].version` in `Cargo.toml`, then
-   run `./dev.sh cargo check --workspace` to update the workspace packages in
-   `Cargo.lock`. Nix reads the same version; there is no second version to edit.
-3. Move the release's entries beneath `## 0.2.0 — YYYY-MM-DD` (use the actual
-   version/date). Leave an empty `## Unreleased` above it for subsequent work.
-   The initial Unreleased section describes the first public release, not a
-   history of releases that never happened.
-4. Run the checks below, perform a short disc-backed gameplay check, and commit.
-   Push the commit, then create and push an annotated tag, for example:
+Keep user-facing changes under `Unreleased` in `CHANGELOG.md` as work lands.
+Commit your work on `master`, finish the relevant gameplay checks, then run:
 
-   ```sh
-   git tag -a v0.2.0 -m 'Tenchu PC 0.2.0'
-   git push origin v0.2.0
-   ```
+```sh
+./release.sh 0.3.3
+```
+
+Use the next intended version. Nix supplies the release tools, including Cargo,
+Python and `gh`. Git must be able to push to `origin`; authenticate with GitHub
+once using `./dev.sh gh auth login` if needed.
+
+The command promotes the Unreleased notes to a dated section, updates the Cargo
+version and lockfile, runs `nix flake check` and evaluates all supported systems.
+It then commits the preparation, creates an annotated tag and pushes `master`
+and the tag together. GitHub builds the Linux x86-64/ARM64, Windows, WASM and
+dependency-source archives and performs the portable startup checks. The script
+waits for both the tagged and HEAD workflows, downloads the release, and verifies
+its checksums, GitHub digests, build identities and library/source inventories.
+It checks the referenced HD pack is already published with the expected hash;
+unchanged artwork is reused, not uploaded again.
+
+To prepare and review locally before publishing:
+
+```sh
+./release.sh 0.3.3 --prepare-only
+# Review the commit and play-test, then publish:
+./release.sh 0.3.3
+```
+
+Preparation requires a clean checkout and performs network preflight checks,
+but `--prepare-only` neither tags nor pushes. Failed local checks restore the
+version/changelog/lockfile edits. After an interruption or hosted failure, rerun
+the same command: it keeps the existing commit/tag and retries failed workflow
+jobs. Conflicting tags are never moved. Downloads use temporary storage and are
+removed after verification; the small verification report remains in
+`private/releases/vVERSION/verified.json`.
 
 Tags must be `vMAJOR.MINOR.PATCH`, optionally `-alpha.N`, `-beta.N` or `-rc.N`.
 The version must match Cargo and have dated, nonempty changelog notes. Prerelease
@@ -53,16 +72,11 @@ for Latest. Builds upload to a draft and publish only after every asset arrives.
 Failed draft releases can be retried; fixes to a published version need a new tag.
 Do not move a published tag or silently replace its binaries.
 
-```sh
-nix flake check
-nix build .#linux-archive .#windows-archive .#web-archive .#dependency-sources-archive
-python3 packaging/release.py notes refs/tags/v0.2.0 /tmp/tenchu-release-notes.md
-```
-
-Use the intended tag in the last command. No retail disc is required by hosted
-CI. It checks native unit tests, Clippy, formatting, WASM builds, workflow/scripts,
+No retail disc is required by the script or hosted CI. They check native unit
+tests, Clippy, formatting, WASM builds, workflow/scripts,
 Linux startup/library loading without `/nix`, and Windows executable startup.
-It cannot validate gameplay/GPU drivers without a disc and suitable hardware.
+They cannot validate gameplay/GPU drivers without a disc and suitable hardware;
+perform a brief disc-backed gameplay check for the changes before publication.
 
 ## Artwork releases
 

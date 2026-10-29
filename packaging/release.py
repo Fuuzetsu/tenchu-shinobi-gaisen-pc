@@ -134,6 +134,31 @@ def collect(source, destination, revision, version):
     (destination / "SHA256SUMS").write_text("".join(f"{digest}  {archive.name}\n" for archive, digest in verified))
 
 
+def verify_downloads(directory, assets, revision, version, nixpkgs_revision):
+    indexed = {asset["name"]: asset for asset in assets}
+    expected = set(ARCHIVES) | {"SHA256SUMS"}
+    if len(indexed) != len(assets) or set(indexed) != expected:
+        raise ValueError("Published release has an incomplete or unexpected download set")
+    lines = (directory / "SHA256SUMS").read_text().splitlines()
+    checksums = dict(line.split()[::-1] for line in lines)
+    if len(checksums) != len(lines) or set(checksums) != set(ARCHIVES):
+        raise ValueError("Published checksum list does not match the release archives")
+    for name in sorted(expected):
+        path = directory / name
+        with path.open("rb") as file:
+            digest = hashlib.file_digest(file, "sha256").hexdigest()
+        asset = indexed[name]
+        if path.stat().st_size != asset["size"] or asset["digest"] != f"sha256:{digest}":
+            raise ValueError(f"GitHub size/digest mismatch for {name}")
+        if name in checksums:
+            if digest != checksums[name]:
+                raise ValueError(f"Checksum mismatch for {name}")
+            info = metadata(path, "build-info.json")
+            if (info["revision"], info["version"], info["nixpkgsRevision"]) != (revision, version, nixpkgs_revision):
+                raise ValueError(f"Build identity mismatch for {name}")
+    verify_library_sources({name: directory / name for name in ARCHIVES})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
