@@ -1,5 +1,4 @@
 use super::{MAX_MIPS, Material};
-use wgpu::util::DeviceExt;
 
 pub(super) enum Data {
     Buffer(wgpu::Buffer),
@@ -27,22 +26,37 @@ pub(super) fn binding_type(device: &wgpu::Device) -> wgpu::BindingType {
 }
 
 impl Data {
+    pub(super) fn limit(device: &wgpu::Device) -> usize {
+        let limits = device.limits();
+        if uses_texture(device) {
+            limits.max_texture_dimension_2d as usize
+        } else {
+            limits.max_storage_buffer_binding_size as usize / std::mem::size_of::<Material>()
+        }
+    }
+
     pub(super) fn new(device: &wgpu::Device, queue: &wgpu::Queue, materials: &[Material]) -> Self {
+        let capacity = materials
+            .len()
+            .next_power_of_two()
+            .max(64)
+            .min(Self::limit(device));
         if !uses_texture(device) {
-            return Self::Buffer(
-                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Material source regions and mip rectangles"),
-                    contents: bytemuck::cast_slice(materials),
-                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-                }),
-            );
+            let data = Self::Buffer(device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Material source regions and mip rectangles"),
+                size: (capacity * std::mem::size_of::<Material>()) as u64,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
+            data.write(queue, 0, materials);
+            return data;
         }
         // WebGL2 has no storage buffers. Each row preserves one record's exact bits.
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Material metadata"),
             size: wgpu::Extent3d {
                 width: (MAX_MIPS + 4) as u32,
-                height: materials.len() as u32,
+                height: capacity as u32,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -56,6 +70,13 @@ impl Data {
         let data = Self::Texture(texture, view);
         data.write(queue, 0, materials);
         data
+    }
+
+    pub(super) fn capacity(&self) -> usize {
+        match self {
+            Self::Buffer(buffer) => buffer.size() as usize / std::mem::size_of::<Material>(),
+            Self::Texture(texture, _) => texture.height() as usize,
+        }
     }
 
     pub(super) fn binding(&self) -> wgpu::BindingResource<'_> {

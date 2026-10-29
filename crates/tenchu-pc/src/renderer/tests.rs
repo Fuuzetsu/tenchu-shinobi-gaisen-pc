@@ -99,14 +99,14 @@ fn read_pixels(renderer: &Renderer, target: &wgpu::Texture) -> Vec<u8> {
     pixels.to_vec()
 }
 
-fn read_pixel(renderer: &Renderer, target: &wgpu::Texture) -> [u8; 4] {
+pub(super) fn read_pixel(renderer: &Renderer, target: &wgpu::Texture) -> [u8; 4] {
     let pixels = read_pixels(renderer, target);
     pixels[24 * 256 + 24 * 4..24 * 256 + 25 * 4]
         .try_into()
         .unwrap()
 }
 
-fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
+pub(super) fn fixture(vram: &Vram) -> (Renderer, wgpu::Texture) {
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))

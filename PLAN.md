@@ -3402,6 +3402,27 @@ Native Vulkan and browser WebGL2 render the grid, scroll/filter it and play Onik
 on both heroes; browser selection/moveset preferences survive restart. The full
 WASM build, formatting and strict native Clippy pass. No release is authorized.
 
-Next: reproduce the reported Mission 1 movement stutters with enhanced graphics,
-capture CPU/GPU frame timings, identify the spike source and verify any fix on the
-same route. Keep user settings/saves untouched and commit locally.
+Reproduced the Mission 1 movement stutters with Ayame, HD artwork and the user's
+lighting/post-processing settings. First-use effect and HUD textures forced a
+complete CPU atlas repack and GPU upload, taking 122–205 ms before presentation.
+Atlas additions now retain existing coordinates, upload only new tiles/mipmaps
+and append metadata. Reserved capacity avoids repeated allocation; growth copies
+existing pixels on the GPU. Mission/pack/size changes can still rebuild the atlas.
+Animated textures retain their partial updates and wrapped mip borders. Neither
+preloading all sprites nor background loading is needed for the reproduced hitch.
+
+Repeated 20-second forward-input runs at 1280×720 on the GTX 1080 Ti reduced
+render-submission p99 from 141.96 to 1.98 ms and its maximum from 177.21 to 4.13 ms.
+No gameplay material flush exceeded 5 ms after the fix. These runs used an isolated
+X11 virtual display; its substantial presentation waits make average FPS unsuitable
+as a desktop benchmark. Gameplay and user settings/saves are unchanged. Temporary
+instrumentation and the preload experiment were removed from the implementation.
+
+All 149 ordinary tests, strict native Clippy and formatting pass. GPU regressions
+check incremental additions through texture/metadata growth, retained coordinates,
+every opaque/translucent/height mip and border, shader lookup after growth and
+same-size animated updates. Existing scrolling/reload/filtering and world/HUD
+transparency checks also pass. The full WASM build and browser WebGL2 Mission 1
+movement/combat with HD artwork, lighting and shadows pass without runtime errors.
+Scrolling the entire animated model gallery and returning to earlier thumbnails
+also preserves their textures. No release or push is authorized.

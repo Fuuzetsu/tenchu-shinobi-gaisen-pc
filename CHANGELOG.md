@@ -19,6 +19,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Model-gallery search and help text stay within the settings window instead
   of gradually expanding it to the edge of the screen.
+- Avoid recurring gameplay stutters when an effect or HUD texture first appears
+  by uploading only its atlas regions instead of rebuilding the entire atlas.
 
 ## 0.2.0 — 2026-10-28
 

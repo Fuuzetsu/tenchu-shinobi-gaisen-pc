@@ -9,7 +9,9 @@ use crate::{
 use bytemuck::{Pod, Zeroable};
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{Result, model::Texture, texture::Vram};
+mod atlas;
 mod data;
+use atlas::{Atlas, Packing};
 pub(super) use data::shader;
 
 pub const MAX_MIPS: usize = 13;
@@ -148,13 +150,6 @@ impl Entry {
     }
 }
 
-struct Atlas {
-    texture: wgpu::Texture,
-    data: data::Data,
-    materials: Vec<Material>,
-    side: u32,
-}
-
 pub struct Materials {
     pub layout: wgpu::BindGroupLayout,
     pub bindings: wgpu::BindGroup,
@@ -202,17 +197,17 @@ impl Materials {
                 },
             ],
         });
-        let (bindings, atlas) = upload(
+        let atlas = Atlas::new(
             device,
             queue,
-            &layout,
             1,
-            &[vec![0; 4], vec![0; 4]],
-            &[Material::zeroed()],
+            2,
+            vec![Material::zeroed()],
+            Packing::default(),
         );
         Self {
+            bindings: atlas.bindings(device, &layout),
             layout,
-            bindings,
             vram: vram.clone(),
             entries: Vec::new(),
             regions: BTreeMap::new(),
@@ -402,23 +397,22 @@ impl Materials {
     }
 
     pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<()> {
-        self.repack |= self.entries.len() + 1 != self.atlas.materials.len();
-        for (index, entry) in self.entries.iter_mut().enumerate() {
-            if !self.repack && self.atlas.materials[index + 1].source != entry.source() {
-                self.atlas.materials[index + 1].source = entry.source();
-                self.atlas.data.write(
-                    queue,
-                    index + 1,
-                    &self.atlas.materials[index + 1..index + 2],
-                );
-            }
+        if self.entries.len() + 1 > data::Data::limit(device) {
+            return Err("Material metadata exceeds the GPU size limit".into());
+        }
+        for entry in &mut self.entries {
             if !entry.dirty {
                 continue;
             }
-            if entry.mips.first().map(|mip| mip.size) != Some(entry.image.size) {
-                self.repack = true;
-            }
+            self.repack |= entry
+                .mips
+                .first()
+                .is_some_and(|mip| mip.size != entry.image.size)
+                || entry.image.size.iter().any(|n| n + 2 > self.atlas.side);
             entry.mips = entry.image.mips();
+            if entry.mips.len() > MAX_MIPS {
+                return Err("Decoded material has too many mip levels".into());
+            }
             entry.detail.clear();
             if self.layers == 3 {
                 let explicit = self
@@ -440,14 +434,38 @@ impl Materials {
                         .collect();
                 }
             }
-            if !self.repack {
-                let material = &mut self.atlas.materials[index + 1];
-                material.info[3] = entry.flags(self.layers);
-                material.relief =
-                    entry.relief(self.enabled.then(|| self.surfaces.get(&entry.id)).flatten());
+        }
+        if self.repack {
+            self.rebuild(device, queue)?;
+        } else {
+            let first_new = self.atlas.materials.len() - 1;
+            self.atlas
+                .materials
+                .resize(self.entries.len() + 1, Material::zeroed());
+            for (entry, mip, size) in tiles(&self.entries, first_new) {
+                self.atlas.materials[entry + 1].mips[mip] =
+                    self.atlas.packing.place(self.atlas.side, size);
+            }
+            if self.atlas.reserve(device, queue, self.layers)? {
+                self.bindings = self.atlas.bindings(device, &self.layout);
+            }
+            for (index, entry) in self.entries.iter().enumerate() {
+                let material = &self.atlas.materials[index + 1];
+                if !entry.dirty && material.source == entry.source() {
+                    continue;
+                }
+                if entry.dirty {
+                    self.atlas.materials[index + 1] = self.material(entry, material.mips);
+                } else {
+                    self.atlas.materials[index + 1].source = entry.source();
+                }
+                let material = &self.atlas.materials[index + 1];
                 self.atlas
                     .data
                     .write(queue, index + 1, std::slice::from_ref(material));
+                if !entry.dirty {
+                    continue;
+                }
                 for (mip, image) in entry.mips.iter().enumerate() {
                     let rect = material.mips[mip];
                     let x = rect[0] as u32 % self.atlas.side - 1;
@@ -465,114 +483,118 @@ impl Materials {
                     }
                 }
             }
+        }
+        for entry in &mut self.entries {
             entry.dirty = false;
         }
-        if !self.repack {
-            return Ok(());
+        Ok(())
+    }
+
+    fn material(&self, entry: &Entry, mips: [[f32; 4]; MAX_MIPS]) -> Material {
+        Material {
+            source: entry.source(),
+            info: [
+                entry.mips.len() as u32,
+                entry.image.size[0],
+                entry.image.size[1],
+                entry.flags(self.layers),
+            ],
+            emission: entry
+                .region
+                .and_then(|r| self.emissions.get(&r))
+                .copied()
+                .unwrap_or_default(),
+            relief: entry.relief(self.enabled.then(|| self.surfaces.get(&entry.id)).flatten()),
+            mips,
         }
-        let mut tiles: Vec<_> = self
-            .entries
-            .iter()
-            .enumerate()
-            .flat_map(|(entry, data)| {
-                data.mips
-                    .iter()
-                    .enumerate()
-                    .map(move |(mip, image)| (entry, mip, image))
-            })
-            .collect();
-        tiles.sort_by_key(|(_, _, image)| std::cmp::Reverse(image.size[1]));
+    }
+
+    fn rebuild(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<()> {
+        let tiles = tiles(&self.entries, 0);
         let largest = tiles
             .iter()
-            .map(|(_, _, image)| image.size[0].max(image.size[1]) + 2)
+            .map(|(_, _, size)| size[0].max(size[1]) + 2)
             .max()
             .unwrap_or(1);
         let area: u64 = tiles
             .iter()
-            .map(|(_, _, image)| u64::from(image.size[0] + 2) * u64::from(image.size[1] + 2))
+            .map(|(_, _, size)| u64::from(size[0] + 2) * u64::from(size[1] + 2))
             .sum();
         let side = (area as f64).sqrt().ceil() as u32;
         let side = side
             .next_power_of_two()
             .clamp(64, 2048)
             .max(largest.next_power_of_two());
-        let limits = device.limits();
-        if data::uses_texture(device)
-            && self.entries.len() + 1 > limits.max_texture_dimension_2d as usize
-        {
-            return Err("Material metadata exceeds the GPU texture size limit".into());
-        }
-        if side > limits.max_texture_dimension_2d {
+        if side > device.limits().max_texture_dimension_2d {
             return Err("Decoded material exceeds the GPU texture size limit".into());
         }
-        let mut materials = vec![Material::zeroed(); self.entries.len() + 1];
-        for (index, entry) in self.entries.iter().enumerate() {
-            materials[index + 1].emission = entry
-                .region
-                .and_then(|r| self.emissions.get(&r))
-                .copied()
-                .unwrap_or([0.0; 4]);
-            let surface = self.enabled.then(|| self.surfaces.get(&entry.id)).flatten();
-            materials[index + 1].relief = entry.relief(surface);
-            materials[index + 1].source = entry.source();
-            materials[index + 1].info = [
-                entry.mips.len() as u32,
-                entry.image.size[0],
-                entry.image.size[1],
-                entry.flags(self.layers),
-            ];
+        let mut materials = vec![Material::zeroed()];
+        materials.extend(
+            self.entries
+                .iter()
+                .map(|entry| self.material(entry, [[0.0; 4]; MAX_MIPS])),
+        );
+        let mut packing = Packing::default();
+        for (entry, mip, size) in tiles {
+            materials[entry + 1].mips[mip] = packing.place(side, size);
+        }
+        if packing.pages() > atlas::page_limit(device, self.layers) {
+            return Err("Decoded materials exceed the GPU atlas budget".into());
         }
         let page_bytes = (side * side * 4) as usize;
-        let mut pages = vec![vec![0u8; page_bytes]; self.layers];
-        let (mut x, mut y, mut row_height, mut page) = (0, 0, 0, 0);
-        for (entry, mip, image) in tiles {
-            if mip >= MAX_MIPS {
-                return Err("Decoded material has too many mip levels".into());
-            }
-            let [width, height] = image.size;
-            if x + width + 2 > side {
-                x = 0;
-                y += row_height;
-                row_height = 0;
-            }
-            if y + height + 2 > side {
-                page += 1;
-                if super::array_layers(device, (page + 1) * self.layers as u32)
-                    > limits.max_texture_array_layers
-                {
-                    return Err("Decoded materials exceed the GPU atlas budget".into());
-                }
-                pages.extend((0..self.layers).map(|_| vec![0; page_bytes]));
-                x = 0;
-                y = 0;
-                row_height = 0;
-            }
-            materials[entry + 1].mips[mip] = [
-                (x + 1 + page * side) as f32,
-                (y + 1) as f32,
-                width as f32,
-                height as f32,
-            ];
-            for class in 0..self.layers {
-                for dy in 0..height + 2 {
-                    let sy = border_pixel(dy, height, self.entries[entry].repeating());
-                    for dx in 0..width + 2 {
-                        let sx = border_pixel(dx, width, self.entries[entry].repeating());
-                        let from = ((sy * width + sx) * 4) as usize;
-                        let to = (((y + dy) * side + x + dx) * 4) as usize;
-                        pages[page as usize * self.layers + class][to..to + 4].copy_from_slice(
-                            &self.entries[entry].pixels(mip, class)[from..from + 4],
-                        );
+        let mut pages = vec![vec![0u8; page_bytes]; packing.pages() as usize * self.layers];
+        for (index, entry) in self.entries.iter().enumerate() {
+            for (mip, image) in entry.mips.iter().enumerate() {
+                let rect = materials[index + 1].mips[mip];
+                let x = rect[0] as u32 % side - 1;
+                let y = rect[1] as u32 - 1;
+                let layer = rect[0] as usize / side as usize * self.layers;
+                let [width, height] = image.size;
+                for class in 0..self.layers {
+                    let pixels = entry.pixels(mip, class);
+                    for dy in 0..height + 2 {
+                        let sy = border_pixel(dy, height, entry.repeating());
+                        for dx in 0..width + 2 {
+                            let sx = border_pixel(dx, width, entry.repeating());
+                            let from = ((sy * width + sx) * 4) as usize;
+                            let to = (((y + dy) * side + x + dx) * 4) as usize;
+                            pages[layer + class][to..to + 4]
+                                .copy_from_slice(&pixels[from..from + 4]);
+                        }
                     }
                 }
             }
-            x += width + 2;
-            row_height = row_height.max(height + 2);
         }
-        (self.bindings, self.atlas) = upload(device, queue, &self.layout, side, &pages, &materials);
+        self.atlas = Atlas::new(device, queue, side, self.layers, materials, packing);
+        for (layer, bytes) in pages.iter().enumerate() {
+            write_texture(
+                queue,
+                &self.atlas.texture,
+                [0, 0, layer as u32],
+                [side, side],
+                bytes,
+            );
+        }
+        self.bindings = self.atlas.bindings(device, &self.layout);
         self.repack = false;
         Ok(())
     }
+}
+
+fn tiles(entries: &[Entry], first: usize) -> Vec<(usize, usize, [u32; 2])> {
+    let mut tiles: Vec<_> = entries
+        .iter()
+        .enumerate()
+        .skip(first)
+        .flat_map(|(entry, data)| {
+            data.mips
+                .iter()
+                .enumerate()
+                .map(move |(mip, image)| (entry, mip, image.size))
+        })
+        .collect();
+    tiles.sort_by_key(|(_, _, size)| std::cmp::Reverse(size[1]));
+    tiles
 }
 
 fn border_pixel(coordinate: u32, size: u32, wrap: bool) -> u32 {
@@ -627,69 +649,6 @@ fn write_texture(
     );
 }
 
-fn upload(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    layout: &wgpu::BindGroupLayout,
-    side: u32,
-    pages: &[Vec<u8>],
-    materials: &[Material],
-) -> (wgpu::BindGroup, Atlas) {
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Isolated opaque and semi-transparent mip chains"),
-        size: wgpu::Extent3d {
-            width: side,
-            height: side,
-            depth_or_array_layers: super::array_layers(device, pages.len() as u32),
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
-    for (layer, bytes) in pages.iter().enumerate() {
-        write_texture(queue, &texture, [0, 0, layer as u32], [side, side], bytes);
-    }
-    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("Material mip interpolation"),
-        min_filter: wgpu::FilterMode::Linear,
-        mag_filter: wgpu::FilterMode::Linear,
-        ..Default::default()
-    });
-    let data = data::Data::new(device, queue, materials);
-    let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Decoded material bindings"),
-        layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(
-                    &texture.create_view(&Default::default()),
-                ),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::Sampler(&sampler),
-            },
-            wgpu::BindGroupEntry {
-                binding: 2,
-                resource: data.binding(),
-            },
-        ],
-    });
-    (
-        bindings,
-        Atlas {
-            texture,
-            data,
-            materials: materials.to_vec(),
-            side,
-        },
-    )
-}
-
 struct Changes([Option<(usize, usize)>; 512]);
 
 impl Changes {
@@ -736,41 +695,4 @@ impl Changes {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn animation_changes_include_packed_pixels_and_wrapping_palettes() {
-        let before = Vram::default();
-        let four_bit = Region {
-            page: 15,
-            palette: (480 << 6) | 63,
-            rect: [1, 10, 3, 2],
-        };
-        let eight_bit = Region {
-            page: 0x8f,
-            ..four_bit
-        };
-        let direct = Region {
-            page: 0x10f,
-            ..four_bit
-        };
-        for (x, y, affected) in [
-            (960, 10, [true, true, false]),
-            (962, 11, [false, false, true]),
-            (1008, 480, [true, true, false]),
-            (0, 480, [false, true, false]),
-            (240, 480, [false, false, false]),
-            (960, 12, [false, false, false]),
-        ] {
-            let mut after = before.clone();
-            after.words[y * 1024 + x] = 0x83e0;
-            let changes = Changes::between(&before, &after);
-            assert_eq!(
-                [four_bit, eight_bit, direct].map(|r| changes.affects(r)),
-                affected,
-                "word ({x}, {y})",
-            );
-        }
-    }
-}
+mod tests;
