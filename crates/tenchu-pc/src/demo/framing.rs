@@ -61,6 +61,8 @@ pub struct Path {
     pub target: [f32; 3],
     pub end_eye: Option<[f32; 3]>,
     pub end_target: Option<[f32; 3]>,
+    #[serde(default)]
+    pub follow_player: bool,
     #[serde(default = "default_fov")]
     pub fov: f32,
 }

@@ -128,7 +128,9 @@ Custom clips can set `artwork: false` or `true` to hold a before/after state
 throughout the artwork feature, and `fog: false` for clear distant scenery.
 An optional `camera` object accepts `eye` and `target` world-coordinate triples,
 optional `end_eye`/`end_target`, and `fov` (55 degrees by default). It moves
-smoothly between those endpoints on the same offline timeline.
+smoothly between those endpoints on the same offline timeline. Set
+`follow_player: true` inside the camera object to carry that view along with
+the interpolated player position, useful for movesets with substantial movement.
 
 `weather_warmup: 35` settles 35 seconds of cosmetic weather before the clip starts
 (0–60 seconds, default 0). Gameplay does not advance during this pre-roll. The

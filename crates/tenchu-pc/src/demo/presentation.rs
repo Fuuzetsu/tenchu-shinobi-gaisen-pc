@@ -43,7 +43,14 @@ fn part(p: f32, count: usize) -> (usize, f32) {
 
 pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera> {
     if let Some(path) = &player.clip().camera {
-        return Some(path.sample(player.progress()));
+        let mut camera = path.sample(player.progress());
+        if path.follow_player {
+            let scene = &player.scene;
+            let alpha = if interpolate { player.alpha() } else { 1.0 };
+            camera.position += scene.previous_player.lerp(scene.current_player, alpha)
+                - Vec3::from(scene.player_start.map(|v| v as f32).to_array());
+        }
+        return Some(camera);
     }
     if matches!(player.clip().shot, Shot::Cinematic | Shot::Gameplay)
         || matches!(
