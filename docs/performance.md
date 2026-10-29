@@ -184,6 +184,24 @@ it is not an additional GPU stage. CPU and GPU measurements overlap and must
 not be added together. Traces, isolated preferences, screenshots and sampling
 results are retained locally under ignored `private/frame-pacing-review`.
 
+The follow-up water check used ordinary Ayame and the saved Mei-Oh override at
+three Mission 1 deep-water locations, including swimming, turning, grapple use
+and a return to land. The optimized runs generally measured 13–17 ms; looking
+toward a lit shore cost about 20 ms with roughly 10.5 ms in world/effects shading.
+The first post-water land run averaged 13.89 ms. The released v0.3.0 comparison
+showed about 25–27 ms in water and after returning. These checks did not reproduce
+the reported persistent 15–20 FPS state, so they do not establish a separate
+water-specific cause or leak fix. Teleports positioned the player for these
+checks; they are not a replay of the user's route.
+
+Validation includes 150 ordinary workspace tests, five Vulkan regressions for
+streamed geometry, shadow sharing, hinged scenery, interpolation and secondary
+motion, strict native/WASM Clippy, and browser WebGL2 Mission 1 movement/turning/
+jumping with HD artwork and the model override. Native EGL fixture initialization
+fails on this setup, before the geometry under test; browser WebGL2 is the
+working OpenGL-family validation. Headless browser timings are not a desktop
+performance comparison.
+
 ## Initial baseline, 2026-10-27
 
 Linux Vulkan, Ryzen 9 9950X3D, GTX 1080 Ti, NVIDIA 580.126.09, 3840×2160.

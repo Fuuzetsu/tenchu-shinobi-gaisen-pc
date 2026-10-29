@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.3.1 — 2026-10-29
+
 ### Fixed
 
 - Honour disabled VSync on focused Wayland windows instead of also waiting for

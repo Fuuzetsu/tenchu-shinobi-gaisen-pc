@@ -38,8 +38,19 @@ interval and show the unmeasured event-loop remainder. Details and limits are in
 All 150 ordinary tests, five native Vulkan geometry/shadow/motion regressions,
 formatting, strict native/WASM Clippy and the full WASM build pass. A native EGL
 fixture fails during adapter/device initialization; it does not validate this
-change on OpenGL. Browser gameplay verification remains pending. Investigate
-the separately reported persistent Mission 1 deep-water slowdown before tagging.
+change on OpenGL. The full browser WebGL2 build plays Mission 1 with HD artwork,
+Mei-Oh, movement, turns and jumping without runtime/WebGL errors.
+
+The water investigation exercised three Mission 1 deep-water locations, swimming,
+turning, grappling and returning to land, with both ordinary Ayame and Mei-Oh.
+The optimized water runs generally held 13–17 ms intervals; a lamp-facing shore
+view took about 20 ms, mostly GPU shading. The earlier water run returned to
+13.89 ms mean while running on land. The published v0.3.0 comparison took about
+25–27 ms in water and back on land. Neither reproduced the reported persistent
+15–20 FPS collapse, so a separate water-specific cause is still unconfirmed;
+do not claim a demonstrated leak fix. Keep the report open for a matching route
+or recurrence. Prepare the authorized v0.3.1 performance patch, reuse artwork-v1,
+and require packaging/hosted publication gates before announcing it.
 
 F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
 cues. Explicit event categories cover every vibration call, including shared
