@@ -20,8 +20,7 @@ The opening/training movies, both character epilogues, credits and final results
 from `ENDING.EXE` play from the disc. **F6** opens the previous quick launcher;
 **Esc** there returns to the title. **F1** still opens PC settings.
 
-See [PLAN.md](../PLAN.md) for deliverables and acceptance criteria and
-[AGENTS.md](../AGENTS.md) for development conventions.
+See [AGENTS.md](../AGENTS.md) for development conventions.
 
 Game data, captured RAM and disc images must remain outside Git. No BIOS is
 required. This is an early PC port with full campaign and training regression
@@ -1386,8 +1385,7 @@ their starting seed and equipment, so
 Both complete Mission 2 with 100 HP. The independent
 [Mission 7 route](../crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
 also passes with the corrected swimming camera, finishing at tick 3,461 with
-93 HP. [PLAN.md](../PLAN.md) records the feature coverage, native play checks and
-source/retail comparisons. These routes exercise ordinary controller inputs;
+93 HP. These routes exercise ordinary controller inputs;
 they do not prove exhaustive parity with retail.
 
 ```sh

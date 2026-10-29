@@ -80,7 +80,7 @@ enables it; Modern presets enable it too. `TENCHU_ASSET_PACK` also accepts a
 custom archive or unpacked directory. Some textures are reconstructed from your
 disc in Rust; no Python or image service is needed to play.
 [Artwork, editing and provenance](artwork/README.md).
-[Full feature guide](docs/guide.md) · [Demos](DEMOS.md) · [Development plan](PLAN.md)
+[Full feature guide](docs/guide.md) · [Demos](DEMOS.md)
 
 This is an unofficial port. Original project code/resources use the [MIT License](LICENSE),
 without warranty. See [third-party attribution](COPYING.md) and

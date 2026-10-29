@@ -2,8 +2,9 @@
 
 - Keep working toward the complete `MAIN.EXE` game. Completing Mission 1 or
   another milestone is a reason to advance the plan, not declare the goal done.
-- Read `PLAN.md` and current implementation before selecting work. Update the
-  plan with concrete results and unresolved boundaries.
+- Read the current implementation and local `PLAN.md` (when present) before
+  selecting work. Keep local planning notes current with results and unresolved
+  boundaries.
 - Reuse and verify the existing work in `~/programming/tenchu-decomp-glitch-research`,
   `~/programming/tenchu-decomp` and `~/programming/tenchu-viewer`. Do not modify
   those repositories as part of this port. Record provenance for imported code.
