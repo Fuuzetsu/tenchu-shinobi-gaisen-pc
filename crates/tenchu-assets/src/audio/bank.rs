@@ -64,8 +64,9 @@ impl Bank {
             if row[0] > 16 || used >= programs {
                 return Err("Invalid VAB program tones".into());
             }
-            let mut entries = Vec::new();
-            for tone in slice(tones, used * 512, usize::from(row[0]) * 32)?.chunks_exact(32) {
+            let mut entries = Vec::with_capacity(16);
+            // The count excludes empty slots; sound IDs still address all 16 slots.
+            for tone in slice(tones, used * 512, 512)?.chunks_exact(32) {
                 let sample = i16_le(tone, 22)?;
                 if sample < 0 || sample as usize > samples {
                     return Err("VAB tone sample outside bank".into());
@@ -118,5 +119,41 @@ impl Bank {
             if character == 0 { 'R' } else { 'A' }
         );
         Self::parse(&game.asset(&name)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sparse_tones_keep_their_sound_id_slots() {
+        let mut bytes = vec![0; 32 + 128 * 16 + 512 + 512 + 16];
+        bytes[..4].copy_from_slice(b"pBAV");
+        bytes[18..20].copy_from_slice(&1u16.to_le_bytes());
+        bytes[22..24].copy_from_slice(&1u16.to_le_bytes());
+        bytes[32] = 2;
+        for slot in [0, 12] {
+            let tone = 32 + 128 * 16 + slot * 32;
+            bytes[tone + 2] = 127;
+            bytes[tone + 22..tone + 24].copy_from_slice(&1u16.to_le_bytes());
+        }
+        let sizes = 32 + 128 * 16 + 512;
+        bytes[sizes + 2..sizes + 4].copy_from_slice(&2u16.to_le_bytes());
+        bytes[sizes + 512 + 1] = 1;
+        bytes[sizes + 512 + 2..].fill(0x11);
+        let bank = Bank::parse(&bytes).unwrap();
+        let tones = &bank.programs[0].as_ref().unwrap().tones;
+        assert_eq!(tones.len(), 16);
+        assert_eq!(tones[0].sample, 1);
+        assert_eq!(tones[12].sample, 1);
+        assert!(tones[1..12].iter().all(|tone| tone.sample == 0));
+        assert!(tones[13..].iter().all(|tone| tone.sample == 0));
+        assert!(
+            bank.samples[tones[12].sample]
+                .frames
+                .iter()
+                .any(|&x| x != 0)
+        );
     }
 }

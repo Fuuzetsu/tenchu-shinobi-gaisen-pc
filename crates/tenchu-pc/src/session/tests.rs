@@ -190,7 +190,7 @@ fn retail_xa_samples_match_ffmpeg() {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC; decodes every non-trial sound bank and verifies localized stage lookup"]
+#[ignore = "requires TENCHU_DISC; decodes every non-trial sound bank and mixes stealth-kill cues in all missions/languages"]
 fn all_retail_sound_banks_decode() {
     use tenchu_assets::{audio::bank::Bank, script::Language};
     let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
@@ -231,7 +231,21 @@ fn all_retail_sound_banks_decode() {
     ] {
         for stage in 0..11 {
             for character in 0..2 {
-                Bank::load(&game, stage, character, language).unwrap();
+                let bank =
+                    std::sync::Arc::new(Bank::load(&game, stage, character, language).unwrap());
+                for id in [0x38, 0x4a, 0x4b, 0x4c] {
+                    let mut mixer = tenchu_audio::Mixer::new(44100);
+                    mixer.set_bank(bank.clone());
+                    mixer.play(id, 126, 64);
+                    let peak = (0..44100)
+                        .flat_map(|_| mixer.frame())
+                        .map(f32::abs)
+                        .fold(0.0, f32::max);
+                    assert!(
+                        peak > 0.001,
+                        "{language:?} stage {stage} character {character}: silent cue {id:#04x}"
+                    );
+                }
             }
         }
     }

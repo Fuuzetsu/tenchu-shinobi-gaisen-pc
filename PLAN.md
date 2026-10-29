@@ -49,8 +49,26 @@ view took about 20 ms, mostly GPU shading. The earlier water run returned to
 25–27 ms in water and back on land. Neither reproduced the reported persistent
 15–20 FPS collapse, so a separate water-specific cause is still unconfirmed;
 do not claim a demonstrated leak fix. Keep the report open for a matching route
-or recurrence. Prepare the authorized v0.3.1 performance patch, reuse artwork-v1,
-and require packaging/hosted publication gates before announcing it.
+or recurrence.
+
+Release **v0.3.1** and rolling HEAD are now published. Both hosted workflows
+passed, including Linux x86-64/ARM64 portable startup and Windows startup.
+All five public archives match their checksums, GitHub digests, build identities
+and library/source inventories. The existing artwork-v1 pack remains compatible.
+
+The subsequent native stealth-kill audio report exposed a sparse VAB tone-table
+bug: the populated-tone count was used as an array length, dropping higher sound
+IDs after empty slots. Mission 1 lost stealth-kill effect cues 0x4a–0x4c;
+every other campaign mission lost at least some, for both characters. Training's
+denser table retained them. The parser now preserves all 16 addressed tone slots.
+A synthetic sparse bank and the real Mission 1 mixer check both fail before the
+fix. All 104 non-trial retail banks now decode, and the four direct stealth/death
+cues produce audible mixer output in all 88 stage/character/language combinations.
+The six complete stealth-kill gameplay checks also pass, along with 151 ordinary
+tests, formatting, strict native Clippy and the portable WASM build. Native
+Mission 1 Rikimaru movement/attacks, actual effects output with music muted and
+clean exit pass on an isolated display/audio sink. This correction is recorded
+under Unreleased; it does not alter the published v0.3.1 tag.
 
 F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
 cues. Explicit event categories cover every vibration call, including shared

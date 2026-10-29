@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+### Fixed
+
+- Restore missing stealth-kill effects and other sounds in mission sound banks
+  with gaps between tone slots. Training worked because its relevant sounds
+  appeared before the incorrect cutoff.
+
 ## 0.3.1 — 2026-10-29
 
 ### Fixed
