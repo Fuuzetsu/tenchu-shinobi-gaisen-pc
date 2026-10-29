@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.3.2 — 2026-10-29
+
 ### Fixed
 
 - Restore missing stealth-kill effects and other sounds in mission sound banks

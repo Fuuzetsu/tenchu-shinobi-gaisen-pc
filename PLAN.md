@@ -67,8 +67,10 @@ cues produce audible mixer output in all 88 stage/character/language combination
 The six complete stealth-kill gameplay checks also pass, along with 151 ordinary
 tests, formatting, strict native Clippy and the portable WASM build. Native
 Mission 1 Rikimaru movement/attacks, actual effects output with music muted and
-clean exit pass on an isolated display/audio sink. This correction is recorded
-under Unreleased; it does not alter the published v0.3.1 tag.
+clean exit pass on an isolated display/audio sink. Release v0.3.2 is now
+authorized for this correction. Reuse artwork-v1, retain published tags, and
+require local packaging checks and successful hosted publication before
+announcing the release.
 
 F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
 cues. Explicit event categories cover every vibration call, including shared
