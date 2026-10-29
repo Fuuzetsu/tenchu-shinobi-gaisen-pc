@@ -215,15 +215,19 @@ pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
 }
 
 pub fn regions(mission: &MissionAssets) -> BTreeMap<Region, String> {
+    model_regions(&mission.vram, &models(mission))
+}
+
+pub fn model_regions(vram: &Vram, models: &[ModelSource<'_>]) -> BTreeMap<Region, String> {
     let mut out = BTreeMap::new();
-    for model in models(mission) {
+    for model in models {
         for geometry in model.geometry {
             for face in crate::render_mesh::draw_tmd_faces(geometry) {
-                if let Some(region) = face_region(&mission.vram, face) {
+                if let Some(region) = face_region(vram, face) {
                     out.entry(region).or_insert_with(|| {
                         image_id(
                             [region.rect[2], region.rect[3]],
-                            &region.original_pixels(&mission.vram),
+                            &region.original_pixels(vram),
                         )
                     });
                 }

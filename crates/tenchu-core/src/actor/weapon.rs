@@ -11,6 +11,38 @@ pub struct Weapon {
 }
 
 impl Actor {
+    pub(crate) fn rebuild_weapons(
+        &mut self,
+        ctx: &mut Context,
+        pool: &mut Vec<ModelId>,
+    ) -> Result<()> {
+        let drawn = self.attribute & ATTR_WEAPON_DRAWN != 0;
+        for weapon in self.weapons.iter().flatten() {
+            if !pool.contains(&weapon.model) {
+                pool.push(weapon.model);
+            }
+        }
+        while pool.len() < 4 {
+            pool.push(ctx.scene.add(None, Matrix::default()));
+        }
+        for &model in pool.iter() {
+            ctx.scene.models[model].parent = None;
+            ctx.scene.models[model].flags = 0;
+        }
+        self.weapons.fill(None);
+        self.weapon_hitbox.fill(None);
+        self.attribute &= !ATTR_WEAPON_DRAWN;
+        let start = ctx.scene.models.len();
+        self.setup_weapons(ctx)?;
+        for (weapon, &slot) in self.weapons.iter_mut().flatten().zip(pool.iter()) {
+            ctx.scene.models[slot] = ctx.scene.models[weapon.model].clone();
+            weapon.model = slot;
+        }
+        ctx.scene.models.truncate(start);
+        self.equip(ctx, drawn);
+        Ok(())
+    }
+
     fn weapon(
         &mut self,
         ctx: &mut Context,

@@ -63,7 +63,13 @@ impl Models {
     }
 
     pub fn build(mission: &MissionAssets, pack: &Pack, graphics: &Graphics) -> Result<Self> {
-        let world = Meshes::build(mission, pack, graphics, catalog::models(mission), false)?;
+        let world = Meshes::build(
+            &mission.vram,
+            pack,
+            graphics,
+            catalog::models(mission),
+            false,
+        )?;
         Ok(Self {
             replacements: world.replacements,
             grapple: graphics.models.grapple,
@@ -80,9 +86,10 @@ impl Models {
         pack: &Pack,
         bodies: &Pack,
         graphics: &Graphics,
+        library: Option<&super::appearance::library::Library>,
     ) -> Result<Self> {
         self.player =
-            super::appearance::Appearance::build(game, selection, pack, bodies, graphics)?;
+            super::appearance::Appearance::build(game, selection, pack, bodies, graphics, library)?;
         Ok(self)
     }
 
@@ -170,8 +177,11 @@ pub(super) struct Meshes {
 }
 
 impl Meshes {
+    pub fn materials(&self) -> &[Material] {
+        &self.materials
+    }
     pub fn build(
-        mission: &MissionAssets,
+        vram: &tenchu_assets::texture::Vram,
         pack: &Pack,
         graphics: &Graphics,
         sources: Vec<catalog::ModelSource<'_>>,
@@ -186,7 +196,7 @@ impl Meshes {
         let mut foliage_budget = 524_288;
         let motion = super::motion::rules(pack, graphics.asset_pack);
         let corrections = super::model_patch::corrections();
-        let region_ids = catalog::regions(mission);
+        let region_ids = catalog::model_regions(vram, &sources);
         let regions: BTreeMap<_, _> = region_ids.iter().map(|(&r, id)| (id.clone(), r)).collect();
         let mut textures = BTreeMap::new();
         for source in sources {
@@ -305,7 +315,7 @@ impl Meshes {
                             Matrix::default(),
                             true,
                         );
-                        if let Some(region) = catalog::face_region(&mission.vram, face) {
+                        if let Some(region) = catalog::face_region(vram, face) {
                             let id = &region_ids[&region];
                             let material = *textures
                                 .entry((id.clone(), Some(region)))
@@ -318,7 +328,7 @@ impl Meshes {
                                                 u32::from(region.rect[2]),
                                                 u32::from(region.rect[3]),
                                             ],
-                                            rgba: region.pixels(&mission.vram),
+                                            rgba: region.pixels(vram),
                                         }),
                                     });
                                     out.materials.len() as u32
@@ -425,6 +435,31 @@ impl Meshes {
                 .insert(source.geometry.as_ptr() as usize, vertices);
         }
         Ok(out)
+    }
+
+    pub fn detach_textures(&mut self) {
+        for vertex in self.meshes.values_mut().flatten() {
+            if let Some(material) = vertex.material.checked_sub(1)
+                && let Some(region) = self.materials[material as usize].region
+            {
+                let [x, y, w, h] = region.rect.map(f32::from);
+                vertex.uv = [
+                    (vertex.uv[0] + 0.5 - x) / w - 0.5,
+                    (vertex.uv[1] + 0.5 - y) / h - 0.5,
+                ];
+            }
+        }
+        for material in &mut self.materials {
+            material.region = None;
+        }
+    }
+
+    pub fn replace_textures(&mut self, pack: &Pack) {
+        for material in &mut self.materials {
+            if let Some(image) = pack.textures.get(&material.id) {
+                material.image = image.clone();
+            }
+        }
     }
 
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {

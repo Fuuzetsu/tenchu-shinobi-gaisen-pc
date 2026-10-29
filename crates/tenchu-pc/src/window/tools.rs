@@ -154,6 +154,14 @@ impl Application {
     }
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if (self.settings.model_moveset != previous.model_moveset
+            || self.settings.player_model != previous.player_model)
+            && let Err(error) = self.sync_model_moveset()
+        {
+            self.settings = previous.clone();
+            self.menu.notice = error;
+            return;
+        }
         if let Some(view) = &mut self.view
             && let Err(error) = view.settings(&self.settings, &self.campaign.game)
         {
@@ -161,6 +169,7 @@ impl Application {
             self.settings = previous.clone();
             self.campaign.game.activation.keep_all_active = previous.keep_enemies_active;
             self.set_sight(previous.sight_percent);
+            let _ = self.sync_model_moveset();
             return;
         }
         if self.settings.vibration != previous.vibration
@@ -181,6 +190,37 @@ impl Application {
         if let Some(audio) = &mut self.audio {
             audio.volume(self.settings.volume);
         }
+    }
+
+    pub(super) fn sync_model_moveset(&mut self) -> Result<()> {
+        let Some(view) = &mut self.view else {
+            return Ok(());
+        };
+        if self.settings.model_moveset
+            && !self.settings.player_model.is_empty()
+            && view.model_library.is_none()
+        {
+            view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
+        }
+        let body = self
+            .settings
+            .model_moveset
+            .then(|| {
+                view.model_library
+                    .as_ref()
+                    .and_then(|l| l.get(&self.settings.player_model))
+            })
+            .flatten();
+        let character = body.and_then(|b| b.character.as_ref());
+        if self.campaign.game.moveset.kind == character.map(|c| c.kind) {
+            return Ok(());
+        }
+        self.campaign
+            .game
+            .set_player_moveset(character, body.map_or(&[], |b| &b.clips))?;
+        view.reset_interpolation(&self.campaign.game);
+        self.stop_edited_recording();
+        Ok(())
     }
 
     pub(super) fn set_gameplay_preset(&mut self, index: usize) -> Result<()> {

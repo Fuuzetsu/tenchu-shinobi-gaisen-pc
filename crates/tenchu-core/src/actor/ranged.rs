@@ -2,6 +2,21 @@ use super::*;
 use crate::math::Position;
 
 impl Actor {
+    fn ranged_target(&self, ctx: &Context, player: usize, start: Position) -> Result<Position> {
+        if let Some(target) = self.target {
+            Ok(ctx.scene.models[target].local.translation)
+        } else if self.id == player {
+            let [x, _, z] = ctx.math.velocity(self.rotation[1], 12000, 0);
+            Ok(Position::new(
+                start.x + i32::from(x),
+                start.y,
+                start.z + i32::from(z),
+            ))
+        } else {
+            Err("Ranged actor has no target".into())
+        }
+    }
+
     pub(super) fn lightning_control(
         &mut self,
         ctx: &mut Context,
@@ -12,10 +27,10 @@ impl Actor {
             let start = ctx.scene.world(self.parts[13])?.transform([0, 0, -700]);
             let speed = (ctx.random.next15() % 5 * 1000 + 4000) as i16;
             let velocity = ctx.math.velocity(self.rotation[1], speed, 0);
-            let target = self.target.ok_or("Lightning caster has no target")?;
+            let target = self.ranged_target(ctx, world.player, self.position)?;
             let end = [
                 start[0].wrapping_add(i32::from(velocity[0])),
-                ctx.scene.models[target].local.translation.y,
+                target.y,
                 start[2].wrapping_add(i32::from(velocity[2])),
             ];
             world.items.request(
@@ -71,8 +86,7 @@ impl Actor {
         kind: usize,
         start: Position,
     ) -> Result<()> {
-        let target = self.target.ok_or("Ranged actor has no target")?;
-        let target = ctx.scene.models[target].local.translation;
+        let target = self.ranged_target(ctx, world.player, start)?;
         let distance = ctx.math.length(Position::new(
             target[0].wrapping_sub(self.position.x),
             0,

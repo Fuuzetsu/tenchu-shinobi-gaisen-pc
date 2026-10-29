@@ -68,7 +68,9 @@ pub(super) struct View {
     pack: Pack,
     pack_error: Option<String>,
     pub(super) models: Models,
-    bodies: Pack,
+    pub(super) bodies: Pack,
+    pub(super) model_library: Option<crate::visuals::appearance::library::Library>,
+    pub(super) model_picker: crate::visuals::appearance::picker::Picker,
     pub(super) player_models: Vec<(String, String)>,
     player_selection: String,
     model_options: ModelOptions,
@@ -314,7 +316,7 @@ impl View {
             eprintln!("Player models: {error}; using disc bodies");
             Pack::default()
         });
-        let player_models = crate::visuals::appearance::choices(game, &bodies);
+        let player_models = crate::visuals::appearance::choices(game, &bodies, None);
         models = models
             .with_player(
                 game,
@@ -322,6 +324,7 @@ impl View {
                 &pack,
                 &bodies,
                 &settings.graphics,
+                None,
             )
             .unwrap_or_else(|error| {
                 eprintln!("Player model: {error}; using Original");
@@ -385,6 +388,8 @@ impl View {
             pack_error,
             models,
             bodies,
+            model_library: None,
+            model_picker: Default::default(),
             player_models,
             player_selection: settings.player_model.clone(),
             model_options: model_options(&settings.graphics),
@@ -408,14 +413,35 @@ impl View {
 
     fn selected_player<'a>(&self, settings: &'a Settings) -> &'a str {
         if self
-            .player_models
-            .iter()
-            .any(|(id, _)| id == &settings.player_model)
+            .model_library
+            .as_ref()
+            .is_some_and(|l| l.get(&settings.player_model).is_some())
+            || self
+                .player_models
+                .iter()
+                .any(|(id, _)| id == &settings.player_model)
         {
             &settings.player_model
         } else {
             ""
         }
+    }
+
+    pub(super) fn load_model_library(
+        &mut self,
+        assets: &GameAssets<DiscSource>,
+        game: &Game,
+        settings: &Settings,
+    ) -> Result<()> {
+        let library = crate::visuals::appearance::library::Library::load(assets)?;
+        self.player_models =
+            crate::visuals::appearance::choices(game, &self.bodies, Some(&library));
+        self.model_library = Some(library);
+        self.model_picker.clear();
+        if !settings.player_model.is_empty() {
+            self.set_models(self.build_models(game, settings)?, game);
+        }
+        Ok(())
     }
 
     fn build_models(&self, game: &Game, settings: &Settings) -> Result<Models> {
@@ -427,6 +453,7 @@ impl View {
             &self.pack,
             &self.bodies,
             &settings.graphics,
+            self.model_library.as_ref(),
         )
     }
 
@@ -439,11 +466,17 @@ impl View {
         let rendered = settings.rendering();
         let settings = &*rendered;
         let bodies = load_bodies(directory)?;
-        let choices = crate::visuals::appearance::choices(game, &bodies);
+        let choices =
+            crate::visuals::appearance::choices(game, &bodies, self.model_library.as_ref());
         if !directory.is_empty() && choices.iter().all(|(id, _)| !id.starts_with("pack:")) {
             return Err("This folder contains no compatible player_models; export assets to create a template".into());
         }
-        let selection = if choices.iter().any(|(id, _)| id == &settings.player_model) {
+        let selection = if choices.iter().any(|(id, _)| id == &settings.player_model)
+            || self
+                .model_library
+                .as_ref()
+                .is_some_and(|l| l.get(&settings.player_model).is_some())
+        {
             settings.player_model.as_str()
         } else {
             ""
@@ -454,7 +487,9 @@ impl View {
             &self.pack,
             &bodies,
             &settings.graphics,
+            self.model_library.as_ref(),
         )?;
+        self.model_picker.clear();
         self.bodies = bodies;
         self.player_models = choices;
         self.player_selection = selection.into();
@@ -476,6 +511,7 @@ impl View {
     }
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
+        self.model_picker.clear();
         let rendered = settings.rendering();
         let settings = &*rendered;
         self.sky = Default::default();
@@ -492,7 +528,8 @@ impl View {
             Pack::default()
         });
         self.renderer.set_asset_pack(&self.pack);
-        self.player_models = crate::visuals::appearance::choices(game, &self.bodies);
+        self.player_models =
+            crate::visuals::appearance::choices(game, &self.bodies, self.model_library.as_ref());
         let result = self.build_models(game, settings);
         let error = result.as_ref().err().cloned();
         self.set_models(
@@ -568,6 +605,7 @@ impl View {
             &pack,
             &self.bodies,
             &settings.graphics,
+            self.model_library.as_ref(),
         )?;
         let count = models.replacements;
         self.renderer.set_asset_pack(&pack);

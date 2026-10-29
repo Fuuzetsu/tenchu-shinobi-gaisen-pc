@@ -3371,3 +3371,37 @@ across intermediate rendered poses for both players. Native X11 mouse/gameplay
 checks and Wayland gameplay/overlay checks pass, including repeated Escape
 exits. The final Nix package, native tests, shared WASM libraries and formatting checks pass. The
 browser host, other build platforms and physical gamepads remain unverified.
+## All-resource player models and movesets
+
+Expand F1 Player model into a searchable, virtualized grid with idle previews.
+Read actors, animals, bosses and alternate outfits from the user's disc across
+all missions; keep custom model folders, stable saved selections and Original.
+Use each body's own textures and hierarchy. Appearance-only remains the default;
+an explicit checkbox may adopt the selected character's moveset while retaining
+the campaign protagonist. Check Onikage on both players, including attacks,
+movement, weapon attachments, mission changes and browser rendering. Commit
+locally after formatting, strict Clippy and meaningful checks. Do not tag, push
+or publish a release until the user has tried the changes.
+
+Implemented 58 unique main-game HUMAN resources plus Original and compatible
+custom-folder bodies. The library retains per-body texture/clip sources, aliases
+duplicate actor definitions and loads in about 45–95 ms on this machine. The
+searchable grid builds and animates only visible thumbnails, clips partial rows
+and keeps a fixed width across repeated frames, searches and long help text.
+Original artwork is used for previews; applied models honor HD/refinement options.
+Optional actor movesets use a separate player definition and reusable weapon
+nodes, preserve campaign identity/inventory and fall back for missing player
+actions. Enemy AI is not mapped to additional player commands.
+
+All 149 ordinary workspace checks and 33 disc-backed actor checks pass, including
+the C damage oracle and NPC ranged attacks. Four disc-backed model checks cover
+every body on both protagonists, state/texture isolation, Onikage weapon anchors
+through attacks/running/jumps and interpolation, all actor movesets through input,
+bounded repeated toggles and window sizing at 800×600, 1280×720 and 3840×2160.
+Native Vulkan and browser WebGL2 render the grid, scroll/filter it and play Onikage
+on both heroes; browser selection/moveset preferences survive restart. The full
+WASM build, formatting and strict native Clippy pass. No release is authorized.
+
+Next: reproduce the reported Mission 1 movement stutters with enhanced graphics,
+capture CPU/GPU frame timings, identify the spike source and verify any fix on the
+same route. Keep user settings/saves untouched and commit locally.

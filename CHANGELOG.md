@@ -5,6 +5,21 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+### Added
+
+- F1 player-model gallery with 58 disc character, boss, animal and outfit models
+  available across missions, name/resource search and animated previews for
+  visible tiles. Custom folders remain supported; selected models use their own
+  textures and keep weapons attached to the replacement body.
+- Optional **Use model's moveset** checkbox for actor animations, attacks and
+  weapon profiles with normal player controls. Missing actions retain player
+  fallbacks; appearance-only remains the default.
+
+### Fixed
+
+- Model-gallery search and help text stay within the settings window instead
+  of gradually expanding it to the edge of the screen.
+
 ## 0.2.0 — 2026-10-28
 
 ### Added

@@ -3,6 +3,7 @@ pub mod activation;
 pub mod cinematic;
 mod debug;
 pub mod events;
+pub mod moveset;
 #[cfg(test)]
 mod retail_tests;
 pub mod score;
@@ -56,6 +57,7 @@ pub struct Game {
     pub activation: activation::Activation,
     pub drawing: Drawing,
     pub construction: Construction,
+    pub moveset: moveset::State,
     pub(crate) body: BodyTables,
     pub(crate) commands: Vec<Command>,
     pub(crate) cursor: Cursor,
@@ -138,6 +140,7 @@ impl Game {
             drawing,
             construction,
             sound_appearance,
+            moveset: moveset::State::default(),
         })
     }
 

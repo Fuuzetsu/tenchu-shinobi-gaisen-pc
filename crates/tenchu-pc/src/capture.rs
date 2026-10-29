@@ -17,10 +17,14 @@ pub fn render(assets: &GameAssets<DiscSource>, destination: &Path, options: Opti
     for _ in 0..30 {
         game.step(0)?;
     }
-    frame(&game, destination)
+    frame(&game, destination, assets)
 }
 
-pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
+pub fn frame(
+    game: &tenchu_core::game::Game,
+    destination: &Path,
+    assets: &GameAssets<DiscSource>,
+) -> Result<()> {
     let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
         crate::settings::Store::new()?.load()?
     } else {
@@ -51,6 +55,9 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
     } else {
         crate::visuals::pack::Pack::load(std::path::Path::new(&directory))?
     };
+    let library = (!settings.player_model.is_empty())
+        .then(|| crate::visuals::appearance::library::Library::load(assets))
+        .transpose()?;
     let mut models =
         crate::visuals::models::Models::build(&game.mission, &pack, &settings.graphics)?
             .with_player(
@@ -59,6 +66,7 @@ pub fn frame(game: &tenchu_core::game::Game, destination: &Path) -> Result<()> {
                 &pack,
                 &bodies,
                 &settings.graphics,
+                library.as_ref(),
             )?;
     let emitters =
         crate::visuals::lights::Emitters::build(game, &pack, settings.graphics.asset_pack);

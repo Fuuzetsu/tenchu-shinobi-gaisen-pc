@@ -176,7 +176,7 @@ mod tests {
             update.apply(&mut game).unwrap();
         }
         let state = crate::session::tests::state(&game);
-        crate::capture::frame(&game, Path::new(&output)).unwrap();
+        crate::capture::frame(&game, Path::new(&output), &assets).unwrap();
         assert_eq!(state, crate::session::tests::state(&game));
     }
 }

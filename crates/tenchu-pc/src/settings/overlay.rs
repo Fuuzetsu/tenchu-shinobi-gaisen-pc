@@ -31,6 +31,7 @@ pub fn show(
     menu: &mut Menu,
     state: State<'_>,
     library: Option<&super::library::Library>,
+    mut models: Option<&mut crate::visuals::appearance::picker::State<'_>>,
 ) -> Vec<Edit> {
     let State {
         settings,
@@ -181,11 +182,17 @@ pub fn show(
                             });
                         });
                     ui.separator();
-                    ui.label(
-                        RichText::new(rows[menu.row.min(rows.len() - 1)].help)
+                    ui.add(
+                        egui::Label::new(RichText::new(rows[menu.row.min(rows.len() - 1)].help)
                             .small()
-                            .color(Color32::from_rgb(167, 188, 204)),
+                            .color(Color32::from_rgb(167, 188, 204))).wrap(),
                     );
+                    if menu.page == 10 {
+                        ui.separator();
+                        if let Some(models) = &mut models {
+                            models.show(ui, menu, settings, &mut edits);
+                        }
+                    }
                 });
             });
             ui.separator();
@@ -247,17 +254,12 @@ fn widget(
             .iter()
             .find(|(id, _)| id == &row.value)
             .map_or("Original / unavailable", |(_, label)| label.as_str());
-        return egui::ComboBox::from_id_salt("player-model")
-            .width(200.0)
-            .selected_text(selected)
-            .show_ui(ui, |ui| {
-                for (id, label) in &menu.player_models {
-                    if ui.selectable_label(id == &row.value, label).clicked() {
-                        edits.push(Edit::PlayerModel(id.clone()));
-                    }
-                }
-            })
-            .response;
+        return ui
+            .add_sized(
+                [ui.available_width().min(240.0), 25.0],
+                egui::Label::new(selected).truncate(),
+            )
+            .on_hover_text(selected);
     }
     if item.button() {
         let response = ui.button(if row.value == "Enter" {

@@ -118,8 +118,12 @@ mod tests {
                     {
                         let output = std::path::PathBuf::from(output);
                         std::fs::create_dir_all(&output).unwrap();
-                        crate::capture::frame(&game, &output.join(format!("item-{kind}.png")))
-                            .unwrap();
+                        crate::capture::frame(
+                            &game,
+                            &output.join(format!("item-{kind}.png")),
+                            &assets,
+                        )
+                        .unwrap();
                     }
                     seen = true;
                     let selected = super::super::sources(

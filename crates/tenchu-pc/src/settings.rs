@@ -46,6 +46,7 @@ pub struct Settings {
     pub graphics: Graphics,
     pub cutscene_speed: u16,
     pub player_model: String,
+    pub model_moveset: bool,
     pub model_directory: String,
     pub frontend: crate::frontend::Preferences,
 }
@@ -69,6 +70,7 @@ impl Default for Settings {
             graphics: Graphics::default(),
             cutscene_speed: 1,
             player_model: String::new(),
+            model_moveset: false,
             model_directory: String::new(),
             frontend: crate::frontend::Preferences::default(),
         }

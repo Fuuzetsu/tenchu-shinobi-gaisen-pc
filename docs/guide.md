@@ -438,14 +438,26 @@ AI and simulation remain original. This is a rigid-part replacement workflow,
 not a new skeletal-animation importer. Empty source parts cannot be replaced.
 
 **F1 → Player model** changes the player's body live. The built-in list contains
-compatible humanoid models loaded for the current mission. **Original** follows
-the game's equipment and disguise changes. A selected override changes only
-appearance: the chosen character keeps their animations, weapons, inventory,
-hitboxes and behavior. Weapons follow the new body's hands/back, including
+58 character, boss, animal and alternate-outfit resources from across the disc.
+Search by name or resource ID, then click a tile. Only visible tiles load and
+animate their idle previews; these previews use original artwork. The active
+body uses your selected artwork/refinement settings and remains selected across
+missions. **Original** follows the game's equipment and disguise changes.
+By default an override changes only appearance: the protagonist keeps their
+animations, weapons, inventory, hitboxes and behavior. Weapons follow the new body's hands/back, including
 draw/sheath transitions; interpolation and dynamic shadows use the same body.
-Different proportions can visibly differ from the original collision bounds.
+Different proportions can visibly differ from the original collision bounds;
+animal bodies can look unusual with humanoid movements.
 
-To use bodies from another character/mission or edit your own, export a folder:
+**Use model's moveset** also adopts the selected actor's registered animations,
+attacks and weapon profile. For example, Onikage uses his kicks while keeping
+the normal player controls. Missing player actions fall back to the protagonist,
+so grappling/items remain available. This changes gameplay and resets the current
+action; campaign identity, health and inventory stay with Ayame or Rikimaru.
+Original and custom folders use the protagonist's moves. Enemy AI routines are
+not additional player commands. Disable the checkbox to restore normal moves.
+
+To edit your own bodies, export a folder:
 
 ```sh
 ./dev.sh cargo run --release -- export-assets '/path/to/game.cue' ~/tenchu-models --mission 1 --character ayame
@@ -455,8 +467,8 @@ Enter that folder under **Player model → Model folder**, click **Load / reload
 folder**, then choose a body marked “folder”. The folder and selection are saved.
 `TENCHU_MODEL_DIR=/path/to/folder` can set the folder at launch. Reload applies
 OBJ/PNG edits live; a failed load retains the previous models. Returning to
-Original restores the normal body immediately. Unavailable mission-specific
-bodies fall back to Original when changing missions.
+Original restores the normal body immediately. Missing custom bodies fall back
+to Original.
 
 Exports include a `player_models` object in `pack.json`. Each named body contains
 fifteen `parts` with an OBJ `file` (or `null` for an empty joint), a `parent` index
@@ -464,7 +476,8 @@ fifteen `parts` with an OBJ `file` (or `null` for an empty joint), a `parent` in
 hierarchy and part ordering; edit positions for different proportions. Each OBJ
 uses the pack's existing material/PNG definitions. Bodies can be renamed or
 removed from this object without changing ordinary world asset replacements.
-Arbitrary skeletons and animal rigs need retargeting and are not accepted.
+Custom folders require that humanoid hierarchy; the built-in animal choices use
+the disc's own skeletons.
 
 **Smooth model lighting** generates crease-aware normals for dynamic lighting.
 **Character contours** optionally rounds original actor silhouettes, with

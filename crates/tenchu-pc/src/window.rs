@@ -232,6 +232,7 @@ impl Application {
         let start = if self.recording_directory.is_some()
             && self.debug.sight_percent == 100
             && !self.settings.keep_enemies_active
+            && !self.settings.model_moveset
             && matches!(action, Action::Confirm)
             && let Screen::Inventory(loadout) = &self.campaign.screen
         {

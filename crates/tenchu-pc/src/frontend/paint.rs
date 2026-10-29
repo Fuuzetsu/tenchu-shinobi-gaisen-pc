@@ -85,7 +85,7 @@ impl Frontend {
         if let Some(frame) = &self.frame {
             painter.add(egui_wgpu::Callback::new_paint_callback(
                 rect,
-                gpu::Paint(frame.clone()),
+                gpu::Paint::Frontend(frame.clone()),
             ));
         } else if let Some(texture) = &self.texture {
             painter.image(

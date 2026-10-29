@@ -174,6 +174,11 @@ impl Frame {
         });
     }
 
+    pub fn textured(&mut self, id: &str, image: Arc<Image>, vertices: [Vertex; 3], blend: Blend) {
+        self.images.entry(id.into()).or_insert(image);
+        self.push(id, vertices, blend, [0.0, 0.0, 1.0, 1.0]);
+    }
+
     pub fn fade(&mut self, brightness: i32) {
         if brightness <= 0 {
             return;

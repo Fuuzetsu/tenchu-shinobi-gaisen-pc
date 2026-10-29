@@ -126,6 +126,30 @@ impl Pack {
         Self::configured(Selection::mission(mission))
     }
 
+    pub fn for_models(
+        vram: &tenchu_assets::texture::Vram,
+        models: &[catalog::ModelSource<'_>],
+    ) -> Result<Self> {
+        let originals = catalog::model_regions(vram, models)
+            .into_iter()
+            .map(|(region, id)| {
+                (
+                    id,
+                    Image {
+                        size: [region.rect[2].into(), region.rect[3].into()],
+                        rgba: region.original_pixels(vram),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        Self::configured(Selection {
+            textures: originals.keys().cloned().collect(),
+            originals,
+            models: models.iter().map(|m| m.id.clone()).collect(),
+            player_models: false,
+        })
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn configured(selection: Selection) -> Result<Self> {
         match configured_root() {

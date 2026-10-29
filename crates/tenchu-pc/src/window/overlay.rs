@@ -22,6 +22,7 @@ pub(super) struct Extras<'a> {
     pub benchmarks: Option<&'a mut super::benchmark::Benchmarks>,
     pub presets: Option<&'a mut crate::settings::library::Manager>,
     pub controls: Option<&'a mut crate::controls::Controls>,
+    pub models: Option<crate::visuals::appearance::picker::State<'a>>,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
     pub frontend: Option<(
@@ -169,6 +170,7 @@ impl Overlay {
                 menu,
                 state,
                 extras.presets.as_ref().map(|p| &p.library),
+                extras.models.as_mut(),
             );
             if menu.open
                 && let Some(presets) = &mut extras.presets
@@ -230,6 +232,14 @@ impl super::Application {
         let was_open = self.menu.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let frontend_visible = self.frontend_visible();
+        if (self.settings.model_moveset || self.campaign.game.moveset.kind.is_some())
+            && !self.campaign.game.cinematic.active
+            && !self.campaign.game.player().scripted
+            && self.campaign.playing()
+            && let Err(error) = self.sync_model_moveset()
+        {
+            self.menu.notice = error;
+        }
         #[cfg(not(target_arch = "wasm32"))]
         let video_time = self
             .video
@@ -240,6 +250,20 @@ impl super::Application {
         let Some(view) = &mut self.view else {
             return;
         };
+        #[cfg(not(target_arch = "wasm32"))]
+        let assets_ready = true;
+        #[cfg(target_arch = "wasm32")]
+        let assets_ready =
+            crate::web::mission_ready(self.campaign.options.language.unwrap_or_default())
+                .unwrap_or(false);
+        if view.model_library.is_none()
+            && assets_ready
+            && ((self.menu.open && self.menu.page == 10) || !self.settings.player_model.is_empty())
+            && let Err(error) =
+                view.load_model_library(&self.assets, &self.campaign.game, &self.settings)
+        {
+            self.menu.notice = error;
+        }
         self.menu.player_models.clone_from(&view.player_models);
         self.menu.artwork_status = view.artwork_status();
         let updates = view.overlay.update(
@@ -260,6 +284,12 @@ impl super::Application {
                 benchmarks: Some(&mut self.benchmarks),
                 presets: Some(&mut self.presets),
                 controls: Some(&mut self.controls),
+                models: Some(crate::visuals::appearance::picker::State {
+                    picker: &mut view.model_picker,
+                    library: view.model_library.as_ref(),
+                    bodies: &view.bodies,
+                    game: &self.campaign.game,
+                }),
                 demo: self.demo.as_mut(),
                 video_time,
                 frontend: if frontend_visible {

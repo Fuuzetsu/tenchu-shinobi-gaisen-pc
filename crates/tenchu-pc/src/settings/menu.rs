@@ -69,6 +69,7 @@ pub enum Item {
     BloodMarks,
     ClearBlood,
     PlayerModel,
+    ModelMoveset,
     ReloadModels,
     Preset,
     GameplayPreset,
@@ -742,6 +743,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Player body",
                 s.player_model.clone(),
                 "Appearance only; weapons, animation and gameplay remain unchanged.",
+            ),
+            (
+                Item::ModelMoveset,
+                "Use model's moveset",
+                on(s.model_moveset),
+                "Use this actor's animations, attacks and weapon profile. Missing player actions fall back to your protagonist. Original and custom folders keep player moves.",
             ),
             (
                 Item::ReloadModels,

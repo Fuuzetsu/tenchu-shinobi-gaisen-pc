@@ -119,7 +119,22 @@ fn create_renderer(device: &wgpu::Device, format: wgpu::TextureFormat) -> Render
     }
 }
 
-pub struct Paint(pub Arc<Frame>);
+pub enum Paint {
+    Frontend(Arc<Frame>),
+    Models(Arc<Frame>),
+}
+
+#[derive(Default)]
+struct Renderers(BTreeMap<u8, Renderer>);
+
+impl Paint {
+    fn frame(&self) -> (u8, &Arc<Frame>) {
+        match self {
+            Self::Frontend(frame) => (0, frame),
+            Self::Models(frame) => (1, frame),
+        }
+    }
+}
 
 impl egui_wgpu::CallbackTrait for Paint {
     fn prepare(
@@ -130,28 +145,39 @@ impl egui_wgpu::CallbackTrait for Paint {
         _encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        if resources.get::<Renderer>().is_none() {
+        let (slot, frame) = self.frame();
+        if resources.get::<Renderers>().is_none() {
+            resources.insert(Renderers::default());
+        }
+        if !resources.get::<Renderers>().unwrap().0.contains_key(&slot) {
             let format = resources
                 .get::<TargetFormat>()
                 .expect("Frontend format registered")
                 .0;
-            resources.insert(create_renderer(device, format));
+            resources
+                .get_mut::<Renderers>()
+                .unwrap()
+                .0
+                .insert(slot, create_renderer(device, format));
         }
         let renderer = resources
-            .get_mut::<Renderer>()
-            .expect("Frontend GPU resources registered");
+            .get_mut::<Renderers>()
+            .unwrap()
+            .0
+            .get_mut(&slot)
+            .unwrap();
         if renderer
             .frame
             .as_ref()
-            .is_some_and(|old| Arc::ptr_eq(old, &self.0))
+            .is_some_and(|old| Arc::ptr_eq(old, frame))
         {
             return Vec::new();
         }
         renderer
             .images
-            .retain(|id, _| self.0.images.contains_key(id));
-        for (id, image) in &self.0.images {
-            let filtered = self.0.filtered.contains(id);
+            .retain(|id, _| frame.images.contains_key(id));
+        for (id, image) in &frame.images {
+            let filtered = frame.filtered.contains(id);
             if renderer
                 .images
                 .get(id)
@@ -198,14 +224,14 @@ impl egui_wgpu::CallbackTrait for Paint {
             });
             renderer.images.insert(id.clone(), Image { bind, filtered });
         }
-        renderer.vertices = (!self.0.vertices.is_empty()).then(|| {
+        renderer.vertices = (!frame.vertices.is_empty()).then(|| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Frontend triangles"),
-                contents: bytemuck::cast_slice(&self.0.vertices),
+                contents: bytemuck::cast_slice(&frame.vertices),
                 usage: wgpu::BufferUsages::VERTEX,
             })
         });
-        renderer.frame = Some(self.0.clone());
+        renderer.frame = Some(frame.clone());
         Vec::new()
     }
 
@@ -215,14 +241,13 @@ impl egui_wgpu::CallbackTrait for Paint {
         pass: &mut wgpu::RenderPass<'static>,
         resources: &egui_wgpu::CallbackResources,
     ) {
-        let renderer = resources
-            .get::<Renderer>()
-            .expect("Frontend GPU resources registered");
+        let (slot, frame) = self.frame();
+        let renderer = &resources.get::<Renderers>().unwrap().0[&slot];
         let Some(vertices) = &renderer.vertices else {
             return;
         };
         pass.set_vertex_buffer(0, vertices.slice(..));
-        for draw in &self.0.draws {
+        for draw in &frame.draws {
             pass.set_bind_group(0, &renderer.images[&draw.image].bind, &[]);
             if matches!(draw.blend, Blend::Opaque) {
                 pass.set_pipeline(&renderer.pipelines[0]);

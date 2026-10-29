@@ -62,7 +62,7 @@ impl Capture {
                 painter.rect_filled(rect, 0.0, egui::Color32::BLACK);
                 painter.add(egui_wgpu::Callback::new_paint_callback(
                     rect,
-                    Paint(frame.clone()),
+                    Paint::Frontend(frame.clone()),
                 ));
             },
         );

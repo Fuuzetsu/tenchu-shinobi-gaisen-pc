@@ -312,7 +312,7 @@ fn run() -> Result<()> {
         let assets = GameAssets::open(source::open_disc(args[1].as_ref())?)?;
         let game = session::replay(&assets, options, args[2].as_ref(), !launch.is_empty())?;
         if let Some(path) = capture {
-            capture::frame(&game, path)?;
+            capture::frame(&game, path, &assets)?;
         }
         return Ok(());
     }
