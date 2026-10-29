@@ -22,7 +22,10 @@ impl Actor {
                 } else if command == 0x31 {
                     pending = Some((MOT_JUMP_FLIP, false));
                     self.move_at(ctx.math, 120, 0);
-                } else if self.motion.count == 0 && ctx.random.next15() % 20 == 0 {
+                } else if self.motion.count == 0
+                    && ctx.random.next15() % 20 == 0
+                    && !self.suppress_idle_taunts
+                {
                     pending = Some((MOT_ATTACK_TAUNT, true));
                 }
             }

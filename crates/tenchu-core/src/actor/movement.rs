@@ -170,14 +170,12 @@ impl Actor {
                 } else if held & LEFT != 0 {
                     pending = Some((MOT_NORMAL_TURN_L, false));
                 } else if self.motion.count == 0 && ctx.random.next15() % 100 == 0 {
-                    pending = Some((
-                        if ctx.random.next15() & 1 != 0 {
-                            MOT_ACTION_FIDGET_A
-                        } else {
-                            MOT_ACTION_FIDGET_B
-                        },
-                        true,
-                    ));
+                    let action = if ctx.random.next15() & 1 != 0 {
+                        MOT_ACTION_FIDGET_A
+                    } else {
+                        MOT_ACTION_FIDGET_B
+                    };
+                    pending = (!self.suppress_idle_taunts).then_some((action, true));
                 }
             }
             MOT_NORMAL_TURN_R | MOT_NORMAL_TURN_L => {

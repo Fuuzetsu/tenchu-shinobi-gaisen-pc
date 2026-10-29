@@ -159,3 +159,84 @@ fn npc_gesture_priority_and_flip_camera_requests() {
         });
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; optional player taunts retain idle RNG draws and leave NPCs and movement input alone"]
+fn player_idle_suppression_keeps_rng_and_npc_gestures() {
+    use crate::game::moveset::Options;
+    for character in 0..2 {
+        let mut game = oracle::game(0, character);
+        let npc = arena(&mut game, character);
+        let source = game.mission.characters[game.player().definition].clone();
+        let clips = game.mission.clips.clone();
+        game.set_player_moveset(
+            Some(&source),
+            &clips,
+            Options {
+                no_idle_taunts: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        for enabled in [true, false] {
+            if !enabled {
+                game.set_player_moveset(None, &[], Default::default())
+                    .unwrap();
+            }
+            for id in [game.player_id, npc] {
+                for (stance, period, moving) in [
+                    (MOT_NORMAL, 100, MOT_MOVE),
+                    (MOT_ENGAGE_STANCE, 20, MOT_CHASE),
+                ] {
+                    for seed in (0..10000)
+                        .filter(|&s| Random::new(s).next15() % period == 0)
+                        .take(10)
+                    {
+                        let mut expected_rng = Random::new(seed);
+                        expected_rng.next15();
+                        let expected_action = if stance == MOT_NORMAL {
+                            if expected_rng.next15() & 1 != 0 {
+                                MOT_ACTION_FIDGET_A
+                            } else {
+                                MOT_ACTION_FIDGET_B
+                            }
+                        } else {
+                            MOT_ATTACK_TAUNT
+                        };
+                        with_actor(&mut game, id, |actor, ctx, world| {
+                            actor.motion.action = stance;
+                            actor.motion.count = 0;
+                            actor.attribute = if stance == MOT_NORMAL {
+                                0
+                            } else {
+                                ATTR_WEAPON_DRAWN
+                            };
+                            actor.pad = Pad::default();
+                            for held in [0, UP] {
+                                *ctx.random = Random::new(seed);
+                                let result = if stance == MOT_NORMAL {
+                                    actor.normal(ctx, world, held, 0, Position::ZERO)
+                                } else {
+                                    actor.engage(ctx, world, held, 0, Position::ZERO)
+                                }
+                                .unwrap();
+                                let expected = if held == UP {
+                                    Some((moving, true))
+                                } else if enabled && id == world.player {
+                                    None
+                                } else {
+                                    Some((expected_action, true))
+                                };
+                                assert_eq!(
+                                    result, expected,
+                                    "player {character}, actor {id}, stance {stance}, enabled {enabled}"
+                                );
+                                assert_eq!(*ctx.random, expected_rng);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    }
+}

@@ -457,6 +457,14 @@ action; campaign identity, health and inventory stay with Ayame or Rikimaru.
 Original and custom folders use the protagonist's moves. Enemy AI routines are
 not additional player commands. Disable the checkbox to restore normal moves.
 
+Two optional checkboxes customize that moveset: **Use player movement** restores
+your protagonist's locomotion clips and speeds (walking, running, dashes,
+crouching, jumping, climbing, swimming and grappling) while retaining the selected
+actor's attacks. **Disable idle taunts** prevents random fidgets and combat taunts
+from locking player input. Enabling it also ends a taunt already in progress.
+Both are off by default, apply only with **Use model's moveset**, and are saved
+across launches. They leave enemies and scripted animations unchanged.
+
 To edit your own bodies, export a folder:
 
 ```sh

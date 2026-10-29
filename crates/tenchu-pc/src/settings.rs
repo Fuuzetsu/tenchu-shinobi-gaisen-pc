@@ -47,6 +47,7 @@ pub struct Settings {
     pub cutscene_speed: u16,
     pub player_model: String,
     pub model_moveset: bool,
+    pub model_moveset_options: tenchu_core::game::moveset::Options,
     pub model_directory: String,
     pub frontend: crate::frontend::Preferences,
 }
@@ -71,6 +72,7 @@ impl Default for Settings {
             cutscene_speed: 1,
             player_model: String::new(),
             model_moveset: false,
+            model_moveset_options: Default::default(),
             model_directory: String::new(),
             frontend: crate::frontend::Preferences::default(),
         }
@@ -340,6 +342,11 @@ mod tests {
             cutscene_speed: 4,
             volume: 25,
             player_model: "pack:custom".into(),
+            model_moveset: true,
+            model_moveset_options: tenchu_core::game::moveset::Options {
+                player_movement: true,
+                no_idle_taunts: true,
+            },
             ..Default::default()
         };
         settings.set_visual_preset(presets::MODERN_HIGH);
@@ -359,6 +366,10 @@ mod tests {
         assert_eq!(original.cutscene_speed, 4);
         assert_eq!(original.volume, 25);
         assert!(original.player_model.is_empty());
+        assert_eq!(
+            original.model_moveset_options,
+            settings.model_moveset_options
+        );
         let stored = serde_json::to_vec(&settings).unwrap();
         settings = serde_json::from_slice(&stored).unwrap();
         settings.retro = false;

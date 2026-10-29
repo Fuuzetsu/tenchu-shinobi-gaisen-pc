@@ -14,6 +14,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Optional **Use model's moveset** checkbox for actor animations, attacks and
   weapon profiles with normal player controls. Missing actions retain player
   fallbacks; appearance-only remains the default.
+- Model-moveset options to use the protagonist's movement animations/speeds while
+  keeping the selected actor's attacks, and to disable random idle/combat taunts
+  that interrupt player control. Both are optional and saved across launches.
 
 ### Fixed
 

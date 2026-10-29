@@ -70,6 +70,8 @@ pub enum Item {
     ClearBlood,
     PlayerModel,
     ModelMoveset,
+    ModelPlayerMovement,
+    ModelNoIdleTaunts,
     ReloadModels,
     Preset,
     GameplayPreset,
@@ -749,6 +751,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Use model's moveset",
                 on(s.model_moveset),
                 "Use this actor's animations, attacks and weapon profile. Missing player actions fall back to your protagonist. Original and custom folders keep player moves.",
+            ),
+            (
+                Item::ModelPlayerMovement,
+                "Use player movement",
+                on(s.model_moveset_options.player_movement),
+                "With model moveset enabled, use Ayame's or Rikimaru's walking, running, dashes, crouching, jumping and climbing motions and speeds. Keep the selected actor's attacks.",
+            ),
+            (
+                Item::ModelNoIdleTaunts,
+                "Disable idle taunts",
+                on(s.model_moveset_options.no_idle_taunts),
+                "With model moveset enabled, prevent the player's random idle fidgets and combat taunts from locking movement. Enemies and scripted actions are unchanged.",
             ),
             (
                 Item::ReloadModels,

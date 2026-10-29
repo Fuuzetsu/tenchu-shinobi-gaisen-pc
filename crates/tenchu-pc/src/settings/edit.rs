@@ -80,6 +80,8 @@ impl Item {
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
             Self::ModelMoveset => &mut settings.model_moveset,
+            Self::ModelPlayerMovement => &mut settings.model_moveset_options.player_movement,
+            Self::ModelNoIdleTaunts => &mut settings.model_moveset_options.no_idle_taunts,
             Self::Vibration => &mut settings.frontend.rumble,
             Self::GrappleDetail => &mut settings.graphics.models.grapple,
             Self::ContactSparks => &mut settings.graphics.effects.sparks,

@@ -155,6 +155,7 @@ impl Application {
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
         if (self.settings.model_moveset != previous.model_moveset
+            || self.settings.model_moveset_options != previous.model_moveset_options
             || self.settings.player_model != previous.player_model)
             && let Err(error) = self.sync_model_moveset()
         {
@@ -212,12 +213,20 @@ impl Application {
             })
             .flatten();
         let character = body.and_then(|b| b.character.as_ref());
-        if self.campaign.game.moveset.kind == character.map(|c| c.kind) {
+        let options = self.settings.model_moveset_options;
+        if self
+            .campaign
+            .game
+            .moveset
+            .matches(character.map(|c| c.kind), options)
+        {
             return Ok(());
         }
-        self.campaign
-            .game
-            .set_player_moveset(character, body.map_or(&[], |b| &b.clips))?;
+        self.campaign.game.set_player_moveset(
+            character,
+            body.map_or(&[], |b| &b.clips),
+            options,
+        )?;
         view.reset_interpolation(&self.campaign.game);
         self.stop_edited_recording();
         Ok(())

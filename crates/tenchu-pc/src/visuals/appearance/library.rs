@@ -346,7 +346,7 @@ mod tests {
             let tick = game.tick;
             let onikage = library.get("disc:135").unwrap();
             let source = onikage.character.as_ref().unwrap();
-            game.set_player_moveset(Some(source), &onikage.clips)
+            game.set_player_moveset(Some(source), &onikage.clips, Default::default())
                 .unwrap();
             assert_eq!(game.player().kind, character);
             assert_eq!(game.player().inventory, inventory);
@@ -374,15 +374,17 @@ mod tests {
             let clips = game.mission.clips.len();
             let definitions = game.mission.characters.len();
             for _ in 0..20 {
-                game.set_player_moveset(None, &[]).unwrap();
+                game.set_player_moveset(None, &[], Default::default())
+                    .unwrap();
                 assert_eq!(game.player().definition, original);
-                game.set_player_moveset(Some(source), &onikage.clips)
+                game.set_player_moveset(Some(source), &onikage.clips, Default::default())
                     .unwrap();
             }
             assert_eq!(game.scene.models.len(), nodes);
             assert_eq!(game.mission.clips.len(), clips);
             assert_eq!(game.mission.characters.len(), definitions);
-            game.set_player_moveset(None, &[]).unwrap();
+            game.set_player_moveset(None, &[], Default::default())
+                .unwrap();
             for body in &library.bodies {
                 let Some(source) = &body.character else {
                     continue;
@@ -396,7 +398,8 @@ mod tests {
                 for _ in 0..30 {
                     game.step(0).unwrap();
                 }
-                game.set_player_moveset(Some(source), &body.clips).unwrap();
+                game.set_player_moveset(Some(source), &body.clips, Default::default())
+                    .unwrap();
                 let mut attack = false;
                 for tick in 0..240 {
                     let input = match tick {
@@ -416,12 +419,195 @@ mod tests {
                 }
                 assert_eq!(game.player().kind, character);
                 assert!(game.player().health > 0);
-                game.set_player_moveset(None, &[]).unwrap();
+                game.set_player_moveset(None, &[], Default::default())
+                    .unwrap();
                 assert_eq!(game.player().definition, original);
                 for _ in 0..30 {
                     game.step(UP).unwrap();
                 }
             }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; Onikage keeps his attacks while both heroes regain movement, cancel taunts and restore options"]
+    fn hybrid_movesets_restore_player_locomotion_and_cancel_idle_taunts() {
+        use tenchu_core::{
+            game::moveset::Options,
+            ids::*,
+            input::*,
+            motion::{Change, Motion},
+        };
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+        let library = Library::load(&assets).unwrap();
+        let onikage = library.get("disc:135").unwrap();
+        let source = onikage.character.as_ref().unwrap();
+        let motion = |game: &tenchu_core::game::Game, action| {
+            let mut motion = Motion::new(&game.mission.models[&game.player().mesh_kind]).unwrap();
+            let definition = &game.mission.characters[game.player().definition];
+            if motion.change(
+                action,
+                &definition.motions,
+                &game.mission.common_motions,
+                &game.mission.clips,
+            ) == Change::Missing
+            {
+                return None;
+            }
+            let clip = &game.mission.clips[motion.clip.unwrap()];
+            Some((clip.id, clip.forward_speed, clip.side_speed, clip.duration))
+        };
+        for character in 0..2 {
+            let load = || {
+                let mut game = crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                game.intelligence.ignore_player = true;
+                for _ in 0..30 {
+                    game.step(0).unwrap();
+                }
+                game
+            };
+            let mut original = load();
+            let mut game = load();
+            let definition = game.player().definition;
+            let health = game.player().health;
+            let inventory = game.player().inventory;
+            game.set_player_moveset(Some(source), &onikage.clips, Default::default())
+                .unwrap();
+            assert_ne!(motion(&game, MOT_CHASE), motion(&original, MOT_CHASE));
+            let options = Options {
+                player_movement: true,
+                no_idle_taunts: false,
+            };
+            game.set_player_moveset(Some(source), &onikage.clips, options)
+                .unwrap();
+            for action in [
+                MOT_MOVE,
+                MOT_MOVE_BACK,
+                MOT_MOVE_DASH_FWD,
+                MOT_CHASE,
+                MOT_CHASE_BACK,
+                MOT_CHASE_DASH_FWD,
+                MOT_JUMP,
+                MOT_JUMP_FORWARD,
+                MOT_SQUAT,
+                MOT_SQUAT_WALK_F,
+                MOT_SQUAT_ROLL_R,
+                MOT_HANG,
+                MOT_HANG_SHIMMY_LEFT,
+                MOT_STICKON_SLIDE_L,
+                MOT_SWIM,
+                MOT_KAGI_PULL,
+                MOT_STATE_CLIMB,
+                MOT_STATE_FALL,
+                MOT_STATE_LAND,
+            ] {
+                assert_eq!(
+                    motion(&game, action),
+                    motion(&original, action),
+                    "action {action:#x}, player {character}"
+                );
+            }
+            assert_eq!(
+                game.mission.characters[game.player().definition].weapon,
+                source.weapon
+            );
+            for action in [MOT_ATTACK, MOT_ATTACK_SLASH2] {
+                assert_eq!(
+                    motion(&game, action).unwrap().0,
+                    source
+                        .motions
+                        .iter()
+                        .find(|r| r.action == action)
+                        .unwrap()
+                        .clip
+                );
+            }
+            for _ in 0..30 {
+                game.step(UP).unwrap();
+                original.step(UP).unwrap();
+                assert_eq!(
+                    game.player().position,
+                    original.player().position,
+                    "movement on player {character}"
+                );
+                assert_eq!(game.player().velocity, original.player().velocity);
+            }
+            let state = crate::session::tests::state(&game);
+            game.set_player_moveset(Some(source), &onikage.clips, options)
+                .unwrap();
+            assert_eq!(
+                crate::session::tests::state(&game),
+                state,
+                "unchanged options must not interrupt movement"
+            );
+
+            let registry = &game.mission.characters[game.player().definition].motions;
+            let actor = game.roster.get_mut(game.player_id);
+            assert_ne!(
+                actor.motion.change(
+                    MOT_ATTACK_TAUNT,
+                    registry,
+                    &game.mission.common_motions,
+                    &game.mission.clips
+                ),
+                Change::Missing
+            );
+            actor.status = 7;
+            actor.motion.count = 5;
+            let options = Options {
+                no_idle_taunts: true,
+                ..options
+            };
+            game.set_player_moveset(Some(source), &onikage.clips, options)
+                .unwrap();
+            assert!(matches!(
+                game.player().motion.action,
+                MOT_NORMAL | MOT_ENGAGE_STANCE
+            ));
+            assert_eq!(game.moveset.options, options);
+            for _ in 0..1800 {
+                game.step(0).unwrap();
+                assert!(!matches!(
+                    game.player().motion.action,
+                    MOT_ATTACK_TAUNT | MOT_ACTION_FIDGET_A | MOT_ACTION_FIDGET_B
+                ));
+            }
+            game.step(UP).unwrap();
+            assert_eq!(game.player().motion.action, MOT_CHASE);
+            assert_ne!(game.player().velocity, [0; 3]);
+
+            let nodes = game.scene.models.len();
+            let clips = game.mission.clips.len();
+            for _ in 0..4 {
+                game.set_player_moveset(Some(source), &onikage.clips, Default::default())
+                    .unwrap();
+                assert_eq!(
+                    motion(&game, MOT_CHASE).unwrap().0,
+                    source
+                        .motions
+                        .iter()
+                        .find(|r| r.action == MOT_CHASE)
+                        .unwrap()
+                        .clip
+                );
+                game.set_player_moveset(Some(source), &onikage.clips, options)
+                    .unwrap();
+            }
+            assert_eq!(game.scene.models.len(), nodes);
+            assert_eq!(game.mission.clips.len(), clips);
+            game.set_player_moveset(None, &[], options).unwrap();
+            assert_eq!(game.player().definition, definition);
+            assert_eq!(game.moveset.options, Options::default());
+            assert_eq!(game.player().kind, character);
+            assert_eq!(game.player().health, health);
+            assert_eq!(game.player().inventory, inventory);
         }
     }
 }

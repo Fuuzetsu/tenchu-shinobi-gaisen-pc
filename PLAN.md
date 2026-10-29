@@ -3426,3 +3426,20 @@ transparency checks also pass. The full WASM build and browser WebGL2 Mission 1
 movement/combat with HD artwork, lighting and shadows pass without runtime errors.
 Scrolling the entire animated model gallery and returning to earlier thumbnails
 also preserves their textures. No release or push is authorized.
+
+F1 Player model now offers optional player locomotion and idle-taunt suppression.
+The movement option restores the current protagonist's movement clips and speeds
+while retaining actor attacks and weapon profiles. Taunt suppression prevents
+random standing fidgets and combat taunts on the customized player; enabling it
+also cancels an active taunt. Both preferences default off, persist across launches
+and apply live without losing the selected body. They remain separate from
+graphical presets and visual demos.
+
+Onikage checks cover both heroes: 19 movement actions, matching protagonist
+positions/velocities through forward input, retained actor attacks, active-taunt
+cancellation, 1,800 idle updates without a taunt, immediate movement and bounded
+repeated toggles. Forced idle-trigger seeds verify local RNG draws and unchanged
+NPC gestures/default behavior. All 149 ordinary tests, 38 disc-backed actor tests
+and five disc-backed appearance checks pass, as do formatting and strict Clippy.
+Native Vulkan and browser WebGL2 controls, gameplay and restart persistence pass;
+native and full WASM builds are ready for local use. No release or push is authorized.

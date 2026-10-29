@@ -2,12 +2,26 @@ use super::Game;
 use crate::{Result, actor::Context, ids::*, motion::Motion, scene::ModelId};
 use tenchu_assets::{executable::Character, motion::Clip};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct Options {
+    pub player_movement: bool,
+    pub no_idle_taunts: bool,
+}
+
 #[derive(Default)]
 pub struct State {
     pub kind: Option<i16>,
+    pub options: Options,
     original: Option<usize>,
     definition: Option<usize>,
     weapons: Vec<ModelId>,
+}
+
+impl State {
+    pub fn matches(&self, kind: Option<i16>, options: Options) -> bool {
+        self.kind == kind && (kind.is_none() || self.options == options)
+    }
 }
 
 impl Game {
@@ -15,9 +29,10 @@ impl Game {
         &mut self,
         character: Option<&Character>,
         clips: &[Clip],
+        options: Options,
     ) -> Result<()> {
         let kind = character.map(|c| c.kind);
-        if kind == self.moveset.kind {
+        if self.moveset.matches(kind, options) {
             return Ok(());
         }
         if self.cinematic.active || self.player().scripted || self.player().health <= 0 {
@@ -36,6 +51,9 @@ impl Game {
                 result.motions.retain(|r| !matches!(r.action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_TAUNT));
             }
             for entry in &source.motions {
+                if options.player_movement && is_movement(entry.action) {
+                    continue;
+                }
                 if clips.iter().any(|c| c.id == entry.clip) {
                     result.motions.retain(|r| r.action != entry.action);
                     result.motions.push(entry.clone());
@@ -83,6 +101,28 @@ impl Game {
         actor.initialize_rendered(ctx.scene, ctx.math);
         ctx.collision.compute(ctx.scene)?;
         self.moveset.kind = kind;
+        self.moveset.options = if kind.is_some() {
+            options
+        } else {
+            Options::default()
+        };
+        actor.suppress_idle_taunts = self.moveset.options.no_idle_taunts;
         Ok(())
     }
+}
+
+fn is_movement(action: i16) -> bool {
+    matches!(action,
+        MOT_NORMAL_TURN_R | MOT_NORMAL_TURN_L
+        | MOT_MOVE..=MOT_MOVE_DASH_LEFT
+        | MOT_SWIM..=MOT_SWIM_STROKE
+        | MOT_KAGI..=MOT_KAGI_PULL
+        | MOT_ENGAGE_TURN_R | MOT_ENGAGE_TURN_L
+        | MOT_CHASE..=MOT_CHASE_DASH_FWD
+        | MOT_STATE_CLIMB | MOT_STATE_FALL..=MOT_STATE_LAND_FLIP
+        | MOT_JUMP..=MOT_JUMP_FLIP
+        | MOT_HANG..=MOT_HANG_PULLUP
+        | MOT_SQUAT..=MOT_SQUAT_BACKFLIP
+        | MOT_STICKON..=MOT_STICKON_SLIDE_R
+    )
 }
