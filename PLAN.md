@@ -12,15 +12,34 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation
 
-The user has approved publishing **v0.3.0**, superseding the model-gallery
-follow-up's earlier local-only restriction. It includes the all-disc model
+Release **v0.3.0** and rolling HEAD are published, superseding the model-gallery
+follow-up's earlier local-only restriction. The release includes the all-disc model
 gallery, optional actor movesets/player locomotion/idle-taunt suppression,
 fixed gallery sizing and incremental texture uploads that remove first-use
 atlas rebuild stutters. Reuse `artwork-v1`; keep `master` as the default branch.
 Native/browser gameplay and persistence, 149 ordinary tests, disc-backed actor
-and model checks and GPU atlas regressions passed during implementation. Run
-the versioned packaging gates before pushing the release commit/tag, then
-verify all hosted archives and the published release.
+and model checks and GPU atlas regressions passed during implementation. The
+versioned packaging gates passed locally and in the hosted workflows.
+All five public archives match their checksums, GitHub digests, version/revision
+and library/source inventories. Linux starts with `/nix` hidden; Windows startup
+passes under Wine and on the hosted Windows runner. Published tags stay unchanged.
+
+The next release is authorized after the desktop performance issues are fixed
+and verified. Actual 3826×2146 Wayland play with the user's preferences exposed
+compositor callback throttling despite VSync being off, repeated dynamic geometry
+allocation/sorting, and duplicate opaque actor uploads for scene/shadow passes.
+Focused unlocked windows now bypass that callback; reusable buffers and shared
+actor geometry preserve poses and off-camera shadows. Mean frame time along the
+same nominal movement route fell from 33.43 to 16.05 ms, with host-load-dependent
+spikes remaining. CPU charts now align previous-frame work with its completed
+interval and show the unmeasured event-loop remainder. Details and limits are in
+`docs/performance.md`.
+
+All 150 ordinary tests, five native Vulkan geometry/shadow/motion regressions,
+formatting, strict native/WASM Clippy and the full WASM build pass. A native EGL
+fixture fails during adapter/device initialization; it does not validate this
+change on OpenGL. Browser gameplay verification remains pending. Investigate
+the separately reported persistent Mission 1 deep-water slowdown before tagging.
 
 F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
 cues. Explicit event categories cover every vibration call, including shared

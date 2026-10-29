@@ -152,10 +152,11 @@ impl Models {
         geometry: &[Geometry],
         matrix: Matrix,
         fog: bool,
+        required_flags: u32,
         mut visit: impl FnMut([Vertex; 3]),
     ) -> bool {
         let deformation = self.deformation(part, matrix);
-        self.visit(geometry, matrix, fog, |mut triangle| {
+        self.visit_filtered(geometry, matrix, fog, required_flags, |mut triangle| {
             if let Some(deformation) = &deformation {
                 for vertex in &mut triangle {
                     deformation.vertex(vertex);

@@ -2,12 +2,13 @@ use egui::{Color32, Stroke};
 use std::collections::VecDeque;
 
 const HISTORY: usize = 300;
-const COLORS: [Color32; 5] = [
+const COLORS: [Color32; 6] = [
     Color32::from_rgb(120, 202, 150),
     Color32::from_rgb(98, 177, 244),
     Color32::from_rgb(225, 174, 95),
     Color32::from_rgb(198, 140, 230),
     Color32::from_rgb(170, 180, 192),
+    Color32::from_rgb(222, 125, 125),
 ];
 
 #[derive(Clone, Copy, Default)]
@@ -19,6 +20,21 @@ pub(super) struct CpuFrame {
     pub draw: DrawTimes,
 }
 
+impl CpuFrame {
+    fn phases(self) -> [f32; 6] {
+        let measured =
+            self.simulation + self.prepare + self.overlay + self.draw.submit + self.draw.wait;
+        [
+            self.simulation,
+            self.prepare,
+            self.overlay,
+            self.draw.submit,
+            self.draw.wait,
+            (self.interval - measured).max(0.0),
+        ]
+    }
+}
+
 #[derive(Clone, Copy, Default)]
 pub(super) struct DrawTimes {
     pub submit: f32,
@@ -28,6 +44,7 @@ pub(super) struct DrawTimes {
 #[derive(Default)]
 pub(super) struct Performance {
     cpu: VecDeque<CpuFrame>,
+    pending_cpu: Option<CpuFrame>,
     gpu: VecDeque<[f32; 4]>,
     serial: u64,
     frozen: bool,
@@ -35,10 +52,15 @@ pub(super) struct Performance {
 
 impl Performance {
     pub fn record(&mut self, cpu: CpuFrame, gpu: Option<crate::renderer::timing::Sample>) {
+        let previous = self.pending_cpu.replace(cpu);
         if self.frozen {
             return;
         }
-        push(&mut self.cpu, cpu);
+        if let Some(mut previous) = previous {
+            // The start-to-start interval completes the preceding frame's work.
+            previous.interval = cpu.interval;
+            push(&mut self.cpu, previous);
+        }
         if let Some(sample) = gpu
             && sample.serial != self.serial
         {
@@ -68,6 +90,7 @@ impl Performance {
                     ui.checkbox(&mut self.frozen, "Freeze");
                     if ui.button("Clear").clicked() {
                         self.cpu.clear();
+                        self.pending_cpu = None;
                         self.gpu.clear();
                     }
                     ui.weak("F1 to interact · 300 frame history");
@@ -78,19 +101,7 @@ impl Performance {
                     "{} interval: {average:.2} ms average · {p95:.2} ms p95",
                     if offline { "Capture" } else { "Frame" },
                 ));
-                let cpu: Vec<[f32; 5]> = self
-                    .cpu
-                    .iter()
-                    .map(|f| {
-                        [
-                            f.simulation,
-                            f.prepare,
-                            f.overlay,
-                            f.draw.submit,
-                            f.draw.wait,
-                        ]
-                    })
-                    .collect();
+                let cpu: Vec<_> = self.cpu.iter().map(|f| f.phases()).collect();
                 chart(ui, &cpu, Some(&frames));
                 legend(
                     ui,
@@ -105,9 +116,11 @@ impl Performance {
                         } else {
                             "Acquire + present wait"
                         },
+                        "Event loop + other",
                     ],
                     &cpu,
                 );
+                ui.weak("Event loop + other includes compositor pacing, scheduling and untimed host work.");
                 ui.separator();
                 if gpu_supported {
                     let gpu: Vec<_> = self.gpu.iter().copied().collect();
@@ -127,7 +140,7 @@ impl Performance {
                         ],
                         &gpu,
                     );
-                    ui.weak("GPU samples arrive asynchronously; F1/font rendering is excluded.");
+                    ui.weak("GPU samples arrive asynchronously. Uploads, presentation and F1/fonts are excluded.");
                 } else {
                     ui.weak("GPU timestamps unavailable on this adapter; CPU timing still works.");
                 }
@@ -228,4 +241,56 @@ fn chart<const N: usize>(ui: &mut egui::Ui, values: &[[f32; N]], line: Option<&[
         egui::FontId::monospace(11.0),
         Color32::WHITE,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frame_intervals_complete_previous_work_and_show_time_outside_the_measurements() {
+        let mut performance = Performance::default();
+        performance.record(
+            CpuFrame {
+                interval: 100.0,
+                prepare: 5.0,
+                ..Default::default()
+            },
+            None,
+        );
+        assert!(performance.cpu.is_empty());
+        performance.record(
+            CpuFrame {
+                interval: 20.0,
+                prepare: 30.0,
+                ..Default::default()
+            },
+            None,
+        );
+        let frame = performance.cpu.back().unwrap();
+        assert_eq!(frame.interval, 20.0);
+        assert_eq!(frame.prepare, 5.0);
+        assert_eq!(frame.phases()[5], 15.0);
+        assert_eq!(frame.phases().iter().sum::<f32>(), frame.interval);
+        performance.frozen = true;
+        performance.record(
+            CpuFrame {
+                interval: 40.0,
+                prepare: 2.0,
+                ..Default::default()
+            },
+            None,
+        );
+        performance.frozen = false;
+        performance.record(
+            CpuFrame {
+                interval: 10.0,
+                ..Default::default()
+            },
+            None,
+        );
+        let frame = performance.cpu.back().unwrap();
+        assert_eq!(frame.prepare, 2.0);
+        assert_eq!(frame.phases()[5], 8.0);
+    }
 }

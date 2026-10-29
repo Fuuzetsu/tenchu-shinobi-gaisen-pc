@@ -133,6 +133,57 @@ serialized CPU/GPU work and **is not a prediction of interactive FPS**. Compare
 the phase timings on the same machine, backend, resolution, artwork and build.
 Do not run simultaneous benchmarks or compare a release build with a debug one.
 
+## Interactive Wayland follow-up, 2026-10-29
+
+Mission 1 was exercised on the actual Hyprland desktop, using an isolated copy
+of the existing preferences: Ayame with the Mei-Oh model/moveset, always-active
+enemies, HD artwork, interpolation, refined models, secondary motion, 16 lights,
+six 256-pixel local shadows, moon lighting, post-processing and no sight fog.
+The tiled window was 3826×2146 on a 60 Hz monitor; VSync was disabled.
+The route held forward for ten seconds, turned for three and ran for five more.
+Existing background workloads stayed running. These interactive runs are not
+identical input-tick replays, and their tail latency varies with host load.
+
+| Implementation | Mean frame | Frame p95 | Frame p99 |
+| --- | ---: | ---: | ---: |
+| Released path | 33.43 ms | 42.97 ms | 52.16 ms |
+| Unlocked Wayland pacing, reused geometry buffers | 18.39 ms | 20.96 ms | 22.05 ms |
+| Also share scene/shadow actor geometry | 16.05 ms | 24.66 ms | 30.17 ms |
+
+The released path requested a Wayland compositor frame callback even with
+VSync off. That gated subsequent redraws outside the timed CPU phases and
+prevented CPU/GPU work from overlapping normally. Focused, unlocked rendering
+now relies on surface acquisition/presentation; callbacks still pace VSync and
+unfocused windows. Re-enabling the old callback with the buffer improvements
+retained slowed the same route to 25.67 ms mean, confirming a separate pacing
+cost rather than just a reduction in geometry work.
+
+CPU sampling also found repeated allocation/copying and spatial sorting of
+animated geometry. The live window now retains its CPU scratch allocation and
+GPU vertex buffers. Static shadow geometry retains spatial sorting; dynamic
+geometry already groups vertices by actor/body part and uses conservative
+chunk bounds without re-sorting every frame. In inspection/always-active mode,
+the opaque actor poses are identical between scene and shadow passes, so both
+draw from the same buffer. Hinged scenery and translucent actor casters remain
+separate. Normal camera-culling mode still builds the complete independent
+shadow geometry, preserving off-camera casters.
+
+For this scene, sharing reduced the two actor/caster uploads from approximately
+9.6 MB to 4.8 MB per frame. The GTX 1080 Ti reported PCIe 3.0 ×2 while busy, with
+roughly 0.6–0.8 GB/s received during the earlier run. This makes upload traffic
+worth reducing, but does not establish why the link is ×2 or prove it is the
+only remaining limit. The interface GPU pass measured about 0.02 ms; scene
+passes totalled roughly 10–11 ms. Geometry transfer and presentation work are
+outside those pass timestamps. The shared run averaged about 62 FPS, with
+occasional longer frames: this is not a locked-60 guarantee at these settings.
+
+The CPU chart now pairs each completed start-to-start interval with the
+preceding frame's work and includes **Event loop + other** for the remainder.
+That remainder includes scheduling, compositor pacing and untimed host work;
+it is not an additional GPU stage. CPU and GPU measurements overlap and must
+not be added together. Traces, isolated preferences, screenshots and sampling
+results are retained locally under ignored `private/frame-pacing-review`.
+
 ## Initial baseline, 2026-10-27
 
 Linux Vulkan, Ryzen 9 9950X3D, GTX 1080 Ti, NVIDIA 580.126.09, 3840×2160.

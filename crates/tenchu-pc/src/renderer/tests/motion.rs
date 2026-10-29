@@ -151,6 +151,22 @@ fn secondary_motion_on_actual_characters_keeps_weapons_and_gameplay() {
                 peak = amount;
                 let vertices = render_mesh::characters_presented(&game, Some(&models), true, None);
                 let casters = render_mesh::shadow_models_presented(&game, Some(&models), None);
+                let mut shared = Vec::new();
+                render_mesh::update_shadow_models(&mut shared, &game, Some(&models), None, true);
+                shared.extend_from_slice(&vertices);
+                let canonical = |vertices: &[Vertex]| {
+                    let mut bytes: Vec<[u32; 16]> = vertices
+                        .iter()
+                        .map(|v| {
+                            let mut v = *v;
+                            v.flags &= !render_mesh::FOG;
+                            *bytemuck::from_bytes(bytemuck::bytes_of(&v))
+                        })
+                        .collect();
+                    bytes.sort_unstable();
+                    bytes
+                };
+                assert_eq!(canonical(&shared), canonical(&casters));
                 let shadow_positions: std::collections::BTreeSet<_> = casters
                     .iter()
                     .map(|v| v.position.map(f32::to_bits))

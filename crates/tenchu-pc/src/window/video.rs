@@ -49,12 +49,10 @@ impl Application {
         let phase = Instant::now();
         video.write(&view.renderer, self.demo.as_ref().unwrap())?;
         timing.draw.wait = phase.elapsed().as_secs_f32() * 1000.0;
-        if self.settings.show_performance {
-            self.performance.record(
-                timing,
-                view.renderer.timings.as_ref().and_then(|t| t.latest),
-            );
-        }
+        self.performance.record(
+            timing,
+            view.renderer.timings.as_ref().and_then(|t| t.latest),
+        );
         let complete = video.frames == video.total;
         if complete {
             self.video.take().unwrap().finish()?;

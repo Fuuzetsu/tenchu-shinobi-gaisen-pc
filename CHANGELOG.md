@@ -5,6 +5,16 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+### Fixed
+
+- Honour disabled VSync on focused Wayland windows instead of also waiting for
+  compositor frame callbacks.
+- Reduce frame-time spikes by reusing animated geometry buffers and avoiding
+  repeated shadow sorting. Always-active enemies and the free camera also share
+  actor geometry between the scene and shadow passes, reducing GPU uploads.
+- Align performance-chart intervals with the work they measure and show time
+  spent outside the timed phases, including event-loop/compositor waits.
+
 ## 0.3.0 — 2026-10-29
 
 ### Added

@@ -26,6 +26,22 @@ pub struct Mesh {
     shadow_chunks: Vec<culling::Chunk>,
 }
 
+impl Mesh {
+    fn set_geometry(&mut self, vertices: &[Vertex]) {
+        self.count = vertices.len() as u32;
+        self.shadow_chunks = culling::chunks(vertices);
+        self.bounds = vertices
+            .iter()
+            .filter(|v| v.flags & crate::render_mesh::SCENERY != 0)
+            .map(|v| glam::Vec3::from(v.position))
+            .fold(None, |bounds, p| {
+                Some(bounds.map_or([p, p], |[min, max]: [glam::Vec3; 2]| {
+                    [min.min(p), max.max(p)]
+                }))
+            });
+    }
+}
+
 fn array_layers(device: &wgpu::Device, layers: u32) -> u32 {
     // wgpu 24's GL backend infers square multiples of six as cubemaps, and one
     // layer as D2. Padding keeps these resources D2Array on that backend.
@@ -356,26 +372,38 @@ impl Renderer {
     pub fn upload(&mut self, vertices: &[Vertex]) -> Mesh {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
-        Mesh {
-            shadow_chunks: culling::chunks(&vertices),
-            bounds: vertices
-                .iter()
-                .filter(|v| v.flags & crate::render_mesh::SCENERY != 0)
-                .map(|v| glam::Vec3::from(v.position))
-                .fold(None, |bounds, p| {
-                    Some(bounds.map_or([p, p], |[min, max]: [glam::Vec3; 2]| {
-                        [min.min(p), max.max(p)]
-                    }))
-                }),
+        let mut mesh = Mesh {
+            shadow_chunks: Vec::new(),
+            bounds: None,
             buffer: self
                 .device
                 .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: Some("Geometry"),
                     contents: bytemuck::cast_slice(&vertices),
-                    usage: wgpu::BufferUsages::VERTEX,
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
                 }),
-            count: vertices.len() as u32,
+            count: 0,
+        };
+        mesh.set_geometry(&vertices);
+        mesh
+    }
+
+    pub fn update_mesh(&mut self, mesh: &mut Mesh, vertices: &mut [Vertex]) {
+        self.materials.annotate(vertices);
+        mesh.set_geometry(vertices);
+        if vertices.is_empty() {
+            return;
         }
+        let data = bytemuck::cast_slice(vertices);
+        if mesh.buffer.size() < data.len() as u64 {
+            mesh.buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Dynamic geometry"),
+                size: (data.len() as u64).next_power_of_two(),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+        }
+        self.queue.write_buffer(&mesh.buffer, 0, data);
     }
 
     pub fn upload_effects(&mut self, geometry: render_effects::Geometry) -> EffectMesh {

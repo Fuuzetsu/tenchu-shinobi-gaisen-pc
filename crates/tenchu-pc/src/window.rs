@@ -850,12 +850,10 @@ impl ApplicationHandler for Application {
                             events.exit();
                         }
                     }
-                    if profile {
-                        self.performance.record(
-                            timing,
-                            view.renderer.timings.as_ref().and_then(|t| t.latest),
-                        );
-                    }
+                    self.performance.record(
+                        timing,
+                        view.renderer.timings.as_ref().and_then(|t| t.latest),
+                    );
                 }
                 #[cfg(target_arch = "wasm32")]
                 if self.screenshot {

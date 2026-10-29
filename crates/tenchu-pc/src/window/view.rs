@@ -53,6 +53,8 @@ pub(super) struct View {
     pub(super) actor: Mesh,
     shadow_stage: Option<Mesh>,
     shadow_models: Option<Mesh>,
+    shared_actor_shadows: bool,
+    vertices: Vec<render_mesh::Vertex>,
     lighting_updated: Instant,
     pub(super) lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
@@ -377,6 +379,8 @@ impl View {
             actor,
             shadow_stage: None,
             shadow_models: None,
+            shared_actor_shadows: false,
+            vertices: Vec::new(),
             lighting_updated: Instant::now(),
             lights: Vec::new(),
             effects,
@@ -726,12 +730,16 @@ impl View {
         self.renderer.visual_time =
             ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;
         let frame = self.frame.as_ref();
-        self.actor = self.renderer.upload(&render_mesh::characters_presented(
+        let inspection = debug.camera.is_some() || game.activation.keep_all_active;
+        render_mesh::update_characters(
+            &mut self.vertices,
             game,
             Some(&self.models),
-            debug.camera.is_some() || game.activation.keep_all_active,
+            inspection,
             frame,
-        ));
+        );
+        self.renderer
+            .update_mesh(&mut self.actor, &mut self.vertices);
         let mut sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,
@@ -772,14 +780,23 @@ impl View {
                 Some(&self.models),
             )));
         }
-        self.shadow_models = shadowing.then(|| {
-            self.renderer
-                .upload_shadow(&render_mesh::shadow_models_presented(
-                    game,
-                    Some(&self.models),
-                    frame,
-                ))
-        });
+        // Inspection presents every actor using the same poses as the shadow pass.
+        self.shared_actor_shadows = shadowing && inspection;
+        if shadowing {
+            render_mesh::update_shadow_models(
+                &mut self.vertices,
+                game,
+                Some(&self.models),
+                frame,
+                self.shared_actor_shadows,
+            );
+            let mesh = self
+                .shadow_models
+                .get_or_insert_with(|| self.renderer.upload(&[]));
+            self.renderer.update_mesh(mesh, &mut self.vertices);
+        } else {
+            self.shadow_models = None;
+        }
         self.text.clear();
         let mut geometry =
             if campaign.playing() && (menu.open || !paused || debug.active()) && error.is_none() {
@@ -951,7 +968,10 @@ impl View {
         self.render(&frame.texture.create_view(&Default::default()), game, debug)?;
         let submit = start.elapsed();
         let start = Instant::now();
-        self.window.pre_present_notify();
+        // Wayland callbacks also throttle unlocked rendering; retain them for hidden windows.
+        if self.config.present_mode == wgpu::PresentMode::AutoVsync || !self.window.has_focus() {
+            self.window.pre_present_notify();
+        }
         frame.present();
         self.dirty = false;
         self.overlay.dirty = false;
@@ -983,6 +1003,7 @@ impl View {
         let casters = [
             self.shadow_stage.as_ref().unwrap_or(&self.stage),
             self.shadow_models.as_ref().unwrap_or(&self.actor),
+            &self.actor,
         ];
         if !self.overlay.opaque {
             self.renderer.draw_lit(
@@ -991,7 +1012,7 @@ impl View {
                 if debug.collision_only { &[] } else { &meshes },
                 Some(&self.effects),
                 &self.lights,
-                &casters,
+                &casters[..if self.shared_actor_shadows { 3 } else { 2 }],
             )?;
         }
         self.overlay.draw(&self.renderer, target);

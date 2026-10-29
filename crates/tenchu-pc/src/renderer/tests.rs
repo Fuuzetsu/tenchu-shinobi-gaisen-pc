@@ -14,6 +14,48 @@ mod water;
 mod weather;
 mod weather_wind;
 
+#[test]
+#[ignore = "requires a graphics adapter; reused geometry must not retain stale triangles, materials or bounds"]
+fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frames() {
+    let mut vram = Vram::default();
+    vram.words[0] = 0x7c00;
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let textured = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    let mut moved = rectangle(1200, 180, None, false, false, false);
+    for v in &mut moved {
+        v.position[0] += 600.0;
+        v.flags |= render_mesh::SCENERY;
+    }
+    let mut streamed = renderer.upload(&[]);
+    for mut vertices in [
+        textured.clone(),
+        moved.repeat(600),
+        moved,
+        Vec::new(),
+        textured,
+    ] {
+        let fresh = renderer.upload(&vertices);
+        renderer.draw(&view, camera, &[&fresh], None).unwrap();
+        let expected = read_pixels(&renderer, &target);
+        renderer.update_mesh(&mut streamed, &mut vertices);
+        renderer.draw(&view, camera, &[&streamed], None).unwrap();
+        assert_eq!(read_pixels(&renderer, &target), expected);
+        assert_eq!(streamed.bounds, fresh.bounds);
+    }
+}
+
 fn rectangle(
     z: i16,
     color: u8,
@@ -757,16 +799,23 @@ fn live_character_and_weapon_meshes_cast_shadows() {
             color: [1.0; 3],
         }];
         let view = target.create_view(&Default::default());
-        let draw = |renderer: &mut Renderer, mesh: Option<&Mesh>| {
-            let casters: Vec<_> = mesh.into_iter().collect();
+        let draw = |renderer: &mut Renderer, casters: &[&Mesh]| {
             renderer
-                .draw_lit(&view, matrix, &[&receiver], None, &lights, &casters)
+                .draw_lit(&view, matrix, &[&receiver], None, &lights, casters)
                 .unwrap();
             read_pixels(renderer, &target)
         };
-        let lit = draw(&mut renderer, None);
-        let armed = renderer.upload(&render_mesh::shadow_models(&game, None));
-        let armed_pixels = draw(&mut renderer, Some(&armed));
+        let lit = draw(&mut renderer, &[]);
+        let mut vertices = render_mesh::shadow_models(&game, None);
+        let armed = renderer.upload_shadow(&vertices);
+        let armed_pixels = draw(&mut renderer, &[&armed]);
+        let mut streamed = renderer.upload(&[]);
+        renderer.update_mesh(&mut streamed, &mut vertices);
+        assert_eq!(draw(&mut renderer, &[&streamed]), armed_pixels);
+        let actors = renderer.upload(&render_mesh::characters_presented(&game, None, true, None));
+        render_mesh::update_shadow_models(&mut vertices, &game, None, None, true);
+        renderer.update_mesh(&mut streamed, &mut vertices);
+        assert_eq!(draw(&mut renderer, &[&streamed, &actors]), armed_pixels);
         assert_eq!(crate::session::tests::state(&game), before);
         assert!(
             lit.chunks_exact(4)
@@ -778,8 +827,11 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         );
         let weapons = std::mem::take(&mut game.roster.get_mut(game.player_id).weapons);
         assert!(weapons.iter().any(Option::is_some));
-        let unarmed = renderer.upload(&render_mesh::shadow_models(&game, None));
-        let unarmed_pixels = draw(&mut renderer, Some(&unarmed));
+        render_mesh::update_shadow_models(&mut vertices, &game, None, None, false);
+        let unarmed = renderer.upload_shadow(&vertices);
+        let unarmed_pixels = draw(&mut renderer, &[&unarmed]);
+        renderer.update_mesh(&mut streamed, &mut vertices);
+        assert_eq!(draw(&mut renderer, &[&streamed]), unarmed_pixels);
         assert!(
             unarmed_pixels
                 .chunks_exact(4)

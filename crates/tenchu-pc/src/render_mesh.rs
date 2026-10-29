@@ -294,28 +294,40 @@ pub fn shadow_models(game: &tenchu_core::game::Game, models: Option<&Models>) ->
     shadow_models_presented(game, models, None)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn shadow_models_presented(
     game: &tenchu_core::game::Game,
     models: Option<&Models>,
     frame: Option<&Frame>,
 ) -> Vec<Vertex> {
     let mut vertices = Vec::new();
+    update_shadow_models(&mut vertices, game, models, frame, false);
+    vertices
+}
+
+pub fn update_shadow_models(
+    vertices: &mut Vec<Vertex>,
+    game: &tenchu_core::game::Game,
+    models: Option<&Models>,
+    frame: Option<&Frame>,
+    reuse_opaque: bool,
+) {
+    vertices.clear();
     let mut append = |key, geometry: &[Geometry], matrix| {
         append_caster(
-            &mut vertices,
+            vertices,
             geometry,
             Frame::transform(frame, key, matrix),
             models,
         )
     };
     visit_hinged_parts(game, &mut append);
-    for vertex in &mut vertices {
+    for vertex in vertices.iter_mut() {
         vertex.flags |= SCENERY;
     }
     crate::visuals::appearance::visit_parts(game, true, models, frame, |key, geometry, matrix| {
-        append_character(&mut vertices, geometry, matrix, models, key, true);
+        append_character(vertices, geometry, matrix, models, key, true, reuse_opaque);
     });
-    vertices
 }
 
 pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> Vec<Vertex> {
@@ -340,16 +352,27 @@ pub fn characters_presented(
     frame: Option<&Frame>,
 ) -> Vec<Vertex> {
     let mut vertices = Vec::new();
+    update_characters(&mut vertices, game, models, inspection, frame);
+    vertices
+}
+
+pub fn update_characters(
+    vertices: &mut Vec<Vertex>,
+    game: &tenchu_core::game::Game,
+    models: Option<&Models>,
+    inspection: bool,
+    frame: Option<&Frame>,
+) {
+    vertices.clear();
     crate::visuals::appearance::visit_parts(
         game,
         inspection,
         models,
         frame,
         |key, geometry, matrix| {
-            append_character(&mut vertices, geometry, matrix, models, key, false)
+            append_character(vertices, geometry, matrix, models, key, false, false)
         },
     );
-    vertices
 }
 
 fn append_character(
@@ -359,19 +382,33 @@ fn append_character(
     models: Option<&Models>,
     key: Part,
     shadow: bool,
+    translucent_only: bool,
 ) {
     if models.is_some_and(|models| {
-        models.visit_part(key, geometry, matrix, !shadow, |triangle| {
-            if shadow || triangle[0].flags & TRANSLUCENT == 0 {
-                vertices.extend(triangle);
-            }
-        })
+        models.visit_part(
+            key,
+            geometry,
+            matrix,
+            !shadow,
+            if translucent_only { TRANSLUCENT } else { 0 },
+            |triangle| {
+                if shadow || triangle[0].flags & TRANSLUCENT == 0 {
+                    vertices.extend(triangle);
+                }
+            },
+        )
     }) {
         return;
     }
-    if shadow {
-        append_caster(vertices, geometry, matrix, models);
-    } else {
-        append_geometry(vertices, geometry, matrix, models);
+    for geometry in geometry {
+        for face in draw_tmd_faces(geometry).filter(|face| {
+            if translucent_only {
+                face.translucent
+            } else {
+                shadow || !face.translucent
+            }
+        }) {
+            append_face(vertices, geometry, face, matrix, !shadow);
+        }
     }
 }
