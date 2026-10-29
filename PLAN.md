@@ -12,6 +12,16 @@ available with F6. Continue after each milestone until the complete game works.
 
 ## Release preparation
 
+The user has approved publishing **v0.3.0**, superseding the model-gallery
+follow-up's earlier local-only restriction. It includes the all-disc model
+gallery, optional actor movesets/player locomotion/idle-taunt suppression,
+fixed gallery sizing and incremental texture uploads that remove first-use
+atlas rebuild stutters. Reuse `artwork-v1`; keep `master` as the default branch.
+Native/browser gameplay and persistence, 149 ordinary tests, disc-backed actor
+and model checks and GPU atlas regressions passed during implementation. Run
+the versioned packaging gates before pushing the release commit/tag, then
+verify all hosted archives and the published release.
+
 F1 → Vibration now has global and per-action 0–200% sliders for all 17 gameplay
 cues. Explicit event categories cover every vibration call, including shared
 hit/block helpers, the three landings and uneven-ground stealth interruption.

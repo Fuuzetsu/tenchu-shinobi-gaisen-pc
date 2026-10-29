@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-29
+
 ### Added
 
 - F1 player-model gallery with 58 disc character, boss, animal and outfit models
