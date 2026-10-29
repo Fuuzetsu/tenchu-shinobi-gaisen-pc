@@ -19,6 +19,8 @@ pub struct Body {
     pub character: Option<Character>,
     pub clips: Arc<Vec<Clip>>,
     pub idle: Option<usize>,
+    pub think: i16,
+    pub voice: Option<tenchu_assets::stage::imports::Voice>,
 }
 
 #[derive(Default)]
@@ -35,9 +37,40 @@ impl Library {
     pub fn load(assets: &GameAssets<impl ReadAt>) -> Result<Self> {
         let definitions = Executable::new(&assets.executable)?.characters()?;
         let mut found = BTreeMap::new();
+        let mut thinking = BTreeMap::new();
+        let mut voices = BTreeMap::new();
         let mut textures = Vec::new();
         for stage in assets.stages()? {
             let mission = MissionAssets::load(assets, stage.id, 0, 0)?;
+            for spawn in mission.enemies.iter().chain(
+                mission
+                    .random_layouts
+                    .iter()
+                    .flatten()
+                    .flat_map(|l| &l.enemies),
+            ) {
+                if spawn.think != 0 {
+                    thinking.entry(spawn.kind).or_insert(spawn.think);
+                }
+            }
+            for spawn in &mission.story {
+                if spawn.think != 0 {
+                    thinking.entry(spawn.kind).or_insert(spawn.think);
+                }
+            }
+            for (program, kind) in Executable::new(&assets.executable)?
+                .appearance(stage.id)?
+                .into_iter()
+                .enumerate()
+            {
+                voices
+                    .entry(kind)
+                    .or_insert(tenchu_assets::stage::imports::Voice {
+                        stage: stage.id,
+                        character: 0,
+                        program: program + 6,
+                    });
+            }
             let vram = Arc::new(mission.vram);
             let clips = Arc::new(mission.clips);
             for (kind, parts) in mission.models {
@@ -100,6 +133,27 @@ impl Library {
                 || format!("resource:{resource}"),
                 |c| format!("disc:{}", c.kind),
             );
+            let think = character
+                .as_ref()
+                .and_then(|c| thinking.get(&c.kind))
+                .copied()
+                .unwrap_or(0x4445);
+            let voice = character.as_ref().and_then(|c| {
+                if c.kind < 2 {
+                    Some(tenchu_assets::stage::imports::Voice {
+                        stage: 0,
+                        character: c.kind,
+                        program: 5,
+                    })
+                } else {
+                    voices.get(&c.kind).copied().or_else(|| {
+                        definitions
+                            .iter()
+                            .filter(|d| d.model == c.model)
+                            .find_map(|d| voices.get(&d.kind).copied())
+                    })
+                }
+            });
             library.bodies.push(Body {
                 id,
                 name: label(name),
@@ -109,6 +163,8 @@ impl Library {
                 character,
                 clips,
                 idle,
+                think,
+                voice,
             });
         }
         let mut extra_clips = BTreeMap::new();

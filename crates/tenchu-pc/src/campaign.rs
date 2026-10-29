@@ -52,6 +52,14 @@ pub struct Campaign {
     pub seed: u32,
     pub frontend: bool,
     pub quick_launcher: bool,
+    pub randomized: Option<Randomized>,
+}
+
+pub struct Randomized {
+    pub run: crate::randomizer::Run,
+    pub plan: crate::randomizer::Plan,
+    previous_options: Options,
+    previous_seed: u32,
 }
 
 impl Campaign {
@@ -76,6 +84,7 @@ impl Campaign {
             seed: 1,
             frontend: false,
             quick_launcher: true,
+            randomized: None,
         })
     }
 
@@ -103,6 +112,9 @@ impl Campaign {
     }
 
     pub fn checkpoint(&mut self, options: Options) {
+        if self.randomized.is_some() {
+            return;
+        }
         self.save_request = Some(Save {
             progress: self.progress.clone(),
             selection: self.selection(options),
@@ -141,8 +153,10 @@ impl Campaign {
         match self.game.events.outcome {
             Outcome::Running => {}
             Outcome::GameOver => {
-                self.seed = self.game.random.seed;
-                self.checkpoint(self.options);
+                if self.randomized.is_none() {
+                    self.seed = self.game.random.seed;
+                    self.checkpoint(self.options);
+                }
                 self.screen = Screen::GameOver;
             }
             Outcome::Complete => {
@@ -154,16 +168,64 @@ impl Campaign {
                     record: self.game.record(),
                     remaining: self.game.player().inventory[..20].try_into().unwrap(),
                 };
-                let results = self.progress.complete(completion, &mut self.game.random);
-                self.seed = self.game.random.seed;
-                self.checkpoint(self.next_options());
-                self.screen = if self.frontend && self.options.mission == 10 {
-                    Screen::Ending(results)
+                let results = if self.randomized.is_some() {
+                    Progress::default().complete(completion, &mut self.game.random)
                 } else {
-                    Screen::Results(results)
+                    let results = self.progress.complete(completion, &mut self.game.random);
+                    self.seed = self.game.random.seed;
+                    self.checkpoint(self.next_options());
+                    results
                 };
+                self.screen =
+                    if self.frontend && self.options.mission == 10 && self.randomized.is_none() {
+                        Screen::Ending(results)
+                    } else {
+                        Screen::Results(results)
+                    };
             }
         }
+        Ok(())
+    }
+
+    pub fn start_randomizer(
+        &mut self,
+        run: crate::randomizer::Run,
+        assets: &GameAssets<DiscSource>,
+        library: &crate::visuals::appearance::library::Library,
+    ) -> Result<()> {
+        let language = run.document.rules.language.game();
+        let (game, plan) = run.load(assets, library)?;
+        let (previous_options, previous_seed) = self
+            .randomized
+            .as_ref()
+            .map_or((self.options, self.seed), |r| {
+                (r.previous_options, r.previous_seed)
+            });
+        self.options = plan.options(language);
+        self.game = game;
+        self.randomized = Some(Randomized {
+            run,
+            plan,
+            previous_options,
+            previous_seed,
+        });
+        self.screen = Screen::Playing;
+        self.save_request = None;
+        Ok(())
+    }
+
+    pub fn end_randomizer(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
+        let Some(randomized) = &self.randomized else {
+            return Ok(());
+        };
+        let game = randomized.previous_options.load(assets)?;
+        self.options = randomized.previous_options;
+        self.seed = randomized.previous_seed;
+        self.game = game;
+        self.randomized = None;
+        self.screen = Screen::Launcher;
+        self.cursor = 1;
+        self.save_request = None;
         Ok(())
     }
 

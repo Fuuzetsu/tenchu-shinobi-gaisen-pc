@@ -90,12 +90,25 @@ impl Audio {
     }
 
     pub fn reload(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
-        let bank = Bank::load(
+        let mut bank = Bank::load(
             assets,
             game.mission.stage.id,
             game.player().kind,
             game.mission.scripts.language,
         )?;
+        let mut sources = std::collections::BTreeMap::new();
+        for source in &game.mission.imported_voices {
+            let donor = match sources.entry((source.stage, source.character)) {
+                std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
+                std::collections::btree_map::Entry::Vacant(entry) => entry.insert(Bank::load(
+                    assets,
+                    source.stage,
+                    source.character,
+                    game.mission.scripts.language,
+                )?),
+            };
+            bank.import_program(donor, source.program)?;
+        }
         self.catalog = Catalog::load(&assets.executable, game.mission.scripts.language)?;
         self.track(None);
         self.output.send(output::Command::Bank(Arc::new(bank)));

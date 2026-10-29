@@ -18,7 +18,8 @@ impl Application {
         self.frontend.is_some()
             && (matches!(self.campaign.screen, Screen::Frontend | Screen::Ending(_))
                 || matches!(self.campaign.screen, Screen::Results(_))
-                    && self.campaign.options.mission == 10)
+                    && self.campaign.options.mission == 10
+                    && self.campaign.randomized.is_none())
     }
 
     pub(super) fn open_title(&mut self) {

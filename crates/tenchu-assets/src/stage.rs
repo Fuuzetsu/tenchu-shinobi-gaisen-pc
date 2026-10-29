@@ -13,6 +13,8 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
+pub mod imports;
+
 #[derive(Clone, Debug)]
 pub struct Placement {
     pub part: usize,
@@ -110,6 +112,8 @@ pub struct MissionAssets {
     pub images: Vec<crate::texture::Image>,
     pub characters: Vec<Character>,
     pub models: BTreeMap<i16, Vec<Part>>,
+    pub imported_models: BTreeMap<i16, imports::Model>,
+    pub imported_voices: Vec<imports::Voice>,
     pub clips: Vec<Clip>,
     pub common_motions: Vec<MotionRegistration>,
     pub weapons: crate::weapon::Weapons,
@@ -374,6 +378,8 @@ impl MissionAssets {
             images,
             characters,
             models,
+            imported_models: BTreeMap::new(),
+            imported_voices: Vec::new(),
             clips,
             common_motions: exe.common_motions()?,
             weapons: crate::weapon::Weapons::load(game, &exe)?,

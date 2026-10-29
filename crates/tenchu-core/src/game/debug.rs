@@ -8,6 +8,57 @@ use crate::{
 };
 
 impl Game {
+    pub fn replace_actor(
+        &mut self,
+        id: usize,
+        source: tenchu_assets::stage::imports::Actor,
+        think: i16,
+    ) -> Result<()> {
+        if self.tick != 0 || id == self.player_id {
+            return Err("Actor replacement is only available before a mission starts".into());
+        }
+        let original = self.roster.get(id).clone();
+        let mut ctx = Context {
+            mission: &mut self.mission,
+            math: &self.math,
+            body: &self.body,
+            cursor: &mut self.cursor,
+            random: &mut self.random,
+            effects: &mut self.effects,
+            scene: &mut self.scene,
+            collision: &mut self.collision,
+            camera: &mut self.camera,
+            drawing: &mut self.drawing,
+        };
+        let mut actor = crate::actor::Actor::from_definition(
+            id,
+            source.definition,
+            source.model,
+            original.position,
+            original.rotation[1],
+            &mut ctx,
+        )?;
+        actor.script_kind = Some(original.script_kind.unwrap_or(original.kind));
+        actor.target = original.target;
+        actor.home = original.home;
+        actor.setup_think(if original.patrol.is_some() {
+            (think & !15) | 3
+        } else {
+            think
+        });
+        actor.patrol = original.patrol.clone();
+        actor.attribute |= original.attribute & (crate::ids::ATTR_SUSPEND | crate::ids::ATTR_TRACE);
+        if actor.attribute & crate::ids::ATTR_SUSPEND != 0 {
+            ctx.scene.models[actor.parts[0]].attribute &= !crate::scene::COLLIDE;
+        }
+        ctx.collision.remove(ctx.scene, original.parts[0]);
+        for weapon in original.weapons.iter().flatten() {
+            ctx.collision.remove(ctx.scene, weapon.model);
+        }
+        self.roster.actors[id] = Some(actor);
+        Ok(())
+    }
+
     pub fn set_inventory(&mut self, kind: usize, count: u8) -> Result<()> {
         if kind >= 19 {
             return Err("Only equipment slots can be edited".into());

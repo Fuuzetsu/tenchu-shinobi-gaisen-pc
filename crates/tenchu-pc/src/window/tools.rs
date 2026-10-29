@@ -194,6 +194,9 @@ impl Application {
     }
 
     pub(super) fn sync_model_moveset(&mut self) -> Result<()> {
+        if self.campaign.randomized.is_some() {
+            return Ok(());
+        }
         let Some(view) = &mut self.view else {
             return Ok(());
         };
@@ -257,6 +260,7 @@ impl Application {
             return Ok(());
         }
         match item {
+            Item::Randomizer => self.toggle_randomizer(),
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,
             Item::Stealth => self.set_stealth(!self.debug.stealth)?,
             Item::ClickTeleport => {

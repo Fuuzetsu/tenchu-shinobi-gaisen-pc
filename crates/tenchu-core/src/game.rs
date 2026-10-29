@@ -238,7 +238,7 @@ impl Game {
             let id = self.roster.order[index];
             if self.roster.get(id).attribute & crate::ids::ATTR_SUSPEND == 0 {
                 let mut actor = self.roster.take(id);
-                let balma = actor.kind == 0x85;
+                let balma = actor.kind == 0x85 && context.mission.balma_terrain.is_some();
                 if balma {
                     context.swap_balma_terrain()?;
                 }

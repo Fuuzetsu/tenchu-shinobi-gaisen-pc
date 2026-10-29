@@ -15,6 +15,7 @@ pub enum Edit {
     Benchmark,
     PresetLibrary,
     Controls,
+    Randomizer,
 }
 
 #[derive(Clone, Copy)]
@@ -84,10 +85,11 @@ pub fn show(
                 ui.vertical(|ui| {
                     ui.set_min_width(335.0);
                     if menu.page == 0 {
-                        ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
                             if ui.button("Benchmarks…").clicked() { edits.push(Edit::Benchmark); }
                             if ui.button("Presets / save as…").clicked() { edits.push(Edit::PresetLibrary); }
                             if ui.button("Controls…").clicked() { edits.push(Edit::Controls); }
+                            if ui.button("Randomizer… (F7)").clicked() { edits.push(Edit::Randomizer); }
                         });
                         ui.separator();
                     }

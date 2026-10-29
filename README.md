@@ -43,6 +43,8 @@ own presets. New installs use Modern Low; existing preferences are kept.
 **F8** toggles original graphics; **F6** opens the quick launcher from the menu.
 **F1 → General → Controls** remaps keyboard/controller inputs and saves your bindings.
 **F1 → Vibration** sets global and per-action controller strength.
+**F7** opens the [randomizer](docs/randomizer.md): shareable seeds, full-disc player/
+enemy pools, stage and item blacklists, HP and loadout rules, with separate run progress.
 [Controls](docs/guide.md#play) · [Benchmarks and measured improvements](docs/performance.md)
 
 ## Build from source

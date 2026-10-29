@@ -162,7 +162,7 @@ impl Actor {
         self.brain.chase[0] = self.brain.chase[0].wrapping_add(0x88).min(4096);
         let mut position = ctx.scene.world(self.parts[0])?.translation;
         position[1] = ctx.scene.models[self.root_model].local.translation.y;
-        let height = i32::from(ctx.mission.models[&self.kind][0].position[1]);
+        let height = i32::from(ctx.mission.models[&self.mesh_kind][0].position[1]);
         let scale =
             (self.brain.chase[0].wrapping_mul(-height) / 1024).wrapping_sub(self.map.height >> 1);
         let rotation = if self.map.angle_high != 0 {

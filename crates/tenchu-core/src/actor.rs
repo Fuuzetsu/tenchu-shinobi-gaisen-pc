@@ -84,6 +84,8 @@ pub struct Actor {
     pub render_mask: u32,
     pub draw_fog: bool,
     pub kind: i16,
+    pub script_kind: Option<i16>,
+    pub voice_program: Option<i16>,
     pub mesh_kind: i16,
     pub rendered_mesh_kind: i16,
     pub definition: usize,
@@ -129,8 +131,24 @@ impl Actor {
             .iter()
             .position(|c| c.kind == kind)
             .ok_or("Missing actor definition")?;
+        Self::from_definition(id, definition, kind, position, yaw, ctx)
+    }
+
+    pub(crate) fn from_definition(
+        id: usize,
+        definition: usize,
+        mesh_kind: i16,
+        position: Position,
+        yaw: i16,
+        ctx: &mut Context,
+    ) -> Result<Self> {
         let data = &ctx.mission.characters[definition];
-        let parts = ctx.mission.models.get(&kind).ok_or("Missing actor model")?;
+        let kind = data.kind;
+        let parts = ctx
+            .mission
+            .models
+            .get(&mesh_kind)
+            .ok_or("Missing actor model")?;
         let mut motion = Motion::new(parts)?;
         if motion.change(
             MOT_NORMAL,
@@ -169,8 +187,10 @@ impl Actor {
             render_mask: u32::MAX,
             draw_fog: false,
             kind,
-            mesh_kind: kind,
-            rendered_mesh_kind: kind,
+            script_kind: None,
+            voice_program: None,
+            mesh_kind,
+            rendered_mesh_kind: mesh_kind,
             definition,
             position,
             previous: Position::ZERO,
@@ -409,11 +429,17 @@ impl Actor {
     }
 
     fn motion_id(&self, ctx: &Context, action: i16) -> i16 {
-        ctx.mission.characters[self.definition]
+        let clip = ctx.mission.characters[self.definition]
             .motions
             .iter()
             .find(|r| r.action == action)
-            .map_or(-1, |r| r.clip)
+            .map_or(-1, |r| r.clip);
+        ctx.mission
+            .imported_models
+            .get(&self.mesh_kind)
+            .and_then(|model| model.clip_ids.get(&clip))
+            .copied()
+            .unwrap_or(clip)
     }
 
     fn enter_unless_scripted(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {

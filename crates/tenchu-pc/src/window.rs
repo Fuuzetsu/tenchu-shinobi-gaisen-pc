@@ -4,6 +4,7 @@ mod frontend;
 mod overlay;
 mod performance;
 mod playback;
+mod randomizer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod retail;
 mod settings_reset;
@@ -67,6 +68,7 @@ struct Application {
     performance: performance::Performance,
     benchmarks: benchmark::Benchmarks,
     presets: settings::library::Manager,
+    randomizer: crate::randomizer::Editor,
     fps_elapsed: f32,
     fps_frames: u32,
     debug: crate::debug::Debug,
@@ -158,6 +160,7 @@ impl Application {
 
     fn is_suspended(&self) -> bool {
         self.paused
+            || self.randomizer.open
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
             || (self.menu.open && self.settings.pause_in_menu)
             || (!self.focused && self.settings.pause_on_defocus)
@@ -207,7 +210,7 @@ impl Application {
     }
 
     fn save(&mut self) {
-        if self.demo.is_some() {
+        if self.demo.is_some() || self.campaign.randomized.is_some() {
             return;
         }
         if let Some(save) = self.campaign.save_request.take() {
@@ -222,6 +225,9 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
+        if self.randomizer_command(action) {
+            return;
+        }
         #[cfg(target_arch = "wasm32")]
         if matches!(action, Action::Confirm | Action::Replay)
             && !self.campaign.playing()
@@ -253,15 +259,9 @@ impl Application {
                 {
                     self.open_title();
                 }
-                if reload {
-                    self.release_pointer();
-                    self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
-                    self.campaign.game.activation.keep_all_active =
-                        self.settings.keep_enemies_active;
-                    if let Err(error) = self.debug.reload(&self.campaign.game) {
-                        self.pause_error(error);
-                        return;
-                    }
+                if reload && let Err(error) = self.reload_game() {
+                    self.pause_error(error);
+                    return;
                 }
                 if reload
                     && let Some(start) = start
@@ -283,21 +283,11 @@ impl Application {
                     self.finish_recording();
                 }
                 if let Some(audio) = &mut self.audio {
-                    if reload && let Err(error) = audio.reload(&self.assets, &self.campaign.game) {
-                        eprintln!("Audio: {error}");
-                    }
                     audio.screen(&self.campaign.screen);
                     audio.effect(match action {
                         Action::Up | Action::Down | Action::Left | Action::Right => 0x0b,
                         _ => 0x0a,
                     });
-                }
-                if reload
-                    && let Some(view) = &mut self.view
-                    && let Err(error) = view.reload(&self.campaign.game, &self.settings)
-                {
-                    eprintln!("Visual assets: {error}; using original models");
-                    self.menu.notice = error;
                 }
                 self.clock = GameClock::default();
                 self.last_frame = Instant::now();
@@ -327,6 +317,12 @@ impl Application {
     }
 
     fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        if self.randomizer.open {
+            if matches!(command, Command::Menu(Action::Back)) {
+                self.toggle_randomizer();
+            }
+            return;
+        }
         if self.demo.is_some() {
             if matches!(command, Command::Pause) {
                 self.set_paused(!self.paused);
@@ -529,7 +525,7 @@ impl ApplicationHandler for Application {
                 self.pointer = [position.x, position.y];
             }
             WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. }
-                if self.menu.open || self.demo.is_some() => {}
+                if self.menu.open || self.randomizer.open || self.demo.is_some() => {}
             WindowEvent::MouseInput { state, button, .. }
                 if (self.debug.camera.is_some() || self.debug.click_teleport) && self.focused =>
             {
@@ -568,6 +564,18 @@ impl ApplicationHandler for Application {
                     }
                     return;
                 }
+                if event.state == ElementState::Pressed && code == KeyCode::F7 {
+                    self.toggle_randomizer();
+                    return;
+                }
+                if self.randomizer.open {
+                    if event.state == ElementState::Pressed
+                        && matches!(code, KeyCode::Escape | KeyCode::F1)
+                    {
+                        self.toggle_randomizer();
+                    }
+                    return;
+                }
                 if event.state == ElementState::Pressed && code == KeyCode::F1 {
                     self.controls.close_editor();
                     self.toggle_menu();
@@ -592,6 +600,7 @@ impl ApplicationHandler for Application {
                 }
                 if event.state == ElementState::Pressed
                     && code == KeyCode::F6
+                    && self.campaign.randomized.is_none()
                     && self.demo.is_none()
                     && self.frontend.is_some()
                     && !self.campaign.playing()
@@ -739,6 +748,7 @@ impl ApplicationHandler for Application {
                 if self.focused
                     && self.demo.is_none()
                     && !self.menu.open
+                    && !self.randomizer.open
                     && let Some(camera) = &mut self.debug.camera
                 {
                     camera.advance(
@@ -1018,6 +1028,7 @@ pub fn run(
         performance: Default::default(),
         benchmarks: benchmark::Benchmarks::new(startup.benchmark),
         presets,
+        randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

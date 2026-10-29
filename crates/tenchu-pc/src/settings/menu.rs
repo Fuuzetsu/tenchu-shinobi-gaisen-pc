@@ -4,6 +4,7 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Randomizer,
     GodMode,
     Stealth,
     ClickTeleport,
@@ -189,6 +190,7 @@ impl Item {
         matches!(
             self,
             Self::Reset
+                | Self::Randomizer
                 | Self::GiveItems
                 | Self::ClearItems
                 | Self::ClearBlood
@@ -959,6 +961,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         0 => vec![
+            (
+                Item::Randomizer,
+                "Randomizer (F7)",
+                "Open…".into(),
+                "Configure a separate seeded run with full-disc player/enemy pools, stages, HP and equipment.",
+            ),
             gameplay(),
             (
                 Item::Preset,

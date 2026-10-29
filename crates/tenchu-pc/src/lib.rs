@@ -8,6 +8,7 @@ mod demo;
 mod fonts;
 mod frontend;
 mod lighting;
+mod randomizer;
 mod recording;
 mod render_effects;
 mod render_mesh;

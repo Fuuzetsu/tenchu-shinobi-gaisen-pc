@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an optional randomizer with full-disc player/enemy models and movesets,
+  configurable HP, equipment, pickups, stages and guard behavior. F7, the title
+  screen and F1 open its searchable pools, blacklists, presets and seed sharing.
+  Retries reproduce the same roll; runs are remembered separately from campaign saves.
+
 ## 0.3.2 — 2026-10-29
 
 ### Fixed

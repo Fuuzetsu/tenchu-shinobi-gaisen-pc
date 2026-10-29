@@ -19,7 +19,9 @@ pub struct Activation {
 
 impl Activation {
     fn keeps_active(&self, actor: &crate::actor::Actor) -> bool {
-        self.keep_all_active && !matches!(actor.kind, 0 | 1 | 0xa9) && actor.health >= 0
+        self.keep_all_active
+            && (actor.script_kind.is_some() || !matches!(actor.kind, 0 | 1 | 0xa9))
+            && actor.health >= 0
     }
 
     fn update_budget(&mut self, bytes: u32) {
@@ -100,8 +102,9 @@ impl Game {
                     self.activation.count = self.activation.count.wrapping_add(1);
                 }
             } else if !suspended && actor.kind != 0x84 {
-                if (actor.kind == 0x87 && matches!(self.mission.stage.id, 6 | 7))
-                    || actor.kind == 0x83
+                if actor.script_kind.is_none()
+                    && ((actor.kind == 0x87 && matches!(self.mission.stage.id, 6 | 7))
+                        || actor.kind == 0x83)
                 {
                     for spawn in &self.mission.story {
                         if spawn.kind == actor.kind {

@@ -70,7 +70,17 @@ pub fn build(
         line(-40, -20, "Paused".into(), GOLD);
         line(-140, 12, "P/Start/South: resume".into(), WHITE);
         line(-140, 32, "Esc/East: abandon attempt".into(), DIM);
-        line(-140, 52, "Returns to equipment selection".into(), DIM);
+        line(
+            -140,
+            52,
+            if campaign.randomized.is_some() {
+                "Opens randomizer controls"
+            } else {
+                "Returns to equipment selection"
+            }
+            .into(),
+            DIM,
+        );
     } else {
         match &campaign.screen {
             Screen::Frontend | Screen::Ending(_) => (),
@@ -218,14 +228,26 @@ pub fn build(
                 line(
                     -140,
                     88,
-                    if campaign.options.mission == 0 {
+                    if campaign.randomized.is_some() {
+                        "Enter/South: next roll  R/West: retry".into()
+                    } else if campaign.options.mission == 0 {
                         "Enter/South: train  Esc/East: menu".into()
                     } else {
                         "Enter/South: next  R/West: retry".into()
                     },
                     DIM,
                 );
-                line(-140, 104, "Esc/East: menu  Progress saved".into(), DIM);
+                line(
+                    -140,
+                    104,
+                    if campaign.randomized.is_some() {
+                        "Esc: randomizer  Campaign unchanged"
+                    } else {
+                        "Esc/East: menu  Progress saved"
+                    }
+                    .into(),
+                    DIM,
+                );
             }
             Screen::GameOver => {
                 line(-80, -40, "MISSION FAILED".into(), GOLD);
@@ -233,7 +255,9 @@ pub fn build(
                 line(
                     -130,
                     32,
-                    if campaign.options.mission == 0 {
+                    if campaign.randomized.is_some() {
+                        "Retry repeats this exact roll.".into()
+                    } else if campaign.options.mission == 0 {
                         "Training equipment resets.".into()
                     } else {
                         "Carried items were lost.".into()

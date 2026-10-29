@@ -211,7 +211,11 @@ impl Game {
                 }
                 let pending = Pending {
                     event: slot.event,
-                    target_kind: self.roster.get(slot.target).kind,
+                    target_kind: self
+                        .roster
+                        .get(slot.target)
+                        .script_kind
+                        .unwrap_or(self.roster.get(slot.target).kind),
                     clock: self.clock,
                 };
                 if event.sequence != 255 {

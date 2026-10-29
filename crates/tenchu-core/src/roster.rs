@@ -77,7 +77,7 @@ impl Roster {
         self.order
             .iter()
             .copied()
-            .find(|&id| self.get(id).kind == kind)
+            .find(|&id| self.get(id).script_kind.unwrap_or(self.get(id).kind) == kind)
     }
 
     pub fn nearest(&self, actor: &Actor, range: i16, math: &crate::math::Math) -> Option<usize> {

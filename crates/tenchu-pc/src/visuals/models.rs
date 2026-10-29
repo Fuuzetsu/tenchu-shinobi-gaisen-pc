@@ -17,6 +17,8 @@ pub struct Material {
 #[derive(Default)]
 pub struct Models {
     world: Meshes,
+    imported: Vec<Meshes>,
+    imported_geometry: BTreeMap<usize, usize>,
     pub(super) player: Option<super::appearance::Appearance>,
     pub replacements: usize,
     pub grapple: bool,
@@ -70,10 +72,41 @@ impl Models {
             catalog::models(mission),
             false,
         )?;
+        let mut imported = Vec::new();
+        let mut imported_geometry = BTreeMap::new();
+        for (&kind, source) in &mission.imported_models {
+            let parts = &mission.models[&kind];
+            let sources: Vec<_> = parts
+                .iter()
+                .enumerate()
+                .map(|(i, part)| catalog::ModelSource {
+                    id: format!("actors/{:04x}/{i}", source.source_kind),
+                    label: format!("Imported actor {}", source.source_kind),
+                    geometry: &part.geometry,
+                })
+                .collect();
+            let pack = if graphics.asset_pack {
+                Pack::for_models(&source.vram, &sources)?
+            } else {
+                Pack::default()
+            };
+            let mut meshes = Meshes::build(&source.vram, &pack, graphics, sources, true)?;
+            meshes.detach_textures();
+            if graphics.asset_pack {
+                meshes.replace_textures(&pack);
+            }
+            for part in parts {
+                imported_geometry.insert(part.geometry.as_ptr() as usize, imported.len());
+            }
+            imported.push(meshes);
+        }
         Ok(Self {
-            replacements: world.replacements,
+            replacements: world.replacements
+                + imported.iter().map(|m| m.replacements).sum::<usize>(),
             grapple: graphics.models.grapple,
             world,
+            imported,
+            imported_geometry,
             player: None,
             motion: Default::default(),
         })
@@ -95,6 +128,9 @@ impl Models {
 
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
         self.world.bind(&mut bind);
+        for meshes in &mut self.imported {
+            meshes.bind(&mut bind);
+        }
         if let Some(player) = &mut self.player {
             player.meshes.bind(bind);
         }
@@ -125,6 +161,9 @@ impl Models {
         {
             return true;
         }
+        if let Some(&index) = self.imported_geometry.get(&(geometry.as_ptr() as usize)) {
+            return self.imported[index].visit(geometry, matrix, fog, required_flags, visit);
+        }
         self.world
             .visit(geometry, matrix, fog, required_flags, visit)
     }
@@ -133,6 +172,11 @@ impl Models {
         self.player
             .as_ref()
             .and_then(|p| p.meshes.motion.get(&geometry))
+            .or_else(|| {
+                self.imported_geometry
+                    .get(&geometry)
+                    .and_then(|&i| self.imported[i].motion.get(&geometry))
+            })
             .or_else(|| self.world.motion.get(&geometry))
             .map(Vec::as_slice)
     }

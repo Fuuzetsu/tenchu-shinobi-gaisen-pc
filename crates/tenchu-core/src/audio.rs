@@ -85,7 +85,9 @@ impl Game {
                 if sound > 5 && (self.cinematic.frame || actor.attribute & ATTR_SUSPEND != 0) {
                     continue;
                 }
-                let program = if (actor.kind as u16) < 2 {
+                let program = if let Some(program) = actor.voice_program {
+                    program
+                } else if (actor.kind as u16) < 2 {
                     5
                 } else {
                     6 + self

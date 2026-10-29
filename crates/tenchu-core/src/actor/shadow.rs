@@ -58,7 +58,7 @@ impl Actor {
                 }
             }
         } else {
-            let height = -i32::from(ctx.mission.models[&self.kind][0].position[1]);
+            let height = -i32::from(ctx.mission.models[&self.mesh_kind][0].position[1]);
             let rotation = if self.map.angle_high != 0 {
                 [256, ctx.body.reflect_angle[self.map.angle_high as usize], 0]
             } else {

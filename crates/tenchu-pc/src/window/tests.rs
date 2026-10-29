@@ -37,6 +37,10 @@ fn application(options: Options) -> Application {
             "tenchu-unused-test-presets-{}.json",
             std::process::id()
         ))),
+        randomizer: crate::randomizer::Editor::new(std::env::temp_dir().join(format!(
+            "tenchu-unused-test-randomizer-{}.json",
+            std::process::id()
+        ))),
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

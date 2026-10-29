@@ -30,6 +30,33 @@ pub struct Bank {
 }
 
 impl Bank {
+    pub fn import_program(&mut self, source: &Self, index: usize) -> Result<usize> {
+        let Some(mut program) = source
+            .programs
+            .get(index)
+            .ok_or("Invalid imported voice program")?
+            .clone()
+        else {
+            let index = self.programs.len();
+            self.programs.push(None);
+            return Ok(index);
+        };
+        let mut samples = std::collections::BTreeMap::new();
+        for tone in &mut program.tones {
+            tone.sample = *samples.entry(tone.sample).or_insert_with(|| {
+                let index = self.samples.len();
+                self.samples.push(source.samples[tone.sample].clone());
+                index
+            });
+        }
+        program.volume = (u16::from(program.volume) * u16::from(source.volume)
+            / u16::from(self.volume.max(1)))
+        .min(127) as u8;
+        let index = self.programs.len();
+        self.programs.push(Some(program));
+        Ok(index)
+    }
+
     pub fn parse(bytes: &[u8]) -> Result<Self> {
         let header = slice(bytes, 0, 32)?;
         if &header[..4] != b"pBAV" {
@@ -125,6 +152,60 @@ impl Bank {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn imported_voices_keep_sparse_slots_and_remap_shared_samples() {
+        let tone = Tone {
+            mode: 0,
+            volume: 127,
+            pan: 64,
+            center: 60,
+            fine: 0,
+            adsr: [0; 2],
+            sample: 1,
+        };
+        let source = Bank {
+            volume: 127,
+            pan: 64,
+            programs: vec![
+                None,
+                Some(Program {
+                    volume: 80,
+                    pan: 64,
+                    tones: vec![tone.clone(), tone],
+                }),
+            ],
+            samples: vec![
+                Sample {
+                    frames: vec![],
+                    loop_start: None,
+                },
+                Sample {
+                    frames: vec![10, -20, 30],
+                    loop_start: Some(1),
+                },
+            ],
+        };
+        let mut destination = Bank {
+            volume: 127,
+            pan: 64,
+            programs: vec![None; 128],
+            samples: vec![Sample {
+                frames: vec![777],
+                loop_start: None,
+            }],
+        };
+        assert_eq!(destination.import_program(&source, 0).unwrap(), 128);
+        assert!(destination.programs[128].is_none());
+        assert_eq!(destination.import_program(&source, 1).unwrap(), 129);
+        assert_eq!(destination.samples.len(), 2);
+        assert_eq!(destination.samples[0].frames, [777]);
+        let program = destination.programs[129].as_ref().unwrap();
+        assert!(program.tones.iter().all(|tone| tone.sample == 1));
+        assert_eq!(destination.samples[1].frames, [10, -20, 30]);
+        assert_eq!(destination.samples[1].loop_start, Some(1));
+        assert!(destination.import_program(&source, 2).is_err());
+    }
 
     #[test]
     fn sparse_tones_keep_their_sound_id_slots() {

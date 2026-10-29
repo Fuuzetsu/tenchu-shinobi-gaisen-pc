@@ -182,6 +182,9 @@ pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
         });
     }
     for (&kind, parts) in &mission.models {
+        if mission.imported_models.contains_key(&kind) {
+            continue;
+        }
         for (index, part) in parts.iter().enumerate() {
             out.push(ModelSource {
                 id: format!("actors/{kind:04x}/{index}"),

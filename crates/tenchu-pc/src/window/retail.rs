@@ -209,6 +209,7 @@ impl Recorder {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                randomizer: None,
                 benchmarks: None,
                 presets: None,
                 controls: None,

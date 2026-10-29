@@ -22,6 +22,7 @@ pub(super) struct Extras<'a> {
     pub benchmarks: Option<&'a mut super::benchmark::Benchmarks>,
     pub presets: Option<&'a mut crate::settings::library::Manager>,
     pub controls: Option<&'a mut crate::controls::Controls>,
+    pub randomizer: Option<crate::randomizer::MenuState<'a>>,
     pub models: Option<crate::visuals::appearance::picker::State<'a>>,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
@@ -36,6 +37,7 @@ pub(super) struct Updates {
     demo: Option<crate::demo::overlay::Action>,
     frontend: Option<crate::campaign::Action>,
     cancel_benchmark: bool,
+    randomizer: Option<crate::randomizer::Event>,
 }
 
 impl Overlay {
@@ -122,6 +124,7 @@ impl Overlay {
         if !self.editing()
             && menu.edit.is_none()
             && !extras.controls.as_ref().is_some_and(|c| c.editor.open)
+            && !extras.randomizer.as_ref().is_some_and(|r| r.editor.open)
         {
             input
                 .events
@@ -131,12 +134,15 @@ impl Overlay {
         let mut demo_action = None;
         let mut frontend_action = None;
         let mut cancel_benchmark = false;
+        let mut randomizer_action = None;
         let output = self.context.run(input, |ctx| {
             if let Some((frontend, campaign)) = &mut extras.frontend {
                 frontend_action = frontend.show(
                     ctx,
                     campaign,
-                    !menu.open && extras.demo.is_none(),
+                    !menu.open
+                        && extras.demo.is_none()
+                        && !extras.randomizer.as_ref().is_some_and(|r| r.editor.open),
                     extras.video_time.is_some(),
                     state.settings,
                 );
@@ -186,6 +192,21 @@ impl Overlay {
             {
                 controls.show_bindings(ctx);
             }
+            if let Some(randomizer) = &mut extras.randomizer {
+                if randomizer.launcher && !menu.open && !randomizer.editor.open {
+                    egui::Area::new("randomizer-launcher".into())
+                        .fixed_pos([14.0, 14.0])
+                        .show(ctx, |ui| {
+                            if ui.button("Randomizer…  F7").clicked() {
+                                edits.push(Edit::Randomizer);
+                            }
+                        });
+                }
+                randomizer_action =
+                    randomizer
+                        .editor
+                        .show(ctx, randomizer.catalog.as_ref(), randomizer.active);
+            }
             if show_performance != profiling {
                 edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
             }
@@ -219,6 +240,7 @@ impl Overlay {
             demo: demo_action,
             frontend: frontend_action,
             cancel_benchmark,
+            randomizer: randomizer_action,
         }
     }
 
@@ -230,6 +252,7 @@ impl Overlay {
 impl super::Application {
     pub(super) fn update_overlay(&mut self) {
         let was_open = self.menu.open;
+        let randomizer_was_open = self.randomizer.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let frontend_visible = self.frontend_visible();
         if (self.settings.model_moveset || self.campaign.game.moveset.kind.is_some())
@@ -258,10 +281,13 @@ impl super::Application {
                 .unwrap_or(false);
         if view.model_library.is_none()
             && assets_ready
-            && ((self.menu.open && self.menu.page == 10) || !self.settings.player_model.is_empty())
+            && ((self.menu.open && self.menu.page == 10)
+                || !self.settings.player_model.is_empty()
+                || self.randomizer.open)
             && let Err(error) =
                 view.load_model_library(&self.assets, &self.campaign.game, &self.settings)
         {
+            self.randomizer.notice = error.clone();
             self.menu.notice = error;
         }
         self.menu.player_models.clone_from(&view.player_models);
@@ -284,6 +310,21 @@ impl super::Application {
                 benchmarks: Some(&mut self.benchmarks),
                 presets: Some(&mut self.presets),
                 controls: Some(&mut self.controls),
+                randomizer: self.demo.is_none().then(|| crate::randomizer::MenuState {
+                    catalog: self
+                        .randomizer
+                        .open
+                        .then(|| {
+                            view.model_library.as_ref().map(|library| {
+                                crate::randomizer::Catalog::new(library, &self.campaign.stages)
+                            })
+                        })
+                        .flatten(),
+                    editor: &mut self.randomizer,
+                    active: self.campaign.randomized.as_ref().map(|r| (&r.run, &r.plan)),
+                    launcher: frontend_visible
+                        || matches!(self.campaign.screen, crate::campaign::Screen::Launcher),
+                }),
                 models: Some(crate::visuals::appearance::picker::State {
                     picker: &mut view.model_picker,
                     library: view.model_library.as_ref(),
@@ -299,6 +340,14 @@ impl super::Application {
                 },
             },
         );
+        if let Some(event) = updates.randomizer {
+            self.randomizer_action(event);
+            return;
+        }
+        if randomizer_was_open != self.randomizer.open {
+            self.sync_pause();
+            self.update_view();
+        }
         if updates.cancel_benchmark {
             if let Err(error) = self.finish_benchmark(Some("Cancelled by user".into())) {
                 self.pause_error(error);
@@ -341,6 +390,10 @@ impl super::Application {
                     self.controls.editor.open = true;
                     self.controls.cancel_capture();
                     self.controls.clear();
+                    Ok(())
+                }
+                Edit::Randomizer => {
+                    self.toggle_randomizer();
                     Ok(())
                 }
                 Edit::Reset(item) => self.reset_item(item),

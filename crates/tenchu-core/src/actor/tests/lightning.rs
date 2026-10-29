@@ -5,15 +5,45 @@ use crate::math::Position;
 #[test]
 #[ignore = "requires TENCHU_DISC; all four Mei-Oh attacks launch on frame thirteen and damage both characters through ordinary collision ticks"]
 fn mei_oh_lightning_attacks_launch_restrike_damage_and_expire() {
-    for character in 0..2 {
+    for (character, imported) in [(0, false), (1, false), (0, true), (1, true)] {
         for action in [
             MOT_ATTACK,
             MOT_ATTACK_SLASH2,
             MOT_ATTACK_SLASH3,
             MOT_ATTACK_SLASH4,
         ] {
-            let mut game = oracle::game(7, character);
-            let shooter = arena(&mut game, 0x88);
+            let mut game = oracle::game(if imported { 0 } else { 7 }, character);
+            let shooter = if imported {
+                let donor = oracle::game(7, character);
+                let definition = donor
+                    .mission
+                    .characters
+                    .iter()
+                    .find(|c| c.kind == 0x88)
+                    .unwrap()
+                    .clone();
+                let guard = game
+                    .roster
+                    .order
+                    .iter()
+                    .map(|&id| game.roster.get(id).kind)
+                    .find(|&kind| (0x10..0x80).contains(&kind))
+                    .unwrap();
+                let shooter = arena(&mut game, guard);
+                let source = game
+                    .mission
+                    .import_actor(
+                        definition,
+                        donor.mission.models[&0x88].clone(),
+                        &donor.mission.clips,
+                        std::sync::Arc::new(donor.mission.vram),
+                    )
+                    .unwrap();
+                game.replace_actor(shooter, source, 0).unwrap();
+                shooter
+            } else {
+                arena(&mut game, 0x88)
+            };
             game.camera.snap_pending = true;
             with_actor(&mut game, shooter, |actor, ctx, _| {
                 actor.attribute = ATTR_WEAPON_DRAWN;

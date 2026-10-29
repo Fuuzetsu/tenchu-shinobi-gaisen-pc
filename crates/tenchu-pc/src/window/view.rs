@@ -75,6 +75,7 @@ pub(super) struct View {
     pub(super) model_picker: crate::visuals::appearance::picker::Picker,
     pub(super) player_models: Vec<(String, String)>,
     player_selection: String,
+    pub(super) randomizer_player: Option<String>,
     model_options: ModelOptions,
     emitters: Emitters,
     surfaces: Option<crate::visuals::surfaces::Surfaces>,
@@ -396,6 +397,7 @@ impl View {
             model_picker: Default::default(),
             player_models,
             player_selection: settings.player_model.clone(),
+            randomizer_player: None,
             model_options: model_options(&settings.graphics),
             emitters,
             surfaces: None,
@@ -415,7 +417,10 @@ impl View {
         Ok(view)
     }
 
-    fn selected_player<'a>(&self, settings: &'a Settings) -> &'a str {
+    fn selected_player<'a>(&'a self, settings: &'a Settings) -> &'a str {
+        if let Some(selection) = &self.randomizer_player {
+            return selection;
+        }
         if self
             .model_library
             .as_ref()
@@ -475,7 +480,9 @@ impl View {
         if !directory.is_empty() && choices.iter().all(|(id, _)| !id.starts_with("pack:")) {
             return Err("This folder contains no compatible player_models; export assets to create a template".into());
         }
-        let selection = if choices.iter().any(|(id, _)| id == &settings.player_model)
+        let selection = if let Some(selection) = &self.randomizer_player {
+            selection.as_str()
+        } else if choices.iter().any(|(id, _)| id == &settings.player_model)
             || self
                 .model_library
                 .as_ref()
@@ -542,7 +549,7 @@ impl View {
             }),
             game,
         );
-        self.player_selection.clone_from(&settings.player_model);
+        self.player_selection = self.selected_player(settings).to_owned();
         self.model_options = model_options(&settings.graphics);
         self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
         self.renderer.set_emitters(&self.emitters);
@@ -656,10 +663,11 @@ impl View {
             self.reset_interpolation(game);
         }
         let options = model_options(&settings.graphics);
-        if options != self.model_options || self.player_selection != settings.player_model {
+        if options != self.model_options || self.player_selection != self.selected_player(settings)
+        {
             self.set_models(self.build_models(game, settings)?, game);
             self.model_options = options;
-            self.player_selection = settings.player_model.clone();
+            self.player_selection = self.selected_player(settings).to_owned();
             self.reset_interpolation(game);
             self.emitters = Emitters::build(game, &self.pack, settings.graphics.asset_pack);
             self.renderer.set_emitters(&self.emitters);
