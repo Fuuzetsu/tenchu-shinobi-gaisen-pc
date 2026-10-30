@@ -1,29 +1,21 @@
 use super::*;
 use crate::{ids::*, scene::COLLIDE};
 
-#[derive(Clone, Debug, Default)]
-pub struct Dog {
-    pub slave: Option<usize>,
-    pub remaining: u16,
-    pub player: usize,
-}
-
 impl Items {
     pub(super) fn finish_dog(
         &mut self,
-        id: usize,
+        used: Used<state::Dog>,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        let dog = &self.slots[id].dog;
-        if let Some(slave) = dog.slave {
+        if let state::Dog::Active { slave, player, .. } = used.phase {
             if actors.roster.actors.get(slave).is_none_or(Option::is_none)
                 && actors.active.as_ref().is_none_or(|a| a.id != slave)
             {
                 return Err("Summoned dog was removed before item disposal".into());
             }
             let actor = actors.get_mut(slave);
-            let action = actor.return_normal(ctx, dog.player)?;
+            let action = actor.return_normal(ctx, player)?;
             actor.enter(ctx, action, true);
             actor.attribute |= ATTR_SUSPEND;
             actor.position = [999000; 3].into();
@@ -42,7 +34,7 @@ impl Items {
     ) -> Result<()> {
         let item = &mut self.slots[id];
         match used.phase {
-            state::Dog::Thrown => {
+            state::Dog::Thrown { remaining, player } => {
                 let mut position = ctx.scene.models[item.model].local.translation;
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(item.model, position);
@@ -55,14 +47,16 @@ impl Items {
                     }
                     _ => {}
                 }
-                item.dog.remaining = item.dog.remaining.wrapping_sub(1);
-                if item.dog.remaining as i16 <= 0 {
-                    item.behavior = Behavior::Dog(used.with_phase(state::Dog::Summoning));
-                }
+                let remaining = remaining.wrapping_sub(1);
+                item.behavior = Behavior::Dog(used.with_phase(if remaining as i16 <= 0 {
+                    state::Dog::Summoning { player }
+                } else {
+                    state::Dog::Thrown { remaining, player }
+                }));
                 self.update_coordinate(id, ctx);
                 self.draw_icon(id, ctx)?;
             }
-            state::Dog::Summoning => {
+            state::Dog::Summoning { player } => {
                 if self
                     .dog_actor
                     .is_none_or(|a| !actors.roster.order.contains(&a))
@@ -80,15 +74,16 @@ impl Items {
                 if map.level < position[1].wrapping_sub(500)
                     || actors.get(slave).attribute & ATTR_SUSPEND == 0
                 {
-                    item.behavior = Behavior::Dog(used.with_phase(state::Dog::Thrown));
-                    item.dog.remaining = 15;
+                    item.behavior = Behavior::Dog(used.with_phase(state::Dog::Thrown {
+                        remaining: 15,
+                        player,
+                    }));
                     return Ok(());
                 }
                 position[1] = position[1].min(map.level);
                 ctx.effects
                     .smoke(position, [0, -50, 0], 10, 6, ctx.random)?;
                 ctx.effects.sounds.push((position, 0x23));
-                item.dog.slave = Some(slave);
                 let owner = actors.get(used.owner);
                 let (rotation, target) = (owner.rotation, owner.root_model);
                 let actor = actors.get_mut(slave);
@@ -106,20 +101,32 @@ impl Items {
                 ctx.scene.models[actor.parts[0]].attribute |= COLLIDE;
                 actor.hide_body(ctx.scene, false);
                 actor.velocity[1] = 0;
-                item.behavior = Behavior::Dog(used.with_phase(state::Dog::Active));
-                item.dog.remaining = 1800;
+                item.behavior = Behavior::Dog(used.with_phase(state::Dog::Active {
+                    slave,
+                    remaining: 1800,
+                    player,
+                }));
             }
-            state::Dog::Active => {
-                let slave = item.dog.slave.ok_or("Active dog summon has no actor")?;
-                if !actors.roster.order.contains(&slave) {
+            state::Dog::Active {
+                slave,
+                remaining,
+                player,
+            } => {
+                let present = actors.roster.order.contains(&slave);
+                if !present {
                     self.dispose(id, actors, ctx)?;
                 }
                 let item = &mut self.slots[id];
-                item.dog.remaining = item.dog.remaining.wrapping_sub(1);
+                let remaining = remaining.wrapping_sub(1);
+                if present {
+                    item.behavior = Behavior::Dog(used.with_phase(state::Dog::Active {
+                        slave,
+                        remaining,
+                        player,
+                    }));
+                }
                 let actor = actors.get(slave);
-                if item.dog.remaining as i16 <= 0
-                    || actor.health <= 0
-                    || actor.attribute & ATTR_SUSPEND != 0
+                if remaining as i16 <= 0 || actor.health <= 0 || actor.attribute & ATTR_SUSPEND != 0
                 {
                     let position = ctx.scene.models[actor.root_model].local.translation;
                     ctx.effects

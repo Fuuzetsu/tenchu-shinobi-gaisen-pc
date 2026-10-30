@@ -40,7 +40,7 @@ Model model={0};MotionManager motion={0};Humanoid human={&motion,&model,active};
 TItem item={.owner=&human,.proc=ProcItemGosin,.type=12,.mode=mode,.param.gosin={count}};
 seed=(uint32_t)initial;calls=n=0;parent=&model.locate;
 if(mode==255) {DISPOSE_ITEM((&item));}else ProcItemGosin(&item);
-printf("%d %d %d %d %d %d %d",item.mode,item.param.gosin.count,item.proc!=0,human.active_item,(int32_t)seed,calls,n);
+printf("%d %d %d %d %d %d %d",item.mode,item.proc ? item.param.gosin.count : 0,item.proc!=0,human.active_item,(int32_t)seed,calls,n);
 if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
 "#].concat();
     let mut game = oracle::game(0, 0);
@@ -64,7 +64,10 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
                     if mode != 255 {
                         items.slots[1].set_source_mode(mode);
                     }
-                    items.slots[1].charm_remaining = count;
+                    items.slots[1].behavior = Behavior::Charm(Used::new(
+                        player,
+                        state::Charm::Protected { remaining: count },
+                    ));
                     let owner = actors.get_mut(player);
                     owner.active_item = active;
                     let root = owner.root_model;
@@ -96,7 +99,7 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
                     });
                     let mut row = vec![
                         item.source_mode() as i32,
-                        item.charm_remaining as i32,
+                        item.charm_remaining() as i32,
                         i32::from(item.processor().is_some()),
                         actors.get(player).active_item as i32,
                         ctx.random.seed as i32,

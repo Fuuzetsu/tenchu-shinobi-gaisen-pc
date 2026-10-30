@@ -67,8 +67,17 @@ fn dog_summon_expires_and_reuses_the_parked_actor() {
             game.step(0).unwrap();
         }
         assert_eq!(game.items.slots[id].source_mode(), 2);
-        assert_eq!(game.items.slots[id].dog.remaining, 1800);
-        let dog = game.items.slots[id].dog.slave.unwrap();
+        assert!(matches!(
+            game.items.slots[id].behavior,
+            crate::items::Behavior::Dog(crate::items::Used {
+                phase: crate::items::state::Dog::Active {
+                    remaining: 1800,
+                    ..
+                },
+                ..
+            })
+        ));
+        let dog = game.items.slots[id].summoned_dog().unwrap();
         assert_eq!(game.roster.get(dog).kind, 0xa9);
         assert_eq!(game.roster.get(dog).health, game.roster.get(dog).max_health);
         assert_eq!(game.roster.get(dog).target, Some(game.player().root_model));
@@ -99,7 +108,7 @@ fn dog_summon_expires_and_reuses_the_parked_actor() {
             game.step(0).unwrap();
         }
         assert_eq!(game.items.slots[id].source_mode(), 2);
-        assert_eq!(game.items.slots[id].dog.slave, Some(dog));
+        assert_eq!(game.items.slots[id].summoned_dog(), Some(dog));
         assert_eq!(game.roster.order.len(), count);
         assert_eq!(game.player().inventory[16], 0);
     }

@@ -19,11 +19,7 @@ fn prepare(
         )
         .unwrap();
     let item = &mut items.slots[id];
-    item.set_source_mode(1);
-    item.dog = crate::items::dog::Dog {
-        player,
-        ..Default::default()
-    };
+    item.behavior = Behavior::Dog(Used::new(player, state::Dog::Summoning { player }));
     items
         .process(
             id,
@@ -35,7 +31,7 @@ fn prepare(
         )
         .unwrap();
     assert_eq!(items.slots[id].source_mode(), 2);
-    items.slots[id].dog.slave.unwrap()
+    items.slots[id].summoned_dog().unwrap()
 }
 
 #[test]
@@ -165,11 +161,8 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
                 ctx,
             )
             .unwrap();
-        items.slots[2].set_source_mode(1);
-        items.slots[2].dog = crate::items::dog::Dog {
-            player,
-            ..Default::default()
-        };
+        items.slots[2].behavior =
+            Behavior::Dog(Used::new(player, state::Dog::Summoning { player }));
         items
             .process(
                 2,
@@ -181,7 +174,13 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
             )
             .unwrap();
         assert_eq!(items.slots[2].source_mode(), 0);
-        assert_eq!(items.slots[2].dog.remaining, 15);
+        assert!(matches!(
+            items.slots[2].behavior,
+            Behavior::Dog(Used {
+                phase: state::Dog::Thrown { remaining: 15, .. },
+                ..
+            })
+        ));
         items.slots[2].rolling.status = RollingStatus::Settled;
         for id in 0..CAPACITY {
             if id != 1 && id != 2 {
@@ -215,7 +214,14 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
             items.dispose(id, actors, ctx).unwrap();
         }
         actors.get_mut(dog).inventory[3] = 2;
-        items.slots[1].dog.remaining = 1;
+        items.slots[1].behavior = Behavior::Dog(Used::new(
+            player,
+            state::Dog::Active {
+                slave: dog,
+                remaining: 1,
+                player,
+            },
+        ));
         items
             .process(
                 1,

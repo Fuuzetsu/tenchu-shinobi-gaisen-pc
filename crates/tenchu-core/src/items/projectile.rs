@@ -61,7 +61,7 @@ impl Items {
     ) -> Result<()> {
         let behavior = match kind {
             1 => Behavior::Shuriken { owner: owner_id },
-            20 => Behavior::Gun(Used::new(owner_id, state::Gun::Muzzle)),
+            20 => Behavior::Gun(Used::new(owner_id, state::Gun::Muzzle { target: end })),
             21 => Behavior::Arrow(Used::new(owner_id, state::Arrow::Flying)),
             _ => return Err(format!("Invalid projectile kind {kind}")),
         };
@@ -84,7 +84,7 @@ impl Items {
                         Some(Trail::new(self.meshes[0], [[20, 0, 0], [-20, 0, 0]]));
                 }
             }
-            20 => self.slots[id].gun_target = end,
+            20 => {}
             _ => unreachable!(),
         }
         Ok(())
@@ -306,7 +306,7 @@ impl Items {
         let model = item.model;
         let position = ctx.scene.models[model].local.translation;
         match used.phase {
-            state::Gun::Muzzle => {
+            state::Gun::Muzzle { target } => {
                 ctx.effects.impact(position, 8192, 0, ctx.random);
                 ctx.effects.scatter_bleeds(
                     position,
@@ -319,10 +319,11 @@ impl Items {
                     },
                     ctx.random,
                 );
-                self.slots[id].behavior = Behavior::Gun(used.with_phase(state::Gun::Impact));
+                self.slots[id].behavior =
+                    Behavior::Gun(used.with_phase(state::Gun::Impact { target }));
             }
-            state::Gun::Impact => {
-                let rotation = ctx.math.vector_rotation(position, item.gun_target)?;
+            state::Gun::Impact { target: aim } => {
+                let rotation = ctx.math.vector_rotation(position, aim)?;
                 let (hit, position) = target(owner.id, rotation, position, actors, ctx)?;
                 ctx.scene.set_translation(model, position);
                 self.contact(id, 100, collision::HIT, ctx)?;

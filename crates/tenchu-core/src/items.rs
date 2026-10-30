@@ -23,7 +23,7 @@ mod sleep;
 mod smoke;
 mod speed;
 mod sprite;
-mod state;
+pub mod state;
 mod teleport;
 #[cfg(test)]
 mod tests;
@@ -91,12 +91,9 @@ pub struct Item {
     pub collision: Contact,
     pub rolling: Rolling,
     pub count: u8,
-    pub charm_remaining: u16,
     pub decoy: decoy::Decoy,
-    pub dog: dog::Dog,
     pub lightning: lightning::Lightning,
     pub flight: Flight,
-    pub gun_target: Position,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
     pub poison: poison::Poison,
@@ -108,6 +105,25 @@ impl Item {
     pub fn owner(&self) -> Option<usize> {
         self.behavior.owner()
     }
+    pub fn summoned_dog(&self) -> Option<usize> {
+        match self.behavior {
+            Behavior::Dog(Used {
+                phase: state::Dog::Active { slave, .. },
+                ..
+            }) => Some(slave),
+            _ => None,
+        }
+    }
+    pub fn charm_remaining(&self) -> u16 {
+        match self.behavior {
+            Behavior::Charm(Used {
+                phase: state::Charm::Protected { remaining },
+                ..
+            }) => remaining,
+            _ => 0,
+        }
+    }
+
     pub fn processor(&self) -> Option<Processor> {
         self.behavior.processor()
     }
@@ -180,12 +196,9 @@ impl Items {
                 collision: Contact::default(),
                 rolling: Rolling::default(),
                 count: 0,
-                charm_remaining: 0,
                 decoy: decoy::Decoy::default(),
-                dog: dog::Dog::default(),
                 lightning: lightning::Lightning::default(),
                 flight: Flight::default(),
-                gun_target: Position::ZERO,
                 trail: None,
                 rotation: [0; 3],
                 poison: poison::Poison::default(),
@@ -260,7 +273,7 @@ impl Items {
             Behavior::Breath(used) => self.finish_breath(id, used.owner, actors, ctx)?,
             Behavior::Decoy(..) => self.finish_decoy(id, actors),
             Behavior::Disguise(used) => self.finish_disguise(id, used.owner, actors, ctx)?,
-            Behavior::Dog(..) => self.finish_dog(id, actors, ctx)?,
+            Behavior::Dog(used) => self.finish_dog(used, actors, ctx)?,
             Behavior::SightShot { owner } => actors.get_mut(owner).aiming = false,
             Behavior::Shuriken { .. } | Behavior::Darts { .. } => self.slots[id].trail = None,
             Behavior::Charm(used) => actors.get_mut(used.owner).active_item = 0,

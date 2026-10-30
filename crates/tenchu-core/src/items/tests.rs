@@ -748,8 +748,12 @@ fn behavior(processor: Processor, owner: Option<usize>, mode: u8) -> Behavior {
         Processor::Gun => Behavior::Gun(Used {
             owner: owner.unwrap(),
             phase: match mode {
-                0 => state::Gun::Muzzle,
-                1 => state::Gun::Impact,
+                0 => state::Gun::Muzzle {
+                    target: Position::ZERO,
+                },
+                1 => state::Gun::Impact {
+                    target: Position::ZERO,
+                },
                 2 => state::Gun::Finished,
                 _ => panic!("invalid Gun mode {mode}"),
             },
@@ -875,7 +879,7 @@ fn behavior(processor: Processor, owner: Option<usize>, mode: u8) -> Behavior {
             phase: match mode {
                 0 => state::Charm::Begin,
                 1 => state::Charm::Casting,
-                2 => state::Charm::Protected,
+                2 => state::Charm::Protected { remaining: 0 },
                 _ => panic!("invalid Charm mode {mode}"),
             },
         }),
@@ -901,9 +905,13 @@ fn behavior(processor: Processor, owner: Option<usize>, mode: u8) -> Behavior {
         Processor::Dog => Behavior::Dog(Used {
             owner: owner.unwrap(),
             phase: match mode {
-                0 => state::Dog::Thrown,
-                1 => state::Dog::Summoning,
-                2 => state::Dog::Active,
+                0 => state::Dog::Thrown {
+                    remaining: 0,
+                    player: owner.unwrap(),
+                },
+                1 => state::Dog::Summoning {
+                    player: owner.unwrap(),
+                },
                 _ => panic!("invalid Dog mode {mode}"),
             },
         }),

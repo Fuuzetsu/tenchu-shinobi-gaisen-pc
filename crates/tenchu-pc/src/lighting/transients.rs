@@ -1,6 +1,10 @@
 use super::{Light, Source};
 use glam::Vec3;
-use tenchu_core::{effects::Effect, game::Game, items::Processor};
+use tenchu_core::{
+    effects::Effect,
+    game::Game,
+    items::{Behavior, Used, state::Napalm},
+};
 
 pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
     let mut lights: Vec<Source> = Vec::new();
@@ -61,7 +65,13 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
         );
     }
     for item in &game.items.slots {
-        if item.processor() != Some(Processor::Napalm) || item.source_mode() != 1 {
+        if !matches!(
+            item.behavior,
+            Behavior::Napalm(Used {
+                phase: Napalm::Flying,
+                ..
+            })
+        ) {
             continue;
         }
         if let Some(model) = game.scene.models.get(item.model) {

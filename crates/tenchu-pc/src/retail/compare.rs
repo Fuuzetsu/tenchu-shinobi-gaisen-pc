@@ -269,7 +269,15 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                     equal!(item.count, ram.byte(params + 0x18));
                 }
                 Processor::Charm => {
-                    equal!(item.charm_remaining, ram.short(params) as u16);
+                    if matches!(
+                        item.behavior,
+                        tenchu_core::items::Behavior::Charm(tenchu_core::items::Used {
+                            phase: tenchu_core::items::state::Charm::Protected { .. },
+                            ..
+                        })
+                    ) {
+                        equal!(item.charm_remaining(), ram.short(params) as u16);
+                    }
                 }
                 Processor::Poison => {
                     equal!(item.poison.remaining, ram.short(params + 0x14));
@@ -281,7 +289,15 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                     }
                 }
                 Processor::Gun => {
-                    equal!(item.gun_target, ram.vector(params));
+                    if let tenchu_core::items::Behavior::Gun(tenchu_core::items::Used {
+                        phase:
+                            tenchu_core::items::state::Gun::Muzzle { target }
+                            | tenchu_core::items::state::Gun::Impact { target },
+                        ..
+                    }) = item.behavior
+                    {
+                        equal!(target, ram.vector(params));
+                    }
                 }
                 _ => {}
             }

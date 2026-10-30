@@ -56,7 +56,7 @@ pub fn game(game: &Game) -> Value {
                 "velocity": i.rolling.velocity, "rolling_status": i.rolling.status.source_id(),
                 "collision": {"class": i.collision.class, "paused": i.collision.paused,
                     "size": i.collision.size, "offset_y": i.collision.offset_y},
-                "charm_remaining": i.charm_remaining,
+                "charm_remaining": i.charm_remaining(),
                 "lightning_start": position(i.lightning.start),
             })
         })

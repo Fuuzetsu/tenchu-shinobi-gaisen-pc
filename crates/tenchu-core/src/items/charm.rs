@@ -42,12 +42,13 @@ impl Items {
                     ctx.random,
                 );
                 owner.active_item = item.kind as i16;
-                self.slots[id].charm_remaining = 450;
-                self.slots[id].behavior = Behavior::Charm(used.with_phase(state::Charm::Protected));
+                self.slots[id].behavior =
+                    Behavior::Charm(used.with_phase(state::Charm::Protected { remaining: 450 }));
             }
-            state::Charm::Protected => {
-                let remaining = item.charm_remaining.wrapping_sub(1);
-                self.slots[id].charm_remaining = remaining;
+            state::Charm::Protected { remaining } => {
+                let remaining = remaining.wrapping_sub(1);
+                self.slots[id].behavior =
+                    Behavior::Charm(used.with_phase(state::Charm::Protected { remaining }));
                 if remaining == 0 {
                     return self.dispose(id, actors, ctx);
                 }

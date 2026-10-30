@@ -1,4 +1,5 @@
 use super::Processor;
+use crate::math::Position;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Used<P> {
@@ -24,8 +25,8 @@ pub enum Arrow {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Gun {
-    Muzzle,
-    Impact,
+    Muzzle { target: Position },
+    Impact { target: Position },
     Finished,
 }
 
@@ -123,7 +124,7 @@ pub enum Speed {
 pub enum Charm {
     Begin,
     Casting,
-    Protected,
+    Protected { remaining: u16 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -143,9 +144,18 @@ pub enum Disguise {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dog {
-    Thrown,
-    Summoning,
-    Active,
+    Thrown {
+        remaining: u16,
+        player: usize,
+    },
+    Summoning {
+        player: usize,
+    },
+    Active {
+        slave: usize,
+        remaining: u16,
+        player: usize,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -290,8 +300,8 @@ impl Behavior {
                 Arrow::Fading => 2,
             },
             Self::Gun(Used { phase, .. }) => match phase {
-                Gun::Muzzle => 0,
-                Gun::Impact => 1,
+                Gun::Muzzle { .. } => 0,
+                Gun::Impact { .. } => 1,
                 Gun::Finished => 2,
             },
             Self::Medicine(Used { phase, .. }) => match phase {
@@ -361,7 +371,7 @@ impl Behavior {
             Self::Charm(Used { phase, .. }) => match phase {
                 Charm::Begin => 0,
                 Charm::Casting => 1,
-                Charm::Protected => 2,
+                Charm::Protected { .. } => 2,
             },
             Self::Decoy(Used { phase, .. }) => match phase {
                 Decoy::Fuse => 0,
@@ -375,9 +385,9 @@ impl Behavior {
                 Disguise::Active => 3,
             },
             Self::Dog(Used { phase, .. }) => match phase {
-                Dog::Thrown => 0,
-                Dog::Summoning => 1,
-                Dog::Active => 2,
+                Dog::Thrown { .. } => 0,
+                Dog::Summoning { .. } => 1,
+                Dog::Active { .. } => 2,
             },
             Self::Lightning(Used { phase, .. }) => match phase {
                 Lightning::Begin => 0,

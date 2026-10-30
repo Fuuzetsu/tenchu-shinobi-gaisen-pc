@@ -319,7 +319,13 @@ impl Items {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(
                     id,
-                    Behavior::Dog(Used::new(owner_id, state::Dog::Thrown)),
+                    Behavior::Dog(Used::new(
+                        owner_id,
+                        state::Dog::Thrown {
+                            remaining: 15,
+                            player,
+                        },
+                    )),
                     kind,
                     start,
                     ctx,
@@ -329,11 +335,6 @@ impl Items {
                 item.rolling = Rolling {
                     velocity: [velocity[0] as i16, -250, velocity[2] as i16],
                     ..Rolling::default()
-                };
-                item.dog = dog::Dog {
-                    slave: None,
-                    remaining: 15,
-                    player,
                 };
                 actors
                     .get_mut(owner_id)
