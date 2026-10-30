@@ -52,6 +52,7 @@ pub struct Search<'a> {
     pub clock: i32,
     pub alert: i32,
     pub range_percent: u16,
+    pub all_active: bool,
 }
 
 pub struct Profile {
@@ -85,17 +86,18 @@ impl Sight {
             clock,
             alert,
             range_percent,
+            all_active,
         } = search;
         let Some(target) = target else {
             return Ok(Detection::None);
         };
         let position = owner.position;
         let delta: Position = target.wrapping_sub(position);
-        self.distance = ctx.math.square_root(
-            delta
-                .iter()
-                .fold(0i32, |sum, &n| sum.wrapping_add(n.wrapping_mul(n))),
-        );
+        self.distance = if all_active {
+            ctx.math.length_wide(delta)
+        } else {
+            ctx.math.length(delta)
+        };
         self.direction = ctx.math.direction(delta.x, delta.z, owner.rotation[1])?;
         let slot = ctx.scene.models[owner.parts[0]]
             .conflict

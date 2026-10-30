@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix distant actors wrapping into nearby detection/target ranges with “Keep all
+  enemies active”. Remote patrols no longer hear every local alarm or keep the
+  player's radar alerted across the map; default PS1 activation is unchanged.
+
 - Correct stage-end actor control after player death, including guards sheathing
   their weapons. Reference replays now restore equipped armour correctly.
 

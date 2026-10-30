@@ -6,6 +6,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct Roster {
+    pub keep_all_active: bool,
     pub actors: Vec<Option<Actor>>,
     pub order: Vec<usize>,
     reserved: Option<usize>,
@@ -43,6 +44,14 @@ impl<'a> Actors<'a> {
 }
 
 impl Roster {
+    pub(crate) fn distance(&self, math: &crate::math::Math, delta: Position) -> i32 {
+        if self.keep_all_active {
+            math.length_wide(delta)
+        } else {
+            math.length(delta)
+        }
+    }
+
     pub(crate) fn begin_tick(&mut self) {
         for id in self.retired.drain(..) {
             self.actors[id] = None;
@@ -98,11 +107,14 @@ impl Roster {
             {
                 continue;
             }
-            let d = math.length(Position::new(
-                other.position.x.wrapping_sub(actor.position.x),
-                0,
-                other.position.z.wrapping_sub(actor.position.z),
-            ));
+            let d = self.distance(
+                math,
+                Position::new(
+                    other.position.x.wrapping_sub(actor.position.x),
+                    0,
+                    other.position.z.wrapping_sub(actor.position.z),
+                ),
+            );
             if d < i32::from(range) && d < distance {
                 best = Some(id);
                 distance = d;

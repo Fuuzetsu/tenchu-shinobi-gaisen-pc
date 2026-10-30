@@ -106,11 +106,11 @@ impl Application {
     }
 
     pub(super) fn keep_enemies_active(&mut self, enabled: bool) {
-        if self.campaign.game.activation.keep_all_active != enabled {
+        if self.campaign.game.roster.keep_all_active != enabled {
             self.stop_edited_recording();
         }
         self.settings.keep_enemies_active = enabled;
-        self.campaign.game.activation.keep_all_active = enabled;
+        self.campaign.game.roster.keep_all_active = enabled;
     }
 
     fn teleport(&mut self) -> Result<()> {
@@ -168,7 +168,7 @@ impl Application {
         {
             self.menu.notice = error;
             self.settings = previous.clone();
-            self.campaign.game.activation.keep_all_active = previous.keep_enemies_active;
+            self.campaign.game.roster.keep_all_active = previous.keep_enemies_active;
             self.set_sight(previous.sight_percent);
             let _ = self.sync_model_moveset();
             return;

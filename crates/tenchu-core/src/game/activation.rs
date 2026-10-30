@@ -11,19 +11,12 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Activation {
-    pub keep_all_active: bool,
     pub raw_budget: i16,
     pub budget: i16,
     pub count: i16,
 }
 
 impl Activation {
-    fn keeps_active(&self, actor: &crate::actor::Actor) -> bool {
-        self.keep_all_active
-            && (actor.script_kind.is_some() || !matches!(actor.kind, 0 | 1 | 0xa9))
-            && actor.health >= 0
-    }
-
     fn update_budget(&mut self, bytes: u32) {
         self.raw_budget = ((60536 - bytes as i32) / 5000 - 1) as i16;
         self.budget = if self.raw_budget < 2 {
@@ -37,11 +30,20 @@ impl Activation {
 }
 
 impl Game {
+    fn keeps_active(&self, id: usize) -> bool {
+        let actor = self.roster.get(id);
+        self.roster.keep_all_active
+            && id != self.player_id
+            && (actor.script_kind.is_some() || actor.kind != 0xa9)
+            && actor.health >= 0
+    }
+
     pub(super) fn activate(&mut self) -> Result<()> {
-        if self.activation.keep_all_active {
+        if self.roster.keep_all_active {
             for &id in &self.roster.order {
+                let keep_active = self.keeps_active(id);
                 let actor = self.roster.actors[id].as_mut().unwrap();
-                if self.activation.keeps_active(actor) && actor.attribute & ATTR_SUSPEND != 0 {
+                if keep_active && actor.attribute & ATTR_SUSPEND != 0 {
                     actor.attribute &= !ATTR_SUSPEND;
                     self.scene.models[actor.parts[0]].attribute |= COLLIDE;
                 }
@@ -64,12 +66,13 @@ impl Game {
             if id == focus {
                 continue;
             }
+            let keep_active = self.keeps_active(id);
             let actor = self.roster.actors[id].as_mut().unwrap();
             let distance = self.math.vector_distance(Position::from_fn(|i| {
                 actor.position[i].wrapping_sub(position[i])
             }));
             let suspended = actor.attribute & ATTR_SUSPEND != 0;
-            let active = if self.activation.keeps_active(actor) {
+            let active = if keep_active {
                 true
             } else if distance > 17000 {
                 false

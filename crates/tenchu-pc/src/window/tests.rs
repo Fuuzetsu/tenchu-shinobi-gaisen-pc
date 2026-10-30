@@ -239,9 +239,9 @@ fn live_settings_keep_simulating_without_menu_input() {
 fn all_enemy_activation_survives_layouts_and_mission_reloads() {
     let mut app = application(Options::default());
     app.apply_item(Item::KeepEnemiesActive, 1).unwrap();
-    assert!(app.campaign.game.activation.keep_all_active);
+    assert!(app.campaign.game.roster.keep_all_active);
     app.reset_item(Item::KeepEnemiesActive).unwrap();
-    assert!(!app.campaign.game.activation.keep_all_active);
+    assert!(!app.campaign.game.roster.keep_all_active);
     let saved: Settings = serde_json::from_str(r#"{"keep_enemies_active":true}"#).unwrap();
     assert!(saved.keep_enemies_active);
     for mission in 0..=10 {
@@ -254,7 +254,7 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
                     ..Default::default()
                 };
                 let mut game = options.load(&app.assets).unwrap();
-                game.activation.keep_all_active = true;
+                game.roster.keep_all_active = true;
                 game.events = Default::default();
                 for _ in 0..300 {
                     game.step(0).unwrap_or_else(|e| {
@@ -274,9 +274,9 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
     app.campaign.screen = Screen::Launcher;
     app.action(Action::Confirm);
     app.action(Action::Confirm);
-    assert!(app.campaign.game.activation.keep_all_active);
+    assert!(app.campaign.game.roster.keep_all_active);
     app.apply_item(Item::ResetTweaks, 1).unwrap();
-    assert!(!app.settings.keep_enemies_active && !app.campaign.game.activation.keep_all_active);
+    assert!(!app.settings.keep_enemies_active && !app.campaign.game.roster.keep_all_active);
 }
 
 #[test]
@@ -367,7 +367,7 @@ fn remake_presets_keep_graphics_inventory_and_gameplay_separate() {
     app.set_gameplay_preset(0).unwrap();
     assert!(!app.campaign.game.player().invulnerable);
     assert!(!app.campaign.game.intelligence.ignore_player);
-    assert!(!app.campaign.game.activation.keep_all_active);
+    assert!(!app.campaign.game.roster.keep_all_active);
     assert!(!app.debug.click_teleport);
     assert_eq!(app.settings.sight_percent, 100);
     assert_eq!(app.debug.inventory, inventory);

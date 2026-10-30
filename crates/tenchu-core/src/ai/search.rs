@@ -20,7 +20,7 @@ impl Controller<'_, '_> {
             }
             return Ok(self.goto(0, 0)? & (LEFT | RIGHT));
         }
-        if self.state.alert != 0 {
+        if self.hears_alert() {
             if self.state.detection == Detection::Seen {
                 self.attribute = base | 2;
             }

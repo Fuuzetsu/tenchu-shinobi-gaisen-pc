@@ -50,6 +50,18 @@ impl Math {
         }
     }
 
+    pub fn length_wide(&self, delta: Position) -> i32 {
+        let squared: u64 = delta
+            .into_iter()
+            .map(|v| u64::from(v.unsigned_abs()).pow(2))
+            .sum();
+        if let Ok(squared) = i32::try_from(squared) {
+            self.square_root(squared)
+        } else {
+            squared.isqrt().min(i32::MAX as u64) as i32
+        }
+    }
+
     pub fn normalize_short(&self, vector: [i16; 3]) -> [i16; 3] {
         let sum = vector.into_iter().fold(0i32, |sum, value| {
             let value = i32::from(value);

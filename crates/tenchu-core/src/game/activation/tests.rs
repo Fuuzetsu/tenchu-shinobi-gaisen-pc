@@ -139,7 +139,6 @@ int main(void) {{
             budget: [0, 3, 4, 5, 6, -1, i16::MAX, i16::MIN][case % 8],
             raw_budget: -7,
             count: 9,
-            ..Activation::default()
         };
         let action = if case & 8 == 0 { 0xf05 } else { 0x500 };
         game.roster.get_mut(game.player_id).motion.action = action;
@@ -272,7 +271,7 @@ fn always_active_runs_distant_ai_and_restores_retail_activation() {
         .map(|id| (id, game.roster.get(id).attribute))
         .collect();
     let slots = game.collision.len;
-    game.activation.keep_all_active = true;
+    game.roster.keep_all_active = true;
     game.clock = 31;
     game.activate().unwrap();
     assert_eq!(
@@ -304,8 +303,111 @@ fn always_active_runs_distant_ai_and_restores_retail_activation() {
     );
     assert_eq!(reference.roster.get(guard).position, position);
     assert_ne!(reference.roster.get(guard).attribute & ATTR_SUSPEND, 0);
-    game.activation.keep_all_active = false;
+    game.roster.keep_all_active = false;
     game.clock = 210;
     game.activate().unwrap();
     assert_ne!(game.roster.get(guard).attribute & ATTR_SUSPEND, 0);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; wide-world target selection must not wrap distant actors into melee range"]
+fn all_active_distances_and_nearest_targets_do_not_wrap() {
+    let mut game = oracle::game(2, 1);
+    for delta in [
+        Position::new(65536, 0, 0),
+        Position::new(-65536, 0, 65536),
+        Position::new(90000, 22000, 140000),
+    ] {
+        assert!(game.math.length_wide(delta) > 60000);
+    }
+    assert_eq!(
+        game.math
+            .length_wide(Position::new(i32::MIN, i32::MIN, i32::MIN)),
+        i32::MAX
+    );
+    for x in (-20000..20000).step_by(137) {
+        let delta = Position::new(x, x / 3, -x / 2);
+        assert_eq!(game.math.length_wide(delta), game.math.length(delta));
+    }
+    let enemies: Vec<_> = game
+        .roster
+        .order
+        .iter()
+        .copied()
+        .filter(|&id| {
+            let a = game.roster.get(id);
+            a.kind & 0xf0 == 0x10 && a.health > 0
+        })
+        .take(2)
+        .collect();
+    let player = game.player_id;
+    game.roster.order = vec![player, enemies[0], enemies[1]];
+    let origin = game.player().position;
+    game.roster.get_mut(player).map.height = 0;
+    for (id, x) in enemies.into_iter().zip([65536, 1200]) {
+        let actor = game.roster.get_mut(id);
+        actor.attribute &= !ATTR_SUSPEND;
+        actor.position = origin.wrapping_add(Position::new(x, 0, 0));
+    }
+    game.roster.keep_all_active = true;
+    assert_eq!(
+        game.roster.nearest(game.player(), 2000, &game.math),
+        Some(game.roster.order[2])
+    );
+    game.roster.get_mut(game.roster.order[2]).position.x += 2000;
+    assert_eq!(game.roster.nearest(game.player(), 2000, &game.math), None);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; distant patrols must not hear every alert or hold the player's radar"]
+fn all_active_remote_patrol_ignores_local_alarm_and_radar_recovers() {
+    let mut game = oracle::game(2, 1);
+    let guard = game
+        .roster
+        .order
+        .iter()
+        .copied()
+        .find(|&id| {
+            let actor = game.roster.get(id);
+            actor.kind & 0xf0 == 0x10
+                && actor.patrol.is_some()
+                && game
+                    .math
+                    .length_wide(actor.position.wrapping_sub(game.player().position))
+                    > 90000
+        })
+        .unwrap();
+    let player = game.player_id;
+    {
+        let mut ctx = crate::actor::Context {
+            mission: &mut game.mission,
+            math: &game.math,
+            body: &game.body,
+            cursor: &mut game.cursor,
+            random: &mut game.random,
+            effects: &mut game.effects,
+            scene: &mut game.scene,
+            collision: &mut game.collision,
+            camera: &mut game.camera,
+            drawing: &mut game.drawing,
+        };
+        for id in game.roster.order.clone() {
+            if id != player && id != guard {
+                game.roster.remove(id, &mut ctx);
+            }
+        }
+    }
+    let start = game.roster.get(guard).position;
+    game.roster.keep_all_active = true;
+    game.intelligence.reset_alert();
+    for _ in 0..600 {
+        game.step(0).unwrap();
+        assert_eq!(game.roster.get(guard).attribute & crate::ids::ATTR_PHASE, 0);
+        assert_eq!(game.intelligence.found, 0);
+        assert_eq!(game.intelligence.strain, i32::MAX);
+        assert_eq!(game.roster.order.len(), 2);
+    }
+    assert_ne!(game.roster.get(guard).position, start);
+    assert_eq!(game.intelligence.alert, 0);
+    assert_eq!(game.player().health, 100);
 }

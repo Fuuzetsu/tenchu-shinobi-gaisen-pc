@@ -74,7 +74,7 @@ pub fn game(game: &Game) -> Value {
             "action_halt": ai.action_halt, "attack_clock": ai.attack_clock,
             "detection": format!("{:?}", ai.detection), "probe": ai.probe,
             "probe_attribute": ai.probe_attribute, "population_delta": ai.population_delta},
-        "activation": {"keep_all_active": game.activation.keep_all_active,
+        "activation": {"keep_all_active": game.roster.keep_all_active,
             "raw_budget": game.activation.raw_budget, "budget": game.activation.budget,
             "count": game.activation.count},
         "statistics": {"enemies": game.statistics.enemies, "citizens": game.statistics.citizens,

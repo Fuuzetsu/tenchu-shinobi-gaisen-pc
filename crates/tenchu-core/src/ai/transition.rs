@@ -3,7 +3,12 @@ use crate::math::Position;
 
 impl Controller<'_, '_> {
     pub fn update(&mut self) -> Result<()> {
+        let strain = self.state.strain;
+        let distant = !self.nearby_player();
         let result = self.transition();
+        if distant {
+            self.state.strain = strain;
+        }
         if let Some(mut caller) = self.replaced.take() {
             std::mem::swap(self.actor, &mut caller);
             let id = caller.id;
@@ -63,6 +68,7 @@ impl Controller<'_, '_> {
                 clock: self.clock,
                 alert: self.state.alert,
                 range_percent: self.state.sight_percent,
+                all_active: self.roster.keep_all_active,
             },
             self.ctx,
         )?;
@@ -80,7 +86,7 @@ impl Controller<'_, '_> {
                 self.state.alert = 0;
                 self.state.detection = Detection::Gone;
             }
-        } else if self.state.alert != 0 {
+        } else if self.hears_alert() {
             if self.state.alert == 1 {
                 self.state.detection = Detection::Unseen;
             } else if self.attribute & ATTR_PHASE == 0 {
@@ -157,7 +163,7 @@ impl Controller<'_, '_> {
                 pad
             }
             1 => {
-                let pad = if self.state.alert != 0 || self.attribute & ATTR_SEARCH != 0 {
+                let pad = if self.hears_alert() || self.attribute & ATTR_SEARCH != 0 {
                     if self.state.strain > 0 {
                         self.state.strain = -32768;
                     }
@@ -186,7 +192,7 @@ impl Controller<'_, '_> {
                         self.alert();
                         self.found();
                     }
-                } else if self.state.alert < 2
+                } else if (!self.hears_alert() || self.state.alert < 2)
                     && matches!(self.state.detection, Detection::Gone | Detection::Unseen)
                 {
                     if self.actor.kind & 0xf0 != 0x80 {

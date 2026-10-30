@@ -328,7 +328,7 @@ pub fn build_presented(
     }
     crate::visuals::appearance::visit_parts(
         game,
-        inspection || game.activation.keep_all_active,
+        inspection || game.roster.keep_all_active,
         models,
         frame,
         |key, meshes, matrix| {

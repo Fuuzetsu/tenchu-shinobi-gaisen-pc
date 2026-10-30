@@ -194,7 +194,7 @@ impl Run {
         )?;
         game.intelligence.difficulty = plan.options(language).difficulty;
         game.intelligence.sight_percent = plan.sight;
-        game.activation.keep_all_active = rules.keep_active;
+        game.roster.keep_all_active = rules.keep_active;
         game.combat.armor = plan.inventory[19] != 0;
         let player = game.roster.get_mut(game.player_id);
         player.inventory[..19].copy_from_slice(&plan.inventory[..19]);

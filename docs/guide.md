@@ -1091,6 +1091,10 @@ actors still follow their cutscenes and spawn rules. This changes gameplay/RNG;
 it ends an active recording, and new recordings require original enemy settings.
 Turning it off restores the normal activation policy at its next periodic check;
 it does not undo movement or events that have already happened.
+Whole-level mode uses wider distance calculations for distant AI, targeting and
+corpse witnesses. Remote actors keep patrolling instead of reacting to every
+local alarm; actors beyond the awareness radius cannot hold the player's radar
+alerted. Nearby actors retain their usual sight/occlusion and combat rules.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general

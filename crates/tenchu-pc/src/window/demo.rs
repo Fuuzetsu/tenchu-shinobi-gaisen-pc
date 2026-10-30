@@ -44,7 +44,7 @@ impl Application {
         }
         self.debug = debug::Debug::new(&game)?;
         if clip.randomizer.is_some() {
-            self.settings.keep_enemies_active = game.activation.keep_all_active;
+            self.settings.keep_enemies_active = game.roster.keep_all_active;
             self.debug.sight_percent = game.intelligence.sight_percent;
         }
         view.randomizer_player = player
@@ -201,7 +201,7 @@ impl Application {
                 }
                 if !far {
                     self.settings.keep_enemies_active = true;
-                    game.activation.keep_all_active = true;
+                    game.roster.keep_all_active = true;
                 }
             }
             Shot::Wide => {
@@ -297,7 +297,7 @@ impl Application {
             demo::animate(player, &mut self.settings, &mut self.debug);
         }
         self.debug.camera = demo::camera(player, &game, self.settings.graphics.interpolation);
-        game.activation.keep_all_active = self.settings.keep_enemies_active;
+        game.roster.keep_all_active = self.settings.keep_enemies_active;
         game.intelligence.sight_percent = self.debug.sight_percent;
         self.campaign.game = game;
         self.campaign.options = options;
@@ -407,7 +407,7 @@ impl Application {
                 }
                 frontend.events.clear();
             }
-            self.campaign.game.activation.keep_all_active = self.settings.keep_enemies_active;
+            self.campaign.game.roster.keep_all_active = self.settings.keep_enemies_active;
             self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
             if let Some(audio) = &mut self.audio {
                 audio.fast_forward(

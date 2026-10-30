@@ -213,7 +213,7 @@ impl Actor {
         if id == self.id || id == world.player {
             return Ok(());
         }
-        let witness = world.roster.get_mut(id);
+        let witness = world.roster.get(id);
         if witness.attribute & (ATTR_SUSPEND | ATTR_PHASE) != 0 || matches!(witness.status, 16 | 17)
         {
             return Ok(());
@@ -229,7 +229,7 @@ impl Actor {
         )
         .abs()
             > 900
-            || ctx.math.length(delta.into()) > 20000
+            || world.roster.distance(ctx.math, delta.into()) > 20000
         {
             return Ok(());
         }
@@ -252,8 +252,17 @@ impl Actor {
         )?
         .is_none()
         {
-            world.intelligence.reset_alert();
+            if !world.roster.keep_all_active
+                || ctx.math.length_wide(
+                    witness
+                        .position
+                        .wrapping_sub(world.roster.get(world.player).position),
+                ) < 20000
+            {
+                world.intelligence.reset_alert();
+            }
             world.intelligence.voices.push((id, 12));
+            let witness = world.roster.get_mut(id);
             witness.enter(ctx, MOT_STATE_DRAW, true);
             self.attribute |= ATTR_SEARCH;
             witness.attribute |= ATTR_SEARCH | 1;

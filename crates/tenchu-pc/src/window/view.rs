@@ -774,7 +774,7 @@ impl View {
         self.renderer.visual_time =
             ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;
         let frame = self.frame.as_ref();
-        let inspection = debug.camera.is_some() || game.activation.keep_all_active;
+        let inspection = debug.camera.is_some() || game.roster.keep_all_active;
         render_mesh::update_characters(
             &mut self.vertices,
             game,
@@ -881,7 +881,7 @@ impl View {
                 game,
                 &self.models,
                 frame,
-                debug.camera.is_some() || game.activation.keep_all_active,
+                debug.camera.is_some() || game.roster.keep_all_active,
                 if self.interpolation_enabled {
                     alpha
                 } else {

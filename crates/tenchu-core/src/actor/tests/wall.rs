@@ -147,9 +147,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                     Mode::StickLeft
                 };
                 actor.pad.update(CIRCLE | TRIANGLE);
-                actor
-                    .control(ctx, &[], Position::ZERO, world, false)
-                    .unwrap();
+                actor.control(ctx, &[], Position::ZERO, world).unwrap();
             });
             assert_eq!(game.items.wall_item, Some(kind));
             assert_eq!(
@@ -213,9 +211,7 @@ fn leaving_a_wall_retains_or_reverts_the_slide_by_direction() {
             actor.motion.pose.rotation[0] = [-105, 2048, 0];
             actor.motion.mask = !1;
             actor.pad.update(held | CIRCLE);
-            actor
-                .control(ctx, &[], Position::ZERO, world, false)
-                .unwrap();
+            actor.control(ctx, &[], Position::ZERO, world).unwrap();
         });
         if held == DOWN {
             assert_eq!(game.player().position, [0, 0, 30]);

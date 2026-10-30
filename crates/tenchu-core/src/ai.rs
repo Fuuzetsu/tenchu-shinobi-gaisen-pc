@@ -260,7 +260,21 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn alert(&mut self) {
-        self.state.reset_alert();
+        if self.nearby_player() {
+            self.state.reset_alert();
+        }
+    }
+
+    fn nearby_player(&self) -> bool {
+        !self.roster.keep_all_active
+            || self.roster.distance(
+                self.ctx.math,
+                self.actor.position.wrapping_sub(self.player.position),
+            ) < 20000
+    }
+
+    fn hears_alert(&self) -> bool {
+        self.state.alert != 0 && self.nearby_player()
     }
 
     fn found(&mut self) {
@@ -282,10 +296,9 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn length(&self, delta: &[i32]) -> i32 {
-        self.ctx.math.square_root(
-            delta
-                .iter()
-                .fold(0i32, |s, &v| s.wrapping_add(v.wrapping_mul(v))),
+        self.roster.distance(
+            self.ctx.math,
+            Position::from_fn(|i| delta.get(i).copied().unwrap_or(0)),
         )
     }
 
