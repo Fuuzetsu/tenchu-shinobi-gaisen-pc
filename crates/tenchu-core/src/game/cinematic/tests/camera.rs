@@ -1,6 +1,7 @@
 use super::*;
 use crate::math::Position;
 use std::fmt::Write;
+use tenchu_assets::script::{Command, Pan};
 
 #[test]
 #[ignore = "requires TENCHU_DISC and TENCHU_DECOMP; compares the matching cinematic camera C with scalar view updates"]
@@ -71,23 +72,23 @@ int main(void){{
     let mut input = String::new();
     let mut expected = Vec::new();
     for case in 0..512 {
-        let command = tenchu_assets::script::Command {
-            operation: 4,
-            id: (case % 7) as i16,
-            position: std::array::from_fn(|_| (random.next15() % 80 - 40) as i16),
-            parameter: if case % 7 == 5 {
-                if case % 2 == 0 { 0x81 } else { 99 }
-            } else if case % 5 == 0 {
-                0
-            } else {
-                (random.next15() % 20000 - 10000) as i16
-            },
+        let id = (case % 7) as i16;
+        let position = std::array::from_fn(|_| (random.next15() % 80 - 40) as i16);
+        let parameter = if case % 7 == 5 {
+            if case % 2 == 0 { 0x81 } else { 99 }
+        } else if case % 5 == 0 {
+            0
+        } else {
+            (random.next15() % 20000 - 10000) as i16
+        };
+        let Command::Camera(command) = Command::decode(4, id, position, parameter).unwrap() else {
+            panic!("camera command");
         };
         game.camera.position = Position::from_fn(|_| random.next15() % 10000 - 5000);
         game.camera.reference = Position::from_fn(|_| random.next15() % 10000 - 5000);
-        let mut row = vec![i32::from(command.id)];
-        row.extend(command.position.map(i32::from));
-        row.push(i32::from(command.parameter));
+        let mut row = vec![i32::from(id)];
+        row.extend(position.map(i32::from));
+        row.push(i32::from(parameter));
         row.extend(game.camera.position);
         row.extend(game.camera.reference);
         for id in [game.player_id, boss] {
@@ -106,14 +107,15 @@ int main(void){{
             .into_iter()
             .chain(game.camera.reference)
             .collect::<Vec<_>>();
-        let refreshed = i32::from(!(command.id == 5 && command.parameter == 99));
+        let refreshed = i32::from(!(id == 5 && parameter == 99));
         state.extend([i32::from(game.cinematic.target == boss), refreshed]);
         let x = game.camera.position.x - game.camera.reference.x;
         let z = game.camera.position.z - game.camera.reference.z;
-        game.cinematic.pan = [0, 2, 3, 4, 5, 6, 7, 8, 20][case % 9];
+        let pan = [0, 2, 3, 4, 5, 6, 7, 8, 20][case % 9];
+        game.cinematic.pan = Pan::from_source_id(pan);
         game.cinematic.speed = (random.next15() % 300 - 150) as i16;
         row.extend([
-            i32::from(game.cinematic.pan),
+            i32::from(pan),
             i32::from(game.cinematic.speed),
             game.math.length(Position::new(x, 0, z)),
             i32::from(game.math.direction(x, z, 0).unwrap()),
@@ -127,7 +129,7 @@ int main(void){{
         game.cinematic_camera(0).unwrap();
         state.extend(game.camera.position);
         state.extend(game.camera.reference);
-        state.push(refreshed + i32::from(game.cinematic.pan != 0));
+        state.push(refreshed + i32::from(pan != 0));
         expected.push(state);
     }
     assert_eq!(expected, oracle::run(&harness, &input));

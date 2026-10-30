@@ -1,3 +1,6 @@
+mod command;
+pub use command::{ActorCommand, CameraCommand, Command, EffectCommand, Pan, Placement};
+
 use crate::{ReadAt, Result, game::GameAssets, i16_le, short3, slice, u32_le};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -68,14 +71,6 @@ pub fn events(data: &[u8]) -> Result<Vec<Event>> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Command {
-    pub operation: i16,
-    pub id: i16,
-    pub position: [i16; 3],
-    pub parameter: i16,
-}
-
 #[derive(Clone, Debug)]
 pub struct Cutscenes {
     pub commands: Vec<Command>,
@@ -88,38 +83,40 @@ impl Cutscenes {
         let mut at = 0;
         while i16_le(&data, at)? != -1 {
             let row = slice(&data, at, 12)?;
-            let operation = i16_le(row, 0)?;
-            if !(0..=8).contains(&operation) {
-                return Err(format!("Unknown CVA command {operation}"));
-            }
-            commands.push(Command {
-                operation,
-                id: i16_le(row, 2)?,
-                position: short3(row, 4)?,
-                parameter: i16_le(row, 10)?,
-            });
+            commands.push(Command::decode(
+                i16_le(row, 0)?,
+                i16_le(row, 2)?,
+                short3(row, 4)?,
+                i16_le(row, 10)?,
+            )?);
             at += 12;
         }
         let result = Self { commands, data };
         for command in &result.commands {
-            if command.operation == 8 && command.id != -1 {
-                result.text(command.id)?;
+            if let Command::Caption {
+                offset: Some(offset),
+            } = *command
+            {
+                result.text(offset)?;
             }
         }
         Ok(result)
     }
 
-    pub fn sequence(&self, id: i16) -> Option<usize> {
+    pub fn sequence(&self, id: i16) -> Option<(usize, i16)> {
         self.commands
             .iter()
-            .position(|c| c.operation == 0 && c.id == id)
+            .enumerate()
+            .find_map(|(index, command)| match *command {
+                Command::Sequence { id: found, music } if found == id => Some((index, music)),
+                _ => None,
+            })
     }
 
-    pub fn text(&self, offset: i16) -> Result<&[u8]> {
-        let start = usize::try_from(offset).map_err(|_| "Negative CVA text offset")?;
+    pub fn text(&self, offset: usize) -> Result<&[u8]> {
         let bytes = self
             .data
-            .get(start..)
+            .get(offset..)
             .ok_or("CVA text offset outside asset")?;
         let end = bytes
             .iter()
@@ -176,7 +173,7 @@ mod tests {
         bytes.extend((-1i16).to_le_bytes());
         bytes.extend(b"hello\0");
         let parsed = Cutscenes::parse(bytes.clone()).unwrap();
-        assert_eq!(parsed.sequence(42), Some(0));
+        assert_eq!(parsed.sequence(42), Some((0, 17)));
         assert_eq!(parsed.commands.len(), 3);
         assert_eq!(parsed.text(38).unwrap(), b"hello");
         assert!(Cutscenes::parse(bytes[..43].to_vec()).is_err());

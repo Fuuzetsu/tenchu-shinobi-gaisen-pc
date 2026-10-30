@@ -7,6 +7,7 @@ use crate::{
     ids::*,
     oracle,
 };
+use tenchu_assets::script::{ActorCommand, Command};
 mod camera;
 
 fn finish(game: &mut Game) -> u64 {
@@ -138,12 +139,14 @@ fn controlled_motion_and_audio_tail_have_distinct_update_rules() {
 
 fn mark_dead(game: &mut Game, kind: i16) {
     assert!(
-        game.cinematic_actor(tenchu_assets::script::Command {
-            operation: 3,
-            id: kind,
-            position: [MOT_DEAD, 0, -1],
-            parameter: 0,
-        })
+        game.cinematic_actor(
+            kind,
+            ActorCommand::Animate {
+                motion: MOT_DEAD,
+                loops: 0,
+                next: -1
+            }
+        )
         .unwrap()
     );
 }
@@ -205,8 +208,13 @@ fn campaign_cinematic_coverage() {
                 .cutscenes
                 .commands
                 .iter()
-                .filter(|c| c.operation == 0)
-                .map(|c| c.id)
+                .filter_map(|c| {
+                    if let Command::Sequence { id, .. } = *c {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                })
                 .collect();
             for sequence in ids {
                 let mut game = oracle::game(stage, character);

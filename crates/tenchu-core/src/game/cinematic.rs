@@ -7,7 +7,7 @@ mod text;
 
 use super::Game;
 use crate::{Result, actor::Context, ids::*, scene::COLLIDE, terrain};
-use tenchu_assets::script::Command;
+use tenchu_assets::script::{ActorCommand, CameraCommand, Command, EffectCommand, Pan};
 
 #[derive(Clone, Copy, Debug)]
 struct Controlled {
@@ -34,16 +34,16 @@ pub struct Cinematic {
     cursor: usize,
     actors: [Option<Controlled>; 5],
     target: usize,
-    pan: i16,
+    pan: Pan,
+    wait_until: i16,
     speed: i16,
 }
 
 impl Game {
     pub(super) fn begin_cinematic(&mut self, sequence: i16) -> Result<bool> {
-        let Some(cursor) = self.mission.scripts.cutscenes.sequence(sequence) else {
+        let Some((cursor, music)) = self.mission.scripts.cutscenes.sequence(sequence) else {
             return Ok(false);
         };
-        let music = self.mission.scripts.cutscenes.commands[cursor].parameter;
         self.cinematic.sequence = sequence;
         self.cinematic.input = self.input;
         self.cinematic.music_cue = music;
@@ -92,8 +92,8 @@ impl Game {
         Ok(true)
     }
 
-    fn cinematic_actor(&mut self, command: Command) -> Result<bool> {
-        let Some(id) = self.roster.find(command.id) else {
+    fn cinematic_actor(&mut self, kind: i16, action: ActorCommand) -> Result<bool> {
+        let Some(id) = self.roster.find(kind) else {
             return Ok(false);
         };
         let player_y = self.player().position.y;
@@ -110,88 +110,97 @@ impl Game {
             camera: &mut self.camera,
             drawing: &mut self.drawing,
         };
-        if command.operation == 2 {
-            actor.attribute &= !ATTR_SUSPEND;
-            actor.motion.mask = 0x7fff;
-            if self.cinematic.actors.iter().all(Option::is_some) {
-                actor.enter(&ctx, MOT_ENGAGE_STANCE, true);
-            }
-            actor.velocity = [0; 3];
-            ctx.scene.models[actor.parts[0]].attribute |= COLLIDE;
-            for &part in &actor.parts {
-                ctx.scene.models[part].attribute &= !1;
-            }
-            if id != self.player_id && actor.health == -1 {
-                actor.attribute |= ATTR_CUSTOMAI;
-                actor.health = actor.max_health;
-            }
-            if command.parameter != -1 {
-                let [x, y, z] = command.position.map(|v| i32::from(v) * 1000);
-                let floor = terrain::level(
-                    &ctx.mission.terrain,
-                    ctx.cursor,
-                    Position::new(x, y - 1000, z),
-                    0,
-                )?;
-                actor.position = Position::new(
-                    x,
-                    if floor == terrain::NONE {
-                        y
+        match action {
+            ActorCommand::Activate { placement } => {
+                actor.attribute &= !ATTR_SUSPEND;
+                actor.motion.mask = 0x7fff;
+                if self.cinematic.actors.iter().all(Option::is_some) {
+                    actor.enter(&ctx, MOT_ENGAGE_STANCE, true);
+                }
+                actor.velocity = [0; 3];
+                ctx.scene.models[actor.parts[0]].attribute |= COLLIDE;
+                for &part in &actor.parts {
+                    ctx.scene.models[part].attribute &= !1;
+                }
+                if id != self.player_id && actor.health == -1 {
+                    actor.attribute |= ATTR_CUSTOMAI;
+                    actor.health = actor.max_health;
+                }
+                if let Some(placement) = placement {
+                    let [x, y, z] = placement.position.map(|v| i32::from(v) * 1000);
+                    let floor = terrain::level(
+                        &ctx.mission.terrain,
+                        ctx.cursor,
+                        Position::new(x, y - 1000, z),
+                        0,
+                    )?;
+                    actor.position = Position::new(
+                        x,
+                        if floor == terrain::NONE {
+                            y
+                        } else {
+                            floor.min(y)
+                        },
+                        z,
+                    );
+                    actor.home = [x, z];
+                    actor.rotation[1] = placement.yaw;
+                    ctx.scene.update(actor.root_model, actor.root(ctx.math));
+                    let owner_y = if id == self.player_id {
+                        actor.position.y
                     } else {
-                        floor.min(y)
-                    },
-                    z,
-                );
-                actor.home = [x, z];
-                actor.rotation[1] = command.parameter;
-                ctx.scene.update(actor.root_model, actor.root(ctx.math));
-                let owner_y = if id == self.player_id {
-                    actor.position.y
-                } else {
-                    player_y
-                };
-                if actor.position.y.wrapping_sub(owner_y).wrapping_abs() > 20000 {
-                    actor.attribute |= ATTR_SUSPEND;
+                        player_y
+                    };
+                    if actor.position.y.wrapping_sub(owner_y).wrapping_abs() > 20000 {
+                        actor.attribute |= ATTR_SUSPEND;
+                    }
                 }
             }
-        } else if command.position[0] == -1 {
-            actor.health = -1;
-            actor.attribute = (actor.attribute | ATTR_SUSPEND | 2) & !ATTR_CUSTOMAI;
-            actor.motion.action = -1;
-            actor.enter(&ctx, MOT_NORMAL, true);
-            actor.play_pose(&mut ctx)?;
-            actor.motion.count = actor.motion.count.wrapping_sub(1);
-        } else {
-            let [motion, loops, next] = command.position;
-            let status = (motion as u16 >> 8) as i16;
-            if actor.status == ActorState::Dead && !(16..=17).contains(&status) {
-                return Ok(false);
+            ActorCommand::Hide => {
+                actor.health = -1;
+                actor.attribute = (actor.attribute | ATTR_SUSPEND | 2) & !ATTR_CUSTOMAI;
+                actor.motion.action = -1;
+                actor.enter(&ctx, MOT_NORMAL, true);
+                actor.play_pose(&mut ctx)?;
+                actor.motion.count = actor.motion.count.wrapping_sub(1);
             }
-            if actor.health > 0 && status == 17 {
-                actor.health = 0;
-                self.combat.request_life(actor);
-            }
-            let Some(slot) = self
-                .cinematic
-                .actors
-                .iter()
-                .position(|c| c.is_some_and(|c| c.actor == id))
-                .or_else(|| self.cinematic.actors.iter().position(Option::is_none))
-            else {
-                return Ok(false);
-            };
-            actor.motion.action = -1;
-            actor.enter(&ctx, motion, true);
-            actor.play_pose(&mut ctx)?;
-            actor.motion.count = actor.motion.count.wrapping_sub(1);
-            self.cinematic.actors[slot] = Some(Controlled {
-                actor: id,
-                loops: if loops < 1 { i16::MAX } else { loops },
-                next: if next == 0 { MOT_ENGAGE_STANCE } else { next },
-            });
-            actor.scripted = self.cinematic.active;
-            if actor.kind == 0xa7 && motion == MOT_DEAD {
-                ctx.effects.sounds.push((Position::ZERO, 0x41));
+            ActorCommand::Animate {
+                motion,
+                loops,
+                next,
+            } => {
+                let status = ActorState::from_motion(motion);
+                if actor.status == ActorState::Dead
+                    && !matches!(status, ActorState::Damaged | ActorState::Dead)
+                {
+                    return Ok(false);
+                }
+                if actor.health > 0 && status == ActorState::Dead {
+                    actor.health = 0;
+                    self.combat.request_life(actor);
+                }
+                let Some(slot) = self
+                    .cinematic
+                    .actors
+                    .iter()
+                    .position(|c| c.is_some_and(|c| c.actor == id))
+                    .or_else(|| self.cinematic.actors.iter().position(Option::is_none))
+                else {
+                    return Ok(false);
+                };
+                actor.motion.action = -1;
+                actor.enter(&ctx, motion, true);
+                actor.play_pose(&mut ctx)?;
+                actor.motion.count = actor.motion.count.wrapping_sub(1);
+                self.cinematic.actors[slot] = Some(Controlled {
+                    actor: id,
+                    loops: if loops < 1 { i16::MAX } else { loops },
+                    next: if next == 0 { MOT_ENGAGE_STANCE } else { next },
+                });
+                actor.scripted = self.cinematic.active;
+                if actor.kind == 0xa7 && motion == MOT_DEAD {
+                    ctx.effects.sounds.push((Position::ZERO, 0x41));
+                }
             }
         }
         Ok(true)
@@ -206,31 +215,31 @@ impl Game {
                 .commands
                 .get(self.cinematic.cursor)
                 .ok_or("Cinematic reached the table end without a wait command")?;
-            match command.operation {
-                0 if command.parameter == -1 => self.music.push(None),
-                1 => return Ok(command.id != 0),
-                2 | 3 => {
-                    if !self.cinematic_actor(command)? {
+            match command {
+                Command::Sequence { music: -1, .. } => self.music.push(None),
+                Command::Sequence { .. } => {}
+                Command::Wait { until } => {
+                    self.cinematic.wait_until = until;
+                    return Ok(until != 0);
+                }
+                Command::Actor { id, action } => {
+                    if !self.cinematic_actor(id, action)? {
                         return Ok(false);
                     }
                 }
-                4 | 5 => {
+                Command::Camera(command) => {
                     if !self.cinematic_camera_command(command)? {
                         return Ok(false);
                     }
                 }
-                6 => {
-                    self.cinematic.pan = command.id;
-                    self.cinematic.speed = if command.parameter == 0 {
-                        20
-                    } else {
-                        command.parameter
-                    };
+                Command::Pan { motion, speed } => {
+                    self.cinematic.pan = motion;
+                    self.cinematic.speed = speed;
                 }
-                7 => match command.id {
-                    1 => self.effects.blood(
-                        command.position.map(|v| i32::from(v) * 10).into(),
-                        command.parameter,
+                Command::Effect(effect) => match effect {
+                    EffectCommand::Blood { position, count } => self.effects.blood(
+                        position.map(|v| i32::from(v) * 10).into(),
+                        count,
                         30,
                         &mut self.random,
                         &mut crate::effects::Environment {
@@ -241,18 +250,16 @@ impl Game {
                             reference: self.camera.reference,
                         },
                     )?,
-                    3 => self.effects.fade(
-                        command.position.map(|v| v as u8),
-                        i32::from(command.parameter),
-                        self.clock,
-                    ),
-                    _ => (),
+                    EffectCommand::Fade { color, duration } => {
+                        self.effects.fade(color, i32::from(duration), self.clock)
+                    }
+                    EffectCommand::None => (),
                 },
-                8 => {
-                    self.cinematic.caption = if command.id == -1 {
-                        Vec::new()
+                Command::Caption { offset } => {
+                    self.cinematic.caption = if let Some(offset) = offset {
+                        self.mission.scripts.cutscenes.text(offset)?.to_vec()
                     } else {
-                        self.mission.scripts.cutscenes.text(command.id)?.to_vec()
+                        Vec::new()
                     };
                     if self.mission.stage.id == 10
                         && self.player().kind == 0
@@ -272,7 +279,6 @@ impl Game {
                         self.cinematic.caption.clear();
                     }
                 }
-                _ => (),
             }
             self.cinematic.cursor += 1;
         }
@@ -310,8 +316,7 @@ impl Game {
             }
         }
         self.cinematic.elapsed = self.cinematic.elapsed.wrapping_add(1);
-        let wait = ctx.mission.scripts.cutscenes.commands[self.cinematic.cursor].id;
-        if self.cinematic.elapsed >= wait {
+        if self.cinematic.elapsed >= self.cinematic.wait_until {
             self.cinematic.cursor += 1;
             if !self.cinematic_commands()? {
                 self.finish_cinematic()?;

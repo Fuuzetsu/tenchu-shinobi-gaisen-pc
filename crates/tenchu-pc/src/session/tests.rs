@@ -463,11 +463,14 @@ fn all_stage_scripts_parse_from_the_disc() {
                     }
                 }
                 for command in &scripts.cutscenes.commands {
-                    if command.operation == 0 {
+                    if matches!(command, tenchu_assets::script::Command::Sequence { .. }) {
                         sequences += 1;
                     }
-                    if command.operation == 8 && command.id >= 0 {
-                        let text = scripts.cutscenes.text(command.id).unwrap();
+                    if let tenchu_assets::script::Command::Caption {
+                        offset: Some(offset),
+                    } = *command
+                    {
+                        let text = scripts.cutscenes.text(offset).unwrap();
                         assert!(!language.decode(text).contains('\u{fffd}'));
                         if language == Language::Japanese
                             && let Some(image) = font.prepare_caption(text, &mut vram)
