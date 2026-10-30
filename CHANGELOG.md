@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.6.0 — 2026-10-30
+
 - Modern presets enable soft blood spray and persistent stains, with much higher
   retention defaults and a configurable maximum of 65,535 stains. Cached ground
   stains and compact soft-edged geometry reduce CPU work and repeated GPU uploads.
