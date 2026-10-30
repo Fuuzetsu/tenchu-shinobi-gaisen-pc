@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.5.0 — 2026-10-30
+
 - Restore narrated mission briefings and the original item-shop grid in all four
   languages. The shop replaces the placeholder equipment screen, with item help,
   stock/carry limits, mouse controls and cancellation; retries skip the briefing
