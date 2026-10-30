@@ -75,7 +75,7 @@ impl Items {
                     };
                     let contact = &ctx.collision.slots[slot];
                     if !contact
-                        .owner
+                        .actor()
                         .is_some_and(|owner| actors.roster.order.contains(&owner))
                         && contact.class != collision::HIT
                     {

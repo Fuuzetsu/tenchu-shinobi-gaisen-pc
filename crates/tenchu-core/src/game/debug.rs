@@ -126,7 +126,7 @@ impl Game {
         actor.velocity = [0; 3];
         actor.pad = Pad::default();
         actor.hit = None;
-        actor.inventory[25] = 0;
+        actor.aiming = false;
         actor.attribute &= 0xff;
         actor.map = probe;
         actor.motion.action = -1;
@@ -188,7 +188,7 @@ mod tests {
             );
             let slot = game.collision.slots[..game.collision.len]
                 .iter()
-                .find(|s| s.owner == Some(game.player_id) && s.class & crate::collision::HIT == 0)
+                .find(|s| s.actor() == Some(game.player_id) && s.class & crate::collision::HIT == 0)
                 .unwrap();
             assert!((slot.position.x - target[0]).abs() < 500);
             assert!((slot.position.z - target[2]).abs() < 500);

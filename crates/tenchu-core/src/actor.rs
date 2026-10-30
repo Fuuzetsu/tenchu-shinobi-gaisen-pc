@@ -109,7 +109,8 @@ pub struct Actor {
     pub think: [u8; 4],
     pub brain: crate::ai::Brain,
     pub active_item: i16,
-    pub inventory: [u8; 26],
+    pub inventory: [u8; 25],
+    pub aiming: bool,
     pub attack: usize,
     pub patrol: Option<patrol::Patrol>,
     pub weapons: [Option<weapon::Weapon>; 4],
@@ -173,7 +174,7 @@ impl Actor {
         let waist = *nodes.first().ok_or("Actor model has no waist")?;
         let slot = ctx.collision.insert(ctx.scene, waist)?;
         let body = &mut ctx.collision.slots[slot];
-        body.owner = Some(id);
+        body.owner = Some(crate::collision::Owner::Actor(id));
         body.size = [data.width / 2, data.height / 2, data.width / 2];
         body.offset[1] = (-data.height / 2).wrapping_sub(parts[0].position[1]);
         if matches!(kind, 0x86 | 0x89) {
@@ -212,7 +213,8 @@ impl Actor {
             think: [0; 4],
             brain: crate::ai::Brain::default(),
             active_item: 0,
-            inventory: [0; 26],
+            inventory: [0; 25],
+            aiming: false,
             attack: 0,
             patrol: None,
             weapons: std::array::from_fn(|_| None),

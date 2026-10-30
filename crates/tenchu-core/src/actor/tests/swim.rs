@@ -33,12 +33,12 @@ fn water_entry_cleans_attack_and_emits_one_splash_batch() {
         for hand in [actor.parts[13], actor.parts[14]] {
             ctx.collision.insert(ctx.scene, hand).unwrap();
         }
-        world.intelligence.action_halt = 1;
+        world.intelligence.action_halt = crate::ai::Halt::Active;
         assert!(actor.swim_check(ctx, world).unwrap());
         assert_eq!(actor.position, [200, 300, -200]);
         assert_eq!(actor.motion.action, MOT_SWIM);
         assert_eq!(actor.motion.mask, 0x7fff);
-        assert_eq!(world.intelligence.action_halt, 0);
+        assert_eq!(world.intelligence.action_halt, crate::ai::Halt::Running);
         assert_eq!(world.intelligence.alert, 300);
         for hand in [actor.parts[13], actor.parts[14]] {
             assert!(ctx.scene.models[hand].conflict.is_none());
@@ -114,7 +114,7 @@ fn swimming_input_hook_and_shore_exit() {
         assert_eq!(game.player().motion.mask, !1);
         hidden_body(&game, false);
         game.step(TRIANGLE).unwrap();
-        assert_eq!(game.player().inventory[25], 1);
+        assert!(game.player().aiming);
         game.step(TRIANGLE | CIRCLE).unwrap();
         assert_eq!(game.player().motion.action, MOT_SWIM);
         assert_eq!(game.player().motion.mask, 0x7fff);

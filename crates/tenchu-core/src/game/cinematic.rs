@@ -78,8 +78,8 @@ impl Game {
         self.cinematic.active = true;
         self.cinematic.elapsed = 0;
         self.intelligence.cinematic = true;
-        if self.intelligence.action_halt != crate::ai::HALT_STAGE_END {
-            self.intelligence.action_halt = 1;
+        if self.intelligence.action_halt != crate::ai::Halt::StageEnd {
+            self.intelligence.action_halt = crate::ai::Halt::Active;
         }
         self.roster.get_mut(self.player_id).target = None;
         for control in self.cinematic.actors.iter().flatten() {
@@ -321,8 +321,8 @@ impl Game {
 
     fn finish_cinematic(&mut self) -> Result<()> {
         self.intelligence.cinematic = false;
-        if self.intelligence.action_halt != crate::ai::HALT_STAGE_END {
-            self.intelligence.action_halt = 0;
+        if self.intelligence.action_halt != crate::ai::Halt::StageEnd {
+            self.intelligence.action_halt = crate::ai::Halt::Running;
         }
         self.camera
             .normal(self.roster.get(self.player_id), &self.math)?;

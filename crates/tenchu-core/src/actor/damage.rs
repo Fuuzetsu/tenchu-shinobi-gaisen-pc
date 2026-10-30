@@ -97,7 +97,7 @@ impl Actor {
             ctx.camera.normal(self, ctx.math)?;
         }
         if self.kind & 0xf0 == 0xa0 {
-            let source = ctx.collision.slots[hit].owner;
+            let source = ctx.collision.slots[hit].actor();
             if let Some(id) = source {
                 world.intelligence.voices.push((id, 4));
                 Self::consume_hit(ctx, hit);
@@ -142,7 +142,7 @@ impl Actor {
             return Ok(None);
         }
         if (MOT_ATTACK_STEALTH_BACK..=MOT_ATTACK_STEALTH_SIDE_AYAME).contains(&self.motion.action) {
-            world.intelligence.action_halt = 0;
+            world.intelligence.action_halt = crate::ai::Halt::Running;
             let action = self.return_normal(ctx, world.player)?;
             self.position.y = self.position.y.wrapping_sub(1);
             return Ok(Some((action, true)));
@@ -152,7 +152,7 @@ impl Actor {
         }
         self.clear_attack(ctx, 3)?;
         // Cleanup compacts the pool. The source deliberately reads the saved index again.
-        let Some(source) = ctx.collision.slots[hit].owner else {
+        let Some(source) = ctx.collision.slots[hit].actor() else {
             return self.item_damage(ctx, world, hit);
         };
         let enemy = if source == self.id {

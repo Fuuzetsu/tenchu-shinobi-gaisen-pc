@@ -23,7 +23,23 @@ use crate::{
 };
 use tenchu_assets::executable::Command;
 
-pub const HALT_STAGE_END: i16 = -1;
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Halt {
+    #[default]
+    Running,
+    Active,
+    StageEnd,
+}
+
+impl Halt {
+    pub fn source_id(self) -> i16 {
+        match self {
+            Self::Running => 0,
+            Self::Active => 1,
+            Self::StageEnd => -1,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Difficulty {
@@ -100,7 +116,7 @@ pub struct Intelligence {
     pub detection: Detection,
     pub probe: [i32; 2],
     pub probe_attribute: [u16; 2],
-    pub action_halt: i16,
+    pub action_halt: Halt,
     pub cinematic: bool,
     pub voices: Vec<(usize, i16)>,
     pub population_delta: [i16; 2],
@@ -122,7 +138,7 @@ impl Default for Intelligence {
             detection: Detection::None,
             probe: [0; 2],
             probe_attribute: [0; 2],
-            action_halt: 0,
+            action_halt: Halt::Running,
             cinematic: false,
             voices: Vec::new(),
             population_delta: [0; 2],

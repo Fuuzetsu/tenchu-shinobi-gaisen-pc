@@ -75,7 +75,7 @@ fn mission_one_boss_activation_restores_the_mission_clock() {
         assert_eq!(game.clock, clock + 1);
         assert_eq!(game.music, [Some(111)]);
         assert_eq!(game.events.outcome, Outcome::Running);
-        assert_eq!(game.intelligence.action_halt, 0);
+        assert_eq!(game.intelligence.action_halt, crate::ai::Halt::Running);
         assert!(game.tick > game.clock as u64);
     }
 }
@@ -98,10 +98,10 @@ fn controlled_motion_and_audio_tail_have_distinct_update_rules() {
     game.input = crate::input::LEFT;
     assert!(game.begin_cinematic(42).unwrap());
     // A poison reaction can clear ActionHalt during a script; PadProc still does not poll.
-    game.intelligence.action_halt = 0;
+    game.intelligence.action_halt = crate::ai::Halt::Running;
     game.step(crate::input::RIGHT).unwrap();
     assert_eq!(game.player().pad.held, crate::input::LEFT);
-    game.intelligence.action_halt = 1;
+    game.intelligence.action_halt = crate::ai::Halt::Active;
     for _ in 0..198 {
         game.step(crate::input::UP | crate::input::SQUARE).unwrap();
         assert_eq!(game.player().motion.action, MOT_NORMAL);

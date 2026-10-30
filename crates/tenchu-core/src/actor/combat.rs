@@ -198,10 +198,10 @@ impl Actor {
         }
         while let Some(id) = ctx.collision.result(ctx.scene, hand, None) {
             let slot = &ctx.collision.slots[id];
-            if slot.class & collision::HIT == 0 || slot.owner == Some(self.id) {
+            if slot.class & collision::HIT == 0 || slot.actor() == Some(self.id) {
                 continue;
             }
-            if let Some(other) = slot.owner {
+            if let Some(other) = slot.actor() {
                 world.roster.get_mut(other).move_at(ctx.math, -30, 0);
             }
             self.move_at(ctx.math, -30, 0);
@@ -367,7 +367,7 @@ impl Actor {
             }
             MOT_ATTACK_STEALTH_BACK..=MOT_ATTACK_STEALTH_SIDE_AYAME => {
                 if self.motion.count == 1 {
-                    world.intelligence.action_halt = 1;
+                    world.intelligence.action_halt = crate::ai::Halt::Active;
                     ctx.camera.set_mode(
                         crate::camera::Mode::Critical,
                         self,
@@ -388,7 +388,7 @@ impl Actor {
                 {
                     return Ok(None);
                 }
-                world.intelligence.action_halt = 0;
+                world.intelligence.action_halt = crate::ai::Halt::Running;
                 self.snap_attack(ctx);
                 self.motion.pose.translation[0][0] = 0;
                 self.motion.pose.translation[0][2] = 0;
@@ -469,7 +469,7 @@ impl Actor {
                 if let Some(index) = self.weapon_hitbox[hand] {
                     let hitbox = &ctx.mission.weapons.hitboxes[index];
                     let slot = ctx.collision.insert(ctx.scene, model)?;
-                    ctx.collision.slots[slot].owner = Some(self.id);
+                    ctx.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(self.id));
                     ctx.collision.slots[slot].offset = hitbox.center;
                     // Copying WeaponDB.confp also overwrites offset.pad.
                     ctx.collision.slots[slot].count = hitbox.radius;

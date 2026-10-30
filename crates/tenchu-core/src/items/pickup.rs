@@ -44,7 +44,7 @@ impl Items {
         id: usize,
         ctx: &mut Context,
         actors: &mut Actors,
-        halt: i16,
+        halt: crate::ai::Halt,
     ) -> Result<()> {
         self.draw_icon(id, ctx)?;
         let item = &mut self.slots[id];
@@ -70,7 +70,7 @@ impl Items {
                     return Ok(());
                 };
                 let Some(actor_id) = ctx.collision.slots[slot]
-                    .owner
+                    .actor()
                     .filter(|id| actors.roster.order.contains(id))
                 else {
                     return Ok(());
@@ -79,7 +79,7 @@ impl Items {
                 if actor.motion.action == MOT_STATE_PICKUP || !matches!(actor.status, 2 | 6) {
                     return Ok(());
                 }
-                if halt == 0 && actor.health > 0 {
+                if halt == crate::ai::Halt::Running && actor.health > 0 {
                     actor.clear_attack(ctx, 3)?;
                     actor.enter(ctx, MOT_STATE_PICKUP, true);
                 }

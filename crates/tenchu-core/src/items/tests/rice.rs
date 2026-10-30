@@ -102,13 +102,21 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         assert_eq!(ctx.scene.models[model].flags, 0);
         items.slots[1].mode = 1;
         items.slots[1].rolling.velocity = [-71, -3, 68];
-        items.rice(1, actors, 0, player, ctx).unwrap();
+        items
+            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .unwrap();
         assert_eq!(items.slots[1].mode, 0);
-        items.rice(1, actors, 1, player, ctx).unwrap();
+        items
+            .rice(1, actors, crate::ai::Halt::Active, player, ctx)
+            .unwrap();
         assert_eq!(actors.get(player).motion.action, action);
         assert_eq!(items.slots[1].mode, 1);
-        items.rice(1, actors, 0, player, ctx).unwrap();
-        items.rice(1, actors, 0, player, ctx).unwrap();
+        items
+            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .unwrap();
+        items
+            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .unwrap();
         assert_eq!(
             (actors.get(player).motion.action, actors.get(player).status),
             (MOT_ITEM_PLANT, 8)
@@ -122,7 +130,9 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         ctx.scene.models[hand].flags = 0;
         items.cursor = 20;
         let random = *ctx.random;
-        items.rice(1, actors, 0, player, ctx).unwrap();
+        items
+            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .unwrap();
         assert_eq!(items.cursor, 1);
         let drop = &items.slots[1];
         assert_eq!(drop.processor, Some(Processor::Pickup));

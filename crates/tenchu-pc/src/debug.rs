@@ -165,7 +165,7 @@ impl Debug {
         let mut nearest = f32::INFINITY;
         for slot in &game.collision.slots[..game.collision.len] {
             let Some(actor) = slot
-                .owner
+                .actor()
                 .and_then(|id| game.roster.actors.get(id))
                 .and_then(Option::as_ref)
             else {

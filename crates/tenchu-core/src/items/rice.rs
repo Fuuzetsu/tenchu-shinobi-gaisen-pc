@@ -6,7 +6,7 @@ impl Items {
         &mut self,
         id: usize,
         actors: &mut Actors,
-        halt: i16,
+        halt: crate::ai::Halt,
         player: usize,
         ctx: &mut Context,
     ) -> Result<()> {
@@ -15,7 +15,7 @@ impl Items {
         let owner = actors.get_mut(owner_id);
         match item.mode {
             0 => {
-                if halt == 0 && owner.health > 0 {
+                if halt == crate::ai::Halt::Running && owner.health > 0 {
                     owner.clear_attack(ctx, 3)?;
                     Self::item_motion(owner, MOT_ITEM_PLANT, ctx);
                     // Rice uses ActSTATE, avoiding ActITEM's mine request at frame 5.

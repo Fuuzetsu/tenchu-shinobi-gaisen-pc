@@ -154,7 +154,7 @@ impl Game {
                 &mut self.random,
             )?;
         }
-        self.intelligence.action_halt = crate::ai::HALT_STAGE_END;
+        self.intelligence.action_halt = crate::ai::Halt::StageEnd;
         self.roster.get_mut(self.player_id).status = 17;
         Ok(())
     }

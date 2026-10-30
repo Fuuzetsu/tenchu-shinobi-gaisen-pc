@@ -33,7 +33,7 @@ impl Actor {
                     }
                 }
                 if self.motion.action >= MOT_DEAD_STEALTH_BACK {
-                    world.intelligence.action_halt = 0;
+                    world.intelligence.action_halt = crate::ai::Halt::Running;
                     ctx.camera.snap_pending = true;
                 }
                 return Ok(None);
@@ -44,7 +44,7 @@ impl Actor {
             && self.position.y != world.roster.get(world.player).position.y
         {
             self.position.y = self.position.y.wrapping_sub(1);
-            world.intelligence.action_halt = 0;
+            world.intelligence.action_halt = crate::ai::Halt::Running;
             if self.motion.count < 10 {
                 ctx.effects
                     .rumble(world.player, RumbleAction::StealthInterrupted, 255, 10, 10);

@@ -204,7 +204,13 @@ impl Hud {
                 let previous = self.cursor;
                 loop {
                     self.cursor = (self.cursor + step) % 26;
-                    if player.inventory[self.cursor] != 0 || self.cursor == previous {
+                    // Retail lets the aiming flag occupy an invisible selection slot.
+                    let available = if self.cursor == 25 {
+                        player.aiming
+                    } else {
+                        player.inventory[self.cursor] != 0
+                    };
+                    if available || self.cursor == previous {
                         break;
                     }
                 }
@@ -275,7 +281,7 @@ mod tests {
         player.inventory.fill(0);
         player.inventory[0] = 255;
         player.inventory[2] = 5;
-        player.inventory[25] = 1;
+        player.aiming = true;
         game.step(R2).unwrap();
         assert_eq!((game.hud.cursor, game.hud.selected), (25, None));
         game.step(0).unwrap();

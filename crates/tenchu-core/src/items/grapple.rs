@@ -11,7 +11,7 @@ impl Items {
     ) -> Result<()> {
         let owner_id = self.slots[id].owner.ok_or("Grappling hook has no owner")?;
         let owner = actors.get(owner_id);
-        if owner.inventory[25] == 0 {
+        if !owner.aiming {
             use_item::camera(Mode::Direction, owner, ctx)?;
             return self.dispose(id, actors, ctx);
         }
@@ -51,7 +51,7 @@ impl Items {
             ctx.camera.target = root;
         }
         use_item::camera(Mode::Lock, owner, ctx)?;
-        actors.get_mut(owner_id).inventory[25] = 0;
+        actors.get_mut(owner_id).aiming = false;
         self.dispose(id, actors, ctx)
     }
 }

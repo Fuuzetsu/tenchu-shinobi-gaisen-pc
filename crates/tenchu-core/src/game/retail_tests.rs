@@ -243,7 +243,10 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
         "camera angles at {}",
         game.clock
     );
-    assert_eq!(game.intelligence.action_halt, ram.short(0x800979b8));
+    assert_eq!(
+        game.intelligence.action_halt.source_id(),
+        ram.short(0x800979b8)
+    );
     assert_eq!(game.intelligence.found, ram.short(0x80097c6e));
     assert_eq!(
         game.events.time,
@@ -379,7 +382,8 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
             std::array::from_fn::<_, 4, _>(|i| ram.short(address + 0x18 + i as u32 * 2) as u16)
         );
         equal!(actor.pad.hold_counter, ram.word(address + 0xb0));
-        equal!(actor.inventory.as_slice(), ram.bytes(address + 0xb4, 26));
+        equal!(actor.inventory.as_slice(), ram.bytes(address + 0xb4, 25));
+        equal!(u8::from(actor.aiming), ram.bytes(address + 0xcd, 1)[0]);
         equal!(
             actor.brain.chase,
             [

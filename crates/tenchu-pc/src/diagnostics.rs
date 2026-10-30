@@ -38,7 +38,7 @@ pub fn game(game: &Game) -> Value {
             "height": a.map.height, "attribute": a.map.attribute, "vector": a.map.vector},
         "pad": {"held": a.pad.held, "previous": a.pad.previous, "trigger": a.pad.trigger,
             "stream": a.pad.stream, "time": a.pad.time, "hold_counter": a.pad.hold_counter},
-        "inventory": a.inventory, "active_item": a.active_item, "attack": a.attack,
+        "inventory": a.inventory.iter().copied().chain([u8::from(a.aiming)]).collect::<Vec<_>>(), "active_item": a.active_item, "attack": a.attack,
         "root_model": a.root_model, "render_mask": a.render_mask, "draw_fog": a.draw_fog,
     })).collect();
     let items: Vec<_> = game
@@ -71,7 +71,7 @@ pub fn game(game: &Game) -> Value {
         "ai": {"difficulty": ai.difficulty.name(), "sight_percent": ai.sight_percent,
             "ignore_player": ai.ignore_player, "alert": ai.alert, "strain": ai.strain,
             "player_strain": ai.player_strain, "found": ai.found, "death_index": ai.death_index,
-            "action_halt": ai.action_halt, "attack_clock": ai.attack_clock,
+            "action_halt": ai.action_halt.source_id(), "attack_clock": ai.attack_clock,
             "detection": format!("{:?}", ai.detection), "probe": ai.probe,
             "probe_attribute": ai.probe_attribute, "population_delta": ai.population_delta},
         "activation": {"keep_all_active": game.roster.keep_all_active,

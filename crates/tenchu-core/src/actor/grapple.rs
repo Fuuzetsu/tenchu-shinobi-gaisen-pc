@@ -34,7 +34,7 @@ impl Actor {
                         ctx,
                     )?;
                     ctx.effects.sounds.push((self.position, 0x1e));
-                } else if self.inventory[25] != 1 {
+                } else if !self.aiming {
                     let dx = ctx.camera.target[0].wrapping_sub(self.position.x);
                     let dz = ctx.camera.target[2].wrapping_sub(self.position.z);
                     if dx == 0 && dz == 0 {
@@ -49,7 +49,7 @@ impl Actor {
                         ctx.effects.sounds.push((self.position, 0x1f));
                     }
                 } else if self.pad.trigger & (SQUARE | CROSS | CIRCLE) != 0 {
-                    self.inventory[25] = 0;
+                    self.aiming = false;
                     next = Some((self.return_normal(ctx, world.player)?, true));
                 }
                 if self.map.attribute & 4 != 0 && next.is_some_and(|(action, _)| action >> 8 != 4) {

@@ -180,7 +180,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                 continue;
             }
             if slot
-                .owner
+                .actor()
                 .and_then(|id| game.roster.actors.get(id))
                 .and_then(Option::as_ref)
                 .is_some_and(|a| a.attribute & ATTR_SUSPEND != 0)

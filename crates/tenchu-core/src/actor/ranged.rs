@@ -199,7 +199,7 @@ impl Actor {
                     ctx,
                 )?;
                 ctx.effects.sounds.push((self.position, 0x1e));
-            } else if self.inventory[25] != 1 {
+            } else if !self.aiming {
                 next = Some((MOT_SYURI_RECOVER, true));
                 ctx.effects.sounds.push((self.position, 0x1f));
             } else if self.pad.trigger
@@ -207,9 +207,9 @@ impl Actor {
                 != 0
             {
                 if self.id == world.player {
-                    self.inventory[25] = 0;
+                    self.aiming = false;
                 } else {
-                    world.roster.get_mut(world.player).inventory[25] = 0;
+                    world.roster.get_mut(world.player).aiming = false;
                 }
                 next = Some((self.return_normal(ctx, world.player)?, true));
             }

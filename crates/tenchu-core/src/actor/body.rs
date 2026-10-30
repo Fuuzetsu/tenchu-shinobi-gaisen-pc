@@ -11,7 +11,7 @@ impl Actor {
         let width = i32::from(ctx.mission.characters[self.definition].width);
         while let Some(slot) = ctx.collision.result(ctx.scene, model, None) {
             let other = &ctx.collision.slots[slot];
-            if other.owner == Some(self.id) {
+            if other.actor() == Some(self.id) {
                 continue;
             }
             if other.class & collision::HIT != 0 {

@@ -11,7 +11,7 @@ impl Items {
         let item = &self.slots[id];
         let owner_id = item.owner.ok_or("Aimed shuriken has no owner")?;
         let owner = actors.get_mut(owner_id);
-        if owner.inventory[25] == 0 {
+        if !owner.aiming {
             if owner.inventory[item.kind] != 255 {
                 owner.inventory[item.kind] = owner.inventory[item.kind].wrapping_add(1);
             }

@@ -8,20 +8,34 @@ pub const CAPACITY: usize = 80;
 pub const HIT: i16 = 1;
 pub const STAND: i16 = 4;
 pub const SOFT: i16 = 8;
-pub const DOOR_OWNER: usize = usize::MAX;
 const LIVE: u8 = 0x80;
 const CONSUMED: u8 = 0x40;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Owner {
+    Actor(usize),
+    Door,
+}
 
 #[derive(Clone, Debug)]
 pub struct Slot {
     pub model: Option<ModelId>,
-    pub owner: Option<usize>,
+    pub owner: Option<Owner>,
     pub position: Position,
     pub offset: [i16; 3],
     pub size: [i16; 3],
     pub class: i16,
     pub count: i16,
     pub results: [u8; CAPACITY],
+}
+
+impl Slot {
+    pub fn actor(&self) -> Option<usize> {
+        match self.owner {
+            Some(Owner::Actor(id)) => Some(id),
+            Some(Owner::Door) | None => None,
+        }
+    }
 }
 
 impl Default for Slot {

@@ -63,7 +63,7 @@ impl Items {
                     if Some(target) == item.owner || actor.motion.action == MOT_DAMAGE_CHOKE {
                         continue;
                     }
-                    if intelligence.action_halt == 0 {
+                    if intelligence.action_halt == crate::ai::Halt::Running {
                         actor.clear_attack(ctx, 3)?;
                         Self::item_motion(actor, MOT_DAMAGE_CHOKE, ctx);
                     }

@@ -201,7 +201,7 @@ impl Items {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(id, Processor::Grapple, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
-                actors.get_mut(owner_id).inventory[25] = 1;
+                actors.get_mut(owner_id).aiming = true;
                 camera(Mode::Sight, actors.get(player), ctx)?;
                 ctx.camera.direction = [-341, 0];
             }
@@ -210,7 +210,7 @@ impl Items {
                 self.initialize(id, Processor::SightShot, kind, Some(owner_id), start, ctx)?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].count = 5;
-                actors.get_mut(owner_id).inventory[25] = 1;
+                actors.get_mut(owner_id).aiming = true;
             }
             1 => {
                 let end = projectile::target(
@@ -222,7 +222,7 @@ impl Items {
                 )?
                 .1;
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
-                actors.get_mut(owner_id).inventory[25] = 0;
+                actors.get_mut(owner_id).aiming = false;
             }
             2 => {
                 let velocity =

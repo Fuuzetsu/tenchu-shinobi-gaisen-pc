@@ -125,7 +125,7 @@ impl Items {
         actors: &mut Actors,
     ) -> Option<(usize, usize)> {
         let slot = self.first_contact(id, ctx)?;
-        let owner = ctx.collision.slots[slot].owner?;
+        let owner = ctx.collision.slots[slot].actor()?;
         actors
             .roster
             .order
@@ -197,7 +197,7 @@ impl Items {
                 if ctx.scene.models[model].attribute & CONFLICT != 0 {
                     if let Some(slot) = ctx.collision.result(ctx.scene, model, None) {
                         if let Some(actor_id) = ctx.collision.slots[slot]
-                            .owner
+                            .actor()
                             .filter(|id| actors.roster.order.contains(id))
                         {
                             if ctx.collision.slots[slot].class & collision::HIT != 0 {

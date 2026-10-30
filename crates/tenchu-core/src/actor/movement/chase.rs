@@ -28,7 +28,7 @@ impl Actor {
                 {
                     pending = Some((MOT_ATTACK_TAUNT, true));
                 }
-                if world.intelligence.action_halt == crate::ai::HALT_STAGE_END
+                if world.intelligence.action_halt == crate::ai::Halt::StageEnd
                     && self.motion.count == 0
                 {
                     pending = Some((

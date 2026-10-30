@@ -356,7 +356,7 @@ int main(void) {{
             actor.pad = Pad::default();
             actor.pad.held = [0, UP, DOWN, LEFT, RIGHT, SQUARE][cases.next15() as usize % 6];
             actor.pad.hold_counter = 0;
-            actor.inventory = [0; 26];
+            actor.inventory = [0; 25];
             actor.inventory[1] = (cases.next15() & 1) as u8;
             actor.inventory[4] = (cases.next15() & 1) as u8;
             actor.rotation[1] = cases.next15() as i16;

@@ -313,7 +313,7 @@ impl Game {
                         },
                     )? {
                         self.visible.push(id);
-                        if self.intelligence.action_halt == 0 {
+                        if self.intelligence.action_halt == crate::ai::Halt::Running {
                             if id == self.player_id {
                                 actor.look_at_camera(&mut context)?;
                             } else {

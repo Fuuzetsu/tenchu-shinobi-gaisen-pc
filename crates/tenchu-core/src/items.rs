@@ -261,7 +261,7 @@ impl Items {
             Some(Processor::SightShot) => {
                 actors
                     .get_mut(item.owner.ok_or("Aimed item has no owner")?)
-                    .inventory[25] = 0;
+                    .aiming = false;
             }
             Some(Processor::Shuriken | Processor::Darts) => {
                 item.trail = None;

@@ -110,7 +110,7 @@ fn teleport_request_hold_and_forced_disposal_keep_original_camera_rules() {
     with_items(&mut game, |items, ctx, actors| {
         let mut actor = actors.roster.take(player);
         actor.inventory[24] = 3;
-        actor.inventory[25] = 9;
+        actor.aiming = true;
         actor.pad.held = TRIANGLE;
         ctx.camera.direction = [11, 22];
         items
@@ -119,7 +119,7 @@ fn teleport_request_hold_and_forced_disposal_keep_original_camera_rules() {
         actors.roster.restore(actor);
         let id = items.cursor;
         assert_eq!(actors.get(player).inventory[24], 2);
-        assert_eq!(actors.get(player).inventory[25], 9);
+        assert!(actors.get(player).aiming);
         assert_eq!(ctx.camera.mode, Mode::Sight);
         assert_eq!(ctx.camera.direction, [11, 22]);
         let bytes = ctx.drawing.bytes;
@@ -133,6 +133,6 @@ fn teleport_request_hold_and_forced_disposal_keep_original_camera_rules() {
         items.dispose(id, actors, ctx).unwrap();
         assert_eq!(ctx.camera.mode, Mode::Direction);
         assert_eq!(ctx.camera.detail, crate::camera::Detail::Sight);
-        assert_eq!(actors.get(player).inventory[25], 9);
+        assert!(actors.get(player).aiming);
     });
 }

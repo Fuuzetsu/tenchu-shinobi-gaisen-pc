@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    collision::{Collision, DOOR_OWNER},
+    collision::{Collision, Owner},
     scene::{COLLIDE, CONFLICT},
 };
 
@@ -129,9 +129,9 @@ puts("");
             game.collision.slots[own].results[contact] = 0x80;
         }
         game.collision.slots[contact].owner = match owner {
-            2 => Some(DOOR_OWNER),
+            2 => Some(Owner::Door),
             0 => None,
-            _ => Some(1),
+            _ => Some(Owner::Actor(1)),
         };
         game.collision.slots[contact].position = q.into();
         game.effects.sounds.clear();
@@ -233,7 +233,7 @@ fn environmental_activation_and_collision_lifecycle() {
             game.collision.slots[slot].size,
             game.collision.slots[slot].owner
         ),
-        ([0, -500, 0], [666, 1000, 666], Some(DOOR_OWNER))
+        ([0, -500, 0], [666, 1000, 666], Some(Owner::Door))
     );
     game.misc.objects[door].angle = 960;
     game.misc.objects[door].mode = 1;

@@ -45,7 +45,10 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
         );
         equal!(game.activation.raw_budget, ram.short(0x80097f40));
         equal!(game.activation.budget, ram.short(0x80097f44));
-        equal!(game.intelligence.action_halt, ram.short(0x800979b8));
+        equal!(
+            game.intelligence.action_halt.source_id(),
+            ram.short(0x800979b8)
+        );
         equal!(game.intelligence.found, ram.short(0x80097c6e));
         equal!(game.intelligence.alert, ram.word(0x800979c0) as i32);
         equal!(game.intelligence.strain, ram.word(0x800979c4) as i32);
@@ -122,7 +125,8 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
             std::array::from_fn::<_, 4, _>(|i| ram.short(address + 0x18 + i as u32 * 2) as u16)
         );
         equal!(actor.pad.hold_counter, ram.word(address + 0xb0));
-        equal!(actor.inventory.as_slice(), ram.bytes(address + 0xb4, 26));
+        equal!(actor.inventory.as_slice(), ram.bytes(address + 0xb4, 25));
+        equal!(u8::from(actor.aiming), ram.byte(address + 0xcd));
         equal!(
             actor.brain.chase,
             [

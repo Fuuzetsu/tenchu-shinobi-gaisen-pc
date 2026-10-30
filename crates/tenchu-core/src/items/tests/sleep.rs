@@ -111,9 +111,9 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             let slot = ctx.scene.models[model].conflict.unwrap();
             let target_slot = ctx.scene.models[target].conflict.unwrap();
             ctx.collision.slots[target_slot].owner = Some(match hit {
-                1 => player,
-                2 => enemy,
-                _ => crate::collision::DOOR_OWNER,
+                1 => crate::collision::Owner::Actor(player),
+                2 => crate::collision::Owner::Actor(enemy),
+                _ => crate::collision::Owner::Door,
             });
             ctx.collision.slots[slot].count = i16::from(hit != 0);
             ctx.collision.slots[slot].results[target_slot] = if hit != 0 { 0x84 } else { 0 };

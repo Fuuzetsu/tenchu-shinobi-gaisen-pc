@@ -132,9 +132,9 @@ fn weapon_clash_uses_collision_index_for_stun_and_keeps_the_slot() {
     let hand = game.player().parts[13];
     let other = game.roster.get(enemy).parts[0];
     let own_slot = game.collision.insert(&mut game.scene, hand).unwrap();
-    game.collision.slots[own_slot].owner = Some(player);
+    game.collision.slots[own_slot].owner = Some(crate::collision::Owner::Actor(player));
     let hit = game.collision.insert(&mut game.scene, other).unwrap();
-    game.collision.slots[hit].owner = Some(enemy);
+    game.collision.slots[hit].owner = Some(crate::collision::Owner::Actor(enemy));
     game.collision.slots[hit].class = crate::collision::HIT;
     game.collision.slots[own_slot].results[hit] = 0x81;
     game.collision.slots[own_slot].count = 1;
@@ -270,7 +270,7 @@ fn both_characters_finish_each_stealth_pair_and_leave_a_corpse() {
                 "character {character}, variant {variant}"
             );
             assert_eq!(game.statistics.criticals, 1);
-            assert_eq!(game.intelligence.action_halt, 0);
+            assert_eq!(game.intelligence.action_halt, crate::ai::Halt::Running);
             assert_eq!(game.player().status, 5);
             let dead = game.roster.get(victim);
             assert_eq!((dead.health, dead.status, dead.motion.loops), (0, 17, -1));
@@ -468,19 +468,20 @@ fn human_and_item_damage_match_original_c() {
         for (model, owner) in [(actor.parts[0], id), (enemy.parts[0], attacker_id)] {
             game.scene.models[model].conflict = None;
             let slot = game.collision.insert(&mut game.scene, model).unwrap();
-            game.collision.slots[slot].owner = Some(owner);
+            game.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(owner));
         }
         if cleanup {
             for &model in &actor.parts[13..=14] {
                 let slot = game.collision.insert(&mut game.scene, model).unwrap();
-                game.collision.slots[slot].owner = Some(id);
+                game.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(id));
             }
         }
         let hit = game
             .collision
             .insert(&mut game.scene, enemy.parts[13])
             .unwrap();
-        game.collision.slots[hit].owner = (item_kind < 0).then_some(attacker_id);
+        game.collision.slots[hit].owner =
+            (item_kind < 0).then_some(crate::collision::Owner::Actor(attacker_id));
         game.collision.distance = [dx as i16, 0, dz as i16];
         game.items.slots[0].model = enemy.parts[13];
         game.items.slots[0].kind = item_kind.max(0) as usize;
@@ -792,7 +793,7 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                     (Mode::Direction, crate::camera::Detail::Sight)
                 );
                 assert!(!game.items.sprites.is_empty());
-                assert_eq!(game.player().inventory[25], 1);
+                assert!(game.player().aiming);
                 if path == 1 {
                     game.step(0).unwrap();
                     assert_eq!(game.camera.mode, Mode::Lock);
@@ -815,7 +816,7 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                     );
                 }
             }
-            assert_eq!(game.player().inventory[25], 0);
+            assert!(!game.player().aiming);
             assert!(
                 !game
                     .items
@@ -893,11 +894,11 @@ fn both_players_grapple_and_cancel_through_normal_updates() {
                     .unwrap();
             }
             assert_eq!(game.player().motion.action, MOT_KAGI);
-            assert_eq!(game.player().inventory[25], 1);
+            assert!(game.player().aiming);
             assert!(!game.items.sprites.is_empty());
             game.step(if path == 2 { TRIANGLE | SQUARE } else { 0 })
                 .unwrap();
-            assert_eq!(game.player().inventory[25], 0);
+            assert!(!game.player().aiming);
             let mut fly = false;
             let mut pull = false;
             let mut wire = false;

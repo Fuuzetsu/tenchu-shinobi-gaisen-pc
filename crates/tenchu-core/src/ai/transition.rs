@@ -32,7 +32,7 @@ impl Controller<'_, '_> {
             self.actor.pad.update(0);
             return Ok(());
         }
-        if self.state.action_halt != 0 {
+        if self.state.action_halt != crate::ai::Halt::Running {
             let mut pad = 0;
             if (self.actor.kind.wrapping_sub(0x10) as u16) < 0x70 {
                 let target = self.target().ok_or("Halted guard has no target")?;

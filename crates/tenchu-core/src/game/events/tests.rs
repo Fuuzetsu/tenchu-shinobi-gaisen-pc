@@ -196,16 +196,16 @@ int main(void){{
         game.update_event(1, secondary);
         game.clock = 77;
         game.intelligence.action_halt = if case % 2 == 0 {
-            0
+            crate::ai::Halt::Running
         } else {
-            crate::ai::HALT_STAGE_END
+            crate::ai::Halt::StageEnd
         };
         game.camera.mode = camera::Mode::Fall;
         game.music.clear();
         row.extend([
             game.clock,
             game.events.time,
-            i32::from(game.intelligence.action_halt),
+            i32::from(game.intelligence.action_halt.source_id()),
             i32::from(secondary),
             sequence,
             i32::from(root_mode),
@@ -235,7 +235,7 @@ int main(void){{
             game.clock,
             game.events.time,
             i32::from(game.player().status),
-            i32::from(game.intelligence.action_halt),
+            i32::from(game.intelligence.action_halt.source_id()),
             game.camera.mode.source_id() as i32,
         ];
         state.extend(

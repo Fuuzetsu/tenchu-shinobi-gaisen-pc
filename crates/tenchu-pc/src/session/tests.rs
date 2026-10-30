@@ -614,7 +614,7 @@ fn all_retail_layouts_construct_actor_and_collision_pools() {
                     let actor = game.roster.get(id);
                     let waist = actor.parts[0];
                     let slot = game.scene.models[waist].conflict.unwrap();
-                    assert_eq!(game.collision.slots[slot].owner, Some(id));
+                    assert_eq!(game.collision.slots[slot].actor(), Some(id));
                     if let Some(patrol) = &actor.patrol {
                         assert!(patrol.points.len() > 1);
                         assert_eq!(patrol.points.last().unwrap().pad, 0xffff);

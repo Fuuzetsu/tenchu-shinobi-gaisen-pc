@@ -41,7 +41,7 @@ impl Actor {
             ctx.effects
                 .rumble(self.id, RumbleAction::WaterEntry, 255, 10, 0);
         }
-        world.intelligence.action_halt = 0;
+        world.intelligence.action_halt = crate::ai::Halt::Running;
         self.hide_body(ctx.scene, true);
         let action = if !self.registered(ctx, MOT_SWIM) || self.health == 0 {
             world.intelligence.voices.push((self.id, 8));

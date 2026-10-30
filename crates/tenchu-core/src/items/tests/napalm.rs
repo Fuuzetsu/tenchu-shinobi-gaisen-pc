@@ -110,9 +110,9 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
             let slot = ctx.scene.models[model].conflict.unwrap();
             let target_slot = ctx.scene.models[target].conflict.unwrap();
             ctx.collision.slots[target_slot].owner = Some(if hit == 1 {
-                player
+                crate::collision::Owner::Actor(player)
             } else {
-                crate::collision::DOOR_OWNER
+                crate::collision::Owner::Door
             });
             ctx.collision.slots[slot].count = i16::from(hit != 0);
             ctx.collision.slots[slot].results[target_slot] = if hit != 0 { 0x84 } else { 0 };
@@ -219,7 +219,7 @@ fn rejected_request_preserves_allocator_side_effects() {
                 .unwrap();
         }
         items.cursor = 0;
-        actors.get_mut(player).inventory[25] = 1;
+        actors.get_mut(player).aiming = true;
         actors.get_mut(player).inventory[22] = 3;
         items
             .request_napalm(
@@ -233,7 +233,7 @@ fn rejected_request_preserves_allocator_side_effects() {
             .unwrap();
         assert_eq!(items.cursor, 29);
         assert!(items.slots[29].processor.is_none());
-        assert_eq!(actors.get(player).inventory[25], 0);
+        assert!(!actors.get(player).aiming);
         assert_eq!(actors.get(player).inventory[22], 2);
         items
             .request_napalm(

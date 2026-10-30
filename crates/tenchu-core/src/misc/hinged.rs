@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::Position;
 use crate::{
-    collision::{DOOR_OWNER, SOFT},
+    collision::{Owner, SOFT},
     math::Math,
     packets,
     scene::CONFLICT,
@@ -76,7 +76,7 @@ impl Object {
         let id = ctx.collision.insert(ctx.scene, model)?;
         let slot = &mut ctx.collision.slots[id];
         let narrow = (i32::from(width) / 3 * 2) as i16;
-        slot.owner = Some(DOOR_OWNER);
+        slot.owner = Some(Owner::Door);
         slot.class = SOFT;
         slot.offset = [
             0,
@@ -118,7 +118,7 @@ impl Object {
                     .map(|id| &ctx.collision.slots[id]);
                 // The exhausted-result alias is systemAFS.maxElementArea,
                 // which is not the door-owner sentinel on the supported disc.
-                if contact.is_none_or(|slot| slot.owner != Some(DOOR_OWNER)) {
+                if contact.is_none_or(|slot| slot.owner != Some(Owner::Door)) {
                     if door {
                         self.speed = match contact {
                             Some(contact) => direction(

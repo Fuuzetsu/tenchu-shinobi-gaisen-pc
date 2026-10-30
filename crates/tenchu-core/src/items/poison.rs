@@ -110,7 +110,7 @@ impl Items {
                 if distance >= 1000 || matches!(actor.status, 16 | 8 | 7) || actor.health <= 0 {
                     return Ok(());
                 }
-                if intelligence.action_halt == 0 {
+                if intelligence.action_halt == crate::ai::Halt::Running {
                     actor.clear_attack(ctx, 3)?;
                     Self::item_motion(actor, MOT_ITEM_DRINK, ctx);
                 }
@@ -179,7 +179,7 @@ impl Items {
                 if matches!(actor.status, 16 | 8 | 7 | 15) || ctx.random.next15() % 30 >= 3 {
                     return Ok(());
                 }
-                if intelligence.action_halt == 0 {
+                if intelligence.action_halt == crate::ai::Halt::Running {
                     actor.clear_attack(ctx, 3)?;
                     let action = if actor.kind & 0xf0 == 0xa0 {
                         MOT_DAMAGE

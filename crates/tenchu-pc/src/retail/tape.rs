@@ -132,7 +132,13 @@ impl Initial {
         game.random.seed = self.seed;
         game.intelligence.difficulty = options.difficulty;
         game.combat.armor = self.armor != 0;
-        game.roster.get_mut(game.player_id).inventory = self.inventory;
+        let player = game.roster.get_mut(game.player_id);
+        player.inventory.copy_from_slice(&self.inventory[..25]);
+        player.aiming = match self.inventory[25] {
+            0 => false,
+            1 => true,
+            flag => return Err(format!("Invalid initial aiming flag {flag}")),
+        };
         game.scene.epoch = self.epoch;
         if self.terrain_caches.len() != game.roster.order.len() {
             return Err("Initial actor count disagrees with mission".into());

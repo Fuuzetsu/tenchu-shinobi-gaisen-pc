@@ -73,7 +73,9 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
             items.slots[id].count = 9;
             roster.get_mut(player).motion.action = crate::ids::MOT_NORMAL;
             let calls = ctx.random.calls;
-            items.pickup(id, ctx, roster, 0).unwrap();
+            items
+                .pickup(id, ctx, roster, crate::ai::Halt::Running)
+                .unwrap();
             assert_eq!(ctx.random.calls - calls, 3);
             assert_eq!(roster.get(player).inventory[3], 2);
             assert!(items.slots[id].processor.is_none());
@@ -564,7 +566,7 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         }
         items.cursor = (aim + 1) % CAPACITY;
         let mut actor = actors.roster.take(player);
-        assert_eq!(actor.inventory[25], 1);
+        assert!(actor.aiming);
         items
             .request(
                 crate::items::Request {
@@ -578,7 +580,7 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
                 ctx,
             )
             .unwrap();
-        assert_eq!(actor.inventory[25], 0);
+        assert!(!actor.aiming);
         assert_eq!(items.cursor, aim);
         assert_eq!(items.slots[aim].processor, Some(Processor::Gun));
         actors.roster.restore(actor);
