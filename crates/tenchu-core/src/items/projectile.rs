@@ -70,7 +70,7 @@ impl Items {
         self.slots[id].collision.size = 0;
         match processor {
             Processor::Shuriken | Processor::Arrow => {
-                self.slots[id].flight = flight::Flight::new(
+                self.slots[id].flight = Flight::new(
                     start,
                     end,
                     if kind == 1 { 1024 } else { 0 },
@@ -84,7 +84,7 @@ impl Items {
                         Some(Trail::new(self.meshes[0], [[20, 0, 0], [-20, 0, 0]]));
                 }
             }
-            Processor::Gun => self.slots[id].flight.end = end,
+            Processor::Gun => self.slots[id].gun_target = end,
             _ => unreachable!(),
         }
         Ok(())
@@ -152,9 +152,9 @@ impl Items {
             ctx.effects.impact(position, 16384, 2, ctx.random);
             ctx.effects.sounds.push((position, 0x30));
             self.dispose(id, actors, ctx)?;
-        } else if self.slots[id].flight.rolling {
+        } else if self.slots[id].flight.is_rolling() {
             match self.slots[id].rolling.status {
-                3 => {
+                RollingStatus::Wall => {
                     ctx.effects.scatter_bleeds(
                         position,
                         25,
@@ -169,13 +169,13 @@ impl Items {
                     ctx.effects.sounds.push((position, 0x31));
                     intelligence.reset_alert();
                 }
-                2 | 4 => {
+                RollingStatus::Ground | RollingStatus::Settled => {
                     let kind = self.slots[id].kind;
                     let owner = self.slots[id].owner;
                     self.dispose(id, actors, ctx)?;
                     self.drop(kind, owner, position, Position::ZERO, actors, ctx)?;
                 }
-                1 => self.dispose(id, actors, ctx)?,
+                RollingStatus::Water => self.dispose(id, actors, ctx)?,
                 _ => {}
             }
         }
@@ -259,10 +259,10 @@ impl Items {
 
     fn arrow_ground(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<bool> {
         let item = &mut self.slots[id];
-        if !item.flight.rolling || item.rolling.status == 0 {
+        if !item.flight.is_rolling() || item.rolling.status == RollingStatus::Airborne {
             return Ok(false);
         }
-        if item.rolling.status == 1 {
+        if item.rolling.status == RollingStatus::Water {
             self.dispose(id, actors, ctx)?;
         } else {
             let position = ctx.scene.models[item.model].local.translation;
@@ -307,7 +307,7 @@ impl Items {
                 self.slots[id].mode = 1;
             }
             1 => {
-                let rotation = ctx.math.vector_rotation(position, item.flight.end)?;
+                let rotation = ctx.math.vector_rotation(position, item.gun_target)?;
                 let (hit, position) = target(owner.id, rotation, position, actors, ctx)?;
                 ctx.scene.set_translation(model, position);
                 self.contact(id, 100, collision::HIT, ctx)?;

@@ -107,7 +107,7 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
         items.dog(2, actors, 1, ctx).unwrap();
         assert_eq!(items.slots[2].mode, 0);
         assert_eq!(items.slots[2].dog.remaining, 15);
-        items.slots[2].rolling.status = 4;
+        items.slots[2].rolling.status = RollingStatus::Settled;
         for id in 0..CAPACITY {
             if id != 1 && id != 2 {
                 items

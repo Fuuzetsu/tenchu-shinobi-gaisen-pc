@@ -205,7 +205,14 @@ int main(void) {{
         let mut rolling = Rolling {
             hint: if case % 3 == 0 { Some(node) } else { None },
             velocity: std::array::from_fn(|_| (cases.next15() as u16 * 2) as i16),
-            status: (case % 6) as u8,
+            status: [
+                RollingStatus::Airborne,
+                RollingStatus::Water,
+                RollingStatus::Ground,
+                RollingStatus::Wall,
+                RollingStatus::Settled,
+                RollingStatus::OutsideTerrain,
+            ][case % 6],
         };
         if case % 2 == 0 {
             rolling.velocity = std::array::from_fn(|_| (cases.next15() % 300 - 150) as i16);
@@ -230,12 +237,12 @@ int main(void) {{
                 .unwrap();
         let hint2 = hint_id(hint);
         let reflection = game.body.reflect_move[usize::from(probe.vector)];
-        let queries = if rolling.status == 4 {
+        let queries = if rolling.status == RollingStatus::Settled {
             0
         } else {
             1 + i32::from(first < next[1] && hint1 == 0)
         };
-        let probes = i32::from(rolling.status != 4 && first < next[1]);
+        let probes = i32::from(rolling.status != RollingStatus::Settled && first < next[1]);
         let values = [
             position[0],
             position[1],
@@ -243,7 +250,7 @@ int main(void) {{
             i32::from(rolling.velocity[0]),
             i32::from(rolling.velocity[1]),
             i32::from(rolling.velocity[2]),
-            i32::from(rolling.status),
+            i32::from(rolling.status.source_id()),
             hint_id(rolling.hint),
             seed as i32,
             first,
@@ -279,7 +286,7 @@ int main(void) {{
             i32::from(rolling.velocity[0]),
             i32::from(rolling.velocity[1]),
             i32::from(rolling.velocity[2]),
-            i32::from(rolling.status),
+            i32::from(rolling.status.source_id()),
             hint_id(rolling.hint),
             game.random.seed as i32,
             game.random.calls as i32,
@@ -374,18 +381,21 @@ int main(void) {{
         writeln!(input).unwrap();
         game.random = Random::new(seed);
         with_items(&mut game, |_, ctx, _| {
-            let mut flight = flight::Flight::new(start, end, width, height, speed, ctx);
-            let mut row = flight.control.to_array().to_vec();
+            let mut flight = Flight::new(start, end, width, height, speed, ctx);
+            let Flight::Arc(arc) = &flight else {
+                panic!("new flight must start in its arc");
+            };
+            let mut row = arc.control.to_array().to_vec();
             row.extend([
-                i32::from(flight.count),
-                i32::from(flight.total),
+                i32::from(arc.count),
+                i32::from(arc.total.get()),
                 ctx.random.seed as i32,
                 ctx.random.calls as i32,
             ]);
             let mut rolling = Rolling::default();
             let mut position: Position = start;
             let mut digest = 2166136261u32;
-            while !flight.rolling {
+            while !flight.is_rolling() {
                 flight.step(&mut position, &mut rolling, ctx).unwrap();
                 for p in position {
                     digest = (digest ^ p as u32).wrapping_mul(16777619);
@@ -616,7 +626,7 @@ fn bombs_recover_refund_and_extinguish() {
             .unwrap();
         actors.roster.restore(actor);
         let id = items.cursor;
-        items.slots[id].rolling.status = 4;
+        items.slots[id].rolling.status = RollingStatus::Settled;
         items.slots[id].count = 1;
         let seed = (0..100)
             .find(|&seed| {

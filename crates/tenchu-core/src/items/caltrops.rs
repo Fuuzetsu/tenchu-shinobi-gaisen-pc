@@ -17,11 +17,11 @@ impl Items {
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(model, position);
                 match item.rolling.status {
-                    4 => {
+                    RollingStatus::Settled => {
                         item.mode = 1;
                         self.contact(id, 100, collision::HIT, ctx)?;
                     }
-                    1 => {
+                    RollingStatus::Water => {
                         self.dispose(id, actors, ctx)?;
                         return Ok(());
                     }

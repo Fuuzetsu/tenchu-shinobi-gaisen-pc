@@ -1,18 +1,29 @@
 use super::Rolling;
 use crate::math::Position;
 use crate::{Result, actor::Context};
+use std::num::NonZeroU8;
 
 #[derive(Clone, Debug, Default)]
-pub struct Flight {
+pub enum Flight {
+    Arc(Arc),
+    #[default]
+    Rolling,
+}
+
+#[derive(Clone, Debug)]
+pub struct Arc {
     pub start: Position,
     pub end: Position,
     pub control: Position,
     pub count: u8,
-    pub total: u8,
-    pub rolling: bool,
+    pub total: NonZeroU8,
 }
 
 impl Flight {
+    pub fn is_rolling(&self) -> bool {
+        matches!(self, Self::Rolling)
+    }
+
     pub(super) fn new(
         start: Position,
         end: Position,
@@ -45,14 +56,13 @@ impl Flight {
         } else {
             -width
         });
-        Self {
+        Self::Arc(Arc {
             start,
             end,
             control: Position::new(x, y, z),
             count: total - 1,
-            total,
-            rolling: false,
-        }
+            total: NonZeroU8::new(total).unwrap(),
+        })
     }
 
     pub(super) fn step(
@@ -61,31 +71,28 @@ impl Flight {
         rolling: &mut Rolling,
         ctx: &mut Context,
     ) -> Result<()> {
-        if self.rolling {
+        let Self::Arc(arc) = self else {
             return rolling.step(position, ctx);
-        }
-        if self.total == 0 {
-            return Err("Projectile arc has zero duration".into());
-        }
-        let q = 4096 - (i32::from(self.count) << 12) / i32::from(self.total);
+        };
+        let q = 4096 - (i32::from(arc.count) << 12) / i32::from(arc.total.get());
         let square = q.wrapping_mul(q) / 4096;
         let weights = [4096 - q * 2 + square, q * 2 - square * 2, square];
         let next: Position = Position::from_fn(|i| {
             weights[0]
-                .wrapping_mul(self.start[i])
-                .wrapping_add(weights[1].wrapping_mul(self.control[i]))
-                .wrapping_add(weights[2].wrapping_mul(self.end[i]))
+                .wrapping_mul(arc.start[i])
+                .wrapping_add(weights[1].wrapping_mul(arc.control[i]))
+                .wrapping_add(weights[2].wrapping_mul(arc.end[i]))
                 / 4096
         });
-        if self.count == 0 {
+        if arc.count == 0 {
             *rolling = Rolling {
                 hint: None,
                 velocity: std::array::from_fn(|i| next[i].wrapping_sub(position[i]) as i16),
-                status: 0,
+                status: super::RollingStatus::Airborne,
             };
-            self.rolling = true;
+            *self = Self::Rolling;
         } else {
-            self.count -= 1;
+            arc.count -= 1;
         }
         *position = next;
         Ok(())

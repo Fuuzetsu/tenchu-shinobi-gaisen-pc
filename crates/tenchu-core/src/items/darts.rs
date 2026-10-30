@@ -20,7 +20,7 @@ impl Items {
             rotation[1] = rotation[1].wrapping_add((ctx.random.next15() % 512 - 256) as i16);
             let end = projectile::target(owner, rotation, start, actors, ctx)?.1;
             let item = &mut self.slots[id];
-            item.flight = flight::Flight::new(start, end, 4096, 1024, 400, ctx);
+            item.flight = Flight::new(start, end, 4096, 1024, 400, ctx);
             item.trail = Some(Trail::new(item.model, [[30, 0, 0], [-30, 0, 0]]));
             item.count = 8;
         }
@@ -41,7 +41,7 @@ impl Items {
         let item = &self.slots[id];
         let model = item.model;
         let position = ctx.scene.models[model].local.translation;
-        if item.flight.rolling && item.rolling.status != 0 {
+        if item.flight.is_rolling() && item.rolling.status != RollingStatus::Airborne {
             ctx.effects.scatter_bleeds(
                 position,
                 25,

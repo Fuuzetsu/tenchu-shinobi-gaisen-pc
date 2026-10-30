@@ -34,7 +34,7 @@ impl Items {
         let mut position = ctx.scene.models[model].local.translation;
         item.rolling.step(&mut position, ctx)?;
         ctx.scene.set_translation(model, position);
-        if item.rolling.status == 1 {
+        if item.rolling.status == RollingStatus::Water {
             return self.dispose(id, actors, ctx);
         }
         match item.mode {

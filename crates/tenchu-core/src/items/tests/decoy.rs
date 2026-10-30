@@ -12,7 +12,7 @@ fn prepare(items: &mut Items, id: usize, player: usize, position: Position, ctx:
         .unwrap();
     let item = &mut items.slots[id];
     item.rolling = Rolling {
-        status: 4,
+        status: RollingStatus::Settled,
         ..Rolling::default()
     };
     item.decoy = crate::items::decoy::Decoy { health: 3, player };
@@ -123,7 +123,7 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
             (collision::STAND, -500),
         ] {
             items.slots[1].rolling = Rolling {
-                status: 4,
+                status: RollingStatus::Settled,
                 ..Rolling::default()
             };
             items.slots[1].count = 10;
@@ -144,7 +144,7 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
         }
         for hit_number in 1..=4 {
             items.slots[1].rolling = Rolling {
-                status: 4,
+                status: RollingStatus::Settled,
                 ..Rolling::default()
             };
             items.slots[1].count = 10;

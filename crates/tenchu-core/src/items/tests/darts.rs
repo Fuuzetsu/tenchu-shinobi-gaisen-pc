@@ -111,7 +111,9 @@ puts("");}return 0;}
             ];
             let mut ends = Vec::new();
             for item in &items.slots[1..=8] {
-                let f = &item.flight;
+                let Flight::Arc(f) = &item.flight else {
+                    panic!("new dart must start in its arc");
+                };
                 let distance = ctx.math.vector_distance(f.end.wrapping_sub(start.into()));
                 writeln!(input, "{} {} {} {distance}", f.end[0], f.end[1], f.end[2]).unwrap();
                 ends.push(f.end);
@@ -120,7 +122,7 @@ puts("");}return 0;}
                 let t = item.trail.as_ref().unwrap();
                 row.extend([
                     f.count as i32,
-                    f.total as i32,
+                    i32::from(f.total.get()),
                     item.count as i32,
                     i32::from(t.vectors[0][0]),
                     i32::from(t.vectors[1][0]),
@@ -166,7 +168,7 @@ fn dart_contact_keeps_flying_until_ground_impact() {
             .initialize(1, Processor::Darts, 15, Some(player), start, ctx)
             .unwrap();
         let model = items.slots[1].model;
-        items.slots[1].flight = flight::Flight::new(start, end.into(), 4096, 1024, 400, ctx);
+        items.slots[1].flight = Flight::new(start, end.into(), 4096, 1024, 400, ctx);
         items.slots[1].trail = Some(Trail::new(model, [[30, 0, 0], [-30, 0, 0]]));
         items.slots[1].count = 250;
         items.contact(1, 300, collision::HIT, ctx).unwrap();
@@ -189,8 +191,8 @@ fn dart_contact_keeps_flying_until_ground_impact() {
         assert_ne!(ctx.scene.models[model].local.translation, position);
         assert_eq!(items.slots[1].trail.as_ref().unwrap().count, count + 1);
         assert!(ctx.effects.sounds.is_empty());
-        items.slots[1].flight.rolling = true;
-        items.slots[1].rolling.status = 4;
+        items.slots[1].flight = Flight::Rolling;
+        items.slots[1].rolling.status = RollingStatus::Settled;
         items.darts(1, actors, ctx).unwrap();
         assert!(items.slots[1].processor.is_none());
         assert!(items.slots[1].trail.is_none());

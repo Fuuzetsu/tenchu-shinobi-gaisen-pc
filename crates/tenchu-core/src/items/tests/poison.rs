@@ -34,7 +34,7 @@ fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usiz
             .initialize(id, Processor::Poison, 7, Some(player), Position::ZERO, ctx)
             .unwrap();
         items.slots[id].mode = 1;
-        items.slots[id].rolling.status = 4;
+        items.slots[id].rolling.status = RollingStatus::Settled;
         (id, enemy)
     })
 }

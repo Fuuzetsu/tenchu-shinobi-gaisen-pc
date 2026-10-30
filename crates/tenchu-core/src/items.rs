@@ -37,7 +37,8 @@ use crate::{
     scene::{ModelId, Scene},
     terrain, visibility,
 };
-pub use rolling::Rolling;
+pub use flight::Flight;
+pub use rolling::{Rolling, Status as RollingStatus};
 
 pub const CAPACITY: usize = 30;
 pub const KINDS: usize = 25;
@@ -94,7 +95,8 @@ pub struct Item {
     pub decoy: decoy::Decoy,
     pub dog: dog::Dog,
     pub lightning: lightning::Lightning,
-    pub flight: flight::Flight,
+    pub flight: Flight,
+    pub gun_target: Position,
     pub trail: Option<crate::actor::trail::Trail>,
     pub rotation: [i16; 3],
     pub poison: poison::Poison,
@@ -172,7 +174,8 @@ impl Items {
                 decoy: decoy::Decoy::default(),
                 dog: dog::Dog::default(),
                 lightning: lightning::Lightning::default(),
-                flight: flight::Flight::default(),
+                flight: Flight::default(),
+                gun_target: Position::ZERO,
                 trail: None,
                 rotation: [0; 3],
                 poison: poison::Poison::default(),

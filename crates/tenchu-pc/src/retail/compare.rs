@@ -224,16 +224,16 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                 Processor::Shuriken | Processor::Arrow | Processor::Darts
             );
             if flight {
-                equal!(item.flight.rolling, ram.word(params + 0x28) != 0);
-                if !item.flight.rolling {
-                    equal!(item.flight.start, ram.vector(params));
-                    equal!(item.flight.end, ram.vector(params + 0xc));
-                    equal!(item.flight.control, ram.vector(params + 0x18));
-                    equal!(item.flight.count, ram.byte(params + 0x24));
-                    equal!(item.flight.total, ram.byte(params + 0x25));
+                equal!(item.flight.is_rolling(), ram.word(params + 0x28) != 0);
+                if let tenchu_core::items::Flight::Arc(arc) = &item.flight {
+                    equal!(arc.start, ram.vector(params));
+                    equal!(arc.end, ram.vector(params + 0xc));
+                    equal!(arc.control, ram.vector(params + 0x18));
+                    equal!(arc.count, ram.byte(params + 0x24));
+                    equal!(arc.total.get(), ram.byte(params + 0x25));
                 }
             }
-            if flight && item.flight.rolling
+            if flight && item.flight.is_rolling()
                 || matches!(
                     processor,
                     Processor::Pickup
@@ -247,7 +247,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                 )
             {
                 equal!(item.rolling.velocity, ram.short_vector(params + 4));
-                equal!(item.rolling.status, ram.byte(params + 0xa));
+                equal!(item.rolling.status.source_id(), ram.byte(params + 0xa));
             }
             match processor {
                 Processor::Pickup
@@ -281,7 +281,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                     }
                 }
                 Processor::Gun => {
-                    equal!(item.flight.end, ram.vector(params));
+                    equal!(item.gun_target, ram.vector(params));
                 }
                 _ => {}
             }

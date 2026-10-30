@@ -22,7 +22,7 @@ impl Items {
         item.rolling = Rolling {
             hint: None,
             velocity: velocity.map(|v| v as i16).to_array(),
-            status: 0,
+            status: RollingStatus::Airborne,
         };
         Ok(true)
     }
@@ -54,8 +54,8 @@ impl Items {
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(item.model, position);
                 match item.rolling.status {
-                    1 => self.dispose(id, actors, ctx)?,
-                    2 | 4 => {
+                    RollingStatus::Water => self.dispose(id, actors, ctx)?,
+                    RollingStatus::Ground | RollingStatus::Settled => {
                         self.contact(id, 180, collision::SOFT, ctx)?;
                         self.slots[id].mode = 1;
                     }

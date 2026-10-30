@@ -46,8 +46,8 @@ impl Items {
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(item.model, position);
                 match item.rolling.status {
-                    1 => return self.dispose(id, actors, ctx),
-                    4 => {
+                    RollingStatus::Water => return self.dispose(id, actors, ctx),
+                    RollingStatus::Settled => {
                         let kind = item.kind;
                         self.dispose(id, actors, ctx)?;
                         return self.stay(kind, position, actors, ctx);
