@@ -616,7 +616,7 @@ fn ranged_actors_hit_and_projectiles_retire() {
         let shooter = arena(&mut game, kind);
         with_actor(&mut game, shooter, |actor, ctx, _| {
             actor.attribute = ATTR_WEAPON_DRAWN;
-            actor.think = [0; 4];
+            actor.think = crate::ai::programs::Programs::default();
             actor.inventory[1] = 1;
             assert!(actor.enter(ctx, action, true));
             actor.map =
@@ -662,7 +662,7 @@ fn manji_fire_reaches_the_shared_item_damage_path() {
     let shooter = arena(&mut game, 0x30);
     with_actor(&mut game, shooter, |actor, ctx, _| {
         actor.attribute = ATTR_WEAPON_DRAWN;
-        actor.think = [0; 4];
+        actor.think = crate::ai::programs::Programs::default();
         actor.position = Position::new(0, 0, 2300);
         assert!(actor.enter(ctx, MOT_ATTACK, true));
         assert_eq!(actor.motion_id(ctx, MOT_ATTACK), 0xf5);
@@ -728,7 +728,7 @@ fn sleeping_gas_releases_and_changes_guard_ai() {
         let enemy = arena(&mut game, 0x10);
         with_actor(&mut game, enemy, |actor, ctx, _| {
             actor.attribute = ATTR_WEAPON_DRAWN;
-            actor.think = [0; 4];
+            actor.think = crate::ai::programs::Programs::default();
             actor.enter(ctx, MOT_NORMAL, true);
         });
         game.camera.snap_pending = true;
@@ -755,7 +755,7 @@ fn sleeping_gas_releases_and_changes_guard_ai() {
                 .iter()
                 .any(|d| matches!(d.graphic, crate::effects::Graphic::Sprite { image: 6, .. }));
             let actor = game.roster.get(enemy);
-            sleeping |= actor.think[0] == 7
+            sleeping |= actor.think.idle == crate::ai::programs::Idle::Sleep
                 && actor.motion.action == MOT_ACTION
                 && actor.attribute & (ATTR_WEAPON_DRAWN | ATTR_PHASE) == 0;
         }
@@ -864,7 +864,7 @@ fn injured_enemy_uses_its_medicine() {
         actor.inventory.fill(0);
         actor.inventory[3] = 1;
         actor.attribute = ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | ATTR_SEARCH | 2;
-        actor.think = [0, 0, 5, 0];
+        actor.think = crate::ai::programs::Programs::decode(0x0500).unwrap();
         actor.enter(ctx, MOT_ENGAGE_STANCE, true);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
     });

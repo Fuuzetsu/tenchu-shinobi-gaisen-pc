@@ -45,7 +45,7 @@ impl Game {
             (think & !15) | 3
         } else {
             think
-        });
+        })?;
         actor.patrol = original.patrol.clone();
         actor.attribute |= original.attribute & (crate::ids::ATTR_SUSPEND | crate::ids::ATTR_TRACE);
         if actor.attribute & crate::ids::ATTR_SUSPEND != 0 {

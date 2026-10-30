@@ -92,7 +92,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
             )
             .unwrap();
         assert_eq!(actors.get(dog).target, Some(actors.get(enemy).root_model));
-        assert_eq!(actors.get(dog).think, [9, 4, 4, 5]);
+        assert_eq!(actors.get(dog).think.source_ids(), [9, 4, 4, 5]);
         assert_eq!(actors.get(dog).motion.action, MOT_STATE_DRAW);
         assert_ne!(actors.get(dog).attribute & ATTR_WEAPON_DRAWN, 0);
         assert_eq!(actors.get(player).attribute, owner_flags);
@@ -109,7 +109,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
             )
             .unwrap();
         assert_eq!(actors.get(dog).target, Some(owner_root));
-        assert_eq!(actors.get(dog).think, [0; 4]);
+        assert_eq!(actors.get(dog).think.source_ids(), [0; 4]);
         assert_eq!(actors.get(dog).motion.action, MOT_STATE_SHEATHE);
         assert_eq!(
             actors.get(dog).attribute & (ATTR_WEAPON_DRAWN | 3 | ATTR_CUSTOMAI),

@@ -29,7 +29,7 @@ pub fn game(game: &Game) -> Value {
         "health": a.health, "max_health": a.max_health, "invulnerable": a.invulnerable,
         "status": a.status.source_id(), "attribute": a.attribute, "scripted": a.scripted,
         "target_model": a.target, "hit_actor": a.hit, "home": a.home,
-        "think": a.think,
+        "think": a.think.source_ids(),
         "brain": {"mode": a.brain.mode, "flag": a.brain.flag, "count": a.brain.count,
             "timer": a.brain.timer, "chase": a.brain.chase},
         "motion": {"action": a.motion.action, "clip": a.motion.clip, "count": a.motion.count,

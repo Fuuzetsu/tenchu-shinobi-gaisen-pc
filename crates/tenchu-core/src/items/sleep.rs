@@ -84,7 +84,7 @@ impl Items {
                 if actor.kind & 0xf0 != 0x80 {
                     actor.equip(ctx, false);
                     actor.enter(ctx, MOT_STATE_SHEATHE, true);
-                    actor.think[0] = 7;
+                    actor.think.idle = crate::ai::programs::Idle::Sleep;
                     actor.attribute &= !ATTR_PHASE;
                 }
                 actor.enter(ctx, MOT_ACTION, true);

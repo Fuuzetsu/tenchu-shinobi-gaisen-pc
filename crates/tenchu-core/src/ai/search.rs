@@ -26,7 +26,7 @@ impl Controller<'_, '_> {
             }
             return Ok(self.goto(0, 0)? & (LEFT | RIGHT));
         }
-        if self.actor.think[3] == 3 {
+        if self.actor.think.search == crate::ai::programs::Search::Abandon {
             let pad = self.goto(0, 0)? & (LEFT | RIGHT);
             if pad != 0 {
                 return Ok(pad);

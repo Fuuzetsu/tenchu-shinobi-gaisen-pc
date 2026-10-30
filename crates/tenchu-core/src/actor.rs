@@ -109,7 +109,7 @@ pub struct Actor {
     pub hit: Option<usize>,
     pub home: [i32; 2],
     pub target: Option<ModelId>,
-    pub think: [u8; 4],
+    pub think: crate::ai::programs::Programs,
     pub brain: crate::ai::Brain,
     pub active_item: i16,
     pub inventory: [u8; 25],
@@ -213,7 +213,7 @@ impl Actor {
             hit: None,
             home: [position[0], position[2]],
             target: None,
-            think: [0; 4],
+            think: crate::ai::programs::Programs::default(),
             brain: crate::ai::Brain::default(),
             active_item: 0,
             inventory: [0; 25],
@@ -268,13 +268,14 @@ impl Actor {
         }
     }
 
-    pub fn setup_think(&mut self, mix: i16) {
-        self.think = std::array::from_fn(|i| ((mix as u16 >> (i * 4)) & 15) as u8);
+    pub fn setup_think(&mut self, mix: i16) -> Result<()> {
+        self.think = crate::ai::programs::Programs::decode(mix)?;
         if matches!(mix, 0 | 0x1111 | 0x2222) {
             self.attribute &= !ATTR_CUSTOMAI;
         } else {
             self.attribute |= ATTR_CUSTOMAI;
         }
+        Ok(())
     }
 
     pub fn collision_center(&self, ctx: &Context) -> Position {

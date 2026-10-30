@@ -7,12 +7,13 @@ impl Controller<'_, '_> {
             .spawn_reinforcement(choice, self.actor.position, yaw, self.ctx)
     }
 
-    fn equip_guard(&mut self, id: usize) {
+    fn equip_guard(&mut self, id: usize) -> Result<()> {
         let actor = self.roster.get_mut(id);
         actor.target = self.actor.target;
-        actor.setup_think(0x4444);
+        actor.setup_think(0x4444)?;
         actor.equip(self.ctx, true);
         actor.enter(self.ctx, MOT_ENGAGE_STANCE, true);
+        Ok(())
     }
 
     pub(super) fn call_aid(&mut self) -> Result<u16> {
@@ -27,7 +28,7 @@ impl Controller<'_, '_> {
         let id = self.breed(yaw)?;
         self.roster.get_mut(id).target = self.actor.target;
         self.roster.remove_detached(self.actor, self.ctx);
-        self.equip_guard(id);
+        self.equip_guard(id)?;
         let mut replacement = self.roster.actors[id].take().unwrap();
         std::mem::swap(self.actor, &mut replacement);
         self.replaced = Some(replacement);
@@ -112,7 +113,7 @@ impl Controller<'_, '_> {
                         self.actor.rotation[1],
                         self.ctx,
                     )?;
-                    self.equip_guard(id);
+                    self.equip_guard(id)?;
                     let actor = self.roster.get_mut(id);
                     actor.brain.timer = 0;
                     actor.brain.count = 1;

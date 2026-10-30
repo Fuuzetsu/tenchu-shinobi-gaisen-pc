@@ -1,3 +1,4 @@
+pub mod programs;
 use crate::actor::State as ActorState;
 use crate::math::Position;
 mod combat;
@@ -418,31 +419,51 @@ impl<'a, 'b> Controller<'a, 'b> {
         pad
     }
 
-    fn program(&mut self, phase: usize) -> Result<u16> {
-        let index = self.actor.think[phase];
-        match (phase, index) {
-            (_, 0 | 2) => Ok(0),
-            (_, 1) => Ok(self.player_input()),
-            (0, 3) => self.trace(),
-            (0, 4) => Ok(self.watch()),
-            (0, 5) => self.wander(),
-            (0, 6) => self.ninja(),
-            (0, 7) => self.sleep(),
-            (0, 8) => self.hunt(),
-            (0, 9) => self.follow(),
-            (1, 3) => Ok(self.goto(0, 0)? & (LEFT | RIGHT)),
-            (1, 4) => self.contact(),
-            (1, 5) => self.alarm(),
-            (2, 3) => self.call_aid(),
-            (2, 4) => self.attack_chase(),
-            (2, 5) => self.attack_point(),
-            (2, 6) => self.escape(),
-            (2, 7) => self.attack_area(),
-            (2, 8) => self.hit_away(),
-            (2, 9) => self.first_attack(),
-            (3, 3) => self.abandon(),
-            (3, 4 | 5) => self.investigate(index == 5),
-            _ => Err(format!("AI program {phase}/{index} is not implemented yet")),
+    fn idle_program(&mut self) -> Result<u16> {
+        match self.actor.think.idle {
+            programs::Idle::None | programs::Idle::Disabled => Ok(0),
+            programs::Idle::Player => Ok(self.player_input()),
+            programs::Idle::Trace => self.trace(),
+            programs::Idle::Watch => Ok(self.watch()),
+            programs::Idle::Wander => self.wander(),
+            programs::Idle::Ninja => self.ninja(),
+            programs::Idle::Sleep => self.sleep(),
+            programs::Idle::Hunt => self.hunt(),
+            programs::Idle::Follow => self.follow(),
+        }
+    }
+
+    fn notice_program(&mut self) -> Result<u16> {
+        match self.actor.think.notice {
+            programs::Notice::None | programs::Notice::Disabled => Ok(0),
+            programs::Notice::Player => Ok(self.player_input()),
+            programs::Notice::Turn => Ok(self.goto(0, 0)? & (LEFT | RIGHT)),
+            programs::Notice::Contact => self.contact(),
+            programs::Notice::Alarm => self.alarm(),
+        }
+    }
+
+    fn combat_program(&mut self) -> Result<u16> {
+        match self.actor.think.combat {
+            programs::Combat::None | programs::Combat::Disabled => Ok(0),
+            programs::Combat::Player => Ok(self.player_input()),
+            programs::Combat::CallAid => self.call_aid(),
+            programs::Combat::Chase => self.attack_chase(),
+            programs::Combat::Point => self.attack_point(),
+            programs::Combat::Escape => self.escape(),
+            programs::Combat::Area => self.attack_area(),
+            programs::Combat::HitAway => self.hit_away(),
+            programs::Combat::FirstAttack => self.first_attack(),
+        }
+    }
+
+    fn search_program(&mut self) -> Result<u16> {
+        match self.actor.think.search {
+            programs::Search::None | programs::Search::Disabled => Ok(0),
+            programs::Search::Player => Ok(self.player_input()),
+            programs::Search::Abandon => self.abandon(),
+            programs::Search::Investigate => self.investigate(false),
+            programs::Search::Pursue => self.investigate(true),
         }
     }
 }

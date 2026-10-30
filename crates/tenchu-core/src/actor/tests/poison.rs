@@ -13,7 +13,7 @@ fn poisoned_food_lures_and_restores_an_enemy() {
             actor.position.z = 9000;
             actor.rotation[1] = 2048;
             actor.attribute = 0;
-            actor.think = [0; 4];
+            actor.think = crate::ai::programs::Programs::default();
             actor.inventory.fill(0);
             actor.enter(ctx, MOT_NORMAL, true);
             ctx.scene.update(actor.root_model, actor.root(ctx.math));
@@ -33,7 +33,7 @@ fn poisoned_food_lures_and_restores_an_enemy() {
         for _ in 0..1000 {
             game.step(0).unwrap();
             let actor = game.roster.get(enemy);
-            lured |= actor.think[0] == 9;
+            lured |= actor.think.idle == crate::ai::programs::Idle::Follow;
             eating |= actor.motion.action == MOT_ITEM_DRINK;
             choked |=
                 actor.status == ActorState::UseItem && actor.motion.action == MOT_DAMAGE_CHOKE;
@@ -48,7 +48,7 @@ fn poisoned_food_lures_and_restores_an_enemy() {
             "character {character}: lure {lured}, eat {eating}, poison {poisoned}, choke {choked}; enemy {:?}",
             game.roster.get(enemy)
         );
-        assert_eq!(game.roster.get(enemy).think[0], 0);
+        assert_eq!(game.roster.get(enemy).think.idle.source_id(), 0);
         assert_eq!(
             game.roster.get(enemy).target,
             Some(game.player().root_model)

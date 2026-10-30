@@ -24,7 +24,7 @@ fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usiz
             .unwrap();
         let actor = actors.get_mut(enemy);
         actor.attribute = 0;
-        actor.think = [0; 4];
+        actor.think = crate::ai::programs::Programs::default();
         actor.target = Some(root);
         if !owner_first {
             actors.roster.order.reverse();
@@ -57,8 +57,11 @@ fn interrupted_eating_keeps_bait_until_cleanup() {
             .process(id, actors, &mut intelligence, player, 2, ctx)
             .unwrap();
         assert_eq!(items.slots[id].source_mode(), 2);
-        assert_eq!(items.slots[id].poison.original_think, Some(0));
-        assert_eq!(actors.get(enemy).think[0], 9);
+        assert_eq!(
+            items.slots[id].poison.original_think,
+            Some(crate::ai::programs::Idle::None)
+        );
+        assert_eq!(actors.get(enemy).think.idle.source_id(), 9);
         assert_eq!(actors.get(enemy).motion.action, MOT_ITEM_DRINK);
         let model = items.slots[id].model;
         assert_eq!(
@@ -84,7 +87,7 @@ fn interrupted_eating_keeps_bait_until_cleanup() {
         assert_eq!(ctx.scene.models[model].local.translation, position);
         assert_eq!(actors.get(enemy).target, Some(model));
         items.dispose(id, actors, ctx).unwrap();
-        assert_eq!(actors.get(enemy).think[0], 0);
+        assert_eq!(actors.get(enemy).think.idle.source_id(), 0);
         assert_eq!(
             actors.get(enemy).target,
             Some(actors.get(player).root_model)
@@ -119,7 +122,7 @@ fn owner_recovery_keeps_target_search_order() {
                         .count(),
                     1
                 );
-                assert_eq!(actors.get(enemy).think[0], 0);
+                assert_eq!(actors.get(enemy).think.idle.source_id(), 0);
             } else {
                 assert_eq!(items.slots[id].source_mode(), 2);
                 assert_eq!(items.slots[id].poison.eater, Some(enemy));

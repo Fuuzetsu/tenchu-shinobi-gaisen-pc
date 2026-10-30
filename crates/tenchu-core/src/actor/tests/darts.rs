@@ -10,7 +10,7 @@ fn both_players_fire_eight_darts_with_delayed_hitboxes() {
         let player = game.player_id;
         with_actor(&mut game, enemy, |actor, ctx, _| {
             actor.attribute = ATTR_WEAPON_DRAWN;
-            actor.think = [0; 4];
+            actor.think = crate::ai::programs::Programs::default();
             actor.inventory.fill(0);
             actor.enter(ctx, MOT_ENGAGE_STANCE, true);
         });

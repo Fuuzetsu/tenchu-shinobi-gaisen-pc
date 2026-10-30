@@ -138,7 +138,7 @@ fn lethal_arrows_revive_both_players_and_finish_the_effect() {
         game.camera.snap_pending = true;
         with_actor(&mut game, shooter, |actor, ctx, _| {
             actor.attribute = ATTR_WEAPON_DRAWN;
-            actor.think = [0; 4];
+            actor.think = crate::ai::programs::Programs::default();
             actor.enter(ctx, MOT_ATTACK, true);
         });
         let mut restored = false;

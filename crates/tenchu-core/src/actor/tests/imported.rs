@@ -42,7 +42,7 @@ fn foreign_reinforcements_spawn_and_land_ai_attacks() {
             assert_eq!(enemy.script_kind, Some(ctx.mission.reinforcements[slot]));
             assert_eq!((enemy.health, enemy.max_health), (350, 350));
             assert_eq!(enemy.voice_program, Some(128));
-            enemy.setup_think(0x4444);
+            enemy.setup_think(0x4444).unwrap();
             enemy.target = Some(actor.root_model);
         }
     });
@@ -89,7 +89,7 @@ fn imported_melee_attacks_damage_both_players_like_their_originals() {
                     with_actor(&mut game, enemy, |actor, ctx, _| {
                         actor.attribute = 0;
                         actor.equip(ctx, true);
-                        actor.think = [0; 4];
+                        actor.think = crate::ai::programs::Programs::default();
                         actor.position = Position::new(0, 0, distance);
                         actor.rotation = [0; 3];
                         assert!(actor.enter(ctx, MOT_ATTACK, true));

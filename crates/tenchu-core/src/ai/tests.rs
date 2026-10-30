@@ -26,7 +26,7 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
         player.position.z,
     );
     actor.attribute = ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | ATTR_SEARCH | 2;
-    actor.setup_think(0x4344);
+    actor.setup_think(0x4344).unwrap();
     actor.pad.held = LEFT;
     actor.pad.previous = CROSS;
     let old_pad = actor.pad.clone();
@@ -67,7 +67,7 @@ fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
     assert_ne!(game.roster.order[index], id);
     let guard = game.roster.get(game.roster.order[index]);
     assert!(ctx.mission.reinforcements.contains(&guard.kind));
-    assert_eq!(guard.think, [4; 4]);
+    assert_eq!(guard.think.source_ids(), [4; 4]);
     assert_eq!(
         guard.attribute & (ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | ATTR_PHASE),
         ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | 2

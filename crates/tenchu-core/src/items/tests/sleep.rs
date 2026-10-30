@@ -93,7 +93,7 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             actor.kind = kind;
             actor.health = health;
             actor.attribute = ATTR_WEAPON_DRAWN | 3;
-            actor.think[0] = 0;
+            actor.think.idle = crate::ai::programs::Idle::None;
             actor.status = ActorState::Normal;
             actor.enter(ctx, action, true);
             items.dispose(1, actors, ctx).unwrap();
@@ -165,7 +165,7 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                 ctx.effects.sounds.len() as i32,
                 intelligence.voices.len() as i32,
                 i32::from(actor.motion.action),
-                i32::from(actor.think[0]),
+                i32::from(actor.think.idle.source_id()),
                 i32::from(actor.attribute),
                 i32::from(actor.health),
                 ctx.scene.models[model].flags as i32,

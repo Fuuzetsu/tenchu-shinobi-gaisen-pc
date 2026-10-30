@@ -153,7 +153,7 @@ impl Items {
                     let target = actors.get(nearest).root_model;
                     let actor = actors.get_mut(slave);
                     if actor.target != Some(target) {
-                        actor.setup_think(0x5449);
+                        actor.setup_think(0x5449)?;
                         actor.target = Some(target);
                         actor.attribute |= 2;
                         actor.equip(ctx, true);
@@ -166,7 +166,7 @@ impl Items {
                         actor.equip(ctx, false);
                         actor.enter(ctx, MOT_STATE_SHEATHE, true);
                         actor.attribute &= !3;
-                        actor.setup_think(0);
+                        actor.setup_think(0)?;
                         actor.target = Some(target);
                     }
                 }

@@ -5,7 +5,7 @@ fn guard(game: &mut Game) -> usize {
     with_actor(game, enemy, |actor, ctx, _| {
         actor.position.z = 1800;
         actor.attribute = ATTR_CUSTOMAI | ATTR_WEAPON_DRAWN | 2;
-        actor.think = [4; 4];
+        actor.think = crate::ai::programs::Programs::decode(0x4444).unwrap();
         actor.enter(ctx, MOT_ENGAGE_STANCE, true);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
     });

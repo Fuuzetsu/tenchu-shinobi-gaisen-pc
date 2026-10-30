@@ -47,7 +47,7 @@ fn mei_oh_lightning_attacks_launch_restrike_damage_and_expire() {
             game.camera.snap_pending = true;
             with_actor(&mut game, shooter, |actor, ctx, _| {
                 actor.attribute = ATTR_WEAPON_DRAWN;
-                actor.think = [0; 4];
+                actor.think = crate::ai::programs::Programs::default();
                 actor.position = Position::new(0, 0, 2300);
                 assert!(actor.enter(ctx, action, true));
                 assert_eq!(actor.motion_id(ctx, MOT_ATTACK), 0xe9);

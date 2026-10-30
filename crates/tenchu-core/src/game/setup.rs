@@ -71,7 +71,7 @@ pub(super) fn construct(
     }
     let player = roster.spawn(character, Position::ZERO, 0, ctx)?;
     let actor = roster.get_mut(player);
-    actor.setup_think(0x1111);
+    actor.setup_think(0x1111)?;
     actor.position = ctx.mission.stage.start.into();
     actor.rotation = [0, ctx.mission.stage.facing as i16, 0];
     ctx.scene.set_translation(actor.root_model, actor.position);
@@ -102,7 +102,7 @@ pub(super) fn construct(
         actor.attribute |= ATTR_SUSPEND;
         actor.target = Some(player_model);
         ctx.scene.models[actor.parts[0]].attribute &= !COLLIDE;
-        actor.setup_think(spawn.think);
+        actor.setup_think(spawn.think)?;
         if !spawn.patrol.is_empty() {
             actor.patrol = Some(Patrol::new(&spawn.patrol, actor.position));
             actor.attribute |= ATTR_TRACE;
@@ -131,7 +131,7 @@ pub(super) fn construct(
         }
         actor.rotation[1] = spawn.facing;
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
-        actor.setup_think(spawn.think);
+        actor.setup_think(spawn.think)?;
         actor.attribute = (actor.attribute | ATTR_SUSPEND | 2) & !ATTR_CUSTOMAI;
         actor.health = -1;
         actor.target = Some(player_model);

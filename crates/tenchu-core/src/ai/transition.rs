@@ -56,7 +56,7 @@ impl Controller<'_, '_> {
             if player && self.state.alert != 0 {
                 self.state.alert = self.state.alert.wrapping_sub(1).max(0);
             }
-            let pad = self.program(0)?;
+            let pad = self.idle_program()?;
             self.actor.pad.update(pad);
             return Ok(());
         }
@@ -126,10 +126,13 @@ impl Controller<'_, '_> {
             }
             self.attribute = base;
             self.state.alert = 0;
-            let pad = if matches!(self.actor.think[0], 8 | 9) {
+            let pad = if matches!(
+                self.actor.think.idle,
+                programs::Idle::Hunt | programs::Idle::Follow
+            ) {
                 0
             } else {
-                self.program(0)?
+                self.idle_program()?
             };
             self.attribute &= !(ATTR_PHASE | ATTR_SEARCH);
             self.state.detection = Detection::Gone;
@@ -139,7 +142,7 @@ impl Controller<'_, '_> {
         let mut pad = match self.attribute & ATTR_PHASE {
             0 => {
                 self.state.strain = self.state.strain.min(player_distance);
-                let pad = self.program(0)?;
+                let pad = self.idle_program()?;
                 if self.actor.kind >= 7 {
                     if self.state.detection == Detection::Seen {
                         self.motion(MOT_STATE_DRAW);
@@ -177,7 +180,7 @@ impl Controller<'_, '_> {
                     if self.state.strain > 0 || self.state.strain < player_distance.wrapping_neg() {
                         self.state.strain = player_distance.wrapping_neg();
                     }
-                    self.program(1)?
+                    self.notice_program()?
                 };
                 if self.state.detection == Detection::Seen
                     || (self.attribute & ATTR_HIT != 0
@@ -214,7 +217,7 @@ impl Controller<'_, '_> {
                     self.state.strain = -1;
                 }
                 let mut pad = if self.attribute & ATTR_SEARCH != 0 {
-                    self.program(2)?
+                    self.combat_program()?
                 } else {
                     if self.attribute & ATTR_WEAPON_DRAWN == 0 {
                         self.motion(MOT_STATE_DRAW);
@@ -270,7 +273,7 @@ impl Controller<'_, '_> {
                 if self.state.strain > 0 {
                     self.state.strain = -32768;
                 }
-                let pad = self.program(3)?;
+                let pad = self.search_program()?;
                 if self.attribute & ATTR_WALL != 0 && self.actor.pad.hold_counter == 0 {
                     self.hold(if self.degree() > 0 { RIGHT } else { LEFT }, 8);
                 }
@@ -313,7 +316,7 @@ impl Controller<'_, '_> {
         } else {
             if self.actor.motion.count == 0
                 && self.degree().abs() < 500
-                && (self.actor.think[0] == 6
+                && (self.actor.think.idle == crate::ai::programs::Idle::Ninja
                     || (self.actor.kind & 0xf0 == 0x20
                         && self.state.difficulty != Difficulty::Easy))
             {

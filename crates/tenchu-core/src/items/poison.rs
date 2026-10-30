@@ -6,7 +6,7 @@ use crate::math::Position;
 #[derive(Clone, Debug, Default)]
 pub struct Poison {
     pub eater: Option<usize>,
-    pub original_think: Option<u8>,
+    pub original_think: Option<crate::ai::programs::Idle>,
     pub remaining: i16,
 }
 
@@ -21,7 +21,7 @@ impl Items {
         {
             let owner = actors.get(owner).root_model;
             let actor = actors.get_mut(eater);
-            actor.think[0] = think;
+            actor.think.idle = think;
             actor.target = Some(owner);
         }
         item.poison.eater = None;
@@ -99,9 +99,9 @@ impl Items {
                 item.poison.eater = Some(eater);
                 item.poison.original_think =
                     if actor.target == Some(owner) && actor.attribute & ATTR_PHASE == 0 {
-                        let original = actor.think[0];
+                        let original = actor.think.idle;
                         actor.target = Some(model);
-                        actor.think[0] = 9;
+                        actor.think.idle = crate::ai::programs::Idle::Follow;
                         Some(original)
                     } else {
                         None
