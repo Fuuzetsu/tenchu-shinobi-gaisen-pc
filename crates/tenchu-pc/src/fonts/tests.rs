@@ -83,10 +83,27 @@ fn localized_captions_change_only_presentation_and_render_at_720p_and_4k() {
         }
         assert!(!game.cinematic.displayed_caption.is_empty());
         let state = crate::session::tests::state(&game);
-        let original =
-            crate::render_effects::build_presented(&game, true, None, true, None, None, false);
-        let sharp =
-            crate::render_effects::build_presented(&game, true, None, true, None, None, true);
+        let original = crate::render_effects::build_presented(
+            &game,
+            true,
+            None,
+            true,
+            None,
+            None,
+            crate::render_effects::Style::default(),
+        );
+        let sharp = crate::render_effects::build_presented(
+            &game,
+            true,
+            None,
+            true,
+            None,
+            None,
+            crate::render_effects::Style {
+                sharp_text: true,
+                ..Default::default()
+            },
+        );
         let world = |geometry: &crate::render_effects::Geometry| -> Vec<u8> {
             let vertices: Vec<_> = geometry
                 .vertices

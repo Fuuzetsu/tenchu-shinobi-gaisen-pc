@@ -154,7 +154,7 @@ fn water_and_waterfalls_on_actual_geometry() {
                     false,
                     Some(&models),
                     None,
-                    false,
+                    crate::render_effects::Style::default(),
                 );
                 geometry.append(spray.geometry(5.0, camera, &graphics.water));
                 geometry.hide_ui();

@@ -228,7 +228,7 @@ fn weather_on_actual_roofs() {
             false,
             Some(&models),
             None,
-            false,
+            crate::render_effects::Style::default(),
         );
         original.remove_flag(render_mesh::ORIGINAL_WEATHER);
         geometry.append(original);

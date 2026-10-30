@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct Effects {
     pub sparks: bool,
+    pub lightning: bool,
     pub spark_density: u16,
     pub splashes: bool,
     pub scatter: bool,
@@ -14,6 +15,7 @@ impl Default for Effects {
     fn default() -> Self {
         Self {
             sparks: false,
+            lightning: false,
             spark_density: 100,
             splashes: false,
             scatter: false,

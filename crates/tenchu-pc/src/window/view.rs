@@ -795,8 +795,15 @@ impl View {
                 Vec::new()
             },
         );
-        if settings.graphics.lighting.enabled && settings.graphics.effects.sparks {
-            let mut sparks = self.contact.lights();
+        if settings.graphics.lighting.enabled {
+            let mut sparks = if settings.graphics.effects.lightning {
+                crate::lighting::lightning(game)
+            } else {
+                Vec::new()
+            };
+            if settings.graphics.effects.sparks {
+                sparks.extend(self.contact.lights());
+            }
             sparks.append(&mut sources);
             sparks.truncate(
                 usize::from(settings.graphics.lighting.count).min(crate::lighting::MAX_LIGHTS),
@@ -860,7 +867,14 @@ impl View {
                         settings.graphics.blob_shadows,
                         Some(&self.models),
                         frame,
-                        settings.sharp_text,
+                        render_effects::Style {
+                            alpha: if self.interpolation_enabled {
+                                alpha
+                            } else {
+                                1.0
+                            },
+                            ..render_effects::Style::from(settings)
+                        },
                     )
                 }
             } else {
@@ -881,7 +895,7 @@ impl View {
                 game,
                 &self.models,
                 frame,
-                debug.camera.is_some() || game.roster.keep_all_active,
+                debug.camera.map(|camera| camera.source_view()),
                 if self.interpolation_enabled {
                     alpha
                 } else {

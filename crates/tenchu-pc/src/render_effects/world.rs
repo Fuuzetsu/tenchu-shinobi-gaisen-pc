@@ -1,4 +1,4 @@
-use super::{Surface, quad};
+use super::{Style, Surface, quad};
 use crate::{render_mesh, visuals::models::rotation};
 use glam::Vec3;
 use tenchu_core::{effects::Graphic, game::Game, math::Matrix};
@@ -16,6 +16,7 @@ pub(super) fn material(graphic: &Graphic) -> (Option<usize>, u8, bool) {
             sprite,
             stain,
             fading,
+            ..
         } => (
             Some([0, 2, 4, 56][usize::from(sprite)] + usize::from(stain)),
             if stain {
@@ -90,9 +91,14 @@ pub(super) fn trail(
     }
 }
 
-pub(super) fn sprites(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix) {
+pub(super) fn sprites(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, style: Style) {
     let camera = rotation(view).transpose();
-    for sprite in &game.effects.billboards {
+    for sprite in game
+        .effects
+        .billboards
+        .iter()
+        .filter(|sprite| !style.replaces(&sprite.graphic, sprite.color))
+    {
         let (image, blend, bottom_origin) = material(&sprite.graphic);
         let image = image.map(|i| game.mission.images[i]);
         let size = if let Some(image) = image {

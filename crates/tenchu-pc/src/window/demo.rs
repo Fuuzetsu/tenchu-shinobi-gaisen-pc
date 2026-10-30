@@ -189,7 +189,7 @@ impl Application {
                         game.roster.get_mut(game.player_id).rotation[1] = facing;
                     }
                     scene.player_start = game.player().position;
-                    scene.actor = clip.randomizer.as_ref().map(|_| actor);
+                    scene.actor = Some(actor);
                     scene.target = guard - Vec3::Y * 600.0;
                     scene.distance = if clip.feature == Feature::BloodSnow {
                         6200.0

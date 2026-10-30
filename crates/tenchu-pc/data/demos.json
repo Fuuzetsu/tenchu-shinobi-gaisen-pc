@@ -667,7 +667,7 @@
   {
     "id": "blood",
     "title": "Persistent wounds and stains",
-    "description": "A staged encounter uses ordinary combat. Wounds follow animated bodies and drops leave bounded stains on nearby surfaces; health, hitboxes and damage are unchanged.",
+    "description": "A staged encounter uses ordinary combat. Soft blood droplets follow the original trajectories; wounds and ground stains remain until cleared or the budget fills. Health and damage are unchanged.",
     "seconds": 20,
     "mission": 1,
     "character": 0,

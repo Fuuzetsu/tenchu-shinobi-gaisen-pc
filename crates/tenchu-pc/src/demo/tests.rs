@@ -139,6 +139,47 @@ fn randomizer_showcase_rolls_match_their_scenes() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; imported Mei-Oh attacks must appear in the authored showcase camera"]
+fn mei_oh_showcase_has_visible_lightning() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let library = crate::visuals::appearance::library::Library::load(&assets).unwrap();
+    let mut p =
+        Player::new(catalog::parse(include_bytes!("../../data/randomizer-demos.json")).unwrap());
+    p.index = p.catalog.iter().position(|c| c.id == "meioh").unwrap();
+    let (mut game, _) = p.load_game(&assets, None, Some(&library)).unwrap();
+    let mut visible = 0;
+    let mut bolts = 0;
+    for tick in 0..210 {
+        game.step(p.buttons(tick)).unwrap();
+        for bolt in &game.effects.bolts {
+            let camera = p
+                .clip()
+                .camera
+                .as_ref()
+                .unwrap()
+                .sample(tick as f32 / 210.0);
+            let point = glam::Vec3::from(bolt.start.map(|n| n as f32).to_array());
+            let projected = camera.matrix(16.0 / 9.0).project_point3(point);
+            visible += usize::from(
+                projected.z > 0.0
+                    && projected.z < 1.0
+                    && projected.x.abs() < 1.0
+                    && projected.y.abs() < 1.0,
+            );
+            bolts += 1;
+        }
+    }
+    assert!(bolts > 0, "the demo must actually launch lightning");
+    assert!(
+        visible > 0,
+        "all {bolts} emitted bolts were outside the camera"
+    );
+}
+
+#[test]
 fn offline_frames_match_the_live_timeline_without_rounding_or_wall_clock() {
     for id in [
         "moon",

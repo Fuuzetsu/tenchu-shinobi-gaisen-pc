@@ -20,6 +20,32 @@ pub struct Source {
     pub light: Light,
 }
 
+pub fn lightning(game: &Game) -> Vec<Source> {
+    let mut sources: Vec<Source> = Vec::new();
+    for bolt in &game.effects.bolts {
+        for point in [bolt.end, bolt.start] {
+            let position = Vec3::from(point.map(|v| v as f32).to_array());
+            if sources
+                .iter()
+                .all(|s| s.light.position.distance_squared(position) > 2500.0_f32.powi(2))
+            {
+                sources.push(Source {
+                    name: "Lightning".into(),
+                    light: Light {
+                        position,
+                        color: [0.45, 0.9, 2.0],
+                        radius: 5000.0,
+                    },
+                });
+                if sources.len() == 2 {
+                    return sources;
+                }
+            }
+        }
+    }
+    sources
+}
+
 pub fn sources(
     game: &Game,
     settings: &crate::settings::Lighting,

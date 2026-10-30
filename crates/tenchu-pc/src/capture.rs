@@ -70,16 +70,22 @@ pub fn frame(
             )?;
     let emitters =
         crate::visuals::lights::Emitters::build(game, &pack, settings.graphics.asset_pack);
-    let lights: Vec<_> = crate::lighting::sources(
+    let mut sources = crate::lighting::sources(
         game,
         &settings.graphics.lighting,
         None,
         None,
         emitters.sources(game),
-    )
-    .into_iter()
-    .map(|source| source.light)
-    .collect();
+    );
+    if settings.graphics.lighting.enabled && settings.graphics.effects.lightning {
+        let mut flashes = crate::lighting::lightning(game);
+        flashes.append(&mut sources);
+        flashes.truncate(
+            usize::from(settings.graphics.lighting.count).min(crate::lighting::MAX_LIGHTS),
+        );
+        sources = flashes;
+    }
+    let lights: Vec<_> = sources.into_iter().map(|source| source.light).collect();
     renderer.configure(&settings.graphics);
     renderer.set_asset_pack(&pack);
     renderer.set_emitters(&emitters);
@@ -115,7 +121,10 @@ pub fn frame(
         settings.graphics.blob_shadows,
         Some(&models),
         None,
-        settings.sharp_text,
+        render_effects::Style {
+            blood_stains: false,
+            ..render_effects::Style::from(&settings)
+        },
     ));
     renderer.draw_lit(
         &texture.create_view(&Default::default()),

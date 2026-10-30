@@ -80,7 +80,7 @@ fn refined_characters_and_foliage_preserve_game_state() {
                     false,
                     Some(&models),
                     None,
-                    false,
+                    crate::render_effects::Style::default(),
                 );
                 effects.hide_ui();
                 let effects = review.renderer.upload_effects(effects);

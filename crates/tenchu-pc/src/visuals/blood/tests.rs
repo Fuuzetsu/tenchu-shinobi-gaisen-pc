@@ -164,7 +164,7 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
                             .all(|f| f.is_finite()))
                     );
                 }
-                let mesh = blood.geometry(&game, &models, None, true, 0.5);
+                let mesh = blood.geometry(&game, &models, None, Some(game.rendered_view), 0.5);
                 assert!(mesh.vertices.len() <= VERTEX_LIMIT + DROP_LIMIT * 6);
                 assert!(
                     mesh.vertices
@@ -200,7 +200,7 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
     blood.tick(&game, &models, &surfaces, &disabled);
     assert!(
         blood
-            .geometry(&game, &models, None, true, 1.0)
+            .geometry(&game, &models, None, Some(game.rendered_view), 1.0)
             .vertices
             .is_empty()
     );
@@ -234,7 +234,7 @@ fn capture(
     let camera = crate::renderer::game_camera(game.rendered_view, 1280.0 / 720.0);
     for enabled in [false, true] {
         let mut geometry = if enabled {
-            blood.geometry(game, models, None, true, 1.0)
+            blood.geometry(game, models, None, Some(game.rendered_view), 1.0)
         } else {
             Geometry {
                 vertices: Vec::new(),
@@ -291,9 +291,13 @@ fn capture(
                     );
             for enabled in [false, true] {
                 let effects = enabled.then(|| {
-                    review
-                        .renderer
-                        .upload_effects(blood.geometry(game, models, None, true, 1.0))
+                    review.renderer.upload_effects(blood.geometry(
+                        game,
+                        models,
+                        None,
+                        Some(game.rendered_view),
+                        1.0,
+                    ))
                 });
                 review
                     .capture(
@@ -326,9 +330,13 @@ fn capture(
                     center,
                     Vec3::NEG_Y,
                 );
-        let effects = review
-            .renderer
-            .upload_effects(blood.geometry(game, models, None, true, 1.0));
+        let effects = review.renderer.upload_effects(blood.geometry(
+            game,
+            models,
+            None,
+            Some(game.rendered_view),
+            1.0,
+        ));
         review
             .capture(
                 camera,

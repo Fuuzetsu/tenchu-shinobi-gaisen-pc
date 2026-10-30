@@ -1,4 +1,7 @@
+mod combat;
+mod style;
 mod world;
+pub use style::Style;
 
 use crate::render_mesh::{self, SCREEN, TEXTURED, TRANSLUCENT, Vertex};
 use std::ops::Range;
@@ -302,7 +305,15 @@ pub fn build_options(
     blob_shadows: bool,
     models: Option<&crate::visuals::models::Models>,
 ) -> Geometry {
-    build_presented(game, show_hud, camera, blob_shadows, models, None, false)
+    build_presented(
+        game,
+        show_hud,
+        camera,
+        blob_shadows,
+        models,
+        None,
+        Style::default(),
+    )
 }
 
 pub fn build_presented(
@@ -312,8 +323,9 @@ pub fn build_presented(
     blob_shadows: bool,
     models: Option<&crate::visuals::models::Models>,
     frame: Option<&crate::visuals::interpolation::Frame>,
-    sharp_text: bool,
+    style: Style,
 ) -> Geometry {
+    let sharp_text = style.sharp_text;
     let inspection = camera.is_some();
     let view = camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view));
     let mut surfaces = Vec::new();
@@ -405,8 +417,8 @@ pub fn build_presented(
         }
     }
     if inspection {
-        world::sprites(&mut surfaces, game, view);
-        for bolt in &game.effects.bolts {
+        world::sprites(&mut surfaces, game, view, style);
+        for bolt in game.effects.bolts.iter().filter(|_| !style.lightning) {
             for points in bolt.points.windows(2) {
                 world::line(
                     &mut surfaces,
@@ -433,7 +445,12 @@ pub fn build_presented(
             }
         }
     }
-    for segment in game.effects.lines.iter().filter(|_| !inspection) {
+    for segment in game
+        .effects
+        .lines
+        .iter()
+        .filter(|_| !inspection && !style.lightning)
+    {
         line(
             &mut surfaces,
             segment.points,
@@ -471,7 +488,7 @@ pub fn build_presented(
         .iter()
         .chain(&game.items.drawings)
         .chain(&game.misc.drawings)
-        .filter(|_| !inspection)
+        .filter(|drawing| !inspection && !style.replaces(&drawing.graphic, drawing.color))
     {
         let (image, blend, bottom_origin) = world::material(&drawing.graphic);
         let image = image.map(|i| game.mission.images[i]);
@@ -551,6 +568,7 @@ pub fn build_presented(
             previous = shade;
         }
     }
+    combat::draw(&mut surfaces, game, view, style);
     let ui_start = surfaces.len();
     if let Some(shade) = game.hud.map.dim.filter(|_| !inspection) {
         let mut vertices = screen_band(-120.0, 120.0, [f32::from(shade) / 255.0; 3], 3);

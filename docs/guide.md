@@ -506,6 +506,12 @@ land. Fallen foliage settles on terrain, fades away, and scatters underfoot;
 snow and puddles respond more strongly to running and landing than walking.
 These effects use bounded cosmetic state and do not consume gameplay RNG.
 
+**Modern lightning** replaces Mei-Oh's thin original bolts and square sparks
+with bright cores, branching arcs and soft spark trails. With dynamic lighting
+enabled, active bolts briefly light nearby surfaces blue. The original targeting,
+damage, attack timing and RNG stay intact. The option also works with imported
+Mei-Oh models/movesets and free-camera demos.
+
 **Modern High** and **Modern Ultra** enable these effects alongside botanical
 foliage, varied tree shapes and anchored branch/leaf wind motion. Original stays
 unchanged. F8 temporarily compares your current visual setup with Original;
@@ -889,13 +895,19 @@ a new mission restores ordinary gameplay. Cutscenes retain their scripted behavi
 **F1 → Persistent effects → Persistent blood** keeps cosmetic wound stains on
 animated bodies and projects drops onto scenery, doors and trapdoors. Amount,
 bleeding duration and retained-stain limit are adjustable; **Clear blood** removes
-the cosmetic marks and drips. This is off by default. Damage, health, the original
-blood effects and gameplay RNG are unchanged. Marks retain texture detail/cutouts
+the cosmetic marks and drips. **Stains do not fade with time**; wound bleeding
+duration controls only how long fresh drips appear. This is off by default.
+Damage, health and gameplay RNG are unchanged. Marks retain texture detail/cutouts
 and follow interpolated poses and compatible replacement models. Wound placement
 is inferred from original blood and damage events, rather than adding hit-location
 gameplay. Stains are held in memory, bounded by both count and geometry; changing
 mission, reloading models/artwork or disabling the feature clears them. They are
 not written into campaign saves.
+**Modern blood spray**, in the same tab, replaces airborne blood balls with soft,
+stretched droplets following the original trajectories. It can be used with or
+without persistent stains. When both options are on, retained stains replace the
+original fading blood sprites. Modern presets enable both options; Original keeps
+the original presentation. No external texture pack is required.
 `demo --clips blood` stages an ordinary guard encounter to show the effect.
 
 **F1 → Time of day → Sun / moon cycle** replaces the manual sky light with a

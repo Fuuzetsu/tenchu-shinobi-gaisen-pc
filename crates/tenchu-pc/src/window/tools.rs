@@ -194,7 +194,12 @@ impl Application {
     }
 
     pub(super) fn sync_model_moveset(&mut self) -> Result<()> {
-        if self.campaign.randomized.is_some() {
+        if self.campaign.randomized.is_some()
+            || self
+                .demo
+                .as_ref()
+                .is_some_and(|demo| demo.randomizer_plan().is_some())
+        {
             return Ok(());
         }
         let Some(view) = &mut self.view else {

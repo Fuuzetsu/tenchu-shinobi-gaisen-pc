@@ -476,7 +476,7 @@ impl Blood {
         game: &Game,
         models: &Models,
         frame: Option<&Frame>,
-        inspection: bool,
+        camera: Option<Matrix>,
         alpha: f32,
     ) -> Geometry {
         let mut vertices = Vec::new();
@@ -486,7 +486,12 @@ impl Blood {
                 .iter()
                 .any(|m| m.0.iter().any(|p| p.part.is_some()))
             {
-                transforms(game, models, frame, inspection)
+                transforms(
+                    game,
+                    models,
+                    frame,
+                    camera.is_some() || game.roster.keep_all_active,
+                )
             } else {
                 BTreeMap::new()
             };
@@ -522,7 +527,9 @@ impl Blood {
                     }));
                 }
             }
-            let camera = rotation(frame.map_or(game.rendered_view, |f| f.view)).transpose();
+            let camera =
+                rotation(camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view)))
+                    .transpose();
             let right = camera * Vec3::X * 9.0;
             let up = camera * Vec3::Y * 18.0;
             for drop in &self.drops {

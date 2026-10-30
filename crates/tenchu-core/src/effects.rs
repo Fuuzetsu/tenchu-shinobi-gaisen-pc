@@ -153,6 +153,7 @@ pub enum Graphic {
         sprite: u8,
         stain: bool,
         fading: bool,
+        airborne: bool,
     },
     Impact(u8),
 }

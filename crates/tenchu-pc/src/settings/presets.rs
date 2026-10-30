@@ -196,6 +196,7 @@ fn modern(ultra: bool) -> Graphics {
     };
     g.set_filtering(if ultra { 6 } else { 5 });
     g.blood.enabled = true;
+    g.blood.spray = true;
     g.blood.marks = if ultra { 768 } else { 384 };
     g.water.enabled = true;
     g.water.detail = if ultra { 2 } else { 1 };
@@ -204,6 +205,7 @@ fn modern(ultra: bool) -> Graphics {
     g.models.variation = true;
     g.models.grapple = true;
     g.effects.sparks = true;
+    g.effects.lightning = true;
     g.effects.splashes = true;
     g.effects.scatter = true;
     g.effects.leaves = true;

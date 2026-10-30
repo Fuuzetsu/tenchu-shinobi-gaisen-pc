@@ -79,7 +79,9 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
         .and_then(Option::as_ref)
     {
         target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
-        if player.clip().randomizer.as_ref().is_some_and(|s| s.engage) {
+        if player.clip().randomizer.as_ref().is_some_and(|s| s.engage)
+            || matches!(player.clip().feature, Feature::Blood | Feature::BloodSnow)
+        {
             target = (target
                 + scene
                     .previous_player
@@ -136,6 +138,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::Remake(feature) => super::remake::animate(feature, player, settings, debug),
         Feature::Blood => {
             g.blood.enabled = true;
+            g.blood.spray = true;
             g.interpolation = true;
             g.lighting.enabled = true;
         }
@@ -600,9 +603,10 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             ))
         }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
-        Feature::Blood => {
-            text("Wounds follow bodies; drops stain the ground · cosmetic only".into())
-        }
+        Feature::Blood => text(
+            "Soft blood spray · wounds and ground stains stay until cleared or the budget fills"
+                .into(),
+        ),
         Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),
         Feature::GrenadeLight | Feature::KaenLight => text(format!(
             "Fire / explosion lights {} · original item behavior",

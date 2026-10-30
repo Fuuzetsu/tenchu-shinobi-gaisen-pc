@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional soft blood spray and modern Mei-Oh lightning with branching arcs,
+  impact sparks and brief blue lights. Modern presets enable them; Original keeps
+  its existing effects. Persistent blood's F1 help now explains its non-fading,
+  bounded retention, and wound drips face the free camera correctly.
+
 - Fix distant actors wrapping into nearby detection/target ranges with “Keep all
   enemies active”. Remote patrols no longer hear every local alarm or keep the
   player's radar alerted across the map; default PS1 activation is unchanged.
@@ -14,6 +19,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Restore explosions, smoke, fire, lightning, weapon trails and grapple lines in
   showcase/free-camera views, including effects outside the gameplay camera.
+  Preserve randomized movesets during demos so imported attacks actually launch;
+  keep the blood demo's camera on the moving combatants.
 
 - F1 → General can save a portable diagnostic report with build/platform/GPU
   details, active settings and controls, recent timings/inputs and gameplay/AI

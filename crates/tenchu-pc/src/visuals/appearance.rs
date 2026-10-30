@@ -608,7 +608,7 @@ mod tests {
                             true,
                             Some(&models),
                             frame.as_ref(),
-                            false,
+                            crate::render_effects::Style::default(),
                         );
                     }
                 }
