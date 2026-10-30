@@ -15,10 +15,18 @@ const browser = await chromium.launch({
 });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 await context.addInitScript(installAudioProbe);
+if (process.env.TENCHU_WEB_ARTWORK === "1") {
+  await context.addInitScript(() => {
+    const settings = { sharp_text: true, pause_on_defocus: false, graphics: { asset_pack: true } };
+    localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
+  });
+}
 const page = await context.newPage();
 const errors = [];
 page.on("pageerror", error => errors.push(error.stack));
-page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+page.on("console", message => {
+  if (message.type() === "error" || /(?:Frontend|Briefing) asset pack:/.test(message.text())) errors.push(message.text());
+});
 const key = async name => { await page.keyboard.press(name); await page.waitForTimeout(900); };
 const state = () => page.evaluate(() => JSON.parse(window.port.snapshot()));
 const shot = name => page.screenshot({ path: `${output}/${name}.png` });

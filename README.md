@@ -77,7 +77,7 @@ From source, `./build-web.sh '/path/to/game.cue'` builds and prepares the site.
 [Browser details](docs/guide.md#browser-build).
 
 For HD artwork, download **`tenchu-hd.tar.zst`** from the
-[artwork-v1 release](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v1)
+[artwork-v2 release](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v2)
 and place it beside the executable/launcher (or in the source checkout). It is
 found and cached automatically. **F1 → Visual assets → Replacement artwork**
 enables it; Modern presets enable it too. `TENCHU_ASSET_PACK` also accepts a

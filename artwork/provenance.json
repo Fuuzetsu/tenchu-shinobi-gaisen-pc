@@ -6362,8 +6362,9 @@
       "authoring_source": "menu-typeset/map-E.png"
     },
     "c5850a9cb22707a1def99c1c874d599b": {
-      "method": "generated interface with disc blend classes",
-      "authoring_source": "menu-typeset/results-E.png"
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_E_ENG.TIM"
     },
     "d9a0294f0e88b90b6f7baa70f6305575": {
       "method": "generated interface over disc background",
@@ -6538,8 +6539,9 @@
       "authoring_source": "menu-typeset/character-header-J.png"
     },
     "0c05311c5181be01dccd42ff42e7f846": {
-      "method": "generated interface with disc blend classes",
-      "authoring_source": "menu-typeset/results-J.png"
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_E_JAP.TIM"
     },
     "7daee8349cde6b9cf929646214927684": {
       "method": "generated artwork",
@@ -6638,8 +6640,9 @@
       "authoring_source": "menu-typeset/character-header-F.png"
     },
     "3f889c1f6b83b0b93bd4193d0f59add4": {
-      "method": "generated interface with disc blend classes",
-      "authoring_source": "menu-typeset/results-F.png"
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_E_FRE.TIM"
     },
     "43fb19d4095a7a8e3bcb962cad46334d": {
       "method": "generated artwork",
@@ -6738,8 +6741,9 @@
       "authoring_source": "menu-typeset/character-header-I.png"
     },
     "93ca1fa7bbb23a4fe69b3c22c5a61e46": {
-      "method": "generated interface with disc blend classes",
-      "authoring_source": "menu-typeset/results-I.png"
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_E_ITA.TIM"
     },
     "46b67fc56cd1cd03e6fe6072f8eda424": {
       "method": "generated artwork",
@@ -6928,6 +6932,596 @@
     "c49339711be32fb9d3ecaad3cc0471b5": {
       "method": "generated artwork with disc cutout",
       "authoring_source": "menu-panorama/6-v1-bleed.png"
+    },
+    "916a3779a6106c67924b5f66fda886ef": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST001.TIM"
+    },
+    "a88be8d785d9ba7c56a734d8729e7a14": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST002.TIM"
+    },
+    "0c9c5d6d5670ce75d44b3d72336752a5": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST003.TIM"
+    },
+    "4bb7344c1983ee3005223844e3a03ff2": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST005.TIM"
+    },
+    "0b2b6c27c4fac0d9bd0d5afed5cd080c": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST004.TIM"
+    },
+    "dd7c0c2dcbf2445ff9543f87c5a93dee": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST006.TIM"
+    },
+    "c3c1cdd8b936321cbaf0f9e9c913f21e": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST008.TIM"
+    },
+    "6f6f50d58dbeff2501e51b413efaaa64": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST007.TIM"
+    },
+    "491e57d93ad5b44393e9cfff3820476b": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST010.TIM"
+    },
+    "9a43e2a3b32f33c0bee77f5caf99de2a": {
+      "method": "generated artwork",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ST011.TIM"
+    },
+    "f2f9edd151e4a2872b69275c4e3971ed": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO1.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "31f7a434bfbc7cadddc635000f39c221": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO10.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "bd422fcc000b9d9d562da395d42797a8": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO11.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "7a9eb853bc5071848c8403e5e8689e84": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO2.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "543d411f2252686156288572f59d029f": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO3.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "1d20cfa6a81a53fd19915ccda9b58221": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO4.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "41a44c6dbbb4f9b40ceb118c53fbf902": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO5.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "e880ae1af764e881c2f8f7f0c59423ce": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO6.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "f1a4e3ca3e053a4cbb0b54a02456cb4d": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO7.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "70ecea882529790fc03d83fa23fc83ba": {
+      "method": "disc-backed calligraphy resampling",
+      "source": "DEMO/MOJO8.TIM",
+      "description": "Original brush lettering and column layout retained, resampled at load time; no source pixels in the download."
+    },
+    "090a4bd0eb3eeaffbaef9d288db5fa02": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMSELE.TIM"
+    },
+    "8583b90deedb3c7defc77440bfa4e4de": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_ENG.TIM"
+    },
+    "6893a5fd7924d9329925abf5a9d2cc1f": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/TRN_ENG.TIM"
+    },
+    "cb93dab10ee68a5429e5eb6c0bc92893": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:0"
+    },
+    "d346a8c223c995bd484c284dd40e2d81": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:1"
+    },
+    "a05af994e0081d4223d53da53bfe8646": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:2"
+    },
+    "e887e213b76d4a2afc7c84a407033edc": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:3"
+    },
+    "85f6233798d4531c4b01e4752552b22f": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:4"
+    },
+    "d6b211a70b2079b09803cc903169e4c5": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:5"
+    },
+    "a38cbb19617ef88b9e2ce4e6bbe328e7": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:6"
+    },
+    "4ab4ed57be922f10a2bf638e7c593511": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:7"
+    },
+    "b00bfabb40b5edefd2bdff2a8cc4ea2d": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:8"
+    },
+    "9805194f43af2b2011c480129aa31f4b": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:9"
+    },
+    "ac00c106a435f65795bd5aaaf5578412": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:10"
+    },
+    "bba3c821d80e14e194d943f9858acc1e": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:11"
+    },
+    "47162ff71c42f30842b446fa601b7d16": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:12"
+    },
+    "5484318df58ff99b12f10ac0d9182561": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:13"
+    },
+    "117d07afe9c103286230739469418293": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:14"
+    },
+    "78fa526a707d8220351e004ea3dcbed3": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:15"
+    },
+    "be1d211f652d926fa51cc04e7123d69f": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:16"
+    },
+    "a36a22646d476ddf7a1cf3bb387af19e": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:17"
+    },
+    "8abff1b0c6133ba982949f7de263131a": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:18"
+    },
+    "3609bc0a4b26217ab47741446734b432": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:19"
+    },
+    "a4a783f435f59f0d2dd21d29d4e058f6": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELP.ARC:20"
+    },
+    "ff72d99b0a72158372a2201fd560bd29": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMSELJ.TIM"
+    },
+    "55fa0940a1b9ed0f557dedc082aed0cb": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_JAP.TIM"
+    },
+    "690d145d4841c5a65486d23a76754b20": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/TRN_JAP.TIM"
+    },
+    "56ced86d3605e9a800d4eeb4486275d2": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:0"
+    },
+    "f9677fc00716ce53e7447dc1ad72f404": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:1"
+    },
+    "163dbf55eb8b4cfc7533f20bc6781d73": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:2"
+    },
+    "d60f860827e639147d26d3819cab8fca": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:3"
+    },
+    "7a0b8b34b6505ae7759ae64283f38fa3": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:4"
+    },
+    "c7c1bdeca64d63a88642c6eacc3c7337": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:5"
+    },
+    "0bb8f32446ff58b7f4531bfb48588916": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:6"
+    },
+    "853091ff03c50be23acc39f840e1a068": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:7"
+    },
+    "c469d49b7dd632ef92ffe342f3117b80": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:8"
+    },
+    "7c7df0f71a544a4e9c6daf91174efb75": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:9"
+    },
+    "815bd121c94fbb52a389fae5ad18fa1a": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:10"
+    },
+    "ff4bca9a1c3eeeb6405cdc0bc9882741": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:11"
+    },
+    "26445c5372367830c2f62036e25ecc4a": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:12"
+    },
+    "f754a7a4972e8b78609064376de18f40": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:13"
+    },
+    "6d92dcf5b1eae9efdd9a16cbcb6e13e8": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:14"
+    },
+    "93c09ca8c5beb05643690fe6980ef241": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:15"
+    },
+    "8994d3e49cd319aa8a9152df4b16cc2e": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:16"
+    },
+    "a6a3c0442b684d85c01948f18ee07843": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:17"
+    },
+    "ebf9879320edb6ce6011824f031f8f1e": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:18"
+    },
+    "4d4b847b38ad43849f22c10802c44d71": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:19"
+    },
+    "17ef10f6106ab7997cb50ddd67b9ec6d": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELJ.ARC:20"
+    },
+    "d39f4f233f6a1610986353172bcc628e": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMSELF.TIM"
+    },
+    "ec0f386abe164503e9f3e3af68794858": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_FRE.TIM"
+    },
+    "09e08f41540270bf94824cccf50a1d74": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/TRN_FRE.TIM"
+    },
+    "32d486ba3d323cc1fc95f07827574925": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:0"
+    },
+    "c5e9586f9c29e25b9627257b0fe5f52b": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:1"
+    },
+    "9eaa8e297e0c1d902ab482c66ecb80a7": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:2"
+    },
+    "8b2817396c5a1d3b19e4b44cee24255a": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:3"
+    },
+    "84a139ce5e328b9ae148f25ebbabb30b": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:4"
+    },
+    "098ec753199b76c48ab506b75f13819c": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:5"
+    },
+    "1c6cc1a6776c48c9de0a62f982605ea3": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:6"
+    },
+    "8315544e008d57e5f62ffe2272402381": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:7"
+    },
+    "5e21e51ab836b70719df29b448095ca8": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:8"
+    },
+    "6826c6215c0a8258d0a533811e2c20e5": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:9"
+    },
+    "d36d64de455fef555a257b121526d033": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:10"
+    },
+    "3edaadbe5af60a24ff47f47515686842": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:11"
+    },
+    "4baf6ea3393aba820844efbb583fa564": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:12"
+    },
+    "a8339968f6acc474f960573096756611": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:13"
+    },
+    "f690c013885ac3c9332221bee44985e6": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:14"
+    },
+    "bf56f124f25f30aec2b6eadadc2b748b": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:15"
+    },
+    "372be0ef9701c391e2974a1c89ace74a": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:16"
+    },
+    "e8a1e73cf30afe52b57b9156ffbed696": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:17"
+    },
+    "f7cd64abf672306f6b722b1b709154a0": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:18"
+    },
+    "f7f479cc13b7533a562afb192b5ba74f": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:19"
+    },
+    "74fe06b3c9b4cdcf7ecd178e86877d7f": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELF.ARC:20"
+    },
+    "289ecf365ff61f8c2528c973a026f203": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMSELI.TIM"
+    },
+    "b41f5e31717c7ac88bf6beac662bdeeb": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RS_ITA.TIM"
+    },
+    "6842848496f57dcb7f5c9a6541e1a7bd": {
+      "method": "generated background and authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/TRN_ITA.TIM"
+    },
+    "96acd9804096aeaa0bffa3a1206cff3c": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:0"
+    },
+    "4d0103ffe3fd3fd08ab24304072fd061": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:1"
+    },
+    "6a224f6e012d25e799c4596355caa56b": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:2"
+    },
+    "be5e3f3788c6791f2f785a8100c15a1f": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:3"
+    },
+    "6f6c4ada5ca3d6c9c10197327a25cf5d": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:4"
+    },
+    "a554eeaeb7344abba8e6464585b175c3": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:5"
+    },
+    "a9ffb98e755c44fed28d1c81ec6f7e84": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:6"
+    },
+    "a7ba20911886df4e77de08ab82d21da7": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:7"
+    },
+    "06f76407b677ec38c13117c2a141bf06": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:8"
+    },
+    "2fad5e5c79b73ecd0c06765ec1243824": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:9"
+    },
+    "29e2e04e16771a7bab904541984282ed": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:10"
+    },
+    "0dbe9432279f6ea4f5c6d8afd64cd48d": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:11"
+    },
+    "1174e3c0bea845e2f5279596a773cd3b": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:12"
+    },
+    "523c19f7af67795c14d63063d9d6933c": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:13"
+    },
+    "0d1e85bc7dfa60c13722672c8b0f72b5": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:14"
+    },
+    "f66af665f8cc892c45046d3cbb566db2": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:15"
+    },
+    "2fbafc0ac570557531fb294f8a4feedb": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:16"
+    },
+    "8aa6c5991f458fa5caff17df5b12c94c": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:17"
+    },
+    "396951f6f1beed611c83f71e321e3bb7": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:18"
+    },
+    "4aa1eab861a9729f9588609a43867881": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:19"
+    },
+    "dfea586bfe6c86732d3032d7f4f26546": {
+      "method": "authored localized outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/ITEMHELI.ARC:20"
+    },
+    "d6511c4478d401f569b66d77737bc072": {
+      "method": "authored outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RANKS_E.ARC:5"
+    },
+    "7326afcaf00c9c5ae54e2fbc875b7d4b": {
+      "method": "authored outline text",
+      "authoring_source": "mission-ui-hd/author.py",
+      "source": "DEMO/RANKS_E.ARC:6"
     }
   },
   "weapons": {
@@ -6968,6 +7562,118 @@
   },
   "files": {
     "heightmaps/1e23cc33aba80f1403a3542164d1d9a6.png": "76e60d4b4a76ae5fb8e84bf37bda2075db6ec90a0f5d635f36f4b622f4e4bf0d",
+    "interface/mission/briefing-st001.png": "0a66c63cf99d7e2ad636bf07b1caccafe2c508eab36a5c86cab306b1aaccb7ad",
+    "interface/mission/briefing-st002.png": "be360a0af32fc1aae1ad0eae61db9eae652efabed352c56a4d7f984bb014d250",
+    "interface/mission/briefing-st003.png": "35df90cf89b6bdcca4448c141ab32c74b36a6a20327e6b8a4319e0de84862e0e",
+    "interface/mission/briefing-st004.png": "fd83c5df2391d97ef9c9c147108a7d7db609d036135e6e377b1c5640d9d1cdd2",
+    "interface/mission/briefing-st005.png": "e970a46b73a0a91105cbe3c611bb62144ce995c6842d0ab1eead46e098ca7594",
+    "interface/mission/briefing-st006.png": "82847d2f1c7f4ec78165d5c8c6f28c0a0c99a5557a74979977dbe219b9706644",
+    "interface/mission/briefing-st007.png": "c0b31eed9ff964c288fdcd90360f73848c164b6224f7c82ca083fef379893971",
+    "interface/mission/briefing-st008.png": "ac4d4671129562a6c5599824884418be5b547ff8d892870367003cad2c23d928",
+    "interface/mission/briefing-st010.png": "5cad0ff5c4dce70901a17b608e2c64f28344f555a9500ade78c5471552e4b215",
+    "interface/mission/briefing-st011.png": "0c3e9d6f2d4cb9a930c9e20a97165c7bcf7355eda15e226d2d1b370222c3200c",
+    "interface/mission/final-e.png": "d9726cbd4e5cc0745909d571995ac8d1d93e75050111eaaffba177f14bbacafc",
+    "interface/mission/final-f.png": "40d177f560389a29a7c78c017255fb8ebe9722bf564144956d0c52fea806f716",
+    "interface/mission/final-i.png": "687a7741775940c30cc738a64aec609eea291a9bd3917697bef17bf03a7f9f0f",
+    "interface/mission/final-j.png": "ebe2fe790ff174ab98f151a0f5e18384945ea8d5b3c545392880cc22c2567e0f",
+    "interface/mission/help-e-00.png": "86c872e5a76516c4bc271bf9734439771f2f215b823920afedece5b6240c4d1e",
+    "interface/mission/help-e-01.png": "378a66059f5bf7f07a66770d9dfb512ad99945bbb8372594e267d353a48895c8",
+    "interface/mission/help-e-02.png": "2411cb5804aa18dff387a12dc97a5f1f38a59bb15cd1acce6120df654428e9ef",
+    "interface/mission/help-e-03.png": "8e65c5e9fe34cb8f69392c3707ea6837be922b109fd908481420896fd35fcf9a",
+    "interface/mission/help-e-04.png": "3aa77dffcd40a8e68d063889f8f88e2e382f2a933682891ef705da1dc2f1d855",
+    "interface/mission/help-e-05.png": "f2bf85d8e860c3846ceb937383646b68d88eee9ba4cd05a2611f5197b9986a60",
+    "interface/mission/help-e-06.png": "a1722e3ca005638ab5e78f853881f9213d1fedb4c75cd4e73a23b9e179163086",
+    "interface/mission/help-e-07.png": "765c7933a3422442fc0578d0ca40a47070547282ee65072feca38817b4eb39bd",
+    "interface/mission/help-e-08.png": "00f75c3fc4ca789b9b5a5b5f22fc743a75807a767371f648975bc35c97b705c9",
+    "interface/mission/help-e-09.png": "5bf4e1382fe3ebf9e46bba97b8ff581669f1455f8a001b773f8a79282d8e602a",
+    "interface/mission/help-e-10.png": "6a23431f84826259659f29a1269f44634ac4cc99acadc3f39ff0f34f73bdffec",
+    "interface/mission/help-e-11.png": "b1458e53687ee999a06cbb76ea86b1689815438a3ee3e5a87adedcb1b0cdba2d",
+    "interface/mission/help-e-12.png": "af3c0b5a35ddeec87bd9770694a389ef31f92a41d9fcf42338e92c21b2ae2887",
+    "interface/mission/help-e-13.png": "1e33305e11efaa388cdbe6a6f92a65c499066c6382bc6dd99459cf82326c6ea0",
+    "interface/mission/help-e-14.png": "73aacee9d84e3bf2ab7e35754440609d4024b33e4225f7cc576b22cf953bc1f3",
+    "interface/mission/help-e-15.png": "0d7b67b03c22165040664cadb00ad800344db6cf60eebef32dcdb5b2fb0c1993",
+    "interface/mission/help-e-16.png": "906832aaffa094ff7c12e0f89167ab064480c64abc1fa0f91761931e05fec8ea",
+    "interface/mission/help-e-17.png": "6922992353122def43bd1aa499e69d16674a58e725316cd099b1ba54bc78bab2",
+    "interface/mission/help-e-18.png": "50dc51c73c4bd6e15f57e87b4cb58755cb5df95a6f5e569c71fcadd1d0502913",
+    "interface/mission/help-e-19.png": "e35ea41e2ba56f744a645e12444c63485057f11c1b9bd385ee5ba460df193bc6",
+    "interface/mission/help-e-20.png": "09b3d631cc7281f964e191c9725230b9a928a5004f4064725285266630c83fa9",
+    "interface/mission/help-f-00.png": "b96b288ee02ddec10fa5cedfc1ae8da737b0be5ad94597384606ba644d6a0f1b",
+    "interface/mission/help-f-01.png": "6ce62a6fbc5713ff335b98034e14caae433b8f89990fdf6124a8db733c5ba87e",
+    "interface/mission/help-f-02.png": "2bfafc5efd4e507bfde1f05694f8eeff85f60874c40c0d74abeee71b1aedfacc",
+    "interface/mission/help-f-03.png": "062c1d7674067d40d9e2dd088b22bed972d8832480a46382626a002c23627f49",
+    "interface/mission/help-f-04.png": "dce2ac40039c688fa009729e11eb82c753a535bae1c560b2f6cba433a9cbdd4f",
+    "interface/mission/help-f-05.png": "d1a1dc0437bf8cc99ed203dff988999868d5bfc66407caedb7dac38049c66e9c",
+    "interface/mission/help-f-06.png": "a86a4b7ec795ef65c504a66526ec94306523ef35a46161c632eaa95f2ccdfe5a",
+    "interface/mission/help-f-07.png": "fb4520e2c26cc3871e0b095928563db99edba557b044641a838ea5114774502c",
+    "interface/mission/help-f-08.png": "e7dd8ba5e85a8aa1444d32dcbd65697990b4a110ab9f33191bfa92442351d5c7",
+    "interface/mission/help-f-09.png": "46a8c44dc0c504e1b84e89e8a6d90e574bc344c820e3fcdc7cf0d4a2fbcebe25",
+    "interface/mission/help-f-10.png": "35e646a24f464f1e485eb43cba17e3fcaf664bb9f1d9f868d1c8394cd9c0754b",
+    "interface/mission/help-f-11.png": "3bc33f30d621344d1fa123c0652fb5c851f47965c738cbaeeb9f06540c692687",
+    "interface/mission/help-f-12.png": "91ce6339ca8c0ab86701afc7cb043d3c643717cc0220573f08095a06e3885969",
+    "interface/mission/help-f-13.png": "4a7b9533b74efc6e5295f2b67b68328da401b8ff6e8a9e9a94354e81fae21845",
+    "interface/mission/help-f-14.png": "4125349e572a7495e7a176ab5ec3de92f18ffab7b51e0864839511b549335358",
+    "interface/mission/help-f-15.png": "8ce611a515b3a04b0504a659fda5c4176990c54c3062cfc8f6baaed838b02a7a",
+    "interface/mission/help-f-16.png": "1e5104aa70d385fda1ad2a4f3ffa0843d89f7d667bdc8a3c7775cf069e62bb57",
+    "interface/mission/help-f-17.png": "2936e8487d5438adb42deb8dcf69d2fa415b76cb2194f55d6d290c47f44f23e2",
+    "interface/mission/help-f-18.png": "8522d0662d8d7a2f065bec556ca34fae00544a3609c8a48b121562e08cfac0b1",
+    "interface/mission/help-f-19.png": "2cba42aafb7ca7600b57c58fd46c7fb5278eabe784726269e9a7eaf2807c5173",
+    "interface/mission/help-f-20.png": "68ffeab04ff4eef6bb6142a80389242cdb4850dc48d16aadb384393e6e90ddcd",
+    "interface/mission/help-i-00.png": "52cd960c9985eec1b738f3de97bddc5b9ca67574fcc2efa4c262a475100795ab",
+    "interface/mission/help-i-01.png": "514e1b8bda6f3d5c7e10aa18e7bcbfbbd1aa8a5263ba0c3e76e80f8d9e2b29dd",
+    "interface/mission/help-i-02.png": "79b2a1f84e4466890dacf6a3d3d46b76672904093ce1a9d0041f131126184bee",
+    "interface/mission/help-i-03.png": "d6df3deef2ec8f66c363feee9898297b1e2aef9b88c1a900d130f9d89348e8e7",
+    "interface/mission/help-i-04.png": "c87a99fb96b38a3ee24f0b8c3e12e483e1e4137327aa3879f733975e63dd454f",
+    "interface/mission/help-i-05.png": "fee477be8fa41cfb096a08b8e84867cdc25983f1d70635723b95c88e3b6fac34",
+    "interface/mission/help-i-06.png": "9c65ab682d6da76f2a8c156e074542d9ec2371b99902001c059e8815d1ecc5b6",
+    "interface/mission/help-i-07.png": "5f2b42c6a94fa6d85f07812ae771c2f2a55b4c505414758c5b774de34bad5ea5",
+    "interface/mission/help-i-08.png": "b741b8329a89ccdfb0c7e7ab2a70a76cea17cb629c34f883972ff94ea9cf1280",
+    "interface/mission/help-i-09.png": "7ef9cc1b486165840494468ba2ff790b9c042eb280e88eb92558d8da5b0fcc36",
+    "interface/mission/help-i-10.png": "1fdaafd3cc14c7b3461be26662763be245c313eb1057c7089dd8d41526280417",
+    "interface/mission/help-i-11.png": "558f7d5e3d3e161e625cffb702e95a0c8a985ffb35707f937dab3a88cd82a97b",
+    "interface/mission/help-i-12.png": "c7fcb096e0a4116c69c81298d87c33d837b56dcf7c7cd9a8d7f7a85377ccf898",
+    "interface/mission/help-i-13.png": "0e31446a37051a728e5bb753920aecb704de00e93e2a4ef11985369a8dae4655",
+    "interface/mission/help-i-14.png": "b3f81329e3cb0b9fbdc9b93aa4450e45b701dfa327aabeb9bf11c9fdda50ac20",
+    "interface/mission/help-i-15.png": "d95d3056a43e853f52bda9ae71af03f17ed96e1781ab8d56a2db5087ca19d185",
+    "interface/mission/help-i-16.png": "284673a6ca3e887cc35c0083e24afe815a743847d57a6216c8bba767c6b4f27a",
+    "interface/mission/help-i-17.png": "2eaf3ef1e311bdc4a1abcf00d1b063f421046b258c8e1c2ea79bb3c93618f94b",
+    "interface/mission/help-i-18.png": "aa62b5d15642f89b17822f94522b541bfd6b1fab819ef7928bce2fc689867c0d",
+    "interface/mission/help-i-19.png": "907040e1df534bd86fbd97af7272ccab22aaf6b1e8b65205abbeb2668c2332f9",
+    "interface/mission/help-i-20.png": "2b76b197906fd280a4dfd2aaa9b796e1e43837270e150b2e1645df993426dc96",
+    "interface/mission/help-j-00.png": "260e09ff8fded849c7c6a75a771ffa2ea5e1be8a41cd1bb9a82a5df7730e033e",
+    "interface/mission/help-j-01.png": "2af0b7123a211b8192699e8b670bb703fb1af55f02bb3e7adad7cff4c40a44d7",
+    "interface/mission/help-j-02.png": "69a9615540196e63a31a8977c81cffe2450d42e432587913073191835a05b45a",
+    "interface/mission/help-j-03.png": "34d525a9c89eebb6326bf1411952f04a4f5329aac3c283a8ea23a3b26f450570",
+    "interface/mission/help-j-04.png": "014fecdfd78f49ccd657a1e617204a34fe28807071dc3cbc1837ba5161df6312",
+    "interface/mission/help-j-05.png": "d1f753aeb3b2bee702c2422c2750033ae3de4f0eff0a96f553aad2680688aa6a",
+    "interface/mission/help-j-06.png": "be8dd570cbb6d7a5bcad6fec0789e30b103fe38c9618acc5c1b940aec7d1f404",
+    "interface/mission/help-j-07.png": "e20b81e349081d674aa6000b4d8d886b1af89e94cb9f32e8c3079dd53dad5b03",
+    "interface/mission/help-j-08.png": "9c0690bbda725ef8e5299ad3b63e2a1b886eca25b1964beb88a37213ffa75cac",
+    "interface/mission/help-j-09.png": "0908ee558fb7267c3e4b5cc7929ba9df372b8a6719e1db0bdf7c7d63f5e2f7e3",
+    "interface/mission/help-j-10.png": "59969cd820a4bcc88d3958231c408f6b4638aa01436f94775035076d29d38940",
+    "interface/mission/help-j-11.png": "83a1f80d190c4eeee15bb42ba9d164019e2e4a18e5d81b5a71636d6006579a3d",
+    "interface/mission/help-j-12.png": "40aea713fc926e4b0f0667dbc0394965995902ba49220d44e378cb5fa9ebc9c5",
+    "interface/mission/help-j-13.png": "6c7e200201c19a8db1eb5e2f7906b2ed88ad8a2e7f3e139cac01c8f9a2a77873",
+    "interface/mission/help-j-14.png": "9dd8699ed5740a2c3f1ca5e02590858d40699d94d27374ca6565ddb091a05cc1",
+    "interface/mission/help-j-15.png": "b58ec1f0b3edf91e28b3c99eb6060cce3993adbb139c82bbb7204720e2e4880f",
+    "interface/mission/help-j-16.png": "9c377d350ca1bbec44a155978f15659025184aca036f9dbd859e8fe704499840",
+    "interface/mission/help-j-17.png": "d9120beac967a17a58cb9dc97419eda20a44931942cc7016221699dd7b664093",
+    "interface/mission/help-j-18.png": "609aa4cb86214717c6136ebe85c3796e76718dbef8d35e8652f9ed07713fac71",
+    "interface/mission/help-j-19.png": "8619a16f07720e5740c8d2c84977e94b7f3f74b4eee55d997324fc2806b88fc2",
+    "interface/mission/help-j-20.png": "2b0c7362dded372ba3f67e22b6ad0f442bbe16763eeaee94015ed5be073b673c",
+    "interface/mission/results-e.png": "1aad60cc732b30c9ecc9b0fe0f50ca47c64ba044f9cc86f48501e0522e65f9b1",
+    "interface/mission/results-f.png": "6f7526b86cd06b2d7754a8c09434327086e0edd39b606a63a498b30a7d2ac840",
+    "interface/mission/results-i.png": "a40880e05608d06dc5dbfd1c118481a46d9faff1a2652b46c43ed5ad12b372f8",
+    "interface/mission/results-j.png": "27d4b367211029c25ed78e04072bfd10eea0ce8c95d264f7bc465c4c88618344",
+    "interface/mission/shop-e.png": "7b63ee9c97ec3b342f6608e19db9591ac103a5902c7fa1ed100f95358cbaad1a",
+    "interface/mission/shop-f.png": "c16cc14b17a062fc50e5811ed68ab3c537c9a48fbbc15c5aeaca8197e917278c",
+    "interface/mission/shop-i.png": "33adba91f1f6f86a9ad93ac8b69e8075bb40d3c0febc88283197185b849754c2",
+    "interface/mission/shop-j.png": "883f58bd1aaa143cdb3754042b5e6dd4045a549f9adfe1f5f75ef48275bbc002",
+    "interface/mission/training-ayame.png": "d4de5ce19bea9ed1463571ee0ecb23f612c118d050a3f8e382f4e7d564d55749",
+    "interface/mission/training-e.png": "2e0fa01d3b781cbe596ae100b606857faaf5d401657eb0af3907ff6fb02cb523",
+    "interface/mission/training-f.png": "787b4f813e0d8a16c4e9f02087c8178f1f76fae24b66a01da75af888943c4c2c",
+    "interface/mission/training-i.png": "83389919ddcb255f0dd5c86c35835008c1fe80d7c6d9cc5146324e2904aa6ee0",
+    "interface/mission/training-j.png": "9f9f0ba037b1b9ebf2f657b548679e0f1f78bfe0a4b9566041e02ca56efb408d",
+    "interface/mission/training-rikimaru.png": "187ff0221949b61d1e0b01f6b4a78340a0e29f2fba31df9c5ed5eac1619b6c9d",
     "interface/textures/00b0597d3276752628f607022fe88328.png": "8841796b62bc6a6db6396839163d18473e7a15e83f86dc87789df6975c18d45f",
     "interface/textures/00f603b51b748c160591e121ef2a5ff1.png": "91a7e9f6086b03bdcb7e42c63e71cd1dbbd6d16cb054402b474ed7393548c40c",
     "interface/textures/029b5edaf7c572a31c9feedb7445e920.png": "4116ab7ffbcf5a3561e20a7330fe42e0e585520baddda585c39c6dbe9065d194",
@@ -7157,7 +7863,6 @@
     "layers/3bef9e5efb0ac7f27c6201f498a8cbb9.png": "a9218cba9e78405913b117e199b7486b65fb2ad71dcab7511536383a418ce222",
     "layers/3c708d1f8336e528889cbef278000e0f.png": "8dc249b8f13ba2b503ca2f073a09664d33220cd1ddf756e0851912ec3f44d840",
     "layers/3dd7b5cb26c812864b837b67a85c3815.png": "2d39b419e62ae143a8b515df03e2dd10fcb1be042e7b0af66aca0f5ea9a15d09",
-    "layers/3e09711b8ecdec910d3c52980ba6aa2a.png": "5a80ed721696efb2ff3a79f843a0851480c55eedfc3de8027843de97889b1798",
     "layers/3f1d22549db7caff44007f4bb006e25e.png": "c0eb84c45a813a750699110a491f5c337e55d920fea6f626911b5307885be73f",
     "layers/3f2c195157cff2fd1eb97e1967e51243.png": "81c9fb61c22d7d38cde5f022b9ea1f5d9bcb1fa862e6f30597fbee0f22022f26",
     "layers/40bb3ed0a17c531d294907dbc2d00cff.png": "457d5f3c8eacfe016665e04125b938d84f1ec5816db82bfffe81732e7d9c5495",
@@ -7223,7 +7928,6 @@
     "layers/6f3c1f1b18dc1a018a1d18f83f83eaf7.png": "b75556e133e1996afbcddf53537b37148e77e929b7ed38e95d8186d94cd1c79a",
     "layers/7029f782e91862aec96e35a6c29126db.png": "0486f5eada9cdd0406ba4e5e027b9547a0fc0535ffb592bc44a5f077eeca0492",
     "layers/719a499b6f33b30e743221c3590469e0.png": "c6226313ae336f2bbde1fdecca6671808be23745c14c26bd8b992453ff8f8a88",
-    "layers/73b02fd8bb4cf44bf81a9431ac4f9849.png": "78d98933317fadf6a299bd076ead7f040e2326718a9e6aa1cdd3955ba829ec5d",
     "layers/7426b1098fbd9423ed517f1461656165.png": "3a6f22843b10a407d3a78340f2d1dae7b0b1dfffb6115ad5fa8cc01c4b611a75",
     "layers/746e293546edf99f0fe48df1c4460914.png": "36d33d0348c0556b6d85a9efec23b79e9a5a4bdc39d0236caa03092b8750056e",
     "layers/749d5677b9891e0f0a27cec88440f1f7.png": "f877b2df5a96d73b1f060ede5b825283294641c7245e310f1ec745d295ae9a0c",
@@ -7294,7 +7998,6 @@
     "layers/a1cae54e448c155ef8f0962cf2518e19.png": "e1ff5539a82886a059e58184cb8932aa1905070fdbaf0925e8a3b929a5695656",
     "layers/a398bf1bd201462c6d1c19085164c528.png": "6cacca611741fd101c5a86262f03115b812f207079ce92650d23b2082b7339aa",
     "layers/a41788857c4e6d2a1893c4479ee5209c.png": "fb830043091f3369a291b11f9b5c4fbc6e12498ba84e77994ede83dd4a51a3b9",
-    "layers/a4a1d4632a8e8871d2f0927131193246.png": "1c08d0251bd0988f7ff09e49823a2e02b596fed55ec0e8dbc28e948fb154d478",
     "layers/a4fbfedf5c205e106a2425ebe9c43692.png": "c9dcda529dad3ba4f31c6804277e42f22cf50cc4d6875ef539dd7010c6285ef8",
     "layers/a542ee3e182c10f3a050ab9661655268.png": "9c3e8d067a4e841579ca46858449c1960c6d09a623f17a6fb752fe958fac01be",
     "layers/a5602663823a102cbe4ed8c1a26487ec.png": "2c130abf7d9d67bcca64f84b45effc81265be1371419e4a53a69308bbb9cf95a",
@@ -7315,7 +8018,6 @@
     "layers/b9f5c47f2ab30987079e1fc23d588649.png": "8a1f7fd6edda987021e5c7740d4b8249050fbc11a1f4ef00acb62ced6b71cc3e",
     "layers/ba4a92ea5181db8bf52ed41f37a14a77.png": "ea11a42877bbb7bc9376a0137bca775478ab6c73eb47776db67c72d93ce2e776",
     "layers/bb2aa3ff6ea2a7302618516747d52576.png": "54dcb88cc1269d41f4934d863dfb2e618dc8e3fb1ab8aab0661a09e75a6b6f3b",
-    "layers/bc01ae23e8eb323230453134a5fb7e6c.png": "bb7204dc0d9ac5c74c3efd1b00cce0b9f2e40e0e1dc8c9346ec46ae7659e4287",
     "layers/bc06d070d7904b429d2ca978da512920.png": "248901b03dfc66fa1769c04bbc9ae0366fc4d0f987a454814c4021814bc83a6e",
     "layers/bc8c61033b0ed56c589df0a4e56b6aff.png": "8dd61d14747411645d2f5db9bd2125eb51d2f98c5b46e7706794d31123051ade",
     "layers/bd868cf86276f3db103915478678d8cc.png": "4cd4143d347f762d307f80c6c72d61fe5b7eee9a95f79d89de48b8b8bc2cfe72",
@@ -8690,5 +9392,74 @@
     "textures/ff86ae0330d31df55d3417b2d1cf82fb.png": "6af68754f86e0e58fca98992aba2ccd887cb42170ea1d63418144799a6a73a7b",
     "textures/ffebbcb455537beb239f561930544b8f.png": "3e3e0638833fff3789d0a0a53da4af709fc830c0115c8e84fd368c8bb665c8d8"
   },
-  "manifest_sha256": "e3257b58faac47f4ff7ba5ac6c9e1bfe2c24dd6728f3cc615f9cf6034e968a9e"
+  "manifest_sha256": "febc8f26ed023cefb31a10610433eba7d599bee1156fb6a0fed19ef8c22432b1",
+  "mission_ui": {
+    "release": "artwork-v2",
+    "font": "Tenchu UI Sans (Noto Sans JP subset), SIL OFL-1.1; see game third-party notices",
+    "composition": "Localized labels typeset from outlines; paintings fully generated, not blended with original colors. Original calligraphy is reconstructed by Rust from the supplied disc.",
+    "generated": {
+      "ST001": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Nighttime Japanese garden with flowering pink cherry trees, fallen petals, a small stone bridge over a dark blue stream at center, white plaster garden walls and distant warm lanterns. Large near cherry trunk at right; pink blossom canopy across upper edge.",
+        "generated_sha256": "4f6bdf60cd5bb6877853c1592a7995def0fa0b1a50f1e07f6f35479d8376594a"
+      },
+      "ST002": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: A low camera looking along a deserted feudal Japanese street at night. Tiled timber houses and glowing lanterns recede from the left foreground toward the far right-center, a tall dark timber wall closes the right edge, cobbled street below, black sky.",
+        "generated_sha256": "f46975cbb7a088fe9e131f4a4d94d5776d351c1dbddd6201f5823cfaa7e78ce7"
+      },
+      "shop": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Dim feudal Japanese weapon storeroom. Bright barred shoji window on left, pale diagonal shaft of cool moonlight across weathered plaster, dark wooden shelves and sword racks along right wall, single small warm hanging lantern at upper-right-center, low planked floor/workbench at bottom. Keep the dark unobstructed center for the item grid and bottom-left for item descriptions. Remove ALL existing lettering, numbers and controller/button glyphs, including ITEMS, Remaining and the bottom controls. Fill those small lettering regions with the appropriate existing background surface; localized text will be typeset separately. Keep all racks and the window in place.",
+        "generated_sha256": "b6935b17be443c241142a357a80a8a6f01cff81fb477ce02b501731afd26c6d0"
+      },
+      "ST003": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Low-ceilinged ochre rock prison corridor with warm iron hanging lanterns on the left, dark stone walkway with a long black channel along its left edge. A massive rectangular rough stone pier occupies the center-right and divides the corridor from a dim wooden barred cell on the right. Keep the original confined perspective and all wall corners.",
+        "generated_sha256": "84e69a2853ce676fe220ee12f7b5521ec3dc51e1bde0d2c08d1db0aa75fd4828"
+      },
+      "ST005": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Huge wooden pirate sailing ship seen at a low angle from dock water at night, towering bow fills center and right, ropes and plank hull, striped weathered canvas sails above. Black sky, muted blue water behind, subtle orange fire glow across foreground edges. Preserve sails, masts, hull angle and foreground occlusion exactly.",
+        "generated_sha256": "5ed9e41a1e175b571dabd1cca38b6900d6006b0b1e5f33d44441af34dd1fb146"
+      },
+      "ST004": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: A sinister Japanese mountain shrine at night, front courtyard framed by dense dark green bushes. Tiled perimeter wall spans the width, red-brown central gate, pale stone guardian pillars, multi-tier stone pagoda to the upper right. An enormous looming grey rock skull formation rises behind the central gate on the left. Preserve the skull as a weathered stone formation and its exact size/location.",
+        "generated_sha256": "022fc30f6fcf1b9f55bec336bd6f80c9fc39bc11a907a345fcf12703afa9c97d"
+      },
+      "ST006": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Autumn maple grove at night beneath a high cliff, red-orange-yellow foliage in layered trees, large red maple center-right, grey rock wall and narrow bluish waterfall descending from upper-right cliff behind the foliage. Seen from a low upward angle; black sky with dark ridge crossing upper-left.",
+        "generated_sha256": "8b9abe900699306b0cb4b42e9f47605a965568fe929533787d79b2a264312724"
+      },
+      "ST008": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Snow-covered shrine approach, central stone staircase rising symmetrically to a massive dark red and black Japanese temple gate at the top. Snow-heavy trees and stone lanterns on both sides; snow specks against a very dark reddish storm sky. Crisp cold branches and stone steps with restrained warm lighting on the temple. Preserve frontal symmetry and all stair and gate placements.",
+        "generated_sha256": "4ed396c373b7035fb0534da720fb8db3de9d7185cefcf23416eec87cd931d6ac"
+      },
+      "ST007": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Japanese castle at night viewed from a steep moat embankment. Tall irregular moss-grey stone retaining wall fills bottom-left, bright white plaster castle wall and tiered grey tile roof above, warm orange torchlight pools along the wall, near dark green tree branches at upper-right, small illuminated roofed bridge or gate deep in bottom-right distance. Preserve the strong diagonal perspective.",
+        "generated_sha256": "269c787a55f5b1ada6bbd2f1494f0e9cf2cc71156c066279d2a8cac500bd7b90"
+      },
+      "training": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for a game training results screen. Input image 1 is the original exact layout reference. Repaint every pixel as a refined, restrained illustration with smooth light falloff and fine rice-paper grain. Keep the black irregular diagonal silhouette occupying the left side, the muted dusty mauve circular glow beginning at x=41%, the thin black vertical/horizontal shoji window lattice at exactly its current locations, and sparse pale drifting petal brush strokes. Preserve all boundaries and large colors. Remove ALL lettering, labels, numbers, symbols and decorative lettering flourishes, including TRAINING, HIGH, TIME, kill statistics and the bottom controls. Text will be typeset separately. Fill the removed text regions with their underlying plain background. No new imagery, people, text, border, crop or perspective change. Full opaque 4:3 canvas.",
+        "generated_sha256": "9f6c942b61a6aa0e0ba699a580525b31bfe245d65926cf88cf51eca028d3277c"
+      },
+      "ST010": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Dark Japanese cedar forest at night viewed upward among very tall trunks. Massive near trunk just left of center, slender straight trunks receding on both sides, sparse deep green canopy. Bamboo/wood fences along lower left and center with one dim warm lantern, rolling green-black slope at lower-right and distant pale banner. Keep extremely nocturnal restrained lighting.",
+        "generated_sha256": "665fe0e9b1724be9c4651945c0235c8d00eeb42c718e5b74319dbab90e241099"
+      },
+      "ST011": {
+        "tool": "image_gen.imagegen (built-in)",
+        "prompt": "Use case: style-transfer. Asset type: flat 4:3 high-definition background texture for an existing game interface. Input image 1 is the original low-resolution composition reference. Repaint the entire image with clean coherent high-resolution detail, realistic hand-painted game illustration, faithful to its camera, large shapes, silhouettes, placement, darkness and color palette. This is a production texture, not a mockup or screenshot. Retain exact framing and relative positions, no crop or perspective change. Natural wood/stone/foliage detail, smooth tonal gradients; no pixel blocks, no artificial sharpening, no blur. No people, no new objects, no logos, no border, no captions, no text or symbols anywhere. Scene: Elevated oblique view over a snow-covered Japanese mansion compound at night. Large layered tiled roofs fill center and top, wooden rooms with amber interior glow underneath, snowy stone paths and sparse snow-covered ornamental trees below. Large diagonal foreground tree trunk crosses lower-center/right. Preserve the roof map and view direction exactly.",
+        "generated_sha256": "429f6683d5a6de637bfb09106f88ece2d1984ce8eb958189200849a84a06925b"
+      }
+    },
+    "results_background": "Use case: precise-object-edit and style-transfer. Repaint this game results-screen BACKGROUND as a refined high-definition illustration, preserving its exact layout and colors. REMOVE ALL lettering, numbers, punctuation and symbols (Results, Time, Events, Score, High, kill statistics, TOTAL, retry/quit, every slash and colon). Leave their regions as background; exact text will be typeset separately. Preserve the black irregular diagonal silhouette over the LEFT half, the muted dark teal-blue circular moonlit shoji glow on the RIGHT, the thin black window lattice with exactly the same line positions, sparse drifting pale petal-like strokes, and dark red ribbon/brush swash at lower-right. Maintain all big boundaries at the original positions, especially black/teal division around x=41% and upper-left large black area; preserve bottom dark field. Smooth refined light falloff and subtle rice-paper grain; no new imagery, no people, no new marks, no perspective changes, no text whatsoever. Full flat 4:3 canvas.\n",
+    "review": "All four languages and all ten briefings rendered on native GPU; localized shops, ordinary/final results and training leaderboards inspected. Shop/briefing flow, narration, carry limits, retry and cancellation passed in WebGPU and WebGL2 with HD artwork enabled. Disc-backed recipes and input hashes validated."
+  }
 }

@@ -17,6 +17,7 @@ mod location;
 pub use location::configured_root;
 
 const MAX_PIXELS: usize = 16 * 1024 * 1024;
+const MAX_INTERFACE_PIXELS: usize = 32 * 1024 * 1024;
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
@@ -70,6 +71,7 @@ pub struct Pack {
 }
 
 struct Selection {
+    max_pixels: usize,
     originals: BTreeMap<String, Image>,
     textures: BTreeSet<String>,
     models: BTreeSet<String>,
@@ -102,6 +104,7 @@ impl Selection {
             );
         }
         Self {
+            max_pixels: MAX_PIXELS,
             textures: originals.keys().cloned().collect(),
             originals,
             player_models: true,
@@ -116,6 +119,7 @@ impl Selection {
 impl Pack {
     pub fn interface_from_env(originals: BTreeMap<String, Image>) -> Result<Self> {
         Self::configured(Selection {
+            max_pixels: MAX_INTERFACE_PIXELS,
             textures: originals.keys().cloned().collect(),
             originals,
             models: BTreeSet::new(),
@@ -143,6 +147,7 @@ impl Pack {
             })
             .collect::<BTreeMap<_, _>>();
         Self::configured(Selection {
+            max_pixels: MAX_PIXELS,
             textures: originals.keys().cloned().collect(),
             originals,
             models: models.iter().map(|m| m.id.clone()).collect(),
@@ -296,6 +301,7 @@ impl Pack {
                 .retain(|id, _| selection.textures.contains(id));
             manifest.materials.retain(|id, _| materials.contains(id));
         }
+        let max_pixels = selection.as_ref().map_or(MAX_PIXELS, |s| s.max_pixels);
         let mut pixels = 0;
         let mut decoded: BTreeMap<String, Arc<Image>> = BTreeMap::new();
         let mut share_image = |image: Image, label: &str| -> Result<(String, Arc<Image>)> {
@@ -304,9 +310,10 @@ impl Pack {
                 shared.clone()
             } else {
                 pixels += image.rgba.len() / 4;
-                if pixels > MAX_PIXELS {
+                if pixels > max_pixels {
                     return Err(format!(
-                        "Texture pack exceeds 16 million unique decoded pixels while loading {label}"
+                        "Texture pack exceeds {} million unique decoded pixels while loading {label}",
+                        max_pixels / (1024 * 1024),
                     ));
                 }
                 let image = Arc::new(image);
@@ -515,6 +522,7 @@ mod tests {
             let actual = Pack::load_selected(
                 &root,
                 Some(Selection {
+                    max_pixels: selection.max_pixels,
                     originals: selection.originals.clone(),
                     textures: selection.textures.clone(),
                     models: selection.models.clone(),
@@ -563,6 +571,7 @@ mod tests {
             let originals = frontend.artwork_images();
             compare(
                 Selection {
+                    max_pixels: MAX_INTERFACE_PIXELS,
                     textures: originals.keys().cloned().collect(),
                     originals,
                     models: BTreeSet::new(),
@@ -602,6 +611,7 @@ mod tests {
         }
         let mut reads = Vec::new();
         let selection = Selection {
+            max_pixels: MAX_PIXELS,
             originals: BTreeMap::from([(
                 "roof".into(),
                 Image {
@@ -645,6 +655,7 @@ mod tests {
         let failed = Pack::decode(
             serde_json::from_value(manifest).unwrap(),
             Some(Selection {
+                max_pixels: MAX_PIXELS,
                 originals: BTreeMap::new(),
                 textures: BTreeSet::from(["snow".into()]),
                 models: BTreeSet::new(),

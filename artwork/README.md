@@ -1,10 +1,11 @@
 # Campaign HD artwork
 
-The artwork is a separate download in this repository's **artwork-v1** GitHub
+The artwork is a separate download in this repository's **artwork-v2** GitHub
 Release: `tenchu-hd.tar.zst` plus `SHA256SUMS`. Keep the archive beside the game
 executable (beside the Linux launcher), or in your working directory. The game
 finds it automatically. Enable **F1 → Visual assets → Replacement artwork**;
 Modern presets enable it too. The supported retail disc is still required.
+Use game v0.5.1 or newer for the additional mission screens in this pack.
 
 Alternatively set `TENCHU_ASSET_PACK` to an archive or an unpacked directory
 containing `pack.json`. An empty value disables loading. Archives are unpacked
@@ -46,17 +47,20 @@ on custom packs. Keep your changes in your own directory for future updates.
 
 ## Contents and provenance
 
-The pack covers 1,719 texture identities across Missions 1–10, characters, items,
-HUD and all four interface languages, plus two authored weapon meshes. Cutscenes
-use their existing game assets. The manifest keeps tile borders, blend classes,
-surface rules and model corrections together.
+The pack covers 1,837 texture identities across Missions 1–10, characters, items,
+HUD and all four interface languages, plus two authored weapon meshes. Version 2
+adds all ten narrated briefing backgrounds, localized shop and item help, mission
+results and training leaderboards. Ending results use the same crisp typography.
+In-mission cinematics and ending movies are unchanged. The manifest keeps tile
+borders, blend classes, surface rules and model corrections together.
 
-301 identities use Rust recipes at menu/mission load. Mixed original colour,
+307 identities use Rust recipes at menu/mission load. Mixed original colour,
 source cutouts, snow coverage and interface blend masks come from the user's
 decoded disc textures. The download supplies generated layers and operations,
-not precomposited copies of those source pixels. Results match the accepted pack
-pixel for pixel. Unrelated mission images are not decoded; reconstructed images
-are not written into the pack or cache.
+not precomposited copies of those source pixels. Briefing brush lettering retains
+its original columns and is resampled from the disc at load time. Unrelated
+mission images are not decoded; reconstructed images are not written into the
+pack or cache.
 
 This source directory keeps the manifest, per-entry provenance and hashes;
 large PNG/OBJ inputs live only in the separate download. `provenance.json`

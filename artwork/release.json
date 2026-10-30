@@ -1,7 +1,7 @@
 {
-  "tag": "artwork-v1",
+  "tag": "artwork-v2",
   "archive": "tenchu-hd.tar.zst",
-  "sha256": "793922a72f3c7edc627cfeaea8f20000b7f7efd33e514e3a5af5413a5cfdbf1c",
-  "bytes": 148681538,
+  "sha256": "a80ae3cdd0bd7f1bd7e58ba3c5d82004866510026248800f1cf7364b4c4f9eb3",
+  "bytes": 175740485,
   "format": 1
 }

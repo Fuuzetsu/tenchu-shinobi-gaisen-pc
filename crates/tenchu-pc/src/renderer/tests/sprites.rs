@@ -3,8 +3,8 @@ use crate::visuals::{catalog, pack::Pack, pixels::Image};
 use std::{collections::BTreeMap, sync::Arc};
 
 #[test]
-#[ignore = "requires TENCHU_DISC, TENCHU_MODEL_REVIEW and a GPU; inspect composed health bars at several crop lengths"]
-fn composed_health_bar_review() {
+#[ignore = "requires TENCHU_DISC, TENCHU_MODEL_REVIEW and a GPU; inspect health bars and item quantities over their sprites"]
+fn composed_health_bar_and_inventory_review() {
     let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
     let output = std::path::PathBuf::from(
         std::env::var_os("TENCHU_MODEL_REVIEW").expect("TENCHU_MODEL_REVIEW"),
@@ -15,6 +15,8 @@ fn composed_health_bar_review() {
             .unwrap();
     let mut game = crate::session::Options::default().load(&assets).unwrap();
     game.events = Default::default();
+    game.roster.get_mut(game.player_id).inventory[1..9].fill(27);
+    game.hud.cursor = 3;
     let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
     let background = review.backdrop(0.3);
     for health in [100, 75, 50, 25, 1] {

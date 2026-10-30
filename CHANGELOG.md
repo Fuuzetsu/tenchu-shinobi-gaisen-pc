@@ -7,8 +7,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Align shop quantities with their own item slots in both the stock grid and
   carried-item row.
+- Keep item quantities above their icons in the carried-item row and gameplay
+  inventory, matching retail drawing order.
 - Support replacement artwork for narrated mission briefings on desktop and in
   the browser, and include all restored mission screens in the interface export.
+- HD artwork v2 adds paintings for all ten narrated briefings and sharp shop,
+  item-help, mission-results and training artwork in English, Japanese, French
+  and Italian. The separate pack also refreshes final results typography and
+  preserves the original scrolling brush lettering through disc-backed recipes.
 
 ## 0.5.0 — 2026-10-30
 

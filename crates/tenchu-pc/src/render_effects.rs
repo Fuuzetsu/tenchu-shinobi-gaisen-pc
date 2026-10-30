@@ -606,7 +606,8 @@ pub fn build_presented(
         .items
         .sprites
         .iter()
-        .chain(game.hud.sprites.iter().filter(|sprite| {
+        // Retail prepends HUD packets, so equal-depth sprites draw in reverse submission order.
+        .chain(game.hud.sprites.iter().rev().filter(|sprite| {
             show_hud && !(sharp_text && crate::fonts::digit(game, sprite).is_some())
         }))
         .chain(game.cinematic.sprites.iter().skip(if sharp_text {

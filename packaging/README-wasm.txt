@@ -5,7 +5,7 @@ It needs assets prepared from your own Shinobi Gaisen disc. Use a matching
 native build to create the data directory inside this extracted archive:
   tenchu-pc prepare-web '/path/to/game.cue' ./data
 
-For HD artwork, download tenchu-hd.tar.zst from the artwork-v1 release and place
+For HD artwork, download tenchu-hd.tar.zst from the artwork-v2 release and place
 it beside the native executable before preparing assets. TENCHU_ASSET_PACK can
 also select the archive or an unpacked directory. Preparation exports generated
 layers and recipes alongside your disc data; reconstruction runs in WASM.

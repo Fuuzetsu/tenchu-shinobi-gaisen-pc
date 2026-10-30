@@ -361,14 +361,14 @@ impl Frontend {
             if count == 0 {
                 continue;
             }
-            if count != INFINITE {
-                self.shop_number(count, 166.0 - shown as f32 * 25.0, 98.0);
-            }
             self.canvas.sprite(Sprite::new(
                 &self.mission_art.icons[item],
                 140.0 - shown as f32 * 25.0,
                 90.0,
             ));
+            if count != INFINITE {
+                self.shop_number(count, 166.0 - shown as f32 * 25.0, 98.0);
+            }
             shown += 1;
         }
         digits(

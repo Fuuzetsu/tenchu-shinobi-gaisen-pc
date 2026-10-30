@@ -91,6 +91,139 @@ impl Capture {
             .unwrap();
         pixels
     }
+
+    fn review(
+        &mut self,
+        frontend: &mut crate::frontend::Frontend,
+        campaign: &crate::campaign::Campaign,
+        name: &str,
+    ) {
+        frontend.canvas.sharp_text = true;
+        frontend.canvas.frame = Some(Frame::new(frontend.canvas.size, frontend.artwork.clone()));
+        frontend.paint(campaign);
+        self.draw(frontend.canvas.frame.take().unwrap());
+        crate::fonts::capture(&self.gpu, &self.target, &frontend.canvas.text);
+        if let Some(directory) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
+            let directory = std::path::Path::new(&directory);
+            std::fs::create_dir_all(directory).unwrap();
+            crate::capture::read_texture(
+                &self.gpu,
+                &self.target,
+                &directory.join(format!("{name}.png")),
+            )
+            .unwrap();
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC, the complete HD pack and a GPU; verifies localized mission-screen coverage and layout"]
+fn hd_mission_screens_cover_all_languages_and_briefings() {
+    use crate::{
+        campaign::{Action, Campaign, Screen},
+        frontend::{Frontend, Page},
+    };
+    use tenchu_assets::{game::GameAssets, script::Language};
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, disc.as_ref(), &campaign, Default::default()).unwrap();
+    let state = crate::session::tests::state(&campaign.game);
+    let mut capture = Capture::new([1280, 960]);
+    let covered = |frontend: &Frontend, image: &Image| {
+        assert!(
+            frontend
+                .artwork
+                .contains_key(&draw::identity(&draw::pixels(image))),
+            "Missing mission artwork"
+        );
+    };
+    for language in [
+        Language::English,
+        Language::Japanese,
+        Language::French,
+        Language::Italian,
+    ] {
+        campaign.options.language = Some(language);
+        campaign.options.mission = 1;
+        campaign.progress.stock[0][1..9].fill(20);
+        campaign.inventory();
+        frontend.prepare(&campaign, &assets, false).unwrap();
+        frontend.ticks = 120;
+        for item in [1, 1, 3] {
+            campaign.cursor = campaign
+                .shop
+                .order
+                .iter()
+                .position(|&id| id == item)
+                .unwrap();
+            frontend
+                .action(Action::Confirm, &mut campaign, &assets)
+                .unwrap();
+        }
+        covered(&frontend, &frontend.mission_art.shop);
+        for image in &frontend.mission_art.help {
+            covered(&frontend, image);
+        }
+        capture.review(&mut frontend, &campaign, &format!("{language:?}-shop"));
+        for mission in 1..=10 {
+            campaign.options.mission = mission;
+            frontend.prepare(&campaign, &assets, true).unwrap();
+            let briefing = frontend.briefing.as_ref().unwrap();
+            covered(&frontend, &briefing.background);
+            covered(&frontend, &briefing.text);
+            for _ in 0..60 {
+                frontend.advance_briefing();
+            }
+            frontend.narration_ready(None);
+            let briefing = frontend.briefing.as_ref().unwrap();
+            let duration = briefing.assets.narration.end - briefing.assets.narration.start;
+            for _ in 0..duration * 60 / 300 {
+                frontend.advance_briefing();
+            }
+            assert_eq!(frontend.page, Page::Briefing);
+            capture.review(
+                &mut frontend,
+                &campaign,
+                &format!("{language:?}-briefing-{mission:02}"),
+            );
+        }
+        let record = tenchu_core::game::score::Record {
+            bosses: 1,
+            enemies: 10,
+            criticals: 9,
+            murders: 1,
+            clock: 4890,
+            ..Default::default()
+        };
+        let score = record.score(campaign.game.mission.stage.id);
+        campaign.screen = Screen::Results(tenchu_core::progress::Results {
+            record,
+            score,
+            best: record,
+            new_best: true,
+            training_place: Some(0),
+        });
+        for mission in [0, 1, 10] {
+            campaign.options.mission = mission;
+            frontend.enter_results(&assets, &campaign).unwrap();
+            frontend.ticks = 120;
+            for image in [
+                &frontend.mission_art.results,
+                &frontend.mission_art.training,
+                &frontend.result_background,
+            ] {
+                covered(&frontend, image);
+            }
+            capture.review(
+                &mut frontend,
+                &campaign,
+                &format!("{language:?}-results-{mission:02}"),
+            );
+        }
+    }
+    assert_eq!(state, crate::session::tests::state(&campaign.game));
 }
 
 fn image(words: &[u16], size: [u16; 2]) -> Image {
