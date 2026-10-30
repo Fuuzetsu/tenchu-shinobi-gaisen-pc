@@ -65,8 +65,10 @@ def read_segments(path):
         if len(fields) != 2:
             raise ValueError(f"Expected field count and hex buttons: {line}")
         count, pad = int(fields[0]), int(fields[1], 16)
-        if not 0 < count <= 1_000_000 or not 0 <= pad <= 0xffff or len(pads) + count > 1_000_000:
+        if not 0 < count <= 1_000_000 or not 0 <= pad < 0x4000 or len(pads) + count > 1_000_000:
             raise ValueError("Invalid or excessive input segment")
+        if pad & 0x30 == 0x30 or pad & 0xc0 == 0xc0:
+            raise ValueError("Opposing controller directions")
         pads.extend([pad] * count)
     if not pads:
         raise ValueError("Scenario has no inputs")

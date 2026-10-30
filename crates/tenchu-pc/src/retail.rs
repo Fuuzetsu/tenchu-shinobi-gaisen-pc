@@ -165,7 +165,7 @@ pub fn check(
     }
     let reached_end = !matches!(coverage, Coverage::Prefix(limit) if checked >= limit);
     if reached_end {
-        if before_epoch.is_some() {
+        if before_epoch.is_some() && coverage == Coverage::Complete {
             return Err("Recording ends during an update".into());
         }
         if coverage == Coverage::Complete {
@@ -179,6 +179,7 @@ pub fn check(
         "matched_updates": checked, "reached_end_of_recording": reached_end, "missions": reports,
         "coverage": match coverage { Coverage::Complete => "complete_missions", Coverage::Prefix(_) => "prefix", Coverage::Scenario => "scenario" },
         "state_corrections_after_initialization": 0,
+        "pending_display_boundary": before_epoch.is_some(),
     })).map_err(|e| e.to_string())?);
     Ok(())
 }

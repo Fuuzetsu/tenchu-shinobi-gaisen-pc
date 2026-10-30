@@ -57,6 +57,12 @@ argument pointing at the archived `item-setup.json`.
 To try new inputs, choose a proven mission-entry receipt and append a text file
 containing `field_count hex_buttons` lines (blank lines and `#` comments allowed):
 
+These are **SCNPAD01/BizHawk masks**, not native game pad bits: Circle `0001`,
+Cross `0002`, Square `0004`, Triangle `0008`, Up `0010`, Down `0020`, Left `0040`,
+Right `0080`, Start `0100`, Select `0200`, L1 `0400`, L2 `0800`, R1 `1000`, R2
+`2000`. Combine simultaneous buttons with bitwise OR. Opposing directions are
+rejected. For example, `60 0010` holds Up for 60 console fields.
+
 ```sh
 ./dev.sh python3 tools/retail-capture/capture-archive.py ARCHIVE NEW_OUTPUT \
   --tip ENTRY_RECEIPT --tail experiment.segments
@@ -65,9 +71,11 @@ containing `field_count hex_buttons` lines (blank lines and `#` comments allowed
 ```
 
 This still verifies the archived entry checkpoints. The appended inputs are a new
-experiment, not a claim to reproduce an archived win. `--scenario` requires the
-entire observation stream to match and end between updates, but permits an
-unfinished mission or death; it cannot export a completed-run movie tape. No RNG,
+experiment, not a claim to reproduce an archived win. `--scenario` requires every
+observed update to match but permits an unfinished mission or death. A capture
+can stop in the PS1's display wait after gameplay has been compared; the report
+then explicitly sets `pending_display_boundary`. Such a scenario cannot export
+a completed-run movie tape. No RNG,
 actor or item state is repaired from later snapshots.
 
 The checker covers clocks/RNG, actors and poses, AI, collision slots, inventory,
