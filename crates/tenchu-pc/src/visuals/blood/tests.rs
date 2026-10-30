@@ -431,11 +431,16 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         let root = game.player().root_model;
         let position =
             Vec3::from(game.player().position.map(|v| v as f32).to_array()) - Vec3::Y * 750.0;
-        game.effects.slots[200] = Some(tenchu_core::effects::Effect::Bleed(
-            tenchu_core::effects::Bleed {
+        game.effects.slots[200] = Some(tenchu_core::effects::Effect::Blood(
+            tenchu_core::effects::Blood {
+                hint: None,
                 position: tenchu_core::math::Position::from(position.to_array().map(|v| v as i32)),
                 velocity: [0; 3],
-                color: [128, 0, 0],
+                scale: 8192,
+                rotation: 0,
+                brightness: 128,
+                sprite: 0,
+                gore: false,
                 time: 20,
                 mode: 0,
             },
