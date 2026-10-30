@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.4.0 — 2026-10-30
+
 - Add optional soft blood spray and modern Mei-Oh lightning with branching arcs,
   impact sparks and brief blue lights. Modern presets enable them; Original keeps
   its existing effects. Persistent blood's F1 help now explains its non-fading,
