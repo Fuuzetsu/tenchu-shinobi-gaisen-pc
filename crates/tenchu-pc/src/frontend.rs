@@ -292,6 +292,11 @@ impl Frontend {
             .chain(&self.result_ranks)
             .chain([&self.result_background, &self.result_numbers])
             .chain(self.mission_art.images())
+            .chain(
+                self.briefing
+                    .iter()
+                    .flat_map(|briefing| [&briefing.background, &briefing.text]),
+            )
             .map(|image| {
                 let image = draw::pixels(image);
                 (draw::identity(&image), image)

@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Align shop quantities with their own item slots in both the stock grid and
+  carried-item row.
+- Support replacement artwork for narrated mission briefings on desktop and in
+  the browser, and include all restored mission screens in the interface export.
+
 ## 0.5.0 — 2026-10-30
 
 - Restore narrated mission briefings and the original item-shop grid in all four

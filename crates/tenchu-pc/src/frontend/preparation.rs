@@ -193,6 +193,9 @@ impl Frontend {
                 stage_id(campaign, campaign.options.mission),
                 campaign.options.character,
             )?);
+            if let Err(error) = self.reload_artwork() {
+                eprintln!("Briefing asset pack: {error}");
+            }
             self.events.push(Event::Music(None));
             self.set_page(Page::Briefing);
         } else {
@@ -383,15 +386,13 @@ impl Frontend {
         let text = value.to_string();
         let image = &self.mission_art.numbers;
         let width = image.size[0] / 10;
+        // PutNumber retains the pivot of the full digit strip after changing its width.
+        let pivot = (image.size[0] - width) as f32 / 2.0;
         for (index, digit) in text.bytes().rev().enumerate() {
             self.canvas.sprite(
-                Sprite::new(
-                    image,
-                    x - index as f32 * 6.0 + width as f32 / 2.0,
-                    y + image.size[1] as f32 / 2.0,
-                )
-                .region([usize::from(digit - b'0') * width, 0, width, image.size[1]])
-                .blend(Blend::Add),
+                Sprite::new(image, x - index as f32 * 6.0 - pivot, y)
+                    .region([usize::from(digit - b'0') * width, 0, width, image.size[1]])
+                    .blend(Blend::Add),
             );
         }
     }

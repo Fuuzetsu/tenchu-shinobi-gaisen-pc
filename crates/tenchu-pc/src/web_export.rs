@@ -63,6 +63,7 @@ pub fn export(disc: &Path, destination: &Path, artwork_only: bool) -> Result<()>
     for language in LANGUAGES {
         frontend.language(&assets, language)?;
         interface.extend(frontend.artwork_images().into_keys());
+        artwork::include_briefings(&assets, language, &mut interface)?;
         for character in 0..2 {
             let options = Options {
                 character,

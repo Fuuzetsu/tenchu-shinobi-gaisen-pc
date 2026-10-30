@@ -3,6 +3,23 @@ use crate::visuals::pack;
 use flate2::read::GzDecoder;
 use std::io::Read;
 
+pub(super) fn include_briefings(
+    assets: &GameAssets<source::DiscSource>,
+    language: Language,
+    interface: &mut BTreeSet<String>,
+) -> Result<()> {
+    use crate::frontend::draw;
+    use tenchu_assets::frontend::{Image, mission::Briefing};
+    for stage in assets.stages()?.into_iter().filter(|stage| stage.order > 0) {
+        let briefing = Briefing::load(&assets.executable, language, stage.id, 0)?;
+        for path in [briefing.background, briefing.text] {
+            let image = Image::parse(&assets.asset(&path)?)?;
+            interface.insert(draw::identity(&draw::pixels(&image)));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn configured(
     destination: &Path,
     interface: &BTreeSet<String>,
@@ -102,6 +119,7 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
     for language in LANGUAGES {
         frontend.language(&assets, language)?;
         interface.extend(frontend.artwork_images().into_keys());
+        include_briefings(&assets, language, &mut interface)?;
     }
     let pages = trace.lock().map_err(|e| e.to_string())?.clone();
     refresh_boot(destination, &mut manifest, assets.disc.source(), pages)?;

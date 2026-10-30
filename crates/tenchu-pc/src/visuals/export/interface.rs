@@ -1,7 +1,17 @@
 use crate::{source::DiscSource, visuals::catalog};
 use serde_json::json;
 use std::{collections::BTreeMap, fs, io::BufWriter, path::Path};
-use tenchu_assets::{Result, font::Font, frontend::Image, game::GameAssets, texture::Vram};
+use tenchu_assets::{
+    Result,
+    font::Font,
+    frontend::{
+        Image,
+        mission::{Briefing, Screens},
+    },
+    game::GameAssets,
+    script::Language,
+    texture::Vram,
+};
 
 pub fn export(assets: &GameAssets<DiscSource>, directory: &Path) -> Result<()> {
     crate::capture::review::prepare_directory(directory)?;
@@ -23,15 +33,41 @@ pub fn export(assets: &GameAssets<DiscSource>, directory: &Path) -> Result<()> {
     for suffix in ["ENG", "JAP", "FRE", "ITA"] {
         sources.push(format!("DEMO/RS_E_{suffix}.TIM"));
     }
+    for language in [
+        Language::English,
+        Language::Japanese,
+        Language::French,
+        Language::Italian,
+    ] {
+        let screens = Screens::load(&assets.executable, language)?;
+        sources.extend([
+            screens.shop,
+            screens.help,
+            screens.results,
+            screens.ranks,
+            screens.training,
+            screens.training_ranks,
+        ]);
+        for stage in assets.stages()?.into_iter().filter(|stage| stage.order > 0) {
+            let briefing = Briefing::load(&assets.executable, language, stage.id, 0)?;
+            sources.extend([briefing.background, briefing.text]);
+        }
+    }
+    for source in &mut sources {
+        *source = source.replace('\\', "/").to_ascii_uppercase();
+    }
+    sources.sort_unstable();
+    sources.dedup();
     let mut entries = BTreeMap::<String, serde_json::Value>::new();
     let mut references = Vec::new();
     for source in sources {
         let bytes = assets.asset(&source)?;
-        let images = if source.ends_with(".ARC") {
-            Image::archive(&bytes)?
+        let images = if source.ends_with(".TIM") {
+            Image::parse(&bytes).map(|image| vec![image])
         } else {
-            vec![Image::parse(&bytes)?]
-        };
+            Image::archive(&bytes)
+        }
+        .map_err(|error| format!("{source}: {error}"))?;
         for (index, image) in images.iter().enumerate() {
             let rgba: Vec<_> = image
                 .pixels
