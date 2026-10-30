@@ -71,15 +71,13 @@ fn teleport_release_preserves_source_ray_and_raw_position_write() {
             ctx.camera.mode = Mode::Direction;
             ctx.camera.detail = crate::camera::Detail::Sight;
             *ctx.effects = effects::Effects::default();
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Teleport, Some(owner), 0),
-                    24,
-                    Position::ZERO,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Teleport, Some(owner), 0),
+                Kind::Teleport,
+                Position::ZERO,
+                ctx,
+            );
             let seed = *ctx.random;
             items
                 .process(
@@ -129,7 +127,7 @@ fn teleport_request_hold_and_forced_disposal_keep_original_camera_rules() {
         actor.pad.held = TRIANGLE;
         ctx.camera.direction = [11, 22];
         items
-            .request_default(24, &mut actor, player, actors.roster, ctx)
+            .request_default(Kind::Teleport, &mut actor, player, actors.roster, ctx)
             .unwrap();
         actors.roster.restore(actor);
         let id = items.cursor;

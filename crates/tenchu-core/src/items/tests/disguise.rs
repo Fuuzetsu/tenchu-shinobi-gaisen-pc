@@ -71,15 +71,13 @@ printf("%d",b.rotate.pad);for(int i=0;i<15;i++){assert(to[i].object.tmd==from[i]
                 .iter()
                 .map(|&m| ctx.scene.models[m].clone())
                 .collect();
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Disguise, Some(player), 0),
-                    11,
-                    Position::ZERO,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Disguise, Some(player), 0),
+                Kind::Disguise,
+                Position::ZERO,
+                ctx,
+            );
             items.slots[1].set_source_mode(2);
             let mut intelligence = Intelligence::default();
             items
@@ -118,15 +116,13 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
     let mut game = oracle::game(0, 0);
     let player = game.player_id;
     with_items(&mut game, |items, ctx, actors| {
-        items
-            .initialize(
-                1,
-                behavior(Processor::Disguise, Some(player), 0),
-                11,
-                actors.get(player).position,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Disguise, Some(player), 0),
+            Kind::Disguise,
+            actors.get(player).position,
+            ctx,
+        );
         items.slots[1].set_source_mode(1);
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
         actors.get_mut(player).active_item = 18;
@@ -140,7 +136,7 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
             items
                 .slots
                 .iter()
-                .any(|i| i.processor() == Some(Processor::Pickup) && i.kind == 11)
+                .any(|i| i.processor() == Some(Processor::Pickup) && i.kind == Kind::Disguise)
         );
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
@@ -184,15 +180,13 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
     with_items(&mut game, |items, ctx, actors| {
         for id in 0..CAPACITY {
             if id != active {
-                items
-                    .initialize(
-                        id,
-                        behavior(Processor::Pickup, None, 0),
-                        1,
-                        Position::ZERO,
-                        ctx,
-                    )
-                    .unwrap();
+                items.initialize(
+                    id,
+                    behavior(Processor::Pickup, None, 0),
+                    Kind::Shuriken,
+                    Position::ZERO,
+                    ctx,
+                );
             }
         }
         items.cursor = (active + 1) % CAPACITY;
@@ -224,15 +218,13 @@ fn disguise_break_conditions_follow_actor_status_and_motion() {
             (2, MOT_NORMAL, 0, 12, false),
         ] {
             items.dispose(1, actors, ctx).unwrap();
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Disguise, Some(player), 0),
-                    11,
-                    actors.get(player).position,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Disguise, Some(player), 0),
+                Kind::Disguise,
+                actors.get(player).position,
+                ctx,
+            );
             items.slots[1].set_source_mode(1);
             let owner = actors.get_mut(player);
             owner.status = ActorState::Walk;

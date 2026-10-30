@@ -74,7 +74,7 @@ pub struct ActionContext<'a> {
     pub statistics: &'a mut crate::game::Statistics,
     pub combat: &'a mut Combat,
     pub player: usize,
-    pub selected_item: Option<usize>,
+    pub selected_item: Option<crate::items::Kind>,
     pub clock: i32,
 }
 
@@ -112,7 +112,7 @@ pub struct Actor {
     pub think: crate::ai::programs::Programs,
     pub brain: crate::ai::Brain,
     pub active_item: i16,
-    pub inventory: [u8; 25],
+    pub inventory: [u8; crate::items::KINDS],
     pub aiming: bool,
     pub attack: usize,
     pub patrol: Option<patrol::Patrol>,
@@ -216,7 +216,7 @@ impl Actor {
             think: crate::ai::programs::Programs::default(),
             brain: crate::ai::Brain::default(),
             active_item: 0,
-            inventory: [0; 25],
+            inventory: [0; crate::items::KINDS],
             aiming: false,
             attack: 0,
             patrol: None,

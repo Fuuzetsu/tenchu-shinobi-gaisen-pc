@@ -1,5 +1,6 @@
 use super::*;
 use crate::actor::State as ActorState;
+use crate::items::Kind;
 use crate::math::Position;
 use crate::{
     ai::Difficulty,
@@ -391,9 +392,13 @@ impl Actor {
         mut movement: bool,
     ) -> Result<Option<(i16, bool)>> {
         if self.health == 0 && self.inventory[10] != 0 {
-            world
-                .items
-                .request_default(10, self, world.player, world.roster, ctx)?;
+            world.items.request_default(
+                Kind::Resurrection,
+                self,
+                world.player,
+                world.roster,
+                ctx,
+            )?;
             self.health = self.max_health;
             if !matches!(next, MOT_DAMAGE_LAUNCH_BACK | MOT_DAMAGE_LAUNCH_FORE) {
                 next = MOT_DAMAGE_FRONT_HEAVY;
@@ -428,13 +433,13 @@ impl Actor {
         let mut next = self.motion.action;
         let mut movement = true;
         let mut damage: i16 = match kind {
-            2 => {
+            Kind::Caltrops => {
                 next = MOT_DAMAGE_MAKIBISHI;
                 movement = true;
                 3
             }
-            1 | 15 | 20 | 21 => {
-                if kind == 1 && matches!(self.kind, 0x87 | 0x8a) {
+            Kind::Shuriken | Kind::Darts | Kind::Gun | Kind::Arrow => {
+                if kind == Kind::Shuriken && matches!(self.kind, 0x87 | 0x8a) {
                     self.inventory[1] = self.inventory[1].wrapping_add(1);
                 }
                 let mut position = self.position;
@@ -444,12 +449,12 @@ impl Actor {
                 movement = true;
                 self.blood(ctx, position, 5, 90, world.clock)?;
                 match kind {
-                    15 => 30,
-                    21 => 10,
+                    Kind::Darts => 30,
+                    Kind::Arrow => 10,
                     _ => 20,
                 }
             }
-            22 => {
+            Kind::Napalm => {
                 next = if ctx.random.next15() & 1 == 0 {
                     MOT_DAMAGE_BACK_LIGHT
                 } else {
@@ -458,11 +463,11 @@ impl Actor {
                 movement = true;
                 25
             }
-            4 | 6 | 23 => {
+            Kind::Grenade | Kind::Mine | Kind::Lightning => {
                 if self.map.attribute & 4 == 0 {
                     self.map.height = 1;
                 }
-                if kind == 6 { 45 } else { 30 }
+                if kind == Kind::Mine { 45 } else { 30 }
             }
             _ => 0,
         };
@@ -496,7 +501,10 @@ impl Actor {
                 next = MOT_DEAD;
                 movement = true;
             }
-            if !matches!(world.items.kind_for_contact(ctx.scene, hit), 20 | 21 | 23) {
+            if !matches!(
+                world.items.kind_for_contact(ctx.scene, hit),
+                Kind::Gun | Kind::Arrow | Kind::Lightning
+            ) {
                 self.score_death(world);
             }
             8

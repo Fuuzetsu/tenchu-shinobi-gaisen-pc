@@ -140,7 +140,9 @@ impl Actor {
             }
             _ => {}
         }
-        if self.pad.trigger & TRIANGLE != 0 && world.selected_item == Some(0) {
+        if self.pad.trigger & TRIANGLE != 0
+            && world.selected_item == Some(crate::items::Kind::Grapple)
+        {
             self.motion.mask = !1;
             self.hide_body(ctx.scene, false);
             return self.selected_item(ctx, world, pending);

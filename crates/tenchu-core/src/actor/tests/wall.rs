@@ -1,5 +1,6 @@
 use super::*;
 use crate::input::*;
+use crate::items::Kind;
 use crate::math::Position;
 
 fn wall_position(game: &mut Game) -> (Position, i16) {
@@ -139,7 +140,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
             at_wall(&mut game);
             let player = game.player_id;
             game.roster.get_mut(player).inventory[kind] = 2;
-            game.hud.selected = Some(kind);
+            game.hud.selected = Some(Kind::try_from(kind).unwrap());
             with_actor(&mut game, player, |actor, ctx, world| {
                 ctx.camera.mode = if kind == 5 {
                     Mode::StickRight
@@ -149,7 +150,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                 actor.pad.update(CIRCLE | TRIANGLE);
                 actor.control(ctx, &[], Position::ZERO, world).unwrap();
             });
-            assert_eq!(game.items.wall_item, Some(kind));
+            assert_eq!(game.items.wall_item.map(Kind::index), Some(kind));
             assert_eq!(
                 game.player().motion.action,
                 if kind == 5 {
@@ -158,7 +159,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                     MOT_STICKON_THROW_L
                 }
             );
-            game.hud.selected = Some(3);
+            game.hud.selected = Some(Kind::Medicine);
             let before = if kind == 2 { 255 } else { 0 };
             game.roster.get_mut(player).inventory[kind] = before;
             let processor = match kind {
@@ -189,7 +190,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                 .filter(|i| i.processor() == Some(processor))
                 .collect();
             assert_eq!(thrown.len(), if kind == 2 { 5 } else { 1 });
-            assert!(thrown.iter().all(|i| i.kind == kind));
+            assert!(thrown.iter().all(|i| i.kind.index() == kind));
             assert_eq!(game.player().inventory[kind], before.wrapping_sub(1));
             assert_eq!(game.player().motion.action, MOT_STICKON);
             assert_eq!(game.player().motion.mask, 0x7fff);

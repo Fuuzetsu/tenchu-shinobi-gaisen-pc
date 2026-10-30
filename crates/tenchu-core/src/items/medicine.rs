@@ -81,7 +81,7 @@ impl Items {
                 }
                 let kind = item.kind;
                 self.update_coordinate(id, ctx);
-                self.icon_scale[kind] = 8192;
+                self.icon_scale[kind.index()] = 8192;
                 self.draw_icon(id, ctx)?;
             }
             state::Medicine::Recover => {

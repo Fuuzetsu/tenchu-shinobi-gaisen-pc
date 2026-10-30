@@ -10,7 +10,9 @@ mod dog;
 mod flight;
 mod flute;
 mod grapple;
+mod kind;
 mod lightning;
+pub use kind::Kind;
 mod medicine;
 mod napalm;
 mod pickup;
@@ -43,7 +45,7 @@ pub use rolling::{Rolling, Status as RollingStatus};
 pub use state::{Behavior, Pickup as PickupPhase, Used};
 
 pub const CAPACITY: usize = 30;
-pub const KINDS: usize = 25;
+pub const KINDS: usize = Kind::ALL.len();
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Processor {
@@ -86,7 +88,7 @@ pub struct Contact {
 #[derive(Clone, Debug)]
 pub struct Item {
     pub model: ModelId,
-    pub kind: usize,
+    pub kind: Kind,
     pub behavior: Behavior,
     pub collision: Contact,
     pub rolling: Rolling,
@@ -134,14 +136,14 @@ impl Item {
 
 #[derive(Debug)]
 pub(crate) struct Request {
-    pub kind: usize,
+    pub kind: Kind,
     pub start: Position,
     pub end: Position,
 }
 
 #[derive(Debug)]
 pub struct Items {
-    pub wall_item: Option<usize>,
+    pub wall_item: Option<Kind>,
     pub slots: Vec<Item>,
     pub drawings: Vec<effects::Drawing>,
     pub models: Vec<(usize, Matrix)>,
@@ -191,7 +193,7 @@ impl Items {
         let slots = (0..CAPACITY)
             .map(|_| Item {
                 model: scene.add(Some(0), Matrix::default()),
-                kind: 0,
+                kind: Kind::Grapple,
                 behavior: Behavior::Inactive,
                 collision: Contact::default(),
                 rolling: Rolling::default(),
@@ -212,7 +214,7 @@ impl Items {
             id
         });
         Self {
-            wall_item: Some(0),
+            wall_item: Some(Kind::Grapple),
             slots,
             drawings: Vec::new(),
             models: Vec::new(),
@@ -258,7 +260,7 @@ impl Items {
     fn allocate(&mut self, actors: &mut Actors, ctx: &mut Context) -> Result<usize> {
         for _ in 0..CAPACITY - 1 {
             self.cursor = (self.cursor + 1) % CAPACITY;
-            if self.slots[self.cursor].processor().is_none() {
+            if matches!(self.slots[self.cursor].behavior, Behavior::Inactive) {
                 return Ok(self.cursor);
             }
         }
@@ -289,13 +291,10 @@ impl Items {
         &mut self,
         id: usize,
         behavior: Behavior,
-        kind: usize,
+        kind: Kind,
         position: Position,
         ctx: &mut Context,
-    ) -> Result<()> {
-        if kind >= KINDS {
-            return Err(format!("Invalid item kind {kind}"));
-        }
+    ) {
         let item = &mut self.slots[id];
         item.behavior = behavior;
         item.kind = kind;
@@ -303,7 +302,6 @@ impl Items {
         model.parent = None;
         model.local.translation = position;
         self.update_coordinate(id, ctx);
-        Ok(())
     }
 
     fn contact(&mut self, id: usize, size: i16, class: i16, ctx: &mut Context) -> Result<()> {
@@ -324,17 +322,17 @@ impl Items {
         let item = &self.slots[id];
         self.draw_sprite(
             item.model,
-            self.icons[item.kind],
+            self.icons[item.kind.index()],
             sprite::Sprite {
                 graphic: effects::Graphic::Sprite {
-                    image: if item.kind < 20 {
-                        20 + item.kind as u8
+                    image: if item.kind.index() < 20 {
+                        20 + item.kind.index() as u8
                     } else {
                         15
                     },
                     blend: 0,
                 },
-                scale: self.icon_scale[item.kind],
+                scale: self.icon_scale[item.kind.index()],
                 color: 128,
                 rotation: 0,
             },
@@ -344,7 +342,7 @@ impl Items {
 
     fn update_contacts(&mut self, ctx: &mut Context) -> Result<()> {
         for item in &mut self.slots {
-            if item.processor().is_none() {
+            if matches!(item.behavior, Behavior::Inactive) {
                 continue;
             }
             let position = ctx.scene.models[item.model].local.translation;
@@ -464,8 +462,8 @@ impl Items {
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        for kind in 0..KINDS {
-            for _ in 0..actors.get(owner).inventory[kind] {
+        for kind in Kind::ALL {
+            for _ in 0..actors.get(owner).inventory[kind.index()] {
                 let position = ctx.scene.world(actors.get(owner).parts[0])?.translation;
                 let velocity = [
                     ctx.random.next15() % 200 - 100,
@@ -474,16 +472,16 @@ impl Items {
                 ];
                 self.drop(kind, Some(owner), position, velocity.into(), actors, ctx)?;
             }
-            actors.get_mut(owner).inventory[kind] = 0;
+            actors.get_mut(owner).inventory[kind.index()] = 0;
         }
         Ok(())
     }
 
-    pub fn kind_for_contact(&self, scene: &Scene, slot: usize) -> usize {
+    pub fn kind_for_contact(&self, scene: &Scene, slot: usize) -> Kind {
         self.slots
             .iter()
             .find(|item| scene.models[item.model].conflict == Some(slot))
-            .map_or(0, |item| item.kind)
+            .map_or(Kind::Grapple, |item| item.kind)
     }
 
     pub(crate) fn restore_layout(&mut self, roster: &mut Roster, ctx: &mut Context) -> Result<()> {
@@ -526,7 +524,7 @@ impl Items {
                 let Some(found) = found else { continue };
                 position = found;
             }
-            self.stay(spawn.kind, position.into(), actors, ctx)?;
+            self.stay(Kind::try_from(spawn.kind)?, position.into(), actors, ctx)?;
         }
         Ok(())
     }

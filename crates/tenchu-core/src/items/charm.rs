@@ -41,7 +41,7 @@ impl Items {
                     },
                     ctx.random,
                 );
-                owner.active_item = item.kind as i16;
+                owner.active_item = item.kind.index() as i16;
                 self.slots[id].behavior =
                     Behavior::Charm(used.with_phase(state::Charm::Protected { remaining: 450 }));
             }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::items::Kind;
 use crate::math::Position;
 use crate::{items::Items, scene::Scene};
 use tenchu_assets::hud::MapPlacement;
@@ -101,7 +102,7 @@ impl Map {
                 );
                 for item in &items.slots {
                     if item.processor().is_some()
-                        && item.kind == 8
+                        && item.kind == Kind::ColoredRice
                         && item.owner() == Some(player.id)
                     {
                         self.marker(

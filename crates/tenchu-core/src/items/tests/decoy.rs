@@ -8,15 +8,13 @@ use crate::{
 };
 
 fn prepare(items: &mut Items, id: usize, player: usize, position: Position, ctx: &mut Context) {
-    items
-        .initialize(
-            id,
-            behavior(Processor::Decoy, Some(player), 0),
-            14,
-            position,
-            ctx,
-        )
-        .unwrap();
+    items.initialize(
+        id,
+        behavior(Processor::Decoy, Some(player), 0),
+        Kind::Decoy,
+        position,
+        ctx,
+    );
     let item = &mut items.slots[id];
     item.rolling = Rolling {
         status: RollingStatus::Settled,
@@ -247,7 +245,7 @@ fn decoy_cap_and_water_cleanup_preserve_active_count() {
             items
                 .slots
                 .iter()
-                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 14)
+                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == Kind::Decoy)
                 .count(),
             1
         );

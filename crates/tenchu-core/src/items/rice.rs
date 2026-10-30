@@ -42,7 +42,14 @@ impl Items {
                 let action = owner.return_normal(ctx, player)?;
                 owner.enter(ctx, action, true);
                 self.dispose(id, actors, ctx)?;
-                self.drop(8, Some(owner_id), position, velocity.into(), actors, ctx)?;
+                self.drop(
+                    Kind::ColoredRice,
+                    Some(owner_id),
+                    position,
+                    velocity.into(),
+                    actors,
+                    ctx,
+                )?;
             }
         }
         Ok(())

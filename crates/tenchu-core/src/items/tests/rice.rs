@@ -41,11 +41,10 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
                     .all(|i| i.processor() != Some(Processor::Mine))
             );
             assert_eq!(game.player().inventory[6], 0);
-            dropped |= game
-                .items
-                .slots
-                .iter()
-                .any(|i| i.kind == 8 && i.processor() == Some(Processor::Pickup));
+            dropped |=
+                game.items.slots.iter().any(|i| {
+                    i.kind == Kind::ColoredRice && i.processor() == Some(Processor::Pickup)
+                });
         }
         assert!(dropped);
         assert_eq!(game.hud.map.lines.len(), 4);
@@ -53,7 +52,7 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
             .items
             .slots
             .iter()
-            .find(|i| i.kind == 8 && i.processor() == Some(Processor::Pickup))
+            .find(|i| i.kind == Kind::ColoredRice && i.processor() == Some(Processor::Pickup))
             .unwrap();
         assert_eq!(rice.source_mode(), 1);
         assert_eq!(rice.owner(), Some(player));
@@ -77,15 +76,13 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
     with_items(&mut game, |items, ctx, actors| {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
-            items
-                .initialize(
-                    id,
-                    behavior(Processor::Pickup, None, 0),
-                    1,
-                    Position::ZERO,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                id,
+                behavior(Processor::Pickup, None, 0),
+                Kind::Shuriken,
+                Position::ZERO,
+                ctx,
+            );
         }
         let owner = actors.get_mut(player);
         owner.enter(ctx, MOT_DAMAGE, true);
@@ -98,15 +95,13 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         ctx.scene.models[model].cached = cached;
         ctx.scene.models[model].flags = 59;
         items.slots[1].rotation = [20, 600, -30];
-        items
-            .initialize(
-                1,
-                behavior(Processor::Rice, Some(player), 0),
-                8,
-                Position::ZERO,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Rice, Some(player), 0),
+            Kind::ColoredRice,
+            Position::ZERO,
+            ctx,
+        );
         assert_eq!(
             ctx.scene.models[model].local.rotation,
             ctx.math.rotate_yxz([20, 600, -30])
@@ -218,7 +213,7 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
                 .slots
                 .iter()
                 .enumerate()
-                .all(|(id, item)| id == 1 || item.kind == 1)
+                .all(|(id, item)| id == 1 || item.kind == Kind::Shuriken)
         );
         assert_eq!(*ctx.random, random);
         assert_ne!(actors.get(player).motion.action, MOT_ITEM_PLANT);

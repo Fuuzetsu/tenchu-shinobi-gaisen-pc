@@ -1,4 +1,5 @@
 use super::*;
+use crate::items::Kind;
 use crate::math::Position;
 use crate::{
     camera::{Environment, Mode},
@@ -24,7 +25,7 @@ impl Actor {
                         .wrapping_add(300);
                     world.items.request(
                         crate::items::Request {
-                            kind: 0,
+                            kind: Kind::Grapple,
                             start,
                             end: start,
                         },

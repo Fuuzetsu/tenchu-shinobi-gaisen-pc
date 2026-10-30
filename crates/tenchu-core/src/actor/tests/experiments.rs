@@ -1,4 +1,5 @@
 use super::*;
+use crate::items::Kind;
 
 fn guard(game: &mut Game) -> usize {
     let enemy = arena(game, 0x10);
@@ -83,7 +84,7 @@ fn inventory_edits_preserve_timers_and_allow_item_use() {
     game.set_inventory(4, 255).unwrap();
     assert_eq!(&game.player().inventory[19..], internal);
     assert_eq!(game.random, random);
-    assert_eq!(game.hud.selected, Some(4));
+    assert_eq!(game.hud.selected, Some(Kind::Grenade));
     game.step(0).unwrap();
     game.step(crate::input::TRIANGLE).unwrap();
     assert_eq!(game.player().motion.action, MOT_ITEM_THROW);

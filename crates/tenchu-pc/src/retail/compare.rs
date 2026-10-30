@@ -206,7 +206,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                 ram.word(0x800be7b8 + index as u32 * 4)
             });
             equal!(owner, ram.word(ptr));
-            equal!(item.kind, ram.word(ptr + 8) as usize);
+            equal!(item.kind.index(), ram.word(ptr + 8) as usize);
             equal!(u32::from(item.source_mode()), ram.word(ptr + 0x54));
             equal!(item.collision.size, ram.short(ptr + 0x1c));
             if item.collision.size != 0 {

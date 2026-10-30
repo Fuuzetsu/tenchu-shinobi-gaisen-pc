@@ -30,15 +30,13 @@ fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usiz
             actors.roster.order.reverse();
         }
         let id = items.allocate(actors, ctx).unwrap();
-        items
-            .initialize(
-                id,
-                behavior(Processor::Poison, Some(player), 0),
-                7,
-                Position::ZERO,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            id,
+            behavior(Processor::Poison, Some(player), 0),
+            Kind::PoisonedFood,
+            Position::ZERO,
+            ctx,
+        );
         items.slots[id].set_source_mode(1);
         items.slots[id].rolling.status = RollingStatus::Settled;
         (id, enemy)
@@ -118,7 +116,8 @@ fn owner_recovery_keeps_target_search_order() {
                     items
                         .slots
                         .iter()
-                        .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 7)
+                        .filter(|i| i.processor() == Some(Processor::Pickup)
+                            && i.kind == Kind::PoisonedFood)
                         .count(),
                     1
                 );

@@ -1,3 +1,4 @@
+use crate::items::Kind;
 use crate::math::Position;
 use crate::{
     Result,
@@ -60,7 +61,7 @@ pub(super) fn construct(
             }
             Spawn::Pickup(s) => {
                 items.stay(
-                    s.kind,
+                    Kind::try_from(s.kind)?,
                     s.position.into(),
                     &mut crate::roster::Actors::new(roster),
                     ctx,

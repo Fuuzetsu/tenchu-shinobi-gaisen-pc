@@ -114,7 +114,7 @@ fn randomizer_showcase_rolls_match_their_scenes() {
             game.sounds().unwrap();
             used |= selected.is_some_and(|kind| {
                 game.items.slots.iter().any(|item| {
-                    item.kind == kind
+                    item.kind.index() == kind
                         && item.owner() == Some(game.player_id)
                         && item.processor().is_some()
                 })

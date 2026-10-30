@@ -52,7 +52,7 @@ pub(super) fn target(
 impl Items {
     pub(super) fn launch(
         &mut self,
-        kind: usize,
+        kind: Kind,
         owner_id: usize,
         start: Position,
         end: Position,
@@ -60,31 +60,31 @@ impl Items {
         ctx: &mut Context,
     ) -> Result<()> {
         let behavior = match kind {
-            1 => Behavior::Shuriken { owner: owner_id },
-            20 => Behavior::Gun(Used::new(owner_id, state::Gun::Muzzle { target: end })),
-            21 => Behavior::Arrow(Used::new(owner_id, state::Arrow::Flying)),
-            _ => return Err(format!("Invalid projectile kind {kind}")),
+            Kind::Shuriken => Behavior::Shuriken { owner: owner_id },
+            Kind::Gun => Behavior::Gun(Used::new(owner_id, state::Gun::Muzzle { target: end })),
+            Kind::Arrow => Behavior::Arrow(Used::new(owner_id, state::Arrow::Flying)),
+            _ => return Err(format!("Invalid projectile kind {kind:?}")),
         };
         let id = self.allocate(actors, ctx)?;
-        self.initialize(id, behavior, kind, start, ctx)?;
+        self.initialize(id, behavior, kind, start, ctx);
         self.slots[id].collision.size = 0;
         match kind {
-            1 | 21 => {
+            Kind::Shuriken | Kind::Arrow => {
                 self.slots[id].flight = Flight::new(
                     start,
                     end,
-                    if kind == 1 { 1024 } else { 0 },
-                    if kind == 1 { 1024 } else { 2048 },
+                    if kind == Kind::Shuriken { 1024 } else { 0 },
+                    if kind == Kind::Shuriken { 1024 } else { 2048 },
                     300,
                     ctx,
                 );
                 self.slots[id].count = 5;
-                if kind == 1 {
+                if kind == Kind::Shuriken {
                     self.slots[id].trail =
                         Some(Trail::new(self.meshes[0], [[20, 0, 0], [-20, 0, 0]]));
                 }
             }
-            20 => {}
+            Kind::Gun => {}
             _ => unreachable!(),
         }
         Ok(())

@@ -140,12 +140,12 @@ impl Items {
                     Behavior::Disguise(used.with_phase(state::Disguise::Active));
                 self.disguise.remaining = 600;
                 intelligence.alert = -600;
-                owner.active_item = self.slots[id].kind as i16;
+                owner.active_item = self.slots[id].kind.index() as i16;
             }
             state::Disguise::Active => {
                 self.disguise.remaining = self.disguise.remaining.wrapping_sub(1);
                 if self.disguise.remaining as i16 > 0
-                    && owner.active_item == item.kind as i16
+                    && owner.active_item == item.kind.index() as i16
                     && !matches!(owner.status, ActorState::Damaged | ActorState::Dead)
                     && (owner.status != ActorState::Attack
                         || (owner.motion.loops >= 0

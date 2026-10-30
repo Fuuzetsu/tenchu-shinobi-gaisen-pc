@@ -121,15 +121,13 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
                 ..Matrix::default()
             }
             .apply_large(Position::new(0, 0, -60));
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Breath, Some(player), 0),
-                    17,
-                    Position::new(400, -1000, 2000),
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Breath, Some(player), 0),
+                Kind::FireBreath,
+                Position::new(400, -1000, 2000),
+                ctx,
+            );
             items.slots[1].set_source_mode(mode as u8);
             items.slots[1].breath = crate::items::breath::Breath {
                 origin: Position::new(100, -1200, 1500),
@@ -219,7 +217,7 @@ fn fire_breath_runs_through_normal_ticks() {
             actor.inventory[17] = 1;
             actor.attribute &= !ATTR_WEAPON_DRAWN;
             items
-                .request_default(17, &mut actor, player, actors.roster, ctx)
+                .request_default(Kind::FireBreath, &mut actor, player, actors.roster, ctx)
                 .unwrap();
             actors.roster.restore(actor);
         });

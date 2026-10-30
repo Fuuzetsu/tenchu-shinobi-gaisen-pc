@@ -1,4 +1,5 @@
 use super::*;
+use crate::items::Kind;
 use crate::math::Position;
 
 impl Actor {
@@ -35,7 +36,7 @@ impl Actor {
             ];
             world.items.request(
                 crate::items::Request {
-                    kind: 23,
+                    kind: Kind::Lightning,
                     start,
                     end: end.into(),
                 },
@@ -83,7 +84,7 @@ impl Actor {
         &mut self,
         ctx: &mut Context,
         world: &mut ActionContext,
-        kind: usize,
+        kind: Kind,
         start: Position,
     ) -> Result<()> {
         let target = self.ranged_target(ctx, world.player, start)?;
@@ -98,7 +99,7 @@ impl Actor {
             target[1],
             start[2].wrapping_add(i32::from(velocity[2])),
         ];
-        if kind == 21
+        if kind == Kind::Arrow
             && ctx.random.next15() % (world.intelligence.difficulty.reaction_delay() + 1) != 0
         {
             end[1] = end[1].wrapping_sub(1000);
@@ -128,7 +129,7 @@ impl Actor {
                 .scene
                 .world(self.parts[13])?
                 .transform([0, length, -100]);
-            self.shoot(ctx, world, 20, start)?;
+            self.shoot(ctx, world, Kind::Gun, start)?;
             world.intelligence.voices.push((self.id, 2));
         }
         Ok(())
@@ -162,7 +163,7 @@ impl Actor {
         }
         if self.motion.count == max {
             let start = ctx.scene.world(self.parts[13])?.translation;
-            self.shoot(ctx, world, 21, start)?;
+            self.shoot(ctx, world, Kind::Arrow, start)?;
             world.intelligence.voices.push((self.id, 3));
         }
         Ok(())
@@ -189,7 +190,7 @@ impl Actor {
                 let start = ctx.scene.world(self.parts[2])?.translation;
                 world.items.request(
                     crate::items::Request {
-                        kind: 1,
+                        kind: Kind::Shuriken,
                         start,
                         end: start,
                     },
@@ -217,7 +218,7 @@ impl Actor {
         }
         if self.motion.action == MOT_SYURI_RECOVER {
             if self.motion.count == 1 && self.id != world.player {
-                self.default_item(ctx, world, 1)?;
+                self.default_item(ctx, world, Kind::Shuriken)?;
             }
             if complete {
                 return Ok(Some((self.return_normal(ctx, world.player)?, true)));

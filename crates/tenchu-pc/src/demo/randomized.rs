@@ -76,12 +76,13 @@ impl Player {
         for _ in 0..30 {
             game.step(0)?;
         }
-        if let Some(item) = scene.item {
-            if game.player().inventory[item] == 0 {
-                return Err(format!("Randomizer roll does not include item {item}"));
+        if let Some(index) = scene.item {
+            let item = tenchu_core::items::Kind::try_from(index)?;
+            if game.player().inventory[item.index()] == 0 {
+                return Err(format!("Randomizer roll does not include item {item:?}"));
             }
             game.hud.selected = Some(item);
-            game.hud.cursor = item;
+            game.hud.cursor = index;
         }
         self.randomized = Some((scene.run.clone(), plan));
         self.inputs = Some(

@@ -52,15 +52,13 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
             for mode in [2, 255] {
                 for active in [0, 12, 18] {
                     items.dispose(1, actors, ctx).unwrap();
-                    items
-                        .initialize(
-                            1,
-                            behavior(Processor::Charm, Some(player), 0),
-                            12,
-                            Position::ZERO,
-                            ctx,
-                        )
-                        .unwrap();
+                    items.initialize(
+                        1,
+                        behavior(Processor::Charm, Some(player), 0),
+                        Kind::ProtectionCharm,
+                        Position::ZERO,
+                        ctx,
+                    );
                     if mode != 255 {
                         items.slots[1].set_source_mode(mode);
                     }
@@ -135,15 +133,13 @@ fn interrupted_charm_refunds_and_clears_active_item() {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
         }
-        items
-            .initialize(
-                1,
-                behavior(Processor::Charm, Some(player), 0),
-                12,
-                Position::new(1000, -1200, 0),
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Charm, Some(player), 0),
+            Kind::ProtectionCharm,
+            Position::new(1000, -1200, 0),
+            ctx,
+        );
         items.slots[1].set_source_mode(1);
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
         actors.get_mut(player).active_item = 18;
@@ -163,7 +159,7 @@ fn interrupted_charm_refunds_and_clears_active_item() {
         let drops: Vec<_> = items
             .slots
             .iter()
-            .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 12)
+            .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == Kind::ProtectionCharm)
             .collect();
         assert_eq!(drops.len(), 1);
         assert_eq!(drops[0].owner(), Some(player));

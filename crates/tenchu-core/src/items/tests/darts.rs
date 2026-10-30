@@ -164,15 +164,13 @@ fn dart_contact_keeps_flying_until_ground_impact() {
         }
         let start = actors.get(player).position.map(|v| v - 1000);
         let end = [start[0], start[1], start[2] + 10000];
-        items
-            .initialize(
-                1,
-                behavior(Processor::Darts, Some(player), 0),
-                15,
-                start,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Darts, Some(player), 0),
+            Kind::Darts,
+            start,
+            ctx,
+        );
         let model = items.slots[1].model;
         items.slots[1].flight = Flight::new(start, end.into(), 4096, 1024, 400, ctx);
         items.slots[1].trail = Some(Trail::new(model, [[30, 0, 0], [-30, 0, 0]]));

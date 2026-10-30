@@ -11,15 +11,13 @@ fn speed_movement_preserves_source_cache_and_terrain_boundary() {
     with_items(&mut game, |items, ctx, actors| {
         for y in [-100, 0, 499, 500, 501, 510] {
             items.dispose(1, actors, ctx).unwrap();
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Speed, Some(player), 0),
-                    13,
-                    Position::ZERO,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Speed, Some(player), 0),
+                Kind::SpeedScroll,
+                Position::ZERO,
+                ctx,
+            );
             items.slots[1].set_source_mode(2);
             items.slots[1].count = 4;
             items.slots[1].rolling.velocity = [100, 0, 0];
@@ -102,15 +100,13 @@ fn speed_interruption_refunds_only_the_casting_phase() {
             for id in 0..CAPACITY {
                 items.dispose(id, actors, ctx).unwrap();
             }
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Speed, Some(player), 0),
-                    13,
-                    Position::new(1000, -1200, 0),
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Speed, Some(player), 0),
+                Kind::SpeedScroll,
+                Position::new(1000, -1200, 0),
+                ctx,
+            );
             items.slots[1].set_source_mode(mode);
             actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
             let random = *ctx.random;
@@ -132,7 +128,7 @@ fn speed_interruption_refunds_only_the_casting_phase() {
             let drops: Vec<_> = items
                 .slots
                 .iter()
-                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 13)
+                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == Kind::SpeedScroll)
                 .collect();
             assert_eq!(drops.len(), usize::from(mode == 1));
             if let Some(drop) = drops.first() {

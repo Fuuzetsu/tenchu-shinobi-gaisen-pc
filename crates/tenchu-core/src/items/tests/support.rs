@@ -60,23 +60,25 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
             };
             let active = if case % 5 == 0 { 12 } else { 18 };
             items.dispose(1, actors, ctx).unwrap();
-            items
-                .initialize(
-                    1,
-                    behavior(
-                        if resurrection {
-                            Processor::Resurrection
-                        } else {
-                            Processor::Flute
-                        },
-                        Some(player),
-                        0,
-                    ),
-                    if resurrection { 10 } else { 18 },
-                    Position::ZERO,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(
+                    if resurrection {
+                        Processor::Resurrection
+                    } else {
+                        Processor::Flute
+                    },
+                    Some(player),
+                    0,
+                ),
+                if resurrection {
+                    Kind::Resurrection
+                } else {
+                    Kind::Flute
+                },
+                Position::ZERO,
+                ctx,
+            );
             if mode != 255 {
                 items.slots[1].set_source_mode(mode);
             }
@@ -101,17 +103,6 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
             .unwrap();
             if mode == 255 {
                 items.dispose(1, actors, ctx).unwrap();
-            } else if resurrection {
-                items
-                    .process(
-                        1,
-                        actors,
-                        &mut crate::ai::Intelligence::default(),
-                        0,
-                        0,
-                        ctx,
-                    )
-                    .unwrap();
             } else {
                 items
                     .process(1, actors, &mut intelligence, 0, 0, ctx)

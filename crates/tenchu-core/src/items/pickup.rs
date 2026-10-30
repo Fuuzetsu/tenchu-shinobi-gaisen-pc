@@ -6,7 +6,7 @@ use crate::{collision, ids::MOT_STATE_PICKUP, scene::CONFLICT};
 impl Items {
     pub(crate) fn drop(
         &mut self,
-        kind: usize,
+        kind: Kind,
         owner: Option<usize>,
         position: Position,
         velocity: Position,
@@ -26,7 +26,7 @@ impl Items {
             kind,
             position,
             ctx,
-        )?;
+        );
         let item = &mut self.slots[id];
         item.collision.size = 0;
         item.rolling = Rolling {
@@ -39,7 +39,7 @@ impl Items {
 
     pub(crate) fn stay(
         &mut self,
-        kind: usize,
+        kind: Kind,
         mut position: Position,
         actors: &mut Actors,
         ctx: &mut Context,
@@ -125,8 +125,9 @@ impl Items {
                 item.count = item.count.wrapping_add(1);
                 if item.count == 10 {
                     ctx.effects.sounds.push((actor.position, 0x0d));
-                    if actor.inventory[item.kind] != 255 {
-                        actor.inventory[item.kind] = actor.inventory[item.kind].wrapping_add(1);
+                    if actor.inventory[item.kind.index()] != 255 {
+                        actor.inventory[item.kind.index()] =
+                            actor.inventory[item.kind.index()].wrapping_add(1);
                     }
                     self.dispose(id, actors, ctx)?;
                 }

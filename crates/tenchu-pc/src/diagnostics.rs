@@ -49,7 +49,7 @@ pub fn game(game: &Game) -> Value {
         .filter(|(_, i)| i.processor().is_some())
         .map(|(slot, i)| {
             let model = &game.scene.models[i.model];
-            json!({"slot": slot, "kind": i.kind, "processor": format!("{:?}", i.processor().unwrap()),
+            json!({"slot": slot, "kind": i.kind.index(), "processor": format!("{:?}", i.processor().unwrap()),
                 "owner": i.owner(), "model": i.model, "parent": model.parent,
                 "local_position": position(model.local.translation),
                 "mode": i.source_mode(), "count": i.count, "rotation": i.rotation,
@@ -80,7 +80,7 @@ pub fn game(game: &Game) -> Value {
         "statistics": {"enemies": game.statistics.enemies, "citizens": game.statistics.citizens,
             "bosses": game.statistics.bosses, "criticals": game.statistics.criticals,
             "murders": game.statistics.murders, "friend_hits": game.statistics.friend_hits},
-        "hud": {"selected_item": game.hud.selected, "item_cursor": game.hud.cursor,
+        "hud": {"selected_item": game.hud.selected.map(tenchu_core::items::Kind::index), "item_cursor": game.hud.cursor,
             "strain_phase": game.hud.strain_phase},
         "armor": game.combat.armor, "roster_order": game.roster.order,
         "visible_actors": game.visible, "actors": actors, "items": items,

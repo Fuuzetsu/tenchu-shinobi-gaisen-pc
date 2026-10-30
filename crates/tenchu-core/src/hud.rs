@@ -1,3 +1,4 @@
+use crate::items::Kind;
 use crate::math::Position;
 use crate::{Result, actor::Actor, drawing::Drawing, effects::Effects, input::*, math::Math};
 use tenchu_assets::{executable::Executable, hud::LifeStyle, texture::Image};
@@ -56,7 +57,7 @@ pub struct LifeBar {
 #[derive(Debug)]
 pub struct Hud {
     pub map: map::Map,
-    pub selected: Option<usize>,
+    pub selected: Option<Kind>,
     pub cursor: usize,
     pub cursor_rotation: i32,
     pub strain_phase: u16,
@@ -69,7 +70,7 @@ impl Hud {
     pub fn new(exe: &Executable) -> Result<Self> {
         Ok(Self {
             map: map::Map::default(),
-            selected: Some(0),
+            selected: Some(Kind::Grapple),
             cursor: 0,
             cursor_rotation: 0,
             strain_phase: 0,
@@ -219,16 +220,17 @@ impl Hud {
         }
         self.selected = None;
         let mut x = 140;
-        for kind in 0..25 {
-            let count = player.inventory[kind];
+        for kind in Kind::ALL {
+            let index = kind.index();
+            let count = player.inventory[index];
             if count == 0 {
                 continue;
             }
             if count != 255 {
                 self.number(images[51], [x + 22, 100], i32::from(count));
             }
-            let mut icon = Sprite::new(images[if kind < 20 { 20 + kind } else { 15 }], [x, 92]);
-            if self.cursor == kind {
+            let mut icon = Sprite::new(images[if index < 20 { 20 + index } else { 15 }], [x, 92]);
+            if self.cursor == index {
                 let mut cursor = Sprite::new(images[50], [x, 92]);
                 self.cursor_rotation = self.cursor_rotation.wrapping_sub(6 * 4096);
                 cursor.rotation = self.cursor_rotation;
@@ -286,14 +288,20 @@ mod tests {
         assert_eq!((game.hud.cursor, game.hud.selected), (25, None));
         game.step(0).unwrap();
         game.step(L2).unwrap();
-        assert_eq!((game.hud.cursor, game.hud.selected), (0, Some(0)));
+        assert_eq!(
+            (game.hud.cursor, game.hud.selected),
+            (0, Some(Kind::Grapple))
+        );
         let rotation = game.hud.cursor_rotation;
         game.roster.get_mut(game.player_id).inventory[0] = 0;
         game.step(0).unwrap();
         assert_eq!((game.hud.cursor, game.hud.selected), (0, None));
         assert_eq!(game.hud.cursor_rotation, rotation);
         game.step(L2).unwrap();
-        assert_eq!((game.hud.cursor, game.hud.selected), (2, Some(2)));
+        assert_eq!(
+            (game.hud.cursor, game.hud.selected),
+            (2, Some(Kind::Caltrops))
+        );
 
         for actor in 0..5 {
             game.hud.request_life(actor, 20, 100);

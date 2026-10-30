@@ -48,7 +48,7 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
             for id in 0..CAPACITY {
                 items.dispose(id, roster, ctx).unwrap();
             }
-            items.stay(3, position, roster, ctx).unwrap();
+            items.stay(Kind::Medicine, position, roster, ctx).unwrap();
         });
         let mut transferred = false;
         for _ in 0..40 {
@@ -66,7 +66,14 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
         assert!(game.effects.sounds.iter().any(|(_, sound)| *sound == 0x0d));
         with_items(&mut game, |items, ctx, roster| {
             items
-                .drop(3, Some(player), position, Position::ZERO, roster, ctx)
+                .drop(
+                    Kind::Medicine,
+                    Some(player),
+                    position,
+                    Position::ZERO,
+                    roster,
+                    ctx,
+                )
                 .unwrap();
             let id = items.cursor;
             items.slots[id].set_source_mode(2);
@@ -97,7 +104,7 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
             for _ in 0..CAPACITY {
                 assert!(
                     items
-                        .drop(1, None, position, Position::ZERO, roster, ctx)
+                        .drop(Kind::Shuriken, None, position, Position::ZERO, roster, ctx)
                         .unwrap()
                 );
             }
@@ -106,7 +113,14 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
             let model = items.slots[29].model;
             assert!(
                 !items
-                    .drop(3, None, [999000; 3].into(), Position::ZERO, roster, ctx)
+                    .drop(
+                        Kind::Medicine,
+                        None,
+                        [999000; 3].into(),
+                        Position::ZERO,
+                        roster,
+                        ctx
+                    )
                     .unwrap()
             );
             assert_eq!(items.cursor, 29);
@@ -452,7 +466,7 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
                     actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
                 });
                 game.step(0).unwrap();
-                assert!(game.items.slots.iter().any(|i| i.kind == 3
+                assert!(game.items.slots.iter().any(|i| i.kind == Kind::Medicine
                     && i.owner() == Some(player)
                     && i.processor() == Some(Processor::Pickup)));
             }
@@ -571,7 +585,7 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         items
             .request(
                 crate::items::Request {
-                    kind: 1,
+                    kind: Kind::Shuriken,
                     start,
                     end: start,
                 },
@@ -585,7 +599,7 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         actors.roster.restore(actor);
         for _ in 0..CAPACITY - 1 {
             items
-                .drop(3, None, start, Position::ZERO, actors, ctx)
+                .drop(Kind::Medicine, None, start, Position::ZERO, actors, ctx)
                 .unwrap();
         }
         items.cursor = (aim + 1) % CAPACITY;
@@ -594,7 +608,7 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
         items
             .request(
                 crate::items::Request {
-                    kind: 20,
+                    kind: Kind::Gun,
                     start,
                     end: start,
                 },
@@ -628,7 +642,7 @@ fn bombs_recover_refund_and_extinguish() {
         items
             .request(
                 crate::items::Request {
-                    kind: 4,
+                    kind: Kind::Grenade,
                     start: Position::new(0, -1000, 0),
                     end: Position::ZERO,
                 },
@@ -656,7 +670,7 @@ fn bombs_recover_refund_and_extinguish() {
             .process(id, actors, &mut intelligence, 0, 0, ctx)
             .unwrap();
         assert!(items.slots[id].processor().is_none());
-        assert!(items.slots.iter().any(|i| i.kind == 4
+        assert!(items.slots.iter().any(|i| i.kind == Kind::Grenade
             && i.owner().is_none()
             && i.processor() == Some(Processor::Pickup)));
         assert_eq!(ctx.random.calls, 8);
@@ -669,7 +683,7 @@ fn bombs_recover_refund_and_extinguish() {
         items
             .request(
                 crate::items::Request {
-                    kind: 6,
+                    kind: Kind::Mine,
                     start: Position::new(999000, -1000, 999000),
                     end: Position::ZERO,
                 },
@@ -695,7 +709,7 @@ fn bombs_recover_refund_and_extinguish() {
             items
                 .request(
                     crate::items::Request {
-                        kind,
+                        kind: Kind::try_from(kind).unwrap(),
                         start: Position::new(0, -50, 0),
                         end: Position::ZERO,
                     },
@@ -708,12 +722,9 @@ fn bombs_recover_refund_and_extinguish() {
             actors.roster.restore(actor);
             let id = items.cursor;
             items.slots[id].rolling.velocity = [0, 100, 0];
-            match kind {
-                4 => items.process(id, actors, &mut intelligence, 0, 0, ctx),
-                5 => items.process(id, actors, &mut intelligence, 0, 0, ctx),
-                _ => items.process(id, actors, &mut intelligence, 0, 0, ctx),
-            }
-            .unwrap();
+            items
+                .process(id, actors, &mut intelligence, 0, 0, ctx)
+                .unwrap();
             assert!(items.slots[id].processor().is_none(), "kind {kind}");
             assert_eq!(
                 actors.get(player).inventory[kind],

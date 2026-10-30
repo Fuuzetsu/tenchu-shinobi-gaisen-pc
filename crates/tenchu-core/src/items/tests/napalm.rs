@@ -88,15 +88,13 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
             let hit = case % 3;
             let id = 1;
             items.dispose(id, actors, ctx).unwrap();
-            items
-                .initialize(
-                    id,
-                    behavior(Processor::Napalm, Some(player), 0),
-                    22,
-                    position.into(),
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                id,
+                behavior(Processor::Napalm, Some(player), 0),
+                Kind::Napalm,
+                position.into(),
+                ctx,
+            );
             items.contact(id, 333, 7, ctx).unwrap();
             let item = &mut items.slots[id];
             item.set_source_mode(mode as u8);
@@ -215,15 +213,13 @@ fn rejected_request_preserves_allocator_side_effects() {
     with_items(&mut game, |items, ctx, actors| {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
-            items
-                .initialize(
-                    id,
-                    behavior(Processor::SightShot, Some(player), 0),
-                    1,
-                    Position::ZERO,
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                id,
+                behavior(Processor::SightShot, Some(player), 0),
+                Kind::Shuriken,
+                Position::ZERO,
+                ctx,
+            );
         }
         items.cursor = 0;
         actors.get_mut(player).aiming = true;

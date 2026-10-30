@@ -98,7 +98,11 @@ for(int i=0;i<nl;i++)for(int j=0;j<7;j++)printf(" %d",lines[i][j]);puts("");
         game.mission.map_placement = placement;
         game.scene.models[root].local.translation = Position::new(x, 0, z);
         for (i, item) in game.items.slots.iter_mut().enumerate() {
-            item.kind = if i % 3 != 0 { 8 } else { 4 };
+            item.kind = if i % 3 != 0 {
+                crate::items::Kind::ColoredRice
+            } else {
+                crate::items::Kind::Grenade
+            };
             let owner = Some(if (i as i32 + case % 4) % 4 != 0 {
                 player
             } else {

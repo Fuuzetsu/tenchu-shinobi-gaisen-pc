@@ -1,6 +1,7 @@
 use super::*;
 use crate::actor::State as ActorState;
 use crate::camera::Mode;
+use crate::items::Kind;
 
 fn direction(held: u16) -> Option<i16> {
     (0..4).find(|d| held & (UP << d) != 0)
@@ -114,9 +115,17 @@ impl Actor {
                             }
                             _ => None,
                         };
-                        if let Some(action) =
-                            action.filter(|_| matches!(world.selected_item, Some(2 | 4 | 5 | 7)))
-                        {
+                        if let Some(action) = action.filter(|_| {
+                            matches!(
+                                world.selected_item,
+                                Some(
+                                    Kind::Caltrops
+                                        | Kind::Grenade
+                                        | Kind::SmokeBomb
+                                        | Kind::PoisonedFood
+                                )
+                            )
+                        }) {
                             self.motion.mask = !1;
                             pending = Some((action, true));
                         } else {
@@ -188,7 +197,7 @@ impl Actor {
                 let base = self.motion.pose.rotation[0][1].wrapping_add(self.rotation[1]);
                 let mut angle = base.wrapping_add(if right { -1024 } else { 1024 }) & 0xf00;
                 let kind = world.items.wall_item.ok_or("Missing latched wall item")?;
-                self.inventory[kind] = self.inventory[kind].wrapping_sub(1);
+                self.inventory[kind.index()] = self.inventory[kind.index()].wrapping_sub(1);
                 let mut start = ctx
                     .scene
                     .world(self.parts[13 + usize::from(right)])?

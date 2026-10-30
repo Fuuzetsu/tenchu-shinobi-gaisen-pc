@@ -1,4 +1,5 @@
 use crate::actor::State as ActorState;
+use crate::items::Kind;
 mod experiments;
 mod imported;
 use super::*;
@@ -488,7 +489,7 @@ fn human_and_item_damage_match_original_c() {
             (item_kind < 0).then_some(crate::collision::Owner::Actor(attacker_id));
         game.collision.distance = [dx as i16, 0, dz as i16];
         game.items.slots[0].model = enemy.parts[13];
-        game.items.slots[0].kind = item_kind.max(0) as usize;
+        game.items.slots[0].kind = Kind::try_from(item_kind.max(0) as usize).unwrap();
         actor.hit = Some(hit);
         game.roster.actors[id] = Some(actor);
         game.roster.actors[attacker_id] = Some(enemy);
@@ -784,7 +785,7 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
             game.roster.get_mut(game.player_id).inventory[1] = 3;
             game.hud.cursor = 1;
             game.step(0).unwrap();
-            assert_eq!(game.hud.selected, Some(1));
+            assert_eq!(game.hud.selected, Some(Kind::Shuriken));
             game.step(TRIANGLE).unwrap();
             assert_eq!(game.player().motion.action, MOT_SYURI);
             game.step(if path == 0 { 0 } else { TRIANGLE }).unwrap();
@@ -814,10 +815,8 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                     game.step(0).unwrap();
                     assert_eq!(game.player().inventory[1], 2);
                     assert!(
-                        game.items
-                            .slots
-                            .iter()
-                            .any(|i| i.kind == 1 && i.processor() == Some(Processor::Pickup))
+                        game.items.slots.iter().any(|i| i.kind == Kind::Shuriken
+                            && i.processor() == Some(Processor::Pickup))
                     );
                 }
             }

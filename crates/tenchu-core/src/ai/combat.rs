@@ -1,5 +1,6 @@
 use super::*;
 use crate::actor::State as ActorState;
+use crate::items::Kind;
 
 impl Controller<'_, '_> {
     pub(super) fn succession(&mut self, distance: i32, degree: i32) -> u16 {
@@ -28,7 +29,7 @@ impl Controller<'_, '_> {
         }
         if self.actor.inventory[3] != 0 && self.actor.health < self.actor.max_health / 3 {
             return self.items.request_default(
-                3,
+                Kind::Medicine,
                 self.actor,
                 self.player.id,
                 self.roster,

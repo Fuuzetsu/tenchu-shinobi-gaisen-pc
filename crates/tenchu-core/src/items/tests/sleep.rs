@@ -97,15 +97,13 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             actor.status = ActorState::Normal;
             actor.enter(ctx, action, true);
             items.dispose(1, actors, ctx).unwrap();
-            items
-                .initialize(
-                    1,
-                    behavior(Processor::Sleep, Some(player), 0),
-                    9,
-                    position.into(),
-                    ctx,
-                )
-                .unwrap();
+            items.initialize(
+                1,
+                behavior(Processor::Sleep, Some(player), 0),
+                Kind::SleepingGas,
+                position.into(),
+                ctx,
+            );
             items.contact(1, 1000, crate::collision::SOFT, ctx).unwrap();
             let item = &mut items.slots[1];
             item.set_source_mode(2);
@@ -201,15 +199,13 @@ fn hand_release_and_interruption_keep_source_side_effects() {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
         }
-        items
-            .initialize(
-                1,
-                behavior(Processor::Sleep, Some(player), 0),
-                9,
-                Position::ZERO,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Sleep, Some(player), 0),
+            Kind::SleepingGas,
+            Position::ZERO,
+            ctx,
+        );
         actors.get_mut(player).health = 0;
         items
             .process(1, actors, &mut Intelligence::default(), 0, 0, ctx)
@@ -238,15 +234,13 @@ fn hand_release_and_interruption_keep_source_side_effects() {
         assert_eq!(items.slots[1].source_mode(), 2);
         assert_eq!(*ctx.random, random);
         items.dispose(1, actors, ctx).unwrap();
-        items
-            .initialize(
-                1,
-                behavior(Processor::Sleep, Some(player), 0),
-                9,
-                Position::ZERO,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Sleep, Some(player), 0),
+            Kind::SleepingGas,
+            Position::ZERO,
+            ctx,
+        );
         items.slots[1].set_source_mode(1);
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
         items

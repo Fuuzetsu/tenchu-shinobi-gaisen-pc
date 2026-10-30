@@ -17,7 +17,7 @@ impl Items {
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        use_item::consume(actors.get_mut(owner), 22)?;
+        use_item::consume(actors.get_mut(owner), Kind::Napalm);
         let id = self.allocate(actors, ctx)?;
         if clock & 1 == 0 {
             return Ok(());
@@ -25,10 +25,10 @@ impl Items {
         self.initialize(
             id,
             Behavior::Napalm(Used::new(owner, state::Napalm::Begin)),
-            22,
+            Kind::Napalm,
             start,
             ctx,
-        )?;
+        );
         self.slots[id].collision.size = 0;
         self.slots[id].napalm.velocity =
             std::array::from_fn(|i| end[i].wrapping_sub(start[i]) as i16);

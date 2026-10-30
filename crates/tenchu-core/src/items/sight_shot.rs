@@ -12,8 +12,9 @@ impl Items {
         let item = &self.slots[id];
         let owner = actors.get_mut(owner_id);
         if !owner.aiming {
-            if owner.inventory[item.kind] != 255 {
-                owner.inventory[item.kind] = owner.inventory[item.kind].wrapping_add(1);
+            if owner.inventory[item.kind.index()] != 255 {
+                owner.inventory[item.kind.index()] =
+                    owner.inventory[item.kind.index()].wrapping_add(1);
             }
             use_item::camera(Mode::Direction, owner, ctx)?;
             return self.dispose(id, actors, ctx);

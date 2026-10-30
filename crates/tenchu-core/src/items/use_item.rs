@@ -3,15 +3,11 @@ use crate::actor::State as ActorState;
 use crate::camera::{Environment, Mode};
 use crate::math::Position;
 
-pub(super) fn consume(owner: &mut Actor, kind: usize) -> Result<()> {
-    let count = owner
-        .inventory
-        .get_mut(kind)
-        .ok_or("Invalid item request")?;
+pub(super) fn consume(owner: &mut Actor, kind: Kind) {
+    let count = &mut owner.inventory[kind.index()];
     if *count != 0 && *count != 255 {
         *count -= 1;
     }
-    Ok(())
 }
 
 pub(super) fn camera(mode: Mode, owner: &Actor, ctx: &mut Context) -> Result<()> {
@@ -63,7 +59,7 @@ impl Items {
 
     fn throw_rolling(
         &mut self,
-        kind: usize,
+        kind: Kind,
         owner: usize,
         start: Position,
         velocity: Position,
@@ -71,15 +67,15 @@ impl Items {
         ctx: &mut Context,
     ) -> Result<()> {
         let behavior = match kind {
-            2 => Behavior::Caltrops(Used::new(owner, state::Caltrops::Falling)),
-            4 => Behavior::Fire(Used::new(owner, state::Fire::Fuse)),
-            5 => Behavior::Smoke(Used::new(owner, state::Smoke::Fuse)),
-            6 => Behavior::Mine(Used::new(owner, state::Mine::Place)),
-            7 => Behavior::Poison(Used::new(owner, state::Poison::Delay)),
-            _ => return Err(format!("Rolling item {kind} is not implemented yet")),
+            Kind::Caltrops => Behavior::Caltrops(Used::new(owner, state::Caltrops::Falling)),
+            Kind::Grenade => Behavior::Fire(Used::new(owner, state::Fire::Fuse)),
+            Kind::SmokeBomb => Behavior::Smoke(Used::new(owner, state::Smoke::Fuse)),
+            Kind::Mine => Behavior::Mine(Used::new(owner, state::Mine::Place)),
+            Kind::PoisonedFood => Behavior::Poison(Used::new(owner, state::Poison::Delay)),
+            _ => return Err(format!("Rolling item {kind:?} is not implemented yet")),
         };
         let id = self.allocate(actors, ctx)?;
-        self.initialize(id, behavior, kind, start, ctx)?;
+        self.initialize(id, behavior, kind, start, ctx);
         let item = &mut self.slots[id];
         item.collision.size = 0;
         item.rolling = Rolling {
@@ -87,10 +83,10 @@ impl Items {
             ..Rolling::default()
         };
         match kind {
-            2 => ctx.effects.sounds.push((start, 0x22)),
-            4 => item.count = 150,
-            5 => item.count = 10,
-            7 => {
+            Kind::Caltrops => ctx.effects.sounds.push((start, 0x22)),
+            Kind::Grenade => item.count = 150,
+            Kind::SmokeBomb => item.count = 10,
+            Kind::PoisonedFood => {
                 item.poison.remaining = 10;
                 item.poison.eater = None;
                 actors
@@ -104,7 +100,7 @@ impl Items {
 
     pub(crate) fn wall_throw(
         &mut self,
-        kind: usize,
+        kind: Kind,
         owner: &mut Actor,
         start: Position,
         mut angle: i16,
@@ -116,7 +112,7 @@ impl Items {
             roster,
             active: Some(owner),
         };
-        if kind == 2 {
+        if kind == Kind::Caltrops {
             for _ in 0..5 {
                 angle = angle
                     .wrapping_sub(10)
@@ -156,7 +152,7 @@ impl Items {
 
     pub(crate) fn request_default(
         &mut self,
-        kind: usize,
+        kind: Kind,
         owner: &mut Actor,
         player: usize,
         roster: &mut Roster,
@@ -191,22 +187,22 @@ impl Items {
         ctx: &mut Context,
     ) -> Result<()> {
         let Request { kind, start, end } = request;
-        consume(owner, kind)?;
+        consume(owner, kind);
         let owner_id = owner.id;
         let actors = &mut Actors {
             roster,
             active: Some(owner),
         };
         match kind {
-            0 => {
+            Kind::Grapple => {
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Behavior::Grapple { owner: owner_id }, kind, start, ctx)?;
+                self.initialize(id, Behavior::Grapple { owner: owner_id }, kind, start, ctx);
                 self.slots[id].collision.size = 0;
                 actors.get_mut(owner_id).aiming = true;
                 camera(Mode::Sight, actors.get(player), ctx)?;
                 ctx.camera.direction = [-341, 0];
             }
-            1 if owner_id == player => {
+            Kind::Shuriken if owner_id == player => {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(
                     id,
@@ -214,12 +210,12 @@ impl Items {
                     kind,
                     start,
                     ctx,
-                )?;
+                );
                 self.slots[id].collision.size = 0;
                 self.slots[id].count = 5;
                 actors.get_mut(owner_id).aiming = true;
             }
-            1 => {
+            Kind::Shuriken => {
                 let end = projectile::target(
                     owner_id,
                     actors.get(owner_id).rotation,
@@ -231,7 +227,7 @@ impl Items {
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
                 actors.get_mut(owner_id).aiming = false;
             }
-            2 => {
+            Kind::Caltrops => {
                 let velocity =
                     throw_vector(actors.get(owner_id), player, Position::new(0, 0, 100), ctx)?;
                 for _ in 0..5 {
@@ -243,35 +239,47 @@ impl Items {
                     self.throw_rolling(kind, owner_id, start, velocity.into(), actors, ctx)?;
                 }
             }
-            3 | 10 | 11 | 12 | 18 => {
+            Kind::Medicine
+            | Kind::Resurrection
+            | Kind::Disguise
+            | Kind::ProtectionCharm
+            | Kind::Flute => {
                 let behavior = match kind {
-                    3 => Behavior::Medicine(Used::new(owner_id, state::Medicine::Begin)),
-                    10 => Behavior::Resurrection(Used::new(owner_id, state::Resurrection::Begin)),
-                    11 => Behavior::Disguise(Used::new(owner_id, state::Disguise::Begin)),
-                    12 => Behavior::Charm(Used::new(owner_id, state::Charm::Begin)),
+                    Kind::Medicine => {
+                        Behavior::Medicine(Used::new(owner_id, state::Medicine::Begin))
+                    }
+                    Kind::Resurrection => {
+                        Behavior::Resurrection(Used::new(owner_id, state::Resurrection::Begin))
+                    }
+                    Kind::Disguise => {
+                        Behavior::Disguise(Used::new(owner_id, state::Disguise::Begin))
+                    }
+                    Kind::ProtectionCharm => {
+                        Behavior::Charm(Used::new(owner_id, state::Charm::Begin))
+                    }
                     _ => Behavior::Flute(Used::new(owner_id, state::Flute::Begin)),
                 };
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, behavior, kind, start, ctx)?;
+                self.initialize(id, behavior, kind, start, ctx);
                 self.slots[id].collision.size = 0;
             }
-            4..=7 => {
+            Kind::Grenade | Kind::SmokeBomb | Kind::Mine | Kind::PoisonedFood => {
                 let vector = match kind {
-                    4 => [0, -120, -120],
-                    5 => [0, 0, -60],
-                    7 => [0, -120, -240],
+                    Kind::Grenade => [0, -120, -120],
+                    Kind::SmokeBomb => [0, 0, -60],
+                    Kind::PoisonedFood => [0, -120, -240],
                     _ => [0, 0, -1000],
                 };
                 let velocity = throw_vector(actors.get(owner_id), player, vector.into(), ctx)?;
-                let position = if kind == 6 {
+                let position = if kind == Kind::Mine {
                     start.wrapping_add(velocity)
                 } else {
                     start
                 };
                 self.throw_rolling(kind, owner_id, position, velocity, actors, ctx)?;
             }
-            20 => self.launch(kind, owner_id, start, end, actors, ctx)?,
-            23 => {
+            Kind::Gun => self.launch(kind, owner_id, start, end, actors, ctx)?,
+            Kind::Lightning => {
                 let end = if owner_id == player {
                     let vector = throw_vector(
                         actors.get(owner_id),
@@ -290,27 +298,27 @@ impl Items {
                     kind,
                     start,
                     ctx,
-                )?;
+                );
                 self.slots[id].collision.size = 0;
                 self.slots[id].lightning = lightning::Lightning {
                     start,
                     rotation: ctx.math.vector_rotation(start, end)?,
                 };
             }
-            24 => {
+            Kind::Teleport => {
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Behavior::Teleport { owner: owner_id }, kind, start, ctx)?;
+                self.initialize(id, Behavior::Teleport { owner: owner_id }, kind, start, ctx);
                 self.slots[id].collision.size = 0;
                 ctx.camera.mode = Mode::Sight;
             }
-            21 => {
+            Kind::Arrow => {
                 let rotation = ctx.math.vector_rotation(start, end)?;
                 let end = projectile::target(owner_id, rotation, start, actors, ctx)?.1;
                 self.launch(kind, owner_id, start, end, actors, ctx)?;
             }
-            19 => {}
-            15 => self.request_darts(owner_id, start, actors, ctx)?,
-            16 => {
+            Kind::Armor => {}
+            Kind::Darts => self.request_darts(owner_id, start, actors, ctx)?,
+            Kind::Dog => {
                 let velocity = throw_vector(
                     actors.get(owner_id),
                     player,
@@ -330,7 +338,7 @@ impl Items {
                     kind,
                     start,
                     ctx,
-                )?;
+                );
                 let item = &mut self.slots[id];
                 item.collision.size = 0;
                 item.rolling = Rolling {
@@ -341,7 +349,7 @@ impl Items {
                     .get_mut(owner_id)
                     .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
             }
-            14 => {
+            Kind::Decoy => {
                 let velocity = throw_vector(
                     actors.get(owner_id),
                     player,
@@ -355,7 +363,7 @@ impl Items {
                     kind,
                     start,
                     ctx,
-                )?;
+                );
                 let item = &mut self.slots[id];
                 item.collision.size = 0;
                 item.rolling = Rolling {
@@ -373,8 +381,8 @@ impl Items {
                     .get_mut(owner_id)
                     .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
             }
-            8 | 13 => {
-                let (behavior, speed) = if kind == 8 {
+            Kind::ColoredRice | Kind::SpeedScroll => {
+                let (behavior, speed) = if kind == Kind::ColoredRice {
                     (
                         Behavior::Rice(Used::new(owner_id, state::Rice::Begin)),
                         -100,
@@ -392,11 +400,11 @@ impl Items {
                     ctx,
                 )?;
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, behavior, kind, start, ctx)?;
+                self.initialize(id, behavior, kind, start, ctx);
                 self.slots[id].collision.size = 0;
                 self.slots[id].rolling.velocity = velocity.map(|v| v as i16).to_array();
             }
-            9 => {
+            Kind::SleepingGas => {
                 let velocity =
                     throw_vector(actors.get(owner_id), player, Position::new(0, 0, -120), ctx)?;
                 let id = self.allocate(actors, ctx)?;
@@ -406,11 +414,11 @@ impl Items {
                     kind,
                     start,
                     ctx,
-                )?;
+                );
                 self.slots[id].collision.size = 0;
                 self.slots[id].napalm.velocity = velocity.map(|v| v as i16).to_array();
             }
-            17 => {
+            Kind::FireBreath => {
                 let id = self.allocate(actors, ctx)?;
                 self.initialize(
                     id,
@@ -418,7 +426,7 @@ impl Items {
                     kind,
                     start,
                     ctx,
-                )?;
+                );
                 self.slots[id].collision.size = 0;
                 self.slots[id].breath = breath::Breath {
                     origin: start,
@@ -426,7 +434,7 @@ impl Items {
                     ..breath::Breath::default()
                 };
             }
-            _ => return Err(format!("Item {kind} use is not implemented yet")),
+            _ => return Err(format!("Item {kind:?} use is not implemented yet")),
         }
         Ok(())
     }

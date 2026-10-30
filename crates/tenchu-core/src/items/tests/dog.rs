@@ -10,15 +10,13 @@ fn prepare(
     ctx: &mut Context,
     actors: &mut Actors,
 ) -> usize {
-    items
-        .initialize(
-            id,
-            behavior(Processor::Dog, Some(player), 0),
-            16,
-            Position::ZERO,
-            ctx,
-        )
-        .unwrap();
+    items.initialize(
+        id,
+        behavior(Processor::Dog, Some(player), 0),
+        Kind::Dog,
+        Position::ZERO,
+        ctx,
+    );
     let item = &mut items.slots[id];
     item.behavior = Behavior::Dog(Used::new(player, state::Dog::Summoning { player }));
     items
@@ -153,15 +151,13 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
     let player = game.player_id;
     with_items(&mut game, |items, ctx, actors| {
         let dog = prepare(items, 1, player, ctx, actors);
-        items
-            .initialize(
-                2,
-                behavior(Processor::Dog, Some(player), 0),
-                16,
-                Position::ZERO,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            2,
+            behavior(Processor::Dog, Some(player), 0),
+            Kind::Dog,
+            Position::ZERO,
+            ctx,
+        );
         items.slots[2].behavior =
             Behavior::Dog(Used::new(player, state::Dog::Summoning { player }));
         items
@@ -185,15 +181,13 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
         items.slots[2].rolling.status = RollingStatus::Settled;
         for id in 0..CAPACITY {
             if id != 1 && id != 2 {
-                items
-                    .initialize(
-                        id,
-                        behavior(Processor::Flute, Some(player), 0),
-                        18,
-                        Position::ZERO,
-                        ctx,
-                    )
-                    .unwrap();
+                items.initialize(
+                    id,
+                    behavior(Processor::Flute, Some(player), 0),
+                    Kind::Flute,
+                    Position::ZERO,
+                    ctx,
+                );
             }
         }
         items.cursor = 1;
@@ -209,7 +203,7 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
             .unwrap();
         assert_eq!(items.cursor, 2);
         assert_eq!(items.slots[2].processor(), Some(Processor::Pickup));
-        assert_eq!(items.slots[2].kind, 16);
+        assert_eq!(items.slots[2].kind, Kind::Dog);
         assert_eq!(items.slots[2].owner(), None);
         for id in 2..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
@@ -240,7 +234,7 @@ fn dog_retries_refunds_and_cleanup_preserve_source_order() {
             items
                 .slots
                 .iter()
-                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 3)
+                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == Kind::Medicine)
                 .count(),
             2
         );

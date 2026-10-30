@@ -15,7 +15,7 @@ impl Items {
         match used.phase {
             state::Flute::Begin => {
                 intelligence.alert = 0;
-                owner.active_item = item.kind as i16;
+                owner.active_item = item.kind.index() as i16;
                 ctx.effects.sounds.push((Position::ZERO, 0x43));
                 item.count = 30;
                 item.behavior = Behavior::Flute(used.with_phase(state::Flute::Playing));

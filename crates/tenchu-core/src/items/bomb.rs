@@ -60,7 +60,7 @@ impl Items {
                 if item.count == 0 {
                     if ctx.random.next15() % 10 < 2 {
                         let kind = item.kind;
-                        let position = ctx.scene.models[self.icons[kind]].local.translation;
+                        let position = ctx.scene.models[self.icons[kind.index()]].local.translation;
                         self.dispose(id, actors, ctx)?;
                         self.stay(kind, position, actors, ctx)?;
                         ctx.effects
@@ -124,8 +124,9 @@ impl Items {
                 ctx.scene.set_translation(model, position);
                 if position[1] == terrain::NONE || ctx.cursor.attribute & 4 != 0 {
                     let owner = actors.get_mut(used.owner);
-                    if owner.inventory[item.kind] != 255 {
-                        owner.inventory[item.kind] = owner.inventory[item.kind].wrapping_add(1);
+                    if owner.inventory[item.kind.index()] != 255 {
+                        owner.inventory[item.kind.index()] =
+                            owner.inventory[item.kind.index()].wrapping_add(1);
                     }
                     return self.dispose(id, actors, ctx);
                 }

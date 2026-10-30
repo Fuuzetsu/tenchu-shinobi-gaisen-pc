@@ -1,4 +1,5 @@
 use super::Game;
+use crate::items::Kind;
 use crate::math::Position;
 use crate::{
     Result,
@@ -70,10 +71,13 @@ impl Game {
         if self
             .hud
             .selected
-            .is_none_or(|slot| self.player().inventory[slot] == 0)
+            .is_none_or(|slot| self.player().inventory[slot.index()] == 0)
         {
-            self.hud.selected = self.player().inventory[..19].iter().position(|&n| n != 0);
-            self.hud.cursor = self.hud.selected.unwrap_or(0);
+            self.hud.selected = self.player().inventory[..19]
+                .iter()
+                .position(|&n| n != 0)
+                .map(|i| Kind::ALL[i]);
+            self.hud.cursor = self.hud.selected.map_or(0, Kind::index);
         }
         Ok(())
     }

@@ -19,15 +19,13 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
         actor.position = Position::new(0, 0, -3000);
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
         ctx.scene.finish_tick();
-        items
-            .initialize(
-                1,
-                behavior(Processor::Lightning, Some(owner), 0),
-                23,
-                Position::new(0, -1000, 0),
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Lightning, Some(owner), 0),
+            Kind::Lightning,
+            Position::new(0, -1000, 0),
+            ctx,
+        );
         items.slots[1].lightning = crate::items::lightning::Lightning {
             start: Position::new(0, -1000, 0),
             rotation: [0; 3],
@@ -119,15 +117,13 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
         assert!(items.slots[1].processor().is_none());
         assert_eq!(items.slots[1].count, 255);
         assert!(ctx.scene.models[model].conflict.is_none());
-        items
-            .initialize(
-                1,
-                behavior(Processor::Lightning, Some(player), 0),
-                23,
-                Position::ZERO,
-                ctx,
-            )
-            .unwrap();
+        items.initialize(
+            1,
+            behavior(Processor::Lightning, Some(player), 0),
+            Kind::Lightning,
+            Position::ZERO,
+            ctx,
+        );
         items.slots[1].lightning.start = Position::ZERO;
         items
             .process(
