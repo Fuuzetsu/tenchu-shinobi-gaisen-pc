@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{
     collision,
@@ -72,7 +73,7 @@ fn decoys_retarget_source_eligible_actors_and_restore_them_on_disposal() {
             if suspended {
                 actor.attribute |= ATTR_SUSPEND;
                 actor.health = 0;
-                actor.status = 17;
+                actor.status = ActorState::Dead;
             }
             ids.push(id);
         }

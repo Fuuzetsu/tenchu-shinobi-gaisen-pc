@@ -9,6 +9,8 @@ use tenchu_assets::{
     stage::MissionAssets,
     texture::Vram,
 };
+#[cfg(test)]
+use tenchu_core::actor::State as ActorState;
 
 pub struct Body {
     pub id: String,
@@ -468,7 +470,7 @@ mod tests {
                     game.step(input).unwrap_or_else(|e| {
                         panic!("{} on {character}, tick {tick}: {e}", body.name)
                     });
-                    attack |= game.player().status == 7;
+                    attack |= game.player().status == ActorState::Attack;
                 }
                 if source.kind == 0x87 {
                     assert!(attack, "Onikage attacks must respond to player input");
@@ -615,7 +617,7 @@ mod tests {
                 ),
                 Change::Missing
             );
-            actor.status = 7;
+            actor.status = ActorState::Attack;
             actor.motion.count = 5;
             let options = Options {
                 no_idle_taunts: true,

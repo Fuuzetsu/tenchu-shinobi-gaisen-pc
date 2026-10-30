@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::{
     ai::Intelligence,
     ids::{MOT_ATTACK_STEALTH_BACK, MOT_ITEM_KAENGEKI},
@@ -83,7 +84,7 @@ impl Items {
                 .as_ref()
                 .ok_or("Disguise snapshots missing")?[0]
                 .apply(owner, ctx.scene)?;
-            if owner.status == 11 {
+            if owner.status == ActorState::Crouch {
                 let action = owner.return_normal(ctx, self.disguise.player)?;
                 owner.enter(ctx, action, true);
             }
@@ -145,8 +146,8 @@ impl Items {
                 self.disguise.remaining = self.disguise.remaining.wrapping_sub(1);
                 if self.disguise.remaining as i16 > 0
                     && owner.active_item == item.kind as i16
-                    && !matches!(owner.status, 16 | 17)
-                    && (owner.status != 7
+                    && !matches!(owner.status, ActorState::Damaged | ActorState::Dead)
+                    && (owner.status != ActorState::Attack
                         || (owner.motion.loops >= 0
                             && owner.motion.action < MOT_ATTACK_STEALTH_BACK))
                 {

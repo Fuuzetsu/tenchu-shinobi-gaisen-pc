@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::camera::Mode;
 
 fn direction(held: u16) -> Option<i16> {
@@ -30,7 +31,7 @@ impl Actor {
         let angle = ctx.body.reflect_angle[probe.vector as usize];
         Ok((probe.attribute & 0xc000 == 0
             && angle != -1
-            && (self.status == 12 || angle & 512 == 0))
+            && (self.status == ActorState::Wall || angle & 512 == 0))
             .then_some(angle))
     }
 
@@ -94,7 +95,7 @@ impl Actor {
                     if let Some(direction) = direction(held) {
                         if let Some(action) = slide(quadrant, direction) {
                             self.wall_motion(ctx, action);
-                            self.status = 12;
+                            self.status = ActorState::Wall;
                             self.velocity[0] = 0;
                             self.velocity[2] = 0;
                             self.motion.mask = !1;

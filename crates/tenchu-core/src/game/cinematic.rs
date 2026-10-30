@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 use crate::math::Position;
 mod camera;
 #[cfg(test)]
@@ -65,7 +66,7 @@ impl Game {
         for &id in &self.roster.order {
             let actor = self.roster.actors[id].as_mut().unwrap();
             actor.scripted = false;
-            if actor.status != 17 && actor.attribute & ATTR_SUSPEND == 0 {
+            if actor.status != ActorState::Dead && actor.attribute & ATTR_SUSPEND == 0 {
                 actor.clear_attack(&mut ctx, 3)?;
                 let motion = actor.return_normal(&mut ctx, self.player_id)?;
                 actor.enter(&ctx, motion, true);
@@ -163,7 +164,7 @@ impl Game {
         } else {
             let [motion, loops, next] = command.position;
             let status = (motion as u16 >> 8) as i16;
-            if actor.status == 17 && !(16..=17).contains(&status) {
+            if actor.status == ActorState::Dead && !(16..=17).contains(&status) {
                 return Ok(false);
             }
             if actor.health > 0 && status == 17 {
@@ -301,7 +302,7 @@ impl Game {
                     actor.motion.loops = -1;
                     actor.velocity[0] = 0;
                     actor.velocity[2] = 0;
-                } else if actor.status != 17 {
+                } else if actor.status != ActorState::Dead {
                     actor.enter(&ctx, control.next, true);
                     actor.scripted = false;
                     *slot = None;
@@ -341,7 +342,7 @@ impl Game {
         for control in self.cinematic.actors.iter().flatten() {
             let actor = self.roster.get_mut(control.actor);
             actor.scripted = false;
-            if actor.status != 17 {
+            if actor.status != ActorState::Dead {
                 let motion = if actor.attribute & ATTR_WEAPON_DRAWN != 0 {
                     MOT_ENGAGE_STANCE
                 } else if actor.kind & 0xf0 == 0x80 {

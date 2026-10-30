@@ -87,7 +87,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
         let motion = ram.word(address + 0x5c);
         let before = differences.len();
         equal!(actor.kind, ram.short(address));
-        equal!(actor.status, ram.short(address + 2));
+        equal!(actor.status.source_id(), ram.short(address + 2));
         equal!(actor.attribute, ram.short(address + 4) as u16);
         equal!(actor.health, ram.short(address + 8));
         equal!(actor.position, ram.vector(ram.word(address + 0x38)));

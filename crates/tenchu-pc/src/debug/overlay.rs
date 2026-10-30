@@ -4,6 +4,7 @@ use crate::{
     render_mesh::{DEBUG, DOUBLE_SIDED, SCREEN, Vertex, XRAY},
 };
 use glam::{Mat4, Vec3, Vec4};
+use tenchu_core::actor::State as ActorState;
 use tenchu_core::{game::Game, ids::ATTR_SUSPEND};
 
 pub struct Overlay {
@@ -255,7 +256,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
             let sneaking = match debug.sight_stance {
                 1 => false,
                 2 => true,
-                _ => matches!(game.player().status, 11 | 12),
+                _ => matches!(game.player().status, ActorState::Crouch | ActorState::Wall),
             };
             let occluders = debug.sight_occluders.get_or_init(|| {
                 super::sight::Occluders::new(&crate::render_mesh::stage(
@@ -366,7 +367,7 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                 actor.rotation[1], actor.motion.action, actor.motion.count
             ),
             format!(
-                "State {} flags {:04x} AI {:?}",
+                "State {:?} flags {:04x} AI {:?}",
                 actor.status, actor.attribute, actor.think
             ),
         ]

@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{camera::Mode, effects::Effect, input::*};
 
@@ -127,7 +128,7 @@ fn swimming_input_hook_and_shore_exit() {
         hidden_body(&game, false);
         for _ in 0..100 {
             game.step(0).unwrap();
-            if game.player().status != 3 {
+            if game.player().status != ActorState::Swim {
                 break;
             }
         }

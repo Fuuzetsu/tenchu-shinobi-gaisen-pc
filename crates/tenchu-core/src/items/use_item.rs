@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::camera::{Environment, Mode};
 use crate::math::Position;
 
@@ -149,7 +150,7 @@ impl Items {
             &ctx.mission.common_motions,
             &ctx.mission.clips,
         );
-        actor.status = i16::from((action >> 8) as i8);
+        actor.status = ActorState::from_motion(action);
         actor.motion_velocity(ctx);
     }
 

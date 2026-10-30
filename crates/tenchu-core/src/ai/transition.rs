@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 
 impl Controller<'_, '_> {
@@ -25,7 +26,7 @@ impl Controller<'_, '_> {
             self.state.player_strain = saved_strain;
             self.state.strain = i32::MAX;
         }
-        if matches!(self.actor.status, 16 | 17) {
+        if matches!(self.actor.status, ActorState::Damaged | ActorState::Dead) {
             if !player && self.actor.health > 0 && self.state.strain > 0 {
                 self.state.strain = -32768;
             }
@@ -295,7 +296,7 @@ impl Controller<'_, '_> {
                 self.actor.pad.hold_counter = 0;
             }
         }
-        if self.actor.status == 10 {
+        if self.actor.status == ActorState::Hang {
             pad = UP;
             if self.degree().abs() >= 500 {
                 pad = DOWN;

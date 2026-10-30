@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::{
     collision,
     input::*,
@@ -93,7 +94,7 @@ impl Actor {
             if !(matches!(page, 0x80 | 0x90 | 0xa0)
                 || (page == 0 && !(7..=9).contains(&victim.kind)))
                 && victim.attribute & (ATTR_WEAPON_DRAWN | ATTR_PHASE) == 0
-                && !matches!(victim.status, 1 | 15)
+                && !matches!(victim.status, ActorState::Action | ActorState::UseItem)
             {
                 self.target = Some(victim.root_model);
                 let attacker_angle = ctx.math.direction(

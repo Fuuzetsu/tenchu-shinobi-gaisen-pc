@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 
 impl Actor {
     pub(in crate::actor) fn swim_check(
@@ -6,16 +7,19 @@ impl Actor {
         ctx: &mut Context,
         world: &mut ActionContext,
     ) -> Result<bool> {
-        if self.map.height > 0 || self.map.attribute & 4 == 0 || self.status == 4 {
+        if self.map.height > 0 || self.map.attribute & 4 == 0 || self.status == ActorState::Grapple
+        {
             return Ok(false);
         }
-        if self.status == 3 || (self.status == 17 && self.motion.action == MOT_DEAD_DROWN) {
+        if self.status == ActorState::Swim
+            || (self.status == ActorState::Dead && self.motion.action == MOT_DEAD_DROWN)
+        {
             return Ok(true);
         }
-        if self.status == 17 && self.motion.loops == -1 {
+        if self.status == ActorState::Dead && self.motion.loops == -1 {
             return Ok(false);
         }
-        if self.status != 11 {
+        if self.status != ActorState::Crouch {
             self.snap_attack(ctx);
         }
         let width = i32::from(ctx.mission.characters[self.definition].width);

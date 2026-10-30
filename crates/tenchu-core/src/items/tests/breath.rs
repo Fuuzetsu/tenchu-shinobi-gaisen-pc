@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{camera::Mode, ids::*, input};
 
@@ -93,7 +94,7 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
             ctx.camera.reference = Position::new(1000, -1000, 0);
             let actor = actors.get_mut(player);
             actor.attribute = 0;
-            actor.status = 0;
+            actor.status = ActorState::Normal;
             actor.enter(ctx, action, true);
             actor.motion.count = count;
             actor.motion.loops = loops;
@@ -162,7 +163,7 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
                 i32::from(item.breath.remaining),
                 i32::from(item.processor().is_some()),
                 i32::from(actor.motion.action),
-                i32::from(actor.status),
+                i32::from(actor.status.source_id()),
                 i32::from(actor.rotation[1]),
                 i32::from(actor.inventory[22]),
                 ctx.random.seed as i32,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{collision, ids::MOT_STATE_PICKUP, scene::CONFLICT};
 
@@ -90,7 +91,9 @@ impl Items {
                     return Ok(());
                 };
                 let actor = actors.get_mut(actor_id);
-                if actor.motion.action == MOT_STATE_PICKUP || !matches!(actor.status, 2 | 6) {
+                if actor.motion.action == MOT_STATE_PICKUP
+                    || !matches!(actor.status, ActorState::Walk | ActorState::Chase)
+                {
                     return Ok(());
                 }
                 if halt == crate::ai::Halt::Running && actor.health > 0 {

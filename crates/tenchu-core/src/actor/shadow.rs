@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::effects::Shadow;
 
 impl Actor {
@@ -21,7 +22,7 @@ impl Actor {
                 && self.map.height == 0
                 && clock & 1 != 0
             {
-                let range = if self.status == 3 {
+                let range = if self.status == ActorState::Swim {
                     position[1] = position[1].wrapping_add(100);
                     300
                 } else {

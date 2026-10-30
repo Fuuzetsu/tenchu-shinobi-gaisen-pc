@@ -1,4 +1,5 @@
 use super::*;
+use tenchu_core::actor::State as ActorState;
 
 fn equip(campaign: &mut Campaign, assets: &GameAssets<DiscSource>, items: &[(usize, usize)]) {
     for &(item, count) in items {
@@ -54,7 +55,7 @@ fn complete_estate(campaign: &mut Campaign, tape: &str) -> Save {
             .game
             .roster
             .get(campaign.game.roster.find(kind).unwrap());
-        assert_eq!((boss.health, boss.status), (0, 17));
+        assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     }
     assert_eq!(campaign.game.tick, [5667, 4834][character]);
     assert_eq!(campaign.game.player().health, [64, 94][character]);
@@ -93,7 +94,7 @@ fn complete_rescue(campaign: &mut Campaign, tape: &str) -> Save {
         .game
         .roster
         .get(campaign.game.roster.find(0x83).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     let Screen::Results(results) = &campaign.screen else {
         panic!("Expected rescue results");
     };
@@ -120,7 +121,7 @@ fn complete_checkpoint(campaign: &mut Campaign, tape: &str) -> Save {
             .game
             .roster
             .get(campaign.game.roster.find(kind).unwrap());
-        assert_eq!((boss.health, boss.status), (0, 17));
+        assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     }
     let Screen::Results(results) = &campaign.screen else {
         panic!("Expected checkpoint results");
@@ -146,7 +147,7 @@ fn complete_punishment(campaign: &mut Campaign, tape: &str) -> Save {
             .game
             .roster
             .get(campaign.game.roster.find(0x8e).unwrap());
-        assert_eq!((boss.health, boss.status), (0, 17));
+        assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     }
     let Screen::Results(results) = &campaign.screen else {
         panic!("Expected punishment results");
@@ -280,7 +281,7 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
         .game
         .roster
         .get(resumed.game.roster.find(0x85).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     assert_eq!(resumed.progress.flags & 127, 127);
     let save = save_result(&mut resumed, 3113);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
@@ -324,7 +325,7 @@ fn rikimaru_campaign_controller_routes_reach_completion() {
         .game
         .roster
         .get(resumed.game.roster.find(0x87).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     assert_eq!(resumed.progress.flags & 511, 511);
     let save = save_result(&mut resumed, 5206);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
@@ -449,7 +450,7 @@ fn ayame_campaign_controller_routes_reach_completion() {
         .game
         .roster
         .get(resumed.game.roster.find(0x84).unwrap());
-    assert_eq!((leader.health, leader.status), (0, 17));
+    assert_eq!((leader.health, leader.status), (0, ActorState::Dead));
     let onikage = resumed
         .game
         .roster
@@ -473,7 +474,7 @@ fn ayame_campaign_controller_routes_reach_completion() {
         .game
         .roster
         .get(resumed.game.roster.find(0x85).unwrap());
-    assert_eq!((balma.health, balma.status), (0, 17));
+    assert_eq!((balma.health, balma.status), (0, ActorState::Dead));
     let save = save_result(&mut resumed, 1955);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
     resumed.action(Action::Confirm, &assets).unwrap();
@@ -508,7 +509,7 @@ fn ayame_campaign_controller_routes_reach_completion() {
         .game
         .roster
         .get(resumed.game.roster.find(0x87).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     assert_eq!(resumed.progress.flags & 511, 511);
     let save = save_result(&mut resumed, 4620);
     let mut resumed = Campaign::new(&assets, Options::default(), Some(save)).unwrap();
@@ -578,7 +579,7 @@ fn training_controller_routes_save_rankings_and_retry() {
         assert_eq!(&campaign.game.player().inventory[..4], &[255, 3, 0, 0]);
         for id in 1..=7 {
             let enemy = campaign.game.roster.get(id);
-            assert_eq!((enemy.health, enemy.status), (0, 17));
+            assert_eq!((enemy.health, enemy.status), (0, ActorState::Dead));
         }
         let Screen::Results(results) = &campaign.screen else {
             panic!("Expected training results")
@@ -797,7 +798,7 @@ fn save_and_complete(campaign: &mut Campaign, assets: &GameAssets<DiscSource>, c
             .game
             .roster
             .get(campaign.game.roster.find(kind).unwrap());
-        assert_eq!((boss.health, boss.status), (0, 17));
+        assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     }
     let save = save_result(campaign, clock);
     assert_eq!(campaign.progress.flags & 0x600, 0x600);
@@ -876,7 +877,7 @@ fn rikimaru_pirates_controller_route_reaches_results() {
         .game
         .roster
         .get(campaign.game.roster.find(0x85).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     save_and_start_next(&mut campaign, &assets, 2830);
 }
 
@@ -927,7 +928,7 @@ fn rikimaru_castle_controller_route_reaches_results() {
         .game
         .roster
         .get(campaign.game.roster.find(0x87).unwrap());
-    assert_eq!((boss.health, boss.status), (0, 17));
+    assert_eq!((boss.health, boss.status), (0, ActorState::Dead));
     save_and_start_next(&mut campaign, &assets, 3449);
 }
 

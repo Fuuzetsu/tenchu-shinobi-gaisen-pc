@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 use crate::math::Position;
 mod smoothing;
 #[cfg(test)]
@@ -412,14 +413,17 @@ impl Camera {
 
     fn follow(&mut self, owner: &Actor, env: &mut Environment) -> Result<[Position; 2]> {
         match owner.status {
-            12 => self.wall_mode(owner, env)?,
-            11 => self.mode = Mode::Crouch,
-            3 => self.mode = Mode::Swim,
-            10 => self.mode = Mode::Hang,
-            6 if owner.motion.action == MOT_CHASE => self.mode = Mode::Run,
-            8 if owner.motion.action == MOT_STATE_CLIMB => self.mode = Mode::Run,
-            16 if (MOT_DAMAGE_LAUNCH_BACK..=MOT_DAMAGE_DOWNED).contains(&owner.motion.action)
-                || owner.motion.action == MOT_DAMAGE_GETUP =>
+            ActorState::Wall => self.wall_mode(owner, env)?,
+            ActorState::Crouch => self.mode = Mode::Crouch,
+            ActorState::Swim => self.mode = Mode::Swim,
+            ActorState::Hang => self.mode = Mode::Hang,
+            ActorState::Chase if owner.motion.action == MOT_CHASE => self.mode = Mode::Run,
+            ActorState::Transition if owner.motion.action == MOT_STATE_CLIMB => {
+                self.mode = Mode::Run
+            }
+            ActorState::Damaged
+                if (MOT_DAMAGE_LAUNCH_BACK..=MOT_DAMAGE_DOWNED).contains(&owner.motion.action)
+                    || owner.motion.action == MOT_DAMAGE_GETUP =>
             {
                 self.mode = Mode::Knockback
             }

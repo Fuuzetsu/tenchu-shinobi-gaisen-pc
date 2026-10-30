@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::{
     input::{CIRCLE, TRIANGLE, UP},
     items::Processor,
@@ -71,7 +72,7 @@ fn disguise_cast_expiry_and_render_phase_preserve_player_identity() {
             );
         }
         assert_eq!(game.player().mesh_kind, character);
-        assert_ne!(game.player().status, 11);
+        assert_ne!(game.player().status, ActorState::Crouch);
         assert_ne!(game.player().position, start);
         assert_eq!(
             game.player().motion.pose.root_height,

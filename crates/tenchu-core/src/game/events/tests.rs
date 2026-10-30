@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
@@ -116,7 +117,8 @@ int main(void){{
             actor.motion.loops = [-1, 0, 1][case / (i + 1) % 3];
             actor.motion.count = [0, 29, 30, 31][case / 3 % 4];
             actor.health = if case % 5 < 2 { 0 } else { 100 };
-            actor.status = [1, 7, 17][case / (i + 1) % 3];
+            actor.status =
+                [ActorState::Action, ActorState::Attack, ActorState::Dead][case / (i + 1) % 3];
             actor.attribute = crate::ids::ATTR_SUSPEND | (case as u16 & 3);
             row.extend(actor.position);
             row.extend([
@@ -124,7 +126,7 @@ int main(void){{
                 i32::from(actor.motion.loops),
                 i32::from(actor.motion.count),
                 i32::from(actor.health),
-                i32::from(actor.status),
+                i32::from(actor.status.source_id()),
                 i32::from(actor.attribute),
             ]);
         }
@@ -234,7 +236,7 @@ int main(void){{
             outcome,
             game.clock,
             game.events.time,
-            i32::from(game.player().status),
+            i32::from(game.player().status.source_id()),
             i32::from(game.intelligence.action_halt.source_id()),
             game.camera.mode.source_id() as i32,
         ];

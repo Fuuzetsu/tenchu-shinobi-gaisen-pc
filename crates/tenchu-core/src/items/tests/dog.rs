@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::ids::*;
 use crate::math::Position;
 
@@ -66,7 +67,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
         actors.get_mut(dog).map.height = 0;
         let owner_root = actors.get(player).root_model;
         for (status, clock) in [(0, 14), (7, 15), (8, 15), (16, 15)] {
-            actors.get_mut(dog).status = status;
+            actors.get_mut(dog).status = ActorState::from_source_id(status);
             items
                 .process(
                     1,
@@ -79,7 +80,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
                 .unwrap();
             assert_eq!(actors.get(dog).target, Some(owner_root));
         }
-        actors.get_mut(dog).status = 0;
+        actors.get_mut(dog).status = ActorState::Normal;
         items
             .process(
                 1,
@@ -96,7 +97,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
         assert_ne!(actors.get(dog).attribute & ATTR_WEAPON_DRAWN, 0);
         assert_eq!(actors.get(player).attribute, owner_flags);
         actors.get_mut(enemy).health = -1;
-        actors.get_mut(dog).status = 0;
+        actors.get_mut(dog).status = ActorState::Normal;
         items
             .process(
                 1,
@@ -114,7 +115,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
             actors.get(dog).attribute & (ATTR_WEAPON_DRAWN | 3 | ATTR_CUSTOMAI),
             0
         );
-        actors.get_mut(dog).status = 0;
+        actors.get_mut(dog).status = ActorState::Normal;
         actors.get_mut(dog).enter(ctx, MOT_NORMAL, true);
         items
             .process(
@@ -127,7 +128,7 @@ fn dog_targeting_and_idle_repeated_sheathing_follow_source() {
             )
             .unwrap();
         assert_eq!(actors.get(dog).motion.action, MOT_STATE_SHEATHE);
-        actors.get_mut(dog).status = 0;
+        actors.get_mut(dog).status = ActorState::Normal;
         actors.get_mut(dog).enter(ctx, MOT_NORMAL, true);
         actors.get_mut(dog).target = Some(items.slots[1].model);
         items

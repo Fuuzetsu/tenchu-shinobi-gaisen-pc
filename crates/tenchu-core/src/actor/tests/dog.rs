@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::{input::TRIANGLE, items::Processor};
 
 #[test]
@@ -21,7 +22,7 @@ fn summoned_dog_attacks_a_nearby_enemy() {
             if let Some(dog) = game.roster.find(0xa9) {
                 let actor = game.roster.get(dog);
                 selected |= actor.target == Some(game.roster.get(enemy).root_model);
-                attacked |= actor.status == 7;
+                attacked |= actor.status == ActorState::Attack;
             }
             if game.roster.get(enemy).health < health {
                 break;

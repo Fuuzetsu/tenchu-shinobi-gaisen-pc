@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::ids::*;
 use crate::math::Position;
 
@@ -105,7 +106,13 @@ impl Items {
                     } else {
                         None
                     };
-                if distance >= 1000 || matches!(actor.status, 16 | 8 | 7) || actor.health <= 0 {
+                if distance >= 1000
+                    || matches!(
+                        actor.status,
+                        ActorState::Damaged | ActorState::Transition | ActorState::Attack
+                    )
+                    || actor.health <= 0
+                {
                     return Ok(());
                 }
                 if intelligence.action_halt == crate::ai::Halt::Running {
@@ -175,7 +182,14 @@ impl Items {
                 if poison.remaining == 0 || actor.health <= 0 {
                     return self.dispose(id, actors, ctx);
                 }
-                if matches!(actor.status, 16 | 8 | 7 | 15) || ctx.random.next15() % 30 >= 3 {
+                if matches!(
+                    actor.status,
+                    ActorState::Damaged
+                        | ActorState::Transition
+                        | ActorState::Attack
+                        | ActorState::UseItem
+                ) || ctx.random.next15() % 30 >= 3
+                {
                     return Ok(());
                 }
                 if intelligence.action_halt == crate::ai::Halt::Running {
@@ -186,7 +200,7 @@ impl Items {
                         MOT_DAMAGE_CHOKE
                     };
                     Self::item_motion(actor, action, ctx);
-                    actor.status = 15;
+                    actor.status = ActorState::UseItem;
                 }
                 intelligence.voices.push((eater, 6));
             }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::{ids::*, scene::COLLIDE};
 
 impl Items {
@@ -87,7 +88,7 @@ impl Items {
                 let owner = actors.get(used.owner);
                 let (rotation, target) = (owner.rotation, owner.root_model);
                 let actor = actors.get_mut(slave);
-                actor.status = 0;
+                actor.status = ActorState::Normal;
                 actor.health = actor.max_health;
                 actor.position = position;
                 actor.rotation = rotation;
@@ -135,7 +136,12 @@ impl Items {
                     self.spill_inventory(slave, actors, ctx)?;
                     return self.dispose(id, actors, ctx);
                 }
-                if clock % 15 != 0 || matches!(actor.status, 7 | 8 | 16) {
+                if clock % 15 != 0
+                    || matches!(
+                        actor.status,
+                        ActorState::Attack | ActorState::Transition | ActorState::Damaged
+                    )
+                {
                     return Ok(());
                 }
                 let owner_id = used.owner;

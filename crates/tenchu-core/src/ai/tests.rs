@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{oracle, random::Random};
 use std::fmt::Write;
@@ -131,7 +132,7 @@ fn combat_decisions_match_original_c() {
         id: game.player_id,
         root: template.root_model,
         position: template.position,
-        status: 0,
+        status: ActorState::Normal,
         motion: MOT_NORMAL,
         height: 2000,
         active_item: 0,
@@ -343,7 +344,7 @@ int main(void) {{
             actor.kind = kind;
             actor.position = Position::ZERO;
             actor.home = [0; 2];
-            actor.status = status;
+            actor.status = ActorState::from_source_id(status);
             actor.motion.action = action;
             actor.motion.count = count;
             actor.brain = Brain {
@@ -422,7 +423,7 @@ int main(void) {{
                 &mut state,
                 crate::ai::Input {
                     player: Player {
-                        status: player_status,
+                        status: ActorState::from_source_id(player_status),
                         ..player
                     },
                     clock,
@@ -454,7 +455,7 @@ int main(void) {{
             expected.push(vec![
                 i32::from(pad),
                 i32::from(attribute),
-                i32::from(actor.status),
+                i32::from(actor.status.source_id()),
                 i32::from(actor.motion.action),
                 i32::from(actor.motion.count),
                 i32::from(actor.brain.mode),

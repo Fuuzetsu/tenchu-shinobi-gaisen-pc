@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 use crate::math::Position;
 mod chase;
 mod crouch;
@@ -47,32 +48,34 @@ impl Actor {
             None
         };
         let next = match self.status {
-            0 => self.normal(ctx, world, held, command, center)?,
-            1 => self.action(ctx, world, held)?,
-            2 => self.walk(ctx, world, held, center)?,
-            3 => self.swim(ctx, world, held)?,
-            4 => self.grapple_control(ctx, world)?,
-            5 => self.engage(ctx, world, held, command, center)?,
-            6 => self.chase(ctx, world, held, command, center)?,
-            7 => self.attack(ctx, world, held)?,
-            8 => self.state(ctx, world, held)?,
-            9 => self.jump(ctx, world, held)?,
-            10 => self.hang(ctx, held, world.player)?,
-            11 => self.crouch(ctx, world, held, command)?,
-            12 => self.wall(ctx, world, held, command)?,
-            13 => None,
-            14 => self.shuriken_control(ctx, world)?,
-            15 => self.item_control(ctx, world)?,
-            16 => self.damaged(ctx, world)?,
-            17 => self.dead(ctx, world)?,
-            status => {
+            ActorState::Normal => self.normal(ctx, world, held, command, center)?,
+            ActorState::Action => self.action(ctx, world, held)?,
+            ActorState::Walk => self.walk(ctx, world, held, center)?,
+            ActorState::Swim => self.swim(ctx, world, held)?,
+            ActorState::Grapple => self.grapple_control(ctx, world)?,
+            ActorState::Engage => self.engage(ctx, world, held, command, center)?,
+            ActorState::Chase => self.chase(ctx, world, held, command, center)?,
+            ActorState::Attack => self.attack(ctx, world, held)?,
+            ActorState::Transition => self.state(ctx, world, held)?,
+            ActorState::Jump => self.jump(ctx, world, held)?,
+            ActorState::Hang => self.hang(ctx, held, world.player)?,
+            ActorState::Crouch => self.crouch(ctx, world, held, command)?,
+            ActorState::Wall => self.wall(ctx, world, held, command)?,
+            ActorState::CeilingHang => None,
+            ActorState::AimShuriken => self.shuriken_control(ctx, world)?,
+            ActorState::UseItem => self.item_control(ctx, world)?,
+            ActorState::Damaged => self.damaged(ctx, world)?,
+            ActorState::Dead => self.dead(ctx, world)?,
+            ActorState::Unsupported(status) => {
                 return Err(format!(
                     "Actor state {status:#x}, motion {:#x} is not implemented yet",
                     self.motion.action
                 ));
             }
         };
-        if let Some((action, movement)) = next.or(damage_pending.filter(|_| self.status == 7)) {
+        if let Some((action, movement)) =
+            next.or(damage_pending.filter(|_| self.status == ActorState::Attack))
+        {
             self.enter_unless_scripted(ctx, action, movement);
         }
         ctx.scene.set_translation(self.root_model, self.position);
@@ -91,7 +94,7 @@ impl Actor {
         if visible {
             self.draw_fog = ctx.drawing.fog;
         }
-        let pose = visible || self.status == 7 || world.roster.keep_all_active;
+        let pose = visible || self.status == ActorState::Attack || world.roster.keep_all_active;
         let animated = pose && self.motion.loops >= 0;
         self.motion
             .play(&ctx.mission.clips, &ctx.math.tables.hermite, pose)?;
@@ -116,14 +119,20 @@ impl Actor {
         if self.motion.action == MOT_ATTACK_DIVE {
             return Ok(false);
         }
-        if self.status == 9 && self.map.height > 0 {
+        if self.status == ActorState::Jump && self.map.height > 0 {
             return Ok(true);
         }
         if self.attribute & ATTR_FLOAT != 0 || self.map.height <= 1000 {
             return Ok(false);
         }
-        if matches!(self.status, 4 | 10 | 13 | 16 | 17)
-            || (self.status == 11 && self.motion.loops == 0)
+        if matches!(
+            self.status,
+            ActorState::Grapple
+                | ActorState::Hang
+                | ActorState::CeilingHang
+                | ActorState::Damaged
+                | ActorState::Dead
+        ) || (self.status == ActorState::Crouch && self.motion.loops == 0)
         {
             return Ok(false);
         }
@@ -133,7 +142,7 @@ impl Actor {
         self.position.x = self.position.x.wrapping_add((width * i32::from(x)) >> 2);
         self.position.z = self.position.z.wrapping_add((width * i32::from(z)) >> 2);
         self.enter_unless_scripted(ctx, MOT_STATE_FALL, false);
-        if self.status == 11 {
+        if self.status == ActorState::Crouch {
             self.motion.count >>= 2;
         }
         self.clear_attack(ctx, 3)?;

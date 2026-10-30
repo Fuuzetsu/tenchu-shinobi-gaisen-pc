@@ -348,7 +348,7 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
             }
         }
         equal!(actor.kind, ram.short(address));
-        equal!(actor.status, ram.short(address + 2));
+        equal!(actor.status.source_id(), ram.short(address + 2));
         equal!(actor.attribute, ram.short(address + 4) as u16);
         equal!(actor.health, ram.short(address + 8));
         equal!(actor.position, ram.vector(ram.word(address + 0x38)));

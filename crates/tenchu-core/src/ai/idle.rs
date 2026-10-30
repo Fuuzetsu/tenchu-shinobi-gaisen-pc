@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 
 impl Controller<'_, '_> {
@@ -93,7 +94,7 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn ninja(&mut self) -> Result<u16> {
-        if self.actor.status == 9 {
+        if self.actor.status == ActorState::Jump {
             return Ok(0);
         }
         let old = self.actor.brain.timer;

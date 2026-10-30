@@ -1,4 +1,5 @@
 use super::{Actor, Context};
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{Result, terrain};
 
@@ -11,7 +12,7 @@ struct Query {
     delta: Position,
     height: i16,
     player_height: i16,
-    player_status: i16,
+    player_status: crate::actor::State,
     clock: i32,
     slot: i32,
     alert: i32,
@@ -146,8 +147,9 @@ impl Sight {
         if clock.wrapping_add(slot) & 31 != 0 {
             return Ok(Detection::None);
         }
-        let sneaking = matches!(player_status, 11 | 12);
-        if (player_status == 10 && (delta.y >= 0 || (delta.y < -3000 && self.distance < 4000)))
+        let sneaking = matches!(player_status, ActorState::Crouch | ActorState::Wall);
+        if (player_status == ActorState::Hang
+            && (delta.y >= 0 || (delta.y < -3000 && self.distance < 4000)))
             || (delta.y.wrapping_abs() >= 3000 && (alert == 0 || self.distance < 4000))
         {
             return Ok(Detection::Gone);
@@ -166,16 +168,13 @@ impl Sight {
         let height = i32::from(height);
         let player_height = i32::from(player_height);
         position.y = position.y.wrapping_add(300 - height);
-        delta.y =
-            delta
-                .y
-                .wrapping_sub(300)
-                .wrapping_add(height)
-                .wrapping_sub(if player_status == 11 {
-                    player_height / 2
-                } else {
-                    player_height
-                });
+        delta.y = delta.y.wrapping_sub(300).wrapping_add(height).wrapping_sub(
+            if player_status == ActorState::Crouch {
+                player_height / 2
+            } else {
+                player_height
+            },
+        );
         let mut count = 1i16;
         while delta.iter().any(|v| v.wrapping_abs() > limit) {
             count = count.wrapping_shl(1);

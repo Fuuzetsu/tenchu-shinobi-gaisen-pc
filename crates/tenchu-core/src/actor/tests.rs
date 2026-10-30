@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 mod experiments;
 mod imported;
 use super::*;
@@ -271,9 +272,12 @@ fn both_characters_finish_each_stealth_pair_and_leave_a_corpse() {
             );
             assert_eq!(game.statistics.criticals, 1);
             assert_eq!(game.intelligence.action_halt, crate::ai::Halt::Running);
-            assert_eq!(game.player().status, 5);
+            assert_eq!(game.player().status, ActorState::Engage);
             let dead = game.roster.get(victim);
-            assert_eq!((dead.health, dead.status, dead.motion.loops), (0, 17, -1));
+            assert_eq!(
+                (dead.health, dead.status, dead.motion.loops),
+                (0, ActorState::Dead, -1)
+            );
             assert!(game.scene.models[dead.parts[0]].conflict.is_none());
             assert_eq!(game.collision.len, 1);
         }
@@ -308,7 +312,7 @@ fn human_and_item_damage_match_original_c() {
         .pose
         .bind(&mut game.scene, attacker.root_model, &game.math);
     attacker.motion.action = MOT_ATTACK;
-    attacker.status = 7;
+    attacker.status = ActorState::Attack;
     attacker.velocity = [99, 8, 88];
     let mut rows = String::new();
     let actions = [
@@ -453,7 +457,7 @@ fn human_and_item_damage_match_original_c() {
         actor.motion.count = count;
         actor.motion.loops = loops;
         actor.motion.mask = 0x1234;
-        actor.status = (action >> 8) as i8 as i16;
+        actor.status = ActorState::from_motion(action);
         actor.position = Position::ZERO;
         actor.rotation = [0, yaw, 0];
         actor.velocity = [21, 7, -31];
@@ -516,7 +520,7 @@ fn human_and_item_damage_match_original_c() {
         };
         let mut row = vec![
             a.health.into(),
-            a.status.into(),
+            a.status.source_id().into(),
             a.motion.action.into(),
             a.motion.count.into(),
             a.motion.loops.into(),
@@ -910,7 +914,7 @@ fn both_players_grapple_and_cancel_through_normal_updates() {
                 wire |= !game.effects.wires.is_empty();
             }
             assert_eq!(game.player().inventory[0], 255);
-            assert_ne!(game.player().status, 4);
+            assert_ne!(game.player().status, ActorState::Grapple);
             assert_eq!((fly, pull, wire), (path == 0, path == 0, path == 0));
         }
     }

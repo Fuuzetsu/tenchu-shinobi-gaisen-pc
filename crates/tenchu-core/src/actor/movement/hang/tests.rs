@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 #[test]
 fn ledge_catch_keeps_non_cardinal_multiples_of_256() {
@@ -123,7 +124,7 @@ int main(void) {{int a[7];while(scanf("%d",a)==1) {{
                             definition.height = height as i16;
                             definition.width = width as i16;
                             actor.kind = kind;
-                            actor.status = 10;
+                            actor.status = ActorState::Hang;
                             actor.attribute = 0;
                             actor.active_item = active_item;
                             actor.map.height = 100;

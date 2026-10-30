@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 use crate::math::Position;
 mod combat;
 mod idle;
@@ -163,7 +164,7 @@ pub struct Player {
     pub id: usize,
     pub root: ModelId,
     pub position: Position,
-    pub status: i16,
+    pub status: crate::actor::State,
     pub motion: i16,
     pub height: i16,
     pub active_item: i16,
@@ -406,7 +407,9 @@ impl<'a, 'b> Controller<'a, 'b> {
 
     fn player_input(&self) -> u16 {
         let mut pad = self.input;
-        if self.actor.map.attribute & 0x200 != 0 && matches!(self.actor.status, 7 | 9) {
+        if self.actor.map.attribute & 0x200 != 0
+            && matches!(self.actor.status, ActorState::Attack | ActorState::Jump)
+        {
             pad &= !0xf000;
         }
         if pad & R1 != 0 {

@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{
     Result,
@@ -100,7 +101,7 @@ impl Roster {
                 continue;
             };
             if id == actor.id
-                || other.status == 17
+                || other.status == ActorState::Dead
                 || other.attribute & crate::ids::ATTR_SUSPEND != 0
                 || other.kind & 0xf0 == 0x90
                 || other.health < 0

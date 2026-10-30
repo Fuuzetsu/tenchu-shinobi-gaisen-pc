@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::oracle;
 use std::fmt::Write;
@@ -160,7 +161,11 @@ int main(void) {{
             let actor = game.roster.actors[id].as_mut().unwrap();
             actor.kind = [0x10, 0x84, 0x83, 0x87, 0xa9, 0x90, 0x81][(next() % 7) as usize];
             actor.health = [-1, 0, 1, 100][(next() % 4) as usize];
-            actor.status = if next() & 2 != 0 { 0x11 } else { 0 };
+            actor.status = if next() & 2 != 0 {
+                ActorState::Dead
+            } else {
+                ActorState::Normal
+            };
             actor.attribute = next() as u16;
             actor.position = if i == 0 {
                 player_position
@@ -196,7 +201,7 @@ int main(void) {{
                 "{} {} {} {} {} {} {} {} {} {} {} {} {} {}",
                 actor.kind,
                 actor.health,
-                actor.status,
+                actor.status.source_id(),
                 actor.attribute,
                 collision,
                 actor.position.x,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{
     ai::Difficulty,
@@ -30,7 +31,7 @@ impl Actor {
         } else {
             world.roster.get_mut(rumble.actor)
         };
-        if attacker.status == 7 {
+        if attacker.status == ActorState::Attack {
             attacker.motion.loops = damage / -3 - 1;
             attacker.velocity[0] = 0;
             attacker.velocity[2] = 0;
@@ -184,7 +185,7 @@ impl Actor {
         let angle = i32::from(direction).abs();
         let mut action = self.motion.action;
         if self.id != world.player
-            && self.status != 7
+            && self.status != ActorState::Attack
             && self.attribute & ATTR_WEAPON_DRAWN != 0
             && self.map.height == 0
             && world.intelligence.difficulty != Difficulty::Easy
@@ -419,7 +420,7 @@ impl Actor {
         world: &mut ActionContext,
         hit: usize,
     ) -> Result<Option<(i16, bool)>> {
-        if self.status == 16 {
+        if self.status == ActorState::Damaged {
             return Ok(None);
         }
         ctx.collision.result(ctx.scene, self.root_model, Some(hit));
@@ -578,7 +579,7 @@ impl Actor {
                     self.motion.count = 0;
                     self.play_pose(ctx)?;
                     self.motion.loops = -2;
-                    self.status = 17;
+                    self.status = ActorState::Dead;
                     self.attribute &= !ATTR_SEARCH;
                     self.velocity = [0; 3];
                     if self.id != world.player {

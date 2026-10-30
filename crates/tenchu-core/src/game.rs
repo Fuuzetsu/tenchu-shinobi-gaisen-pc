@@ -1,3 +1,4 @@
+use crate::actor::State as ActorState;
 use crate::math::Position;
 pub mod activation;
 pub mod cinematic;
@@ -280,7 +281,7 @@ impl Game {
                         )?;
                         center
                     } else {
-                        if actor.status == 17 {
+                        if actor.status == ActorState::Dead {
                             actor.corpse(
                                 &mut context,
                                 &mut crate::actor::ActionContext {

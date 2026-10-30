@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{ids::*, input::*};
 
@@ -21,7 +22,7 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
         assert_eq!(game.player().inventory[8], 1);
         assert_eq!(
             (game.player().motion.action, game.player().status),
-            (MOT_ITEM_PLANT, 8)
+            (MOT_ITEM_PLANT, ActorState::Transition)
         );
         let cast = game
             .items
@@ -171,7 +172,7 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
             .unwrap();
         assert_eq!(
             (actors.get(player).motion.action, actors.get(player).status),
-            (MOT_ITEM_PLANT, 8)
+            (MOT_ITEM_PLANT, ActorState::Transition)
         );
         actors.get_mut(player).motion.count = 15;
         let position = actors.get(player).position;

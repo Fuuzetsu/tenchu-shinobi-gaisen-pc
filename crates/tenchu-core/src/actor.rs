@@ -1,4 +1,7 @@
+use crate::actor::State as ActorState;
+mod state;
 use crate::math::Position;
+pub use state::State;
 mod body;
 mod combat;
 mod damage;
@@ -98,7 +101,7 @@ pub struct Actor {
     pub(crate) suppress_idle_taunts: bool,
     pub max_health: i16,
     pub attribute: u16,
-    pub status: i16,
+    pub status: State,
     pub scripted: bool,
     pub map: Probe,
     pub pad: Pad,
@@ -200,7 +203,7 @@ impl Actor {
             health: data.health,
             max_health: data.health,
             attribute: 0,
-            status: 0,
+            status: State::Normal,
             scripted: false,
             invulnerable: false,
             suppress_idle_taunts: false,
@@ -331,7 +334,7 @@ impl Actor {
     }
 
     pub fn look_at_camera(&mut self, ctx: &mut Context) -> Result<()> {
-        if self.health <= 0 || self.status == 12 {
+        if self.health <= 0 || self.status == ActorState::Wall {
             return Ok(());
         }
         if self.parts.len() < 3 {
@@ -449,7 +452,7 @@ impl Actor {
     }
 
     pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
-        if self.status == 17 && self.motion.loops == -1 {
+        if self.status == ActorState::Dead && self.motion.loops == -1 {
             return false;
         }
         let data = &ctx.mission.characters[self.definition];
@@ -462,7 +465,7 @@ impl Actor {
         {
             return false;
         }
-        self.status = i16::from((action >> 8) as i8);
+        self.status = ActorState::from_motion(action);
         if movement {
             self.motion_velocity(ctx);
         }

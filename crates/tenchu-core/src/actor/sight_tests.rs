@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::oracle;
 
@@ -9,7 +10,7 @@ fn optional_sight_range_changes_thresholds_without_changing_angles_or_polling() 
         delta: Position::new(0, 0, 9000),
         height: 1800,
         player_height: 1800,
-        player_status: status,
+        player_status: ActorState::from_source_id(status),
         clock,
         slot: 0,
         alert: 0,
@@ -161,7 +162,7 @@ int main(void) {{
                             delta: Position::from_fn(|i| target[i] - position[i]),
                             height: 2300,
                             player_height: 1901,
-                            player_status: status,
+                            player_status: ActorState::from_source_id(status),
                             clock,
                             slot: 3,
                             alert,

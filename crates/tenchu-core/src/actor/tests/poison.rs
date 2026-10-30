@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::{input::TRIANGLE, items::Processor};
 
 #[test]
@@ -34,7 +35,8 @@ fn poisoned_food_lures_and_restores_an_enemy() {
             let actor = game.roster.get(enemy);
             lured |= actor.think[0] == 9;
             eating |= actor.motion.action == MOT_ITEM_DRINK;
-            choked |= actor.status == 15 && actor.motion.action == MOT_DAMAGE_CHOKE;
+            choked |=
+                actor.status == ActorState::UseItem && actor.motion.action == MOT_DAMAGE_CHOKE;
             poisoned |= game
                 .items
                 .slots

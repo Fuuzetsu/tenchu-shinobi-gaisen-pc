@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 
 impl Controller<'_, '_> {
     pub(super) fn succession(&mut self, distance: i32, degree: i32) -> u16 {
@@ -22,7 +23,7 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn item(&mut self) -> Result<()> {
-        if self.actor.motion.count != 0 || self.actor.status != 5 {
+        if self.actor.motion.count != 0 || self.actor.status != ActorState::Engage {
             return Ok(());
         }
         if self.actor.inventory[3] != 0 && self.actor.health < self.actor.max_health / 3 {
@@ -67,7 +68,7 @@ impl Controller<'_, '_> {
 
     pub(super) fn attack_point(&mut self) -> Result<u16> {
         let class = self.class();
-        if self.actor.status == 7 {
+        if self.actor.status == ActorState::Attack {
             return Ok(if class == 3 {
                 self.succession(20000, 500)
             } else {
@@ -115,8 +116,8 @@ impl Controller<'_, '_> {
             } else if close + 500 < self.distance() {
                 pad |= UP;
             }
-        } else if self.actor.status == 5 {
-            if self.player.status == 14 {
+        } else if self.actor.status == ActorState::Engage {
+            if self.player.status == ActorState::AimShuriken {
                 let command = if self.random() & 1 != 0 { 3 } else { 4 };
                 pad = self.command(command);
             } else if self.actor.motion.count == 0 && self.random() % 3 == 0 {
@@ -125,7 +126,10 @@ impl Controller<'_, '_> {
                 self.item()?;
             }
         }
-        if self.actor.motion.count == 0 && self.random() % 30 == 0 && self.actor.status == 5 {
+        if self.actor.motion.count == 0
+            && self.random() % 30 == 0
+            && self.actor.status == ActorState::Engage
+        {
             self.motion(MOT_ATTACK_TAUNT);
         }
         Ok(pad)
@@ -157,7 +161,7 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn attack_area(&mut self) -> Result<u16> {
-        if self.actor.status == 7 {
+        if self.actor.status == ActorState::Attack {
             return Ok(self.succession(4000, 500));
         }
         if self.distance() < 10000 && self.state.detection != Detection::Gone {
@@ -221,7 +225,7 @@ impl Controller<'_, '_> {
         if self.distance() < 10000 && self.state.detection != Detection::Gone {
             self.state.detection = Detection::None;
         }
-        if self.actor.status == 7 {
+        if self.actor.status == ActorState::Attack {
             self.actor.brain.flag = 0;
             self.actor.brain.chase = [0; 2];
             return Ok(self.succession(3000, 1500));
@@ -255,7 +259,7 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn animal(&mut self) -> Result<u16> {
-        if matches!(self.actor.status, 7 | 9) {
+        if matches!(self.actor.status, ActorState::Attack | ActorState::Jump) {
             self.actor.brain.mode = 0;
             return Ok(0);
         }
@@ -276,10 +280,10 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn ranged(&mut self) -> Result<u16> {
-        if self.actor.status == 7 {
+        if self.actor.status == ActorState::Attack {
             return Ok(self.succession(20000, 500));
         }
-        if self.actor.status == 9 {
+        if self.actor.status == ActorState::Jump {
             return Ok(0);
         }
         if self.distance() < 20000 && self.state.detection != Detection::Gone {

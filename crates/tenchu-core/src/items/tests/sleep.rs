@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{ai::Intelligence, effects::Effect, ids::*, scene::CONFLICT};
 
@@ -93,7 +94,7 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             actor.health = health;
             actor.attribute = ATTR_WEAPON_DRAWN | 3;
             actor.think[0] = 0;
-            actor.status = 0;
+            actor.status = ActorState::Normal;
             actor.enter(ctx, action, true);
             items.dispose(1, actors, ctx).unwrap();
             items

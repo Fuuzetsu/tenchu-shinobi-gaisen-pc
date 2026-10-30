@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::items::Processor;
 
 #[test]
@@ -62,7 +63,7 @@ finish();printf("%d %d %d %d %d %d %d\n",human.life,human.item[10],motion.mid,hu
                     item.behavior = crate::items::Behavior::Inactive;
                 }
                 actor.scripted = scripted;
-                actor.status = 0;
+                actor.status = ActorState::Normal;
                 actor.motion.loops = 0;
                 actor.enter(ctx, action, true);
                 actor.health = health;

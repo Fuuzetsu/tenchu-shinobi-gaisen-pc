@@ -1,4 +1,5 @@
 use super::Game;
+use crate::actor::State as ActorState;
 use crate::{Result, camera, roster::Roster};
 use tenchu_assets::script::Event;
 #[cfg(test)]
@@ -60,7 +61,7 @@ impl Events {
         };
         if let Some(target) = target {
             let actor = roster.get(target);
-            if !(actor.status == 17 && actor.motion.loops == -1)
+            if !(actor.status == ActorState::Dead && actor.motion.loops == -1)
                 && (!(2..=3).contains(&id) || actor.health > 0)
             {
                 self.slots[slot] = Some(Slot { event, target });
@@ -89,7 +90,7 @@ fn triggered(
             })
         }
         2 => target.attribute & event.value as u16 == event.value as u16,
-        3 => player.status != 7 && target.status == event.value,
+        3 => player.status != ActorState::Attack && target.status.source_id() == event.value,
         4 => target.motion.action == event.value,
         5 => target.health <= event.value,
         6 => [1, 0, 2].into_iter().all(|i| {
@@ -155,7 +156,7 @@ impl Game {
             )?;
         }
         self.intelligence.action_halt = crate::ai::Halt::StageEnd;
-        self.roster.get_mut(self.player_id).status = 17;
+        self.roster.get_mut(self.player_id).status = ActorState::Dead;
         Ok(())
     }
 
@@ -170,7 +171,7 @@ impl Game {
             return Ok(());
         }
         for _ in 0..4096 {
-            if self.player().status == 17 {
+            if self.player().status == ActorState::Dead {
                 if self.player().motion.loops == 0 && self.player().motion.count < 30 {
                     return Ok(());
                 }
@@ -185,7 +186,7 @@ impl Game {
                 }
                 self.update_event(0, 2);
                 self.update_event(1, 3);
-                self.roster.get_mut(self.player_id).status = 1;
+                self.roster.get_mut(self.player_id).status = ActorState::Action;
                 self.events.dying = true;
             }
             self.events.time = self.events.time.wrapping_add(1);

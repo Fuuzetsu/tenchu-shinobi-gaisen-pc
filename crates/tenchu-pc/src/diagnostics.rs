@@ -27,7 +27,7 @@ pub fn game(game: &Game) -> Value {
         "position": position(a.position), "previous": position(a.previous),
         "velocity": a.velocity, "rotation": a.rotation,
         "health": a.health, "max_health": a.max_health, "invulnerable": a.invulnerable,
-        "status": a.status, "attribute": a.attribute, "scripted": a.scripted,
+        "status": a.status.source_id(), "attribute": a.attribute, "scripted": a.scripted,
         "target_model": a.target, "hit_actor": a.hit, "home": a.home,
         "think": a.think,
         "brain": {"mode": a.brain.mode, "flag": a.brain.flag, "count": a.brain.count,

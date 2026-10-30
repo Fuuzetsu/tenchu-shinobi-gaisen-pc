@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 
 impl Actor {
     pub(super) fn dead(
@@ -214,7 +215,8 @@ impl Actor {
             return Ok(());
         }
         let witness = world.roster.get(id);
-        if witness.attribute & (ATTR_SUSPEND | ATTR_PHASE) != 0 || matches!(witness.status, 16 | 17)
+        if witness.attribute & (ATTR_SUSPEND | ATTR_PHASE) != 0
+            || matches!(witness.status, ActorState::Damaged | ActorState::Dead)
         {
             return Ok(());
         }

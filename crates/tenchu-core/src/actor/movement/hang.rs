@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 
 impl Actor {
@@ -74,7 +75,7 @@ impl Actor {
             return Ok(false);
         }
         self.position.y = self.position.y.wrapping_sub(105i32.wrapping_sub(y));
-        if self.status == 10 {
+        if self.status == ActorState::Hang {
             return Ok(true);
         }
         let old_y = y;

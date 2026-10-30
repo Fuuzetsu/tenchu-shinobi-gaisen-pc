@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{collision, scene::CONFLICT};
 
@@ -15,7 +16,7 @@ impl Actor {
                 continue;
             }
             if other.class & collision::HIT != 0 {
-                if self.status != 17 {
+                if self.status != ActorState::Dead {
                     self.hit = Some(slot);
                     self.attribute |= ATTR_HIT;
                 }
@@ -51,7 +52,10 @@ impl Actor {
                 continue;
             }
             if other.position.y.wrapping_add(i32::from(other.size[1])) < center[1]
-                && matches!(self.status, 0 | 2 | 5 | 6)
+                && matches!(
+                    self.status,
+                    ActorState::Normal | ActorState::Walk | ActorState::Engage | ActorState::Chase
+                )
             {
                 // The original passes world Y as yaw here.
                 let direction = ctx.math.direction(
@@ -104,8 +108,8 @@ impl Actor {
             ctx.cursor.area = self.map.area;
             ctx.cursor.row = self.map.row;
         }
-        let position = if self.status == 7
-            || (self.status != 11
+        let position = if self.status == ActorState::Attack
+            || (self.status != ActorState::Crouch
                 && self.map.height == 0
                 && (i32::from(self.velocity[0]).abs() > 80
                     || i32::from(self.velocity[2]).abs() > 80))
@@ -152,7 +156,10 @@ impl Actor {
             }
             self.velocity[1] = 0;
         }
-        if self.map.attribute & 0x200 != 0 && self.map.height == 0 && self.status != 17 {
+        if self.map.attribute & 0x200 != 0
+            && self.map.height == 0
+            && self.status != ActorState::Dead
+        {
             self.enter(ctx, MOT_DEAD, true);
         }
         if self.map.angle_low != 0 || self.map.angle_high != 0 {
@@ -217,7 +224,9 @@ impl Actor {
             difference += if difference > 0 { -4096 } else { 4096 };
         }
         if difference.abs() < 1800 || !player || self.map.height != 0 {
-            if self.map.angle_high == 0 && matches!(self.status, 2 | 6) {
+            if self.map.angle_high == 0
+                && matches!(self.status, ActorState::Walk | ActorState::Chase)
+            {
                 self.rotation[1] =
                     self.rotation[1].wrapping_add(if difference > 0 { -32 } else { 32 });
                 self.motion_velocity(ctx);

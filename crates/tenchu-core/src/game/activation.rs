@@ -1,4 +1,5 @@
 use super::Game;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 #[cfg(test)]
 mod tests;
@@ -118,7 +119,7 @@ impl Game {
                     if actor.kind == 0x83 && actor.health == 0 {
                         actor.health = 1;
                     }
-                } else if actor.status != 0x11 && actor.attribute & ATTR_FLOAT == 0 {
+                } else if actor.status != ActorState::Dead && actor.attribute & ATTR_FLOAT == 0 {
                     let query = Position::new(
                         actor.home[0],
                         actor.position.y.wrapping_sub(1500),

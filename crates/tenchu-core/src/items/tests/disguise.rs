@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::math::Position;
 use crate::{ai::Intelligence, ids::*, input::TRIANGLE};
 
@@ -195,13 +196,13 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
             }
         }
         items.cursor = (active + 1) % CAPACITY;
-        actors.get_mut(player).status = 11;
+        actors.get_mut(player).status = ActorState::Crouch;
         let id = items.allocate(actors, ctx).unwrap();
         assert_eq!(id, active);
         assert!(items.slots[id].processor().is_none());
         assert_eq!(actors.get(player).active_item, 0);
         assert_eq!(actors.get(player).mesh_kind, 0);
-        assert_ne!(actors.get(player).status, 11);
+        assert_ne!(actors.get(player).status, ActorState::Crouch);
     });
 }
 
@@ -234,7 +235,7 @@ fn disguise_break_conditions_follow_actor_status_and_motion() {
                 .unwrap();
             items.slots[1].set_source_mode(1);
             let owner = actors.get_mut(player);
-            owner.status = 2;
+            owner.status = ActorState::Walk;
             owner.enter(ctx, MOT_ITEM_KAENGEKI, true);
             owner.motion.count = 0;
             owner.motion.loops = 1;
@@ -247,7 +248,7 @@ fn disguise_break_conditions_follow_actor_status_and_motion() {
                 .unwrap();
             assert_eq!(actors.get(player).mesh_kind, ctx.mission.disguise);
             let owner = actors.get_mut(player);
-            owner.status = status;
+            owner.status = ActorState::from_source_id(status);
             owner.motion.action = action;
             owner.motion.loops = loops;
             owner.active_item = active;

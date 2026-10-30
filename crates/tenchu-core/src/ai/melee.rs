@@ -1,11 +1,12 @@
 use super::*;
+use crate::actor::State as ActorState;
 
 impl Controller<'_, '_> {
     fn recovery(&mut self, distance: i32, degree: i32) -> Option<u16> {
-        if self.actor.status == 7 {
+        if self.actor.status == ActorState::Attack {
             return Some(self.succession(distance, degree));
         }
-        if self.actor.status == 9 {
+        if self.actor.status == ActorState::Jump {
             return Some(0);
         }
         if self.actor.motion.action == MOT_ENGAGE {

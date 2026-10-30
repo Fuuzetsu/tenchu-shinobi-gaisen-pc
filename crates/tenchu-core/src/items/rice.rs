@@ -1,4 +1,5 @@
 use super::*;
+use crate::actor::State as ActorState;
 use crate::ids::MOT_ITEM_PLANT;
 
 impl Items {
@@ -20,7 +21,7 @@ impl Items {
                     owner.clear_attack(ctx, 3)?;
                     Self::item_motion(owner, MOT_ITEM_PLANT, ctx);
                     // Rice uses ActSTATE, avoiding ActITEM's mine request at frame 5.
-                    owner.status = 8;
+                    owner.status = ActorState::Transition;
                 }
                 self.slots[id].behavior = Behavior::Rice(used.with_phase(state::Rice::Planting));
             }
