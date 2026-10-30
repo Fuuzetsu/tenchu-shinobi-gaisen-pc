@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Experimental camera-relative controls, available in F1 → Movement: continuous
+  left-stick direction, camera-relative keyboard/D-pad movement, right-stick or
+  held-right-mouse orbit, adjustable sensitivity/deadzone/distance and camera
+  recentering. The follow camera avoids walls; classic controls remain the default.
+
 ## 0.6.0 — 2026-10-30
 
 - Modern presets enable soft blood spray and persistent stains, with much higher

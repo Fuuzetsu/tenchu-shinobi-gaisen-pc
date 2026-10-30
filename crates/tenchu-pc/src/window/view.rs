@@ -93,6 +93,18 @@ pub(super) struct View {
 }
 
 impl View {
+    pub(super) fn navigation_surfaces(
+        &mut self,
+        game: &Game,
+    ) -> &crate::visuals::surfaces::Surfaces {
+        self.surfaces.get_or_insert_with(|| {
+            crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
+                &game.mission,
+                &game.math,
+                Some(&self.models),
+            ))
+        })
+    }
     pub(super) fn diagnostic_snapshot(&self) -> serde_json::Value {
         use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
         let window_backend = match self.window.window_handle().map(|h| h.as_raw()) {
@@ -786,7 +798,8 @@ impl View {
         self.renderer.visual_time =
             ((game.tick as f64 + f64::from(alpha) - 1.0).max(0.0) / 30.0) as f32;
         let frame = self.frame.as_ref();
-        let inspection = debug.camera.is_some() || game.roster.keep_all_active;
+        let camera = debug.camera.or(debug.follow_camera);
+        let inspection = camera.is_some() || game.roster.keep_all_active;
         render_mesh::update_characters(
             &mut self.vertices,
             game,
@@ -878,7 +891,7 @@ impl View {
                     render_effects::build_presented(
                         game,
                         settings.show_hud && !debug.photo_mode,
-                        debug.camera.map(|c| c.source_view()),
+                        camera.map(|c| c.source_view()),
                         settings.graphics.blob_shadows,
                         Some(&self.models),
                         frame,
@@ -911,7 +924,7 @@ impl View {
                 game,
                 &self.models,
                 frame,
-                debug.camera.map(|camera| camera.source_view()),
+                camera.map(|camera| camera.source_view()),
                 if self.interpolation_enabled {
                     alpha
                 } else {
@@ -1059,7 +1072,7 @@ impl View {
 
     fn camera_matrix(&self, game: &Game, debug: &crate::debug::Debug) -> glam::Mat4 {
         let aspect = self.config.width as f32 / self.config.height as f32;
-        if debug.camera.is_some() {
+        if debug.camera.or(debug.follow_camera).is_some() {
             debug.matrix(game, aspect)
         } else {
             crate::renderer::game_camera(

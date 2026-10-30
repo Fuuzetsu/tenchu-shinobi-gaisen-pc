@@ -90,7 +90,11 @@ impl Application {
                 break;
             }
             let buttons = if self.focused && !self.menu.open && self.debug.camera.is_none() {
-                self.controls.buttons()
+                if self.navigation_enabled() {
+                    self.controls.relative_buttons()
+                } else {
+                    self.controls.buttons()
+                }
             } else {
                 0
             };
@@ -98,6 +102,7 @@ impl Application {
                 .frontend
                 .as_ref()
                 .map_or(buttons, |f| f.buttons(buttons));
+            let buttons = self.navigation_input(buttons);
             if !self.game_tick(buttons) {
                 break;
             }

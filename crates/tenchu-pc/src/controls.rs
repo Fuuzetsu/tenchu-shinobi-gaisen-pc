@@ -76,6 +76,12 @@ struct Pad {
     blocked: u16,
     pending: u16,
     stick: [i8; 4],
+    axes: [f32; 4],
+    axes_blocked: [bool; 2],
+    direct: u16,
+    direct_pending: u16,
+    direct_blocked: u16,
+    recenter: bool,
 }
 
 fn direction(value: f32, previous: i8) -> i8 {
@@ -96,6 +102,12 @@ impl Pad {
     fn suppress(&mut self) {
         self.blocked = self.raw;
         self.pending = 0;
+        self.direct_blocked = self.direct;
+        self.direct_pending = 0;
+        self.recenter = false;
+        for (blocked, axes) in self.axes_blocked.iter_mut().zip(self.axes.chunks_exact(2)) {
+            *blocked |= axes.iter().any(|v| v.abs() > 0.05);
+        }
     }
 
     fn sample(&mut self, id: usize, buttons: u16, focused: bool) -> u16 {
@@ -256,6 +268,30 @@ impl Controls {
             .fold(buttons, |buttons, key| buttons | self.bindings.key(*key))
     }
 
+    pub fn relative_buttons(&mut self) -> u16 {
+        self.pad.pending = 0;
+        let buttons = (self.pad.direct & !self.pad.direct_blocked)
+            | mem::take(&mut self.pad.direct_pending)
+            | mem::take(&mut self.pending_keys);
+        self.keys
+            .iter()
+            .fold(buttons, |bits, key| bits | self.bindings.key(*key))
+    }
+
+    pub fn sticks(&self) -> [glam::Vec2; 2] {
+        std::array::from_fn(|i| {
+            if self.pad.axes_blocked[i] || self.editor.open {
+                glam::Vec2::ZERO
+            } else {
+                glam::Vec2::new(self.pad.axes[i * 2], self.pad.axes[i * 2 + 1])
+            }
+        })
+    }
+
+    pub fn take_recenter(&mut self) -> bool {
+        mem::take(&mut self.pad.recenter)
+    }
+
     pub fn poll(&mut self, focused: bool) -> Update {
         let mut update = Update::default();
         if !focused {
@@ -290,9 +326,41 @@ impl Controls {
             let gamepad = gilrs.gamepad(event.id);
             let before = self.pad.active;
             let previous_stick = self.pad.stick;
-            self.pad.stick = std::array::from_fn(|i| {
-                direction(gamepad.value(StickAxis::ALL[i].axis()), previous_stick[i])
+            self.pad.axes = std::array::from_fn(|i| {
+                let value = gamepad.value(StickAxis::ALL[i].axis());
+                if value.is_finite() {
+                    value.clamp(-1.0, 1.0)
+                } else {
+                    0.0
+                }
             });
+            for (blocked, axes) in self
+                .pad
+                .axes_blocked
+                .iter_mut()
+                .zip(self.pad.axes.chunks_exact(2))
+            {
+                *blocked &= axes.iter().any(|v| v.abs() > 0.05);
+            }
+            if focused && self.pad.axes.iter().any(|v| v.abs() > 0.05) {
+                self.pad.active = Some(id);
+            }
+            if focused
+                && !self.editor.open
+                && matches!(event.event, EventType::ButtonPressed(Button::RightThumb, _))
+            {
+                self.pad.recenter = true;
+                self.pad.active = Some(id);
+            }
+            let previous_direct = self.pad.direct & !self.pad.direct_blocked;
+            self.pad.direct = self
+                .bindings
+                .controller(|button| gamepad.is_pressed(button), [0; 4]);
+            self.pad.direct_blocked &= self.pad.direct;
+            self.pad.direct_pending |=
+                (self.pad.direct & !self.pad.direct_blocked) & !previous_direct;
+            self.pad.stick =
+                std::array::from_fn(|i| direction(self.pad.axes[i], previous_stick[i]));
             if focused && self.editor.open && captured.is_none() {
                 captured = match event.event {
                     EventType::ButtonPressed(button, _) if button != Button::Unknown => {

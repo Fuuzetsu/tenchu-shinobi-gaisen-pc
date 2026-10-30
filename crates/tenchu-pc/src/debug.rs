@@ -15,6 +15,7 @@ use tenchu_core::game::Game;
 
 pub struct Debug {
     pub camera: Option<Camera>,
+    pub follow_camera: Option<Camera>,
     pub bookmark: Option<Camera>,
     pub looking: bool,
     pub flight_speed: u16,
@@ -55,6 +56,7 @@ impl Debug {
     pub fn new(game: &Game) -> Result<Self> {
         Ok(Self {
             camera: None,
+            follow_camera: None,
             bookmark: None,
             looking: false,
             flight_speed: 12,
@@ -111,7 +113,7 @@ impl Debug {
     }
 
     pub fn matrix(&self, game: &Game, aspect: f32) -> Mat4 {
-        self.camera.map_or_else(
+        self.camera.or(self.follow_camera).map_or_else(
             || crate::renderer::game_camera(game.rendered_view, aspect),
             |c| c.matrix(aspect),
         )
@@ -119,6 +121,7 @@ impl Debug {
 
     pub fn eye(&self, game: &Game) -> Vec3 {
         self.camera
+            .or(self.follow_camera)
             .unwrap_or_else(|| Camera::from_game(game))
             .position
     }

@@ -22,6 +22,8 @@ pub mod presets;
 pub use post::Post;
 mod vibration;
 pub use vibration::Vibration;
+mod navigation;
+pub use navigation::Navigation;
 
 use serde::{Deserialize, Serialize};
 mod store;
@@ -43,6 +45,7 @@ pub struct Settings {
     pub sharp_text: bool,
     pub volume: u16,
     pub vibration: Vibration,
+    pub navigation: Navigation,
     pub graphics: Graphics,
     pub cutscene_speed: u16,
     pub player_model: String,
@@ -68,6 +71,7 @@ impl Default for Settings {
             sharp_text: false,
             volume: 100,
             vibration: Vibration::default(),
+            navigation: Navigation::default(),
             graphics: Graphics::default(),
             cutscene_speed: 1,
             player_model: String::new(),
@@ -83,6 +87,7 @@ impl Settings {
     fn validate(&mut self) {
         self.volume = self.volume.min(100);
         self.vibration.validate();
+        self.navigation.validate();
         self.sight_percent = self.sight_percent.min(400);
         if ![0, 1, 2, 4, 8, 16].contains(&self.cutscene_speed) {
             self.cutscene_speed = 1;

@@ -5,6 +5,7 @@ pub mod cinematic;
 mod debug;
 pub mod events;
 pub mod moveset;
+pub mod navigation;
 #[cfg(test)]
 mod retail_tests;
 pub mod score;
@@ -59,6 +60,7 @@ pub struct Game {
     pub drawing: Drawing,
     pub construction: Construction,
     pub moveset: moveset::State,
+    pub navigation: navigation::Navigation,
     pub(crate) body: BodyTables,
     pub(crate) commands: Vec<Command>,
     pub(crate) cursor: Cursor,
@@ -142,6 +144,7 @@ impl Game {
             construction,
             sound_appearance,
             moveset: moveset::State::default(),
+            navigation: navigation::Navigation::default(),
         })
     }
 
@@ -167,6 +170,7 @@ impl Game {
         input: u16,
         step: crate::drawing::Step,
     ) -> Result<bool> {
+        let navigation = std::mem::take(&mut self.navigation);
         self.drawing.step = step;
         self.tick += 1;
         self.music.clear();
@@ -200,6 +204,9 @@ impl Game {
         }
         self.visible.clear();
         self.cinematic.frame = self.cinematic.active;
+        if let Some(heading) = navigation.heading {
+            self.steer_player(heading);
+        }
         let input = if self.cinematic.active {
             self.cinematic.input
         } else {
@@ -221,6 +228,13 @@ impl Game {
                 },
                 &mut self.scene,
             )?;
+        }
+        if !self.cinematic.active
+            && let Some(camera) = navigation.camera
+            && self.player_can_orbit()
+        {
+            self.camera
+                .set_view(camera.position, camera.target, &self.math)?;
         }
         let mut context = Context {
             mission: &mut self.mission,

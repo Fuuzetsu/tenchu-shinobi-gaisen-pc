@@ -1,6 +1,22 @@
 use super::*;
 
 #[test]
+fn analog_input_keeps_precision_and_requires_centering_after_focus_changes() {
+    let mut controls = Controls::default();
+    controls.pad.axes = [0.37, 0.81, -0.23, 0.62];
+    controls.pad.direct = input::SQUARE;
+    controls.key(KeyCode::KeyA, true);
+    assert_eq!(controls.relative_buttons(), input::SQUARE | input::LEFT);
+    assert_eq!(controls.sticks()[0], glam::Vec2::new(0.37, 0.81));
+    controls.clear();
+    assert_eq!(controls.sticks(), [glam::Vec2::ZERO; 2]);
+    assert_eq!(controls.relative_buttons(), 0);
+    controls.pad.active = Some(0);
+    controls.pad.disconnect(0);
+    assert_eq!(controls.sticks(), [glam::Vec2::ZERO; 2]);
+}
+
+#[test]
 fn taps_between_ticks_are_delivered_once_and_cleared_at_host_transitions() {
     let mut controls = Controls::default();
     controls.key(KeyCode::KeyW, true);

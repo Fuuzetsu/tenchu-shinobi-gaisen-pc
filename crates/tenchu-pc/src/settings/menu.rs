@@ -4,6 +4,13 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    CameraRelative,
+    MouseSensitivity,
+    StickSensitivity,
+    StickDeadzone,
+    InvertCameraY,
+    FollowDistance,
+    RecenterOrbit,
     Randomizer,
     GodMode,
     Stealth,
@@ -193,6 +200,7 @@ impl Item {
         matches!(
             self,
             Self::Reset
+                | Self::RecenterOrbit
                 | Self::Randomizer
                 | Self::GiveItems
                 | Self::ClearItems
@@ -247,7 +255,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 20] = [
+pub const PAGES: [&str; 21] = [
     "General",
     "Graphics",
     "Overlays",
@@ -268,6 +276,7 @@ pub const PAGES: [&str; 20] = [
     "Experiment",
     "Contact effects",
     "Vibration",
+    "Movement",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -277,6 +286,50 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        20 => vec![
+            (
+                Item::CameraRelative,
+                "Camera-relative controls",
+                on(s.navigation.camera_relative),
+                "Experimental: camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Hold Left Ctrl / R1 for classic movement (backward guards with weapon drawn); Shift / Circle still crouches. Recorded input tapes require classic controls.",
+            ),
+            (
+                Item::MouseSensitivity,
+                "Mouse sensitivity",
+                format!("{}%", s.navigation.mouse_sensitivity),
+                "Camera rotation while holding right mouse. 100% turns roughly 86 degrees per 1000 mouse counts.",
+            ),
+            (
+                Item::StickSensitivity,
+                "Right-stick sensitivity",
+                format!("{}%", s.navigation.stick_sensitivity),
+                "100% turns about 172 degrees per second at full deflection. Small deflections allow precise adjustment.",
+            ),
+            (
+                Item::StickDeadzone,
+                "Stick deadzone",
+                format!("{}%", s.navigation.deadzone),
+                "Circular deadzone for movement and camera sticks. Increase if the controller drifts.",
+            ),
+            (
+                Item::InvertCameraY,
+                "Invert camera vertical axis",
+                on(s.navigation.invert_y),
+                "Invert vertical camera movement for both mouse and right stick.",
+            ),
+            (
+                Item::FollowDistance,
+                "Follow distance",
+                s.navigation.distance.to_string(),
+                "Preferred orbit distance. The camera pulls in around walls and eases out when clear.",
+            ),
+            (
+                Item::RecenterOrbit,
+                "Recenter behind player",
+                "Recenter".into(),
+                "Face the player's direction again. Controller shortcut: click the right stick. Aim, grappling and cinematic cameras retain their original behavior.",
+            ),
+        ],
         19 => {
             let mut rows = vec![
                 (

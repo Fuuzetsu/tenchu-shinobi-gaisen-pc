@@ -10,6 +10,9 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Item::MouseSensitivity | Item::StickSensitivity => (10, 300, 5, 1),
+            Item::StickDeadzone => (5, 40, 1, 1),
+            Item::FollowDistance => (20, 100, 2, 1),
             Item::VibrationIntensity | Item::VibrationAction(_) => (0, 200, 5, 1),
             Item::MotionStrength => (0, 200, 5, 1),
             Item::MotionResponse | Item::MotionWind => (0, 100, 5, 1),
@@ -79,6 +82,8 @@ impl Item {
 
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
+            Self::CameraRelative => &mut settings.navigation.camera_relative,
+            Self::InvertCameraY => &mut settings.navigation.invert_y,
             Self::ModelMoveset => &mut settings.model_moveset,
             Self::ModelPlayerMovement => &mut settings.model_moveset_options.player_movement,
             Self::ModelNoIdleTaunts => &mut settings.model_moveset_options.no_idle_taunts,
@@ -129,6 +134,10 @@ impl Item {
 
     fn number(self, settings: &mut Settings) -> Option<&mut u16> {
         Some(match self {
+            Self::MouseSensitivity => &mut settings.navigation.mouse_sensitivity,
+            Self::StickSensitivity => &mut settings.navigation.stick_sensitivity,
+            Self::StickDeadzone => &mut settings.navigation.deadzone,
+            Self::FollowDistance => &mut settings.navigation.distance,
             Self::VibrationIntensity => &mut settings.vibration.intensity,
             Self::VibrationAction(action) => {
                 settings.vibration.actions.entry(action).or_insert(100)

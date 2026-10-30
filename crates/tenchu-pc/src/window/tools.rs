@@ -40,13 +40,14 @@ impl Application {
 
     pub(super) fn release_pointer(&mut self) {
         self.debug.looking = false;
+        self.orbit.looking = false;
         if let Some(view) = &self.view {
             let _ = view.window.set_cursor_grab(CursorGrabMode::None);
             view.window.set_cursor_visible(true);
         }
     }
 
-    fn stop_edited_recording(&mut self) {
+    pub(super) fn stop_edited_recording(&mut self) {
         if self.recording.is_some() {
             self.finish_recording();
             self.menu.notice = "Recording ended before gameplay edit".into();
@@ -154,6 +155,12 @@ impl Application {
     }
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if self.settings.navigation.camera_relative != previous.navigation.camera_relative {
+            self.orbit = Default::default();
+            self.campaign.game.navigation = Default::default();
+            self.controls.clear();
+            self.release_pointer();
+        }
         if (self.settings.model_moveset != previous.model_moveset
             || self.settings.model_moveset_options != previous.model_moveset_options
             || self.settings.player_model != previous.player_model)
@@ -265,6 +272,7 @@ impl Application {
             return Ok(());
         }
         match item {
+            Item::RecenterOrbit => self.orbit.recenter(&self.campaign.game),
             Item::Randomizer => self.toggle_randomizer(),
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,
             Item::Stealth => self.set_stealth(!self.debug.stealth)?,

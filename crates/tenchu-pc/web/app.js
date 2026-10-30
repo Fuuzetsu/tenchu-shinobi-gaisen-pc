@@ -1,5 +1,6 @@
 import init, { play, validate_save } from "./pkg/tenchu_pc.js";
 let initialized;
+document.getElementById("game").addEventListener("contextmenu", event => event.preventDefault());
 const renderer = document.getElementById("renderer");
 const preferred = new URL(location.href).searchParams.get("renderer") ?? localStorage.getItem("tenchu-pc/renderer");
 if (["auto", "webgl2", "webgpu"].includes(preferred)) renderer.value = preferred;

@@ -2,6 +2,7 @@ pub mod benchmark;
 mod demo;
 mod diagnostics;
 mod frontend;
+mod navigation;
 mod overlay;
 mod performance;
 mod playback;
@@ -53,6 +54,7 @@ struct Application {
     clock: GameClock,
     last_frame: Instant,
     controls: Controls,
+    orbit: crate::navigation::Orbit,
     paused: bool,
     faulted: bool,
     fault: Option<String>,
@@ -134,6 +136,7 @@ impl Application {
             self.clock.interpolation()
         };
         let offline = self.exporting_video() || self.benchmarks.run.is_some();
+        self.debug.follow_camera = self.navigation_camera(alpha, 0.0);
         if let Some(view) = &mut self.view {
             view.update(view::Frame {
                 campaign: &self.campaign,
@@ -170,6 +173,9 @@ impl Application {
 
     fn sync_pause(&mut self) {
         let paused = self.is_suspended();
+        if paused || !self.campaign.playing() {
+            self.release_pointer();
+        }
         #[cfg(target_arch = "wasm32")]
         crate::web::media_pause(paused);
         if let Some(audio) = &mut self.audio {
@@ -376,12 +382,22 @@ impl Application {
 impl ApplicationHandler for Application {
     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
         if self.focused
-            && self.debug.looking
             && !self.menu.open
             && let DeviceEvent::MouseMotion { delta } = event
-            && let Some(camera) = &mut self.debug.camera
         {
-            camera.look(delta.0, delta.1);
+            if self.debug.looking
+                && let Some(camera) = &mut self.debug.camera
+            {
+                camera.look(delta.0, delta.1);
+            } else if self.orbit.looking
+                && !self.is_suspended()
+                && self.navigation_enabled()
+                && self.campaign.game.player_can_orbit()
+                && self.campaign.game.player().pad.held & tenchu_core::input::L1 == 0
+            {
+                self.orbit
+                    .mouse(delta.0, delta.1, &self.settings.navigation);
+            }
         }
     }
 
@@ -553,23 +569,41 @@ impl ApplicationHandler for Application {
             WindowEvent::CursorMoved { position, .. } => {
                 self.pointer = [position.x, position.y];
             }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Right,
+                ..
+            } => {
+                self.release_pointer();
+            }
             WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. }
                 if self.menu.open || self.randomizer.open || self.demo.is_some() => {}
             WindowEvent::MouseInput { state, button, .. }
-                if (self.debug.camera.is_some() || self.debug.click_teleport) && self.focused =>
+                if (self.debug.camera.is_some()
+                    || self.debug.click_teleport
+                    || self.navigation_enabled())
+                    && self.focused =>
             {
-                if button == MouseButton::Right && self.debug.camera.is_some() {
-                    if state == ElementState::Released {
-                        self.release_pointer();
-                    } else if let Some(view) = &self.view {
-                        self.debug.looking = view
+                if button == MouseButton::Right
+                    && (self.debug.camera.is_some() || self.navigation_enabled())
+                {
+                    if (self.debug.camera.is_some()
+                        || !self.is_suspended() && self.campaign.game.player_can_orbit())
+                        && let Some(view) = &self.view
+                    {
+                        let looking = view
                             .window
                             .set_cursor_grab(CursorGrabMode::Locked)
                             .or_else(|_| view.window.set_cursor_grab(CursorGrabMode::Confined))
                             .is_ok();
-                        view.window.set_cursor_visible(!self.debug.looking);
+                        self.debug.looking = looking && self.debug.camera.is_some();
+                        self.orbit.looking = looking && self.debug.camera.is_none();
+                        view.window.set_cursor_visible(!looking);
                     }
-                } else if button == MouseButton::Left && state == ElementState::Pressed {
+                } else if button == MouseButton::Left
+                    && state == ElementState::Pressed
+                    && (self.debug.camera.is_some() || self.debug.click_teleport)
+                {
                     self.pick_debug_target();
                 }
             }
@@ -781,6 +815,7 @@ impl ApplicationHandler for Application {
                 let now = Instant::now();
                 let elapsed = now.duration_since(self.last_frame);
                 self.last_frame = now;
+                self.advance_navigation(elapsed.as_secs_f32());
                 if self.focused
                     && self.demo.is_none()
                     && !self.menu.open
@@ -847,6 +882,7 @@ impl ApplicationHandler for Application {
                     || before != self.campaign.game.tick
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
+                    || self.navigation_enabled() && !suspended
                     || self.settings.graphics.animated_presentation()
                         && !suspended
                         && self.campaign.playing()
@@ -1048,6 +1084,7 @@ pub fn run(
         clock: GameClock::default(),
         last_frame: Instant::now(),
         controls: Controls::new(),
+        orbit: Default::default(),
         paused: false,
         faulted: false,
         fault: None,

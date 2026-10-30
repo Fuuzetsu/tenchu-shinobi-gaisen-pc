@@ -81,6 +81,8 @@ pub fn update_snapshot(campaign: &crate::campaign::Campaign, paused: bool, fault
     let data = serde_json::json!({ "tick": game.tick, "screen": screen, "paused": paused, "fault": fault,
         "mission": campaign.options.mission, "character": campaign.options.character, "health": player.health,
         "position": [player.position[0], player.position[1], player.position[2]], "motion": player.motion.action,
+        "yaw": player.rotation[1], "camera_position": game.camera.position.to_array(),
+        "camera_target": game.camera.reference.to_array(),
         "rng": game.random.seed, "inventory": &player.inventory[..19],
         "god_mode": player.invulnerable, "stealth": game.intelligence.ignore_player });
     STATE.with_borrow_mut(|s| s.as_mut().unwrap().snapshot = data.to_string());

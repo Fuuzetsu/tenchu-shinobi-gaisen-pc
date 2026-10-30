@@ -9,6 +9,7 @@ mod diagnostics;
 mod fonts;
 mod frontend;
 mod lighting;
+mod navigation;
 mod randomizer;
 mod recording;
 mod render_effects;
