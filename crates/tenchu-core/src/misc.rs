@@ -202,6 +202,13 @@ impl Misc {
                 }
                 Kind::Bonfire(scale) if object.mode == 0 => {
                     let color = (ctx.random.next15() % 100 + 100) as u8;
+                    ctx.effects.billboards.push(crate::effects::Billboard {
+                        graphic: Graphic::Flash((clock % 4) as i16),
+                        position,
+                        scale: [scale; 2],
+                        color: [color; 3],
+                        rotation: 0,
+                    });
                     if let Some(drawing) =
                         view.sprite(position, Graphic::Flash((clock % 4) as i16), scale, color)
                     {
@@ -235,6 +242,14 @@ impl Misc {
                         },
                     );
                     let matrix = view.matrix.compose(&ctx.scene.world(model)?);
+                    let (image, scale) = ctx.mission.misc.sprites[kind];
+                    ctx.effects.billboards.push(crate::effects::Billboard {
+                        graphic: Graphic::Sprite { image, blend: 2 },
+                        position,
+                        scale: [scale; 2],
+                        color: [color; 3],
+                        rotation: 0,
+                    });
                     if let Some(clip) = visibility::clip(
                         &matrix,
                         ctx.scene.models[model].attribute,

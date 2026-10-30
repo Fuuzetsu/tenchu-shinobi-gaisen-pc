@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore explosions, smoke, fire, lightning, weapon trails and grapple lines in
+  showcase/free-camera views, including effects outside the gameplay camera.
+
 - F1 → General can save a portable diagnostic report with build/platform/GPU
   details, active settings and controls, recent timings/inputs and gameplay/AI
   state. Desktop saves JSON; browsers download it. Personal paths are redacted;

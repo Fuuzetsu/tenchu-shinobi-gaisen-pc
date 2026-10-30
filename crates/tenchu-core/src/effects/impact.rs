@@ -53,14 +53,27 @@ impl Effects {
         let color = std::array::from_fn(|i| {
             mix(i32::from(impact.color[0][i]), i32::from(impact.color[1][i])) as u8
         });
-        let (xy, z) = if let Some(parent) = impact.parent {
-            let matrix = view.matrix.compose(&scene.world(parent)?);
+        let (position, xy, z) = if let Some(parent) = impact.parent {
+            let world = scene.world(parent)?;
+            let matrix = view.matrix.compose(&world);
             let (xy, z) =
                 visibility::project(&matrix, impact.position.map(|v| v as i16).to_array());
-            (xy, (z >> 2) as i16)
+            (
+                world.transform(impact.position.map(|v| v as i16).to_array()),
+                xy,
+                (z >> 2) as i16,
+            )
         } else {
-            view.project(impact.position)
+            let (xy, z) = view.project(impact.position);
+            (impact.position, xy, z)
         };
+        self.billboards.push(Billboard {
+            graphic: Graphic::Impact(impact.sprite),
+            position,
+            scale: [size; 2],
+            color,
+            rotation,
+        });
         if z > 36 {
             let scale = i32::from((size.wrapping_mul(300) / i32::from(z)) as i16) + 1;
             self.drawings.push(Drawing {

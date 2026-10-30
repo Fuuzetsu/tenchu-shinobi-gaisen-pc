@@ -70,6 +70,16 @@ impl Effects {
             snow.ground = ground;
         }
         snow.position = position;
+        self.billboards.push(Billboard {
+            graphic: Graphic::Sprite {
+                image: 55,
+                blend: 2,
+            },
+            position,
+            scale: [snow.size; 2],
+            color: [128; 3],
+            rotation: 0,
+        });
         if let Some(drawing) = view.sprite(
             position,
             Graphic::Sprite {

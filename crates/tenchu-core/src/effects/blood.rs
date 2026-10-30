@@ -204,16 +204,27 @@ impl Effects {
 
     fn draw_blood(&mut self, blood: &Blood, view: View, fading: bool) {
         let (xy, z) = view.project(blood.position);
-        if z <= 36 {
-            return;
-        }
-        let scale = i32::from((blood.scale.wrapping_mul(300) / i32::from(z)) as i16) + 1;
         for stain in [false, true].into_iter().take(if fading { 2 } else { 1 }) {
             let color = if stain {
                 (blood.brightness as i16 / 2) as u8
             } else {
                 blood.brightness as u8
             };
+            self.billboards.push(Billboard {
+                graphic: Graphic::Blood {
+                    sprite: blood.sprite,
+                    stain,
+                    fading,
+                },
+                position: blood.position,
+                scale: [blood.scale; 2],
+                color: [color; 3],
+                rotation: blood.rotation,
+            });
+            if z <= 36 {
+                continue;
+            }
+            let scale = i32::from((blood.scale.wrapping_mul(300) / i32::from(z)) as i16) + 1;
             self.drawings.push(Drawing {
                 graphic: Graphic::Blood {
                     sprite: blood.sprite,

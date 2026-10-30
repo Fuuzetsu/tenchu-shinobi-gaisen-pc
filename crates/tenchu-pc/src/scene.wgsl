@@ -17,6 +17,7 @@ const WATER: u32 = 65536u;
 const WATERFALL: u32 = 131072u;
 const FOOTPRINT: u32 = 1048576u;
 const WET_CONTACT: u32 = 2097152u;
+const UNLIT: u32 = 8388608u;
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32>, motion: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -73,7 +74,7 @@ struct Fragment {
 
 fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     var v = input;
-    if (v.flags & (SCREEN | DEBUG)) == 0u {
+    if (v.flags & (SCREEN | DEBUG | UNLIT)) == 0u {
         v.uv = material_coordinate(v.material, v.world, v.uv);
     }
     let world_dx = dpdx(v.world);
@@ -136,7 +137,8 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
     if !screen {
-        let light = select(illumination(v.world, normal, surface_normal), vec3(1.0), (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER));
+        let unlit = (v.flags & UNLIT) != 0u || (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER);
+        let light = select(illumination(v.world, normal, surface_normal), vec3(1.0), unlit);
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);
     }

@@ -2,6 +2,14 @@ use super::*;
 use crate::math::Math;
 use crate::math::Position;
 
+#[derive(Clone, Debug)]
+pub struct Bolt {
+    pub start: Position,
+    pub end: Position,
+    pub points: Vec<Position>,
+    pub color: [u8; 3],
+}
+
 impl Effects {
     pub fn lightning(
         &mut self,
@@ -13,6 +21,7 @@ impl Effects {
         random: &mut Random,
     ) -> u32 {
         let count = math.vector_distance(start.wrapping_sub(end)) / 200;
+        let mut points = vec![start];
         let mut previous = view.project(start);
         let mut bytes = 0;
         for step in 1..count {
@@ -24,6 +33,7 @@ impl Effects {
             // The branch roll recurses with generation zero, which emits nothing.
             random.next15();
             let current = view.project(point.into());
+            points.push(point.into());
             if previous.1 > 0 && current.1 > 0 {
                 self.lines.push(Line {
                     points: [previous.0, current.0],
@@ -34,6 +44,12 @@ impl Effects {
             }
             previous = current;
         }
+        self.bolts.push(Bolt {
+            start,
+            end,
+            points,
+            color,
+        });
         bytes
     }
 }
@@ -140,6 +156,10 @@ printf("%d %d %d",(int32_t)seed,calls,n);for(int i=0;i<n;i++)for(int j=0;j<3;j++
                 assert_eq!(random.seed as i32, result[0], "case {case}");
                 assert_eq!(random.calls as i32, result[1], "case {case}");
                 assert_eq!(effects.lines, expected, "case {case} yaw {yaw}");
+                assert_eq!(
+                    effects.bolts[0].points, points,
+                    "world points, case {case} yaw {yaw}"
+                );
                 assert_eq!(bytes, expected.len() as u32 * 20);
                 assert!(effects.slots.iter().all(Option::is_none));
             }

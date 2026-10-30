@@ -16,7 +16,15 @@ impl Items {
         ctx: &mut Context,
     ) -> Result<()> {
         ctx.scene.copy_coordinate(template, source);
-        let matrix = ctx.camera.view.compose(&ctx.scene.world(template)?);
+        let world = ctx.scene.world(template)?;
+        let matrix = ctx.camera.view.compose(&world);
+        ctx.effects.billboards.push(effects::Billboard {
+            graphic: sprite.graphic.clone(),
+            position: world.translation,
+            scale: [sprite.scale; 2],
+            color: [sprite.color; 3],
+            rotation: sprite.rotation,
+        });
         let Some(clip) = visibility::clip(&matrix, ctx.scene.models[template].attribute, [0; 3])
         else {
             return Ok(());

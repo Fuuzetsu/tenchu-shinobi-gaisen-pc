@@ -5,6 +5,7 @@ pub use fade::Fade;
 mod explosion;
 mod impact;
 mod lightning;
+pub use lightning::Bolt;
 mod smoke;
 mod snow;
 mod texture;
@@ -166,6 +167,15 @@ pub struct Drawing {
     pub depth: i16,
 }
 
+#[derive(Clone, Debug)]
+pub struct Billboard {
+    pub graphic: Graphic,
+    pub position: Position,
+    pub scale: [i32; 2],
+    pub color: [u8; 3],
+    pub rotation: i32,
+}
+
 impl Drawing {
     pub fn bytes(&self) -> u32 {
         if matches!(self.graphic, Graphic::Bleed)
@@ -251,6 +261,8 @@ pub struct Rumble {
 pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     pub drawings: Vec<Drawing>,
+    pub billboards: Vec<Billboard>,
+    pub bolts: Vec<Bolt>,
     pub shadows: Vec<Shadow>,
     pub wires: Vec<Wire>,
     pub lines: Vec<Line>,
@@ -268,6 +280,8 @@ impl Default for Effects {
         Self {
             slots: vec![None; 201],
             drawings: Vec::new(),
+            billboards: Vec::new(),
+            bolts: Vec::new(),
             shadows: Vec::new(),
             wires: Vec::new(),
             lines: Vec::new(),
@@ -317,6 +331,13 @@ impl Effects {
         rotation: i32,
         view: View,
     ) {
+        self.billboards.push(Billboard {
+            graphic: graphic.clone(),
+            position,
+            scale: [scale; 2],
+            color: [color; 3],
+            rotation,
+        });
         let matrix = view.matrix.compose(&Matrix {
             translation: position,
             ..Matrix::default()
@@ -478,6 +499,8 @@ impl Effects {
 
     pub fn begin_tick(&mut self) {
         self.drawings.clear();
+        self.billboards.clear();
+        self.bolts.clear();
         self.shadows.clear();
         self.wires.clear();
         self.lines.clear();
@@ -540,6 +563,13 @@ impl Effects {
                     bleed.velocity[1] = bleed.velocity[1].wrapping_add(1);
                 }
                 bleed.time = bleed.time.wrapping_sub(1);
+                self.billboards.push(Billboard {
+                    graphic: Graphic::Bleed,
+                    position: bleed.position,
+                    scale: [12; 2],
+                    color: bleed.color,
+                    rotation: 0,
+                });
                 let (xy, z) = view.project(bleed.position);
                 if z > 36 {
                     self.drawings.push(Drawing {
@@ -554,6 +584,27 @@ impl Effects {
                 Ok(alive)
             }
             Effect::Splash(splash) => {
+                let mut world_scale = splash.size.map(i32::from);
+                if matches!(splash.mode, 1 | 2) && splash.speed != 0 {
+                    world_scale[1] *= if splash.mode == 1 {
+                        i32::from(splash.count)
+                    } else {
+                        i32::from(splash.speed) - i32::from(splash.count)
+                    };
+                    world_scale[1] /= i32::from(splash.speed);
+                    if splash.mode == 2 {
+                        world_scale[0] /= 2;
+                    }
+                } else if splash.mode == 0 {
+                    world_scale[1] = 0;
+                }
+                self.billboards.push(Billboard {
+                    graphic: Graphic::Splash,
+                    position: splash.position,
+                    scale: world_scale,
+                    color: [128; 3],
+                    rotation: 0,
+                });
                 let (xy, z) = view.project(splash.position);
                 if z <= 36 {
                     return Ok(true);
@@ -625,14 +676,24 @@ impl Effects {
                     flash.count = flash.count.wrapping_sub(29);
                     alive = flash.count > 0;
                 }
-                let (xy, z) = if let Some(parent) = flash.parent {
-                    let matrix = view.matrix.compose(&scene.world(parent)?);
+                let (position, xy, z) = if let Some(parent) = flash.parent {
+                    let world = scene.world(parent)?;
+                    let matrix = view.matrix.compose(&world);
+                    let position = world.transform(flash.position.map(|v| v as i16).to_array());
                     let (xy, z) =
                         visibility::project(&matrix, flash.position.map(|v| v as i16).to_array());
-                    (xy, (z >> 2) as i16)
+                    (position, xy, (z >> 2) as i16)
                 } else {
-                    view.project(flash.position)
+                    let (xy, z) = view.project(flash.position);
+                    (flash.position, xy, z)
                 };
+                self.billboards.push(Billboard {
+                    graphic: Graphic::Flash(index),
+                    position,
+                    scale: [i32::from(flash.size); 2],
+                    color: [color; 3],
+                    rotation: 0,
+                });
                 if z > 36 {
                     let scale = i32::from((i32::from(flash.size) * 300 / i32::from(z)) as i16) + 1;
                     self.drawings.push(Drawing {

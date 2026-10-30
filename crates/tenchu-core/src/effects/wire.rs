@@ -18,7 +18,9 @@ pub struct FlyWire {
 #[derive(Clone, Debug)]
 pub struct Wire {
     pub lines: Vec<([[i16; 2]; 2], i16)>,
+    pub points: Vec<Position>,
     pub hook: Option<(Matrix, bool)>,
+    pub world_hook: Option<Matrix>,
 }
 
 impl Effects {
@@ -146,6 +148,7 @@ fn sample(
     let count = segments.wrapping_mul(i32::from(length)) / 4096;
     let mut previous = view.project(start);
     let mut lines = Vec::new();
+    let mut points = vec![start];
     let mut tail = None;
     for i in 0..count {
         let t = 4096 - i * 4096 / segments;
@@ -159,6 +162,7 @@ fn sample(
                 / 4096
         });
         let current = view.project(point.into());
+        points.push(point.into());
         if current.1 > 0 && previous.1 > 0 {
             lines.push(([previous.0, current.0], (current.1 >> 2).clamp(0, 1249)));
         }
@@ -166,14 +170,19 @@ fn sample(
         tail = Some(point);
     }
     // Empty curves leave retail stack locals undefined; do not manufacture a hook position.
-    let hook = tail.and_then(|translation| {
-        let matrix = Matrix {
-            rotation,
-            translation: translation.into(),
-        };
+    let world_hook = tail.map(|translation| Matrix {
+        rotation,
+        translation: translation.into(),
+    });
+    let hook = world_hook.and_then(|matrix| {
         visibility::clip(&view.matrix.compose(&matrix), 0, [0; 3]).map(|clip| (matrix, clip.fog))
     });
-    Wire { lines, hook }
+    Wire {
+        lines,
+        points,
+        hook,
+        world_hook,
+    }
 }
 
 #[cfg(test)]

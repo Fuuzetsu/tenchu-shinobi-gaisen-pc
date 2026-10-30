@@ -1,7 +1,9 @@
+mod world;
+
 use crate::render_mesh::{self, SCREEN, TEXTURED, TRANSLUCENT, Vertex};
 use std::ops::Range;
 use tenchu_assets::texture::Image;
-use tenchu_core::{effects::Graphic, game::Game, math::Matrix};
+use tenchu_core::{game::Game, math::Matrix};
 
 #[derive(Clone)]
 pub struct Batch {
@@ -378,7 +380,12 @@ pub fn build_presented(
         }
     }
     for wire in &game.effects.wires {
-        if let Some((matrix, fog)) = wire.hook {
+        let hook = if inspection {
+            wire.world_hook.map(|m| (m, false))
+        } else {
+            wire.hook
+        };
+        if let Some((matrix, fog)) = hook {
             mesh_surfaces(
                 &mut surfaces,
                 &game.mission.common_models[&26],
@@ -395,6 +402,35 @@ pub fn build_presented(
             .filter(|_| !inspection && !models.is_some_and(|m| m.grapple))
         {
             line(&mut surfaces, points, sort_depth, [80, 72, 56], 0);
+        }
+    }
+    if inspection {
+        world::sprites(&mut surfaces, game, view);
+        for bolt in &game.effects.bolts {
+            for points in bolt.points.windows(2) {
+                world::line(
+                    &mut surfaces,
+                    [points[0], points[1]]
+                        .map(|p| glam::Vec3::from(p.map(|v| v as f32).to_array())),
+                    bolt.color,
+                    2,
+                    view,
+                );
+            }
+        }
+        if !models.is_some_and(|models| models.grapple) {
+            for wire in &game.effects.wires {
+                for points in wire.points.windows(2) {
+                    world::line(
+                        &mut surfaces,
+                        [points[0], points[1]]
+                            .map(|p| glam::Vec3::from(p.map(|v| v as f32).to_array())),
+                        [80, 72, 56],
+                        0,
+                        view,
+                    );
+                }
+            }
         }
     }
     for segment in game.effects.lines.iter().filter(|_| !inspection) {
@@ -437,30 +473,7 @@ pub fn build_presented(
         .chain(&game.misc.drawings)
         .filter(|_| !inspection)
     {
-        let (image, blend, bottom_origin) = match drawing.graphic {
-            Graphic::Sprite { image, blend } => (Some(usize::from(image)), blend, false),
-            Graphic::Explosion(index) => (Some(7 + usize::from(index)), 2, false),
-            Graphic::Smoke(index) => (Some([6, 58][usize::from(index)]), 2, false),
-            Graphic::Splash => (Some(14), 2, true),
-            Graphic::Bleed => (None, 0, false),
-            Graphic::Flash(index) => (Some(40 + index as usize), 2, false),
-            Graphic::Impact(index) => (Some([15, 11, 12, 59, 60][usize::from(index)]), 2, false),
-            Graphic::Blood {
-                sprite,
-                stain,
-                fading,
-            } => (
-                Some([0, 2, 4, 56][usize::from(sprite)] + usize::from(stain)),
-                if stain {
-                    3
-                } else if fading {
-                    2
-                } else {
-                    0
-                },
-                false,
-            ),
-        };
+        let (image, blend, bottom_origin) = world::material(&drawing.graphic);
         let image = image.map(|i| game.mission.images[i]);
         let z = f32::from(drawing.depth) * 16.0;
         let color = drawing
@@ -497,26 +510,8 @@ pub fn build_presented(
             [xy[0] + p[0], xy[1] + p[1], depth(z)]
         });
         let mut vertices = quad(points, [color; 4], image, blend);
-        let splash = matches!(drawing.graphic, Graphic::Splash)
-            || matches!(drawing.graphic, Graphic::Bleed)
-                && drawing.color[2] > drawing.color[0]
-                && u16::from(drawing.color[0]) * 5 > u16::from(drawing.color[2]) * 4;
-        for v in &mut vertices {
-            if splash {
-                v.flags |= render_mesh::ORIGINAL_SPLASH;
-            }
-        }
-
-        if matches!(
-            drawing.graphic,
-            Graphic::Sprite {
-                image: 55,
-                blend: 2
-            }
-        ) {
-            for vertex in &mut vertices {
-                vertex.flags |= render_mesh::ORIGINAL_WEATHER;
-            }
+        for vertex in &mut vertices {
+            vertex.flags |= world::flags(&drawing.graphic, drawing.color);
         }
         surfaces.push(Surface {
             depth: z,
@@ -528,10 +523,11 @@ pub fn build_presented(
         .visible
         .iter()
         .flat_map(|&id| game.roster.get(id).trails.iter().flatten());
-    for trail in actor_trails
-        .chain(&game.items.trails)
-        .filter(|_| !inspection)
-    {
+    for trail in actor_trails.chain(&game.items.trails) {
+        if inspection {
+            world::trail(&mut surfaces, trail, game.mission.images[10], view);
+            continue;
+        }
         if trail.depth == 0 {
             continue;
         }

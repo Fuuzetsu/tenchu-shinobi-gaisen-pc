@@ -17,7 +17,7 @@ fn height_sample(index: u32, uv: vec2<f32>, lod: f32) -> vec3<f32> {
 fn surface_detail(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>, du: vec2<f32>, dv: vec2<f32>) -> Detail {
     var result = Detail(v.uv, normal, 1.0);
     if !SURFACE_DETAIL || camera.detail.x == 0.0 || camera.detail.y == 0.0 || camera.options.y == 0.0
-        || (v.flags & (SCREEN | DEBUG | EMITTER | TRANSLUCENT | TEXTURED | WATER)) != TEXTURED
+        || (v.flags & (SCREEN | DEBUG | EMITTER | TRANSLUCENT | TEXTURED | WATER | UNLIT)) != TEXTURED
         || v.material == 0u || v.material >= material_count() { return result; }
     let index = v.material;
     let source = material_source(index);
