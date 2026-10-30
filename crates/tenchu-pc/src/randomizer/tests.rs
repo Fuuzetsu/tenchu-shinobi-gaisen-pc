@@ -299,3 +299,112 @@ fn every_model_can_be_randomized_across_missions() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; replaces dormant Mission 1 bosses, preserves cutscene motions and completes both heroes' event routes"]
+fn unprotected_story_actors_use_the_roll_through_cinematics() {
+    use tenchu_core::{actor::State, game::events::Outcome, ids::ATTR_SUSPEND, math::Position};
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let library = Library::load(&assets).unwrap();
+    let catalog = Catalog::new(&library, &assets.stages().unwrap());
+    for character in 0..2 {
+        for body in &library.bodies {
+            let mut run = Run::new(Document::default());
+            let rules = &mut run.document.rules;
+            rules.mission = 1;
+            rules.character = character;
+            rules.player = Player::Chosen;
+            rules.enemies = Enemies::Uniform;
+            rules.protect_story = false;
+            rules.enemy_pool.groups = Group::ALL.into();
+            rules.enemy_pool.blocked = catalog
+                .actors
+                .iter()
+                .filter(|a| a.id != body.id)
+                .map(|a| a.id.clone())
+                .collect();
+            rules.enemy_health = Range::new(175, 175);
+            let (mut game, _) = run.load(&assets, &library).unwrap();
+            let bosses = [0x81, 0x80].map(|kind| game.roster.find(kind).unwrap());
+            for id in bosses {
+                let actor = game.roster.get(id);
+                assert_eq!(
+                    actor.health, -1,
+                    "{} must wait for its story cue",
+                    body.name
+                );
+                assert_ne!(actor.attribute & ATTR_SUSPEND, 0);
+                assert!(game.mission.imported_models.contains_key(&actor.mesh_kind));
+                assert!(actor.script_kind.is_some());
+            }
+            game.roster.get_mut(game.player_id).invulnerable = true;
+            for (position, sequence, boss) in [
+                (Position::new(1000, 0, 5000), 0, bosses[0]),
+                (Position::new(-33000, -1000, 5000), 150, bosses[1]),
+            ] {
+                game.roster.get_mut(game.player_id).position = position;
+                game.step(0).unwrap();
+                assert!(game.cinematic.active, "{}: sequence {sequence}", body.name);
+                assert_eq!(game.cinematic.sequence, sequence);
+                finish_randomized_cinematic(&mut game);
+                let actor = game.roster.get(boss);
+                assert!(actor.health > 0, "{} must activate", body.name);
+                assert_eq!(actor.attribute & ATTR_SUSPEND, 0);
+                game.step(0).unwrap();
+                let actor = game.roster.get_mut(boss);
+                actor.health = 0;
+                actor.status = State::Dead;
+                game.step(0).unwrap();
+                assert_eq!(
+                    game.cinematic.sequence,
+                    if sequence == 0 { 220 } else { 151 }
+                );
+                finish_randomized_cinematic(&mut game);
+                game.step(0).unwrap();
+            }
+            assert_eq!(
+                game.events.outcome,
+                Outcome::Complete,
+                "{} / {character}",
+                body.name
+            );
+        }
+    }
+}
+
+fn finish_randomized_cinematic(game: &mut tenchu_core::game::Game) {
+    let start = game.tick;
+    while game.cinematic.active {
+        assert!(game.tick - start < 5000);
+        for &id in &game.roster.order {
+            let actor = game.roster.get(id);
+            if actor.scripted
+                && let Some(kind) = actor.script_kind
+            {
+                let original = game
+                    .mission
+                    .characters
+                    .iter()
+                    .find(|c| c.kind == kind)
+                    .unwrap();
+                if let Some(registration) = original
+                    .motions
+                    .iter()
+                    .find(|m| m.action == actor.motion.action)
+                {
+                    assert_eq!(
+                        game.mission.clips[actor.motion.clip.unwrap()].id,
+                        registration.clip,
+                        "story {kind:x} slot {id} tick {} action {}",
+                        game.tick,
+                        actor.motion.action
+                    );
+                }
+            }
+        }
+        game.step(0).unwrap();
+    }
+}

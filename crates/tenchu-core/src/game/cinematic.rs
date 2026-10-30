@@ -160,7 +160,7 @@ impl Game {
                 actor.health = -1;
                 actor.attribute = (actor.attribute | ATTR_SUSPEND | 2) & !ATTR_CUSTOMAI;
                 actor.motion.action = -1;
-                actor.enter(&ctx, MOT_NORMAL, true);
+                actor.enter_cinematic(&ctx, MOT_NORMAL);
                 actor.play_pose(&mut ctx)?;
                 actor.motion.count = actor.motion.count.wrapping_sub(1);
             }
@@ -189,7 +189,7 @@ impl Game {
                     return Ok(false);
                 };
                 actor.motion.action = -1;
-                actor.enter(&ctx, motion, true);
+                actor.enter_cinematic(&ctx, motion);
                 actor.play_pose(&mut ctx)?;
                 actor.motion.count = actor.motion.count.wrapping_sub(1);
                 self.cinematic.actors[slot] = Some(Controlled {
@@ -309,7 +309,7 @@ impl Game {
                     actor.velocity[0] = 0;
                     actor.velocity[2] = 0;
                 } else if actor.status != ActorState::Dead {
-                    actor.enter(&ctx, control.next, true);
+                    actor.enter_cinematic(&ctx, control.next);
                     actor.scripted = false;
                     *slot = None;
                 }

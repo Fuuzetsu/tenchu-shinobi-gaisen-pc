@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Randomizing unprotected story actors now includes dormant bosses such as Hanbe
+  and Echigoya. Their rolled models keep the original cutscene choreography and
+  scripted activation, then use their randomized combat moves and AI.
+
 ## 0.5.1 — 2026-10-30
 
 - Align shop quantities with their own item slots in both the stock grid and

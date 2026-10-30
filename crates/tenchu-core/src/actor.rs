@@ -453,10 +453,28 @@ impl Actor {
     }
 
     pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
+        self.enter_definition(ctx, self.definition, action, movement)
+    }
+
+    pub(crate) fn enter_cinematic(&mut self, ctx: &Context, action: i16) -> bool {
+        let definition = self
+            .script_kind
+            .and_then(|kind| ctx.mission.characters.iter().position(|c| c.kind == kind))
+            .unwrap_or(self.definition);
+        self.enter_definition(ctx, definition, action, true)
+    }
+
+    fn enter_definition(
+        &mut self,
+        ctx: &Context,
+        definition: usize,
+        action: i16,
+        movement: bool,
+    ) -> bool {
         if self.status == ActorState::Dead && self.motion.loops == -1 {
             return false;
         }
-        let data = &ctx.mission.characters[self.definition];
+        let data = &ctx.mission.characters[definition];
         if self.motion.change(
             action,
             &data.motions,

@@ -40,6 +40,9 @@ impl Game {
             &mut ctx,
         )?;
         actor.script_kind = Some(original.script_kind.unwrap_or(original.kind));
+        if original.health < 0 {
+            actor.health = original.health;
+        }
         actor.target = original.target;
         actor.home = original.home;
         actor.setup_think(if original.patrol.is_some() {

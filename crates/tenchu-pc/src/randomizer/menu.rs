@@ -391,7 +391,7 @@ impl Editor {
             "Protect story actors, bosses and mission objectives",
         );
         if !r.protect_story {
-            ui.colored_label(Color32::YELLOW, "Experimental: changing scripted actors can make a mission impossible. Retry / next / end remain available.");
+            ui.colored_label(Color32::YELLOW, "Story actors use the rolled bodies and combat moves. Cutscenes keep their original choreography; unusual rigs can look strange.");
         }
         ui.weak("Original positions and patrol routes remain. Replacements bring their body, motions, weapons and AI from any mission; story roles stay attached to their original slots.");
         ui.separator();

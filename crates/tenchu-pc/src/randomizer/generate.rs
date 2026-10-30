@@ -241,13 +241,13 @@ impl Run {
         for id in game.roster.order.clone() {
             let original = game.roster.get(id);
             if id == game.player_id
-                || original.health < 0
                 || original.kind == 0xa9
                 || rules.protect_story && protected.contains(&original.kind)
                 || !rules.replace_civilians && original.kind & 0xf0 == 0x90
             {
                 continue;
             }
+            let dormant = original.health < 0;
             let mut facing = original.rotation[1];
             if rules.random_facing {
                 facing = self
@@ -283,7 +283,7 @@ impl Run {
             ));
             let health =
                 (i32::from(actor.max_health) * i32::from(percentage) / 100).clamp(1, 32767) as i16;
-            actor.health = health;
+            actor.health = if dormant { -1 } else { health };
             actor.max_health = health;
             actor.initialize_rendered(&game.scene, &game.math);
         }
