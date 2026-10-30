@@ -8,11 +8,12 @@ impl Items {
     pub(super) fn teleport(
         &mut self,
         id: usize,
+        owner_id: usize,
         actors: &mut Actors,
         player: usize,
         ctx: &mut Context,
     ) -> Result<()> {
-        let owner = self.slots[id].owner.ok_or("Teleport has no owner")?;
+        let owner = owner_id;
         if actors.get(owner).pad.held & TRIANGLE != 0 {
             use_item::camera(Mode::Sight, actors.get(player), ctx)?;
             self.draw_sight(ctx);

@@ -171,7 +171,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
     for (index, item) in game.items.slots.iter().enumerate() {
         let ptr = 0x800bfbb0 + index as u32 * 0x58;
         let before = differences.len();
-        let procedure = item.processor.map_or(0, |p| match p {
+        let procedure = item.processor().map_or(0, |p| match p {
             Processor::Pickup => 0x8003e454,
             Processor::SightShot => 0x8003ea84,
             Processor::Grapple => 0x8003eea4,
@@ -200,14 +200,14 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
             Processor::Flute => 0x8004a1d8,
         });
         equal!(procedure, ram.word(ptr + 0xc));
-        if let Some(processor) = item.processor {
-            let owner = item.owner.map_or(1, |id| {
+        if let Some(processor) = item.processor() {
+            let owner = item.owner().map_or(1, |id| {
                 let index = game.roster.order.iter().position(|&v| v == id).unwrap();
                 ram.word(0x800be7b8 + index as u32 * 4)
             });
             equal!(owner, ram.word(ptr));
             equal!(item.kind, ram.word(ptr + 8) as usize);
-            equal!(u32::from(item.mode), ram.word(ptr + 0x54));
+            equal!(u32::from(item.source_mode()), ram.word(ptr + 0x54));
             equal!(item.collision.size, ram.short(ptr + 0x1c));
             if item.collision.size != 0 {
                 equal!(i32::from(item.collision.class), ram.word(ptr + 0x14) as i32);
@@ -276,7 +276,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
                 }
                 Processor::Napalm | Processor::Sleep => {
                     equal!(item.napalm.velocity, ram.short_vector(params));
-                    if item.mode >= 2 {
+                    if item.source_mode() >= 2 {
                         equal!(item.napalm.count, ram.byte(params + 8));
                     }
                 }
@@ -287,7 +287,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
             }
         }
         for difference in &mut differences[before..] {
-            *difference = format!("item {index} ({:?}): {difference}", item.processor);
+            *difference = format!("item {index} ({:?}): {difference}", item.processor());
         }
     }
     if differences.is_empty() {

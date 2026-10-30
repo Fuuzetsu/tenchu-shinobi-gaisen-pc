@@ -31,9 +31,15 @@ fn food(game: &mut Game, owner_first: bool, owner_distance: i32) -> (usize, usiz
         }
         let id = items.allocate(actors, ctx).unwrap();
         items
-            .initialize(id, Processor::Poison, 7, Some(player), Position::ZERO, ctx)
+            .initialize(
+                id,
+                behavior(Processor::Poison, Some(player), 0),
+                7,
+                Position::ZERO,
+                ctx,
+            )
             .unwrap();
-        items.slots[id].mode = 1;
+        items.slots[id].set_source_mode(1);
         items.slots[id].rolling.status = RollingStatus::Settled;
         (id, enemy)
     })
@@ -48,9 +54,9 @@ fn interrupted_eating_keeps_bait_until_cleanup() {
     let mut intelligence = Intelligence::default();
     with_items(&mut game, |items, ctx, actors| {
         items
-            .poison(id, actors, &mut intelligence, player, 2, ctx)
+            .process(id, actors, &mut intelligence, player, 2, ctx)
             .unwrap();
-        assert_eq!(items.slots[id].mode, 2);
+        assert_eq!(items.slots[id].source_mode(), 2);
         assert_eq!(items.slots[id].poison.original_think, Some(0));
         assert_eq!(actors.get(enemy).think[0], 9);
         assert_eq!(actors.get(enemy).motion.action, MOT_ITEM_DRINK);
@@ -68,9 +74,9 @@ fn interrupted_eating_keeps_bait_until_cleanup() {
             (random.next15() % 200 - 100) as i16,
         ];
         items
-            .poison(id, actors, &mut intelligence, player, 4, ctx)
+            .process(id, actors, &mut intelligence, player, 4, ctx)
             .unwrap();
-        assert_eq!(items.slots[id].mode, 0);
+        assert_eq!(items.slots[id].source_mode(), 0);
         assert_eq!(items.slots[id].poison.remaining, 30);
         assert_eq!(items.slots[id].rolling.velocity, velocity);
         assert_eq!(*ctx.random, random);
@@ -83,7 +89,7 @@ fn interrupted_eating_keeps_bait_until_cleanup() {
             actors.get(enemy).target,
             Some(actors.get(player).root_model)
         );
-        assert!(items.slots[id].processor.is_none());
+        assert!(items.slots[id].processor().is_none());
     });
 }
 
@@ -96,26 +102,26 @@ fn owner_recovery_keeps_target_search_order() {
         let (id, enemy) = food(&mut game, owner_first, 200);
         with_items(&mut game, |items, ctx, actors| {
             items
-                .poison(id, actors, &mut Intelligence::default(), player, 2, ctx)
+                .process(id, actors, &mut Intelligence::default(), player, 2, ctx)
                 .unwrap();
             if owner_first {
                 assert!(
                     !items
                         .slots
                         .iter()
-                        .any(|i| i.processor == Some(Processor::Poison))
+                        .any(|i| i.processor() == Some(Processor::Poison))
                 );
                 assert_eq!(
                     items
                         .slots
                         .iter()
-                        .filter(|i| i.processor == Some(Processor::Pickup) && i.kind == 7)
+                        .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 7)
                         .count(),
                     1
                 );
                 assert_eq!(actors.get(enemy).think[0], 0);
             } else {
-                assert_eq!(items.slots[id].mode, 2);
+                assert_eq!(items.slots[id].source_mode(), 2);
                 assert_eq!(items.slots[id].poison.eater, Some(enemy));
             }
         });

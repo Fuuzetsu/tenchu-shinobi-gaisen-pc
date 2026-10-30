@@ -20,28 +20,26 @@ impl Items {
     pub(super) fn resurrection(
         &mut self,
         id: usize,
+        used: Used<state::Resurrection>,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &mut self.slots[id];
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Resurrection::Begin => {
                 item.count = 0;
-                item.mode = 1;
+                item.behavior =
+                    Behavior::Resurrection(used.with_phase(state::Resurrection::Particles));
             }
-            1 => {
-                Self::recovery_particles(
-                    actors.get(item.owner.ok_or("Resurrection item has no owner")?),
-                    [100, 200, 220],
-                    ctx,
-                );
+            state::Resurrection::Particles => {
+                Self::recovery_particles(actors.get(used.owner), [100, 200, 220], ctx);
                 item.count = item.count.wrapping_add(1);
                 if item.count >= 31 {
-                    item.mode = 2;
+                    item.behavior =
+                        Behavior::Resurrection(used.with_phase(state::Resurrection::Finished));
                 }
             }
-            2 => self.dispose(id, actors, ctx)?,
-            mode => return Err(format!("Invalid resurrection item mode {mode}")),
+            state::Resurrection::Finished => self.dispose(id, actors, ctx)?,
         }
         Ok(())
     }
@@ -49,15 +47,16 @@ impl Items {
     pub(super) fn medicine(
         &mut self,
         id: usize,
+        used: Used<state::Medicine>,
         actors: &mut Actors,
         halt: crate::ai::Halt,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner_id = item.owner.ok_or("Medicine has no owner")?;
+        let owner_id = used.owner;
         let owner = actors.get_mut(owner_id);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Medicine::Begin => {
                 if halt == crate::ai::Halt::Running && owner.health > 0 {
                     owner.clear_attack(ctx, 3)?;
                     Self::item_motion(owner, MOT_ITEM_DRINK, ctx);
@@ -65,14 +64,16 @@ impl Items {
                 let model = &mut ctx.scene.models[item.model];
                 model.parent = Some(owner.parts[if owner.parts.len() > 14 { 14 } else { 2 }]);
                 model.local.translation = Position::new(0, 50, 0);
-                self.slots[id].mode = 1;
+                self.slots[id].behavior =
+                    Behavior::Medicine(used.with_phase(state::Medicine::Drinking));
             }
-            1 => {
+            state::Medicine::Drinking => {
                 if owner.motion.action != MOT_ITEM_DRINK {
                     return self.refund_cast(id, actors, ctx);
                 }
                 if owner.motion.count == 55 {
-                    self.slots[id].mode = 2;
+                    self.slots[id].behavior =
+                        Behavior::Medicine(used.with_phase(state::Medicine::Recover));
                     return Ok(());
                 }
                 if owner.motion.count < 4 {
@@ -83,13 +84,12 @@ impl Items {
                 self.icon_scale[kind] = 8192;
                 self.draw_icon(id, ctx)?;
             }
-            2 => {
+            state::Medicine::Recover => {
                 owner.health = owner.max_health;
                 Self::recovery_particles(owner, [255, 255, 126], ctx);
                 ctx.effects.sounds.push((owner.position, 0x24));
                 self.dispose(id, actors, ctx)?;
             }
-            _ => {}
         }
         Ok(())
     }

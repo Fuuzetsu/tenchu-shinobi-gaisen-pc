@@ -61,7 +61,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
         );
     }
     for item in &game.items.slots {
-        if item.processor != Some(Processor::Napalm) || item.mode != 1 {
+        if item.processor() != Some(Processor::Napalm) || item.source_mode() != 1 {
             continue;
         }
         if let Some(model) = game.scene.models.get(item.model) {

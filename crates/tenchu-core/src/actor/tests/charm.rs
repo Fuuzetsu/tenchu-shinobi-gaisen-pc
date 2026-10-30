@@ -24,15 +24,15 @@ fn charm_casting_and_duration_allow_normal_play() {
             .items
             .slots
             .iter()
-            .position(|i| i.processor == Some(Processor::Charm))
+            .position(|i| i.processor() == Some(Processor::Charm))
             .unwrap();
         for _ in 0..120 {
-            if game.items.slots[id].mode == 2 {
+            if game.items.slots[id].source_mode() == 2 {
                 break;
             }
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].mode, 2);
+        assert_eq!(game.items.slots[id].source_mode(), 2);
         assert_eq!(game.items.slots[id].charm_remaining, 450);
         assert_eq!(game.player().active_item, 12);
         assert_ne!(game.player().motion.action, MOT_ITEM_KAENGEKI);
@@ -40,7 +40,7 @@ fn charm_casting_and_duration_allow_normal_play() {
         for tick in 1..=450 {
             game.step(if tick <= 30 { UP } else { 0 }).unwrap();
             assert_eq!(game.player().active_item, if tick < 450 { 12 } else { 0 });
-            assert_eq!(game.items.slots[id].processor.is_some(), tick < 450);
+            assert_eq!(game.items.slots[id].processor().is_some(), tick < 450);
             assert_eq!(game.items.slots[id].charm_remaining, 450 - tick);
         }
         assert_ne!(game.player().position, start);

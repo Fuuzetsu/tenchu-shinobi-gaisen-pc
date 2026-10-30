@@ -22,9 +22,8 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
         items
             .initialize(
                 1,
-                Processor::Lightning,
+                behavior(Processor::Lightning, Some(owner), 0),
                 23,
-                Some(owner),
                 Position::new(0, -1000, 0),
                 ctx,
             )
@@ -34,11 +33,32 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
             rotation: [0; 3],
         };
         let model = items.slots[1].model;
-        items.lightning(1, actors, player, 1, ctx).unwrap();
-        assert_eq!((items.slots[1].mode, items.slots[1].count), (1, 14));
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                1,
+                ctx,
+            )
+            .unwrap();
+        assert_eq!(
+            (items.slots[1].source_mode(), items.slots[1].count),
+            (1, 14)
+        );
         assert!(ctx.scene.models[model].conflict.is_none());
         assert!(!ctx.effects.sounds.iter().any(|(_, s)| *s == 0x39));
-        items.lightning(1, actors, player, 2, ctx).unwrap();
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                2,
+                ctx,
+            )
+            .unwrap();
         let first = ctx.scene.models[model].local.translation;
         assert_eq!(
             first,
@@ -55,35 +75,70 @@ fn lightning_reaims_and_keeps_source_postdecrement_lifetime() {
         actor.attribute |= ATTR_SUSPEND;
         ctx.scene.update(actor.root_model, actor.root(ctx.math));
         ctx.scene.finish_tick();
-        items.lightning(1, actors, player, 3, ctx).unwrap();
-        assert_eq!(items.slots[1].mode, 1);
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                3,
+                ctx,
+            )
+            .unwrap();
+        assert_eq!(items.slots[1].source_mode(), 1);
         assert_eq!(ctx.scene.models[model].local.translation, first);
-        items.lightning(1, actors, player, 4, ctx).unwrap();
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                4,
+                ctx,
+            )
+            .unwrap();
         let second = ctx
             .scene
             .world(actors.get(player).parts[0])
             .unwrap()
             .translation;
         assert_eq!(ctx.scene.models[model].local.translation, second);
-        assert_eq!(items.slots[1].mode, 2);
+        assert_eq!(items.slots[1].source_mode(), 2);
         for clock in 5..=16 {
-            items.lightning(1, actors, player, clock, ctx).unwrap();
+            items
+                .process(
+                    1,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    player,
+                    clock,
+                    ctx,
+                )
+                .unwrap();
         }
-        assert!(items.slots[1].processor.is_none());
+        assert!(items.slots[1].processor().is_none());
         assert_eq!(items.slots[1].count, 255);
         assert!(ctx.scene.models[model].conflict.is_none());
         items
             .initialize(
                 1,
-                Processor::Lightning,
+                behavior(Processor::Lightning, Some(player), 0),
                 23,
-                Some(player),
                 Position::ZERO,
                 ctx,
             )
             .unwrap();
         items.slots[1].lightning.start = Position::ZERO;
-        items.lightning(1, actors, player, 17, ctx).unwrap();
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                17,
+                ctx,
+            )
+            .unwrap();
         assert!(
             ctx.effects
                 .sounds

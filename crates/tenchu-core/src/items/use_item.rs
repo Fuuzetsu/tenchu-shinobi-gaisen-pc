@@ -50,7 +50,7 @@ impl Items {
     ) -> Result<()> {
         let item = &self.slots[id];
         let position = ctx.scene.world(item.model)?.translation;
-        let (kind, owner) = (item.kind, item.owner);
+        let (kind, owner) = (item.kind, item.owner());
         let velocity = [
             ctx.random.next15() % 200 - 100,
             ctx.random.next15() % 100 - 200,
@@ -69,16 +69,16 @@ impl Items {
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        let processor = match kind {
-            2 => Processor::Caltrops,
-            4 => Processor::Fire,
-            5 => Processor::Smoke,
-            6 => Processor::Mine,
-            7 => Processor::Poison,
+        let behavior = match kind {
+            2 => Behavior::Caltrops(Used::new(owner, state::Caltrops::Falling)),
+            4 => Behavior::Fire(Used::new(owner, state::Fire::Fuse)),
+            5 => Behavior::Smoke(Used::new(owner, state::Smoke::Fuse)),
+            6 => Behavior::Mine(Used::new(owner, state::Mine::Place)),
+            7 => Behavior::Poison(Used::new(owner, state::Poison::Delay)),
             _ => return Err(format!("Rolling item {kind} is not implemented yet")),
         };
         let id = self.allocate(actors, ctx)?;
-        self.initialize(id, processor, kind, Some(owner), start, ctx)?;
+        self.initialize(id, behavior, kind, start, ctx)?;
         let item = &mut self.slots[id];
         item.collision.size = 0;
         item.rolling = Rolling {
@@ -199,7 +199,7 @@ impl Items {
         match kind {
             0 => {
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Grapple, kind, Some(owner_id), start, ctx)?;
+                self.initialize(id, Behavior::Grapple { owner: owner_id }, kind, start, ctx)?;
                 self.slots[id].collision.size = 0;
                 actors.get_mut(owner_id).aiming = true;
                 camera(Mode::Sight, actors.get(player), ctx)?;
@@ -207,7 +207,13 @@ impl Items {
             }
             1 if owner_id == player => {
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::SightShot, kind, Some(owner_id), start, ctx)?;
+                self.initialize(
+                    id,
+                    Behavior::SightShot { owner: owner_id },
+                    kind,
+                    start,
+                    ctx,
+                )?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].count = 5;
                 actors.get_mut(owner_id).aiming = true;
@@ -237,15 +243,15 @@ impl Items {
                 }
             }
             3 | 10 | 11 | 12 | 18 => {
-                let processor = match kind {
-                    3 => Processor::Medicine,
-                    10 => Processor::Resurrection,
-                    11 => Processor::Disguise,
-                    12 => Processor::Charm,
-                    _ => Processor::Flute,
+                let behavior = match kind {
+                    3 => Behavior::Medicine(Used::new(owner_id, state::Medicine::Begin)),
+                    10 => Behavior::Resurrection(Used::new(owner_id, state::Resurrection::Begin)),
+                    11 => Behavior::Disguise(Used::new(owner_id, state::Disguise::Begin)),
+                    12 => Behavior::Charm(Used::new(owner_id, state::Charm::Begin)),
+                    _ => Behavior::Flute(Used::new(owner_id, state::Flute::Begin)),
                 };
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
+                self.initialize(id, behavior, kind, start, ctx)?;
                 self.slots[id].collision.size = 0;
             }
             4..=7 => {
@@ -277,7 +283,13 @@ impl Items {
                     end
                 };
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Lightning, kind, Some(owner_id), start, ctx)?;
+                self.initialize(
+                    id,
+                    Behavior::Lightning(Used::new(owner_id, state::Lightning::Begin)),
+                    kind,
+                    start,
+                    ctx,
+                )?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].lightning = lightning::Lightning {
                     start,
@@ -286,7 +298,7 @@ impl Items {
             }
             24 => {
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Teleport, kind, Some(owner_id), start, ctx)?;
+                self.initialize(id, Behavior::Teleport { owner: owner_id }, kind, start, ctx)?;
                 self.slots[id].collision.size = 0;
                 ctx.camera.mode = Mode::Sight;
             }
@@ -305,7 +317,13 @@ impl Items {
                     ctx,
                 )?;
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Dog, kind, Some(owner_id), start, ctx)?;
+                self.initialize(
+                    id,
+                    Behavior::Dog(Used::new(owner_id, state::Dog::Thrown)),
+                    kind,
+                    start,
+                    ctx,
+                )?;
                 let item = &mut self.slots[id];
                 item.collision.size = 0;
                 item.rolling = Rolling {
@@ -329,7 +347,13 @@ impl Items {
                     ctx,
                 )?;
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Decoy, kind, Some(owner_id), start, ctx)?;
+                self.initialize(
+                    id,
+                    Behavior::Decoy(Used::new(owner_id, state::Decoy::Fuse)),
+                    kind,
+                    start,
+                    ctx,
+                )?;
                 let item = &mut self.slots[id];
                 item.collision.size = 0;
                 item.rolling = Rolling {
@@ -348,10 +372,16 @@ impl Items {
                     .enter(ctx, crate::ids::MOT_ITEM_THROW, true);
             }
             8 | 13 => {
-                let (processor, speed) = if kind == 8 {
-                    (Processor::Rice, -100)
+                let (behavior, speed) = if kind == 8 {
+                    (
+                        Behavior::Rice(Used::new(owner_id, state::Rice::Begin)),
+                        -100,
+                    )
                 } else {
-                    (Processor::Speed, -500)
+                    (
+                        Behavior::Speed(Used::new(owner_id, state::Speed::Begin)),
+                        -500,
+                    )
                 };
                 let velocity = throw_vector(
                     actors.get(owner_id),
@@ -360,7 +390,7 @@ impl Items {
                     ctx,
                 )?;
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
+                self.initialize(id, behavior, kind, start, ctx)?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].rolling.velocity = velocity.map(|v| v as i16).to_array();
             }
@@ -368,13 +398,25 @@ impl Items {
                 let velocity =
                     throw_vector(actors.get(owner_id), player, Position::new(0, 0, -120), ctx)?;
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Sleep, kind, Some(owner_id), start, ctx)?;
+                self.initialize(
+                    id,
+                    Behavior::Sleep(Used::new(owner_id, state::Sleep::Begin)),
+                    kind,
+                    start,
+                    ctx,
+                )?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].napalm.velocity = velocity.map(|v| v as i16).to_array();
             }
             17 => {
                 let id = self.allocate(actors, ctx)?;
-                self.initialize(id, Processor::Breath, kind, Some(owner_id), start, ctx)?;
+                self.initialize(
+                    id,
+                    Behavior::Breath(Used::new(owner_id, state::Breath::Begin)),
+                    kind,
+                    start,
+                    ctx,
+                )?;
                 self.slots[id].collision.size = 0;
                 self.slots[id].breath = breath::Breath {
                     origin: start,

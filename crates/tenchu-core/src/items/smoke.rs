@@ -26,6 +26,7 @@ impl Items {
     pub(super) fn smoke(
         &mut self,
         id: usize,
+        used: Used<state::Smoke>,
         actors: &mut Actors,
         intelligence: &mut crate::ai::Intelligence,
         clock: i32,
@@ -36,15 +37,15 @@ impl Items {
         };
         let item = &mut self.slots[id];
         item.count = item.count.wrapping_sub(1);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Smoke::Fuse => {
                 if item.count == 0 {
                     ctx.effects.sounds.push((position, 0x23));
                     item.count = 120;
-                    item.mode = 1;
+                    item.behavior = Behavior::Smoke(used.with_phase(state::Smoke::Emitting));
                 }
             }
-            1 => {
+            state::Smoke::Emitting => {
                 if item.count == 0 {
                     return self.dispose(id, actors, ctx);
                 }
@@ -60,7 +61,7 @@ impl Items {
                     if target_distance(actor, position, 2000, ctx).is_none() {
                         continue;
                     }
-                    if Some(target) == item.owner || actor.motion.action == MOT_DAMAGE_CHOKE {
+                    if target == used.owner || actor.motion.action == MOT_DAMAGE_CHOKE {
                         continue;
                     }
                     if intelligence.action_halt == crate::ai::Halt::Running {
@@ -70,7 +71,6 @@ impl Items {
                     intelligence.voices.push((target, 6));
                 }
             }
-            _ => {}
         }
         Ok(())
     }

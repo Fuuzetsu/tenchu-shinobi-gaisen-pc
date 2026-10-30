@@ -49,7 +49,7 @@ pub(super) fn arena(game: &mut Game, kind: i16) -> usize {
         }
         for item in &mut world.items.slots {
             ctx.collision.remove(ctx.scene, item.model);
-            item.processor = None;
+            item.behavior = crate::items::Behavior::Inactive;
         }
         actor.position = Position::ZERO;
         actor.rotation = [0, 2048, 0];
@@ -629,9 +629,10 @@ fn ranged_actors_hit_and_projectiles_retire() {
                 .items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(processor));
+                .any(|i| i.processor() == Some(processor));
             attached |= game.items.slots.iter().any(|i| {
-                i.processor == Some(Processor::Arrow) && game.scene.models[i.model].parent.is_some()
+                i.processor() == Some(Processor::Arrow)
+                    && game.scene.models[i.model].parent.is_some()
             });
         }
         assert!(launched, "kind {kind:x} did not launch");
@@ -644,7 +645,7 @@ fn ranged_actors_hit_and_projectiles_retire() {
                 .items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(processor)),
+                .any(|i| i.processor() == Some(processor)),
             "kind {kind:x} projectile did not retire"
         );
     }
@@ -670,7 +671,7 @@ fn manji_fire_reaches_the_shared_item_damage_path() {
             .items
             .slots
             .iter()
-            .any(|i| i.processor == Some(crate::items::Processor::Napalm));
+            .any(|i| i.processor() == Some(crate::items::Processor::Napalm));
     }
     assert!(launched);
     assert!(game.player().health < game.player().max_health);
@@ -679,7 +680,7 @@ fn manji_fire_reaches_the_shared_item_damage_path() {
             .items
             .slots
             .iter()
-            .any(|i| i.processor == Some(crate::items::Processor::Napalm))
+            .any(|i| i.processor() == Some(crate::items::Processor::Napalm))
     );
 }
 
@@ -707,7 +708,7 @@ fn retail_damage_floor_advances_through_napalm() {
             game.items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(crate::items::Processor::Napalm)),
+                .any(|i| i.processor() == Some(crate::items::Processor::Napalm)),
         );
     }
     assert!(launched > 20);
@@ -740,8 +741,8 @@ fn sleeping_gas_releases_and_changes_guard_ai() {
         for _ in 0..160 {
             game.step(0).unwrap();
             released |= game.items.slots.iter().any(|i| {
-                i.processor == Some(crate::items::Processor::Sleep)
-                    && i.mode == 2
+                i.processor() == Some(crate::items::Processor::Sleep)
+                    && i.source_mode() == 2
                     && i.collision.size == 1000
             });
             visible |= game
@@ -764,7 +765,7 @@ fn sleeping_gas_releases_and_changes_guard_ai() {
                 .items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(crate::items::Processor::Sleep))
+                .any(|i| i.processor() == Some(crate::items::Processor::Sleep))
         );
     }
 }
@@ -812,7 +813,7 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                         game.items
                             .slots
                             .iter()
-                            .any(|i| i.kind == 1 && i.processor == Some(Processor::Pickup))
+                            .any(|i| i.kind == 1 && i.processor() == Some(Processor::Pickup))
                     );
                 }
             }
@@ -822,13 +823,13 @@ fn both_players_throw_aim_cancel_and_drop_interrupted_shuriken() {
                     .items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(Processor::SightShot))
+                    .any(|i| i.processor() == Some(Processor::SightShot))
             );
             assert_eq!(
                 game.items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(Processor::Shuriken)),
+                    .any(|i| i.processor() == Some(Processor::Shuriken)),
                 path <= 1
             );
             for _ in 0..90 {

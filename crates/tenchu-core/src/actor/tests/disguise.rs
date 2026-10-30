@@ -25,15 +25,15 @@ fn disguise_cast_expiry_and_render_phase_preserve_player_identity() {
             .items
             .slots
             .iter()
-            .position(|i| i.processor == Some(Processor::Disguise))
+            .position(|i| i.processor() == Some(Processor::Disguise))
             .unwrap();
         for _ in 0..120 {
-            if game.items.slots[id].mode == 3 {
+            if game.items.slots[id].source_mode() == 3 {
                 break;
             }
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].mode, 3);
+        assert_eq!(game.items.slots[id].source_mode(), 3);
         assert_eq!(game.player().inventory[11], 1);
         assert_eq!(game.player().kind, character);
         assert_eq!(game.player().definition, definition);
@@ -59,7 +59,7 @@ fn disguise_cast_expiry_and_render_phase_preserve_player_identity() {
                 0
             })
             .unwrap();
-            assert_eq!(game.items.slots[id].processor.is_some(), tick < 600);
+            assert_eq!(game.items.slots[id].processor().is_some(), tick < 600);
             assert_eq!(game.player().active_item, if tick < 600 { 11 } else { 0 });
             assert_eq!(
                 game.player().rendered_mesh_kind,

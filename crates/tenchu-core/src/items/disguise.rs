@@ -72,11 +72,12 @@ impl Items {
     pub(super) fn finish_disguise(
         &mut self,
         id: usize,
+        owner: usize,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
         if self.disguise.active == Some(id) {
-            let owner = actors.get_mut(self.slots[id].owner.ok_or("Disguise has no owner")?);
+            let owner = actors.get_mut(owner);
             self.disguise
                 .snapshots
                 .as_ref()
@@ -95,19 +96,21 @@ impl Items {
     pub(super) fn disguise(
         &mut self,
         id: usize,
+        used: Used<state::Disguise>,
         actors: &mut Actors,
         intelligence: &mut Intelligence,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner = actors.get_mut(item.owner.ok_or("Disguise has no owner")?);
-        match item.mode {
-            0 => {
+        let owner = actors.get_mut(used.owner);
+        match used.phase {
+            state::Disguise::Begin => {
                 owner.enter(ctx, MOT_ITEM_KAENGEKI, true);
                 ctx.effects.sounds.push((owner.position, 0x4c));
-                self.slots[id].mode = 1;
+                self.slots[id].behavior =
+                    Behavior::Disguise(used.with_phase(state::Disguise::Casting));
             }
-            1 => {
+            state::Disguise::Casting => {
                 if owner.motion.action != MOT_ITEM_KAENGEKI {
                     return self.refund_cast(id, actors, ctx);
                 }
@@ -123,20 +126,22 @@ impl Items {
                     self.dispose(previous, actors, ctx)?;
                 }
                 self.disguise.active = Some(id);
-                self.slots[id].mode = 2;
+                self.slots[id].behavior =
+                    Behavior::Disguise(used.with_phase(state::Disguise::Apply));
             }
-            2 => {
+            state::Disguise::Apply => {
                 self.disguise
                     .snapshots
                     .as_ref()
                     .ok_or("Disguise snapshots missing")?[1]
                     .apply(owner, ctx.scene)?;
-                self.slots[id].mode = 3;
+                self.slots[id].behavior =
+                    Behavior::Disguise(used.with_phase(state::Disguise::Active));
                 self.disguise.remaining = 600;
                 intelligence.alert = -600;
                 owner.active_item = self.slots[id].kind as i16;
             }
-            3 => {
+            state::Disguise::Active => {
                 self.disguise.remaining = self.disguise.remaining.wrapping_sub(1);
                 if self.disguise.remaining as i16 > 0
                     && owner.active_item == item.kind as i16
@@ -152,7 +157,6 @@ impl Items {
                     .smoke(position, [0, -50, 0], 10, 6, ctx.random)?;
                 self.dispose(id, actors, ctx)?;
             }
-            mode => return Err(format!("Invalid disguise mode {mode}")),
         }
         Ok(())
     }

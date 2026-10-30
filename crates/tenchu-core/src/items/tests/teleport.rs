@@ -72,10 +72,25 @@ fn teleport_release_preserves_source_ray_and_raw_position_write() {
             ctx.camera.detail = crate::camera::Detail::Sight;
             *ctx.effects = effects::Effects::default();
             items
-                .initialize(1, Processor::Teleport, 24, Some(owner), Position::ZERO, ctx)
+                .initialize(
+                    1,
+                    behavior(Processor::Teleport, Some(owner), 0),
+                    24,
+                    Position::ZERO,
+                    ctx,
+                )
                 .unwrap();
             let seed = *ctx.random;
-            items.teleport(1, actors, player, ctx).unwrap();
+            items
+                .process(
+                    1,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    player,
+                    0,
+                    ctx,
+                )
+                .unwrap();
             assert_eq!(ctx.camera.target, target);
             let expected = if accepted { target } else { position };
             assert_eq!(actors.get(player).position, expected);
@@ -97,7 +112,7 @@ fn teleport_release_preserves_source_ray_and_raw_position_write() {
                 if look { Mode::Direction } else { Mode::Normal }
             );
             assert_eq!(ctx.random.calls != seed.calls, accepted);
-            assert!(items.slots[1].processor.is_none());
+            assert!(items.slots[1].processor().is_none());
         }
     });
 }
@@ -124,7 +139,16 @@ fn teleport_request_hold_and_forced_disposal_keep_original_camera_rules() {
         assert_eq!(ctx.camera.direction, [11, 22]);
         let bytes = ctx.drawing.bytes;
         let random = *ctx.random;
-        items.teleport(id, actors, player, ctx).unwrap();
+        items
+            .process(
+                id,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                0,
+                ctx,
+            )
+            .unwrap();
         assert_eq!(ctx.camera.mode, Mode::Direction);
         assert_eq!(ctx.camera.detail, crate::camera::Detail::Sight);
         assert_eq!(items.sprites.last().unwrap().blend, 2);

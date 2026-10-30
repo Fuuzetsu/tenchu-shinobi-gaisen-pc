@@ -97,11 +97,17 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             actor.enter(ctx, action, true);
             items.dispose(1, actors, ctx).unwrap();
             items
-                .initialize(1, Processor::Sleep, 9, Some(player), position.into(), ctx)
+                .initialize(
+                    1,
+                    behavior(Processor::Sleep, Some(player), 0),
+                    9,
+                    position.into(),
+                    ctx,
+                )
                 .unwrap();
             items.contact(1, 1000, crate::collision::SOFT, ctx).unwrap();
             let item = &mut items.slots[1];
-            item.mode = 2;
+            item.set_source_mode(2);
             item.napalm = crate::items::napalm::Napalm { velocity, count };
             let model = item.model;
             ctx.scene.models[model].flags = 91;
@@ -127,7 +133,9 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
             let pulse = ctx.math.pair((i32::from(count) * 0x88) as i16)[0];
             writeln!(input,"{count} {} {} {} {} {} {} {seed} {hit} {health} {kind} {action} {level} {} {pulse} 0",position[0],position[1],position[2],velocity[0],velocity[1],velocity[2],actors.get(enemy).parts.len()).unwrap();
             let mut intelligence = Intelligence::default();
-            items.sleep(1, actors, &mut intelligence, ctx).unwrap();
+            items
+                .process(1, actors, &mut intelligence, 0, 0, ctx)
+                .unwrap();
             let actor = actors.get(enemy);
             let item = &items.slots[1];
             let mut row = ctx.scene.models[model]
@@ -137,8 +145,8 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                 .to_vec();
             row.extend([
                 i32::from(item.napalm.count),
-                i32::from(item.mode),
-                i32::from(item.processor.is_some()),
+                i32::from(item.source_mode()),
+                i32::from(item.processor().is_some()),
                 ctx.random.seed as i32,
                 ctx.random.calls as i32,
                 i32::from(ctx.scene.models[model].conflict.is_some()),
@@ -193,11 +201,17 @@ fn hand_release_and_interruption_keep_source_side_effects() {
             items.dispose(id, actors, ctx).unwrap();
         }
         items
-            .initialize(1, Processor::Sleep, 9, Some(player), Position::ZERO, ctx)
+            .initialize(
+                1,
+                behavior(Processor::Sleep, Some(player), 0),
+                9,
+                Position::ZERO,
+                ctx,
+            )
             .unwrap();
         actors.get_mut(player).health = 0;
         items
-            .sleep(1, actors, &mut Intelligence::default(), ctx)
+            .process(1, actors, &mut Intelligence::default(), 0, 0, ctx)
             .unwrap();
         assert_eq!(actors.get(player).motion.action, MOT_ITEM_THROW);
         let model = items.slots[1].model;
@@ -215,23 +229,29 @@ fn hand_release_and_interruption_keep_source_side_effects() {
             .translation;
         let random = *ctx.random;
         items
-            .sleep(1, actors, &mut Intelligence::default(), ctx)
+            .process(1, actors, &mut Intelligence::default(), 0, 0, ctx)
             .unwrap();
         assert_eq!(ctx.scene.models[model].local.translation, hand);
         assert_eq!(ctx.scene.models[model].cached, cached);
         assert_eq!(ctx.scene.models[model].flags, 91);
-        assert_eq!(items.slots[1].mode, 2);
+        assert_eq!(items.slots[1].source_mode(), 2);
         assert_eq!(*ctx.random, random);
         items.dispose(1, actors, ctx).unwrap();
         items
-            .initialize(1, Processor::Sleep, 9, Some(player), Position::ZERO, ctx)
+            .initialize(
+                1,
+                behavior(Processor::Sleep, Some(player), 0),
+                9,
+                Position::ZERO,
+                ctx,
+            )
             .unwrap();
-        items.slots[1].mode = 1;
+        items.slots[1].set_source_mode(1);
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
         items
-            .sleep(1, actors, &mut Intelligence::default(), ctx)
+            .process(1, actors, &mut Intelligence::default(), 0, 0, ctx)
             .unwrap();
-        assert!(items.slots.iter().all(|item| item.processor.is_none()));
+        assert!(items.slots.iter().all(|item| item.processor().is_none()));
         assert_eq!(*ctx.random, random);
     });
 }

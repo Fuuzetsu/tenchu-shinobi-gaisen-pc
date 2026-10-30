@@ -65,7 +65,7 @@ fn mei_oh_lightning_attacks_launch_restrike_damage_and_expire() {
                     .items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(Processor::Lightning))
+                    .any(|i| i.processor() == Some(Processor::Lightning))
                 {
                     if started.is_none() {
                         assert_eq!(was, 13);
@@ -87,7 +87,7 @@ fn mei_oh_lightning_attacks_launch_restrike_damage_and_expire() {
                     .items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(Processor::Lightning))
+                    .any(|i| i.processor() == Some(Processor::Lightning))
             );
         }
     }

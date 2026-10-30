@@ -65,7 +65,7 @@ fn at_wall(game: &mut Game) -> i16 {
         }
         for item in &mut world.items.slots {
             ctx.collision.remove(ctx.scene, item.model);
-            item.processor = None;
+            item.behavior = crate::items::Behavior::Inactive;
         }
         actor.position = position;
         actor.velocity = [0; 3];
@@ -173,7 +173,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                     .items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(processor))
+                    .any(|i| i.processor() == Some(processor))
                 {
                     break;
                 }
@@ -186,7 +186,7 @@ fn corner_throws_keep_selection_and_byte_decrement() {
                 .items
                 .slots
                 .iter()
-                .filter(|i| i.processor == Some(processor))
+                .filter(|i| i.processor() == Some(processor))
                 .collect();
             assert_eq!(thrown.len(), if kind == 2 { 5 } else { 1 });
             assert!(thrown.iter().all(|i| i.kind == kind));

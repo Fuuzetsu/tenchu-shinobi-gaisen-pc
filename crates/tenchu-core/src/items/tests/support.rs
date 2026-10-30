@@ -63,18 +63,23 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
             items
                 .initialize(
                     1,
-                    if resurrection {
-                        Processor::Resurrection
-                    } else {
-                        Processor::Flute
-                    },
+                    behavior(
+                        if resurrection {
+                            Processor::Resurrection
+                        } else {
+                            Processor::Flute
+                        },
+                        Some(player),
+                        0,
+                    ),
                     if resurrection { 10 } else { 18 },
-                    Some(player),
                     Position::ZERO,
                     ctx,
                 )
                 .unwrap();
-            items.slots[1].mode = mode;
+            if mode != 255 {
+                items.slots[1].set_source_mode(mode);
+            }
             items.slots[1].count = count;
             let owner = actors.get_mut(player);
             owner.active_item = active;
@@ -97,9 +102,20 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
             if mode == 255 {
                 items.dispose(1, actors, ctx).unwrap();
             } else if resurrection {
-                items.resurrection(1, actors, ctx).unwrap();
+                items
+                    .process(
+                        1,
+                        actors,
+                        &mut crate::ai::Intelligence::default(),
+                        0,
+                        0,
+                        ctx,
+                    )
+                    .unwrap();
             } else {
-                items.flute(1, actors, &mut intelligence, ctx).unwrap();
+                items
+                    .process(1, actors, &mut intelligence, 0, 0, ctx)
+                    .unwrap();
             }
             let item = &items.slots[1];
             let particles = ctx
@@ -115,9 +131,9 @@ for(int i=0;i<n;i++)for(int j=0;j<10;j++)printf(" %d",particles[i][j]);puts("");
                 })
                 .collect::<Vec<_>>();
             let mut row = vec![
-                i32::from(item.mode),
+                i32::from(item.source_mode()),
                 i32::from(item.count),
-                i32::from(item.processor.is_some()),
+                i32::from(item.processor().is_some()),
                 i32::from(actors.get(player).active_item),
                 intelligence.alert,
                 ctx.random.seed as i32,
@@ -180,7 +196,7 @@ fn flute_duration_and_forced_eviction_follow_source() {
         let id = items
             .slots
             .iter()
-            .position(|item| item.processor == Some(Processor::Flute))
+            .position(|item| item.processor() == Some(Processor::Flute))
             .unwrap();
         items.dispose(id, actors, ctx).unwrap();
     });

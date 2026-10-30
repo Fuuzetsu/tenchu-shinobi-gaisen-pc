@@ -5,11 +5,11 @@ impl Items {
     pub(super) fn sight_shot(
         &mut self,
         id: usize,
+        owner_id: usize,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner_id = item.owner.ok_or("Aimed shuriken has no owner")?;
         let owner = actors.get_mut(owner_id);
         if !owner.aiming {
             if owner.inventory[item.kind] != 255 {

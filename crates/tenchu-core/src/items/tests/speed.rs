@@ -12,9 +12,15 @@ fn speed_movement_preserves_source_cache_and_terrain_boundary() {
         for y in [-100, 0, 499, 500, 501, 510] {
             items.dispose(1, actors, ctx).unwrap();
             items
-                .initialize(1, Processor::Speed, 13, Some(player), Position::ZERO, ctx)
+                .initialize(
+                    1,
+                    behavior(Processor::Speed, Some(player), 0),
+                    13,
+                    Position::ZERO,
+                    ctx,
+                )
                 .unwrap();
-            items.slots[1].mode = 2;
+            items.slots[1].set_source_mode(2);
             items.slots[1].count = 4;
             items.slots[1].rolling.velocity = [100, 0, 0];
             let owner = actors.get_mut(player);
@@ -34,7 +40,16 @@ fn speed_movement_preserves_source_cache_and_terrain_boundary() {
             let rotation = ctx.scene.models[root].local.rotation;
             ctx.effects.slots.fill(None);
             let random = *ctx.random;
-            items.speed(1, actors, player, ctx).unwrap();
+            items
+                .process(
+                    1,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    player,
+                    0,
+                    ctx,
+                )
+                .unwrap();
             let expected = if y <= 500 {
                 [1100, y.min(0), 0]
             } else {
@@ -90,18 +105,26 @@ fn speed_interruption_refunds_only_the_casting_phase() {
             items
                 .initialize(
                     1,
-                    Processor::Speed,
+                    behavior(Processor::Speed, Some(player), 0),
                     13,
-                    Some(player),
                     Position::new(1000, -1200, 0),
                     ctx,
                 )
                 .unwrap();
-            items.slots[1].mode = mode;
+            items.slots[1].set_source_mode(mode);
             actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
             let random = *ctx.random;
-            items.speed(1, actors, player, ctx).unwrap();
-            assert!(items.slots[1].processor.is_none());
+            items
+                .process(
+                    1,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    player,
+                    0,
+                    ctx,
+                )
+                .unwrap();
+            assert!(items.slots[1].processor().is_none());
             assert_eq!(
                 ctx.random.calls - random.calls,
                 if mode == 1 { 3 } else { 0 }
@@ -109,11 +132,11 @@ fn speed_interruption_refunds_only_the_casting_phase() {
             let drops: Vec<_> = items
                 .slots
                 .iter()
-                .filter(|i| i.processor == Some(Processor::Pickup) && i.kind == 13)
+                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 13)
                 .collect();
             assert_eq!(drops.len(), usize::from(mode == 1));
             if let Some(drop) = drops.first() {
-                assert_eq!(drop.owner, Some(player));
+                assert_eq!(drop.owner(), Some(player));
                 assert_eq!(
                     ctx.scene.models[drop.model].local.translation,
                     [1000, -1200, 0]

@@ -24,15 +24,15 @@ fn speed_scrolls_move_at_the_original_rate_and_return_control() {
                 .items
                 .slots
                 .iter()
-                .position(|i| i.processor == Some(Processor::Speed))
+                .position(|i| i.processor() == Some(Processor::Speed))
                 .unwrap();
             for _ in 0..120 {
-                if game.items.slots[id].mode == 2 {
+                if game.items.slots[id].source_mode() == 2 {
                     break;
                 }
                 game.step(0).unwrap();
             }
-            assert_eq!(game.items.slots[id].mode, 2);
+            assert_eq!(game.items.slots[id].source_mode(), 2);
             assert_eq!(game.items.slots[id].count, 75);
             let start = game.player().position;
             let movement = game.player().velocity.map(i32::from);
@@ -63,7 +63,7 @@ fn speed_scrolls_move_at_the_original_rate_and_return_control() {
             } else {
                 for tick in 1..=75 {
                     game.step(0).unwrap();
-                    assert_eq!(game.items.slots[id].processor.is_some(), tick < 75);
+                    assert_eq!(game.items.slots[id].processor().is_some(), tick < 75);
                 }
                 assert_eq!(
                     game.player().position,
@@ -74,7 +74,7 @@ fn speed_scrolls_move_at_the_original_rate_and_return_control() {
                     ]
                 );
             }
-            assert!(game.items.slots[id].processor.is_none());
+            assert!(game.items.slots[id].processor().is_none());
             assert_ne!(game.player().motion.action, MOT_ITEM_SHINSOKU);
             assert_eq!(game.camera.mode, Mode::Normal);
             assert_eq!(game.player().health, game.player().max_health);

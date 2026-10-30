@@ -39,7 +39,7 @@ fn poisoned_food_lures_and_restores_an_enemy() {
                 .items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(Processor::Poison) && i.mode == 3);
+                .any(|i| i.processor() == Some(Processor::Poison) && i.source_mode() == 3);
         }
         assert!(
             lured && eating && poisoned && choked,
@@ -57,7 +57,7 @@ fn poisoned_food_lures_and_restores_an_enemy() {
                 .items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(Processor::Poison))
+                .any(|i| i.processor() == Some(Processor::Poison))
         );
     }
 }

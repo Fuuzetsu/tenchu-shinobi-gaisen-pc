@@ -59,17 +59,17 @@ impl Items {
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        let processor = match kind {
-            1 => Processor::Shuriken,
-            20 => Processor::Gun,
-            21 => Processor::Arrow,
+        let behavior = match kind {
+            1 => Behavior::Shuriken { owner: owner_id },
+            20 => Behavior::Gun(Used::new(owner_id, state::Gun::Muzzle)),
+            21 => Behavior::Arrow(Used::new(owner_id, state::Arrow::Flying)),
             _ => return Err(format!("Invalid projectile kind {kind}")),
         };
         let id = self.allocate(actors, ctx)?;
-        self.initialize(id, processor, kind, Some(owner_id), start, ctx)?;
+        self.initialize(id, behavior, kind, start, ctx)?;
         self.slots[id].collision.size = 0;
-        match processor {
-            Processor::Shuriken | Processor::Arrow => {
+        match kind {
+            1 | 21 => {
                 self.slots[id].flight = Flight::new(
                     start,
                     end,
@@ -84,7 +84,7 @@ impl Items {
                         Some(Trail::new(self.meshes[0], [[20, 0, 0], [-20, 0, 0]]));
                 }
             }
-            Processor::Gun => self.slots[id].gun_target = end,
+            20 => self.slots[id].gun_target = end,
             _ => unreachable!(),
         }
         Ok(())
@@ -136,6 +136,7 @@ impl Items {
     pub(super) fn shuriken(
         &mut self,
         id: usize,
+        owner_id: usize,
         ctx: &mut Context,
         actors: &mut Actors,
         intelligence: &mut Intelligence,
@@ -171,7 +172,7 @@ impl Items {
                 }
                 RollingStatus::Ground | RollingStatus::Settled => {
                     let kind = self.slots[id].kind;
-                    let owner = self.slots[id].owner;
+                    let owner = Some(owner_id);
                     self.dispose(id, actors, ctx)?;
                     self.drop(kind, owner, position, Position::ZERO, actors, ctx)?;
                 }
@@ -185,13 +186,14 @@ impl Items {
     pub(super) fn arrow(
         &mut self,
         id: usize,
+        used: Used<state::Arrow>,
         ctx: &mut Context,
         actors: &mut Actors,
         clock: i32,
     ) -> Result<()> {
         let model = self.slots[id].model;
-        match self.slots[id].mode {
-            0 => {
+        match used.phase {
+            state::Arrow::Flying => {
                 let previous = ctx.scene.models[model].local.translation;
                 self.fly(id, ctx)?;
                 if ctx.scene.models[model].attribute & CONFLICT != 0 {
@@ -218,15 +220,16 @@ impl Items {
                             attached.parent = Some(part);
                             attached.local.translation = Position::ZERO;
                             self.slots[id].count = 120;
-                            self.slots[id].mode = 1;
+                            self.slots[id].behavior =
+                                Behavior::Arrow(used.with_phase(state::Arrow::Embedded));
                             ctx.collision.remove(ctx.scene, model);
                             self.draw_model(id, 1, ctx)?;
                             return Ok(());
                         }
-                    } else if self.arrow_ground(id, actors, ctx)? {
+                    } else if self.arrow_ground(id, used, actors, ctx)? {
                         return Ok(());
                     }
-                } else if self.arrow_ground(id, actors, ctx)? {
+                } else if self.arrow_ground(id, used, actors, ctx)? {
                     return Ok(());
                 }
                 let position = ctx.scene.models[model].local.translation;
@@ -235,14 +238,15 @@ impl Items {
                 self.slots[id].rotation = rotation;
                 self.update_coordinate(id, ctx);
             }
-            1 => {
+            state::Arrow::Embedded => {
                 self.slots[id].count = self.slots[id].count.wrapping_sub(1);
                 if self.slots[id].count == 0 {
                     self.slots[id].count = 15;
-                    self.slots[id].mode = 2;
+                    self.slots[id].behavior =
+                        Behavior::Arrow(used.with_phase(state::Arrow::Fading));
                 }
             }
-            2 => {
+            state::Arrow::Fading => {
                 self.slots[id].count = self.slots[id].count.wrapping_sub(1);
                 if self.slots[id].count == 0 {
                     self.dispose(id, actors, ctx)?;
@@ -252,12 +256,17 @@ impl Items {
                     return Ok(());
                 }
             }
-            _ => {}
         }
         self.draw_model(id, 1, ctx)
     }
 
-    fn arrow_ground(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<bool> {
+    fn arrow_ground(
+        &mut self,
+        id: usize,
+        used: Used<state::Arrow>,
+        actors: &mut Actors,
+        ctx: &mut Context,
+    ) -> Result<bool> {
         let item = &mut self.slots[id];
         if !item.flight.is_rolling() || item.rolling.status == RollingStatus::Airborne {
             return Ok(false);
@@ -279,19 +288,25 @@ impl Items {
                 ctx.random,
             );
             item.count = 30;
-            item.mode = 1;
+            item.behavior = Behavior::Arrow(used.with_phase(state::Arrow::Embedded));
             ctx.collision.remove(ctx.scene, item.model);
         }
         Ok(true)
     }
 
-    pub(super) fn gun(&mut self, id: usize, ctx: &mut Context, actors: &mut Actors) -> Result<()> {
+    pub(super) fn gun(
+        &mut self,
+        id: usize,
+        used: Used<state::Gun>,
+        ctx: &mut Context,
+        actors: &mut Actors,
+    ) -> Result<()> {
         let item = &self.slots[id];
-        let owner = actors.get(item.owner.ok_or("Gun has no owner")?);
+        let owner = actors.get(used.owner);
         let model = item.model;
         let position = ctx.scene.models[model].local.translation;
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Gun::Muzzle => {
                 ctx.effects.impact(position, 8192, 0, ctx.random);
                 ctx.effects.scatter_bleeds(
                     position,
@@ -304,9 +319,9 @@ impl Items {
                     },
                     ctx.random,
                 );
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Gun(used.with_phase(state::Gun::Impact));
             }
-            1 => {
+            state::Gun::Impact => {
                 let rotation = ctx.math.vector_rotation(position, item.gun_target)?;
                 let (hit, position) = target(owner.id, rotation, position, actors, ctx)?;
                 ctx.scene.set_translation(model, position);
@@ -344,10 +359,9 @@ impl Items {
                 ctx.effects
                     .sounds
                     .push((position, if hit.is_some() { 0x34 } else { 0x35 }));
-                self.slots[id].mode = 2;
+                self.slots[id].behavior = Behavior::Gun(used.with_phase(state::Gun::Finished));
             }
-            2 => self.dispose(id, actors, ctx)?,
-            _ => {}
+            state::Gun::Finished => self.dispose(id, actors, ctx)?,
         }
         Ok(())
     }

@@ -53,9 +53,17 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
                 for active in [0, 12, 18] {
                     items.dispose(1, actors, ctx).unwrap();
                     items
-                        .initialize(1, Processor::Charm, 12, Some(player), Position::ZERO, ctx)
+                        .initialize(
+                            1,
+                            behavior(Processor::Charm, Some(player), 0),
+                            12,
+                            Position::ZERO,
+                            ctx,
+                        )
                         .unwrap();
-                    items.slots[1].mode = mode;
+                    if mode != 255 {
+                        items.slots[1].set_source_mode(mode);
+                    }
                     items.slots[1].charm_remaining = count;
                     let owner = actors.get_mut(player);
                     owner.active_item = active;
@@ -67,7 +75,16 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
                     if mode == 255 {
                         items.dispose(1, actors, ctx).unwrap();
                     } else {
-                        items.charm(1, actors, player, ctx).unwrap();
+                        items
+                            .process(
+                                1,
+                                actors,
+                                &mut crate::ai::Intelligence::default(),
+                                player,
+                                0,
+                                ctx,
+                            )
+                            .unwrap();
                     }
                     let item = &items.slots[1];
                     let pulse = ctx.effects.slots.iter().find_map(|e| {
@@ -78,9 +95,9 @@ if(n)for(int i=0;i<15;i++)printf(" %d",pulse[i]);puts("");}return 0;}
                         }
                     });
                     let mut row = vec![
-                        item.mode as i32,
+                        item.source_mode() as i32,
                         item.charm_remaining as i32,
-                        i32::from(item.processor.is_some()),
+                        i32::from(item.processor().is_some()),
                         actors.get(player).active_item as i32,
                         ctx.random.seed as i32,
                         ctx.random.calls as i32,
@@ -118,27 +135,35 @@ fn interrupted_charm_refunds_and_clears_active_item() {
         items
             .initialize(
                 1,
-                Processor::Charm,
+                behavior(Processor::Charm, Some(player), 0),
                 12,
-                Some(player),
                 Position::new(1000, -1200, 0),
                 ctx,
             )
             .unwrap();
-        items.slots[1].mode = 1;
+        items.slots[1].set_source_mode(1);
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
         actors.get_mut(player).active_item = 18;
         let mut random = *ctx.random;
-        items.charm(1, actors, player, ctx).unwrap();
-        assert!(items.slots[1].processor.is_none());
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                player,
+                0,
+                ctx,
+            )
+            .unwrap();
+        assert!(items.slots[1].processor().is_none());
         assert_eq!(actors.get(player).active_item, 0);
         let drops: Vec<_> = items
             .slots
             .iter()
-            .filter(|i| i.processor == Some(Processor::Pickup) && i.kind == 12)
+            .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 12)
             .collect();
         assert_eq!(drops.len(), 1);
-        assert_eq!(drops[0].owner, Some(player));
+        assert_eq!(drops[0].owner(), Some(player));
         assert_eq!(
             ctx.scene.models[drops[0].model].local.translation,
             [1000, -1200, 0]

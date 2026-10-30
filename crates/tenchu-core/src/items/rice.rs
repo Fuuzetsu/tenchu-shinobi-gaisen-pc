@@ -5,27 +5,28 @@ impl Items {
     pub(super) fn rice(
         &mut self,
         id: usize,
+        used: Used<state::Rice>,
         actors: &mut Actors,
         halt: crate::ai::Halt,
         player: usize,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner_id = item.owner.ok_or("Colored rice has no owner")?;
+        let owner_id = used.owner;
         let owner = actors.get_mut(owner_id);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Rice::Begin => {
                 if halt == crate::ai::Halt::Running && owner.health > 0 {
                     owner.clear_attack(ctx, 3)?;
                     Self::item_motion(owner, MOT_ITEM_PLANT, ctx);
                     // Rice uses ActSTATE, avoiding ActITEM's mine request at frame 5.
                     owner.status = 8;
                 }
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Rice(used.with_phase(state::Rice::Planting));
             }
-            1 => {
+            state::Rice::Planting => {
                 if owner.motion.action != MOT_ITEM_PLANT {
-                    self.slots[id].mode = 0;
+                    self.slots[id].behavior = Behavior::Rice(used.with_phase(state::Rice::Begin));
                     return Ok(());
                 }
                 if owner.motion.count != 15 {
@@ -42,7 +43,6 @@ impl Items {
                 self.dispose(id, actors, ctx)?;
                 self.drop(8, Some(owner_id), position, velocity.into(), actors, ctx)?;
             }
-            mode => return Err(format!("Invalid colored rice mode {mode}")),
         }
         Ok(())
     }

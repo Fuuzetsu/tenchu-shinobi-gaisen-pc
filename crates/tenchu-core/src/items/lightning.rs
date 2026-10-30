@@ -11,6 +11,7 @@ impl Items {
     pub(super) fn lightning(
         &mut self,
         id: usize,
+        used: Used<state::Lightning>,
         actors: &mut Actors,
         player: usize,
         clock: i32,
@@ -18,33 +19,26 @@ impl Items {
     ) -> Result<()> {
         let item = &mut self.slots[id];
         let start = item.lightning.start;
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Lightning::Begin => {
                 item.count = 15;
-                item.mode = 1;
-                if item.owner == Some(player) {
+                item.behavior = Behavior::Lightning(used.with_phase(state::Lightning::Target));
+                if used.owner == player {
                     ctx.effects.sounds.push((Position::ZERO, 0x39));
                 }
             }
-            1 => {
-                let target = projectile::target(
-                    item.owner.ok_or("Lightning has no owner")?,
-                    item.lightning.rotation,
-                    start,
-                    actors,
-                    ctx,
-                )?
-                .1;
+            state::Lightning::Target => {
+                let target =
+                    projectile::target(used.owner, item.lightning.rotation, start, actors, ctx)?.1;
                 ctx.scene.set_translation(item.model, target);
-                item.mode = 2;
+                item.behavior = Behavior::Lightning(used.with_phase(state::Lightning::Hold));
                 self.contact(id, 100, crate::collision::HIT, ctx)?;
             }
-            2 => {
+            state::Lightning::Hold => {
                 if clock % 3 == 0 {
-                    item.mode = 1;
+                    item.behavior = Behavior::Lightning(used.with_phase(state::Lightning::Target));
                 }
             }
-            mode => return Err(format!("Invalid lightning mode {mode}")),
         }
         let position = ctx.scene.models[self.slots[id].model].local.translation;
         ctx.drawing.bytes += ctx.effects.lightning(

@@ -35,13 +35,14 @@ impl Items {
     pub(super) fn dog(
         &mut self,
         id: usize,
+        used: Used<state::Dog>,
         actors: &mut Actors,
         clock: i32,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &mut self.slots[id];
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Dog::Thrown => {
                 let mut position = ctx.scene.models[item.model].local.translation;
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(item.model, position);
@@ -56,12 +57,12 @@ impl Items {
                 }
                 item.dog.remaining = item.dog.remaining.wrapping_sub(1);
                 if item.dog.remaining as i16 <= 0 {
-                    item.mode = 1;
+                    item.behavior = Behavior::Dog(used.with_phase(state::Dog::Summoning));
                 }
                 self.update_coordinate(id, ctx);
                 self.draw_icon(id, ctx)?;
             }
-            1 => {
+            state::Dog::Summoning => {
                 if self
                     .dog_actor
                     .is_none_or(|a| !actors.roster.order.contains(&a))
@@ -79,7 +80,7 @@ impl Items {
                 if map.level < position[1].wrapping_sub(500)
                     || actors.get(slave).attribute & ATTR_SUSPEND == 0
                 {
-                    item.mode = 0;
+                    item.behavior = Behavior::Dog(used.with_phase(state::Dog::Thrown));
                     item.dog.remaining = 15;
                     return Ok(());
                 }
@@ -88,7 +89,7 @@ impl Items {
                     .smoke(position, [0, -50, 0], 10, 6, ctx.random)?;
                 ctx.effects.sounds.push((position, 0x23));
                 item.dog.slave = Some(slave);
-                let owner = actors.get(item.owner.ok_or("Dog summon has no owner")?);
+                let owner = actors.get(used.owner);
                 let (rotation, target) = (owner.rotation, owner.root_model);
                 let actor = actors.get_mut(slave);
                 actor.status = 0;
@@ -105,10 +106,10 @@ impl Items {
                 ctx.scene.models[actor.parts[0]].attribute |= COLLIDE;
                 actor.hide_body(ctx.scene, false);
                 actor.velocity[1] = 0;
-                item.mode = 2;
+                item.behavior = Behavior::Dog(used.with_phase(state::Dog::Active));
                 item.dog.remaining = 1800;
             }
-            2 => {
+            state::Dog::Active => {
                 let slave = item.dog.slave.ok_or("Active dog summon has no actor")?;
                 if !actors.roster.order.contains(&slave) {
                     self.dispose(id, actors, ctx)?;
@@ -130,7 +131,7 @@ impl Items {
                 if clock % 15 != 0 || matches!(actor.status, 7 | 8 | 16) {
                     return Ok(());
                 }
-                let owner_id = item.owner.ok_or("Dog summon has no owner")?;
+                let owner_id = used.owner;
                 let attribute = actors.get(owner_id).attribute;
                 actors.get_mut(owner_id).attribute = ATTR_SUSPEND;
                 let nearest = actors.roster.nearest(actors.get(slave), 10000, ctx.math);
@@ -157,7 +158,6 @@ impl Items {
                     }
                 }
             }
-            mode => return Err(format!("Invalid dog summon mode {mode}")),
         }
         Ok(())
     }

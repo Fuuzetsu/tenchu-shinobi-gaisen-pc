@@ -58,15 +58,15 @@ fn dog_summon_expires_and_reuses_the_parked_actor() {
             .items
             .slots
             .iter()
-            .position(|i| i.processor == Some(Processor::Dog))
+            .position(|i| i.processor() == Some(Processor::Dog))
             .unwrap();
         for _ in 0..180 {
-            if game.items.slots[id].mode == 2 {
+            if game.items.slots[id].source_mode() == 2 {
                 break;
             }
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].mode, 2);
+        assert_eq!(game.items.slots[id].source_mode(), 2);
         assert_eq!(game.items.slots[id].dog.remaining, 1800);
         let dog = game.items.slots[id].dog.slave.unwrap();
         assert_eq!(game.roster.get(dog).kind, 0xa9);
@@ -76,7 +76,7 @@ fn dog_summon_expires_and_reuses_the_parked_actor() {
         for tick in 1..=1800 {
             game.step(0).unwrap();
             assert_eq!(
-                game.items.slots[id].processor.is_some(),
+                game.items.slots[id].processor().is_some(),
                 tick < 1800,
                 "character {character} tick {tick}"
             );
@@ -90,15 +90,15 @@ fn dog_summon_expires_and_reuses_the_parked_actor() {
             .items
             .slots
             .iter()
-            .position(|i| i.processor == Some(Processor::Dog))
+            .position(|i| i.processor() == Some(Processor::Dog))
             .unwrap();
         for _ in 0..180 {
-            if game.items.slots[id].mode == 2 {
+            if game.items.slots[id].source_mode() == 2 {
                 break;
             }
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].mode, 2);
+        assert_eq!(game.items.slots[id].source_mode(), 2);
         assert_eq!(game.items.slots[id].dog.slave, Some(dog));
         assert_eq!(game.roster.order.len(), count);
         assert_eq!(game.player().inventory[16], 0);

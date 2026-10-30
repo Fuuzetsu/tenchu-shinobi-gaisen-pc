@@ -91,16 +91,15 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
             items
                 .initialize(
                     id,
-                    Processor::Napalm,
+                    behavior(Processor::Napalm, Some(player), 0),
                     22,
-                    Some(player),
                     position.into(),
                     ctx,
                 )
                 .unwrap();
             items.contact(id, 333, 7, ctx).unwrap();
             let item = &mut items.slots[id];
-            item.mode = mode as u8;
+            item.set_source_mode(mode as u8);
             item.napalm = crate::items::napalm::Napalm { velocity, count };
             item.collision.paused = true;
             item.collision.offset_y = 11;
@@ -136,7 +135,16 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
                 actors.get(player).parts.len()
             )
             .unwrap();
-            items.napalm(id, actors, ctx).unwrap();
+            items
+                .process(
+                    id,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    0,
+                    0,
+                    ctx,
+                )
+                .unwrap();
             let item = &items.slots[id];
             let flash = ctx.effects.slots.iter().find_map(|effect| {
                 if let Some(Effect::Flash(f)) = effect {
@@ -152,8 +160,8 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
                 .to_vec();
             row.extend([
                 i32::from(item.napalm.count),
-                i32::from(item.mode),
-                i32::from(item.processor.is_some()),
+                i32::from(item.source_mode()),
+                i32::from(item.processor().is_some()),
                 ctx.random.seed as i32,
                 ctx.random.calls as i32,
                 i32::from(ctx.scene.models[model].conflict.is_some()),
@@ -210,9 +218,8 @@ fn rejected_request_preserves_allocator_side_effects() {
             items
                 .initialize(
                     id,
-                    Processor::SightShot,
+                    behavior(Processor::SightShot, Some(player), 0),
                     1,
-                    Some(player),
                     Position::ZERO,
                     ctx,
                 )
@@ -232,7 +239,7 @@ fn rejected_request_preserves_allocator_side_effects() {
             )
             .unwrap();
         assert_eq!(items.cursor, 29);
-        assert!(items.slots[29].processor.is_none());
+        assert!(items.slots[29].processor().is_none());
         assert!(!actors.get(player).aiming);
         assert_eq!(actors.get(player).inventory[22], 2);
         items
@@ -246,7 +253,7 @@ fn rejected_request_preserves_allocator_side_effects() {
             )
             .unwrap();
         assert_eq!(items.cursor, 28);
-        assert_eq!(items.slots[28].processor, Some(Processor::Napalm));
+        assert_eq!(items.slots[28].processor(), Some(Processor::Napalm));
         assert_eq!(items.slots[28].napalm.velocity, [1, 32767, -99]);
     });
 }

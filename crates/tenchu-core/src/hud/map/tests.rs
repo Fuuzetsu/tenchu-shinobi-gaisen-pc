@@ -1,6 +1,9 @@
 use super::*;
 use crate::math::Position;
-use crate::{items::Processor, oracle};
+use crate::{
+    items::{Behavior, PickupPhase},
+    oracle,
+};
 use std::fmt::Write;
 
 #[test]
@@ -95,13 +98,20 @@ for(int i=0;i<nl;i++)for(int j=0;j<7;j++)printf(" %d",lines[i][j]);puts("");
         game.mission.map_placement = placement;
         game.scene.models[root].local.translation = Position::new(x, 0, z);
         for (i, item) in game.items.slots.iter_mut().enumerate() {
-            item.processor = ((i as i32 + case % 2) % 2 != 0).then_some(Processor::Pickup);
             item.kind = if i % 3 != 0 { 8 } else { 4 };
-            item.owner = Some(if (i as i32 + case % 4) % 4 != 0 {
+            let owner = Some(if (i as i32 + case % 4) % 4 != 0 {
                 player
             } else {
                 usize::MAX
             });
+            item.behavior = if (i as i32 + case % 2) % 2 != 0 {
+                Behavior::Pickup {
+                    owner,
+                    phase: PickupPhase::Available,
+                }
+            } else {
+                Behavior::Inactive
+            };
             game.scene.models[item.model].local.translation = Position::new(
                 x.wrapping_add(i as i32 * 317),
                 0,

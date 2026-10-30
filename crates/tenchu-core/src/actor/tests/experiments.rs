@@ -95,7 +95,7 @@ fn inventory_edits_preserve_timers_and_allow_item_use() {
         game.items
             .slots
             .iter()
-            .any(|i| i.processor == Some(crate::items::Processor::Fire))
+            .any(|i| i.processor() == Some(crate::items::Processor::Fire))
     );
     game.set_inventory(4, 0).unwrap();
     assert_eq!(game.hud.selected, None);

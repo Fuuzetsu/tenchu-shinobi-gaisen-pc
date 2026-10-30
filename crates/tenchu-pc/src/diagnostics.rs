@@ -46,13 +46,13 @@ pub fn game(game: &Game) -> Value {
         .slots
         .iter()
         .enumerate()
-        .filter(|(_, i)| i.processor.is_some())
+        .filter(|(_, i)| i.processor().is_some())
         .map(|(slot, i)| {
             let model = &game.scene.models[i.model];
-            json!({"slot": slot, "kind": i.kind, "processor": format!("{:?}", i.processor.unwrap()),
-                "owner": i.owner, "model": i.model, "parent": model.parent,
+            json!({"slot": slot, "kind": i.kind, "processor": format!("{:?}", i.processor().unwrap()),
+                "owner": i.owner(), "model": i.model, "parent": model.parent,
                 "local_position": position(model.local.translation),
-                "mode": i.mode, "count": i.count, "rotation": i.rotation,
+                "mode": i.source_mode(), "count": i.count, "rotation": i.rotation,
                 "velocity": i.rolling.velocity, "rolling_status": i.rolling.status.source_id(),
                 "collision": {"class": i.collision.class, "paused": i.collision.paused,
                     "size": i.collision.size, "offset_y": i.collision.offset_y},

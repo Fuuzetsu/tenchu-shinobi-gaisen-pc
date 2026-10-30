@@ -26,7 +26,7 @@ fn both_players_fire_eight_darts_with_delayed_hitboxes() {
             .slots
             .iter()
             .enumerate()
-            .filter_map(|(id, item)| (item.processor == Some(Processor::Darts)).then_some(id))
+            .filter_map(|(id, item)| (item.processor() == Some(Processor::Darts)).then_some(id))
             .collect();
         assert_eq!(ids.len(), 8);
         for &id in &ids {
@@ -65,7 +65,7 @@ fn both_players_fire_eight_darts_with_delayed_hitboxes() {
             game.items
                 .slots
                 .iter()
-                .all(|i| i.processor != Some(Processor::Darts))
+                .all(|i| i.processor() != Some(Processor::Darts))
         );
     }
 }

@@ -100,7 +100,10 @@ impl Map {
                     [20, 20, 200],
                 );
                 for item in &items.slots {
-                    if item.processor.is_some() && item.kind == 8 && item.owner == Some(player.id) {
+                    if item.processor().is_some()
+                        && item.kind == 8
+                        && item.owner() == Some(player.id)
+                    {
                         self.marker(
                             project(
                                 scene.models[item.model].local.translation,

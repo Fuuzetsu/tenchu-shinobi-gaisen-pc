@@ -26,6 +26,7 @@ impl Items {
     pub(super) fn decoy(
         &mut self,
         id: usize,
+        used: Used<state::Decoy>,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
@@ -37,11 +38,11 @@ impl Items {
         if item.rolling.status == RollingStatus::Water {
             return self.dispose(id, actors, ctx);
         }
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Decoy::Fuse => {
                 item.count = item.count.wrapping_sub(1);
                 if item.count == 0 {
-                    item.mode = 1;
+                    item.behavior = Behavior::Decoy(used.with_phase(state::Decoy::Growing));
                     ctx.effects
                         .smoke(position, [0, -25, 0], 10, 6, ctx.random)?;
                     ctx.effects.sounds.push((position, 0x23));
@@ -49,7 +50,7 @@ impl Items {
                         item.decoy.health = 3;
                         self.decoy_count += 1;
                     } else {
-                        let owner = item.owner;
+                        let owner = item.owner();
                         let kind = item.kind;
                         let velocity = [
                             ctx.random.next15() % 200 - 100,
@@ -63,7 +64,7 @@ impl Items {
                 self.update_coordinate(id, ctx);
                 self.draw_icon(id, ctx)?;
             }
-            1 => {
+            state::Decoy::Growing => {
                 item.count = item.count.wrapping_add(1);
                 let scale = i32::from(item.count) << 8;
                 let coordinate = &mut ctx.scene.models[model];
@@ -80,10 +81,10 @@ impl Items {
                     item.collision.offset_y = -250;
                     ctx.collision.slots[ctx.scene.models[model].conflict.unwrap()].offset[1] = -250;
                     item.count = 3;
-                    item.mode = 2;
+                    item.behavior = Behavior::Decoy(used.with_phase(state::Decoy::Active));
                 }
             }
-            2 => {
+            state::Decoy::Active => {
                 let contact = self.first_contact(id, ctx);
                 let item = &mut self.slots[id];
                 item.count = item.count.wrapping_sub(1);
@@ -124,7 +125,6 @@ impl Items {
                             );
                             ctx.effects.sounds.push((position, 0x23));
                             self.dispose(id, actors, ctx)?;
-                            self.slots[id].mode = self.slots[id].mode.wrapping_add(1);
                         } else {
                             item.rolling = Rolling {
                                 velocity: [(-x / 16) as i16, -100, (-z / 16) as i16],
@@ -145,7 +145,6 @@ impl Items {
                 self.update_coordinate(id, ctx);
                 self.draw_model(id, 2, ctx)?;
             }
-            mode => return Err(format!("Invalid decoy mode {mode}")),
         }
         Ok(())
     }

@@ -5,20 +5,21 @@ impl Items {
     pub(super) fn speed(
         &mut self,
         id: usize,
+        used: Used<state::Speed>,
         actors: &mut Actors,
         player: usize,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner_id = item.owner.ok_or("Speed scroll has no owner")?;
+        let owner_id = used.owner;
         let owner = actors.get_mut(owner_id);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Speed::Begin => {
                 owner.enter(ctx, MOT_ITEM_SHINSOKU, true);
                 ctx.effects.sounds.push((owner.position, 0x4c));
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Speed(used.with_phase(state::Speed::Casting));
             }
-            1 => {
+            state::Speed::Casting => {
                 if owner.motion.action != MOT_ITEM_SHINSOKU {
                     return self.refund_cast(id, actors, ctx);
                 }
@@ -26,10 +27,11 @@ impl Items {
                     ctx.effects
                         .smoke_burst(owner.position, 150, 12, 8, ctx.random);
                     self.slots[id].count = 75;
-                    self.slots[id].mode = 2;
+                    self.slots[id].behavior =
+                        Behavior::Speed(used.with_phase(state::Speed::Moving));
                 }
             }
-            2 => {
+            state::Speed::Moving => {
                 if owner.motion.action != MOT_ITEM_SHINSOKU {
                     return self.dispose(id, actors, ctx);
                 }
@@ -91,7 +93,6 @@ impl Items {
                     self.dispose(id, actors, ctx)?;
                 }
             }
-            mode => return Err(format!("Invalid speed scroll mode {mode}")),
         }
         Ok(())
     }

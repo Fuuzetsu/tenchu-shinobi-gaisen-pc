@@ -69,16 +69,26 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
                 .drop(3, Some(player), position, Position::ZERO, roster, ctx)
                 .unwrap();
             let id = items.cursor;
-            items.slots[id].mode = 2;
+            items.slots[id].set_source_mode(2);
             items.slots[id].count = 9;
             roster.get_mut(player).motion.action = crate::ids::MOT_NORMAL;
             let calls = ctx.random.calls;
             items
-                .pickup(id, ctx, roster, crate::ai::Halt::Running)
+                .process(
+                    id,
+                    roster,
+                    &mut crate::ai::Intelligence {
+                        action_halt: crate::ai::Halt::Running,
+                        ..Default::default()
+                    },
+                    0,
+                    0,
+                    ctx,
+                )
                 .unwrap();
             assert_eq!(ctx.random.calls - calls, 3);
             assert_eq!(roster.get(player).inventory[3], 2);
-            assert!(items.slots[id].processor.is_none());
+            assert!(items.slots[id].processor().is_none());
 
             for id in 0..CAPACITY {
                 items.dispose(id, roster, ctx).unwrap();
@@ -100,10 +110,14 @@ fn pickups_transfer_and_full_pool_replacement_preserve_source_order() {
                     .unwrap()
             );
             assert_eq!(items.cursor, 29);
-            assert!(items.slots[29].processor.is_none());
+            assert!(items.slots[29].processor().is_none());
             assert!(ctx.scene.models[model].conflict.is_none());
             assert_eq!(
-                items.slots.iter().filter(|i| i.processor.is_some()).count(),
+                items
+                    .slots
+                    .iter()
+                    .filter(|i| i.processor().is_some())
+                    .count(),
                 29
             );
         });
@@ -439,8 +453,8 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
                 });
                 game.step(0).unwrap();
                 assert!(game.items.slots.iter().any(|i| i.kind == 3
-                    && i.owner == Some(player)
-                    && i.processor == Some(Processor::Pickup)));
+                    && i.owner() == Some(player)
+                    && i.processor() == Some(Processor::Pickup)));
             }
             let mut healed = false;
             for _ in 0..100 {
@@ -461,7 +475,7 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
                     .items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(Processor::Medicine))
+                    .any(|i| i.processor() == Some(Processor::Medicine))
             );
         }
         let mut game = oracle::game(0, character);
@@ -492,7 +506,7 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
                 .items
                 .slots
                 .iter()
-                .filter(|i| i.processor == Some(Processor::Caltrops))
+                .filter(|i| i.processor() == Some(Processor::Caltrops))
                 .count()
                 == 5
             {
@@ -503,7 +517,7 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
             game.items
                 .slots
                 .iter()
-                .filter(|i| i.processor == Some(Processor::Caltrops))
+                .filter(|i| i.processor() == Some(Processor::Caltrops))
                 .count(),
             5
         );
@@ -520,10 +534,10 @@ fn consumables_finish_or_drop_and_caltrops_arm_on_the_floor() {
             .items
             .slots
             .iter()
-            .filter(|i| i.processor == Some(Processor::Caltrops))
+            .filter(|i| i.processor() == Some(Processor::Caltrops))
             .collect();
         assert_eq!(traps.len(), 5);
-        assert!(traps.iter().all(|i| i.mode == 1));
+        assert!(traps.iter().all(|i| i.source_mode() == 1));
         let position = game.scene.models[traps[0].model].local.translation;
         with_items(&mut game, |_, ctx, actors| {
             let actor = actors.get_mut(player);
@@ -592,7 +606,7 @@ fn full_pool_cancels_an_aimed_item_owned_by_the_active_actor() {
             .unwrap();
         assert!(!actor.aiming);
         assert_eq!(items.cursor, aim);
-        assert_eq!(items.slots[aim].processor, Some(Processor::Gun));
+        assert_eq!(items.slots[aim].processor(), Some(Processor::Gun));
         actors.roster.restore(actor);
     });
 }
@@ -638,13 +652,13 @@ fn bombs_recover_refund_and_extinguish() {
             })
             .unwrap();
         *ctx.random = Random::new(seed);
-        items.fire(id, actors, &mut intelligence, ctx).unwrap();
-        assert!(items.slots[id].processor.is_none());
-        assert!(
-            items.slots.iter().any(|i| i.kind == 4
-                && i.owner.is_none()
-                && i.processor == Some(Processor::Pickup))
-        );
+        items
+            .process(id, actors, &mut intelligence, 0, 0, ctx)
+            .unwrap();
+        assert!(items.slots[id].processor().is_none());
+        assert!(items.slots.iter().any(|i| i.kind == 4
+            && i.owner().is_none()
+            && i.processor() == Some(Processor::Pickup)));
         assert_eq!(ctx.random.calls, 8);
         assert!(ctx.effects.slots.iter().any(|s| matches!(
             s,
@@ -667,9 +681,11 @@ fn bombs_recover_refund_and_extinguish() {
             .unwrap();
         actors.roster.restore(actor);
         let id = items.cursor;
-        items.mine(id, actors, &mut intelligence, ctx).unwrap();
+        items
+            .process(id, actors, &mut intelligence, 0, 0, ctx)
+            .unwrap();
         assert_eq!(actors.get(player).inventory[6], 2);
-        assert!(items.slots[id].processor.is_none());
+        assert!(items.slots[id].processor().is_none());
     });
     oracle::flat_terrain(&mut game, 0x2004);
     with_items(&mut game, |items, ctx, actors| {
@@ -693,16 +709,233 @@ fn bombs_recover_refund_and_extinguish() {
             let id = items.cursor;
             items.slots[id].rolling.velocity = [0, 100, 0];
             match kind {
-                4 => items.fire(id, actors, &mut intelligence, ctx),
-                5 => items.smoke(id, actors, &mut intelligence, 0, ctx),
-                _ => items.mine(id, actors, &mut intelligence, ctx),
+                4 => items.process(id, actors, &mut intelligence, 0, 0, ctx),
+                5 => items.process(id, actors, &mut intelligence, 0, 0, ctx),
+                _ => items.process(id, actors, &mut intelligence, 0, 0, ctx),
             }
             .unwrap();
-            assert!(items.slots[id].processor.is_none(), "kind {kind}");
+            assert!(items.slots[id].processor().is_none(), "kind {kind}");
             assert_eq!(
                 actors.get(player).inventory[kind],
                 if kind == 6 { 2 } else { 1 }
             );
         }
     });
+}
+
+fn behavior(processor: Processor, owner: Option<usize>, mode: u8) -> Behavior {
+    match processor {
+        Processor::Pickup => Behavior::Pickup {
+            owner,
+            phase: match mode {
+                0 => state::Pickup::Rolling,
+                1 => state::Pickup::Available,
+                2 => state::Pickup::Transfer {
+                    actor: owner.unwrap(),
+                },
+                _ => panic!("invalid pickup mode {mode}"),
+            },
+        },
+        Processor::Arrow => Behavior::Arrow(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Arrow::Flying,
+                1 => state::Arrow::Embedded,
+                2 => state::Arrow::Fading,
+                _ => panic!("invalid Arrow mode {mode}"),
+            },
+        }),
+        Processor::Gun => Behavior::Gun(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Gun::Muzzle,
+                1 => state::Gun::Impact,
+                2 => state::Gun::Finished,
+                _ => panic!("invalid Gun mode {mode}"),
+            },
+        }),
+        Processor::Medicine => Behavior::Medicine(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Medicine::Begin,
+                1 => state::Medicine::Drinking,
+                2 => state::Medicine::Recover,
+                _ => panic!("invalid Medicine mode {mode}"),
+            },
+        }),
+        Processor::Caltrops => Behavior::Caltrops(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Caltrops::Falling,
+                1 => state::Caltrops::Armed,
+                _ => panic!("invalid Caltrops mode {mode}"),
+            },
+        }),
+        Processor::Smoke => Behavior::Smoke(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Smoke::Fuse,
+                1 => state::Smoke::Emitting,
+                _ => panic!("invalid Smoke mode {mode}"),
+            },
+        }),
+        Processor::Fire => Behavior::Fire(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Fire::Fuse,
+                1 => state::Fire::Detonate,
+                2 => state::Fire::Burning,
+                _ => panic!("invalid Fire mode {mode}"),
+            },
+        }),
+        Processor::Mine => Behavior::Mine(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Mine::Place,
+                1 => state::Mine::Armed,
+                2 => state::Mine::Detonate,
+                3 => state::Mine::Burning,
+                _ => panic!("invalid Mine mode {mode}"),
+            },
+        }),
+        Processor::Poison => Behavior::Poison(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Poison::Delay,
+                1 => state::Poison::Bait,
+                2 => state::Poison::Eating,
+                3 => state::Poison::Poisoned,
+                _ => panic!("invalid Poison mode {mode}"),
+            },
+        }),
+        Processor::Napalm => Behavior::Napalm(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Napalm::Begin,
+                1 => state::Napalm::Flying,
+                2 => state::Napalm::Finished,
+                _ => panic!("invalid Napalm mode {mode}"),
+            },
+        }),
+        Processor::Breath => Behavior::Breath(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Breath::Begin,
+                1 => state::Breath::Casting,
+                2 => state::Breath::Breathing,
+                _ => panic!("invalid Breath mode {mode}"),
+            },
+        }),
+        Processor::Sleep => Behavior::Sleep(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Sleep::Begin,
+                1 => state::Sleep::Throwing,
+                2 => state::Sleep::Flying,
+                3 => state::Sleep::Finished,
+                _ => panic!("invalid Sleep mode {mode}"),
+            },
+        }),
+        Processor::Flute => Behavior::Flute(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Flute::Begin,
+                1 => state::Flute::Playing,
+                _ => panic!("invalid Flute mode {mode}"),
+            },
+        }),
+        Processor::Resurrection => Behavior::Resurrection(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Resurrection::Begin,
+                1 => state::Resurrection::Particles,
+                2 => state::Resurrection::Finished,
+                _ => panic!("invalid Resurrection mode {mode}"),
+            },
+        }),
+        Processor::Rice => Behavior::Rice(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Rice::Begin,
+                1 => state::Rice::Planting,
+                _ => panic!("invalid Rice mode {mode}"),
+            },
+        }),
+        Processor::Speed => Behavior::Speed(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Speed::Begin,
+                1 => state::Speed::Casting,
+                2 => state::Speed::Moving,
+                _ => panic!("invalid Speed mode {mode}"),
+            },
+        }),
+        Processor::Charm => Behavior::Charm(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Charm::Begin,
+                1 => state::Charm::Casting,
+                2 => state::Charm::Protected,
+                _ => panic!("invalid Charm mode {mode}"),
+            },
+        }),
+        Processor::Decoy => Behavior::Decoy(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Decoy::Fuse,
+                1 => state::Decoy::Growing,
+                2 => state::Decoy::Active,
+                _ => panic!("invalid Decoy mode {mode}"),
+            },
+        }),
+        Processor::Disguise => Behavior::Disguise(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Disguise::Begin,
+                1 => state::Disguise::Casting,
+                2 => state::Disguise::Apply,
+                3 => state::Disguise::Active,
+                _ => panic!("invalid Disguise mode {mode}"),
+            },
+        }),
+        Processor::Dog => Behavior::Dog(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Dog::Thrown,
+                1 => state::Dog::Summoning,
+                2 => state::Dog::Active,
+                _ => panic!("invalid Dog mode {mode}"),
+            },
+        }),
+        Processor::Lightning => Behavior::Lightning(Used {
+            owner: owner.unwrap(),
+            phase: match mode {
+                0 => state::Lightning::Begin,
+                1 => state::Lightning::Target,
+                2 => state::Lightning::Hold,
+                _ => panic!("invalid Lightning mode {mode}"),
+            },
+        }),
+        Processor::Shuriken => Behavior::Shuriken {
+            owner: owner.unwrap(),
+        },
+        Processor::SightShot => Behavior::SightShot {
+            owner: owner.unwrap(),
+        },
+        Processor::Grapple => Behavior::Grapple {
+            owner: owner.unwrap(),
+        },
+        Processor::Darts => Behavior::Darts {
+            owner: owner.unwrap(),
+        },
+        Processor::Teleport => Behavior::Teleport {
+            owner: owner.unwrap(),
+        },
+    }
+}
+
+impl Item {
+    fn set_source_mode(&mut self, mode: u8) {
+        self.behavior = behavior(self.processor().unwrap(), self.owner(), mode);
+    }
 }

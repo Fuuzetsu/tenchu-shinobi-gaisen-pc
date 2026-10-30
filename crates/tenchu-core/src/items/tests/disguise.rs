@@ -73,16 +73,17 @@ printf("%d",b.rotate.pad);for(int i=0;i<15;i++){assert(to[i].object.tmd==from[i]
             items
                 .initialize(
                     1,
-                    Processor::Disguise,
+                    behavior(Processor::Disguise, Some(player), 0),
                     11,
-                    Some(player),
                     Position::ZERO,
                     ctx,
                 )
                 .unwrap();
-            items.slots[1].mode = 2;
+            items.slots[1].set_source_mode(2);
             let mut intelligence = Intelligence::default();
-            items.disguise(1, actors, &mut intelligence, ctx).unwrap();
+            items
+                .process(1, actors, &mut intelligence, 0, 0, ctx)
+                .unwrap();
             let actor = actors.get(player);
             assert_eq!(actor.mesh_kind, ctx.mission.disguise);
             assert_eq!(actor.rendered_mesh_kind, 0);
@@ -119,25 +120,26 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
         items
             .initialize(
                 1,
-                Processor::Disguise,
+                behavior(Processor::Disguise, Some(player), 0),
                 11,
-                Some(player),
                 actors.get(player).position,
                 ctx,
             )
             .unwrap();
-        items.slots[1].mode = 1;
+        items.slots[1].set_source_mode(1);
         actors.get_mut(player).enter(ctx, MOT_DAMAGE, true);
         actors.get_mut(player).active_item = 18;
         let mut intelligence = Intelligence::default();
-        items.disguise(1, actors, &mut intelligence, ctx).unwrap();
-        assert!(items.slots[1].processor.is_none());
+        items
+            .process(1, actors, &mut intelligence, 0, 0, ctx)
+            .unwrap();
+        assert!(items.slots[1].processor().is_none());
         assert_eq!(actors.get(player).active_item, 18);
         assert!(
             items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(Processor::Pickup) && i.kind == 11)
+                .any(|i| i.processor() == Some(Processor::Pickup) && i.kind == 11)
         );
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
@@ -156,23 +158,23 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
             .slots
             .iter()
             .enumerate()
-            .find(|(_, i)| i.processor == Some(Processor::Disguise) && i.mode == 1)
+            .find(|(_, i)| i.processor() == Some(Processor::Disguise) && i.source_mode() == 1)
             .unwrap()
             .0;
         for _ in 0..120 {
-            if game.items.slots[id].mode == 2 {
+            if game.items.slots[id].source_mode() == 2 {
                 break;
             }
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].mode, 2);
+        assert_eq!(game.items.slots[id].source_mode(), 2);
         if let Some(old) = previous {
-            assert!(game.items.slots[old].processor.is_none());
+            assert!(game.items.slots[old].processor().is_none());
             assert_eq!(game.player().active_item, 0);
             assert_eq!(game.player().mesh_kind, 0);
         }
         game.step(0).unwrap();
-        assert_eq!(game.items.slots[id].mode, 3);
+        assert_eq!(game.items.slots[id].source_mode(), 3);
         assert_eq!(game.player().active_item, 11);
         assert_eq!(game.player().mesh_kind, game.mission.disguise);
         previous = Some(id);
@@ -182,7 +184,13 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
         for id in 0..CAPACITY {
             if id != active {
                 items
-                    .initialize(id, Processor::Pickup, 1, None, Position::ZERO, ctx)
+                    .initialize(
+                        id,
+                        behavior(Processor::Pickup, None, 0),
+                        1,
+                        Position::ZERO,
+                        ctx,
+                    )
                     .unwrap();
             }
         }
@@ -190,7 +198,7 @@ fn disguise_interruption_replacement_and_forced_eviction_restore_correctly() {
         actors.get_mut(player).status = 11;
         let id = items.allocate(actors, ctx).unwrap();
         assert_eq!(id, active);
-        assert!(items.slots[id].processor.is_none());
+        assert!(items.slots[id].processor().is_none());
         assert_eq!(actors.get(player).active_item, 0);
         assert_eq!(actors.get(player).mesh_kind, 0);
         assert_ne!(actors.get(player).status, 11);
@@ -218,31 +226,36 @@ fn disguise_break_conditions_follow_actor_status_and_motion() {
             items
                 .initialize(
                     1,
-                    Processor::Disguise,
+                    behavior(Processor::Disguise, Some(player), 0),
                     11,
-                    Some(player),
                     actors.get(player).position,
                     ctx,
                 )
                 .unwrap();
-            items.slots[1].mode = 1;
+            items.slots[1].set_source_mode(1);
             let owner = actors.get_mut(player);
             owner.status = 2;
             owner.enter(ctx, MOT_ITEM_KAENGEKI, true);
             owner.motion.count = 0;
             owner.motion.loops = 1;
             let mut intelligence = Intelligence::default();
-            items.disguise(1, actors, &mut intelligence, ctx).unwrap();
-            items.disguise(1, actors, &mut intelligence, ctx).unwrap();
+            items
+                .process(1, actors, &mut intelligence, 0, 0, ctx)
+                .unwrap();
+            items
+                .process(1, actors, &mut intelligence, 0, 0, ctx)
+                .unwrap();
             assert_eq!(actors.get(player).mesh_kind, ctx.mission.disguise);
             let owner = actors.get_mut(player);
             owner.status = status;
             owner.motion.action = action;
             owner.motion.loops = loops;
             owner.active_item = active;
-            items.disguise(1, actors, &mut intelligence, ctx).unwrap();
+            items
+                .process(1, actors, &mut intelligence, 0, 0, ctx)
+                .unwrap();
             assert_eq!(
-                items.slots[1].processor.is_some(),
+                items.slots[1].processor().is_some(),
                 keep,
                 "{status} {action:x} {loops} {active}"
             );

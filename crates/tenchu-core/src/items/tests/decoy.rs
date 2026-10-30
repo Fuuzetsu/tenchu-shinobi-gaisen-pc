@@ -8,7 +8,13 @@ use crate::{
 
 fn prepare(items: &mut Items, id: usize, player: usize, position: Position, ctx: &mut Context) {
     items
-        .initialize(id, Processor::Decoy, 14, Some(player), position, ctx)
+        .initialize(
+            id,
+            behavior(Processor::Decoy, Some(player), 0),
+            14,
+            position,
+            ctx,
+        )
         .unwrap();
     let item = &mut items.slots[id];
     item.rolling = Rolling {
@@ -16,7 +22,7 @@ fn prepare(items: &mut Items, id: usize, player: usize, position: Position, ctx:
         ..Rolling::default()
     };
     item.decoy = crate::items::decoy::Decoy { health: 3, player };
-    item.mode = 2;
+    item.set_source_mode(2);
     item.count = 1;
     items.decoy_count += 1;
 }
@@ -70,7 +76,16 @@ fn decoys_retarget_source_eligible_actors_and_restore_them_on_disposal() {
             }
             ids.push(id);
         }
-        items.decoy(1, actors, ctx).unwrap();
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
         for (&id, &(_, target, _, _, lure)) in ids.iter().zip(&cases) {
             assert_eq!(
                 actors.get(id).target,
@@ -114,7 +129,16 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
             ctx.collision.slots[other].class = class;
         };
         hit(ctx, collision::HIT, 0);
-        items.decoy(1, actors, ctx).unwrap();
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
         assert_eq!(items.slots[1].decoy.health, 3);
         assert_eq!(ctx.collision.slots[own].results[other], 0xc1);
         for (class, y) in [
@@ -129,7 +153,16 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
             items.slots[1].count = 10;
             let mut random = *ctx.random;
             hit(ctx, class, y);
-            items.decoy(1, actors, ctx).unwrap();
+            items
+                .process(
+                    1,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    0,
+                    0,
+                    ctx,
+                )
+                .unwrap();
             let expected = if class == collision::SOFT {
                 [0; 3]
             } else {
@@ -149,15 +182,23 @@ fn decoy_contacts_keep_original_order_and_fourth_hit_break() {
             };
             items.slots[1].count = 10;
             hit(ctx, collision::HIT, 0);
-            items.decoy(1, actors, ctx).unwrap();
+            items
+                .process(
+                    1,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    0,
+                    0,
+                    ctx,
+                )
+                .unwrap();
             if hit_number < 4 {
                 assert_eq!(items.slots[1].decoy.health, 3 - hit_number);
                 assert_eq!(items.slots[1].rolling.velocity, [-100, -100, 100]);
                 assert_eq!(ctx.effects.sounds.last().unwrap().1, 0x30);
             } else {
-                assert!(items.slots[1].processor.is_none());
+                assert!(items.slots[1].processor().is_none());
                 assert!(ctx.scene.models[model].conflict.is_none());
-                assert_eq!(items.slots[1].mode, 1);
                 assert_eq!(items.decoy_count, 0);
                 assert_eq!(ctx.effects.sounds.last().unwrap().1, 0x23);
             }
@@ -184,19 +225,28 @@ fn decoy_cap_and_water_cleanup_preserve_active_count() {
                 ctx,
             );
             items.decoy_count -= 1;
-            items.slots[id].mode = 0;
+            items.slots[id].set_source_mode(0);
             items.slots[id].decoy.health = 99;
         }
         for id in 1..=4 {
-            items.decoy(id, actors, ctx).unwrap();
+            items
+                .process(
+                    id,
+                    actors,
+                    &mut crate::ai::Intelligence::default(),
+                    0,
+                    0,
+                    ctx,
+                )
+                .unwrap();
         }
         assert_eq!(items.decoy_count, 3);
-        assert!(items.slots[4].processor.is_none());
+        assert!(items.slots[4].processor().is_none());
         assert_eq!(
             items
                 .slots
                 .iter()
-                .filter(|i| i.processor == Some(Processor::Pickup) && i.kind == 14)
+                .filter(|i| i.processor() == Some(Processor::Pickup) && i.kind == 14)
                 .count(),
             1
         );
@@ -210,8 +260,17 @@ fn decoy_cap_and_water_cleanup_preserve_active_count() {
             velocity: [0, 40, 0],
             ..Rolling::default()
         };
-        items.decoy(1, actors, ctx).unwrap();
-        assert!(items.slots[1].processor.is_none());
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
+        assert!(items.slots[1].processor().is_none());
         assert_eq!(items.decoy_count, 2);
         assert_eq!(
             actors.get(player).target,
@@ -219,14 +278,23 @@ fn decoy_cap_and_water_cleanup_preserve_active_count() {
         );
         prepare(items, 4, player, Position::ZERO, ctx);
         items.decoy_count -= 1;
-        items.slots[4].mode = 0;
+        items.slots[4].set_source_mode(0);
         items.slots[4].decoy.health = 99;
         items.slots[4].rolling = Rolling {
             velocity: [0, 40, 0],
             ..Rolling::default()
         };
-        items.decoy(4, actors, ctx).unwrap();
-        assert!(items.slots[4].processor.is_none());
+        items
+            .process(
+                4,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
+        assert!(items.slots[4].processor().is_none());
         assert_eq!(items.decoy_count, 2);
     });
 }

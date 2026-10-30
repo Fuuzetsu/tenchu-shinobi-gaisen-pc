@@ -22,14 +22,14 @@ fn decoy_throw_grows_into_the_original_model_and_hitbox() {
             .items
             .slots
             .iter()
-            .position(|i| i.processor == Some(Processor::Decoy))
+            .position(|i| i.processor() == Some(Processor::Decoy))
             .unwrap();
         assert_eq!(game.items.slots[id].count, 89);
         assert_eq!(game.items.slots[id].decoy.health, 99);
         for _ in 0..89 {
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].mode, 1);
+        assert_eq!(game.items.slots[id].source_mode(), 1);
         assert_eq!(game.items.slots[id].count, 0);
         assert_eq!(game.items.slots[id].decoy.health, 3);
         let model = game.items.slots[id].model;
@@ -42,7 +42,7 @@ fn decoy_throw_grows_into_the_original_model_and_hitbox() {
                 .map(|row| row.map(|v| ((i32::from(v) * tick * 256) >> 12) as i16));
             assert_eq!(game.scene.models[model].local.rotation, rotation);
         }
-        assert_eq!(game.items.slots[id].mode, 2);
+        assert_eq!(game.items.slots[id].source_mode(), 2);
         assert_eq!(game.items.slots[id].count, 3);
         let contact = &game.collision.slots[game.scene.models[model].conflict.unwrap()];
         assert_eq!(contact.size, [500; 3]);
@@ -55,7 +55,7 @@ fn decoy_throw_grows_into_the_original_model_and_hitbox() {
         for _ in 0..180 {
             game.step(0).unwrap();
         }
-        assert_eq!(game.items.slots[id].processor, Some(Processor::Decoy));
+        assert_eq!(game.items.slots[id].processor(), Some(Processor::Decoy));
         assert_eq!(game.items.slots[id].decoy.health, 3);
         assert_eq!(game.player().health, game.player().max_health);
     }

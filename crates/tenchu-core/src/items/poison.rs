@@ -10,7 +10,7 @@ pub struct Poison {
 }
 
 impl Items {
-    pub(super) fn restore_poison_target(&mut self, id: usize, actors: &mut Actors) -> Result<()> {
+    pub(super) fn restore_poison_target(&mut self, id: usize, owner: usize, actors: &mut Actors) {
         let item = &mut self.slots[id];
         if let Some(eater) = item
             .poison
@@ -18,28 +18,25 @@ impl Items {
             .filter(|id| actors.roster.order.contains(id))
             && let Some(think) = item.poison.original_think
         {
-            let owner = actors
-                .get(item.owner.ok_or("Poisoned food has no owner")?)
-                .root_model;
+            let owner = actors.get(owner).root_model;
             let actor = actors.get_mut(eater);
             actor.think[0] = think;
             actor.target = Some(owner);
         }
         item.poison.eater = None;
-        Ok(())
     }
 
     pub(super) fn poison(
         &mut self,
         id: usize,
+        used: Used<state::Poison>,
         actors: &mut Actors,
         intelligence: &mut crate::ai::Intelligence,
-        player: usize,
-        clock: i32,
+        (player, clock): (usize, i32),
         ctx: &mut Context,
     ) -> Result<()> {
         let model = self.slots[id].model;
-        if self.slots[id].mode < 2 {
+        if matches!(used.phase, state::Poison::Delay | state::Poison::Bait) {
             let mut position = ctx.scene.models[model].local.translation;
             self.slots[id].rolling.step(&mut position, ctx)?;
             ctx.scene.set_translation(model, position);
@@ -47,24 +44,25 @@ impl Items {
                 return self.dispose(id, actors, ctx);
             }
         }
-        if self.slots[id].mode < 3 {
+        if used.phase != state::Poison::Poisoned {
             self.update_coordinate(id, ctx);
             self.draw_icon(id, ctx)?;
         }
-        match self.slots[id].mode {
-            0 => {
+        match used.phase {
+            state::Poison::Delay => {
                 let poison = &mut self.slots[id].poison;
                 poison.remaining = poison.remaining.wrapping_sub(1);
                 if poison.remaining <= 0 {
-                    self.slots[id].mode = 1;
+                    self.slots[id].behavior =
+                        Behavior::Poison(used.with_phase(state::Poison::Bait));
                 }
             }
-            1 => {
+            state::Poison::Bait => {
                 if clock & 1 != 0 {
                     return Ok(());
                 }
                 let item = &self.slots[id];
-                let owner = item.owner.ok_or("Poisoned food has no owner")?;
+                let owner = used.owner;
                 let position = ctx.scene.models[model].local.translation;
                 let mut nearest = None;
                 let mut distance = 10000;
@@ -93,7 +91,7 @@ impl Items {
                 let Some(eater) = nearest else {
                     return Ok(());
                 };
-                self.restore_poison_target(id, actors)?;
+                self.restore_poison_target(id, used.owner, actors);
                 let owner = actors.get(owner).root_model;
                 let actor = actors.get_mut(eater);
                 let item = &mut self.slots[id];
@@ -121,9 +119,9 @@ impl Items {
                 };
                 ctx.scene.models[model].parent = Some(actor.parts[part]);
                 ctx.scene.models[model].local.translation = position.into();
-                item.mode = 2;
+                item.behavior = Behavior::Poison(used.with_phase(state::Poison::Eating));
             }
-            2 => {
+            state::Poison::Eating => {
                 let Some(eater) = self.slots[id]
                     .poison
                     .eater
@@ -147,22 +145,23 @@ impl Items {
                         ..Rolling::default()
                     };
                     item.poison.remaining = 30;
-                    item.mode = 0;
+                    item.behavior = Behavior::Poison(used.with_phase(state::Poison::Delay));
                 } else if actor.motion.count == 55 {
-                    self.restore_poison_target(id, actors)?;
+                    self.restore_poison_target(id, used.owner, actors);
                     self.slots[id].poison.eater = Some(eater);
                     let actor = actors.get_mut(eater);
                     let action = actor.return_normal(ctx, player)?;
                     actor.enter(ctx, action, true);
                     self.slots[id].poison.remaining = 600;
-                    self.slots[id].mode = 3;
+                    self.slots[id].behavior =
+                        Behavior::Poison(used.with_phase(state::Poison::Poisoned));
                 } else if actor.attribute & ATTR_WEAPON_DRAWN != 0 && actor.kind & 0xf0 != 0xa0 {
                     let actor = actors.get_mut(eater);
                     let action = actor.return_normal(ctx, player)?;
                     actor.enter(ctx, action, true);
                 }
             }
-            3 => {
+            state::Poison::Poisoned => {
                 let Some(eater) = self.slots[id]
                     .poison
                     .eater
@@ -191,7 +190,6 @@ impl Items {
                 }
                 intelligence.voices.push((eater, 6));
             }
-            _ => {}
         }
         Ok(())
     }

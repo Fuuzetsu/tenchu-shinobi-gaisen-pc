@@ -23,6 +23,7 @@ mod sleep;
 mod smoke;
 mod speed;
 mod sprite;
+mod state;
 mod teleport;
 #[cfg(test)]
 mod tests;
@@ -39,6 +40,7 @@ use crate::{
 };
 pub use flight::Flight;
 pub use rolling::{Rolling, Status as RollingStatus};
+pub use state::{Behavior, Pickup as PickupPhase, Used};
 
 pub const CAPACITY: usize = 30;
 pub const KINDS: usize = 25;
@@ -83,11 +85,9 @@ pub struct Contact {
 
 #[derive(Clone, Debug)]
 pub struct Item {
-    pub owner: Option<usize>,
     pub model: ModelId,
     pub kind: usize,
-    pub processor: Option<Processor>,
-    pub mode: u8,
+    pub behavior: Behavior,
     pub collision: Contact,
     pub rolling: Rolling,
     pub count: u8,
@@ -102,6 +102,18 @@ pub struct Item {
     pub poison: poison::Poison,
     pub napalm: napalm::Napalm,
     pub breath: breath::Breath,
+}
+
+impl Item {
+    pub fn owner(&self) -> Option<usize> {
+        self.behavior.owner()
+    }
+    pub fn processor(&self) -> Option<Processor> {
+        self.behavior.processor()
+    }
+    pub fn source_mode(&self) -> u8 {
+        self.behavior.source_mode()
+    }
 }
 
 #[derive(Debug)]
@@ -162,11 +174,9 @@ impl Items {
         let meshes = std::array::from_fn(|_| scene.add(Some(0), Matrix::default()));
         let slots = (0..CAPACITY)
             .map(|_| Item {
-                owner: None,
                 model: scene.add(Some(0), Matrix::default()),
                 kind: 0,
-                processor: None,
-                mode: 0,
+                behavior: Behavior::Inactive,
                 collision: Contact::default(),
                 rolling: Rolling::default(),
                 count: 0,
@@ -235,7 +245,7 @@ impl Items {
     fn allocate(&mut self, actors: &mut Actors, ctx: &mut Context) -> Result<usize> {
         for _ in 0..CAPACITY - 1 {
             self.cursor = (self.cursor + 1) % CAPACITY;
-            if self.slots[self.cursor].processor.is_none() {
+            if self.slots[self.cursor].processor().is_none() {
                 return Ok(self.cursor);
             }
         }
@@ -244,52 +254,29 @@ impl Items {
     }
 
     fn dispose(&mut self, id: usize, actors: &mut Actors, ctx: &mut Context) -> Result<()> {
-        if self.slots[id].processor == Some(Processor::Poison) {
-            self.restore_poison_target(id, actors)?;
-        }
-        if self.slots[id].processor == Some(Processor::Breath) {
-            self.finish_breath(id, actors, ctx)?;
-        }
-        if self.slots[id].processor == Some(Processor::Decoy) {
-            self.finish_decoy(id, actors);
-        }
-        if self.slots[id].processor == Some(Processor::Disguise) {
-            self.finish_disguise(id, actors, ctx)?;
-        }
-        if self.slots[id].processor == Some(Processor::Dog) {
-            self.finish_dog(id, actors, ctx)?;
+        match self.slots[id].behavior {
+            Behavior::Inactive => return Ok(()),
+            Behavior::Poison(used) => self.restore_poison_target(id, used.owner, actors),
+            Behavior::Breath(used) => self.finish_breath(id, used.owner, actors, ctx)?,
+            Behavior::Decoy(..) => self.finish_decoy(id, actors),
+            Behavior::Disguise(used) => self.finish_disguise(id, used.owner, actors, ctx)?,
+            Behavior::Dog(..) => self.finish_dog(id, actors, ctx)?,
+            Behavior::SightShot { owner } => actors.get_mut(owner).aiming = false,
+            Behavior::Shuriken { .. } | Behavior::Darts { .. } => self.slots[id].trail = None,
+            Behavior::Charm(used) => actors.get_mut(used.owner).active_item = 0,
+            _ => {}
         }
         let item = &mut self.slots[id];
-        match item.processor {
-            Some(Processor::SightShot) => {
-                actors
-                    .get_mut(item.owner.ok_or("Aimed item has no owner")?)
-                    .aiming = false;
-            }
-            Some(Processor::Shuriken | Processor::Darts) => {
-                item.trail = None;
-            }
-            Some(Processor::Charm) => {
-                actors
-                    .get_mut(item.owner.ok_or("Protection charm has no owner")?)
-                    .active_item = 0;
-            }
-            Some(_) => {}
-            None => return Ok(()),
-        }
-        item.mode = 0;
         ctx.collision.remove(ctx.scene, item.model);
-        item.owner = None;
-        item.processor = None;
+        item.behavior = Behavior::Inactive;
         Ok(())
     }
 
     fn initialize(
         &mut self,
         id: usize,
-        processor: Processor,
+        behavior: Behavior,
         kind: usize,
-        owner: Option<usize>,
         position: Position,
         ctx: &mut Context,
     ) -> Result<()> {
@@ -297,10 +284,8 @@ impl Items {
             return Err(format!("Invalid item kind {kind}"));
         }
         let item = &mut self.slots[id];
-        item.owner = owner;
+        item.behavior = behavior;
         item.kind = kind;
-        item.processor = Some(processor);
-        item.mode = 0;
         let model = &mut ctx.scene.models[item.model];
         model.parent = None;
         model.local.translation = position;
@@ -346,7 +331,7 @@ impl Items {
 
     fn update_contacts(&mut self, ctx: &mut Context) -> Result<()> {
         for item in &mut self.slots {
-            if item.processor.is_none() {
+            if item.processor().is_none() {
                 continue;
             }
             let position = ctx.scene.models[item.model].local.translation;
@@ -388,45 +373,60 @@ impl Items {
             self.update_contacts(ctx)?;
         }
         for id in 0..CAPACITY {
-            match self.slots[id].processor {
-                Some(Processor::Pickup) => {
-                    self.pickup(id, ctx, actors, intelligence.action_halt)?
-                }
-                Some(Processor::Shuriken) => self.shuriken(id, ctx, actors, intelligence, clock)?,
-                Some(Processor::Arrow) => self.arrow(id, ctx, actors, clock)?,
-                Some(Processor::Gun) => self.gun(id, ctx, actors)?,
-                Some(Processor::SightShot) => self.sight_shot(id, actors, ctx)?,
-                Some(Processor::Medicine) => {
-                    self.medicine(id, actors, intelligence.action_halt, ctx)?
-                }
-                Some(Processor::Caltrops) => self.caltrops(id, actors, ctx)?,
-                Some(Processor::Grapple) => self.grapple(id, actors, ctx)?,
-                Some(Processor::Smoke) => self.smoke(id, actors, intelligence, clock, ctx)?,
-                Some(Processor::Fire) => self.fire(id, actors, intelligence, ctx)?,
-                Some(Processor::Mine) => self.mine(id, actors, intelligence, ctx)?,
-                Some(Processor::Poison) => {
-                    self.poison(id, actors, intelligence, player, clock, ctx)?
-                }
-                Some(Processor::Napalm) => self.napalm(id, actors, ctx)?,
-                Some(Processor::Breath) => {
-                    self.breath(id, actors, intelligence.action_halt, clock, ctx)?
-                }
-                Some(Processor::Sleep) => self.sleep(id, actors, intelligence, ctx)?,
-                Some(Processor::Flute) => self.flute(id, actors, intelligence, ctx)?,
-                Some(Processor::Resurrection) => self.resurrection(id, actors, ctx)?,
-                Some(Processor::Rice) => {
-                    self.rice(id, actors, intelligence.action_halt, player, ctx)?
-                }
-                Some(Processor::Darts) => self.darts(id, actors, ctx)?,
-                Some(Processor::Speed) => self.speed(id, actors, player, ctx)?,
-                Some(Processor::Charm) => self.charm(id, actors, player, ctx)?,
-                Some(Processor::Decoy) => self.decoy(id, actors, ctx)?,
-                Some(Processor::Disguise) => self.disguise(id, actors, intelligence, ctx)?,
-                Some(Processor::Dog) => self.dog(id, actors, clock, ctx)?,
-                Some(Processor::Lightning) => self.lightning(id, actors, player, clock, ctx)?,
-                Some(Processor::Teleport) => self.teleport(id, actors, player, ctx)?,
-                None => {}
+            self.process(id, actors, intelligence, player, clock, ctx)?;
+        }
+        Ok(())
+    }
+
+    fn process(
+        &mut self,
+        id: usize,
+        actors: &mut Actors,
+        intelligence: &mut crate::ai::Intelligence,
+        player: usize,
+        clock: i32,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        match self.slots[id].behavior {
+            Behavior::Pickup { owner, phase } => {
+                self.pickup(id, owner, phase, ctx, actors, intelligence.action_halt)?
             }
+            Behavior::Shuriken { owner } => {
+                self.shuriken(id, owner, ctx, actors, intelligence, clock)?
+            }
+            Behavior::Arrow(used) => self.arrow(id, used, ctx, actors, clock)?,
+            Behavior::Gun(used) => self.gun(id, used, ctx, actors)?,
+            Behavior::SightShot { owner } => self.sight_shot(id, owner, actors, ctx)?,
+            Behavior::Medicine(used) => {
+                self.medicine(id, used, actors, intelligence.action_halt, ctx)?
+            }
+            Behavior::Caltrops(used) => self.caltrops(id, used, actors, ctx)?,
+            Behavior::Grapple { owner } => self.grapple(id, owner, actors, ctx)?,
+            Behavior::Smoke(used) => self.smoke(id, used, actors, intelligence, clock, ctx)?,
+            Behavior::Fire(used) => self.fire(id, used, actors, intelligence, ctx)?,
+            Behavior::Mine(used) => self.mine(id, used, actors, intelligence, ctx)?,
+            Behavior::Poison(used) => {
+                self.poison(id, used, actors, intelligence, (player, clock), ctx)?
+            }
+            Behavior::Napalm(used) => self.napalm(id, used, actors, ctx)?,
+            Behavior::Breath(used) => {
+                self.breath(id, used, actors, intelligence.action_halt, clock, ctx)?
+            }
+            Behavior::Sleep(used) => self.sleep(id, used, actors, intelligence, ctx)?,
+            Behavior::Flute(used) => self.flute(id, used, actors, intelligence, ctx)?,
+            Behavior::Resurrection(used) => self.resurrection(id, used, actors, ctx)?,
+            Behavior::Rice(used) => {
+                self.rice(id, used, actors, intelligence.action_halt, player, ctx)?
+            }
+            Behavior::Darts { .. } => self.darts(id, actors, ctx)?,
+            Behavior::Speed(used) => self.speed(id, used, actors, player, ctx)?,
+            Behavior::Charm(used) => self.charm(id, used, actors, player, ctx)?,
+            Behavior::Decoy(used) => self.decoy(id, used, actors, ctx)?,
+            Behavior::Disguise(used) => self.disguise(id, used, actors, intelligence, ctx)?,
+            Behavior::Dog(used) => self.dog(id, used, actors, clock, ctx)?,
+            Behavior::Lightning(used) => self.lightning(id, used, actors, player, clock, ctx)?,
+            Behavior::Teleport { owner } => self.teleport(id, owner, actors, player, ctx)?,
+            Behavior::Inactive => {}
         }
         Ok(())
     }

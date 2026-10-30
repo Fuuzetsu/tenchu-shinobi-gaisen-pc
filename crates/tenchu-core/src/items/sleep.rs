@@ -5,22 +5,23 @@ impl Items {
     pub(super) fn sleep(
         &mut self,
         id: usize,
+        used: Used<state::Sleep>,
         actors: &mut Actors,
         intelligence: &mut Intelligence,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
         let model = item.model;
-        let owner_id = item.owner.ok_or("Sleeping gas has no owner")?;
-        match item.mode {
-            0 => {
+        let owner_id = used.owner;
+        match used.phase {
+            state::Sleep::Begin => {
                 let owner = actors.get_mut(owner_id);
                 owner.enter(ctx, MOT_ITEM_THROW, true);
                 ctx.effects.sounds.push((owner.position, 0x26));
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Sleep(used.with_phase(state::Sleep::Throwing));
                 return Ok(());
             }
-            1 => {
+            state::Sleep::Throwing => {
                 let owner = actors.get(owner_id);
                 if owner.motion.action != MOT_ITEM_THROW {
                     return self.dispose(id, actors, ctx);
@@ -32,15 +33,15 @@ impl Items {
                         .ok_or("Sleeping gas owner has no throwing hand")?;
                     let position = ctx.scene.world(hand)?.translation;
                     self.slots[id].napalm.count = 0;
-                    self.slots[id].mode = 2;
+                    self.slots[id].behavior =
+                        Behavior::Sleep(used.with_phase(state::Sleep::Flying));
                     ctx.scene.set_translation(model, position);
                     self.contact(id, 1000, crate::collision::SOFT, ctx)?;
                 }
                 return Ok(());
             }
-            3 => return self.dispose(id, actors, ctx),
-            2 => {}
-            mode => return Err(format!("Invalid sleeping gas mode {mode}")),
+            state::Sleep::Finished => return self.dispose(id, actors, ctx),
+            state::Sleep::Flying => {}
         }
         let item = &self.slots[id];
         let count = item.napalm.count;
@@ -63,7 +64,7 @@ impl Items {
         );
         self.slots[id].napalm.count = count.wrapping_add(1);
         if self.slots[id].napalm.count > 100 {
-            self.slots[id].mode = 3;
+            self.slots[id].behavior = Behavior::Sleep(used.with_phase(state::Sleep::Finished));
         }
         if let Some((_, target)) = self.hit(id, ctx, actors)
             && target != owner_id

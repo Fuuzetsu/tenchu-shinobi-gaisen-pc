@@ -22,7 +22,13 @@ impl Items {
         if clock & 1 == 0 {
             return Ok(());
         }
-        self.initialize(id, Processor::Napalm, 22, Some(owner), start, ctx)?;
+        self.initialize(
+            id,
+            Behavior::Napalm(Used::new(owner, state::Napalm::Begin)),
+            22,
+            start,
+            ctx,
+        )?;
         self.slots[id].collision.size = 0;
         self.slots[id].napalm.velocity =
             std::array::from_fn(|i| end[i].wrapping_sub(start[i]) as i16);
@@ -32,18 +38,18 @@ impl Items {
     pub(super) fn napalm(
         &mut self,
         id: usize,
+        used: Used<state::Napalm>,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        match self.slots[id].mode {
-            0 => {
+        match used.phase {
+            state::Napalm::Begin => {
                 self.slots[id].napalm.count = 0;
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Napalm(used.with_phase(state::Napalm::Flying));
                 return Ok(());
             }
-            2 => return self.dispose(id, actors, ctx),
-            1 => {}
-            mode => return Err(format!("Invalid napalm mode {mode}")),
+            state::Napalm::Finished => return self.dispose(id, actors, ctx),
+            state::Napalm::Flying => {}
         }
         let item = &self.slots[id];
         let model = item.model;
@@ -62,7 +68,7 @@ impl Items {
         }
         self.slots[id].napalm.count = count.wrapping_add(1);
         if self.slots[id].napalm.count > 20 {
-            self.slots[id].mode = 2;
+            self.slots[id].behavior = Behavior::Napalm(used.with_phase(state::Napalm::Finished));
         }
         if let Some((_, target)) = self.hit(id, ctx, actors) {
             let actor = actors.get(target);

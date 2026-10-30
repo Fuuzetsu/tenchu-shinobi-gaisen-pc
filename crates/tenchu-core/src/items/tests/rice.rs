@@ -27,7 +27,7 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
             .items
             .slots
             .iter()
-            .find(|i| i.processor == Some(Processor::Rice))
+            .find(|i| i.processor() == Some(Processor::Rice))
             .unwrap();
         assert_eq!(cast.rolling.velocity, velocity.to_array());
         let mut dropped = false;
@@ -37,14 +37,14 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
                 game.items
                     .slots
                     .iter()
-                    .all(|i| i.processor != Some(Processor::Mine))
+                    .all(|i| i.processor() != Some(Processor::Mine))
             );
             assert_eq!(game.player().inventory[6], 0);
             dropped |= game
                 .items
                 .slots
                 .iter()
-                .any(|i| i.kind == 8 && i.processor == Some(Processor::Pickup));
+                .any(|i| i.kind == 8 && i.processor() == Some(Processor::Pickup));
         }
         assert!(dropped);
         assert_eq!(game.hud.map.lines.len(), 4);
@@ -52,10 +52,10 @@ fn rice_planting_map_and_pickup_use_ordinary_ticks() {
             .items
             .slots
             .iter()
-            .find(|i| i.kind == 8 && i.processor == Some(Processor::Pickup))
+            .find(|i| i.kind == 8 && i.processor() == Some(Processor::Pickup))
             .unwrap();
-        assert_eq!(rice.mode, 1);
-        assert_eq!(rice.owner, Some(player));
+        assert_eq!(rice.source_mode(), 1);
+        assert_eq!(rice.owner(), Some(player));
         for _ in 0..40 {
             game.step(UP | SELECT).unwrap();
             if game.player().inventory[8] == 2 {
@@ -77,7 +77,13 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         for id in 0..CAPACITY {
             items.dispose(id, actors, ctx).unwrap();
             items
-                .initialize(id, Processor::Pickup, 1, None, Position::ZERO, ctx)
+                .initialize(
+                    id,
+                    behavior(Processor::Pickup, None, 0),
+                    1,
+                    Position::ZERO,
+                    ctx,
+                )
                 .unwrap();
         }
         let owner = actors.get_mut(player);
@@ -92,7 +98,13 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         ctx.scene.models[model].flags = 59;
         items.slots[1].rotation = [20, 600, -30];
         items
-            .initialize(1, Processor::Rice, 8, Some(player), Position::ZERO, ctx)
+            .initialize(
+                1,
+                behavior(Processor::Rice, Some(player), 0),
+                8,
+                Position::ZERO,
+                ctx,
+            )
             .unwrap();
         assert_eq!(
             ctx.scene.models[model].local.rotation,
@@ -100,22 +112,62 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         );
         assert_eq!(ctx.scene.models[model].cached, cached);
         assert_eq!(ctx.scene.models[model].flags, 0);
-        items.slots[1].mode = 1;
+        items.slots[1].set_source_mode(1);
         items.slots[1].rolling.velocity = [-71, -3, 68];
         items
-            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence {
+                    action_halt: crate::ai::Halt::Running,
+                    ..Default::default()
+                },
+                player,
+                0,
+                ctx,
+            )
             .unwrap();
-        assert_eq!(items.slots[1].mode, 0);
+        assert_eq!(items.slots[1].source_mode(), 0);
         items
-            .rice(1, actors, crate::ai::Halt::Active, player, ctx)
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence {
+                    action_halt: crate::ai::Halt::Active,
+                    ..Default::default()
+                },
+                player,
+                0,
+                ctx,
+            )
             .unwrap();
         assert_eq!(actors.get(player).motion.action, action);
-        assert_eq!(items.slots[1].mode, 1);
+        assert_eq!(items.slots[1].source_mode(), 1);
         items
-            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence {
+                    action_halt: crate::ai::Halt::Running,
+                    ..Default::default()
+                },
+                player,
+                0,
+                ctx,
+            )
             .unwrap();
         items
-            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence {
+                    action_halt: crate::ai::Halt::Running,
+                    ..Default::default()
+                },
+                player,
+                0,
+                ctx,
+            )
             .unwrap();
         assert_eq!(
             (actors.get(player).motion.action, actors.get(player).status),
@@ -131,19 +183,33 @@ fn rice_restarts_and_reuses_its_slot_before_other_items() {
         items.cursor = 20;
         let random = *ctx.random;
         items
-            .rice(1, actors, crate::ai::Halt::Running, player, ctx)
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence {
+                    action_halt: crate::ai::Halt::Running,
+                    ..Default::default()
+                },
+                player,
+                0,
+                ctx,
+            )
             .unwrap();
         assert_eq!(items.cursor, 1);
         let drop = &items.slots[1];
-        assert_eq!(drop.processor, Some(Processor::Pickup));
-        assert_eq!(drop.owner, Some(player));
+        assert_eq!(drop.processor(), Some(Processor::Pickup));
+        assert_eq!(drop.owner(), Some(player));
         assert_eq!(drop.rolling.velocity, [-71, -3, 68]);
         assert_eq!(
             ctx.scene.models[drop.model].local.translation,
             hand_position
         );
         assert_eq!(
-            items.slots.iter().filter(|i| i.processor.is_some()).count(),
+            items
+                .slots
+                .iter()
+                .filter(|i| i.processor().is_some())
+                .count(),
             CAPACITY
         );
         assert!(

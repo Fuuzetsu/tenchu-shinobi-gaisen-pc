@@ -6,10 +6,10 @@ impl Items {
     pub(super) fn grapple(
         &mut self,
         id: usize,
+        owner_id: usize,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
-        let owner_id = self.slots[id].owner.ok_or("Grappling hook has no owner")?;
         let owner = actors.get(owner_id);
         if !owner.aiming {
             use_item::camera(Mode::Direction, owner, ctx)?;

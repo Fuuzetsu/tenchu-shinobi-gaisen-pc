@@ -16,7 +16,16 @@ impl Items {
         if terrain::level(&ctx.mission.terrain, ctx.cursor, position, 0)? < position[1] {
             return Ok(false);
         }
-        self.initialize(id, Processor::Pickup, kind, owner, position, ctx)?;
+        self.initialize(
+            id,
+            Behavior::Pickup {
+                owner,
+                phase: state::Pickup::Rolling,
+            },
+            kind,
+            position,
+            ctx,
+        )?;
         let item = &mut self.slots[id];
         item.collision.size = 0;
         item.rolling = Rolling {
@@ -42,14 +51,16 @@ impl Items {
     pub(super) fn pickup(
         &mut self,
         id: usize,
+        owner: Option<usize>,
+        phase: state::Pickup,
         ctx: &mut Context,
         actors: &mut Actors,
         halt: crate::ai::Halt,
     ) -> Result<()> {
         self.draw_icon(id, ctx)?;
         let item = &mut self.slots[id];
-        match item.mode {
-            0 => {
+        match phase {
+            state::Pickup::Rolling => {
                 let mut position = ctx.scene.models[item.model].local.translation;
                 item.rolling.step(&mut position, ctx)?;
                 ctx.scene.set_translation(item.model, position);
@@ -57,12 +68,15 @@ impl Items {
                     RollingStatus::Water => self.dispose(id, actors, ctx)?,
                     RollingStatus::Ground | RollingStatus::Settled => {
                         self.contact(id, 180, collision::SOFT, ctx)?;
-                        self.slots[id].mode = 1;
+                        self.slots[id].behavior = Behavior::Pickup {
+                            owner,
+                            phase: state::Pickup::Available,
+                        };
                     }
                     _ => {}
                 }
             }
-            1 => {
+            state::Pickup::Available => {
                 if ctx.scene.models[item.model].attribute & CONFLICT == 0 {
                     return Ok(());
                 }
@@ -83,12 +97,14 @@ impl Items {
                     actor.clear_attack(ctx, 3)?;
                     actor.enter(ctx, MOT_STATE_PICKUP, true);
                 }
-                item.owner = Some(actor_id);
-                item.mode = 2;
+                item.behavior = Behavior::Pickup {
+                    owner: Some(actor_id),
+                    phase: state::Pickup::Transfer { actor: actor_id },
+                };
                 item.count = 0;
             }
-            2 => {
-                let actor = actors.get_mut(item.owner.ok_or("Pickup transfer has no owner")?);
+            state::Pickup::Transfer { actor: collector } => {
+                let actor = actors.get_mut(collector);
                 if actor.motion.action != MOT_STATE_PICKUP {
                     item.rolling = Rolling {
                         velocity: [
@@ -98,7 +114,10 @@ impl Items {
                         ],
                         ..Rolling::default()
                     };
-                    item.mode = 0;
+                    item.behavior = Behavior::Pickup {
+                        owner: Some(collector),
+                        phase: state::Pickup::Rolling,
+                    };
                 }
                 item.count = item.count.wrapping_add(1);
                 if item.count == 10 {
@@ -109,7 +128,6 @@ impl Items {
                     self.dispose(id, actors, ctx)?;
                 }
             }
-            _ => {}
         }
         Ok(())
     }

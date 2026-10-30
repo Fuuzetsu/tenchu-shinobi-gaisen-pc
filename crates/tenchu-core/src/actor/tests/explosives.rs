@@ -48,7 +48,7 @@ fn both_players_use_smoke_grenades_and_mines() {
                         .items
                         .slots
                         .iter()
-                        .find(|i| i.processor == Some(processor))
+                        .find(|i| i.processor() == Some(processor))
                 {
                     let position = game.scene.models[item.model].local.translation;
                     spawned = true;
@@ -80,7 +80,7 @@ fn both_players_use_smoke_grenades_and_mines() {
                     .items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(processor))
+                    .any(|i| i.processor() == Some(processor))
             );
             if kind == 5 {
                 assert!(choked);

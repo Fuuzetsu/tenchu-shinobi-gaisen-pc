@@ -13,11 +13,12 @@ impl Items {
     pub(super) fn finish_breath(
         &mut self,
         id: usize,
+        owner: usize,
         actors: &mut Actors,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner = actors.get_mut(item.owner.ok_or("Fire breath has no owner")?);
+        let owner = actors.get_mut(owner);
         if owner.motion.action == MOT_ITEM_KAENGEKI {
             let action = owner.return_normal(ctx, item.breath.player)?;
             owner.enter(ctx, action, true);
@@ -28,27 +29,28 @@ impl Items {
     pub(super) fn breath(
         &mut self,
         id: usize,
+        used: Used<state::Breath>,
         actors: &mut Actors,
         halt: crate::ai::Halt,
         clock: i32,
         ctx: &mut Context,
     ) -> Result<()> {
-        let item = &self.slots[id];
-        let owner_id = item.owner.ok_or("Fire breath has no owner")?;
+        let owner_id = used.owner;
         let owner = actors.get_mut(owner_id);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Breath::Begin => {
                 if halt == crate::ai::Halt::Running && owner.health > 0 {
                     owner.clear_attack(ctx, 3)?;
                     Self::item_motion(owner, MOT_ITEM_KAENGEKI, ctx);
                 }
                 ctx.effects.sounds.push((owner.position, 0x4c));
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Breath(used.with_phase(state::Breath::Casting));
             }
-            1 => {
+            state::Breath::Casting => {
                 if owner.motion.count == 0 && owner.motion.loops != 0 {
                     ctx.effects.sounds.push((owner.position, 0x28));
-                    self.slots[id].mode = 2;
+                    self.slots[id].behavior =
+                        Behavior::Breath(used.with_phase(state::Breath::Breathing));
                     self.slots[id].breath.remaining = 40;
                 }
                 if owner.motion.action != MOT_ITEM_KAENGEKI {
@@ -64,7 +66,7 @@ impl Items {
                     self.dispose(id, actors, ctx)?;
                 }
             }
-            2 => {
+            state::Breath::Breathing => {
                 if owner.motion.action != MOT_ITEM_KAENGEKI {
                     return self.dispose(id, actors, ctx);
                 }
@@ -100,7 +102,6 @@ impl Items {
                     std::array::from_fn(|i| start[i].wrapping_add(direction[i].wrapping_mul(2)));
                 self.request_napalm(owner_id, start.into(), end.into(), clock, actors, ctx)?;
             }
-            mode => return Err(format!("Invalid fire-breath mode {mode}")),
         }
         Ok(())
     }

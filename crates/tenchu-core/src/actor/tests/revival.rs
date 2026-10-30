@@ -59,7 +59,7 @@ finish();printf("%d %d %d %d %d %d %d\n",human.life,human.item[10],motion.mid,hu
             with_actor(&mut game, player, |actor, ctx, world| {
                 for item in &mut world.items.slots {
                     ctx.collision.remove(ctx.scene, item.model);
-                    item.processor = None;
+                    item.behavior = crate::items::Behavior::Inactive;
                 }
                 actor.scripted = scripted;
                 actor.status = 0;
@@ -80,7 +80,7 @@ finish();printf("%d %d %d %d %d %d %d\n",human.life,human.item[10],motion.mid,hu
                         .items
                         .slots
                         .iter()
-                        .filter(|i| i.processor == Some(Processor::Resurrection))
+                        .filter(|i| i.processor() == Some(Processor::Resurrection))
                         .count() as i32,
                     if water {
                         i32::from(actor.velocity[0])
@@ -160,7 +160,7 @@ fn lethal_arrows_revive_both_players_and_finish_the_effect() {
                 .items
                 .slots
                 .iter()
-                .any(|i| i.processor == Some(Processor::Resurrection))
+                .any(|i| i.processor() == Some(Processor::Resurrection))
         );
     }
 }

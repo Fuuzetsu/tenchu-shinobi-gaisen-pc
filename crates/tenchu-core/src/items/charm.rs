@@ -6,20 +6,21 @@ impl Items {
     pub(super) fn charm(
         &mut self,
         id: usize,
+        used: Used<state::Charm>,
         actors: &mut Actors,
         player: usize,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &self.slots[id];
-        let owner_id = item.owner.ok_or("Protection charm has no owner")?;
+        let owner_id = used.owner;
         let owner = actors.get_mut(owner_id);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Charm::Begin => {
                 owner.enter(ctx, MOT_ITEM_KAENGEKI, true);
                 ctx.effects.sounds.push((owner.position, 0x4c));
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Charm(used.with_phase(state::Charm::Casting));
             }
-            1 => {
+            state::Charm::Casting => {
                 if owner.motion.action != MOT_ITEM_KAENGEKI {
                     return self.refund_cast(id, actors, ctx);
                 }
@@ -42,9 +43,9 @@ impl Items {
                 );
                 owner.active_item = item.kind as i16;
                 self.slots[id].charm_remaining = 450;
-                self.slots[id].mode = 2;
+                self.slots[id].behavior = Behavior::Charm(used.with_phase(state::Charm::Protected));
             }
-            2 => {
+            state::Charm::Protected => {
                 let remaining = item.charm_remaining.wrapping_sub(1);
                 self.slots[id].charm_remaining = remaining;
                 if remaining == 0 {
@@ -65,7 +66,6 @@ impl Items {
                     });
                 }
             }
-            mode => return Err(format!("Invalid protection charm mode {mode}")),
         }
         Ok(())
     }

@@ -123,14 +123,13 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
             items
                 .initialize(
                     1,
-                    Processor::Breath,
+                    behavior(Processor::Breath, Some(player), 0),
                     17,
-                    Some(player),
                     Position::new(400, -1000, 2000),
                     ctx,
                 )
                 .unwrap();
-            items.slots[1].mode = mode as u8;
+            items.slots[1].set_source_mode(mode as u8);
             items.slots[1].breath = crate::items::breath::Breath {
                 origin: Position::new(100, -1200, 1500),
                 remaining,
@@ -140,14 +139,18 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
             ctx.effects.sounds.clear();
             writeln!(input,"{mode} {remaining} {action} {count} {loops} {halt} {health} {held} {yaw} {case} {} {stock} {} {seed} {} {} {} {} {} {} 0 0 0",i32::from(camera_owner),camera_mode.source_id(),rotation[0],rotation[1],rotation[2],direction[0],direction[1],direction[2]).unwrap();
             items
-                .breath(
+                .process(
                     1,
                     actors,
-                    if halt == 0 {
-                        crate::ai::Halt::Running
-                    } else {
-                        crate::ai::Halt::Active
+                    &mut crate::ai::Intelligence {
+                        action_halt: if halt == 0 {
+                            crate::ai::Halt::Running
+                        } else {
+                            crate::ai::Halt::Active
+                        },
+                        ..Default::default()
                     },
+                    0,
                     case as i32,
                     ctx,
                 )
@@ -155,9 +158,9 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
             let item = &items.slots[1];
             let actor = actors.get(player);
             let mut row = vec![
-                i32::from(item.mode),
+                i32::from(item.source_mode()),
                 i32::from(item.breath.remaining),
-                i32::from(item.processor.is_some()),
+                i32::from(item.processor().is_some()),
                 i32::from(actor.motion.action),
                 i32::from(actor.status),
                 i32::from(actor.rotation[1]),
@@ -172,7 +175,7 @@ printf(" %d %d %d %d %d %d\n",start.vx,start.vy,start.vz,end.vx,end.vy,end.vz);
                 items.cursor as i32,
             ];
             let spawned = &items.slots[2];
-            let (kind, position, velocity) = match spawned.processor {
+            let (kind, position, velocity) = match spawned.processor() {
                 Some(Processor::Pickup) => (
                     1,
                     ctx.scene.models[spawned.model].local.translation,
@@ -232,7 +235,7 @@ fn fire_breath_runs_through_normal_ticks() {
                 game.items
                     .slots
                     .iter()
-                    .any(|i| i.processor == Some(Processor::Napalm)),
+                    .any(|i| i.processor() == Some(Processor::Napalm)),
             );
             visible += game
                 .items
@@ -250,7 +253,7 @@ fn fire_breath_runs_through_normal_ticks() {
                 .items
                 .slots
                 .iter()
-                .any(|i| matches!(i.processor, Some(Processor::Breath | Processor::Napalm)))
+                .any(|i| matches!(i.processor(), Some(Processor::Breath | Processor::Napalm)))
         );
         assert_ne!(game.player().motion.action, MOT_ITEM_KAENGEKI);
         assert_eq!(game.player().inventory[17], 0);

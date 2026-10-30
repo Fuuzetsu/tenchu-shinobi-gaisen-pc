@@ -13,7 +13,7 @@ impl Items {
         actors.get_mut(owner).enter(ctx, MOT_ITEM_THROW, true);
         for _ in 0..8 {
             let id = self.allocate(actors, ctx)?;
-            self.initialize(id, Processor::Darts, 15, Some(owner), start, ctx)?;
+            self.initialize(id, Behavior::Darts { owner }, 15, start, ctx)?;
             self.slots[id].collision.size = 0;
             let mut rotation = actors.get(owner).rotation;
             self.slots[id].rotation = rotation;

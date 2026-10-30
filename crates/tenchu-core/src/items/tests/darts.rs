@@ -165,7 +165,13 @@ fn dart_contact_keeps_flying_until_ground_impact() {
         let start = actors.get(player).position.map(|v| v - 1000);
         let end = [start[0], start[1], start[2] + 10000];
         items
-            .initialize(1, Processor::Darts, 15, Some(player), start, ctx)
+            .initialize(
+                1,
+                behavior(Processor::Darts, Some(player), 0),
+                15,
+                start,
+                ctx,
+            )
             .unwrap();
         let model = items.slots[1].model;
         items.slots[1].flight = Flight::new(start, end.into(), 4096, 1024, 400, ctx);
@@ -179,22 +185,49 @@ fn dart_contact_keeps_flying_until_ground_impact() {
         ctx.collision.slots[own].results[hit] = 0x81;
         ctx.collision.slots[own].count = 1;
         ctx.scene.models[model].attribute |= CONFLICT;
-        items.darts(1, actors, ctx).unwrap();
-        assert_eq!(items.slots[1].processor, Some(Processor::Darts));
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
+        assert_eq!(items.slots[1].processor(), Some(Processor::Darts));
         assert!(ctx.scene.models[model].conflict.is_none());
         assert_eq!(items.slots[1].collision.size, 300);
         assert!(ctx.effects.sounds.iter().any(|(_, sound)| *sound == 0x30));
         let position = ctx.scene.models[model].local.translation;
         let count = items.slots[1].trail.as_ref().unwrap().count;
         ctx.effects.sounds.clear();
-        items.darts(1, actors, ctx).unwrap();
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
         assert_ne!(ctx.scene.models[model].local.translation, position);
         assert_eq!(items.slots[1].trail.as_ref().unwrap().count, count + 1);
         assert!(ctx.effects.sounds.is_empty());
         items.slots[1].flight = Flight::Rolling;
         items.slots[1].rolling.status = RollingStatus::Settled;
-        items.darts(1, actors, ctx).unwrap();
-        assert!(items.slots[1].processor.is_none());
+        items
+            .process(
+                1,
+                actors,
+                &mut crate::ai::Intelligence::default(),
+                0,
+                0,
+                ctx,
+            )
+            .unwrap();
+        assert!(items.slots[1].processor().is_none());
         assert!(items.slots[1].trail.is_none());
         assert!(ctx.effects.sounds.iter().any(|(_, sound)| *sound == 0x31));
     });

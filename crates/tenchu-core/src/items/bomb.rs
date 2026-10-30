@@ -42,6 +42,7 @@ impl Items {
     pub(super) fn fire(
         &mut self,
         id: usize,
+        used: Used<state::Fire>,
         actors: &mut Actors,
         intelligence: &mut crate::ai::Intelligence,
         ctx: &mut Context,
@@ -54,8 +55,8 @@ impl Items {
         ctx.effects.bleed(ember, [0, -30, 0], time, [255, 255, 0]);
         let item = &mut self.slots[id];
         item.count = item.count.wrapping_sub(1);
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Fire::Fuse => {
                 if item.count == 0 {
                     if ctx.random.next15() % 10 < 2 {
                         let kind = item.kind;
@@ -82,22 +83,21 @@ impl Items {
                         return Ok(());
                     }
                 }
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Fire(used.with_phase(state::Fire::Detonate));
             }
-            1 => {
+            state::Fire::Detonate => {
                 Self::explosion(position, false, ctx)?;
                 self.contact(id, 1500, collision::HIT, ctx)?;
-                self.slots[id].mode = 2;
+                self.slots[id].behavior = Behavior::Fire(used.with_phase(state::Fire::Burning));
                 self.slots[id].count = 3;
                 intelligence.reset_alert();
             }
-            2 => {
+            state::Fire::Burning => {
                 if item.count == 0 {
                     self.dispose(id, actors, ctx)?;
                 }
                 self.burn_contact(id, false, actors, ctx);
             }
-            _ => {}
         }
         Ok(())
     }
@@ -105,14 +105,15 @@ impl Items {
     pub(super) fn mine(
         &mut self,
         id: usize,
+        used: Used<state::Mine>,
         actors: &mut Actors,
         intelligence: &mut crate::ai::Intelligence,
         ctx: &mut Context,
     ) -> Result<()> {
         let item = &mut self.slots[id];
         let model = item.model;
-        match item.mode {
-            0 => {
+        match used.phase {
+            state::Mine::Place => {
                 let mut position = ctx.scene.models[model].local.translation;
                 position[1] = terrain::level(
                     &ctx.mission.terrain,
@@ -122,28 +123,29 @@ impl Items {
                 )?;
                 ctx.scene.set_translation(model, position);
                 if position[1] == terrain::NONE || ctx.cursor.attribute & 4 != 0 {
-                    let owner = actors.get_mut(item.owner.ok_or("Mine has no owner")?);
+                    let owner = actors.get_mut(used.owner);
                     if owner.inventory[item.kind] != 255 {
                         owner.inventory[item.kind] = owner.inventory[item.kind].wrapping_add(1);
                     }
                     return self.dispose(id, actors, ctx);
                 }
                 self.contact(id, 500, collision::SOFT, ctx)?;
-                self.slots[id].mode = 1;
+                self.slots[id].behavior = Behavior::Mine(used.with_phase(state::Mine::Armed));
             }
-            1 => {
+            state::Mine::Armed => {
                 if self.hit(id, ctx, actors).is_some() {
                     self.contact(id, 1500, collision::HIT, ctx)?;
-                    self.slots[id].mode = 2;
+                    self.slots[id].behavior =
+                        Behavior::Mine(used.with_phase(state::Mine::Detonate));
                 }
             }
-            2 => {
+            state::Mine::Detonate => {
                 Self::explosion(ctx.scene.models[model].local.translation, true, ctx)?;
-                self.slots[id].mode = 3;
+                self.slots[id].behavior = Behavior::Mine(used.with_phase(state::Mine::Burning));
                 self.slots[id].count = 3;
                 intelligence.reset_alert();
             }
-            3 => {
+            state::Mine::Burning => {
                 self.burn_contact(id, true, actors, ctx);
                 let item = &mut self.slots[id];
                 item.count = item.count.wrapping_sub(1);
@@ -152,7 +154,6 @@ impl Items {
                 }
                 return Ok(());
             }
-            _ => {}
         }
         self.update_coordinate(id, ctx);
         self.draw_icon(id, ctx)
