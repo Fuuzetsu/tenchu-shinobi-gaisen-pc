@@ -98,7 +98,7 @@ and never change gameplay or simulation settings. Source textures still limit
 close-up detail; the editable pack workflow below supplies genuinely new art.
 
 **F1 → Visual assets → High-definition text** draws HUD numbers, in-game
-subtitles, quick launcher/equipment/pause panels and separate original-menu
+subtitles, quick launcher/pause panels and separate original-menu
 labels with a portable outline font at the window's resolution. English,
 Japanese, French and Italian are supported; the original options screens keep
 their Japanese wording. It is off in Original and enabled in the modern quality tiers. It does not change text timing,
@@ -703,14 +703,16 @@ The complete host is also built by `nix build .#web`; it contains no game data.
 
 A downloaded HD pack is included automatically by `./build-web.sh`. Set
 `TENCHU_ASSET_PACK` to override it (an empty value disables it). Existing
-disc/audio/movie exports are reused; artwork is refreshed. For example:
+disc/audio/movie exports are reused; artwork and required menu boot pages are
+refreshed. For example:
 
 ```sh
 ./build-web.sh '/path/to/game.cue' private/web-hd
 ```
 
-`prepare-web DISC DIRECTORY --artwork` refreshes only the configured pack in
-an existing `data/` directory. Only manifest-referenced files are exported.
+`prepare-web DISC DIRECTORY --artwork` refreshes the configured pack and adds any
+newly required menu boot pages in an existing `data/` directory, without
+re-encoding audio or movies. Only manifest-referenced pack files are exported.
 The menu artwork for all four languages arrives with the boot set. The remaining
 PNG/model files download in the background before mission entry; only the active
 mission's images are decoded. F1 → **Visual assets → Replacement artwork** and
@@ -740,6 +742,8 @@ continued play after disconnecting the network, surface-depth modes at an unchan
 simulation tick, fullscreen transitions and exit/restart. This is a browser host check,
 not a new full campaign playthrough. Run `./dev.sh node tools/test-web.mjs` against
 the local server to repeat it (a display and working WebGPU adapter are needed).
+`./dev.sh node tools/test-web-preparation.mjs` checks narrated briefing playback,
+shop transfers and mouse launch, retry/cancel, and fixed-equipment training.
 Set `TENCHU_WEBGL=1` to exercise automatic fallback in Chromium. Run
 `./dev.sh node tools/test-web-firefox.mjs` for Firefox, using an isolated temporary
 profile and the explicit WebGL2 path. `FIREFOX_EXECUTABLE` can select an installed
@@ -843,9 +847,10 @@ from results. Original menus also accept mouse clicks; F1 captures interaction
 while its settings overlay is open. The table above describes controller layout
 1; changing the original controller layout remaps gameplay buttons, including
 their keyboard equivalents. Host menu/navigation shortcuts keep their usual roles.
-In the equipment screen, Up/Down selects an item and Left/Right
-removes/adds one. Enter/south starts the mission; the hook is carried automatically.
-In gameplay, F5 or Escape abandons the attempt and opens retry equipment. On a
+In the item shop, arrows/D-pad select, Enter/south adds, R/west returns an item,
+and Space/Start begins the mission; the hook is carried automatically.
+In gameplay, F5 or Escape abandons the attempt and opens the retry shop. Training
+has no shop: F5 retries with fixed equipment and Escape returns to the menu. On a
 controller, pause first, then use east/west to abandon/retry. Escape/east from
 the quick launcher returns to the title; Escape on the title quits. Controller hints use physical face-button positions because
 labels differ between controller brands.

@@ -12,6 +12,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Show the retail mission results after ordinary missions, including elapsed
   time, score breakdown, best scores, rank and the correct mission reward icon.
   Training uses its separate leaderboard; final results still follow the ending.
+- Correct browser mouse/touch targeting when the displayed canvas and drawing
+  buffer have different scales, including shop buttons near the window edges.
 
 ## 0.4.0 — 2026-10-30
 

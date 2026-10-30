@@ -1,5 +1,7 @@
 use super::*;
 use crate::visuals::pack;
+use flate2::read::GzDecoder;
+use std::io::Read;
 
 pub(super) fn configured(
     destination: &Path,
@@ -92,7 +94,8 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
     if manifest.version != 1 {
         return Err("Unsupported browser asset manifest".into());
     }
-    let assets = GameAssets::open(source::open_disc(disc)?)?;
+    let trace = Arc::new(Mutex::new(BTreeSet::new()));
+    let assets = GameAssets::open(source::open_disc_recording(disc, Some(trace.clone()))?)?;
     let campaign = Campaign::new(&assets, Options::default(), None)?;
     let mut frontend = Frontend::new(&assets, disc, &campaign, Preferences::default())?;
     let mut interface = BTreeSet::new();
@@ -100,6 +103,8 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
         frontend.language(&assets, language)?;
         interface.extend(frontend.artwork_images().into_keys());
     }
+    let pages = trace.lock().map_err(|e| e.to_string())?.clone();
+    refresh_boot(destination, &mut manifest, assets.disc.source(), pages)?;
     manifest.artwork = configured(destination, &interface)?;
     fs::write(
         path,
@@ -108,9 +113,91 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
     .map_err(|e| e.to_string())
 }
 
+fn refresh_boot(
+    destination: &Path,
+    manifest: &mut Manifest,
+    source: &impl ReadAt,
+    pages: BTreeSet<u32>,
+) -> Result<()> {
+    if source.byte_len() != manifest.length {
+        return Err("Browser asset export belongs to a different disc".into());
+    }
+    let mut cache = Cache::new(manifest.length)?;
+    for path in &manifest.boot {
+        let mut bytes = Vec::new();
+        GzDecoder::new(fs::File::open(destination.join(path)).map_err(|e| e.to_string())?)
+            .read_to_end(&mut bytes)
+            .map_err(|e| e.to_string())?;
+        cache.insert(&bytes)?;
+    }
+    let missing: Vec<_> = pages
+        .into_iter()
+        .filter(|&page| cache.read(u64::from(page) * PAGE_SIZE as u64, 1).is_err())
+        .collect();
+    for pages in missing.chunks(64) {
+        let path = format!("pages/menu-{:03}.gz", manifest.boot.len());
+        let bytes = Cache::bundle(source, pages.iter().copied())?;
+        let mut gzip = GzEncoder::new(Vec::new(), Compression::default());
+        gzip.write_all(&bytes).map_err(|e| e.to_string())?;
+        fs::write(
+            destination.join(&path),
+            gzip.finish().map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        manifest.boot.push(path);
+    }
+    if !missing.is_empty() {
+        println!("Added {} menu pages to the browser boot set", missing.len());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refresh_boot_adds_missing_menu_pages_without_reexporting_media() {
+        let directory =
+            std::env::temp_dir().join(format!("tenchu-web-boot-{}", std::process::id()));
+        fs::create_dir_all(directory.join("pages")).unwrap();
+        let source = vec![123; PAGE_SIZE * 3];
+        let mut manifest = Manifest {
+            version: 1,
+            length: source.len() as u64,
+            format: "Iso2048".into(),
+            start_sector: 0,
+            boot: vec![],
+            game: vec!["pages/game-000.gz".into()],
+            audio: vec!["audio/track.ogg".into()],
+            movies: vec!["movies/opening.webm".into()],
+            artwork: None,
+        };
+        refresh_boot(&directory, &mut manifest, &source, BTreeSet::from([0])).unwrap();
+        let original = fs::read(directory.join(&manifest.boot[0])).unwrap();
+        refresh_boot(&directory, &mut manifest, &source, BTreeSet::from([0, 2])).unwrap();
+        refresh_boot(&directory, &mut manifest, &source, BTreeSet::from([0, 2])).unwrap();
+        assert_eq!(manifest.boot.len(), 2);
+        assert_eq!(
+            fs::read(directory.join(&manifest.boot[0])).unwrap(),
+            original
+        );
+        assert_eq!(manifest.game, ["pages/game-000.gz"]);
+        assert_eq!(manifest.audio, ["audio/track.ogg"]);
+        assert_eq!(manifest.movies, ["movies/opening.webm"]);
+        let mut bytes = Vec::new();
+        GzDecoder::new(fs::File::open(directory.join(&manifest.boot[1])).unwrap())
+            .read_to_end(&mut bytes)
+            .unwrap();
+        let mut cache = Cache::new(manifest.length).unwrap();
+        cache.insert(&bytes).unwrap();
+        assert_eq!(
+            cache.read(2 * PAGE_SIZE as u64, PAGE_SIZE).unwrap(),
+            source[..PAGE_SIZE]
+        );
+        assert!(cache.read(0, 1).is_err());
+        fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn export_partitions_references_without_copying_authoring_sources() {

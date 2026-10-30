@@ -58,9 +58,6 @@ impl Application {
         }
         self.finish_recording();
         self.menu.open = false;
-        if let Some(frontend) = &mut self.frontend {
-            frontend.events.clear();
-        }
         self.reload_game()?;
         if self.campaign.randomized.is_none() {
             self.open_title();
@@ -94,6 +91,9 @@ impl Application {
 
     pub(super) fn reload_game(&mut self) -> Result<()> {
         self.release_pointer();
+        if let Some(frontend) = &mut self.frontend {
+            frontend.leave();
+        }
         if self.campaign.randomized.is_none() {
             self.campaign.game.intelligence.sight_percent = self.settings.sight_percent;
             self.campaign.game.roster.keep_all_active = self.settings.keep_enemies_active;

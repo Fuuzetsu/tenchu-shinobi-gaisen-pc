@@ -50,7 +50,7 @@ impl Application {
             return;
         }
         #[cfg(target_arch = "wasm32")]
-        if matches!(action, Action::Confirm)
+        if matches!(action, Action::Confirm | Action::Start)
             && self
                 .frontend
                 .as_ref()

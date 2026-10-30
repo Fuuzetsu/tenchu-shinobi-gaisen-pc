@@ -330,7 +330,12 @@ impl Campaign {
             Screen::Playing => {
                 if matches!(action, Action::Back | Action::Replay) {
                     self.seed = self.game.random.seed;
-                    self.inventory();
+                    if self.options.mission == 0 && matches!(action, Action::Back) {
+                        self.screen = Screen::Launcher;
+                        self.cursor = 0;
+                    } else {
+                        self.inventory();
+                    }
                 }
             }
             Screen::Results(_) => match action {

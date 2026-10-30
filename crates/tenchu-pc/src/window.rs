@@ -459,6 +459,18 @@ impl ApplicationHandler for Application {
     }
 
     fn window_event(&mut self, events: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
+        #[cfg(target_arch = "wasm32")]
+        let event = {
+            let mut event = event;
+            if let Some(view) = &self.view {
+                match &mut event {
+                    WindowEvent::CursorMoved { position, .. } => view.scale_pointer(position),
+                    WindowEvent::Touch(touch) => view.scale_pointer(&mut touch.location),
+                    _ => {}
+                }
+            }
+            event
+        };
         if self.exporting_video() {
             if matches!(event, WindowEvent::CloseRequested)
                 || matches!(event, WindowEvent::KeyboardInput { ref event, .. }

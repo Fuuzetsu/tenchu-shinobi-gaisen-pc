@@ -97,7 +97,7 @@ try {
   await page.evaluate(async () => { window.port = await import("./pkg/tenchu_pc.js"); });
   await page.waitForFunction(() => document.body.dataset.assetsReady === "true", null, { timeout: 180000 });
   await page.locator("#game").click(); await page.mouse.move(5,5);
-  await key("Enter"); await key("Enter");
+  await key("Enter"); await key("Space");
   await page.waitForFunction(() => Number(document.body.dataset.tick) >= 300, null, { timeout: 90000 });
   await key("F1"); await tab(13); await select(7);
   const frozen = await state();

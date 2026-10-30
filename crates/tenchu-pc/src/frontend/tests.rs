@@ -554,6 +554,9 @@ fn shop_actions_commit_only_the_selected_loadout() {
     assert!(campaign.action(Action::Confirm, &assets).unwrap());
     assert_eq!(campaign.game.player().inventory[1], 5);
     assert_eq!(campaign.progress.stock[0][1], 17);
+    campaign.action(Action::Back, &assets).unwrap();
+    assert!(matches!(campaign.screen, Screen::Launcher));
+    assert_eq!(campaign.progress.stock[0][1], 17);
 }
 
 #[test]

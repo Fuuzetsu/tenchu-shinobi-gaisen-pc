@@ -79,7 +79,7 @@ try {
   assert(held, "A mission artwork download must have been delayed");
   assert.equal(await page.locator("body").getAttribute("data-renderer"), backend === "webgl2" ? "WebGL2" : "WebGPU");
   await context.setOffline(true);
-  await key("Enter"); await key("Enter");
+  await key("Enter"); await key("Space");
   await page.waitForFunction(() => Number(document.body.dataset.tick) > 10);
   await key("F3");
   const frozen = await state(), hd = await shot("mission-01-hd");
@@ -103,7 +103,7 @@ try {
     await key("ArrowDown"); await key("ArrowRight");
     await key("ArrowDown"); await key("ArrowDown"); await key("ArrowRight");
     for (let i = 0; i < 3; i++) await key("ArrowUp");
-    await key("Enter"); await key("Enter");
+    await key("Enter"); await key("Space");
     await page.waitForFunction(() => Number(document.body.dataset.tick) > 10);
     const current = await state();
     assert.equal(current.mission, mission); assert.equal(current.screen, "playing"); assert.equal(current.fault, "");

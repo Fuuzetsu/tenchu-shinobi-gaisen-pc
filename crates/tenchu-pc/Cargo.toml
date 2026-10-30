@@ -39,7 +39,7 @@ wasm-bindgen-futures = "=0.4.71"
 js-sys = "=0.3.98"
 console_error_panic_hook = "0.1.7"
 web-sys = { version = "=0.3.98", features = [
-    "Window", "Document", "Element", "HtmlCanvasElement", "Storage", "Response",
+    "Window", "Document", "Element", "DomRect", "HtmlCanvasElement", "Storage", "Response",
     "HtmlVideoElement", "HtmlMediaElement", "CanvasRenderingContext2d", "ImageData",
     "AudioContext", "AudioBuffer", "AudioBufferSourceNode", "AudioDestinationNode",
     "GainNode", "AudioParam", "Blob", "Url", "console", "Performance", "Location",

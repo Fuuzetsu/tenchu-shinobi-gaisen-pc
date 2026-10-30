@@ -103,7 +103,7 @@ try {
   await click("#game");
   await key("\uE006");
   assert.equal((await state()).screen, "equipment");
-  await key("\uE006");
+  await key("\uE00D");
   await wait("Number(document.body.dataset.tick) > 10");
   const before = await state();
   await key("w", 1000); await key(" ");

@@ -545,6 +545,18 @@ impl View {
         Ok(())
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub(super) fn scale_pointer(&self, position: &mut winit::dpi::PhysicalPosition<f64>) {
+        use winit::platform::web::WindowExtWebSys;
+        if let Some(canvas) = self.window.canvas() {
+            // CSS and browser zoom can scale the canvas independently of its drawing buffer.
+            let rect = canvas.get_bounding_client_rect();
+            let logical = position.to_logical::<f64>(self.window.scale_factor());
+            position.x = logical.x * f64::from(self.size[0]) / rect.width().max(1.0);
+            position.y = logical.y * f64::from(self.size[1]) / rect.height().max(1.0);
+        }
+    }
+
     pub(super) fn resize(&mut self, width: u32, height: u32) {
         self.dirty = true;
         self.size = [width, height];

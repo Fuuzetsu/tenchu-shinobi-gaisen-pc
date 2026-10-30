@@ -58,7 +58,7 @@ try {
   await page.waitForFunction(() => document.body.dataset.assetsReady === "true", null, { timeout: 180000 });
   await page.locator("#game").click();
   await page.mouse.move(5, 5);
-  await key("Enter"); await key("Enter");
+  await key("Enter"); await key("Space");
   await page.waitForFunction(() => Number(document.body.dataset.tick) >= 150, null, { timeout: 90000 });
   assert.equal(await page.locator("body").getAttribute("data-renderer"), backend === "webgl2" ? "WebGL2" : "WebGPU");
   await shot("rain-daylight");

@@ -64,7 +64,7 @@ try {
   await shot("launcher");
   await key("Enter");
   assert.equal((await state()).screen, "equipment");
-  await key("Enter");
+  await key("Space");
   await page.waitForFunction(() => Number(document.body.dataset.tick) > 10);
   const before = await state();
   await page.keyboard.down("w");
@@ -135,7 +135,7 @@ try {
   await key("ArrowDown"); await key("ArrowDown");
   for (let i = 0; i < 4; i++) await key("ArrowRight");
   for (let i = 0; i < 3; i++) await key("ArrowUp");
-  await key("Enter"); await key("Enter");
+  await key("Enter"); await key("Space");
   const mission = await state();
   assert.equal(mission.mission, 5);
   assert.equal(mission.character, 1);
@@ -160,7 +160,7 @@ try {
   await key("F6");
   await page.evaluate(async () => { window.port = await import("./pkg/tenchu_pc.js"); });
   await page.waitForFunction(() => document.body.dataset.assetsReady === "true", null, { timeout: 120000 });
-  await key("Enter"); await key("Enter");
+  await key("Enter"); await key("Space");
   const restored = await state();
   assert.equal(restored.mission, 5);
   assert.equal(restored.character, 1);

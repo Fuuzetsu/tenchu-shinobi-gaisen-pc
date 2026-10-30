@@ -781,10 +781,15 @@ impl Frontend {
         self.set_page(page);
     }
 
-    pub fn quick_launcher(&mut self) {
+    pub fn leave(&mut self) {
         self.movie = None;
         self.briefing = None;
         self.events.clear();
+        self.set_page(Page::Title);
+    }
+
+    pub fn quick_launcher(&mut self) {
+        self.leave();
         self.events.push(Event::QuickLauncher);
     }
 }
