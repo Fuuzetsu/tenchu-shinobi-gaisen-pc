@@ -600,6 +600,14 @@ impl ApplicationHandler for Application {
                         self.orbit.looking = looking && self.debug.camera.is_none();
                         view.window.set_cursor_visible(!looking);
                     }
+                } else if button == MouseButton::Middle
+                    && state == ElementState::Pressed
+                    && self.navigation_enabled()
+                    && self.debug.camera.is_none()
+                    && !self.is_suspended()
+                    && self.campaign.game.player_can_orbit()
+                {
+                    self.orbit.recenter(&self.campaign.game);
                 } else if button == MouseButton::Left
                     && state == ElementState::Pressed
                     && (self.debug.camera.is_some() || self.debug.click_teleport)

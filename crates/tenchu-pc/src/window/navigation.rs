@@ -77,7 +77,7 @@ impl Application {
         let sticks = self.controls.sticks();
         let analog = if !self.focused || self.menu.open || self.randomizer.open {
             glam::Vec2::ZERO
-        } else if buttons & tenchu_core::input::L1 != 0 {
+        } else if buttons & tenchu_core::input::L1 != 0 || self.campaign.game.player().aiming {
             sticks[0] + sticks[1]
         } else {
             sticks[0]

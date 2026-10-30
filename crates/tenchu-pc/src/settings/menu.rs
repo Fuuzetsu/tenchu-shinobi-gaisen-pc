@@ -327,7 +327,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::RecenterOrbit,
                 "Recenter behind player",
                 "Recenter".into(),
-                "Face the player's direction again. Controller shortcut: click the right stick. Aim, grappling and cinematic cameras retain their original behavior.",
+                "Face the player's direction again. Shortcut: middle-click or click the right stick. Aim, grappling and cinematic cameras retain their original behavior; either stick can aim.",
             ),
         ],
         19 => {

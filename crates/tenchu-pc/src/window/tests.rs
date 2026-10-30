@@ -55,6 +55,54 @@ pub(super) fn application(options: Options) -> Application {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; camera-relative input must leave actual scripted sequences unchanged and resume afterward"]
+fn camera_relative_controls_resume_after_original_cutscenes() {
+    for character in 0..2 {
+        let options = Options {
+            character,
+            mission: 2,
+            ..Default::default()
+        };
+        let mut app = application(options);
+        let mut reference = application(options);
+        app.settings.navigation.camera_relative = true;
+        app.campaign.tick(0).unwrap();
+        reference.campaign.tick(0).unwrap();
+        assert!(app.campaign.game.cinematic.active);
+        for _ in 0..5000 {
+            let input = tenchu_core::input::UP | tenchu_core::input::LEFT;
+            let buttons = app.navigation_input(input);
+            app.campaign.tick(buttons).unwrap();
+            reference.campaign.tick(input).unwrap();
+            assert!(
+                crate::session::tests::state(&app.campaign.game)
+                    == crate::session::tests::state(&reference.campaign.game),
+                "hero {character}, cinematic update {}",
+                app.campaign.game.tick
+            );
+            if app.campaign.game.cinematic.active {
+                assert!(!app.campaign.game.player_can_orbit());
+            } else {
+                break;
+            }
+        }
+        assert!(!app.campaign.game.cinematic.active);
+        assert!(app.campaign.game.player_can_orbit());
+        for _ in 0..30 {
+            if app.campaign.game.player_can_steer() {
+                break;
+            }
+            app.campaign.tick(0).unwrap();
+        }
+        assert_eq!(
+            app.navigation_input(tenchu_core::input::LEFT),
+            tenchu_core::input::UP
+        );
+        assert!(app.campaign.game.navigation.heading.is_some());
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; unlimited host pacing executes every original tick and respects menu, focus and single-step"]
 fn unlimited_simulation_keeps_the_same_state_sequence() {
     let options = Options {

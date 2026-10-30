@@ -864,17 +864,19 @@ Quick keyboard and controller taps are retained until the next gameplay tick.
 on the `camera-relative-controls` branch. WASD / arrows / D-pad move relative to
 the view; the left stick supports continuous 360° direction. Ground movement
 turns immediately, retaining the original movement speeds and collision rules.
-The right stick or holding right mouse orbits the follow camera. Click the right
-stick, or use **Recenter behind player**, to face the player's direction again.
-Mouse/stick sensitivity, circular deadzone, vertical inversion and follow distance
-are adjustable. The camera pulls in at walls and eases out when clear.
+The right stick or holding right mouse orbits the follow camera. Middle-click,
+click the right stick, or use **Recenter behind player** to face the player's
+direction again. Mouse/stick sensitivity, circular deadzone, vertical inversion
+and follow distance are adjustable. The camera pulls in at walls and eases out
+when clear. This mode reserves the sticks for movement/camera; keyboard and
+controller button mappings still apply.
 
 Hold **Left Ctrl / R1 (RB)** for original movement directions: backward guards
 with the weapon drawn, and directional attacks/rolls remain available. Shift /
 Circle (B) still crouches. R1 follows the existing button remapping; Left Ctrl
 is a host shortcut. Aiming, grappling, stealth kills and cinematics retain their
-original cameras. Attacks, jumps and other committed actions keep their original
-steering rules. Classic controls are the default; this option is independent of
+original cameras; either stick can aim. Attacks, jumps and other committed actions
+keep their original steering rules. Classic controls are the default; this option is independent of
 graphics presets. Input-tape recording stops when this mode is used because the
 existing tape format cannot store analog heading/camera input. Existing replays,
 demos and benchmarks retain classic controls.
