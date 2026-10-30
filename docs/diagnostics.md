@@ -36,3 +36,6 @@ disc assets, textures, raw process memory, campaign save, username/hostname quer
 or environment dump. Model directory values and known personal path roots in
 errors are redacted. Review custom names and error text before sharing. Saving
 does not upload anything, modify settings, or change the simulation.
+
+See [gameplay validation](validation.md) for the current emulator comparisons and
+the separate audit of optional enemy simulation settings.
