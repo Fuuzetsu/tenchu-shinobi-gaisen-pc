@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.5.1 — 2026-10-30
+
 - Align shop quantities with their own item slots in both the stock grid and
   carried-item row.
 - Keep item quantities above their icons in the carried-item row and gameplay
