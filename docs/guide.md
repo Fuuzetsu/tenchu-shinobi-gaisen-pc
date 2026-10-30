@@ -794,8 +794,20 @@ resolution; physical motor output still needs a hands-on controller check.
 Original cheat-button sequences are not implemented; F6 provides unrestricted
 mission/layout selection and all four languages are available immediately.
 The separate **TRIAL.EXE mission editor** is not ported; its title entry explains
-this and returns to the menu. Equipment and intermediate mission-results
-screens retain the existing PC presentation.
+this and returns to the menu.
+
+Normal mission selection plays the original narrated briefing, then opens the
+item shop. Enter/Start skips the briefing. In the shop, use arrows/D-pad to select,
+Enter/South (or click) to take an item, R/West (or right-click) to return one, and
+Space/Start or the **Begin mission** button to launch. Esc/East cancels without
+spending stock. The original carry/type limits and localized item-help images
+apply. F6/`--quick` and retries skip the briefing; training starts with its fixed
+loadout. No game assets are bundled; narration and artwork come from the disc.
+
+After each mission the retail results show time, score components, best scores,
+rank and the Grand Master reward. Enter/South continues, R/F5/West retries and
+Esc/East returns to the menu. Training shows its separate leaderboard. The final
+mission retains its epilogue and credits before the results screen.
 
 Movies require raw Mode 2 BIN/CUE data and the Nix-provided FFmpeg decoder.
 Cooked ISO images can still run gameplay; an unavailable movie shows a message

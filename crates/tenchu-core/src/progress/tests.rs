@@ -221,6 +221,7 @@ fn loadout_limits_stock_and_does_not_refund_a_failed_mission() {
     let mut progress = Progress::default();
     let shop = tenchu_assets::shop::Shop {
         order: std::array::from_fn(|i| i + 1),
+        positions: [[0; 2]; 19],
         limits: std::array::from_fn(|i| {
             if i == 0 {
                 255

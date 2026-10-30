@@ -16,10 +16,10 @@ impl Application {
     }
     pub(super) fn frontend_visible(&self) -> bool {
         self.frontend.is_some()
-            && (matches!(self.campaign.screen, Screen::Frontend | Screen::Ending(_))
-                || matches!(self.campaign.screen, Screen::Results(_))
-                    && self.campaign.options.mission == 10
-                    && self.campaign.randomized.is_none())
+            && matches!(
+                self.campaign.screen,
+                Screen::Frontend | Screen::Ending(_) | Screen::Inventory(_) | Screen::Results(_)
+            )
     }
 
     pub(super) fn open_title(&mut self) {
@@ -67,6 +67,15 @@ impl Application {
     }
 
     pub(super) fn start_ending(&mut self, events: &ActiveEventLoop) {
+        if matches!(self.campaign.screen, Screen::Results(_))
+            && let Some(frontend) = &mut self.frontend
+            && frontend.page != Page::Results
+        {
+            if let Err(error) = frontend.enter_results(&self.assets, &self.campaign) {
+                self.pause_error(error);
+            }
+            self.frontend_events(events);
+        }
         if matches!(self.campaign.screen, Screen::Ending(_))
             && self.frontend.as_ref().is_some_and(|f| {
                 !matches!(
@@ -121,9 +130,19 @@ impl Application {
                     if let Some(audio) = &mut self.audio {
                         audio.screen(&self.campaign.screen);
                     }
+                    if let Err(error) =
+                        self.frontend
+                            .as_mut()
+                            .unwrap()
+                            .prepare(&self.campaign, &self.assets, true)
+                    {
+                        self.pause_error(error);
+                    }
                     self.sync_pause();
                     self.update_view();
                 }
+                Event::StartMission => self.action(Action::Confirm),
+                Event::CancelPreparation => self.action(Action::Back),
                 Event::Results => {
                     if let Screen::Ending(results) =
                         std::mem::replace(&mut self.campaign.screen, Screen::Frontend)

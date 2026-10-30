@@ -1,9 +1,10 @@
-use crate::{Result, executable::Executable, u32_le};
+use crate::{Result, executable::Executable, i16_le, u32_le};
 
 pub const ITEMS: usize = 20;
 
 pub struct Shop {
     pub order: [usize; ITEMS - 1],
+    pub positions: [[i16; 2]; ITEMS - 1],
     pub limits: [u8; ITEMS],
 }
 
@@ -11,6 +12,7 @@ impl Shop {
     pub fn load(executable: &Executable) -> Result<Self> {
         let mut shop = Self {
             order: [0; ITEMS - 1],
+            positions: [[0; 2]; ITEMS - 1],
             limits: [255; ITEMS],
         };
         let mut seen = [false; ITEMS];
@@ -25,6 +27,7 @@ impl Shop {
             }
             seen[item] = true;
             shop.order[i] = item;
+            shop.positions[i] = [i16_le(row, 0)?, i16_le(row, 2)?];
             shop.limits[item] = row[8];
         }
         Ok(shop)

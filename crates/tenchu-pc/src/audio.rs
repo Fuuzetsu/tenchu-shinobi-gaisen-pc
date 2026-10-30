@@ -29,6 +29,7 @@ pub struct Audio {
     fast_forward: bool,
     volume: u16,
     current_track: Option<Track>,
+    ready_track: Option<Track>,
 }
 
 impl Audio {
@@ -69,6 +70,7 @@ impl Audio {
                 self.loader.request(None);
                 self.output.send(Command::Music(Some(clip), false));
             }
+            Event::Narration(track) => self.track(Some(track)),
             _ => (),
         }
     }
@@ -83,6 +85,7 @@ impl Audio {
             fast_forward: false,
             volume: 100,
             current_track: None,
+            ready_track: None,
         };
         audio.reload(assets, &campaign.game)?;
         audio.screen(&campaign.screen);
@@ -103,6 +106,7 @@ impl Audio {
     }
 
     fn track(&mut self, track: Option<Track>) {
+        self.ready_track = None;
         self.current_track = track.clone();
         if self.fast_forward {
             return;
@@ -189,6 +193,7 @@ impl Audio {
 
     pub fn poll(&mut self) {
         if let Some(result) = self.loader.poll() {
+            self.ready_track = self.current_track.clone();
             match result {
                 Ok((clip, repeat)) => {
                     if self.trace {
@@ -203,6 +208,10 @@ impl Audio {
                 Err(error) => eprintln!("Audio: {error}"),
             }
         }
+    }
+
+    pub fn track_ready(&self, track: &Track) -> bool {
+        self.ready_track.as_ref() == Some(track)
     }
 }
 

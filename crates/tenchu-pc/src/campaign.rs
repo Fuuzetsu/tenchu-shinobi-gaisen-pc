@@ -35,6 +35,7 @@ pub enum Action {
     Left,
     Right,
     Confirm,
+    Start,
     Back,
     Replay,
 }
@@ -230,6 +231,11 @@ impl Campaign {
     }
 
     pub fn action(&mut self, action: Action, assets: &GameAssets<DiscSource>) -> Result<bool> {
+        let action = if matches!(action, Action::Start) {
+            Action::Confirm
+        } else {
+            action
+        };
         match &mut self.screen {
             Screen::Frontend | Screen::Ending(_) => (),
             Screen::Launcher => match action {

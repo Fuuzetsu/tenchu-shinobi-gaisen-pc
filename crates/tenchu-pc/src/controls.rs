@@ -19,6 +19,7 @@ pub fn keyboard_command(code: KeyCode, playing: bool) -> Option<Command> {
         KeyCode::F5 => Command::Menu(Action::Replay),
         _ if !playing => Command::Menu(match code {
             KeyCode::Enter => Action::Confirm,
+            KeyCode::Space => Action::Start,
             KeyCode::ArrowUp => Action::Up,
             KeyCode::ArrowDown => Action::Down,
             KeyCode::ArrowLeft => Action::Left,
@@ -42,6 +43,9 @@ pub fn gamepad_command(pressed: u16, playing: bool, paused: bool) -> Option<Comm
     }
     if pressed & input::SQUARE != 0 {
         return Some(Command::Menu(Action::Replay));
+    }
+    if !playing && pressed & input::START != 0 {
+        return Some(Command::Menu(Action::Start));
     }
     if pressed & (input::CROSS | input::START) != 0 {
         return Some(if playing {

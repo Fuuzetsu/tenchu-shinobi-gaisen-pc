@@ -74,12 +74,18 @@ impl Frontend {
             self.dirty = false;
         }
         let screen = ctx.screen_rect();
-        let margin = if clean { 0.0 } else { 60.0 };
+        let margin = if clean {
+            0.0
+        } else if self.page == Page::Shop {
+            90.0
+        } else {
+            60.0
+        };
         let height = (screen.height() - margin)
             .min(screen.width() * 0.75)
             .max(1.0);
         let size = EVec2::new(height * 4.0 / 3.0, height);
-        let rect = Rect::from_center_size(screen.center() - EVec2::new(0.0, 30.0), size);
+        let rect = Rect::from_center_size(screen.center() - EVec2::new(0.0, margin / 2.0), size);
         let painter = ctx.layer_painter(egui::LayerId::background());
         painter.rect_filled(screen, 0.0, Color32::BLACK);
         if let Some(frame) = &self.frame {
@@ -101,7 +107,7 @@ impl Frontend {
         }
         let label = self.description(campaign);
         painter.text(
-            egui::pos2(screen.center().x, screen.bottom() - 43.0),
+            egui::pos2(screen.center().x, screen.bottom() - margin + 17.0),
             Align2::CENTER_CENTER,
             &label,
             if settings.sharp_text {
@@ -111,13 +117,15 @@ impl Frontend {
             },
             Color32::WHITE,
         );
-        let help = if self.notice.is_empty() {
+        let help = if self.notice.is_empty() && self.page == Page::Shop {
+            "Arrows: item   Enter / South: take   R / West: return   Space / Start: begin   Esc / East: cancel"
+        } else if self.notice.is_empty() {
             "Arrows: select   Enter / South: confirm   Esc / East: back   F6: quick launcher   F1: PC settings"
         } else {
             &self.notice
         };
         painter.text(
-            egui::pos2(screen.center().x, screen.bottom() - 20.0),
+            egui::pos2(screen.center().x, screen.bottom() - margin + 40.0),
             Align2::CENTER_CENTER,
             help,
             FontId::proportional(13.0),
@@ -132,20 +140,49 @@ impl Frontend {
             .fixed_pos(rect.min)
             .show(ctx, |ui| {
                 let response = ui.allocate_rect(rect, egui::Sense::click());
-                if response.clicked()
+                if (response.clicked() || self.page == Page::Shop && response.secondary_clicked())
                     && let Some(pos) = response.interact_pointer_pos()
                 {
                     let p = (pos - rect.min) / rect.size();
                     let x = p.x * self.canvas.size[0] as f32 - self.canvas.size[0] as f32 / 2.0;
                     let y = p.y * 240.0 - 120.0;
                     action = self.click(x, y, campaign);
+                    if self.page == Page::Shop && response.secondary_clicked() && action.is_some() {
+                        action = Some(Action::Replay);
+                    }
                 }
             });
+        if self.page == Page::Shop {
+            egui::Area::new("shop controls".into())
+                .anchor(Align2::CENTER_BOTTOM, EVec2::new(0.0, -5.0))
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        if ui.button("Begin mission [Space / Start]").clicked() {
+                            action = Some(Action::Start);
+                        }
+                        if ui.button("Return item [R / West]").clicked() {
+                            action = Some(Action::Replay);
+                        }
+                        if ui.button("Cancel [Esc / East]").clicked() {
+                            action = Some(Action::Back);
+                        }
+                    });
+                });
+        }
         action
     }
 
     fn click(&mut self, x: f32, y: f32, campaign: &Campaign) -> Option<Action> {
         match self.page {
+            Page::Shop => {
+                if y > 83.0 && x < 0.0 {
+                    return Some(Action::Start);
+                }
+                self.shop_clicked =
+                    Some(campaign.shop.positions.iter().position(|&[cx, cy]| {
+                        (x - f32::from(cx)).abs() <= 20.0 && (y - f32::from(cy)).abs() <= 20.0
+                    })?);
+            }
             Page::Title => {
                 if self.title.selection.is_some()
                     && (-45.0..45.0).contains(&x)
@@ -247,7 +284,18 @@ impl Frontend {
             Page::Records => format!("Records — {}",if self.selection==0 {"Rikimaru"}else{"Ayame"}),
             Page::Editor => "The mission editor is a separate TRIAL.EXE program; it has not been ported. Enter returns.".into(),
             Page::Movie(movie) => format!("{}{}",match movie {Movie::Opening=>"Opening",Movie::Training=>"Ninja training",Movie::Rikimaru=>"Rikimaru epilogue",Movie::Ayame=>"Ayame epilogue",Movie::Credits=>"Credits"},if movie.skippable(){" — Enter or Esc to skip"}else{""}),
-            Page::Results => "Final results — Enter: main menu    R / F5: replay mission".into(),
+            Page::Results => {
+                let reward = if let crate::campaign::Screen::Results(results) = &campaign.screen
+                    && results.score.grade == 4 {
+                    format!(" — Grand Master reward: {}", crate::ui::ITEMS[campaign.game.mission.stage.reward])
+                } else { String::new() };
+                format!("{}{} — Enter: {}    R / F5: retry    Esc: menu",
+                    if campaign.options.mission == 0 { "Training results" } else { "Mission results" }, reward,
+                    if campaign.randomized.is_some() { "next roll" } else if campaign.options.mission == 10 { "main menu" }
+                    else if campaign.options.mission == 0 { "train again" } else { "next mission" })
+            },
+            Page::Briefing => format!("{} — Enter / Start: skip briefing", labels::mission(self.language, campaign.options.mission)),
+            Page::Shop => format!("{} — {}", labels::mission(self.language, campaign.options.mission), crate::ui::ITEMS[campaign.shop.order[campaign.cursor]]),
         }
     }
 
@@ -289,9 +337,11 @@ impl Frontend {
                 }
             }
             Page::Results => self.paint_results(campaign),
+            Page::Briefing => self.paint_briefing(),
+            Page::Shop => self.paint_shop(campaign),
             _ => self.paint_options(campaign),
         }
-        if self.page != Page::Title && !matches!(self.page, Page::Movie(_)) {
+        if self.page != Page::Title && !matches!(self.page, Page::Movie(_) | Page::Briefing) {
             let step = if self.page == Page::Results { 4 } else { 8 };
             self.canvas.fade((128 - self.ticks as i32 * step).max(0));
         }
@@ -897,135 +947,9 @@ impl Frontend {
             }
         }
     }
-
-    fn paint_results(&mut self, campaign: &Campaign) {
-        let crate::campaign::Screen::Results(results) = &campaign.screen else {
-            return;
-        };
-        self.canvas
-            .sprite(Sprite::new(&self.result_background, 0.0, 0.0));
-        let record = results.record;
-        let score = results.score;
-        let best = results.best.score(campaign.game.mission.stage.id);
-        let rows = [
-            (
-                record.criticals as i32,
-                record.enemies.wrapping_sub(record.bosses) as i32,
-                score.criticals,
-                best.criticals,
-                -53.0,
-            ),
-            (
-                record.murders as i32,
-                record.enemies as i32,
-                score.murders,
-                best.murders,
-                -26.0,
-            ),
-            (record.found as i32, 0, score.stealth, best.stealth, 1.0),
-            (record.friends as i32, 0, score.friends, best.friends, 27.0),
-        ];
-        for (a, b, current, best, y) in rows {
-            digits(
-                &mut self.canvas,
-                &self.result_numbers,
-                a,
-                if y < 0.0 { 10.0 } else { 28.0 },
-                y,
-                12.0,
-                false,
-            );
-            if y < 0.0 {
-                digits(
-                    &mut self.canvas,
-                    &self.result_numbers,
-                    b,
-                    40.0,
-                    y,
-                    12.0,
-                    false,
-                );
-            }
-            digits(
-                &mut self.canvas,
-                &self.result_numbers,
-                i32::from(current),
-                82.0,
-                y,
-                12.0,
-                false,
-            );
-            digits(
-                &mut self.canvas,
-                &self.result_numbers,
-                i32::from(best),
-                127.0,
-                y,
-                12.0,
-                false,
-            );
-        }
-        digits(
-            &mut self.canvas,
-            &self.result_numbers,
-            i32::from(score.total),
-            82.0,
-            57.0,
-            12.0,
-            false,
-        );
-        digits(
-            &mut self.canvas,
-            &self.result_numbers,
-            i32::from(best.total),
-            127.0,
-            57.0,
-            12.0,
-            false,
-        );
-        let time = record.clock.max(0) / 30;
-        for (value, x) in [(time / 60, 65.0), (time % 60 / 10, 85.0), (time % 10, 97.0)] {
-            digits(
-                &mut self.canvas,
-                &self.result_numbers,
-                value,
-                x,
-                -93.0,
-                12.0,
-                false,
-            );
-        }
-        let rank = &self.result_ranks[score.grade as usize];
-        let brightness = (self.ticks as f32 * std::f32::consts::TAU / 90.0).sin() * 0.5 + 0.5;
-        self.canvas.label(
-            Sprite::new(
-                rank,
-                -29.0 + rank.size[0] as f32 / 2.0,
-                78.0 + rank.size[1] as f32 / 2.0,
-            )
-            .blend(Blend::Add)
-            .light(((self.ticks as f32 * std::f32::consts::TAU / 90.0).sin() * 127.0) as i32 + 127),
-            labels::rank(self.language, score.grade as usize),
-            labels::rank_color(score.grade as usize).gamma_multiply(brightness),
-        );
-        if score.grade == 4 {
-            let mission = &campaign.game.mission;
-            let icon = Image::from_vram(&mission.vram, mission.images[38]);
-            self.canvas.sprite(
-                Sprite::new(
-                    &icon,
-                    -128.0 + icon.size[0] as f32 / 2.0,
-                    49.0 + icon.size[1] as f32 / 2.0,
-                )
-                .light(
-                    ((self.ticks as f32 * std::f32::consts::TAU / 90.0).cos() * 80.0) as i32 + 127,
-                ),
-            );
-        }
-    }
 }
 
-fn digits(
+pub(super) fn digits(
     canvas: &mut Canvas,
     image: &Image,
     value: i32,

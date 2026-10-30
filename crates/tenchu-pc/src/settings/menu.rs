@@ -1553,7 +1553,7 @@ impl Menu {
             Action::Up => self.row = (self.row + count - 1) % count,
             Action::Down => self.row = (self.row + 1) % count,
             Action::Left => return Some(-1),
-            Action::Right | Action::Confirm => return Some(1),
+            Action::Right | Action::Confirm | Action::Start => return Some(1),
             Action::Replay => {}
         }
         if matches!(action, Action::Up | Action::Down) {

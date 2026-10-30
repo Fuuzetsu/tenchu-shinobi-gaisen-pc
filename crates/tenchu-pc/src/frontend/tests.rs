@@ -316,3 +316,279 @@ fn showcase_pages_restart_identically_without_advancing_gameplay() {
     assert_eq!(progress, campaign.progress);
     assert!(campaign.save_request.is_none());
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; verifies all retail briefings, localized shop/results artwork and narrated transitions"]
+fn mission_preparation_assets_and_transitions() {
+    use tenchu_core::{game::score::Record, progress::Completion};
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    let stock = campaign.progress.stock;
+    let seed = campaign.seed;
+    for language in [
+        Language::English,
+        Language::French,
+        Language::Italian,
+        Language::Japanese,
+    ] {
+        campaign.options.language = Some(language);
+        for mission in 1..=10 {
+            campaign.options.mission = mission;
+            campaign.inventory();
+            frontend.prepare(&campaign, &assets, true).unwrap();
+            assert_eq!(frontend.page, Page::Briefing);
+            if mission == 1
+                && let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE")
+            {
+                let brief = frontend.briefing.as_ref().unwrap();
+                eprintln!(
+                    "{language:?}: text {} {:?}, hold {}, step {}, narration {:?}",
+                    brief.assets.text,
+                    brief.text.size,
+                    brief.assets.hold,
+                    brief.assets.scroll_step,
+                    brief.assets.narration
+                );
+                let mut canvas = Canvas::new(brief.text.size[0]);
+                canvas.sprite(raster::Sprite::new(&brief.text, 0.0, 0.0));
+                capture(
+                    &canvas,
+                    Path::new(&path),
+                    &format!("briefing-text-{language:?}"),
+                );
+            }
+            frontend.events.clear();
+            for _ in 0..60 {
+                frontend.advance_briefing();
+            }
+            let brief = frontend.briefing.as_ref().unwrap();
+            assert_eq!(brief.fade, 0);
+            assert_eq!(brief.scroll, -0xa000, "must wait for audio to load");
+            assert!(
+                frontend
+                    .events
+                    .iter()
+                    .any(|e| matches!(e, Event::Narration(_)))
+            );
+            frontend.narration_ready(None);
+            let remaining = {
+                let brief = frontend.briefing.as_ref().unwrap();
+                (brief.assets.narration.end - brief.assets.narration.start) * 60 / 150
+            };
+            for _ in 0..remaining / 2 {
+                frontend.advance_briefing();
+            }
+            frontend.paint(&campaign);
+            if let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
+                capture(
+                    &frontend.canvas,
+                    Path::new(&path),
+                    &format!("briefing-{language:?}-{mission}"),
+                );
+            }
+            for _ in 0..remaining + 100 {
+                frontend.advance_briefing();
+            }
+            assert_eq!(frontend.page, Page::Shop);
+            frontend.ticks = 120;
+            frontend.paint(&campaign);
+            if mission == 1
+                && let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE")
+            {
+                capture(
+                    &frontend.canvas,
+                    Path::new(&path),
+                    &format!("shop-{language:?}"),
+                );
+            }
+        }
+        for mission in [0, 1, 10] {
+            campaign.options.mission = mission;
+            campaign.game = campaign.options.load(&assets).unwrap();
+            let results = campaign.progress.complete(
+                Completion {
+                    stage: &campaign.game.mission.stage,
+                    character: 0,
+                    layout: 0,
+                    language,
+                    record: Record {
+                        enemies: 10,
+                        bosses: 1,
+                        criticals: 9,
+                        murders: 1,
+                        clock: 4890,
+                        ..Record::default()
+                    },
+                    remaining: [0; 20],
+                },
+                &mut campaign.game.random,
+            );
+            campaign.screen = crate::campaign::Screen::Results(results);
+            frontend.enter_results(&assets, &campaign).unwrap();
+            frontend.ticks = 120;
+            frontend.paint(&campaign);
+            if let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
+                capture(
+                    &frontend.canvas,
+                    Path::new(&path),
+                    &format!("results-{language:?}-{mission}"),
+                );
+            }
+        }
+        campaign.progress = tenchu_core::progress::Progress::default();
+    }
+    assert_eq!(campaign.progress.stock, stock);
+    assert_eq!(campaign.seed, seed);
+    for stage in [6, 7] {
+        let a = preparation::Briefing::load(&assets, Language::Japanese, stage, 0).unwrap();
+        let b = preparation::Briefing::load(&assets, Language::Japanese, stage, 1).unwrap();
+        assert_ne!(a.assets.narration, b.assets.narration);
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; shop transfers, limits, cancellation, launch and retry preserve campaign stock"]
+fn shop_actions_commit_only_the_selected_loadout() {
+    use crate::campaign::Screen;
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    campaign.progress.stock[0][1..9].fill(20);
+    let stock = campaign.progress.stock;
+    campaign.inventory();
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    frontend.ticks = 16;
+    for item in 1..=4 {
+        campaign.cursor = campaign.shop.order.iter().position(|&i| i == item).unwrap();
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+    }
+    campaign.cursor = campaign.shop.order.iter().position(|&i| i == 5).unwrap();
+    frontend
+        .action(Action::Confirm, &mut campaign, &assets)
+        .unwrap();
+    assert_eq!(frontend.shop_help, Some(20));
+    let Screen::Inventory(loadout) = &campaign.screen else {
+        panic!()
+    };
+    assert_eq!(loadout.taken, 4);
+    assert_eq!(loadout.selected[5], 0);
+    campaign.cursor = 0;
+    for _ in 0..11 {
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+    }
+    frontend
+        .action(Action::Confirm, &mut campaign, &assets)
+        .unwrap();
+    assert_eq!(frontend.shop_help, Some(19));
+    let Screen::Inventory(loadout) = &campaign.screen else {
+        panic!()
+    };
+    assert_eq!(loadout.taken, 15);
+    frontend
+        .action(Action::Replay, &mut campaign, &assets)
+        .unwrap();
+    let Screen::Inventory(loadout) = &campaign.screen else {
+        panic!()
+    };
+    assert_eq!(loadout.taken, 14);
+    assert_eq!(campaign.progress.stock, stock);
+    frontend
+        .action(Action::Back, &mut campaign, &assets)
+        .unwrap();
+    assert!(
+        frontend
+            .events
+            .iter()
+            .any(|e| matches!(e, Event::CancelPreparation))
+    );
+    campaign.action(Action::Back, &assets).unwrap();
+    assert_eq!(
+        campaign.progress.stock, stock,
+        "cancel must refund the whole selection"
+    );
+    campaign.inventory();
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    frontend.ticks = 16;
+    for _ in 0..3 {
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+    }
+    frontend.events.clear();
+    frontend
+        .action(Action::Start, &mut campaign, &assets)
+        .unwrap();
+    assert!(matches!(frontend.events.as_slice(), [Event::StartMission]));
+    assert!(campaign.action(Action::Confirm, &assets).unwrap());
+    assert!(campaign.playing());
+    assert_eq!(campaign.game.player().inventory[1], 3);
+    assert_eq!(campaign.progress.stock[0][1], 17);
+    assert_eq!(campaign.progress.stock[1], stock[1]);
+    campaign.action(Action::Replay, &assets).unwrap();
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    assert_eq!(frontend.page, Page::Shop);
+    let Screen::Inventory(loadout) = &campaign.screen else {
+        panic!()
+    };
+    assert_eq!(loadout.stock[1], 17);
+    assert_eq!(loadout.selected[1], 0);
+    campaign.options.mission = 0;
+    campaign.inventory();
+    frontend.events.clear();
+    frontend.prepare(&campaign, &assets, true).unwrap();
+    assert!(
+        frontend
+            .events
+            .iter()
+            .any(|e| matches!(e, Event::StartMission))
+    );
+    assert!(campaign.action(Action::Confirm, &assets).unwrap());
+    assert_eq!(campaign.game.player().inventory[1], 5);
+    assert_eq!(campaign.progress.stock[0][1], 17);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; decodes narration in all four languages and both Japanese character variants"]
+fn briefing_narration_has_audio_for_each_language() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    for (language, stage, character) in [
+        (Language::English, 0, 0),
+        (Language::French, 0, 0),
+        (Language::Italian, 0, 0),
+        (Language::Japanese, 0, 0),
+        (Language::Japanese, 6, 0),
+        (Language::Japanese, 6, 1),
+        (Language::Japanese, 7, 0),
+        (Language::Japanese, 7, 1),
+    ] {
+        let data = tenchu_assets::frontend::mission::Briefing::load(
+            &assets.executable,
+            language,
+            stage,
+            character,
+        )
+        .unwrap();
+        let clip = Clip::load(&assets.disc, &data.narration).unwrap();
+        assert!(
+            clip.frames
+                .iter()
+                .any(|p| p[0].unsigned_abs() > 256 || p[1].unsigned_abs() > 256)
+        );
+        let seconds = clip.frames.len() as f64 / f64::from(clip.rate);
+        let expected = f64::from(data.narration.end - data.narration.start) / 150.0;
+        assert!(
+            (seconds - expected).abs() < 1.0,
+            "{language:?} stage {stage}: {seconds} vs {expected}"
+        );
+    }
+}

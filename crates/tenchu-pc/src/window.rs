@@ -227,6 +227,11 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
+        let action = if matches!(action, Action::Start) {
+            Action::Confirm
+        } else {
+            action
+        };
         if self.randomizer_command(action) {
             return;
         }
@@ -237,6 +242,9 @@ impl Application {
         {
             return;
         }
+        let briefing = matches!(self.campaign.screen, Screen::Results(_))
+            && matches!(action, Action::Confirm | Action::Start)
+            && !self.campaign.quick_launcher;
         let start = if self.recording_directory.is_some()
             && self.debug.sight_percent == 100
             && !self.settings.keep_enemies_active
@@ -290,6 +298,13 @@ impl Application {
                         Action::Up | Action::Down | Action::Left | Action::Right => 0x0b,
                         _ => 0x0a,
                     });
+                }
+                if matches!(self.campaign.screen, Screen::Inventory(_))
+                    && let Some(frontend) = &mut self.frontend
+                    && let Err(error) = frontend.prepare(&self.campaign, &self.assets, briefing)
+                {
+                    self.pause_error(error);
+                    return;
                 }
                 self.clock = GameClock::default();
                 self.last_frame = Instant::now();
@@ -796,6 +811,10 @@ impl ApplicationHandler for Application {
                 } else if self.demo.is_some() {
                     self.advance_demo(elapsed);
                 } else if self.frontend_visible() {
+                    self.frontend
+                        .as_mut()
+                        .unwrap()
+                        .narration_ready(self.audio.as_ref());
                     if let Err(error) = self.frontend.as_mut().unwrap().advance(
                         elapsed,
                         suspended,

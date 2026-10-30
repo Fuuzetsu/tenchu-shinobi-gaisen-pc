@@ -2,7 +2,6 @@ use crate::{
     campaign::{Campaign, Screen},
     render_effects::{self, Geometry},
 };
-use tenchu_core::progress::{INFINITE, LOCKED, Loadout};
 
 pub(crate) const ITEMS: [&str; 20] = [
     "Grappling hook",
@@ -36,14 +35,6 @@ fn time(clock: i32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
-fn count(value: u8) -> String {
-    match value {
-        LOCKED => "Locked".into(),
-        INFINITE => "Infinite".into(),
-        _ => value.to_string(),
-    }
-}
-
 pub fn build(
     campaign: &Campaign,
     paused: bool,
@@ -65,7 +56,7 @@ pub fn build(
                 WHITE,
             );
         }
-        line(-140, 92, "F5/West: retry  Esc/East: inventory".into(), DIM);
+        line(-140, 92, "F5/West: retry  Esc/East: item shop".into(), DIM);
     } else if paused {
         line(-40, -20, "Paused".into(), GOLD);
         line(-140, 12, "P/Start/South: resume".into(), WHITE);
@@ -76,14 +67,14 @@ pub fn build(
             if campaign.randomized.is_some() {
                 "Opens randomizer controls"
             } else {
-                "Returns to equipment selection"
+                "Returns to the item shop"
             }
             .into(),
             DIM,
         );
     } else {
         match &campaign.screen {
-            Screen::Frontend | Screen::Ending(_) => (),
+            Screen::Frontend | Screen::Ending(_) | Screen::Inventory(_) => (),
             Screen::Launcher => {
                 line(-140, -102, "TENCHU: SHINOBI GAISEN".into(), GOLD);
                 line(-140, -84, "PC port - development build".into(), DIM);
@@ -136,64 +127,6 @@ pub fn build(
                     .into(),
                     DIM,
                 );
-            }
-            Screen::Inventory(loadout) => {
-                line(-140, -102, "MISSION EQUIPMENT".into(), GOLD);
-                let character = if campaign.options.character == 0 {
-                    "Rikimaru"
-                } else {
-                    "Ayame"
-                };
-                line(
-                    -140,
-                    -84,
-                    if campaign.options.mission == 0 {
-                        format!("{character}   Training equipment")
-                    } else {
-                        format!(
-                            "{character}  Items: {}/{}  Types: {}/{}",
-                            loadout.taken,
-                            loadout.capacity,
-                            loadout.kinds,
-                            Loadout::KIND_LIMIT
-                        )
-                    },
-                    WHITE,
-                );
-                line(33, -64, "Take / Stock".into(), DIM);
-                let first = campaign.cursor / 8 * 8;
-                for (row, &item) in campaign.shop.order.iter().enumerate().skip(first).take(8) {
-                    let y = -44 + (row - first) as i16 * 16;
-                    let color = if row == campaign.cursor {
-                        GOLD
-                    } else if loadout.stock[item] == LOCKED {
-                        DIM
-                    } else {
-                        WHITE
-                    };
-                    line(
-                        -140,
-                        y,
-                        format!(
-                            "{} {}",
-                            if row == campaign.cursor { ">" } else { " " },
-                            ITEMS[item]
-                        ),
-                        color,
-                    );
-                    line(
-                        62,
-                        y,
-                        format!(
-                            "{} / {}",
-                            loadout.selected[item],
-                            count(loadout.stock[item])
-                        ),
-                        color,
-                    );
-                }
-                line(-140, 88, "Arrows/D-pad/stick: item/count".into(), DIM);
-                line(-140, 104, "Enter/South: start  Esc/East: back".into(), DIM);
             }
             Screen::Results(results) => {
                 line(-140, -102, "MISSION COMPLETE".into(), GOLD);

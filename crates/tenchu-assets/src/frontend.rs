@@ -1,3 +1,5 @@
+pub mod mission;
+
 use crate::{
     ReadAt, Result,
     executable::{Executable, MotionRegistration},

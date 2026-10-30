@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore narrated mission briefings and the original item-shop grid in all four
+  languages. The shop replaces the placeholder equipment screen, with item help,
+  stock/carry limits, mouse controls and cancellation; retries skip the briefing
+  and training starts with its fixed equipment.
+- Show the retail mission results after ordinary missions, including elapsed
+  time, score breakdown, best scores, rank and the correct mission reward icon.
+  Training uses its separate leaderboard; final results still follow the ending.
+
 ## 0.4.0 — 2026-10-30
 
 - Add optional soft blood spray and modern Mei-Oh lightning with branching arcs,

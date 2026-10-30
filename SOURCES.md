@@ -1115,3 +1115,24 @@ rounding follow Pillow/PIL; [the compatibility notice](crates/tenchu-pc/data/ima
 records the exact source files and MIT-CMU license. Synthetic golden tests and
 private accepted-pack comparisons verify the result. No Python, Pillow, network
 image generator or interpreter is needed by the game, including its WASM build.
+
+## Retail mission preparation and results presentation (2026-10-30)
+
+The narrated briefing, item-shop grid and ordinary/training score screens use
+MAIN.EXE's localized asset pointers, narration cues, scrolling tables and item
+positions. The UI reuses the stock/reward/record rules above. Rendering, input
+adaptation and asynchronous audio integration are new portable Rust; no images
+or narration are embedded. Japanese Ayame's castle/final briefings retain their
+separate narration cues. The existing ending presentation remains after credits.
+
+Reference: `~/programming/tenchu-decomp` at
+`bd843abe11d555ca8c584b8b72537bb5efe2c773` (working-tree file hashes below).
+
+| File | Working-tree SHA-256 |
+| --- | --- |
+| `src/main.exe/briefing_screen_.c` | `09fa08cc5cf0d745d2b75e2265c9cd890b6756b795c1ec883dc1aeaaa32f1d7f` |
+| `src/main.exe/BriefingAndInventorySelectionScreen.c` | `bab7073d72addfc57e69a789e42650a64cdf27bca3efa4588fdfb8fbc16a7d66` |
+| `src/main.exe/StageEndScreen.c` | `20251d89fe30220963dcb11471b2bd6e7908d5a7893a7c8eeb7f05ba70b3e5c0` |
+| `src/main.exe/mission_score_screen.c` | `e3b8ab0e195477eae678e0e2cb099409ef3c11556b8217279b0f7bcc408689e8` |
+| `src/main.exe/INFOVIEW.C` | `e4aef1960f32907c3217bbdb3552204f99693124261ede8e9aaa3b6deba15af0` |
+| `config/symbols.main.exe.txt` | `2e72575d7c08c455a1212ce9b461ac84d51107c5e043b13b03c39fea6510ebd8` |

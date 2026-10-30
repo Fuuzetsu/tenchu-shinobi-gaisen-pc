@@ -6,7 +6,9 @@ mod labels;
 #[cfg_attr(target_arch = "wasm32", path = "web/movie.rs")]
 mod movie;
 mod paint;
+mod preparation;
 pub(crate) mod raster;
+mod results;
 pub(crate) mod showcase;
 #[cfg(test)]
 mod tests;
@@ -70,15 +72,20 @@ pub enum Page {
     Editor,
     Movie(Movie),
     Results,
+    Briefing,
+    Shop,
 }
 
 pub enum Event {
     Bank(Arc<Bank>),
     Music(Option<usize>),
     MovieAudio(Arc<Clip>),
+    Narration(tenchu_assets::audio::stream::Track),
     Effect(i16),
     Voice(i16),
     Launch,
+    StartMission,
+    CancelPreparation,
     QuickLauncher,
     Save,
     Load,
@@ -103,6 +110,10 @@ pub struct Frontend {
     result_background: Image,
     result_numbers: Image,
     result_ranks: Vec<Image>,
+    mission_art: preparation::Artwork,
+    briefing: Option<preparation::Briefing>,
+    shop_help: Option<usize>,
+    shop_clicked: Option<usize>,
     characters: Characters,
     language: Language,
     pub canvas: Canvas,
@@ -185,6 +196,10 @@ impl Frontend {
             )?,
             result_numbers: Image::parse(&assets.asset("DEMO/NUMBER.TIM")?)?,
             result_ranks: archive(&format!("DEMO/RANKS_{suffix}.ARC"))?,
+            mission_art: preparation::Artwork::load(assets, campaign, language)?,
+            briefing: None,
+            shop_help: None,
+            shop_clicked: None,
             language,
             canvas: Canvas::new(320),
             texture: None,
@@ -254,6 +269,7 @@ impl Frontend {
         self.result_background =
             Image::parse(&assets.asset(&format!("DEMO/RS_E_{}.TIM", result_suffix(language)))?)?;
         self.result_ranks = Image::archive(&assets.asset(&format!("DEMO/RANKS_{suffix}.ARC"))?)?;
+        self.mission_art.localized(assets, language)?;
         self.language = language;
         self.menu_bank(assets)?;
         self.dirty = true;
@@ -275,6 +291,7 @@ impl Frontend {
             .chain(&self.option_images)
             .chain(&self.result_ranks)
             .chain([&self.result_background, &self.result_numbers])
+            .chain(self.mission_art.images())
             .map(|image| {
                 let image = draw::pixels(image);
                 (draw::identity(&image), image)
@@ -294,6 +311,7 @@ impl Frontend {
 
     pub fn enter_title(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
         self.movie = None;
+        self.briefing = None;
         self.reset_title();
         self.title.activate();
         self.set_page(Page::Title);
@@ -328,6 +346,7 @@ impl Frontend {
         self.ticks
             >= match self.page {
                 Page::Title | Page::Movie(_) => 0,
+                Page::Briefing => 0,
                 Page::Missions => 31,
                 Page::Results => 32,
                 _ => 16,
@@ -463,6 +482,7 @@ impl Frontend {
                     self.cursor[0] = (self.cursor[0] - 10.0).max(target[0]);
                     self.cursor[1] = (self.cursor[1] + 50.0).min(target[1]);
                 }
+                Page::Briefing => self.advance_briefing(),
                 _ => (),
             }
         }
@@ -478,6 +498,11 @@ impl Frontend {
         if !self.ready() {
             return Ok(());
         }
+        let action = if matches!(action, Action::Start) && self.page != Page::Shop {
+            Action::Confirm
+        } else {
+            action
+        };
         if !matches!(self.page, Page::Movie(_)) {
             self.notice.clear();
         }
@@ -487,6 +512,12 @@ impl Frontend {
             _ => 1,
         };
         match self.page {
+            Page::Briefing if matches!(action, Action::Confirm | Action::Back) => {
+                if let Some(briefing) = &mut self.briefing {
+                    briefing.skip();
+                }
+            }
+            Page::Shop => self.shop_action(action, campaign),
             Page::Title => match action {
                 Action::Up | Action::Down => {
                     if self.title.navigate(delta) {
@@ -752,6 +783,7 @@ impl Frontend {
 
     pub fn quick_launcher(&mut self) {
         self.movie = None;
+        self.briefing = None;
         self.events.clear();
         self.events.push(Event::QuickLauncher);
     }
