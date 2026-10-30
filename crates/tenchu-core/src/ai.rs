@@ -23,6 +23,8 @@ use crate::{
 };
 use tenchu_assets::executable::Command;
 
+pub const HALT_STAGE_END: i16 = -1;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Difficulty {
     Easy,

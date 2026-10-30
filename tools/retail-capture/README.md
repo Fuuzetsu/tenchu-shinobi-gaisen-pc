@@ -2,7 +2,9 @@
 
 This observer replays an archived `tenchu-search` controller stream in its pinned
 BizHawk/Nymashock runtime. It reads MAIN instruction boundaries and RAM without
-writing emulated game memory. The archived runtime verifies the exact core hash
+writing emulated game memory. Optional archived item setup writes only the
+pre-mission loadout through the setup runner; its original audit is retained.
+The archived runtime verifies the exact core hash
 and CPU ABI; the native observer also distinguishes MAIN from overlapping MENU
 and ENDING code.
 
@@ -34,6 +36,52 @@ disagreement. It inspects state before EndDrawing, then applies the observed
 display swap and cinematic continuation. It does not refresh native state from
 later snapshots. An optional fourth CLI argument limits the checked update count
 for diagnosis; such a prefix report does not claim mission completion.
+
+### Combat/item archives and custom scenarios
+
+Capture the full immutable receipt chain, including its menu inputs and equipped
+items, instead of starting from a clock-one gameplay savestate:
+
+```sh
+./dev.sh python3 tools/retail-capture/capture-archive.py ARCHIVE NEW_OUTPUT
+# If the receipt store is separate, add --campaign STORE --tip RECEIPT_SHA256.
+```
+
+The helper verifies controller, RAM and savestate-chain hashes, captures each
+receipt boundary, and requires byte-identical endpoint RAM. It only reads the
+archive; an active search can keep running. `NEW_OUTPUT.json` records provenance,
+checkpoint matches and the observation hash. The generated `.segments` is the
+exact console-field input stream. `capture.sh` also accepts an optional fifth
+argument pointing at the archived `item-setup.json`.
+
+To try new inputs, choose a proven mission-entry receipt and append a text file
+containing `field_count hex_buttons` lines (blank lines and `#` comments allowed):
+
+```sh
+./dev.sh python3 tools/retail-capture/capture-archive.py ARCHIVE NEW_OUTPUT \
+  --tip ENTRY_RECEIPT --tail experiment.segments
+./dev.sh cargo run --release -p tenchu-pc -- \
+  check-retail DISC NEW_OUTPUT/updates.ram.gz --scenario
+```
+
+This still verifies the archived entry checkpoints. The appended inputs are a new
+experiment, not a claim to reproduce an archived win. `--scenario` requires the
+entire observation stream to match and end between updates, but permits an
+unfinished mission or death; it cannot export a completed-run movie tape. No RNG,
+actor or item state is repaired from later snapshots.
+
+The checker covers clocks/RNG, actors and poses, AI, collision slots, inventory,
+active item processors/coordinates and projectile parameters, armour, alert and
+radar state, camera, rendering budgets and mission counters. This is a selected
+state comparison, not proof that every byte of transient state is equivalent.
+
+On 2026-10-30 the equipped Ayame mission 1–7 searches matched 19,075 native
+updates (3,199 / 1,323 / 3,121 / 3,770 / 4,078 / 2,568 / 1,016). The Mission 7
+snapshot was receipt `adc0ff53d80d201ac9a9b65327eafa5def4f67f87004b08b29e08d80022eaee8`;
+the search continued independently. A further 1,866-update Mission 3 death
+scenario exposed and verified a fix for stage-end actor control. These tapes
+exercise item use and kills, but do not establish stealth-kill or every ordinary
+AI path's correctness. Keep the local witnesses/captures outside Git.
 
 The October 2026 Ayame/Normal campaign under `~/tenchu-searches/FINAL-RUN.txt`
 matched all 77 console checkpoint RAMs and all 33,404 native gameplay/cinematic

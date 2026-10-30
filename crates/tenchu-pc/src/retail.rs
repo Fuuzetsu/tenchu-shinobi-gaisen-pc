@@ -8,6 +8,13 @@ use std::path::Path;
 use tenchu_assets::{Result, game::GameAssets};
 use tenchu_core::{drawing::Step, game::Game};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Coverage {
+    Complete,
+    Prefix(u64),
+    Scenario,
+}
+
 #[derive(serde::Serialize)]
 struct MissionReport {
     mission: i32,
@@ -48,9 +55,15 @@ fn complete(game: &mut Game, report: &mut MissionReport) -> Result<()> {
 pub fn check(
     assets: &GameAssets<DiscSource>,
     path: &Path,
-    limit: Option<u64>,
+    coverage: Coverage,
     export: Option<(&Path, &Path)>,
 ) -> Result<()> {
+    if export.is_some() && coverage != Coverage::Complete {
+        return Err("Only complete mission validation can be exported".into());
+    }
+    if coverage == Coverage::Prefix(0) {
+        return Err("The update limit must be positive".into());
+    }
     let mut tape = tape::Tape::default();
     let mut pending_update = None;
     let mut reader = Reader::open(path)?;
@@ -129,7 +142,7 @@ pub fn check(
             let report = reports.last_mut().unwrap();
             report.updates += 1;
             report.skipped += u64::from(step == Step::Skipped);
-            if limit.is_some_and(|limit| checked >= limit) {
+            if matches!(coverage, Coverage::Prefix(limit) if checked >= limit) {
                 break;
             }
         } else if row.pc == 0x80017234 && matches!(row.caller, 0x800164d8 | 0x80050f78) {
@@ -150,20 +163,21 @@ pub fn check(
     if checked == 0 {
         return Err("No gameplay updates validated".into());
     }
-    if limit.is_none() {
+    let reached_end = !matches!(coverage, Coverage::Prefix(limit) if checked >= limit);
+    if reached_end {
         if before_epoch.is_some() {
             return Err("Recording ends during an update".into());
         }
-        complete(game.as_mut().unwrap(), reports.last_mut().unwrap())?;
+        if coverage == Coverage::Complete {
+            complete(game.as_mut().unwrap(), reports.last_mut().unwrap())?;
+        }
     }
     if let Some((archive, output)) = export {
-        if limit.is_some() {
-            return Err("Cannot export an incomplete validation".into());
-        }
         tape.save(archive, path, output)?;
     }
     println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-        "matched_updates": checked, "reached_end_of_recording": limit.is_none(), "missions": reports,
+        "matched_updates": checked, "reached_end_of_recording": reached_end, "missions": reports,
+        "coverage": match coverage { Coverage::Complete => "complete_missions", Coverage::Prefix(_) => "prefix", Coverage::Scenario => "scenario" },
         "state_corrections_after_initialization": 0,
     })).map_err(|e| e.to_string())?);
     Ok(())

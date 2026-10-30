@@ -28,6 +28,18 @@ impl Actor {
                 {
                     pending = Some((MOT_ATTACK_TAUNT, true));
                 }
+                if world.intelligence.action_halt == crate::ai::HALT_STAGE_END
+                    && self.motion.count == 0
+                {
+                    pending = Some((
+                        if self.registered(ctx, MOT_ENGAGE_SHEATHE) {
+                            MOT_ENGAGE_SHEATHE
+                        } else {
+                            MOT_STATE_SHEATHE
+                        },
+                        true,
+                    ));
+                }
             }
             MOT_ENGAGE_TURN_R | MOT_ENGAGE_TURN_L => {
                 let right = self.motion.action == MOT_ENGAGE_TURN_R;

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-(( $# == 4 )) || { echo 'Usage: capture.sh ARCHIVE STATE|--boot SEGMENTS NEW_OUTPUT_DIRECTORY' >&2; exit 2; }
+(( $# == 4 || $# == 5 )) || { echo 'Usage: capture.sh ARCHIVE STATE|--boot SEGMENTS NEW_OUTPUT_DIRECTORY [ITEM_SETUP.json]' >&2; exit 2; }
 script=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo=$(cd -- "$script/../.." && pwd)
 archive=$(realpath -- "$1")
@@ -13,7 +13,7 @@ if [[ ${TENCHU_RETAIL_CAPTURE_TOOLS:-0} != 1 ]]; then
     pkgs=$(jq -r .nixpkgs "$archive/dependencies.json")
     exec nix --extra-experimental-features 'nix-command flakes' shell \
         "$pkgs#mono" "$pkgs#jq" "$pkgs#ripgrep" "$pkgs#xvfb-run" "$pkgs#python3" \
-        -c env TENCHU_RETAIL_CAPTURE_TOOLS=1 bash "$0" "$archive" "$state" "$plan" "$out"
+        -c env TENCHU_RETAIL_CAPTURE_TOOLS=1 bash "$0" "$@"
 fi
 mkdir -p "$out.runtime"
 cp "$script/probe.rs" "$script/PhaseProbe.cs" "$script/capture.sh" "$out.runtime/"
@@ -38,12 +38,19 @@ mcs -sdk:4.8 -langversion:7.2 -target:library -optimize+ -out:"$out.runtime/Tenc
 sha256sum "$out.runtime/"*.rs "$out.runtime/"*.cs "$out.runtime/"*.sh "$out.runtime/"*.so "$out.runtime/"*.dll > "$out.runtime/SHA256SUMS"
 unset TENCHU_SETUP_LAYOUT TENCHU_SETUP_PREFIX TENCHU_SETUP_ITEMS TENCHU_SETUP_MISSION_STAGE
 unset TENCHU_SETUP_CAPTURE_CLOCK_RESTORE TENCHU_SETUP_STOP_OBSERVATION TENCHU_SETUP_ENTRY_CVA
+if (( $# == 5 )); then
+    export TENCHU_SETUP_ITEMS
+    TENCHU_SETUP_ITEMS=$(realpath -- "$5")
+fi
 unset ONIKAGE_SIM_PHASE_FIELDS ONIKAGE_SIM_PHASE_ACTORS ONIKAGE_SIM_BOUNDARY_SNAPSHOTS ONIKAGE_VIEWER_WINDOW ONIKAGE_VIEWER_OBSERVER ONIKAGE_WORKER_IDENTITY_PATH
 export TENCHU_SETUP_STATE=$state TENCHU_SETUP_PLAN=$plan TENCHU_SETUP_OUTPUT=$out TENCHU_SETUP_COLD_BOOT=0
 if [[ $state == --boot ]]; then TENCHU_SETUP_STATE=; export TENCHU_SETUP_COLD_BOOT=1; fi
 export TENCHU_SETUP_MENU_ONLY=1 TENCHU_SETUP_CAMPAIGN_AUDIT=1 TENCHU_SETUP_SCREENSHOT_EVERY=1000000
 export ONIKAGE_EXTERNAL_TOOL_LIBRARY=$runtime/tools/tenchu-worker/target/release/libtenchu_worker.so
 export ONIKAGE_SEARCH_BIN=$runtime/bin/tenchu-search
+if [[ ! -x $ONIKAGE_SEARCH_BIN && -x $archive/bin/tenchu-search ]]; then
+    ONIKAGE_SEARCH_BIN=$archive/bin/tenchu-search
+fi
 export BIZHAWK_RUN_DIR=$out.runtime BIZHAWK_KEEP_RUN=1 BIZHAWK_TIMEOUT=${BIZHAWK_TIMEOUT:-3600}
 export BIZHAWK_EXPECT_MARKER='[scenario-setup] PASS'
 export BIZHAWK

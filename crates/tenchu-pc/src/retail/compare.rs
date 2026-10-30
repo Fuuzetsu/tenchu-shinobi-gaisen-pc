@@ -1,6 +1,7 @@
 use super::observation::Ram;
 use tenchu_assets::Result;
 use tenchu_core::game::Game;
+use tenchu_core::items::Processor;
 
 pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
     let mut differences = Vec::new();
@@ -18,6 +19,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
     }
     equal!(game.clock, ram.word(0x800976b0) as i32);
     equal!(game.random.seed, ram.word(0x800c79e0));
+    equal!(game.combat.armor, ram.short(0x800979a2) != 0);
     equal!(game.roster.order.len(), ram.short(0x80097724) as usize);
     equal!(game.statistics.criticals, ram.short(0x80097c6c));
     equal!(game.statistics.murders, ram.short(0x80097c70));
@@ -45,6 +47,16 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
         equal!(game.activation.budget, ram.short(0x80097f44));
         equal!(game.intelligence.action_halt, ram.short(0x800979b8));
         equal!(game.intelligence.found, ram.short(0x80097c6e));
+        equal!(game.intelligence.alert, ram.word(0x800979c0) as i32);
+        equal!(game.intelligence.strain, ram.word(0x800979c4) as i32);
+        equal!(game.intelligence.attack_clock, ram.word(0x800979bc) as i32);
+        equal!(game.intelligence.death_index, ram.short(0x800979de) as u16);
+        equal!(
+            game.hud.selected.map_or(-1, |n| n as i16),
+            ram.short(0x80097b1e)
+        );
+        equal!(game.hud.cursor, ram.short(0x80097b20) as usize);
+        equal!(game.hud.strain_phase, ram.short(0x80097f68) as u16);
         equal!(game.events.time, ram.word(0x80097c64) as i32);
         let page = ram.short(0x800976a4) as u32;
         equal!(
@@ -150,6 +162,128 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
         }
         for difference in &mut differences[before..] {
             *difference = format!("actor {index} (kind {:x}): {difference}", actor.kind);
+        }
+    }
+    for (index, item) in game.items.slots.iter().enumerate() {
+        let ptr = 0x800bfbb0 + index as u32 * 0x58;
+        let before = differences.len();
+        let procedure = item.processor.map_or(0, |p| match p {
+            Processor::Pickup => 0x8003e454,
+            Processor::SightShot => 0x8003ea84,
+            Processor::Grapple => 0x8003eea4,
+            Processor::Teleport => 0x8003f18c,
+            Processor::Caltrops => 0x8003f304,
+            Processor::Speed => 0x8003f8a0,
+            Processor::Smoke => 0x8003ff68,
+            Processor::Medicine => 0x80040500,
+            Processor::Resurrection => 0x80040c0c,
+            Processor::Poison => 0x80041090,
+            Processor::Charm => 0x80041bf4,
+            Processor::Decoy => 0x80042120,
+            Processor::Disguise => 0x80042c1c,
+            Processor::Rice => 0x8004333c,
+            Processor::Breath => 0x80043710,
+            Processor::Dog => 0x80043dd4,
+            Processor::Darts => 0x8004488c,
+            Processor::Fire => 0x80044de0,
+            Processor::Sleep => 0x800458a8,
+            Processor::Lightning => 0x800460d0,
+            Processor::Gun => 0x80046528,
+            Processor::Napalm => 0x800469c0,
+            Processor::Shuriken => 0x80047048,
+            Processor::Arrow => 0x80047b94,
+            Processor::Mine => 0x800482ac,
+            Processor::Flute => 0x8004a1d8,
+        });
+        equal!(procedure, ram.word(ptr + 0xc));
+        if let Some(processor) = item.processor {
+            let owner = item.owner.map_or(1, |id| {
+                let index = game.roster.order.iter().position(|&v| v == id).unwrap();
+                ram.word(0x800be7b8 + index as u32 * 4)
+            });
+            equal!(owner, ram.word(ptr));
+            equal!(item.kind, ram.word(ptr + 8) as usize);
+            equal!(u32::from(item.mode), ram.word(ptr + 0x54));
+            equal!(item.collision.size, ram.short(ptr + 0x1c));
+            if item.collision.size != 0 {
+                equal!(i32::from(item.collision.class), ram.word(ptr + 0x14) as i32);
+                equal!(item.collision.paused, ram.word(ptr + 0x18) != 0);
+                equal!(item.collision.offset_y, ram.short(ptr + 0x1e));
+            }
+            equal!(
+                game.scene.models[item.model].local,
+                ram.matrix(ram.word(ptr + 0x10) + 4)
+            );
+            let params = ptr + 0x20;
+            let flight = matches!(
+                processor,
+                Processor::Shuriken | Processor::Arrow | Processor::Darts
+            );
+            if flight {
+                equal!(item.flight.rolling, ram.word(params + 0x28) != 0);
+                if !item.flight.rolling {
+                    equal!(item.flight.start, ram.vector(params));
+                    equal!(item.flight.end, ram.vector(params + 0xc));
+                    equal!(item.flight.control, ram.vector(params + 0x18));
+                    equal!(item.flight.count, ram.byte(params + 0x24));
+                    equal!(item.flight.total, ram.byte(params + 0x25));
+                }
+            }
+            if flight && item.flight.rolling
+                || matches!(
+                    processor,
+                    Processor::Pickup
+                        | Processor::Caltrops
+                        | Processor::Smoke
+                        | Processor::Fire
+                        | Processor::Mine
+                        | Processor::Poison
+                        | Processor::Decoy
+                        | Processor::Dog
+                )
+            {
+                equal!(item.rolling.velocity, ram.short_vector(params + 4));
+                equal!(item.rolling.status, ram.byte(params + 0xa));
+            }
+            match processor {
+                Processor::Pickup
+                | Processor::Smoke
+                | Processor::Fire
+                | Processor::Mine
+                | Processor::Decoy => {
+                    equal!(item.count, ram.byte(params + 0xc));
+                }
+                Processor::Shuriken | Processor::Darts => {
+                    equal!(item.count, ram.byte(params + 0x30));
+                }
+                Processor::Arrow => {
+                    equal!(item.count, ram.byte(params + 0x2c));
+                }
+                Processor::Lightning => {
+                    equal!(item.lightning.start, ram.vector(params));
+                    equal!(item.lightning.rotation, ram.short_vector(params + 0x10));
+                    equal!(item.count, ram.byte(params + 0x18));
+                }
+                Processor::Charm => {
+                    equal!(item.charm_remaining, ram.short(params) as u16);
+                }
+                Processor::Poison => {
+                    equal!(item.poison.remaining, ram.short(params + 0x14));
+                }
+                Processor::Napalm | Processor::Sleep => {
+                    equal!(item.napalm.velocity, ram.short_vector(params));
+                    if item.mode >= 2 {
+                        equal!(item.napalm.count, ram.byte(params + 8));
+                    }
+                }
+                Processor::Gun => {
+                    equal!(item.flight.end, ram.vector(params));
+                }
+                _ => {}
+            }
+        }
+        for difference in &mut differences[before..] {
+            *difference = format!("item {index} ({:?}): {difference}", item.processor);
         }
     }
     if differences.is_empty() {

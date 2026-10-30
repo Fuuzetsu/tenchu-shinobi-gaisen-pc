@@ -78,7 +78,7 @@ impl Game {
         self.cinematic.active = true;
         self.cinematic.elapsed = 0;
         self.intelligence.cinematic = true;
-        if self.intelligence.action_halt != 2 {
+        if self.intelligence.action_halt != crate::ai::HALT_STAGE_END {
             self.intelligence.action_halt = 1;
         }
         self.roster.get_mut(self.player_id).target = None;
@@ -321,7 +321,7 @@ impl Game {
 
     fn finish_cinematic(&mut self) -> Result<()> {
         self.intelligence.cinematic = false;
-        if self.intelligence.action_halt != 2 {
+        if self.intelligence.action_halt != crate::ai::HALT_STAGE_END {
             self.intelligence.action_halt = 0;
         }
         self.camera

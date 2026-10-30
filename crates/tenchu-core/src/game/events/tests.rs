@@ -8,6 +8,7 @@ use std::fmt::Write;
 fn event_routes_and_death_continuations_match_original_c() {
     let source = oracle::source("STAGE.C");
     let types = oracle::source("game_types.h");
+    let halt_states = oracle::function(&types, "enum action_halt_state");
     let types = &types[types
         .find("typedef struct EventSeqType EventSeqType;")
         .unwrap()
@@ -47,7 +48,7 @@ typedef struct {{int unused;}} ScoreStats;typedef struct {{int grade;}} ScoreRes
 #define MOTION_LOOP_DISABLED (-1)
 #define CMODE_FALL 14
 #define CMODE_CRITICAL_HIT 4
-#define ACTION_HALT_STAGE_END 2
+{halt_states};
 #define StageID 0
 #define STAGE_ID_TRAINING 8
 #define RIKIMARU_0 0
@@ -57,7 +58,7 @@ static void PlayMusicFormID(s16 m){{assert(music_count<10);music[music_count++]=
 static ScoreStats *init_score_stats(ScoreStats *s){{return s;}}
 static ScoreResult *calculate_score(ScoreStats *s,s16 stage){{static ScoreResult r;return &r;}}
 static Humanoid *GetHumanoid(s16 kind){{return kind==0?actors:kind==0x81?actors+1:0;}}
-static s16 CVAsequence(s16 id){{if(id!=12)return 0;GameClock++;if(ActionHalt!=2)ActionHalt=0;CamState.Mode=0;music[music_count++]=-1;return 1;}}
+static s16 CVAsequence(s16 id){{if(id!=12)return 0;GameClock++;if(ActionHalt!=ACTION_HALT_STAGE_END)ActionHalt=0;CamState.Mode=0;music[music_count++]=-1;return 1;}}
 {update}
 {stage}
 int main(void){{
@@ -194,7 +195,11 @@ int main(void){{
         game.update_event(0, first);
         game.update_event(1, secondary);
         game.clock = 77;
-        game.intelligence.action_halt = if case % 2 == 0 { 0 } else { 2 };
+        game.intelligence.action_halt = if case % 2 == 0 {
+            0
+        } else {
+            crate::ai::HALT_STAGE_END
+        };
         game.camera.mode = camera::Mode::Fall;
         game.music.clear();
         row.extend([

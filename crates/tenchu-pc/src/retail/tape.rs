@@ -61,7 +61,14 @@ impl Initial {
             difficulty: ram.byte(0x80010058),
             seed: row.seed,
             epoch: row.epoch,
-            armor: ram.byte(0x80010007 + 19),
+            // SetupAppearance consumes the loadout slot before the first update.
+            armor: if ram.short(0x800979a2) == 0 {
+                0
+            } else if ram.word(0x80088a8c + 24 + 16) == 0x800979b0 {
+                255
+            } else {
+                1
+            },
             inventory: ram
                 .bytes(ram.word(0x80097c60) + 0xb4, 26)
                 .try_into()

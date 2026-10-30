@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Correct stage-end actor control after player death, including guards sheathing
+  their weapons. Reference replays now restore equipped armour correctly.
+
 - Restore explosions, smoke, fire, lightning, weapon trails and grapple lines in
   showcase/free-camera views, including effects outside the gameplay camera.
 
