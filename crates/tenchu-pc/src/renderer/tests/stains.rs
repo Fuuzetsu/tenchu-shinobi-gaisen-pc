@@ -76,3 +76,54 @@ fn projected_blood_blends_without_filling_cutouts_or_occluding_foreground() {
         .unwrap();
     assert_eq!(&read_pixel(&renderer, &target)[..3], &[102; 3]);
 }
+
+#[test]
+#[ignore = "requires a graphics adapter; retained decals reuse uploads, survive updates, cull outside the view and clear without stale pixels"]
+fn retained_decal_pages_match_streamed_drawing_and_reuse_gpu_buffers() {
+    use std::sync::Arc;
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let source = rectangle(1000, 128, None, false, false, false);
+    let mesh = renderer.upload(&source);
+    let vertices = crate::visuals::surfaces::Surfaces::new(&source).project(
+        &crate::visuals::surfaces::Stamp {
+            center: glam::Vec3::new(0., 0., 1000.),
+            normal: glam::Vec3::NEG_Z,
+            radius: 400.,
+            depth: 1.,
+            seed: 4,
+            shape: None,
+        },
+    );
+    assert!(
+        vertices.len() < 100,
+        "analytic edges must not require a subdivided mesh"
+    );
+    let effect = renderer.upload_effects(render_effects::Geometry {
+        batches: vec![render_effects::Batch {
+            blend: 5,
+            range: 0..vertices.len() as u32,
+        }],
+        vertices: vertices.clone(),
+    });
+    renderer
+        .draw(&view, camera, &[&mesh], Some(&effect))
+        .unwrap();
+    let expected = read_pixels(&renderer, &target);
+    let mut page = Arc::new(vertices);
+    assert_eq!(renderer.set_decals([&page]), 1);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(read_pixels(&renderer, &target), expected);
+    for _ in 0..60 {
+        assert_eq!(renderer.set_decals([&page]), 0);
+    }
+    for vertex in Arc::make_mut(&mut page) {
+        vertex.position[0] += 10000.0;
+    }
+    assert_eq!(renderer.set_decals([&page]), 1);
+    renderer.draw(&view, camera, &[&mesh], None).unwrap();
+    assert_eq!(read_pixel(&renderer, &target)[..3], [128; 3]);
+    renderer.set_decals(std::iter::empty());
+    assert!(renderer.decals.is_empty());
+}

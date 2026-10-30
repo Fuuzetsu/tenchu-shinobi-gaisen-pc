@@ -16,8 +16,8 @@ impl Default for Blood {
             enabled: false,
             spray: false,
             amount: 100,
-            seconds: 12,
-            marks: 256,
+            seconds: 3,
+            marks: 8192,
         }
     }
 }
@@ -26,6 +26,6 @@ impl Blood {
     pub fn validate(&mut self) {
         self.amount = self.amount.min(200);
         self.seconds = self.seconds.min(60);
-        self.marks = self.marks.clamp(32, 1024);
+        self.marks = self.marks.max(32);
     }
 }

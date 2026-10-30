@@ -627,9 +627,22 @@ fn ranged_actors_hit_and_projectiles_retire() {
         let health = game.player().health;
         let mut launched = false;
         let mut attached = false;
+        let mut gun_muzzle = false;
+        let mut gun_impact = false;
         for _ in 0..220 {
             game.step(0)
                 .unwrap_or_else(|error| panic!("kind {kind:x}, tick {}: {error}", game.tick));
+            for (effect, source) in game.effects.slots.iter().zip(&game.effects.gun_sources) {
+                if matches!(effect, Some(crate::effects::Effect::Impact(_)))
+                    && let Some(source) = source
+                {
+                    match source.part {
+                        crate::effects::GunPart::Muzzle => gun_muzzle = true,
+                        crate::effects::GunPart::Body => gun_impact = true,
+                        crate::effects::GunPart::Surface => {}
+                    }
+                }
+            }
             launched |= game
                 .items
                 .slots
@@ -641,6 +654,8 @@ fn ranged_actors_hit_and_projectiles_retire() {
             });
         }
         assert!(launched, "kind {kind:x} did not launch");
+        assert_eq!(gun_muzzle, processor == Processor::Gun);
+        assert_eq!(gun_impact, processor == Processor::Gun);
         assert_eq!(game.player().health, health - damage, "kind {kind:x}");
         if processor == Processor::Arrow {
             assert!(attached);

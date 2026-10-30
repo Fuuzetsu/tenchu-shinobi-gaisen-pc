@@ -1,3 +1,5 @@
+mod gun;
+
 use super::{
     Style, Surface, quad,
     style::{blood_color, lightning_spark},
@@ -20,6 +22,25 @@ struct Painter<'a> {
 
 impl Painter<'_> {
     fn patch(&mut self, center: Vec3, axes: [Vec3; 2], color: [f32; 3], glow: bool, rounded: bool) {
+        self.patch_with_opacity(
+            center,
+            axes,
+            color,
+            glow,
+            rounded,
+            if glow { 1.0 } else { 0.9 },
+        );
+    }
+
+    fn patch_with_opacity(
+        &mut self,
+        center: Vec3,
+        axes: [Vec3; 2],
+        color: [f32; 3],
+        glow: bool,
+        rounded: bool,
+        opacity: f32,
+    ) {
         let depth = center.dot(self.camera.z_axis) + self.view.translation.z as f32;
         if depth < 50.0 {
             return;
@@ -48,7 +69,7 @@ impl Painter<'_> {
                     1.0
                 },
             ];
-            vertex.opacity = if glow { 1.0 } else { 0.9 };
+            vertex.opacity = opacity;
             vertex.flags = render_mesh::ALPHA
                 | render_mesh::DOUBLE_SIDED
                 | render_mesh::FOG
@@ -85,8 +106,11 @@ impl Painter<'_> {
         );
     }
 
-    fn blood(&mut self, game: &Game, alpha: f32) {
-        for (slot, effect) in game.effects.slots.iter().enumerate() {
+    fn blood(&mut self, game: &Game, alpha: f32, gunfire: bool) {
+        for (slot, effect) in game.effects.active_slots().iter().enumerate() {
+            if gunfire && game.effects.gun_sources[slot].is_some() {
+                continue;
+            }
             let (position, velocity, count, size) = match effect {
                 Some(Effect::Blood(blood)) if blood.mode == 0 => (
                     blood.position,
@@ -125,6 +149,32 @@ impl Painter<'_> {
                     [0.30 + noise(seed + 3) * 0.16, 0.006, 0.012],
                     false,
                     true,
+                );
+            }
+        }
+        for (index, burst) in game
+            .effects
+            .billboards
+            .iter()
+            .enumerate()
+            .filter(|(_, b)| matches!(b.graphic, tenchu_core::effects::Graphic::Impact(2)))
+        {
+            let center = Vec3::from(burst.position.map(|v| v as f32).to_array());
+            let size = (burst.scale[0] as f32 / 300.0).clamp(20.0, 90.0);
+            for i in 0..5 {
+                let seed = index as u32 * 31 + i * 7;
+                let offset = self.camera.x_axis * (noise(seed) - 0.5)
+                    + self.camera.y_axis * (noise(seed + 1) - 0.5);
+                self.patch_with_opacity(
+                    center + offset * size * 2.0,
+                    [
+                        self.camera.x_axis * size * 0.45,
+                        self.camera.y_axis * size * 0.6,
+                    ],
+                    [0.38, 0.008, 0.016],
+                    false,
+                    true,
+                    0.4,
                 );
             }
         }
@@ -179,7 +229,7 @@ impl Painter<'_> {
                 self.arc(end + offset * 0.2, end + offset, 5.0, 0.8);
             }
         }
-        for effect in game.effects.slots.iter().flatten() {
+        for effect in game.effects.active_slots().iter().flatten() {
             if let Effect::Bleed(spark) = effect
                 && lightning_spark(spark.color)
             {
@@ -200,10 +250,13 @@ pub(super) fn draw(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, style
         view,
     };
     if style.blood_spray {
-        painter.blood(game, style.alpha);
+        painter.blood(game, style.alpha, style.gunfire);
     }
     if style.lightning {
         painter.lightning(game, style.alpha);
+    }
+    if style.gunfire {
+        painter.gunfire(game, style.alpha);
     }
 }
 
@@ -211,6 +264,53 @@ pub(super) fn draw(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, style
 mod tests {
     use super::*;
     use tenchu_core::{effects, math::Position, terrain::Cursor};
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; overflowing the retail effect pool must not leave permanent modern particles or lights"]
+    fn discarded_effects_do_not_leave_particles_or_lights() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut game = crate::session::Options::default().load(&assets).unwrap();
+        game.effects = Default::default();
+        let position = Position::new(0, 0, 2000);
+        let style = Style {
+            blood_spray: true,
+            gunfire: true,
+            ..Default::default()
+        };
+        for _ in 0..201 {
+            game.effects.bleed(position, [10, 20, 30], 20, [128, 0, 0]);
+        }
+        let mut surfaces = Vec::new();
+        draw(&mut surfaces, &game, Matrix::default(), style);
+        assert!(!surfaces.is_empty(), "live blood still renders");
+        let mut rng = game.random;
+        game.effects.gun_effects(
+            effects::GunEffect {
+                part: effects::GunPart::Muzzle,
+                direction: Position::new(0, 0, 4096),
+            },
+            |effects| effects.impact(position, 4096, 1, &mut rng),
+        );
+        assert!(game.effects.slots[200].is_some());
+        assert!(crate::lighting::gunfire(&game, 0.5).is_empty());
+        game.effects.slots[..200].fill(None);
+        surfaces.clear();
+        draw(&mut surfaces, &game, Matrix::default(), style);
+        assert!(surfaces.is_empty(), "overflow gunfire never renders");
+        game.effects.slots[200] = Some(Effect::Bleed(effects::Bleed {
+            position,
+            velocity: [10, 20, 30],
+            color: [128, 0, 0],
+            time: 20,
+            mode: 0,
+        }));
+        game.effects.gun_sources[200] = None;
+        draw(&mut surfaces, &game, Matrix::default(), style);
+        assert!(surfaces.is_empty(), "overflow blood never renders");
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; optional TENCHU_COMBAT_REVIEW renders native GPU comparisons"]

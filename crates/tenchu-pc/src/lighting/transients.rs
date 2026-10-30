@@ -32,7 +32,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
             });
         }
     };
-    for effect in game.effects.slots.iter().flatten() {
+    for effect in game.effects.active_slots().iter().flatten() {
         let (name, effect, strength, reach) = match effect {
             Effect::Explosion(e) => (
                 "Explosion",

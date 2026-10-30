@@ -348,6 +348,13 @@ impl Player {
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
             Feature::Remake(feature) => remake::buttons(feature, tick, self.clip().seconds),
+            Feature::Gunfire => {
+                if tick >= 30 && (tick - 30).is_multiple_of(60) {
+                    SQUARE
+                } else {
+                    0
+                }
+            }
             Feature::Blood | Feature::BloodSnow => {
                 if tick >= 60 && tick.is_multiple_of(35) {
                     SQUARE

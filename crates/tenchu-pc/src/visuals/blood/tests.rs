@@ -3,21 +3,43 @@ use super::*;
 #[test]
 fn retained_stains_respect_both_count_and_vertex_budgets() {
     let mut blood = Blood::default();
-    for i in 0..2000 {
+    for i in 0..4000 {
         blood.retain(
             Mark(vec![Patch {
-                part: None,
+                part: (i % 3 == 0).then_some(Part::Actor {
+                    root: i,
+                    model: i + 1,
+                    kind: 0,
+                    inspection: false,
+                }),
                 vertices: vec![Vertex::zeroed(); if i % 2 == 0 { 30 } else { 3000 }],
             }]),
-            1024,
+            usize::from(u16::MAX),
         );
     }
-    assert!(blood.marks.len() <= 1024);
-    assert!(blood.marks.iter().map(Mark::len).sum::<usize>() <= VERTEX_LIMIT);
+    assert!(
+        blood.marks.len() < 4000,
+        "vertex budget must evict before the count limit"
+    );
+    let measured = blood.pages().map(|p| p.len()).sum::<usize>()
+        + blood
+            .marks
+            .attached
+            .iter()
+            .map(|(_, m)| m.len())
+            .sum::<usize>();
+    assert_eq!(blood.marks.vertices, measured);
+    assert!(measured <= VERTEX_LIMIT);
+    blood.marks.retain_attached(|_| false);
+    assert_eq!(
+        blood.marks.vertices,
+        blood.pages().map(|p| p.len()).sum::<usize>()
+    );
     blood.trim(32);
-    assert!(blood.marks.len() <= 32);
+    assert_eq!(blood.marks.len(), 32);
     blood.clear();
     assert!(blood.marks.is_empty());
+    assert_eq!(blood.marks.vertices, 0);
 }
 
 #[test]
@@ -114,20 +136,8 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
                 sky.sample(&sky_settings, alpha);
             }
             max_wounds = max_wounds.max(blood.wounds.len());
-            max_attached = max_attached.max(
-                blood
-                    .marks
-                    .iter()
-                    .filter(|m| m.0.iter().any(|p| p.part.is_some()))
-                    .count(),
-            );
-            max_world = max_world.max(
-                blood
-                    .marks
-                    .iter()
-                    .filter(|m| m.0.iter().any(|p| p.part.is_none()))
-                    .count(),
-            );
+            max_attached = max_attached.max(blood.marks.attached.len());
+            max_world = max_world.max(blood.marks.len() - blood.marks.attached.len());
             if blood.wounds.len() > last_count {
                 eprintln!(
                     "tick {}: {} wounds, {} marks",
@@ -190,11 +200,7 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         crate::session::tests::state(&game),
         crate::session::tests::state(&original)
     );
-    let world_before = blood
-        .marks
-        .iter()
-        .filter(|m| m.0.iter().any(|p| p.part.is_none()))
-        .count();
+    let world_before = blood.marks.len() - blood.marks.attached.len();
     assert!(world_before > 0);
     let disabled = settings::Blood::default();
     blood.tick(&game, &models, &surfaces, &disabled);
@@ -266,9 +272,10 @@ fn capture(
     let poses = transforms(game, models, None, true);
     if let Some(patch) = blood
         .marks
+        .attached
         .iter()
         .rev()
-        .flat_map(|m| &m.0)
+        .flat_map(|(_, m)| &m.0)
         .find(|p| p.part.is_some())
         && let Some(matrix) = patch.part.and_then(|key| poses.get(&key))
     {
@@ -346,5 +353,143 @@ fn capture(
                 &output.join(format!("{}-body.png", game.tick)),
             )
             .unwrap();
+    }
+}
+
+#[test]
+fn full_retention_keeps_old_stains_and_only_changes_the_active_page() {
+    let mut blood = Blood::default();
+    let start = std::time::Instant::now();
+    let template = Mark(vec![Patch {
+        part: None,
+        vertices: vec![Vertex::zeroed(); 36],
+    }]);
+    for i in 0..u16::MAX {
+        let mut vertices = template.0[0].vertices.clone();
+        vertices[0].position[0] = f32::from(i);
+        blood.retain(
+            Mark(vec![Patch {
+                part: None,
+                vertices,
+            }]),
+            usize::from(u16::MAX),
+        );
+    }
+    assert_eq!(blood.marks.len(), usize::from(u16::MAX));
+    assert_eq!(blood.pages().next().unwrap()[0].position[0], 0.0);
+    let old_pages: Vec<_> = blood.pages().cloned().collect();
+    blood.retain(template, usize::from(u16::MAX));
+    let pages: Vec<_> = blood.pages().collect();
+    assert_eq!(pages[0][0].position[0], 1.0);
+    assert_eq!(blood.marks.vertices, usize::from(u16::MAX) * 36);
+    assert!(
+        old_pages[1..old_pages.len() - 1]
+            .iter()
+            .zip(&pages[1..pages.len() - 1])
+            .all(|(a, b)| std::sync::Arc::ptr_eq(a, b))
+    );
+    eprintln!(
+        "65,535 retained stains: {} vertices, {} pages, {:?} to insert and evict",
+        blood.marks.vertices,
+        pages.len(),
+        start.elapsed()
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; checks finite wound bleeding, immediate duration changes and player death pools without gameplay mutations"]
+fn wound_drips_stop_and_player_death_leaves_a_pool() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    for character in 0..2 {
+        let mut game = crate::session::Options {
+            mission: 1,
+            character,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        let graphics = settings::Graphics::default();
+        let models = Models::build(&game.mission, &Default::default(), &graphics).unwrap();
+        let surfaces = Surfaces::new(&render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
+        let mut blood = Blood::default();
+        let mut settings = settings::Blood {
+            enabled: true,
+            ..Default::default()
+        };
+        blood.tick(&game, &models, &surfaces, &settings);
+        let root = game.player().root_model;
+        let position =
+            Vec3::from(game.player().position.map(|v| v as f32).to_array()) - Vec3::Y * 750.0;
+        game.effects.slots[200] = Some(tenchu_core::effects::Effect::Bleed(
+            tenchu_core::effects::Bleed {
+                position: tenchu_core::math::Position::from(position.to_array().map(|v| v as i32)),
+                velocity: [0; 3],
+                color: [128, 0, 0],
+                time: 20,
+                mode: 0,
+            },
+        ));
+        game.roster.get_mut(game.player_id).health -= 1;
+        game.tick += 1;
+        blood.tick(&game, &models, &surfaces, &settings);
+        assert!(
+            blood.wounds.is_empty(),
+            "discarded blood must not create wounds"
+        );
+        assert!(blood.samples.iter().all(Option::is_none));
+        blood.wound(&game, &models, root, position, &settings);
+        assert_eq!(blood.wounds.len(), 1);
+        let mut emitted = false;
+        for _ in 0..150 {
+            game.tick += 1;
+            let state = crate::session::tests::state(&game);
+            blood.tick(&game, &models, &surfaces, &settings);
+            assert_eq!(state, crate::session::tests::state(&game));
+            emitted |= !blood.drops.is_empty();
+        }
+        assert!(emitted);
+        assert!(blood.wounds.is_empty() && blood.drops.is_empty());
+        assert!(blood.marks.len() > 1);
+        settings.seconds = 60;
+        blood.wound(&game, &models, root, position, &settings);
+        game.tick += 1;
+        blood.tick(&game, &models, &surfaces, &settings);
+        assert!(!blood.wounds.is_empty());
+        settings.seconds = 0;
+        game.tick += 1;
+        blood.tick(&game, &models, &surfaces, &settings);
+        assert!(blood.wounds.is_empty());
+        blood.clear();
+        let player = game.roster.get_mut(game.player_id);
+        player.health = 0;
+        player.status = tenchu_core::actor::State::Dead;
+        player.velocity = [0; 3];
+        for _ in 0..120 {
+            game.tick += 1;
+            let state = crate::session::tests::state(&game);
+            blood.tick(&game, &models, &surfaces, &settings);
+            assert_eq!(state, crate::session::tests::state(&game));
+        }
+        assert!(blood.pools.is_empty(), "pool growth must finish");
+        assert_eq!(blood.marks.len(), 1, "one retained pool per dead player");
+        assert!(!blood.pages().next().unwrap().is_empty());
+        blood.clear();
+        game.tick += 1;
+        blood.tick(&game, &models, &surfaces, &settings);
+        assert!(
+            blood.marks.is_empty() && blood.pools.is_empty(),
+            "clear must not immediately recreate a corpse pool"
+        );
     }
 }

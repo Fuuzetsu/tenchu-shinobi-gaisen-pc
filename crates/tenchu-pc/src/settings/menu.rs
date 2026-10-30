@@ -23,6 +23,7 @@ pub enum Item {
     GrappleDetail,
     ContactSparks,
     Lightning,
+    Gunfire,
     SparkDensity,
     ContactSplashes,
     ContactScatter,
@@ -314,6 +315,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Grapple impact sparks",
                 on(s.graphics.effects.sparks),
                 "Small hot fragments and a short local light at hook contact; cosmetic only.",
+            ),
+            (
+                Item::Gunfire,
+                "Modern gunfire",
+                on(s.graphics.effects.gunfire),
+                "Echigoya's gun: a brief muzzle flash and light, drifting smoke and impact sparks. Shot timing and damage stay unchanged.",
             ),
             (
                 Item::Lightning,
@@ -740,13 +747,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodSeconds,
                 "Wound bleeding",
                 format!("{} s", s.graphics.blood.seconds),
-                "How long new wounds drip; 0 keeps stains without extra bleeding.",
+                "How long each wound drips (default 3 seconds). Changes also affect active wounds; 0 stops extra bleeding. Retained stains and death pools remain.",
             ),
             (
                 Item::BloodMarks,
                 "Retained stains",
                 s.graphics.blood.marks.to_string(),
-                "Oldest marks are removed at this limit. A separate geometry budget bounds memory.",
+                "Retain up to 65,535 stains. Oldest marks are removed at this limit; a 256 MiB geometry budget also bounds memory. Ground stains are cached on the GPU.",
             ),
             (
                 Item::ClearBlood,

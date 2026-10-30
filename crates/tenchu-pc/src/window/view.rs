@@ -816,6 +816,9 @@ impl View {
             if settings.graphics.effects.sparks {
                 sparks.extend(self.contact.lights());
             }
+            if settings.graphics.effects.gunfire {
+                sparks.extend(crate::lighting::gunfire(game, alpha));
+            }
             sparks.append(&mut sources);
             sparks.truncate(
                 usize::from(settings.graphics.lighting.count).min(crate::lighting::MAX_LIGHTS),
@@ -903,7 +906,8 @@ impl View {
             && (menu.open || !paused || debug.active())
             && settings.graphics.blood.enabled
         {
-            let mut cosmetics = self.blood.geometry(
+            self.renderer.set_decals(self.blood.pages());
+            let mut cosmetics = self.blood.animated_geometry(
                 game,
                 &self.models,
                 frame,
@@ -916,6 +920,8 @@ impl View {
             );
             cosmetics.append(geometry);
             geometry = cosmetics;
+        } else {
+            self.renderer.set_decals(std::iter::empty());
         }
         if campaign.playing()
             && error.is_none()

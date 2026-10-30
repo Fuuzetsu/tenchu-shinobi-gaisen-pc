@@ -46,6 +46,34 @@ pub fn lightning(game: &Game) -> Vec<Source> {
     sources
 }
 
+pub fn gunfire(game: &Game, alpha: f32) -> Vec<Source> {
+    use tenchu_core::effects::{Effect, GunPart};
+    game.effects
+        .active_slots()
+        .iter()
+        .zip(&game.effects.gun_sources)
+        .filter_map(|(effect, source)| {
+            let (Some(Effect::Impact(impact)), Some(source)) = (effect, source) else {
+                return None;
+            };
+            if !matches!(source.part, GunPart::Muzzle) {
+                return None;
+            }
+            let age = f32::from(impact.count.saturating_sub(1)) + alpha.clamp(0.0, 1.0);
+            let strength = (1.0 - age / 3.0).max(0.0).powi(2);
+            (strength > 0.0).then(|| Source {
+                name: "Gun muzzle".into(),
+                light: Light {
+                    position: Vec3::from(impact.position.map(|v| v as f32).to_array()),
+                    color: [2.0 * strength, 0.9 * strength, 0.25 * strength],
+                    radius: 4000.0,
+                },
+            })
+        })
+        .take(2)
+        .collect()
+}
+
 pub fn sources(
     game: &Game,
     settings: &crate::settings::Lighting,

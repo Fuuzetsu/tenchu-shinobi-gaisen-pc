@@ -138,6 +138,19 @@ impl View {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum GunPart {
+    Muzzle,
+    Surface,
+    Body,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct GunEffect {
+    pub part: GunPart,
+    pub direction: Position,
+}
+
 #[derive(Clone, Debug)]
 pub enum Graphic {
     Sprite {
@@ -156,6 +169,8 @@ pub enum Graphic {
         airborne: bool,
     },
     Impact(u8),
+    GunImpact(u8),
+    GunBleed,
 }
 
 #[derive(Clone, Debug)]
@@ -179,7 +194,7 @@ pub struct Billboard {
 
 impl Drawing {
     pub fn bytes(&self) -> u32 {
-        if matches!(self.graphic, Graphic::Bleed)
+        if matches!(self.graphic, Graphic::Bleed | Graphic::GunBleed)
             || (self.scale.map(|v| v as i16) == [4096; 2] && self.rotation == 0)
         {
             24
@@ -261,6 +276,8 @@ pub struct Rumble {
 #[derive(Clone, Debug)]
 pub struct Effects {
     pub slots: Vec<Option<Effect>>,
+    pub gun_sources: Vec<Option<GunEffect>>,
+    emitting_gun: Option<GunEffect>,
     pub drawings: Vec<Drawing>,
     pub billboards: Vec<Billboard>,
     pub bolts: Vec<Bolt>,
@@ -280,6 +297,8 @@ impl Default for Effects {
     fn default() -> Self {
         Self {
             slots: vec![None; 201],
+            gun_sources: vec![None; 201],
+            emitting_gun: None,
             drawings: Vec::new(),
             billboards: Vec::new(),
             bolts: Vec::new(),
@@ -298,6 +317,17 @@ impl Default for Effects {
 }
 
 impl Effects {
+    pub fn active_slots(&self) -> &[Option<Effect>] {
+        // The final slot is the retail allocator's overflow sink; it never runs.
+        &self.slots[..200]
+    }
+
+    pub fn gun_effects(&mut self, source: GunEffect, emit: impl FnOnce(&mut Self)) {
+        self.emitting_gun = Some(source);
+        emit(self);
+        self.emitting_gun = None;
+    }
+
     pub fn rumble(
         &mut self,
         actor: usize,
@@ -367,9 +397,11 @@ impl Effects {
             i = (i + 1) % 200;
             if self.slots[i].is_none() && self.visiting != Some(i) {
                 self.cursor = (i + 1) % 200;
+                self.gun_sources[i] = self.emitting_gun;
                 return i;
             }
         }
+        self.gun_sources[200] = self.emitting_gun;
         200
     }
 
@@ -524,8 +556,28 @@ impl Effects {
                 continue;
             };
             self.visiting = Some(i);
+            let gun = self.gun_sources[i];
+            let drawings = self.drawings.len();
+            let billboards = self.billboards.len();
             let result = self.update(&mut effect, rng, view, scene, env);
             self.visiting = None;
+            if gun.is_some() {
+                for graphic in self.drawings[drawings..]
+                    .iter_mut()
+                    .map(|d| &mut d.graphic)
+                    .chain(
+                        self.billboards[billboards..]
+                            .iter_mut()
+                            .map(|b| &mut b.graphic),
+                    )
+                {
+                    *graphic = match *graphic {
+                        Graphic::Impact(sprite) => Graphic::GunImpact(sprite),
+                        Graphic::Bleed => Graphic::GunBleed,
+                        _ => continue,
+                    };
+                }
+            }
             match result {
                 Ok(false) => {}
                 Ok(true) => self.slots[i] = Some(effect),

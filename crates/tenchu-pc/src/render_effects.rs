@@ -367,7 +367,7 @@ pub fn build_presented(
         },
     );
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
-        if index == 25 && !blob_shadows {
+        if (index == 25 && !blob_shadows) || (index == 31 && style.blood_stains) {
             continue;
         }
         for instance in instances {

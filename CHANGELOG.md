@@ -5,6 +5,19 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Modern presets enable soft blood spray and persistent stains, with much higher
+  retention defaults and a configurable maximum of 65,535 stains. Cached ground
+  stains and compact soft-edged geometry reduce CPU work and repeated GPU uploads.
+- Wound bleeding now defaults to three seconds; changing its duration also affects
+  existing wounds. Extra wound drips and hit bursts use soft modern particles.
+- Ignore discarded overflow effects when drawing modern particles and lights,
+  preventing stuck blood or flashes after the game's effect slots fill up.
+- Replace legacy corpse pools with soft pools that follow the ground, including
+  a new pool beneath the player on death. Pools grow briefly and remain with other
+  retained blood; Original preserves its existing presentation.
+- Add optional modern gunfire for Echigoya, with short muzzle flashes and light,
+  drifting smoke and impact sparks. Modern presets enable it; the gunfire demo
+  compares both styles without changing attack timing, damage or gameplay RNG.
 - Randomizing unprotected story actors now includes dormant bosses such as Hanbe
   and Echigoya. Their rolled models keep the original cutscene choreography and
   scripted activation, then use their randomized combat moves and AI.

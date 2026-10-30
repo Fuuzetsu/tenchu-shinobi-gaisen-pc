@@ -101,6 +101,7 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
     );
     effects.step(&mut rng, view, &mut scene, &mut env).unwrap();
     assert!(effects.slots[..200].iter().all(Option::is_none));
+    assert!(effects.active_slots().iter().all(Option::is_none));
     assert!(matches!(
         effects.slots[200],
         Some(Effect::Smoke(Smoke { time: 15, .. }))
@@ -108,6 +109,86 @@ fn full_pool_keeps_rng_cost_but_does_not_tick_dummy_smoke() {
     assert_eq!(rng.calls, 402);
     effects.smoke_burst(Position::ZERO, 150, 12, 1, &mut rng);
     assert_eq!(rng.calls, 406);
+}
+
+#[test]
+fn gun_presentation_tags_preserve_simulation_and_reset_on_slot_reuse() {
+    let mut ordinary = Effects::default();
+    let mut tagged = Effects::default();
+    let mut rng = Random::new(123);
+    let mut tagged_rng = rng;
+    let emit = |effects: &mut Effects, rng: &mut Random| {
+        let position = Position::new(0, 0, 2000);
+        effects.impact(position, 4096, 1, rng);
+        effects.scatter_bleeds(
+            position,
+            50,
+            Burst {
+                spread: 100,
+                count: 8,
+                lifetime: 10,
+                color: [64; 3],
+            },
+            rng,
+        );
+    };
+    emit(&mut ordinary, &mut rng);
+    tagged.gun_effects(
+        GunEffect {
+            part: GunPart::Muzzle,
+            direction: Position::new(0, 0, 4096),
+        },
+        |effects| emit(effects, &mut tagged_rng),
+    );
+    let map = flat_map();
+    let mut cursor = Cursor::new(&map);
+    let mut env = Environment {
+        terrain: &map,
+        cursor: &mut cursor,
+        clock: 0,
+        owner_position: Position::ZERO,
+        reference: Position::ZERO,
+    };
+    let view = View {
+        position: Position::ZERO,
+        matrix: Matrix::default(),
+    };
+    let mut scene = Scene::default();
+    for _ in 0..30 {
+        ordinary.begin_tick();
+        tagged.begin_tick();
+        ordinary.step(&mut rng, view, &mut scene, &mut env).unwrap();
+        tagged
+            .step(&mut tagged_rng, view, &mut scene, &mut env)
+            .unwrap();
+        assert_eq!(rng, tagged_rng);
+        assert_eq!(
+            format!("{:?}", ordinary.slots),
+            format!("{:?}", tagged.slots)
+        );
+        assert_eq!(
+            ordinary
+                .drawings
+                .iter()
+                .map(Drawing::bytes)
+                .collect::<Vec<_>>(),
+            tagged
+                .drawings
+                .iter()
+                .map(Drawing::bytes)
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            tagged.drawings.iter().all(|drawing| matches!(
+                drawing.graphic,
+                Graphic::GunImpact(_) | Graphic::GunBleed
+            ))
+        );
+    }
+    for _ in 0..201 {
+        tagged.bleed(Position::ZERO, [0; 3], 10, [128, 0, 0]);
+    }
+    assert!(tagged.gun_sources.iter().all(Option::is_none));
 }
 
 #[test]

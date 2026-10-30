@@ -71,7 +71,7 @@ fn preset(index: u16) -> Graphics {
         g.models.characters = u16::from(medium);
         g.models.foliage = u16::from(medium);
         g.surface_detail = u16::from(medium);
-        g.blood.marks = if medium { 256 } else { 128 };
+        g.blood.marks = if medium { 4096 } else { 2048 };
         g.effects.leaves = medium;
         g.effects.scatter = medium;
         g.effects.leaf_density = 40;
@@ -197,7 +197,7 @@ fn modern(ultra: bool) -> Graphics {
     g.set_filtering(if ultra { 6 } else { 5 });
     g.blood.enabled = true;
     g.blood.spray = true;
-    g.blood.marks = if ultra { 768 } else { 384 };
+    g.blood.marks = if ultra { 16384 } else { 8192 };
     g.water.enabled = true;
     g.water.detail = if ultra { 2 } else { 1 };
     g.models.characters = if ultra { 2 } else { 1 };
@@ -206,6 +206,7 @@ fn modern(ultra: bool) -> Graphics {
     g.models.grapple = true;
     g.effects.sparks = true;
     g.effects.lightning = true;
+    g.effects.gunfire = true;
     g.effects.splashes = true;
     g.effects.scatter = true;
     g.effects.leaves = true;
@@ -265,6 +266,11 @@ mod tests {
             graphics.set_preset(index);
             assert_eq!(graphics.preset(), index);
             assert!(!graphics.asset_pack);
+            if QUALITY.contains(&index) || index == SHOWCASE {
+                assert!(graphics.blood.enabled && graphics.blood.spray && graphics.effects.gunfire);
+                assert_eq!(graphics.blood.seconds, 3);
+                assert!(graphics.blood.marks >= 2048);
+            }
         }
         graphics.fog_distance = 177;
         assert_eq!(graphics.preset(), CUSTOM);

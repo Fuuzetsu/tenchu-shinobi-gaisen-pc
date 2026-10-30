@@ -7,6 +7,7 @@ pub struct Style {
     pub blood_spray: bool,
     pub blood_stains: bool,
     pub lightning: bool,
+    pub gunfire: bool,
     pub alpha: f32,
 }
 
@@ -17,6 +18,7 @@ impl Default for Style {
             blood_spray: false,
             blood_stains: false,
             lightning: false,
+            gunfire: false,
             alpha: 1.0,
         }
     }
@@ -29,6 +31,7 @@ impl From<&Settings> for Style {
             blood_spray: settings.graphics.blood.spray,
             blood_stains: settings.graphics.blood.enabled && settings.graphics.blood.amount > 0,
             lightning: settings.graphics.effects.lightning,
+            gunfire: settings.graphics.effects.gunfire,
             ..Self::default()
         }
     }
@@ -37,12 +40,19 @@ impl From<&Settings> for Style {
 impl Style {
     pub(super) fn replaces(self, graphic: &Graphic, color: [u8; 3]) -> bool {
         (self.lightning && matches!(graphic, Graphic::Bleed) && lightning_spark(color))
-            || self.blood_spray
-                && match graphic {
-                    Graphic::Blood { airborne, .. } => *airborne || self.blood_stains,
-                    Graphic::Bleed => blood_color(color),
-                    _ => false,
+            || self.gunfire && matches!(graphic, Graphic::GunImpact(_) | Graphic::GunBleed)
+            || match graphic {
+                Graphic::Blood { airborne, .. } => {
+                    if *airborne {
+                        self.blood_spray
+                    } else {
+                        self.blood_stains
+                    }
                 }
+                Graphic::Bleed | Graphic::GunBleed => self.blood_spray && blood_color(color),
+                Graphic::Impact(2) => self.blood_spray,
+                _ => false,
+            }
     }
 }
 

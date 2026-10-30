@@ -665,9 +665,21 @@
     }
   },
   {
+    "id": "gunfire",
+    "title": "Echigoya's gun: original / modern",
+    "description": "The model swapper gives the player Echigoya's real shooting animation. Compare original gun sprites with a short muzzle flash, warm light, drifting smoke and hot impact sparks. Timing and damage stay the same.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": "gunfire",
+    "shot": "player",
+    "sharp_text": true
+  },
+  {
     "id": "blood",
     "title": "Persistent wounds and stains",
-    "description": "A staged encounter uses ordinary combat. Soft blood droplets follow the original trajectories; wounds and ground stains remain until cleared or the budget fills. Health and damage are unchanged.",
+    "description": "Ordinary combat with soft spray and wound drips, brief bleeding and surface-following death pools. Stains remain until cleared or the retention budget fills; gameplay stays unchanged.",
     "seconds": 20,
     "mission": 1,
     "character": 0,

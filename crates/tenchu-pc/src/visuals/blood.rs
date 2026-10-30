@@ -11,11 +11,13 @@ use crate::{
 };
 use bytemuck::Zeroable;
 use glam::{Mat3, Vec3};
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
-const VERTEX_LIMIT: usize = 98_304;
-const MARK_VERTEX_LIMIT: usize = 3_072;
+mod storage;
+use storage::Marks;
+#[cfg(test)]
+use storage::VERTEX_LIMIT;
 const WOUND_LIMIT: usize = 64;
 const DROP_LIMIT: usize = 128;
 
@@ -35,7 +37,13 @@ impl Mark {
 struct Wound {
     part: Part,
     position: Vec3,
-    remaining: u16,
+    age: u16,
+}
+
+struct Pool {
+    age: u16,
+    seed: u32,
+    mark: Mark,
 }
 
 struct Drop {
@@ -58,9 +66,11 @@ pub struct Blood {
     tick: Option<u64>,
     health: BTreeMap<usize, i16>,
     samples: Vec<Option<Sample>>,
-    marks: VecDeque<Mark>,
+    marks: Marks,
     wounds: VecDeque<Wound>,
     drops: Vec<Drop>,
+    pools: BTreeMap<usize, Pool>,
+    dead: BTreeSet<usize>,
     seed: u32,
 }
 
@@ -103,9 +113,10 @@ impl<'a> Receivers<'a> {
 
 impl Blood {
     pub fn clear(&mut self) {
-        self.marks.clear();
+        self.marks = Marks::default();
         self.wounds.clear();
         self.drops.clear();
+        self.pools.clear();
     }
 
     fn random(&mut self) -> f32 {
@@ -117,19 +128,15 @@ impl Blood {
     }
 
     fn retain(&mut self, mark: Mark, limit: usize) {
-        let len = mark.len();
-        if len == 0 || len > MARK_VERTEX_LIMIT {
-            return;
-        }
-        self.marks.push_back(mark);
-        self.trim(limit);
+        self.marks.insert(mark, limit);
     }
 
     fn trim(&mut self, limit: usize) {
-        let mut vertices: usize = self.marks.iter().map(Mark::len).sum();
-        while self.marks.len() > limit || vertices > VERTEX_LIMIT {
-            vertices -= self.marks.pop_front().unwrap().len();
-        }
+        self.marks.trim(limit);
+    }
+
+    pub fn pages(&self) -> impl Iterator<Item = &std::sync::Arc<Vec<Vertex>>> {
+        self.marks.pages()
     }
 
     fn stain(
@@ -152,19 +159,31 @@ impl Blood {
             return false;
         };
         self.random();
+        let mark = Self::project_contact(surfaces, hinge, hit, radius, self.seed);
+        self.retain(mark, limit);
+        true
+    }
+
+    fn project_contact(
+        surfaces: &Receivers<'_>,
+        hinge: Option<usize>,
+        hit: surfaces::Hit,
+        radius: f32,
+        seed: u32,
+    ) -> Mark {
         let stamp = Stamp {
             center: hit.position,
             normal: hit.normal,
             radius,
             depth: 15.0,
-            seed: self.seed,
+            seed,
             shape: None,
         };
         let patch = if let Some(index) = hinge {
             let (key, matrix, surface) = &surfaces.hinges[index];
             let r = rotation(*matrix);
             if r.determinant().abs() < 0.0001 {
-                return false;
+                return Mark(Vec::new());
             }
             let mut vertices = surface.project(&stamp);
             for v in &mut vertices {
@@ -182,8 +201,7 @@ impl Blood {
                 vertices: surfaces.world.project(&stamp),
             }
         };
-        self.retain(Mark(vec![patch]), limit);
-        true
+        Mark(vec![patch])
     }
 
     fn wound(
@@ -297,7 +315,7 @@ impl Blood {
                 });
             }
         }
-        self.retain(Mark(patches), usize::from(settings.marks.clamp(32, 1024)));
+        self.retain(Mark(patches), usize::from(settings.marks.max(32)));
         let (part, matrix, _) = &parts[index];
         let r = rotation(*matrix);
         if r.determinant().abs() < 0.0001 {
@@ -306,7 +324,7 @@ impl Blood {
         self.wounds.push_back(Wound {
             part: *part,
             position: r.inverse() * (center - translation(*matrix)),
-            remaining: settings.seconds.min(60) * 30,
+            age: 0,
         });
         while self.wounds.len() > WOUND_LIMIT {
             self.wounds.pop_front();
@@ -333,6 +351,9 @@ impl Blood {
                 (actor.root_model, actor.health)
             })
             .collect();
+        if self.tick == Some(game.tick) {
+            return;
+        }
         if self.tick.is_none_or(|tick| tick + 1 != game.tick) {
             *self = Self {
                 tick: Some(game.tick),
@@ -341,20 +362,20 @@ impl Blood {
             };
             self.samples = game
                 .effects
-                .slots
+                .active_slots()
                 .iter()
                 .map(|slot| sample(slot.as_ref(), true))
                 .collect();
             return;
         }
         self.tick = Some(game.tick);
-        let receivers = Receivers::new(game, models, surfaces);
-        let limit = usize::from(settings.marks.clamp(32, 1024));
+        let receivers = std::cell::LazyCell::new(|| Receivers::new(game, models, surfaces));
+        let limit = usize::from(settings.marks.max(32));
         let amount = f32::from(settings.amount.min(200)) / 100.0;
         let mut new_blood = Vec::new();
-        let mut samples = Vec::with_capacity(game.effects.slots.len());
+        let mut samples = Vec::with_capacity(game.effects.active_slots().len());
         let mut impacts = 0;
-        for (index, slot) in game.effects.slots.iter().enumerate() {
+        for (index, slot) in game.effects.active_slots().iter().enumerate() {
             let mut current = sample(slot.as_ref(), false);
             if let Some(next) = &mut current {
                 let old = self.samples.get(index).copied().flatten();
@@ -408,12 +429,13 @@ impl Blood {
             }
         }
         self.health = health;
+        self.dead.retain(|root| self.health.get(root) == Some(&0));
         let transforms = if self.wounds.is_empty() {
             BTreeMap::new()
         } else {
             transforms(game, models, None, true)
         };
-        self.marks.retain(|mark| {
+        self.marks.retain_attached(|mark| {
             mark.0.iter().all(|p| {
                 p.part.is_none_or(|key| match key {
                     Part::Actor { root, .. } => self.health.contains_key(&root),
@@ -422,8 +444,8 @@ impl Blood {
             })
         });
         self.wounds.retain_mut(|wound| {
-            wound.remaining = wound.remaining.saturating_sub(1);
-            wound.remaining != 0 && transforms.contains_key(&wound.part)
+            wound.age = wound.age.saturating_add(1);
+            wound.age < settings.seconds.min(60) * 30 && transforms.contains_key(&wound.part)
         });
         if game.tick.is_multiple_of(8) {
             let sources: Vec<_> = self
@@ -468,9 +490,88 @@ impl Blood {
                 )
         });
         self.drops = drops;
+        if !self.pools.is_empty()
+            || game.roster.actors.iter().flatten().any(|actor| {
+                actor.health == 0
+                    && !self.dead.contains(&actor.root_model)
+                    && actor.status == tenchu_core::actor::State::Dead
+            })
+        {
+            self.update_pools(game, &receivers, amount, limit);
+        }
         self.trim(limit);
     }
 
+    fn update_pools(&mut self, game: &Game, surfaces: &Receivers<'_>, amount: f32, limit: usize) {
+        for &id in &game.roster.order {
+            let actor = game.roster.get(id);
+            if actor.health != 0
+                || actor.status != tenchu_core::actor::State::Dead
+                || actor.motion.action == tenchu_core::ids::MOT_DEAD_DROWN
+            {
+                continue;
+            }
+            if self.dead.insert(actor.root_model) {
+                self.random();
+                self.pools.insert(
+                    actor.root_model,
+                    Pool {
+                        age: 0,
+                        seed: self.seed,
+                        mark: Mark(Vec::new()),
+                    },
+                );
+            }
+        }
+        let mut pools = std::mem::take(&mut self.pools);
+        pools.retain(|root, pool| {
+            let Some(actor) = game
+                .roster
+                .actors
+                .iter()
+                .flatten()
+                .find(|a| a.root_model == *root)
+            else {
+                return false;
+            };
+            if actor.health != 0 {
+                return false;
+            }
+            pool.age = pool.age.saturating_add(1);
+            if pool.age < 24 || actor.velocity[1] != 0 {
+                return pool.age < 300;
+            }
+            let center = actor
+                .rendered
+                .first()
+                .copied()
+                .map(translation)
+                .unwrap_or_else(|| Vec3::from(actor.position.map(|v| v as f32).to_array()));
+            let center = Vec3::new(center.x, actor.position.y as f32, center.z);
+            if let Some(hit) = surfaces
+                .world
+                .cast(center - Vec3::Y * 800.0, center + Vec3::Y * 500.0)
+                && hit.flags & render_mesh::WATER == 0
+                && hit.normal.y < -0.3
+            {
+                let growth = (f32::from(pool.age - 24) / 66.0).clamp(0.0, 1.0);
+                let radius = (f32::from(game.mission.characters[actor.definition].width) * 1.4)
+                    .clamp(300.0, 900.0)
+                    * amount.sqrt()
+                    * (0.2 + 0.8 * growth.sqrt());
+                pool.mark = Self::project_contact(surfaces, None, hit, radius, pool.seed);
+            }
+            if pool.age >= 90 {
+                self.retain(std::mem::replace(&mut pool.mark, Mark(Vec::new())), limit);
+                false
+            } else {
+                true
+            }
+        });
+        self.pools = pools;
+    }
+
+    #[cfg(test)]
     pub fn geometry(
         &self,
         game: &Game,
@@ -479,13 +580,32 @@ impl Blood {
         camera: Option<Matrix>,
         alpha: f32,
     ) -> Geometry {
+        let vertices: Vec<_> = self.pages().flat_map(|page| page.iter().copied()).collect();
+        let mut geometry = Geometry {
+            batches: vec![Batch {
+                blend: 5,
+                range: 0..vertices.len() as u32,
+            }],
+            vertices,
+        };
+        geometry.append(self.animated_geometry(game, models, frame, camera, alpha));
+        geometry
+    }
+
+    pub fn animated_geometry(
+        &self,
+        game: &Game,
+        models: &Models,
+        frame: Option<&Frame>,
+        camera: Option<Matrix>,
+        alpha: f32,
+    ) -> Geometry {
         let mut vertices = Vec::new();
-        if !self.marks.is_empty() || !self.drops.is_empty() {
-            let transforms = if self
-                .marks
-                .iter()
-                .any(|m| m.0.iter().any(|p| p.part.is_some()))
-            {
+        for pool in self.pools.values() {
+            vertices.extend(pool.mark.0.iter().flat_map(|p| p.vertices.iter().copied()));
+        }
+        if !self.marks.attached.is_empty() || !self.drops.is_empty() {
+            let transforms = if !self.marks.attached.is_empty() {
                 transforms(
                     game,
                     models,
@@ -495,7 +615,7 @@ impl Blood {
             } else {
                 BTreeMap::new()
             };
-            for mark in &self.marks {
+            for (_, mark) in &self.marks.attached {
                 for patch in &mark.0 {
                     let (rotation, offset) = if let Some(key) = patch.part {
                         let Some(&matrix) = transforms.get(&key) else {
@@ -530,10 +650,12 @@ impl Blood {
             let camera =
                 rotation(camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view)))
                     .transpose();
-            let right = camera * Vec3::X * 9.0;
-            let up = camera * Vec3::Y * 18.0;
             for drop in &self.drops {
                 let center = drop.previous.lerp(drop.position, alpha.clamp(0.0, 1.0));
+                let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
+                let along = projected.try_normalize().unwrap_or(camera.y_axis);
+                let right = along.cross(camera.z_axis) * 7.0;
+                let up = along * (9.0 + projected.length().min(150.0) * 0.12);
                 let points = [
                     center - right - up,
                     center + right - up,
@@ -542,9 +664,16 @@ impl Blood {
                 ];
                 vertices.extend([0, 1, 2, 1, 3, 2].map(|i| Vertex {
                     position: points[i].to_array(),
-                    color: [0.3, 0.008, 0.012],
-                    opacity: 0.85,
-                    flags: render_mesh::ALPHA | render_mesh::FOG | render_mesh::DOUBLE_SIDED,
+                    color: [0.38, 0.008, 0.016],
+                    uv: [
+                        if i & 1 == 0 { -1.0 } else { 1.0 },
+                        if i & 2 == 0 { -1.0 } else { 1.0 },
+                    ],
+                    opacity: 0.9,
+                    flags: render_mesh::ALPHA
+                        | render_mesh::FOG
+                        | render_mesh::DOUBLE_SIDED
+                        | render_mesh::SOFT,
                     ..Vertex::zeroed()
                 }));
             }

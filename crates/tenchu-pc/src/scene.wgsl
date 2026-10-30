@@ -96,6 +96,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     let hdr = HDR_ENABLED && camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
     let linear_lighting = hdr || (LIGHTING_ENABLED && !screen && lighting.options.w != 0.0);
     var color = v.color;
+    if (v.flags & (STAIN | SOFT)) == (STAIN | SOFT) { color = vec3(v.color.z); }
     var emission = vec4(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
     if (v.flags & (SCENERY | TEXTURED)) == (SCENERY | TEXTURED) {
@@ -194,7 +195,14 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         if !WEATHER_ENABLED { discard; }
         opacity *= weather_snow(normalize(v.normal), v.world);
     }
-    if (v.flags & SOFT) != 0u { opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv)); }
+    if (v.flags & (STAIN | SOFT)) == (STAIN | SOFT) {
+        let p = v.color.xy;
+        let ripple = sin(p.x * 11.0 + sin(p.y * 9.0)) * sin(p.y * 13.0 - p.x * 3.0);
+        let radius = length(p) + ripple * 0.045;
+        opacity *= 1.0 - smoothstep(0.52, 0.82, radius);
+    } else if (v.flags & SOFT) != 0u {
+        opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv));
+    }
     return vec4(color.rgb, clamp(opacity, 0.0, 1.0));
 }
 

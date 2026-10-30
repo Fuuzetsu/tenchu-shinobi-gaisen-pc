@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Effects {
     pub sparks: bool,
     pub lightning: bool,
+    pub gunfire: bool,
     pub spark_density: u16,
     pub splashes: bool,
     pub scatter: bool,
@@ -16,6 +17,7 @@ impl Default for Effects {
         Self {
             sparks: false,
             lightning: false,
+            gunfire: false,
             spark_density: 100,
             splashes: false,
             scatter: false,

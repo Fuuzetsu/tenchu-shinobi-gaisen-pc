@@ -50,7 +50,7 @@ impl Frustum {
             rows[3] - rows[2],
         ])
     }
-    fn contains(&self, bounds: [Vec3; 2], padding: f32) -> bool {
+    pub fn contains(&self, bounds: [Vec3; 2], padding: f32) -> bool {
         let center = (bounds[0] + bounds[1]) * 0.5;
         let extent = (bounds[1] - bounds[0]) * 0.5 + Vec3::splat(padding);
         self.0

@@ -9,9 +9,11 @@ pub(super) fn material(graphic: &Graphic) -> (Option<usize>, u8, bool) {
         Graphic::Explosion(index) => (Some(7 + usize::from(index)), 2, false),
         Graphic::Smoke(index) => (Some([6, 58][usize::from(index)]), 2, false),
         Graphic::Splash => (Some(14), 2, true),
-        Graphic::Bleed => (None, 0, false),
+        Graphic::Bleed | Graphic::GunBleed => (None, 0, false),
         Graphic::Flash(index) => (Some(40 + index as usize), 2, false),
-        Graphic::Impact(index) => (Some([15, 11, 12, 59, 60][usize::from(index)]), 2, false),
+        Graphic::Impact(index) | Graphic::GunImpact(index) => {
+            (Some([15, 11, 12, 59, 60][usize::from(index)]), 2, false)
+        }
         Graphic::Blood {
             sprite,
             stain,
@@ -33,7 +35,7 @@ pub(super) fn material(graphic: &Graphic) -> (Option<usize>, u8, bool) {
 
 pub(super) fn flags(graphic: &Graphic, color: [u8; 3]) -> u32 {
     if matches!(graphic, Graphic::Splash)
-        || matches!(graphic, Graphic::Bleed)
+        || matches!(graphic, Graphic::Bleed | Graphic::GunBleed)
             && color[2] > color[0]
             && u16::from(color[0]) * 5 > u16::from(color[2]) * 4
     {

@@ -14,7 +14,9 @@ impl Application {
         };
         let clip = player.clip().clone();
         let view = self.view.as_mut().ok_or("Demo window is not ready")?;
-        if clip.randomizer.is_some() && view.model_library.is_none() {
+        if (clip.randomizer.is_some() || clip.feature == Feature::Gunfire)
+            && view.model_library.is_none()
+        {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
         }
         let (mut game, options) = player.load_game(
@@ -263,6 +265,7 @@ impl Application {
                 | Feature::CharacterRefinement
                 | Feature::SecondaryMotion
                 | Feature::Blood
+                | Feature::Gunfire
                 | Feature::BloodSnow
                 | Feature::PlayerModels
                 | Feature::MovableLight

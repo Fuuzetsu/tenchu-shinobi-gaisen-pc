@@ -307,17 +307,26 @@ impl Items {
         let position = ctx.scene.models[model].local.translation;
         match used.phase {
             state::Gun::Muzzle { target } => {
-                ctx.effects.impact(position, 8192, 0, ctx.random);
-                ctx.effects.scatter_bleeds(
-                    position,
-                    10,
-                    crate::effects::Burst {
-                        spread: 100,
-                        count: 10,
-                        lifetime: 10,
-                        color: [127; 3],
+                ctx.effects.gun_effects(
+                    crate::effects::GunEffect {
+                        part: crate::effects::GunPart::Muzzle,
+                        direction: std::array::from_fn(|i| target[i].wrapping_sub(position[i]))
+                            .into(),
                     },
-                    ctx.random,
+                    |effects| {
+                        effects.impact(position, 8192, 0, ctx.random);
+                        effects.scatter_bleeds(
+                            position,
+                            10,
+                            crate::effects::Burst {
+                                spread: 100,
+                                count: 10,
+                                lifetime: 10,
+                                color: [127; 3],
+                            },
+                            ctx.random,
+                        );
+                    },
                 );
                 self.slots[id].behavior =
                     Behavior::Gun(used.with_phase(state::Gun::Impact { target }));
@@ -336,26 +345,38 @@ impl Items {
                 let velocity = matrix
                     .transform([0, 0, 150])
                     .map(|v| v.clamp(-32768, 32767) as i16);
-                ctx.effects.impact(
-                    position,
-                    if hit.is_some() { 24576 } else { 16384 },
-                    0,
-                    ctx.random,
-                );
-                ctx.effects.bleeds(
-                    position,
-                    velocity.to_array(),
-                    crate::effects::Burst {
-                        spread: 100,
-                        count: 15,
-                        lifetime: 10,
-                        color: if hit.is_some() {
-                            [255, 0, 0]
+                ctx.effects.gun_effects(
+                    crate::effects::GunEffect {
+                        part: if hit.is_some() {
+                            crate::effects::GunPart::Body
                         } else {
-                            [255, 255, 0]
+                            crate::effects::GunPart::Surface
                         },
+                        direction: velocity.map(i32::from),
                     },
-                    ctx.random,
+                    |effects| {
+                        effects.impact(
+                            position,
+                            if hit.is_some() { 24576 } else { 16384 },
+                            0,
+                            ctx.random,
+                        );
+                        effects.bleeds(
+                            position,
+                            velocity.to_array(),
+                            crate::effects::Burst {
+                                spread: 100,
+                                count: 15,
+                                lifetime: 10,
+                                color: if hit.is_some() {
+                                    [255, 0, 0]
+                                } else {
+                                    [255, 255, 0]
+                                },
+                            },
+                            ctx.random,
+                        );
+                    },
                 );
                 ctx.effects
                     .sounds

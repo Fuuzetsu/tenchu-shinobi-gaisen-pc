@@ -38,8 +38,8 @@ impl Item {
             Item::SunStrength | Item::MoonStrength => (0, 200, 5, 1),
             Item::DayAmbient | Item::NightAmbient | Item::DayRelighting => (0, 100, 5, 1),
             Item::BloodAmount => (0, 200, 10, 1),
-            Item::BloodSeconds => (0, 60, 2, 1),
-            Item::BloodMarks => (32, 1024, 32, 1),
+            Item::BloodSeconds => (0, 60, 1, 1),
+            Item::BloodMarks => (32, i32::from(u16::MAX), 256, 1),
             Item::Volume | Item::SurfaceStrength => (0, 100, 5, 1),
             Item::FogDistance | Item::SightDistance => {
                 (if self == Item::FogDistance { 25 } else { 0 }, 400, 25, 1)
@@ -86,6 +86,7 @@ impl Item {
             Self::GrappleDetail => &mut settings.graphics.models.grapple,
             Self::ContactSparks => &mut settings.graphics.effects.sparks,
             Self::Lightning => &mut settings.graphics.effects.lightning,
+            Self::Gunfire => &mut settings.graphics.effects.gunfire,
             Self::ContactSplashes => &mut settings.graphics.effects.splashes,
             Self::ContactScatter => &mut settings.graphics.effects.scatter,
             Self::FallingLeaves => &mut settings.graphics.effects.leaves,

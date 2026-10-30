@@ -9,7 +9,7 @@ use tenchu_core::{effects::Effect, game::Game};
 pub fn geometry(game: &Game) -> Geometry {
     let mut vertices = Vec::new();
     let point = |p: tenchu_core::math::Position| Vec3::from(p.map(|n| n as f32).to_array());
-    let flying = game.effects.slots.iter().flatten().find_map(|e| {
+    let flying = game.effects.active_slots().iter().flatten().find_map(|e| {
         if let Effect::FlyWire(w) = e {
             Some(w)
         } else {

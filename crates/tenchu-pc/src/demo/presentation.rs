@@ -136,6 +136,15 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     match player.clip().feature {
         Feature::Randomizer => {}
         Feature::Remake(feature) => super::remake::animate(feature, player, settings, debug),
+        Feature::Gunfire => {
+            settings.player_model = "disc:128".into();
+            settings.model_moveset = true;
+            settings.model_moveset_options.player_movement = true;
+            settings.model_moveset_options.no_idle_taunts = true;
+            g.effects.gunfire = p >= 0.5;
+            g.lighting.enabled = true;
+            g.interpolation = true;
+        }
         Feature::Blood => {
             g.blood.enabled = true;
             g.blood.spray = true;
@@ -603,8 +612,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             ))
         }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
+        Feature::Gunfire => text(if s.graphics.effects.gunfire {
+            "Modern gunfire · muzzle flash and light · smoke and impact sparks"
+        } else { "Original gun effects · the same attack timing and damage" }.into()),
         Feature::Blood => text(
-            "Soft blood spray · wounds and ground stains stay until cleared or the budget fills"
+            "Soft spray and wound drips · brief bleeding · surface-following death pools · retained stains"
                 .into(),
         ),
         Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),

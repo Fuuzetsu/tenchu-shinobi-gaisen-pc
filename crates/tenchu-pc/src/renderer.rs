@@ -5,6 +5,7 @@ use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
 mod culling;
+mod decals;
 mod materials;
 mod overlay;
 mod pipelines;
@@ -86,6 +87,7 @@ pub struct Renderer {
     pub shadow_elapsed: Option<f32>,
     shadows: shadows::Shadows,
     materials: materials::Materials,
+    decals: std::collections::BTreeMap<usize, decals::Decal>,
 }
 
 impl Renderer {
@@ -240,6 +242,7 @@ impl Renderer {
             shadow_elapsed: None,
             shadows,
             materials,
+            decals: Default::default(),
         };
         renderer.update_vram(vram);
         Ok(renderer)
@@ -299,6 +302,7 @@ impl Renderer {
     }
 
     pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
+        self.decals.clear();
         self.materials.set_pack(pack);
     }
 
@@ -311,6 +315,7 @@ impl Renderer {
     }
 
     pub fn reset_vram(&mut self, vram: &Vram) {
+        self.decals.clear();
         self.materials.reset(vram);
         self.update_vram(vram);
     }
@@ -594,6 +599,7 @@ impl Renderer {
                 pass.set_vertex_buffer(0, mesh.buffer.slice(..));
                 pass.draw(0..mesh.count, 0..1);
             }
+            self.draw_decals(&mut pass, matrix);
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
                 draw_effects(&mut pass, &self.effects, effects, Some(false));
                 if self.post.is_none() {

@@ -32,6 +32,7 @@ pub enum Feature {
     SecondaryMotion,
     Breeze,
     Blood,
+    Gunfire,
     TextureSampling,
     Reconstruction,
     Antialiasing,

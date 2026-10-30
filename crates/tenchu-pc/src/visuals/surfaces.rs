@@ -281,6 +281,16 @@ impl Stamp {
             let depth = (self.depth - delta.dot(self.normal).abs()) / (self.depth * 0.4);
             v.opacity =
                 (margin / (self.radius * 0.3)).clamp(0.0, 1.0) * depth.clamp(0.0, 1.0) * 0.92;
+            if self.shape.is_none() {
+                // Analytic blood uses tint for stamp coordinates and luminance; UVs still sample the receiver.
+                let angle = (self.seed % 1024) as f32 * std::f32::consts::TAU / 1024.0;
+                let uv = glam::Vec2::new(delta.dot(tangent), delta.dot(bitangent)) / self.radius;
+                let uv = glam::Mat2::from_angle(angle) * uv;
+                let luminance = Vec3::from(v.color).dot(Vec3::new(0.2126, 0.7152, 0.0722));
+                v.color = [uv.x, uv.y, luminance];
+                v.opacity = depth.clamp(0.0, 1.0) * 0.92;
+                v.flags |= crate::render_mesh::SOFT;
+            }
             v.position = (Vec3::from(v.position) + self.normal * 0.5).to_array();
             v.flags = (v.flags & !crate::render_mesh::EMITTER)
                 | crate::render_mesh::ALPHA
@@ -291,7 +301,7 @@ impl Stamp {
             stamp_triangle(
                 [center, polygon[i], polygon[(i + 1) % polygon.len()]],
                 0,
-                if self.shape.is_some() { 1 } else { 3 },
+                if self.shape.is_some() { 1 } else { 0 },
                 &finish,
                 out,
             );

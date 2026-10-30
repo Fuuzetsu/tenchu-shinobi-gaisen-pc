@@ -915,19 +915,29 @@ a new mission restores ordinary gameplay. Cutscenes retain their scripted behavi
 animated bodies and projects drops onto scenery, doors and trapdoors. Amount,
 bleeding duration and retained-stain limit are adjustable; **Clear blood** removes
 the cosmetic marks and drips. **Stains do not fade with time**; wound bleeding
-duration controls only how long fresh drips appear. This is off by default.
+duration controls only how long fresh drips appear (default **3 seconds**, adjustable
+from 0–60). Lowering it also shortens current wounds; 0 stops new wound drips.
+Soft pools grow beneath dead enemies and the player, then stop growing and remain.
+This is off in Original.
 Damage, health and gameplay RNG are unchanged. Marks retain texture detail/cutouts
 and follow interpolated poses and compatible replacement models. Wound placement
 is inferred from original blood and damage events, rather than adding hit-location
-gameplay. Stains are held in memory, bounded by both count and geometry; changing
+gameplay. Retention goes up to **65,535 stains** (Modern High: 8,192; Ultra: 16,384).
+Ground stains stay in cached GPU pages with view culling, and soft outlines do not
+need heavily subdivided meshes. A separate 256 MiB vertex budget bounds geometry
+(CPU and GPU each retain a copy). Stains are held in memory; changing
 mission, reloading models/artwork or disabling the feature clears them. They are
 not written into campaign saves.
 **Modern blood spray**, in the same tab, replaces airborne blood balls with soft,
 stretched droplets following the original trajectories. It can be used with or
-without persistent stains. When both options are on, retained stains replace the
-original fading blood sprites. Modern presets enable both options; Original keeps
+without persistent stains. Persistent blood replaces the original ground sprites
+and corpse pools independently of the spray toggle. Modern presets enable both options; Original keeps
 the original presentation. No external texture pack is required.
 `demo --clips blood` stages an ordinary guard encounter to show the effect.
+**F1 → Effects → Modern gunfire** replaces Echigoya's gun sprites with brief muzzle
+flashes, warm lights, drifting smoke and impact sparks. It is enabled by Modern
+presets and needs no extra artwork. `demo --clips gunfire` compares the two styles
+using Echigoya's real shooting animation through the player model swapper.
 
 **F1 → Time of day → Sun / moon cycle** replaces the manual sky light with a
 continuous day/night cycle, sky gradient and moving shadows. Set the start time

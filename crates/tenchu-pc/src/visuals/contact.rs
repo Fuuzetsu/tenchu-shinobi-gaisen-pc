@@ -153,7 +153,7 @@ impl Contact {
         let mut wire_slots = BTreeMap::new();
         for (slot, effect) in game
             .effects
-            .slots
+            .active_slots()
             .iter()
             .enumerate()
             .filter_map(|(i, e)| e.as_ref().map(|e| (i, e)))
