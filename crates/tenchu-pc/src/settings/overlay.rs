@@ -16,6 +16,7 @@ pub enum Edit {
     PresetLibrary,
     Controls,
     Randomizer,
+    Diagnostics,
 }
 
 #[derive(Clone, Copy)]
@@ -90,6 +91,9 @@ pub fn show(
                             if ui.button("Presets / save as…").clicked() { edits.push(Edit::PresetLibrary); }
                             if ui.button("Controls…").clicked() { edits.push(Edit::Controls); }
                             if ui.button("Randomizer… (F7)").clicked() { edits.push(Edit::Randomizer); }
+                            if ui.button("Save diagnostic report…")
+                                .on_hover_text("Save settings, version, hardware, recent inputs/timings and gameplay state as readable JSON. No game assets or raw memory. Personal paths are redacted; review before sharing.")
+                                .clicked() { edits.push(Edit::Diagnostics); }
                         });
                         ui.separator();
                     }

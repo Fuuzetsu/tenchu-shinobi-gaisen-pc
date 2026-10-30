@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 → General can save a portable diagnostic report with build/platform/GPU
+  details, active settings and controls, recent timings/inputs and gameplay/AI
+  state. Desktop saves JSON; browsers download it. Personal paths are redacted;
+  reports contain no game assets and can be inspected on any platform.
+
 - Add a short randomizer showcase catalog and optional synchronized game audio
   for offline 4K/60 demo exports (`--sound`).
 

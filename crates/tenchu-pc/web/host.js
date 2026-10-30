@@ -178,3 +178,17 @@ export function download_frame() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, "image/png");
 }
+
+export function download_report(name, json) {
+  const url = URL.createObjectURL(new Blob([json], {type: "application/json;charset=utf-8"}));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function diagnostic_platform() {
+  return JSON.stringify({user_agent: navigator.userAgent, language: navigator.language,
+    hardware_concurrency: navigator.hardwareConcurrency, device_pixel_ratio: devicePixelRatio});
+}

@@ -434,6 +434,7 @@ impl super::Application {
                     self.toggle_randomizer();
                     Ok(())
                 }
+                Edit::Diagnostics => self.save_diagnostics(),
                 Edit::Reset(item) => self.reset_item(item),
                 Edit::PlayerModel(id) => {
                     self.settings.player_model = id;

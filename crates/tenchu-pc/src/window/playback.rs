@@ -3,6 +3,7 @@ use std::time::Duration;
 
 impl Application {
     pub(super) fn game_tick(&mut self, buttons: u16) -> bool {
+        self.recent_inputs.record(&self.campaign.game, buttons);
         self.record_input(buttons);
         if let Err(error) = self.campaign.tick(buttons) {
             self.pause_error(error);

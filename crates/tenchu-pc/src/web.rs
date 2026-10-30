@@ -26,6 +26,9 @@ extern "C" {
     pub fn ready();
     pub fn closed();
     pub fn download_frame();
+    #[wasm_bindgen(catch)]
+    pub fn download_report(name: &str, json: &str) -> std::result::Result<(), JsValue>;
+    pub fn diagnostic_platform() -> String;
     pub fn loading_state(ready: bool);
     pub fn error(message: &str);
     pub fn media_pause(paused: bool);

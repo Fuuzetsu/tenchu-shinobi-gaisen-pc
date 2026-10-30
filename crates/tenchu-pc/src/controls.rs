@@ -140,6 +140,16 @@ pub struct Controls {
 }
 
 impl Controls {
+    pub fn diagnostic_settings(&self) -> serde_json::Value {
+        let controllers: Vec<_> = self
+            .gilrs
+            .iter()
+            .flat_map(|g| g.gamepads())
+            .map(|(_, pad)| pad.name().to_owned())
+            .collect();
+        serde_json::json!({"bindings": self.bindings, "controllers": controllers})
+    }
+
     pub fn held(&self, key: KeyCode) -> bool {
         self.keys.contains(&key)
     }

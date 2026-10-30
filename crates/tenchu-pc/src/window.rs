@@ -1,5 +1,6 @@
 pub mod benchmark;
 mod demo;
+mod diagnostics;
 mod frontend;
 mod overlay;
 mod performance;
@@ -66,6 +67,7 @@ struct Application {
     pointer: [f64; 2],
     fps: f32,
     performance: performance::Performance,
+    recent_inputs: diagnostics::RecentInputs,
     benchmarks: benchmark::Benchmarks,
     presets: settings::library::Manager,
     randomizer: crate::randomizer::Editor,
@@ -1033,6 +1035,7 @@ pub fn run(
         pointer: [0.0; 2],
         fps: 0.0,
         performance: Default::default(),
+        recent_inputs: Default::default(),
         benchmarks: benchmark::Benchmarks::new(startup.benchmark),
         presets,
         randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),

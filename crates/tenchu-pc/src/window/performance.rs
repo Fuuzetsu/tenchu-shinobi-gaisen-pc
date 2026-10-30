@@ -51,6 +51,28 @@ pub(super) struct Performance {
 }
 
 impl Performance {
+    pub fn diagnostic_snapshot(&self) -> serde_json::Value {
+        let (average, p95) = stats(self.cpu.iter().map(|f| f.interval));
+        let cpu: Vec<_> = self
+            .cpu
+            .iter()
+            .map(|f| {
+                let mut row = vec![f.interval];
+                row.extend(f.phases());
+                row
+            })
+            .collect();
+        serde_json::json!({
+            "units": "milliseconds", "frozen": self.frozen,
+            "frame_average": average, "frame_p95": p95,
+            "cpu_columns": ["interval", "simulation_audio", "geometry_uploads", "overlay", "submit", "present_wait", "event_loop_other"],
+            "cpu": cpu,
+            "gpu_columns": ["shadows", "world_effects", "post_processing", "hud"],
+            "gpu": self.gpu,
+            "gpu_note": "Asynchronous samples; not aligned with CPU rows. Empty when GPU profiling is off or unsupported.",
+        })
+    }
+
     pub fn record(&mut self, cpu: CpuFrame, gpu: Option<crate::renderer::timing::Sample>) {
         let previous = self.pending_cpu.replace(cpu);
         if self.frozen {

@@ -93,6 +93,42 @@ pub(super) struct View {
 }
 
 impl View {
+    pub(super) fn diagnostic_snapshot(&self) -> serde_json::Value {
+        use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        let window_backend = match self.window.window_handle().map(|h| h.as_raw()) {
+            Ok(RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_)) => "X11",
+            Ok(RawWindowHandle::Wayland(_)) => "Wayland",
+            Ok(RawWindowHandle::Win32(_)) => "Win32",
+            Ok(RawWindowHandle::AppKit(_)) => "AppKit",
+            Ok(
+                RawWindowHandle::Web(_)
+                | RawWindowHandle::WebCanvas(_)
+                | RawWindowHandle::WebOffscreenCanvas(_),
+            ) => "Web",
+            _ => "Unknown",
+        };
+        serde_json::json!({
+            "adapter": {"name": self.adapter.name, "vendor_id": self.adapter.vendor,
+                "device_id": self.adapter.device, "device_type": format!("{:?}", self.adapter.device_type),
+                "backend": format!("{:?}", self.adapter.backend),
+                "driver": self.adapter.driver, "driver_info": self.adapter.driver_info},
+            "window_pixels": self.size, "render_pixels": self.renderer.size(),
+            "window_backend": window_backend,
+            "scale_factor": self.window.scale_factor(),
+            "present_mode": format!("{:?}", self.config.present_mode),
+            "surface_format": format!("{:?}", self.config.format),
+            "supported_msaa": self.renderer.sample_counts,
+            "gpu_timestamps_supported": self.renderer.timings.is_some(),
+            "gpu_profiling_active": self.renderer.profiling,
+            "lights": self.lights.len(), "model_interpolation": self.interpolation_enabled,
+            "player_model": self.player_selection, "randomizer_player": self.randomizer_player,
+            "artwork": {"error": self.pack_error, "textures": self.pack.textures.len(),
+                "models": self.pack.models.len(), "model_patches": self.pack.model_patches.len(),
+                "water_rules": self.pack.water.len(), "vegetation_rules": self.pack.vegetation.len(),
+                "body_textures": self.bodies.textures.len(), "custom_bodies": self.bodies.player_models.len()},
+        })
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn recording_settings(&self) -> serde_json::Value {
         serde_json::json!({

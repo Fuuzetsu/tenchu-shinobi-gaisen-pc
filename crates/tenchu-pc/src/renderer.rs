@@ -315,7 +315,6 @@ impl Renderer {
         self.update_vram(vram);
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn graphics(&self) -> &crate::settings::Graphics {
         &self.graphics
     }

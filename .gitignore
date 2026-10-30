@@ -20,3 +20,4 @@ __pycache__/
 *.State
 *.ram
 *.ram.gz
+tenchu-report-*.json
