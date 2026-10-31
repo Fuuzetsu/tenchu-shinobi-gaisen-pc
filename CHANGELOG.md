@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce GPU work in heavily lit scenes, including TRIAL's second built-in mission,
+  while preserving shadow resolution, light counts and rendered detail.
+
 ## 0.9.0 — 2026-10-31
 
 - HD artwork v3 adds terrain and ornament replacements for all 12 TRIAL themes

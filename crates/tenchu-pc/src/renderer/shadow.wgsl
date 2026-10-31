@@ -45,6 +45,8 @@ fn cutout(v: Fragment) {
     if (v.flags & 1u) != 0u {
         var color = vec3(0.0);
         if material_replaced(v.material) {
+            // Opaque materials need no texture fetch; lanterns still test light transmission.
+            if (v.flags & 512u) == 0u && (material_info(v.material).w & 128u) != 0u { return; }
             let decoded = material_texel(v.material, material_coordinate(v.material, v.world, v.uv));
             let alpha = decoded.a;
             color = decoded.rgb;

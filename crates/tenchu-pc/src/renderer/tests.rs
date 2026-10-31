@@ -643,18 +643,22 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     assert_eq!(draw(&mut renderer, &[light], &[&mixed]), lit);
 
     for (alpha, expected) in [(255, shadowed), (128, lit), (0, lit)] {
+        let mut rgba = vec![255; 64];
+        // The sampled texel alone changes; opaque neighbors must not hide this hole.
+        rgba[(2 * 4 + 2) * 4 + 3] = alpha;
         let pack = crate::visuals::pack::Pack {
             textures: std::collections::BTreeMap::from([(
                 crate::visuals::catalog::image_id([1, 1], &[0; 4]),
-                std::sync::Arc::new(crate::visuals::pixels::Image {
-                    size: [4, 4],
-                    rgba: [255, 255, 255, alpha].repeat(16),
-                }),
+                std::sync::Arc::new(crate::visuals::pixels::Image { size: [4, 4], rgba }),
             )]),
             ..Default::default()
         };
         renderer.set_asset_pack(&pack);
         assert_eq!(draw(&mut renderer, &[light], &[&mixed]), expected);
+        assert_eq!(
+            draw(&mut renderer, &[light], &[&transparent]),
+            if alpha == 0 { lit } else { shadowed },
+        );
     }
     renderer.set_asset_pack(&crate::visuals::pack::Pack::default());
     let region = crate::visuals::catalog::Region {
@@ -689,6 +693,18 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     vram.words[0] = 31;
     renderer.update_vram(&vram);
     assert_eq!(draw(&mut renderer, &[light], &[&transparent]), shadowed);
+    renderer.set_asset_pack(&crate::visuals::pack::Pack {
+        textures: std::collections::BTreeMap::from([(
+            crate::visuals::catalog::image_id([1, 1], &[0; 4]),
+            std::sync::Arc::new(crate::visuals::pixels::Image {
+                size: [4, 4],
+                rgba: vec![255; 64],
+            }),
+        )]),
+        ..Default::default()
+    });
+    assert_eq!(draw(&mut renderer, &[light], &[&transparent]), lit);
+    renderer.set_asset_pack(&crate::visuals::pack::Pack::default());
     renderer.materials.set_emissions(Default::default());
 
     let moved = Light {

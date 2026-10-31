@@ -88,11 +88,11 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     }
     let du = dpdx(v.uv);
     let dv = dpdy(v.uv);
+    if (v.flags & SKY) != 0u { return sky_color(v.normal); }
+    if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let detail = surface_detail(v, normal, world_dx, world_dy, du, dv);
     normal = water_normal(v, detail.normal, world_dx, world_dy);
     let coordinate = detail.coordinate;
-    if (v.flags & SKY) != 0u { return sky_color(v.normal); }
-    if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     let screen = (v.flags & (SCREEN | DEBUG)) != 0u;
     let hdr = HDR_ENABLED && camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
     let linear_lighting = hdr || (LIGHTING_ENABLED && !screen && lighting.options.w != 0.0);
@@ -106,16 +106,18 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     var semi = (v.flags & TRANSLUCENT) != 0u;
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
-        let pixel = texel(nearest, v.page, v.palette);
+        var pixel = 0u;
         let replaced = !original_stain && (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
-        var base = rgb(pixel);
+        var base = vec3(0.0);
         if replaced {
             let decoded = material_texel(v.material, coordinate);
             if decoded.a == 0.0 { discard; }
             semi = semi && decoded.a < 0.75;
             base = decoded.rgb;
         } else {
+            pixel = texel(nearest, v.page, v.palette);
             if pixel == 0u { discard; }
+            base = rgb(pixel);
             semi = semi && (pixel & 32768u) != 0u;
         }
         if semi != translucent_pass { discard; }
@@ -140,7 +142,8 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
     if !screen {
         let unlit = (v.flags & UNLIT) != 0u || (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER);
-        let light = select(illumination(v.world, normal, surface_normal), vec3(1.0), unlit);
+        var light = vec3(1.0);
+        if !unlit { light = illumination(v.world, normal, surface_normal); }
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);
     }

@@ -15,6 +15,7 @@ use atlas::{Atlas, Packing};
 pub(super) use data::shader;
 
 pub const MAX_MIPS: usize = 13;
+const SOLID: u32 = 128;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -90,18 +91,22 @@ impl Entry {
 
     fn flags(&self, layers: usize) -> u32 {
         self.image.rgba.chunks_exact(4).fold(
-            u32::from(self.replaced)
+            SOLID
+                | u32::from(self.replaced)
                 | if layers == 3 { 8 } else { 0 }
                 | if self.repeating() { 16 } else { 0 }
                 | if self.world_tile.is_some() { 32 } else { 0 }
                 | if self.authored { 64 } else { 0 },
             |flags, pixel| {
-                flags
-                    | match pixel[3] {
-                        0 => 0,
-                        1..192 => 4,
-                        _ => 2,
-                    }
+                (if pixel[3] < 192 {
+                    flags & !SOLID
+                } else {
+                    flags
+                }) | match pixel[3] {
+                    0 => 0,
+                    1..192 => 4,
+                    _ => 2,
+                }
             },
         )
     }
