@@ -146,8 +146,16 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.interpolation = true;
         }
         Feature::Blood => {
-            g.blood.enabled = true;
-            g.blood.spray = true;
+            g.blood = crate::settings::Blood::modern();
+            if !(0.25..0.75).contains(&p) {
+                g.blood.ground = crate::settings::BloodStyle::Original;
+                g.blood.death = crate::settings::BloodStyle::Original;
+                g.blood.drips = crate::settings::BloodStyle::Original;
+                g.blood.retain_original = true;
+                if p < 0.25 {
+                    g.blood.hit = crate::settings::BloodStyle::Original;
+                }
+            }
             g.interpolation = true;
             g.lighting.enabled = true;
         }
@@ -276,7 +284,11 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                     g.weather.snow = 100;
                     g.weather.footprint_seconds = 10;
                     g.blob_shadows = false;
-                    g.blood.enabled = player.clip().feature == Feature::BloodSnow;
+                    g.blood = if player.clip().feature == Feature::BloodSnow {
+                        crate::settings::Blood::modern()
+                    } else {
+                        Default::default()
+                    };
                     g.sky.time = 600;
                 }
                 _ => {}
@@ -612,13 +624,20 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             ))
         }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
-        Feature::Gunfire => text(if s.graphics.effects.gunfire {
-            "Modern gunfire · muzzle flash and light · smoke and impact sparks"
-        } else { "Original gun effects · the same attack timing and damage" }.into()),
-        Feature::Blood => text(
-            "Soft spray and wound drips · brief bleeding · surface-following death pools · retained stains"
-                .into(),
+        Feature::Gunfire => text(
+            if s.graphics.effects.gunfire {
+                "Modern gunfire · muzzle flash and light · smoke and impact sparks"
+            } else {
+                "Original gun effects · the same attack timing and damage"
+            }
+            .into(),
         ),
+        Feature::Blood => text(format!(
+            "{} hit spray · {} wound drips · {} ground spots · retained blood",
+            s.graphics.blood.hit.label(),
+            s.graphics.blood.drips.label(),
+            s.graphics.blood.ground.label(),
+        )),
         Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),
         Feature::GrenadeLight | Feature::KaenLight => text(format!(
             "Fire / explosion lights {} · original item behavior",

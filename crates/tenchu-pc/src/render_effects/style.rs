@@ -1,11 +1,10 @@
-use crate::settings::Settings;
+use crate::settings::{Blood, BloodStyle, Settings};
 use tenchu_core::effects::Graphic;
 
 #[derive(Clone, Copy)]
 pub struct Style {
     pub sharp_text: bool,
-    pub blood_spray: bool,
-    pub blood_stains: bool,
+    pub blood: Blood,
     pub lightning: bool,
     pub gunfire: bool,
     pub alpha: f32,
@@ -15,8 +14,7 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             sharp_text: false,
-            blood_spray: false,
-            blood_stains: false,
+            blood: Blood::default(),
             lightning: false,
             gunfire: false,
             alpha: 1.0,
@@ -28,8 +26,7 @@ impl From<&Settings> for Style {
     fn from(settings: &Settings) -> Self {
         Self {
             sharp_text: settings.sharp_text,
-            blood_spray: settings.graphics.blood.spray,
-            blood_stains: settings.graphics.blood.enabled && settings.graphics.blood.amount > 0,
+            blood: settings.graphics.blood,
             lightning: settings.graphics.effects.lightning,
             gunfire: settings.graphics.effects.gunfire,
             ..Self::default()
@@ -44,13 +41,15 @@ impl Style {
             || match graphic {
                 Graphic::Blood { airborne, .. } => {
                     if *airborne {
-                        self.blood_spray
+                        self.blood.hit != BloodStyle::Original
                     } else {
-                        self.blood_stains
+                        self.blood.ground != BloodStyle::Original || self.blood.retained_ground()
                     }
                 }
-                Graphic::Bleed | Graphic::GunBleed => self.blood_spray && blood_color(color),
-                Graphic::Impact(2) => self.blood_spray,
+                Graphic::Bleed | Graphic::GunBleed => {
+                    self.blood.hit != BloodStyle::Original && blood_color(color)
+                }
+                Graphic::Impact(2) => self.blood.hit != BloodStyle::Original,
                 _ => false,
             }
     }

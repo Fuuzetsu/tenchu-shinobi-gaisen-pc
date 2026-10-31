@@ -74,7 +74,8 @@ struct Fragment {
 
 fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     var v = input;
-    if (v.flags & (SCREEN | DEBUG | UNLIT)) == 0u {
+    let original_stain = (v.flags & (STAIN | SOFT)) == STAIN;
+    if !original_stain && (v.flags & (SCREEN | DEBUG | UNLIT)) == 0u {
         v.uv = material_coordinate(v.material, v.world, v.uv);
     }
     let world_dx = dpdx(v.world);
@@ -106,7 +107,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     if (v.flags & TEXTURED) != 0u {
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         let pixel = texel(nearest, v.page, v.palette);
-        let replaced = (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
+        let replaced = !original_stain && (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
         var base = rgb(pixel);
         if replaced {
             let decoded = material_texel(v.material, coordinate);
@@ -119,7 +120,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
-            if FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
+            if !original_stain && FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
                 color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);
@@ -133,7 +134,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
     }
     if semi != translucent_pass { discard; }
-    if (v.flags & (STAIN | SCENERY)) == STAIN {
+    if !original_stain && (v.flags & (STAIN | SCENERY)) == STAIN {
         color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
@@ -148,7 +149,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         && ((v.flags & ALPHA) == 0u || surface_decal) {
         color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting);
     }
-    if (v.flags & (SCENERY | STAIN)) == (SCENERY | STAIN) {
+    if !original_stain && (v.flags & (SCENERY | STAIN)) == (SCENERY | STAIN) {
         var absorption = vec3(0.52, 0.025, 0.045);
         if linear_lighting { absorption = pow(absorption, vec3(2.2)); }
         color *= absorption;

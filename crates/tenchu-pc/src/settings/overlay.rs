@@ -279,7 +279,15 @@ fn widget(
         return response;
     }
     if (row.value == "On" || row.value == "Off")
-        && !matches!(item, Item::Antialiasing | Item::SurfaceDetail)
+        && !matches!(
+            item,
+            Item::Antialiasing
+                | Item::SurfaceDetail
+                | Item::BloodHit
+                | Item::BloodDrips
+                | Item::BloodDeath
+                | Item::BloodGround
+        )
     {
         let mut on = row.value == "On";
         let response = ui.checkbox(&mut on, "");
@@ -375,6 +383,12 @@ fn widget(
         return response;
     }
     let choices: Vec<String> = match item {
+        Item::BloodHit | Item::BloodDrips | Item::BloodDeath | Item::BloodGround => {
+            super::BloodStyle::ALL
+                .iter()
+                .map(|s| s.label().into())
+                .collect()
+        }
         Item::GameplayPreset => super::gameplay::PRESETS
             .iter()
             .map(|p| p.name.to_string())

@@ -7,11 +7,11 @@ use super::{
 use crate::{
     render_effects::{Batch, Geometry},
     render_mesh::{self, Vertex},
-    settings,
+    settings::{self, BloodStyle},
 };
 use bytemuck::Zeroable;
 use glam::{Mat3, Vec3};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
 mod storage;
@@ -26,7 +26,14 @@ struct Patch {
     vertices: Vec<Vertex>,
 }
 
-struct Mark(Vec<Patch>);
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    Ground,
+    Body,
+    Death { player: bool },
+}
+
+struct Mark(Vec<Patch>, Kind);
 
 impl Mark {
     fn len(&self) -> usize {
@@ -70,8 +77,9 @@ pub struct Blood {
     wounds: VecDeque<Wound>,
     drops: Vec<Drop>,
     pools: BTreeMap<usize, Pool>,
-    dead: BTreeSet<usize>,
+    dead: BTreeMap<usize, bool>,
     seed: u32,
+    settings: settings::Blood,
 }
 
 fn translation(matrix: Matrix) -> Vec3 {
@@ -112,6 +120,41 @@ impl<'a> Receivers<'a> {
 }
 
 impl Blood {
+    pub fn configure(&mut self, settings: &settings::Blood) {
+        if self.settings == *settings {
+            return;
+        }
+        if !settings.active() {
+            *self = Self {
+                settings: *settings,
+                ..Self::default()
+            };
+            return;
+        }
+        let previous = self.settings;
+        let ground_changed = previous.ground != settings.ground
+            || previous.retain_original != settings.retain_original;
+        let death_changed = previous.death != settings.death
+            || previous.retain_original != settings.retain_original;
+        let player_changed = previous.player_death != settings.player_death;
+        self.marks.retain_kind(|kind| match kind {
+            Kind::Ground => !ground_changed,
+            Kind::Body => settings.model_stains,
+            Kind::Death { player } => !death_changed && !(player && player_changed),
+        });
+        if death_changed || player_changed {
+            self.pools
+                .retain(|_, pool| !death_changed && pool.mark.1 != Kind::Death { player: true });
+            self.dead.retain(|_, player| !death_changed && !*player);
+        }
+        if settings.drips == BloodStyle::Off {
+            self.wounds.clear();
+            self.drops.clear();
+        }
+        self.trim(usize::from(settings.marks.max(32)));
+        self.settings = *settings;
+    }
+
     pub fn clear(&mut self) {
         self.marks = Marks::default();
         self.wounds.clear();
@@ -141,6 +184,7 @@ impl Blood {
 
     fn stain(
         &mut self,
+        game: &Game,
         surfaces: &Receivers<'_>,
         start: Vec3,
         end: Vec3,
@@ -158,8 +202,17 @@ impl Blood {
         let Some((hinge, hit)) = nearest else {
             return false;
         };
+        if !self.settings.retained_ground() {
+            return true;
+        }
         self.random();
-        let mark = Self::project_contact(surfaces, hinge, hit, radius, self.seed);
+        let mut mark = Self::project_contact(surfaces, hinge, hit, radius, self.seed);
+        if self.settings.ground == BloodStyle::Original {
+            Self::original_texture(
+                &mut mark,
+                game.mission.images[1 + (self.seed as usize % 2) * 2],
+            );
+        }
         self.retain(mark, limit);
         true
     }
@@ -183,7 +236,7 @@ impl Blood {
             let (key, matrix, surface) = &surfaces.hinges[index];
             let r = rotation(*matrix);
             if r.determinant().abs() < 0.0001 {
-                return Mark(Vec::new());
+                return Mark(Vec::new(), Kind::Ground);
             }
             let mut vertices = surface.project(&stamp);
             for v in &mut vertices {
@@ -201,7 +254,27 @@ impl Blood {
                 vertices: surfaces.world.project(&stamp),
             }
         };
-        Mark(vec![patch])
+        Mark(vec![patch], Kind::Ground)
+    }
+
+    fn original_texture(mark: &mut Mark, image: tenchu_assets::texture::Image) {
+        for v in mark.0.iter_mut().flat_map(|p| &mut p.vertices) {
+            v.uv = std::array::from_fn(|axis| {
+                f32::from(image.uv[axis])
+                    + (v.color[axis] * 0.5 + 0.5).clamp(0.0, 1.0)
+                        * f32::from(image.size[axis].saturating_sub(1))
+            });
+            v.color = [1.0; 3];
+            v.page = image.page.into();
+            v.palette = image.palette.into();
+            v.material = 0;
+            v.flags = render_mesh::TEXTURED
+                | render_mesh::ALPHA
+                | render_mesh::FOG
+                | render_mesh::DOUBLE_SIDED
+                | render_mesh::STAIN;
+            v.opacity = 0.9;
+        }
     }
 
     fn wound(
@@ -315,7 +388,15 @@ impl Blood {
                 });
             }
         }
-        self.retain(Mark(patches), usize::from(settings.marks.max(32)));
+        if settings.model_stains {
+            self.retain(
+                Mark(patches, Kind::Body),
+                usize::from(settings.marks.max(32)),
+            );
+        }
+        if settings.drips == BloodStyle::Off || settings.seconds == 0 {
+            return;
+        }
         let (part, matrix, _) = &parts[index];
         let r = rotation(*matrix);
         if r.determinant().abs() < 0.0001 {
@@ -338,8 +419,10 @@ impl Blood {
         surfaces: &Surfaces,
         settings: &settings::Blood,
     ) {
-        if !settings.enabled || settings.amount == 0 {
-            *self = Self::default();
+        if self.settings != *settings {
+            self.configure(settings);
+        }
+        if !settings.active() {
             return;
         }
         let health: BTreeMap<_, _> = game
@@ -358,6 +441,7 @@ impl Blood {
             *self = Self {
                 tick: Some(game.tick),
                 health,
+                settings: *settings,
                 ..Self::default()
             };
             self.samples = game
@@ -389,7 +473,7 @@ impl Blood {
                 }
                 if let Some(old) = continuous {
                     next.stained = old.stained;
-                    if !old.stained && impacts < 12 {
+                    if !old.stained && impacts < 12 && settings.retained_ground() {
                         let (start, end) = if old.mode == 0 && next.mode == 1 {
                             (
                                 next.position - Vec3::Y * 250.0,
@@ -399,7 +483,7 @@ impl Blood {
                             (old.position, next.position)
                         };
                         next.stained =
-                            self.stain(&receivers, start, end, 45.0 + amount * 65.0, limit);
+                            self.stain(game, &receivers, start, end, 45.0 + amount * 65.0, limit);
                         impacts += usize::from(next.stained);
                     }
                 }
@@ -409,10 +493,11 @@ impl Blood {
         self.samples = samples;
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
-            if self
-                .health
-                .get(&actor.root_model)
-                .is_some_and(|&old| old > actor.health)
+            if (settings.model_stains || settings.drips != BloodStyle::Off && settings.seconds != 0)
+                && self
+                    .health
+                    .get(&actor.root_model)
+                    .is_some_and(|&old| old > actor.health)
             {
                 let center =
                     Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 750.0;
@@ -429,7 +514,8 @@ impl Blood {
             }
         }
         self.health = health;
-        self.dead.retain(|root| self.health.get(root) == Some(&0));
+        self.dead
+            .retain(|root, _| self.health.get(root) == Some(&0));
         let transforms = if self.wounds.is_empty() {
             BTreeMap::new()
         } else {
@@ -482,6 +568,7 @@ impl Blood {
             drop.life = drop.life.saturating_sub(1);
             drop.life != 0
                 && !self.stain(
+                    game,
                     &receivers,
                     drop.previous,
                     drop.position,
@@ -493,7 +580,8 @@ impl Blood {
         if !self.pools.is_empty()
             || game.roster.actors.iter().flatten().any(|actor| {
                 actor.health == 0
-                    && !self.dead.contains(&actor.root_model)
+                    && !self.dead.contains_key(&actor.root_model)
+                    && settings.custom_death(actor.id == game.player_id)
                     && actor.status == tenchu_core::actor::State::Dead
             })
         {
@@ -508,17 +596,27 @@ impl Blood {
             if actor.health != 0
                 || actor.status != tenchu_core::actor::State::Dead
                 || actor.motion.action == tenchu_core::ids::MOT_DEAD_DROWN
+                || !self.settings.custom_death(id == game.player_id)
             {
                 continue;
             }
-            if self.dead.insert(actor.root_model) {
+            if self
+                .dead
+                .insert(actor.root_model, id == game.player_id)
+                .is_none()
+            {
                 self.random();
                 self.pools.insert(
                     actor.root_model,
                     Pool {
                         age: 0,
                         seed: self.seed,
-                        mark: Mark(Vec::new()),
+                        mark: Mark(
+                            Vec::new(),
+                            Kind::Death {
+                                player: id == game.player_id,
+                            },
+                        ),
                     },
                 );
             }
@@ -536,6 +634,9 @@ impl Blood {
             };
             if actor.health != 0 {
                 return false;
+            }
+            if pool.age >= 90 && pool.mark.len() != 0 {
+                return true;
             }
             pool.age = pool.age.saturating_add(1);
             if pool.age < 24 || actor.velocity[1] != 0 {
@@ -559,16 +660,73 @@ impl Blood {
                     .clamp(300.0, 900.0)
                     * amount.sqrt()
                     * (0.2 + 0.8 * growth.sqrt());
-                pool.mark = Self::project_contact(surfaces, None, hit, radius, pool.seed);
+                pool.mark = if self.settings.death == BloodStyle::Original {
+                    Self::original_pool(game, actor, hit.position, growth, amount)
+                } else {
+                    let mut mark = Self::project_contact(surfaces, None, hit, radius, pool.seed);
+                    mark.1 = Kind::Death {
+                        player: actor.id == game.player_id,
+                    };
+                    mark
+                };
             }
-            if pool.age >= 90 {
-                self.retain(std::mem::replace(&mut pool.mark, Mark(Vec::new())), limit);
+            if pool.age >= 90
+                && (self.settings.death == BloodStyle::Modern || self.settings.retain_original)
+            {
+                let kind = pool.mark.1;
+                self.retain(
+                    std::mem::replace(&mut pool.mark, Mark(Vec::new(), kind)),
+                    limit,
+                );
                 false
             } else {
                 true
             }
         });
         self.pools = pools;
+    }
+
+    fn original_pool(
+        game: &Game,
+        actor: &tenchu_core::actor::Actor,
+        position: Vec3,
+        growth: f32,
+        amount: f32,
+    ) -> Mark {
+        let height = game.mission.models[&actor.mesh_kind][0].position[1];
+        let scale = ((-f32::from(height) * 4.0 - (actor.map.height >> 1) as f32)
+            * (0.2 + 0.8 * growth)
+            * amount.sqrt())
+        .max(0.0)
+            / 4096.0;
+        let mut vertices = Vec::new();
+        for geometry in &game.mission.common_models[&31] {
+            for face in render_mesh::draw_tmd_faces(geometry) {
+                render_mesh::append_face(&mut vertices, geometry, face, Matrix::default(), true);
+            }
+        }
+        for v in &mut vertices {
+            v.position = (Vec3::from(v.position) * scale + position - Vec3::Y).to_array();
+            v.normal = [0.0, -1.0, 0.0];
+            v.opacity = if v.flags & render_mesh::TRANSLUCENT != 0 {
+                0.5
+            } else {
+                1.0
+            };
+            v.flags = (v.flags & !render_mesh::TRANSLUCENT)
+                | render_mesh::ALPHA
+                | render_mesh::DOUBLE_SIDED
+                | render_mesh::STAIN;
+        }
+        Mark(
+            vec![Patch {
+                part: None,
+                vertices,
+            }],
+            Kind::Death {
+                player: actor.id == game.player_id,
+            },
+        )
     }
 
     #[cfg(test)]
@@ -653,9 +811,19 @@ impl Blood {
             for drop in &self.drops {
                 let center = drop.previous.lerp(drop.position, alpha.clamp(0.0, 1.0));
                 let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
-                let along = projected.try_normalize().unwrap_or(camera.y_axis);
-                let right = along.cross(camera.z_axis) * 7.0;
-                let up = along * (9.0 + projected.length().min(150.0) * 0.12);
+                let modern = self.settings.drips == BloodStyle::Modern;
+                let along = if modern {
+                    projected.try_normalize().unwrap_or(camera.y_axis)
+                } else {
+                    camera.y_axis
+                };
+                let right = along.cross(camera.z_axis) * if modern { 7.0 } else { 11.0 };
+                let up = along
+                    * if modern {
+                        9.0 + projected.length().min(150.0) * 0.12
+                    } else {
+                        11.0
+                    };
                 let points = [
                     center - right - up,
                     center + right - up,
@@ -664,7 +832,11 @@ impl Blood {
                 ];
                 vertices.extend([0, 1, 2, 1, 3, 2].map(|i| Vertex {
                     position: points[i].to_array(),
-                    color: [0.38, 0.008, 0.016],
+                    color: if modern {
+                        [0.38, 0.008, 0.016]
+                    } else {
+                        [127.0 / 255.0, 16.0 / 255.0, 23.0 / 255.0]
+                    },
                     uv: [
                         if i & 1 == 0 { -1.0 } else { 1.0 },
                         if i & 2 == 0 { -1.0 } else { 1.0 },
@@ -673,7 +845,7 @@ impl Blood {
                     flags: render_mesh::ALPHA
                         | render_mesh::FOG
                         | render_mesh::DOUBLE_SIDED
-                        | render_mesh::SOFT,
+                        | if modern { render_mesh::SOFT } else { 0 },
                     ..Vertex::zeroed()
                 }));
             }

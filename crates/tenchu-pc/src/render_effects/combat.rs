@@ -249,7 +249,7 @@ pub(super) fn draw(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, style
         camera: rotation(view).transpose(),
         view,
     };
-    if style.blood_spray {
+    if style.blood.hit == crate::settings::BloodStyle::Modern {
         painter.blood(game, style.alpha, style.gunfire);
     }
     if style.lightning {
@@ -276,7 +276,7 @@ mod tests {
         game.effects = Default::default();
         let position = Position::new(0, 0, 2000);
         let style = Style {
-            blood_spray: true,
+            blood: crate::settings::Blood::modern(),
             gunfire: true,
             ..Default::default()
         };
@@ -366,7 +366,7 @@ mod tests {
         );
         let state = crate::session::tests::state(&game);
         let style = Style {
-            blood_spray: true,
+            blood: crate::settings::Blood::modern(),
             lightning: true,
             ..Default::default()
         };

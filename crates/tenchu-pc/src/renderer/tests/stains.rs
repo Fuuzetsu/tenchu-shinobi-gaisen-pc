@@ -1,6 +1,39 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a graphics adapter; retained original blood uses retail texture colors/cutouts rather than the analytic stain tint"]
+fn original_blood_decals_preserve_retail_texels() {
+    let mut vram = Vram::default();
+    vram.words[0] = 31;
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let background = renderer.upload(&rectangle(1500, 102, None, false, false, false));
+    let mut vertices = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    for v in &mut vertices {
+        v.flags |= render_mesh::STAIN | render_mesh::ALPHA;
+    }
+    let page = std::sync::Arc::new(vertices);
+    renderer.set_decals([&page]);
+    renderer.draw(&view, camera, &[&background], None).unwrap();
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[255, 0, 0]);
+    vram.words[0] = 0;
+    renderer.update_vram(&vram);
+    renderer.draw(&view, camera, &[&background], None).unwrap();
+    assert_eq!(&read_pixel(&renderer, &target)[..3], &[102; 3]);
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; alpha stains respect depth and texture cutouts, blend softly, and clear without altering the original pass"]
 fn projected_blood_blends_without_filling_cutouts_or_occluding_foreground() {
     let mut vram = Vram::default();

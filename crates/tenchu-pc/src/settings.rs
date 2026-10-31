@@ -2,7 +2,7 @@ mod blood;
 mod edit;
 pub mod menu;
 pub mod overlay;
-pub use blood::Blood;
+pub use blood::{Blood, Style as BloodStyle};
 mod sky;
 pub use sky::Sky;
 mod weather;

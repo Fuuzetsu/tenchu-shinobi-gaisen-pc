@@ -329,6 +329,7 @@ impl Materials {
         for triangle in vertices.chunks_exact_mut(3) {
             let first = triangle[0];
             if first.flags & (render_mesh::DEBUG | render_mesh::TEXTURED) != render_mesh::TEXTURED
+                || first.flags & (render_mesh::STAIN | render_mesh::SOFT) == render_mesh::STAIN
                 || first.material != 0
             {
                 continue;

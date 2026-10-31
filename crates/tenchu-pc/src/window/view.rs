@@ -191,7 +191,7 @@ impl View {
         self.sky.tick(game.tick, &settings.graphics.sky);
         self.motion
             .tick(game, &self.models, &settings.graphics.motion);
-        let blood = settings.graphics.blood.enabled && settings.graphics.blood.amount != 0;
+        let blood = settings.graphics.blood.active();
         let weather = settings.graphics.weather.mode != settings::WeatherMode::Original;
         let contact = settings.graphics.effects.active();
         if blood || weather || contact {
@@ -735,9 +735,7 @@ impl View {
         if !configured.graphics.effects.active() {
             self.contact.clear();
         }
-        if !configured.graphics.blood.enabled {
-            self.blood = Default::default();
-        }
+        self.blood.configure(&configured.graphics.blood);
         if configured.graphics.weather.mode == settings::WeatherMode::Original {
             self.weather = Default::default();
         }
@@ -919,7 +917,7 @@ impl View {
             && error.is_none()
             && !debug.collision_only
             && (menu.open || !paused || debug.active())
-            && settings.graphics.blood.enabled
+            && settings.graphics.blood.active()
         {
             self.renderer.set_decals(self.blood.pages());
             let mut cosmetics = self.blood.animated_geometry(

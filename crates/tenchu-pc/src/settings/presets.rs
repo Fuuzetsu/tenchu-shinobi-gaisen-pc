@@ -195,8 +195,7 @@ fn modern(ultra: bool) -> Graphics {
         ..Default::default()
     };
     g.set_filtering(if ultra { 6 } else { 5 });
-    g.blood.enabled = true;
-    g.blood.spray = true;
+    g.blood = super::Blood::modern();
     g.blood.marks = if ultra { 16384 } else { 8192 };
     g.water.enabled = true;
     g.water.detail = if ultra { 2 } else { 1 };
@@ -267,7 +266,11 @@ mod tests {
             assert_eq!(graphics.preset(), index);
             assert!(!graphics.asset_pack);
             if QUALITY.contains(&index) || index == SHOWCASE {
-                assert!(graphics.blood.enabled && graphics.blood.spray && graphics.effects.gunfire);
+                assert!(
+                    graphics.blood.active()
+                        && graphics.blood.hit == super::super::BloodStyle::Modern
+                        && graphics.effects.gunfire
+                );
                 assert_eq!(graphics.blood.seconds, 3);
                 assert!(graphics.blood.marks >= 2048);
             }

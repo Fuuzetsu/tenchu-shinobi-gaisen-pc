@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Independently choose Off, Original or Modern blood for hit spray, wound drips,
+  death stars/pools and ground spots. Original splats and death stars can remain
+  persistently; player death pools and body stains have separate toggles. Existing
+  blood preferences migrate automatically, and changing one category preserves
+  the others' stains.
+
 - F1 → General can hold the finished death scene until a new button press before
   opening mission failure. The default retains retail's automatic transition.
 

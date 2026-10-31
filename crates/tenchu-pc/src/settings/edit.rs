@@ -103,8 +103,9 @@ impl Item {
             Self::Footprints => &mut settings.graphics.weather.footprints,
             Self::RoofRunoff => &mut settings.graphics.weather.runoff,
             Self::TimeClock => &mut settings.graphics.sky.enabled,
-            Self::Blood => &mut settings.graphics.blood.enabled,
-            Self::BloodSpray => &mut settings.graphics.blood.spray,
+            Self::BloodRetain => &mut settings.graphics.blood.retain_original,
+            Self::BloodModels => &mut settings.graphics.blood.model_stains,
+            Self::BloodPlayerDeath => &mut settings.graphics.blood.player_death,
             Self::Interpolation => &mut settings.graphics.interpolation,
             Self::Retro => &mut settings.retro,
             Self::Post => &mut settings.graphics.post.enabled,
@@ -207,7 +208,9 @@ impl Item {
     }
 
     pub fn change_setting(self, settings: &mut Settings, direction: i32) -> bool {
-        if let Some(value) = self.boolean(settings) {
+        if let Some(value) = self.blood_style(settings) {
+            *value = value.cycle(direction);
+        } else if let Some(value) = self.boolean(settings) {
             *value = !*value;
         } else if let Some(value) = self.number(settings) {
             let slider = self.slider().expect("numeric preference has a slider");
@@ -227,7 +230,9 @@ impl Item {
 
     pub fn reset_setting(self, settings: &mut Settings) -> bool {
         let mut defaults = Settings::default();
-        if let Some(value) = self.boolean(settings) {
+        if let Some(value) = self.blood_style(settings) {
+            *value = *self.blood_style(&mut defaults).unwrap();
+        } else if let Some(value) = self.boolean(settings) {
             *value = *self.boolean(&mut defaults).unwrap();
         } else if let Some(value) = self.number(settings) {
             *value = *self.number(&mut defaults).unwrap();
@@ -235,5 +240,16 @@ impl Item {
             return false;
         }
         true
+    }
+
+    fn blood_style(self, settings: &mut Settings) -> Option<&mut super::BloodStyle> {
+        let blood = &mut settings.graphics.blood;
+        Some(match self {
+            Self::BloodHit => &mut blood.hit,
+            Self::BloodDrips => &mut blood.drips,
+            Self::BloodDeath => &mut blood.death,
+            Self::BloodGround => &mut blood.ground,
+            _ => return None,
+        })
     }
 }

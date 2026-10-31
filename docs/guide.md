@@ -937,29 +937,35 @@ toggled independently of the outfit selected at mission load. Internal item
 timers and campaign stock/unlocks are preserved. These edits end input recording;
 a new mission restores ordinary gameplay. Cutscenes retain their scripted behavior.
 
-**F1 → Persistent effects → Persistent blood** keeps cosmetic wound stains on
-animated bodies and projects drops onto scenery, doors and trapdoors. Amount,
-bleeding duration and retained-stain limit are adjustable; **Clear blood** removes
-the cosmetic marks and drips. **Stains do not fade with time**; wound bleeding
-duration controls only how long fresh drips appear (default **3 seconds**, adjustable
-from 0–60). Lowering it also shortens current wounds; 0 stops new wound drips.
-Soft pools grow beneath dead enemies and the player, then stop growing and remain.
-This is off in Original.
-Damage, health and gameplay RNG are unchanged. Marks retain texture detail/cutouts
-and follow interpolated poses and compatible replacement models. Wound placement
-is inferred from original blood and damage events, rather than adding hit-location
-gameplay. Retention goes up to **65,535 stains** (Modern High: 8,192; Ultra: 16,384).
-Ground stains stay in cached GPU pages with view culling, and soft outlines do not
-need heavily subdivided meshes. A separate 256 MiB vertex budget bounds geometry
-(CPU and GPU each retain a copy). Stains are held in memory; changing
-mission, reloading models/artwork or disabling the feature clears them. They are
-not written into campaign saves.
-**Modern blood spray**, in the same tab, replaces airborne blood balls with soft,
-stretched droplets following the original trajectories. It can be used with or
-without persistent stains. Persistent blood replaces the original ground sprites
-and corpse pools independently of the spray toggle. Modern presets enable both options; Original keeps
-the original presentation. No external texture pack is required.
-`demo --clips blood` stages an ordinary guard encounter to show the effect.
+**F1 → Persistent effects** independently selects **Off / Original / Modern**
+for blood spurts on hit, extra wound drips, death stars/pools, and ground spots.
+**Death pool beneath player** applies the chosen death style to the player too;
+**Stain wounded models** independently enables attached body stains. Original
+preserves retail's hit/ground/death effects, without extra wound drips or a player
+pool. Modern presets enable all four modern styles, body stains and player pools.
+No external texture pack is required.
+
+Modern ground spots and death pools persist. **Retain original blood** also keeps
+original ground artwork and death stars after their ordinary lifetime. Changing a
+ground/death style clears only that category's existing marks. Turning off the
+player pool leaves enemy pools intact. **Clear blood** removes retained marks,
+active pools and wound drips. Marks are not written into campaign saves; changing
+mission or reloading models/artwork clears them.
+
+**Wound bleeding** controls how long fresh extra drips appear (default **3 seconds**,
+range 0–60). Lowering it shortens current wounds; 0 stops new wound drips. It does
+not shorten retained stains or change damage, animation, original particles or RNG.
+Wound placement is inferred from original blood and damage events. Modern stains
+preserve surface detail/cutouts and follow interpolated poses and compatible
+replacement models. Original retained spots use disc artwork projected onto the
+surface; extra Original drips use the retail square-particle appearance.
+
+Retention goes up to **65,535 stains** (Modern High: 8,192; Ultra: 16,384), with a
+shared 256 MiB vertex budget (CPU and GPU each retain a copy). Oldest marks are
+removed when either budget fills. Static marks use cached, culled GPU pages;
+unchanged pages require no uploads. `demo --clips blood` compares retained original,
+modern and mixed styles in an ordinary guard encounter.
+
 **F1 → Effects → Modern gunfire** replaces Echigoya's gun sprites with brief muzzle
 flashes, warm lights, drifting smoke and impact sparks. It is enabled by Modern
 presets and needs no extra artwork. `demo --clips gunfire` compares the two styles

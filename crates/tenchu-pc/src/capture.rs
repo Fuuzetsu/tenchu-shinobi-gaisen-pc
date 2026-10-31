@@ -122,7 +122,18 @@ pub fn frame(
         Some(&models),
         None,
         render_effects::Style {
-            blood_stains: false,
+            blood: crate::settings::Blood {
+                ground: match settings.graphics.blood.ground {
+                    crate::settings::BloodStyle::Modern => crate::settings::BloodStyle::Original,
+                    other => other,
+                },
+                death: match settings.graphics.blood.death {
+                    crate::settings::BloodStyle::Modern => crate::settings::BloodStyle::Original,
+                    other => other,
+                },
+                retain_original: false,
+                ..settings.graphics.blood
+            },
             ..render_effects::Style::from(&settings)
         },
     ));

@@ -1,19 +1,213 @@
 use super::*;
 
 #[test]
+fn changing_one_blood_category_preserves_other_cached_marks() {
+    let mut blood = Blood::default();
+    let mut settings = settings::Blood::modern();
+    blood.configure(&settings);
+    for kind in [
+        Kind::Ground,
+        Kind::Body,
+        Kind::Death { player: false },
+        Kind::Death { player: true },
+    ] {
+        blood.retain(
+            Mark(
+                vec![Patch {
+                    part: None,
+                    vertices: vec![Vertex::zeroed(); 6],
+                }],
+                kind,
+            ),
+            8192,
+        );
+    }
+    let page = blood.pages().next().unwrap().clone();
+    settings.hit = BloodStyle::Off;
+    settings.drips = BloodStyle::Original;
+    blood.configure(&settings);
+    assert!(std::sync::Arc::ptr_eq(&page, blood.pages().next().unwrap()));
+    settings.ground = BloodStyle::Off;
+    blood.configure(&settings);
+    assert_eq!((blood.marks.len(), blood.marks.vertices), (3, 18));
+    settings.player_death = false;
+    blood.configure(&settings);
+    assert_eq!((blood.marks.len(), blood.marks.vertices), (2, 12));
+    settings.model_stains = false;
+    blood.configure(&settings);
+    assert_eq!(blood.marks.len(), 1);
+    settings.death = BloodStyle::Off;
+    blood.configure(&settings);
+    assert!(blood.marks.is_empty());
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; independent styles, retained retail textures, finite drips and player death toggles without gameplay changes"]
+fn original_and_modern_blood_styles_are_independent_and_persistent() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    for character in 0..2 {
+        let mut game = crate::session::Options {
+            character,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        let models = Models::build(
+            &game.mission,
+            &Default::default(),
+            &settings::Graphics::default(),
+        )
+        .unwrap();
+        let surfaces = Surfaces::new(&render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
+        let position = Vec3::from(game.player().position.map(|v| v as f32).to_array());
+        let mut blood = Blood::default();
+        for ground in BloodStyle::ALL {
+            for retain_original in [false, true] {
+                let settings = settings::Blood {
+                    hit: BloodStyle::Off,
+                    death: BloodStyle::Off,
+                    ground,
+                    retain_original,
+                    ..Default::default()
+                };
+                blood.tick(&game, &models, &surfaces, &settings);
+                let state = crate::session::tests::state(&game);
+                assert!(blood.stain(
+                    &game,
+                    &Receivers::new(&game, &models, &surfaces),
+                    position - Vec3::Y * 500.0,
+                    position + Vec3::Y * 500.0,
+                    300.0,
+                    8192
+                ));
+                assert_eq!(!blood.marks.is_empty(), settings.retained_ground());
+                if settings.retained_ground() {
+                    let page = blood.pages().next().unwrap().clone();
+                    assert!(
+                        page.iter().all(|v| (v.flags & render_mesh::SOFT != 0)
+                            == (ground == BloodStyle::Modern))
+                    );
+                    if ground == BloodStyle::Original {
+                        assert!(
+                            page.iter().all(
+                                |v| v.flags & render_mesh::TEXTURED != 0 && v.color == [1.0; 3]
+                            )
+                        );
+                    }
+                    for _ in 0..300 {
+                        game.tick += 1;
+                        blood.tick(&game, &models, &surfaces, &settings);
+                    }
+                    assert!(std::sync::Arc::ptr_eq(&page, blood.pages().next().unwrap()));
+                    game.tick -= 300;
+                }
+                assert!(state == crate::session::tests::state(&game));
+                blood = Blood::default();
+            }
+        }
+        for drips in [BloodStyle::Original, BloodStyle::Modern] {
+            let settings = settings::Blood {
+                hit: BloodStyle::Off,
+                drips,
+                ground: BloodStyle::Off,
+                death: BloodStyle::Off,
+                ..Default::default()
+            };
+            blood.tick(&game, &models, &surfaces, &settings);
+            blood.wound(
+                &game,
+                &models,
+                game.player().root_model,
+                position - Vec3::Y * 750.0,
+                &settings,
+            );
+            assert_eq!(blood.wounds.len(), 1);
+            let mut seen = false;
+            for _ in 0..180 {
+                game.tick += 1;
+                blood.tick(&game, &models, &surfaces, &settings);
+                let geometry = blood.animated_geometry(&game, &models, None, None, 1.0);
+                seen |= !geometry.vertices.is_empty();
+                assert!(
+                    geometry.vertices.iter().all(
+                        |v| (v.flags & render_mesh::SOFT != 0) == (drips == BloodStyle::Modern)
+                    )
+                );
+            }
+            assert!(
+                seen && blood.drops.is_empty() && blood.wounds.is_empty() && blood.marks.is_empty()
+            );
+            blood = Blood::default();
+        }
+        let player = game.roster.get_mut(game.player_id);
+        player.health = 0;
+        player.status = tenchu_core::actor::State::Dead;
+        player.velocity = [0; 3];
+        for death in BloodStyle::ALL {
+            for player_death in [false, true] {
+                let settings = settings::Blood {
+                    hit: BloodStyle::Off,
+                    ground: BloodStyle::Off,
+                    death,
+                    player_death,
+                    retain_original: true,
+                    ..Default::default()
+                };
+                blood.tick(&game, &models, &surfaces, &settings);
+                for _ in 0..120 {
+                    game.tick += 1;
+                    let state = crate::session::tests::state(&game);
+                    blood.tick(&game, &models, &surfaces, &settings);
+                    assert!(state == crate::session::tests::state(&game));
+                }
+                assert_eq!(
+                    blood.marks.len(),
+                    usize::from(death != BloodStyle::Off && player_death)
+                );
+                if let Some(page) = blood.pages().next() {
+                    assert!(page.iter().all(
+                        |v| (v.flags & render_mesh::SOFT != 0) == (death == BloodStyle::Modern)
+                    ));
+                }
+                blood.configure(&settings::Blood {
+                    player_death: false,
+                    ..settings
+                });
+                assert!(blood.marks.is_empty());
+                blood = Blood::default();
+            }
+        }
+    }
+}
+
+#[test]
 fn retained_stains_respect_both_count_and_vertex_budgets() {
     let mut blood = Blood::default();
     for i in 0..4000 {
         blood.retain(
-            Mark(vec![Patch {
-                part: (i % 3 == 0).then_some(Part::Actor {
-                    root: i,
-                    model: i + 1,
-                    kind: 0,
-                    inspection: false,
-                }),
-                vertices: vec![Vertex::zeroed(); if i % 2 == 0 { 30 } else { 3000 }],
-            }]),
+            Mark(
+                vec![Patch {
+                    part: (i % 3 == 0).then_some(Part::Actor {
+                        root: i,
+                        model: i + 1,
+                        kind: 0,
+                        inspection: false,
+                    }),
+                    vertices: vec![Vertex::zeroed(); if i % 2 == 0 { 30 } else { 3000 }],
+                }],
+                Kind::Ground,
+            ),
             usize::from(u16::MAX),
         );
     }
@@ -103,10 +297,7 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
     };
     let mut blood = Blood::default();
     let mut motion = crate::visuals::motion::Motion::default();
-    let settings = settings::Blood {
-        enabled: true,
-        ..Default::default()
-    };
+    let settings = settings::Blood::modern();
     blood.tick(&game, &models, &surfaces, &settings);
     let mut max_wounds = 0;
     let mut max_world = 0;
@@ -360,18 +551,24 @@ fn capture(
 fn full_retention_keeps_old_stains_and_only_changes_the_active_page() {
     let mut blood = Blood::default();
     let start = std::time::Instant::now();
-    let template = Mark(vec![Patch {
-        part: None,
-        vertices: vec![Vertex::zeroed(); 36],
-    }]);
+    let template = Mark(
+        vec![Patch {
+            part: None,
+            vertices: vec![Vertex::zeroed(); 36],
+        }],
+        Kind::Ground,
+    );
     for i in 0..u16::MAX {
         let mut vertices = template.0[0].vertices.clone();
         vertices[0].position[0] = f32::from(i);
         blood.retain(
-            Mark(vec![Patch {
-                part: None,
-                vertices,
-            }]),
+            Mark(
+                vec![Patch {
+                    part: None,
+                    vertices,
+                }],
+                Kind::Ground,
+            ),
             usize::from(u16::MAX),
         );
     }
@@ -423,10 +620,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
             Some(&models),
         ));
         let mut blood = Blood::default();
-        let mut settings = settings::Blood {
-            enabled: true,
-            ..Default::default()
-        };
+        let mut settings = settings::Blood::modern();
         blood.tick(&game, &models, &surfaces, &settings);
         let root = game.player().root_model;
         let position =
