@@ -324,17 +324,18 @@ usable material. The completed local Mission 1 texture pack lives in
 These local assets are not included in Git.
 
 The campaign pack is a separate **`tenchu-hd.tar.zst`** download in the
-**artwork-v2** release. Place it beside the executable/launcher or in your working
+**artwork-v3** release. Place it beside the executable/launcher or in your working
 directory. For editing, unpack it into `assets/hd/` or set `TENCHU_ASSET_PACK`
 to another directory. The game caches archive extraction by content hash.
-It covers 1,837 texture identities across Missions 1–10, character/outfit families,
-equipment, world effects, HUD and menus, plus two authored weapon meshes.
+It covers 2,112 texture identities across Missions 1–10, character/outfit families,
+equipment, world effects, HUD, menus and all 12 TRIAL terrain themes, plus two
+authored weapon meshes.
 Plain `play DISC` discovers it automatically. F1 → **Visual assets → Replacement
 artwork** controls its use; Modern presets enable it. F1 reports the active
 folder, loaded textures/models and any load error. Existing preferences are kept.
 F6 opens the quick launcher; F8 compares original graphics.
 
-The pack ships generated artwork and 307 Rust recipes. Mixed source colour,
+The pack ships generated artwork and 582 Rust recipes. Mixed source colour,
 cutout masks and snow coverage are reconstructed from your disc at asset load,
 without Python or online generation. See [pack provenance/editing](../artwork/README.md).
 To use a custom pack, set `TENCHU_ASSET_PACK` to its directory or `.tar.zst` file.

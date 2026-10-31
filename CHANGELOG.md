@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- HD artwork v3 adds terrain and ornament replacements for all 12 TRIAL themes
+  and all 16 built-in missions. TRIAL lanterns, braziers and cave lights now emit
+  dynamic light and cast shadows; mine carts no longer count as lanterns.
 - Add optional blood runoff down walls and slopes under F1 → Persistent effects,
   enabled by Modern presets. Trails follow surfaces, stop at edges or level ground,
   and use the selected retained blood style without changing gameplay.

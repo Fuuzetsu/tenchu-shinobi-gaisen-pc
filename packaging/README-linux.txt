@@ -23,7 +23,7 @@ together. Startup verifies MAIN.EXE, MENU.EXE, ENDING.EXE and DATA.VOL against
 the original SLPS-019.01 SHA-256 hashes. Add --quick to open the development launcher. F1 opens PC settings;
 F6 opens the development launcher from the original menu.
 
-Download tenchu-hd.tar.zst from the artwork-v2 release and place it beside
+Download tenchu-hd.tar.zst from the artwork-v3 release and place it beside
 the executable/launcher. It is found and cached automatically. F1 > Visual assets
 controls it. TENCHU_ASSET_PACK also accepts an archive or unpacked directory;
 an empty value disables pack loading.

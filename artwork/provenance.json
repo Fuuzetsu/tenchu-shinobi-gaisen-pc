@@ -7522,6 +7522,4956 @@
       "method": "authored outline text",
       "authoring_source": "mission-ui-hd/author.py",
       "source": "DEMO/RANKS_E.ARC:6"
+    },
+    "12b14e290da7273d69b867cf0afa7ca9": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3213c73217747da2f5d3d493ead8ba47": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "450595008ea4e88ac38aea40143339fb": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "51c4887ba6bc6ccf16381e0ee65ca1a1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "73e6eb29e2f5d777204601257dec2b1a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7c22b02a757897cf3a3959452297dd57": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8ff45cef32e6bc0fa2664c76f2027aa1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "94aa511c351f52147cecb08807b38f31": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "9a7406ff8e2571534a19eda992d4bfa4": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "9ecb0f0696334dbf1aaf485758b3d155": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a31feb148875ffe8ca1d64884ea16955": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a7f705ad177f38e8cbcf56dc947bf774": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a8e2d88ca7e7d258903628273a4fbb4e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b58ea8ed9c58ee70a1cf23cf01aab578": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b5bd85f461f9dc68c6ae745e2a66aaef": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c40470d0cbe0e623c24f7fdcb37b594d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "cb2d65b83dd520181eecca6ef9dfeea8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d3e8bae61f7e42884c7df48816ca4100": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "db2f6d6454f831e1ecb6a6cedfc815bb": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ec72c3d3417f9787a96491b05a7c1f1b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f4298e6a12ffe810cc07f2a0b43974c5": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-00-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0a906f08cd279b6b56235052e719f655": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2d8ea573b726ccbd83ae7add7604be77": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "5fa9ee7784efce606f6ed112bc55f329": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8655fde73474d0c3cf5d95e8d9d9d552": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "960d703d3798df507db319db87c654e6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a3fff0a062d185cc8ed91add417a57b6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "beaab96b941824f627a9a4dc68151ef3": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c2f740225042b05a8524cd91418b7b40": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "de6ab952066130cdc946f76af697972b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e06061c5f33c4184dcf734bded3c4d19": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e7b1a80a16aa339a8ec42f598a4024db": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f60caa860875129c2702a3d15ffa216d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f848c58c38877f1acf310c59134cbdd9": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-01-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0beccccbee60931aad57371afb1b3985": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1740c14c39f16033efee27f1484fe60b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "21f0d7255f212ecb2f80ba6be5a904ed": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2f8c4460507c62a93a365a4ed5deb934": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "310bb09e59beb1c11cbc69b507388c2a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3f80ae3f36658008c8dcd852ff76a1af": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "4276fb8e81adf7585a7a8bddcbe049cf": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "47e4da35f52455665eb62c71ec7b42b9": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "49d82cf18196b652980fa4ab9e7fe880": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "4ccadad42231df07c3340334c6e66205": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "534ca2d91f6acfb1322235648cd759a2": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "55a392443d82dbf3dac7f8b7513635f8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "5bea807b8d1416be459368f0d74ef2ac": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6af271f255a185b984622ff60878bded": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "706a8ba0867ba48111c1f42ddbf03ae0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "70e3467eae34e91231f8eda96a5cd700": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7a67107ec1e0ef61b75450aa246ec68e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7c4386e764b3f6261783df2bd531d8b8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "88280ee09b42e192e6e0a076d24ffd93": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8a35ea977f6fcca1fc564d8f9f4c9603": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "96768c91d0135337b8f2fec5c64c0681": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a12310b1c8ad852dfacb1b1e414a5b9a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a4244266fa118cdf0ec5e102a694759e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a84f629159f9fdac18f4a2a33f3323dc": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b157f36617fb3e3f23369cd90442959c": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b9e82f8cb9d972a13e3454ff55d0170f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d27f0cb6b98a3599b28318c4d39b9302": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d82531820a7ff54e4a3cb0dd4437b28d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d85dae4317d2da4321d294e0340e5b20": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "db2548da21d65e661a96b752d7033416": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "db73ba4622f749738097bb2a1d8ecdbd": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "dcc1c8e7e84a6831881c82ea71d92478": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "dec5f98489db15d3d1df3ffd86650b5a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-2-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e6ac6f13d320dd6a72350f25c5bc657e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-2-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f0e3a268375635014e02b164a78c3661": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-2-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fa7dfde885f0221fc88a69731f9b0ce8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-2-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fbed767ec95bf3d54ee3d17c9a52385e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-2-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "17630c22948790df717b5760fb09c2e0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "342edc12ae62b6361866af0029632dd1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "38187554bce23e5d242342a828835f88": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "49dbd4cc3d618e503f2461faf184db7e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "5360123ba1fb47b7fa6a68ef6b191fb5": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "54e8e664173f0b0a40beec3e9d7068d6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "75cb5f6358ae498aa821a51ebd873e27": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "78110616a5c3a3a9de7203a43ece27fc": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8c00029927f2c279b1a3f5b886c71171": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8d64646f56a14cfea6a40a59e41ffc44": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ad554af1e68e0b0d10721bfb21699f89": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "bba9ec6395ec03f8e6e1bc526a368fea": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c3436bbed7bb999e6db45e8d2cc01f77": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d266884297a36ac1f71563caa5960094": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d65f6c89183d60bcbdafc42e867335fa": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "da857cd76c40a5ffefe374d3a7529553": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-03-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fc0456119c79a8ee69ccff7ff813b838": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-02-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "07d38370df1af013b398b920dec553f8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "08a26d7b72f773f3da95d46508c38da1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0ec6329ebba065a58d821af7f515c24a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1d8409602e7bd2135eceea92c6726f26": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1de0aa02f0a8573d3273cca59506607a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1f827c62561bec281057828a010def80": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "32837bab881a986c57a27edd8165bece": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "33307ca2dd22e6700daafce0db998d7e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "333f91dcbba002a9afb2b99bffdb6ed2": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "33ff755d8723815b90b5032ac814d2c1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "46342ade76af35c1bb2a9ff1709e7bf0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "54f1734fdef92e6ffdec8014325d8848": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "63fee9c58ee816a58cbf9d97ba2c7e8d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6966aafc24e8f6a3f715787af466f422": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7276ed78a548e6db742584b5fb049f0e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7c0a230066eddff829bcc2f55a579295": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8d750437fb67cc1eacd399e5f0b3318f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a2cf383a6d8294f015d8c3a0dc5c43d5": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "aee05a7f77b1ea230b0846da1437c98d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b3996c73868d89c5b683751a134594e3": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "bb5baa73481c992809e198621578f391": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c4b021b9708f13f4c0078f16f4726435": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c53b309e7e8204a69cc1b02c61c72d99": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d2ebe2605b8c71709d8aa3fa5812738e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d55594e3a055d7e9715933da4bddeda9": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e1ac18875a77a8524188e489aca52122": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e730585034f5bb0933fac665799761f0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f326c5c6d64eccc58845f2af428f230b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-04-1-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2eaf83951132d31ba52223b90b20ad2c": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3a6b1d4c72f5fee222e529527b5c610d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "54fdb096d843f5aa59321ff7b6da85b7": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "5ffa71fb5986fb1eba14d90a5dc10b0b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "60400b0c3c9c501b1e5bb6a41de38cdd": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        196,
+        88
+      ]
+    },
+    "6bd51ef39a2902fc0c3c7f268f2f4007": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6ee1cfbd5ff4929b8c2960775768bfda": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "70db61eb8ea0a216618d09af0facb025": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a059f76070e83f9dd859f6cd813d5331": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ae65576e7c57a3c03a175d1ba2918270": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ba57d597ffa9306c2a482f3857315edd": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "cebba4bab1353d857e961e824b970be1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d0aac8c53ce12b4d9580a4034de5c11c": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d614938481d0ba9f04a154e021bfb437": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d98dfdfe139f78cf8b536038344e1770": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "de5c02a049d6c389f1a61817a2ecbcda": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e1c24973ac2a3391645ac2767efbcb6d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e6677089cc86a8d83b8eba096e593333": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ecf46a8dc78f537ef0b777e2491019a5": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eef02974976643042d5c135b6b776de2": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f657ca4d1f749095415e200494a3f5d0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fb6d6e2d78a12700ff04d837a8bbf1e5": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-05-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "09db4210cc0bb5af1bada56f73447324": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2cd166c85be828def8b4e6a5e22dd398": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3c10c0b5024e7c1cc3be37ee7609732b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3f47982cd82af049d9a8778cf0826287": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "48d83dfe1545c3cc8802ab501709db98": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "5a212265168f116796ffbb1f58490dff": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6277353d7188ebb922f707654706747b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "67abb350f59d280e3a57f69a5de1da76": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6b1ff043df0f6223c2f9d28b1b21c9ff": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7fb807eadab58b1e93a44a42a329ae82": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "816b294fc03eb77b95d26787082813f0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8510db0a89851b7dc548f5fa251c980d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8b6c5577912806a752429c3b9dad59b7": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8de22c24b34d2baa6744a98f28feb23a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "9042395c7a14b235a7fdd99c3c780509": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "90e4aef9e9a62781fa71886cf2bfa309": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "9e6ac306f00241464b03590d37a56786": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a7c3018d4e266ba0e18d81bf3167503f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ab13b668bd7b4eda964055da4af9b640": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "ae4f546b902128e62f07554c0df41c95": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b3df4573b399be12dc4a8a5a1e418682": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e33133ddd80806278ce96000c2eba146": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e39ce621d6124aefa4ec5d880c6522cc": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e4fa3593bddb49232d417f1d33d164ee": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e6a416a51547a0a1db2f516e1085f057": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e7ea8338c8e34f40e022ff9083425806": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "eae0ff52b1255078b16a89fd4e0830e4": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f3aa6b0bb88c71fe5c91affbc3119531": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f6dd8e4d309f6aa6bd0b8035e69dd9f1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-06-1-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        516
+      ]
+    },
+    "06d282061f7b098fb099dfbb3f43864d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0baa78cb6837e55a176b34e979a6dab7": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "11f714610dff0482b1b1bac226c987b6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1904fa856bd66bac1b8005ee2262ffea": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2932c665f3f764e3fb94a2cdad343fd3": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2d2183322645c598e0be97b225cc9c1a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3977eb555214ca2bb777d967a44fe4b0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "5111344e65514378a943e85c10d2a838": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "519b3cd68464cdb212a6690df05485c0": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "691c2357f6b8e9a5fd0d0d18a8d1b56f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6a3b4952e8c1f487fab82ef2404bf002": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6a654b363e66f1dffbc11572bf25c593": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6b63199f1fc7cbbc21d6207a0c9cb9c3": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6b6f80ee05e5d5c120b4486224c2d5fc": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7786273db5c6cc6ac8f822eec2940a55": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8442101c79893e94a16dff8d7a8b5ddd": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8860caeb57a5571cbf47999806542bde": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "91059282eeecebaa4ab0e8e6f438e3d2": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "99c667c6b006d2ba7f3e4a89f633a2cd": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a2738b033aa3802940dd0833473fb81b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b21633f4b3a58efd6eb51eddef516ab4": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "bddeed4db4e14faf11fc600ea9c49fb7": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e351d06d40b25099dea85b4a9839d10a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f181f23f265c8ce266b53d77acbc9d7d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f499cf044feb6ce0f9b9d75e9f509807": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f71bb11e1c2b9d7e2253a0d1fbc069da": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fa3a2efb64434c774e96698eeb4b0022": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fbcfb820c5914daaa05dead875243f30": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-07-1-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0eb21284f53e27df359dc62fc563f3d4": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0fcce67354f89f5430bcc0ce1f24ad70": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "16be146940ea47647b8172134736cd91": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "19f5ce1e90cd0c34b9495a5a01d73e60": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1df35d53a640e3546dabd8d68acb610c": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "383a9cb36b9f12e8abf810f6929e1c0f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "4262f4abd2b9a4105a78b9fa86d2b6b7": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "42e9c54327545769b2f6c5d8edabae9d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "80ef29fc1d9b16b6bdd8b538723bfdc1": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "82098e91e8f8ae435e806c7ae8530134": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8a4a7993df5873630aba8c0c43cf78fb": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "96b58b6b4b83576bdda2ccab92c82874": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a04d1450cdd0dda46f87f072af797a7f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b38f982a9ad8b4db8beb0a4f7701a471": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b44bb5219c5ddc9c3ecf495c841746f9": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b9c4c17563a1635c8c5c8e4b08a68f1a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "be57371ac17f13472de918b08453cc63": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c6f633510b09c5b4ea6c58597c7932db": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "d2a0d07abd0482b693199c7ecde76f85": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e060130a3f9b0b16427f8e3fe5f3c5d6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e2c4005c8d3b0efcd93a19034f9b6808": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f60b4e4581c041c7e1df3ec132538985": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fb950499321fab01df6035f3b87f7581": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fc24c8122c1e2175157572850698256f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-08-1-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "02bbfb27d351ee01e47a7a8247569530": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0377cded3ffc5f9b02ac0fcad2edbf4e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0687a0f6904374dab3273f424fc5d79b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "19a857dc98c54e349b7090f36d570991": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "21347d417b4bb5e586c82e27d0c9977a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "2b071f1788429e48d5820870f28343ab": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "674ff3aef0ae3fe33a0baf238e2c9c75": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "6f8c68cffb1804ac50db6118d09f5a36": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "83ecfdb4820db5deda6fad9ced089935": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "86666575325346ad7f6e4715703bd780": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8667dfc76ea0c91e5c4010cc29702791": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "97ef04833686c36e11f618a045ecdbe3": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "aee28bb5f140644f45acc13c48a81cb6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "cb0b13ae3ca56b61a188bb54325dcdea": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e2ae42795e14ce09e1ff63787ecef8da": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f00996e76f4dac50b8558524aa58d6aa": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-09-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "23903adda0bbf7df0e9061cdf52ae682": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3fb40c5899a99fc37df4256e431cd64d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "461a497e71caa6efe781ace759718ad8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "49d5eda60beb3fadae7cf929ec0a7367": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7273529ce48f9e1e236239192c6e7588": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "72b05096e94bdc0021fe277b89126006": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7a5810e2b10677efdedc7e46db915d25": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7ce930803b85f3f1b25c720eae72970b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "8f8b5aab7ed7027eb929368d709db9f8": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "931bdd56484a0fcb0f0b09b4fac4772b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "9c810c14a23045a1a2467468bf1ca1dd": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a03d1e4d9c02cc60d7bbec66efb2a67e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a86d95c1c9affa019633525f90d0c76a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f11e5f493c70ced27ba197b3e625e7ab": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "f1249e39cd848cb63e68dcb8c0c7a040": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-10-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0098731bc46b496b74e0e13c20bcccea": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "02aa8eae258b1c35ab4cb3fff4c8b493": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "0d45aa6e5fb1f0322c40ac4a9ddd7a23": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "118431dbb8f7f40474cc149e97f0731a": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1bfdb96bb0fe3093c30ca4e680205835": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "1e4a0b68776adf00cf153ca9811e36bc": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "32124f5f92ad80047353e4356852274c": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "39b6eeaf308e3a311c92ebe902d75c65": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "3d7f3f5e4961fb10f69f7e75e0798699": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "45f6a8ed569a53eb71cbeffb8841fa95": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        1,
+        2
+      ],
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "46d0717edfe46992b4f688cf6cd05045": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        2,
+        2
+      ],
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "65d97d52caffc8645d549d190aec37de": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        3,
+        2
+      ],
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "681ef39987cd26c40a5766bf9bde7893": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        0,
+        3
+      ],
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "7be871bfa175323f3fc3c4fb8d07a13e": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        1,
+        3
+      ],
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "89df89b8ce6fd5d27d63d56e2315f49c": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        2,
+        3
+      ],
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "92aa0ce76758dd195c2d3fcf1dcedca6": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-0-generated.png",
+      "cell": [
+        3,
+        3
+      ],
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "938c06a8e2394ce64a68dc200e249283": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        0,
+        0
+      ],
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "9ebc8e885a678b7763dd34c9ca03e676": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        1,
+        0
+      ],
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a555c8efa5770cf100b3e8204529df4d": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        2,
+        0
+      ],
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "a97295fe72c443b0744c3e9ad7fd403f": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        3,
+        0
+      ],
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "b8fc559b9636449cebb1d8269399e4cf": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        0,
+        1
+      ],
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "bd39991269c77874b8df16856edcac5b": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        1,
+        1
+      ],
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "c05e276427453e17ca2e1f0fdd38c279": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        2,
+        1
+      ],
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "e22b38b3586cebd77bb4ac0760079eb5": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        3,
+        1
+      ],
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "size": [
+        256,
+        256
+      ]
+    },
+    "fd7c7eeeee70b73f237a14fed9ffb4d9": {
+      "method": "generated TRIAL atlas painting with disc cutout",
+      "authoring_source": "trial-hd-source/theme-11-1-generated.png",
+      "cell": [
+        0,
+        2
+      ],
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "size": [
+        256,
+        256
+      ]
     }
   },
   "weapons": {
@@ -9390,9 +14340,284 @@
     "textures/ff5c0e0465b40c9dd09cd96d2f4a6646.png": "eb73e05e34fae060050991d44dea81c055901d7c5e18132363a9beec44319c55",
     "textures/ff70f9fb32b7d1570a0864cb0c9b0972.png": "81f9c5c9d9e48e64bd1531cdc3e4b701012caf4dc6952eea1b77c1ab94a79905",
     "textures/ff86ae0330d31df55d3417b2d1cf82fb.png": "6af68754f86e0e58fca98992aba2ccd887cb42170ea1d63418144799a6a73a7b",
-    "textures/ffebbcb455537beb239f561930544b8f.png": "3e3e0638833fff3789d0a0a53da4af709fc830c0115c8e84fd368c8bb665c8d8"
+    "textures/ffebbcb455537beb239f561930544b8f.png": "3e3e0638833fff3789d0a0a53da4af709fc830c0115c8e84fd368c8bb665c8d8",
+    "layers/trial-12b14e290da7273d69b867cf0afa7ca9.png": "843cf68b620d300544c08db28aede2ec64c5dcd87c9030120ed3960d5c90c937",
+    "layers/trial-3213c73217747da2f5d3d493ead8ba47.png": "717d447d05bd50eb801b365066e5162a6ddf08fdfd417b67d2429c474d6c1f88",
+    "layers/trial-450595008ea4e88ac38aea40143339fb.png": "8e856572ab1c9b0f36c76b00112e67880b3f8097e61f3a46e4faa6af17510ff0",
+    "layers/trial-51c4887ba6bc6ccf16381e0ee65ca1a1.png": "6a585f929dfe299405f8d06cc1dfc49f23955ff874d9b37c1c7d17eb9dca8730",
+    "layers/trial-73e6eb29e2f5d777204601257dec2b1a.png": "70b3825a2ae0cd0c4d3da42baeab07861459a4f685ac12e8993773b8add54873",
+    "layers/trial-7c22b02a757897cf3a3959452297dd57.png": "7662dd3bc86b2ac2fdb54ab65f81d0b82789bc5084c4d45f2ff620e2ff101dee",
+    "layers/trial-8ff45cef32e6bc0fa2664c76f2027aa1.png": "9d54fe703e74a673d3ff8221de50578c21a1a51996783d6bec7e0f49b0d9bffe",
+    "layers/trial-94aa511c351f52147cecb08807b38f31.png": "78716d253434587841a0004a6540316b6578daaf8dfe7a1e284f7985ab87dff9",
+    "layers/trial-9a7406ff8e2571534a19eda992d4bfa4.png": "81fca9d53116c557be2d460a5b7f0df6bb2ef39bf5bdfb4fd4d7a0611ecbfaec",
+    "layers/trial-9ecb0f0696334dbf1aaf485758b3d155.png": "0c344fc7f1382dbca1ae94dae1f16f4e036035a22550142512f31693b350c919",
+    "layers/trial-a31feb148875ffe8ca1d64884ea16955.png": "e842bf165ffafadad81ffae6ef7567039b247da9c4ff60cd0327e1ee9a0e7e6c",
+    "layers/trial-a7f705ad177f38e8cbcf56dc947bf774.png": "000365b24b439b567c18d4ae5e19fbcbce13d623990130bd20787d322876d084",
+    "layers/trial-a8e2d88ca7e7d258903628273a4fbb4e.png": "cde145e234400118fd1d2b93ed6d098bdd9684b5c29fabc57cb55ad48b987e97",
+    "layers/trial-b58ea8ed9c58ee70a1cf23cf01aab578.png": "d4a1d02b32c7e838b50abccf3dd471a58c99f4024d5e521eff92ce7d13cd2486",
+    "layers/trial-b5bd85f461f9dc68c6ae745e2a66aaef.png": "2976d5060d7752b364da9f00deaad1b006f2b74cb216dee33c0aaed718c427d2",
+    "layers/trial-c40470d0cbe0e623c24f7fdcb37b594d.png": "a4f41f4c62f9bd52ed35e099591232aeba83a5b87baddb72307c0b7a695c1e7c",
+    "layers/trial-cb2d65b83dd520181eecca6ef9dfeea8.png": "10c4011a4d49b294665319632484128e0312cefa1e6defebb234a14564f41a1e",
+    "layers/trial-d3e8bae61f7e42884c7df48816ca4100.png": "97c99debe0e6341b369a2d1ceea561570cb803b6df26473478b6d0ff0441f41f",
+    "layers/trial-db2f6d6454f831e1ecb6a6cedfc815bb.png": "758efdef3c8e2a64f06832a59a3c9e874bb4b398a6ce6ed5a1ff8939fafa7e0e",
+    "layers/trial-ec72c3d3417f9787a96491b05a7c1f1b.png": "2ff1ea489bebb966396c0f5706dfe0b5be4af271de3ad2a598775089b6c040fd",
+    "layers/trial-f4298e6a12ffe810cc07f2a0b43974c5.png": "4619164e54e9408f473ed3b9522406b96a788cdd6287881b6b81992e1fb63bdb",
+    "layers/trial-0a906f08cd279b6b56235052e719f655.png": "94899a9f223e081e2a3458c6355381f624df134ef92f82005be7060ef0c36a2e",
+    "layers/trial-2d8ea573b726ccbd83ae7add7604be77.png": "4c1aff52d4e7995bb2967851fb11e89be1220a73ac796cc7daddb572634f24e7",
+    "layers/trial-5fa9ee7784efce606f6ed112bc55f329.png": "ecaf8a473daa08dba706c7f45d28f3b34465eed8e5d0f4d4412182306f21241b",
+    "layers/trial-8655fde73474d0c3cf5d95e8d9d9d552.png": "8cd3c8680b21917a6133fb21abe11e9dfcae8744d717d684b1ef09219d588721",
+    "layers/trial-960d703d3798df507db319db87c654e6.png": "7d084e50b7a1f07ee186435175a46acc01d438ee5a1a98c449ac732d3b1ece36",
+    "layers/trial-a3fff0a062d185cc8ed91add417a57b6.png": "60851a069e4031cebe2265183a86506deb8f90e08512ec3bd088430a3e1d45cc",
+    "layers/trial-beaab96b941824f627a9a4dc68151ef3.png": "5051cab57a57a06cdbd8e3c37a7baf3738c7faad39171555b497300f5d06eeed",
+    "layers/trial-c2f740225042b05a8524cd91418b7b40.png": "b9e03b71a3509dc387a7b1aacda83c99fc8cc7a27b70e8e0a6222d16c19d8987",
+    "layers/trial-de6ab952066130cdc946f76af697972b.png": "c5629d74091b5313477b93d4b2ca3066c6dd704b51b0111c1e6b93f6418478d9",
+    "layers/trial-e06061c5f33c4184dcf734bded3c4d19.png": "296f1f0c49740168a23f82f4e1d4745827bbfa74d44500796aa4551eae3d5647",
+    "layers/trial-e7b1a80a16aa339a8ec42f598a4024db.png": "9fe778cb6157c083c379d150c761036f894f04f816028f51890e8617acd11fd0",
+    "layers/trial-f60caa860875129c2702a3d15ffa216d.png": "5af024566d7160b407993bb2650d278fe645354bf5314852c234f89284259800",
+    "layers/trial-f848c58c38877f1acf310c59134cbdd9.png": "13dbb46397abf66d060568a2bb8c984f42700429054c58a85b1879a3a36008da",
+    "layers/trial-0beccccbee60931aad57371afb1b3985.png": "3d1669abee28e5df58bc40cc5b6a68490c93eda1d9990b81637f95ca6c64d2d6",
+    "layers/trial-1740c14c39f16033efee27f1484fe60b.png": "947895db9398b6dfd48c066bedef709316c2dc40d6e9ccd3d3d34eabe599865a",
+    "layers/trial-21f0d7255f212ecb2f80ba6be5a904ed.png": "2925cbb7c8a42092cf9e4c671db68f1a501ec5a897212587de48708eba23fc41",
+    "layers/trial-2f8c4460507c62a93a365a4ed5deb934.png": "a7a629c4a25c03e0b7f7d894de07ed897df4d7f95433d95291dce86549dcf722",
+    "layers/trial-310bb09e59beb1c11cbc69b507388c2a.png": "fd72428c3a94f5d220f197eea07f8d392ce1bd0dcb46d2a68e3bf644b2cdc10d",
+    "layers/trial-3f80ae3f36658008c8dcd852ff76a1af.png": "a6c6ad5462950df92fb0de09f8b5915baa818ace6c5baebe1326e7dbd926b4d1",
+    "layers/trial-4276fb8e81adf7585a7a8bddcbe049cf.png": "3fee90d3c36977252e2b4838ad4cdb215ba39859e6edd2670f36f8b95419fc85",
+    "layers/trial-47e4da35f52455665eb62c71ec7b42b9.png": "d2ed32b02bf79f1900778a3cf77e9093dfaca7f04664933ea3d16095b1fe0938",
+    "layers/trial-49d82cf18196b652980fa4ab9e7fe880.png": "8d74d0c441ae4510e55e869af8c5e275cfe12878bc858629afc625879d7fc9ab",
+    "layers/trial-4ccadad42231df07c3340334c6e66205.png": "a74ac171169c764f2121ad67e84eaf566e5e5d50896e3c7fd36cb921b31d55b6",
+    "layers/trial-534ca2d91f6acfb1322235648cd759a2.png": "d1e4878461d9ab52f653e17a9080fd531fc44a13c4b420d9ecce847287c82540",
+    "layers/trial-55a392443d82dbf3dac7f8b7513635f8.png": "e381f2464f6cdb880c2ccba53bcd9cc49f59d7831d63c9f4fc776b4d44d0b37d",
+    "layers/trial-5bea807b8d1416be459368f0d74ef2ac.png": "c94d5fcc176d6bfff2cc4b97efc2a3c5e3331c2cd88a0cacade7522d81801d96",
+    "layers/trial-6af271f255a185b984622ff60878bded.png": "4d84b41ccb805f053871971da72d5deb73b48adf2c7bd2f6a0913d5bac5fb35c",
+    "layers/trial-706a8ba0867ba48111c1f42ddbf03ae0.png": "feaaee9a022551cef234043856a48a054b5a930c637f4ee918a42aa7747053ff",
+    "layers/trial-70e3467eae34e91231f8eda96a5cd700.png": "dbc57ae2b80f6893bbbbf5a52d573ac3ab04c6d62433d53b8f3c1db4da98a652",
+    "layers/trial-7a67107ec1e0ef61b75450aa246ec68e.png": "7e7b21811d007027b6f3a9c17ad68dbd88d09c2827ff7e6d38313e04ee29c50f",
+    "layers/trial-7c4386e764b3f6261783df2bd531d8b8.png": "501a2f73f24eef28a260f5bd25788f755eac8d3d290c1300a3f8933fa73b8a79",
+    "layers/trial-88280ee09b42e192e6e0a076d24ffd93.png": "a7721d2de12b4fd89cb406028a0425e1ca476756202b890200c3b3d99cf2424b",
+    "layers/trial-8a35ea977f6fcca1fc564d8f9f4c9603.png": "dc4e2f0781d1a4d02c3c1b608735b4ea5218ecdbd82db80b189dd0b88a452343",
+    "layers/trial-96768c91d0135337b8f2fec5c64c0681.png": "ac5a0657634915a8e6ad100a6bcb8d7c292fbc510ec3c66dfe556af74e9c676d",
+    "layers/trial-a12310b1c8ad852dfacb1b1e414a5b9a.png": "a7c5f8242d81aeb70eb8303bf897d332bd374e462a96d5a3b5b1c49b234614af",
+    "layers/trial-a4244266fa118cdf0ec5e102a694759e.png": "53224a0326e359bcda22e6160723a1b838858b2c8a5456a9b4f42681afdcd5c3",
+    "layers/trial-a84f629159f9fdac18f4a2a33f3323dc.png": "36f1f5cdcc2b7c176af6b047bfac2b8a1122ed011df1c7f2befd2d7df7c57a2c",
+    "layers/trial-b157f36617fb3e3f23369cd90442959c.png": "05756ebafe7984169bf58f7646269f070a8feeaa0462491b690ace5548fef409",
+    "layers/trial-b9e82f8cb9d972a13e3454ff55d0170f.png": "e41fa2a64c252843b423a199b24d6188c5d35db15b9d4633f90b8fc9dde5b279",
+    "layers/trial-d27f0cb6b98a3599b28318c4d39b9302.png": "834ccd0378e1c7ed4ee874355c493f7a279245b476f81ccffa80d8592ba00465",
+    "layers/trial-d82531820a7ff54e4a3cb0dd4437b28d.png": "de2e3853c214a1fa97524ed26615cca35eae2900aedb0eb2dbcc3a48a438cbcb",
+    "layers/trial-d85dae4317d2da4321d294e0340e5b20.png": "0dcf1fb3d2a2d91b44bf6a1814413f1e32699bcce20427162d16b40d947af6a6",
+    "layers/trial-db2548da21d65e661a96b752d7033416.png": "e5b32d64dcd0797ddab62773103609a9345abde615638614b0d29a6532788f5a",
+    "layers/trial-db73ba4622f749738097bb2a1d8ecdbd.png": "fff1bf30ba10b62715cbdeaf90fe650154b546c1561cd3c8525e2edcb5d244ec",
+    "layers/trial-dcc1c8e7e84a6831881c82ea71d92478.png": "492e573190340d4bb7f14767a30cb750c5c344a064af69a525235c81ed10dac3",
+    "layers/trial-dec5f98489db15d3d1df3ffd86650b5a.png": "636a33ff23159c0e6cc575f6175239b99b96c552b2f6359f9149071addf1312c",
+    "layers/trial-e6ac6f13d320dd6a72350f25c5bc657e.png": "cf9acccb537990422f6d1650113c7c19b3c3851e52bb5690de90e78f9b62295d",
+    "layers/trial-f0e3a268375635014e02b164a78c3661.png": "ef97dea41dc48c87d6b751f85161cac23767f104fc8b86193fbe3cefac012d6b",
+    "layers/trial-fa7dfde885f0221fc88a69731f9b0ce8.png": "db73d352c4bc49253cbf9a9ee2db42c747dcadb9e4ddb19b39f399306ab5acac",
+    "layers/trial-fbed767ec95bf3d54ee3d17c9a52385e.png": "80493d8f265d92bdbc3a26a0fa94a67266ab5ca8dbd4e36d161ea82d7b8c2822",
+    "layers/trial-17630c22948790df717b5760fb09c2e0.png": "cf890494515b24232c154bcbe87a028a608cd3b2603d663a6d5f7cea4b4b5a97",
+    "layers/trial-342edc12ae62b6361866af0029632dd1.png": "cafbc703084a225fe7eabdbbfba6262f3fe71b63736a1f4969fd46fea1b70ec5",
+    "layers/trial-38187554bce23e5d242342a828835f88.png": "90d8069ec3ecc42118b35830ea813fec58b077cda41cb0f2e248f11fa7d98932",
+    "layers/trial-49dbd4cc3d618e503f2461faf184db7e.png": "cf80fe0441e0fa75e2bafaccb3fea1d736f1299465f26890854f144409fcd35c",
+    "layers/trial-5360123ba1fb47b7fa6a68ef6b191fb5.png": "0ddda85a61f4bada4966095f318705807bc208d9cd97977596f62a21cacff4f9",
+    "layers/trial-54e8e664173f0b0a40beec3e9d7068d6.png": "4239f0e9991d2713eccfa81e023ec171a64573245775debe31c756cee7725779",
+    "layers/trial-75cb5f6358ae498aa821a51ebd873e27.png": "2e41b8ea87eb85892eb3675006e695404fbd21505949004c778ad92ad9aaceee",
+    "layers/trial-78110616a5c3a3a9de7203a43ece27fc.png": "7ab65278c7000d272586ce06f89e2ebfef28b9fc5cc935f6b91a1b71ada048bb",
+    "layers/trial-8c00029927f2c279b1a3f5b886c71171.png": "cfdc306802daf195eb471af7dbffebeacebadf19a86a872532535a670b75cf77",
+    "layers/trial-8d64646f56a14cfea6a40a59e41ffc44.png": "9389eb0b86f2f31c5d4f9c5b31abff5efe2966549fb2292d0ab9a677145edf1e",
+    "layers/trial-ad554af1e68e0b0d10721bfb21699f89.png": "40306224189572d0e8b263fece1878be0c09010a7517e9e54b17e1daf7930f03",
+    "layers/trial-bba9ec6395ec03f8e6e1bc526a368fea.png": "86695b35ef001980187256d5c5a1fb8b2e4732993fe1fc2a47fee3b0a4a665cd",
+    "layers/trial-c3436bbed7bb999e6db45e8d2cc01f77.png": "79e19f45bacfcfe392f4b888207bc201b7f8c7396d2dd978bdba77804a9d0535",
+    "layers/trial-d266884297a36ac1f71563caa5960094.png": "abce03bfd9ef95d9e7c9365a473a994ba042a38c60e03ae2c626b6c7fbb9ffd6",
+    "layers/trial-d65f6c89183d60bcbdafc42e867335fa.png": "b3c58bc21789859d3ed29658c3170d23b368aa2614bdf13f00069e12f9c246bd",
+    "layers/trial-da857cd76c40a5ffefe374d3a7529553.png": "1d34cdea7f1a9ff16c797f3ebc4ae70bd00e2470f72ff47bcdc9258a37ea1065",
+    "layers/trial-fc0456119c79a8ee69ccff7ff813b838.png": "501a2f73f24eef28a260f5bd25788f755eac8d3d290c1300a3f8933fa73b8a79",
+    "layers/trial-07d38370df1af013b398b920dec553f8.png": "7de62f8dd26718a164ec012f5778f1c38170b4e8dafb5559cb806c650155aa08",
+    "layers/trial-08a26d7b72f773f3da95d46508c38da1.png": "5a515e7adb59b852784476de0211b424803e8c8a4798a177e2991cad9a137e5f",
+    "layers/trial-0ec6329ebba065a58d821af7f515c24a.png": "f865a00c398722990d5b690aa31c1786c83762652498bf36496d124b17a942f4",
+    "layers/trial-1d8409602e7bd2135eceea92c6726f26.png": "4339dec596dcbe6c347e216a07eb5a0e4b698fd16f91654466f13c2c8e07ceaf",
+    "layers/trial-1de0aa02f0a8573d3273cca59506607a.png": "51df3c8d9c68443c8daf4a87cf3bc7205d5de5566f691a10b8f7b0b1c5ebd614",
+    "layers/trial-1f827c62561bec281057828a010def80.png": "cb5e01f5aba5cf008764f36217e00826aabcf7d2e7adde824a8fe01fb8c97c84",
+    "layers/trial-32837bab881a986c57a27edd8165bece.png": "edd349dec617d5ca33cf500fd8db4d7090be3016ad34263c42897dc429392bdd",
+    "layers/trial-33307ca2dd22e6700daafce0db998d7e.png": "afd82941a2526b3d149a2d52532d2c9c4135939cb321ae082311cc295204ef8a",
+    "layers/trial-333f91dcbba002a9afb2b99bffdb6ed2.png": "65b4726e8143baa03eeb75777951dba3b3bbcc8eb0fa6118d0b7baf5992dca6f",
+    "layers/trial-33ff755d8723815b90b5032ac814d2c1.png": "3c4d9242daeaf84e4dd7b37c49e1a37c7b9acdcf1963920da1bad0cb70b6c380",
+    "layers/trial-46342ade76af35c1bb2a9ff1709e7bf0.png": "39efc73f9a223b1d074dc313d302420031c9e3c65e6b9f254b12b12b679d5b89",
+    "layers/trial-54f1734fdef92e6ffdec8014325d8848.png": "da4574305cff2cb00faa5e51c995d8faaaf84f5299b2f943ca76538a09a0534f",
+    "layers/trial-63fee9c58ee816a58cbf9d97ba2c7e8d.png": "fb3065feeeb5d64bd0edc8e1517ff976365c3b542c03f6d6f0c5f5da4767d050",
+    "layers/trial-6966aafc24e8f6a3f715787af466f422.png": "67e3e978136adeb833479f7f1460793fa2fdbd533561919665d9d36bfac7f740",
+    "layers/trial-7276ed78a548e6db742584b5fb049f0e.png": "e248057345adfea3c4a9ae2df3ebfb8a4cb87bc023b37232de4749535c2cd4f6",
+    "layers/trial-7c0a230066eddff829bcc2f55a579295.png": "f60518806f60647bc7630b980bf2c020b54891e0b5dcb8869b21d95e17803b90",
+    "layers/trial-8d750437fb67cc1eacd399e5f0b3318f.png": "6c0bca87a85e7f5e1ac00ea4fbed0c17b50565731eda2de169a0bc7227799133",
+    "layers/trial-a2cf383a6d8294f015d8c3a0dc5c43d5.png": "973284be8a767c5767616d7e14db5cb18d971d209097cba4a22bf478b9ebb84c",
+    "layers/trial-aee05a7f77b1ea230b0846da1437c98d.png": "fdfada27e46593f998718862b22134ff771b96df744a6f7fe955bf2011cdb63b",
+    "layers/trial-b3996c73868d89c5b683751a134594e3.png": "2a90a05da795bff789b1b3ae3e0c5015bd9d8e97b5aff238db0cb9846c94d292",
+    "layers/trial-bb5baa73481c992809e198621578f391.png": "b1e2f8aed884bed5e1f11ecf82738085efc9a0970e8d8b46090cbf6d37cb0b72",
+    "layers/trial-c4b021b9708f13f4c0078f16f4726435.png": "22dbb1d55a26868ef2c0eae40db5d13a2b936fd9563f55a7d5da8e3ff2af507c",
+    "layers/trial-c53b309e7e8204a69cc1b02c61c72d99.png": "bf27cdd220b7870e0bf1a73f1cf86d2db847aca4c4184b3d0c68aa1d38da5824",
+    "layers/trial-d2ebe2605b8c71709d8aa3fa5812738e.png": "f03e008edd0b890d4f34ea147a69d9667c5597c4722210db9a3ab4cfc5db9943",
+    "layers/trial-d55594e3a055d7e9715933da4bddeda9.png": "bde34c64f7dad26975c08f262ace45731df282e29752fc772736d8df8a9eeb1d",
+    "layers/trial-e1ac18875a77a8524188e489aca52122.png": "b684895ef51fa10998934e1a98660144fef25f4511cae5b64e4f263a2278e311",
+    "layers/trial-e730585034f5bb0933fac665799761f0.png": "4999fefaf60c7036240f61b8301b84be1b2ef4d706fde0d81c53d03e1d2df69b",
+    "layers/trial-f326c5c6d64eccc58845f2af428f230b.png": "f04d23c30748ae824683055c632de634606725bab62d43e7b5279a2206241762",
+    "layers/trial-2eaf83951132d31ba52223b90b20ad2c.png": "7fc67c2ccd0b9fd093bc5edf0d8ee2d8515f65f4770af3bfed3826ae023803c7",
+    "layers/trial-3a6b1d4c72f5fee222e529527b5c610d.png": "0da97ff4819f497f674d3c6e44ff8bbc053bf09d373c5779e863afeeb3d77d69",
+    "layers/trial-54fdb096d843f5aa59321ff7b6da85b7.png": "5e08b468af21c1ce0fa21d44c036d8631ece5bf188375694a34eed777d1d5930",
+    "layers/trial-5ffa71fb5986fb1eba14d90a5dc10b0b.png": "cbeddd1a5dd9e1e2ad2c1d168b0c56a736d9145b3fa6ddd21417a27303a168c5",
+    "layers/trial-60400b0c3c9c501b1e5bb6a41de38cdd.png": "faa21d4cce5db97068ee1a78c7025d7f8e052c10142fa0d904122590d80b2993",
+    "layers/trial-6bd51ef39a2902fc0c3c7f268f2f4007.png": "749db07146eba6e614d473180f22f634520a8b787cef5e77fce31d00c283fa1a",
+    "layers/trial-6ee1cfbd5ff4929b8c2960775768bfda.png": "af9ebc344c07f966c3d66dd786ae8c5119499ff8b4efa5151816bb92d51c7502",
+    "layers/trial-70db61eb8ea0a216618d09af0facb025.png": "1daffa3aa0ab6e0c3db978b515ee4e761a6180515e7ac3b6378ce86db1498bae",
+    "layers/trial-a059f76070e83f9dd859f6cd813d5331.png": "404c20ae1be26d63fd5f2568aea0c5032a0650b90ff347838432368fd6f81f37",
+    "layers/trial-ae65576e7c57a3c03a175d1ba2918270.png": "c4a8ca7d76f03e616c1bb2341cb8679f25128bf1bcc7c39092b080e09ff80c34",
+    "layers/trial-ba57d597ffa9306c2a482f3857315edd.png": "0721c67261e1bf53cc8667c27a60ee6f333d39d54689f2f4c3001a920069f491",
+    "layers/trial-cebba4bab1353d857e961e824b970be1.png": "d86f020f68af0716730357c2eed5d9a07a9bd8942e23180d577dd42e61c0fbd1",
+    "layers/trial-d0aac8c53ce12b4d9580a4034de5c11c.png": "85e5871ac78604f85fb56a032684a2483dd9a776d9b06dbf3b86f2e37a843b79",
+    "layers/trial-d614938481d0ba9f04a154e021bfb437.png": "0e081bfc6e5a6829835468d2f85b0213ebbc98c4fdd04130f9a385bc908d555d",
+    "layers/trial-d98dfdfe139f78cf8b536038344e1770.png": "9d74ed417ddd72fb11417179f8502d36093bd664937284643b18e80edb5f19c9",
+    "layers/trial-de5c02a049d6c389f1a61817a2ecbcda.png": "86aff61391d45118d81ca767edba32600bba86436a8622ba5c445ef3b4ffd84c",
+    "layers/trial-e1c24973ac2a3391645ac2767efbcb6d.png": "f8a514079be9b753fcb0d8364e3f667d2e94f7aa4e6115d80846fce2ed12f08a",
+    "layers/trial-e6677089cc86a8d83b8eba096e593333.png": "e45c0d28113a76209983cbb653ca6a139749177d1094ee09fe5b88d712a59d09",
+    "layers/trial-ecf46a8dc78f537ef0b777e2491019a5.png": "abe7704138a354e8602b913374fe4c962f3fccbd916708750ef1f14fecd22d8b",
+    "layers/trial-eef02974976643042d5c135b6b776de2.png": "f681d4e3c64e907e363c4b3aa913b9c522f6a7366180fb3a6c2f56f9b2b0bedd",
+    "layers/trial-f657ca4d1f749095415e200494a3f5d0.png": "893e92d70f273ed146acb1f875768508385615166fe61c9b1d5643298dc507c8",
+    "layers/trial-fb6d6e2d78a12700ff04d837a8bbf1e5.png": "d463f002e14f7a5fc65aa724932b3f16edbaf70d5180d4217c551b40763e1031",
+    "layers/trial-09db4210cc0bb5af1bada56f73447324.png": "96f6807dcd8b32be1fab424cfcc9c9651396cdf72d87646c2535ec4a992023b7",
+    "layers/trial-2cd166c85be828def8b4e6a5e22dd398.png": "4a8932ce11a7cbd2de8b15e89d27dd56ccbab68d9a6bd96f007fbfeb2be342a6",
+    "layers/trial-3c10c0b5024e7c1cc3be37ee7609732b.png": "96cdb75ffde82533f1fdc7494a7e7a91a107bb4031240f8e5d9cf7c195cd545c",
+    "layers/trial-3f47982cd82af049d9a8778cf0826287.png": "49e8363d1396a6032077bde71b196422c1d398197fa4557cf62f137651f8ead2",
+    "layers/trial-48d83dfe1545c3cc8802ab501709db98.png": "1aeadd90245c8792f346b4e4534f323e72499ce61bc31acc83de000cbcd2438b",
+    "layers/trial-5a212265168f116796ffbb1f58490dff.png": "a138399db62ada0b73081f87fe12a1decd20023909b8cc952881082acd2a3e2f",
+    "layers/trial-6277353d7188ebb922f707654706747b.png": "4ad9f1e290f031b244eff8a781fc65e317e1a85df78b4ca76281c1f2c94bc4f4",
+    "layers/trial-67abb350f59d280e3a57f69a5de1da76.png": "c378f786e8c9d7e22c1fc461f02659bee9907a4cba8b922fa2f3e0b83e510195",
+    "layers/trial-6b1ff043df0f6223c2f9d28b1b21c9ff.png": "3b080cd7eb5112baff664b09b1a2ea11205e63a037aa2500c8949c1aaa3ad07a",
+    "layers/trial-7fb807eadab58b1e93a44a42a329ae82.png": "974c0ad9e08b71789aded29cf5b143014b53bb448f9c85d49da39a2a85b45e7d",
+    "layers/trial-816b294fc03eb77b95d26787082813f0.png": "95e7b43c92e91db873e47ceef154750623ec56cffdb4955acdf74c57a3442ed5",
+    "layers/trial-8510db0a89851b7dc548f5fa251c980d.png": "79ad29e333918673ad130e0d0bc1c16b3007d1ea36ea513deda82afde5ada8ef",
+    "layers/trial-8b6c5577912806a752429c3b9dad59b7.png": "11b85375e49f5c5a35ee917856aac71d2f3421b8a31299ae6058cea5c5279b78",
+    "layers/trial-8de22c24b34d2baa6744a98f28feb23a.png": "01221f0daa25b7b3fb0fe9ac1415a0d3c791c034fa42f52d869c237e80ca7f4c",
+    "layers/trial-9042395c7a14b235a7fdd99c3c780509.png": "26d90b3d3b4278dd43b7b3b67286b92bacead703845f3ce35339bb53c82a719c",
+    "layers/trial-90e4aef9e9a62781fa71886cf2bfa309.png": "9638645cbc28aff186c8c7b5404b0d78be0c4aa4475321c6d37567c3537bb021",
+    "layers/trial-9e6ac306f00241464b03590d37a56786.png": "3fb90f8c6a83b70670ded8694f09f8b18e34cd0d1e9f507543b7eb1cf361e3e5",
+    "layers/trial-a7c3018d4e266ba0e18d81bf3167503f.png": "b14fb5afdff88b51f867bcac7036c40eae1a09d7f98523b32bb0687e6b186cac",
+    "layers/trial-ab13b668bd7b4eda964055da4af9b640.png": "5fede503ba740f34d4c23bf5c8dbdd38ab9764ab3ede02703bb515c5fa00e1c1",
+    "layers/trial-ae4f546b902128e62f07554c0df41c95.png": "be10a4807fcd4faf417242114c2d8c12089b8690a3b33cfc57071148be2ef30d",
+    "layers/trial-b3df4573b399be12dc4a8a5a1e418682.png": "af560b9bacfb44fd31c7d8502b142d2b6b9047d16eb39b6edb2daa43d65180e6",
+    "layers/trial-e33133ddd80806278ce96000c2eba146.png": "1f5d6179e4791ffe110f9c396a02d8ced0824a79f84c2c58906ebe5bdf234d32",
+    "layers/trial-e39ce621d6124aefa4ec5d880c6522cc.png": "3a64cfbf052c6277abb82f87a720f7bc8f0c84cc25cff55502f014bde05c426d",
+    "layers/trial-e4fa3593bddb49232d417f1d33d164ee.png": "259460055ff8a690905a99906285e4df86a073e6fcc19b69a9237ccd782865cf",
+    "layers/trial-e6a416a51547a0a1db2f516e1085f057.png": "b8667768ce3f3045171728f0984d9a3775c00e4f235c29636cd051752c3e2b46",
+    "layers/trial-e7ea8338c8e34f40e022ff9083425806.png": "3263abf606847214f8cf9fcd85e5e4d3d365960e4ddda74e96671de633bae478",
+    "layers/trial-eae0ff52b1255078b16a89fd4e0830e4.png": "5a29308262405820cd759faa03e7a0e1754ee11adbe8745376df5f5e8cf9911e",
+    "layers/trial-f3aa6b0bb88c71fe5c91affbc3119531.png": "141cd0c5d72331eb5ebc2d10f44809e66377e7ba93cc316ae3ea8c58c5d88004",
+    "layers/trial-f6dd8e4d309f6aa6bd0b8035e69dd9f1.png": "a03551ede52197f1496e689d248830cda94e47b778dbb6598f2a2ab6ba2637b8",
+    "layers/trial-06d282061f7b098fb099dfbb3f43864d.png": "88fb3d25ac1de20a0675273c78d4b00f2f2125d59bf5beb774aa53d2c18ccf46",
+    "layers/trial-0baa78cb6837e55a176b34e979a6dab7.png": "5d7deccfabd54f72faaaed55e992b5f682fa6f8e4fd79d7111bb8023bd607ab0",
+    "layers/trial-11f714610dff0482b1b1bac226c987b6.png": "a7f80d57c17d56961d3341bb716d6790834eda431a7d472141ff48650b966a92",
+    "layers/trial-1904fa856bd66bac1b8005ee2262ffea.png": "71709db42d8a882e78dcf74c0a2bd6df936d712d5573daa9b6242097124692e5",
+    "layers/trial-2932c665f3f764e3fb94a2cdad343fd3.png": "d0f7f68619248de84c56472e80bc35db7e55a4743fe8695e00f9f5a28f99d529",
+    "layers/trial-2d2183322645c598e0be97b225cc9c1a.png": "750f03277ae7722d783ab8cae164c4fbf1132e7491a4ba3033087c5025026fca",
+    "layers/trial-3977eb555214ca2bb777d967a44fe4b0.png": "edfbc7b9ef113d6a0ec45ea3a5140ec9968ef85f839673b722ce207b93737af6",
+    "layers/trial-5111344e65514378a943e85c10d2a838.png": "7af9420ba05fe150be5f13175c4719383e5b7fc7d9c77fb52b08aaef3e78558b",
+    "layers/trial-519b3cd68464cdb212a6690df05485c0.png": "611267f1708e7799cd81598466e47e288df3342b78e0bdb90856954ec9b7ef80",
+    "layers/trial-691c2357f6b8e9a5fd0d0d18a8d1b56f.png": "68480bccce77a621eedb9089b98493ea9ce294306874e8c7381c73d75ab32373",
+    "layers/trial-6a3b4952e8c1f487fab82ef2404bf002.png": "6632b5ff71614125ac5989e06c4ad359711115e44c497d945c199ab9e8661909",
+    "layers/trial-6a654b363e66f1dffbc11572bf25c593.png": "598a8c8ff620018b16480e967671168d47b968f67f68903b035558503ca46e50",
+    "layers/trial-6b63199f1fc7cbbc21d6207a0c9cb9c3.png": "36a05cf2809932450041eeea175a6f560257ed0571b2def2e23b22e681455514",
+    "layers/trial-6b6f80ee05e5d5c120b4486224c2d5fc.png": "a6d1b642d998a4a7139cbc5c88e8bd039f5a91ba14a69f4338298b5e14383732",
+    "layers/trial-7786273db5c6cc6ac8f822eec2940a55.png": "8cdc29f59a30bf155b348da63c0ef34b9f8f33ce5fe1076204bed6fff6078259",
+    "layers/trial-8442101c79893e94a16dff8d7a8b5ddd.png": "aa6fbafea969ee1dc1a21417f8f6f79ec3d52528aafc5fde6bd0712304a240d6",
+    "layers/trial-8860caeb57a5571cbf47999806542bde.png": "3b91c29cbbcfc899dc42991d74664803720a5dbe8d505da90e0d2bf1c849f83e",
+    "layers/trial-91059282eeecebaa4ab0e8e6f438e3d2.png": "92c247bcb0e7744f98f584cf0d2dd8bdb5e2b455bc0a48db760c36f5182631c9",
+    "layers/trial-99c667c6b006d2ba7f3e4a89f633a2cd.png": "d5d4c4dbb3f8a7b31b42ae5c63d8e734944b3a08f6afe32d10a0706898b70e2c",
+    "layers/trial-a2738b033aa3802940dd0833473fb81b.png": "0a3713fb25a13e868c035a3807e9152b28e12c90cd89fcb3762599445b17988d",
+    "layers/trial-b21633f4b3a58efd6eb51eddef516ab4.png": "72adb232ce4da534d523df2db29d7c95bdda6f33efb0738a68121b49f5b8dcf3",
+    "layers/trial-bddeed4db4e14faf11fc600ea9c49fb7.png": "d8b6a32c6d629410673bc3bd2d4a54acd30bfe6576dcf4ef4bda693acaf47e05",
+    "layers/trial-e351d06d40b25099dea85b4a9839d10a.png": "95e72406e25513a1709b3538a7bf4b633c88202b9be29efa0e75e57c23999d44",
+    "layers/trial-f181f23f265c8ce266b53d77acbc9d7d.png": "8bf5150ac9684588615e5a5a787464af7b8c2dbf0d2e398aa5a10be9fe17a9ed",
+    "layers/trial-f499cf044feb6ce0f9b9d75e9f509807.png": "14ffa922857b51e49ee2537070ed456dab75366f99dea29134418518d698487f",
+    "layers/trial-f71bb11e1c2b9d7e2253a0d1fbc069da.png": "d0e16b9cd830adbbc298cb2a648e7f66bcc36adda2df45f195fbc696ccba7f5a",
+    "layers/trial-fa3a2efb64434c774e96698eeb4b0022.png": "080e5b8e1ad1962a66b5df2a3eb443d82ff28871364e76e7c162eb06cc84a80c",
+    "layers/trial-fbcfb820c5914daaa05dead875243f30.png": "aaa0f3bca7f3600310aa4d0afc382af3da1de96e7964d02d9d4f264aecbf7a1f",
+    "layers/trial-0eb21284f53e27df359dc62fc563f3d4.png": "247443d09324be079c5af6a7e62ade58a3ba0cc1f40312a0864d105f09f2a638",
+    "layers/trial-0fcce67354f89f5430bcc0ce1f24ad70.png": "6302c52b375a0c85c3c8ec36313f86104f0b6c080c8994011d8604d958ad306c",
+    "layers/trial-16be146940ea47647b8172134736cd91.png": "8226ea4b0b9d9a987e82ea661c6973bb87fa93c697e310291ccb0cb838848e0b",
+    "layers/trial-19f5ce1e90cd0c34b9495a5a01d73e60.png": "6cdc663bccd2ea6ed5dbfeef3cea1857c179a803ceaf6aa7bf186816cd34e53a",
+    "layers/trial-1df35d53a640e3546dabd8d68acb610c.png": "ecc76d3c02c120c904d7f39c432d98f0a204fb6e6c96f44202749672ee4ece76",
+    "layers/trial-383a9cb36b9f12e8abf810f6929e1c0f.png": "b906ace51cdc9c8221dd6eb020c91df9dd1c22496e407681d6aba88cc8b4fcb5",
+    "layers/trial-4262f4abd2b9a4105a78b9fa86d2b6b7.png": "13e6edee5064398c0b16f2543982ebf511bbaef59607b4a9789dc290d0b94c0d",
+    "layers/trial-42e9c54327545769b2f6c5d8edabae9d.png": "625b7bff3a34eaeb1f09d0e21b47843f1291c36e9f25dd5579cdb6d1b9e71947",
+    "layers/trial-80ef29fc1d9b16b6bdd8b538723bfdc1.png": "63e44f78d3b7a43858dc5449b69cf4f86626794882b27663d580e3f6ab8176d1",
+    "layers/trial-82098e91e8f8ae435e806c7ae8530134.png": "e5923dc5cc82213fd7ddd6c3da8b7ae62333df7308adc9cdfcc6330f51b7c33a",
+    "layers/trial-8a4a7993df5873630aba8c0c43cf78fb.png": "34aa014201325da4167abf43d5f808d982864f2029daadcf636ca67f30fd5924",
+    "layers/trial-96b58b6b4b83576bdda2ccab92c82874.png": "d570dd3b8aa12a7bccac6083aeef0f51d77c89dd8b856c11ad572a181b46c37a",
+    "layers/trial-a04d1450cdd0dda46f87f072af797a7f.png": "2a1342b6885682073c81516cd9ff0c5f9dfb7d4e2b28ea453d27df25992e4d5e",
+    "layers/trial-b38f982a9ad8b4db8beb0a4f7701a471.png": "25735563024f2468b2bdab31f0d20bcdee47169eeb4f358f1afc7af1038b3b95",
+    "layers/trial-b44bb5219c5ddc9c3ecf495c841746f9.png": "903033feacf2b7cc0357776871b427215cd9dcde8784ea0bc858bdd1695e2549",
+    "layers/trial-b9c4c17563a1635c8c5c8e4b08a68f1a.png": "de55da7c03d010e553acc8d2a43bf3cc08549173729f3129a802b9674d41c2cb",
+    "layers/trial-be57371ac17f13472de918b08453cc63.png": "0e794365f4272622ae051f9675390f009ae0f844fe5c355021ba27759f68621d",
+    "layers/trial-c6f633510b09c5b4ea6c58597c7932db.png": "27056c9cce59664f90135dde48ae98b45bad7342a9714ceb2a8b7bd26faed7ee",
+    "layers/trial-d2a0d07abd0482b693199c7ecde76f85.png": "5f7d58fbbe6f4c34ac7002f6755f9f397b5d51895069bf8b251fb5741316f2cd",
+    "layers/trial-e060130a3f9b0b16427f8e3fe5f3c5d6.png": "e93d84dc31d15ae7764c8640863cdba98561ad6822cfb665e4bd0b7431dd0c6b",
+    "layers/trial-e2c4005c8d3b0efcd93a19034f9b6808.png": "333fbb0cf270c073285a731f954453410a7c250ecca92e89b87211b8471d89d5",
+    "layers/trial-f60b4e4581c041c7e1df3ec132538985.png": "1d66a83368be47ab60d608d47fef42266c0660e68023c1c855689d8083dee242",
+    "layers/trial-fb950499321fab01df6035f3b87f7581.png": "4d5abb521dc88550e453fef17ebceac2874da4df27b1fdf9acf61d2665ee36f5",
+    "layers/trial-fc24c8122c1e2175157572850698256f.png": "6cb56cf328c607e56149c640848dc21fb5a0dc4a921dc9ef8da00b32bbab1ba6",
+    "layers/trial-02bbfb27d351ee01e47a7a8247569530.png": "fc03090d2a25b5d02daef445c5d3b8f3fc87c52493d048fa720fed2ac2c2c8ac",
+    "layers/trial-0377cded3ffc5f9b02ac0fcad2edbf4e.png": "b8d906d58e22c5a8c19e75e0a5757b2d5f73a2661dc26646478eedfaa4c0ae70",
+    "layers/trial-0687a0f6904374dab3273f424fc5d79b.png": "bfcf91621fd982fb439cc49f5a60d8580de68184a89c1b4229cdbc81b7ab390a",
+    "layers/trial-19a857dc98c54e349b7090f36d570991.png": "82a467271afbc23163ae15dfa6b082539035de09c25e38734612ffa683acef90",
+    "layers/trial-21347d417b4bb5e586c82e27d0c9977a.png": "bfec13c8d099fa3a680ebd698c5aa22450b67b88ebfdbc0f7ba40ab5ddcd1e35",
+    "layers/trial-2b071f1788429e48d5820870f28343ab.png": "bd14a278c36e6dd6bd561cb505471b224cf6b90c299d75a0926f326b29da120c",
+    "layers/trial-674ff3aef0ae3fe33a0baf238e2c9c75.png": "b5604c76c5eaa0a472f092d6f32665d854350da86e76d57fe4c1559b03369479",
+    "layers/trial-6f8c68cffb1804ac50db6118d09f5a36.png": "f9f93c6e5c78a07d816951a0da6d35dcde7d02d3179e7ef1bbb86b181886346a",
+    "layers/trial-83ecfdb4820db5deda6fad9ced089935.png": "46ae531b26dbfbc840aa62dbc92cc8f27bd2a509be1a496467a5e7383970ef4d",
+    "layers/trial-86666575325346ad7f6e4715703bd780.png": "b57c36c8e2e881f27f94bad020434ef8154af3ce5de40515621d3b3242513f48",
+    "layers/trial-8667dfc76ea0c91e5c4010cc29702791.png": "3a4f3fd000c3fbcaf3d4759d1a29b8b5413b3c87517e577962f2c8b9541c4581",
+    "layers/trial-97ef04833686c36e11f618a045ecdbe3.png": "8d5d6698220fd597362cf52fa9c690baa9346201287c9042ce01b623f809ceb3",
+    "layers/trial-aee28bb5f140644f45acc13c48a81cb6.png": "fed705394295cb76ad07d4e82efe43d0f2165e6d910000734afbfa6b2c5da4ef",
+    "layers/trial-cb0b13ae3ca56b61a188bb54325dcdea.png": "62ab24ae409f172142fd635c2b40ae85057e9183507fe6edf16e77d25c2e0a6e",
+    "layers/trial-e2ae42795e14ce09e1ff63787ecef8da.png": "b48f7eac8657e99932086e1acaa639007c1f92d1c3c7a0fe90a52b58ed663387",
+    "layers/trial-f00996e76f4dac50b8558524aa58d6aa.png": "145ef43a59ba32be152a3257f6fe2bdf2f53e1c2fcf0a5aee7b8c3b96e6c3ad6",
+    "layers/trial-23903adda0bbf7df0e9061cdf52ae682.png": "aa3185b15d2e2a7fb802fb036dc0ab5970479b01fe0491d147451108f4456dd7",
+    "layers/trial-3fb40c5899a99fc37df4256e431cd64d.png": "bf901c7e94cdb27a34676f6c0a4106704e66ab4d77174f31d84bdc2674647f0d",
+    "layers/trial-461a497e71caa6efe781ace759718ad8.png": "37814d5a361f048b97d1c177230fd0f26c07f8073aebd3b83e8658edf1091520",
+    "layers/trial-49d5eda60beb3fadae7cf929ec0a7367.png": "1d01fa3ce79d9be1f3a49fcf8e94ea4906a552565ea16ff69b72924745eb0e43",
+    "layers/trial-7273529ce48f9e1e236239192c6e7588.png": "73a65c5a386ee5d7f725aef4ae485c92ad50c2c9687f60c2f49745fbcda7b3f6",
+    "layers/trial-72b05096e94bdc0021fe277b89126006.png": "bdb43c2c766c10435d78ca7b2534235a4d0eb449df56e974dc360bb1d9eaae95",
+    "layers/trial-7a5810e2b10677efdedc7e46db915d25.png": "e18457d7c22f3cf83640eda3c75c62ae0ed06167e98a38c4754507603a631972",
+    "layers/trial-7ce930803b85f3f1b25c720eae72970b.png": "0e93c57d60465130449efc29d1158d520e58fc5a047b7289364636d4f898a79a",
+    "layers/trial-8f8b5aab7ed7027eb929368d709db9f8.png": "7c8c901f67080a7f53d24e6c2134ea4f1e863fc9fc46000b841cbe692af76ad8",
+    "layers/trial-931bdd56484a0fcb0f0b09b4fac4772b.png": "8af9154a6efbfcc44ee7a63880109f71966914d79cee1c5835cefe6d42c7d53b",
+    "layers/trial-9c810c14a23045a1a2467468bf1ca1dd.png": "aa221f37dac11a898528e62593d87d7c33f07da78e8d8799958aa294becec1d3",
+    "layers/trial-a03d1e4d9c02cc60d7bbec66efb2a67e.png": "f0d87c21c33d26a59619694e1b13558ac5b665583880a5a601de64f4f63f242b",
+    "layers/trial-a86d95c1c9affa019633525f90d0c76a.png": "7b7342efdd076864d14766ba5c13ad975d17f02d6cd336fd720196c3f5ba73d4",
+    "layers/trial-f11e5f493c70ced27ba197b3e625e7ab.png": "3ce2d335ce9af815bb2bbf19ab88565d0e502cba8767bba9e8aba4190d971d9f",
+    "layers/trial-f1249e39cd848cb63e68dcb8c0c7a040.png": "e49a0baf5b37536659212bfd190575f29c4f1bfad1304474c8c9de4f49af05ec",
+    "layers/trial-0098731bc46b496b74e0e13c20bcccea.png": "dae6d4df4d444188d82716578609530863d25cfa24474fe6ff6361c06ac03189",
+    "layers/trial-02aa8eae258b1c35ab4cb3fff4c8b493.png": "1f6f2176e907ad2b98cc97b7e7a835d5514217100f13f1886e964d207da6491a",
+    "layers/trial-0d45aa6e5fb1f0322c40ac4a9ddd7a23.png": "eca94880c2313d13ff459a31244c7e73980fd187bdf8e83f29307fe494e1c190",
+    "layers/trial-118431dbb8f7f40474cc149e97f0731a.png": "eaca7bb2150e0ab49db551212a62ef8dc830060f39a35eef29a18088ee2a09c6",
+    "layers/trial-1bfdb96bb0fe3093c30ca4e680205835.png": "978167c419dfdc333108b90bfcc62b7ef08a1444c05b8805f7c58e95393f03cb",
+    "layers/trial-1e4a0b68776adf00cf153ca9811e36bc.png": "7fc264431336b99590feac8057ac081313c6d4ba88e6038b74166740bc40a232",
+    "layers/trial-32124f5f92ad80047353e4356852274c.png": "461c581b716e0d872d84410eac3e328f7f980ccdc1677ca4f5abd2d32f96913c",
+    "layers/trial-39b6eeaf308e3a311c92ebe902d75c65.png": "9fbe2d5f4a84c99f3daef42d70fae89983fabdbc2148eee19af10f6fe630fff4",
+    "layers/trial-3d7f3f5e4961fb10f69f7e75e0798699.png": "226e356498cad78ceb117c15c6a4685c55473cce325475ee139d980bf8dfe5e0",
+    "layers/trial-45f6a8ed569a53eb71cbeffb8841fa95.png": "953a61617c7b48cb994cd39fc3b157d6e183ac99d8c8e0f42a28639cd472d346",
+    "layers/trial-46d0717edfe46992b4f688cf6cd05045.png": "b0ec9d121f338c2ebd865014f089193aa1dda2f9b7bed0a7a4e0c46c867767cf",
+    "layers/trial-65d97d52caffc8645d549d190aec37de.png": "fff7d0e93ee77f681f3298c3b0c700a7cc5c4333a94a1eeec4317affa2111353",
+    "layers/trial-681ef39987cd26c40a5766bf9bde7893.png": "b71466646d95136512cab0b320a4317a7cf56966f93112d3d0b680522ec1879e",
+    "layers/trial-7be871bfa175323f3fc3c4fb8d07a13e.png": "d0446f408b42a662a6f4c22207639077b3ea090ffa94cc87e4c029240522c64d",
+    "layers/trial-89df89b8ce6fd5d27d63d56e2315f49c.png": "d5a672aec918df0ef9faed4015b4c66d40a72b921d6140c7fe313bc2c439759a",
+    "layers/trial-92aa0ce76758dd195c2d3fcf1dcedca6.png": "64d8f7acde831f2e0cd95f53d450a0b8c6a0765f0046652780e49de031dba060",
+    "layers/trial-938c06a8e2394ce64a68dc200e249283.png": "46ab159047393b3a46c737351292fcdefb0f81bb23da74a3e6995b37bc6c6f86",
+    "layers/trial-9ebc8e885a678b7763dd34c9ca03e676.png": "56122994c25295ef927ac2d27c070e6e1b677693fc3bb8409ad566dabaaec8c3",
+    "layers/trial-a555c8efa5770cf100b3e8204529df4d.png": "233b2b6111cdd81636e1432c25555f6728bf8375de1d3281db9aec0e873084c5",
+    "layers/trial-a97295fe72c443b0744c3e9ad7fd403f.png": "56c7a5d5c8628e4123446b73b9a8524f49dbff2aa3830e3841da35b8b2f821d9",
+    "layers/trial-b8fc559b9636449cebb1d8269399e4cf.png": "ae2ceddb597072343a5a8c44dff65d7fc5e7f09d72b3abe296f62f5bd34faa0f",
+    "layers/trial-bd39991269c77874b8df16856edcac5b.png": "f6fd1a03ae1ce335bb537f274e18e317c72a0d3b044f7906c0f5444790cc0283",
+    "layers/trial-c05e276427453e17ca2e1f0fdd38c279.png": "6c4edaabfcd538d13ef5a3c4e74699c7434c910ffccaabd0e5289b596f6ad10f",
+    "layers/trial-e22b38b3586cebd77bb4ac0760079eb5.png": "47101b9117d5ceb4fe2ab064ff4718a0e2a3440d48dc0e9e66d80acf0d460fac",
+    "layers/trial-fd7c7eeeee70b73f237a14fed9ffb4d9.png": "2b2f99c9fca058952fdbccc95be59096f9dede10978aaca7edd26c8209bc49f1"
   },
-  "manifest_sha256": "febc8f26ed023cefb31a10610433eba7d599bee1156fb6a0fed19ef8c22432b1",
+  "manifest_sha256": "6fca59f01610fb0d2c9eb00329bd339be42181c16e78f34b705046c4f2c369e8",
   "mission_ui": {
     "release": "artwork-v2",
     "font": "Tenchu UI Sans (Noto Sans JP subset), SIL OFL-1.1; see game third-party notices",
@@ -9461,5 +14686,98 @@
     },
     "results_background": "Use case: precise-object-edit and style-transfer. Repaint this game results-screen BACKGROUND as a refined high-definition illustration, preserving its exact layout and colors. REMOVE ALL lettering, numbers, punctuation and symbols (Results, Time, Events, Score, High, kill statistics, TOTAL, retry/quit, every slash and colon). Leave their regions as background; exact text will be typeset separately. Preserve the black irregular diagonal silhouette over the LEFT half, the muted dark teal-blue circular moonlit shoji glow on the RIGHT, the thin black window lattice with exactly the same line positions, sparse drifting pale petal-like strokes, and dark red ribbon/brush swash at lower-right. Maintain all big boundaries at the original positions, especially black/teal division around x=41% and upper-left large black area; preserve bottom dark field. Smooth refined light falloff and subtle rice-paper grain; no new imagery, no people, no new marks, no perspective changes, no text whatsoever. Full flat 4:3 canvas.\n",
     "review": "All four languages and all ten briefings rendered on native GPU; localized shops, ordinary/final results and training leaderboards inspected. Shop/briefing flow, narration, carry limits, retry and cancellation passed in WebGPU and WebGL2 with HD artwork enabled. Disc-backed recipes and input hashes validated."
+  },
+  "trial_artwork": {
+    "description": "275 missing terrain and ornament identities across all 12 TRIAL themes and all 16 built-in missions. Related tiles painted together, then cropped into individual PNGs. Source alpha is reconstructed from the user disc at load time; no original pixels are included in these PNGs.",
+    "generator": "OpenAI imagegen",
+    "sheets": {
+      "theme-00-0": {
+        "sha256": "e78cab15121ab94d5e2a7578d3eb97785881c714a63330071c883e8790c3e27d",
+        "prompt": "Use case: style-transfer. Asset type: production game texture atlas, exactly a 4-column by 4-row uniform grid, square canvas. Input image is the exact layout and low-resolution reference for 16 separate textures from a feudal Japanese dojo environment. Repaint every textured cell in high definition with realistic restrained aged wood grain, worn dark iron, plaster and stone detail. Preserve the exact 4x4 layout and each tile's shapes, framing, structure, plank directions, divisions, triangular cutout diagonals, dark backgrounds, material hues and average brightness. Each cell is a flat orthographic UV material, NOT a picture of a wall in a room. The upper-left cell and row3 col3 are wood panel floors; the iron vertical bars in row1 col3 should remain thin dark bars, not wood. The white grey double door in row3 col4 remains two iron panels with ring handles. Row4 col1 is wood with a small central square metal grate. No perspective, no drop shadows, no padding, no gutters, no borders, no labels, no added objects, no lighting gradients except those clearly present in reference. Keep dark or solid black cells black. Closely related planks should have identical material style, scale and color so pieces fit each other. Fine natural material detail, no pixelated blocks, no blur or oversharpening. Output 2048x2048 or larger, strictly uniform 4x4 grid extending to every edge; all cell boundaries at exact quarters."
+      },
+      "theme-00-1": {
+        "sha256": "af15aa5783aab4539b52aff5541a187fb9828de3008e795bcc748062cd35f5a0",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Dojo details: only the first five cells contain artwork; leave all remaining cells black. Top row: soft warm lamp glow on plaster; two dark vertical wooden slat panels (one with a round hole) that must match each other; plain dark wooden boards. Second row first cell is aged vertical pale plaster/wood-grain wall, matching the first atlas's aged wall. Preserve each panel's thickness, hue, borders and hole exactly."
+      },
+      "theme-01-0": {
+        "sha256": "e4159a6c4bdf8e3b102945ecf09ff700e0e1abe97597219aee7cd9dbc73e6f87",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Wealthy feudal Japanese merchant estate. Top row: muted tan reed mat, warm square lamp paper with thin frame, paired white sliding doors with a horizontal ochre checker band, rustic barrel end-grain. Second row: subdued gold foil wall, white-blue porcelain pot band with five blue decorative emblems, white cupboard doors occupying lower half with black upper half, dark vertical timber door. Third row: timber with cross-shaped iron fitting, carved dragon wood panel, dark wooden boards with central iron handle, two tan tatami mats separated by dark green band. Bottom-left: red-brown bark. Preserve all exact silhouettes and decorative forms. Remaining bottom cells stay black. The pale door/window designs should be crisp; natural wood and woven fiber detail, restrained colors."
+      },
+      "theme-02-0": {
+        "sha256": "b9ad2313587e0ea444508efeecbac45ac2859dab15c6a29fd1b49b9f23d9ea46",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Japanese castle town: earth/plaster triangular slope tiles, timber boards, wispy hanging willow branch cards, paired paper lanterns, pale plaster walls with small barred windows, weathered earthy road/stone, slat windows and shoji grids, dark timber frame open in center, small banded barrel sides. Preserve exact positions of triangular shapes and the window/frame openings. The two willow cards should have related natural narrow leaves along gracefully hanging twigs in the same green; no trunk or new tree silhouette. All plaster/earth tiles must share consistent muted color and texture scale. Transparent cutouts shown black must remain black in their exact shapes; no extra branches beyond original footprint."
+      },
+      "theme-02-1": {
+        "sha256": "c776ab73b91f6e2d6be96068fa29ac72d6a291cf5b717973f8666a42dd4cf6ea",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Castle town materials. Top row: dark gray masonry; dark horizontal weathered boards; paired shoji paper doors with lower timber slats; triangular weathered earth slope on black. Second row: barred window and lower stone wall; triangular dark red vertical timber wall on black; rustic timber door with a lower horizontal beam; dark red horizontal siding. Third row: ivory plaster wall with small black barred window; tiled gray eave above white wall panels and lower vertical slats; octagonal recessed timber window; square white-paper grid with lower timber slats. Bottom row: striped lantern paper with its round black emblem; dark blue-gray water surface (subtle natural ripples, no land); warm horizontal tan wood planks; dark red vertical planks. Preserve cutout diagonals and openings. All red timber textures match each other, and the gray white walls and doors match."
+      },
+      "theme-02-2": {
+        "sha256": "70892365f3ac8173d268d91f45568c781cba9fc6e0533258858e23d983245459",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Castle town details, only first five cells have artwork, all remaining cells black. Top row: old stone vent with three tall vertical dark slots; dark brown wooden wall with horizontal beams; dark gray masonry or plaster framed with subtle divisions; plain muted ochre plaster panel with thin wood frame. Second row left: triangular dark red vertical timber panel, occupied lower LEFT side under a diagonal descending from top left to bottom right, matching dark aged crimson wooden siding. Keep all silhouettes and opening sizes exact."
+      },
+      "theme-03-0": {
+        "sha256": "1ba6663f273c5c3c4b2a17dbde4c6f6214f9002a53271be7cb624dfa218206d9",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Underground cave and mine. Preserve the very dark subdued palette. Triangular dark rock slope cutouts in first cell, third cell, row3 col2 and bottom-right; matching full rocky wall bottom row col2. Dark bluish stone floor row1 col2. Curved rail track on wooden ties top-right; straight track row2 col2; damaged short track row3 col4; damaged straight track row4 col3. Matching brown wood and gray metal across all rails, preserve track positions and width. Riveted iron grates at row2 col1 and row3 col1, one lighter and one dark; a solid round mine-cart wheel row2 col3; shadowy rocky cave opening row2 col4; ochre mineral/earth floor row3 col3; dark rugged cave stone floor bottom-left. Black openings and triangular backgrounds stay exact black. No new scenery or perspective."
+      },
+      "theme-04-0": {
+        "sha256": "1f9b34ed8ca7afa413cb00b00fbbfe3c1986d4b27095e7e94586349b662ca0d5",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Mountain pass and bamboo village. Keep subdued earthy green/brown palette. Top row: rustic rope-lashed bridge planks on black; dark soil/rock wall with a thin grass edge at its bottom; two adjoining blue-gray waterfall strips with irregular spray at bottom, gentle falling water with no land. Row2: paired triangular earthen slopes meeting at top between cells, dark gray block stair, dark green conifer branch/tree card on black. Row3: soil bank with grass at top; green bamboo wall with small barred window low center; three gray angular rock facets above black; white cloth banner with simple black diamond-shaped crest and wooden pole. Bottom: green bamboo wall; brown vertical wood panel with two thin rope bands near top; bamboo wall with small rectangular window; triangular soil slope. All bamboo walls identical timber scale/hue, all dirt slopes match. Delicate foliage retains the exact silhouette."
+      },
+      "theme-04-1": {
+        "sha256": "d0ddd3dc2415d5aa9aff41461e4219d0f0e8dad4cd99e36cbf8d8bd673d279f7",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Mountain pass. First12 cells only, bottom row black. Row1: green forest grass, matching grass with one small gray rock center, fern fronds with pointed broad silhouette on black, weathered horizontal wooden plank panel with outer support posts. Row2: earthen cliff fading to black toward bottom; triangular earthen slope under ascending diagonal; horizontal wooden plank panel, muted tan mottled rock/dirt wall. Row3: another matching horizontal timber panel with outer frame; earth cutaway band topped by grass and black upper area; muted tan rock/dirt wall; dark green conifer branch silhouette on black. Match material scale and color across all wood panels and all soil sections; restrained fine detail without new stones or scenery."
+      },
+      "theme-05-0": {
+        "sha256": "82d97e798e26dda668024d2051e6f9b768b74fcf59da2cd85e717a32c81f76a8",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Snow-covered samurai estate. Every dark stone wall and triangular slope cell depicts the SAME irregular large dark rocks with snow lying on upper ledges, same texture scale and natural worn gray rock. Top-left pair are matching diagonal slope halves, third a shallow triangular slope, fourth an icy gray stone wall with snowy ledge at bottom. Row2 col1 is black; col2 a sparse dark tree with white snow on branches; col3 snowy rock path dominated by muted off-white snow with exposed gray stones; col4 full dark rock wall lightly snow-capped. Row3 col1 white softly glowing lamp texture on pale gray paper; col2 black upper third and stone wall lower two thirds; col3 full dark rock wall; col4 shallow triangular snow-capped slope. Bottom col1 black upper third and dark stone wall lower section; col2 full snow-capped dark wall; col3 rectangular white paper/plaster panel with brown thin frame; col4 dark gray stone stairs. Snow is soft neutral pale gray with subtle grain, not pure glowing white. Preserve dark silhouette and cutouts exactly; no new trees, no scene."
+      },
+      "theme-05-1": {
+        "sha256": "037342ffa36b5f6a0650bd4de28aba637d18304ec883824a1ce16f2c63037bde",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Snow-covered samurai estate details. Only first6 cells used, others black. Top-left: paired dark timber door panels with narrow snow resting along top and recessed horizontal handles/panels. Top second: irregular gray-green stones largely covered by pale gray snow, natural granular snow. Top third: upper two thirds of dark mossy irregular rock wall, matching snowy dark stone atlas, bottom third black. Top fourth: dark vertical timber texture with subtle pale lamp illumination center, preserve soft patch. Row2 col1 sparse leafless tree twigs tipped with snow on black, same branch silhouette. Row2 col2 bright translucent paper shoji grid with gray-brown thin frame and broad horizontal central division. Preserve exact grid and dark edges. Everything flat UV texture, not a scene."
+      },
+      "theme-06-0": {
+        "sha256": "4d31ba07ecd869a8f49a978655650ca540c83c2e25d56dc56cf10c4f650dded8",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Old Buddhist temple. Muted dark brown, gray and blue. Top row: vertical wood boards; irregular gray stone wall; cropped rocky arch/opening black lower half; gray-brown rough framed stone panel. Row2: dark bronze Buddha face UV with eyes and nose exact positions; vertical wooden door with one wide black horizontal opening near top; earthy dark rounded stones; quartered wood panels around a central metal ring (center ring must remain at exact center). Row3: wet blue-gray rocky ground; golden bronze praying hands/robe UV, preserve pose folds; quartered weathered boards; full irregular gray stone wall matching top row. Bottom: broken quartered boards; very dark blue water with subtle natural ripples and no terrain; dark upper area and narrow orange wood frame enclosing gray lower panel; pale warm rounded square lamp paper with soft center. Preserve exact icon and cutout structure."
+      },
+      "theme-06-1": {
+        "sha256": "fb70eb4d5d0d6319f8af23b6a7f94400e4552139c2cd5a98661adc5cc4e509d8",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Old Buddhist temple details. Only13 cells used, last3 black. Top row: aged tan/rose plaster panel with black horizontal slot and small red talisman papers; dark blue ornamental temple roof silhouette on black; aged wood wall with two wide black horizontal slots; rough gray-brown stone wall. Row2: weathered bronze Buddha face upper portion; squared tombstone engraving preserving its original dark calligraphic shape positions without inventing legible new writing; worn golden bronze lotus petal ornament; bronze folded robe UV. Row3: matching faded plaster wall with dark wooden lower panel and red talismans; bronze pointed leaf/lotus medallion on black; dark golden bronze statue folds; narrow pale wood staves. Bottom-left: golden bronze robe hem/lotus relief. Preserve subdued dark coloring, no new words or labels. Sculptural metal detail should remain flat UV artwork, not separate objects in a scene."
+      },
+      "theme-07-0": {
+        "sha256": "7660ef457a676fc0093f5636603091c6efec12e178f24b764c85125e1f636cc0",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Harbor and pirate ship materials. Dark weathered wood, gray stone, brown soil, brass/iron. Top row: rough dark gray stone; triangular gray stone slope under descending diagonal; earthy bank fading to black at top; horizontal dark timber planks framed by riveted side iron strips. Row2: three broad vertical dark staves; golden bamboo/log band only lower half and black above; pale yellow-white lamp paper with subtle warm center; same horizontal timber wall with one small rectangular black porthole. Row3: vertical wooden floor boards; matching vertical wooden wall with top crossbeam; matching wall with two horizontal crossbeams; brown earthy bank. Bottom: torn dark red flag edge on black with thin upright pole at right; rough gray stone; coarse cobblestone; same horizontal ship boards with two black rectangular ports. All wood boards match scale/color across related panels. Do not add brightness, no scenery."
+      },
+      "theme-07-1": {
+        "sha256": "a9ef96f64818a5d43a77afb75b8102402de57702b7dfc8121ce0b01af21699f8",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Harbor details, first12 cells only, bottom row black. Row1: triangular dark gray rock slope on black; golden tan vertical cylindrical wooden staves; square dark iron bearing plate with central rounded bolt and four corner rivets; opposite triangular dark gray rock slope. Row2: tattered red pirate flag with exact black skull and crossed blades silhouette on black, upright pole along right; circular dark brown barrel end with vertical planks on dark background; shallow diagonal gray stone slope; dark gun muzzle circular metal ring with black center on gray background. Row3: bottom half golden log band with black above; small round solid iron wheel with raised hub on black; dark gray iron barrel bands with rivets; horizontal dark brown wood boards with side riveted iron strips. Exact matching gray stone and weathered ship wood materials; flat textures, not a scene."
+      },
+      "theme-08-0": {
+        "sha256": "a66e6a39cd9720667a7a7cecdfc31b2f4e647976761ba8e3fc18dfff733b1553",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Autumn mountain road. Row1: sparse brown autumn tree silhouette on black; ochre leaf-strewn forest floor; brown irregular rocky bank; triangular gray masonry slope with smooth stone cap along diagonal. Row2: lower-half dark horizontal wood wall with small slot, upperhalf black; golden-green conifer branches on black; matching half-height wood wall without slot; dark vertical timber with two horizontal rope bands near top. Row3: full wood wall with slot near top; same leaf-strewn floor with one small centered gray rock; short pale candle with small yellow flame on black; dry tan reed/grass tuft on black. Bottom: worn gray stair; opposite shallow diagonal gray masonry slope; same brown rocky bank; dry tan grass tuft. Preserve matching gray capped slope materials and matching autumn ground hues. No snow."
+      },
+      "theme-08-1": {
+        "sha256": "98ca903b080467d6e3e6a6687f4e3634941d41c666ad61b183789c5997cfaadc",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Autumn mountain road. Only first8 cells used, other half black. Top row: full dark weathered horizontal wood wall; golden-green tree card on black, centered trunk with sparse natural branches; gray block masonry wall; brown autumn tree card on black. Second row: triangular gray masonry slope under descending diagonal with smooth stone cap, brown rocky bank fading black near bottom, opposite shallow gray masonry slope with smooth stone cap, ochre brown leaf-strewn forest floor. Same stone material and scale across all sloped/full walls. Same leaf/soil coloring across all ground tiles; muted brown autumn theme, no snow."
+      },
+      "theme-09-0": {
+        "sha256": "7bff1f5fbf7fb665172188f7c20a81e2a03cd1ad0305a589a5ac8838833b2769",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Japanese castle and armor display. Top row: dark bluish metal/wood vertical slat panel with four horizontal crossbars; dark lacquered menpo samurai armor mask face UV preserving eyes/nose/mouth; plain pale gray-white plaster with subtle texture; purple black and brown lamellar samurai armor UV straps/bands exactly as reference. Row2: gold helmet crescent ornament on black (keep ornate crescent silhouette); dark charcoal vertical door/staves with narrow yellow-gold fittings at edges and small horizontal black slot near top; beige plaster over lower brown wood slats; pale paired sliding doors with blue horizontal central band and black handles. Row3 first pair: triangular joined halves of ornate gray gable wall on black; full dark staves with gold edge fittings; purple-brown lamellar armor straps matching top-right. Bottom row: very dark earthy cliff, tan wood/plaster rectangular panel with horizontal beam near top, wooden barred opening, dark gray block stone wall with top capped border. Preserve exact gold and purple decorative patterns, all gable framing and cutouts."
+      },
+      "theme-10-0": {
+        "sha256": "abebdbc1511ad88b82b3696efc907b9368f9e9e0ba7039a7c0994497075fa690",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Dark supernatural Japanese castle. First15 cells used, bottom-right black. Top-left: soft white circular lamp glow on gray paper; top second same soft glow but black rectangular center opening; top third rough dark gray wall fading to black at top; top fourth muted vermilion vertical planks with thin horizontal beam near bottom. Row2 col1 same red wooden planks with beam near top; col2 gray block masonry with pale worn edge at right; col3 yellowed skull UV front with eye sockets at exact reference positions and brown cracks, no jaw if not visible; col4 dark bluish rough stone/metal. Row3 col1 skeletal ribcage/vertebrae silhouette on black, preserve bone arrangement; col2 square carved gray grimacing face plaque keeping eyes/mouth exact; col3 pale cobblestones; col4 mottled brown-gray block wall. Bottom: gray irregular rocky wall with rectangular black opening low center; matching plain gray rocky wall; gray brick pattern within simple rectangular framing. Dark restrained atmosphere but flat unlit material UV art, not a room."
+      },
+      "theme-11-0": {
+        "sha256": "118abe24869ff105f04ac8e54a5c460f0454c23e5532cb4d7e4e94399d7c5535",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Retro-futuristic industrial A.D.2030 stage. All cells flat dark gray metal panel textures. Keep exact original rectangular divisions, vent slots, framing and panel placements, with restrained brushed metal, worn paint, fine scratches. Top row: pale muted gray-green panels with small pale service markings; bluish gray vent panel with four thin dark slots at top; dark gray divided four-panel hatch with small central square; dark bluish plain wall with thick top border. Row2: octagonal dark gray machinery panel with fine green inset lines; pale gray-green panel with centered square and small four-way markings; muted yellow-black hazard border around dark central panel; dark gray cross-divided panel with four small beveled centers. Row3: luminous green swirling liquid/plasma with subtle continuous flow; dark mottled metal; gray panel with two tall vertical vent slots; black ridged/grilled horizontal panel. Bottom: dark gray rectangular service panel with small fine vents in two corners; soft circular green-white glowing emitter with darker green edges, no hard disc or extra machinery; wide dark stair tread texture; black metal lattice mesh inside gray frame. No readable text, logos, new controls or scene. Keep all green/yellow restrained, never neon clipping."
+      },
+      "theme-11-1": {
+        "sha256": "3eaee89d59cbc53bf2693beb455013ed77b3efec671fb32808be16555637feb2",
+        "prompt": "Use case: style-transfer. Production game texture atlas: precisely a uniform 4 by 4 grid on a square canvas. Input image is an exact low-resolution UV layout reference, NOT a scene. Repaint all nonblack texels as high-definition, realistic restrained game material art while preserving each cell's layout, silhouettes, divisions, dominant colors and brightness. Do not move, resize, merge or remove cells. Related wood, walls and terrain use matching style and scale. Preserve tile-edge structure and seamless repetition where applicable. Flat orthographic materials with fine material detail, no perspective, no extra objects, no scene lighting, no blur, no pixelation. No gutters, padding, borders, text labels or watermarks. Black regions remain black. Output 2048x2048 or larger, cell edges exactly at quarters. Retro-futuristic industrial A.D.2030 details. Only first9 cells used, rest black. Top row: shallow triangular blue-gray metal architectural gable under diagonal with exact inset riveted triangular plate; pale gray-green metal wall with one narrow vertical pale stripe; dark bluish rectangular metal panel with four short thin horizontal vent slots near top; dark metal square with muted yellow-black striped hazard border. Row2: light gray worn stair treads; tall dark-gray bars/vent panel with angled bottom trim; opposite shallow triangular metal gable matching first cell; tall dark gray panel with muted yellow-black hazard side borders and small vertical vents across top. Row3 left: dark square service hatch with a circular turn handle slightly right of center and raised lower plate seam. Fine brushed metal/worn paint detail, no text or logos. Matching blue-gray material hue and scale across all panels. Keep diagonals exact and black empty areas completely black."
+      }
+    },
+    "reuse": {
+      "theme-03-1": "theme-02-1 cell [1,0]: horizontal dark timber"
+    }
   }
 }

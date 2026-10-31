@@ -4,5 +4,12 @@
   { "name_contains": "ANDON" },
   { "name_contains": "CHOCHIN" },
   { "name_contains": "LANTERN" },
-  { "name_contains": "LAMP" }
+  { "name_contains": "LAMP" },
+  { "name_contains": "DHIKARI" },
+  { "name_contains": "CYOUCTIN" },
+  { "name_contains": "KAGARI" },
+  { "name_contains": "RANP" },
+  { "name_contains": "YAMIAKA" },
+  { "name_contains": "UFO" },
+  { "name_contains": "TOROKKO", "enabled": false }
 ]

@@ -27,7 +27,7 @@ The port changes ELF loader/search paths when
 assembling Linux archives; see port/packaging/bundle-linux.py and tenchu-linux.sh.
 Libraries stay separate and dynamically linked so they can be replaced.
 
-HD artwork is a separate tenchu-hd.tar.zst download in the artwork-v2 release.
+HD artwork is a separate tenchu-hd.tar.zst download in the artwork-v3 release.
 port/artwork contains its manifest, recipes, provenance and editing instructions.
 Original disc assets, BIOS, reference screenshots and reconstructed composites
 are not included.

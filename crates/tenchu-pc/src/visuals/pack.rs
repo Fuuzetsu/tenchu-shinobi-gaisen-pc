@@ -558,6 +558,21 @@ mod tests {
             }
         }
         let campaign = crate::campaign::Campaign::new(&assets, Default::default(), None).unwrap();
+        let tables = tenchu_assets::trial::Tables::load(&assets).unwrap();
+        for (index, mission) in tables.presets(&assets).unwrap().into_iter().enumerate() {
+            let theme = tenchu_assets::trial::Theme::load(&assets, mission.theme).unwrap();
+            let mut random = tenchu_core::random::Random::new(1);
+            let mission = tenchu_assets::stage::MissionAssets::load_trial(
+                &assets,
+                &tables,
+                &theme,
+                &mission,
+                0,
+                || random.next15() as u16,
+            )
+            .unwrap();
+            compare(Selection::mission(&mission), &format!("TRIAL {index}"));
+        }
         let mut frontend =
             crate::frontend::Frontend::new(&assets, disc.as_ref(), &campaign, Default::default())
                 .unwrap();

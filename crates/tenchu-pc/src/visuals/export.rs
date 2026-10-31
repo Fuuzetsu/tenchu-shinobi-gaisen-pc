@@ -10,6 +10,8 @@ use std::{
 use tenchu_assets::{Result, stage::MissionAssets};
 
 pub mod interface;
+#[cfg(test)]
+mod trial;
 mod usage;
 
 #[derive(Serialize)]
