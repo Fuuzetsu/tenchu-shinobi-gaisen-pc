@@ -135,6 +135,7 @@ pub struct Frontend {
     sound_choices: [usize; 2],
     sound_effects: Vec<i16>,
     volume_saved: [u8; 2],
+    volume_music: usize,
     movie: Option<movie::Player>,
     disc: PathBuf,
 }
@@ -220,6 +221,7 @@ impl Frontend {
             sound_choices: [0; 2],
             sound_effects: vec![],
             volume_saved: [96; 2],
+            volume_music: 15,
             movie: None,
             disc: disc.to_owned(),
         };
@@ -455,10 +457,13 @@ impl Frontend {
                                 self.set_page(Page::Character);
                                 self.events.push(Event::Music(Some(15)));
                             }
-                            Some(2) => self.set_page(Page::Editor),
+                            Some(2) => {
+                                self.set_page(Page::Editor);
+                                self.events.push(Event::Music(None));
+                            }
                             Some(_) => {
                                 self.set_page(Page::Options);
-                                self.events.push(Event::Music(Some(15)));
+                                self.events.push(Event::Music(None));
                             }
                             None => self.play_movie(Movie::Opening, assets)?,
                         }
@@ -657,6 +662,7 @@ impl Frontend {
                     }
                     self.events.push(Event::Preferences);
                     self.set_page(Page::Options);
+                    self.events.push(Event::Music(None));
                 }
                 _ => (),
             },
@@ -696,7 +702,10 @@ impl Frontend {
                     .events
                     .push(Event::Effect(self.sound_effects[self.sound_choices[1]])),
                 Action::Back => {
-                    self.events.push(Event::Music(Some(15)));
+                    self.volume_music = self.sound_choices[0]
+                        .checked_sub(1)
+                        .map_or(15, |i| self.tables.sound_test_music[i]);
+                    self.events.push(Event::Music(None));
                     self.set_page(Page::Options);
                 }
                 _ => (),
@@ -707,7 +716,7 @@ impl Frontend {
                 }
                 Action::Back | Action::Confirm => {
                     self.set_page(Page::Options);
-                    self.events.push(Event::Music(Some(15)));
+                    self.events.push(Event::Music(None));
                 }
                 _ => (),
             },
@@ -747,6 +756,7 @@ impl Frontend {
             3 => {
                 self.selection = 0;
                 self.volume_saved = [self.preferences.music, self.preferences.effects];
+                self.events.push(Event::Music(Some(self.volume_music)));
                 Page::Volume
             }
             4 => {

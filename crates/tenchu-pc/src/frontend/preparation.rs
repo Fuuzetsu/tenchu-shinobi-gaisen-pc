@@ -207,7 +207,7 @@ impl Frontend {
     fn open_shop(&mut self) {
         self.briefing = None;
         self.set_page(Page::Shop);
-        self.events.push(Event::Music(Some(15)));
+        self.events.push(Event::Music(None));
     }
 
     pub(super) fn shop_action(&mut self, action: Action, campaign: &mut Campaign) {

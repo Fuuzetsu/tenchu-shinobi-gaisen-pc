@@ -1,6 +1,76 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; verifies retail music transitions and sound-test preview memory"]
+fn options_and_shop_follow_retail_music_transitions() {
+    fn music(frontend: &mut Frontend) -> Vec<Option<usize>> {
+        std::mem::take(&mut frontend.events)
+            .into_iter()
+            .filter_map(|event| match event {
+                Event::Music(track) => Some(track),
+                _ => None,
+            })
+            .collect()
+    }
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    frontend.events.clear();
+    frontend.title.selection = Some(3);
+    frontend.title.finished = true;
+    frontend
+        .advance(Duration::from_millis(17), false, &mut campaign, &assets)
+        .unwrap();
+    assert_eq!(frontend.page, Page::Options);
+    assert_eq!(music(&mut frontend), [None]);
+    let original_random = campaign.game.random.seed;
+    for (option, expected) in [(3, Some(15)), (0, Some(12))] {
+        frontend.option_selection = option;
+        frontend.open_option(&campaign);
+        assert_eq!(music(&mut frontend), [expected]);
+        frontend.ticks = 16;
+        frontend
+            .action(Action::Back, &mut campaign, &assets)
+            .unwrap();
+        assert_eq!(music(&mut frontend), [None]);
+    }
+    for selection in [6, 0] {
+        frontend.option_selection = 4;
+        frontend.open_option(&campaign);
+        assert!(music(&mut frontend).is_empty());
+        frontend.ticks = 16;
+        frontend.sound_choices[0] = selection;
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+        let track = selection
+            .checked_sub(1)
+            .map(|i| frontend.tables.sound_test_music[i]);
+        assert_eq!(music(&mut frontend), [track]);
+        frontend
+            .action(Action::Back, &mut campaign, &assets)
+            .unwrap();
+        assert_eq!(music(&mut frontend), [None]);
+        frontend.option_selection = 3;
+        frontend.open_option(&campaign);
+        assert_eq!(music(&mut frontend), [Some(track.unwrap_or(15))]);
+        frontend.ticks = 16;
+        frontend
+            .action(Action::Confirm, &mut campaign, &assets)
+            .unwrap();
+        assert_eq!(music(&mut frontend), [None]);
+    }
+    campaign.inventory();
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    assert_eq!(frontend.page, Page::Shop);
+    assert_eq!(music(&mut frontend), [None]);
+    assert_eq!(campaign.game.tick, 0);
+    assert_eq!(campaign.game.random.seed, original_random);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; loads every original frontend asset and character animation"]
 fn original_assets_and_selection_motions_load_for_all_languages() {
     let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");

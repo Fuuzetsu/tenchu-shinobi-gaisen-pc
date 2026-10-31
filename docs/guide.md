@@ -860,8 +860,8 @@ labels differ between controller brands.
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
 Quick keyboard and controller taps are retained until the next gameplay tick.
 
-**F1 → Movement → Camera-relative controls** enables the experimental alternative
-on the `camera-relative-controls` branch. WASD / arrows / D-pad move relative to
+**F1 → Movement → Camera-relative controls** enables optional camera-relative
+movement. WASD / arrows / D-pad move relative to
 the view; the left stick supports continuous 360° direction. Ground movement
 turns immediately, retaining the original movement speeds and collision rules.
 The right stick or holding right mouse orbits the follow camera. Middle-click,

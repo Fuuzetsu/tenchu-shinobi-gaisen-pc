@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Match retail menu music: the shop and main options screen are quiet. Volume
+  previews the last sound-test selection (initially character-selection music),
+  and leaving Volume, Sound Test or Records stops their music.
+
 - Experimental camera-relative controls, available in F1 → Movement: continuous
   left-stick direction, camera-relative keyboard/D-pad movement, right-stick or
   held-right-mouse orbit, adjustable sensitivity/deadzone/distance and camera

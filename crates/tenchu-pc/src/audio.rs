@@ -147,11 +147,11 @@ impl Audio {
         self.screen = Some(discriminant(screen));
         self.output.send(output::Command::Clear);
         let cue = match screen {
-            Screen::Launcher | Screen::Inventory(_) => Some(15),
+            Screen::Launcher => Some(15),
             Screen::Results(_) | Screen::Complete => Some(12),
             Screen::GameOver => Some(11),
             Screen::Playing => None,
-            Screen::Frontend | Screen::Ending(_) => None,
+            Screen::Frontend | Screen::Ending(_) | Screen::Inventory(_) => None,
         };
         self.track(cue.and_then(|cue| self.catalog.music(cue)).cloned());
     }
