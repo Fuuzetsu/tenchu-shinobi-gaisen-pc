@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix white outlines around original blood sprites with MSAA, including filtered
+  textures and free-camera views.
+
 - F1 → General adds **Music while paused** for pausing and frame stepping during
   missions. Gameplay sounds, frontend movies and narration still pause normally.
 
