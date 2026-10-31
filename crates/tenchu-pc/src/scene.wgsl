@@ -108,7 +108,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         var pixel = 0u;
         let replaced = !original_stain && (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
-        let filtered_material = !original_stain && FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0));
+        let filtered_material = !original_stain && FILTER_MATERIALS && (!screen || replaced) && (MATERIAL_FILTERING >= 2.0 || ((replaced || MATERIAL_MAGNIFICATION != 0.0) && MATERIAL_FILTERING != 0.0));
         var base = vec3(0.0);
         if replaced {
             if filtered_material && (v.flags & EMITTER) == 0u && (material_info(v.material).w & 128u) != 0u {
@@ -128,8 +128,8 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
             if filtered_material {
-                color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
-            } else if !original_stain && FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
+                color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, MATERIAL_FILTERING, MATERIAL_MAGNIFICATION, semi, (v.flags & TRANSLUCENT) != 0u, base);
+            } else if !original_stain && FILTER_MATERIALS && !screen && MATERIAL_FILTERING != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);
             } else {
                 color *= base;

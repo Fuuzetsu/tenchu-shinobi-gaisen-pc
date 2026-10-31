@@ -24,6 +24,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Reuse unchanged shadow maps during play and camera movement. Moving casters,
   animated foliage, light changes and texture updates refresh affected maps
   without reducing shadow quality.
+- Reduce terrain shading cost by reusing texture and height-map lookups within
+  filtering loops and specializing shaders for the selected filtering modes.
+  Texture detail, lighting and graphics settings remain unchanged.
 - Speed up texture and height-map preparation during loading and texture updates,
   preserving mip coverage, transparency and surface detail.
 

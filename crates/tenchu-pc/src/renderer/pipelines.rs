@@ -3,7 +3,8 @@ use crate::render_mesh::Vertex;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct Options {
-    filtering: bool,
+    filtering: u8,
+    magnification: u16,
     lighting: bool,
     relief: bool,
     hdr: bool,
@@ -14,7 +15,12 @@ pub(super) struct Options {
 impl From<&crate::settings::Graphics> for Options {
     fn from(graphics: &crate::settings::Graphics) -> Self {
         Self {
-            filtering: graphics.bilinear || graphics.mipmaps || graphics.magnification != 0,
+            filtering: if graphics.mipmaps {
+                2
+            } else {
+                u8::from(graphics.bilinear)
+            },
+            magnification: graphics.magnification,
             lighting: graphics.lighting.enabled || graphics.sky.enabled,
             relief: graphics.surface_detail != 0,
             hdr: graphics.post.enabled,
@@ -112,13 +118,15 @@ impl Options {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {};\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-                    self.filtering, self.lighting, self.relief, self.hdr, self.weather, self.water,
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+                    self.filtering != 0 || self.magnification != 0, self.lighting, self.relief, self.hdr, self.weather, self.water,
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
                     materials::MAX_MIPS,
                     shadows::NEAR,
                     crate::visuals::relief::GRADIENT_RANGE,
+                    self.magnification,
+                    self.filtering,
                     include_str!("../scene.wgsl"),
                     include_str!("palette.wgsl"),
                     include_str!("lighting.wgsl"),

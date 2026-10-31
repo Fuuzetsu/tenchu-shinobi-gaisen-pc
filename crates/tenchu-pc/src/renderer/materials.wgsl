@@ -37,11 +37,6 @@ fn material_uv(index: u32, uv: vec2<f32>) -> vec2<f32> {
     return uv;
 }
 
-fn material_point(index: u32, uv: vec2<f32>, size: vec2<f32>) -> vec2<f32> {
-    if (material_info(index).w & 16u) != 0u { return fract(uv) * size; }
-    return clamp(uv * size, vec2(0.5), size - vec2(0.5));
-}
-
 fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
     let source = material_source(index);
     let info = material_info(index);
@@ -58,19 +53,32 @@ fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
     return vec4(opaque.rgb + semi.rgb, opaque.a + semi.a * 0.5);
 }
 
-fn material_level(index: u32, uv: vec2<f32>, level: u32, semi: bool, blended: bool) -> vec4<f32> {
+struct MaterialMip { rect: vec4<f32>, side: f32, layer: i32, flags: u32 }
+
+fn material_mip(index: u32, level: u32) -> MaterialMip {
     let info = material_info(index);
     let rect = material_rect(index, level);
     let side = f32(textureDimensions(material_images).x);
     let page = u32(rect.x) / u32(side);
     let origin = vec2(rect.x - f32(page) * side, rect.y);
-    let coordinate = (origin + material_point(index, uv, rect.zw)) / side;
+    return MaterialMip(vec4(origin, rect.zw), side, i32(page * select(2u, 3u, (info.w & 8u) != 0u)), info.w);
+}
+
+fn mip_coordinate(mip: MaterialMip, uv: vec2<f32>) -> vec2<f32> {
+    var point: vec2<f32>;
+    if (mip.flags & 16u) != 0u { point = fract(uv) * mip.rect.zw; }
+    else { point = clamp(uv * mip.rect.zw, vec2(0.5), mip.rect.zw - vec2(0.5)); }
+    return (mip.rect.xy + point) / mip.side;
+}
+
+fn material_level(mip: MaterialMip, uv: vec2<f32>, semi: bool, blended: bool) -> vec4<f32> {
+    let coordinate = mip_coordinate(mip, uv);
     if blended {
-        return textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (info.w & 8u) != 0u) + select(0u, 1u, semi)), 0.0);
+        return textureSampleLevel(material_images, material_sampler, coordinate, mip.layer + select(0, 1, semi), 0.0);
     }
     var color = vec4(0.0);
-    if (info.w & 2u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (info.w & 8u) != 0u)), 0.0); }
-    if (info.w & 4u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, i32(page * select(2u, 3u, (info.w & 8u) != 0u) + 1u), 0.0); }
+    if (mip.flags & 2u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, mip.layer, 0.0); }
+    if (mip.flags & 4u) != 0u { color += textureSampleLevel(material_images, material_sampler, coordinate, mip.layer + 1, 0.0); }
     return color;
 }
 
@@ -82,16 +90,17 @@ fn cubic_weights(t: f32) -> vec4<f32> {
 }
 
 fn material_closeup(index: u32, uv: vec2<f32>, footprint: vec2<f32>, mode: f32, semi: bool, blended: bool) -> vec4<f32> {
-    let size = material_rect(index, 0u).zw;
+    let mip = material_mip(index, 0u);
+    let size = mip.rect.zw;
     let pixel = uv * size - vec2(0.5);
     let base = floor(pixel);
     let fraction = fract(pixel);
     if mode == 1.0 {
         let transition = clamp((fraction - vec2(0.5)) / max(footprint, vec2(0.0001)) + vec2(0.5), vec2(0.0), vec2(1.0));
-        return material_level(index, (base + transition + vec2(0.5)) / size, 0u, semi, blended);
+        return material_level(mip, (base + transition + vec2(0.5)) / size, semi, blended);
     }
     if mode == 3.0 {
-        return material_level(index, (floor(uv * size) + vec2(0.5)) / size, 0u, semi, blended);
+        return material_level(mip, (floor(uv * size) + vec2(0.5)) / size, semi, blended);
     }
     let wx = cubic_weights(fraction.x);
     let wy = cubic_weights(fraction.y);
@@ -102,7 +111,7 @@ fn material_closeup(index: u32, uv: vec2<f32>, footprint: vec2<f32>, mode: f32, 
     var high_rgb = vec3(0.0);
     for (var y = 0u; y < 4u; y++) {
         for (var x = 0u; x < 4u; x++) {
-            let sample = material_level(index, (base + vec2(f32(x), f32(y)) - vec2(0.5)) / size, 0u, semi, blended);
+            let sample = material_level(mip, (base + vec2(f32(x), f32(y)) - vec2(0.5)) / size, semi, blended);
             color += sample * wx[x] * wy[y];
             if (x == 1u || x == 2u) && (y == 1u || y == 2u) {
                 low = min(low, sample);
@@ -140,11 +149,11 @@ fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32
         let closeup = material_closeup(index, uv, min(abs(tx) + abs(ty), vec2(1.0)), magnification, semi, blended);
         let blend = smoothstep(0.75, 1.0, major);
         var color = closeup;
-        if blend > 0.0 { color = mix(closeup, material_level(index, uv, 0u, semi, blended), blend); }
+        if blend > 0.0 { color = mix(closeup, material_level(material_mip(index, 0u), uv, semi, blended), blend); }
         return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
     }
     if filtering < 2.0 {
-        let color = material_level(index, uv, 0u, semi, blended);
+        let color = material_level(material_mip(index, 0u), uv, semi, blended);
         return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
     }
     let minor = sqrt(max(1.0, (a + c - spread) * 0.5));
@@ -156,11 +165,14 @@ fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32
     let level = clamp(log2(max(major / f32(count), minor)), 0.0, f32(info.x - 1u));
     let low = u32(floor(level));
     let high = min(low + 1u, info.x - 1u);
+    let lower = material_mip(index, low);
+    var higher = lower;
+    if fract(level) > 0.0 { higher = material_mip(index, high); }
     var sum = vec4(0.0);
     for (var i = 0u; i < count; i++) {
         let point = uv + axis * ((f32(i) + 0.5) / f32(count) - 0.5);
-        var color = material_level(index, point, low, semi, blended);
-        if fract(level) > 0.0 { color = mix(color, material_level(index, point, high, semi, blended), fract(level)); }
+        var color = material_level(lower, point, semi, blended);
+        if fract(level) > 0.0 { color = mix(color, material_level(higher, point, semi, blended), fract(level)); }
         sum += color;
     }
     return select(fallback, sum.rgb / max(sum.a, 0.00001), sum.a > 0.00001);
