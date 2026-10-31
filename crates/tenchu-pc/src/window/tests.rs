@@ -59,6 +59,49 @@ pub(super) fn application(options: Options) -> Application {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; results keyboard/controller retry must preserve the mission and awarded progress"]
+fn results_start_retries_while_confirm_advances() {
+    use tenchu_core::input;
+
+    for mission in [1, 10] {
+        for (command, retry) in [
+            (controls::keyboard_command(KeyCode::Space, false), true),
+            (controls::gamepad_command(input::START, false, false), true),
+            (controls::keyboard_command(KeyCode::F5, false), true),
+            (controls::keyboard_command(KeyCode::Enter, false), false),
+            (controls::gamepad_command(input::CROSS, false, false), false),
+        ] {
+            let mut app = application(Options {
+                mission,
+                ..Default::default()
+            });
+            app.settings.frontend.auto_save = false;
+            app.campaign.game.events.outcome = tenchu_core::game::events::Outcome::Complete;
+            app.campaign.tick(0).unwrap();
+            assert!(matches!(app.campaign.screen, Screen::Results(_)));
+            let progress = app.campaign.progress.clone();
+            let seed = app.campaign.seed;
+            let Some(Command::Menu(action)) = command else {
+                panic!("Expected a menu command");
+            };
+            app.action(action);
+            assert!(!app.faulted, "{:?}", app.fault);
+            assert_eq!(app.campaign.progress, progress);
+            assert_eq!(app.campaign.seed, seed);
+            if retry {
+                assert_eq!(app.campaign.options.mission, mission);
+                assert!(matches!(app.campaign.screen, Screen::Inventory(_)));
+            } else if mission == 10 {
+                assert!(matches!(app.campaign.screen, Screen::Complete));
+            } else {
+                assert_eq!(app.campaign.options.mission, mission + 1);
+                assert!(matches!(app.campaign.screen, Screen::Inventory(_)));
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; optional death hold preserves retail death timing and freezes gameplay until confirmation"]
 fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
     for mission in [1, 4, 9] {

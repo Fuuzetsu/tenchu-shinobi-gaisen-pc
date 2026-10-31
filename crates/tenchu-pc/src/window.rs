@@ -240,11 +240,7 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
-        let action = if matches!(action, Action::Start) {
-            Action::Confirm
-        } else {
-            action
-        };
+        let action = self.campaign.screen.menu_action(action);
         if matches!(self.campaign.screen, Screen::DeathHold)
             && !matches!(action, Action::Confirm | Action::Back | Action::Replay)
         {
@@ -269,7 +265,7 @@ impl Application {
             return;
         }
         let briefing = matches!(self.campaign.screen, Screen::Results(_))
-            && matches!(action, Action::Confirm | Action::Start)
+            && matches!(action, Action::Confirm)
             && !self.campaign.quick_launcher;
         let start = if self.recording_directory.is_some()
             && self.debug.sight_percent == 100

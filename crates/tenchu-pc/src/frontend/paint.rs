@@ -374,7 +374,7 @@ impl Frontend {
                     String::new()
                 };
                 format!(
-                    "{}{} — Enter: {}    R / F5: retry    Esc: menu",
+                    "{}{} — Enter: {}    Space / Start / R / F5: retry    Esc: menu",
                     if campaign.options.mission == 0 {
                         "Training results"
                     } else {

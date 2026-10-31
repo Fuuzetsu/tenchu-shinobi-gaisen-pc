@@ -29,6 +29,16 @@ pub enum Screen {
     Complete,
 }
 
+impl Screen {
+    pub fn menu_action(&self, action: Action) -> Action {
+        match action {
+            Action::Start if matches!(self, Self::Results(_)) => Action::Replay,
+            Action::Start => Action::Confirm,
+            _ => action,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum Action {
     Up,
@@ -242,11 +252,7 @@ impl Campaign {
     }
 
     pub fn action(&mut self, action: Action, assets: &GameAssets<DiscSource>) -> Result<bool> {
-        let action = if matches!(action, Action::Start) {
-            Action::Confirm
-        } else {
-            action
-        };
+        let action = self.screen.menu_action(action);
         match &mut self.screen {
             Screen::Frontend | Screen::Ending(_) => (),
             Screen::Launcher => match action {

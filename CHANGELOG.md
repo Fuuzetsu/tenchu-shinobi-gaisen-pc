@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- START on the mission results screen retries the current mission, matching
+  retail, instead of advancing. Space does the same on the keyboard.
+
 - Restore the retail character-selection sounds in Options → Records. Pressing
   toward the already selected character stays silent.
 
