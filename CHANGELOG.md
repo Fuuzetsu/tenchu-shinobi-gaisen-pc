@@ -10,6 +10,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   room. Modern presets enable it; Original retains the untouched backdrop. A new
   `shop-lighting` demo shows the day/night changes.
 
+- Keep the frontend Randomizer shortcut on one line instead of wrapping it into
+  a narrow vertical column.
+
 - Independently choose Off, Original or Modern blood for hit spray, wound drips,
   death stars/pools and ground spots. Original splats and death stars can remain
   persistently; player death pools and body stains have separate toggles. Existing

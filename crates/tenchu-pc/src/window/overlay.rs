@@ -209,7 +209,13 @@ impl Overlay {
                     egui::Area::new("randomizer-launcher".into())
                         .fixed_pos([14.0, 14.0])
                         .show(ctx, |ui| {
-                            if ui.button("Randomizer…  F7").clicked() {
+                            if ui
+                                .add(
+                                    egui::Button::new("Randomizer…  F7")
+                                        .wrap_mode(egui::TextWrapMode::Extend),
+                                )
+                                .clicked()
+                            {
                                 edits.push(Edit::Randomizer);
                             }
                         });

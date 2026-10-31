@@ -10,7 +10,7 @@ use crate::{
     settings::{self, BloodStyle},
 };
 use bytemuck::Zeroable;
-use glam::{Mat3, Vec3};
+use glam::{Mat3, Quat, Vec3};
 use std::collections::{BTreeMap, VecDeque};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
@@ -208,10 +208,8 @@ impl Blood {
         self.random();
         let mut mark = Self::project_contact(surfaces, hinge, hit, radius, self.seed);
         if self.settings.ground == BloodStyle::Original {
-            Self::original_texture(
-                &mut mark,
-                game.mission.images[1 + (self.seed as usize % 2) * 2],
-            );
+            // The adjacent white sprite is a subtraction mask used only while fading.
+            Self::original_texture(&mut mark, game.mission.images[(self.seed as usize % 2) * 2]);
         }
         self.retain(mark, limit);
         true
@@ -661,7 +659,7 @@ impl Blood {
                     * amount.sqrt()
                     * (0.2 + 0.8 * growth.sqrt());
                 pool.mark = if self.settings.death == BloodStyle::Original {
-                    Self::original_pool(game, actor, hit.position, growth, amount)
+                    Self::original_pool(game, actor, hit, growth, amount)
                 } else {
                     let mut mark = Self::project_contact(surfaces, None, hit, radius, pool.seed);
                     mark.1 = Kind::Death {
@@ -689,7 +687,7 @@ impl Blood {
     fn original_pool(
         game: &Game,
         actor: &tenchu_core::actor::Actor,
-        position: Vec3,
+        hit: surfaces::Hit,
         growth: f32,
         amount: f32,
     ) -> Mark {
@@ -705,9 +703,11 @@ impl Blood {
                 render_mesh::append_face(&mut vertices, geometry, face, Matrix::default(), true);
             }
         }
+        let rotation = Quat::from_rotation_arc(Vec3::NEG_Y, hit.normal);
         for v in &mut vertices {
-            v.position = (Vec3::from(v.position) * scale + position - Vec3::Y).to_array();
-            v.normal = [0.0, -1.0, 0.0];
+            v.position =
+                (rotation * Vec3::from(v.position) * scale + hit.position + hit.normal).to_array();
+            v.normal = hit.normal.to_array();
             v.opacity = if v.flags & render_mesh::TRANSLUCENT != 0 {
                 0.5
             } else {

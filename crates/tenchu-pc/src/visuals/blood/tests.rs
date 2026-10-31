@@ -104,6 +104,31 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                                 |v| v.flags & render_mesh::TEXTURED != 0 && v.color == [1.0; 3]
                             )
                         );
+                        let [u, v] = std::array::from_fn(|axis| {
+                            page.iter()
+                                .map(|v| v.uv[axis])
+                                .fold(f32::INFINITY, f32::min) as u16
+                        });
+                        let [end_u, end_v] = std::array::from_fn(|axis| {
+                            page.iter().map(|v| v.uv[axis]).fold(0.0, f32::max) as u16
+                        });
+                        let mut channels = [0u32; 3];
+                        for y in v..=end_v {
+                            for x in u..=end_u {
+                                let pixel = game.mission.vram.texel(
+                                    page[0].page as u16,
+                                    page[0].palette as u16,
+                                    [x, y],
+                                );
+                                for (axis, channel) in channels.iter_mut().enumerate() {
+                                    *channel += u32::from((pixel >> (axis * 5)) & 31);
+                                }
+                            }
+                        }
+                        assert!(
+                            channels[0] > channels[1] + channels[2],
+                            "retained spots need the red disc artwork, not its white subtraction mask"
+                        );
                     }
                     for _ in 0..300 {
                         game.tick += 1;
@@ -188,6 +213,36 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                 blood = Blood::default();
             }
         }
+        let hit = surfaces::Hit {
+            position,
+            normal: Vec3::new(-0.45, -0.85, 0.25).normalize(),
+            fraction: 0.5,
+            flags: 0,
+        };
+        let pool = Blood::original_pool(&game, game.player(), hit, 1.0, 1.0);
+        let flat = Blood::original_pool(
+            &game,
+            game.player(),
+            surfaces::Hit {
+                normal: Vec3::NEG_Y,
+                ..hit
+            },
+            1.0,
+            1.0,
+        );
+        assert!(pool.len() > 0);
+        assert!(
+            pool.0
+                .iter()
+                .flat_map(|p| &p.vertices)
+                .zip(flat.0.iter().flat_map(|p| &p.vertices))
+                .all(|(v, reference)| {
+                    let height = (Vec3::from(v.position) - hit.position).dot(hit.normal);
+                    let reference_height = hit.position.y - reference.position[1];
+                    (height - reference_height).abs() < 0.1
+                }),
+            "retained original stars must preserve their ground offset on slopes"
+        );
     }
 }
 
