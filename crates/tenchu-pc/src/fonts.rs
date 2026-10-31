@@ -21,6 +21,13 @@ pub fn install(ctx: &egui::Context) {
             .into(),
     );
     fonts.families.insert(family(), vec!["game-text".into()]);
+    for family in [FontFamily::Proportional, FontFamily::Monospace] {
+        fonts
+            .families
+            .entry(family)
+            .or_default()
+            .push("game-text".into());
+    }
     ctx.set_fonts(fonts);
 }
 

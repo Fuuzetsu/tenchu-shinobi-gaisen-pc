@@ -20,10 +20,12 @@ fn outline_font_contains_localized_letters_and_keeps_layout_within_the_view() {
                 ];
                 ctx.fonts(|fonts| {
                     for sample in samples {
-                        assert!(
-                            fonts.has_glyphs(&FontId::new(12.0, family()), sample),
-                            "Missing glyph in {sample}"
-                        );
+                        for family in [family(), FontFamily::Proportional, FontFamily::Monospace] {
+                            assert!(
+                                fonts.has_glyphs(&FontId::new(12.0, family.clone()), sample),
+                                "Missing glyph in {sample} ({family:?})"
+                            );
+                        }
                     }
                 });
                 let text: Vec<_> = samples

@@ -806,10 +806,13 @@ impl ApplicationHandler for Application {
                 {
                     return;
                 }
-                if let Some(command) =
+                let command = if self.debug.camera.is_some() {
+                    controls::keyboard_command(code, true)
+                } else {
                     self.controls
                         .key_command(code, self.campaign.playing(), self.paused)
-                {
+                };
+                if let Some(command) = command {
                     self.command(command, events);
                 }
             }

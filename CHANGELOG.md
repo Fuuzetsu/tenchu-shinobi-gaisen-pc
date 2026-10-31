@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Display Japanese mission names and text throughout the TRIAL editor, including
+  editable fields and records. Free-camera keys no longer trigger paused gameplay
+  menu bindings, so Shift boosts 3D preview movement without leaving the preview.
+
 ## 0.8.1 — 2026-10-31
 
 - Fix thin white borders on rotated original blood sprites, including when texture
