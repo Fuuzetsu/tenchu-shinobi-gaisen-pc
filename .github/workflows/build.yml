@@ -32,6 +32,9 @@ jobs:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
     strategy:
       fail-fast: false
       matrix:
@@ -61,11 +64,10 @@ jobs:
           extra_nix_config: |
             max-jobs = 1
       - name: Cache Nix build outputs
-        uses: DeterminateSystems/magic-nix-cache-action@f69a2d3e148e90223fe63ab6e3f6331f2e7e33dc
+        uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
         with:
-          use-gha-cache: enabled
-          use-flakehub: disabled
-          diagnostic-endpoint: ""
+          version: v3.1.0
+          upstream-cache-filter: true
       - name: Workflow, formatting, Clippy and portable core
         if: matrix.target == 'linux-x86_64'
         run: >-

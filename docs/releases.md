@@ -12,12 +12,17 @@ test all targets. Successful builds update the `head` tag and **HEAD (developmen
 prerelease. HEAD does not replace the latest stable release. Other branches and
 pull requests only produce temporary Actions artifacts.
 
-All Nix build jobs use [Magic Nix Cache](https://github.com/DeterminateSystems/magic-nix-cache-action)
-with GitHub Actions storage. It reuses store paths across builds and skips paths
+All Nix build jobs use [Hestia](https://github.com/Mic92/hestia) with GitHub Actions
+storage. It reuses store paths across builds, groups uploads and skips paths
 already available from cache.nixos.org. No additional account or cache secret is
-required; FlakeHub and diagnostic uploads are disabled. GitHub's branch/PR cache
-isolation applies. The first run populates the cache; misses build normally,
-and changed derivations still need rebuilding. This cache is for CI only.
+required. GitHub's branch/PR cache isolation applies. The first run populates the
+cache; misses build normally, and changed derivations still need rebuilding.
+This cache is for CI only. Both the action and its downloaded binary are pinned.
+
+The **Nix cache cleanup** workflow removes unused cache data daily on `master`.
+It can also be run manually; leave **dry-run** enabled to inspect its plan.
+Only cleanup needs `actions: write`; build jobs use read access to detect evicted
+entries. GitHub can evict cache data when it is old or exceeds the storage quota.
 
 Publication is serialized, waits for all targets and the Windows smoke test,
 and verifies checksums and build identities. A rerun for an old branch commit

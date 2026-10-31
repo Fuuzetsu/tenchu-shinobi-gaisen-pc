@@ -245,7 +245,7 @@
                 ];
               }
               ''
-                actionlint ${./.github/workflows/build.yml}
+                actionlint ${./.github/workflows/build.yml} ${./.github/workflows/cache-gc.yml}
                 shellcheck ${./packaging/tenchu-linux.sh}
                 shellcheck ${./packaging/publish.sh}
                 shellcheck ${./release.sh}
