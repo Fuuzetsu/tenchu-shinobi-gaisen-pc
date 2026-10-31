@@ -39,8 +39,8 @@ Use the next intended version. Nix supplies the release tools, including Cargo,
 Python and `gh`. Git must be able to push to `origin`; authenticate with GitHub
 once using `./dev.sh gh auth login` if needed.
 
-The command promotes the Unreleased notes to a dated section, updates the Cargo
-version and lockfile, runs `nix flake check` and evaluates all supported systems.
+The command promotes the Unreleased notes to a section dated in UTC, updates the
+Cargo version and lockfile, runs `nix flake check` and evaluates all supported systems.
 It then commits the preparation, creates an annotated tag and pushes `master`
 and the tag together. GitHub builds the Linux x86-64/ARM64, Windows, WASM and
 dependency-source archives and performs the portable startup checks. The script

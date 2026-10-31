@@ -5,8 +5,6 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
-## 0.9.1 — 2026-11-01
-
 - Reduce shadow-map work during active gameplay, especially in crowded TRIAL
   missions: keep distant casters in separate batches and refresh only the regions
   touched by moving characters or wind. Shadow detail and animation are unchanged.
@@ -41,6 +39,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   Texture detail, lighting and graphics settings remain unchanged.
 - Speed up texture and height-map preparation during loading and texture updates,
   preserving mip coverage, transparency and surface detail.
+
+## 0.9.1 — not published
+
+Superseded by 0.9.2 before publication after a release-automation date error.
 
 ## 0.9.0 — 2026-10-31
 

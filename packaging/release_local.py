@@ -63,7 +63,7 @@ def prepare_version(root, version):
     )
     if count != 1:
         raise ValueError("Cannot locate workspace.package.version in Cargo.toml")
-    date = datetime.date.today().isoformat()
+    date = datetime.datetime.now(datetime.UTC).date().isoformat()
     replacement = f"## Unreleased\n\n## {version} — {date}\n\n{body}\n\n"
     manifest.write_text(updated)
     (root / "CHANGELOG.md").write_text(changelog[:section.start()] + replacement + changelog[section.end():])

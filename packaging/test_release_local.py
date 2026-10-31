@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import io
 import json
 import os
@@ -144,6 +145,28 @@ class LocalReleaseTests(unittest.TestCase):
                     self.assertEqual((self.root / name).read_bytes(), data)
                 setattr(self, failure, False)
         self.execute(prepare_only=True)
+
+    def test_preparation_and_validation_share_utc_date_across_midnight(self):
+        original = {name: (self.root / name).read_bytes() for name in release_local.VERSION_FILES}
+        for hour, offset in [(15, 9), (2, -8)]:
+            with self.subTest(offset=offset):
+                for name, content in original.items():
+                    (self.root / name).write_bytes(content)
+                instant = datetime.datetime(2026, 10, 31, hour, tzinfo=datetime.UTC)
+                local = instant.astimezone(datetime.timezone(datetime.timedelta(hours=offset)))
+                with (
+                    mock.patch.object(release_local.datetime, "datetime", wraps=datetime.datetime) as clock,
+                    mock.patch.object(release_local.datetime, "date", wraps=datetime.date) as date,
+                ):
+                    clock.now.side_effect = lambda zone=None: instant.astimezone(zone) if zone else local.replace(tzinfo=None)
+                    date.today.return_value = local.date()
+                    release_local.prepare_version(self.root, "0.2.0")
+                    changelog = self.root / "CHANGELOG.md"
+                    text = changelog.read_text()
+                    self.assertIn("## 0.2.0 — 2026-10-31", text)
+                    changelog.write_text(text.replace("## 0.2.0 — 2026-10-31", "## 0.2.0 — 2026-11-01"))
+                    with self.assertRaisesRegex(ValueError, "Release date is in the future"):
+                        release_local.release.release_notes(self.root, "refs/tags/v0.2.0")
 
     def test_existing_tag_with_wrong_version_cannot_be_prepared(self):
         self.git("tag", "-a", "v0.2.0", "-m", "Mistaken tag")

@@ -42,7 +42,7 @@ def release_notes(root, ref):
         if len(matching) != 1:
             raise ValueError(f"Add exactly one '## {version} — YYYY-MM-DD' changelog section")
         date = datetime.date.fromisoformat(matching[0].split(" — ")[1])
-        if date > datetime.date.today():
+        if date > datetime.datetime.now(datetime.UTC).date():
             raise ValueError("Release date is in the future")
         body = changes[matching[0]].strip()
         if not re.search(r"^- \S", body, flags=re.M):
