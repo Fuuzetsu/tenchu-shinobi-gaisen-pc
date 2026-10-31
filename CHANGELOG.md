@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.7.0 — 2026-10-31
+
 - F1 → General can relight the item shop: the window follows the game's sky and
   fog colors, and directional light projects soft window shadows into the painted
   room. Modern presets enable it; Original retains the untouched backdrop. A new
