@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.1 — 2026-11-01
+
 - Reduce shadow-map work during active gameplay, especially in crowded TRIAL
   missions: keep distant casters in separate batches and refresh only the regions
   touched by moving characters or wind. Shadow detail and animation are unchanged.
