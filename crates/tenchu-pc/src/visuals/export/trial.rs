@@ -14,8 +14,11 @@ fn trial_asset_inventory() {
     let tables = Tables::load(&assets).unwrap();
     let output = std::env::var_os("TENCHU_TRIAL_CATALOG").map(std::path::PathBuf::from);
     let review = std::env::var_os("TENCHU_TRIAL_REVIEW").map(std::path::PathBuf::from);
-    let manifest: super::super::pack::Manifest =
-        serde_json::from_str(include_str!("../../../../../artwork/pack.json")).unwrap();
+    let manifest: super::super::pack::Manifest = serde_json::from_str(
+        &fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../artwork/pack.json"))
+            .unwrap(),
+    )
+    .unwrap();
     let mut report = BTreeMap::new();
     for theme_id in 0..12 {
         let theme = Theme::load(&assets, theme_id).unwrap();
