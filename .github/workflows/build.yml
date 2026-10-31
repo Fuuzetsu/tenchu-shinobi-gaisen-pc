@@ -60,6 +60,12 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           extra_nix_config: |
             max-jobs = 1
+      - name: Cache Nix build outputs
+        uses: DeterminateSystems/magic-nix-cache-action@f69a2d3e148e90223fe63ab6e3f6331f2e7e33dc
+        with:
+          use-gha-cache: enabled
+          use-flakehub: disabled
+          diagnostic-endpoint: ""
       - name: Workflow, formatting, Clippy and portable core
         if: matrix.target == 'linux-x86_64'
         run: >-
