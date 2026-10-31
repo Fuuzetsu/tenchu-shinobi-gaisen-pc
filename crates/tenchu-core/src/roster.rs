@@ -8,6 +8,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct Roster {
     pub keep_all_active: bool,
+    pub reinforcement_limit: Option<usize>,
     pub actors: Vec<Option<Actor>>,
     pub order: Vec<usize>,
     reserved: Option<usize>,
@@ -45,6 +46,15 @@ impl<'a> Actors<'a> {
 }
 
 impl Roster {
+    pub(crate) fn can_call_reinforcements(&self) -> bool {
+        let limit = if self.keep_all_active {
+            self.reinforcement_limit
+        } else {
+            Some(30)
+        };
+        limit.is_none_or(|limit| self.order.len() < limit)
+    }
+
     pub(crate) fn distance(&self, math: &crate::math::Math, delta: Position) -> i32 {
         if self.keep_all_active {
             math.length_wide(delta)
@@ -174,9 +184,6 @@ impl Roster {
         ctx: &mut Context,
         create: impl FnOnce(usize, &mut Context) -> Result<Actor>,
     ) -> Result<usize> {
-        if self.order.len() == 40 {
-            return Err("Humanoid pool exhausted".into());
-        }
         let id = self
             .actors
             .iter()

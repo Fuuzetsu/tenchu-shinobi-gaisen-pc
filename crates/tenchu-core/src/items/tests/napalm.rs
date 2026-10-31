@@ -111,7 +111,7 @@ for(int i=0;i<draws;i++)printf(" %d %d %d",brightness[i],rotation[i],scale[i]);p
             } else {
                 crate::collision::Owner::Door
             });
-            ctx.collision.slots[slot].count = i16::from(hit != 0);
+            ctx.collision.slots[slot].count = i32::from(hit != 0);
             ctx.collision.slots[slot].results[target_slot] = if hit != 0 { 0x84 } else { 0 };
             ctx.collision.other = None;
             *ctx.random = Random::new(seed);

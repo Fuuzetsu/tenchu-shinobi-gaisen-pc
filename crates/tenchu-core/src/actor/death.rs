@@ -203,14 +203,13 @@ impl Actor {
         {
             return Ok(());
         }
-        let next = world.intelligence.death_index.wrapping_add(1) as i16;
-        let index = i32::from(next) % world.roster.order.len() as i32;
+        let index = (world.intelligence.death_index + 1) % world.roster.order.len();
         let id = *world
             .roster
             .order
-            .get(index as usize)
+            .get(index)
             .ok_or("Invalid death witness index")?;
-        world.intelligence.death_index = index as u16;
+        world.intelligence.death_index = index;
         if id == self.id || id == world.player {
             return Ok(());
         }

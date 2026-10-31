@@ -150,6 +150,7 @@ pub enum Item {
     Speed,
     SightDistance,
     KeepEnemiesActive,
+    ReinforcementLimit,
     CutsceneSpeed,
     Screenshot,
     ResetTweaks,
@@ -1482,7 +1483,17 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::KeepEnemiesActive,
                 "Keep all enemies active",
                 on(s.keep_enemies_active),
-                "GAMEPLAY EDIT: distant enemies keep thinking and patrolling, so larger groups may gather. Reinforcements need terrain cover and share a 30-actor limit. Ends recording.",
+                "GAMEPLAY EDIT: distant enemies keep thinking and patrolling, so larger groups may gather. Reinforcements need terrain cover. Ends recording.",
+            ),
+            (
+                Item::ReinforcementLimit,
+                "Reinforcement population limit",
+                if s.reinforcement_limit == 0 {
+                    "Unlimited".into()
+                } else {
+                    s.reinforcement_limit.to_string()
+                },
+                "All-active mode only: stop calling extra guards at this total actor count, including the player and corpses. 0 = Unlimited. Existing actors and civilian replacements are kept. Ends recording.",
             ),
             (
                 Item::Screenshot,

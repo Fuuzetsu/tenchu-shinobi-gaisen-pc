@@ -105,6 +105,7 @@ impl Application {
             Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),
+            Item::ReinforcementLimit => self.set_reinforcement_limit(s.reinforcement_limit),
             Item::DebugLight => {
                 self.debug.light = None;
                 self.debug.light_follow = false;

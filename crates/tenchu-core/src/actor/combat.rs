@@ -202,7 +202,8 @@ impl Actor {
             if slot.class & collision::HIT == 0 || slot.actor() == Some(self.id) {
                 continue;
             }
-            if let Some(other) = slot.actor() {
+            let owner = slot.actor();
+            if let Some(other) = owner {
                 world.roster.get_mut(other).move_at(ctx.math, -30, 0);
             }
             self.move_at(ctx.math, -30, 0);
@@ -213,12 +214,21 @@ impl Actor {
                 ctx.effects.bleed(position, velocity, time, [0, 127, 255]);
             }
             ctx.scene.models[hand].attribute &= !COLLIDE;
-            // Retail indexes BattleDB with the collision slot here.
+            // Keep retail's collision-index glitch within its original pool.
+            // Extra slots use the incoming attack instead of reading past BattleDB.
+            let attack = if id < collision::RETAIL_CAPACITY {
+                id
+            } else if let Some(other) = owner {
+                let other = world.roster.get(other);
+                other.attack_id(ctx, other.motion.action)
+            } else {
+                self.attack
+            };
             let battle = ctx
                 .mission
                 .weapons
                 .attacks
-                .get(id)
+                .get(attack)
                 .ok_or("Clash collision index exceeds loaded BattleDB")?;
             self.motion.loops = battle.power / -3 - 1;
             world.intelligence.voices.push((self.id, 0x36));
@@ -473,7 +483,7 @@ impl Actor {
                     ctx.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(self.id));
                     ctx.collision.slots[slot].offset = hitbox.center;
                     // Copying WeaponDB.confp also overwrites offset.pad.
-                    ctx.collision.slots[slot].count = hitbox.radius;
+                    ctx.collision.slots[slot].count = i32::from(hitbox.radius);
                     ctx.collision.slots[slot].size = [hitbox.radius; 3];
                     ctx.collision.slots[slot].class = collision::HIT;
                 }

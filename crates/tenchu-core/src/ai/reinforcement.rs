@@ -5,7 +5,7 @@ impl Controller<'_, '_> {
         if !self.roster.keep_all_active {
             return Ok(true);
         }
-        // Retail hides these spawns behind its fog. Whole-level AI needs actual cover.
+        // Retail relies on distance; whole-level AI also requires terrain cover.
         let from =
             self.player
                 .position
@@ -90,7 +90,7 @@ impl Controller<'_, '_> {
                         Difficulty::Hard => 0,
                     };
                     self.actor.brain.timer = if self.actor.brain.count != 0
-                        || self.roster.order.len() >= 30
+                        || !self.roster.can_call_reinforcements()
                         || self.ctx.mission.stage.id == 8
                     {
                         1
@@ -115,7 +115,7 @@ impl Controller<'_, '_> {
                 }
             }
             _ => {
-                if self.roster.keep_all_active && self.roster.order.len() >= 30 {
+                if self.roster.keep_all_active && !self.roster.can_call_reinforcements() {
                     self.actor.brain.timer = 1;
                     self.actor.brain.count = 0;
                     return Ok(0);

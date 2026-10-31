@@ -184,8 +184,8 @@ Do not merge or push any older, unfiltered history back into this repository.
 - **External dependency:** FFmpeg is not bundled in portable downloads. Movies
   and video export need it installed (or `TENCHU_FFMPEG` set). Nix supplies it for
   source builds. Browser preparation also needs the native tool and user's disc.
-- **Game scope:** the separate `TRIAL.EXE` mission editor is not ported; its menu
-  entry explains this. The supported retail disc is SLPS-019.01 only. Unknown
+- **Game scope:** the `TRIAL.EXE` challenges and mission editor are included from
+  v0.8.0. The supported retail disc is SLPS-019.01 only. Unknown
   action/asset variants still produce diagnostics instead of silently guessing;
   campaign/replay validation does not prove every possible gameplay path.
 - **Dependency review:** `cargo audit` against the current RustSec database found

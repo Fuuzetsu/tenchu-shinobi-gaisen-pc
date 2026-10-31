@@ -15,7 +15,7 @@ pub(super) fn application(options: Options) -> Application {
         trial_previous: None,
         assets,
         campaign,
-        storage: Storage::new().unwrap(),
+        storage: Storage::temporary(),
         view: None,
         clock: GameClock::default(),
         last_frame: Instant::now(),
@@ -390,6 +390,15 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
     assert!(!app.campaign.game.roster.keep_all_active);
     let saved: Settings = serde_json::from_str(r#"{"keep_enemies_active":true}"#).unwrap();
     assert!(saved.keep_enemies_active);
+    assert_eq!(saved.reinforcement_limit, 0);
+    app.apply_item(Item::ReinforcementLimit, 6).unwrap();
+    assert_eq!(app.settings.reinforcement_limit, 60);
+    assert_eq!(app.campaign.game.roster.reinforcement_limit, Some(60));
+    let saved: Settings =
+        serde_json::from_str(&serde_json::to_string(&app.settings).unwrap()).unwrap();
+    assert_eq!(saved.reinforcement_limit, 60);
+    app.settings.set_visual_preset(10);
+    assert_eq!(app.settings.reinforcement_limit, 60);
     for mission in 0..=10 {
         for character in 0..2 {
             for layout in 1..=3 {
@@ -421,6 +430,12 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
     app.action(Action::Confirm);
     app.action(Action::Confirm);
     assert!(app.campaign.game.roster.keep_all_active);
+    assert_eq!(app.campaign.game.roster.reinforcement_limit, Some(60));
+    app.reset_item(Item::ReinforcementLimit).unwrap();
+    assert_eq!(app.campaign.game.roster.reinforcement_limit, None);
+    app.set_reinforcement_limit(100);
+    app.set_gameplay_preset(1).unwrap();
+    assert_eq!(app.campaign.game.roster.reinforcement_limit, None);
     app.apply_item(Item::ResetTweaks, 1).unwrap();
     assert!(!app.settings.keep_enemies_active && !app.campaign.game.roster.keep_all_active);
 }

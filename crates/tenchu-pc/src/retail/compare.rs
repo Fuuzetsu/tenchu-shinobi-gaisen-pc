@@ -53,7 +53,10 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
         equal!(game.intelligence.alert, ram.word(0x800979c0) as i32);
         equal!(game.intelligence.strain, ram.word(0x800979c4) as i32);
         equal!(game.intelligence.attack_clock, ram.word(0x800979bc) as i32);
-        equal!(game.intelligence.death_index, ram.short(0x800979de) as u16);
+        equal!(
+            game.intelligence.death_index,
+            ram.short(0x800979de) as usize
+        );
         equal!(
             game.hud.selected.map_or(-1, |n| n as i16),
             ram.short(0x80097b1e)
@@ -76,7 +79,7 @@ pub(super) fn state(game: &Game, ram: &Ram) -> Result<()> {
             equal!(slot.position, ram.vector(ptr + 4));
             equal!(slot.offset, ram.short_vector(ptr + 0x14));
             equal!(slot.size, ram.short_vector(ptr + 0x1c));
-            equal!(slot.count, ram.short(ptr + 0x1a));
+            equal!(slot.count, i32::from(ram.short(ptr + 0x1a)));
             equal!(slot.class, ram.short(ptr + 0x22));
             equal!(slot.results.as_slice(), ram.bytes(ptr + 0x28, 80));
         }

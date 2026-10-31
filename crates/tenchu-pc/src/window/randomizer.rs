@@ -107,7 +107,8 @@ impl Application {
         }
         if self.campaign.randomized.is_none() {
             self.campaign.game.intelligence.sight_percent = self.settings.sight_percent;
-            self.campaign.game.roster.keep_all_active = self.settings.keep_enemies_active;
+            self.settings
+                .apply_activation(&mut self.campaign.game.roster);
         }
         self.debug.sight_percent = self.campaign.game.intelligence.sight_percent;
         self.debug.reload(&self.campaign.game)?;

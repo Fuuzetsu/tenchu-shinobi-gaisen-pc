@@ -355,6 +355,8 @@ fn widget(
                     let value = (v * scale).round() as i32;
                     if item == Item::TimeOfDay {
                         format!("{:02}:{:02}", value / 60, value % 60)
+                    } else if item == Item::ReinforcementLimit && value == 0 {
+                        "Unlimited".into()
                     } else if item == Item::PoolingSpeed {
                         format!("{:.2}x", v / 100.0)
                     } else {
@@ -364,6 +366,10 @@ fn widget(
                 .custom_parser(move |text| {
                     if item == Item::TimeOfDay {
                         clock_minutes(text)
+                    } else if item == Item::ReinforcementLimit
+                        && text.trim().eq_ignore_ascii_case("unlimited")
+                    {
+                        Some(0.0)
                     } else if item == Item::PoolingSpeed {
                         text.trim_end_matches('x')
                             .parse::<f64>()

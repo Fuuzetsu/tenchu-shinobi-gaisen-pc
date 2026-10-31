@@ -280,7 +280,7 @@ fn compare(game: &Game, ram: &Ram<'_>, root: &Ram<'_>) {
         );
         assert_eq!(
             slot.count,
-            ram.short(ptr + 0x1a),
+            i32::from(ram.short(ptr + 0x1a)),
             "collision {index} count at {}",
             game.clock
         );

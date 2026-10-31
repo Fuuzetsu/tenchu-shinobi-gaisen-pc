@@ -38,6 +38,7 @@ pub struct Settings {
     pub pause_in_menu: bool,
     pub wait_after_death: bool,
     pub keep_enemies_active: bool,
+    pub reinforcement_limit: u16,
     pub sight_percent: u16,
     pub retro: bool,
     pub fullscreen: bool,
@@ -65,6 +66,7 @@ impl Default for Settings {
             pause_in_menu: true,
             wait_after_death: false,
             keep_enemies_active: false,
+            reinforcement_limit: 0,
             sight_percent: 100,
             retro: false,
             fullscreen: false,
@@ -91,6 +93,7 @@ impl Settings {
         self.vibration.validate();
         self.navigation.validate();
         self.sight_percent = self.sight_percent.min(400);
+        self.reinforcement_limit = self.reinforcement_limit.min(1000);
         if ![0, 1, 2, 4, 8, 16].contains(&self.cutscene_speed) {
             self.cutscene_speed = 1;
         }
@@ -110,6 +113,12 @@ impl Settings {
         original.sharp_text = false;
         original.player_model.clear();
         std::borrow::Cow::Owned(original)
+    }
+
+    pub fn apply_activation(&self, roster: &mut tenchu_core::roster::Roster) {
+        roster.keep_all_active = self.keep_enemies_active;
+        roster.reinforcement_limit =
+            (self.reinforcement_limit != 0).then_some(usize::from(self.reinforcement_limit));
     }
 
     pub fn set_visual_preset(&mut self, index: u16) {

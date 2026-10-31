@@ -120,7 +120,7 @@ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                 2 => crate::collision::Owner::Actor(enemy),
                 _ => crate::collision::Owner::Door,
             });
-            ctx.collision.slots[slot].count = i16::from(hit != 0);
+            ctx.collision.slots[slot].count = i32::from(hit != 0);
             ctx.collision.slots[slot].results[target_slot] = if hit != 0 { 0x84 } else { 0 };
             ctx.collision.other = None;
             ctx.effects.slots.fill(None);

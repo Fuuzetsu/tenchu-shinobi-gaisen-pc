@@ -4,7 +4,7 @@ use crate::{
     scene::{COLLIDE, CONFLICT, ModelId, Scene},
 };
 
-pub const CAPACITY: usize = 80;
+pub const RETAIL_CAPACITY: usize = 80;
 pub const HIT: i16 = 1;
 pub const STAND: i16 = 4;
 pub const SOFT: i16 = 8;
@@ -25,8 +25,8 @@ pub struct Slot {
     pub offset: [i16; 3],
     pub size: [i16; 3],
     pub class: i16,
-    pub count: i16,
-    pub results: [u8; CAPACITY],
+    pub count: i32,
+    pub results: Vec<u8>,
 }
 
 impl Slot {
@@ -48,7 +48,7 @@ impl Default for Slot {
             size: [0; 3],
             class: 0,
             count: 0,
-            results: [0; CAPACITY],
+            results: Vec::new(),
         }
     }
 }
@@ -64,7 +64,13 @@ pub struct Collision {
 impl Default for Collision {
     fn default() -> Self {
         Self {
-            slots: vec![Slot::default(); CAPACITY],
+            slots: vec![
+                Slot {
+                    results: vec![0; RETAIL_CAPACITY],
+                    ..Slot::default()
+                };
+                RETAIL_CAPACITY
+            ],
             len: 0,
             distance: [0; 3],
             other: None,
@@ -77,15 +83,21 @@ impl Collision {
         if let Some(id) = scene.models[model].conflict {
             return Ok(id);
         }
-        if self.len == CAPACITY {
-            return Err("Conflict pool exhausted".into());
+        if self.len == self.slots.len() {
+            let capacity = self.slots.len() * 2;
+            self.slots.resize_with(capacity, Slot::default);
+            for slot in &mut self.slots {
+                slot.results.resize(capacity, 0);
+            }
         }
         let id = self.len;
         self.len += 1;
         self.slots[id] = Slot {
             model: Some(model),
+            results: std::mem::take(&mut self.slots[id].results),
             ..Slot::default()
         };
+        self.slots[id].results.fill(0);
         scene.models[model].conflict = Some(id);
         scene.models[model].attribute = (scene.models[model].attribute | COLLIDE) & !CONFLICT;
         Ok(id)
@@ -198,6 +210,30 @@ impl Collision {
 mod tests {
     use super::*;
     use crate::math::Matrix;
+
+    #[test]
+    fn growing_collision_storage_preserves_ordered_contacts_and_reuses_removed_slots() {
+        let mut scene = Scene::default();
+        let mut pool = Collision::default();
+        let mut models = Vec::new();
+        for _ in 0..RETAIL_CAPACITY * 3 {
+            let model = scene.add(Some(0), Matrix::default());
+            pool.insert(&mut scene, model).unwrap();
+            models.push(model);
+        }
+        pool.compute(&mut scene).unwrap();
+        for index in 1..models.len() {
+            assert_eq!(pool.result(&scene, models[0], None), Some(index));
+        }
+        assert_eq!(pool.result(&scene, models[0], None), None);
+        pool.remove(&mut scene, models[1]);
+        assert_eq!(scene.models[*models.last().unwrap()].conflict, Some(1));
+        let slot = pool.insert(&mut scene, models[1]).unwrap();
+        assert!(pool.slots[slot].results.iter().all(|&r| r == 0));
+        pool.compute(&mut scene).unwrap();
+        assert_eq!(pool.result(&scene, models[0], None), Some(1));
+        assert_eq!(pool.slots[slot].count, (models.len() - 1) as i32);
+    }
 
     #[test]
     fn ordered_contacts_keep_inactive_results_and_vacated_tail_bytes() {

@@ -1098,7 +1098,7 @@ pub fn run(
         options.difficulty = difficulty;
     }
     let mut campaign = Campaign::new(&assets, options, saved)?;
-    campaign.game.roster.keep_all_active = settings.keep_enemies_active;
+    settings.apply_activation(&mut campaign.game.roster);
     campaign.game.intelligence.sight_percent = settings.sight_percent;
     let frontend = if demo.is_none() && startup.benchmark.is_none() {
         campaign.frontend = true;

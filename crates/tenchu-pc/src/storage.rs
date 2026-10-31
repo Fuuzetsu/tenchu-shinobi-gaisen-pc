@@ -110,6 +110,19 @@ impl UserFile {
 }
 
 impl Storage {
+    #[cfg(test)]
+    pub(crate) fn temporary() -> Self {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static SERIAL: AtomicUsize = AtomicUsize::new(0);
+        Self {
+            path: std::env::temp_dir().join(format!(
+                "tenchu-test-progress-{}-{}.sav",
+                std::process::id(),
+                SERIAL.fetch_add(1, Ordering::Relaxed)
+            )),
+        }
+    }
+
     pub fn new() -> Result<Self> {
         Ok(Self {
             path: UserFile::Progress.path()?,

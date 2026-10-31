@@ -111,7 +111,16 @@ impl Application {
             self.stop_edited_recording();
         }
         self.settings.keep_enemies_active = enabled;
-        self.campaign.game.roster.keep_all_active = enabled;
+        self.settings
+            .apply_activation(&mut self.campaign.game.roster);
+    }
+
+    pub(super) fn set_reinforcement_limit(&mut self, limit: u16) {
+        if self.settings.reinforcement_limit != limit && self.campaign.game.roster.keep_all_active {
+            self.stop_edited_recording();
+        }
+        self.settings.reinforcement_limit = limit;
+        self.campaign.game.roster.reinforcement_limit = (limit != 0).then_some(usize::from(limit));
     }
 
     fn teleport(&mut self) -> Result<()> {
@@ -175,7 +184,7 @@ impl Application {
         {
             self.menu.notice = error;
             self.settings = previous.clone();
-            self.campaign.game.roster.keep_all_active = previous.keep_enemies_active;
+            previous.apply_activation(&mut self.campaign.game.roster);
             self.set_sight(previous.sight_percent);
             let _ = self.sync_model_moveset();
             return;
@@ -265,6 +274,7 @@ impl Application {
             self.mission_edit()?;
         }
         self.keep_enemies_active(preset.active);
+        self.set_reinforcement_limit(0);
         self.set_sight(preset.sight);
         self.settings.cutscene_speed = preset.cutscenes;
         self.debug.speed = 100;
@@ -584,6 +594,8 @@ impl Application {
                     self.stop_edited_recording();
                 }
                 self.settings = Settings::default();
+                self.settings
+                    .apply_activation(&mut self.campaign.game.roster);
                 self.campaign.game.intelligence.sight_percent = 100;
                 self.debug = crate::debug::Debug::new(&self.campaign.game)?;
             }
@@ -707,6 +719,11 @@ impl Application {
                 self.set_sight(value);
             }
             Item::KeepEnemiesActive => self.keep_enemies_active(!self.settings.keep_enemies_active),
+            Item::ReinforcementLimit => {
+                let value = (i32::from(self.settings.reinforcement_limit) + direction * 10)
+                    .clamp(0, 1000) as u16;
+                self.set_reinforcement_limit(value);
+            }
             Item::Screenshot => {
                 self.screenshot = true;
                 self.menu.open = false;
@@ -718,6 +735,7 @@ impl Application {
                 self.debug.speed = 100;
                 self.set_sight(100);
                 self.keep_enemies_active(false);
+                self.set_reinforcement_limit(0);
             }
             _ => return Err("This control has no editable value".into()),
         }

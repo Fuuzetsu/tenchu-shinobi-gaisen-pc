@@ -56,6 +56,7 @@ pub const PRESETS: [Preset; 5] = [
 pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
     PRESETS.iter().position(|p| {
         settings.keep_enemies_active == p.active
+            && (!p.active || settings.reinforcement_limit == 0)
             && debug.sight_percent == p.sight
             && settings.cutscene_speed == p.cutscenes
             && debug.speed == 100

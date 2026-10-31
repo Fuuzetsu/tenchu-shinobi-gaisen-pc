@@ -1187,10 +1187,17 @@ Whole-level mode uses wider distance calculations for distant AI, targeting and
 corpse witnesses. Remote actors keep patrolling instead of reacting to every
 local alarm; actors beyond the awareness radius cannot hold the player's radar
 alerted. Nearby actors retain their usual sight/occlusion and combat rules.
-Reinforcements in this mode wait for terrain cover from the player and recheck
-the 30-actor limit when spawning, rather than relying on distance and black fog
-to hide their arrival. More guards can still gather naturally because the whole
-level stays active; turn this option off for the original encounter density.
+Reinforcements in this mode still follow the original difficulty and distance
+rules, but also wait for terrain cover from the player. The **Reinforcement
+population limit** on this page defaults to **Unlimited**; optionally set a limit
+up to 1,000 total actors, including the player and corpses. New calls check the
+limit before leaving and immediately before spawning, so queued calls cannot
+exceed it. Lowering the limit does not delete existing actors or block civilians
+being replaced by guards. Actor/collision storage grows as needed; larger groups
+cost more CPU time. The gameplay presets restore Unlimited. With all-active mode
+off, the original 30-actor decision threshold and activation rules apply,
+regardless of this setting. More guards can gather naturally while the whole
+level stays active; turn the option off for the original encounter density.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general

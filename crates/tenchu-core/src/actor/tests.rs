@@ -118,55 +118,70 @@ pub(super) fn constants() -> String {
 #[test]
 #[ignore = "requires TENCHU_DISC; preserves the weapon-clash collision-index bug"]
 fn weapon_clash_uses_collision_index_for_stun_and_keeps_the_slot() {
-    let mut game = oracle::game(0, 0);
-    let player = game.player_id;
-    let enemy = game
-        .roster
-        .order
-        .iter()
-        .copied()
-        .find(|&id| id != player)
-        .unwrap();
-    for model in &mut game.scene.models {
-        model.conflict = None;
+    for extra_slots in [0, 160] {
+        let mut game = oracle::game(0, 0);
+        let player = game.player_id;
+        let enemy = game
+            .roster
+            .order
+            .iter()
+            .copied()
+            .find(|&id| id != player)
+            .unwrap();
+        for model in &mut game.scene.models {
+            model.conflict = None;
+        }
+        game.collision = Collision::default();
+        let hand = game.player().parts[13];
+        let other = game.roster.get(enemy).parts[0];
+        let own_slot = game.collision.insert(&mut game.scene, hand).unwrap();
+        game.collision.slots[own_slot].owner = Some(crate::collision::Owner::Actor(player));
+        for _ in 0..extra_slots {
+            let model = game.scene.add(Some(0), Matrix::default());
+            game.collision.insert(&mut game.scene, model).unwrap();
+        }
+        let hit = game.collision.insert(&mut game.scene, other).unwrap();
+        game.collision.slots[hit].owner = Some(crate::collision::Owner::Actor(enemy));
+        game.collision.slots[hit].class = crate::collision::HIT;
+        game.collision.slots[own_slot].results[hit] = 0x81;
+        game.collision.slots[own_slot].count = 1;
+        game.scene.models[hand].attribute |= crate::scene::CONFLICT;
+        let attack = with_actor(&mut game, player, |a, ctx, _| a.attack_id(ctx, MOT_ATTACK));
+        assert_ne!(attack, hit);
+        let expected = if extra_slots == 0 {
+            hit
+        } else {
+            with_actor(&mut game, enemy, |actor, ctx, _| {
+                actor.attack_id(ctx, actor.motion.action)
+            })
+        };
+        game.mission.weapons.attacks[expected].power = 27;
+        if attack != expected {
+            game.mission.weapons.attacks[attack].power = 60;
+        }
+        let start = game.mission.weapons.attacks[attack].start;
+        assert!(start + 1 < game.mission.weapons.attacks[attack].end);
+        let before = game.random.calls;
+        with_actor(&mut game, player, |actor, ctx, world| {
+            actor.enter(ctx, MOT_ATTACK, true);
+            actor.attack = attack;
+            actor.motion.count = start + 1;
+            actor.target = None;
+            actor.pad.trigger = 0;
+            actor.attack(ctx, world, 0).unwrap();
+        });
+        assert_eq!(game.player().motion.loops, -10);
+        assert_eq!(game.random.calls - before, 40);
+        assert_eq!(game.collision.len, 2 + extra_slots);
+        assert_eq!(game.scene.models[hand].conflict, Some(own_slot));
+        assert_eq!(game.scene.models[hand].attribute & crate::scene::COLLIDE, 0);
+        assert_eq!(game.collision.slots[own_slot].results[hit], 0xc1);
+        assert_eq!(game.intelligence.voices, [(player, 0x36)]);
+        assert_eq!(
+            game.effects.rumble.last().unwrap().action,
+            RumbleAction::WeaponClash
+        );
     }
-    game.collision = Collision::default();
-    let hand = game.player().parts[13];
-    let other = game.roster.get(enemy).parts[0];
-    let own_slot = game.collision.insert(&mut game.scene, hand).unwrap();
-    game.collision.slots[own_slot].owner = Some(crate::collision::Owner::Actor(player));
-    let hit = game.collision.insert(&mut game.scene, other).unwrap();
-    game.collision.slots[hit].owner = Some(crate::collision::Owner::Actor(enemy));
-    game.collision.slots[hit].class = crate::collision::HIT;
-    game.collision.slots[own_slot].results[hit] = 0x81;
-    game.collision.slots[own_slot].count = 1;
-    game.scene.models[hand].attribute |= crate::scene::CONFLICT;
-    let attack = with_actor(&mut game, player, |a, ctx, _| a.attack_id(ctx, MOT_ATTACK));
-    assert_ne!(attack, hit);
-    game.mission.weapons.attacks[hit].power = 27;
-    game.mission.weapons.attacks[attack].power = 60;
-    let start = game.mission.weapons.attacks[attack].start;
-    assert!(start + 1 < game.mission.weapons.attacks[attack].end);
-    let before = game.random.calls;
-    with_actor(&mut game, player, |actor, ctx, world| {
-        actor.enter(ctx, MOT_ATTACK, true);
-        actor.attack = attack;
-        actor.motion.count = start + 1;
-        actor.target = None;
-        actor.pad.trigger = 0;
-        actor.attack(ctx, world, 0).unwrap();
-    });
-    assert_eq!(game.player().motion.loops, -10);
-    assert_eq!(game.random.calls - before, 40);
-    assert_eq!(game.collision.len, 2);
-    assert_eq!(game.scene.models[hand].conflict, Some(own_slot));
-    assert_eq!(game.scene.models[hand].attribute & crate::scene::COLLIDE, 0);
-    assert_eq!(game.collision.slots[own_slot].results[hit], 0xc1);
-    assert_eq!(game.intelligence.voices, [(player, 0x36)]);
-    assert_eq!(
-        game.effects.rumble.last().unwrap().action,
-        RumbleAction::WeaponClash
-    );
 }
 
 #[test]

@@ -33,12 +33,12 @@ fn all_active_reinforcements_wait_for_cover_and_recheck_capacity() {
         )])
         .unwrap()
     };
-    let call = |game: &mut crate::game::Game, civilian| {
+    let call = |game: &mut crate::game::Game, civilian, timer| {
         let mut actor = game.roster.take(guard);
         actor.position = Position::new(0, 0, 18000);
         actor.target = Some(game.player().root_model);
-        actor.brain.timer = 2;
-        actor.brain.chase = [0, 0];
+        actor.brain.timer = timer;
+        actor.brain.chase = [0, 18000];
         let mut ctx = Context {
             mission: &mut game.mission,
             math: &game.math,
@@ -53,6 +53,7 @@ fn all_active_reinforcements_wait_for_cover_and_recheck_capacity() {
         };
         let player = Player::new(game.roster.get(game.player_id), &ctx);
         let mut state = Intelligence {
+            difficulty: Difficulty::Hard,
             sight: Sight {
                 distance: 18000,
                 direction: 0,
@@ -85,28 +86,83 @@ fn all_active_reinforcements_wait_for_cover_and_recheck_capacity() {
     game.cursor = terrain::Cursor::new(&game.mission.terrain);
     game.roster.keep_all_active = true;
     for _ in 0..10 {
-        call(&mut game, false);
+        call(&mut game, false, 2);
         assert_eq!(game.roster.order.len(), initial);
     }
     let root = game.roster.get(guard).root_model;
-    call(&mut game, true);
+    call(&mut game, true, 2);
     assert_eq!(game.roster.get(guard).root_model, root);
     assert!(game.roster.order.contains(&guard));
     game.mission.terrain = terrain(true);
     game.cursor = terrain::Cursor::new(&game.mission.terrain);
+    game.roster.reinforcement_limit = Some(30);
     for _ in 0..12 {
-        call(&mut game, false);
+        call(&mut game, false, 2);
         assert!(game.roster.order.len() <= 30);
     }
     assert_eq!(game.roster.order.len(), 30);
     assert_eq!(game.roster.get(guard).brain.timer, 1);
 
-    // Original mode retains even its queued-call overshoot and fog-hidden spawn.
+    call(&mut game, false, 0);
+    assert_eq!(game.roster.get(guard).brain.timer, 1);
+
+    // Original mode retains even its queued-call overshoot and distance-only spawn.
     game.mission.terrain = terrain(false);
     game.cursor = terrain::Cursor::new(&game.mission.terrain);
     game.roster.keep_all_active = false;
-    call(&mut game, false);
+    call(&mut game, false, 2);
     assert_eq!(game.roster.order.len(), 31);
+    game.roster.reinforcement_limit = None;
+    call(&mut game, false, 0);
+    assert_eq!(game.roster.get(guard).brain.timer, 1);
+
+    game.roster.keep_all_active = true;
+    game.roster.reinforcement_limit = Some(60);
+    call(&mut game, false, 0);
+    assert_eq!(game.roster.get(guard).brain.timer, 2);
+    game.mission.terrain = terrain(true);
+    game.cursor = terrain::Cursor::new(&game.mission.terrain);
+    for _ in 0..40 {
+        call(&mut game, false, 2);
+    }
+    assert_eq!(game.roster.order.len(), 60);
+    assert_eq!(game.roster.get(guard).brain.timer, 1);
+    game.roster.reinforcement_limit = Some(10);
+    call(&mut game, false, 2);
+    assert_eq!(
+        game.roster.order.len(),
+        60,
+        "Lowering the cap does not remove actors"
+    );
+    game.roster.reinforcement_limit = None;
+    for _ in 0..68 {
+        call(&mut game, false, 2);
+    }
+    assert_eq!(game.roster.order.len(), 128);
+    assert!(game.collision.len > 80);
+    game.collision.compute(&mut game.scene).unwrap();
+
+    oracle::flat_ground(&mut game);
+    for (index, id) in game.roster.order.clone().into_iter().enumerate() {
+        let actor = game.roster.get_mut(id);
+        actor.position = Position::new(
+            (index as i32 % 16 - 8) * 1200,
+            0,
+            (index as i32 / 16 - 4) * 1200,
+        );
+        actor.invulnerable = id == game.player_id;
+        actor.map = terrain::Probe {
+            area: game.cursor.area,
+            attribute: 0x2000,
+            ..Default::default()
+        };
+        game.scene.set_translation(actor.root_model, actor.position);
+    }
+    for tick in 0..300 {
+        game.step(if tick % 60 < 30 { SQUARE } else { UP }).unwrap();
+    }
+    assert!(game.roster.order.len() >= 128);
+    assert!(game.collision.len > 80);
 }
 
 #[test]

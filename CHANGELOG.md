@@ -13,9 +13,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   waiting after death. Ignored navigation keys no longer play hidden menu sounds;
   confirming still finishes the retail failure sequence and preserves the retry seed.
 - With all enemies active, reinforcements require terrain cover from the player
-  and queued calls recheck the 30-actor limit. This prevents visible fog-distance
-  spawns and overlapping calls exceeding the limit. Original enemy settings keep
-  the retail rules.
+  instead of relying on distance alone. F1 → Simulation adds a configurable
+  reinforcement population limit, defaulting to Unlimited in all-active mode;
+  queued calls respect a chosen limit. Larger crowds no longer exhaust the old
+  actor/collision pools or fail during weapon clashes. Original enemy settings
+  keep the retail rules.
 
 ## 0.8.0 — 2026-10-31
 

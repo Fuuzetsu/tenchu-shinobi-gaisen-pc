@@ -300,7 +300,7 @@ impl Application {
             demo::animate(player, &mut self.settings, &mut self.debug);
         }
         self.debug.camera = demo::camera(player, &game, self.settings.graphics.interpolation);
-        game.roster.keep_all_active = self.settings.keep_enemies_active;
+        self.settings.apply_activation(&mut game.roster);
         game.intelligence.sight_percent = self.debug.sight_percent;
         self.campaign.game = game;
         self.campaign.options = options;
@@ -410,7 +410,8 @@ impl Application {
                 }
                 frontend.events.clear();
             }
-            self.campaign.game.roster.keep_all_active = self.settings.keep_enemies_active;
+            self.settings
+                .apply_activation(&mut self.campaign.game.roster);
             self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
             if let Some(audio) = &mut self.audio {
                 audio.fast_forward(

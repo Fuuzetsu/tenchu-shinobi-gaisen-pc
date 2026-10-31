@@ -113,7 +113,7 @@ pub struct Intelligence {
     pub strain: i32,
     pub player_strain: i32,
     pub found: i16,
-    pub death_index: u16,
+    pub death_index: usize,
     pub sight: Sight,
     pub detection: Detection,
     pub probe: [i32; 2],
