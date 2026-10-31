@@ -80,7 +80,7 @@ impl Preview {
         for (part, matrix) in appearance.parts.iter().zip(matrices) {
             appearance
                 .meshes
-                .visit(&part.geometry, matrix, false, 0, |triangle| {
+                .visit(&part.geometry, matrix, false, 0, None, |triangle| {
                     for vertex in triangle {
                         let p = Vec3::from(vertex.position);
                         min = min.min(p);
@@ -128,7 +128,7 @@ impl Preview {
         for (part, matrix) in self.appearance.parts.iter().zip(matrices) {
             self.appearance
                 .meshes
-                .visit(&part.geometry, matrix, false, 0, |triangle| {
+                .visit(&part.geometry, matrix, false, 0, None, |triangle| {
                     let depth = triangle
                         .iter()
                         .map(|v| (camera * Vec3::from(v.position)).z)

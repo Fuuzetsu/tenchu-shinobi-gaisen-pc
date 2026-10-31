@@ -410,7 +410,7 @@ fn distant_snow_and_surface_stains() {
             }],
         })
     };
-    let blood = decal(render_mesh::STAIN);
+    let blood = decal(render_mesh::STAIN | render_mesh::SOFT);
     let foot = decal(render_mesh::FOOTPRINT);
     let stain = capture(&mut renderer, Some(&blood));
     let track = capture(&mut renderer, Some(&foot));

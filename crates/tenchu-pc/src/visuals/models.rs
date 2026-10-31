@@ -4,7 +4,10 @@ use crate::{
     settings::Graphics,
 };
 use glam::{Mat3, Vec3};
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 use tenchu_assets::{Result, model::Geometry, stage::MissionAssets};
 use tenchu_core::math::Matrix;
 
@@ -60,7 +63,7 @@ impl Models {
         self.world
             .meshes
             .values()
-            .flatten()
+            .flat_map(|mesh| &mesh.vertices)
             .any(|v| v.flags & render_mesh::WATER != 0)
     }
 
@@ -152,20 +155,44 @@ impl Models {
         matrix: Matrix,
         fog: bool,
         required_flags: u32,
+        visit: impl FnMut([Vertex; 3]),
+    ) -> bool {
+        self.visit_deformed(geometry, matrix, fog, required_flags, None, visit)
+    }
+
+    fn visit_deformed(
+        &self,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        fog: bool,
+        required_flags: u32,
+        deformation: Option<&super::motion::Deformation<'_>>,
         mut visit: impl FnMut([Vertex; 3]),
     ) -> bool {
         if let Some(player) = &self.player
-            && player
-                .meshes
-                .visit(geometry, matrix, fog, required_flags, &mut visit)
+            && player.meshes.visit(
+                geometry,
+                matrix,
+                fog,
+                required_flags,
+                deformation,
+                &mut visit,
+            )
         {
             return true;
         }
         if let Some(&index) = self.imported_geometry.get(&(geometry.as_ptr() as usize)) {
-            return self.imported[index].visit(geometry, matrix, fog, required_flags, visit);
+            return self.imported[index].visit(
+                geometry,
+                matrix,
+                fog,
+                required_flags,
+                deformation,
+                visit,
+            );
         }
         self.world
-            .visit(geometry, matrix, fog, required_flags, visit)
+            .visit(geometry, matrix, fog, required_flags, deformation, visit)
     }
 
     pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
@@ -197,23 +224,54 @@ impl Models {
         matrix: Matrix,
         fog: bool,
         required_flags: u32,
-        mut visit: impl FnMut([Vertex; 3]),
+        visit: impl FnMut([Vertex; 3]),
     ) -> bool {
         let deformation = self.deformation(part, matrix);
-        self.visit_filtered(geometry, matrix, fog, required_flags, |mut triangle| {
-            if let Some(deformation) = &deformation {
-                for vertex in &mut triangle {
-                    deformation.vertex(vertex);
-                }
-            }
-            visit(triangle);
-        })
+        self.visit_deformed(
+            geometry,
+            matrix,
+            fog,
+            required_flags,
+            deformation.as_ref(),
+            visit,
+        )
+    }
+}
+
+struct Mesh {
+    vertices: Vec<Vertex>,
+    triangles: Vec<[u32; 3]>,
+    flags: u32,
+}
+
+impl Mesh {
+    fn new(vertices: &[Vertex]) -> Self {
+        let mut mesh = Self {
+            vertices: Vec::new(),
+            triangles: Vec::new(),
+            flags: 0,
+        };
+        // Sharing corners must preserve UV seams, normals and material boundaries.
+        let mut indices = HashMap::new();
+        for triangle in vertices.chunks_exact(3) {
+            mesh.flags |= triangle[0].flags;
+            mesh.triangles.push(std::array::from_fn(|i| {
+                *indices
+                    .entry(bytemuck::bytes_of(&triangle[i]))
+                    .or_insert_with(|| {
+                        let index = mesh.vertices.len() as u32;
+                        mesh.vertices.push(triangle[i]);
+                        index
+                    })
+            }));
+        }
+        mesh
     }
 }
 
 #[derive(Default)]
 pub(super) struct Meshes {
-    meshes: BTreeMap<usize, Vec<Vertex>>,
+    meshes: BTreeMap<usize, Mesh>,
     materials: Vec<Material>,
     variants: BTreeMap<usize, super::vegetation::botanical::Shape>,
     canopies: BTreeMap<usize, Vec<super::contact::foliage::Canopy>>,
@@ -477,13 +535,13 @@ impl Meshes {
                 );
             }
             out.meshes
-                .insert(source.geometry.as_ptr() as usize, vertices);
+                .insert(source.geometry.as_ptr() as usize, Mesh::new(&vertices));
         }
         Ok(out)
     }
 
     pub fn detach_textures(&mut self) {
-        for vertex in self.meshes.values_mut().flatten() {
+        for vertex in self.meshes.values_mut().flat_map(|mesh| &mut mesh.vertices) {
             if let Some(material) = vertex.material.checked_sub(1)
                 && let Some(region) = self.materials[material as usize].region
             {
@@ -512,7 +570,7 @@ impl Meshes {
         for rule in self.motion.values_mut().flatten() {
             rule.bind(&handles);
         }
-        for vertex in self.meshes.values_mut().flatten() {
+        for vertex in self.meshes.values_mut().flat_map(|mesh| &mut mesh.vertices) {
             if vertex.material != 0 {
                 vertex.material = handles[vertex.material as usize - 1];
             }
@@ -525,11 +583,15 @@ impl Meshes {
         matrix: Matrix,
         fog: bool,
         required_flags: u32,
+        deformation: Option<&super::motion::Deformation<'_>>,
         mut visit: impl FnMut([Vertex; 3]),
     ) -> bool {
-        let Some(vertices) = self.meshes.get(&(geometry.as_ptr() as usize)) else {
+        let Some(mesh) = self.meshes.get(&(geometry.as_ptr() as usize)) else {
             return false;
         };
+        if mesh.flags & required_flags != required_flags {
+            return true;
+        }
         let variant = self
             .variants
             .get(&(geometry.as_ptr() as usize))
@@ -537,12 +599,11 @@ impl Meshes {
         let rotation = rotation(matrix);
         let normal = rotation.inverse().transpose();
         let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
-        for triangle in vertices
-            .chunks_exact(3)
-            .filter(|t| t[0].flags & required_flags == required_flags)
-        {
-            visit(std::array::from_fn(|i| {
-                let mut vertex = triangle[i];
+        let transformed: Vec<_> = mesh
+            .vertices
+            .iter()
+            .copied()
+            .map(|mut vertex| {
                 if let Some(variant) = &variant {
                     variant.vertex(&mut vertex);
                 }
@@ -552,8 +613,18 @@ impl Meshes {
                     .to_array();
                 vertex.flags =
                     (vertex.flags & !render_mesh::FOG) | if fog { render_mesh::FOG } else { 0 };
+                if let Some(deformation) = deformation {
+                    deformation.vertex(&mut vertex);
+                }
                 vertex
-            }));
+            })
+            .collect();
+        for triangle in mesh
+            .triangles
+            .iter()
+            .filter(|t| mesh.vertices[t[0] as usize].flags & required_flags == required_flags)
+        {
+            visit(triangle.map(|index| transformed[index as usize]));
         }
         true
     }
@@ -571,7 +642,7 @@ mod tests {
     use tenchu_assets::game::GameAssets;
 
     #[test]
-    fn filtering_before_transforms_preserves_triangle_order_and_all_vertex_attributes() {
+    fn indexed_poses_preserve_vertices_and_filtered_triangle_order() {
         use bytemuck::Zeroable;
         let geometry = vec![Geometry {
             vertices: Vec::new(),
@@ -579,7 +650,7 @@ mod tests {
             faces: Vec::new(),
         }];
         let key = geometry.as_ptr() as usize;
-        let vertices: Vec<_> = (0..18)
+        let mut vertices: Vec<_> = (0..18)
             .map(|i| Vertex {
                 position: [
                     (i % 3) as f32 * 120.0,
@@ -601,24 +672,38 @@ mod tests {
                 ..Vertex::zeroed()
             })
             .collect();
+        vertices.extend_from_within(..);
+        vertices[18].uv[0] += 0.25;
+        let indexed = Mesh::new(&vertices);
+        assert_eq!(indexed.vertices.len(), 19);
+        let mut expanded = Mesh {
+            flags: indexed.flags,
+            triangles: (0..vertices.len() as u32)
+                .step_by(3)
+                .map(|i| [i, i + 1, i + 2])
+                .collect(),
+            vertices: vertices.clone(),
+        };
         let mut models = Models::default();
         models.world.variants.insert(
             key,
             super::super::vegetation::botanical::Shape::new(&vertices),
         );
-        models.world.meshes.insert(key, vertices);
+        models.world.meshes.insert(key, indexed);
         for fog in [false, true] {
             for translation in [[0, 0, 0], [1200, -500, 2100]] {
                 let matrix = Matrix {
                     rotation: [[4096, 0, 0], [0, 0, -4096], [0, 4096, 0]],
                     translation: translation.into(),
                 };
+                std::mem::swap(models.world.meshes.get_mut(&key).unwrap(), &mut expanded);
                 let mut reference = Vec::new();
                 models.visit(&geometry, matrix, fog, |triangle| {
                     if triangle[0].flags & render_mesh::TRANSLUCENT != 0 {
                         reference.extend(triangle);
                     }
                 });
+                std::mem::swap(models.world.meshes.get_mut(&key).unwrap(), &mut expanded);
                 let mut filtered = Vec::new();
                 assert!(models.visit_filtered(
                     &geometry,
@@ -627,7 +712,7 @@ mod tests {
                     render_mesh::TRANSLUCENT,
                     |triangle| filtered.extend(triangle)
                 ));
-                assert_eq!(reference.len(), 9);
+                assert_eq!(reference.len(), 18);
                 assert_eq!(
                     bytemuck::cast_slice::<_, u8>(&reference),
                     bytemuck::cast_slice::<_, u8>(&filtered)

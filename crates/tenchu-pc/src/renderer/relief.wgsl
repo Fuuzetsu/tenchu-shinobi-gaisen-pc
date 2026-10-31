@@ -11,7 +11,9 @@ fn height_level(index: u32, uv: vec2<f32>, level: u32) -> vec3<f32> {
 
 fn height_sample(index: u32, uv: vec2<f32>, lod: f32) -> vec3<f32> {
     let low = u32(lod);
-    return mix(height_level(index, uv, low), height_level(index, uv, min(low + 1u, material_info(index).x - 1u)), fract(lod));
+    var height = height_level(index, uv, low);
+    if fract(lod) > 0.0 { height = mix(height, height_level(index, uv, min(low + 1u, material_info(index).x - 1u)), fract(lod)); }
+    return height;
 }
 
 fn surface_detail(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>, du: vec2<f32>, dv: vec2<f32>) -> Detail {

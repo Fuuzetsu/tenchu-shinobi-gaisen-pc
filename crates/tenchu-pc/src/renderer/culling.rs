@@ -1,5 +1,5 @@
 use crate::render_mesh::{self, Vertex};
-use glam::{Mat4, Vec3, Vec4};
+use glam::{Mat4, Vec3, Vec3A, Vec4};
 use std::ops::Range;
 
 pub(super) struct Chunk {
@@ -8,33 +8,36 @@ pub(super) struct Chunk {
     foliage: bool,
 }
 
-pub(super) fn chunks(vertices: &[Vertex]) -> Vec<Chunk> {
-    vertices
-        .chunks(1536)
-        .enumerate()
-        .map(|(i, vertices)| {
-            let mut bounds: Option<[Vec3; 2]> = None;
-            let mut foliage = false;
-            for v in vertices.iter().filter(|v| {
-                v.flags
-                    & (render_mesh::SCREEN
-                        | render_mesh::DEBUG
-                        | render_mesh::ALPHA
-                        | render_mesh::WATER)
-                    == 0
-            }) {
-                let p = Vec3::from(v.position);
+pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Option<[Vec3; 2]> {
+    chunks.clear();
+    let mut scenery: Option<[Vec3A; 2]> = None;
+    for (i, vertices) in vertices.chunks(1536).enumerate() {
+        let mut bounds: Option<[Vec3A; 2]> = None;
+        let mut foliage = false;
+        for v in vertices {
+            let p = Vec3A::from(v.position);
+            if v.flags & render_mesh::SCENERY != 0 {
+                scenery = Some(scenery.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
+            }
+            if v.flags
+                & (render_mesh::SCREEN
+                    | render_mesh::DEBUG
+                    | render_mesh::ALPHA
+                    | render_mesh::WATER)
+                == 0
+            {
                 bounds = Some(bounds.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
                 foliage |= v.flags & render_mesh::FOLIAGE != 0;
             }
-            let start = i as u32 * 1536;
-            Chunk {
-                range: start..start + vertices.len() as u32,
-                bounds,
-                foliage,
-            }
-        })
-        .collect()
+        }
+        let start = i as u32 * 1536;
+        chunks.push(Chunk {
+            range: start..start + vertices.len() as u32,
+            bounds: bounds.map(|b| b.map(Vec3::from)),
+            foliage,
+        });
+    }
+    scenery.map(|b| b.map(Vec3::from))
 }
 
 pub(super) struct Frustum([Vec4; 6]);

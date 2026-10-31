@@ -98,9 +98,10 @@ fn culled_shadows_match_full_stage_with_foliage() {
     let (mut renderer, target) = fixture(&game.mission.vram);
     renderer.configure(&graphics);
     renderer.visual_time = 1.4;
+    let pack = crate::visuals::pack::Pack::from_env(&game.mission).unwrap();
+    renderer.set_asset_pack(&pack);
     let mut models =
-        crate::visuals::models::Models::build(&game.mission, &Default::default(), &graphics)
-            .unwrap();
+        crate::visuals::models::Models::build(&game.mission, &pack, &graphics).unwrap();
     renderer.bind_models(&mut models);
     let stage = renderer.upload(&render_mesh::stage(
         &game.mission,
@@ -129,31 +130,37 @@ fn culled_shadows_match_full_stage_with_foliage() {
     ];
     let camera = game_camera(game.rendered_view, 1.0);
     let view = target.create_view(&Default::default());
-    renderer
-        .draw_lit(
-            &view,
-            camera,
-            &[&stage, &actor],
-            None,
-            &lights,
-            &[&shadow, &bodies],
-        )
-        .unwrap();
-    let culled = read_pixels(&renderer, &target);
-    shadow.shadow_chunks.clear();
-    bodies.shadow_chunks.clear();
-    renderer
-        .draw_lit(
-            &view,
-            camera,
-            &[&stage, &actor],
-            None,
-            &lights,
-            &[&shadow, &bodies],
-        )
-        .unwrap();
-    assert!(
-        culled == read_pixels(&renderer, &target),
-        "culling changed visible shadow pixels"
-    );
+    for replacements in [false, true] {
+        graphics.asset_pack = replacements;
+        renderer.configure(&graphics);
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                &[&stage, &actor],
+                None,
+                &lights,
+                &[&shadow, &bodies],
+            )
+            .unwrap();
+        let culled = read_pixels(&renderer, &target);
+        let chunks = std::mem::take(&mut shadow.shadow_chunks);
+        let body_chunks = std::mem::take(&mut bodies.shadow_chunks);
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                &[&stage, &actor],
+                None,
+                &lights,
+                &[&shadow, &bodies],
+            )
+            .unwrap();
+        assert!(
+            culled == read_pixels(&renderer, &target),
+            "culling changed visible shadow pixels"
+        );
+        shadow.shadow_chunks = chunks;
+        bodies.shadow_chunks = body_chunks;
+    }
 }

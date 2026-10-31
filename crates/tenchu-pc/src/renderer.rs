@@ -30,16 +30,7 @@ pub struct Mesh {
 impl Mesh {
     fn set_geometry(&mut self, vertices: &[Vertex]) {
         self.count = vertices.len() as u32;
-        self.shadow_chunks = culling::chunks(vertices);
-        self.bounds = vertices
-            .iter()
-            .filter(|v| v.flags & crate::render_mesh::SCENERY != 0)
-            .map(|v| glam::Vec3::from(v.position))
-            .fold(None, |bounds, p| {
-                Some(bounds.map_or([p, p], |[min, max]: [glam::Vec3; 2]| {
-                    [min.min(p), max.max(p)]
-                }))
-            });
+        self.bounds = culling::update_chunks(vertices, &mut self.shadow_chunks);
     }
 }
 

@@ -138,7 +138,9 @@ fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32
     let major = sqrt(eigenvalue);
     if magnification > 0.0 && major < 1.0 {
         let closeup = material_closeup(index, uv, min(abs(tx) + abs(ty), vec2(1.0)), magnification, semi, blended);
-        let color = mix(closeup, material_level(index, uv, 0u, semi, blended), smoothstep(0.75, 1.0, major));
+        let blend = smoothstep(0.75, 1.0, major);
+        var color = closeup;
+        if blend > 0.0 { color = mix(closeup, material_level(index, uv, 0u, semi, blended), blend); }
         return select(fallback, color.rgb / max(color.a, 0.00001), color.a > 0.00001);
     }
     if filtering < 2.0 {
@@ -157,8 +159,9 @@ fn material_color(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32
     var sum = vec4(0.0);
     for (var i = 0u; i < count; i++) {
         let point = uv + axis * ((f32(i) + 0.5) / f32(count) - 0.5);
-        sum += mix(material_level(index, point, low, semi, blended),
-                   material_level(index, point, high, semi, blended), fract(level));
+        var color = material_level(index, point, low, semi, blended);
+        if fract(level) > 0.0 { color = mix(color, material_level(index, point, high, semi, blended), fract(level)); }
+        sum += color;
     }
     return select(fallback, sum.rgb / max(sum.a, 0.00001), sum.a > 0.00001);
 }

@@ -9,6 +9,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   while preserving shadow resolution, light counts and rendered detail.
 - Reduce contact-shading cost with MSAA and redundant HD texture reads without
   changing the image or graphics settings.
+- Speed up refined character animation and mesh bounds preparation, including
+  scenes with many active enemies.
 
 ## 0.9.0 — 2026-10-31
 
