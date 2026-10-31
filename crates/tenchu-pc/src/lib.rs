@@ -23,6 +23,7 @@ mod source;
 #[cfg(not(target_arch = "wasm32"))]
 mod startup;
 mod storage;
+mod trial;
 mod ui;
 #[cfg(not(target_arch = "wasm32"))]
 mod video;

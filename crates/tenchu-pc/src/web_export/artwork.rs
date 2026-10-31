@@ -121,6 +121,8 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
         interface.extend(frontend.artwork_images().into_keys());
         include_briefings(&assets, language, &mut interface)?;
     }
+    let trial = assets.disc.find("TENCHU/TRIAL.EXE")?;
+    assets.disc.file(&trial).read(0, trial.size as usize)?;
     let pages = trace.lock().map_err(|e| e.to_string())?.clone();
     refresh_boot(destination, &mut manifest, assets.disc.source(), pages)?;
     manifest.artwork = configured(destination, &interface)?;

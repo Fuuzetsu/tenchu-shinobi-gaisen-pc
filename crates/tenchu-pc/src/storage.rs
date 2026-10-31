@@ -18,6 +18,7 @@ pub enum UserFile {
     Presets,
     Controls,
     Randomizer,
+    Trials,
     #[cfg(not(target_arch = "wasm32"))]
     LastDisc,
 }
@@ -31,6 +32,7 @@ impl UserFile {
             Self::Presets => "presets.json",
             Self::Controls => "controls.json",
             Self::Randomizer => "randomizer.json",
+            Self::Trials => "trials.json",
         }
         .into());
         #[cfg(not(target_arch = "wasm32"))]
@@ -69,6 +71,12 @@ impl UserFile {
                 "TENCHU_RANDOMIZER",
                 "XDG_CONFIG_HOME",
                 ".config",
+            ),
+            Self::Trials => (
+                "trials.json",
+                "TENCHU_TRIALS",
+                "XDG_DATA_HOME",
+                ".local/share",
             ),
             Self::LastDisc => (
                 "last-disc.json",

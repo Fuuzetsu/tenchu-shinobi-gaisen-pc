@@ -799,8 +799,8 @@ cues on devices supported by the host; motor timing follows the driver's
 resolution; physical motor output still needs a hands-on controller check.
 Original cheat-button sequences are not implemented; F6 provides unrestricted
 mission/layout selection and all four languages are available immediately.
-The separate **TRIAL.EXE mission editor** is not ported; its title entry explains
-this and returns to the menu.
+The title's **Mission editor** opens the ported TRIAL.EXE challenges and editor;
+see [Mission editor](#mission-editor).
 
 Normal mission selection plays the original narrated briefing, then opens the
 item shop. Enter/Start skips the briefing. In the shop, use arrows/D-pad to select,
@@ -1591,3 +1591,46 @@ profile_mission_rendering -- --ignored --nocapture` (one shell command).
 Optional `TENCHU_PROFILE_SIZE=2560x1440` and `TENCHU_PROFILE_FAR=1` select a larger,
 elevated view with fog disabled. It measures GPU work offscreen, independently
 of VSync/window-system presentation waits.
+
+## Mission editor
+
+Choose **Mission editor** on the title screen, or press **F10** in the menus.
+All sixteen original challenges are available immediately. Select one, choose
+Rikimaru or Ayame and press **F5 / Play**. Trials keep their own records and never
+change campaign progress. Their original voice bank is Japanese.
+
+For a custom mission, choose a theme and objective on **Missions**, then **Create**.
+The six tabs provide the mission library, terrain, characters, patrols, rules and
+sharing. Paint the 32×32 map with the mouse; right-drag erases. Ground and ornaments
+are separate layers. **R** rotates a tile, arrows move the cursor, Enter places,
+Delete erases and **Ctrl+Z** undoes. Character cells retain supporting ground.
+Place characters, select their patrol routes and add adjacent waypoints, waits
+and facing directions. All twelve original themes include their own tile and
+character palettes. Objectives are reaching Lord Gohda, assassination, eliminating
+all enemies, escorting Princess Kiku and finding the herb; any can require stealth.
+
+**3D preview** opens the map paused with a free camera: WASD/QE move, right-drag
+looks, F2 returns to the player and F3 resumes. During play, **Esc** returns to the
+editor and **F5** retries. Completion or failure returns automatically. Controller
+bumpers change editor tabs, D-pad selects missions or map cells, South confirms,
+West undoes, Start plays and East returns. Mouse input exposes the full palette
+and text-editing controls.
+
+**Save** adds a mission to your library or updates the selected saved mission;
+**Save a copy** keeps both. Save edits before selecting another mission. Closing
+the editor preserves the current draft. **Share** imports/exports retail-format
+`.msn` files or exchanges text share codes. Imports also accept a single raw 8 KiB
+PlayStation memory-card block with its `SC` header, not an entire memory card.
+Native files and browser downloads use the same format. Mission titles, authors,
+passwords and record names must fit the original Shift-JIS fields; errors are
+shown without replacing the previous save.
+
+The library is `trials.json` in the user data directory, or at `TENCHU_TRIALS` if
+set; browsers use local storage. Records follow the original adjusted trial time:
+stealth kill −15 seconds, other kill −5, civilian kill +30, being spotted +10.
+Gameplay modifiers, free-camera preview or altered simulation speed make a run
+practice, so it cannot replace a record. Visual settings do not affect eligibility.
+
+Browser deployments made before this port need `prepare-web` run again to include
+TRIAL.EXE. Remaining assets and Japanese audio load in the background; the editor
+reports when they are not ready yet. No loading is required once a trial starts.

@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Port TRIAL.EXE: play all 16 original challenges as either ninja, or build custom
+  missions across 12 themes with terrain, ornaments, traps, characters and patrols.
+  Five objectives, optional stealth constraints, original time bonuses/penalties,
+  result scenes and best-time records use the shared gameplay engine.
+- Open the mission editor from the title or F10 in menus. Mouse painting, undo,
+  3D preview and immediate playtesting work on desktop and in the browser. Save
+  missions separately from campaign progress; import/export .msn files or share
+  codes. Trial art, geometry, missions and sound come from the user's verified disc.
+
 ## 0.7.0 — 2026-10-31
 
 - F1 → General can relight the item shop: the window follows the game's sky and

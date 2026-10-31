@@ -3,7 +3,11 @@ use crate::randomizer::Event;
 
 impl Application {
     pub(super) fn toggle_randomizer(&mut self) {
-        if self.demo.is_some() || self.benchmarks.run.is_some() {
+        if self.demo.is_some()
+            || self.benchmarks.run.is_some()
+            || self.trial.open
+            || self.campaign.game.trial.is_some()
+        {
             return;
         }
         self.randomizer.open = !self.randomizer.open;
@@ -35,7 +39,11 @@ impl Application {
                 return Err("Preparing assets and audio for this language; try Start again once the download finishes".into());
             }
         }
-        if self.demo.is_some() || self.benchmarks.run.is_some() {
+        if self.demo.is_some()
+            || self.benchmarks.run.is_some()
+            || self.trial.open
+            || self.campaign.game.trial.is_some()
+        {
             return Err("Finish the demo or benchmark first".into());
         }
         let view = self.view.as_mut().ok_or("Renderer is not ready")?;

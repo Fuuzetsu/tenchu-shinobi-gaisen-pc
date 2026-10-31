@@ -441,7 +441,12 @@ impl Game {
         for (actor, health, maximum) in self.combat.life_bars.drain(..) {
             self.hud.request_life(actor, health, maximum);
         }
-        if self.cinematic.active {
+        if self.cinematic.active
+            || self
+                .trial
+                .as_ref()
+                .is_some_and(|s| s.phase != trial::Phase::Playing)
+        {
             self.hud.sprites.clear();
             self.hud.map.clear();
         } else {

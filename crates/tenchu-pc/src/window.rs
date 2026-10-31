@@ -13,6 +13,7 @@ mod settings_reset;
 #[cfg(test)]
 mod tests;
 mod tools;
+mod trial;
 #[cfg(not(target_arch = "wasm32"))]
 mod video;
 mod view;
@@ -73,6 +74,8 @@ struct Application {
     benchmarks: benchmark::Benchmarks,
     presets: settings::library::Manager,
     randomizer: crate::randomizer::Editor,
+    trial: crate::trial::Editor,
+    trial_previous: Option<(Box<Game>, Options)>,
     fps_elapsed: f32,
     fps_frames: u32,
     debug: crate::debug::Debug,
@@ -165,6 +168,7 @@ impl Application {
 
     fn is_suspended(&self) -> bool {
         self.paused
+            || self.trial.open
             || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
             || (self.menu.open && self.settings.pause_in_menu)
@@ -218,7 +222,10 @@ impl Application {
     }
 
     fn save(&mut self) {
-        if self.demo.is_some() || self.campaign.randomized.is_some() {
+        if self.demo.is_some()
+            || self.campaign.randomized.is_some()
+            || self.campaign.game.trial.is_some()
+        {
             return;
         }
         if let Some(save) = self.campaign.save_request.take() {
@@ -238,6 +245,14 @@ impl Application {
         } else {
             action
         };
+        if self.campaign.game.trial.is_some() {
+            if matches!(action, Action::Back) {
+                self.trial_action(crate::trial::Event::Return);
+            } else if matches!(action, Action::Replay) {
+                self.trial_action(crate::trial::Event::Play { preview: false });
+            }
+            return;
+        }
         if self.randomizer_command(action) {
             return;
         }
@@ -340,6 +355,14 @@ impl Application {
     }
 
     fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        if self.trial.open {
+            if let Command::Menu(action) = command
+                && let Some(event) = self.trial.controller(action, &self.assets)
+            {
+                self.trial_action(event);
+            }
+            return;
+        }
         if self.randomizer.open {
             if matches!(command, Command::Menu(Action::Back)) {
                 self.toggle_randomizer();
@@ -402,6 +425,11 @@ impl ApplicationHandler for Application {
     }
 
     fn exiting(&mut self, _: &ActiveEventLoop) {
+        if self.trial.tables.is_some()
+            && let Err(e) = self.trial.persist()
+        {
+            eprintln!("Trial save: {e}");
+        }
         #[cfg(target_arch = "wasm32")]
         crate::web::closed();
         self.finish_recording();
@@ -577,7 +605,10 @@ impl ApplicationHandler for Application {
                 self.release_pointer();
             }
             WindowEvent::MouseInput { .. } | WindowEvent::MouseWheel { .. }
-                if self.menu.open || self.randomizer.open || self.demo.is_some() => {}
+                if self.menu.open
+                    || self.trial.open
+                    || self.randomizer.open
+                    || self.demo.is_some() => {}
             WindowEvent::MouseInput { state, button, .. }
                 if (self.debug.camera.is_some()
                     || self.debug.click_teleport
@@ -633,6 +664,19 @@ impl ApplicationHandler for Application {
                     {
                         self.pause_error(error);
                     }
+                    return;
+                }
+                if self.trial.open {
+                    if event.state == ElementState::Pressed && code == KeyCode::Escape {
+                        self.trial_action(crate::trial::Event::Close);
+                    }
+                    return;
+                }
+                if event.state == ElementState::Pressed
+                    && code == KeyCode::F10
+                    && !self.campaign.playing()
+                {
+                    self.open_trial();
                     return;
                 }
                 if event.state == ElementState::Pressed && code == KeyCode::F7 {
@@ -795,6 +839,21 @@ impl ApplicationHandler for Application {
                 if update.disconnected && self.campaign.playing() {
                     eprintln!("Active controller disconnected; gameplay paused.");
                     self.set_paused(true);
+                } else if self.focused && self.trial.open {
+                    if update.pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0 {
+                        self.trial
+                            .next_tab(if update.pressed & tenchu_core::input::L1 != 0 {
+                                -1
+                            } else {
+                                1
+                            });
+                    }
+                    if let Some(Command::Menu(action)) =
+                        controls::gamepad_command(update.pressed, false, false)
+                        && let Some(event) = self.trial.controller(action, &self.assets)
+                    {
+                        self.trial_action(event);
+                    }
                 } else if self.focused && self.menu.open && !self.controls.editor.open {
                     if update.pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0 {
                         self.menu
@@ -1115,6 +1174,8 @@ pub fn run(
         benchmarks: benchmark::Benchmarks::new(startup.benchmark),
         presets,
         randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),
+        trial: crate::trial::Editor::new(crate::storage::UserFile::Trials.path()?),
+        trial_previous: None,
         fps_elapsed: 0.0,
         fps_frames: 0,
         debug,

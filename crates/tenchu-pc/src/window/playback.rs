@@ -46,6 +46,7 @@ impl Application {
             self.pause_error(error);
             return false;
         }
+        self.trial_record_check();
         if !self.campaign.playing() {
             self.finish_recording();
             self.controls.clear();

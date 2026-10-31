@@ -29,6 +29,10 @@ extern "C" {
     #[wasm_bindgen(catch)]
     pub fn download_report(name: &str, json: &str) -> std::result::Result<(), JsValue>;
     pub fn diagnostic_platform() -> String;
+    pub fn import_trial();
+    pub fn take_trial_import() -> String;
+    #[wasm_bindgen(catch)]
+    pub fn export_trial(bytes: &js_sys::Uint8Array) -> std::result::Result<(), JsValue>;
     pub fn loading_state(ready: bool);
     pub fn error(message: &str);
     pub fn media_pause(paused: bool);
@@ -80,6 +84,7 @@ pub fn update_snapshot(campaign: &crate::campaign::Campaign, paused: bool, fault
         Screen::Complete => "complete",
     };
     let data = serde_json::json!({ "tick": game.tick, "screen": screen, "paused": paused, "fault": fault,
+        "trial": game.mission.trial.as_ref().map(|s| serde_json::json!({"title": s.mission.title, "theme": s.mission.theme, "objective": s.mission.objective.label(), "phase": format!("{:?}", game.trial.as_ref().unwrap().phase)})),
         "mission": campaign.options.mission, "character": campaign.options.character, "health": player.health,
         "position": [player.position[0], player.position[1], player.position[2]], "motion": player.motion.action,
         "yaw": player.rotation[1], "camera_position": game.camera.position.to_array(),

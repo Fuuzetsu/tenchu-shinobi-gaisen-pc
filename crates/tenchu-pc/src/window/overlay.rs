@@ -16,6 +16,11 @@ pub(super) struct Overlay {
 }
 
 pub(super) struct Extras<'a> {
+    pub trial: Option<(
+        &'a mut crate::trial::Editor,
+        &'a tenchu_assets::game::GameAssets<crate::source::DiscSource>,
+        &'a tenchu_core::game::Game,
+    )>,
     pub labels: &'a [crate::debug::Label],
     pub text: &'a [crate::fonts::Text],
     pub performance: &'a mut super::performance::Performance,
@@ -33,6 +38,7 @@ pub(super) struct Extras<'a> {
 }
 
 pub(super) struct Updates {
+    trial: Option<crate::trial::Event>,
     edits: Vec<Edit>,
     demo: Option<crate::demo::overlay::Action>,
     frontend: Option<crate::campaign::Action>,
@@ -44,6 +50,7 @@ impl Overlay {
     pub fn new(window: &Window, renderer: &Renderer, format: wgpu::TextureFormat) -> Self {
         let context = egui::Context::default();
         crate::fonts::install(&context);
+        context.set_theme(egui::Theme::Dark);
         context.set_visuals(egui::Visuals::dark());
         context.style_mut(|s| {
             s.visuals.override_text_color = Some(egui::Color32::from_rgb(222, 229, 238));
@@ -93,7 +100,8 @@ impl Overlay {
         state: crate::settings::overlay::State<'_>,
         mut extras: Extras<'_>,
     ) -> Updates {
-        self.opaque = extras.frontend.is_some();
+        self.opaque =
+            extras.frontend.is_some() || extras.trial.as_ref().is_some_and(|(e, _, _)| e.open);
         let mut input = self.state.take_egui_input(window);
         #[cfg(target_arch = "wasm32")]
         {
@@ -135,6 +143,7 @@ impl Overlay {
         // Navigation is shared with the controller menu; text edits retain native key/IME events.
         if !self.editing()
             && menu.edit.is_none()
+            && !extras.trial.as_ref().is_some_and(|(e, _, _)| e.open)
             && !extras.controls.as_ref().is_some_and(|c| c.editor.open)
             && !extras.randomizer.as_ref().is_some_and(|r| r.editor.open)
         {
@@ -142,12 +151,19 @@ impl Overlay {
                 .events
                 .retain(|event| !matches!(event, egui::Event::Key { .. } | egui::Event::Text(_)));
         }
+        let mut trial_action = None;
         let mut edits = Vec::new();
         let mut demo_action = None;
         let mut frontend_action = None;
         let mut cancel_benchmark = false;
         let mut randomizer_action = None;
         let output = self.context.run(input, |ctx| {
+            if let Some((editor, assets, game)) = &mut extras.trial {
+                trial_action = editor.show(ctx, assets);
+                if !editor.open && game.trial.is_some() {
+                    crate::trial::status(ctx, game, editor.preview);
+                }
+            }
             if let Some((frontend, campaign)) = &mut extras.frontend {
                 frontend_action = frontend.show(
                     ctx,
@@ -265,6 +281,7 @@ impl Overlay {
             self.renderer.free_texture(id);
         }
         Updates {
+            trial: trial_action,
             edits,
             demo: demo_action,
             frontend: frontend_action,
@@ -284,6 +301,7 @@ impl super::Application {
         let randomizer_was_open = self.randomizer.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);
         let frontend_visible = self.frontend_visible();
+        let trial_open = self.trial.open;
         if (self.settings.model_moveset || self.campaign.game.moveset.kind.is_some())
             && !self.campaign.game.cinematic.active
             && !self.campaign.game.player().scripted
@@ -341,6 +359,7 @@ impl super::Application {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                trial: Some((&mut self.trial, &self.assets, &self.campaign.game)),
                 labels: &view.labels,
                 text: &view.text,
                 performance: &mut self.performance,
@@ -365,8 +384,13 @@ impl super::Application {
                             .or_else(|| {
                                 self.campaign.randomized.as_ref().map(|r| (&r.run, &r.plan))
                             }),
-                        launcher: frontend_visible
-                            || matches!(self.campaign.screen, crate::campaign::Screen::Launcher),
+                        launcher: !trial_open
+                            && self.campaign.game.trial.is_none()
+                            && (frontend_visible
+                                || matches!(
+                                    self.campaign.screen,
+                                    crate::campaign::Screen::Launcher
+                                )),
                     }
                 }),
                 models: Some(crate::visuals::appearance::picker::State {
@@ -384,6 +408,10 @@ impl super::Application {
                 },
             },
         );
+        if let Some(event) = updates.trial {
+            self.trial_action(event);
+            return;
+        }
         if let Some(event) = updates.randomizer {
             self.randomizer_action(event);
             return;

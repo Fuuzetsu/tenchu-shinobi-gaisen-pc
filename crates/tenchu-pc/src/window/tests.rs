@@ -9,6 +9,10 @@ pub(super) fn application(options: Options) -> Application {
     let debug = crate::debug::Debug::new(&campaign.game).unwrap();
     Application {
         frontend: None,
+        trial: crate::trial::Editor::new(
+            std::env::temp_dir().join(format!("tenchu-trial-test-{}.json", std::process::id())),
+        ),
+        trial_previous: None,
         assets,
         campaign,
         storage: Storage::new().unwrap(),

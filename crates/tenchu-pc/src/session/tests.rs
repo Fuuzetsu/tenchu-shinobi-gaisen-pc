@@ -867,3 +867,106 @@ fn trial_disc_objectives_and_timing() {
         assert_eq!(game.events.outcome, Outcome::GameOver);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; verifies trial arrows, collapsing floors and each theme's boss actions"]
+fn trial_disc_traps_and_theme_combat() {
+    use tenchu_assets::trial::{Mission, Objective, Point, Tables, Theme};
+    let path = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let tables = Tables::load(&assets).unwrap();
+    let load = |mission: &Mission, theme: &Theme, character| {
+        let mut random = tenchu_core::random::Random::new(1);
+        let prepared =
+            MissionAssets::load_trial(&assets, &tables, theme, mission, character, || {
+                random.next15() as u16
+            })
+            .unwrap();
+        Game::with_random(
+            prepared,
+            &Executable::new(&assets.executable).unwrap(),
+            character,
+            random,
+        )
+        .unwrap()
+    };
+    let theme = Theme::load(&assets, 0).unwrap();
+    let trigger = theme
+        .tiles
+        .iter()
+        .position(|t| !t.is_ornament() && t.flags & 0x1000 != 0)
+        .unwrap() as u8;
+    let shooter = theme
+        .tiles
+        .iter()
+        .position(|t| !t.is_ornament() && t.flags & 0x2000 != 0)
+        .unwrap() as u8;
+    let cover = theme
+        .tiles
+        .iter()
+        .position(|t| t.is_ornament() && t.flags & 0x2000 != 0)
+        .unwrap() as u8;
+    let pit = theme
+        .tiles
+        .iter()
+        .position(|t| !t.is_ornament() && t.kind() == 8)
+        .unwrap() as u8;
+    let mut mission = Mission::new(0, Objective::ReachLord, 140).unwrap();
+    mission.placements[0].point = Point { x: 10, z: 10 };
+    mission.map[10 * 32 + 10].ground = trigger;
+    mission.map[8 * 32 + 10].ground = shooter;
+    let mut game = load(&mission, &theme, 0);
+    let mut arrows = 0;
+    for _ in 0..65 {
+        game.step(0).unwrap();
+        arrows += game
+            .effects
+            .sounds
+            .iter()
+            .filter(|(_, id)| *id == 0x23)
+            .count();
+    }
+    assert_eq!(
+        arrows, 1,
+        "Standing on one trigger must fire once, not every second"
+    );
+    mission.map[10 * 32 + 10] = tenchu_assets::trial::Cell {
+        ground: pit,
+        ornament: cover,
+    };
+    let mut game = load(&mission, &theme, 0);
+    let index = game.mission.trial.as_ref().unwrap().collapsing[0];
+    let original = game.mission.placements[index].position;
+    for _ in 0..50 {
+        game.step(0).unwrap();
+    }
+    assert_ne!(game.mission.placements[index].position, original);
+    assert!(
+        game.player().position.y > 0,
+        "The player must fall with the sinking cover"
+    );
+    for id in 0..12 {
+        let theme = Theme::load(&assets, id).unwrap();
+        let mut mission =
+            Mission::new(id, Objective::Assassinate, tables.appearance[id][2]).unwrap();
+        mission.placements[1].point = Point { x: 16, z: 17 };
+        for character in 0..2 {
+            let mut game = load(&mission, &theme, character);
+            game.roster.get_mut(game.player_id).invulnerable = true;
+            for tick in 0..900 {
+                if game.events.outcome != tenchu_core::game::events::Outcome::Running {
+                    break;
+                }
+                let buttons = if tick % 160 < 120 {
+                    tenchu_core::input::SQUARE | UP
+                } else {
+                    tenchu_core::input::CIRCLE
+                };
+                game.step(buttons).unwrap_or_else(|e| {
+                    panic!("Trial theme {id}, character {character}, tick {tick}: {e}")
+                });
+                game.sounds().unwrap();
+            }
+        }
+    }
+}

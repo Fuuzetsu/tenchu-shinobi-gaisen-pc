@@ -1,13 +1,12 @@
 # Tenchu: Shinobi Gaisen PC
 
 A portable Rust port of **Tenchu: Shinobi Gaisen (SLPS-019.01)**: all ten missions,
-training, original menus and endings. Faithful game logic at its original rate,
+training, original menus, endings and the mission editor. Faithful game logic at its original rate,
 with optional modern graphics and smooth rendering. No PlayStation BIOS needed.
 
 **Bring your own original game disc:** select its **`.cue`** and keep all referenced
 **`.bin` files** beside it. Original game data is not included. Other Tenchu releases are not
 supported. Startup checks the game/menu executables and base artwork with SHA-256.
-The separate original mission editor (`TRIAL.EXE`) is not ported.
 
 ## Download and play
 
@@ -47,6 +46,8 @@ For bug reports, **F1 → General → Save diagnostic report…** exports portab
 with settings, build/GPU details, timings and gameplay state. See [diagnostics](docs/diagnostics.md).
 **F7** opens the [randomizer](docs/randomizer.md): shareable seeds, full-disc player/
 enemy pools, stage and item blacklists, HP and loadout rules, with separate run progress.
+The title's **Mission editor** (or **F10** from the menus) opens all 16 original
+trials and a [custom mission editor](docs/guide.md#mission-editor).
 [Controls](docs/guide.md#play) · [Benchmarks and measured improvements](docs/performance.md)
 
 ## Build from source

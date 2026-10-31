@@ -1164,3 +1164,17 @@ The trial runtime follows `SetupTrialMission`, `RunTrialMission`,
 collision and audio engines with campaign play, with separate trial timing,
 objectives and activation. TRIAL weapon/motion/death-event tables and the older
 FLOWER.MAD revision are loaded from the disc.
+
+The editor uses `RunMissionEditor`, `EDITORUTIL.C`, `EditTrialMission`,
+`MENULIST.C`, `MEMCARD.C` and `SetupTrialObjectivePlacements` as the behavior and
+file-format specification. The host uses a native/browser egui interface and
+ordinary owned missions, rather than emulating memory cards or the original
+screen layout. Imported file bounds, supporting tiles and adjacent patrol
+segments are checked before edits are accepted. All sixteen challenges are
+available without the original unlock gate. Campaign saves remain independent.
+
+Validation includes decoding/encoding every disc preset, geometry and collision
+for every theme, both heroes through all presets and five outcomes, arrow and
+collapsing-floor traps, all-theme combat/audio, editor undo and save roundtrips,
+and host return without campaign mutation. These source-backed tests and native/
+browser playtests do not claim exhaustive TRIAL emulator parity.

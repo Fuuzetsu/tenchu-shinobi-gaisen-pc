@@ -88,6 +88,7 @@ pub enum Event {
     StartMission,
     CancelPreparation,
     QuickLauncher,
+    TrialEditor,
     Save,
     Load,
     Preferences,
@@ -463,6 +464,7 @@ impl Frontend {
                             Some(2) => {
                                 self.set_page(Page::Editor);
                                 self.events.push(Event::Music(None));
+                                self.events.push(Event::TrialEditor);
                             }
                             Some(_) => {
                                 self.set_page(Page::Options);
@@ -735,9 +737,10 @@ impl Frontend {
                 Action::Back => self.set_page(Page::Options),
                 _ => (),
             },
-            Page::Editor if matches!(action, Action::Confirm | Action::Back) => {
-                self.enter_title(assets)?
+            Page::Editor if matches!(action, Action::Confirm | Action::Start) => {
+                self.events.push(Event::TrialEditor);
             }
+            Page::Editor if matches!(action, Action::Back) => self.enter_title(assets)?,
             Page::Movie(movie)
                 if (movie.skippable() || self.movie.is_none())
                     && matches!(action, Action::Confirm | Action::Back) =>

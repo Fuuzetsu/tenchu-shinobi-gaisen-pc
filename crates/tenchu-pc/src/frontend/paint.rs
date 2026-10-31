@@ -277,34 +277,130 @@ impl Frontend {
 
     fn description(&self, campaign: &Campaign) -> String {
         match self.page {
-            Page::Title => self.title.selection.map_or("Tenchu: Shinobi Gaisen — press Enter".into(),|i| ["Begin mission", "Ninja training", "Mission editor", "Options"][i].into()),
-            Page::Character => ["Select character — Rikimaru", "Select character — Ayame"][self.characters.selected].into(),
-            Page::Missions => format!("Mission {}: {} — layout {}",self.mission,campaign.stages[stage_id(campaign,self.mission)].name,self.layout+1),
+            Page::Title => {
+                self.title
+                    .selection
+                    .map_or("Tenchu: Shinobi Gaisen — press Enter".into(), |i| {
+                        [
+                            "Begin mission",
+                            "Ninja training",
+                            "Mission editor",
+                            "Options",
+                        ][i]
+                            .into()
+                    })
+            }
+            Page::Character => ["Select character — Rikimaru", "Select character — Ayame"]
+                [self.characters.selected]
+                .into(),
+            Page::Missions => format!(
+                "Mission {}: {} — layout {}",
+                self.mission,
+                campaign.stages[stage_id(campaign, self.mission)].name,
+                self.layout + 1
+            ),
             Page::Options => OPTIONS[self.option_selection].into(),
-            Page::Choice(option) => format!("{} — {}",OPTIONS[option], match option {
-                1=>["Easy","Normal","Hard"][self.choice],2=>["Stereo","Mono"][self.choice],
-                9=>["日本語 / Japanese","English","Français / French","Italiano / Italian"][self.choice],
-                _=>["On","Off"][self.choice],
-            }),
-            Page::Card => if self.choice==0 {"Load saved campaign"}else{"Save current campaign"}.into(),
-            Page::Volume => format!("Music {} / 127    Effects {} / 127 — Enter applies, Esc restores",self.preferences.music,self.preferences.effects),
-            Page::Controls => format!("Controller layout {} — Enter applies, Esc cancels",self.choice+1),
-            Page::SoundTest => format!("{} {} — left/right changes, Enter plays",if self.selection==0 {"Music"}else{"Effect"},self.sound_choices[self.selection]),
-            Page::Records => format!("Records — {}",if self.selection==0 {"Rikimaru"}else{"Ayame"}),
-            Page::Editor => "The mission editor is a separate TRIAL.EXE program; it has not been ported. Enter returns.".into(),
-            Page::Movie(movie) => format!("{}{}",match movie {Movie::Opening=>"Opening",Movie::Training=>"Ninja training",Movie::Rikimaru=>"Rikimaru epilogue",Movie::Ayame=>"Ayame epilogue",Movie::Credits=>"Credits"},if movie.skippable(){" — Enter or Esc to skip"}else{""}),
+            Page::Choice(option) => format!(
+                "{} — {}",
+                OPTIONS[option],
+                match option {
+                    1 => ["Easy", "Normal", "Hard"][self.choice],
+                    2 => ["Stereo", "Mono"][self.choice],
+                    9 => [
+                        "日本語 / Japanese",
+                        "English",
+                        "Français / French",
+                        "Italiano / Italian"
+                    ][self.choice],
+                    _ => ["On", "Off"][self.choice],
+                }
+            ),
+            Page::Card => if self.choice == 0 {
+                "Load saved campaign"
+            } else {
+                "Save current campaign"
+            }
+            .into(),
+            Page::Volume => format!(
+                "Music {} / 127    Effects {} / 127 — Enter applies, Esc restores",
+                self.preferences.music, self.preferences.effects
+            ),
+            Page::Controls => format!(
+                "Controller layout {} — Enter applies, Esc cancels",
+                self.choice + 1
+            ),
+            Page::SoundTest => format!(
+                "{} {} — left/right changes, Enter plays",
+                if self.selection == 0 {
+                    "Music"
+                } else {
+                    "Effect"
+                },
+                self.sound_choices[self.selection]
+            ),
+            Page::Records => format!(
+                "Records — {}",
+                if self.selection == 0 {
+                    "Rikimaru"
+                } else {
+                    "Ayame"
+                }
+            ),
+            Page::Editor => "Mission editor · Enter to open · Esc returns to title".into(),
+            Page::Movie(movie) => format!(
+                "{}{}",
+                match movie {
+                    Movie::Opening => "Opening",
+                    Movie::Training => "Ninja training",
+                    Movie::Rikimaru => "Rikimaru epilogue",
+                    Movie::Ayame => "Ayame epilogue",
+                    Movie::Credits => "Credits",
+                },
+                if movie.skippable() {
+                    " — Enter or Esc to skip"
+                } else {
+                    ""
+                }
+            ),
             Page::Results => {
                 let reward = if let crate::campaign::Screen::Results(results) = &campaign.screen
-                    && results.score.grade == 4 {
-                    format!(" — Grand Master reward: {}", crate::ui::ITEMS[campaign.game.mission.stage.reward])
-                } else { String::new() };
-                format!("{}{} — Enter: {}    R / F5: retry    Esc: menu",
-                    if campaign.options.mission == 0 { "Training results" } else { "Mission results" }, reward,
-                    if campaign.randomized.is_some() { "next roll" } else if campaign.options.mission == 10 { "main menu" }
-                    else if campaign.options.mission == 0 { "train again" } else { "next mission" })
-            },
-            Page::Briefing => format!("{} — Enter / Start: skip briefing", labels::mission(self.language, campaign.options.mission)),
-            Page::Shop => format!("{} — {}", labels::mission(self.language, campaign.options.mission), crate::ui::ITEMS[campaign.shop.order[campaign.cursor]]),
+                    && results.score.grade == 4
+                {
+                    format!(
+                        " — Grand Master reward: {}",
+                        crate::ui::ITEMS[campaign.game.mission.stage.reward]
+                    )
+                } else {
+                    String::new()
+                };
+                format!(
+                    "{}{} — Enter: {}    R / F5: retry    Esc: menu",
+                    if campaign.options.mission == 0 {
+                        "Training results"
+                    } else {
+                        "Mission results"
+                    },
+                    reward,
+                    if campaign.randomized.is_some() {
+                        "next roll"
+                    } else if campaign.options.mission == 10 {
+                        "main menu"
+                    } else if campaign.options.mission == 0 {
+                        "train again"
+                    } else {
+                        "next mission"
+                    }
+                )
+            }
+            Page::Briefing => format!(
+                "{} — Enter / Start: skip briefing",
+                labels::mission(self.language, campaign.options.mission)
+            ),
+            Page::Shop => format!(
+                "{} — {}",
+                labels::mission(self.language, campaign.options.mission),
+                crate::ui::ITEMS[campaign.shop.order[campaign.cursor]]
+            ),
         }
     }
 

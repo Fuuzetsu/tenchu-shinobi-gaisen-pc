@@ -87,6 +87,7 @@ pub fn export(disc: &Path, destination: &Path, artwork_only: bool) -> Result<()>
         "TENCHU/MAIN.EXE",
         "TENCHU/MENU.EXE",
         "TENCHU/ENDING.EXE",
+        "TENCHU/TRIAL.EXE",
         "TENCHU/DATA.VOL",
     ] {
         let entry = assets.disc.find(name)?;

@@ -15,7 +15,8 @@ impl Application {
         false
     }
     pub(super) fn frontend_visible(&self) -> bool {
-        self.frontend.is_some()
+        !self.trial.open
+            && self.frontend.is_some()
             && matches!(
                 self.campaign.screen,
                 Screen::Frontend | Screen::Ending(_) | Screen::Inventory(_) | Screen::Results(_)
@@ -111,6 +112,7 @@ impl Application {
         for event in pending {
             match event {
                 Event::Quit => events.exit(),
+                Event::TrialEditor => self.open_trial(),
                 Event::QuickLauncher => {
                     self.finish_recording();
                     self.campaign.quick_launcher = true;

@@ -192,3 +192,36 @@ export function diagnostic_platform() {
   return JSON.stringify({user_agent: navigator.userAgent, language: navigator.language,
     hardware_concurrency: navigator.hardwareConcurrency, device_pixel_ratio: devicePixelRatio});
 }
+
+let trialImport = "";
+export function import_trial() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".msn,.mcs";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (![7484, 8192].includes(file.size)) {
+      status("Select a single .msn mission or 8 KiB .mcs memory-card block");
+      return;
+    }
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      trialImport = Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+    } catch (error) { status(`Mission import failed: ${error}`); }
+  };
+  input.click();
+}
+export function take_trial_import() {
+  const value = trialImport;
+  trialImport = "";
+  return value;
+}
+export function export_trial(bytes) {
+  const url = URL.createObjectURL(new Blob([bytes], {type: "application/octet-stream"}));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "mission.msn";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

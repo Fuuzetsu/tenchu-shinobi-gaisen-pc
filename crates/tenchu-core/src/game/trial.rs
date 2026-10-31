@@ -243,12 +243,12 @@ impl Game {
                 0
             };
             if visibility != 0 {
-                let view = self
+                let matrix = self
                     .camera
                     .view
-                    .apply_large(actor.position)
-                    .wrapping_add(self.camera.view.translation);
-                visibility = if view[2] <= 0 || (view[0] * 300 / view[2]).abs() > 320 {
+                    .compose(&self.scene.world(actor.root_model)?);
+                let point = crate::projection::point(&matrix, [0; 3]);
+                visibility = if point.z == 0 || point.xy[0].abs() > 320 {
                     -1
                 } else {
                     1
@@ -295,6 +295,9 @@ impl Game {
         let state = self.trial.as_mut().unwrap();
         if let Some((text, ticks)) = state.notice {
             state.notice = (ticks > 1).then_some((text, ticks.saturating_sub(1)));
+        }
+        if matches!(state.phase, Phase::Failure(Failure::Spotted, _)) {
+            return;
         }
         let ticks = state.elapsed;
         if ticks < 107970 || (self.clock / 15) & 1 == 0 {
@@ -371,6 +374,13 @@ impl Game {
                             90,
                         ));
                         if i == 3 && self.mission.trial.as_ref().unwrap().mission.stealth {
+                            if let Some(id) = self.roster.order.iter().copied().find(|&id| {
+                                let actor = self.roster.get(id);
+                                actor.attribute & ATTR_PHASE == 2
+                                    && self.scene.models[actor.parts[0]].conflict.is_some()
+                            }) {
+                                self.trial_face(self.player_id, id)?;
+                            }
                             state.phase = Phase::Failure(Failure::Spotted, 0);
                         }
                     }
@@ -397,6 +407,7 @@ impl Game {
                         Objective::ReachLord => {
                             if target.status == ActorState::Dead {
                                 state.phase = Phase::Failure(Failure::ObjectiveLost, 0);
+                                state.focus = Some(self.roster.order[1]);
                             }
                             ready && close(p, target, 2000)
                         }
@@ -404,11 +415,13 @@ impl Game {
                         Objective::EliminateEnemies => grounded && state.remaining == 0,
                         Objective::ProtectPrincess => {
                             let princess = self.roster.get(self.roster.order[2]);
-                            if target.status == ActorState::Dead
-                                || princess.status == ActorState::Dead
-                                || princess.health == 0
-                            {
+                            if target.status == ActorState::Dead {
                                 state.phase = Phase::Failure(Failure::ObjectiveLost, 0);
+                                state.focus = Some(self.roster.order[1]);
+                            }
+                            if princess.status == ActorState::Dead || princess.health == 0 {
+                                state.phase = Phase::Failure(Failure::ObjectiveLost, 0);
+                                state.focus = Some(self.roster.order[2]);
                             }
                             ready && close(princess, target, 2000) && princess.position.y <= 0
                         }
@@ -436,7 +449,7 @@ impl Game {
                 state.phase = Phase::Success(ticks + 1);
                 let target = self.roster.get(self.roster.order[1]);
                 if target.motion.action == MOT_ACTION_LOOP && target.motion.loops != 0 {
-                    self.trial_motion(self.roster.order[1], MOT_NORMAL)?;
+                    self.trial_motion(self.roster.order[1], MOT_NORMAL, false)?;
                 }
                 if ticks
                     >= if objective == Objective::ProtectPrincess {
@@ -466,13 +479,18 @@ impl Game {
                             MOT_CHASE_DASH_LEFT,
                             MOT_ENGAGE_STANCE,
                         ][(self.random.next15() % 4) as usize];
-                        self.trial_motion(self.player_id, motion)?;
+                        self.trial_motion(self.player_id, motion, false)?;
                     }
                 }
-                if ticks >= 199
-                    && (self.player().status != ActorState::Dead
-                        || self.player().motion.count == 0 && self.player().motion.loops != 0)
-                {
+                let player = self.player();
+                let finished = if player.status == ActorState::Dead {
+                    player.motion.count == 0
+                        && player.motion.loops != 0
+                        && (ticks >= 198 || player.map.attribute & 0x200 != 0)
+                } else {
+                    ticks >= 198
+                };
+                if finished {
                     self.events.outcome = Outcome::GameOver;
                     self.clock = state.elapsed;
                 }
@@ -492,8 +510,8 @@ impl Game {
             let target = self.roster.order[1];
             if self.roster.get(target).kind == 6 {
                 self.roster.get_mut(target).setup_think(0)?;
-                self.trial_motion(self.player_id, MOT_ENGAGE_STANCE)?;
-                self.trial_motion(target, MOT_ACTION_LOOP)?;
+                self.trial_motion(self.player_id, MOT_ENGAGE_STANCE, true)?;
+                self.trial_motion(target, MOT_ACTION_LOOP, true)?;
                 self.trial_face(self.player_id, target)?;
                 self.trial_face(target, self.player_id)?;
             }
@@ -505,12 +523,12 @@ impl Game {
             {
                 let princess = self.roster.order[2];
                 self.roster.get_mut(princess).setup_think(0)?;
-                self.trial_motion(princess, 0x108)?;
+                self.trial_motion(princess, 0x108, true)?;
                 self.trial_face(target, princess)?;
                 self.trial_face(princess, target)?;
             }
             if self.roster.get(target).kind == 170 {
-                self.trial_motion(self.player_id, MOT_ENGAGE_STANCE)?;
+                self.trial_motion(self.player_id, MOT_ENGAGE_STANCE, true)?;
                 self.trial_face(self.player_id, target)?;
             }
             let objective = self.mission.trial.as_ref().unwrap().mission.objective;
@@ -528,6 +546,7 @@ impl Game {
         } else if let Phase::Failure(reason, _) = state.phase {
             match reason {
                 Failure::Spotted => {
+                    self.intelligence.voices.push((self.player_id, 6));
                     self.intelligence.action_halt = Halt::Running;
                     self.music.push(Some(10));
                 }
@@ -568,7 +587,7 @@ impl Game {
         )?);
         Ok(())
     }
-    fn trial_motion(&mut self, id: usize, motion: i16) -> Result<()> {
+    fn trial_motion(&mut self, id: usize, motion: i16, advance: bool) -> Result<()> {
         let actor = self.roster.get_mut(id);
         actor.enter(
             &Context {
@@ -586,9 +605,11 @@ impl Game {
             motion,
             true,
         );
-        actor
-            .motion
-            .play(&self.mission.clips, &self.math.tables.hermite, true)?;
+        if advance {
+            actor
+                .motion
+                .play(&self.mission.clips, &self.math.tables.hermite, true)?;
+        }
         Ok(())
     }
 }

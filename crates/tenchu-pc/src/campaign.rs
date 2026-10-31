@@ -118,7 +118,7 @@ impl Campaign {
     }
 
     pub fn checkpoint(&mut self, options: Options) {
-        if self.randomized.is_some() {
+        if self.randomized.is_some() || self.game.trial.is_some() {
             return;
         }
         self.save_request = Some(Save {
@@ -156,6 +156,12 @@ impl Campaign {
             return Ok(());
         }
         self.game.step(buttons)?;
+        if self.game.trial.is_some() {
+            if self.game.events.outcome != Outcome::Running {
+                self.screen = Screen::Frontend;
+            }
+            return Ok(());
+        }
         match self.game.events.outcome {
             Outcome::Running => {}
             Outcome::GameOver => {
