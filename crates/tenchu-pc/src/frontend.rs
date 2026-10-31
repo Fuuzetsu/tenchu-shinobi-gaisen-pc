@@ -717,7 +717,11 @@ impl Frontend {
             },
             Page::Records => match action {
                 Action::Left | Action::Right => {
-                    self.selection = usize::from(matches!(action, Action::Right))
+                    let character = usize::from(matches!(action, Action::Right));
+                    if self.selection != character {
+                        self.selection = character;
+                        self.events.push(Event::Effect(7 + character as i16));
+                    }
                 }
                 Action::Back | Action::Confirm => {
                     self.set_page(Page::Options);

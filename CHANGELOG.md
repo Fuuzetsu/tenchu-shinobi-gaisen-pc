@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore the retail character-selection sounds in Options → Records. Pressing
+  toward the already selected character stays silent.
+
 ## 0.9.2 — 2026-10-31
 
 - Reduce shadow-map work during active gameplay, especially in crowded TRIAL

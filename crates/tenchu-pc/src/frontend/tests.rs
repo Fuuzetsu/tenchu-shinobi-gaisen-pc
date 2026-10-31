@@ -31,6 +31,25 @@ fn options_and_shop_follow_retail_music_transitions() {
         frontend.open_option(&campaign);
         assert_eq!(music(&mut frontend), [expected]);
         frontend.ticks = 16;
+        if option == 0 {
+            for (action, sound) in [
+                (Action::Left, None),
+                (Action::Right, Some(8)),
+                (Action::Right, None),
+                (Action::Left, Some(7)),
+                (Action::Left, None),
+            ] {
+                frontend.action(action, &mut campaign, &assets).unwrap();
+                let effects: Vec<_> = std::mem::take(&mut frontend.events)
+                    .into_iter()
+                    .filter_map(|event| match event {
+                        Event::Effect(id) => Some(id),
+                        _ => None,
+                    })
+                    .collect();
+                assert_eq!(effects, sound.into_iter().collect::<Vec<_>>());
+            }
+        }
         frontend
             .action(Action::Back, &mut campaign, &assets)
             .unwrap();
