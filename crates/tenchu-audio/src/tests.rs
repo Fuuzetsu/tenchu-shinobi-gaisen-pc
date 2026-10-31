@@ -95,6 +95,41 @@ fn pause_chimes_finish_without_advancing_game_sounds_or_music() {
 }
 
 #[test]
+fn optional_pause_music_keeps_playing_while_effects_stay_frozen() {
+    let mut mixer = Mixer::new(48000);
+    mixer.set_bank(bank(Some(14)));
+    mixer.play(0, 126, 0);
+    let clip = Arc::new(Clip {
+        rate: 37800,
+        frames: (0..351).map(|i| [i * 31 - 1200, 4800 - i * 47]).collect(),
+    });
+    mixer.music(Some(clip.clone()), true);
+    mixer.paused = true;
+    mixer.music_while_paused = true;
+    let mut music_only = Mixer::new(48000);
+    music_only.music(Some(clip), true);
+    for _ in 0..3 {
+        let mut actual = [[0.0; 2]; 701];
+        let mut expected = [[0.0; 2]; 701];
+        mixer.render(&mut actual);
+        music_only.render(&mut expected);
+        assert_eq!(actual, expected);
+        mixer.music_while_paused = false;
+        mixer.render(&mut actual);
+        assert!(actual.iter().all(|&frame| frame == [0.0; 2]));
+        mixer.music_while_paused = true;
+    }
+    mixer.music(None, false);
+    mixer.paused = false;
+    let mut effects_only = Mixer::new(48000);
+    effects_only.set_bank(bank(Some(14)));
+    effects_only.play(0, 126, 0);
+    for _ in 0..1000 {
+        assert_eq!(mixer.frame(), effects_only.frame());
+    }
+}
+
+#[test]
 fn effects_end_loop_pan_and_replace_the_oldest_of_twenty_four_voices() {
     let mut mixer = Mixer::new(44100);
     mixer.set_bank(bank(None));

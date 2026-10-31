@@ -182,14 +182,22 @@ impl Application {
         }
         #[cfg(target_arch = "wasm32")]
         crate::web::media_pause(paused);
-        if let Some(audio) = &mut self.audio {
-            audio.pause(paused);
-        }
+        self.sync_audio_pause();
         self.controls.clear();
         self.last_frame = Instant::now();
         self.clock.discard_host_backlog();
         if let Some(view) = &mut self.view {
             view.reset_interpolation(&self.campaign.game);
+        }
+    }
+
+    fn sync_audio_pause(&mut self) {
+        let paused = self.is_suspended();
+        if let Some(audio) = &mut self.audio {
+            audio.pause(
+                paused,
+                self.settings.music_while_paused && self.campaign.scene_visible() && !self.faulted,
+            );
         }
     }
 
@@ -214,7 +222,7 @@ impl Application {
         );
         self.paused = true;
         if let Some(audio) = &mut self.audio {
-            audio.pause(true);
+            audio.pause(true, false);
         }
         self.faulted = true;
         self.fault = Some(error);
@@ -915,8 +923,8 @@ impl ApplicationHandler for Application {
                 };
                 let phase = Instant::now();
                 let suspended = self.is_suspended();
+                self.sync_audio_pause();
                 if let Some(audio) = &mut self.audio {
-                    audio.pause(suspended);
                     audio.poll();
                 }
                 let before = self.campaign.game.tick;

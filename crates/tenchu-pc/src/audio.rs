@@ -25,6 +25,7 @@ pub struct Audio {
     catalog: Catalog,
     screen: Option<Discriminant<Screen>>,
     paused: bool,
+    music_while_paused: bool,
     trace: bool,
     fast_forward: bool,
     volume: u16,
@@ -81,6 +82,7 @@ impl Audio {
             catalog: Catalog::load(&assets.executable, campaign.game.mission.scripts.language)?,
             screen: None,
             paused: false,
+            music_while_paused: false,
             trace: std::env::var_os("TENCHU_AUDIO_TRACE").is_some(),
             fast_forward: false,
             volume: 100,
@@ -168,10 +170,14 @@ impl Audio {
         self.track(cue.and_then(|cue| self.catalog.music(cue)).cloned());
     }
 
-    pub fn pause(&mut self, paused: bool) {
-        if self.paused != paused {
+    pub fn pause(&mut self, paused: bool, music_while_paused: bool) {
+        if self.paused != paused || self.music_while_paused != music_while_paused {
             self.paused = paused;
-            self.output.send(output::Command::Pause(paused));
+            self.music_while_paused = music_while_paused;
+            self.output.send(Command::Pause {
+                paused,
+                music_while_paused,
+            });
         }
     }
 

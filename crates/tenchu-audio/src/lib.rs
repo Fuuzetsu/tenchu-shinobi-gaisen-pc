@@ -29,6 +29,7 @@ pub struct Mixer {
     envelope_clock: u64,
     pause_envelope_clock: u64,
     pub paused: bool,
+    pub music_while_paused: bool,
     pub volume: f32,
     pub music_volume: f32,
     pub effects_volume: f32,
@@ -47,6 +48,7 @@ impl Mixer {
             envelope_clock: 0,
             pause_envelope_clock: 0,
             paused: false,
+            music_while_paused: false,
             volume: 0.5,
             music_volume: 1.0,
             effects_volume: 1.0,
@@ -177,7 +179,7 @@ impl Mixer {
             }
         }
         output = output.map(|v| v * self.effects_volume);
-        if !self.paused
+        if (!self.paused || self.music_while_paused)
             && let Some(music) = &mut self.music
         {
             let length = music.clip.frames.len();

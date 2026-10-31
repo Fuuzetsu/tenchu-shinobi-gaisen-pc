@@ -22,7 +22,10 @@ pub enum Command {
     UiEffect(i16),
     Music(Option<Arc<Clip>>, bool),
     Clear,
-    Pause(bool),
+    Pause {
+        paused: bool,
+        music_while_paused: bool,
+    },
     Volume(u16),
     Balance(u8, u8, bool),
     Voice(i16),
@@ -113,7 +116,13 @@ impl Playback {
                 Command::UiEffect(id) => self.mixer.play_ui(id, 127, 64),
                 Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
                 Command::Clear => self.mixer.clear_effects(),
-                Command::Pause(paused) => self.mixer.paused = paused,
+                Command::Pause {
+                    paused,
+                    music_while_paused,
+                } => {
+                    self.mixer.paused = paused;
+                    self.mixer.music_while_paused = music_while_paused;
+                }
                 Command::Volume(percent) => self.volume = f32::from(percent.min(100)) / 100.0,
                 Command::Balance(music, effects, stereo) => {
                     self.mixer.music_volume = f32::from(music) / 96.0;

@@ -101,6 +101,7 @@ pub enum Item {
     Performance,
     Focus,
     MenuPause,
+    MusicWhilePaused,
     WaitAfterDeath,
     ShopLighting,
     Fullscreen,
@@ -1136,6 +1137,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Pause while settings are open",
                 on(s.pause_in_menu),
                 "Off: watch the game live while adjusting settings.",
+            ),
+            (
+                Item::MusicWhilePaused,
+                "Music while paused",
+                on(s.music_while_paused),
+                "Keep in-mission music playing during F3/F4, settings-menu and defocus pauses. Gameplay sounds stay paused; movies and narration still pause normally.",
             ),
             (
                 Item::WaitAfterDeath,

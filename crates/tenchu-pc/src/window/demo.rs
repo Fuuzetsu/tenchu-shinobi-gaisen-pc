@@ -337,7 +337,7 @@ impl Application {
             if let Some(cue) = clip.music {
                 audio.music(cue);
             }
-            audio.pause(false);
+            audio.pause(false, false);
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
@@ -491,7 +491,7 @@ impl Application {
                         self.pause_error(error);
                     }
                 } else if let Some(audio) = &mut self.audio {
-                    audio.pause(true);
+                    audio.pause(true, false);
                 }
                 break;
             }

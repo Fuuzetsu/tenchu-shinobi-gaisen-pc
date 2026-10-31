@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 → General adds **Music while paused** for pausing and frame stepping during
+  missions. Gameplay sounds, frontend movies and narration still pause normally.
+
 - Restore the distinct retail pause and resume sounds. The pause chime finishes
   while gameplay audio is suspended; frame stepping does not repeat it.
 
