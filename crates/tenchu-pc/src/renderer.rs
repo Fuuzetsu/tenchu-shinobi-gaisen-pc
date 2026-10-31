@@ -22,6 +22,7 @@ mod tests;
 
 pub struct Mesh {
     buffer: wgpu::Buffer,
+    revision: u64,
     count: u32,
     bounds: Option<[glam::Vec3; 2]>,
     shadow_chunks: Vec<culling::Chunk>,
@@ -29,6 +30,7 @@ pub struct Mesh {
 
 impl Mesh {
     fn set_geometry(&mut self, vertices: &[Vertex]) {
+        self.revision += 1;
         self.count = vertices.len() as u32;
         self.bounds = culling::update_chunks(vertices, &mut self.shadow_chunks);
     }
@@ -372,6 +374,7 @@ impl Renderer {
     }
 
     pub fn update_vram(&mut self, vram: &Vram) {
+        self.shadows.invalidate();
         self.materials.update(vram);
         self.queue.write_texture(
             self.texture.as_image_copy(),
@@ -393,6 +396,7 @@ impl Renderer {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
         let mut mesh = Mesh {
+            revision: 0,
             shadow_chunks: Vec::new(),
             bounds: None,
             buffer: self
@@ -473,7 +477,9 @@ impl Renderer {
         lights: &[crate::lighting::Light],
         casters: &[&Mesh],
     ) -> Result<()> {
-        self.materials.flush(&self.device, &self.queue)?;
+        if self.materials.flush(&self.device, &self.queue)? {
+            self.shadows.invalidate();
+        }
         let mut camera = matrix.to_cols_array().to_vec();
         camera.extend([
             self.size[0] as f32 / self.size[1] as f32,

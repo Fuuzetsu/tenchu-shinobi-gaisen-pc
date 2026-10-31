@@ -402,7 +402,7 @@ impl Materials {
         id
     }
 
-    pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<()> {
+    pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<bool> {
         if self.entries.len() + 1 > data::Data::limit(device) {
             return Err("Material metadata exceeds the GPU size limit".into());
         }
@@ -441,6 +441,7 @@ impl Materials {
                 }
             }
         }
+        let mut changed = self.repack;
         if self.repack {
             self.rebuild(device, queue)?;
         } else {
@@ -460,6 +461,7 @@ impl Materials {
                 if !entry.dirty && material.source == entry.source() {
                     continue;
                 }
+                changed = true;
                 if entry.dirty {
                     self.atlas.materials[index + 1] = self.material(entry, material.mips);
                 } else {
@@ -493,7 +495,7 @@ impl Materials {
         for entry in &mut self.entries {
             entry.dirty = false;
         }
-        Ok(())
+        Ok(changed)
     }
 
     fn material(&self, entry: &Entry, mips: [[f32; 4]; MAX_MIPS]) -> Material {

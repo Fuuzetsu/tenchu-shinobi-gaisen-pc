@@ -15,6 +15,13 @@ pub struct Geometry<'a> {
     pub materials: &'a wgpu::BindGroup,
 }
 
+#[derive(PartialEq)]
+struct FaceState {
+    matrix: Mat4,
+    options: [f32; 8],
+    meshes: Vec<(wgpu::Buffer, u64)>,
+}
+
 pub struct Shadows {
     pub layout: wgpu::BindGroupLayout,
     pub bindings: wgpu::BindGroup,
@@ -33,6 +40,9 @@ pub struct Shadows {
     selection: crate::lighting::shadows::Selection,
     readable: ReadableDepth,
     gl: bool,
+    cached: [Option<FaceState>; FACES + 2],
+    #[cfg(test)]
+    pub(super) rendered_faces: usize,
     #[cfg(test)]
     pub(super) draw_all_faces: bool,
 }
@@ -268,9 +278,16 @@ impl Shadows {
             selection: Default::default(),
             readable,
             gl,
+            cached: std::array::from_fn(|_| None),
+            #[cfg(test)]
+            rendered_faces: 0,
             #[cfg(test)]
             draw_all_faces: false,
         }
+    }
+
+    pub fn invalidate(&mut self) {
+        self.cached.fill_with(|| None);
     }
 
     pub fn configure(&mut self, device: &wgpu::Device, frame: &super::sun::Frame, count: usize) {
@@ -316,6 +333,7 @@ impl Shadows {
                 },
             );
             self.resolution = resolution;
+            self.invalidate();
         }
     }
 
@@ -328,6 +346,13 @@ impl Shadows {
         lights: &[Light],
         geometry: &Geometry,
     ) {
+        #[cfg(test)]
+        {
+            self.rendered_faces = 0;
+            if self.draw_all_faces {
+                self.invalidate();
+            }
+        }
         let settings = &frame.settings;
         let count = if settings.enabled {
             lights.len().min(MAX_LIGHTS)
@@ -472,7 +497,7 @@ impl Shadows {
     }
 
     fn draw_face(
-        &self,
+        &mut self,
         encoder: &mut wgpu::CommandEncoder,
         queue: &wgpu::Queue,
         index: usize,
@@ -480,6 +505,48 @@ impl Shadows {
         options: [f32; 8],
         geometry: &Geometry,
     ) {
+        let frustum = super::culling::Frustum::new(matrix);
+        let mut foliage = false;
+        let mut draws = Vec::new();
+        for mesh in geometry
+            .meshes
+            .iter()
+            .copied()
+            .chain(geometry.effects.map(|e| &e.mesh))
+        {
+            if mesh.count == 0 {
+                continue;
+            }
+            let (ranges, animated) = if mesh.shadow_chunks.is_empty() {
+                (std::iter::once(0..mesh.count).collect(), true)
+            } else {
+                frustum.ranges(&mesh.shadow_chunks, options[2])
+            };
+            if !ranges.is_empty() {
+                foliage |= animated;
+                draws.push((mesh, ranges));
+            }
+        }
+        let mut state = FaceState {
+            matrix,
+            options,
+            meshes: draws
+                .iter()
+                .map(|(mesh, _)| (mesh.buffer.clone(), mesh.revision))
+                .collect(),
+        };
+        // Time affects depth only where wind actually moves a caster.
+        if !foliage || options[2] == 0.0 {
+            state.options[1..3].fill(0.0);
+        }
+        if self.cached[index].as_ref() == Some(&state) {
+            return;
+        }
+        self.cached[index] = Some(state);
+        #[cfg(test)]
+        {
+            self.rendered_faces += 1;
+        }
         let target = if index >= FACES {
             &self.weather_layers[index - FACES]
         } else if index == FACES - 1 {
@@ -520,22 +587,10 @@ impl Shadows {
         });
         pass.set_bind_group(0, bindings, &[]);
         pass.set_bind_group(1, geometry.materials, &[]);
-        let frustum = super::culling::Frustum::new(matrix);
-        for mesh in geometry
-            .meshes
-            .iter()
-            .copied()
-            .chain(geometry.effects.map(|e| &e.mesh))
-        {
-            if mesh.count != 0 {
-                pass.set_vertex_buffer(0, mesh.buffer.slice(..));
-                if mesh.shadow_chunks.is_empty() {
-                    pass.draw(0..mesh.count, 0..1);
-                } else {
-                    for range in frustum.ranges(&mesh.shadow_chunks, options[2]) {
-                        pass.draw(range, 0..1);
-                    }
-                }
+        for (mesh, ranges) in draws {
+            pass.set_vertex_buffer(0, mesh.buffer.slice(..));
+            for range in ranges {
+                pass.draw(range, 0..1);
             }
         }
     }

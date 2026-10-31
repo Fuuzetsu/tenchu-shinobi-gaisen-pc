@@ -165,6 +165,30 @@ fn culled_shadows_match_full_stage_with_foliage() {
             )
             .unwrap();
         let culled = read_pixels(&renderer, &target);
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&stage], &[&actor]),
+                None,
+                &lights,
+                &[&shadow, &bodies],
+            )
+            .unwrap();
+        assert_eq!(renderer.shadows.rendered_faces, 0);
+        assert!(culled == read_pixels(&renderer, &target));
+        renderer.visual_time += 0.25;
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&stage], &[&actor]),
+                None,
+                &lights,
+                &[&shadow, &bodies],
+            )
+            .unwrap();
+        let culled = read_pixels(&renderer, &target);
         let chunks = std::mem::take(&mut shadow.shadow_chunks);
         let body_chunks = std::mem::take(&mut bodies.shadow_chunks);
         renderer.shadows.draw_all_faces = true;

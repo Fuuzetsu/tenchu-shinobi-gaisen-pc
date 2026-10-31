@@ -669,7 +669,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         radius: 5000.0,
     };
     let blocker_position = (sample + light.position) * 0.5;
-    let blocker = renderer.upload(&quad(blocker_position, 140.0, 0));
+    let mut blocker = renderer.upload(&quad(blocker_position, 140.0, 0));
     let transparent = renderer.upload(&quad(blocker_position, 140.0, render_mesh::TEXTURED));
     let mixed = renderer.upload(&quad(
         blocker_position,
@@ -702,6 +702,28 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     assert_eq!(draw(&mut renderer, &[light], &[&cosmetic]), lit);
     let shadowed = draw(&mut renderer, &[light], &[&blocker]);
     assert!(lit[0] > shadowed[0] + 25, "{lit:?} versus {shadowed:?}");
+    renderer.visual_time += 1.0;
+    assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
+    assert_eq!(renderer.shadows.rendered_faces, 0);
+    renderer
+        .draw_lit(
+            &view,
+            matrix * Mat4::from_translation(Vec3::X * 500.0),
+            SceneMeshes::new(&[&receiver], &[]),
+            None,
+            &[light],
+            &[&receiver, &blocker],
+        )
+        .unwrap();
+    assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
+    assert_eq!(renderer.shadows.rendered_faces, 0);
+    let mut shifted = quad(blocker_position + Vec3::X * 600.0, 140.0, 0);
+    renderer.update_mesh(&mut blocker, &mut shifted);
+    assert_eq!(draw(&mut renderer, &[light], &[&blocker]), lit);
+    renderer.update_mesh(&mut blocker, &mut []);
+    assert_eq!(draw(&mut renderer, &[light], &[&blocker]), lit);
+    renderer.update_mesh(&mut blocker, &mut quad(blocker_position, 140.0, 0));
+    assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
     let ambient = (0.5 * 0.3f32.powf(1.0 / 2.2) * 255.0).round() as i32;
     assert!(
         (i32::from(shadowed[0]) - ambient).abs() <= 2,
@@ -822,6 +844,25 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     assert!(filtered[0] < lit[0] - 20);
     assert_ne!(read_pixels(&renderer, &target), hard);
     graphics.lighting.softness = 0;
+    renderer.configure(&graphics);
+    assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
+    assert_eq!(renderer.shadows.rendered_faces, 0);
+
+    let foliage = renderer.upload(&quad(blocker_position, 140.0, render_mesh::FOLIAGE));
+    graphics.motion.wind = 100;
+    renderer.configure(&graphics);
+    draw(&mut renderer, &[light], &[&foliage]);
+    renderer.visual_time += 1.0;
+    draw(&mut renderer, &[light], &[&foliage]);
+    assert!(renderer.shadows.rendered_faces > 0);
+    let animated = read_pixels(&renderer, &target);
+    renderer.shadows.invalidate();
+    draw(&mut renderer, &[light], &[&foliage]);
+    assert!(animated == read_pixels(&renderer, &target));
+    draw(&mut renderer, &[light], &[&foliage]);
+    assert_eq!(renderer.shadows.rendered_faces, 0);
+
+    graphics.motion.wind = 0;
     renderer.configure(&graphics);
     draw(&mut renderer, &[], &[]);
     assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);

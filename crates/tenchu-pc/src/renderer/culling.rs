@@ -93,8 +93,9 @@ impl Frustum {
             .iter()
             .all(|p| p.truncate().dot(center) + p.w + p.truncate().abs().dot(extent) >= -0.001)
     }
-    pub fn ranges(&self, chunks: &[Chunk], wind: f32) -> Vec<Range<u32>> {
+    pub fn ranges(&self, chunks: &[Chunk], wind: f32) -> (Vec<Range<u32>>, bool) {
         let mut ranges: Vec<Range<u32>> = Vec::new();
+        let mut foliage = false;
         for chunk in chunks.iter().filter(|c| {
             c.bounds.is_some_and(|b| {
                 self.contains(
@@ -107,13 +108,14 @@ impl Frustum {
                 )
             })
         }) {
+            foliage |= chunk.foliage;
             if let Some(previous) = ranges.last_mut().filter(|r| r.end == chunk.range.start) {
                 previous.end = chunk.range.end;
             } else {
                 ranges.push(chunk.range.clone());
             }
         }
-        ranges
+        (ranges, foliage)
     }
 }
 
