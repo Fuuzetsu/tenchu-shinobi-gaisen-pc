@@ -384,6 +384,7 @@ pub fn build_presented(
                     *v = (i32::from(*v).wrapping_mul(instance.scale) >> 12) as i16;
                 }
             }
+            let start = surfaces.len();
             mesh_surfaces(
                 &mut surfaces,
                 &game.mission.common_models[&index],
@@ -391,8 +392,13 @@ pub fn build_presented(
                 view,
                 false,
                 false,
-                models,
+                if index == 31 { None } else { models },
             );
+            if index == 31 {
+                for vertex in surfaces[start..].iter_mut().flat_map(|s| &mut s.vertices) {
+                    vertex.flags |= render_mesh::STAIN;
+                }
+            }
         }
     }
     for wire in &game.effects.wires {

@@ -34,7 +34,9 @@ pub(super) fn material(graphic: &Graphic) -> (Option<usize>, u8, bool) {
 }
 
 pub(super) fn flags(graphic: &Graphic, color: [u8; 3]) -> u32 {
-    if matches!(graphic, Graphic::Splash)
+    if matches!(graphic, Graphic::Blood { .. } | Graphic::Impact(2)) {
+        render_mesh::STAIN
+    } else if matches!(graphic, Graphic::Splash)
         || matches!(graphic, Graphic::Bleed | Graphic::GunBleed)
             && color[2] > color[0]
             && u16::from(color[0]) * 5 > u16::from(color[2]) * 4

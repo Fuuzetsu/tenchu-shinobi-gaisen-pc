@@ -957,6 +957,7 @@ preserves retail's hit/ground/death effects, without extra wound drips or a play
 pool. Modern presets enable all four modern styles, body stains and player pools.
 No external texture pack is required.
 
+Original blood uses the disc artwork even when replacement artwork is enabled.
 Modern ground spots and death pools persist. **Retain original blood** also keeps
 original ground artwork and death stars after their ordinary lifetime. Changing a
 ground/death style clears only that category's existing marks. Turning off the

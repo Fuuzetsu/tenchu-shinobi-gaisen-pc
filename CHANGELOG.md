@@ -19,7 +19,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   death stars/pools and ground spots. Original splats and death stars can remain
   persistently; player death pools and body stains have separate toggles. Existing
   blood preferences migrate automatically, and changing one category preserves
-  the others' stains.
+  the others' stains. Original blood uses disc artwork even with the HD pack enabled.
 
 - F1 → General can hold the finished death scene until a new button press before
   opening mission failure. The default retains retail's automatic transition.
