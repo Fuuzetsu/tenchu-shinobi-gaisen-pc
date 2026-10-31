@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.3 — 2026-10-31
+
 - Link the separate HD artwork download and installation/update guide from
   **F1 → Visual assets**, with clearer instructions when no pack is loaded.
 
