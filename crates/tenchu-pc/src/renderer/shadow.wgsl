@@ -67,3 +67,9 @@ fn cutout(v: Fragment) {
     cutout(v);
     return v.position.z;
 }
+
+@vertex fn clear_vertex(@builtin(vertex_index) index: u32) -> @builtin(position) vec4<f32> {
+    let positions = array(vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+    return vec4(positions[index], 1.0, 1.0);
+}
+@fragment fn clear_depth() -> @location(0) f32 { return 1.0; }

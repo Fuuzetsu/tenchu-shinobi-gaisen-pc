@@ -8,6 +8,7 @@ mod models;
 mod motion;
 mod overlay;
 mod scrolling;
+mod shadow_regions;
 mod sky;
 mod sprites;
 mod stains;

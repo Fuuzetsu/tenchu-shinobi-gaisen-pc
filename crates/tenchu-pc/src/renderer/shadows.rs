@@ -1,3 +1,4 @@
+use super::culling::Rect;
 use super::{EffectMesh, Mesh};
 use crate::{
     lighting::{Light, MAX_LIGHTS, MAX_SHADOW_LIGHTS},
@@ -20,6 +21,8 @@ struct FaceState {
     matrix: Mat4,
     options: [f32; 8],
     meshes: Vec<(wgpu::Buffer, u64)>,
+    static_meshes: Vec<(wgpu::Buffer, u64)>,
+    damage: Option<Rect>,
 }
 
 pub struct Shadows {
@@ -31,6 +34,7 @@ pub struct Shadows {
     faces: Vec<(wgpu::Buffer, wgpu::BindGroup)>,
     pipeline: wgpu::RenderPipeline,
     weather_pipeline: wgpu::RenderPipeline,
+    clear_pipeline: wgpu::RenderPipeline,
     resolution: u32,
     sun: wgpu::TextureView,
     sun_resolution: u32,
@@ -43,6 +47,8 @@ pub struct Shadows {
     cached: [Option<FaceState>; FACES + 2],
     #[cfg(test)]
     pub(super) rendered_faces: usize,
+    #[cfg(test)]
+    pub(super) rendered_area: u64,
     #[cfg(test)]
     pub(super) draw_all_faces: bool,
 }
@@ -252,6 +258,37 @@ impl Shadows {
             })
         };
         let weather_pipeline = pipeline("Precipitation shelter", wgpu::DepthBiasState::default());
+        let clear_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Clear changed shadow region"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("clear_vertex"),
+                compilation_options: Default::default(),
+                buffers: &[],
+            },
+            primitive: Default::default(),
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Always,
+                stencil: Default::default(),
+                bias: Default::default(),
+            }),
+            multisample: Default::default(),
+            fragment: gl.then_some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("clear_depth"),
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: wgpu::TextureFormat::R32Float,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::RED,
+                })],
+            }),
+            multiview: None,
+            cache: None,
+        });
         let pipeline = pipeline(
             "Point light shadow caster",
             wgpu::DepthBiasState {
@@ -269,6 +306,7 @@ impl Shadows {
             faces,
             pipeline,
             weather_pipeline,
+            clear_pipeline,
             resolution: 1,
             sun,
             sun_resolution: 1,
@@ -281,6 +319,8 @@ impl Shadows {
             cached: std::array::from_fn(|_| None),
             #[cfg(test)]
             rendered_faces: 0,
+            #[cfg(test)]
+            rendered_area: 0,
             #[cfg(test)]
             draw_all_faces: false,
         }
@@ -349,6 +389,7 @@ impl Shadows {
         #[cfg(test)]
         {
             self.rendered_faces = 0;
+            self.rendered_area = 0;
             if self.draw_all_faces {
                 self.invalidate();
             }
@@ -506,7 +547,15 @@ impl Shadows {
         geometry: &Geometry,
     ) {
         let frustum = super::culling::Frustum::new(matrix);
+        let size = if index >= FACES {
+            self.weather_resolution
+        } else if index == FACES - 1 {
+            self.sun_resolution
+        } else {
+            self.resolution
+        };
         let mut foliage = false;
+        let mut damage: Option<Rect> = None;
         let mut draws = Vec::new();
         for mesh in geometry
             .meshes
@@ -518,12 +567,18 @@ impl Shadows {
                 continue;
             }
             let (ranges, animated) = if mesh.shadow_chunks.is_empty() {
+                damage = Some(Rect::full(size));
                 (std::iter::once(0..mesh.count).collect(), true)
             } else {
                 frustum.ranges(&mesh.shadow_chunks, options[2])
             };
             if !ranges.is_empty() {
                 foliage |= animated;
+                if let Some(rect) =
+                    frustum.damage(&mesh.shadow_chunks, options[2], mesh.dynamic, matrix, size)
+                {
+                    damage = Some(damage.map_or(rect, |old| old.union(rect)));
+                }
                 draws.push((mesh, ranges));
             }
         }
@@ -534,6 +589,12 @@ impl Shadows {
                 .iter()
                 .map(|(mesh, _)| (mesh.buffer.clone(), mesh.revision))
                 .collect(),
+            static_meshes: draws
+                .iter()
+                .filter(|(mesh, _)| !mesh.dynamic)
+                .map(|(mesh, _)| (mesh.buffer.clone(), mesh.revision))
+                .collect(),
+            damage,
         };
         // Time affects depth only where wind actually moves a caster.
         if !foliage || options[2] == 0.0 {
@@ -542,10 +603,32 @@ impl Shadows {
         if self.cached[index].as_ref() == Some(&state) {
             return;
         }
+        // Clear both footprints so moving casters uncover the fixed geometry below.
+        let mut region = Rect::full(size);
+        if let Some(previous) = self.cached[index].as_ref() {
+            let mut a = previous.options;
+            let mut b = state.options;
+            a[1] = 0.0;
+            b[1] = 0.0;
+            if previous.matrix == state.matrix
+                && a == b
+                && previous.static_meshes == state.static_meshes
+            {
+                let mut damage = previous.damage;
+                if let Some(rect) = state.damage {
+                    damage = Some(damage.map_or(rect, |old| old.union(rect)));
+                }
+                if let Some(damage) = damage {
+                    region = damage;
+                }
+            }
+        }
         self.cached[index] = Some(state);
         #[cfg(test)]
         {
             self.rendered_faces += 1;
+            self.rendered_area +=
+                u64::from(region.max[0] - region.min[0]) * u64::from(region.max[1] - region.min[1]);
         }
         let target = if index >= FACES {
             &self.weather_layers[index - FACES]
@@ -562,7 +645,11 @@ impl Shadows {
             view: self.readable.face(index),
             resolve_target: None,
             ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
+                load: if region == Rect::full(size) {
+                    wgpu::LoadOp::Clear(wgpu::Color::WHITE)
+                } else {
+                    wgpu::LoadOp::Load
+                },
                 store: wgpu::StoreOp::Store,
             },
         })];
@@ -572,7 +659,11 @@ impl Shadows {
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: target,
                 depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
+                    load: if region == Rect::full(size) {
+                        wgpu::LoadOp::Clear(1.0)
+                    } else {
+                        wgpu::LoadOp::Load
+                    },
                     store: wgpu::StoreOp::Store,
                 }),
                 stencil_ops: None,
@@ -580,13 +671,23 @@ impl Shadows {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        pass.set_bind_group(0, bindings, &[]);
+        pass.set_bind_group(1, geometry.materials, &[]);
+        pass.set_scissor_rect(
+            region.min[0],
+            region.min[1],
+            region.max[0] - region.min[0],
+            region.max[1] - region.min[1],
+        );
+        if region != Rect::full(size) {
+            pass.set_pipeline(&self.clear_pipeline);
+            pass.draw(0..3, 0..1);
+        }
         pass.set_pipeline(if index >= FACES {
             &self.weather_pipeline
         } else {
             &self.pipeline
         });
-        pass.set_bind_group(0, bindings, &[]);
-        pass.set_bind_group(1, geometry.materials, &[]);
         for (mesh, ranges) in draws {
             pass.set_vertex_buffer(0, mesh.buffer.slice(..));
             for range in ranges {

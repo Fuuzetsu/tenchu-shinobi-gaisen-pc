@@ -5,13 +5,27 @@ use std::ops::Range;
 pub(super) struct Chunk {
     range: Range<u32>,
     bounds: Option<[Vec3; 2]>,
-    foliage: bool,
+    foliage: Option<[Vec3; 2]>,
 }
 
 pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Option<[Vec3; 2]> {
     chunks.clear();
     let mut scenery: Option<[Vec3A; 2]> = None;
-    for (i, vertices) in vertices.chunks(1536).enumerate() {
+    let mut start = 0;
+    while start < vertices.len() {
+        let limit = (start + 1536).min(vertices.len());
+        let mut end = limit;
+        // Keep distant actors from sharing a chunk that spans the space between them.
+        for next in (start + 3..limit).step_by(3) {
+            if Vec3A::from(vertices[next].position)
+                .distance_squared(Vec3A::from(vertices[next - 1].position))
+                > 5000.0_f32.powi(2)
+            {
+                end = next;
+                break;
+            }
+        }
+        let vertices = &vertices[start..end];
         let mut bounds: Option<[Vec3A; 2]> = None;
         let mut foliage = false;
         for v in vertices {
@@ -30,14 +44,82 @@ pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Opt
                 foliage |= v.flags & render_mesh::FOLIAGE != 0;
             }
         }
-        let start = i as u32 * 1536;
         chunks.push(Chunk {
-            range: start..start + vertices.len() as u32,
+            range: start as u32..end as u32,
             bounds: bounds.map(|b| b.map(Vec3::from)),
-            foliage,
+            foliage: foliage.then(|| {
+                let mut bounds = [Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)];
+                for triangle in vertices
+                    .chunks_exact(3)
+                    .filter(|t| t.iter().any(|v| v.flags & render_mesh::FOLIAGE != 0))
+                {
+                    for v in triangle {
+                        let p = Vec3::from(v.position);
+                        bounds = [bounds[0].min(p), bounds[1].max(p)];
+                    }
+                }
+                bounds
+            }),
         });
+        start = end;
     }
     scenery.map(|b| b.map(Vec3::from))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct Rect {
+    pub min: [u32; 2],
+    pub max: [u32; 2],
+}
+
+impl Rect {
+    pub fn full(size: u32) -> Self {
+        Self {
+            min: [0; 2],
+            max: [size; 2],
+        }
+    }
+
+    pub fn union(mut self, other: Self) -> Self {
+        for axis in 0..2 {
+            self.min[axis] = self.min[axis].min(other.min[axis]);
+            self.max[axis] = self.max[axis].max(other.max[axis]);
+        }
+        self
+    }
+
+    fn projected(bounds: [Vec3; 2], matrix: Mat4, size: u32, padding: f32) -> Self {
+        let [min, max] = [
+            bounds[0] - Vec3::splat(padding),
+            bounds[1] + Vec3::splat(padding),
+        ];
+        let mut low = glam::Vec2::splat(f32::INFINITY);
+        let mut high = glam::Vec2::splat(f32::NEG_INFINITY);
+        for i in 0..8 {
+            let p = matrix
+                * Vec3::new(
+                    if i & 1 == 0 { min.x } else { max.x },
+                    if i & 2 == 0 { min.y } else { max.y },
+                    if i & 4 == 0 { min.z } else { max.z },
+                )
+                .extend(1.0);
+            if !p.is_finite() || p.w <= 0.0 {
+                return Self::full(size);
+            }
+            let pixel =
+                (glam::Vec2::new(p.x, -p.y) / p.w * 0.5 + glam::Vec2::splat(0.5)) * size as f32;
+            low = low.min(pixel);
+            high = high.max(pixel);
+        }
+        Self {
+            min: low
+                .to_array()
+                .map(|p| (p.floor() - 1.0).clamp(0.0, (size - 1) as f32) as u32),
+            max: high
+                .to_array()
+                .map(|p| (p.ceil() + 1.0).clamp(1.0, size as f32) as u32),
+        }
+    }
 }
 
 pub(super) struct Frustum([Vec4; 6]);
@@ -100,7 +182,7 @@ impl Frustum {
             c.bounds.is_some_and(|b| {
                 self.contains(
                     b,
-                    if c.foliage {
+                    if c.foliage.is_some() {
                         wind.abs() * 100.0 + 2.0
                     } else {
                         2.0
@@ -108,7 +190,7 @@ impl Frustum {
                 )
             })
         }) {
-            foliage |= chunk.foliage;
+            foliage |= chunk.foliage.is_some();
             if let Some(previous) = ranges.last_mut().filter(|r| r.end == chunk.range.start) {
                 previous.end = chunk.range.end;
             } else {
@@ -116,6 +198,40 @@ impl Frustum {
             }
         }
         (ranges, foliage)
+    }
+
+    pub fn damage(
+        &self,
+        chunks: &[Chunk],
+        wind: f32,
+        dynamic: bool,
+        matrix: Mat4,
+        size: u32,
+    ) -> Option<Rect> {
+        let mut damage: Option<Rect> = None;
+        for chunk in chunks {
+            let bounds = if dynamic {
+                chunk.bounds
+            } else if wind != 0.0 {
+                chunk.foliage
+            } else {
+                None
+            };
+            let Some(bounds) = bounds else {
+                continue;
+            };
+            let padding = if chunk.foliage.is_some() {
+                wind.abs() * 100.0 + 2.0
+            } else {
+                2.0
+            };
+            if !self.contains(bounds, padding) {
+                continue;
+            }
+            let rect = Rect::projected(bounds, matrix, size, padding);
+            damage = Some(damage.map_or(rect, |old| old.union(rect)));
+        }
+        damage
     }
 }
 

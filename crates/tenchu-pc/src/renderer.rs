@@ -23,6 +23,7 @@ mod tests;
 pub struct Mesh {
     buffer: wgpu::Buffer,
     revision: u64,
+    dynamic: bool,
     count: u32,
     bounds: Option<[glam::Vec3; 2]>,
     shadow_chunks: Vec<culling::Chunk>,
@@ -397,6 +398,7 @@ impl Renderer {
         self.materials.annotate(&mut vertices);
         let mut mesh = Mesh {
             revision: 0,
+            dynamic: false,
             shadow_chunks: Vec::new(),
             bounds: None,
             buffer: self
@@ -413,6 +415,7 @@ impl Renderer {
     }
 
     pub fn update_mesh(&mut self, mesh: &mut Mesh, vertices: &mut [Vertex]) {
+        mesh.dynamic = true;
         self.materials.annotate(vertices);
         mesh.set_geometry(vertices);
         if vertices.is_empty() {
@@ -443,8 +446,10 @@ impl Renderer {
                 ranges.push(start..start + 3);
             }
         }
+        let mut mesh = self.upload(&geometry.vertices);
+        mesh.dynamic = true;
         EffectMesh {
-            mesh: self.upload(&geometry.vertices),
+            mesh,
             batches: geometry.batches,
             ranges,
         }

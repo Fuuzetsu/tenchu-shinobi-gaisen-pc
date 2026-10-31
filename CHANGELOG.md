@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce shadow-map work during active gameplay, especially in crowded TRIAL
+  missions: keep distant casters in separate batches and refresh only the regions
+  touched by moving characters or wind. Shadow detail and animation are unchanged.
+
 - Prevent an intermittent browser crash when changing TRIAL missions or editor
   views by retaining interface textures until their GPU work has been submitted.
 
