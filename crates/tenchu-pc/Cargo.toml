@@ -31,6 +31,9 @@ rfd = "0.17.2"
 tar = { version = "0.4", default-features = false }
 ruzstd = "0.9"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+pulseaudio = "=0.3.2"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { workspace = true, features = ["webgl"] }
 cpal = { version = "=0.18.2", features = ["audioworklet"] }

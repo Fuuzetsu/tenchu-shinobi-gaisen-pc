@@ -2384,6 +2384,7 @@ dependencies = [
  "js-sys",
  "png",
  "pollster",
+ "pulseaudio",
  "rfd",
  "ruzstd",
  "serde",

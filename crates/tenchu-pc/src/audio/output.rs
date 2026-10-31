@@ -13,6 +13,9 @@ use tenchu_assets::{
 use tenchu_audio::Mixer;
 use tenchu_core::audio::Sound;
 
+#[cfg(target_os = "linux")]
+mod pulse;
+
 pub enum Command {
     Bank(Arc<Bank>),
     Effect(Sound),
@@ -25,12 +28,29 @@ pub enum Command {
 }
 
 pub struct Output {
-    _stream: cpal::Stream,
+    _stream: Stream,
     commands: Sender<Command>,
+}
+
+enum Stream {
+    Device {
+        _stream: cpal::Stream,
+    },
+    #[cfg(target_os = "linux")]
+    Pulse {
+        _stream: pulseaudio::PlaybackStream,
+    },
 }
 
 impl Output {
     pub fn new() -> Result<Self> {
+        #[cfg(target_os = "linux")]
+        if pulseaudio::socket_path_from_env().is_some() {
+            match pulse::open() {
+                Ok(output) => return Ok(output),
+                Err(error) => eprintln!("Named PulseAudio output: {error}; trying CPAL"),
+            }
+        }
         let host = cpal::default_host();
         let device = host
             .default_output_device()
@@ -59,7 +79,7 @@ impl Output {
         stream.play().map_err(|e| e.to_string())?;
         println!("Audio output: {}", device.id().map_err(|e| e.to_string())?);
         Ok(Self {
-            _stream: stream,
+            _stream: Stream::Device { _stream: stream },
             commands,
         })
     }
@@ -69,37 +89,56 @@ impl Output {
     }
 }
 
+struct Playback {
+    mixer: Mixer,
+    commands: Receiver<Command>,
+    volume: f32,
+}
+
+impl Playback {
+    fn new(rate: u32, commands: Receiver<Command>) -> Self {
+        Self {
+            mixer: Mixer::new(rate),
+            commands,
+            volume: 1.0,
+        }
+    }
+
+    fn update(&mut self) {
+        while let Ok(command) = self.commands.try_recv() {
+            match command {
+                Command::Bank(bank) => self.mixer.set_bank(bank),
+                Command::Effect(sound) => self.mixer.play(sound.id, sound.volume, sound.pan),
+                Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
+                Command::Clear => self.mixer.clear_effects(),
+                Command::Pause(paused) => self.mixer.paused = paused,
+                Command::Volume(percent) => self.volume = f32::from(percent.min(100)) / 100.0,
+                Command::Balance(music, effects, stereo) => {
+                    self.mixer.music_volume = f32::from(music) / 96.0;
+                    self.mixer.effects_volume = f32::from(effects) / 96.0;
+                    self.mixer.stereo = stereo;
+                }
+                Command::Voice(id) => self.mixer.play_note(id, 127, 64, 48),
+            }
+        }
+    }
+}
+
 fn build<T: SizedSample + FromSample<f32>>(
     device: &cpal::Device,
     config: StreamConfig,
     commands: Receiver<Command>,
 ) -> Result<cpal::Stream> {
-    let mut mixer = Mixer::new(config.sample_rate);
+    let mut playback = Playback::new(config.sample_rate, commands);
     let channels = usize::from(config.channels);
     let mut reported = false;
-    let mut volume = 1.0;
     device
         .build_output_stream(
             config,
             move |data: &mut [T], _| {
-                while let Ok(command) = commands.try_recv() {
-                    match command {
-                        Command::Bank(bank) => mixer.set_bank(bank),
-                        Command::Effect(sound) => mixer.play(sound.id, sound.volume, sound.pan),
-                        Command::Music(clip, repeat) => mixer.music(clip, repeat),
-                        Command::Clear => mixer.clear_effects(),
-                        Command::Pause(paused) => mixer.paused = paused,
-                        Command::Volume(percent) => volume = f32::from(percent.min(100)) / 100.0,
-                        Command::Balance(music, effects, stereo) => {
-                            mixer.music_volume = f32::from(music) / 96.0;
-                            mixer.effects_volume = f32::from(effects) / 96.0;
-                            mixer.stereo = stereo;
-                        }
-                        Command::Voice(id) => mixer.play_note(id, 127, 64, 48),
-                    }
-                }
+                playback.update();
                 for frame in data.chunks_exact_mut(channels) {
-                    let [left, right] = mixer.frame();
+                    let [left, right] = playback.mixer.frame();
                     for (channel, out) in frame.iter_mut().enumerate() {
                         let value = if channels == 1 {
                             (left + right) * 0.5
@@ -110,7 +149,7 @@ fn build<T: SizedSample + FromSample<f32>>(
                                 _ => 0.0,
                             }
                         };
-                        *out = T::from_sample(value * volume);
+                        *out = T::from_sample(value * playback.volume);
                     }
                 }
             },

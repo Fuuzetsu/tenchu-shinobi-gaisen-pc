@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Give Linux playback a stable “Tenchu: Shinobi Gaisen” name in PulseAudio/PipeWire
+  mixers and let the server restore the game’s volume, mute and output device
+  across launches.
+
 - Expand performance charts with GPU timings for terrain/static props, characters,
   blood decals, particles, sky and MSAA resolve work. Detailed timings are also
   included in diagnostic reports and benchmark exports on supported adapters.
