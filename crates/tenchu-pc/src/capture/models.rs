@@ -35,7 +35,8 @@ impl Model<'_> {
                 models.visit(geometries, matrix, false, |triangle| {
                     if triangle[0].flags & render_mesh::TRANSLUCENT != 0 {
                         let blend = ((triangle[0].page >> 5) & 3) as u8 + 1;
-                        mesh.translucent.push((blend, triangle.to_vec()));
+                        mesh.translucent
+                            .push((blend, triangle.into_iter().copied().collect()));
                     } else {
                         mesh.opaque.extend(triangle);
                     }

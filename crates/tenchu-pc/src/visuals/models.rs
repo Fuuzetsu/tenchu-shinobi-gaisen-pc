@@ -144,7 +144,7 @@ impl Models {
         geometry: &[Geometry],
         matrix: Matrix,
         fog: bool,
-        visit: impl FnMut([Vertex; 3]),
+        visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
         self.visit_filtered(geometry, matrix, fog, 0, visit)
     }
@@ -155,7 +155,7 @@ impl Models {
         matrix: Matrix,
         fog: bool,
         required_flags: u32,
-        visit: impl FnMut([Vertex; 3]),
+        visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
         self.visit_deformed(geometry, matrix, fog, required_flags, None, visit)
     }
@@ -167,7 +167,7 @@ impl Models {
         fog: bool,
         required_flags: u32,
         deformation: Option<&super::motion::Deformation<'_>>,
-        mut visit: impl FnMut([Vertex; 3]),
+        mut visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
         if let Some(player) = &self.player
             && player.meshes.visit(
@@ -224,7 +224,7 @@ impl Models {
         matrix: Matrix,
         fog: bool,
         required_flags: u32,
-        visit: impl FnMut([Vertex; 3]),
+        visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
         let deformation = self.deformation(part, matrix);
         self.visit_deformed(
@@ -584,7 +584,7 @@ impl Meshes {
         fog: bool,
         required_flags: u32,
         deformation: Option<&super::motion::Deformation<'_>>,
-        mut visit: impl FnMut([Vertex; 3]),
+        mut visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
         let Some(mesh) = self.meshes.get(&(geometry.as_ptr() as usize)) else {
             return false;
@@ -599,32 +599,27 @@ impl Meshes {
         let rotation = rotation(matrix);
         let normal = rotation.inverse().transpose();
         let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
-        let transformed: Vec<_> = mesh
-            .vertices
-            .iter()
-            .copied()
-            .map(|mut vertex| {
-                if let Some(variant) = &variant {
-                    variant.vertex(&mut vertex);
-                }
-                vertex.position = (rotation * Vec3::from(vertex.position) + translation).to_array();
-                vertex.normal = (normal * Vec3::from(vertex.normal))
-                    .normalize_or_zero()
-                    .to_array();
-                vertex.flags =
-                    (vertex.flags & !render_mesh::FOG) | if fog { render_mesh::FOG } else { 0 };
-                if let Some(deformation) = deformation {
-                    deformation.vertex(&mut vertex);
-                }
-                vertex
-            })
-            .collect();
+        let mut transformed = mesh.vertices.clone();
+        for vertex in &mut transformed {
+            if let Some(variant) = &variant {
+                variant.vertex(vertex);
+            }
+            vertex.position = (rotation * Vec3::from(vertex.position) + translation).to_array();
+            vertex.normal = (normal * Vec3::from(vertex.normal))
+                .normalize_or_zero()
+                .to_array();
+            vertex.flags =
+                (vertex.flags & !render_mesh::FOG) | if fog { render_mesh::FOG } else { 0 };
+            if let Some(deformation) = deformation {
+                deformation.vertex(vertex);
+            }
+        }
         for triangle in mesh
             .triangles
             .iter()
             .filter(|t| mesh.vertices[t[0] as usize].flags & required_flags == required_flags)
         {
-            visit(triangle.map(|index| transformed[index as usize]));
+            visit(triangle.map(|index| &transformed[index as usize]));
         }
         true
     }
@@ -697,14 +692,14 @@ mod tests {
                     translation: translation.into(),
                 };
                 std::mem::swap(models.world.meshes.get_mut(&key).unwrap(), &mut expanded);
-                let mut reference = Vec::new();
+                let mut reference: Vec<Vertex> = Vec::new();
                 models.visit(&geometry, matrix, fog, |triangle| {
                     if triangle[0].flags & render_mesh::TRANSLUCENT != 0 {
                         reference.extend(triangle);
                     }
                 });
                 std::mem::swap(models.world.meshes.get_mut(&key).unwrap(), &mut expanded);
-                let mut filtered = Vec::new();
+                let mut filtered: Vec<Vertex> = Vec::new();
                 assert!(models.visit_filtered(
                     &geometry,
                     matrix,
@@ -746,7 +741,7 @@ mod tests {
             };
             graphics.models.characters = level;
             let models = Models::build(&game.mission, &Pack::default(), &graphics).unwrap();
-            let mut edited = Vec::new();
+            let mut edited: Vec<Vertex> = Vec::new();
             assert!(models.visit(geometry, Matrix::default(), true, |t| edited.extend(t)));
             let is_screen = |v: &Vertex| {
                 v.material != 0
@@ -861,7 +856,7 @@ mod tests {
                         index += 1;
                     }
                 });
-                let mut edited = Vec::new();
+                let mut edited: Vec<Vertex> = Vec::new();
                 if !models.visit(geometry, matrix, true, |triangle| edited.extend(triangle)) {
                     assert!(original.is_empty());
                     return;

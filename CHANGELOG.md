@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU overhead from performance charts and refined character meshes,
+  preserving all chart samples, animation detail and shadow geometry.
+
 - Give Linux playback a stable “Tenchu: Shinobi Gaisen” name in PulseAudio/PipeWire
   mixers and let the server restore the game’s volume, mute and output device
   across launches.

@@ -209,11 +209,9 @@ fn stats(values: impl Iterator<Item = f32>) -> (f32, f32) {
         return (0.0, 0.0);
     }
     let average = values.iter().sum::<f32>() / values.len() as f32;
-    values.sort_unstable_by(f32::total_cmp);
-    (
-        average,
-        values[(values.len() * 95).div_ceil(100).saturating_sub(1)],
-    )
+    let index = (values.len() * 95).div_ceil(100).saturating_sub(1);
+    let (_, p95, _) = values.select_nth_unstable_by(index, f32::total_cmp);
+    (average, *p95)
 }
 
 fn legend<const N: usize>(ui: &mut egui::Ui, id: &str, names: &[&str; N], values: &[[f32; N]]) {
@@ -248,21 +246,27 @@ fn chart<const N: usize>(ui: &mut egui::Ui, values: &[[f32; N]], line: Option<&[
     let y = |ms: f32| rect.bottom() - (ms / max).clamp(0.0, 1.0) * rect.height();
     let dx = rect.width() / HISTORY as f32;
     let start = rect.right() - values.len() as f32 * dx;
+    let mut bars = egui::Mesh::default();
+    bars.vertices.reserve(values.len() * N * 4);
+    bars.indices.reserve(values.len() * N * 6);
     for (i, frame) in values.iter().enumerate() {
         let mut total = 0.0;
         for (j, duration) in frame.iter().enumerate() {
             let bottom = y(total);
             total += duration;
-            painter.rect_filled(
+            if *duration <= 0.0 {
+                continue;
+            }
+            bars.add_colored_rect(
                 egui::Rect::from_min_max(
                     egui::pos2(start + i as f32 * dx, y(total)),
                     egui::pos2(start + (i + 1) as f32 * dx, bottom),
                 ),
-                0.0,
                 COLORS[j],
             );
         }
     }
+    painter.add(bars);
     painter.line_segment(
         [
             egui::pos2(rect.left(), y(16.667)),

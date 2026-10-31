@@ -133,7 +133,7 @@ impl Preview {
                         .iter()
                         .map(|v| (camera * Vec3::from(v.position)).z)
                         .sum::<f32>();
-                    triangles.push((depth, triangle));
+                    triangles.push((depth, triangle.map(|vertex| *vertex)));
                 });
         }
         triangles.sort_by(|a, b| b.0.total_cmp(&a.0));

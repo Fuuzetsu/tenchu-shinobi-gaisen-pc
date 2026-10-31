@@ -252,7 +252,7 @@ fn mesh_surfaces(
                 surfaces.push(Surface {
                     depth,
                     blend,
-                    vertices: triangle.to_vec(),
+                    vertices: triangle.into_iter().copied().collect(),
                 });
             },
         )
