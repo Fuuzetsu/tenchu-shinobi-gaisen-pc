@@ -140,7 +140,7 @@ pub fn frame(
     renderer.draw_lit(
         &texture.create_view(&Default::default()),
         renderer::game_camera(game.rendered_view, width as f32 / height as f32),
-        &[&mesh],
+        crate::renderer::SceneMeshes::new(&[&mesh], &[]),
         Some(&effects),
         &lights,
         &casters.iter().collect::<Vec<_>>(),

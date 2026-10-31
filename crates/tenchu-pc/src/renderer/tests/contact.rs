@@ -158,7 +158,7 @@ fn culled_shadows_match_full_stage_with_foliage() {
             .draw_lit(
                 &view,
                 camera,
-                &[&stage, &actor],
+                crate::renderer::SceneMeshes::new(&[&stage], &[&actor]),
                 None,
                 &lights,
                 &[&shadow, &bodies],
@@ -172,7 +172,7 @@ fn culled_shadows_match_full_stage_with_foliage() {
             .draw_lit(
                 &view,
                 camera,
-                &[&stage, &actor],
+                crate::renderer::SceneMeshes::new(&[&stage], &[&actor]),
                 None,
                 &lights,
                 &[&shadow, &bodies],

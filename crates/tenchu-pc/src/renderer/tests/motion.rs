@@ -41,7 +41,14 @@ fn wind_moves_foliage_and_its_shadow_without_moving_roots() {
     let capture = |renderer: &mut Renderer, mesh: &Mesh, cast: bool| {
         let scene = if cast { &ground } else { mesh };
         renderer
-            .draw_lit(&view, camera, &[scene], None, &[], &[&ground, mesh])
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[scene], &[]),
+                None,
+                &[],
+                &[&ground, mesh],
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };

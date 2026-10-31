@@ -1,14 +1,16 @@
+use crate::renderer::timing::{SCENE_COLUMNS, SCENE_NAMES};
 use egui::{Color32, Stroke};
 use std::collections::VecDeque;
 
 const HISTORY: usize = 300;
-const COLORS: [Color32; 6] = [
+const COLORS: [Color32; 7] = [
     Color32::from_rgb(120, 202, 150),
     Color32::from_rgb(98, 177, 244),
     Color32::from_rgb(225, 174, 95),
     Color32::from_rgb(198, 140, 230),
     Color32::from_rgb(170, 180, 192),
     Color32::from_rgb(222, 125, 125),
+    Color32::from_rgb(198, 203, 110),
 ];
 
 #[derive(Clone, Copy, Default)]
@@ -46,6 +48,7 @@ pub(super) struct Performance {
     cpu: VecDeque<CpuFrame>,
     pending_cpu: Option<CpuFrame>,
     gpu: VecDeque<[f32; 4]>,
+    scene: VecDeque<[f32; 7]>,
     serial: u64,
     frozen: bool,
 }
@@ -69,6 +72,9 @@ impl Performance {
             "cpu": cpu,
             "gpu_columns": ["shadows", "world_effects", "post_processing", "hud"],
             "gpu": self.gpu,
+            "gpu_scene_columns": SCENE_COLUMNS,
+            "gpu_scene": self.scene,
+            "gpu_scene_note": "Breakdown of world_effects, not additional GPU time. Surface lighting is included in each draw. Empty without in-pass timestamp support.",
             "gpu_note": "Asynchronous samples; not aligned with CPU rows. Empty when GPU profiling is off or unsupported.",
         })
     }
@@ -88,6 +94,9 @@ impl Performance {
         {
             self.serial = sample.serial;
             push(&mut self.gpu, sample.milliseconds);
+            if let Some(scene) = sample.scene {
+                push(&mut self.scene, scene);
+            }
         }
     }
 
@@ -102,11 +111,14 @@ impl Performance {
         egui::Window::new("Performance")
             .open(open)
             .default_width(440.0)
+            .default_height(900.0)
+            .max_height((ctx.screen_rect().height() - 30.0).max(200.0))
             .default_pos(egui::pos2(
                 (ctx.screen_rect().right() - 470.0).max(10.0),
                 10.0,
             ))
             .interactable(interactive)
+            .vscroll(true)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.checkbox(&mut self.frozen, "Freeze");
@@ -114,6 +126,7 @@ impl Performance {
                         self.cpu.clear();
                         self.pending_cpu = None;
                         self.gpu.clear();
+                        self.scene.clear();
                     }
                     ui.weak("F1 to interact · 300 frame history");
                 });
@@ -162,6 +175,18 @@ impl Performance {
                         ],
                         &gpu,
                     );
+                    egui::CollapsingHeader::new("World + effects breakdown")
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            if self.scene.is_empty() {
+                                ui.weak("Detailed samples need in-pass GPU timestamps; not available on every backend.");
+                                return;
+                            }
+                            let scene: Vec<_> = self.scene.iter().copied().collect();
+                            chart(ui, &scene, None);
+                            legend(ui, "gpu_scene", &SCENE_NAMES, &scene);
+                            ui.weak("Included in World + effects above. Terrain includes static props, vegetation and water. Lighting and surface shaders are charged to the objects they shade.");
+                        });
                     ui.weak("GPU samples arrive asynchronously. Uploads, presentation and F1/fonts are excluded.");
                 } else {
                     ui.weak("GPU timestamps unavailable on this adapter; CPU timing still works.");

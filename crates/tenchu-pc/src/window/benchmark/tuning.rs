@@ -305,6 +305,7 @@ mod tests {
                 present_wait: Distribution::default(),
                 gpu: gpu.map(measured).unwrap_or_default(),
                 gpu_passes: Default::default(),
+                gpu_scene: Default::default(),
             })
             .collect()
     }

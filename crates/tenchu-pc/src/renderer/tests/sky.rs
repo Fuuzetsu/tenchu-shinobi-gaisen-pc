@@ -33,7 +33,14 @@ fn sun_and_moon_cycle_moves_shadows_and_restores_original_rendering() {
             vec![&ground]
         };
         renderer
-            .draw_lit(&view, camera, &[&ground], None, &[], &casters)
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&ground], &[]),
+                None,
+                &[],
+                &casters,
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };

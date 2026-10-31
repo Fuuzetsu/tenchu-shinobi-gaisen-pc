@@ -15,6 +15,65 @@ mod weather;
 mod weather_wind;
 
 #[test]
+#[ignore = "requires GPU timestamps; validates asynchronous scene timing without changing rendered pixels"]
+fn detailed_timestamps_preserve_pixels_and_partition_scene_time() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    if renderer.timings.is_none() {
+        return;
+    }
+    let detailed = renderer
+        .device
+        .features()
+        .contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let terrain = renderer.upload(&rectangle(1600, 64, None, false, false, false));
+    let actor = renderer.upload(&rectangle(1000, 128, None, false, false, false));
+    let mut options = crate::settings::Graphics::default();
+    let mut serial = 0;
+    for samples in renderer.sample_counts.clone() {
+        options.samples = samples;
+        for post in [false, true] {
+            options.post.enabled = post;
+            renderer.configure(&options);
+            renderer.profiling = false;
+            renderer
+                .draw(&view, camera, &[&terrain, &actor], None)
+                .unwrap();
+            let reference = read_pixels(&renderer, &target);
+            renderer.profiling = true;
+            for _ in 0..8 {
+                renderer
+                    .draw_lit(
+                        &view,
+                        camera,
+                        SceneMeshes::new(&[&terrain], &[&actor]),
+                        None,
+                        &[],
+                        &[],
+                    )
+                    .unwrap();
+                assert_eq!(read_pixels(&renderer, &target), reference);
+            }
+            let sample = renderer.timings.as_ref().unwrap().latest.unwrap();
+            assert!(sample.serial > serial);
+            serial = sample.serial;
+            assert!(
+                sample
+                    .milliseconds
+                    .iter()
+                    .all(|ms| ms.is_finite() && *ms >= 0.0)
+            );
+            assert_eq!(sample.scene.is_some(), detailed);
+            if let Some(scene) = sample.scene {
+                assert!(scene.iter().all(|ms| ms.is_finite() && *ms >= 0.0));
+                assert!((scene.iter().sum::<f32>() - sample.milliseconds[1]).abs() < 0.001);
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; reused geometry must not retain stale triangles, materials or bounds"]
 fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frames() {
     let mut vram = Vram::default();
@@ -621,7 +680,14 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         let mut casters = vec![&receiver];
         casters.extend_from_slice(blockers);
         renderer
-            .draw_lit(&view, matrix, &[&receiver], None, lights, &casters)
+            .draw_lit(
+                &view,
+                matrix,
+                crate::renderer::SceneMeshes::new(&[&receiver], &[]),
+                None,
+                lights,
+                &casters,
+            )
             .unwrap();
         read_pixel(renderer, &target)
     };
@@ -825,7 +891,14 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         let view = target.create_view(&Default::default());
         let draw = |renderer: &mut Renderer, casters: &[&Mesh]| {
             renderer
-                .draw_lit(&view, matrix, &[&receiver], None, &lights, casters)
+                .draw_lit(
+                    &view,
+                    matrix,
+                    crate::renderer::SceneMeshes::new(&[&receiver], &[]),
+                    None,
+                    &lights,
+                    casters,
+                )
                 .unwrap();
             read_pixels(renderer, &target)
         };
@@ -899,7 +972,14 @@ fn directional_shadows_cover_scenery_without_point_sources() {
     };
     let draw = |renderer: &mut Renderer, x| {
         renderer
-            .draw_lit(&view, camera(x), &[&ground], None, &[], &[&ground, &roof])
+            .draw_lit(
+                &view,
+                camera(x),
+                crate::renderer::SceneMeshes::new(&[&ground], &[]),
+                None,
+                &[],
+                &[&ground, &roof],
+            )
             .unwrap();
         read_pixel(renderer, &target)
     };
@@ -1250,7 +1330,14 @@ fn lanterns_fill_moon_shadows_without_lighting_backfaces_or_clipping() {
     let lamp_blocker = renderer.upload(&quad((sample + lamp.position) * 0.5, 100.0, 0.5));
     let draw = |renderer: &mut Renderer, receiver: &Mesh, lights: &[Light], blockers: &[&Mesh]| {
         renderer
-            .draw_lit(&view, matrix, &[receiver], None, lights, blockers)
+            .draw_lit(
+                &view,
+                matrix,
+                crate::renderer::SceneMeshes::new(&[receiver], &[]),
+                None,
+                lights,
+                blockers,
+            )
             .unwrap();
         f32::from(read_pixel(renderer, &target)[0])
     };
@@ -1519,7 +1606,14 @@ fn finite_lamps_and_daylight_keep_local_shadows_balanced() {
     let grating = renderer.upload(&grating);
     let draw = |renderer: &mut Renderer, lights: &[Light], casters: &[&Mesh]| {
         renderer
-            .draw_lit(&view, matrix, &[&receiver], None, lights, casters)
+            .draw_lit(
+                &view,
+                matrix,
+                crate::renderer::SceneMeshes::new(&[&receiver], &[]),
+                None,
+                lights,
+                casters,
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };

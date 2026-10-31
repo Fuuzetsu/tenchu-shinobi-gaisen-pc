@@ -30,7 +30,14 @@ fn rain_controls_change_reflections_ripples_and_visibility() {
     };
     let capture = |renderer: &mut Renderer, lights: &[crate::lighting::Light]| {
         renderer
-            .draw_lit(&view, camera, &[&ground], None, lights, &[&ground])
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&ground], &[]),
+                None,
+                lights,
+                &[&ground],
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };
@@ -105,7 +112,14 @@ fn rain_and_snow_respect_shelter_and_restore_original_pixels() {
         * Mat4::look_at_rh(Vec3::new(0.0, -3000.0, 0.0), Vec3::ZERO, Vec3::Z);
     let capture = |renderer: &mut Renderer| {
         renderer
-            .draw_lit(&view, camera, &[&ground], None, &[], &[&ground, &roof])
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&ground], &[]),
+                None,
+                &[],
+                &[&ground, &roof],
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };
@@ -162,7 +176,14 @@ fn snowfall_shelter_excludes_actors_and_follows_the_wind() {
         let mut casters = vec![&ground];
         casters.extend(extra);
         renderer
-            .draw_lit(&view, camera, &[&ground], None, &[], &casters)
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&ground], &[]),
+                None,
+                &[],
+                &casters,
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };
@@ -369,7 +390,14 @@ fn distant_snow_and_surface_stains() {
         * Mat4::look_at_rh(Vec3::new(0.0, -200000.0, 0.0), Vec3::ZERO, Vec3::Z);
     let capture = |renderer: &mut Renderer, effect: Option<&EffectMesh>| {
         renderer
-            .draw_lit(&view, camera, &[&ground], effect, &[], &[&ground])
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&ground], &[]),
+                effect,
+                &[],
+                &[&ground],
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };

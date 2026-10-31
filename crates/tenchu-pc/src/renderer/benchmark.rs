@@ -119,7 +119,7 @@ fn profile_mission_rendering() {
                 .draw_lit(
                     &target,
                     camera.matrix(size[0] as f32 / size[1] as f32),
-                    &[&mesh, &actors],
+                    crate::renderer::SceneMeshes::new(&[&mesh], &[&actors]),
                     Some(&effects),
                     &lights,
                     &[&shadow, &shadow_actors],
@@ -279,7 +279,7 @@ fn compare_surface_relief() {
                         .draw_lit(
                             &target.create_view(&Default::default()),
                             camera,
-                            &[&mesh, &actors],
+                            crate::renderer::SceneMeshes::new(&[&mesh], &[&actors]),
                             None,
                             &lights,
                             &[&mesh, &actors],

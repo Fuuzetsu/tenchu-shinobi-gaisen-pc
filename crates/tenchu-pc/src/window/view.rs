@@ -1095,7 +1095,8 @@ impl View {
         game: &Game,
         debug: &crate::debug::Debug,
     ) -> Result<()> {
-        let meshes = [&self.stage, &self.actor];
+        let terrain = [&self.stage];
+        let actors = [&self.actor];
         let casters = [
             self.shadow_stage.as_ref().unwrap_or(&self.stage),
             self.shadow_models.as_ref().unwrap_or(&self.actor),
@@ -1105,7 +1106,10 @@ impl View {
             self.renderer.draw_lit(
                 target,
                 self.camera_matrix(game, debug),
-                if debug.collision_only { &[] } else { &meshes },
+                crate::renderer::SceneMeshes::new(
+                    if debug.collision_only { &[] } else { &terrain },
+                    if debug.collision_only { &[] } else { &actors },
+                ),
                 Some(&self.effects),
                 &self.lights,
                 &casters[..if self.shared_actor_shadows { 3 } else { 2 }],

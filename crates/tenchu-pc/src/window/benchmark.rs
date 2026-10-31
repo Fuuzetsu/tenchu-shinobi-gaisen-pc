@@ -109,11 +109,13 @@ pub(super) struct SceneResult {
     present_wait: Distribution,
     gpu: Distribution,
     gpu_passes: [Distribution; 4],
+    gpu_scene: [Distribution; 7],
 }
 
 #[derive(Serialize)]
 pub(super) struct Report {
     schema: u8,
+    gpu_scene_columns: [&'static str; 7],
     adapter: String,
     backend: String,
     size: [u32; 2],
@@ -134,6 +136,7 @@ pub(super) struct Report {
 struct Samples {
     cpu: Vec<performance::CpuFrame>,
     gpu: Vec<[f32; 4]>,
+    scene: Vec<[f32; 7]>,
     gpu_serial: u64,
 }
 
@@ -151,6 +154,9 @@ impl Samples {
                 && sample.serial > self.gpu_serial
             {
                 self.gpu.push(sample.milliseconds);
+                if let Some(scene) = sample.scene {
+                    self.scene.push(scene);
+                }
                 self.gpu_serial = sample.serial;
             }
         } else {
@@ -183,7 +189,9 @@ impl Run {
             },
             tuning::Tuner::label,
         );
-        let Samples { cpu, gpu, .. } = &mut self.samples;
+        let Samples {
+            cpu, gpu, scene, ..
+        } = &mut self.samples;
         if cpu.is_empty() {
             return;
         }
@@ -205,9 +213,11 @@ impl Run {
             present_wait: Distribution::new(cpu.iter().map(|f| f.draw.wait)),
             gpu: Distribution::new(gpu.iter().map(|p| p.iter().sum())),
             gpu_passes: std::array::from_fn(|i| Distribution::new(gpu.iter().map(|p| p[i]))),
+            gpu_scene: std::array::from_fn(|i| Distribution::new(scene.iter().map(|p| p[i]))),
         });
         cpu.clear();
         gpu.clear();
+        scene.clear();
     }
 }
 
@@ -390,7 +400,8 @@ impl Application {
             view.resize(size[0], size[1]);
         }
         let report = Report {
-            schema: 2,
+            schema: 3,
+            gpu_scene_columns: crate::renderer::timing::SCENE_COLUMNS,
             adapter: view.adapter.name.clone(),
             backend: format!("{:?}", view.adapter.backend),
             size: view.size,
@@ -668,6 +679,7 @@ mod tests {
             Some(crate::renderer::timing::Sample {
                 serial,
                 milliseconds: [1.0; 4],
+                scene: None,
             })
         };
         samples.record(60, cpu, gpu(57), 60);

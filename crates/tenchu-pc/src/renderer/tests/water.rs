@@ -27,7 +27,14 @@ fn water_ripples_are_visual_scoped_and_optional() {
         * Mat4::look_at_rh(Vec3::new(0.0, -700.0, -2500.0), Vec3::ZERO, Vec3::NEG_Y);
     let capture = |renderer: &mut Renderer| {
         renderer
-            .draw_lit(&view, camera, &[&mesh], None, &[], &[])
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&mesh], &[]),
+                None,
+                &[],
+                &[],
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };

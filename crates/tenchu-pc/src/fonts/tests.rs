@@ -181,7 +181,7 @@ fn localized_captions_change_only_presentation_and_render_at_720p_and_4k() {
             .draw_lit(
                 &target.create_view(&Default::default()),
                 glam::Mat4::IDENTITY,
-                &[],
+                crate::renderer::SceneMeshes::new(&[], &[]),
                 Some(&panel),
                 &[],
                 &[],

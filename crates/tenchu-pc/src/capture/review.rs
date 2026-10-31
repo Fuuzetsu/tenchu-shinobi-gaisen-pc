@@ -139,7 +139,7 @@ impl Review {
         self.renderer.draw_lit(
             &self.texture.create_view(&Default::default()),
             camera,
-            meshes,
+            crate::renderer::SceneMeshes::new(meshes, &[]),
             effects,
             &self.lights,
             meshes,

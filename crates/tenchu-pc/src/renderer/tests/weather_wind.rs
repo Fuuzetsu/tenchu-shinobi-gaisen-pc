@@ -36,7 +36,14 @@ fn windward_walls_receive_weather_and_sheltered_walls_stay_dry() {
             casters.push(&shelter);
         }
         renderer
-            .draw_lit(&view, camera, &[&receiver], None, &[], &casters)
+            .draw_lit(
+                &view,
+                camera,
+                crate::renderer::SceneMeshes::new(&[&receiver], &[]),
+                None,
+                &[],
+                &casters,
+            )
             .unwrap();
         read_pixels(renderer, &target)
     };

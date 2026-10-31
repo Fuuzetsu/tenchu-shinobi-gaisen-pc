@@ -50,6 +50,17 @@ pub struct EffectMesh {
     ranges: [Vec<std::ops::Range<u32>>; 2],
 }
 
+pub struct SceneMeshes<'a> {
+    pub terrain: &'a [&'a Mesh],
+    pub actors: &'a [&'a Mesh],
+}
+
+impl<'a> SceneMeshes<'a> {
+    pub fn new(terrain: &'a [&'a Mesh], actors: &'a [&'a Mesh]) -> Self {
+        Self { terrain, actors }
+    }
+}
+
 pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -92,6 +103,7 @@ impl Renderer {
             adapter.features() & wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
         if adapter.features().contains(timing::FEATURES) {
             features |= timing::FEATURES;
+            features |= adapter.features() & wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES;
         }
         let format_flags = |format: wgpu::TextureFormat| {
             if !features.contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES) {
@@ -442,14 +454,21 @@ impl Renderer {
         meshes: &[&Mesh],
         effects: Option<&EffectMesh>,
     ) -> Result<()> {
-        self.draw_lit(target, matrix, meshes, effects, &[], meshes)
+        self.draw_lit(
+            target,
+            matrix,
+            SceneMeshes::new(meshes, &[]),
+            effects,
+            &[],
+            meshes,
+        )
     }
 
     pub fn draw_lit(
         &mut self,
         target: &wgpu::TextureView,
         matrix: Mat4,
-        meshes: &[&Mesh],
+        meshes: SceneMeshes<'_>,
         effects: Option<&EffectMesh>,
         lights: &[crate::lighting::Light],
         casters: &[&Mesh],
@@ -596,20 +615,34 @@ impl Renderer {
                 pass.set_vertex_buffer(0, sky.buffer.slice(..));
                 pass.draw(0..sky.count, 0..1);
             }
-            for mesh in meshes {
-                if mesh.count == 0 {
-                    continue;
+            let mark = |pass: &mut wgpu::RenderPass<'_>, stage| {
+                if let Some(timer) = &self.timings {
+                    timer.mark_scene(pass, stage);
                 }
-                pass.set_vertex_buffer(0, mesh.buffer.slice(..));
-                pass.draw(0..mesh.count, 0..1);
+            };
+            mark(&mut pass, timing::SceneStage::Sky);
+            for (meshes, stage) in [
+                (meshes.terrain, timing::SceneStage::Terrain),
+                (meshes.actors, timing::SceneStage::Actors),
+            ] {
+                for mesh in meshes.iter().filter(|m| m.count != 0) {
+                    pass.set_vertex_buffer(0, mesh.buffer.slice(..));
+                    pass.draw(0..mesh.count, 0..1);
+                }
+                mark(&mut pass, stage);
             }
             self.draw_decals(&mut pass, matrix);
+            mark(&mut pass, timing::SceneStage::Decals);
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
                 draw_effects(&mut pass, &self.effects, effects, Some(false));
-                if self.post.is_none() {
-                    draw_effects(&mut pass, &self.effects, effects, Some(true));
-                }
             }
+            mark(&mut pass, timing::SceneStage::Effects);
+            if self.post.is_none()
+                && let Some(effects) = effects.filter(|e| e.mesh.count != 0)
+            {
+                draw_effects(&mut pass, &self.effects, effects, Some(true));
+            }
+            mark(&mut pass, timing::SceneStage::Overlays);
         }
         if let Some(timer) = &self.timings {
             timer.mark(&mut encoder, 2);

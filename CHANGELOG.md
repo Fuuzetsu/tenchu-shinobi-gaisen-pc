@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Expand performance charts with GPU timings for terrain/static props, characters,
+  blood decals, particles, sky and MSAA resolve work. Detailed timings are also
+  included in diagnostic reports and benchmark exports on supported adapters.
+
 - Reduce GPU work in heavily lit scenes, including TRIAL's second built-in mission,
   while preserving shadow resolution, light counts and rendered detail.
 - Reduce contact-shading cost with MSAA and redundant HD texture reads without
