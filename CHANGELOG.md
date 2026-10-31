@@ -13,6 +13,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   scenes with many active enemies.
 - Skip point-light shadow-map faces that cannot affect the current view, while
   retaining off-camera objects that cast visible shadows.
+- Speed up texture and height-map preparation during loading and texture updates,
+  preserving mip coverage, transparency and surface detail.
 
 ## 0.9.0 — 2026-10-31
 

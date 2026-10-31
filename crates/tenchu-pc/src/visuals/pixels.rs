@@ -81,45 +81,93 @@ impl Image {
         while levels.last().unwrap().size != [1, 1] {
             let previous = levels.last().unwrap();
             let size = previous.size.map(|n| (n / 2).max(1));
-            let scale = [
-                previous.size[0] as f32 / size[0] as f32,
-                previous.size[1] as f32 / size[1] as f32,
-            ];
-            let classes = previous.classes.each_ref().map(|pixels| {
-                let mut out = Vec::with_capacity((size[0] * size[1] * 4) as usize);
-                for y in 0..size[1] {
-                    for x in 0..size[0] {
-                        let mut sum = [0.0f32; 4];
-                        let low = [x as f32 * scale[0], y as f32 * scale[1]];
-                        let high = [(x + 1) as f32 * scale[0], (y + 1) as f32 * scale[1]];
-                        for py in
-                            low[1].floor() as u32..(high[1].ceil() as u32).min(previous.size[1])
-                        {
-                            let dy = high[1].min((py + 1) as f32) - low[1].max(py as f32);
-                            for px in
-                                low[0].floor() as u32..(high[0].ceil() as u32).min(previous.size[0])
-                            {
-                                let dx = high[0].min((px + 1) as f32) - low[0].max(px as f32);
-                                let at = ((py * previous.size[0] + px) * 4) as usize;
-                                for channel in 0..4 {
-                                    sum[channel] += f32::from(pixels[at + channel]) * dx * dy;
-                                }
-                            }
-                        }
-                        out.extend(sum.map(|n| (n / (scale[0] * scale[1])).round() as u8));
-                    }
-                }
-                out
-            });
+            let classes = previous
+                .classes
+                .each_ref()
+                .map(|pixels| downsample(pixels, previous.size, size));
             levels.push(Mip { size, classes });
         }
         levels
     }
 }
 
+fn downsample(pixels: &[u8], from: [u32; 2], size: [u32; 2]) -> Vec<u8> {
+    let scale = [from[0] / size[0], from[1] / size[1]];
+    if (0..2).all(|axis| from[axis].is_multiple_of(size[axis])) {
+        let [sx, sy] = scale;
+        let count = (sx * sy) as u16;
+        let mut out = Vec::with_capacity((size[0] * size[1] * 4) as usize);
+        for y in 0..size[1] {
+            for x in 0..size[0] {
+                let mut sum = [0u16; 4];
+                for py in y * sy..(y + 1) * sy {
+                    for px in x * sx..(x + 1) * sx {
+                        let at = ((py * from[0] + px) * 4) as usize;
+                        for channel in 0..4 {
+                            sum[channel] += u16::from(pixels[at + channel]);
+                        }
+                    }
+                }
+                out.extend(sum.map(|n| ((n + count / 2) / count) as u8));
+            }
+        }
+        return out;
+    }
+    area_filter(pixels, from, size)
+}
+
+fn area_filter(pixels: &[u8], from: [u32; 2], size: [u32; 2]) -> Vec<u8> {
+    let scale = [
+        from[0] as f32 / size[0] as f32,
+        from[1] as f32 / size[1] as f32,
+    ];
+    let mut out = Vec::with_capacity((size[0] * size[1] * 4) as usize);
+    for y in 0..size[1] {
+        for x in 0..size[0] {
+            let mut sum = [0.0f32; 4];
+            let low = [x as f32 * scale[0], y as f32 * scale[1]];
+            let high = [(x + 1) as f32 * scale[0], (y + 1) as f32 * scale[1]];
+            for py in low[1].floor() as u32..(high[1].ceil() as u32).min(from[1]) {
+                let dy = high[1].min((py + 1) as f32) - low[1].max(py as f32);
+                for px in low[0].floor() as u32..(high[0].ceil() as u32).min(from[0]) {
+                    let dx = high[0].min((px + 1) as f32) - low[0].max(px as f32);
+                    let at = ((py * from[0] + px) * 4) as usize;
+                    for channel in 0..4 {
+                        sum[channel] += f32::from(pixels[at + channel]) * dx * dy;
+                    }
+                }
+            }
+            out.extend(sum.map(|n| (n / (scale[0] * scale[1])).round() as u8));
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn direct_mip_reduction_preserves_area_coverage_and_rounding() {
+        for from in [
+            [1, 16],
+            [32, 1],
+            [4, 4],
+            [3, 3],
+            [7, 9],
+            [128, 64],
+            [255, 128],
+        ] {
+            let pixels: Vec<_> = (0..from[0] * from[1] * 4)
+                .map(|i| (i * 2137 % 256) as u8)
+                .collect();
+            let size = from.map(|n| (n / 2).max(1));
+            assert_eq!(
+                downsample(&pixels, from, size),
+                area_filter(&pixels, from, size)
+            );
+        }
+    }
 
     #[test]
     fn mipmaps_keep_coverage_and_blend_classes_separate() {

@@ -59,35 +59,83 @@ fn inferred(image: &Image) -> Vec<f32> {
 }
 
 fn blur(input: &[f32], size: [u32; 2], radius: i32) -> Vec<f32> {
-    let mut values = input.to_vec();
-    for axis in 0..2 {
-        let mut out = vec![0.0; values.len()];
-        for y in 0..size[1] as i32 {
-            for x in 0..size[0] as i32 {
-                let mut sum = 0.0;
-                for offset in -radius..=radius {
-                    let sx = (x + if axis == 0 { offset } else { 0 }).clamp(0, size[0] as i32 - 1);
-                    let sy = (y + if axis == 1 { offset } else { 0 }).clamp(0, size[1] as i32 - 1);
-                    sum += values[sy as usize * size[0] as usize + sx as usize];
-                }
-                out[y as usize * size[0] as usize + x as usize] = sum / (radius * 2 + 1) as f32;
+    let width = size[0] as usize;
+    let divisor = (radius * 2 + 1) as f32;
+    let mut horizontal = vec![0.0; input.len()];
+    for (row, out) in input
+        .chunks_exact(width)
+        .zip(horizontal.chunks_exact_mut(width))
+    {
+        for offset in -radius..=radius {
+            let shift = (offset.unsigned_abs() as usize).min(width);
+            let (source, target, border, edge) = if offset < 0 {
+                let (border, target) = out.split_at_mut(shift);
+                (&row[..width - shift], target, border, row[0])
+            } else {
+                let (target, border) = out.split_at_mut(width - shift);
+                (&row[shift..], target, border, row[width - 1])
+            };
+            for (sum, value) in target.iter_mut().zip(source) {
+                *sum += value;
+            }
+            for sum in border {
+                *sum += edge;
             }
         }
-        values = out;
+        for sum in out {
+            *sum /= divisor;
+        }
     }
-    values
+    let mut vertical = vec![0.0; input.len()];
+    for (y, out) in vertical.chunks_exact_mut(width).enumerate() {
+        for offset in -radius..=radius {
+            let row = (y as i32 + offset).clamp(0, size[1] as i32 - 1) as usize * width;
+            for (sum, value) in out.iter_mut().zip(&horizontal[row..row + width]) {
+                *sum += value;
+            }
+        }
+        for sum in out {
+            *sum /= divisor;
+        }
+    }
+    vertical
 }
 
 fn resize(input: &[f32], from: [u32; 2], to: [u32; 2]) -> Vec<f32> {
+    if from == to {
+        return input.to_vec();
+    }
+    let scale = [from[0] / to[0], from[1] / to[1]];
+    if (0..2).all(|axis| from[axis].is_multiple_of(to[axis]) && scale[axis].is_power_of_two()) {
+        let [sx, sy] = scale.map(|n| n as usize);
+        let width = from[0] as usize;
+        let mut out = Vec::with_capacity((to[0] * to[1]) as usize);
+        for rows in input.chunks_exact(width * sy) {
+            for x in 0..to[0] as usize {
+                let mut sum = 0.0;
+                for row in rows.chunks_exact(width) {
+                    for value in &row[x * sx..(x + 1) * sx] {
+                        sum += value;
+                    }
+                }
+                out.push(sum / (sx * sy) as f32);
+            }
+        }
+        return out;
+    }
+    resample(input, from, to)
+}
+
+fn resample(input: &[f32], from: [u32; 2], to: [u32; 2]) -> Vec<f32> {
     let sample = |x: i32, y: i32| {
         input[(y.clamp(0, from[1] as i32 - 1) as u32 * from[0]
             + x.clamp(0, from[0] as i32 - 1) as u32) as usize]
     };
     let mut out = Vec::with_capacity((to[0] * to[1]) as usize);
     let scale = [from[0] as f32 / to[0] as f32, from[1] as f32 / to[1] as f32];
+    let taps = scale.map(|n| n.ceil().max(1.0) as u32);
     for y in 0..to[1] {
         for x in 0..to[0] {
-            let taps = scale.map(|n| n.ceil().max(1.0) as u32);
             let mut sum = 0.0;
             for j in 0..taps[1] {
                 for i in 0..taps[0] {
@@ -149,6 +197,23 @@ pub fn mips(image: &Image, explicit: Option<&Image>, sizes: &[[u32; 2]]) -> Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn direct_height_reduction_matches_filtered_sampling() {
+        for from in [[1, 16], [32, 1], [16, 32], [128, 64]] {
+            let values: Vec<_> = (0..from[0] * from[1])
+                .map(|i| (i * 2137 % 65521) as f32 / 65521.0)
+                .collect();
+            let mut to = from;
+            loop {
+                assert_eq!(resize(&values, from, to), resample(&values, from, to));
+                if to == [1, 1] {
+                    break;
+                }
+                to = to.map(|n| (n / 2).max(1));
+            }
+        }
+    }
 
     #[test]
     fn flat_and_cutout_art_stay_flat_while_height_gradients_filter_with_distance() {
