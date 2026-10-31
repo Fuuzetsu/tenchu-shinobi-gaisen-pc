@@ -10,6 +10,7 @@ pub mod navigation;
 mod retail_tests;
 pub mod score;
 mod setup;
+pub mod trial;
 pub use setup::Statistics;
 
 use crate::{
@@ -33,6 +34,7 @@ use tenchu_assets::{
 };
 
 pub struct Game {
+    pub trial: Option<trial::State>,
     pub mission: MissionAssets,
     pub math: Math,
     pub roster: Roster,
@@ -69,19 +71,31 @@ pub struct Game {
 
 impl Game {
     pub fn new(
-        mut mission: MissionAssets,
+        mission: MissionAssets,
         executable: &Executable,
         character: i16,
         seed: u32,
     ) -> Result<Self> {
+        Self::with_random(mission, executable, character, Random::new(seed))
+    }
+
+    pub fn with_random(
+        mut mission: MissionAssets,
+        executable: &Executable,
+        character: i16,
+        mut random: Random,
+    ) -> Result<Self> {
         let math = Math {
             tables: executable.math_tables()?,
         };
-        let sound_appearance = executable.appearance(mission.stage.id)?;
+        let sound_appearance = if let Some(trial) = &mission.trial {
+            trial.appearance.clone()
+        } else {
+            executable.appearance(mission.stage.id)?
+        };
         let body = executable.body_tables()?;
         let commands = executable.commands()?;
         let mut cursor = Cursor::new(&mission.terrain);
-        let mut random = Random::new(seed);
         let mut effects = Effects::default();
         let mut scene = Scene::default();
         let mut drawing = Drawing::default();
@@ -112,7 +126,9 @@ impl Game {
         roster.get_mut(player_id).initialize_rendered(&scene, &math);
         let events = events::Events::new(&mission.scripts.events, &roster, player_id);
         let rendered_view = camera.view;
-        Ok(Self {
+        let trial = mission.trial.as_ref().map(|_| trial::State::default());
+        let mut game = Self {
+            trial,
             mission,
             math,
             body,
@@ -145,7 +161,11 @@ impl Game {
             sound_appearance,
             moveset: moveset::State::default(),
             navigation: navigation::Navigation::default(),
-        })
+        };
+        if game.trial.is_some() {
+            game.activate_trial(true)?;
+        }
+        Ok(game)
     }
 
     pub fn player(&self) -> &Actor {
@@ -198,7 +218,13 @@ impl Game {
         self.effects.begin_tick();
         self.items.begin_tick();
         self.drawing.bytes = 0;
-        self.stage_sequence()?;
+        if self.trial.is_some() {
+            if self.clock % 30 == 0 {
+                self.activate_trial(false)?;
+            }
+        } else {
+            self.stage_sequence()?;
+        }
         if self.events.outcome != events::Outcome::Running {
             return Ok(false);
         }
@@ -213,12 +239,19 @@ impl Game {
             input
         };
         self.collision.compute(&mut self.scene)?;
-        self.clock = self.clock.wrapping_add(1);
+        if self.trial.is_none() {
+            self.clock = self.clock.wrapping_add(1);
+        }
         if self.cinematic.active {
             self.cinematic_camera(input)?;
         } else {
             self.camera.advance(
-                self.roster.get(self.player_id),
+                self.roster.get(
+                    self.trial
+                        .as_ref()
+                        .and_then(|s| s.focus)
+                        .unwrap_or(self.player_id),
+                ),
                 input,
                 &mut Environment {
                     terrain: &self.mission.terrain,
@@ -358,7 +391,7 @@ impl Game {
             .citizens
             .wrapping_add(self.intelligence.population_delta[1]);
         self.intelligence.population_delta = [0; 2];
-        if !self.cinematic.active {
+        if !self.cinematic.active && self.trial.is_none() {
             self.activate()?;
         }
         if self.drawing.step != crate::drawing::Step::Skipped {
@@ -426,13 +459,16 @@ impl Game {
                 &mut hud_context,
             );
             self.hud.map.step(
-                self.input & crate::input::SELECT != 0,
+                self.trial.is_none() && self.input & crate::input::SELECT != 0,
                 self.roster.get(self.player_id),
                 &self.items,
                 &self.scene,
                 &mut self.hud.sprites,
                 &mut hud_context,
             );
+        }
+        if self.trial.is_some() {
+            self.draw_trial_hud();
         }
         self.misc.step(
             self.clock,
@@ -461,6 +497,9 @@ impl Game {
                 &self.mission,
             )?;
         }
+        if self.trial.is_some() {
+            self.trial_traps()?;
+        }
         self.drawing.finish(self.clock);
         self.rendered_view = self.camera.view;
         Ok(true)
@@ -470,7 +509,12 @@ impl Game {
         if display_swap {
             self.scene.finish_tick();
         }
-        self.advance_cinematic()?;
+        if self.trial.is_some() {
+            self.clock = self.clock.wrapping_add(1);
+            self.step_trial()?;
+        } else {
+            self.advance_cinematic()?;
+        }
         Ok(())
     }
 }

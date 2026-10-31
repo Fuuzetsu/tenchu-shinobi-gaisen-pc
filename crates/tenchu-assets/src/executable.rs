@@ -67,9 +67,13 @@ impl<'a> Executable<'a> {
     }
 
     pub fn death_events(&self) -> Result<Vec<Vec<DeathEvent>>> {
+        self.death_events_at(0x80086b0c)
+    }
+
+    pub(crate) fn death_events_at(&self, table: u32) -> Result<Vec<Vec<DeathEvent>>> {
         let mut tables = Vec::new();
         for i in 0..6 {
-            let address = u32_le(self.bytes(0x80086b0c + i * 4, 4)?, 0)?;
+            let address = u32_le(self.bytes(table + i * 4, 4)?, 0)?;
             let mut events = Vec::new();
             for j in 0..256 {
                 let row = self.bytes(address + j * 8, 8)?;

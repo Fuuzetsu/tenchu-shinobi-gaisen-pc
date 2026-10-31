@@ -128,6 +128,13 @@ impl Audio {
                 self.output.send(output::Command::Effect(sound));
             }
         }
+        if let Some((index, repeat)) = game.trial.as_ref().and_then(|s| s.music) {
+            let track = self.catalog.music(index as i32).cloned().map(|mut t| {
+                t.repeat = repeat;
+                t
+            });
+            self.track(track);
+        }
         for cue in &game.music {
             if self.trace {
                 eprintln!("Audio tick {}: {cue:?}", game.tick);
@@ -216,12 +223,20 @@ impl Audio {
 }
 
 pub(super) fn game_bank(assets: &GameAssets<DiscSource>, game: &Game) -> Result<Bank> {
-    let mut bank = Bank::load(
-        assets,
-        game.mission.stage.id,
-        game.player().kind,
-        game.mission.scripts.language,
-    )?;
+    let mut bank = if let Some(trial) = &game.mission.trial {
+        Bank::parse(&assets.asset(&format!(
+            "SOUND/TRIAL/TRIAL{}{}.VAB",
+            trial.mission.theme + 1,
+            if game.player().kind == 0 { 'R' } else { 'A' }
+        ))?)?
+    } else {
+        Bank::load(
+            assets,
+            game.mission.stage.id,
+            game.player().kind,
+            game.mission.scripts.language,
+        )?
+    };
     let mut sources = std::collections::BTreeMap::new();
     for source in &game.mission.imported_voices {
         let donor = match sources.entry((source.stage, source.character)) {

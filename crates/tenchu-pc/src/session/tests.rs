@@ -733,3 +733,137 @@ fn trial_disc_presets_and_terrain() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; plays the original trial presets with both characters"]
+fn trial_disc_gameplay() {
+    use tenchu_assets::trial::{Tables, Theme};
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let tables = Tables::load(&assets).unwrap();
+    for (id, mission) in tables.presets(&assets).unwrap().iter().enumerate() {
+        let theme = Theme::load(&assets, mission.theme).unwrap();
+        for character in 0..2 {
+            let mut random = tenchu_core::random::Random::new(1);
+            let prepared =
+                MissionAssets::load_trial(&assets, &tables, &theme, mission, character, || {
+                    random.next15() as u16
+                })
+                .unwrap();
+            let mut game = Game::with_random(
+                prepared,
+                &Executable::new(&assets.executable).unwrap(),
+                character,
+                random,
+            )
+            .unwrap();
+            assert_eq!(game.player().inventory[2], 3);
+            for tick in 0..300 {
+                game.step(if tick % 80 < 35 { UP } else { RIGHT })
+                    .unwrap_or_else(|e| {
+                        panic!("Preset {id}, player {character}, tick {tick}: {e}")
+                    });
+            }
+            assert!(game.visible.contains(&game.player_id));
+            println!(
+                "Played trial {} as {character}: {:?}, health {}, {} active actors",
+                id + 1,
+                game.trial.as_ref().unwrap().phase,
+                game.player().health,
+                game.visible.len()
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; checks trial objectives, timing and death transitions"]
+fn trial_disc_objectives_and_timing() {
+    use tenchu_assets::trial::{Mission, Objective, Tables, Theme};
+    use tenchu_core::{
+        actor::State as ActorState,
+        game::{
+            events::Outcome,
+            trial::{Failure, Phase},
+        },
+    };
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let tables = Tables::load(&assets).unwrap();
+    let theme = Theme::load(&assets, 0).unwrap();
+    let load = |mission: &Mission, character| {
+        let mut random = tenchu_core::random::Random::new(1);
+        let prepared =
+            MissionAssets::load_trial(&assets, &tables, &theme, mission, character, || {
+                random.next15() as u16
+            })
+            .unwrap();
+        Game::with_random(
+            prepared,
+            &Executable::new(&assets.executable).unwrap(),
+            character,
+            random,
+        )
+        .unwrap()
+    };
+    for character in 0..2 {
+        for objective in Objective::ALL {
+            let mission = Mission::new(0, objective, tables.appearance[0][2]).unwrap();
+            let mut game = load(&mission, character);
+            game.step(0).unwrap();
+            match objective {
+                Objective::ReachLord | Objective::FindHerb => {
+                    let target = game.roster.get(game.roster.order[1]).position;
+                    game.teleport_player(target, true).unwrap();
+                }
+                Objective::Assassinate | Objective::EliminateEnemies => {
+                    let id = game.roster.order[1];
+                    let actor = game.roster.get_mut(id);
+                    actor.status = ActorState::Dead;
+                    actor.health = 0;
+                }
+                Objective::ProtectPrincess => {
+                    let target = game.roster.get(game.roster.order[1]).position;
+                    let princess = game.roster.order[2];
+                    game.roster.get_mut(princess).position = target;
+                }
+            }
+            for _ in 0..450 {
+                if game.events.outcome != Outcome::Running {
+                    break;
+                }
+                game.step(0).unwrap();
+            }
+            assert_eq!(
+                game.events.outcome,
+                Outcome::Complete,
+                "{objective:?}, character {character}: {:?}",
+                game.trial
+            );
+        }
+        let mut mission = Mission::new(0, Objective::ReachLord, 140).unwrap();
+        let mut game = load(&mission, character);
+        game.clock = 1000;
+        game.statistics.criticals = 1;
+        game.step(0).unwrap();
+        assert_eq!(game.clock, 551);
+        game.statistics.friend_hits = 1;
+        game.step(0).unwrap();
+        assert_eq!(game.clock, 1452);
+        mission.stealth = true;
+        let mut game = load(&mission, character);
+        game.intelligence.found = 1;
+        game.step(0).unwrap();
+        assert!(matches!(
+            game.trial.as_ref().unwrap().phase,
+            Phase::Failure(Failure::Spotted, _)
+        ));
+        for _ in 0..210 {
+            if game.events.outcome != Outcome::Running {
+                break;
+            }
+            game.step(0).unwrap();
+        }
+        assert_eq!(game.events.outcome, Outcome::GameOver);
+    }
+}

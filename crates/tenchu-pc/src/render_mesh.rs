@@ -143,7 +143,14 @@ pub fn visit_stage(
             },
         );
     }
-    for placement in &mission.placements {
+    for (index, placement) in mission.placements.iter().enumerate() {
+        if mission
+            .trial
+            .as_ref()
+            .is_some_and(|t| t.collapsing.contains(&index))
+        {
+            continue;
+        }
         visit(
             &mission.objects[placement.part].geometry,
             Matrix {
@@ -228,6 +235,22 @@ pub fn visit_hinged_parts(
     mut visit: impl FnMut(Part, &[Geometry], Matrix),
 ) {
     use tenchu_assets::misc::Kind;
+    if let Some(trial) = &game.mission.trial {
+        for &index in &trial.collapsing {
+            let placement = &game.mission.placements[index];
+            if placement.position[1] >= 1000000 {
+                continue;
+            }
+            visit(
+                Part::TrialCover(index),
+                &game.mission.objects[placement.part].geometry,
+                Matrix {
+                    translation: placement.position.into(),
+                    rotation: game.math.rotate_yxz([0, placement.facing as i16, 0]),
+                },
+            );
+        }
+    }
     for (index, object) in game.misc.objects.iter().enumerate() {
         let (data, yaw) = match object.kind {
             Kind::Door { kind, rotation } => (&game.mission.misc.doors[kind], rotation),

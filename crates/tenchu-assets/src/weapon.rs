@@ -77,10 +77,33 @@ pub struct Weapons {
 
 impl Weapons {
     pub fn load<S: ReadAt>(game: &GameAssets<S>, exe: &Executable) -> Result<Self> {
+        Self::load_tables(
+            game,
+            exe,
+            "HUMAN/WEAPON",
+            [0x8008986c, 0x80089aac, 0x800891dc, 0x80097714],
+        )
+    }
+
+    pub(crate) fn load_trial<S: ReadAt>(game: &GameAssets<S>, exe: &Executable) -> Result<Self> {
+        Self::load_tables(
+            game,
+            exe,
+            "TRIAL/HUMAN/WEAPON",
+            [0x8008abb8, 0x8008adf8, 0x8008a528, 0x800971cc],
+        )
+    }
+
+    fn load_tables<S: ReadAt>(
+        game: &GameAssets<S>,
+        exe: &Executable,
+        prefix: &str,
+        tables: [u32; 4],
+    ) -> Result<Self> {
         let mut models = BTreeMap::new();
         let mut names = BTreeMap::new();
         for i in 0..256 {
-            let row = exe.bytes(0x8008986c + i * 12, 12)?;
+            let row = exe.bytes(tables[0] + i * 12, 12)?;
             let kind = i16_le(row, 4)?;
             if kind == -1 {
                 break;
@@ -89,7 +112,7 @@ impl Weapons {
             names.insert(kind, name.to_owned());
             models.insert(
                 kind,
-                model::tmd_model(&game.asset(&format!("HUMAN/WEAPON/{name}.TMD"))?)?,
+                model::tmd_model(&game.asset(&format!("{prefix}/{name}.TMD"))?)?,
             );
             if i == 255 {
                 return Err("Unterminated weapon model table".into());
@@ -97,7 +120,7 @@ impl Weapons {
         }
         let mut hitboxes = Vec::new();
         for i in 0..256 {
-            let row = exe.bytes(0x80089aac + i * 24, 24)?;
+            let row = exe.bytes(tables[1] + i * 24, 24)?;
             let kind = i16_le(row, 22)?;
             if kind == -1 {
                 break;
@@ -114,7 +137,7 @@ impl Weapons {
         }
         let mut attacks = Vec::new();
         for i in 0..256 {
-            let row = exe.bytes(0x800891dc + i * 16, 16)?;
+            let row = exe.bytes(tables[2] + i * 16, 16)?;
             let clip = i16_le(row, 0)?;
             attacks.push(Attack {
                 clip,
@@ -134,12 +157,12 @@ impl Weapons {
                     attacks,
                     bow_timing: [
                         [
-                            i16_le(exe.bytes(0x80097714, 4)?, 0)?,
-                            i16_le(exe.bytes(0x80097714, 4)?, 2)?,
+                            i16_le(exe.bytes(tables[3], 4)?, 0)?,
+                            i16_le(exe.bytes(tables[3], 4)?, 2)?,
                         ],
                         [
-                            i16_le(exe.bytes(0x80097718, 4)?, 0)?,
-                            i16_le(exe.bytes(0x80097718, 4)?, 2)?,
+                            i16_le(exe.bytes(tables[3] + 4, 4)?, 0)?,
+                            i16_le(exe.bytes(tables[3] + 4, 4)?, 2)?,
                         ],
                     ],
                 });

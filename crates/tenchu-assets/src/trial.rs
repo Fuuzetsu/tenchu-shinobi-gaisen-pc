@@ -1,5 +1,7 @@
 //! TRIAL.EXE mission files and theme resources. See SOURCES.md.
 mod mission;
+mod setup;
+pub use setup::Setup;
 mod terrain;
 pub use mission::{Cell, Mission, Objective, Placement, Point, Record, Waypoint};
 
@@ -37,6 +39,7 @@ pub struct Tables {
     pub characters: Vec<Character>,
     pub common_motions: Vec<MotionRegistration>,
     pub appearance: Vec<Vec<i16>>,
+    executable: Vec<u8>,
     vertices: Vec<[i16; 3]>,
     faces: Vec<Vec<TerrainFace>>,
 }
@@ -103,6 +106,7 @@ impl Tables {
             appearance,
             vertices,
             faces,
+            executable: data,
         })
     }
 

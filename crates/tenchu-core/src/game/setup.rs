@@ -26,6 +26,9 @@ pub(super) fn construct(
     character: i16,
     ctx: &mut Context,
 ) -> Result<(usize, Statistics)> {
+    if ctx.mission.trial.is_some() {
+        return super::trial::construct(roster, character, ctx);
+    }
     enum Spawn {
         Actor(tenchu_assets::stage::Enemy),
         Pickup(tenchu_assets::stage::Pickup),

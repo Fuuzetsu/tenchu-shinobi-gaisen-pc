@@ -1156,3 +1156,11 @@ checked input; it does not reproduce out-of-bounds editor reads. Character,
 motion and face tables are read from the user's verified TRIAL.EXE (SHA-256
 `f236f35ad8d4bed8c70f6cc1e69b62e7dfd27469e6bf1a838aa65932335d7230`).
 No original tables, models, missions or textures are embedded in the source.
+
+The trial runtime follows `SetupTrialMission`, `RunTrialMission`,
+`ActivateTrialHumans`, `InitTrialTrapMap`, `UpdateTrialArrowTraps`,
+`UpdateTrialCollapsingFloors`, `DrawTrialMissionTimer`, `DrawTrialEnemyCandles`,
+`APPEAR.C` and `SEMNG.C` at the same revision. It shares the scalar actor, item,
+collision and audio engines with campaign play, with separate trial timing,
+objectives and activation. TRIAL weapon/motion/death-event tables and the older
+FLOWER.MAD revision are loaded from the disc.

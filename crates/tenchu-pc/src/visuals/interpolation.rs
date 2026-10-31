@@ -8,6 +8,7 @@ use tenchu_core::{
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Part {
+    TrialCover(usize),
     Actor {
         root: usize,
         model: usize,
@@ -119,7 +120,7 @@ impl History {
                     .get(&root)
                     .zip(current.roots.get(&root))
                     .is_some_and(|(a, b)| close(*a, *b, 2000.0)),
-                Part::Hinge { .. } => true,
+                Part::Hinge { .. } | Part::TrialCover(_) => true,
             };
             let pose = previous
                 .parts

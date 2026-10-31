@@ -98,6 +98,7 @@ impl Layout {
 }
 
 pub struct MissionAssets {
+    pub trial: Option<crate::trial::Setup>,
     pub misc: crate::misc::Misc,
     pub stage: Stage,
     pub map: Vec<Part>,
@@ -362,6 +363,7 @@ impl MissionAssets {
             Vec::new()
         };
         Ok(Self {
+            trial: None,
             misc: crate::misc::Misc::load(game, &construction, &mut vram)?,
             map_image: vram.upload_tim(&asset("CHIZU.TIM")?)?,
             map_placement: crate::hud::MapPlacement::load(&exe, id)?,

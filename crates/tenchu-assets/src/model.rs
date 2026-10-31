@@ -57,7 +57,7 @@ pub fn arc_entry(data: &[u8], index: usize) -> Result<&[u8]> {
 }
 
 pub fn archive(data: &[u8]) -> Result<Vec<Part>> {
-    if u32_le(data, 0)? != 0x96102900 {
+    if !matches!(u32_le(data, 0)?, 0x96102900 | 0x96102500) {
         return Err("Invalid MAD signature".into());
     }
     let count = u16_le(data, 4)? as usize;
