@@ -684,3 +684,52 @@ fn cinematic_timing_is_independent_of_host_frame_cadence() {
         assert_eq!(snapshots[0], snapshots[2]);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; validates all original TRIAL missions and terrain themes"]
+fn trial_disc_presets_and_terrain() {
+    use tenchu_assets::trial::{Mission, Tables, Theme};
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let tables = Tables::load(&assets).unwrap();
+    let presets = tables.presets(&assets).unwrap();
+    assert_eq!(presets.len(), 16);
+    for (id, mission) in presets.iter().enumerate() {
+        let theme = Theme::load(&assets, mission.theme).unwrap();
+        let encoded = mission.encode().unwrap();
+        assert_eq!(&Mission::decode(&encoded).unwrap(), mission);
+        let mut random = tenchu_core::random::Random::new(1);
+        let terrain = theme
+            .build(mission, &tables, || random.next15() as u16)
+            .unwrap();
+        assert!(!terrain.objects.is_empty());
+        assert!(!terrain.collision.rows.is_empty());
+        for placement in &mission.placements {
+            assert!(tables.characters.iter().any(|c| c.kind == placement.kind));
+            let point = placement.point.world();
+            let mut cursor = tenchu_core::terrain::Cursor::new(&terrain.collision);
+            let height = tenchu_core::terrain::level(
+                &terrain.collision,
+                &mut cursor,
+                [point[0], -10000, point[2]].into(),
+                0,
+            )
+            .unwrap();
+            assert!(
+                height <= 0,
+                "Preset {id} actor {} has no supporting floor: {height}",
+                placement.kind
+            );
+        }
+        println!(
+            "Preset {}: theme {}, {} actors, {} meshes, {} ornaments, {} RNG calls: {}",
+            id + 1,
+            mission.theme,
+            mission.placements.len(),
+            terrain.objects.len(),
+            terrain.ornaments.len(),
+            random.calls,
+            mission.title
+        );
+    }
+}

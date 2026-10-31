@@ -1136,3 +1136,23 @@ Reference: `~/programming/tenchu-decomp` at
 | `src/main.exe/mission_score_screen.c` | `e3b8ab0e195477eae678e0e2cb099409ef3c11556b8217279b0f7bcc408689e8` |
 | `src/main.exe/INFOVIEW.C` | `e4aef1960f32907c3217bbdb3552204f99693124261ede8e9aaa3b6deba15af0` |
 | `config/symbols.main.exe.txt` | `2e72575d7c08c455a1212ce9b461ac84d51107c5e043b13b03c39fea6510ebd8` |
+
+## TRIAL mission resources and terrain (2026-10-31)
+
+`~/programming/tenchu-decomp` at `6421c970e3eaf24b19462e785ebcbfcd5bc070a7`:
+
+| Source | SHA-256 | Use |
+| --- | --- | --- |
+| `src/trial.exe/mission.h` | `fdfa11e1dcee4eb079ffe400ee658574427f150735c15bc48ddc219f541adebc` | Mission records, tile map and patrol serialization |
+| `src/trial.exe/MEMCARD.C` | `05d0acd6dc281dc6eef830aea5cc9d5b422bd2b401003ad3166d9433c71a2755` | Mission checksum; excludes time records |
+| `src/trial.exe/BuildTrialCollisionMap.c` | `844ff8a04c6bc7140d95866a22b3bec8c084375ac642bbc8d2ddd2c4061baa22` | Collision surfaces, masks and merging |
+| `src/trial.exe/BuildTrialTerrainModel.c` | `988db9e146df865cfd02775e035151d7e02809f7a4281937e98ea6097dbbf3d2` | Exposed faces, corner shading and ornament placement |
+
+The accompanying `GetTrialTerrainHeight`, `FindOrAddTrialTerrainVertex`,
+`SetupTrialTerrainPrimitive`, `UpdateTrialTerrainChunks`, `LoadTrialEditorTheme`,
+`EDITORUTIL.C`, `MENULIST.C` and `SetupTrialObjectivePlacements` specify geometry
+and mission initialization. The implementation uses owned Rust structures and
+checked input; it does not reproduce out-of-bounds editor reads. Character,
+motion and face tables are read from the user's verified TRIAL.EXE (SHA-256
+`f236f35ad8d4bed8c70f6cc1e69b62e7dfd27469e6bf1a838aa65932335d7230`).
+No original tables, models, missions or textures are embedded in the source.

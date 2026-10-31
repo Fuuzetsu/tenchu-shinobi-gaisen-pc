@@ -17,6 +17,7 @@ pub mod shop;
 pub mod stage;
 pub mod terrain;
 pub mod texture;
+pub mod trial;
 pub mod weapon;
 
 pub type Result<T> = std::result::Result<T, String>;

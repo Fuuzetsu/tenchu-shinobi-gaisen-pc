@@ -31,6 +31,42 @@ pub struct AreaMap {
 }
 
 impl AreaMap {
+    pub fn from_nodes(levels: Vec<(i16, Vec<Node>)>) -> Result<Self> {
+        let mut data = vec![0; (levels.len() + 1) * 16];
+        for (index, (height, nodes)) in levels.into_iter().enumerate() {
+            let mut bounds = [i16::MAX, i16::MAX, i16::MIN, i16::MIN];
+            let at = index * 16;
+            data[at..at + 2].copy_from_slice(&height.to_le_bytes());
+            data[at + 2..at + 4].copy_from_slice(&(nodes.len() as i16).to_le_bytes());
+            let offset = data.len() as u32;
+            data[at + 4..at + 8].copy_from_slice(&offset.to_le_bytes());
+            for node in nodes {
+                for i in 0..2 {
+                    bounds[i] = bounds[i].min(node.bounds[i]);
+                    bounds[i + 2] = bounds[i + 2].max(node.bounds[i + 2]);
+                }
+                data.extend(node.y.to_le_bytes());
+                data.extend(node.dy.to_le_bytes());
+                for value in node.bounds {
+                    data.extend(value.to_le_bytes());
+                }
+                data.extend(node.attributes.to_le_bytes());
+                data.extend(node.division.to_le_bytes());
+            }
+            for (i, value) in bounds.into_iter().enumerate() {
+                data[at + 8 + i * 2..at + 10 + i * 2].copy_from_slice(&value.to_le_bytes());
+            }
+        }
+        Self::parse(data)
+    }
+
+    pub fn set_surface(&mut self, offset: usize, y: i16, division: u16) -> Result<()> {
+        slice(&self.data, offset, 16)?;
+        self.data[offset..offset + 2].copy_from_slice(&y.to_le_bytes());
+        self.data[offset + 14..offset + 16].copy_from_slice(&division.to_le_bytes());
+        Ok(())
+    }
+
     pub fn parse(mut data: Vec<u8>) -> Result<Self> {
         let mut rows = Vec::new();
         for i in 0..4096 {

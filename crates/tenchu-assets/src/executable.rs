@@ -195,9 +195,13 @@ impl<'a> Executable<'a> {
     }
 
     pub fn characters(&self) -> Result<Vec<Character>> {
+        self.characters_at(0x80088a8c)
+    }
+
+    pub(crate) fn characters_at(&self, address: u32) -> Result<Vec<Character>> {
         let mut out = Vec::new();
         for i in 0..256 {
-            let row = self.bytes(0x80088a8c + i * 24, 24)?;
+            let row = self.bytes(address + i * 24, 24)?;
             let kind = i16_le(row, 0)?;
             if kind == -1 {
                 return Ok(out);
