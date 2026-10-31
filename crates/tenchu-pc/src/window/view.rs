@@ -909,6 +909,7 @@ impl View {
             ui::build(
                 campaign,
                 paused,
+                settings.circle_confirm,
                 error,
                 settings.sharp_text.then_some(&mut self.text),
             )
@@ -1016,7 +1017,10 @@ impl View {
         if matches!(campaign.screen, crate::campaign::Screen::DeathHold) && !debug.photo_mode {
             self.labels.push(crate::debug::Label(
                 crate::debug::Anchor::BottomLeft([12.0, 20.0]),
-                "Enter / South / Start: continue".into(),
+                format!(
+                    "Enter / {} / Start: continue",
+                    crate::controls::menu_labels(settings.circle_confirm).0
+                ),
                 [1.0, 0.85, 0.35],
             ));
         }

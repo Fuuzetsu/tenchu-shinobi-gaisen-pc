@@ -147,10 +147,19 @@ fn shop_window_tracks_sky_without_changing_ui_or_gameplay() {
             frontend.canvas.frame = Some(Frame::new(frontend.canvas.size, images.clone()));
             frontend.paint(&campaign);
             let frame = frontend.canvas.frame.take().unwrap();
-            assert!(
-                frame.vertices[6..].iter().all(|v| v.room == 0.0),
-                "lighting must be confined to the background draw"
-            );
+            for draw in &frame.draws {
+                let expected = if lighting.is_some() && draw.image == frame.draws[0].image {
+                    1.0
+                } else {
+                    0.0
+                };
+                assert!(
+                    frame.vertices[draw.vertices.start as usize..draw.vertices.end as usize]
+                        .iter()
+                        .all(|v| v.room == expected),
+                    "lighting must cover every background section and no UI sprites"
+                );
+            }
             let pixels = capture.draw(frame);
             if let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
                 let path = std::path::Path::new(&path);

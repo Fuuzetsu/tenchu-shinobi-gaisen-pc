@@ -102,6 +102,7 @@ pub enum Item {
     Focus,
     MenuPause,
     MusicWhilePaused,
+    CircleConfirm,
     WaitAfterDeath,
     ShopLighting,
     Fullscreen,
@@ -1096,6 +1097,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
         ],
         0 => vec![
             (
+                Item::CircleConfirm,
+                "Circle confirms in menus",
+                on(s.circle_confirm),
+                "Japanese: East / Circle confirms, South / Cross goes back. Off: Western (South confirms). Gameplay bindings and Enter/Esc stay unchanged. Menu buttons use their physical positions, independently of gameplay remapping.",
+            ),
+            (
                 Item::Randomizer,
                 "Randomizer (F7)",
                 "Open…".into(),
@@ -1148,7 +1155,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::WaitAfterDeath,
                 "Wait after death",
                 on(s.wait_after_death),
-                "Hold the completed death scene until Enter / South / Start. Off: automatically show mission failure, as in retail.",
+                "Hold the completed death scene until Enter, the menu confirm button or Start. Off: automatically show mission failure, as in retail.",
             ),
             (
                 Item::ShopLighting,

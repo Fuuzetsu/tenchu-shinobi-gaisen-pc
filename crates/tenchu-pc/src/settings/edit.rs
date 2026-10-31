@@ -128,6 +128,7 @@ impl Item {
             Self::Focus => &mut settings.pause_on_defocus,
             Self::MenuPause => &mut settings.pause_in_menu,
             Self::MusicWhilePaused => &mut settings.music_while_paused,
+            Self::CircleConfirm => &mut settings.circle_confirm,
             Self::WaitAfterDeath => &mut settings.wait_after_death,
             Self::ShopLighting => &mut settings.graphics.shop_lighting,
             Self::Fullscreen => &mut settings.fullscreen,

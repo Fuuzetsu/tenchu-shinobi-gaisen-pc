@@ -98,11 +98,41 @@ impl Canvas {
         }
     }
 
+    pub fn background_without(&mut self, image: &Image, [x, y, w, h]: [usize; 4]) {
+        let [width, height] = image.size;
+        for [sx, sy, sw, sh] in [
+            [0, 0, width, y],
+            [0, y, x, h],
+            [x + w, y, width - x - w, h],
+            [0, y + h, width, height - y - h],
+        ] {
+            if sw != 0 && sh != 0 {
+                self.sprite(
+                    Sprite::new(
+                        image,
+                        (sx as f32 + sw as f32 / 2.0) - width as f32 / 2.0,
+                        (sy as f32 + sh as f32 / 2.0) - height as f32 / 2.0,
+                    )
+                    .region([sx, sy, sw, sh]),
+                );
+            }
+        }
+    }
+
     pub fn label(&mut self, sprite: Sprite<'_>, text: impl Into<String>, color: egui::Color32) {
         if !self.sharp_text {
             self.sprite(sprite);
             return;
         }
+        self.text_label(sprite, text, color);
+    }
+
+    pub fn text_label(
+        &mut self,
+        sprite: Sprite<'_>,
+        text: impl Into<String>,
+        color: egui::Color32,
+    ) {
         let width_scale = 320.0 / self.size[0] as f32;
         let height = sprite.source[3] as f32 * sprite.scale.y.abs();
         self.text.push(crate::fonts::Text {

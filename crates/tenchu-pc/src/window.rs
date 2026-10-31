@@ -854,24 +854,29 @@ impl ApplicationHandler for Application {
                     eprintln!("Active controller disconnected; gameplay paused.");
                     self.set_paused(true);
                 } else if self.focused && self.trial.open {
-                    if update.pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0 {
+                    if update.menu_pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0
+                    {
                         self.trial
-                            .next_tab(if update.pressed & tenchu_core::input::L1 != 0 {
+                            .next_tab(if update.menu_pressed & tenchu_core::input::L1 != 0 {
                                 -1
                             } else {
                                 1
                             });
                     }
-                    if let Some(Command::Menu(action)) =
-                        controls::gamepad_command(update.pressed, false, false)
-                        && let Some(event) = self.trial.controller(action, &self.assets)
+                    if let Some(Command::Menu(action)) = controls::gamepad_command(
+                        update.menu_pressed,
+                        false,
+                        false,
+                        self.settings.circle_confirm,
+                    ) && let Some(event) = self.trial.controller(action, &self.assets)
                     {
                         self.trial_action(event);
                     }
                 } else if self.focused && self.menu.open && !self.controls.editor.open {
-                    if update.pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0 {
+                    if update.menu_pressed & (tenchu_core::input::L1 | tenchu_core::input::R1) != 0
+                    {
                         self.menu
-                            .page(if update.pressed & tenchu_core::input::L1 != 0 {
+                            .page(if update.menu_pressed & tenchu_core::input::L1 != 0 {
                                 -1
                             } else {
                                 1
@@ -879,16 +884,24 @@ impl ApplicationHandler for Application {
                         self.controls.clear();
                         self.update_view();
                     }
-                    if let Some(Command::Menu(action)) =
-                        controls::gamepad_command(update.pressed, false, false)
-                    {
+                    if let Some(Command::Menu(action)) = controls::gamepad_command(
+                        update.menu_pressed,
+                        false,
+                        false,
+                        self.settings.circle_confirm,
+                    ) {
                         self.settings_action(action);
                     }
                 } else if self.focused
                     && let Some(command) = controls::gamepad_command(
-                        update.pressed,
+                        if self.campaign.playing() && !self.paused {
+                            update.pressed
+                        } else {
+                            update.menu_pressed
+                        },
                         self.campaign.playing(),
                         self.paused,
+                        self.settings.circle_confirm,
                     )
                 {
                     self.command(command, events);

@@ -162,7 +162,7 @@ fn localized_captions_change_only_presentation_and_render_at_720p_and_4k() {
         )
         .unwrap();
         let mut labels = Vec::new();
-        let panel = crate::ui::build(&campaign, false, None, Some(&mut labels));
+        let panel = crate::ui::build(&campaign, false, false, None, Some(&mut labels));
         let ctx = egui::Context::default();
         install(&ctx);
         let rect = Rect::from_min_size(Pos2::ZERO, egui::vec2(size[0] as f32, size[1] as f32));

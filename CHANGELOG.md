@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **F1 → General → Circle confirms in menus** to choose Japanese or Western
+  controller confirmation, with matching button prompts. Menu buttons remain
+  independent of gameplay rebinding; Enter/Esc and START-to-retry are unchanged.
+
 - Fix white outlines around original blood sprites with MSAA, including filtered
   textures and free-camera views.
 

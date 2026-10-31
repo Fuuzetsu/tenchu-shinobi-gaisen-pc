@@ -66,10 +66,24 @@ fn results_start_retries_while_confirm_advances() {
     for mission in [1, 10] {
         for (command, retry) in [
             (controls::keyboard_command(KeyCode::Space, false), true),
-            (controls::gamepad_command(input::START, false, false), true),
+            (
+                controls::gamepad_command(input::START, false, false, false),
+                true,
+            ),
             (controls::keyboard_command(KeyCode::F5, false), true),
             (controls::keyboard_command(KeyCode::Enter, false), false),
-            (controls::gamepad_command(input::CROSS, false, false), false),
+            (
+                controls::gamepad_command(input::START, false, false, true),
+                true,
+            ),
+            (
+                controls::gamepad_command(input::CIRCLE, false, false, true),
+                false,
+            ),
+            (
+                controls::gamepad_command(input::CROSS, false, false, false),
+                false,
+            ),
         ] {
             let mut app = application(Options {
                 mission,

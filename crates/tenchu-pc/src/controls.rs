@@ -31,14 +31,32 @@ pub fn keyboard_command(code: KeyCode, playing: bool) -> Option<Command> {
     })
 }
 
-pub fn gamepad_command(pressed: u16, playing: bool, paused: bool) -> Option<Command> {
+pub fn menu_labels(circle_confirm: bool) -> (&'static str, &'static str) {
+    if circle_confirm {
+        ("East", "South")
+    } else {
+        ("South", "East")
+    }
+}
+
+pub fn gamepad_command(
+    pressed: u16,
+    playing: bool,
+    paused: bool,
+    circle_confirm: bool,
+) -> Option<Command> {
+    let (confirm, back) = if circle_confirm {
+        (input::CIRCLE, input::CROSS)
+    } else {
+        (input::CROSS, input::CIRCLE)
+    };
     if playing && pressed & input::START != 0 {
         return Some(Command::Pause);
     }
     if playing && !paused {
         return None;
     }
-    if pressed & input::CIRCLE != 0 {
+    if pressed & back != 0 {
         return Some(Command::Menu(Action::Back));
     }
     if pressed & input::SQUARE != 0 {
@@ -47,7 +65,7 @@ pub fn gamepad_command(pressed: u16, playing: bool, paused: bool) -> Option<Comm
     if !playing && pressed & input::START != 0 {
         return Some(Command::Menu(Action::Start));
     }
-    if pressed & (input::CROSS | input::START) != 0 {
+    if pressed & (confirm | input::START) != 0 {
         return Some(if playing {
             Command::Pause
         } else {
@@ -75,6 +93,8 @@ struct Pad {
     raw: u16,
     blocked: u16,
     pending: u16,
+    menu_raw: u16,
+    menu_blocked: u16,
     stick: [i8; 4],
     axes: [f32; 4],
     axes_blocked: [bool; 2],
@@ -102,6 +122,7 @@ impl Pad {
     fn suppress(&mut self) {
         self.blocked = self.raw;
         self.pending = 0;
+        self.menu_blocked = self.menu_raw;
         self.direct_blocked = self.direct;
         self.direct_pending = 0;
         self.recenter = false;
@@ -135,11 +156,27 @@ impl Pad {
         *self = Self::default();
         true
     }
+
+    fn sample_menu(&mut self, id: usize, buttons: u16, focused: bool) -> u16 {
+        if self.active.is_some_and(|active| active != id) || self.active.is_none() && !focused {
+            return 0;
+        }
+        let before = self.menu_raw & !self.menu_blocked;
+        self.menu_raw = buttons;
+        self.menu_blocked &= buttons;
+        if !focused {
+            self.menu_blocked = buttons;
+        } else if buttons != 0 {
+            self.active = Some(id);
+        }
+        (buttons & !self.menu_blocked) & !before
+    }
 }
 
 #[derive(Default)]
 pub struct Update {
     pub pressed: u16,
+    pub menu_pressed: u16,
     pub disconnected: bool,
 }
 
@@ -236,7 +273,7 @@ impl Controls {
 
     pub fn key_command(&self, code: KeyCode, playing: bool, paused: bool) -> Option<Command> {
         keyboard_command(code, playing)
-            .or_else(|| gamepad_command(self.bindings.key(code), playing, paused))
+            .or_else(|| gamepad_command(self.bindings.key(code), playing, paused, false))
     }
 
     pub fn key(&mut self, code: KeyCode, pressed: bool) -> bool {
@@ -387,6 +424,9 @@ impl Controls {
                 .bindings
                 .controller(|button| gamepad.is_pressed(button), self.pad.stick);
             update.pressed |= self.pad.sample(id, buttons, focused);
+            let menu_buttons =
+                bindings::menu_buttons(|button| gamepad.is_pressed(button), self.pad.stick);
+            update.menu_pressed |= self.pad.sample_menu(id, menu_buttons, focused);
             if before != self.pad.active {
                 println!("Controller: {}", gamepad.name());
             }
@@ -398,6 +438,7 @@ impl Controls {
         if self.editor.open {
             self.pad.suppress();
             update.pressed = 0;
+            update.menu_pressed = 0;
         }
         update
     }

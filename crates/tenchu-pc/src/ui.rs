@@ -38,12 +38,14 @@ fn time(clock: i32) -> String {
 pub fn build(
     campaign: &Campaign,
     paused: bool,
+    circle_confirm: bool,
     error: Option<&str>,
     text: Option<&mut Vec<crate::fonts::Text>>,
 ) -> Geometry {
     if campaign.playing() && !paused && error.is_none() {
         return render_effects::build(&campaign.game);
     }
+    let (confirm, back) = crate::controls::menu_labels(circle_confirm);
     let mut lines = Vec::new();
     let mut line = |x, y, text: String, color| lines.push((x, y, text, color));
     if let Some(error) = error {
@@ -56,11 +58,16 @@ pub fn build(
                 WHITE,
             );
         }
-        line(-140, 92, "F5/West: retry  Esc/East: item shop".into(), DIM);
+        line(
+            -140,
+            92,
+            format!("F5/West: retry  Esc/{back}: item shop"),
+            DIM,
+        );
     } else if paused {
         line(-40, -20, "Paused".into(), GOLD);
-        line(-140, 12, "P/Start/South: resume".into(), WHITE);
-        line(-140, 32, "Esc/East: abandon attempt".into(), DIM);
+        line(-140, 12, format!("P/Start/{confirm}: resume"), WHITE);
+        line(-140, 32, format!("Esc/{back}: abandon attempt"), DIM);
         line(
             -140,
             52,
@@ -120,11 +127,10 @@ pub fn build(
                     -140,
                     104,
                     if campaign.frontend {
-                        "Enter/South: select  Esc/East: title"
+                        format!("Enter/{confirm}: select  Esc/{back}: title")
                     } else {
-                        "Enter/South: select  Esc/East: quit"
-                    }
-                    .into(),
+                        format!("Enter/{confirm}: select  Esc/{back}: quit")
+                    },
                     DIM,
                 );
             }
@@ -162,11 +168,11 @@ pub fn build(
                     -140,
                     88,
                     if campaign.randomized.is_some() {
-                        "Enter/South: next roll  R/West: retry".into()
+                        format!("Enter/{confirm}: next roll  R/West: retry")
                     } else if campaign.options.mission == 0 {
-                        "Enter/South: train  Esc/East: menu".into()
+                        format!("Enter/{confirm}: train  Esc/{back}: menu")
                     } else {
-                        "Enter/South: next  R/West: retry".into()
+                        format!("Enter/{confirm}: next  R/West: retry")
                     },
                     DIM,
                 );
@@ -174,17 +180,21 @@ pub fn build(
                     -140,
                     104,
                     if campaign.randomized.is_some() {
-                        "Esc: randomizer  Campaign unchanged"
+                        "Esc: randomizer  Campaign unchanged".into()
                     } else {
-                        "Esc/East: menu  Progress saved"
-                    }
-                    .into(),
+                        format!("Esc/{back}: menu  Progress saved")
+                    },
                     DIM,
                 );
             }
             Screen::GameOver => {
                 line(-80, -40, "MISSION FAILED".into(), GOLD);
-                line(-140, 4, "Enter/South: retry  Esc/East: menu".into(), WHITE);
+                line(
+                    -140,
+                    4,
+                    format!("Enter/{confirm}: retry  Esc/{back}: menu"),
+                    WHITE,
+                );
                 line(
                     -130,
                     32,
@@ -202,7 +212,12 @@ pub fn build(
                 line(-112, -50, "CAMPAIGN COMPLETE".into(), GOLD);
                 line(-130, -10, "All ten missions completed.".into(), WHITE);
                 line(-130, 14, "Ending movie unavailable.".into(), DIM);
-                line(-130, 60, "Enter/South: return to launcher".into(), WHITE);
+                line(
+                    -130,
+                    60,
+                    format!("Enter/{confirm}: return to launcher"),
+                    WHITE,
+                );
             }
             Screen::Playing | Screen::DeathHold => {}
         }

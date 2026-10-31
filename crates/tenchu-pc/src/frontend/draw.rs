@@ -185,12 +185,8 @@ impl Frame {
 
     pub(super) fn light_room(&mut self, lighting: super::room::Lighting) {
         self.room = lighting;
-        if let Some(draw) = self.draws.last() {
-            for vertex in
-                &mut self.vertices[draw.vertices.start as usize..draw.vertices.end as usize]
-            {
-                vertex.room = 1.0;
-            }
+        for vertex in &mut self.vertices {
+            vertex.room = 1.0;
         }
     }
 

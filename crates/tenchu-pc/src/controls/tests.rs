@@ -83,18 +83,84 @@ fn menu_and_focus_changes_require_release_before_gameplay() {
     controls.pad.sample(0, 0, true);
     assert_eq!(controls.pad.sample(0, input::START, true), input::START);
     assert!(matches!(
-        gamepad_command(input::START, true, true),
+        gamepad_command(input::START, true, true, false),
         Some(Command::Pause)
     ));
-    assert!(gamepad_command(input::CIRCLE | input::CROSS | input::SQUARE, true, false).is_none());
+    assert!(
+        gamepad_command(
+            input::CIRCLE | input::CROSS | input::SQUARE,
+            true,
+            false,
+            false
+        )
+        .is_none()
+    );
     assert!(matches!(
-        gamepad_command(input::CIRCLE, true, true),
+        gamepad_command(input::CIRCLE, true, true, false),
         Some(Command::Menu(Action::Back))
     ));
     assert!(matches!(
-        gamepad_command(input::CROSS, false, false),
+        gamepad_command(input::CROSS, false, false, false),
         Some(Command::Menu(Action::Confirm))
     ));
+    assert_eq!(
+        controls.pad.sample_menu(0, input::CIRCLE, true),
+        input::CIRCLE
+    );
+    controls.clear();
+    assert_eq!(controls.pad.sample_menu(0, input::CIRCLE, true), 0);
+    assert_eq!(controls.pad.sample_menu(0, input::CROSS, false), 0);
+    assert_eq!(controls.pad.sample_menu(0, input::CROSS, true), 0);
+    controls.pad.sample_menu(0, 0, true);
+    assert_eq!(
+        controls.pad.sample_menu(0, input::CROSS, true),
+        input::CROSS
+    );
+    assert_eq!(controls.pad.sample_menu(1, input::CIRCLE, true), 0);
+    controls.pad.disconnect(0);
+    assert_eq!(
+        controls.pad.sample_menu(1, input::CROSS, true),
+        input::CROSS
+    );
+}
+
+#[test]
+fn menu_convention_and_gameplay_rebinding_are_independent() {
+    use bindings::Target;
+    let mut controls = Controls::default();
+    controls
+        .bindings
+        .bind_controller(Target::Square, 0, PadInput::Button(Button::South));
+    controls
+        .bindings
+        .bind_controller(Target::Triangle, 0, PadInput::Button(Button::East));
+    for circle_confirm in [false, true] {
+        for (button, gameplay, confirm) in [
+            (Button::South, input::SQUARE, !circle_confirm),
+            (Button::East, input::TRIANGLE, circle_confirm),
+        ] {
+            let remapped = controls.bindings.controller(|b| b == button, [0; 4]);
+            let menu = bindings::menu_buttons(|b| b == button, [0; 4]);
+            assert_eq!(remapped, gameplay);
+            assert!(gamepad_command(remapped, true, false, circle_confirm).is_none());
+            let Some(Command::Menu(action)) = gamepad_command(menu, false, false, circle_confirm)
+            else {
+                panic!("menu button must work even after rebinding gameplay")
+            };
+            assert!(matches!(
+                (action, confirm),
+                (Action::Confirm, true) | (Action::Back, false)
+            ));
+            assert!(matches!(
+                gamepad_command(input::START, false, false, circle_confirm),
+                Some(Command::Menu(Action::Start))
+            ));
+            assert!(matches!(
+                controls.key_command(KeyCode::Enter, false, false),
+                Some(Command::Menu(Action::Confirm))
+            ));
+        }
+    }
 }
 
 #[test]

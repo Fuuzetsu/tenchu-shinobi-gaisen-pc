@@ -26,6 +26,12 @@ remain suspended, and frontend movies/narration pause normally. It is off by def
 **F7** opens the [randomizer](randomizer.md), with full-disc actor pools,
 stage/item blacklists and shareable seeds. Runs keep separate progress.
 
+**F1 → General → Circle confirms in menus** selects Japanese confirmation
+(East / Circle confirms, South / Cross goes back). Off keeps Western confirmation
+(South / Cross confirms, East / Circle goes back). These are physical controller
+positions, independent of gameplay remapping. Enter/Esc keep their keyboard roles,
+and START still retries the mission from results. Prompts follow the chosen convention.
+
 See [AGENTS.md](../AGENTS.md) for development conventions.
 
 Game data, captured RAM and disc images must remain outside Git. No BIOS is

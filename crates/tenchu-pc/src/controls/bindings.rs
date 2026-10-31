@@ -176,6 +176,27 @@ pub struct Binding {
     pub controller: [Option<PadInput>; 2],
 }
 
+impl Binding {
+    fn active(&self, pressed: &impl Fn(Button) -> bool, sticks: [i8; 4]) -> bool {
+        self.controller.iter().flatten().any(|input| match *input {
+            PadInput::Button(button) => pressed(button),
+            PadInput::Stick { axis, positive } => {
+                sticks[axis.index()] == if positive { 1 } else { -1 }
+            }
+        })
+    }
+}
+
+pub fn menu_buttons(pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u16 {
+    Target::ALL.into_iter().fold(0, |held, target| {
+        held | if target.defaults().active(&pressed, sticks) {
+            target.description().1
+        } else {
+            0
+        }
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Bindings(pub BTreeMap<Target, Binding>);
@@ -227,12 +248,7 @@ impl Bindings {
 
     pub fn controller(&self, pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u16 {
         self.0.iter().fold(0, |held, (target, row)| {
-            let active = row.controller.iter().flatten().any(|input| match *input {
-                PadInput::Button(button) => pressed(button),
-                PadInput::Stick { axis, positive } => {
-                    sticks[axis.index()] == if positive { 1 } else { -1 }
-                }
-            });
+            let active = row.active(&pressed, sticks);
             held | if active { target.description().1 } else { 0 }
         })
     }

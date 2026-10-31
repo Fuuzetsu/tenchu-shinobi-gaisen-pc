@@ -56,10 +56,12 @@ impl Frontend {
         if self.high_definition != high_definition
             || self.artwork_enabled != settings.graphics.asset_pack
             || self.canvas.sharp_text != settings.sharp_text
+            || self.circle_confirm != settings.circle_confirm
         {
             self.high_definition = high_definition;
             self.artwork_enabled = settings.graphics.asset_pack;
             self.canvas.sharp_text = settings.sharp_text;
+            self.circle_confirm = settings.circle_confirm;
             self.dirty = true;
         }
         if self.dirty {
@@ -126,12 +128,17 @@ impl Frontend {
             },
             Color32::WHITE,
         );
+        let (confirm, back) = crate::controls::menu_labels(settings.circle_confirm);
         let help = if self.notice.is_empty() && self.page == Page::Shop {
-            "Arrows: item   Enter / South: take   R / West: return   Space / Start: begin   Esc / East: cancel"
+            format!(
+                "Arrows: item   Enter / {confirm}: take   R / West: return   Space / Start: begin   Esc / {back}: cancel"
+            )
         } else if self.notice.is_empty() {
-            "Arrows: select   Enter / South: confirm   Esc / East: back   F6: quick launcher   F1: PC settings"
+            format!(
+                "Arrows: select   Enter / {confirm}: confirm   Esc / {back}: back   F6: quick launcher   F1: PC settings"
+            )
         } else {
-            &self.notice
+            self.notice.clone()
         };
         painter.text(
             egui::pos2(screen.center().x, screen.bottom() - margin + 40.0),
@@ -172,7 +179,7 @@ impl Frontend {
                         if ui.button("Return item [R / West]").clicked() {
                             action = Some(Action::Replay);
                         }
-                        if ui.button("Cancel [Esc / East]").clicked() {
+                        if ui.button(format!("Cancel [Esc / {back}]")).clicked() {
                             action = Some(Action::Back);
                         }
                     });
@@ -411,8 +418,18 @@ impl Frontend {
         match self.page {
             Page::Title => self.paint_title(),
             Page::Character => {
-                self.canvas
-                    .sprite(Sprite::new(&self.character_images[0], 0.0, 0.0));
+                let background = &self.character_images[0];
+                if self.circle_confirm && !self.canvas.sharp_text {
+                    self.canvas.sprite(Sprite::new(background, 0.0, 0.0));
+                } else {
+                    self.canvas
+                        .background_without(background, [0, 208, 320, 20]);
+                    self.canvas.text_label(
+                        Sprite::new(background, 0.0, 98.0).region([0, 208, 224, 14]),
+                        labels::menu_buttons(self.language, self.circle_confirm),
+                        Color32::WHITE,
+                    );
+                }
                 self.characters.draw(&mut self.canvas, &campaign.game.math);
                 let selected = self.characters.selected;
                 let pulse = self.ticks as f32 * 15.0 * std::f32::consts::TAU / 4096.0;
@@ -633,7 +650,23 @@ impl Frontend {
 
     fn paint_missions(&mut self, campaign: &Campaign) {
         let images = &self.mission_images;
-        self.canvas.sprite(Sprite::new(&images[0], 0.0, 0.0));
+        let background = &images[0];
+        if self.circle_confirm && !self.canvas.sharp_text {
+            self.canvas.sprite(Sprite::new(background, 0.0, 0.0));
+        } else {
+            self.canvas
+                .background_without(background, [176, 210, 288, 18]);
+            self.canvas.sprite(
+                Sprite::new(background, 0.0, 99.0)
+                    .region([176, 228, 288, 12])
+                    .scale(1.0, 1.5),
+            );
+            self.canvas.text_label(
+                Sprite::new(background, 0.0, 102.0).region([176, 210, 288, 14]),
+                labels::menu_buttons(self.language, self.circle_confirm),
+                Color32::from_rgb(30, 35, 65),
+            );
+        }
         self.canvas.sprite(
             Sprite::new(&images[28], self.cursor[0], self.cursor[1])
                 .light(80 + (self.ticks % 9) as i32 * 16),
@@ -750,10 +783,11 @@ impl Frontend {
                 "各種設定",
                 Color32::WHITE,
             );
-            self.canvas.label(
+            menu_prompt(
+                &mut self.canvas,
                 Sprite::new(&images[3], 0.0, 96.0),
-                "○ 決定　× 終了",
-                Color32::LIGHT_GRAY,
+                self.circle_confirm,
+                "終了",
             );
             return;
         }
@@ -786,18 +820,16 @@ impl Frontend {
             Color32::WHITE,
         );
         if !self.canvas.sharp_text || self.page != Page::Controls {
-            self.canvas.label(
-                Sprite::new(
-                    &images[4],
-                    0.0,
-                    if self.canvas.sharp_text && self.page == Page::Records {
-                        106.0
-                    } else {
-                        96.0
-                    },
-                ),
-                "○ 決定　× キャンセル",
-                Color32::LIGHT_GRAY,
+            let y = if self.canvas.sharp_text && self.page == Page::Records {
+                106.0
+            } else {
+                96.0
+            };
+            menu_prompt(
+                &mut self.canvas,
+                Sprite::new(&images[4], 0.0, y),
+                self.circle_confirm,
+                "キャンセル",
             );
         }
         match self.page {
@@ -1107,5 +1139,13 @@ pub(super) fn digits(
             }
             .blend(Blend::Add),
         );
+    }
+}
+
+fn menu_prompt(canvas: &mut Canvas, sprite: Sprite<'_>, circle_confirm: bool, back: &str) {
+    if circle_confirm {
+        canvas.label(sprite, format!("○ 決定　× {back}"), Color32::LIGHT_GRAY);
+    } else {
+        canvas.text_label(sprite, format!("× 決定　○ {back}"), Color32::LIGHT_GRAY);
     }
 }

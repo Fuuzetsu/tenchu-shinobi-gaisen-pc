@@ -321,12 +321,22 @@ impl Frontend {
             return;
         };
         self.canvas
-            .sprite(Sprite::new(&self.mission_art.shop, 0.0, 0.0));
+            .background_without(&self.mission_art.shop, [0, 207, 192, 20]);
+        self.canvas.sprite(
+            Sprite::new(&self.mission_art.shop, -64.0, 97.0)
+                .region([0, 227, 192, 13])
+                .scale(1.0, 20.0 / 13.0),
+        );
         if let Some(lighting) = self.shop_lighting
             && let Some(frame) = &mut self.canvas.frame
         {
             frame.light_room(lighting);
         }
+        self.canvas.text_label(
+            Sprite::new(&self.mission_art.shop, -64.0, 97.0).region([0, 207, 192, 12]),
+            labels::shop_buttons(self.language, self.circle_confirm),
+            egui::Color32::LIGHT_GRAY,
+        );
         for (&item, &[x, y]) in campaign.shop.order.iter().zip(&campaign.shop.positions) {
             if loadout.stock[item] == LOCKED {
                 continue;

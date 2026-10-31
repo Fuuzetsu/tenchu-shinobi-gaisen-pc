@@ -105,6 +105,7 @@ impl Editor {
             });
             ui.label("Click a binding, then press a key, button or stick direction. Changes save automatically. × clears a binding; Escape cancels capture.");
             ui.weak("Actions shown for original layout 1. Other original layouts still apply. Assigning an input moves it from its previous action.");
+            ui.weak("Menu buttons stay at their physical positions. F1 → General → Circle confirms in menus selects Japanese or Western confirmation.");
             ui.horizontal(|ui| {
                 for (device, label) in [(Device::Keyboard, "Keyboard"), (Device::Controller, "Controller")] {
                     if ui.selectable_value(&mut self.device, device, label).clicked() {
