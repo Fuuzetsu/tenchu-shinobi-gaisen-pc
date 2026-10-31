@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Prevent an intermittent browser crash when changing TRIAL missions or editor
+  views by retaining interface textures until their GPU work has been submitted.
+
 - Reduce CPU overhead from performance charts and refined character meshes,
   preserving all chart samples, animation detail and shadow geometry.
 

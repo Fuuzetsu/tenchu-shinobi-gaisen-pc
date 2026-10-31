@@ -1,4 +1,24 @@
 impl super::Renderer {
+    pub fn update_overlay_textures(
+        &self,
+        renderer: &mut egui_wgpu::Renderer,
+        pending_free: &mut Vec<egui::TextureId>,
+        delta: egui::TexturesDelta,
+    ) {
+        if !pending_free.is_empty() {
+            // An update can replace a frame before it is drawn. Submit its uploads
+            // before destroying textures; retain this frame's textures for captures too.
+            self.queue.submit([]);
+            for id in pending_free.drain(..) {
+                renderer.free_texture(&id);
+            }
+        }
+        for (id, image) in &delta.set {
+            renderer.update_texture(&self.device, &self.queue, *id, image);
+        }
+        *pending_free = delta.free;
+    }
+
     pub fn draw_overlay(
         &self,
         target: &wgpu::TextureView,

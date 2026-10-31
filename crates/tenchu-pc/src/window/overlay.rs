@@ -12,6 +12,7 @@ pub(super) struct Overlay {
     context: egui::Context,
     jobs: Vec<egui::ClippedPrimitive>,
     shapes: Vec<egui::epaint::ClippedShape>,
+    free_textures: Vec<egui::TextureId>,
     screen: egui_wgpu::ScreenDescriptor,
 }
 
@@ -77,6 +78,7 @@ impl Overlay {
             context,
             jobs: Vec::new(),
             shapes: Vec::new(),
+            free_textures: Vec::new(),
             screen: egui_wgpu::ScreenDescriptor {
                 size_in_pixels: [1, 1],
                 pixels_per_point: 1.0,
@@ -273,13 +275,11 @@ impl Overlay {
             size_in_pixels: renderer.size(),
             pixels_per_point: output.pixels_per_point,
         };
-        for (id, image) in &output.textures_delta.set {
-            self.renderer
-                .update_texture(&renderer.device, &renderer.queue, *id, image);
-        }
-        for id in &output.textures_delta.free {
-            self.renderer.free_texture(id);
-        }
+        renderer.update_overlay_textures(
+            &mut self.renderer,
+            &mut self.free_textures,
+            output.textures_delta,
+        );
         Updates {
             trial: trial_action,
             edits,

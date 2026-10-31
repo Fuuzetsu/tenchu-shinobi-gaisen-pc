@@ -6,6 +6,7 @@ use tenchu_core::math::Matrix;
 mod contact;
 mod models;
 mod motion;
+mod overlay;
 mod scrolling;
 mod sky;
 mod sprites;
