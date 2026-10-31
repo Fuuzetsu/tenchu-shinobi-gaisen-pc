@@ -181,7 +181,7 @@ impl Frontend {
         action
     }
 
-    fn click(&mut self, x: f32, y: f32, campaign: &Campaign) -> Option<Action> {
+    pub(super) fn click(&mut self, x: f32, y: f32, campaign: &Campaign) -> Option<Action> {
         match self.page {
             Page::Shop => {
                 if y > 83.0 && x < 0.0 {
@@ -249,9 +249,11 @@ impl Frontend {
             }
             Page::Card => self.choice = usize::from(y >= 0.0),
             Page::Records => {
-                self.selection = usize::from(x > 80.0);
-                self.dirty = true;
-                return None;
+                return Some(if x > 80.0 {
+                    Action::Right
+                } else {
+                    Action::Left
+                });
             }
             Page::Volume => {
                 self.selection = usize::from(y >= 0.0);
