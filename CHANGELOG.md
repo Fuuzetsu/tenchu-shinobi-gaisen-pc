@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.8.1 — 2026-10-31
+
 - Fix thin white borders on rotated original blood sprites, including when texture
   filtering is enabled. Extra death pools now wait for the finished death pose and
   landing; F1 → Persistent effects adds a 10–200% size control for original stars
