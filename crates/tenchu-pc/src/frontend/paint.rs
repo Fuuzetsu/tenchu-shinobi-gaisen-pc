@@ -37,8 +37,17 @@ impl Frontend {
         clean: bool,
         settings: &crate::settings::Settings,
     ) -> Option<Action> {
+        let lighting = (self.page == Page::Shop)
+            .then(|| room::Lighting::sample(&settings.graphics, f64::from(self.ticks) / 60.0))
+            .flatten();
+        if self.shop_lighting != lighting {
+            self.shop_lighting = lighting;
+            self.dirty = true;
+        }
         let high_definition = !matches!(self.page, Page::Movie(_))
-            && (settings.sharp_text || settings.graphics.asset_pack && !self.artwork.is_empty());
+            && (settings.sharp_text
+                || settings.graphics.asset_pack && !self.artwork.is_empty()
+                || lighting.is_some());
         let artwork = if settings.graphics.asset_pack {
             self.artwork.clone()
         } else {

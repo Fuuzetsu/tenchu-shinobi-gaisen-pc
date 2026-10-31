@@ -13,6 +13,7 @@ pub struct GpuVertex {
     uv: [f32; 2],
     color: [f32; 3],
     uv_bounds: [f32; 4],
+    pub(super) room: f32,
 }
 
 pub struct Draw {
@@ -26,6 +27,7 @@ pub struct Frame {
     pub draws: Vec<Draw>,
     pub images: Artwork,
     pub filtered: std::collections::BTreeSet<String>,
+    pub(super) room: super::room::Lighting,
     size: Vec2,
     artwork: Arc<Artwork>,
     regions: BTreeMap<catalog::Region, String>,
@@ -54,6 +56,7 @@ impl Frame {
             draws: Vec::new(),
             images: BTreeMap::new(),
             filtered: Default::default(),
+            room: Default::default(),
             size: Vec2::from_array(size.map(|n| n as f32)),
             artwork,
             regions: BTreeMap::new(),
@@ -166,6 +169,7 @@ impl Frame {
                 uv: v.uv.to_array(),
                 color: (v.color / 128.0).to_array(),
                 uv_bounds,
+                room: 0.0,
             }));
         self.draws.push(Draw {
             image: image.into(),
@@ -177,6 +181,17 @@ impl Frame {
     pub fn textured(&mut self, id: &str, image: Arc<Image>, vertices: [Vertex; 3], blend: Blend) {
         self.images.entry(id.into()).or_insert(image);
         self.push(id, vertices, blend, [0.0, 0.0, 1.0, 1.0]);
+    }
+
+    pub(super) fn light_room(&mut self, lighting: super::room::Lighting) {
+        self.room = lighting;
+        if let Some(draw) = self.draws.last() {
+            for vertex in
+                &mut self.vertices[draw.vertices.start as usize..draw.vertices.end as usize]
+            {
+                vertex.room = 1.0;
+            }
+        }
     }
 
     pub fn fade(&mut self, brightness: i32) {

@@ -135,6 +135,15 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     }
     match player.clip().feature {
         Feature::Randomizer => {}
+        Feature::ShopLighting => {
+            g.shop_lighting = p >= 0.15;
+            g.sky.enabled = true;
+            g.sky.time = ((p - 0.15).max(0.0) / 0.85 * 1440.0) as u16 % 1440;
+            g.sky.speed = 0;
+            g.lighting.enabled = true;
+            g.lighting.shadows = true;
+            g.lighting.softness = 2;
+        }
         Feature::Remake(feature) => super::remake::animate(feature, player, settings, debug),
         Feature::Gunfire => {
             settings.player_model = "disc:128".into();
@@ -632,6 +641,15 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             }
             .into(),
         ),
+        Feature::ShopLighting => text(if s.graphics.shop_lighting {
+            format!(
+                "Sky and window shadows · {:02}:{:02} · painted-room relighting",
+                s.graphics.sky.time / 60,
+                s.graphics.sky.time % 60
+            )
+        } else {
+            "Original painted room".into()
+        }),
         Feature::Blood => text(format!(
             "{} hit spray · {} wound drips · {} ground spots · retained blood",
             s.graphics.blood.hit.label(),

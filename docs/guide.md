@@ -810,6 +810,18 @@ spending stock. The original carry/type limits and localized item-help images
 apply. F6/`--quick` and retries skip the briefing; training starts with its fixed
 loadout. No game assets are bundled; narration and artwork come from the disc.
 
+**F1 → General → Shop window and lighting** adapts the window to the game's sky
+and fog colors, using **Sky lighting** / **Time of day** for light direction,
+strength, softness and the moving window shadows. Modern presets enable it;
+Original leaves the painting unchanged. This is a shallow projection onto the
+original or HD backdrop, not a reconstructed 3D room: baked lighting remains,
+and the window shows sky rather than a view of the mission terrain. Icons and
+quantities retain their normal appearance. Try `demo --clips shop-lighting`.
+
+The shop and main Options screen are silent, matching retail. Volume previews
+the last Sound Test selection (character-selection music initially); leaving
+Volume, Sound Test or Records stops the music.
+
 After each mission the retail results show time, score components, best scores,
 rank and the Grand Master reward. Enter/South continues, R/F5/West retries and
 Esc/East returns to the menu. Training shows its separate leaderboard. The final

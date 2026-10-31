@@ -10,6 +10,7 @@ pub enum Menu {
     Controls,
     Volume,
     Language,
+    Shop,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -72,10 +73,20 @@ impl Frontend {
             Menu::Controls => Page::Controls,
             Menu::Volume => Page::Volume,
             Menu::Language => Page::Choice(9),
+            Menu::Shop => Page::Shop,
         });
         self.ticks = 120;
         self.events.clear();
-        campaign.screen = crate::campaign::Screen::Frontend;
+        campaign.screen = if matches!(scene.page, Menu::Shop) {
+            campaign.cursor = 0;
+            crate::campaign::Screen::Inventory(tenchu_core::progress::Loadout::new(
+                campaign.progress.stock[campaign.options.character as usize],
+                &campaign.shop,
+                false,
+            ))
+        } else {
+            crate::campaign::Screen::Frontend
+        };
         Ok(())
     }
 }

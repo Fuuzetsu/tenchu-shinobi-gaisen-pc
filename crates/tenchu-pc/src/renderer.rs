@@ -12,7 +12,7 @@ mod pipelines;
 mod post;
 mod shadows;
 mod sky;
-mod sun;
+pub(crate) mod sun;
 pub mod timing;
 
 #[cfg(test)]

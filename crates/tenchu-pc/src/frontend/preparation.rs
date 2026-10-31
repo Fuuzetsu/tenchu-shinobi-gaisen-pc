@@ -322,6 +322,11 @@ impl Frontend {
         };
         self.canvas
             .sprite(Sprite::new(&self.mission_art.shop, 0.0, 0.0));
+        if let Some(lighting) = self.shop_lighting
+            && let Some(frame) = &mut self.canvas.frame
+        {
+            frame.light_room(lighting);
+        }
         for (&item, &[x, y]) in campaign.shop.order.iter().zip(&campaign.shop.positions) {
             if loadout.stock[item] == LOCKED {
                 continue;

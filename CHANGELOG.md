@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 → General can relight the item shop: the window follows the game's sky and
+  fog colors, and directional light projects soft window shadows into the painted
+  room. Modern presets enable it; Original retains the untouched backdrop. A new
+  `shop-lighting` demo shows the day/night changes.
+
 - Independently choose Off, Original or Modern blood for hit spray, wound drips,
   death stars/pools and ground spots. Original splats and death stars can remain
   persistently; player death pools and body stains have separate toggles. Existing

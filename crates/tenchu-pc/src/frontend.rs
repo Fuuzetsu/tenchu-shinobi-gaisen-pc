@@ -9,6 +9,7 @@ mod paint;
 mod preparation;
 pub(crate) mod raster;
 mod results;
+mod room;
 pub(crate) mod showcase;
 #[cfg(test)]
 mod tests;
@@ -114,6 +115,7 @@ pub struct Frontend {
     briefing: Option<preparation::Briefing>,
     shop_help: Option<usize>,
     shop_clicked: Option<usize>,
+    shop_lighting: Option<room::Lighting>,
     characters: Characters,
     language: Language,
     pub canvas: Canvas,
@@ -201,6 +203,7 @@ impl Frontend {
             briefing: None,
             shop_help: None,
             shop_clicked: None,
+            shop_lighting: None,
             language,
             canvas: Canvas::new(320),
             texture: None,

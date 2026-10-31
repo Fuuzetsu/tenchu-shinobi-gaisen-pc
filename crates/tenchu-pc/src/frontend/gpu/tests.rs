@@ -117,6 +117,82 @@ impl Capture {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC and a GPU; painted shop sky, moving window shadows and untouched UI/retail fallback"]
+fn shop_window_tracks_sky_without_changing_ui_or_gameplay() {
+    use crate::{
+        campaign::Campaign,
+        frontend::{Frontend, room::Lighting},
+        settings::Graphics,
+    };
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    campaign.inventory();
+    let mut frontend =
+        Frontend::new(&assets, disc.as_ref(), &campaign, Default::default()).unwrap();
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    frontend.ticks = 120;
+    let state = crate::session::tests::state(&campaign.game);
+    let mut capture = Capture::new([1280, 960]);
+    for artwork in [false, true] {
+        let images = if artwork {
+            frontend.artwork.clone()
+        } else {
+            Arc::default()
+        };
+        let mut render = |lighting, name: &str| {
+            frontend.shop_lighting = lighting;
+            frontend.canvas.frame = Some(Frame::new(frontend.canvas.size, images.clone()));
+            frontend.paint(&campaign);
+            let frame = frontend.canvas.frame.take().unwrap();
+            assert!(
+                frame.vertices[6..].iter().all(|v| v.room == 0.0),
+                "lighting must be confined to the background draw"
+            );
+            let pixels = capture.draw(frame);
+            if let Some(path) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
+                let path = std::path::Path::new(&path);
+                std::fs::create_dir_all(path).unwrap();
+                crate::capture::read_texture(
+                    &capture.gpu,
+                    &capture.target,
+                    &path.join(format!("room-{artwork}-{name}.png")),
+                )
+                .unwrap();
+            }
+            pixels
+        };
+        let original = render(None, "original");
+        let mut settings = Graphics {
+            shop_lighting: true,
+            ..Default::default()
+        };
+        settings.sky.enabled = true;
+        settings.sky.time = 720;
+        let day = render(Lighting::sample(&settings, 0.0), "noon");
+        settings.sky.time = 0;
+        let night = render(Lighting::sample(&settings, 0.0), "midnight");
+        settings.sky.time = 600;
+        let morning = render(Lighting::sample(&settings, 0.0), "morning");
+        settings.lighting.shadows = false;
+        let no_shadows = render(Lighting::sample(&settings, 0.0), "no-shadows");
+        assert!(day != night, "day and night must differ");
+        assert!(day != morning, "sun angle must change the room");
+        assert!(
+            morning != no_shadows,
+            "window bars must affect projected light"
+        );
+        assert!(
+            original == render(None, "restored"),
+            "disabling must restore the original painting exactly"
+        );
+    }
+    assert!(state == crate::session::tests::state(&campaign.game));
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC, the complete HD pack and a GPU; verifies localized mission-screen coverage and layout"]
 fn hd_mission_screens_cover_all_languages_and_briefings() {
     use crate::{

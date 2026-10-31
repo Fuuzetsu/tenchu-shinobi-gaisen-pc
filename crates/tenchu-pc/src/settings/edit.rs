@@ -124,6 +124,7 @@ impl Item {
             Self::Focus => &mut settings.pause_on_defocus,
             Self::MenuPause => &mut settings.pause_in_menu,
             Self::WaitAfterDeath => &mut settings.wait_after_death,
+            Self::ShopLighting => &mut settings.graphics.shop_lighting,
             Self::Fullscreen => &mut settings.fullscreen,
             Self::Vsync => &mut settings.vsync,
             Self::Hud => &mut settings.show_hud,

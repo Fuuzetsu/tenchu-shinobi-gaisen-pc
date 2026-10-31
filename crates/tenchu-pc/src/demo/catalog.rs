@@ -32,6 +32,7 @@ pub enum Feature {
     SecondaryMotion,
     Breeze,
     Blood,
+    ShopLighting,
     Gunfire,
     TextureSampling,
     Reconstruction,
@@ -192,13 +193,13 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
         }
         if let Some(scene) = &c.frontend {
             scene.validate()?;
-            if c.feature != Feature::Artwork
+            if !matches!(c.feature, Feature::Artwork | Feature::ShopLighting)
                 || c.shot != Shot::Wide
                 || c.camera.is_some()
                 || !(1..=10).contains(&c.mission)
             {
                 return Err(format!(
-                    "Demo '{}' frontend needs artwork, wide, mission 1–10 and no camera",
+                    "Demo '{}' frontend needs artwork/shop-lighting, wide, mission 1–10 and no camera",
                     c.id
                 ));
             }

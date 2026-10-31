@@ -677,6 +677,20 @@
     "sharp_text": true
   },
   {
+    "id": "shop-lighting",
+    "title": "Light through the shop window",
+    "description": "The shop window follows the game's sky and light settings. Soft window-grid shadows move across the painted room; item icons and quantities stay readable.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 11,
+    "feature": "shop-lighting",
+    "shot": "wide",
+    "artwork": true,
+    "sharp_text": true,
+    "frontend": {"page": "shop", "language": "en"}
+  },
+  {
     "id": "blood",
     "title": "Persistent wounds and stains",
     "description": "Original, modern and mixed blood styles in ordinary combat. Retain original splats or soft surface stains; choose hit spray, wound drips and death pools independently without changing gameplay.",

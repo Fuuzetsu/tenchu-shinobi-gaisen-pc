@@ -123,6 +123,7 @@ impl Settings {
 #[serde(default)]
 pub struct Graphics {
     pub blood: Blood,
+    pub shop_lighting: bool,
     pub sky: Sky,
     pub weather: Weather,
     pub water: Water,
@@ -155,6 +156,7 @@ impl Default for Graphics {
     fn default() -> Self {
         Self {
             blood: Blood::default(),
+            shop_lighting: false,
             sky: Sky::default(),
             weather: Weather::default(),
             water: Water::default(),

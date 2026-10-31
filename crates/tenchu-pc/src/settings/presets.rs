@@ -196,6 +196,7 @@ fn modern(ultra: bool) -> Graphics {
     };
     g.set_filtering(if ultra { 6 } else { 5 });
     g.blood = super::Blood::modern();
+    g.shop_lighting = true;
     g.blood.marks = if ultra { 16384 } else { 8192 };
     g.water.enabled = true;
     g.water.detail = if ultra { 2 } else { 1 };

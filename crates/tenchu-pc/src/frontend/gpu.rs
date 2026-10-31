@@ -20,6 +20,7 @@ struct Renderer {
     images: BTreeMap<String, Image>,
     vertices: Option<wgpu::Buffer>,
     frame: Option<Arc<Frame>>,
+    room: wgpu::Buffer,
 }
 
 pub fn register(renderer: &mut egui_wgpu::Renderer, format: wgpu::TextureFormat) {
@@ -48,6 +49,16 @@ fn create_renderer(device: &wgpu::Device, format: wgpu::TextureFormat) -> Render
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
         ],
     });
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -57,7 +68,14 @@ fn create_renderer(device: &wgpu::Device, format: wgpu::TextureFormat) -> Render
     });
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Frontend images"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("gpu.wgsl").into()),
+        source: wgpu::ShaderSource::Wgsl(
+            format!(
+                "{}\n{}",
+                include_str!("gpu.wgsl"),
+                include_str!("room.wgsl")
+            )
+            .into(),
+        ),
     });
     let pipelines = std::array::from_fn(|i| {
         use wgpu::{BlendComponent, BlendFactor as F, BlendOperation as O};
@@ -91,7 +109,7 @@ fn create_renderer(device: &wgpu::Device, format: wgpu::TextureFormat) -> Render
                 compilation_options: Default::default(),
                 buffers: &[wgpu::VertexBufferLayout { array_stride: std::mem::size_of::<GpuVertex>() as u64,
                     step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x3, 3 => Float32x4] }], },
+                    attributes: &wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x3, 3 => Float32x4, 4 => Float32] }], },
             fragment: Some(wgpu::FragmentState { module: &shader,
                 entry_point: Some(match i { 0 => "fs_all", 1 => "fs_opaque", _ => "fs_semi" }),
                 compilation_options: wgpu::PipelineCompilationOptions { constants: &constants, ..Default::default() },
@@ -116,6 +134,11 @@ fn create_renderer(device: &wgpu::Device, format: wgpu::TextureFormat) -> Render
         images: BTreeMap::new(),
         vertices: None,
         frame: None,
+        room: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Shop window lighting"),
+            contents: bytemuck::bytes_of(&super::room::Lighting::default()),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        }),
     }
 }
 
@@ -176,6 +199,7 @@ impl egui_wgpu::CallbackTrait for Paint {
         renderer
             .images
             .retain(|id, _| frame.images.contains_key(id));
+        queue.write_buffer(&renderer.room, 0, bytemuck::bytes_of(&frame.room));
         for (id, image) in &frame.images {
             let filtered = frame.filtered.contains(id);
             if renderer
@@ -219,6 +243,10 @@ impl egui_wgpu::CallbackTrait for Paint {
                         resource: wgpu::BindingResource::Sampler(
                             &renderer.samplers[usize::from(filtered)],
                         ),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: renderer.room.as_entire_binding(),
                     },
                 ],
             });

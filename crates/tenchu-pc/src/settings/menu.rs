@@ -99,6 +99,7 @@ pub enum Item {
     Focus,
     MenuPause,
     WaitAfterDeath,
+    ShopLighting,
     Fullscreen,
     Vsync,
     Hud,
@@ -1119,6 +1120,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Wait after death",
                 on(s.wait_after_death),
                 "Hold the completed death scene until Enter / South / Start. Off: automatically show mission failure, as in retail.",
+            ),
+            (
+                Item::ShopLighting,
+                "Shop window and lighting",
+                on(s.graphics.shop_lighting),
+                "Match the window to the game's sky settings, with moving window-grid light and soft shadows on the painted room. Uses Sky lighting / Time of day; Original keeps the painting unchanged.",
             ),
             (
                 Item::Fullscreen,
