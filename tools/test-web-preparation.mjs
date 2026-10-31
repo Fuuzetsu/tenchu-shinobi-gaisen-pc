@@ -89,6 +89,9 @@ try {
   await key("ArrowDown"); await key("ArrowRight");
   await key("ArrowDown"); await key("ArrowRight");
   await key("ArrowDown");
+  for (let i = 0; i < 5; i++) await key("ArrowLeft");
+  assert.equal((await settings()).graphics.blood.death_size, 50);
+  await key("ArrowDown");
   await key("ArrowDown"); await key("ArrowRight");
   const blood = (await settings()).graphics.blood;
   assert.equal(blood.drips, "original");

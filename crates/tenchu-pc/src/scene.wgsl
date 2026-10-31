@@ -122,7 +122,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         if screen || camera.options.y != 0.0 {
             if !original_stain && FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
                 color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
-            } else if FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
+            } else if !original_stain && FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);
             } else {
                 color *= base;

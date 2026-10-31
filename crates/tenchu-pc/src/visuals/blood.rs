@@ -86,6 +86,15 @@ fn translation(matrix: Matrix) -> Vec3 {
     Vec3::from(matrix.translation.map(|v| v as f32).to_array())
 }
 
+fn corpse_ready(actor: &tenchu_core::actor::Actor) -> bool {
+    actor.health == 0
+        && actor.status == tenchu_core::actor::State::Dead
+        && actor.motion.loops < 0
+        && actor.velocity[1] == 0
+        && actor.map.attribute & 12 == 0
+        && actor.motion.action != tenchu_core::ids::MOT_DEAD_DROWN
+}
+
 fn transforms(
     game: &Game,
     models: &Models,
@@ -135,6 +144,7 @@ impl Blood {
         let ground_changed = previous.ground != settings.ground
             || previous.retain_original != settings.retain_original;
         let death_changed = previous.death != settings.death
+            || previous.death_size != settings.death_size
             || previous.retain_original != settings.retain_original;
         let player_changed = previous.player_death != settings.player_death;
         self.marks.retain_kind(|kind| match kind {
@@ -577,10 +587,9 @@ impl Blood {
         self.drops = drops;
         if !self.pools.is_empty()
             || game.roster.actors.iter().flatten().any(|actor| {
-                actor.health == 0
+                corpse_ready(actor)
                     && !self.dead.contains_key(&actor.root_model)
                     && settings.custom_death(actor.id == game.player_id)
-                    && actor.status == tenchu_core::actor::State::Dead
             })
         {
             self.update_pools(game, &receivers, amount, limit);
@@ -591,11 +600,7 @@ impl Blood {
     fn update_pools(&mut self, game: &Game, surfaces: &Receivers<'_>, amount: f32, limit: usize) {
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
-            if actor.health != 0
-                || actor.status != tenchu_core::actor::State::Dead
-                || actor.motion.action == tenchu_core::ids::MOT_DEAD_DROWN
-                || !self.settings.custom_death(id == game.player_id)
-            {
+            if !corpse_ready(actor) || !self.settings.custom_death(id == game.player_id) {
                 continue;
             }
             if self
@@ -641,7 +646,9 @@ impl Blood {
                 return pool.age < 300;
             }
             let center = actor
-                .rendered
+                .motion
+                .pose
+                .matrices(&game.math, actor.root(&game.math))
                 .first()
                 .copied()
                 .map(translation)
@@ -654,12 +661,14 @@ impl Blood {
                 && hit.normal.y < -0.3
             {
                 let growth = (f32::from(pool.age - 24) / 66.0).clamp(0.0, 1.0);
+                let size = f32::from(self.settings.death_size) / 100.0;
                 let radius = (f32::from(game.mission.characters[actor.definition].width) * 1.4)
                     .clamp(300.0, 900.0)
                     * amount.sqrt()
+                    * size
                     * (0.2 + 0.8 * growth.sqrt());
                 pool.mark = if self.settings.death == BloodStyle::Original {
-                    Self::original_pool(game, actor, hit, growth, amount)
+                    Self::original_pool(game, actor, hit, growth, amount * size * size)
                 } else {
                     let mut mark = Self::project_contact(surfaces, None, hit, radius, pool.seed);
                     mark.1 = Kind::Death {

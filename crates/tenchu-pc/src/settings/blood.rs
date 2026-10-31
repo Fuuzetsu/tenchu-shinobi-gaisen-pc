@@ -36,6 +36,7 @@ pub struct Blood {
     pub retain_original: bool,
     pub model_stains: bool,
     pub amount: u16,
+    pub death_size: u16,
     pub seconds: u16,
     pub marks: u16,
 }
@@ -51,6 +52,7 @@ impl Default for Blood {
             retain_original: false,
             model_stains: false,
             amount: 100,
+            death_size: 100,
             seconds: 3,
             marks: 8192,
         }
@@ -97,6 +99,7 @@ impl Blood {
 
     pub fn validate(&mut self) {
         self.amount = self.amount.min(200);
+        self.death_size = self.death_size.clamp(10, 200);
         self.seconds = self.seconds.min(60);
         self.marks = self.marks.max(32);
     }
@@ -115,6 +118,7 @@ struct SavedBlood {
     retain_original: Option<bool>,
     model_stains: Option<bool>,
     amount: Option<u16>,
+    death_size: Option<u16>,
     seconds: Option<u16>,
     marks: Option<u16>,
 }
@@ -139,6 +143,7 @@ impl From<SavedBlood> for Blood {
             retain_original: saved.retain_original.unwrap_or(default.retain_original),
             model_stains: saved.model_stains.unwrap_or(default.model_stains),
             amount: saved.amount.unwrap_or(default.amount),
+            death_size: saved.death_size.unwrap_or(default.death_size),
             seconds: saved.seconds.unwrap_or(default.seconds),
             marks: saved.marks.unwrap_or(default.marks),
         }
@@ -176,6 +181,7 @@ mod tests {
             death: Style::Modern,
             retain_original: true,
             player_death: false,
+            death_size: 45,
             ..Blood::modern()
         };
         let encoded = serde_json::to_value(blood).unwrap();

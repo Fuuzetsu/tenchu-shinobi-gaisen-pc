@@ -178,6 +178,7 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
         let player = game.roster.get_mut(game.player_id);
         player.health = 0;
         player.status = tenchu_core::actor::State::Dead;
+        player.motion.loops = -1;
         player.velocity = [0; 3];
         for death in BloodStyle::ALL {
             for player_death in [false, true] {
@@ -728,6 +729,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         let player = game.roster.get_mut(game.player_id);
         player.health = 0;
         player.status = tenchu_core::actor::State::Dead;
+        player.motion.loops = -1;
         player.velocity = [0; 3];
         for _ in 0..120 {
             game.tick += 1;
@@ -745,5 +747,128 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
             blood.marks.is_empty() && blood.pools.is_empty(),
             "clear must not immediately recreate a corpse pool"
         );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; pools must wait for actual death animation and landing, and resize independently of other blood"]
+fn death_pools_wait_for_finished_animations_and_respect_size() {
+    use tenchu_core::{actor::State, ids::*};
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    for death in [BloodStyle::Modern, BloodStyle::Original] {
+        for character in 0..2 {
+            for (player, motion) in [
+                (true, MOT_DEAD),
+                (false, MOT_DEAD),
+                (false, MOT_DEAD_STEALTH_BACK),
+            ] {
+                let mut game = crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                game.roster.keep_all_active = true;
+                game.intelligence.ignore_player = true;
+                for _ in 0..30 {
+                    game.step(0).unwrap();
+                }
+                let id = if player {
+                    game.player_id
+                } else {
+                    game.roster.order[1]
+                };
+                let position = game.player().position;
+                let actor = game.roster.get_mut(id);
+                actor.position = position;
+                actor.health = 0;
+                actor.status = State::Dead;
+                actor.velocity = [0; 3];
+                actor.motion.change(
+                    motion,
+                    &game.mission.characters[actor.definition].motions,
+                    &game.mission.common_motions,
+                    &game.mission.clips,
+                );
+                let models = Models::build(
+                    &game.mission,
+                    &Default::default(),
+                    &settings::Graphics::default(),
+                )
+                .unwrap();
+                let surfaces = Surfaces::new(&render_mesh::stage(
+                    &game.mission,
+                    &game.math,
+                    Some(&models),
+                ));
+                let settings = settings::Blood {
+                    death,
+                    retain_original: true,
+                    hit: BloodStyle::Off,
+                    drips: BloodStyle::Off,
+                    ground: BloodStyle::Off,
+                    model_stains: false,
+                    ..settings::Blood::modern()
+                };
+                let mut blood = Blood::default();
+                let mut animated = false;
+                let mut settled = false;
+                for _ in 0..900 {
+                    game.step(0).unwrap();
+                    let before = crate::session::tests::state(&game);
+                    blood.tick(&game, &models, &surfaces, &settings);
+                    assert_eq!(before, crate::session::tests::state(&game));
+                    if !corpse_ready(game.roster.get(id)) {
+                        animated = true;
+                        assert!(!blood.pools.contains_key(&game.roster.get(id).root_model));
+                        assert!(blood.marks.is_empty());
+                    } else {
+                        settled = true;
+                    }
+                    if !blood.marks.is_empty() {
+                        break;
+                    }
+                }
+                assert!(
+                    animated && settled,
+                    "hero {character}, player {player}, motion {motion:x}"
+                );
+                assert_eq!(
+                    blood.marks.len(),
+                    1,
+                    "hero {character}, player {player}, motion {motion:x}, position {:?}",
+                    game.roster.get(id).position
+                );
+                let area = |blood: &Blood| {
+                    blood
+                        .pages()
+                        .flat_map(|p| p.chunks_exact(3))
+                        .map(|t| {
+                            let [a, b, c] = [t[0], t[1], t[2]].map(|v| Vec3::from(v.position));
+                            (b - a).cross(c - a).length()
+                        })
+                        .sum::<f32>()
+                };
+                let full = area(&blood);
+                let small = settings::Blood {
+                    death_size: 50,
+                    ..settings
+                };
+                for _ in 0..120 {
+                    game.tick += 1;
+                    blood.tick(&game, &models, &surfaces, &small);
+                }
+                assert_eq!(blood.marks.len(), 1);
+                let ratio = area(&blood) / full;
+                assert!(
+                    (0.20..0.30).contains(&ratio),
+                    "half radius should cover a quarter of the ground: {ratio}"
+                );
+            }
+        }
     }
 }

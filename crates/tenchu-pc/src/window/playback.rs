@@ -12,7 +12,8 @@ impl Application {
         }
         if self.settings.wait_after_death
             && self.demo.is_none()
-            && matches!(self.campaign.screen, Screen::GameOver)
+            && (matches!(self.campaign.screen, Screen::GameOver)
+                || self.campaign.playing() && self.campaign.game.death_wait_ticks() == Some(1))
         {
             self.campaign.screen = Screen::DeathHold;
         }

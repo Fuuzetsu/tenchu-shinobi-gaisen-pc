@@ -5,6 +5,111 @@ use crate::{oracle, random::Random};
 use std::fmt::Write;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; queued reinforcements cannot exceed the population limit or appear in open view with whole-level AI"]
+fn all_active_reinforcements_wait_for_cover_and_recheck_capacity() {
+    use tenchu_assets::terrain::{AreaMap, Node};
+
+    let mut game = oracle::game(5, 0);
+    let guard = game.roster.order[1];
+    game.roster.get_mut(game.player_id).position = Position::ZERO;
+    let terrain = |covered| {
+        let bounds = if covered {
+            vec![[-3000, -3000, 3000, 800], [-3000, 1200, 3000, 3000]]
+        } else {
+            vec![[-3000, -3000, 3000, 3000]]
+        };
+        AreaMap::from_nodes(vec![(
+            0,
+            bounds
+                .into_iter()
+                .map(|bounds| Node {
+                    y: 0,
+                    dy: 0,
+                    bounds,
+                    attributes: 0x2000,
+                    division: u16::MAX,
+                })
+                .collect(),
+        )])
+        .unwrap()
+    };
+    let call = |game: &mut crate::game::Game, civilian| {
+        let mut actor = game.roster.take(guard);
+        actor.position = Position::new(0, 0, 18000);
+        actor.target = Some(game.player().root_model);
+        actor.brain.timer = 2;
+        actor.brain.chase = [0, 0];
+        let mut ctx = Context {
+            mission: &mut game.mission,
+            math: &game.math,
+            body: &game.body,
+            cursor: &mut game.cursor,
+            random: &mut game.random,
+            effects: &mut game.effects,
+            scene: &mut game.scene,
+            collision: &mut game.collision,
+            camera: &mut game.camera,
+            drawing: &mut game.drawing,
+        };
+        let player = Player::new(game.roster.get(game.player_id), &ctx);
+        let mut state = Intelligence {
+            sight: Sight {
+                distance: 18000,
+                direction: 0,
+            },
+            ..Default::default()
+        };
+        let mut controller = Controller::new(
+            &mut actor,
+            &mut game.roster,
+            &mut game.items,
+            &mut state,
+            Input {
+                player,
+                clock: 37,
+                buttons: 0,
+                commands: &game.commands,
+            },
+            &mut ctx,
+        );
+        if civilian {
+            controller.call_aid().unwrap();
+        } else {
+            controller.alarm().unwrap();
+        }
+        game.roster.restore(actor);
+    };
+    let initial = game.roster.order.len();
+    assert!(initial < 30);
+    game.mission.terrain = terrain(false);
+    game.cursor = terrain::Cursor::new(&game.mission.terrain);
+    game.roster.keep_all_active = true;
+    for _ in 0..10 {
+        call(&mut game, false);
+        assert_eq!(game.roster.order.len(), initial);
+    }
+    let root = game.roster.get(guard).root_model;
+    call(&mut game, true);
+    assert_eq!(game.roster.get(guard).root_model, root);
+    assert!(game.roster.order.contains(&guard));
+    game.mission.terrain = terrain(true);
+    game.cursor = terrain::Cursor::new(&game.mission.terrain);
+    for _ in 0..12 {
+        call(&mut game, false);
+        assert!(game.roster.order.len() <= 30);
+    }
+    assert_eq!(game.roster.order.len(), 30);
+    assert_eq!(game.roster.get(guard).brain.timer, 1);
+
+    // Original mode retains even its queued-call overshoot and fog-hidden spawn.
+    game.mission.terrain = terrain(false);
+    game.cursor = terrain::Cursor::new(&game.mission.terrain);
+    game.roster.keep_all_active = false;
+    call(&mut game, false);
+    assert_eq!(game.roster.order.len(), 31);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; replacement controller and roster ordering"]
 fn reinforcement_updates_the_new_guard_and_returns_to_the_old_actor() {
     let mut game = oracle::game(0, 0);

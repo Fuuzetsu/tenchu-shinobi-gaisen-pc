@@ -746,6 +746,8 @@ not a new full campaign playthrough. Run `./dev.sh node tools/test-web.mjs` agai
 the local server to repeat it (a display and working WebGPU adapter are needed).
 `./dev.sh node tools/test-web-preparation.mjs` checks narrated briefing playback,
 shop transfers and mouse launch, retry/cancel, and fixed-equipment training.
+`./dev.sh node tools/test-web-death.mjs` checks a real item-inflicted death, a
+20-second frozen scene with silent audio, and confirmation into failure/retry.
 Set `TENCHU_WEBGL=1` to exercise automatic fallback in Chromium. Run
 `./dev.sh node tools/test-web-firefox.mjs` for Firefox, using an isolated temporary
 profile and the explicit WebGL2 path. `FIREFOX_EXECUTABLE` can select an installed
@@ -956,6 +958,10 @@ for blood spurts on hit, extra wound drips, death stars/pools, and ground spots.
 preserves retail's hit/ground/death effects, without extra wound drips or a player
 pool. Modern presets enable all four modern styles, body stains and player pools.
 No external texture pack is required.
+
+Pools start after the death animation finishes and the body lands. **Death pool
+size** scales original stars and modern pools from 10–200% (default 100%), without
+changing other blood effects. Changing size clears and regrows cosmetic pools.
 
 Original blood uses the disc artwork even when replacement artwork is enabled.
 Modern ground spots and death pools persist. **Retain original blood** also keeps
@@ -1181,6 +1187,10 @@ Whole-level mode uses wider distance calculations for distant AI, targeting and
 corpse witnesses. Remote actors keep patrolling instead of reacting to every
 local alarm; actors beyond the awareness radius cannot hold the player's radar
 alerted. Nearby actors retain their usual sight/occlusion and combat rules.
+Reinforcements in this mode wait for terrain cover from the player and recheck
+the 30-actor limit when spawning, rather than relying on distance and black fog
+to hide their arrival. More guards can still gather naturally because the whole
+level stays active; turn this option off for the original encounter density.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general

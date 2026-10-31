@@ -160,3 +160,70 @@ fn retained_decal_pages_match_streamed_drawing_and_reuse_gpu_buffers() {
     renderer.set_decals(std::iter::empty());
     assert!(renderer.decals.is_empty());
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and graphics adapter; rotated original blood billboards cannot sample adjacent mask texels"]
+fn original_blood_billboards_have_no_white_borders() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let game = crate::session::Options {
+        mission: 4,
+        character: 1,
+        ..Default::default()
+    }
+    .load(&assets)
+    .unwrap();
+    let (mut renderer, target) = fixture(&game.mission.vram);
+    let target_view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut graphics = crate::settings::Graphics {
+        exposure: 300,
+        upscale: 4,
+        magnification: 3,
+        ..Default::default()
+    };
+    for filtered in [false, true] {
+        graphics.bilinear = filtered;
+        renderer.configure(&graphics);
+        for sprite in [0, 2, 4, 56, 12] {
+            let image = game.mission.images[sprite];
+            for step in 0..64 {
+                let angle = step as f32 * 0.137;
+                let (sin, cos) = angle.sin_cos();
+                let points =
+                    [[-260., -260.], [260., -260.], [-260., 260.], [260., 260.]].map(|[x, y]| {
+                        [
+                            x * cos - y * sin + step as f32 * 0.37,
+                            x * sin + y * cos,
+                            1000.,
+                        ]
+                    });
+                let mut vertices = render_effects::quad(points, [[1.; 3]; 4], Some(image), 0);
+                for v in &mut vertices {
+                    v.flags = (v.flags & !render_mesh::SCREEN)
+                        | render_mesh::DOUBLE_SIDED
+                        | render_mesh::UNLIT
+                        | render_mesh::STAIN;
+                }
+                let effect = renderer.upload_effects(render_effects::Geometry {
+                    vertices,
+                    batches: vec![render_effects::Batch {
+                        blend: 0,
+                        range: 0..6,
+                    }],
+                });
+                renderer
+                    .draw(&target_view, camera, &[], Some(&effect))
+                    .unwrap();
+                let pixels = read_pixels(&renderer, &target);
+                let white = pixels
+                    .chunks_exact(4)
+                    .filter(|p| p[0] > 80 && p[1] > 80 && p[2] > 80)
+                    .count();
+                assert_eq!(white, 0, "sprite {sprite}, rotation {step}");
+            }
+        }
+    }
+}

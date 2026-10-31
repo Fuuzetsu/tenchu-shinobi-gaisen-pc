@@ -365,6 +365,20 @@ impl Campaign {
             },
             Screen::DeathHold => {
                 if matches!(action, Action::Confirm | Action::Back | Action::Replay) {
+                    if let Some(ticks) = self.game.death_wait_ticks() {
+                        self.screen = Screen::Playing;
+                        // Finish the retail countdown without presenting its cleared
+                        // effect buffers; checkpoint the same retry seed as usual.
+                        for _ in 0..=ticks.min(100) {
+                            self.tick(0)?;
+                            if !self.playing() {
+                                break;
+                            }
+                        }
+                        if self.playing() {
+                            return Err("Death sequence did not finish its countdown".into());
+                        }
+                    }
                     self.screen = Screen::GameOver;
                 }
             }

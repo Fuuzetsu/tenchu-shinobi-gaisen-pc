@@ -5,6 +5,18 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix thin white borders on rotated original blood sprites, including when texture
+  filtering is enabled. Extra death pools now wait for the finished death pose and
+  landing; F1 → Persistent effects adds a 10–200% size control for original stars
+  and modern pools beneath both players and enemies.
+- Keep the final complete scene, including effects and formed blood pools, while
+  waiting after death. Ignored navigation keys no longer play hidden menu sounds;
+  confirming still finishes the retail failure sequence and preserves the retry seed.
+- With all enemies active, reinforcements require terrain cover from the player
+  and queued calls recheck the 30-actor limit. This prevents visible fog-distance
+  spawns and overlapping calls exceeding the limit. Original enemy settings keep
+  the retail rules.
+
 ## 0.8.0 — 2026-10-31
 
 - Port TRIAL.EXE: play all 16 original challenges as either ninja, or build custom

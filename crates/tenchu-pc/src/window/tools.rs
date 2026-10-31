@@ -189,7 +189,11 @@ impl Application {
             frontend.set_rumble(self.settings.frontend.rumble);
         }
         if !self.settings.wait_after_death && matches!(self.campaign.screen, Screen::DeathHold) {
-            self.campaign.screen = Screen::GameOver;
+            if let Err(error) = self.campaign.action(Action::Confirm, &self.assets) {
+                self.pause_error(error);
+                return;
+            }
+            self.save();
             if let Some(audio) = &mut self.audio {
                 audio.screen(&self.campaign.screen);
             }

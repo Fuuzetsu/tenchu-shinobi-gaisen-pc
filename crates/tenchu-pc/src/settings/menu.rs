@@ -81,6 +81,7 @@ pub enum Item {
     BloodModels,
     BloodPlayerDeath,
     BloodAmount,
+    BloodDeathSize,
     BloodSeconds,
     BloodMarks,
     ClearBlood,
@@ -801,13 +802,19 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodDeath,
                 "Death pool / star",
                 s.graphics.blood.death.label().into(),
-                "Off, the original blood star, or a soft pool that follows the ground. Changing this style clears existing death pools only.",
+                "Off, the original blood star, or a soft pool that follows the ground after the death animation and landing. Changing this style clears existing death pools only.",
             ),
             (
                 Item::BloodPlayerDeath,
                 "Death pool beneath player",
                 on(s.graphics.blood.player_death),
                 "Apply the selected death pool style to the player too. Retail only has enemy pools.",
+            ),
+            (
+                Item::BloodDeathSize,
+                "Death pool size",
+                format!("{}%", s.graphics.blood.death_size),
+                "Scale original death stars and modern pools beneath players and enemies, independently of wound drips and ground spots. Existing cosmetic pools regrow at the new size.",
             ),
             (
                 Item::BloodGround,
@@ -1475,7 +1482,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::KeepEnemiesActive,
                 "Keep all enemies active",
                 on(s.keep_enemies_active),
-                "GAMEPLAY EDIT: distant enemies keep thinking and patrolling; ends recording.",
+                "GAMEPLAY EDIT: distant enemies keep thinking and patrolling, so larger groups may gather. Reinforcements need terrain cover and share a 30-actor limit. Ends recording.",
             ),
             (
                 Item::Screenshot,

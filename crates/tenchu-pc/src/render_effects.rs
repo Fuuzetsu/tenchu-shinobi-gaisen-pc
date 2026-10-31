@@ -133,16 +133,17 @@ pub(crate) fn quad(
         .into_iter()
         .map(|i| {
             let uv = image.map_or([0.0; 2], |image| {
+                // Endpoints must stay inside the sprite even after the texel precision bias.
                 [
                     f32::from(image.uv[0])
                         + if i & 1 != 0 {
-                            f32::from(image.size[0])
+                            f32::from(image.size[0]) - 0.01
                         } else {
                             0.0
                         },
                     f32::from(image.uv[1])
                         + if i & 2 != 0 {
-                            f32::from(image.size[1])
+                            f32::from(image.size[1]) - 0.01
                         } else {
                             0.0
                         },
@@ -375,13 +376,18 @@ pub fn build_presented(
             continue;
         }
         for instance in instances {
+            let scale = if index == 31 {
+                (i64::from(instance.scale) * i64::from(style.blood.death_size) / 100) as i32
+            } else {
+                instance.scale
+            };
             let mut matrix = Matrix {
                 rotation: game.math.rotate_yxz(instance.rotation),
                 translation: instance.position,
             };
             for row in &mut matrix.rotation {
                 for v in row {
-                    *v = (i32::from(*v).wrapping_mul(instance.scale) >> 12) as i16;
+                    *v = (i32::from(*v).wrapping_mul(scale) >> 12) as i16;
                 }
             }
             let start = surfaces.len();

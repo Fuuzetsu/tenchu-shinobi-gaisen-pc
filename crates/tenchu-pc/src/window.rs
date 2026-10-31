@@ -245,6 +245,11 @@ impl Application {
         } else {
             action
         };
+        if matches!(self.campaign.screen, Screen::DeathHold)
+            && !matches!(action, Action::Confirm | Action::Back | Action::Replay)
+        {
+            return;
+        }
         if self.campaign.game.trial.is_some() {
             if matches!(action, Action::Back) {
                 self.trial_action(crate::trial::Event::Return);
