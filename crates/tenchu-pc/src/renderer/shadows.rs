@@ -33,6 +33,8 @@ pub struct Shadows {
     selection: crate::lighting::shadows::Selection,
     readable: ReadableDepth,
     gl: bool,
+    #[cfg(test)]
+    pub(super) draw_all_faces: bool,
 }
 
 impl Shadows {
@@ -266,6 +268,8 @@ impl Shadows {
             selection: Default::default(),
             readable,
             gl,
+            #[cfg(test)]
+            draw_all_faces: false,
         }
     }
 
@@ -342,6 +346,7 @@ impl Shadows {
             frame.elapsed,
         );
         let mut data = vec![0.0f32; LIGHT_WORDS + FACES * 16];
+        let receivers = super::culling::Volume::new(camera);
         for (i, light) in lights.iter().take(count).enumerate() {
             data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
             data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
@@ -353,6 +358,9 @@ impl Shadows {
                 let index = slot * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
                     .copy_from_slice(&matrix.to_cols_array());
+                if !self.face_visible(&receivers, *matrix) {
+                    continue;
+                }
                 self.draw_face(
                     encoder,
                     queue,
@@ -452,6 +460,15 @@ impl Shadows {
             }
         }
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
+    }
+
+    fn face_visible(&self, receivers: &super::culling::Volume, matrix: Mat4) -> bool {
+        #[cfg(test)]
+        if self.draw_all_faces {
+            return true;
+        }
+        // Only cull receiver volumes; off-camera geometry can still cast visible shadows.
+        receivers.intersects(&super::culling::Volume::new(matrix))
     }
 
     fn draw_face(

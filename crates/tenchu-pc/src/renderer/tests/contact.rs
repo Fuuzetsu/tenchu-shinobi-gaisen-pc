@@ -128,9 +128,30 @@ fn culled_shadows_match_full_stage_with_foliage() {
             radius: 18000.0,
         },
     ];
-    let camera = game_camera(game.rendered_view, 1.0);
+    let mut cameras = vec![game_camera(game.rendered_view, 1.0)];
+    for direction in [
+        glam::Vec3::X,
+        glam::Vec3::NEG_X,
+        glam::Vec3::Z,
+        glam::Vec3::NEG_Z,
+    ] {
+        cameras.push(
+            Mat4::perspective_rh(1.1, 1.0, 50.0, 250_000.0)
+                * Mat4::look_at_rh(
+                    origin + direction * 8000.0 - glam::Vec3::Y * 2000.0,
+                    origin,
+                    glam::Vec3::NEG_Y,
+                ),
+        );
+    }
     let view = target.create_view(&Default::default());
-    for replacements in [false, true] {
+    for (frame, (camera, replacements)) in cameras
+        .into_iter()
+        .flat_map(|camera| [false, true].map(|replacements| (camera, replacements)))
+        .enumerate()
+    {
+        renderer.visual_time = frame as f32 * 0.37;
+        renderer.shadows.draw_all_faces = false;
         graphics.asset_pack = replacements;
         renderer.configure(&graphics);
         renderer
@@ -146,6 +167,7 @@ fn culled_shadows_match_full_stage_with_foliage() {
         let culled = read_pixels(&renderer, &target);
         let chunks = std::mem::take(&mut shadow.shadow_chunks);
         let body_chunks = std::mem::take(&mut bodies.shadow_chunks);
+        renderer.shadows.draw_all_faces = true;
         renderer
             .draw_lit(
                 &view,

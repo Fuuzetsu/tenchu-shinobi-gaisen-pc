@@ -11,6 +11,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   changing the image or graphics settings.
 - Speed up refined character animation and mesh bounds preparation, including
   scenes with many active enemies.
+- Skip point-light shadow-map faces that cannot affect the current view, while
+  retaining off-camera objects that cast visible shadows.
 
 ## 0.9.0 — 2026-10-31
 
