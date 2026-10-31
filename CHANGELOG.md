@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.0 — 2026-10-31
+
 - HD artwork v3 adds terrain and ornament replacements for all 12 TRIAL themes
   and all 16 built-in missions. TRIAL lanterns, braziers and cave lights now emit
   dynamic light and cast shadows; mine carts no longer count as lanterns.
