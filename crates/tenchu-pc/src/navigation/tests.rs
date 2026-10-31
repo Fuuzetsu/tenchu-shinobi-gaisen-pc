@@ -60,7 +60,10 @@ fn both_heroes_move_in_camera_space_without_steering_committed_actions() {
     let assets =
         tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
             .unwrap();
-    let settings = Navigation::default();
+    let settings = Navigation {
+        align_aim: false,
+        ..Default::default()
+    };
     for character in 0..2 {
         let mut game = crate::session::Options {
             character,
@@ -152,5 +155,104 @@ fn both_heroes_move_in_camera_space_without_steering_committed_actions() {
         );
         game.cinematic.active = true;
         assert!(!game.player_can_steer() && !game.player_can_orbit());
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; exercises look, grapple and delayed shuriken aim in both control modes"]
+fn camera_heading_and_pitch_seed_new_aim_without_overriding_adjustments() {
+    use tenchu_core::{
+        camera::{Detail, Mode},
+        items::Kind,
+    };
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    for character in 0..2 {
+        for item in [
+            None,
+            Some(Kind::Grapple),
+            Some(Kind::Shuriken),
+            Some(Kind::Teleport),
+        ] {
+            for align in [false, true] {
+                let mut game = crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                game.intelligence.ignore_player = true;
+                for _ in 0..30 {
+                    game.step(0).unwrap();
+                }
+                if let Some(item) = item {
+                    game.hud.selected = Some(item);
+                    game.roster.get_mut(game.player_id).inventory[item.index()] = 255;
+                }
+                let facing = game.player().rotation[1];
+                let mut orbit = Orbit::default();
+                orbit.observe(&game);
+                orbit.yaw += 1.1;
+                orbit.pitch = if character == 0 { 0.4 } else { -0.45 };
+                let expected_heading = ((orbit.yaw + std::f32::consts::PI) * 4096.0
+                    / std::f32::consts::TAU)
+                    .round() as i16;
+                let settings = Navigation {
+                    align_aim: align,
+                    ..Default::default()
+                };
+                let held = if item.is_some() {
+                    input::TRIANGLE
+                } else {
+                    input::L1
+                };
+                for _ in 0..45 {
+                    let (buttons, heading) = orbit.movement(&game, held, Vec2::ZERO, &settings);
+                    game.navigation.heading = heading;
+                    game.navigation.aim_pitch = align.then(|| orbit.aim_pitch());
+                    game.step(buttons).unwrap();
+                    if game.camera.mode == Mode::Direction
+                        && game.camera.detail
+                            == if item.is_some() {
+                                Detail::Sight
+                            } else {
+                                Detail::Look
+                            }
+                    {
+                        break;
+                    }
+                }
+                assert_eq!(
+                    game.camera.mode,
+                    Mode::Direction,
+                    "{character} {item:?} {align}"
+                );
+                if align {
+                    assert_eq!(game.player().rotation[1] & 4095, expected_heading & 4095);
+                    assert_eq!(game.camera.direction, [orbit.aim_pitch(), 0]);
+                } else {
+                    assert_eq!(game.player().rotation[1], facing);
+                    assert_eq!(
+                        game.camera.direction[0],
+                        if item == Some(Kind::Grapple) { -341 } else { 0 }
+                    );
+                }
+                let before = game.camera.direction;
+                for _ in 0..8 {
+                    let (buttons, heading) =
+                        orbit.movement(&game, held | input::RIGHT, Vec2::ZERO, &settings);
+                    assert!(heading.is_none());
+                    game.navigation.aim_pitch = align.then(|| orbit.aim_pitch());
+                    game.step(buttons).unwrap();
+                }
+                assert!(
+                    game.camera.direction[1] > before[1],
+                    "Ongoing aim must respond to input"
+                );
+            }
+        }
     }
 }

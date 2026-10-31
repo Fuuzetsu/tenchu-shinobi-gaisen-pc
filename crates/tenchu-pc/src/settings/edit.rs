@@ -85,6 +85,7 @@ impl Item {
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
             Self::CameraRelative => &mut settings.navigation.camera_relative,
+            Self::AlignAim => &mut settings.navigation.align_aim,
             Self::InvertCameraY => &mut settings.navigation.invert_y,
             Self::ModelMoveset => &mut settings.model_moveset,
             Self::ModelPlayerMovement => &mut settings.model_moveset_options.player_movement,
@@ -107,6 +108,7 @@ impl Item {
             Self::TimeClock => &mut settings.graphics.sky.enabled,
             Self::BloodRetain => &mut settings.graphics.blood.retain_original,
             Self::BloodModels => &mut settings.graphics.blood.model_stains,
+            Self::BloodRunoff => &mut settings.graphics.blood.runoff,
             Self::BloodPlayerDeath => &mut settings.graphics.blood.player_death,
             Self::Interpolation => &mut settings.graphics.interpolation,
             Self::Retro => &mut settings.retro,

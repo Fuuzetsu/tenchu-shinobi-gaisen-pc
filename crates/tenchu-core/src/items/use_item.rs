@@ -200,7 +200,7 @@ impl Items {
                 self.slots[id].collision.size = 0;
                 actors.get_mut(owner_id).aiming = true;
                 camera(Mode::Sight, actors.get(player), ctx)?;
-                ctx.camera.direction = [-341, 0];
+                ctx.camera.direction = [ctx.camera.initial_pitch.unwrap_or(-341), 0];
             }
             Kind::Shuriken if owner_id == player => {
                 let id = self.allocate(actors, ctx)?;

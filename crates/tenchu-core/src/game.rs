@@ -191,6 +191,7 @@ impl Game {
         step: crate::drawing::Step,
     ) -> Result<bool> {
         let navigation = std::mem::take(&mut self.navigation);
+        self.camera.initial_pitch = navigation.aim_pitch.map(|pitch| pitch.clamp(-910, 910));
         self.drawing.step = step;
         self.tick += 1;
         self.music.clear();

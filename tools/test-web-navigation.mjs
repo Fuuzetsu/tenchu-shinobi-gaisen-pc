@@ -102,8 +102,14 @@ try {
       after=await state();
       assert.equal(after.yaw,before.yaw,"The classic modifier must allow backing away without turning");
       assert.notDeepEqual(after.position,before.position);
+      await page.evaluate(()=>{window.navigationPad.axes=[0,0,0.72,-0.2];}); await ticks(15);
+      await page.evaluate(()=>{window.navigationPad.axes=[0,0,0,0];}); await ticks(2);
+      const aimView=direction(await state());
+      const aimYaw=Math.atan2(-aimView[0],-aimView[2])*4096/(Math.PI*2);
       await page.keyboard.down("e"); await ticks(12); before=await state();
       assert.equal(before.motion,0x400,"Holding item use enters grapple aim");
+      const yawError=((before.yaw-aimYaw+6144)%4096)-2048;
+      assert(Math.abs(yawError)<3,"Starting grapple must face the camera's heading");
       await page.keyboard.down("d"); await ticks(6); await page.keyboard.up("d");
       after=await state();
       assert.deepEqual(after.position,before.position,"Grapple aiming must not walk the character");

@@ -14,7 +14,9 @@ use glam::{Mat3, Quat, Vec3};
 use std::collections::{BTreeMap, VecDeque};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
+mod runoff;
 mod storage;
+use runoff::Runoff;
 use storage::Marks;
 #[cfg(test)]
 use storage::VERTEX_LIMIT;
@@ -76,6 +78,7 @@ pub struct Blood {
     marks: Marks,
     wounds: VecDeque<Wound>,
     drops: Vec<Drop>,
+    runoff: Vec<Runoff>,
     pools: BTreeMap<usize, Pool>,
     dead: BTreeMap<usize, bool>,
     seed: u32,
@@ -161,6 +164,9 @@ impl Blood {
             self.wounds.clear();
             self.drops.clear();
         }
+        if !settings.runoff || ground_changed || !settings.retained_ground() {
+            self.runoff.clear();
+        }
         self.trim(usize::from(settings.marks.max(32)));
         self.settings = *settings;
     }
@@ -169,6 +175,7 @@ impl Blood {
         self.marks = Marks::default();
         self.wounds.clear();
         self.drops.clear();
+        self.runoff.clear();
         self.pools.clear();
     }
 
@@ -222,6 +229,7 @@ impl Blood {
             Self::original_texture(&mut mark, game.mission.images[(self.seed as usize % 2) * 2]);
         }
         self.retain(mark, limit);
+        self.start_runoff(surfaces, hinge, hit, radius);
         true
     }
 
@@ -585,6 +593,9 @@ impl Blood {
                 )
         });
         self.drops = drops;
+        if !self.runoff.is_empty() {
+            self.advance_runoff(game, &receivers, limit);
+        }
         if !self.pools.is_empty()
             || game.roster.actors.iter().flatten().any(|actor| {
                 corpse_ready(actor)

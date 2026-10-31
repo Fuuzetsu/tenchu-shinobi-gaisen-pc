@@ -5,6 +5,7 @@ use tenchu_core::effects::RumbleAction;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
     CameraRelative,
+    AlignAim,
     MouseSensitivity,
     StickSensitivity,
     StickDeadzone,
@@ -79,6 +80,7 @@ pub enum Item {
     BloodGround,
     BloodRetain,
     BloodModels,
+    BloodRunoff,
     BloodPlayerDeath,
     BloodAmount,
     BloodDeathSize,
@@ -301,6 +303,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Camera-relative controls",
                 on(s.navigation.camera_relative),
                 "Experimental: camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Hold Left Ctrl / R1 for classic movement (backward guards with weapon drawn); Shift / Circle still crouches. Recorded input tapes require classic controls.",
+            ),
+            (
+                Item::AlignAim,
+                "Start aiming toward camera",
+                on(s.navigation.align_aim),
+                "With camera-relative controls, turn toward the camera view before entering grapple, item aim or look, and start at its vertical angle. Existing attacks and ongoing aim retain their controls.",
             ),
             (
                 Item::MouseSensitivity,
@@ -840,6 +848,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Blood amount",
                 format!("{}%", s.graphics.blood.amount),
                 "Size of persistent stains and frequency of wound drips; does not affect damage or the original effect lifetime.",
+            ),
+            (
+                Item::BloodRunoff,
+                "Blood runs down surfaces",
+                on(s.graphics.blood.runoff),
+                "Let retained blood trickle down walls and slopes. Uses the ground blood style; Original spots need Retain original blood enabled. Turning off stops new trails without clearing stains.",
             ),
             (
                 Item::BloodSeconds,

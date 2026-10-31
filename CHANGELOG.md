@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional blood runoff down walls and slopes under F1 → Persistent effects,
+  enabled by Modern presets. Trails follow surfaces, stop at edges or level ground,
+  and use the selected retained blood style without changing gameplay.
+- F1 → Movement adds **Start aiming toward camera** for camera-relative controls.
+  Grapple, item aim and look mode turn the player toward the view and begin at
+  its pitch; ongoing aim and classic controls keep their existing behavior.
 - Display Japanese mission names and text throughout the TRIAL editor, including
   editable fields and records. Free-camera keys no longer trigger paused gameplay
   menu bindings, so Shift boosts 3D preview movement without leaving the preview.

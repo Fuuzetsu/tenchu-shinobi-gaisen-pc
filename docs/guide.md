@@ -894,7 +894,11 @@ Hold **Left Ctrl / R1 (RB)** for original movement directions: backward guards
 with the weapon drawn, and directional attacks/rolls remain available. Shift /
 Circle (B) still crouches. R1 follows the existing button remapping; Left Ctrl
 is a host shortcut. Aiming, grappling, stealth kills and cinematics retain their
-original cameras; either stick can aim. Attacks, jumps and other committed actions
+original cameras; either stick can aim. **Start aiming toward camera**, enabled
+by default in camera-relative mode, turns the player and aligns the initial
+grapple, shuriken, teleport or look direction with the camera, including its pitch.
+Turn it off to keep the original entry direction. It does not reset ongoing aim.
+Attacks, jumps and other committed actions
 keep their original steering rules. Classic controls are the default; this option is independent of
 graphics presets. Input-tape recording stops when this mode is used because the
 existing tape format cannot store analog heading/camera input. Existing replays,
@@ -962,6 +966,13 @@ No external texture pack is required.
 Pools start after the death animation finishes and the body lands. **Death pool
 size** scales original stars and modern pools from 10–200% (default 100%), without
 changing other blood effects. Changing size clears and regrows cosmetic pools.
+
+**Blood runs down surfaces** lets retained spots trickle down walls and slopes,
+following the receiving geometry until they settle, reach an edge, or dry out.
+It uses the ground blood style; Original needs **Retain original blood** enabled.
+Modern presets enable runoff. Turning it off stops active trails while keeping
+existing stains. Work is capped at 32 short-lived streams, independent of how
+many old stains are retained, and trails share the existing stain budget.
 
 Original blood uses the disc artwork even when replacement artwork is enabled.
 Modern ground spots and death pools persist. **Retain original blood** also keeps

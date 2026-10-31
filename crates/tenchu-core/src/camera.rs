@@ -91,6 +91,7 @@ pub struct Camera {
     pub mode: Mode,
     pub detail: Detail,
     pub direction: [i16; 2],
+    pub(crate) initial_pitch: Option<i16>,
     pub snap_pending: bool,
     pub view: Matrix,
     smoothing: [Smooth; 2],
@@ -167,6 +168,7 @@ impl Camera {
             mode: Mode::Normal,
             detail: Detail::Ordinary,
             direction: [0; 2],
+            initial_pitch: None,
             snap_pending: false,
             view: Matrix::default(),
             smoothing: tables.smoothing.map(Smooth::from),
@@ -231,8 +233,11 @@ impl Camera {
         if !matches!(self.mode, Mode::Direction | Mode::Lock) {
             let yaw = i32::from(angles(self.position, self.reference, math)?[1]);
             self.direction = [
-                0,
-                ((yaw - i32::from(owner.rotation[1]) + 10240) % 4096 - 2048) as i16,
+                self.initial_pitch.unwrap_or(0),
+                self.initial_pitch.map_or(
+                    ((yaw - i32::from(owner.rotation[1]) + 10240) % 4096 - 2048) as i16,
+                    |_| 0,
+                ),
             ];
         }
         self.mode = Mode::Direction;

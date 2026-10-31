@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct Navigation {
     pub camera_relative: bool,
+    pub align_aim: bool,
     pub mouse_sensitivity: u16,
     pub stick_sensitivity: u16,
     pub deadzone: u16,
@@ -15,6 +16,7 @@ impl Default for Navigation {
     fn default() -> Self {
         Self {
             camera_relative: false,
+            align_aim: true,
             mouse_sensitivity: 100,
             stick_sensitivity: 100,
             deadzone: 18,

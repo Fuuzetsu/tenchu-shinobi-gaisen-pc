@@ -758,6 +758,8 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
     let assets =
         tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
             .unwrap();
+    let output = std::env::var_os("TENCHU_DEATH_POOL_REVIEW").map(std::path::PathBuf::from);
+    let mut largest_offset = 0.0_f32;
     for death in [BloodStyle::Modern, BloodStyle::Original] {
         for character in 0..2 {
             for (player, motion) in [
@@ -843,6 +845,68 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
                     "hero {character}, player {player}, motion {motion:x}, position {:?}",
                     game.roster.get(id).position
                 );
+                let actor = game.roster.get(id);
+                let body = translation(
+                    actor
+                        .motion
+                        .pose
+                        .matrices(&game.math, actor.root(&game.math))[0],
+                );
+                let mut min = Vec3::splat(f32::INFINITY);
+                let mut max = Vec3::splat(f32::NEG_INFINITY);
+                for page in blood.pages() {
+                    for v in page.iter() {
+                        min = min.min(Vec3::from(v.position));
+                        max = max.max(Vec3::from(v.position));
+                    }
+                }
+                let flat = |p: Vec3| glam::Vec2::new(p.x, p.z);
+                let center = (min + max) * 0.5;
+                let offset = flat(body).distance(flat(Vec3::from(
+                    actor.position.map(|v| v as f32).to_array(),
+                )));
+                largest_offset = largest_offset.max(offset);
+                assert!(
+                    flat(center).distance(flat(body)) < 100.0,
+                    "Pool must be centered on the final torso pose, not the standing origin: {center:?}, {body:?}, offset {offset}"
+                );
+                if let Some(output) = &output {
+                    std::fs::create_dir_all(output).unwrap();
+                    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+                    let stage = review.renderer.upload(&render_mesh::stage(
+                        &game.mission,
+                        &game.math,
+                        Some(&models),
+                    ));
+                    let actors = review.renderer.upload(&render_mesh::characters_presented(
+                        &game,
+                        Some(&models),
+                        true,
+                        None,
+                    ));
+                    let effects = review
+                        .renderer
+                        .upload_effects(blood.geometry(&game, &models, None, None, 1.0));
+                    let camera = glam::Mat4::perspective_rh(
+                        55.0_f32.to_radians(),
+                        1280.0 / 720.0,
+                        50.0,
+                        100000.0,
+                    ) * glam::Mat4::look_at_rh(
+                        body + Vec3::new(2500.0, -3200.0, -2500.0),
+                        body,
+                        Vec3::NEG_Y,
+                    );
+                    review
+                        .capture(
+                            camera,
+                            &[&stage, &actors],
+                            Some(&effects),
+                            false,
+                            &output.join(format!("{death:?}-{character}-{player}-{motion:x}.png")),
+                        )
+                        .unwrap();
+                }
                 let area = |blood: &Blood| {
                     blood
                         .pages()
@@ -871,4 +935,8 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
             }
         }
     }
+    assert!(
+        largest_offset > 200.0,
+        "Exercise a death pose displaced from the standing origin"
+    );
 }

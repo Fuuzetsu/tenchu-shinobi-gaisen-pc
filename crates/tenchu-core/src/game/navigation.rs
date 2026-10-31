@@ -11,6 +11,7 @@ pub struct Viewpoint {
 pub struct Navigation {
     pub heading: Option<i16>,
     pub camera: Option<Viewpoint>,
+    pub aim_pitch: Option<i16>,
 }
 
 impl Game {
@@ -46,7 +47,10 @@ impl Game {
         !self.cinematic.active
             && !self.player().scripted
             && !matches!(self.player().status, State::AimShuriken | State::Grapple)
-            && self.camera.mode != camera::Mode::Critical
+            && !matches!(
+                self.camera.mode,
+                camera::Mode::Critical | camera::Mode::Direction | camera::Mode::Sight
+            )
     }
 
     pub(super) fn steer_player(&mut self, heading: i16) {

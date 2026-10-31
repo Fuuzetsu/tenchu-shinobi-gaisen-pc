@@ -35,6 +35,7 @@ pub struct Blood {
     pub player_death: bool,
     pub retain_original: bool,
     pub model_stains: bool,
+    pub runoff: bool,
     pub amount: u16,
     pub death_size: u16,
     pub seconds: u16,
@@ -51,6 +52,7 @@ impl Default for Blood {
             player_death: false,
             retain_original: false,
             model_stains: false,
+            runoff: false,
             amount: 100,
             death_size: 100,
             seconds: 3,
@@ -68,6 +70,7 @@ impl Blood {
             ground: Style::Modern,
             player_death: true,
             model_stains: true,
+            runoff: true,
             ..Self::default()
         }
     }
@@ -117,6 +120,7 @@ struct SavedBlood {
     player_death: Option<bool>,
     retain_original: Option<bool>,
     model_stains: Option<bool>,
+    runoff: bool,
     amount: Option<u16>,
     death_size: Option<u16>,
     seconds: Option<u16>,
@@ -142,6 +146,7 @@ impl From<SavedBlood> for Blood {
             player_death: saved.player_death.unwrap_or(default.player_death),
             retain_original: saved.retain_original.unwrap_or(default.retain_original),
             model_stains: saved.model_stains.unwrap_or(default.model_stains),
+            runoff: saved.runoff,
             amount: saved.amount.unwrap_or(default.amount),
             death_size: saved.death_size.unwrap_or(default.death_size),
             seconds: saved.seconds.unwrap_or(default.seconds),
@@ -172,6 +177,7 @@ mod tests {
                 assert_eq!(blood.player_death, enabled);
                 assert_eq!(blood.model_stains, enabled);
                 assert_eq!(blood.marks, 12000);
+                assert!(!blood.runoff, "Existing saved preferences keep runoff off");
             }
         }
         let blood = Blood {

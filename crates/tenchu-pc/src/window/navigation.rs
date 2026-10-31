@@ -99,8 +99,15 @@ impl Application {
         } else {
             None
         };
-        self.campaign.game.navigation =
-            tenchu_core::game::navigation::Navigation { heading, camera };
+        self.campaign.game.navigation = tenchu_core::game::navigation::Navigation {
+            heading,
+            camera,
+            aim_pitch: self
+                .settings
+                .navigation
+                .align_aim
+                .then(|| self.orbit.aim_pitch()),
+        };
         buttons
     }
 }
