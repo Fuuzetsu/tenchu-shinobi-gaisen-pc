@@ -108,12 +108,17 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         let nearest = vec2<i32>(floor(coordinate + vec2(0.001)));
         var pixel = 0u;
         let replaced = !original_stain && (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
+        let filtered_material = !original_stain && FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0));
         var base = vec3(0.0);
         if replaced {
-            let decoded = material_texel(v.material, coordinate);
-            if decoded.a == 0.0 { discard; }
-            semi = semi && decoded.a < 0.75;
-            base = decoded.rgb;
+            if filtered_material && (v.flags & EMITTER) == 0u && (material_info(v.material).w & 128u) != 0u {
+                semi = false;
+            } else {
+                let decoded = material_texel(v.material, coordinate);
+                if decoded.a == 0.0 { discard; }
+                semi = semi && decoded.a < 0.75;
+                base = decoded.rgb;
+            }
         } else {
             pixel = texel(nearest, v.page, v.palette);
             if pixel == 0u { discard; }
@@ -122,7 +127,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
-            if !original_stain && FILTER_MATERIALS && (!screen || replaced) && (camera.options.w >= 2.0 || ((replaced || camera.viewport.w != 0.0) && camera.options.w != 0.0)) {
+            if filtered_material {
                 color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, camera.options.w, camera.viewport.w, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if !original_stain && FILTER_MATERIALS && !screen && camera.options.w != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);

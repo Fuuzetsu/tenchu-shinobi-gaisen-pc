@@ -287,10 +287,20 @@ impl Renderer {
         );
         self.multisample = (self.samples > 1)
             .then(|| Self::attachment(&self.device, size, self.world_format(), self.samples));
-        self.post =
-            self.graphics.post.enabled.then(|| {
-                post::Post::new(&self.device, self.format, size, self.samples, &self.depth)
-            });
+        self.configure_post();
+    }
+
+    fn configure_post(&mut self) {
+        self.post = self.graphics.post.enabled.then(|| {
+            post::Post::new(
+                &self.device,
+                self.format,
+                self.size,
+                self.samples,
+                &self.depth,
+                self.graphics.post.occlusion > 0,
+            )
+        });
     }
 
     fn world_format(&self) -> wgpu::TextureFormat {
@@ -333,6 +343,7 @@ impl Renderer {
         };
         let attachments_changed =
             samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
+        let occlusion_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0);
         let options = pipelines::Options::from(graphics);
         let shader_changed = options != (&self.graphics).into();
         let pipelines_changed = attachments_changed || shader_changed;
@@ -352,6 +363,8 @@ impl Renderer {
         if attachments_changed {
             self.samples = samples;
             self.resize(self.size);
+        } else if self.graphics.post.enabled && occlusion_changed {
+            self.configure_post();
         }
     }
 

@@ -15,6 +15,7 @@ pub struct Post {
     data: wgpu::Buffer,
     bloom_data: wgpu::Buffer,
     size: [u32; 2],
+    depth_resolve: Option<DepthResolve>,
 }
 
 impl Post {
@@ -24,7 +25,14 @@ impl Post {
         size: [u32; 2],
         samples: u32,
         depth: &wgpu::TextureView,
+        occlusion: bool,
     ) -> Self {
+        let depth_resolve =
+            (samples > 1 && occlusion).then(|| DepthResolve::new(device, size, samples, depth));
+        let depth = depth_resolve
+            .as_ref()
+            .map_or(depth, |resolve| &resolve.target);
+        let samples = if depth_resolve.is_some() { 1 } else { samples };
         let scene = target(device, size, FORMAT);
         let overlay_depth = target(device, size, wgpu::TextureFormat::Depth32Float);
         let levels: Vec<_> = (1..=4)
@@ -178,6 +186,7 @@ impl Post {
             data,
             bloom_data,
             size,
+            depth_resolve,
         }
     }
 
@@ -213,6 +222,18 @@ impl Post {
         target: &wgpu::TextureView,
         bloom: bool,
     ) {
+        if let Some(resolve) = &self.depth_resolve {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Scene depth resolve"),
+                color_attachments: &[Some(attachment(&resolve.target))],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pass.set_pipeline(&resolve.pipeline);
+            pass.set_bind_group(0, &resolve.bindings, &[]);
+            pass.draw(0..3, 0..1);
+        }
         if bloom {
             for (i, view) in self.levels.iter().enumerate() {
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -373,4 +394,45 @@ fn pipeline(
         multiview: None,
         cache: None,
     })
+}
+
+struct DepthResolve {
+    target: wgpu::TextureView,
+    pipeline: wgpu::RenderPipeline,
+    bindings: wgpu::BindGroup,
+}
+
+impl DepthResolve {
+    fn new(device: &wgpu::Device, size: [u32; 2], samples: u32, depth: &wgpu::TextureView) -> Self {
+        let format = wgpu::TextureFormat::R32Float;
+        let target = target(device, size, format);
+        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Multisampled scene depth"),
+            entries: &[texture_entry(0, true, true)],
+        });
+        let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Multisampled scene depth"),
+            layout: &layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(depth),
+            }],
+        });
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Resolve nearest scene depth"),
+            source: wgpu::ShaderSource::Wgsl(
+                format!(
+                    "const SAMPLE_COUNT: i32 = {samples};\n{}",
+                    include_str!("depth_resolve.wgsl")
+                )
+                .into(),
+            ),
+        });
+        let pipeline = pipeline(device, &layout, &shader, "fragment", format, false);
+        Self {
+            target,
+            pipeline,
+            bindings,
+        }
+    }
 }

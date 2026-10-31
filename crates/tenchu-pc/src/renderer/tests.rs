@@ -324,24 +324,32 @@ fn screen_space_contact_shading_responds_to_geometry() {
     graphics.post.bloom = 0;
     graphics.post.occlusion = 0;
     graphics.post.fog_tint = 0;
-    renderer.configure(&graphics);
-    renderer.draw(&view, camera, &[&mesh], None).unwrap();
-    let flat = read_pixels(&renderer, &target);
-    graphics.post.occlusion = 100;
-    graphics.post.occlusion_radius = 15;
-    renderer.configure(&graphics);
-    renderer.draw(&view, camera, &[&mesh], None).unwrap();
-    let shaded = read_pixels(&renderer, &target);
-    let pairs: Vec<_> = flat.chunks_exact(4).zip(shaded.chunks_exact(4)).collect();
-    assert!(
-        pairs.iter().filter(|(a, b)| a[0] > b[0] + 3).count() > 20,
-        "corners acquire contact shading"
-    );
-    assert!(
-        pairs.iter().filter(|(a, b)| a[0] == 153 && a == b).count() > 200,
-        "flat regions remain unshaded"
-    );
-    assert!(pairs.iter().all(|(a, b)| b[0] <= a[0]));
+    for samples in renderer.sample_counts.clone() {
+        graphics.samples = samples;
+        graphics.post.occlusion = 0;
+        renderer.configure(&graphics);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
+        let flat = read_pixels(&renderer, &target);
+        graphics.post.occlusion = 100;
+        graphics.post.occlusion_radius = 15;
+        renderer.configure(&graphics);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
+        let shaded = read_pixels(&renderer, &target);
+        let pairs: Vec<_> = flat.chunks_exact(4).zip(shaded.chunks_exact(4)).collect();
+        assert!(
+            pairs.iter().filter(|(a, b)| a[0] > b[0] + 3).count() > 20,
+            "corners acquire contact shading"
+        );
+        assert!(
+            pairs.iter().filter(|(a, b)| a[0] == 153 && a == b).count() > 200,
+            "flat regions remain unshaded"
+        );
+        assert!(pairs.iter().all(|(a, b)| b[0] <= a[0]));
+        graphics.post.occlusion = 0;
+        renderer.configure(&graphics);
+        renderer.draw(&view, camera, &[&mesh], None).unwrap();
+        assert_eq!(read_pixels(&renderer, &target), flat);
+    }
 }
 
 #[test]

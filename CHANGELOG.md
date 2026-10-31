@@ -7,6 +7,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Reduce GPU work in heavily lit scenes, including TRIAL's second built-in mission,
   while preserving shadow resolution, light counts and rendered detail.
+- Reduce contact-shading cost with MSAA and redundant HD texture reads without
+  changing the image or graphics settings.
 
 ## 0.9.0 — 2026-10-31
 
