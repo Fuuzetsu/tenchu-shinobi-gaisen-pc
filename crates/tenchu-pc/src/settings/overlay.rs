@@ -99,6 +99,10 @@ pub fn show(
                     }
                     if menu.page == 7 {
                         ui.label(&menu.artwork_status);
+                        ui.horizontal_wrapped(|ui| {
+                            ui.hyperlink_to("Download HD artwork", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3");
+                            ui.hyperlink_to("Installation / updates", "https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/master/docs/install.md#add-hd-artwork");
+                        });
                         ui.separator();
                     }
                     if menu.page == 10 {

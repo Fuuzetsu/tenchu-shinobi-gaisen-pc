@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Link the separate HD artwork download and installation/update guide from
+  **F1 → Visual assets**, with clearer instructions when no pack is loaded.
+
 - Add **F1 → General → Circle confirms in menus** to choose Japanese or Western
   controller confirmation, with matching button prompts. Menu buttons remain
   independent of gameplay rebinding; Enter/Esc and START-to-retry are unchanged.

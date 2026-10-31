@@ -647,7 +647,7 @@ impl View {
             return format!("Asset pack failed to load: {error}");
         }
         if self.pack.textures.is_empty() && self.pack.models.is_empty() {
-            return "No replacement textures or models loaded for this mission. Check the bundled pack or your custom artwork directory.".into();
+            return "No replacement textures or models loaded for this mission. HD artwork is a separate download: place tenchu-hd.tar.zst beside the game, restart, and enable Replacement artwork. For custom packs, check TENCHU_ASSET_PACK.".into();
         }
         let status = format!(
             "Loaded for this mission: {} textures, {} models",
