@@ -4,6 +4,7 @@ Start with the [quick-start README](../README.md). Commands below run from the
 repository root. Fresh installs use **Modern Low**; option defaults described
 in individual feature notes refer to **Original**. See
 [quality presets and automatic tuning](performance.md) for current defaults.
+For downloaded builds, see [installation, HD artwork and updates](install.md).
 
 A Rust reimplementation of the gameplay in the PlayStation release
 **SLPS-019.01**, using assets from the user's game disc.

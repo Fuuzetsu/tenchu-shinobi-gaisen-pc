@@ -19,6 +19,8 @@ The [workflow](.github/workflows/build.yml) publishes version tags and refreshes
 HEAD on `master`; release downloads do not have the Actions artifact expiry.
 [What's changed](CHANGELOG.md).
 
+[Step-by-step installation, HD artwork and updates](docs/install.md).
+
 | Platform | Download | Run |
 | --- | --- | --- |
 | Windows x64 | `tenchu-windows-x86_64.zip` | Double-click `tenchu-pc.exe` and choose your CUE. |

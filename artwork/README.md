@@ -1,5 +1,7 @@
 # HD artwork
 
+For installation and updates, start with the [player setup guide](../docs/install.md#add-hd-artwork).
+
 The artwork is a separate download in this repository's **artwork-v3** GitHub
 Release: `tenchu-hd.tar.zst` plus `SHA256SUMS`. Keep the archive beside the game
 executable (beside the Linux launcher), or in your working directory. The game
