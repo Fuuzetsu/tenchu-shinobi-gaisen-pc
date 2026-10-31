@@ -19,6 +19,7 @@ mod pulse;
 pub enum Command {
     Bank(Arc<Bank>),
     Effect(Sound),
+    UiEffect(i16),
     Music(Option<Arc<Clip>>, bool),
     Clear,
     Pause(bool),
@@ -109,6 +110,7 @@ impl Playback {
             match command {
                 Command::Bank(bank) => self.mixer.set_bank(bank),
                 Command::Effect(sound) => self.mixer.play(sound.id, sound.volume, sound.pan),
+                Command::UiEffect(id) => self.mixer.play_ui(id, 127, 64),
                 Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
                 Command::Clear => self.mixer.clear_effects(),
                 Command::Pause(paused) => self.mixer.paused = paused,

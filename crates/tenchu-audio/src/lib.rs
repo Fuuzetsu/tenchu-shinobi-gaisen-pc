@@ -10,6 +10,7 @@ struct Voice {
     step: f64,
     volume: [f32; 2],
     envelope: Envelope,
+    during_pause: bool,
 }
 
 struct Music {
@@ -26,6 +27,7 @@ pub struct Mixer {
     music: Option<Music>,
     rate: u32,
     envelope_clock: u64,
+    pause_envelope_clock: u64,
     pub paused: bool,
     pub volume: f32,
     pub music_volume: f32,
@@ -43,6 +45,7 @@ impl Mixer {
             music: None,
             rate,
             envelope_clock: 0,
+            pause_envelope_clock: 0,
             paused: false,
             volume: 0.5,
             music_volume: 1.0,
@@ -64,7 +67,15 @@ impl Mixer {
         self.play_note(id, volume, pan, 36);
     }
 
+    pub fn play_ui(&mut self, id: i16, volume: u8, pan: u8) {
+        self.play_note_inner(id, volume, pan, 36, true);
+    }
+
     pub fn play_note(&mut self, id: i16, volume: u8, pan: u8, note: u8) {
+        self.play_note_inner(id, volume, pan, note, false);
+    }
+
+    fn play_note_inner(&mut self, id: i16, volume: u8, pan: u8, note: u8, during_pause: bool) {
         self.next_voice = (self.next_voice + 1) % self.voices.len();
         let Some(bank) = &self.bank else {
             return;
@@ -98,6 +109,7 @@ impl Mixer {
                 volume * (pan / 64.0).min(1.0),
             ],
             envelope: Envelope::new(tone.adsr),
+            during_pause,
         });
     }
 
@@ -113,18 +125,23 @@ impl Mixer {
     }
 
     pub fn frame(&mut self) -> [f32; 2] {
-        if self.paused {
-            return [0.0; 2];
-        }
-        self.envelope_clock += 44100;
-        let ticks = self.envelope_clock / u64::from(self.rate);
-        self.envelope_clock %= u64::from(self.rate);
+        let clock = if self.paused {
+            &mut self.pause_envelope_clock
+        } else {
+            &mut self.envelope_clock
+        };
+        *clock += 44100;
+        let ticks = *clock / u64::from(self.rate);
+        *clock %= u64::from(self.rate);
         let mut output = [0.0; 2];
         if let Some(bank) = &self.bank {
             for slot in &mut self.voices {
                 let Some(voice) = slot else {
                     continue;
                 };
+                if self.paused && !voice.during_pause {
+                    continue;
+                }
                 let sample = &bank.samples[voice.sample];
                 let length = sample.frames.len();
                 if voice.position >= length as f64 {
@@ -160,7 +177,9 @@ impl Mixer {
             }
         }
         output = output.map(|v| v * self.effects_volume);
-        if let Some(music) = &mut self.music {
+        if !self.paused
+            && let Some(music) = &mut self.music
+        {
             let length = music.clip.frames.len();
             if music.position < length as f64 || music.repeat {
                 music.position %= length as f64;

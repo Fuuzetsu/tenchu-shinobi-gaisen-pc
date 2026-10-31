@@ -342,15 +342,17 @@ impl Application {
     }
 
     fn set_paused(&mut self, paused: bool) {
+        let changed = self.paused != paused;
         if paused {
             self.flush_recording();
         }
         self.paused = paused;
         self.sync_pause();
-        if !self.is_suspended()
+        if changed
+            && (paused || !self.is_suspended())
             && let Some(audio) = &self.audio
         {
-            audio.effect(0x0a);
+            audio.pause_effect(paused);
         }
         self.update_view();
     }

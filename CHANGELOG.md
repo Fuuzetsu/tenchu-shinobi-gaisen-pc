@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore the distinct retail pause and resume sounds. The pause chime finishes
+  while gameplay audio is suspended; frame stepping does not repeat it.
+
 - START on the mission results screen retries the current mission, matching
   retail, instead of advancing. Space does the same on the keyboard.
 

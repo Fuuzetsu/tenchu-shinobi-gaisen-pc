@@ -61,6 +61,40 @@ fn audio_buffers_and_pauses_do_not_change_sample_order() {
 }
 
 #[test]
+fn pause_chimes_finish_without_advancing_game_sounds_or_music() {
+    for rate in [44100, 48000] {
+        let setup = || {
+            let mut mixer = Mixer::new(rate);
+            mixer.set_bank(bank(None));
+            mixer.play(0, 126, 0);
+            mixer.music(
+                Some(Arc::new(Clip {
+                    rate: 37800,
+                    frames: (0..351).map(|i| [i * 31 - 1200, 4800 - i * 47]).collect(),
+                })),
+                true,
+            );
+            mixer.render(&mut [[0.0; 2]; 31]);
+            mixer
+        };
+        let mut expected = [[0.0; 2]; 150];
+        setup().render(&mut expected);
+        let mut mixer = setup();
+        mixer.paused = true;
+        mixer.play_ui(0, 126, 127);
+        let mut paused = [[0.0; 2]; 512];
+        mixer.render(&mut paused);
+        assert!(paused.iter().all(|frame| frame[0] == 0.0));
+        assert!(paused.iter().any(|frame| frame[1].abs() > 0.1));
+        assert!(paused[300..].iter().all(|&frame| frame == [0.0; 2]));
+        mixer.paused = false;
+        let mut actual = [[0.0; 2]; 150];
+        mixer.render(&mut actual);
+        assert_eq!(actual, expected);
+    }
+}
+
+#[test]
 fn effects_end_loop_pan_and_replace_the_oldest_of_twenty_four_voices() {
     let mut mixer = Mixer::new(44100);
     mixer.set_bank(bank(None));

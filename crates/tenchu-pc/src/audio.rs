@@ -122,6 +122,11 @@ impl Audio {
         self.output.send(output::Command::Effect(Sound::local(id)));
     }
 
+    pub fn pause_effect(&self, paused: bool) {
+        self.output
+            .send(Command::UiEffect(if paused { 9 } else { 10 }));
+    }
+
     pub fn tick(&mut self, game: &Game) -> Result<()> {
         if !self.fast_forward {
             for sound in game.sounds()? {
