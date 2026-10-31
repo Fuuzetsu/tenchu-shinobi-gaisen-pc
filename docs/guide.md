@@ -857,6 +857,11 @@ controller, pause first, then use east/west to abandon/retry. Escape/east from
 the quick launcher returns to the title; Escape on the title quits. Controller hints use physical face-button positions because
 labels differ between controller brands.
 
+**F1 → General → Wait after death** keeps the final death scene visible until
+Enter, South or Start opens mission failure. Gameplay is frozen during this wait;
+the death animation and scripts finish normally first. Off preserves retail's
+automatic transition. This preference is independent of graphics presets.
+
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
 Quick keyboard and controller taps are retained until the next gameplay tick.
 

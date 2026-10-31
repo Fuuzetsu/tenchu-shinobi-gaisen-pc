@@ -55,6 +55,62 @@ pub(super) fn application(options: Options) -> Application {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; optional death hold preserves retail death timing and freezes gameplay until confirmation"]
+fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
+    for character in 0..2 {
+        let options = Options {
+            character,
+            ..Default::default()
+        };
+        let mut app = application(options);
+        let mut reference = application(options);
+        app.settings.wait_after_death = true;
+        app.settings.frontend.auto_save = false;
+        for game in [&mut app.campaign.game, &mut reference.campaign.game] {
+            let player = game.roster.get_mut(game.player_id);
+            player.health = 0;
+            player.status = tenchu_core::actor::State::Dead;
+            player.motion.change(
+                tenchu_core::ids::MOT_DEAD,
+                &game.mission.characters[player.definition].motions,
+                &game.mission.common_motions,
+                &game.mission.clips,
+            );
+        }
+        app.controls.key(KeyCode::Space, true);
+        for _ in 0..3000 {
+            reference.campaign.tick(0).unwrap();
+            if !app.game_tick(0) {
+                break;
+            }
+        }
+        assert!(matches!(reference.campaign.screen, Screen::GameOver));
+        assert!(matches!(app.campaign.screen, Screen::DeathHold));
+        assert!(app.campaign.scene_visible() && !app.campaign.playing());
+        assert_eq!(app.controls.buttons(), 0);
+        assert_eq!(app.campaign.seed, reference.campaign.seed);
+        let final_state = crate::session::tests::state(&reference.campaign.game);
+        for _ in 0..60 {
+            app.advance_simulation(Duration::from_secs(1));
+        }
+        app.debug.frame_step = true;
+        app.advance_simulation(Duration::ZERO);
+        app.action(Action::Up);
+        assert!(matches!(app.campaign.screen, Screen::DeathHold));
+        assert!(crate::session::tests::state(&app.campaign.game) == final_state);
+        app.action(Action::Start);
+        assert!(matches!(app.campaign.screen, Screen::GameOver));
+        assert!(crate::session::tests::state(&app.campaign.game) == final_state);
+        app.action(Action::Confirm);
+        assert!(matches!(app.campaign.screen, Screen::Inventory(_)));
+        assert_eq!(
+            app.campaign.progress.stock,
+            reference.campaign.progress.stock
+        );
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; camera-relative input must leave actual scripted sequences unchanged and resume afterward"]
 fn camera_relative_controls_resume_after_original_cutscenes() {
     for character in 0..2 {

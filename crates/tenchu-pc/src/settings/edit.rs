@@ -122,6 +122,7 @@ impl Item {
             Self::Fps => &mut settings.show_fps,
             Self::Focus => &mut settings.pause_on_defocus,
             Self::MenuPause => &mut settings.pause_in_menu,
+            Self::WaitAfterDeath => &mut settings.wait_after_death,
             Self::Fullscreen => &mut settings.fullscreen,
             Self::Vsync => &mut settings.vsync,
             Self::Hud => &mut settings.show_hud,

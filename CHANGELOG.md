@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- F1 → General can hold the finished death scene until a new button press before
+  opening mission failure. The default retains retail's automatic transition.
+
 - Match retail menu music: the shop and main options screen are quiet. Volume
   previews the last sound-test selection (initially character-selection music),
   and leaving Volume, Sound Test or Records stops their music.

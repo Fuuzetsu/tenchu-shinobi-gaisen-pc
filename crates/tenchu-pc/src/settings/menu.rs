@@ -93,6 +93,7 @@ pub enum Item {
     Performance,
     Focus,
     MenuPause,
+    WaitAfterDeath,
     Fullscreen,
     Vsync,
     Hud,
@@ -1077,6 +1078,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Pause while settings are open",
                 on(s.pause_in_menu),
                 "Off: watch the game live while adjusting settings.",
+            ),
+            (
+                Item::WaitAfterDeath,
+                "Wait after death",
+                on(s.wait_after_death),
+                "Hold the completed death scene until Enter / South / Start. Off: automatically show mission failure, as in retail.",
             ),
             (
                 Item::Fullscreen,

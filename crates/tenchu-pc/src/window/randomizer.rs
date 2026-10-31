@@ -68,6 +68,9 @@ impl Application {
     }
 
     pub(super) fn randomizer_command(&mut self, action: Action) -> bool {
+        if matches!(self.campaign.screen, Screen::DeathHold) {
+            return false;
+        }
         let Some(active) = &self.campaign.randomized else {
             return false;
         };

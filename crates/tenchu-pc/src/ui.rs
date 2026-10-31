@@ -204,7 +204,7 @@ pub fn build(
                 line(-130, 14, "Ending movie unavailable.".into(), DIM);
                 line(-130, 60, "Enter/South: return to launcher".into(), WHITE);
             }
-            Screen::Playing => {}
+            Screen::Playing | Screen::DeathHold => {}
         }
     }
     if let Some(text) = text {

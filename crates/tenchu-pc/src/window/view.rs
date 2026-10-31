@@ -877,43 +877,45 @@ impl View {
             self.shadow_models = None;
         }
         self.text.clear();
-        let mut geometry =
-            if campaign.playing() && (menu.open || !paused || debug.active()) && error.is_none() {
-                if debug.collision_only {
-                    render_effects::Geometry {
-                        vertices: Vec::new(),
-                        batches: Vec::new(),
-                    }
-                } else {
-                    if settings.sharp_text && !debug.photo_mode {
-                        self.text = crate::fonts::game_text(game, settings.show_hud);
-                    }
-                    render_effects::build_presented(
-                        game,
-                        settings.show_hud && !debug.photo_mode,
-                        camera.map(|c| c.source_view()),
-                        settings.graphics.blob_shadows,
-                        Some(&self.models),
-                        frame,
-                        render_effects::Style {
-                            alpha: if self.interpolation_enabled {
-                                alpha
-                            } else {
-                                1.0
-                            },
-                            ..render_effects::Style::from(settings)
-                        },
-                    )
+        let mut geometry = if campaign.scene_visible()
+            && (menu.open || !paused || debug.active())
+            && error.is_none()
+        {
+            if debug.collision_only {
+                render_effects::Geometry {
+                    vertices: Vec::new(),
+                    batches: Vec::new(),
                 }
             } else {
-                ui::build(
-                    campaign,
-                    paused,
-                    error,
-                    settings.sharp_text.then_some(&mut self.text),
+                if settings.sharp_text && !debug.photo_mode {
+                    self.text = crate::fonts::game_text(game, settings.show_hud);
+                }
+                render_effects::build_presented(
+                    game,
+                    settings.show_hud && !debug.photo_mode,
+                    camera.map(|c| c.source_view()),
+                    settings.graphics.blob_shadows,
+                    Some(&self.models),
+                    frame,
+                    render_effects::Style {
+                        alpha: if self.interpolation_enabled {
+                            alpha
+                        } else {
+                            1.0
+                        },
+                        ..render_effects::Style::from(settings)
+                    },
                 )
-            };
-        if campaign.playing()
+            }
+        } else {
+            ui::build(
+                campaign,
+                paused,
+                error,
+                settings.sharp_text.then_some(&mut self.text),
+            )
+        };
+        if campaign.scene_visible()
             && error.is_none()
             && !debug.collision_only
             && (menu.open || !paused || debug.active())
@@ -936,7 +938,7 @@ impl View {
         } else {
             self.renderer.set_decals(std::iter::empty());
         }
-        if campaign.playing()
+        if campaign.scene_visible()
             && error.is_none()
             && !debug.collision_only
             && settings.graphics.weather.mode != settings::WeatherMode::Original
@@ -953,7 +955,7 @@ impl View {
             weather.append(geometry);
             geometry = weather;
         }
-        if campaign.playing()
+        if campaign.scene_visible()
             && error.is_none()
             && !debug.collision_only
             && settings.graphics.water.enabled
@@ -965,7 +967,7 @@ impl View {
             );
             geometry.append(spray);
         }
-        if campaign.playing() && error.is_none() && !debug.collision_only {
+        if campaign.scene_visible() && error.is_none() && !debug.collision_only {
             let options = &settings.graphics.effects;
             if options.splashes {
                 geometry.remove_flag(render_mesh::ORIGINAL_SPLASH);
@@ -981,12 +983,12 @@ impl View {
                 geometry = contact;
             }
         }
-        if campaign.playing() && error.is_none() && debug.photo_mode {
+        if campaign.scene_visible() && error.is_none() && debug.photo_mode {
             geometry.hide_ui();
             self.text.clear();
         }
         self.labels.clear();
-        if campaign.playing() && error.is_none() && !debug.photo_mode {
+        if campaign.scene_visible() && error.is_none() && !debug.photo_mode {
             if settings.graphics.lighting.markers {
                 let overlay = crate::debug::light_markers(
                     debug,
@@ -1012,6 +1014,13 @@ impl View {
                     [1.0, 0.85, 0.35],
                 ));
             }
+        }
+        if matches!(campaign.screen, crate::campaign::Screen::DeathHold) && !debug.photo_mode {
+            self.labels.push(crate::debug::Label(
+                crate::debug::Anchor::BottomLeft([12.0, 20.0]),
+                "Enter / South / Start: continue".into(),
+                [1.0, 0.85, 0.35],
+            ));
         }
         if settings.show_fps && !debug.photo_mode {
             let label = if offline { "capture FPS" } else { "FPS" };

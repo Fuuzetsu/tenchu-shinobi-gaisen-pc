@@ -23,6 +23,7 @@ pub enum Screen {
     Launcher,
     Inventory(Loadout),
     Playing,
+    DeathHold,
     Results(Results),
     GameOver,
     Complete,
@@ -91,6 +92,10 @@ impl Campaign {
 
     pub fn playing(&self) -> bool {
         matches!(self.screen, Screen::Playing)
+    }
+
+    pub fn scene_visible(&self) -> bool {
+        matches!(self.screen, Screen::Playing | Screen::DeathHold)
     }
 
     fn selection(&self, options: Options) -> Selection {
@@ -352,6 +357,11 @@ impl Campaign {
                 }
                 _ => {}
             },
+            Screen::DeathHold => {
+                if matches!(action, Action::Confirm | Action::Back | Action::Replay) {
+                    self.screen = Screen::GameOver;
+                }
+            }
             Screen::GameOver => match action {
                 Action::Confirm | Action::Replay => self.inventory(),
                 Action::Back => {

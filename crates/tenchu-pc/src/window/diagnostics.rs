@@ -120,6 +120,7 @@ impl Application {
             Screen::Launcher => "launcher",
             Screen::Inventory(_) => "inventory",
             Screen::Playing => "playing",
+            Screen::DeathHold => "death-hold",
             Screen::Results(_) => "results",
             Screen::GameOver => "game_over",
             Screen::Ending(_) => "ending",

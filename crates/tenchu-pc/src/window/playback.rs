@@ -10,6 +10,12 @@ impl Application {
             self.clock.discard_host_backlog();
             return false;
         }
+        if self.settings.wait_after_death
+            && self.demo.is_none()
+            && matches!(self.campaign.screen, Screen::GameOver)
+        {
+            self.campaign.screen = Screen::DeathHold;
+        }
         if self.settings.graphics.interpolation
             && let Some(view) = &mut self.view
         {
