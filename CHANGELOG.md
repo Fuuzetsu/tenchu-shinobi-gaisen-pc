@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.8.0 — 2026-10-31
+
 - Port TRIAL.EXE: play all 16 original challenges as either ninja, or build custom
   missions across 12 themes with terrain, ornaments, traps, characters and patrols.
   Five objectives, optional stealth constraints, original time bonuses/penalties,
