@@ -5,6 +5,7 @@ use crate::{oracle, random::Random};
 use std::fmt::Write;
 
 mod attacks;
+mod evasion;
 mod reinforcement;
 
 #[test]
@@ -299,6 +300,7 @@ fn combat_decisions_match_original_c() {
         id: game.player_id,
         root: template.root_model,
         position: template.position,
+        facing: template.rotation[1],
         status: ActorState::Normal,
         motion: MOT_NORMAL,
         height: 2000,

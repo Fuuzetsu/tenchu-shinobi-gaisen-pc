@@ -2,6 +2,7 @@ pub mod programs;
 use crate::actor::State as ActorState;
 use crate::math::Position;
 mod combat;
+mod evasion;
 mod idle;
 mod melee;
 mod reinforcement;
@@ -117,6 +118,7 @@ pub struct Intelligence {
     pub sight_percent: u16,
     pub ignore_player: bool,
     pub independent_attacks: bool,
+    pub quick_shuriken_dodge: bool,
     pub attack_clock: i32,
     pub alert: i32,
     pub strain: i32,
@@ -140,6 +142,7 @@ impl Default for Intelligence {
             sight_percent: 100,
             ignore_player: false,
             independent_attacks: false,
+            quick_shuriken_dodge: false,
             attack_clock: 0,
             alert: 0,
             strain: 0,
@@ -175,6 +178,7 @@ pub struct Player {
     pub id: usize,
     pub root: ModelId,
     pub position: Position,
+    pub facing: i16,
     pub status: crate::actor::State,
     pub motion: i16,
     pub height: i16,
@@ -187,6 +191,7 @@ impl Player {
             id: actor.id,
             root: actor.root_model,
             position: actor.position,
+            facing: actor.rotation[1],
             status: actor.status,
             motion: actor.motion.action,
             height: ctx.mission.characters[actor.definition].height,
@@ -454,6 +459,9 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn combat_program(&mut self) -> Result<u16> {
+        if self.evade_shuriken()? {
+            return Ok(0);
+        }
         match self.actor.think.combat {
             programs::Combat::None | programs::Combat::Disabled => Ok(0),
             programs::Combat::Player => Ok(self.player_input()),

@@ -132,7 +132,7 @@ impl Controller<'_, '_> {
                 pad |= UP;
             }
         } else if self.actor.status == ActorState::Engage {
-            if self.player.status == ActorState::AimShuriken {
+            if self.player.status == ActorState::AimShuriken && !self.state.quick_shuriken_dodge {
                 let command = if self.random() & 1 != 0 { 3 } else { 4 };
                 pad = self.command(command);
             } else if self.actor.motion.count == 0 && self.random() % 3 == 0 {

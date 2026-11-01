@@ -279,6 +279,7 @@ impl Application {
             && self.debug.sight_percent == 100
             && !self.settings.keep_enemies_active
             && !self.settings.independent_attacks
+            && !self.settings.quick_shuriken_dodge
             && !self.settings.multi_target_attacks
             && !self.settings.model_moveset
             && matches!(action, Action::Confirm)
@@ -319,6 +320,7 @@ impl Application {
                     && (self.debug.sight_percent != 100
                         || self.settings.keep_enemies_active
                         || self.settings.independent_attacks
+                        || self.settings.quick_shuriken_dodge
                         || self.settings.multi_target_attacks)
                 {
                     self.menu.notice = "Recording disabled: gameplay modified".into();
@@ -1128,6 +1130,7 @@ pub fn run(
     settings.apply_activation(&mut campaign.game.roster);
     campaign.game.intelligence.sight_percent = settings.sight_percent;
     campaign.game.intelligence.independent_attacks = settings.independent_attacks;
+    campaign.game.intelligence.quick_shuriken_dodge = settings.quick_shuriken_dodge;
     campaign.game.combat.multi_target = settings.multi_target_attacks;
     let frontend = if demo.is_none() && startup.benchmark.is_none() {
         campaign.frontend = true;

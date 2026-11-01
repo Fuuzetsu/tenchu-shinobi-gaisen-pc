@@ -686,25 +686,27 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
 #[test]
 #[ignore = "requires TENCHU_DISC; combat options persist, apply on reload and reset without being changed by graphics"]
 fn combat_settings_apply_and_reset() {
-    for item in [Item::IndependentAttacks, Item::MultiTargetAttacks] {
-        let independent = item == Item::IndependentAttacks;
-        let enabled = |app: &Application| {
-            if independent {
-                app.campaign.game.intelligence.independent_attacks
-            } else {
-                app.campaign.game.combat.multi_target
-            }
+    for (index, item) in [
+        Item::IndependentAttacks,
+        Item::MultiTargetAttacks,
+        Item::QuickShurikenDodge,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let enabled = |app: &Application| match item {
+            Item::IndependentAttacks => app.campaign.game.intelligence.independent_attacks,
+            Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
+            _ => app.campaign.game.combat.multi_target,
         };
-        let selected = |settings: &Settings| {
-            if independent {
-                settings.independent_attacks
-            } else {
-                settings.multi_target_attacks
-            }
+        let selected = |settings: &Settings| match item {
+            Item::IndependentAttacks => settings.independent_attacks,
+            Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
+            _ => settings.multi_target_attacks,
         };
         let mut app = application(Options::default());
         let directory = std::env::temp_dir().join(format!(
-            "tenchu-combat-options-recording-{}-{independent}",
+            "tenchu-combat-options-recording-{}-{index}",
             std::process::id()
         ));
         app.recording_directory = Some(directory.clone());

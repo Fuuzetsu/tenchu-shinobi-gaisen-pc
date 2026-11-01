@@ -303,6 +303,7 @@ impl Application {
         self.settings.apply_activation(&mut game.roster);
         game.intelligence.sight_percent = self.debug.sight_percent;
         game.intelligence.independent_attacks = self.settings.independent_attacks;
+        game.intelligence.quick_shuriken_dodge = self.settings.quick_shuriken_dodge;
         game.combat.multi_target = self.settings.multi_target_attacks;
         self.campaign.game = game;
         self.campaign.options = options;
@@ -416,6 +417,8 @@ impl Application {
                 .apply_activation(&mut self.campaign.game.roster);
             self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
             self.campaign.game.intelligence.independent_attacks = self.settings.independent_attacks;
+            self.campaign.game.intelligence.quick_shuriken_dodge =
+                self.settings.quick_shuriken_dodge;
             self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
             if let Some(audio) = &mut self.audio {
                 audio.fast_forward(

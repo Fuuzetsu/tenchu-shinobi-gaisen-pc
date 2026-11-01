@@ -131,6 +131,14 @@ impl Application {
         self.campaign.game.combat.multi_target = enabled;
     }
 
+    pub(super) fn set_quick_shuriken_dodge(&mut self, enabled: bool) {
+        if self.campaign.game.intelligence.quick_shuriken_dodge != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.quick_shuriken_dodge = enabled;
+        self.campaign.game.intelligence.quick_shuriken_dodge = enabled;
+    }
+
     pub(super) fn set_reinforcement_limit(&mut self, limit: u16) {
         if self.settings.reinforcement_limit != limit && self.campaign.game.roster.keep_all_active {
             self.stop_edited_recording();
@@ -211,6 +219,7 @@ impl Application {
             previous.apply_activation(&mut self.campaign.game.roster);
             self.set_sight(previous.sight_percent);
             self.set_independent_attacks(previous.independent_attacks);
+            self.set_quick_shuriken_dodge(previous.quick_shuriken_dodge);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             let _ = self.sync_model_moveset();
             return;
@@ -303,6 +312,7 @@ impl Application {
         }
         self.keep_enemies_active(preset.active);
         self.set_independent_attacks(false);
+        self.set_quick_shuriken_dodge(false);
         self.set_multi_target_attacks(false);
         self.set_reinforcement_limit(0);
         self.set_reinforcement_call(Default::default());
@@ -622,6 +632,7 @@ impl Application {
                 self.set_stealth(false)?;
                 self.keep_enemies_active(false);
                 self.set_independent_attacks(false);
+                self.set_quick_shuriken_dodge(false);
                 self.set_multi_target_attacks(false);
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
@@ -758,6 +769,9 @@ impl Application {
             Item::MultiTargetAttacks => {
                 self.set_multi_target_attacks(!self.settings.multi_target_attacks);
             }
+            Item::QuickShurikenDodge => {
+                self.set_quick_shuriken_dodge(!self.settings.quick_shuriken_dodge);
+            }
             Item::ReinforcementsPerCall => {
                 let mut call = self.settings.reinforcement_call;
                 call.count = (i32::from(call.count) + direction).clamp(
@@ -788,6 +802,7 @@ impl Application {
                 self.set_sight(100);
                 self.keep_enemies_active(false);
                 self.set_independent_attacks(false);
+                self.set_quick_shuriken_dodge(false);
                 self.set_multi_target_attacks(false);
                 self.set_reinforcement_limit(0);
                 self.set_reinforcement_call(Default::default());

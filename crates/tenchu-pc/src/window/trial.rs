@@ -134,6 +134,7 @@ impl Application {
         let game = &self.campaign.game;
         if self.settings.keep_enemies_active
             || self.settings.independent_attacks
+            || self.settings.quick_shuriken_dodge
             || self.settings.multi_target_attacks
             || self.settings.sight_percent != 100
             || self.settings.model_moveset
@@ -207,6 +208,14 @@ mod tests {
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);
         app.set_multi_target_attacks(false);
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
+        app.set_quick_shuriken_dodge(true);
+        app.apply_trial(Event::Play { preview: false }).unwrap();
+        assert!(app.campaign.game.intelligence.quick_shuriken_dodge);
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
+        app.set_quick_shuriken_dodge(false);
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);
         app.apply_trial(Event::Close).unwrap();

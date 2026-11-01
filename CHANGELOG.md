@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Quick shuriken evasion** under F1 → Simulation. Armed enemies
+  can sidestep a visible shuriken aim promptly using their own dodge animations,
+  with a one-second cooldown. Off by default; existing attacks, damage reactions
+  and scripted scenes remain uninterrupted.
+
 - Add **Rainstorm / Snowstorm** under F1 → Weather: denser precipitation,
   sheltered cloud flashes and delayed thunder. Lightning strength, interval and
   thunder volume are adjustable; `rainstorm` and `snowstorm` demos include audio

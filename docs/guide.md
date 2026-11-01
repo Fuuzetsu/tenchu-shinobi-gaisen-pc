@@ -1275,6 +1275,14 @@ persists across missions. Changing it ends input recording; TRIAL records are
 disabled while it is on. Gameplay presets and **Reset simulation tweaks** restore
 the original shared timer. Graphical presets and Retro mode leave it alone.
 
+**Simulation → Quick shuriken evasion** lets alert armed enemies sidestep when
+you aim shuriken toward them at medium range. It uses their own lateral dash
+motions, requires clear terrain sight and allows at most one reaction per second.
+It never interrupts an attack, injury, jump or scripted action. This optional
+difficulty change is off by default; it is not a PS1 bug fix. Graphical presets
+leave it alone. Gameplay presets/reset restore retail reactions, and changing
+it ends ordinary input recording and disqualifies the current TRIAL record.
+
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general
 25–400% or Unlimited simulation speed. Unlimited runs across gameplay and

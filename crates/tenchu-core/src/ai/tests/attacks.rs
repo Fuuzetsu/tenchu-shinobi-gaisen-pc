@@ -9,6 +9,7 @@ fn independent_attack_cooldowns_do_not_block_other_guards() {
         id: template.id,
         root: template.root_model,
         position: template.position,
+        facing: template.rotation[1],
         status: ActorState::Normal,
         motion: MOT_NORMAL,
         height: 2000,

@@ -161,6 +161,7 @@ pub enum Item {
     SightDistance,
     KeepEnemiesActive,
     IndependentAttacks,
+    QuickShurikenDodge,
     MultiTargetAttacks,
     ReinforcementsPerCall,
     RandomReinforcements,
@@ -1570,6 +1571,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Multi-target player attacks",
                 on(s.multi_target_attacks),
                 "New melee swings can hit several targets, once per target with each weapon hitbox. Keeps normal damage, blocking, weapon clashes and terrain checks. Items and enemy attacks are unchanged. Gameplay option; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::QuickShurikenDodge,
+                "Quick shuriken evasion",
+                on(s.quick_shuriken_dodge),
+                "Alert armed enemies immediately sidestep when you aim shuriken at them, at most once a second. Requires clear sight and their own dodge motion; attacks, injuries and scripted scenes are not interrupted. Changes gameplay; off by default.",
             ),
             (
                 Item::ReinforcementsPerCall,
