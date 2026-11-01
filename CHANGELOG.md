@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.8 — 2026-11-01
+
 - Keep mission music playing while watching after death, and restore it after a
   scripted death cutscene. Boss failures now retain the complete scene and let
   **Keep world running after death** continue updating it, instead of losing
