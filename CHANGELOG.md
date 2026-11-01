@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.13.1 — 2026-11-01
+
 - Fix ground-item icons trembling as the gameplay camera moves. Pickups now use
   the displayed camera's subpixel projection, including model interpolation,
   while retaining their original depth offset, size and gameplay behavior (#47).
