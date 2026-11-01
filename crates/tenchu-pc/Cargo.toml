@@ -21,6 +21,7 @@ gilrs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 postcard.workspace = true
+lz4_flex.workspace = true
 flate2 = "1"
 sha2.workspace = true
 web-time = "1.1"

@@ -57,6 +57,7 @@ pub struct Settings {
     pub navigation: Navigation,
     pub graphics: Graphics,
     pub cutscene_speed: u16,
+    pub rewind_seconds: u16,
     pub player_model: String,
     pub model_moveset: bool,
     pub alternate_death_chance: u16,
@@ -93,6 +94,7 @@ impl Default for Settings {
             navigation: Navigation::default(),
             graphics: Graphics::default(),
             cutscene_speed: 1,
+            rewind_seconds: 0,
             player_model: String::new(),
             model_moveset: false,
             alternate_death_chance: 0,
@@ -122,6 +124,7 @@ impl Settings {
     }
 
     fn validate(&mut self) {
+        self.rewind_seconds = self.rewind_seconds.min(30);
         self.alternate_death_chance = self.alternate_death_chance.min(100);
         self.volume = self.volume.min(100);
         self.vibration.validate();

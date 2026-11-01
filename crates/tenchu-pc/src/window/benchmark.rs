@@ -345,6 +345,7 @@ impl Benchmarks {
 
 impl Application {
     pub(super) fn start_benchmark(&mut self, options: Options) -> Result<()> {
+        self.rewind.clear();
         if self.campaign.randomized.is_some() {
             return Err("End the randomizer run before starting a benchmark".into());
         }

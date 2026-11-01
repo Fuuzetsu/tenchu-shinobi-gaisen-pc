@@ -32,12 +32,12 @@ impl Application {
         Ok(())
     }
 
-    pub(super) fn capture_state(&self) -> Result<Vec<u8>> {
+    fn snapshot(&self) -> Result<State<&Game>> {
         self.state_tools_available()?;
         if !self.campaign.scene_visible() || self.faulted {
             return Err("Start a mission before saving a state".into());
         }
-        crate::savestate::encode(&State {
+        Ok(State {
             game: &self.campaign.game,
             options: self.campaign.options,
             progress: self.campaign.progress.clone(),
@@ -58,9 +58,24 @@ impl Application {
         })
     }
 
+    pub(super) fn capture_state(&self) -> Result<Vec<u8>> {
+        crate::savestate::encode(&self.snapshot()?)
+    }
+
+    pub(super) fn capture_rewind(&self) -> Result<crate::rewind::Snapshot> {
+        crate::rewind::Snapshot::encode(&self.snapshot()?)
+    }
+
+    pub(super) fn restore_rewind(&mut self, state: &crate::rewind::Snapshot) -> Result<()> {
+        self.restore_snapshot(state.decode()?)
+    }
+
     pub(super) fn restore_state(&mut self, bytes: &[u8]) -> Result<()> {
+        self.restore_snapshot(crate::savestate::decode(bytes)?)
+    }
+
+    fn restore_snapshot(&mut self, state: State<Game>) -> Result<()> {
         self.state_tools_available()?;
-        let state: State<Game> = crate::savestate::decode(bytes)?;
         state.validate()?;
         #[cfg(target_arch = "wasm32")]
         {
@@ -99,6 +114,7 @@ impl Application {
                 .restore_playtest(&self.assets, &setup.mission, state.options.character)?;
         }
         self.finish_recording();
+        self.rewind.clear();
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
             frontend.leave();

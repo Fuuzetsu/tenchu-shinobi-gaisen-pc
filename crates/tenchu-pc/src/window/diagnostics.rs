@@ -127,6 +127,7 @@ impl Application {
             Screen::Complete => "complete",
         };
         let debug_settings = json!({"simulation_speed_percent": debug.speed, "god_mode": debug.god_mode,
+                "rewind_ticks": self.rewind.ticks(game.tick), "rewind_bytes": self.rewind.bytes,
                 "stealth": debug.stealth, "click_teleport": debug.click_teleport, "armor": debug.armor,
                 "sight_percent": debug.sight_percent, "photo_mode": debug.photo_mode,
                 "hitboxes": debug.hitboxes, "sight": debug.sight, "sight_stance": debug.sight_stance,

@@ -10,6 +10,7 @@ mod playback;
 mod randomizer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod retail;
+mod rewind;
 mod savestate;
 mod settings_reset;
 #[cfg(test)]
@@ -73,6 +74,7 @@ struct Application {
     fps: f32,
     performance: performance::Performance,
     recent_inputs: diagnostics::RecentInputs,
+    rewind: crate::rewind::History,
     benchmarks: benchmark::Benchmarks,
     presets: settings::library::Manager,
     randomizer: crate::randomizer::Editor,
@@ -122,6 +124,8 @@ impl Application {
     }
 
     fn update_view(&mut self) {
+        self.debug.rewind_ticks = self.rewind.ticks(self.campaign.game.tick);
+        self.debug.rewind_bytes = self.rewind.bytes;
         #[cfg(target_arch = "wasm32")]
         crate::web::update_snapshot(
             &self.campaign,
@@ -251,6 +255,9 @@ impl Application {
 
     fn action(&mut self, action: Action) {
         let action = self.campaign.screen.menu_action(action);
+        if matches!(action, Action::Replay) {
+            self.rewind.clear();
+        }
         if matches!(self.campaign.screen, Screen::DeathHold { .. })
             && !matches!(action, Action::Confirm | Action::Back | Action::Replay)
         {
@@ -725,7 +732,12 @@ impl ApplicationHandler for Application {
                 if event.state == ElementState::Pressed
                     && matches!(code, KeyCode::F11 | KeyCode::F12)
                 {
-                    if let Err(error) = self.state_action(code == KeyCode::F11) {
+                    let result = if code == KeyCode::F12 && self.modifiers.control_key() {
+                        self.rewind_step()
+                    } else {
+                        self.state_action(code == KeyCode::F11)
+                    };
+                    if let Err(error) = result {
                         self.state_notice(error);
                     }
                     self.update_view();
@@ -1227,6 +1239,7 @@ pub fn run(
         fps: 0.0,
         performance: Default::default(),
         recent_inputs: Default::default(),
+        rewind: Default::default(),
         benchmarks: benchmark::Benchmarks::new(startup.benchmark),
         presets,
         randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),

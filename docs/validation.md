@@ -209,3 +209,27 @@ The four disc-backed savestate regressions,182 ordinary workspace tests and
 strict native/WASM Clippy pass. This verifies the saved simulation and tested
 continuations; audio playheads are approximate and one-shot audio tails and
 cosmetic spring/waterfall motion are deliberately not serialized.
+
+## Optional rewind
+
+The disc-backed rewind check runs both heroes for 36 seconds with movement and
+live grenades. Every captured `Game` equals a reference with capture disabled.
+Six backward steps restore every serialized simulation field, then different
+inputs replace the old future. File loads and retries clear the history; loading
+keeps the current rewind preference. A separate check exercises memory eviction
+and branching with complete, independently decodable checkpoints.
+
+Native F1/keyboard checks and the extended `tools/test-web-savestate.mjs` exercise
+visible pauses, repeated backward steps, resuming on a new branch, and empty
+history after file loads. The browser test caught the default Shift/cancel
+conflict; rewind uses **Ctrl+F12**. Chromium WebGPU passed without JS errors,
+including the existing full browser-restart and native-state import checks.
+The 183 ordinary tests and strict native/WASM Clippy pass. Rewind is a practice
+tool, off by default and excluded from demos/benchmarks; visual presets are unchanged.
+
+In the release-build M1 fixture, 30 seconds occupied about 25 MiB of compressed
+checkpoints, with a capture taking 4–7 ms on the test host. This is a measured
+fixture, not a performance guarantee for larger/custom missions. Retained history
+is capped at 96 MiB, evicting older checkpoints when necessary. Restore rebuilds
+render resources, so the feature provides discrete visible steps rather than
+continuous reverse animation.

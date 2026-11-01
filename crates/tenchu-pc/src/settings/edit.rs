@@ -10,6 +10,7 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Item::RewindHistory => (0, 30, 5, 1),
             Item::AlternateDeathChance => (0, 100, 5, 1),
             Item::MouseSensitivity | Item::StickSensitivity => (10, 300, 5, 1),
             Item::StickDeadzone => (5, 40, 1, 1),
@@ -154,6 +155,7 @@ impl Item {
 
     fn number(self, settings: &mut Settings) -> Option<&mut u16> {
         Some(match self {
+            Self::RewindHistory => &mut settings.rewind_seconds,
             Self::MouseSensitivity => &mut settings.navigation.mouse_sensitivity,
             Self::StickSensitivity => &mut settings.navigation.stick_sensitivity,
             Self::StickDeadzone => &mut settings.navigation.deadzone,

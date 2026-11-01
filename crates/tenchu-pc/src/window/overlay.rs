@@ -448,7 +448,10 @@ impl super::Application {
             self.menu.notice.clear();
             let restored = matches!(
                 edit,
-                Edit::Change(crate::settings::menu::Item::LoadState, _)
+                Edit::Change(
+                    crate::settings::menu::Item::LoadState | crate::settings::menu::Item::Rewind,
+                    _
+                )
             );
             let result = match edit {
                 Edit::Change(item, steps) => self.apply_item(item, steps),

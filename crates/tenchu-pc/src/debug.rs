@@ -15,6 +15,8 @@ use tenchu_core::game::Game;
 
 pub struct Debug {
     pub state_slot: u8,
+    pub rewind_ticks: u64,
+    pub rewind_bytes: usize,
     pub notice: Option<(String, web_time::Instant)>,
     pub camera: Option<Camera>,
     pub follow_camera: Option<Camera>,
@@ -63,6 +65,8 @@ impl Debug {
     pub fn new(game: &Game) -> Result<Self> {
         Ok(Self {
             state_slot: 0,
+            rewind_ticks: 0,
+            rewind_bytes: 0,
             notice: None,
             camera: None,
             follow_camera: None,

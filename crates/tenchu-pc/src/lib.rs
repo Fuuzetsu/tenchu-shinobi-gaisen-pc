@@ -17,6 +17,7 @@ mod render_mesh;
 mod renderer;
 #[cfg(not(target_arch = "wasm32"))]
 mod retail;
+mod rewind;
 mod savestate;
 mod session;
 mod settings;

@@ -24,6 +24,7 @@ impl Application {
     }
 
     pub(super) fn open_title(&mut self) {
+        self.rewind.clear();
         let Some(frontend) = &mut self.frontend else {
             return;
         };

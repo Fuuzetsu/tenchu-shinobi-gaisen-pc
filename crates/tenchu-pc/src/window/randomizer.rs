@@ -101,6 +101,7 @@ impl Application {
     }
 
     pub(super) fn reload_game(&mut self) -> Result<()> {
+        self.rewind.clear();
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
             frontend.leave();

@@ -7,6 +7,8 @@ pub enum Item {
     StateSlot,
     SaveState,
     LoadState,
+    RewindHistory,
+    Rewind,
     CameraRelative,
     AlignAim,
     MouseSensitivity,
@@ -237,6 +239,7 @@ impl Item {
                 | Self::Randomizer
                 | Self::SaveState
                 | Self::LoadState
+                | Self::Rewind
                 | Self::GiveItems
                 | Self::ClearItems
                 | Self::ClearBlood
@@ -1631,6 +1634,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     s.reinforcement_limit.to_string()
                 },
                 "All-active mode only: stop calling extra guards at this total actor count, including the player and corpses. 0 = Unlimited. Existing actors and civilian replacements are kept. Ends recording.",
+            ),
+            (
+                Item::RewindHistory,
+                "Rewind history (seconds)",
+                s.rewind_seconds.to_string(),
+                "0 disables capture. Keep up to 30 seconds in memory, one checkpoint per second; 96 MiB maximum. Cleared on retry, mission change or loading a file.",
+            ),
+            (
+                Item::Rewind,
+                "Rewind 1s / Ctrl+F12",
+                "Rewind".into(),
+                "Show the previous checkpoint and pause. Repeat to go further back; F3 resumes from there. Restores RNG, enemies, items, blood and effects. Ends input recording and disables TRIAL records.",
             ),
             (
                 Item::StateSlot,

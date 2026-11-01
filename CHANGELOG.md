@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **F1 → Simulation → Rewind history**, up to 30 seconds in
+  one-second steps. **Ctrl+F12** shows the previous checkpoint and pauses;
+  **F3** resumes from there, replacing the abandoned future. Restores gameplay,
+  RNG, live items, blood and weather effects. Off by default, with bounded memory;
+  retries, mission changes and file loads clear the history.
+
 - Add five persistent mid-mission savestate slots under **F1 → Simulation**.
   F11 saves and F12 loads; loading pauses until F3. Restore enemies, RNG, items,
   cutscenes and accumulated visual effects, including randomized and edited

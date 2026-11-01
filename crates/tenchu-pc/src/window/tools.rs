@@ -198,7 +198,7 @@ impl Application {
             if let Err(error) = self.apply_item(item, direction) {
                 self.menu.notice = error;
             }
-            if !matches!(item, Item::LoadState) {
+            if !matches!(item, Item::LoadState | Item::Rewind) {
                 self.apply_settings(&previous);
             }
         }
@@ -208,6 +208,10 @@ impl Application {
     }
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if self.settings.rewind_seconds != previous.rewind_seconds {
+            self.rewind.clear();
+            self.record_rewind();
+        }
         if self.settings.navigation.camera_relative != previous.navigation.camera_relative {
             self.orbit = Default::default();
             self.campaign.game.navigation = Default::default();
@@ -351,6 +355,7 @@ impl Application {
             }
             Item::SaveState => self.state_action(true)?,
             Item::LoadState => self.state_action(false)?,
+            Item::Rewind => self.rewind_step()?,
             Item::RecenterOrbit => self.recenter_orbit(),
             Item::Randomizer => self.toggle_randomizer(),
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,

@@ -1342,6 +1342,23 @@ releases. Browser slots live in IndexedDB for that site address, survive closing
 the browser, and are removed by clearing site data. The campaign **Export save**
 button does not include these separate slots.
 
+**F1 → Simulation → Rewind history** optionally keeps up to 30 seconds of play
+in memory. **Ctrl+F12**, or the **Rewind 1s** button, shows the preceding
+checkpoint and pauses with the world visible. Press again to step further back;
+**F3** resumes from that point and replaces the old future. Checkpoints are one
+second apart, so the first step can be shorter. History includes the same game
+and visual state as file saves, including RNG, projectiles, explosions, grapple,
+blood, snow and footprints. Audio and cosmetic motion have the same limitations.
+Rewinding ends input recording and disables TRIAL records; merely capturing does
+not affect gameplay. Current graphics and the rewind preference remain unchanged.
+
+Rewind is off by default. It adds a snapshot/compression cost once per simulation
+second and uses at most 96 MiB for stored checkpoints; unusually large states can
+shorten the available history. The menu shows its current duration and memory.
+Retrying, switching missions, opening the title, starting a demo/benchmark or
+loading a file clears it. It does not survive closing the game; use a savestate
+slot for that.
+
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
 **F10** toggles a clean photo view, hiding HUD, captions, FPS and inspection
 helpers while preserving world effects. Combine it with F2/F3 for a paused

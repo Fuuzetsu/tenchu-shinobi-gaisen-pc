@@ -4,6 +4,7 @@ use std::time::Duration;
 mod actors;
 mod camera;
 mod death;
+mod rewind;
 mod savestate;
 
 pub(super) fn application(options: Options) -> Application {
@@ -43,6 +44,7 @@ pub(super) fn application(options: Options) -> Application {
         fps: 0.0,
         performance: Default::default(),
         recent_inputs: Default::default(),
+        rewind: Default::default(),
         benchmarks: Default::default(),
         presets: settings::library::Manager::new(std::env::temp_dir().join(format!(
             "tenchu-unused-test-presets-{}.json",

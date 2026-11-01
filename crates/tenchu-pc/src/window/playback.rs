@@ -73,6 +73,7 @@ impl Application {
             sound.weather(self.view.as_ref().and_then(View::thunder), storm);
         }
         self.trial_record_check();
+        self.record_rewind();
         if !self.campaign.playing() && !observing {
             self.finish_recording();
             self.controls.clear();

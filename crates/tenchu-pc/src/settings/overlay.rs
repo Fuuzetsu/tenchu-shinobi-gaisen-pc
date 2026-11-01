@@ -201,6 +201,11 @@ pub fn show(
                             .small()
                             .color(Color32::from_rgb(167, 188, 204))).wrap(),
                     );
+                    if menu.page == 5 && settings.rewind_seconds > 0 {
+                        ui.weak(format!("Rewind: {:.1}s available · {:.1} MiB",
+                            debug.rewind_ticks as f64 / 30.0,
+                            debug.rewind_bytes as f64 / 1048576.0));
+                    }
                     if menu.page == 10 {
                         ui.separator();
                         if let Some(models) = &mut models {

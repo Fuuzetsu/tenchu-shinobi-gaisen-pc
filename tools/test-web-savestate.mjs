@@ -30,7 +30,7 @@ async function open() {
   await browser.addInitScript(() => {
     const key = "tenchu-pc/settings.json";
     if (!localStorage.getItem(key)) {
-      const settings = { sharp_text: true, pause_on_defocus: false, graphics: { interpolation: true } };
+      const settings = { sharp_text: true, pause_on_defocus: false, rewind_seconds: 5, graphics: { interpolation: true } };
       localStorage.setItem(key, JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
     }
   });
@@ -112,12 +112,38 @@ try {
     await shot("native-state-loaded-in-browser");
     await writeFile(`${output}/native-import.json`, JSON.stringify(imported, null, 2));
   }
+  const loaded = await state();
+  await key("Control+F12");
+  assert.deepEqual(await state(), loaded, "Loading a file clears rewind history");
   await key("F3");
-  const resumed = (await state()).tick;
-  await page.waitForFunction(t => JSON.parse(window.port.snapshot()).tick > t + 10, resumed);
+  await page.keyboard.down("w");
+  await page.waitForFunction(t => JSON.parse(window.port.snapshot()).tick >= t + 165, loaded.tick);
+  await page.keyboard.up("w");
+  await key("F3");
+  const before = await state();
+  await key("Control+F12");
+  const rewound = await state();
+  assert(rewound.paused && rewound.tick < before.tick && rewound.tick >= before.tick - 30);
+  await key("Control+F12");
+  const earlier = await state();
+  assert.equal(earlier.tick, rewound.tick - 30);
+  await shot("rewound");
+  await key("F3");
+  await page.keyboard.down("s");
+  await page.waitForFunction(t => JSON.parse(window.port.snapshot()).tick >= t + 35, earlier.tick);
+  await page.keyboard.up("s");
+  await key("Control+F12");
+  const branch = await state();
+  assert(branch.paused && branch.tick === rewound.tick);
+  assert.notDeepEqual(branch.position, rewound.position, "Resuming replaces the abandoned future");
+  await shot("new-branch");
+  await key("F12");
+  await restored(loaded);
+  await key("Control+F12");
+  await restored(loaded);
   assert.deepEqual(errors, []);
-  await writeFile(`${output}/result.json`, JSON.stringify({ saved, resumed, errors }, null, 2));
-  console.log(`${backend}: savestates restore after movement and a full browser restart`);
+  await writeFile(`${output}/result.json`, JSON.stringify({ saved, before, rewound, earlier, branch, errors }, null, 2));
+  console.log(`${backend}: persistent savestates and bounded rewind restore and branch successfully`);
 } catch (error) {
   await page?.screenshot({ path: `${output}/failure.png` }).catch(() => {});
   await writeFile(`${output}/failure.json`, JSON.stringify({ error: String(error), errors, state: await state().catch(() => null) }, null, 2));
