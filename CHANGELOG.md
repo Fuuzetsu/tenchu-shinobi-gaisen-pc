@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.5 — 2026-11-01
+
 - Stop recursive reinforcement waves with **Keep all enemies active**: each placed
   guard can call once per alert, and summoned guards cannot recruit more guards.
   F1 → Simulation adds a fixed recruits-per-call count (default 1, 0 disables)
