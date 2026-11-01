@@ -257,3 +257,13 @@ Focused disc-backed checks cover density limits, pause/render cadence, flash
 expiry and clustering, discarded pool slots, blood/lightning/gunfire independence
 and unchanged serialized game state. Native captures and logs are kept outside
 Git in `private/issues/impact-jitter`.
+
+Camera interpolation: Mission 1 forward/run-stop traces for both heroes measured
+an interpolated eye displacement of up to 14.97 game units from independent
+rotation/translation rounding. Recomputing translation from the rounded rotation
+and interpolated eye lowers the maximum to 0.81 units. The regression also checks
+views 250,000 units from the origin; stationary views, exact pose endpoints and
+camera cuts remain unchanged. Native movement/turn/attack checks and the existing
+body/weapon/shadow interpolation and secondary-motion tests pass. The external
+jitter report lacked a clip, preset or affected body part, so this verifies these
+specific camera defects rather than confirming that report's exact cause.

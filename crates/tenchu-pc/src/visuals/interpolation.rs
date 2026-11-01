@@ -148,7 +148,10 @@ impl History {
             }
         }
         // Script cameras can cut even between nearby viewpoints. Keep their authored cuts exact.
-        let view = if current.cinematic.0 || previous.camera_mode != current.camera_mode {
+        let view = if current.cinematic.0
+            || previous.camera_mode != current.camera_mode
+            || previous.view == current.view
+        {
             current.view
         } else {
             let before = matrix4(previous.view).inverse();
@@ -157,8 +160,10 @@ impl History {
                 || rotation(before).dot(rotation(after)).abs() < 0.9238795
             {
                 current.view
+            } else if alpha <= 0.0 {
+                previous.view
             } else {
-                source_matrix(blend_affine(before, after, alpha).inverse())
+                blend_view(before, after, alpha)
             }
         };
         Some(Frame {
@@ -250,6 +255,16 @@ fn source_matrix(matrix: Mat4) -> Matrix {
     }
 }
 
+fn blend_view(a: Mat4, b: Mat4, alpha: f32) -> Matrix {
+    let camera = blend_affine(a, b, alpha);
+    let mut view = source_matrix(camera.inverse());
+    // Keep the eye fixed when rounding the view rotation back to source precision.
+    // Rounding its translation independently amplifies errors far from the origin.
+    let translation = -(super::models::rotation(view) * camera.w_axis.truncate());
+    view.translation = translation.to_array().map(|v| v.round() as i32).into();
+    view
+}
+
 fn blend(a: Matrix, b: Matrix, alpha: f32) -> Matrix {
     if alpha <= 0.0 {
         a
@@ -263,6 +278,34 @@ fn blend(a: Matrix, b: Matrix, alpha: f32) -> Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn camera_rounding_does_not_move_the_eye_far_from_the_map_origin() {
+        for origin in [
+            Vec3::ZERO,
+            Vec3::new(-46735.0, -2384.0, -43759.0),
+            Vec3::splat(250000.0),
+        ] {
+            for step in 0..120 {
+                let pose = |step: f32| {
+                    Mat4::from_rotation_translation(
+                        Quat::from_euler(glam::EulerRot::YXZ, step * 0.013, -0.24, 0.0),
+                        origin + Vec3::new(step * 20.0, 0.0, step * 30.0),
+                    )
+                };
+                let a = pose(step as f32);
+                let b = pose(step as f32 + 1.0);
+                for alpha in [0.01, 0.25, 0.5, 0.75, 0.99] {
+                    let eye = a.w_axis.truncate().lerp(b.w_axis.truncate(), alpha);
+                    let view = matrix4(blend_view(a, b, alpha));
+                    assert!(
+                        view.transform_point3(eye).length() < 1.0,
+                        "rounding must stay sub-unit even far from the origin: {origin:?}, {step}, {alpha}"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn rotations_keep_rigid_shape_and_take_the_short_path_across_wrap() {

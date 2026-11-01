@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix small camera shakes caused by rounding interpolated views far from the
+  map origin. Orbit/follow cameras now match the model cadence when interpolation
+  is disabled, including Retro mode.
+
 - Extend **F1 → Contact effects → Modern impact sparks** to weapon blocks,
   clashes and metal impacts, with smooth hot trails and short block/clash lights.
   Modern presets enable it; spark amount remains adjustable. Add a weapon-sparks

@@ -51,6 +51,11 @@ impl Application {
         self.observe_orbit();
         let game = &self.campaign.game;
         let view = self.view.as_mut()?;
+        let alpha = if self.settings.graphics.interpolation && !self.settings.retro {
+            alpha
+        } else {
+            1.0
+        };
         Some(self.orbit.camera(
             alpha,
             elapsed,
