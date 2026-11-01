@@ -81,7 +81,7 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                     retain_original,
                     ..Default::default()
                 };
-                blood.tick(&game, &models, &surfaces, &settings);
+                blood.tick(&game, &models, &surfaces, &settings, None);
                 let state = crate::session::tests::state(&game);
                 assert!(blood.stain(
                     &game,
@@ -134,7 +134,7 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                     }
                     for _ in 0..300 {
                         game.tick += 1;
-                        blood.tick(&game, &models, &surfaces, &settings);
+                        blood.tick(&game, &models, &surfaces, &settings, None);
                     }
                     assert!(std::sync::Arc::ptr_eq(&page, blood.pages().next().unwrap()));
                     game.tick -= 300;
@@ -155,19 +155,20 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                 death: BloodStyle::Off,
                 ..Default::default()
             };
-            blood.tick(&game, &models, &surfaces, &settings);
+            blood.tick(&game, &models, &surfaces, &settings, None);
             blood.wound(
                 &game,
                 &models,
                 game.player().root_model,
                 position - Vec3::Y * 750.0,
                 &settings,
+                None,
             );
             assert_eq!(blood.wounds.len(), 1);
             let mut seen = false;
             for _ in 0..180 {
                 game.tick += 1;
-                blood.tick(&game, &models, &surfaces, &settings);
+                blood.tick(&game, &models, &surfaces, &settings, None);
                 let geometry = blood.animated_geometry(&game, &models, None, None, 1.0);
                 seen |= !geometry.vertices.is_empty();
                 assert!(
@@ -203,11 +204,11 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                     retain_original: true,
                     ..Default::default()
                 };
-                blood.tick(&game, &models, &surfaces, &settings);
+                blood.tick(&game, &models, &surfaces, &settings, None);
                 for _ in 0..120 {
                     game.tick += 1;
                     let state = crate::session::tests::state(&game);
-                    blood.tick(&game, &models, &surfaces, &settings);
+                    blood.tick(&game, &models, &surfaces, &settings, None);
                     assert!(state == crate::session::tests::state(&game));
                 }
                 assert_eq!(
@@ -369,7 +370,7 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
     let mut blood = Blood::default();
     let mut motion = crate::visuals::motion::Motion::default();
     let settings = settings::Blood::modern();
-    blood.tick(&game, &models, &surfaces, &settings);
+    blood.tick(&game, &models, &surfaces, &settings, None);
     let mut max_wounds = 0;
     let mut max_world = 0;
     let mut max_attached = 0;
@@ -380,9 +381,9 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
         for _ in 0..count {
             game.step(buttons).unwrap();
             original.step(buttons).unwrap();
-            motion.tick(&game, &models, &graphics.motion);
+            motion.tick(&game, &models, &graphics.motion, None);
             models.motion = motion.sample(1.0);
-            blood.tick(&game, &models, &surfaces, &settings);
+            blood.tick(&game, &models, &surfaces, &settings, None);
             weather_settings.mode = if game.tick % 1800 < 900 {
                 settings::WeatherMode::Rain
             } else {
@@ -465,14 +466,14 @@ fn combat_replay_stains_surfaces_without_changing_gameplay() {
     let world_before = blood.marks.len() - blood.marks.attached.len();
     assert!(world_before > 0);
     let disabled = settings::Blood::default();
-    blood.tick(&game, &models, &surfaces, &disabled);
+    blood.tick(&game, &models, &surfaces, &disabled, None);
     assert!(
         blood
             .geometry(&game, &models, None, Some(game.rendered_view), 1.0)
             .vertices
             .is_empty()
     );
-    blood.tick(&game, &models, &surfaces, &settings);
+    blood.tick(&game, &models, &surfaces, &settings, None);
     assert!(
         blood.marks.is_empty(),
         "re-enabling must not resurrect old wounds"
@@ -692,7 +693,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         ));
         let mut blood = Blood::default();
         let mut settings = settings::Blood::modern();
-        blood.tick(&game, &models, &surfaces, &settings);
+        blood.tick(&game, &models, &surfaces, &settings, None);
         let root = game.player().root_model;
         let position =
             Vec3::from(game.player().position.map(|v| v as f32).to_array()) - Vec3::Y * 750.0;
@@ -712,19 +713,19 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         ));
         game.roster.get_mut(game.player_id).health -= 1;
         game.tick += 1;
-        blood.tick(&game, &models, &surfaces, &settings);
+        blood.tick(&game, &models, &surfaces, &settings, None);
         assert!(
             blood.wounds.is_empty(),
             "discarded blood must not create wounds"
         );
         assert!(blood.samples.iter().all(Option::is_none));
-        blood.wound(&game, &models, root, position, &settings);
+        blood.wound(&game, &models, root, position, &settings, None);
         assert_eq!(blood.wounds.len(), 1);
         let mut emitted = false;
         for _ in 0..150 {
             game.tick += 1;
             let state = crate::session::tests::state(&game);
-            blood.tick(&game, &models, &surfaces, &settings);
+            blood.tick(&game, &models, &surfaces, &settings, None);
             assert_eq!(state, crate::session::tests::state(&game));
             emitted |= !blood.drops.is_empty();
         }
@@ -732,13 +733,13 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         assert!(blood.wounds.is_empty() && blood.drops.is_empty());
         assert!(blood.marks.len() > 1);
         settings.seconds = 60;
-        blood.wound(&game, &models, root, position, &settings);
+        blood.wound(&game, &models, root, position, &settings, None);
         game.tick += 1;
-        blood.tick(&game, &models, &surfaces, &settings);
+        blood.tick(&game, &models, &surfaces, &settings, None);
         assert!(!blood.wounds.is_empty());
         settings.seconds = 0;
         game.tick += 1;
-        blood.tick(&game, &models, &surfaces, &settings);
+        blood.tick(&game, &models, &surfaces, &settings, None);
         assert!(blood.wounds.is_empty());
         blood.clear();
         let player = game.roster.get_mut(game.player_id);
@@ -749,7 +750,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         for _ in 0..120 {
             game.tick += 1;
             let state = crate::session::tests::state(&game);
-            blood.tick(&game, &models, &surfaces, &settings);
+            blood.tick(&game, &models, &surfaces, &settings, None);
             assert_eq!(state, crate::session::tests::state(&game));
         }
         assert!(blood.pools.is_empty(), "pool growth must finish");
@@ -757,7 +758,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         assert!(!blood.pages().next().unwrap().is_empty());
         blood.clear();
         game.tick += 1;
-        blood.tick(&game, &models, &surfaces, &settings);
+        blood.tick(&game, &models, &surfaces, &settings, None);
         assert!(
             blood.marks.is_empty() && blood.pools.is_empty(),
             "clear must not immediately recreate a corpse pool"
@@ -841,7 +842,7 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
                 for _ in 0..900 {
                     game.step(0).unwrap();
                     let before = crate::session::tests::state(&game);
-                    blood.tick(&game, &models, &surfaces, &settings);
+                    blood.tick(&game, &models, &surfaces, &settings, None);
                     assert_eq!(before, crate::session::tests::state(&game));
                     if !corpse_ready(game.roster.get(id)) {
                         animated = true;
@@ -943,7 +944,7 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
                 };
                 for _ in 0..120 {
                     game.tick += 1;
-                    blood.tick(&game, &models, &surfaces, &small);
+                    blood.tick(&game, &models, &surfaces, &small, None);
                 }
                 assert_eq!(blood.marks.len(), 1);
                 let ratio = area(&blood) / full;

@@ -230,10 +230,16 @@ pub struct Motion {
 }
 
 impl Motion {
-    pub fn tick(&mut self, game: &Game, models: &Models, options: &settings::Motion) {
+    pub fn tick(
+        &mut self,
+        game: &Game,
+        models: &Models,
+        options: &settings::Motion,
+        frame: Option<&super::interpolation::Frame>,
+    ) {
         let mut inputs = Vec::new();
         if options.actors() {
-            appearance::visit_parts(game, true, Some(models), None, |key, geometry, matrix| {
+            appearance::visit_parts(game, true, Some(models), frame, |key, geometry, matrix| {
                 if let Some(rules) = models.motion_rules(geometry.as_ptr() as usize) {
                     let orientation = rotation(matrix);
                     let translation = Vec3::from(matrix.translation.map(|v| v as f32).to_array());

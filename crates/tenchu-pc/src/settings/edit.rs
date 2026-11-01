@@ -10,6 +10,7 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Item::AlternateDeathChance => (0, 100, 5, 1),
             Item::MouseSensitivity | Item::StickSensitivity => (10, 300, 5, 1),
             Item::StickDeadzone => (5, 40, 1, 1),
             Item::FollowDistance => (20, 100, 2, 1),
@@ -193,6 +194,7 @@ impl Item {
             Self::BloodAmount => &mut settings.graphics.blood.amount,
             Self::BloodDeathSize => &mut settings.graphics.blood.death_size,
             Self::BloodSeconds => &mut settings.graphics.blood.seconds,
+            Self::AlternateDeathChance => &mut settings.alternate_death_chance,
             Self::BloodMarks => &mut settings.graphics.blood.marks,
             Self::Bloom => &mut settings.graphics.post.bloom,
             Self::BloomThreshold => &mut settings.graphics.post.bloom_threshold,

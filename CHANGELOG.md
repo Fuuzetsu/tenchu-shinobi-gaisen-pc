@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **F1 → Player model → Alternate player deaths**, a configurable chance of
+  using the male/female ninja collapse for Rikimaru/Ayame. Defaults to 0%; try
+  50% for variety. Visual only, with weapons and blood pools following the pose;
+  original death timing, game RNG and retries are preserved. Special deaths and
+  swapped movesets retain their animations.
+
 ## 0.9.7 — 2026-11-01
 
 - Add **F1 → General → Keep world running after death**. After the campaign

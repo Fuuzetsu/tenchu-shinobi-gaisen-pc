@@ -309,6 +309,7 @@ impl Blood {
         root: usize,
         position: Vec3,
         settings: &settings::Blood,
+        frame: Option<&Frame>,
     ) {
         let Some(actor) = game
             .roster
@@ -320,7 +321,7 @@ impl Blood {
             return;
         };
         let mut parts = Vec::new();
-        appearance::visit_parts(game, true, Some(models), None, |key, geometry, matrix| {
+        appearance::visit_parts(game, true, Some(models), frame, |key, geometry, matrix| {
             if matches!(key, Part::Actor { root: r, model, .. } if r == root && actor.parts.contains(&model))
             {
                 let mut vertices = Vec::new();
@@ -443,6 +444,7 @@ impl Blood {
         models: &Models,
         surfaces: &Surfaces,
         settings: &settings::Blood,
+        frame: Option<&Frame>,
     ) {
         if self.settings != *settings {
             self.configure(settings);
@@ -534,7 +536,7 @@ impl Blood {
                             .total_cmp(&b.distance_squared(center))
                     })
                 {
-                    self.wound(game, models, actor.root_model, position, settings);
+                    self.wound(game, models, actor.root_model, position, settings, frame);
                 }
             }
         }
@@ -544,7 +546,7 @@ impl Blood {
         let transforms = if self.wounds.is_empty() {
             BTreeMap::new()
         } else {
-            transforms(game, models, None, true)
+            transforms(game, models, frame, true)
         };
         self.marks.retain_attached(|mark| {
             mark.0.iter().all(|p| {
@@ -612,12 +614,19 @@ impl Blood {
                     && settings.custom_death(actor.id == game.player_id)
             })
         {
-            self.update_pools(game, &receivers, amount, limit);
+            self.update_pools(game, &receivers, amount, limit, frame);
         }
         self.trim(limit);
     }
 
-    fn update_pools(&mut self, game: &Game, surfaces: &Receivers<'_>, amount: f32, limit: usize) {
+    fn update_pools(
+        &mut self,
+        game: &Game,
+        surfaces: &Receivers<'_>,
+        amount: f32,
+        limit: usize,
+        frame: Option<&Frame>,
+    ) {
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
             if !corpse_ready(actor) || !self.settings.custom_death(id == game.player_id) {
@@ -671,7 +680,18 @@ impl Blood {
                 .matrices(&game.math, actor.root(&game.math))
                 .first()
                 .copied()
-                .map(translation)
+                .map(|matrix| {
+                    translation(Frame::transform(
+                        frame,
+                        Part::Actor {
+                            root: actor.root_model,
+                            model: actor.parts[0],
+                            kind: actor.mesh_kind,
+                            inspection: true,
+                        },
+                        matrix,
+                    ))
+                })
                 .unwrap_or_else(|| Vec3::from(actor.position.map(|v| v as f32).to_array()));
             let center = Vec3::new(center.x, actor.position.y as f32, center.z);
             if let Some(hit) = surfaces

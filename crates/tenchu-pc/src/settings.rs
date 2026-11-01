@@ -57,6 +57,7 @@ pub struct Settings {
     pub cutscene_speed: u16,
     pub player_model: String,
     pub model_moveset: bool,
+    pub alternate_death_chance: u16,
     pub model_moveset_options: tenchu_core::game::moveset::Options,
     pub model_directory: String,
     pub frontend: crate::frontend::Preferences,
@@ -90,6 +91,7 @@ impl Default for Settings {
             cutscene_speed: 1,
             player_model: String::new(),
             model_moveset: false,
+            alternate_death_chance: 0,
             model_moveset_options: Default::default(),
             model_directory: String::new(),
             frontend: crate::frontend::Preferences::default(),
@@ -99,6 +101,7 @@ impl Default for Settings {
 
 impl Settings {
     fn validate(&mut self) {
+        self.alternate_death_chance = self.alternate_death_chance.min(100);
         self.volume = self.volume.min(100);
         self.vibration.validate();
         self.navigation.validate();
@@ -126,6 +129,7 @@ impl Settings {
         };
         original.sharp_text = false;
         original.player_model.clear();
+        original.alternate_death_chance = 0;
         std::borrow::Cow::Owned(original)
     }
 
@@ -376,6 +380,7 @@ mod tests {
             volume: 25,
             player_model: "pack:custom".into(),
             model_moveset: true,
+            alternate_death_chance: 50,
             model_moveset_options: tenchu_core::game::moveset::Options {
                 player_movement: true,
                 no_idle_taunts: true,
@@ -399,6 +404,7 @@ mod tests {
         assert_eq!(original.cutscene_speed, 4);
         assert_eq!(original.volume, 25);
         assert!(original.player_model.is_empty());
+        assert_eq!(original.alternate_death_chance, 0);
         assert_eq!(
             original.model_moveset_options,
             settings.model_moveset_options
@@ -414,6 +420,9 @@ mod tests {
         settings.set_visual_preset(presets::MODERN_ULTRA);
         assert_eq!(settings.graphics.weather.mode, WeatherMode::Snow);
         assert_eq!(settings.sight_percent, 125);
+        assert_eq!(settings.alternate_death_chance, 50);
+        assert!(menu::Item::AlternateDeathChance.reset_setting(&mut settings));
+        assert_eq!(settings.alternate_death_chance, 0);
     }
 
     #[test]

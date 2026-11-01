@@ -91,6 +91,7 @@ pub enum Item {
     ModelMoveset,
     ModelPlayerMovement,
     ModelNoIdleTaunts,
+    AlternateDeathChance,
     ReloadModels,
     Preset,
     GameplayPreset,
@@ -881,6 +882,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         10 => vec![
+            (
+                Item::AlternateDeathChance,
+                "Alternate player deaths",
+                format!("{}%", s.alternate_death_chance),
+                "Chance of a male/female ninja collapse on your next ordinary death. Try 50% for variety; 0% keeps retail. Visual only: timing, retry and RNG are unchanged. Special deaths and model movesets keep their own animations.",
+            ),
             (
                 Item::PlayerModel,
                 "Player body",

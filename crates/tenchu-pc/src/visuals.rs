@@ -2,6 +2,7 @@ pub mod appearance;
 pub mod blood;
 pub mod catalog;
 pub mod contact;
+pub mod death;
 #[cfg(not(target_arch = "wasm32"))]
 mod export;
 pub mod footprints;

@@ -465,7 +465,7 @@ impl ApplicationHandler for Application {
         let events = _events;
         #[cfg(not(target_arch = "wasm32"))]
         if self.view.is_none() {
-            match View::new(events, &self.campaign.game, &self.settings) {
+            match View::new(events, &self.assets, &self.campaign.game, &self.settings) {
                 Ok(mut view) => {
                     if !view
                         .renderer
@@ -1238,9 +1238,13 @@ pub fn run(
         let window = View::browser_window(&event_loop)?;
         wasm_bindgen_futures::spawn_local(async move {
             let result: Result<()> = async {
-                let mut view =
-                    View::from_window(window, &application.campaign.game, &application.settings)
-                        .await?;
+                let mut view = View::from_window(
+                    window,
+                    &application.assets,
+                    &application.campaign.game,
+                    &application.settings,
+                )
+                .await?;
                 if !view
                     .renderer
                     .sample_counts

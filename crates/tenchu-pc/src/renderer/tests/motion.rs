@@ -136,7 +136,7 @@ fn secondary_motion_on_actual_characters_keeps_weapons_and_gameplay() {
             };
             game.step(buttons).unwrap();
             let state = crate::session::tests::state(&game);
-            motion.tick(&game, &models, &graphics.motion);
+            motion.tick(&game, &models, &graphics.motion, None);
             models.motion = motion.sample(1.0);
             for weapon in game.player().weapons.iter().flatten() {
                 assert!(

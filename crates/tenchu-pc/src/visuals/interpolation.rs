@@ -83,6 +83,7 @@ pub struct History {
     current: Option<Snapshot>,
 }
 
+#[derive(Clone)]
 pub struct Frame {
     parts: BTreeMap<Part, Matrix>,
     hinges: Vec<(usize, Matrix, Matrix)>,
@@ -90,6 +91,16 @@ pub struct Frame {
 }
 
 impl History {
+    pub fn present(&mut self, tick: u64, frame: &Frame) {
+        if let Some(current) = &mut self.current
+            && current.tick == tick
+        {
+            current
+                .parts
+                .extend(frame.parts.iter().map(|(&key, &matrix)| (key, matrix)));
+        }
+    }
+
     pub fn reset(&mut self, game: &Game) {
         self.previous = None;
         self.current = Some(Snapshot::new(game));
@@ -155,6 +166,14 @@ impl History {
 }
 
 impl Frame {
+    pub(super) fn new(parts: BTreeMap<Part, Matrix>, view: Matrix) -> Self {
+        Self {
+            parts,
+            hinges: Vec::new(),
+            view,
+        }
+    }
+
     pub fn transform(frame: Option<&Self>, key: Part, original: Matrix) -> Matrix {
         frame
             .and_then(|f| f.parts.get(&key))

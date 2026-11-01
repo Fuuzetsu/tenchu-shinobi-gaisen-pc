@@ -87,6 +87,7 @@ pub(super) struct View {
     contact: crate::visuals::contact::Contact,
     motion: crate::visuals::motion::Motion,
     motion_options: settings::Motion,
+    deaths: crate::visuals::death::Deaths,
     pub(super) interpolation: crate::visuals::interpolation::History,
     interpolation_enabled: bool,
     frame: Option<crate::visuals::interpolation::Frame>,
@@ -188,9 +189,19 @@ impl View {
         settings: &Settings,
         debug: &crate::debug::Debug,
     ) {
+        if let Err(error) = self.deaths.tick(game, settings.alternate_death_chance) {
+            eprintln!("Player death animation: {error}");
+            self.deaths.frame = None;
+        }
+        let death = self.deaths.frame.as_ref();
+        if !settings.retro
+            && let Some(frame) = death
+        {
+            self.interpolation.present(game.tick, frame);
+        }
         self.sky.tick(game.tick, &settings.graphics.sky);
         self.motion
-            .tick(game, &self.models, &settings.graphics.motion);
+            .tick(game, &self.models, &settings.graphics.motion, death);
         let blood = settings.graphics.blood.active();
         let weather = settings.graphics.weather.mode != settings::WeatherMode::Original;
         let contact = settings.graphics.effects.active();
@@ -203,8 +214,13 @@ impl View {
                 ))
             });
             if blood {
-                self.blood
-                    .tick(game, &self.models, surfaces, &settings.graphics.blood);
+                self.blood.tick(
+                    game,
+                    &self.models,
+                    surfaces,
+                    &settings.graphics.blood,
+                    death,
+                );
             }
             if weather {
                 let center = debug.eye(game);
@@ -274,13 +290,18 @@ impl View {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub(super) fn new(events: &ActiveEventLoop, game: &Game, settings: &Settings) -> Result<Self> {
+    pub(super) fn new(
+        events: &ActiveEventLoop,
+        assets: &GameAssets<DiscSource>,
+        game: &Game,
+        settings: &Settings,
+    ) -> Result<Self> {
         let window = Arc::new(
             events
                 .create_window(Self::window_attributes())
                 .map_err(|e| e.to_string())?,
         );
-        pollster::block_on(Self::from_window(window, game, settings))
+        pollster::block_on(Self::from_window(window, assets, game, settings))
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -294,6 +315,7 @@ impl View {
 
     pub(super) async fn from_window(
         window: Arc<Window>,
+        assets: &GameAssets<DiscSource>,
         game: &Game,
         settings: &Settings,
     ) -> Result<Self> {
@@ -457,6 +479,7 @@ impl View {
             spray,
             motion: Default::default(),
             motion_options: settings.graphics.motion.clone(),
+            deaths: crate::visuals::death::Deaths::load(assets)?,
             interpolation: Default::default(),
             interpolation_enabled: false,
             frame: None,
@@ -582,6 +605,7 @@ impl View {
     }
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
+        self.deaths.reset();
         self.model_picker.clear();
         let rendered = settings.rendering();
         let settings = &*rendered;
@@ -694,6 +718,9 @@ impl View {
         self.models.motion.clear();
         if self.interpolation_enabled {
             self.interpolation.reset(game);
+            if let Some(frame) = &self.deaths.frame {
+                self.interpolation.present(game.tick, frame);
+            }
         } else {
             self.interpolation = Default::default();
         }
@@ -774,6 +801,7 @@ impl View {
             debug,
             alpha,
         } = frame;
+        let retro = settings.retro;
         let rendered = settings.rendering();
         let settings = &*rendered;
         let game = &campaign.game;
@@ -785,7 +813,8 @@ impl View {
             self.interpolation.sample(game.tick, alpha)
         } else {
             None
-        };
+        }
+        .or_else(|| (!retro).then(|| self.deaths.frame.clone()).flatten());
         self.renderer.daylight = self.sky.sample(&settings.graphics.sky, alpha);
         self.models.motion = if settings.graphics.motion.actors() {
             self.motion.sample(alpha)
@@ -1182,8 +1211,13 @@ mod tests {
             .create_window(Window::default_attributes().with_visible(false))
             .unwrap();
         let before = crate::session::tests::state(&game);
-        let view =
-            pollster::block_on(View::from_window(Arc::new(window), &game, &settings)).unwrap();
+        let view = pollster::block_on(View::from_window(
+            Arc::new(window),
+            &assets,
+            &game,
+            &settings,
+        ))
+        .unwrap();
         assert_eq!(view.renderer.graphics(), &settings.graphics);
         assert!(view.interpolation_enabled);
         assert_eq!(before, crate::session::tests::state(&game));

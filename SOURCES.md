@@ -1178,3 +1178,12 @@ for every theme, both heroes through all presets and five outcomes, arrow and
 collapsing-floor traps, all-theme combat/audio, editor undo and save roundtrips,
 and host return without campaign mutation. These source-backed tests and native/
 browser playtests do not claim exhaustive TRIAL emulator parity.
+
+### Optional player death variety
+
+The presentation-only alternate deaths select NINJAB's `MOT_DEAD` and KUNOITI's
+`MOT_DEAD_ALT` from the user's MAIN character registrations and `STAGE2.AMD`.
+Both use the protagonists' fifteen-part hierarchy; KUNOITI's normal death is
+already Ayame's motion. The shorter collapses hold their final poses while the
+original simulation completes its death sequence. No original animation data
+is embedded, and the selector never advances gameplay RNG.

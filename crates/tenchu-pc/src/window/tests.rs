@@ -131,6 +131,7 @@ fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
             app.settings.pause_in_menu = character == 0;
             app.settings.frontend.auto_save = false;
             let mut blood = crate::visuals::blood::Blood::default();
+            let mut deaths = crate::visuals::death::Deaths::load(&app.assets).unwrap();
             let graphics = settings::Graphics {
                 blood: settings::Blood::modern(),
                 ..Default::default()
@@ -147,6 +148,11 @@ fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
                 Some(&models),
             ));
             for game in [&mut app.campaign.game, &mut reference.campaign.game] {
+                let events = std::mem::take(&mut game.events);
+                for _ in 0..30 {
+                    game.step(0).unwrap();
+                }
+                game.events = events;
                 let player = game.roster.get_mut(game.player_id);
                 player.health = 0;
                 player.status = tenchu_core::actor::State::Dead;
@@ -161,12 +167,20 @@ fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
             for _ in 0..3000 {
                 reference.campaign.tick(0).unwrap();
                 let running = app.game_tick(0);
-                blood.tick(&app.campaign.game, &models, &surfaces, &graphics.blood);
+                deaths.tick(&app.campaign.game, 100).unwrap();
+                blood.tick(
+                    &app.campaign.game,
+                    &models,
+                    &surfaces,
+                    &graphics.blood,
+                    deaths.frame.as_ref(),
+                );
                 if !running {
                     break;
                 }
             }
             assert!(reference.campaign.playing());
+            assert!(deaths.frame.is_some(), "M{mission} hero {character}");
             assert_eq!(app.campaign.game.death_wait_ticks(), Some(1));
             assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
             assert!(app.campaign.scene_visible() && !app.campaign.playing());

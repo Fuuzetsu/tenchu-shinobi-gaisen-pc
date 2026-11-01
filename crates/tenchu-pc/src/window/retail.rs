@@ -252,7 +252,7 @@ impl ApplicationHandler for Recorder {
             return;
         }
         let result = (|| {
-            let mut view = View::new(events, &self.campaign.game, &self.settings)?;
+            let mut view = View::new(events, &self.assets, &self.campaign.game, &self.settings)?;
             view.window
                 .set_title("Tenchu — offline verified campaign recording");
             view.resize(crate::video::SIZE[0], crate::video::SIZE[1]);
