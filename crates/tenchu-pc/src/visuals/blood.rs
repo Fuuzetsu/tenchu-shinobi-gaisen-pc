@@ -471,11 +471,8 @@ impl Blood {
                 settings: *settings,
                 ..Self::default()
             };
-            self.samples = game
-                .effects
-                .active_slots()
-                .iter()
-                .map(|slot| sample(slot.as_ref(), true))
+            self.samples = super::death::blood::slots(&game.effects, frame)
+                .map(|slot| sample(slot, true))
                 .collect();
             return;
         }
@@ -484,10 +481,10 @@ impl Blood {
         let limit = usize::from(settings.marks.max(32));
         let amount = f32::from(settings.amount.min(200)) / 100.0;
         let mut new_blood = Vec::new();
-        let mut samples = Vec::with_capacity(game.effects.active_slots().len());
+        let mut samples = Vec::with_capacity(self.samples.len());
         let mut impacts = 0;
-        for (index, slot) in game.effects.active_slots().iter().enumerate() {
-            let mut current = sample(slot.as_ref(), false);
+        for (index, slot) in super::death::blood::slots(&game.effects, frame).enumerate() {
+            let mut current = sample(slot, false);
             if let Some(next) = &mut current {
                 let old = self.samples.get(index).copied().flatten();
                 let continuous = old.filter(|old| {

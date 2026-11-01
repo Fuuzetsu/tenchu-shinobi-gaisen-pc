@@ -19,6 +19,7 @@ impl Items {
         let world = ctx.scene.world(template)?;
         let matrix = ctx.camera.view.compose(&world);
         ctx.effects.billboards.push(effects::Billboard {
+            gore_source: None,
             graphic: sprite.graphic.clone(),
             position: world.translation,
             scale: [sprite.scale; 2],
@@ -35,6 +36,7 @@ impl Items {
         }
         let scale = ((sprite.scale >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
         let drawing = effects::Drawing {
+            gore_source: None,
             graphic: sprite.graphic,
             xy: visibility::project(&matrix, [0; 3]).0,
             scale: [i32::from(scale); 2],

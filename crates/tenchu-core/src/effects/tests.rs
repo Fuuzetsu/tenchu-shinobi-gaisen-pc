@@ -24,6 +24,7 @@ fn expired_blood_can_overwrite_itself_with_a_droplet_in_a_full_pool() {
         mode: 0,
         gore: false,
     }));
+    effects.gore_sources[47] = Some(9);
     let map = flat_map();
     let mut cursor = Cursor::new(&map);
     let mut env = Environment {
@@ -49,6 +50,8 @@ fn expired_blood_can_overwrite_itself_with_a_droplet_in_a_full_pool() {
     assert_eq!(bleed.position, Position::new(-1024, 1778, 4262));
     assert_eq!(bleed.velocity, [-29, 51, -19]);
     assert_eq!(bleed.time, 10);
+    assert_eq!(effects.gore_sources[47], Some(9));
+    assert!(effects.billboards.iter().any(|b| b.gore_source == Some(9)));
     assert!(effects.slots[200].is_none());
     assert_eq!(
         effects.drawings.iter().map(Drawing::bytes).sum::<u32>(),
@@ -61,6 +64,11 @@ fn expired_blood_can_overwrite_itself_with_a_droplet_in_a_full_pool() {
     assert_eq!(bleed.position, Position::new(-1053, 1829, 4243));
     assert_eq!(bleed.time, 9);
     assert_eq!(rng.calls, 4);
+    effects.slots[..200].fill(None);
+    effects.cursor = 46;
+    effects.bleed(Position::ZERO, [0; 3], 10, [128, 0, 0]);
+    assert!(effects.slots[47].is_some());
+    assert_eq!(effects.gore_sources[47], None);
 }
 
 #[test]

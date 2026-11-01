@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Share all four ordinary player/ninja death motions between Ayame and Rikimaru,
+  including each other's original collapse. **Alternate player deaths** remains
+  optional and does not change gameplay or retry timing.
+- Make death blood spurts follow the chosen animation's torso and duration,
+  including their flight, ground stains and original/HD/modern appearances.
+  Short collapses no longer keep spraying from the original standing pose.
+
 ## 0.9.9 — 2026-11-01
 
 - **Alternate player deaths** now chooses among all three ninja death motions,

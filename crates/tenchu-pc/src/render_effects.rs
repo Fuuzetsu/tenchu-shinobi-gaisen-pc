@@ -435,7 +435,7 @@ pub fn build_presented(
         }
     }
     if inspection {
-        world::sprites(&mut surfaces, game, view, style);
+        world::sprites(&mut surfaces, game, view, style, frame);
         for bolt in game.effects.bolts.iter().filter(|_| !style.lightning) {
             for points in bolt.points.windows(2) {
                 world::line(
@@ -500,10 +500,7 @@ pub fn build_presented(
             models,
         );
     }
-    for drawing in game
-        .effects
-        .drawings
-        .iter()
+    for drawing in crate::visuals::death::blood::drawings(&game.effects, frame)
         .chain(&game.items.drawings)
         .chain(&game.misc.drawings)
         .filter(|drawing| !inspection && !style.replaces(&drawing.graphic, drawing.color))
@@ -587,7 +584,7 @@ pub fn build_presented(
             previous = shade;
         }
     }
-    combat::draw(&mut surfaces, game, view, style);
+    combat::draw(&mut surfaces, game, view, style, frame);
     let ui_start = surfaces.len();
     if let Some(shade) = game.hud.map.dim.filter(|_| !inspection) {
         let mut vertices = screen_band(-120.0, 120.0, [f32::from(shade) / 255.0; 3], 3);

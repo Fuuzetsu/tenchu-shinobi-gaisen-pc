@@ -215,10 +215,10 @@ mod tests {
                     .enumerate()
                 {
                     let mut original = Vec::new();
-                    super::super::draw(&mut original, &game, view, Style::default());
+                    super::super::draw(&mut original, &game, view, Style::default(), None);
                     assert!(original.is_empty());
                     let mut modern = Vec::new();
-                    super::super::draw(&mut modern, &game, view, Style::from(&settings));
+                    super::super::draw(&mut modern, &game, view, Style::from(&settings), None);
                     if index == 1 {
                         assert!(!modern.is_empty(), "the aimed camera must show gunfire");
                     }

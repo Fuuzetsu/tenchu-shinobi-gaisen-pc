@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 use tenchu_assets::{ReadAt, Result, executable::Executable, game::GameAssets, motion::Clip};
 use tenchu_core::{actor::State, game::Game, ids::*, math::Matrix, motion::Motion};
 
+pub mod blood;
+
 pub struct Deaths {
     clips: Vec<Clip>,
     death: Option<Death>,
@@ -16,16 +18,20 @@ struct Death {
     clip: usize,
     motion: Option<Motion>,
     settled: Option<Matrix>,
+    blood: Option<blood::Blood>,
 }
 
 impl Deaths {
     pub fn load(assets: &GameAssets<impl ReadAt>) -> Result<Self> {
         let characters = Executable::new(&assets.executable)?.characters()?;
-        let clips = tenchu_assets::motion::parse(&assets.asset("HUMAN/MOTION/STAGE2.AMD")?)?;
+        let mut clips = tenchu_assets::motion::parse(&assets.asset("HUMAN/MOTION/STAGE2.AMD")?)?;
+        clips.extend(tenchu_assets::motion::parse(
+            &assets.asset("HUMAN/MOTION/RIKIMARU.AMD")?,
+        )?);
         let mut deaths = Vec::<Clip>::new();
         for character in characters
             .iter()
-            .filter(|c| (0x20..=0x22).contains(&c.kind))
+            .filter(|c| matches!(c.kind, 0 | 1 | 0x20..=0x22))
         {
             for registration in character
                 .motions
@@ -39,7 +45,7 @@ impl Deaths {
                     clips
                         .iter()
                         .find(|c| c.id == registration.clip)
-                        .ok_or("Missing ninja death motion")?
+                        .ok_or("Missing player/ninja death motion")?
                         .clone(),
                 );
             }
@@ -115,6 +121,7 @@ impl Deaths {
                 clip,
                 motion,
                 settled: None,
+                blood: selected.then(|| blood::Blood::new(game)),
             });
         }
         let death = self.death.as_mut().unwrap();
@@ -136,6 +143,7 @@ impl Deaths {
         motion.count = age
             .saturating_add(i16::from(alternate.sweep))
             .min(alternate.duration);
+        let emit = motion.count < alternate.duration && motion.count & 4 != 0;
         if motion.count == alternate.duration && actor.map.height <= 0 && actor.velocity[1] == 0 {
             // The original player clip can keep moving long after this collapse
             // has finished. Keep the visible corpse where it actually landed.
@@ -184,7 +192,11 @@ impl Deaths {
                 }
             }
         }
-        self.frame = Some(Frame::new(parts, game.rendered_view));
+        let mut frame = Frame::new(parts, game.rendered_view);
+        if let Some(blood) = &mut death.blood {
+            frame.death_blood = Some(blood.tick(game, matrices[1], emit)?);
+        }
+        self.frame = Some(frame);
         Ok(())
     }
 }

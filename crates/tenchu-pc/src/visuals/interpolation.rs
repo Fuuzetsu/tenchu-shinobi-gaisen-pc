@@ -45,6 +45,7 @@ struct Snapshot {
     view: Matrix,
     cinematic: (bool, i16),
     camera_mode: tenchu_core::camera::Mode,
+    death_blood: Option<std::sync::Arc<super::death::blood::Presented>>,
 }
 
 impl Snapshot {
@@ -73,6 +74,7 @@ impl Snapshot {
             view: game.rendered_view,
             cinematic: (game.cinematic.active, game.cinematic.sequence),
             camera_mode: game.camera.mode,
+            death_blood: None,
         }
     }
 }
@@ -88,6 +90,7 @@ pub struct Frame {
     parts: BTreeMap<Part, Matrix>,
     hinges: Vec<(usize, Matrix, Matrix)>,
     pub view: Matrix,
+    pub(super) death_blood: Option<std::sync::Arc<super::death::blood::Presented>>,
 }
 
 impl History {
@@ -98,6 +101,7 @@ impl History {
             current
                 .parts
                 .extend(frame.parts.iter().map(|(&key, &matrix)| (key, matrix)));
+            current.death_blood.clone_from(&frame.death_blood);
         }
     }
 
@@ -161,6 +165,7 @@ impl History {
             parts,
             hinges,
             view,
+            death_blood: current.death_blood.clone(),
         })
     }
 }
@@ -171,6 +176,7 @@ impl Frame {
             parts,
             hinges: Vec::new(),
             view,
+            death_blood: None,
         }
     }
 
@@ -302,6 +308,7 @@ mod tests {
             view: pose(-x),
             cinematic: (false, 0),
             camera_mode: tenchu_core::camera::Mode::Normal,
+            death_blood: None,
         };
         let mut history = History {
             previous: Some(snapshot(1, 0)),

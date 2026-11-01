@@ -203,6 +203,7 @@ impl Misc {
                 Kind::Bonfire(scale) if object.mode == 0 => {
                     let color = (ctx.random.next15() % 100 + 100) as u8;
                     ctx.effects.billboards.push(crate::effects::Billboard {
+                        gore_source: None,
                         graphic: Graphic::Flash((clock % 4) as i16),
                         position,
                         scale: [scale; 2],
@@ -244,6 +245,7 @@ impl Misc {
                     let matrix = view.matrix.compose(&ctx.scene.world(model)?);
                     let (image, scale) = ctx.mission.misc.sprites[kind];
                     ctx.effects.billboards.push(crate::effects::Billboard {
+                        gore_source: None,
                         graphic: Graphic::Sprite { image, blend: 2 },
                         position,
                         scale: [scale; 2],
@@ -260,6 +262,7 @@ impl Misc {
                             let (image, scale) = ctx.mission.misc.sprites[kind];
                             let scale = ((scale >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
                             self.drawings.push(Drawing {
+                                gore_source: None,
                                 graphic: Graphic::Sprite { image, blend: 2 },
                                 xy: visibility::project(&matrix, [0; 3]).0,
                                 scale: [i32::from(scale); 2],

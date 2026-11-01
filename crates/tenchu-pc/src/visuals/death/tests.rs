@@ -37,7 +37,7 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
     let assets = assets();
     let output = std::env::var_os("TENCHU_DEATH_CAPTURES").map(std::path::PathBuf::from);
     for character in 0..2 {
-        for variant in 0..3 {
+        for variant in 0..4 {
             let mut game = crate::session::Options {
                 character,
                 ..Default::default()
@@ -68,14 +68,14 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
             let mut blood = Blood::default();
             let mut deaths = Deaths::load(&assets).unwrap();
             let mut original = Deaths::load(&assets).unwrap();
-            assert_eq!(deaths.clips.len(), 3);
+            assert_eq!(deaths.clips.len(), 4);
             assert_eq!(
                 deaths
                     .clips
                     .iter()
                     .map(|c| c.id)
                     .collect::<std::collections::BTreeSet<_>>(),
-                [343, 345, 346].into_iter().collect()
+                [343, 345, 346, 473].into_iter().collect()
             );
             let mut history = History::default();
             let definition = &game
@@ -126,6 +126,12 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
                 assert!(original.frame.is_none());
                 deaths.tick(&game, if step == 0 { 100 } else { 0 }).unwrap();
                 let frame = deaths.frame.as_ref().unwrap();
+                if step > end + 80 {
+                    assert!(blood::slots(&game.effects, Some(frame)).skip(200).all(|effect| {
+                        !matches!(effect, Some(tenchu_core::effects::Effect::Blood(b)) if b.mode == 0)
+                            && !matches!(effect, Some(tenchu_core::effects::Effect::Bleed(_)))
+                    }), "spurts must end with the selected collapse");
+                }
                 history.tick(&game);
                 history.present(game.tick, frame);
                 blood.tick(&game, &models, &surfaces, &graphics.blood, Some(frame));
@@ -333,18 +339,37 @@ fn capture(
         true,
         frame,
     ));
-    let effects = review
-        .renderer
-        .upload_effects(blood.geometry(game, models, frame, None, 1.0));
     let position = Vec3::from(game.player().position.map(|v| v as f32).to_array());
-    let camera = glam::Mat4::perspective_rh(55.0_f32.to_radians(), 1280.0 / 720.0, 50.0, 100000.0)
-        * glam::Mat4::look_at_rh(
-            position + Vec3::new(2500.0, -3000.0, 3000.0),
-            position - Vec3::Y * 500.0,
-            Vec3::NEG_Y,
-        );
+    let eye = position + Vec3::new(1700.0, -1800.0, 2200.0);
+    let delta = position - Vec3::Y * 500.0 - eye;
+    let camera = crate::debug::camera::Camera {
+        position: eye,
+        yaw: delta.x.atan2(delta.z),
+        pitch: (-delta.y).atan2(delta.x.hypot(delta.z)),
+        fov: 55.0,
+    };
+    let mut geometry = crate::render_effects::build_presented(
+        game,
+        false,
+        Some(camera.source_view()),
+        false,
+        Some(models),
+        frame,
+        crate::render_effects::Style {
+            blood: crate::settings::Blood::modern(),
+            ..Default::default()
+        },
+    );
+    geometry.append(blood.geometry(game, models, frame, None, 1.0));
+    let effects = review.renderer.upload_effects(geometry);
     review
-        .capture(camera, &[&stage, &actors], Some(&effects), false, path)
+        .capture(
+            camera.matrix(1280.0 / 720.0),
+            &[&stage, &actors],
+            Some(&effects),
+            false,
+            path,
+        )
         .unwrap();
 }
 

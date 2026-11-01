@@ -128,6 +128,7 @@ impl View {
         }
         let scale = i32::from((scale.wrapping_mul(300) / i32::from(depth)) as i16).wrapping_add(1);
         Some(Drawing {
+            gore_source: None,
             graphic,
             xy,
             scale: [scale; 2],
@@ -175,6 +176,7 @@ pub enum Graphic {
 
 #[derive(Clone, Debug)]
 pub struct Drawing {
+    pub gore_source: Option<ModelId>,
     pub graphic: Graphic,
     pub xy: [i16; 2],
     pub scale: [i32; 2],
@@ -185,6 +187,7 @@ pub struct Drawing {
 
 #[derive(Clone, Debug)]
 pub struct Billboard {
+    pub gore_source: Option<ModelId>,
     pub graphic: Graphic,
     pub position: Position,
     pub scale: [i32; 2],
@@ -276,6 +279,9 @@ pub struct Rumble {
 #[derive(Clone, Debug)]
 pub struct Effects {
     pub slots: Vec<Option<Effect>>,
+    // Emitter provenance lets presentation replace a death pose and its particles together.
+    pub gore_sources: Vec<Option<ModelId>>,
+    emitting_gore: Option<ModelId>,
     pub gun_sources: Vec<Option<GunEffect>>,
     emitting_gun: Option<GunEffect>,
     pub drawings: Vec<Drawing>,
@@ -297,6 +303,8 @@ impl Default for Effects {
     fn default() -> Self {
         Self {
             slots: vec![None; 201],
+            gore_sources: vec![None; 201],
+            emitting_gore: None,
             gun_sources: vec![None; 201],
             emitting_gun: None,
             drawings: Vec::new(),
@@ -363,6 +371,7 @@ impl Effects {
         view: View,
     ) {
         self.billboards.push(Billboard {
+            gore_source: None,
             graphic: graphic.clone(),
             position,
             scale: [scale; 2],
@@ -382,6 +391,7 @@ impl Effects {
         }
         let scale = ((scale >> 2).wrapping_mul(300) / i32::from(depth)) as i16;
         self.drawings.push(Drawing {
+            gore_source: None,
             graphic,
             xy: visibility::project(&matrix, [0; 3]).0,
             scale: [i32::from(scale); 2],
@@ -398,10 +408,12 @@ impl Effects {
             if self.slots[i].is_none() && self.visiting != Some(i) {
                 self.cursor = (i + 1) % 200;
                 self.gun_sources[i] = self.emitting_gun;
+                self.gore_sources[i] = self.emitting_gore;
                 return i;
             }
         }
         self.gun_sources[200] = self.emitting_gun;
+        self.gore_sources[200] = self.emitting_gore;
         200
     }
 
@@ -557,10 +569,26 @@ impl Effects {
             };
             self.visiting = Some(i);
             let gun = self.gun_sources[i];
+            let gore = self.gore_sources[i];
             let drawings = self.drawings.len();
             let billboards = self.billboards.len();
+            self.emitting_gore = gore;
             let result = self.update(&mut effect, rng, view, scene, env);
+            self.emitting_gore = None;
             self.visiting = None;
+            if let Some(gore) = gore {
+                for source in self.drawings[drawings..]
+                    .iter_mut()
+                    .map(|d| &mut d.gore_source)
+                    .chain(
+                        self.billboards[billboards..]
+                            .iter_mut()
+                            .map(|b| &mut b.gore_source),
+                    )
+                {
+                    *source = Some(gore);
+                }
+            }
             if gun.is_some() {
                 for graphic in self.drawings[drawings..]
                     .iter_mut()
@@ -617,6 +645,7 @@ impl Effects {
                 }
                 bleed.time = bleed.time.wrapping_sub(1);
                 self.billboards.push(Billboard {
+                    gore_source: None,
                     graphic: Graphic::Bleed,
                     position: bleed.position,
                     scale: [12; 2],
@@ -626,6 +655,7 @@ impl Effects {
                 let (xy, z) = view.project(bleed.position);
                 if z > 36 {
                     self.drawings.push(Drawing {
+                        gore_source: None,
                         graphic: Graphic::Bleed,
                         xy,
                         scale: [i32::from(900 / z + 1); 2],
@@ -652,6 +682,7 @@ impl Effects {
                     world_scale[1] = 0;
                 }
                 self.billboards.push(Billboard {
+                    gore_source: None,
                     graphic: Graphic::Splash,
                     position: splash.position,
                     scale: world_scale,
@@ -705,6 +736,7 @@ impl Effects {
                     }
                 }
                 self.drawings.push(Drawing {
+                    gore_source: None,
                     graphic: Graphic::Splash,
                     xy,
                     scale,
@@ -741,6 +773,7 @@ impl Effects {
                     (flash.position, xy, z)
                 };
                 self.billboards.push(Billboard {
+                    gore_source: None,
                     graphic: Graphic::Flash(index),
                     position,
                     scale: [i32::from(flash.size); 2],
@@ -750,6 +783,7 @@ impl Effects {
                 if z > 36 {
                     let scale = i32::from((i32::from(flash.size) * 300 / i32::from(z)) as i16) + 1;
                     self.drawings.push(Drawing {
+                        gore_source: None,
                         graphic: Graphic::Flash(index),
                         xy,
                         scale: [scale; 2],

@@ -95,12 +95,15 @@ pub(super) fn trail(
     }
 }
 
-pub(super) fn sprites(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, style: Style) {
+pub(super) fn sprites(
+    surfaces: &mut Vec<Surface>,
+    game: &Game,
+    view: Matrix,
+    style: Style,
+    frame: Option<&crate::visuals::interpolation::Frame>,
+) {
     let camera = rotation(view).transpose();
-    for sprite in game
-        .effects
-        .billboards
-        .iter()
+    for sprite in crate::visuals::death::blood::billboards(&game.effects, frame)
         .filter(|sprite| !style.replaces(&sprite.graphic, sprite.color))
     {
         let (image, blend, bottom_origin) = material(&sprite.graphic);

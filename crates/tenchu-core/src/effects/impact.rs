@@ -68,6 +68,7 @@ impl Effects {
             (impact.position, xy, z)
         };
         self.billboards.push(Billboard {
+            gore_source: None,
             graphic: Graphic::Impact(impact.sprite),
             position,
             scale: [size; 2],
@@ -77,6 +78,7 @@ impl Effects {
         if z > 36 {
             let scale = i32::from((size.wrapping_mul(300) / i32::from(z)) as i16) + 1;
             self.drawings.push(Drawing {
+                gore_source: None,
                 graphic: Graphic::Impact(impact.sprite),
                 xy,
                 scale: [scale; 2],

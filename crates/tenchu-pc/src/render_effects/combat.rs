@@ -106,9 +106,20 @@ impl Painter<'_> {
         );
     }
 
-    fn blood(&mut self, game: &Game, alpha: f32, gunfire: bool) {
-        for (slot, effect) in game.effects.active_slots().iter().enumerate() {
-            if gunfire && game.effects.gun_sources[slot].is_some() {
+    fn blood(
+        &mut self,
+        game: &Game,
+        alpha: f32,
+        gunfire: bool,
+        frame: Option<&crate::visuals::interpolation::Frame>,
+    ) {
+        for (slot, effect) in crate::visuals::death::blood::slots(&game.effects, frame).enumerate()
+        {
+            if gunfire
+                && game.effects.gun_sources[..game.effects.active_slots().len()]
+                    .get(slot)
+                    .is_some_and(Option::is_some)
+            {
                 continue;
             }
             let (position, velocity, count, size) = match effect {
@@ -152,10 +163,7 @@ impl Painter<'_> {
                 );
             }
         }
-        for (index, burst) in game
-            .effects
-            .billboards
-            .iter()
+        for (index, burst) in crate::visuals::death::blood::billboards(&game.effects, frame)
             .enumerate()
             .filter(|(_, b)| matches!(b.graphic, tenchu_core::effects::Graphic::Impact(2)))
         {
@@ -243,14 +251,20 @@ impl Painter<'_> {
     }
 }
 
-pub(super) fn draw(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, style: Style) {
+pub(super) fn draw(
+    surfaces: &mut Vec<Surface>,
+    game: &Game,
+    view: Matrix,
+    style: Style,
+    frame: Option<&crate::visuals::interpolation::Frame>,
+) {
     let mut painter = Painter {
         surfaces,
         camera: rotation(view).transpose(),
         view,
     };
     if style.blood.hit == crate::settings::BloodStyle::Modern {
-        painter.blood(game, style.alpha, style.gunfire);
+        painter.blood(game, style.alpha, style.gunfire, frame);
     }
     if style.lightning {
         painter.lightning(game, style.alpha);
@@ -284,7 +298,7 @@ mod tests {
             game.effects.bleed(position, [10, 20, 30], 20, [128, 0, 0]);
         }
         let mut surfaces = Vec::new();
-        draw(&mut surfaces, &game, Matrix::default(), style);
+        draw(&mut surfaces, &game, Matrix::default(), style, None);
         assert!(!surfaces.is_empty(), "live blood still renders");
         let mut rng = game.random;
         game.effects.gun_effects(
@@ -298,7 +312,7 @@ mod tests {
         assert!(crate::lighting::gunfire(&game, 0.5).is_empty());
         game.effects.slots[..200].fill(None);
         surfaces.clear();
-        draw(&mut surfaces, &game, Matrix::default(), style);
+        draw(&mut surfaces, &game, Matrix::default(), style, None);
         assert!(surfaces.is_empty(), "overflow gunfire never renders");
         game.effects.slots[200] = Some(Effect::Bleed(effects::Bleed {
             position,
@@ -308,7 +322,7 @@ mod tests {
             mode: 0,
         }));
         game.effects.gun_sources[200] = None;
-        draw(&mut surfaces, &game, Matrix::default(), style);
+        draw(&mut surfaces, &game, Matrix::default(), style, None);
         assert!(surfaces.is_empty(), "overflow blood never renders");
     }
 
@@ -372,10 +386,10 @@ mod tests {
         };
         for view in [game.rendered_view, camera.source_view()] {
             let mut original = Vec::new();
-            draw(&mut original, &game, view, Style::default());
+            draw(&mut original, &game, view, Style::default(), None);
             assert!(original.is_empty());
             let mut modern = Vec::new();
-            draw(&mut modern, &game, view, style);
+            draw(&mut modern, &game, view, style, None);
             assert!(
                 modern
                     .iter()
@@ -393,7 +407,7 @@ mod tests {
                     && v.flags & render_mesh::SOFT != 0
             }));
             let mut again = Vec::new();
-            draw(&mut again, &game, view, style);
+            draw(&mut again, &game, view, style, None);
             for (a, b) in modern.iter().zip(&again) {
                 assert_eq!(
                     bytemuck::cast_slice::<_, u8>(&a.vertices),

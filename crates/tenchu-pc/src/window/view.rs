@@ -193,10 +193,8 @@ impl View {
             eprintln!("Player death animation: {error}");
             self.deaths.frame = None;
         }
-        let death = self.deaths.frame.as_ref();
-        if !settings.retro
-            && let Some(frame) = death
-        {
+        let death = self.deaths.frame.as_ref().filter(|_| !settings.retro);
+        if let Some(frame) = death {
             self.interpolation.present(game.tick, frame);
         }
         self.sky.tick(game.tick, &settings.graphics.sky);

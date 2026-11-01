@@ -71,6 +71,7 @@ impl Effects {
     ) -> Result<()> {
         let matrix = scene.world(parent)?;
         let world_position = matrix.transform(position);
+        self.emitting_gore = Some(parent);
         let slot = self.allocate();
         let sprite = (rng.next15() % 2) as u8;
         let rotation = (rng.next15() % 360) * 4096;
@@ -106,6 +107,7 @@ impl Effects {
                 time: 3,
             });
         }
+        self.emitting_gore = None;
         Ok(())
     }
 
@@ -211,6 +213,7 @@ impl Effects {
                 blood.brightness as u8
             };
             self.billboards.push(Billboard {
+                gore_source: None,
                 graphic: Graphic::Blood {
                     sprite: blood.sprite,
                     stain,
@@ -227,6 +230,7 @@ impl Effects {
             }
             let scale = i32::from((blood.scale.wrapping_mul(300) / i32::from(z)) as i16) + 1;
             self.drawings.push(Drawing {
+                gore_source: None,
                 graphic: Graphic::Blood {
                     sprite: blood.sprite,
                     stain,

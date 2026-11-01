@@ -71,6 +71,7 @@ impl Effects {
         }
         snow.position = position;
         self.billboards.push(Billboard {
+            gore_source: None,
             graphic: Graphic::Sprite {
                 image: 55,
                 blend: 2,
