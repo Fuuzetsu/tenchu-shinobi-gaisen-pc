@@ -86,8 +86,8 @@ fn windward_walls_receive_weather_and_sheltered_walls_stay_dry() {
                     );
                 } else {
                     assert!(
-                        delta > 4.0,
-                        "windward snow must dust walls: {delta}, quality {quality}"
+                        (0.3..8.0).contains(&delta),
+                        "windward snow must lightly dust walls without whitewashing them: {delta}, quality {quality}"
                     );
                 }
                 if side < 0.0 {
@@ -113,6 +113,69 @@ fn windward_walls_receive_weather_and_sheltered_walls_stay_dry() {
             }
         }
     }
+}
+
+#[test]
+#[ignore = "requires a GPU; snow settles on ground/roofs, thins on steep faces and cannot coat undersides"]
+fn snow_retention_follows_surface_slope() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.weather.mode = crate::settings::WeatherMode::Snow;
+    graphics.weather.haze = 0;
+    graphics.weather.wind = 100;
+    graphics.weather.heading = 270;
+    renderer.configure(&graphics);
+    let mut coverage = Vec::new();
+    for degrees in [0.0_f32, 30.0, 60.0, 80.0, 90.0, 120.0, 180.0] {
+        let rotation = glam::Quat::from_rotation_z(degrees.to_radians());
+        let normal = rotation * Vec3::NEG_Y;
+        let p = [
+            [-2000.0, 0.0, -2000.0],
+            [2000.0, 0.0, -2000.0],
+            [-2000.0, 0.0, 2000.0],
+            [2000.0, 0.0, 2000.0],
+        ];
+        let mesh = renderer.upload(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: (rotation * Vec3::from(p[i])).to_array(),
+            color: [0.4; 3],
+            opacity: 1.0,
+            flags: render_mesh::SCENERY | render_mesh::DOUBLE_SIDED,
+            ..Vertex::zeroed()
+        }));
+        let camera = Mat4::orthographic_rh(-1000.0, 1000.0, -1000.0, 1000.0, 1.0, 10000.0)
+            * Mat4::look_at_rh(normal * 3000.0, Vec3::ZERO, Vec3::Z);
+        let mut capture = |snow| {
+            renderer.weather.snow = snow;
+            renderer
+                .draw_lit(
+                    &view,
+                    camera,
+                    crate::renderer::SceneMeshes::new(&[&mesh], &[]),
+                    None,
+                    &[],
+                    &[&mesh],
+                )
+                .unwrap();
+            read_pixels(&renderer, &target)
+        };
+        let bare = capture(0.0);
+        let snow = capture(1.0);
+        let delta = snow
+            .chunks_exact(4)
+            .zip(bare.chunks_exact(4))
+            .map(|(a, b)| f32::from(a[0]) - f32::from(b[0]))
+            .sum::<f32>()
+            / 4096.0;
+        coverage.push(delta);
+    }
+    assert!(coverage[0] > 40.0 && coverage[1] > 40.0, "{coverage:?}");
+    assert!(
+        coverage[2] > 15.0 && coverage[2] < coverage[1],
+        "{coverage:?}"
+    );
+    assert!(coverage[3] < 8.0 && coverage[4] < 8.0, "{coverage:?}");
+    assert_eq!(&coverage[5..], &[0.0, 0.0]);
 }
 
 #[test]

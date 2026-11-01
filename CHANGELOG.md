@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Let snow settle mainly on upward-facing surfaces. Windward walls receive a
+  light, uneven dusting instead of a broad white coat; sheltered faces and
+  undersides remain clear.
+
 ## 0.9.4 — 2026-11-01
 
 - Add **Original HD** blood under F1 → Persistent effects: smoother retail spatter,

@@ -92,8 +92,10 @@ fn snow_variation(position: vec3<f32>) -> f32 {
 }
 
 fn snow_coverage(normal: vec3<f32>, exposure: f32, variation: f32) -> f32 {
-    let retention = 0.35 * (1.0 - smoothstep(0.0, 0.3, normal.y))
-        + 0.65 * smoothstep(0.3, 0.85, -normal.y);
+    let settled = smoothstep(0.2, 0.85, -normal.y);
+    let dust = 0.08 * smoothstep(0.3, 0.75, variation)
+        * (1.0 - smoothstep(0.0, 0.1, normal.y));
+    let retention = max(settled, dust);
     let coverage = lighting.weather.y * weather_incidence(normal);
     return retention * exposure * smoothstep(0.04 + variation * 0.2, 0.5 + variation * 0.2, coverage);
 }
