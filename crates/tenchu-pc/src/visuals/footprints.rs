@@ -36,6 +36,7 @@ pub fn snow_materials(pack: &super::pack::Pack, artwork: bool) -> BTreeSet<Strin
     materials
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Mark {
     vertices: Vec<Vertex>,
     position: Vec3,
@@ -55,7 +56,7 @@ impl Mark {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Footprints {
     tick: Option<u64>,
     direction: Option<Vec3>,

@@ -78,7 +78,7 @@ pub struct ActionContext<'a> {
     pub clock: i32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Actor {
     pub id: usize,
     pub root_model: ModelId,

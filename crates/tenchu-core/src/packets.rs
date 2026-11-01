@@ -11,7 +11,7 @@ use tenchu_assets::model::Geometry;
 
 const BYTES: [u32; 8] = [20, 32, 24, 40, 28, 40, 36, 52];
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Subdivision {
     depth: i32,
     extent: [i16; 2],

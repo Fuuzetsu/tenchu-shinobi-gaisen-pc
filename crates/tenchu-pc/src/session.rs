@@ -4,7 +4,7 @@ use std::{ffi::OsString, path::Path};
 use tenchu_assets::{Result, executable::Executable, game::GameAssets, stage::MissionAssets};
 use tenchu_core::{ai::Difficulty, game::Game};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Options {
     pub mission: usize,
     pub character: i16,

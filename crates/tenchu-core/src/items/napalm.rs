@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::Position;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Napalm {
     pub velocity: [i16; 3],
     pub count: u8,

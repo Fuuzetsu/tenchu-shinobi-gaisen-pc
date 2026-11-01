@@ -16,6 +16,7 @@ mod runoff;
 mod storm;
 const SPLASH_LIMIT: usize = 192;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Particle {
     previous: Vec3,
     position: Vec3,
@@ -25,12 +26,13 @@ struct Particle {
     size: f32,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Splash {
     hit: Hit,
     age: u16,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Weather {
     mode: WeatherMode,
     tick: Option<u64>,

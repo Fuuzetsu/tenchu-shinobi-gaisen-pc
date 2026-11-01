@@ -104,6 +104,23 @@ impl Default for Settings {
 }
 
 impl Settings {
+    pub fn restore_gameplay(&mut self, saved: &Self, game: &tenchu_core::game::Game) {
+        self.wait_after_death = saved.wait_after_death;
+        self.live_death_scene = saved.live_death_scene;
+        self.navigation.clone_from(&saved.navigation);
+        self.cutscene_speed = saved.cutscene_speed;
+        self.player_model.clone_from(&saved.player_model);
+        self.model_moveset = saved.model_moveset;
+        self.model_moveset_options = saved.model_moveset_options;
+        self.keep_enemies_active = game.roster.keep_all_active;
+        self.reinforcement_limit = game.roster.reinforcement_limit.unwrap_or(0) as u16;
+        self.reinforcement_call = game.roster.reinforcement_call;
+        self.independent_attacks = game.intelligence.independent_attacks;
+        self.quick_shuriken_dodge = game.intelligence.quick_shuriken_dodge;
+        self.multi_target_attacks = game.combat.multi_target;
+        self.sight_percent = game.intelligence.sight_percent;
+    }
+
     fn validate(&mut self) {
         self.alternate_death_chance = self.alternate_death_chance.min(100);
         self.volume = self.volume.min(100);

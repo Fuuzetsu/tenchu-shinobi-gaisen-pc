@@ -5,7 +5,7 @@ use crate::{
     actor::{Actor, Context},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Roster {
     pub keep_all_active: bool,
     pub reinforcement_limit: Option<usize>,

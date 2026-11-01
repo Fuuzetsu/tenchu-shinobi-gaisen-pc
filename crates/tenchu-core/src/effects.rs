@@ -26,7 +26,7 @@ use crate::{
     visibility,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Smoke {
     pub position: Position,
     pub velocity: [i16; 3],
@@ -37,7 +37,7 @@ pub struct Smoke {
     pub rotation: i32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Splash {
     pub position: Position,
     pub size: [i16; 2],
@@ -54,7 +54,7 @@ pub struct Burst {
     pub color: [u8; 3],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Bleed {
     pub position: Position,
     pub velocity: [i16; 3],
@@ -63,7 +63,7 @@ pub struct Bleed {
     pub mode: u8,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Flash {
     pub parent: Option<ModelId>,
     pub position: Position,
@@ -72,7 +72,7 @@ pub struct Flash {
     pub mode: u8,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Effect {
     Smoke(Smoke),
     Splash(Splash),
@@ -139,20 +139,20 @@ impl View {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum GunPart {
     Muzzle,
     Surface,
     Body,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GunEffect {
     pub part: GunPart,
     pub direction: Position,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Graphic {
     Sprite {
         image: u8,
@@ -174,7 +174,7 @@ pub enum Graphic {
     GunBleed,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Drawing {
     pub gore_source: Option<ModelId>,
     pub graphic: Graphic,
@@ -185,7 +185,7 @@ pub struct Drawing {
     pub depth: i16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Billboard {
     pub gore_source: Option<ModelId>,
     pub graphic: Graphic,
@@ -207,7 +207,7 @@ impl Drawing {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Shadow {
     pub owner: ModelId,
     pub position: Position,
@@ -215,7 +215,7 @@ pub struct Shadow {
     pub scale: i32,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Line {
     pub points: [[i16; 2]; 2],
     pub depth: i16,
@@ -268,7 +268,7 @@ impl RumbleAction {
     ];
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Rumble {
     pub actor: usize,
     pub action: RumbleAction,
@@ -277,7 +277,7 @@ pub struct Rumble {
     pub release: u16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     // Emitter provenance lets presentation replace a death pose and its particles together.

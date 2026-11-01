@@ -9,14 +9,14 @@ use super::Game;
 use crate::{Result, actor::Context, ids::*, scene::COLLIDE, terrain};
 use tenchu_assets::script::{ActorCommand, CameraCommand, Command, EffectCommand, Pan};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 struct Controlled {
     actor: usize,
     loops: i16,
     next: i16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cinematic {
     pub active: bool,
     pub frame: bool,

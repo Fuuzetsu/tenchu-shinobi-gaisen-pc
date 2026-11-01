@@ -10,13 +10,13 @@ use tenchu_assets::{model::Geometry, stage::MissionAssets};
 #[cfg(test)]
 mod tests;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Mesh {
     Object(usize),
     Map(usize),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Object {
     pub model: ModelId,
     pub mesh: Mesh,
@@ -25,7 +25,7 @@ pub struct Object {
     pub subdivisions: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Construction {
     pub objects: Vec<Object>,
     cells: Vec<Vec<usize>>,

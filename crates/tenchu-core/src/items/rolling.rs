@@ -1,7 +1,7 @@
 use crate::math::Position;
 use crate::{Result, actor::Context, terrain};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Status {
     #[default]
     Airborne,
@@ -25,7 +25,7 @@ impl Status {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Rolling {
     pub hint: Option<tenchu_assets::terrain::Node>,
     pub velocity: [i16; 3],

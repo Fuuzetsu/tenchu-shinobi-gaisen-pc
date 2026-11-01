@@ -1,6 +1,6 @@
 use crate::{Result, i16_le, slice, u16_le, u32_le};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Node {
     pub y: i16,
     pub dy: i16,
@@ -16,7 +16,7 @@ impl Node {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Row {
     pub height: i16,
     pub bounds: [i16; 4],
@@ -25,6 +25,7 @@ pub struct Row {
     pub lookup: Option<usize>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct AreaMap {
     data: Vec<u8>,
     pub rows: Vec<Row>,

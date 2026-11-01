@@ -14,6 +14,8 @@ use tenchu_assets::Result;
 use tenchu_core::game::Game;
 
 pub struct Debug {
+    pub state_slot: u8,
+    pub notice: Option<(String, web_time::Instant)>,
     pub camera: Option<Camera>,
     pub follow_camera: Option<Camera>,
     pub camera_actor: Option<camera::Subject>,
@@ -60,6 +62,8 @@ pub struct Debug {
 impl Debug {
     pub fn new(game: &Game) -> Result<Self> {
         Ok(Self {
+            state_slot: 0,
+            notice: None,
             camera: None,
             follow_camera: None,
             camera_actor: None,

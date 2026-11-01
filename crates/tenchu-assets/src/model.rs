@@ -1,6 +1,6 @@
 use crate::{Result, i16_le, relative, short3, slice, u16_le, u32_le};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Part {
     pub parent: i16,
     pub child: i16,
@@ -8,14 +8,14 @@ pub struct Part {
     pub geometry: Vec<Geometry>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Geometry {
     pub vertices: Vec<[i16; 3]>,
     pub normals: Vec<[i16; 3]>,
     pub faces: Vec<Face>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Face {
     pub mode: u8,
     pub flags: u8,
@@ -25,7 +25,7 @@ pub struct Face {
     pub translucent: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Corner {
     pub vertex: u16,
     pub normal: Option<u16>,
@@ -33,7 +33,9 @@ pub struct Corner {
     pub uv: [u8; 2],
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct Texture {
     pub page: u16,
     pub palette: u16,

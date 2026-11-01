@@ -21,6 +21,7 @@ pub enum Command {
     Effect(Sound),
     UiEffect(i16),
     Music(Option<Arc<Clip>>, bool),
+    SeekMusic(f64),
     Clear,
     Pause {
         paused: bool,
@@ -130,6 +131,7 @@ impl Playback {
                 Command::Effect(sound) => self.mixer.play(sound.id, sound.volume, sound.pan),
                 Command::UiEffect(id) => self.mixer.play_ui(id, 127, 64),
                 Command::Music(clip, repeat) => self.mixer.music(clip, repeat),
+                Command::SeekMusic(seconds) => self.mixer.seek_music(seconds),
                 Command::Clear => self.mixer.clear_effects(),
                 Command::Pause {
                     paused,

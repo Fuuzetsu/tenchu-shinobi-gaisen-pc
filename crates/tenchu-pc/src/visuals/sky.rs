@@ -60,7 +60,7 @@ impl Daylight {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Clock {
     tick: Option<u64>,
     setting: u16,

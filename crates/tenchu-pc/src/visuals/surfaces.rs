@@ -20,7 +20,7 @@ struct Node {
     children: Option<[usize; 2]>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Hit {
     pub position: Vec3,
     pub normal: Vec3,

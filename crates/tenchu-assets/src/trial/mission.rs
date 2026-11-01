@@ -3,7 +3,7 @@ use crate::{Result, i16_le, u16_le, u32_le};
 
 pub const SIZE: usize = 0x1d3c;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Objective {
     ReachLord,
     Assassinate,
@@ -32,7 +32,7 @@ impl Objective {
         if self == Self::ProtectPrincess { 3 } else { 2 }
     }
 }
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Point {
     pub x: i16,
     pub z: i16,
@@ -49,29 +49,29 @@ impl Point {
         ]
     }
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Cell {
     pub ground: u8,
     pub ornament: u8,
 }
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Waypoint {
     pub point: Point,
     pub facing: i16,
     pub wait: i16,
 }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Placement {
     pub kind: i16,
     pub point: Point,
     pub route: Vec<Waypoint>,
 }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Record {
     pub ticks: i32,
     pub name: String,
 }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Mission {
     pub title: String,
     pub author: String,

@@ -3,7 +3,7 @@ use crate::visuals::{models::Material, vegetation::Kind};
 use glam::Vec3;
 use std::collections::BTreeMap;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Canopy {
     pub min: Vec3,
     pub max: Vec3,

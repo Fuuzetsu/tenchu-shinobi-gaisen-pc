@@ -1,6 +1,7 @@
 use super::{Hit, Surfaces, Vec3, point};
 use std::collections::BTreeMap;
 use tenchu_core::game::Game;
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Previous {
     position: Vec3,
     distance: f32,
@@ -12,7 +13,7 @@ pub struct Contact {
     pub hit: Hit,
     pub strength: f32,
 }
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize, Clone)]
 pub struct Tracker {
     actors: BTreeMap<usize, Previous>,
 }

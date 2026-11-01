@@ -6,7 +6,7 @@ pub const CONFLICT: u16 = 0x8000;
 pub const NO_CULL: u16 = 2;
 pub type ModelId = usize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub parent: Option<ModelId>,
     pub local: Matrix,
@@ -17,7 +17,7 @@ pub struct Model {
     pub clip: [i16; 3],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Scene {
     pub models: Vec<Model>,
     pub epoch: u32,

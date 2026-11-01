@@ -18,6 +18,7 @@ use tenchu_assets::{
     game::GameAssets,
 };
 use tenchu_core::{audio::Sound, game::Game};
+use web_time::Instant;
 
 #[cfg(test)]
 mod tests;
@@ -35,9 +36,66 @@ pub struct Audio {
     mission_track: Option<Track>,
     current_track: Option<Track>,
     ready_track: Option<Track>,
+    playhead: f64,
+    playhead_updated: Instant,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct State {
+    current: Option<Track>,
+    mission: Option<Track>,
+    playhead: f64,
 }
 
 impl Audio {
+    pub fn capture_state(&self) -> State {
+        State {
+            current: self.current_track.clone(),
+            mission: self.mission_track.clone(),
+            playhead: self.music_position(),
+        }
+    }
+
+    pub fn restore_state(
+        &mut self,
+        campaign: &Campaign,
+        catalog: Catalog,
+        bank: Bank,
+        state: Option<State>,
+    ) {
+        self.catalog = catalog;
+        self.output.send(Command::Clear);
+        self.output.send(Command::Bank(Arc::new(bank)));
+        self.screen = Some(discriminant(&campaign.screen));
+        self.fast_forward = false;
+        self.volume(self.volume);
+        self.mission_track = state.as_ref().and_then(|s| s.mission.clone());
+        let playhead = state.as_ref().map_or(0.0, |s| s.playhead);
+        self.track(state.and_then(|s| s.current));
+        self.playhead = if playhead.is_finite() {
+            playhead.max(0.0)
+        } else {
+            0.0
+        };
+    }
+
+    fn music_position(&self) -> f64 {
+        self.playhead
+            + if (!self.paused || self.music_while_paused)
+                && !self.fast_forward
+                && self.ready_track.is_some()
+            {
+                self.playhead_updated.elapsed().as_secs_f64()
+            } else {
+                0.0
+            }
+    }
+
+    fn update_playhead(&mut self) {
+        self.playhead = self.music_position();
+        self.playhead_updated = Instant::now();
+    }
+
     pub fn preferences(&self, preferences: &crate::frontend::Preferences) {
         #[cfg(target_arch = "wasm32")]
         {
@@ -93,6 +151,8 @@ impl Audio {
             mission_track: None,
             current_track: None,
             ready_track: None,
+            playhead: 0.0,
+            playhead_updated: Instant::now(),
         };
         audio.reload(assets, &campaign.game)?;
         audio.screen(&campaign.screen);
@@ -124,6 +184,8 @@ impl Audio {
     }
 
     fn track(&mut self, track: Option<Track>) {
+        self.playhead = 0.0;
+        self.playhead_updated = Instant::now();
         self.ready_track = None;
         self.current_track = track.clone();
         if self.fast_forward {
@@ -209,6 +271,7 @@ impl Audio {
 
     pub fn pause(&mut self, paused: bool, music_while_paused: bool) {
         if self.paused != paused || self.music_while_paused != music_while_paused {
+            self.update_playhead();
             self.paused = paused;
             self.music_while_paused = music_while_paused;
             self.output.send(Command::Pause {
@@ -234,6 +297,7 @@ impl Audio {
         if self.fast_forward == enabled {
             return;
         }
+        self.update_playhead();
         self.fast_forward = enabled;
         self.output.send(output::Command::Clear);
         if enabled {
@@ -247,6 +311,7 @@ impl Audio {
     }
 
     pub fn poll(&mut self) {
+        self.update_playhead();
         if let Some(result) = self.loader.poll() {
             self.ready_track = self.current_track.clone();
             match result {
@@ -259,6 +324,7 @@ impl Audio {
                         );
                     }
                     self.output.send(output::Command::Music(Some(clip), repeat));
+                    self.output.send(output::Command::SeekMusic(self.playhead));
                 }
                 Err(error) => eprintln!("Audio: {error}"),
             }

@@ -15,7 +15,7 @@ pub const CIRCLE: u16 = 0x0020;
 pub const CROSS: u16 = 0x0040;
 pub const SQUARE: u16 = 0x0080;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Pad {
     pub held: u16,
     pub previous: u16,

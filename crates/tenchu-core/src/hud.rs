@@ -11,7 +11,7 @@ pub(crate) struct Context<'a> {
     pub drawing: &'a mut Drawing,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Sprite {
     pub image: Image,
     pub origin: [i16; 2],
@@ -46,7 +46,7 @@ impl Sprite {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct LifeBar {
     pub actor: usize,
     pub health: i16,
@@ -54,7 +54,7 @@ pub struct LifeBar {
     pub time: i16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Hud {
     pub map: map::Map,
     pub selected: Option<Kind>,

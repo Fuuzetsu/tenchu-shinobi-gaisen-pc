@@ -11,6 +11,7 @@ use tenchu_assets::{
 use wasm_bindgen::prelude::*;
 
 mod artwork;
+pub mod savestate;
 pub(crate) use artwork::{file as pack_file, manifest as pack_manifest};
 
 #[wasm_bindgen(module = "/web/host.js")]

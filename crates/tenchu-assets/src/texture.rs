@@ -13,7 +13,9 @@ pub fn rgba8(word: u16) -> [u8; 4] {
     [r, g, b, alpha]
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct Image {
     pub page: u16,
     pub palette: u16,
@@ -33,14 +35,14 @@ impl Image {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScrollingImage {
     pub image: Image,
     pub source: [u16; 2],
     pub offset: [u16; 2],
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Vram {
     pub words: Vec<u16>,
     pub revision: u64,

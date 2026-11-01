@@ -2,7 +2,7 @@ use crate::{Result, executable::Executable, i16_le, short3};
 
 pub type Pose = [[i16; 3]; 4];
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CameraTables {
     pub ordinary: Pose,
     pub critical: [Pose; 4],

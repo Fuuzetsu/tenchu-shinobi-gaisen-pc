@@ -3,14 +3,14 @@ use crate::math::Position;
 use crate::{Result, actor::Context};
 use std::num::NonZeroU8;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub enum Flight {
     Arc(Arc),
     #[default]
     Rolling,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Arc {
     pub start: Position,
     pub end: Position,

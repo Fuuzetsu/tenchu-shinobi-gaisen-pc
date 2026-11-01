@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct TextureScroll {
     pub offset: [i16; 2],
     pub velocity: [i16; 2],
@@ -8,7 +8,7 @@ pub struct TextureScroll {
     pub source: [u16; 2],
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct TextureMove {
     pub source: [u16; 4],
     pub destination: [u16; 2],

@@ -10,6 +10,7 @@ mod playback;
 mod randomizer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod retail;
+mod savestate;
 mod settings_reset;
 #[cfg(test)]
 mod tests;
@@ -721,6 +722,15 @@ impl ApplicationHandler for Application {
                     }
                     return;
                 }
+                if event.state == ElementState::Pressed
+                    && matches!(code, KeyCode::F11 | KeyCode::F12)
+                {
+                    if let Err(error) = self.state_action(code == KeyCode::F11) {
+                        self.state_notice(error);
+                    }
+                    self.update_view();
+                    return;
+                }
                 if event.state == ElementState::Pressed && code == KeyCode::F8 {
                     let previous = self.settings.clone();
                     self.settings.retro = !self.settings.retro;
@@ -838,6 +848,8 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::RedrawRequested => {
+                #[cfg(target_arch = "wasm32")]
+                self.poll_state();
                 #[cfg(target_arch = "wasm32")]
                 crate::web::prepare_language(
                     &self.assets,

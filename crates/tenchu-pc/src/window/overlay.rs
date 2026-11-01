@@ -443,9 +443,13 @@ impl super::Application {
         if edits.is_empty() && was_open == self.menu.open {
             return;
         }
-        let previous = self.settings.clone();
+        let mut previous = self.settings.clone();
         for edit in edits {
             self.menu.notice.clear();
+            let restored = matches!(
+                edit,
+                Edit::Change(crate::settings::menu::Item::LoadState, _)
+            );
             let result = match edit {
                 Edit::Change(item, steps) => self.apply_item(item, steps),
                 Edit::Preset(choice) => self.presets.library.apply(choice, &mut self.settings),
@@ -481,6 +485,9 @@ impl super::Application {
             };
             if let Err(error) = result {
                 self.menu.notice = error;
+            }
+            if restored {
+                previous = self.settings.clone();
             }
         }
         self.apply_settings(&previous);

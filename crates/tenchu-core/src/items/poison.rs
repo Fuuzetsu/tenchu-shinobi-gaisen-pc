@@ -3,7 +3,7 @@ use crate::actor::State as ActorState;
 use crate::ids::*;
 use crate::math::Position;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Poison {
     pub eater: Option<usize>,
     pub original_think: Option<crate::ai::programs::Idle>,

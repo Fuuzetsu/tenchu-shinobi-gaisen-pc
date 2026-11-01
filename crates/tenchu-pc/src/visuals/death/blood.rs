@@ -9,12 +9,13 @@ use tenchu_core::{
     terrain::Cursor,
 };
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Presented {
     source: ModelId,
     effects: Effects,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(super) struct Blood {
     presented: Arc<Presented>,
     random: Random,

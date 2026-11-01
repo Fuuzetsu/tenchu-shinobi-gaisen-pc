@@ -2,7 +2,7 @@ use super::*;
 use crate::collision;
 use crate::math::Position;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Decoy {
     pub health: u8,
     pub player: usize,

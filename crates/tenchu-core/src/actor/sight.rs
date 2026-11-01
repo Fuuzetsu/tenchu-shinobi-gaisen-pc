@@ -18,7 +18,7 @@ struct Query {
     alert: i32,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Detection {
     Gone,
     Unseen,
@@ -40,7 +40,7 @@ impl Detection {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Sight {
     pub distance: i32,
     pub direction: i16,

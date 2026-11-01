@@ -2,7 +2,7 @@ use super::*;
 use crate::math::Position;
 use crate::{camera::Mode, ids::MOT_ITEM_KAENGEKI, input};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Breath {
     pub origin: Position,
     pub remaining: u8,

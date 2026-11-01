@@ -7,7 +7,7 @@ use crate::{
 };
 use tenchu_assets::weapon::kind::*;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Combat {
     pub death_sound: Option<usize>,
     pub life_bars: Vec<(usize, i16, i16)>,

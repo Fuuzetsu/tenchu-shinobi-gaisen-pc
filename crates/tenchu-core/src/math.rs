@@ -3,6 +3,7 @@ use crate::Result;
 use tenchu_assets::executable::MathTables;
 pub use vector::{Position, Vector3};
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Math {
     pub tables: MathTables,
 }
@@ -185,7 +186,7 @@ impl Math {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Matrix {
     pub rotation: [[i16; 3]; 3],
     pub translation: Position,

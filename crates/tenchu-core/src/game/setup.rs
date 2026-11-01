@@ -9,7 +9,7 @@ use crate::{
     terrain,
 };
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Statistics {
     pub citizens: i16,
     pub enemies: i16,

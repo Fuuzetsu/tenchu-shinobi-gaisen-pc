@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::Position;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Lightning {
     pub start: Position,
     pub rotation: [i16; 3],

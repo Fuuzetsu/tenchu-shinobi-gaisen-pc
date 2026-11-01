@@ -77,7 +77,7 @@ pub enum Processor {
     Teleport,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Contact {
     pub class: i16,
     pub paused: bool,
@@ -85,7 +85,7 @@ pub struct Contact {
     pub offset_y: i16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Item {
     pub model: ModelId,
     pub kind: Kind,
@@ -141,7 +141,7 @@ pub(crate) struct Request {
     pub end: Position,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Items {
     pub wall_item: Option<Kind>,
     pub slots: Vec<Item>,

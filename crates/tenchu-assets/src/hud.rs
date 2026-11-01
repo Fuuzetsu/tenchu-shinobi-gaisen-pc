@@ -1,6 +1,6 @@
 use crate::{Result, executable::Executable, i16_le, u16_le, u32_le};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct MapPlacement {
     pub divisor: i32,
     pub rotation: i32,
@@ -21,7 +21,7 @@ impl MapPlacement {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct LifeStyle {
     pub base: u16,
     pub scale: i16,

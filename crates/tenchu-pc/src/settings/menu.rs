@@ -4,6 +4,9 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    StateSlot,
+    SaveState,
+    LoadState,
     CameraRelative,
     AlignAim,
     MouseSensitivity,
@@ -232,6 +235,8 @@ impl Item {
             Self::Reset
                 | Self::RecenterOrbit
                 | Self::Randomizer
+                | Self::SaveState
+                | Self::LoadState
                 | Self::GiveItems
                 | Self::ClearItems
                 | Self::ClearBlood
@@ -1626,6 +1631,24 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     s.reinforcement_limit.to_string()
                 },
                 "All-active mode only: stop calling extra guards at this total actor count, including the player and corpses. 0 = Unlimited. Existing actors and civilian replacements are kept. Ends recording.",
+            ),
+            (
+                Item::StateSlot,
+                "Savestate slot",
+                (d.state_slot + 1).to_string(),
+                "Five separate mid-mission slots. F11 saves; F12 loads. Same game version required.",
+            ),
+            (
+                Item::SaveState,
+                "Save state / F11",
+                "Save".into(),
+                "Replace the selected slot. Includes RNG, enemies, items, effects and blood; does not change campaign progress saves.",
+            ),
+            (
+                Item::LoadState,
+                "Load state / F12",
+                "Load".into(),
+                "Restores gameplay and pauses. F3 resumes. Ends input recording; disables TRIAL records. Keeps current graphics preferences.",
             ),
             (
                 Item::Screenshot,

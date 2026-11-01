@@ -2,7 +2,7 @@ use super::*;
 use crate::math::Math;
 use crate::math::Position;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Bolt {
     pub start: Position,
     pub end: Position,

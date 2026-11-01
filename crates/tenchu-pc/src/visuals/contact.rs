@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use tenchu_core::{effects::Effect, game::Game};
 
 const LIMIT: usize = 2048;
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum Kind {
     Petal,
     Leaf,
@@ -21,6 +21,7 @@ enum Kind {
     Drop,
     Spark,
 }
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Particle {
     kind: Kind,
     position: Vec3,
@@ -34,21 +35,24 @@ struct Particle {
     ground: Option<Vec3>,
     origin: Vec3,
 }
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Ripple {
     position: Vec3,
     age: f32,
     strength: f32,
 }
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct WetMark {
     vertices: Vec<Vertex>,
     age: f32,
 }
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Flash {
     position: Vec3,
     age: f32,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Contact {
     tick: Option<u64>,
     seed: u32,

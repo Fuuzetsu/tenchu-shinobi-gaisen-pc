@@ -5,7 +5,7 @@ use tenchu_assets::script::Event;
 #[cfg(test)]
 mod tests;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Outcome {
     #[default]
     Running,
@@ -13,20 +13,20 @@ pub enum Outcome {
     GameOver,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 struct Slot {
     event: usize,
     target: usize,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 struct Pending {
     event: usize,
     target_kind: i16,
     clock: i32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Events {
     pub time: i32,
     pub outcome: Outcome,

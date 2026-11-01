@@ -3,7 +3,7 @@ pub use command::{ActorCommand, CameraCommand, Command, EffectCommand, Pan, Plac
 
 use crate::{ReadAt, Result, game::GameAssets, i16_le, short3, slice, u32_le};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Language {
     #[default]
     English,
@@ -32,7 +32,7 @@ impl Language {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Event {
     pub id: u8,
     pub sequence: u8,
@@ -71,7 +71,7 @@ pub fn events(data: &[u8]) -> Result<Vec<Event>> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Cutscenes {
     pub commands: Vec<Command>,
     data: Vec<u8>,
@@ -126,6 +126,7 @@ impl Cutscenes {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Scripts {
     pub language: Language,
     pub events: Vec<Event>,

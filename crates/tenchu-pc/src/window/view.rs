@@ -1,5 +1,7 @@
+mod state;
 use super::*;
 use crate::visuals::{lights::Emitters, models::Models, pack::Pack};
+pub(super) use state::State;
 
 #[derive(Clone, Copy, PartialEq)]
 struct ModelOptions {

@@ -6,6 +6,7 @@ use crate::{
 };
 mod japanese;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Font {
     pub image: Image,
     widths: Vec<u8>,

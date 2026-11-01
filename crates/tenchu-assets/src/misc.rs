@@ -2,13 +2,13 @@ use crate::{
     ReadAt, Result, executable::Executable, game::GameAssets, i16_le, texture::Vram, u32_le,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Hinged {
     pub models: [Option<usize>; 2],
     pub width: i16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     Fire,
     Puff([i32; 2]),
@@ -34,14 +34,14 @@ pub enum Kind {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Spawn {
     pub record: usize,
     pub position: [i32; 3],
     pub kind: Kind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Misc {
     pub spawns: Vec<Spawn>,
     pub doors: Vec<Hinged>,

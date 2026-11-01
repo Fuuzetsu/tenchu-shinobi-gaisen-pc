@@ -198,7 +198,9 @@ impl Application {
             if let Err(error) = self.apply_item(item, direction) {
                 self.menu.notice = error;
             }
-            self.apply_settings(&previous);
+            if !matches!(item, Item::LoadState) {
+                self.apply_settings(&previous);
+            }
         }
         self.release_pointer();
         self.sync_pause();
@@ -343,6 +345,12 @@ impl Application {
             return Ok(());
         }
         match item {
+            Item::StateSlot => {
+                self.debug.state_slot =
+                    (i32::from(self.debug.state_slot) + direction).rem_euclid(5) as u8
+            }
+            Item::SaveState => self.state_action(true)?,
+            Item::LoadState => self.state_action(false)?,
             Item::RecenterOrbit => self.recenter_orbit(),
             Item::Randomizer => self.toggle_randomizer(),
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,

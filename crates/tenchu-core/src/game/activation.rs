@@ -10,7 +10,7 @@ use crate::{
     terrain,
 };
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Activation {
     pub raw_budget: i16,
     pub budget: i16,

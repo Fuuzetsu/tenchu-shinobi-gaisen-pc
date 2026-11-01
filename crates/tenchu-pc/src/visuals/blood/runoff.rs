@@ -2,6 +2,7 @@ use super::*;
 
 const LIMIT: usize = 32;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(super) struct Runoff {
     part: Option<Part>,
     position: Vec3,

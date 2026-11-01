@@ -11,6 +11,7 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Setup {
     pub mission: Mission,
     pub appearance: Vec<i16>,

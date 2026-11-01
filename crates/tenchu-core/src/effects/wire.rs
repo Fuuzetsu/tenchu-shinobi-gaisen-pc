@@ -2,7 +2,7 @@ use super::*;
 use crate::math::Math;
 use crate::math::Position;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FlyWire {
     pub start: Position,
     pub end: Position,
@@ -15,7 +15,7 @@ pub struct FlyWire {
     rotation: [[i16; 3]; 3],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Wire {
     pub lines: Vec<([[i16; 2]; 2], i16)>,
     pub points: Vec<Position>,

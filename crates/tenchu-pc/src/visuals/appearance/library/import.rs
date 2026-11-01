@@ -1,7 +1,7 @@
 use super::*;
 use tenchu_core::ids::MOT_NORMAL;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Imported {
     pub actor: tenchu_assets::stage::imports::Actor,
     pub voice: Option<i16>,

@@ -26,7 +26,7 @@ use crate::{
 };
 use tenchu_assets::executable::Command;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Halt {
     #[default]
     Running,
@@ -44,7 +44,7 @@ impl Halt {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Difficulty {
     Easy,
     #[default]
@@ -95,7 +95,7 @@ impl Difficulty {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Brain {
     pub chase: [i32; 2],
     pub mode: u8,
@@ -104,7 +104,7 @@ pub struct Brain {
     pub timer: u8,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Recruitment {
     #[default]
     Available,
@@ -112,7 +112,7 @@ pub enum Recruitment {
     Reinforcement,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Intelligence {
     pub difficulty: Difficulty,
     pub sight_percent: u16,

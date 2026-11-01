@@ -3,7 +3,7 @@ use crate::math::Position;
 use crate::{Result, ids::ATTR_WEAPON_DRAWN, math::Matrix, scene::ModelId};
 use tenchu_assets::weapon::kind::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Weapon {
     pub kind: i16,
     pub model: ModelId,

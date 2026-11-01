@@ -97,7 +97,7 @@ fn sample_with(
     Ok(evaluate(a, b, tangent, table[fraction as usize]))
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Pose {
     pub translation: Vec<Position>,
     pub rotation: Vec<[i16; 3]>,
@@ -208,7 +208,7 @@ impl Pose {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Motion {
     pub action: i16,
     pub clip: Option<usize>,

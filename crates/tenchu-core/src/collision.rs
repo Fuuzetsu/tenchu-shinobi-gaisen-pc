@@ -11,13 +11,13 @@ pub const SOFT: i16 = 8;
 const LIVE: u8 = 0x80;
 const CONSUMED: u8 = 0x40;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Owner {
     Actor(usize),
     Door,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Slot {
     pub model: Option<ModelId>,
     pub owner: Option<Owner>,
@@ -57,7 +57,7 @@ impl Default for Slot {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Collision {
     pub slots: Vec<Slot>,
     pub len: usize,

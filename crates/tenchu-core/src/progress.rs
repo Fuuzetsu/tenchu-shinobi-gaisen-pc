@@ -15,14 +15,14 @@ pub const INFINITE: u8 = 255;
 pub const STAGES: usize = 11;
 pub const LAYOUTS: usize = 3;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrainingRecord {
     pub character: u8,
     pub grade: u8,
     pub clock: i32,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Progress {
     pub stock: [[u8; ITEMS]; 2],
     pub records: [[[Record; LAYOUTS]; STAGES]; 2],

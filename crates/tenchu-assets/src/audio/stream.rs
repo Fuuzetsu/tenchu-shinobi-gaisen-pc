@@ -1,7 +1,7 @@
 use super::adpcm::Xa;
 use crate::{ReadAt, Result, disc::Disc};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Track {
     pub path: String,
     pub channel: u8,

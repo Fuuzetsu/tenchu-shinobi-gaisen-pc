@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::Position;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Snow {
     pub position: Position,
     pub velocity: [i16; 3],

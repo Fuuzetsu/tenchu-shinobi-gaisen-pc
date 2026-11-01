@@ -6,5 +6,7 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
+serde.workspace = true
+serde-big-array.workspace = true
 sha2.workspace = true
 encoding_rs.workspace = true

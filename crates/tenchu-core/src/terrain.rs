@@ -57,7 +57,7 @@ pub fn passage(
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub row: usize,
     pub area: usize,
@@ -76,7 +76,7 @@ impl Cursor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Probe {
     pub level: i32,
     pub height: i32,

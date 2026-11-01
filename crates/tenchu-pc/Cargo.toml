@@ -20,13 +20,14 @@ png.workspace = true
 gilrs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+postcard.workspace = true
+flate2 = "1"
 sha2.workspace = true
 web-time = "1.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 cpal.workspace = true
 pollster.workspace = true
-flate2 = "1"
 rfd = "0.17.2"
 tar = { version = "0.4", default-features = false }
 ruzstd = "0.9"

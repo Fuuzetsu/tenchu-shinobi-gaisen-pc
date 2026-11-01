@@ -5,13 +5,13 @@ pub struct Executable<'a> {
     base: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct MotionRegistration {
     pub action: i16,
     pub clip: i16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Character {
     pub kind: i16,
     pub weapon: i16,
@@ -23,26 +23,29 @@ pub struct Character {
     pub motions: Vec<MotionRegistration>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct MathTables {
     pub trig: Vec<[i16; 2]>,
     pub atan: Vec<i16>,
     pub sqrt: Vec<i16>,
     pub normal: Vec<i16>,
+    #[serde(with = "serde_big_array::BigArray")]
     pub hermite: [[i16; 4]; 33],
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct BodyTables {
     pub reflect_angle: [i16; 16],
     pub reflect_move: [[i16; 2]; 16],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Command {
     pub id: u16,
     pub inputs: Vec<u16>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct DeathEvent {
     pub frame: i16,
     pub action: i16,
@@ -269,7 +272,7 @@ impl<'a> Executable<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct StoryActor {
     pub kind: i16,
     pub position: [i32; 3],

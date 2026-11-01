@@ -5,7 +5,7 @@ use crate::{Result, math::Math};
 #[path = "smoothing_tests.rs"]
 mod tests;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(super) struct Smooth {
     shift: i16,
     acceleration: i16,

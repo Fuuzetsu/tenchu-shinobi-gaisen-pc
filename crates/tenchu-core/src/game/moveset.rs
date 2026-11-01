@@ -9,7 +9,7 @@ pub struct Options {
     pub no_idle_taunts: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct State {
     pub kind: Option<i16>,
     pub options: Options,

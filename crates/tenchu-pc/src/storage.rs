@@ -20,6 +20,8 @@ pub enum UserFile {
     Randomizer,
     Trials,
     #[cfg(not(target_arch = "wasm32"))]
+    States,
+    #[cfg(not(target_arch = "wasm32"))]
     LastDisc,
 }
 
@@ -78,6 +80,7 @@ impl UserFile {
                 "XDG_DATA_HOME",
                 ".local/share",
             ),
+            Self::States => ("states", "TENCHU_STATES", "XDG_DATA_HOME", ".local/share"),
             Self::LastDisc => (
                 "last-disc.json",
                 "TENCHU_LAST_DISC",

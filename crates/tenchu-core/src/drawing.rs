@@ -6,7 +6,7 @@ use crate::{
 };
 use tenchu_assets::stage::MissionAssets;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Step {
     #[default]
     Normal,
@@ -29,7 +29,7 @@ impl Default for Cadence {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Drawing {
     pub step: Step,
     pub fog: bool,

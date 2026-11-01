@@ -27,7 +27,7 @@ const CONTENTS: [(&str, u64, &str); 3] = [
     ),
 ];
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Stage {
     pub id: usize,
     pub order: i32,

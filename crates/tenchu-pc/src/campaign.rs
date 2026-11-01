@@ -67,6 +67,7 @@ pub struct Campaign {
     pub randomized: Option<Randomized>,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Randomized {
     pub run: crate::randomizer::Run,
     pub plan: crate::randomizer::Plan,

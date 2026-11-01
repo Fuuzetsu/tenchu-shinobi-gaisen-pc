@@ -1,19 +1,19 @@
 use crate::Result;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Placement {
     pub position: [i16; 3],
     pub yaw: i16,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ActorCommand {
     Activate { placement: Option<Placement> },
     Hide,
     Animate { motion: i16, loops: i16, next: i16 },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CameraCommand {
     AroundTarget { yaw_offset: i16, distance: i16 },
     Position([i16; 3]),
@@ -23,7 +23,7 @@ pub enum CameraCommand {
     Unchanged,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Pan {
     #[default]
     None,
@@ -55,14 +55,14 @@ impl Pan {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EffectCommand {
     Blood { position: [i16; 3], count: i16 },
     Fade { color: [u8; 3], duration: i16 },
     None,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Command {
     Sequence { id: i16, music: i16 },
     Wait { until: i16 },

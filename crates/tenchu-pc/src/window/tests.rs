@@ -4,6 +4,7 @@ use std::time::Duration;
 mod actors;
 mod camera;
 mod death;
+mod savestate;
 
 pub(super) fn application(options: Options) -> Application {
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");

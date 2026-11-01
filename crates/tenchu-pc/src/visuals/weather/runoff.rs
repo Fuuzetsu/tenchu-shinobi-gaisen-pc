@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(super) struct Eave {
     position: Vec3,
     velocity: Vec3,

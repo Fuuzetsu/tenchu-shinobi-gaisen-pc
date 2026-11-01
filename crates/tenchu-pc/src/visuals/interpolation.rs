@@ -6,7 +6,7 @@ use tenchu_core::{
     math::{Matrix, Position},
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum Part {
     TrialCover(usize),
     Actor {
@@ -85,7 +85,7 @@ pub struct History {
     current: Option<Snapshot>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Frame {
     parts: BTreeMap<Part, Matrix>,
     hinges: Vec<(usize, Matrix, Matrix)>,

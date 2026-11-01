@@ -18,7 +18,7 @@ pub struct Run {
     pub round: u32,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Plan {
     pub mission: usize,
     pub character: i16,

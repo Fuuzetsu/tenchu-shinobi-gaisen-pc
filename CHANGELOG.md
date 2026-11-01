@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add five persistent mid-mission savestate slots under **F1 → Simulation**.
+  F11 saves and F12 loads; loading pauses until F3. Restore enemies, RNG, items,
+  cutscenes and accumulated visual effects, including randomized and edited
+  missions. Slots survive restarts, stay separate from campaign saves and check
+  the game version and file integrity. Browser slots persist in site storage.
+
 - Add **F1 → Teleport / actor → Place / edit mission actors**: search all disc
   models, place extra actors with their own AI, motions and voices, or move/remove
   ordinary actors. Pick a floor point or enter coordinates and facing. Edits last

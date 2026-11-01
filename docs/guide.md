@@ -1315,6 +1315,33 @@ cutscenes, muting audio and yielding periodically for input/rendering. Every
 logic tick runs; cutscene-only accelerated backlog is discarded
 when control returns. Fast-forward mutes sound and resumes background music at
 ordinary speed; releasing it mid-dialogue resumes speech at the next cue.
+**F1 → Simulation → Savestate slot** selects one of five persistent mid-mission
+slots. **Save state / F11** overwrites that slot; **Load state / F12** restores it
+and pauses until **F3**. You can load from the title or launcher after restarting.
+Loading ends input recording and makes a TRIAL attempt ineligible for records.
+Use F1 buttons if the browser reserves the function keys.
+
+States restore the complete simulation, including RNG, AI, inventory, live items,
+cutscene position, edited/imported actors and randomizer context. They also retain
+blood, snow, footprints and other accumulated effects. Gameplay settings follow
+the state; current graphics settings and installed artwork/model packs remain in
+use. The view returns to the player camera. Music/dialogue resumes near its saved
+position; already-playing one-shot sounds and cosmetic hair/waterfall motion
+restart. Loading itself does not write campaign progress; subsequent normal
+mission completion or manual saving can do so.
+
+Desktop files are `states/slot-1.tstate` through `slot-5.tstate` below the game
+data directory: `$XDG_DATA_HOME/tenchu-shinobi-gaisen-pc` (normally
+`~/.local/share/tenchu-shinobi-gaisen-pc`) on Linux,
+`%APPDATA%/tenchu-shinobi-gaisen-pc` on Windows, and
+`~/Library/Application Support/tenchu-shinobi-gaisen-pc` on macOS.
+`TENCHU_STATES` overrides the directory. The format is portable between platforms
+running the **same game version**; incompatible or damaged files are rejected.
+States contain runtime data from your disc and should stay outside source/assets
+releases. Browser slots live in IndexedDB for that site address, survive closing
+the browser, and are removed by clearing site data. The campaign **Export save**
+button does not include these separate slots.
+
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
 **F10** toggles a clean photo view, hiding HUD, captions, FPS and inspection
 helpers while preserving world effects. Combine it with F2/F3 for a paused

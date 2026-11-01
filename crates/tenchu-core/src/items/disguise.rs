@@ -5,7 +5,7 @@ use crate::{
     ids::{MOT_ATTACK_STEALTH_BACK, MOT_ITEM_KAENGEKI},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 struct Snapshot {
     kind: i16,
     height: i16,
@@ -47,7 +47,7 @@ impl Snapshot {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub(super) struct Disguise {
     snapshots: Option<[Snapshot; 2]>,
     active: Option<usize>,

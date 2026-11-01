@@ -22,6 +22,8 @@ fn death_observation_preserves_audio_until_confirmation() {
             mission_track: None,
             current_track: None,
             ready_track: None,
+            playhead: 0.0,
+            playhead_updated: Instant::now(),
         };
         game.step(0).unwrap();
         audio.tick(&game).unwrap();

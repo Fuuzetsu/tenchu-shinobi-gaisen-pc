@@ -47,7 +47,7 @@ pub mod kind {
     pub const KATAYUMI: i16 = 0x35;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Hitbox {
     pub kind: i16,
     pub center: [i16; 3],
@@ -55,7 +55,7 @@ pub struct Hitbox {
     pub trail: [[i16; 3]; 2],
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Attack {
     pub clip: i16,
     pub power: i16,
@@ -67,6 +67,7 @@ pub struct Attack {
     pub trail_end: i16,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Weapons {
     pub models: BTreeMap<i16, Vec<Geometry>>,
     pub names: BTreeMap<i16, String>,

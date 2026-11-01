@@ -1,7 +1,7 @@
 use crate::settings::Weather;
 use tenchu_audio::ThunderCue;
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize, Clone)]
 pub(super) struct Storm {
     seed: u32,
     remaining: Option<u16>,
@@ -9,6 +9,7 @@ pub(super) struct Storm {
     delay: u16,
     strength: f32,
     pan: f32,
+    #[serde(skip)]
     pub thunder: Option<ThunderCue>,
 }
 

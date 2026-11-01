@@ -18,6 +18,7 @@ __pycache__/
 *.[vV][oO][lL]
 *.trace
 *.State
+*.tstate
 *.ram
 *.ram.gz
 tenchu-report-*.json

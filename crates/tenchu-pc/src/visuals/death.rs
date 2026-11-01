@@ -5,12 +5,14 @@ use tenchu_core::{actor::State, game::Game, ids::*, math::Matrix, motion::Motion
 
 pub mod blood;
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Deaths {
     clips: Vec<Clip>,
     death: Option<Death>,
     pub frame: Option<Frame>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Death {
     started: u64,
     tick: u64,

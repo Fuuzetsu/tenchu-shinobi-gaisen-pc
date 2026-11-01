@@ -33,6 +33,7 @@ use tenchu_assets::{
     stage::MissionAssets,
 };
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Game {
     pub trial: Option<trial::State>,
     pub mission: MissionAssets,

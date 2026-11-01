@@ -16,7 +16,7 @@ use tenchu_assets::{
     stage::MissionAssets,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Object {
     pub position: Position,
     pub kind: Kind,
@@ -28,7 +28,7 @@ pub struct Object {
     pub speed: i16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Misc {
     pub objects: Vec<Object>,
     pub models: Vec<(usize, Matrix)>,

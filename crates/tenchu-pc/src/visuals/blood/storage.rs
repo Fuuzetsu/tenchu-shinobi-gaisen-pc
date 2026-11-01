@@ -5,12 +5,13 @@ pub(super) const VERTEX_LIMIT: usize = 4_194_304;
 const PAGE_MARKS: usize = 128;
 const MARK_VERTEX_LIMIT: usize = 3072;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Page {
     entries: VecDeque<(u64, usize, Kind)>,
     vertices: Arc<Vec<Vertex>>,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize, Clone)]
 pub(super) struct Marks {
     pages: VecDeque<Page>,
     pub attached: VecDeque<(u64, Mark)>,

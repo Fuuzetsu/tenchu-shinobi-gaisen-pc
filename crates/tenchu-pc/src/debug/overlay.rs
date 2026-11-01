@@ -163,6 +163,15 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
         xray: debug.xray,
     };
     let mut labels = Vec::new();
+    if let Some((message, at)) = &debug.notice
+        && at.elapsed().as_secs() < 5
+    {
+        labels.push(Label(
+            Anchor::BottomLeft([10.0, 72.0]),
+            message.clone(),
+            [0.9, 0.95, 1.0],
+        ));
+    }
     if debug.collision || debug.collision_only {
         for surface in &debug.surfaces {
             let flags = DOUBLE_SIDED | DEBUG | if debug.xray { XRAY } else { 0 };

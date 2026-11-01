@@ -12,7 +12,7 @@ pub struct Score {
 
 pub const CLOCK_MAX: i32 = 107_970;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Record {
     pub bosses: u8,
     pub enemies: u8,

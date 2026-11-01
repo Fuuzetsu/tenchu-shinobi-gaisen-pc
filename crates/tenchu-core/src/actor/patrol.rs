@@ -1,12 +1,12 @@
 use crate::math::Position;
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Point {
     pub position: [i32; 2],
     pub range: i16,
     pub pad: u16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Patrol {
     pub points: Vec<Point>,
     pub index: usize,

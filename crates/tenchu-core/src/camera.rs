@@ -20,7 +20,7 @@ use tenchu_assets::{
     terrain::AreaMap,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Mode {
     Normal,
     Direction,
@@ -67,7 +67,7 @@ impl Mode {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Detail {
     Ordinary,
     Look,
@@ -83,7 +83,7 @@ pub struct Environment<'a> {
     pub body: &'a BodyTables,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Camera {
     pub position: Position,
     pub reference: Position,

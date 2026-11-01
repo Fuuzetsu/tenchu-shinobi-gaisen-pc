@@ -29,6 +29,43 @@ fn bank(loop_start: Option<usize>) -> Arc<Bank> {
 }
 
 #[test]
+fn seeking_restores_stream_position_across_resampling_pause_and_looping() {
+    for rate in [44100, 48000] {
+        for repeat in [false, true] {
+            for elapsed in [37, 223, 1971] {
+                let setup = || {
+                    let mut mixer = Mixer::new(rate);
+                    mixer.music(
+                        Some(Arc::new(Clip {
+                            rate: 37800,
+                            frames: (0..351).map(|i| [i * 31 - 1200, 4800 - i * 47]).collect(),
+                        })),
+                        repeat,
+                    );
+                    mixer
+                };
+                let mut uninterrupted = setup();
+                for _ in 0..elapsed {
+                    uninterrupted.frame();
+                }
+                let mut resumed = setup();
+                resumed.seek_music(f64::from(elapsed) / f64::from(rate));
+                resumed.paused = true;
+                assert_eq!(resumed.frame(), [0.0; 2]);
+                resumed.paused = false;
+                for _ in 0..1000 {
+                    let expected = uninterrupted.frame();
+                    let actual = resumed.frame();
+                    for channel in 0..2 {
+                        assert!((expected[channel] - actual[channel]).abs() < 0.00001);
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn audio_buffers_and_pauses_do_not_change_sample_order() {
     let setup = || {
         let mut mixer = Mixer::new(48000);

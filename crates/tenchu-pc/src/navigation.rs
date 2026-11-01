@@ -2,7 +2,7 @@ use crate::{debug::camera::Camera, settings::Navigation, visuals::surfaces::Surf
 use glam::{Vec2, Vec3};
 use tenchu_core::{game::Game, input, math::Position};
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Orbit {
     pub looking: bool,
     pub yaw: f32,

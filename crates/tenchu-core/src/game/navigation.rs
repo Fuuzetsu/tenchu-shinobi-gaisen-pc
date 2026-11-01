@@ -1,13 +1,13 @@
 use super::Game;
 use crate::{actor::State, camera, ids::*, math::Position};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Viewpoint {
     pub position: Position,
     pub target: Position,
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Navigation {
     pub heading: Option<i16>,
     pub camera: Option<Viewpoint>,

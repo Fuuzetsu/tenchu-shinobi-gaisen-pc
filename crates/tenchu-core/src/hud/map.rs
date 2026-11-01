@@ -4,13 +4,13 @@ use crate::math::Position;
 use crate::{items::Items, scene::Scene};
 use tenchu_assets::hud::MapPlacement;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Line {
     pub points: [[i16; 2]; 2],
     pub color: [u8; 3],
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Map {
     pub mode: u8,
     pub slide: i32,

@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Vector3<T> {
     pub x: T,
     pub y: T,

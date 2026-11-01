@@ -14,7 +14,7 @@ use crate::{
 };
 use tenchu_assets::trial::Objective;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Failure {
     PlayerDied,
     ObjectiveLost,
@@ -31,21 +31,21 @@ impl Failure {
         }
     }
 }
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Phase {
     #[default]
     Playing,
     Success(u16),
     Failure(Failure, u16),
 }
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct State {
     pub phase: Phase,
     pub elapsed: i32,
     pub focus: Option<usize>,
     pub remaining: i16,
     pub music: Option<(usize, bool)>,
-    pub notice: Option<(&'static str, u16)>,
+    pub notice: Option<(String, u16)>,
     previous: [i16; 4],
     last_trigger: Option<(i16, i16)>,
 }
@@ -293,7 +293,7 @@ impl Game {
     pub(super) fn draw_trial_hud(&mut self) {
         let setup = self.mission.trial.as_ref().unwrap();
         let state = self.trial.as_mut().unwrap();
-        if let Some((text, ticks)) = state.notice {
+        if let Some((text, ticks)) = state.notice.take() {
             state.notice = (ticks > 1).then_some((text, ticks.saturating_sub(1)));
         }
         if matches!(state.phase, Phase::Failure(Failure::Spotted, _)) {
@@ -370,7 +370,8 @@ impl Game {
                                 "Kill −5 seconds",
                                 "Civilian +30 seconds",
                                 "Spotted +10 seconds",
-                            ][i],
+                            ][i]
+                                .into(),
                             90,
                         ));
                         if i == 3 && self.mission.trial.as_ref().unwrap().mission.stealth {

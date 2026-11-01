@@ -1,12 +1,12 @@
 use crate::{Result, i16_le, relative, short3, slice, u32_le};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Key {
     pub value: [i16; 3],
     pub time: i16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Clip {
     pub id: i16,
     pub duration: i16,

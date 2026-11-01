@@ -5,7 +5,7 @@ use crate::{
     visibility,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Trail {
     pub parent: ModelId,
     pub vectors: [[i16; 3]; 2],

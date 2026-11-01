@@ -186,3 +186,26 @@ The independent PS1 references still match all 33,404 full-campaign updates,
 Mission 3 item-use and mixed-input scenarios. These comparisons import initial
 state once and apply no subsequent state corrections. This supports the
 unchanged default gameplay on those paths, not every possible route.
+
+## Persistent mid-mission states
+
+The savestate regression compares every serialized simulation field before/after
+loading and after matching inputs with explicit draw skips. It covers training
+and Missions 1–10 with both heroes, live grapple/shuriken/explosive/disguise
+items, cross-stage actors, randomizer context and TRIAL playtests. Additional
+checks cover accumulated blood/snow/contact effects and alternate death poses,
+corrupt/truncated/version-incompatible files, unchanged campaign save data, and
+audio seeking across resampling, looping and pause.
+
+Native M1 play exercised both keyboard and F1 save/load, multiple slots, moving
+and attacking after resume, and loading from the launcher after closing the
+process. `tools/test-web-savestate.mjs` checks browser movement, save/load and a
+complete browser restart using an isolated persistent profile. Its optional
+`TENCHU_NATIVE_STATE` imports a desktop slot for cross-platform checks. The
+2026-11-01 run passed with WebGPU and loaded a 64-bit Linux Ayame state at tick152
+in 32-bit WASM. These snapshots are private runtime data, not test assets in Git.
+
+The four disc-backed savestate regressions,182 ordinary workspace tests and
+strict native/WASM Clippy pass. This verifies the saved simulation and tested
+continuations; audio playheads are approximate and one-shot audio tails and
+cosmetic spring/waterfall motion are deliberately not serialized.

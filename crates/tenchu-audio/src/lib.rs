@@ -137,6 +137,13 @@ impl Mixer {
             });
     }
 
+    pub fn seek_music(&mut self, seconds: f64) {
+        if let Some(music) = &mut self.music {
+            let position = seconds.max(0.0) * f64::from(music.clip.rate);
+            music.position = if position.is_finite() { position } else { 0.0 };
+        }
+    }
+
     pub fn frame(&mut self) -> [f32; 2] {
         let clock = if self.paused {
             &mut self.pause_envelope_clock

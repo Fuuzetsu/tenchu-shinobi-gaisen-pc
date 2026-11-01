@@ -23,18 +23,20 @@ use storage::VERTEX_LIMIT;
 const WOUND_LIMIT: usize = 64;
 const DROP_LIMIT: usize = 128;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Patch {
     part: Option<Part>,
     vertices: Vec<Vertex>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum Kind {
     Ground,
     Body,
     Death { player: bool },
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Mark(Vec<Patch>, Kind);
 
 impl Mark {
@@ -43,18 +45,21 @@ impl Mark {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Wound {
     part: Part,
     position: Vec3,
     age: u16,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Pool {
     age: u16,
     seed: u32,
     mark: Mark,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Drop {
     previous: Vec3,
     position: Vec3,
@@ -62,7 +67,7 @@ struct Drop {
     life: u16,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 struct Sample {
     position: Vec3,
     mode: u8,
@@ -70,7 +75,7 @@ struct Sample {
     stained: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Blood {
     tick: Option<u64>,
     health: BTreeMap<usize, i16>,
@@ -82,6 +87,7 @@ pub struct Blood {
     pools: BTreeMap<usize, Pool>,
     dead: BTreeMap<usize, bool>,
     seed: u32,
+    #[serde(with = "crate::savestate::json")]
     settings: settings::Blood,
 }
 

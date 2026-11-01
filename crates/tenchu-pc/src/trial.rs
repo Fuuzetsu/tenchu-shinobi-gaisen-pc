@@ -89,6 +89,21 @@ pub struct Editor {
     pending: Option<Event>,
 }
 impl Editor {
+    pub fn restore_playtest(
+        &mut self,
+        assets: &GameAssets<DiscSource>,
+        mission: &Mission,
+        character: i16,
+    ) -> Result<()> {
+        self.enter(assets)?;
+        self.select(mission.clone(), Origin::Draft, assets)?;
+        self.character = character;
+        self.preview = false;
+        self.eligible = false;
+        self.open = false;
+        Ok(())
+    }
+
     pub fn new(path: PathBuf) -> Self {
         Self {
             path,
@@ -353,7 +368,7 @@ pub fn status(ctx: &egui::Context, game: &Game, preview: bool) {
                 Phase::Failure(reason, _) => { ui.colored_label(egui::Color32::LIGHT_RED, reason.label()); }
                 Phase::Playing => (),
             }
-            if let Some((text, _)) = state.notice { ui.label(text); }
+            if let Some((text, _)) = &state.notice { ui.label(text); }
         });
     });
 }

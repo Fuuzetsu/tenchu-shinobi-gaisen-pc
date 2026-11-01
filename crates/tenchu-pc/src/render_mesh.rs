@@ -46,7 +46,7 @@ pub fn original_hd_blood(flags: u32) -> bool {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
+#[derive(Clone, Copy, Pod, Zeroable, serde::Serialize, serde::Deserialize)]
 pub struct Vertex {
     pub(crate) position: [f32; 3],
     pub(crate) color: [f32; 3],

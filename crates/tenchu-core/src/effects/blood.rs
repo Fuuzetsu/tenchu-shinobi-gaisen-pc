@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::Position;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Blood {
     pub hint: Option<tenchu_assets::terrain::Node>,
     pub position: Position,
