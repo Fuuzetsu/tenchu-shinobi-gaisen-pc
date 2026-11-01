@@ -677,6 +677,18 @@
     "sharp_text": true
   },
   {
+    "id": "weapon-finishes",
+    "title": "Bloodied blades and moving metal highlights",
+    "description": "Both sides' melee hits stain their blades. Wet blood drips slowly and flies off during swings; dry traces remain. Reflective metal catches the changing sky and nearby light, while wooden grips remain matte. These are cosmetic options.",
+    "seconds": 18,
+    "mission": 2,
+    "character": 1,
+    "preset": 8,
+    "feature": "weapon-finishes",
+    "shot": "guard",
+    "sharp_text": true
+  },
+  {
     "id": "gunfire",
     "title": "Echigoya's gun: original / modern",
     "description": "The model swapper gives the player Echigoya's real shooting animation. Compare original gun sprites with a short muzzle flash, warm light, drifting smoke and hot impact sparks. Timing and damage stay the same.",

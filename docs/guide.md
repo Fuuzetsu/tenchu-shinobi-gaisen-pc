@@ -981,8 +981,26 @@ for blood spurts on hit, extra wound drips, death stars/pools, and ground spots.
 **Death pool beneath player** applies the chosen death style to the player too;
 **Stain wounded models** independently enables attached body stains. Original
 preserves retail's hit/ground/death effects, without extra wound drips or a player
-pool. Modern presets enable all four modern styles, body stains and player pools.
+pool. Modern presets enable all four modern styles, body/weapon stains and player pools.
 No external texture pack is required.
+
+**Blood on weapons** stains silver-coloured metal on both player and enemy weapons
+after successful melee hits or stealth kills. Wet blood drips slowly from the tip;
+swings shed more, reducing coverage. It dries over about a minute, leaving faint
+traces. Weapon drops stay smooth even if wound drips use an original style or are
+off, and use the selected ground-stain setting on contact. **Clear blood** clears
+weapons too. Coatings are capped at 128 weapons and share the 128 live-drop budget.
+They survive mid-mission savestates and rewind.
+
+**Metal weapon reflections** controls sky and shadow-aware light highlights from
+0–200%. Highlights change with the view, blade pose, time of day and nearby lights;
+this is not a mirror rendering of surrounding actors/buildings. Colour-based
+surface classification keeps coloured wood/grips matte and excludes natural
+claws, fists and jaws; unusual custom artwork may need different material treatment.
+Modern High enables 65% and Ultra 100%, alongside weapon blood. Original keeps both
+off. Neither requires new artwork or changes combat/RNG. Toggle either without
+rebuilding the scene. `demo --clips weapon-finishes` demonstrates them in a guard
+encounter.
 
 **Original HD** keeps the retail red spatter, star shapes and patterned pools,
 with smoother contours and color transitions reconstructed from the disc at

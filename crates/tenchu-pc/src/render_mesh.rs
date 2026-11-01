@@ -39,6 +39,8 @@ pub const UNLIT: u32 = 8388608;
 // The high byte holds foliage weights, blood presentation or snowy terrain tags.
 pub const BLOOD_HD: u32 = 1 << 24;
 pub const SNOW: u32 = 1 << 25;
+pub const WEAPON_METAL: u32 = 1 << 26;
+pub const WEAPON_COAT: u32 = 1 << 27;
 pub const WIND_WEIGHT_SHIFT: u32 = 24;
 
 pub fn original_hd_blood(flags: u32) -> bool {

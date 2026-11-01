@@ -178,6 +178,7 @@ impl Settings {
 #[serde(default)]
 pub struct Graphics {
     pub blood: Blood,
+    pub weapon_reflections: u16,
     pub shop_lighting: bool,
     pub sky: Sky,
     pub weather: Weather,
@@ -211,6 +212,7 @@ impl Default for Graphics {
     fn default() -> Self {
         Self {
             blood: Blood::default(),
+            weapon_reflections: 0,
             shop_lighting: false,
             sky: Sky::default(),
             weather: Weather::default(),
@@ -258,6 +260,7 @@ impl Graphics {
         self.surface_strength = self.surface_strength.min(100);
         self.post.validate();
         self.blood.validate();
+        self.weapon_reflections = self.weapon_reflections.min(200);
         self.sky.validate();
         self.weather.validate();
         self.water.validate();

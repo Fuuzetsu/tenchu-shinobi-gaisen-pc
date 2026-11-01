@@ -20,6 +20,8 @@ pub struct Material {
 #[derive(Default)]
 pub struct Models {
     world: Meshes,
+    weapons: Meshes,
+    pub weapon_materials: bool,
     imported: Vec<Meshes>,
     imported_geometry: BTreeMap<usize, usize>,
     pub(super) player: Option<super::appearance::Appearance>,
@@ -75,6 +77,16 @@ impl Models {
             catalog::models(mission),
             false,
         )?;
+        let weapons = Meshes::build(
+            &mission.vram,
+            pack,
+            graphics,
+            catalog::models(mission)
+                .into_iter()
+                .filter(|s| s.id.starts_with("weapons/"))
+                .collect(),
+            true,
+        )?;
         let mut imported = Vec::new();
         let mut imported_geometry = BTreeMap::new();
         for (&kind, source) in &mission.imported_models {
@@ -108,6 +120,8 @@ impl Models {
                 + imported.iter().map(|m| m.replacements).sum::<usize>(),
             grapple: graphics.models.grapple,
             world,
+            weapons,
+            weapon_materials: graphics.blood.weapons || graphics.weapon_reflections > 0,
             imported,
             imported_geometry,
             player: None,
@@ -131,6 +145,7 @@ impl Models {
 
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
         self.world.bind(&mut bind);
+        self.weapons.bind(&mut bind);
         for meshes in &mut self.imported {
             meshes.bind(&mut bind);
         }
@@ -190,6 +205,18 @@ impl Models {
                 deformation,
                 visit,
             );
+        }
+        if self.weapon_materials
+            && self.weapons.visit(
+                geometry,
+                matrix,
+                fog,
+                required_flags,
+                deformation,
+                &mut visit,
+            )
+        {
+            return true;
         }
         self.world
             .visit(geometry, matrix, fog, required_flags, deformation, visit)
@@ -318,6 +345,7 @@ impl Meshes {
                 .asset_pack
                 .then(|| pack.model_patches.get(&source.id))
                 .flatten();
+            let weapon = super::weapons::metal_weapon(&source.id);
             let grapple = graphics.models.grapple && source.id == "common/26";
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
@@ -445,6 +473,9 @@ impl Meshes {
                         }
                     }
                 }
+            }
+            if weapon {
+                super::weapons::mark_metal(&mut vertices, vram, &out.materials);
             }
             if snow_enabled {
                 for vertex in &mut vertices {

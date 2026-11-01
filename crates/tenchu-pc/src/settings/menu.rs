@@ -90,6 +90,8 @@ pub enum Item {
     BloodGround,
     BloodRetain,
     BloodModels,
+    BloodWeapons,
+    WeaponReflections,
     BloodRunoff,
     BloodPlayerDeath,
     BloodAmount,
@@ -897,6 +899,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Stain wounded models",
                 on(s.graphics.blood.model_stains),
                 "Retain soft wound stains on bodies independently of spray, drips and ground spots.",
+            ),
+            (
+                Item::BloodWeapons,
+                "Blood on weapons",
+                on(s.graphics.blood.weapons),
+                "Successful melee hits and stealth kills stain metal on player and enemy weapons. Small drips gradually remove wet blood; swinging sheds more. Dry traces remain until Clear blood or mission change. Cosmetic only.",
+            ),
+            (
+                Item::WeaponReflections,
+                "Metal weapon reflections",
+                format!("{}%", s.graphics.weapon_reflections),
+                "0 disables. Metal reflects the changing sky and nearby lights as the camera/blade moves, with shadow-aware highlights. Wood and cloth stay matte. This does not render mirror images of nearby objects.",
             ),
             (
                 Item::BloodAmount,

@@ -22,6 +22,7 @@ pub mod surfaces;
 pub mod texture_recipe;
 pub mod vegetation;
 pub mod water;
+pub mod weapons;
 pub mod weather;
 
 #[cfg(not(target_arch = "wasm32"))]

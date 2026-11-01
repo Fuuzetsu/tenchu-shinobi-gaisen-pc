@@ -321,3 +321,14 @@ and WASM library Clippy. Native isolated death fixtures for both heroes were
 inspected with the regular and free cameras, including the held corpse/pool.
 Captures and sound/clip measurements remain in `private/issues/death-timing`.
 These checks preserve the original simulation and do not assert a new PS1 replay.
+
+Weapon finishes: ordinary Mission 2 melee hits coat both protagonists' and enemy
+weapons, with retail meshes and the v3 HD weapon replacements. A deterministic
+continuation check confirms that swings shed substantially more blood than idle
+drips and that serialized coatings resume identically. GPU checks isolate the
+metal response from matte surfaces and foliage flags, exercise moving lights,
+and verify graduated coating coverage. Native sparring, the F1 controls and
+preservation of existing ground stains were inspected; prepared weapon meshes
+avoid a scene rebuild when toggling the options. Native and WASM library Clippy
+pass. Evidence is retained in `private/issues/weapon-finishes`. Reflections use
+the sky and scene lights, not reflected images of scene geometry.

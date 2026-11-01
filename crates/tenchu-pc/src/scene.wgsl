@@ -20,6 +20,8 @@ const WET_CONTACT: u32 = 2097152u;
 const UNLIT: u32 = 8388608u;
 const BLOOD_HD: u32 = 16777216u;
 const SNOW: u32 = 33554432u;
+const WEAPON_METAL: u32 = 67108864u;
+const WEAPON_COAT: u32 = 134217728u;
 
 fn original_hd_blood(flags: u32) -> bool {
     return (flags & (STAIN | SOFT | FOLIAGE | BLOOD_HD)) == (STAIN | BLOOD_HD);
@@ -172,6 +174,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);
+        color = weapon_finish(v, color, normal, surface_normal, linear_lighting);
     }
     let surface_decal = (v.flags & (STAIN | FOOTPRINT | WET_CONTACT)) != 0u;
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY
@@ -222,6 +225,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     let color = shade(v, front_facing, false);
     var opacity = v.opacity;
+    if (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN) { opacity = weapon_blood(v.uv, v.opacity); }
     if original_hd_blood(v.flags) {
         if (v.flags & TEXTURED) != 0u { opacity *= color.a; }
         else { opacity *= 1.0 - smoothstep(0.72, 0.92, dot(v.uv, v.uv)); }

@@ -13,6 +13,7 @@ mod sky;
 mod sprites;
 mod stains;
 mod water;
+mod weapons;
 mod weather;
 mod weather_shelter;
 mod weather_wind;

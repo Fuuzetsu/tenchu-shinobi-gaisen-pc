@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional blood coatings to player/enemy blades, with small tip drips and
+  stronger shedding on swings, plus adjustable sky/light reflections on weapon
+  metal. Modern High/Ultra enable both; Original stays unchanged. Includes a
+  weapon-finishes demo, savestate/rewind support and bounded effect storage.
+
 - Play rewind continuously backward, with configurable 0.25×–8× speed (default
   2×), including model interpolation, hair/cloth motion and accumulated effects.
   Ctrl+F12 starts/stops; F3 resumes forward. Unchanged scene resources stay cached;

@@ -150,12 +150,14 @@ impl Application {
                     .collect::<Vec<_>>();
                 let position =
                     |id| Vec3::from(game.roster.get(id).position.map(|v| v as f32).to_array());
-                actors.sort_by(|&a, &b| {
-                    let order = position(a)
-                        .distance_squared(origin)
-                        .total_cmp(&position(b).distance_squared(origin));
-                    if far { order.reverse() } else { order }
-                });
+                if clip.feature != Feature::WeaponFinishes {
+                    actors.sort_by(|&a, &b| {
+                        let order = position(a)
+                            .distance_squared(origin)
+                            .total_cmp(&position(b).distance_squared(origin));
+                        if far { order.reverse() } else { order }
+                    });
+                }
                 scene.distance = if far { 8000.0 } else { 14000.0 };
                 scene.pitch = -0.75;
                 let actor = actors
@@ -170,20 +172,36 @@ impl Application {
                 self.debug.selected_actor = actor;
                 if matches!(
                     clip.feature,
-                    Feature::Blood | Feature::BloodSnow | Feature::WeaponSparks
+                    Feature::Blood
+                        | Feature::BloodSnow
+                        | Feature::WeaponSparks
+                        | Feature::WeaponFinishes
                 ) || clip.randomizer.as_ref().is_some_and(|s| s.engage)
                 {
                     let guard = position(actor);
                     let offset = Vec3::from(
                         game.math
-                            .velocity(game.roster.get(actor).rotation[1], 1500, 0)
+                            .velocity(
+                                game.roster.get(actor).rotation[1],
+                                if clip.feature == Feature::WeaponFinishes {
+                                    1300
+                                } else {
+                                    1500
+                                },
+                                0,
+                            )
                             .map(f32::from),
                     );
                     game.teleport_player(
                         (guard + offset).to_array().map(|v| v as i32).into(),
                         true,
                     )?;
-                    if clip.randomizer.is_some() || clip.feature == Feature::WeaponSparks {
+                    if clip.randomizer.is_some()
+                        || matches!(
+                            clip.feature,
+                            Feature::WeaponSparks | Feature::WeaponFinishes
+                        )
+                    {
                         let enemy = game.roster.get(actor).position;
                         let player = game.player().position;
                         let delta = tenchu_core::math::Position::new(
@@ -194,22 +212,35 @@ impl Application {
                         let facing = game.math.atan2(-delta.x, -delta.z)?;
                         game.roster.get_mut(game.player_id).rotation[1] = facing;
                     }
-                    if clip.feature == Feature::WeaponSparks {
+                    if matches!(
+                        clip.feature,
+                        Feature::WeaponSparks | Feature::WeaponFinishes
+                    ) {
                         self.debug.god_mode = true;
                         demo::sparring(&mut game, actor)?;
+                        if clip.feature == Feature::WeaponFinishes {
+                            game.intelligence.difficulty = tenchu_core::ai::Difficulty::Easy;
+                        }
                     }
                     scene.player_start = game.player().position;
                     scene.actor = Some(actor);
                     scene.target = guard - Vec3::Y * 600.0;
                     scene.distance = if clip.feature == Feature::BloodSnow {
                         6200.0
+                    } else if clip.feature == Feature::WeaponFinishes {
+                        3200.0
                     } else {
                         4200.0
                     };
                     scene.pitch = -0.55;
                     demo::framing::unobstructed_area(&mut scene, &geometry, 1200.0);
                 }
-                if !far && clip.feature != Feature::WeaponSparks {
+                if !far
+                    && !matches!(
+                        clip.feature,
+                        Feature::WeaponSparks | Feature::WeaponFinishes
+                    )
+                {
                     self.settings.keep_enemies_active = true;
                     game.roster.keep_all_active = true;
                 }

@@ -41,6 +41,7 @@ pub struct Blood {
     pub player_death: bool,
     pub retain_original: bool,
     pub model_stains: bool,
+    pub weapons: bool,
     pub runoff: bool,
     pub amount: u16,
     pub death_size: u16,
@@ -58,6 +59,7 @@ impl Default for Blood {
             player_death: false,
             retain_original: false,
             model_stains: false,
+            weapons: false,
             runoff: false,
             amount: 100,
             death_size: 100,
@@ -76,6 +78,7 @@ impl Blood {
             ground: Style::Modern,
             player_death: true,
             model_stains: true,
+            weapons: true,
             runoff: true,
             ..Self::default()
         }
@@ -101,6 +104,7 @@ impl Blood {
             && (self.retained_ground()
                 || self.custom_death(false)
                 || self.custom_death(true)
+                || self.weapons
                 || self.model_stains
                 || self.drips != Style::Off && self.seconds != 0)
     }
@@ -125,6 +129,7 @@ struct SavedBlood {
     player_death: Option<bool>,
     retain_original: Option<bool>,
     model_stains: Option<bool>,
+    weapons: bool,
     runoff: bool,
     amount: Option<u16>,
     death_size: Option<u16>,
@@ -151,6 +156,7 @@ impl From<SavedBlood> for Blood {
             player_death: saved.player_death.unwrap_or(default.player_death),
             retain_original: saved.retain_original.unwrap_or(default.retain_original),
             model_stains: saved.model_stains.unwrap_or(default.model_stains),
+            weapons: saved.weapons,
             runoff: saved.runoff,
             amount: saved.amount.unwrap_or(default.amount),
             death_size: saved.death_size.unwrap_or(default.death_size),

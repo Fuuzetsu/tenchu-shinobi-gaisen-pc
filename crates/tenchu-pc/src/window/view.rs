@@ -784,6 +784,8 @@ impl View {
         if !configured.graphics.effects.active() {
             self.contact.clear();
         }
+        self.models.weapon_materials =
+            settings.graphics.blood.weapons || settings.graphics.weapon_reflections > 0;
         self.blood.configure(&configured.graphics.blood);
         if configured.graphics.weather.mode == settings::WeatherMode::Original {
             self.weather = Default::default();

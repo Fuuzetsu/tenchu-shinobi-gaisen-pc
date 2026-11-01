@@ -364,6 +364,13 @@ impl Player {
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
             Feature::Remake(feature) => remake::buttons(feature, tick, self.clip().seconds),
+            Feature::WeaponFinishes => {
+                if tick.is_multiple_of(45) {
+                    SQUARE
+                } else {
+                    0
+                }
+            }
             Feature::WeaponSparks => {
                 if tick % 45 == 15 {
                     SQUARE

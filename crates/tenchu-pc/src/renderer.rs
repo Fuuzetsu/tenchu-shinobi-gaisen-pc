@@ -555,7 +555,12 @@ impl Renderer {
             f32::from(water.flow) / 100.0,
             f32::from(water.foam) / 100.0,
         ]);
-        camera.extend([f32::from(self.graphics.motion.wind) / 100.0, 0.0, 0.0, 0.0]);
+        camera.extend([
+            f32::from(self.graphics.motion.wind) / 100.0,
+            f32::from(self.graphics.weapon_reflections) / 100.0,
+            0.0,
+            0.0,
+        ]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let mut encoder = self.device.create_command_encoder(&Default::default());

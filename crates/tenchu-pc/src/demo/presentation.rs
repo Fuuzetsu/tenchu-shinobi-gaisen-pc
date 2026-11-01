@@ -82,7 +82,10 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
         if player.clip().randomizer.as_ref().is_some_and(|s| s.engage)
             || matches!(
                 player.clip().feature,
-                Feature::Blood | Feature::BloodSnow | Feature::WeaponSparks
+                Feature::Blood
+                    | Feature::BloodSnow
+                    | Feature::WeaponSparks
+                    | Feature::WeaponFinishes
             )
         {
             target = (target
@@ -156,6 +159,17 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.effects.gunfire = p >= 0.5;
             g.lighting.enabled = true;
             g.interpolation = true;
+        }
+        Feature::WeaponFinishes => {
+            g.blood = crate::settings::Blood::modern();
+            g.blood.weapons = p >= 0.05;
+            g.weapon_reflections = if p >= 0.5 { 100 } else { 0 };
+            g.lighting.enabled = true;
+            g.interpolation = true;
+            g.effects.sparks = true;
+            g.sky.enabled = true;
+            g.sky.time = 660;
+            g.post.vignette = 0;
         }
         Feature::WeaponSparks => {
             g.effects.sparks = p >= 0.5;
@@ -660,6 +674,13 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             ))
         }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
+        Feature::WeaponFinishes => text(if !s.graphics.blood.weapons {
+            "Clean weapon surfaces".into()
+        } else if s.graphics.weapon_reflections == 0 {
+            "Hits coat blades · slow drips · swings shed wet blood".into()
+        } else {
+            "Metal reflects sky and lights · player and enemy weapons".into()
+        }),
         Feature::WeaponSparks => text(if s.graphics.effects.sparks {
             "Modern sparks · hot trails, sharp flashes and moving spark light".into()
         } else {

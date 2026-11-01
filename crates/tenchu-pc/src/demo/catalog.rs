@@ -37,6 +37,7 @@ pub enum Feature {
     ShopLighting,
     Gunfire,
     WeaponSparks,
+    WeaponFinishes,
     TextureSampling,
     Reconstruction,
     Antialiasing,

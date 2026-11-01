@@ -16,6 +16,7 @@ use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
 mod runoff;
 mod storage;
+mod weapons;
 use runoff::Runoff;
 use storage::Marks;
 #[cfg(test)]
@@ -61,6 +62,7 @@ struct Pool {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Drop {
+    weapon: bool,
     previous: Vec3,
     position: Vec3,
     velocity: Vec3,
@@ -82,6 +84,7 @@ pub struct Blood {
     samples: Vec<Option<Sample>>,
     marks: Marks,
     wounds: VecDeque<Wound>,
+    weapons: weapons::Weapons,
     drops: Vec<Drop>,
     runoff: Vec<Runoff>,
     pools: BTreeMap<usize, Pool>,
@@ -173,7 +176,11 @@ impl Blood {
         }
         if settings.drips == BloodStyle::Off {
             self.wounds.clear();
-            self.drops.clear();
+            self.drops.retain(|drop| drop.weapon && settings.weapons);
+        }
+        if !settings.weapons {
+            self.drops.retain(|d| !d.weapon);
+            self.weapons.clear();
         }
         if !settings.runoff || ground_changed || !settings.retained_ground() {
             self.runoff.clear();
@@ -185,6 +192,7 @@ impl Blood {
     pub fn clear(&mut self) {
         self.marks = Marks::default();
         self.wounds.clear();
+        self.weapons.clear();
         self.drops.clear();
         self.runoff.clear();
         self.pools.clear();
@@ -551,11 +559,16 @@ impl Blood {
         self.health = health;
         self.dead
             .retain(|root, _| self.health.get(root) == Some(&0));
-        let transforms = if self.wounds.is_empty() {
+        let weapons = settings.weapons && self.weapons.needed(game);
+        let transforms = if self.wounds.is_empty() && !weapons {
             BTreeMap::new()
         } else {
             transforms(game, models, frame, true)
         };
+        if weapons {
+            self.weapons
+                .tick(game, models, &transforms, &mut self.drops);
+        }
         self.marks.retain_attached(|mark| {
             mark.0.iter().all(|p| {
                 p.part.is_none_or(|key| match key {
@@ -588,6 +601,7 @@ impl Blood {
                     (self.random() - 0.5) * 18.0,
                 );
                 self.drops.push(Drop {
+                    weapon: false,
                     previous: position,
                     position,
                     velocity,
@@ -835,8 +849,8 @@ impl Blood {
         for pool in self.pools.values() {
             vertices.extend(pool.mark.0.iter().flat_map(|p| p.vertices.iter().copied()));
         }
-        if !self.marks.attached.is_empty() || !self.drops.is_empty() {
-            let transforms = if !self.marks.attached.is_empty() {
+        if !self.marks.attached.is_empty() || !self.drops.is_empty() || !self.weapons.is_empty() {
+            let transforms = if !self.marks.attached.is_empty() || !self.weapons.is_empty() {
                 transforms(
                     game,
                     models,
@@ -846,6 +860,7 @@ impl Blood {
             } else {
                 BTreeMap::new()
             };
+            self.weapons.append(&mut vertices, &transforms);
             for (_, mark) in &self.marks.attached {
                 for patch in &mark.0 {
                     let (rotation, offset) = if let Some(key) = patch.part {
@@ -884,7 +899,7 @@ impl Blood {
             for drop in &self.drops {
                 let center = drop.previous.lerp(drop.position, alpha.clamp(0.0, 1.0));
                 let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
-                let modern = self.settings.drips == BloodStyle::Modern;
+                let modern = drop.weapon || self.settings.drips == BloodStyle::Modern;
                 let along = if modern {
                     projected.try_normalize().unwrap_or(camera.y_axis)
                 } else {
@@ -919,7 +934,7 @@ impl Blood {
                         | render_mesh::FOG
                         | render_mesh::DOUBLE_SIDED
                         | if modern { render_mesh::SOFT } else { 0 }
-                        | if self.settings.drips == BloodStyle::OriginalHd {
+                        | if !drop.weapon && self.settings.drips == BloodStyle::OriginalHd {
                             render_mesh::STAIN | render_mesh::BLOOD_HD
                         } else {
                             0
