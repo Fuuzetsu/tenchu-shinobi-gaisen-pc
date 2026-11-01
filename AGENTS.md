@@ -41,3 +41,6 @@
 - Record user-facing features, fixes and compatibility changes under Unreleased
   in CHANGELOG.md. Omit refactors, formatting and test-only changes. Follow
   docs/releases.md when preparing a version tag; never rewrite a published tag.
+- When closing a visual issue, attach relevant before/after verification
+  screenshots when attachment access is available. Identify the release/commit
+  and pertinent settings. Keep screenshots outside Git.
