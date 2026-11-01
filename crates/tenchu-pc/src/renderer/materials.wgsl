@@ -82,6 +82,20 @@ fn material_level(mip: MaterialMip, uv: vec2<f32>, semi: bool, blended: bool) ->
     return color;
 }
 
+fn blood_material(index: u32, coordinate: vec2<f32>, dx: vec2<f32>, dy: vec2<f32>, semi: bool, blended: bool) -> vec4<f32> {
+    let source = material_source(index);
+    let info = material_info(index);
+    let uv = (coordinate - source.xy + vec2(0.5)) / source.zw;
+    let scale = vec2<f32>(info.yz) / source.zw;
+    let footprint = max(length(dx * scale), length(dy * scale));
+    let lod = clamp(log2(max(footprint, 1.0)), 0.0, f32(info.x - 1u));
+    let low = u32(lod);
+    return mix(
+        material_level(material_mip(index, low), uv, semi, blended),
+        material_level(material_mip(index, min(low + 1u, info.x - 1u)), uv, semi, blended),
+        fract(lod));
+}
+
 fn cubic_weights(t: f32) -> vec4<f32> {
     let t2 = t * t;
     let t3 = t2 * t;

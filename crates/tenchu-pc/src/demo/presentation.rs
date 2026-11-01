@@ -156,14 +156,19 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         }
         Feature::Blood => {
             g.blood = crate::settings::Blood::modern();
-            if !(0.25..0.75).contains(&p) {
-                g.blood.ground = crate::settings::BloodStyle::Original;
-                g.blood.death = crate::settings::BloodStyle::Original;
-                g.blood.drips = crate::settings::BloodStyle::Original;
-                g.blood.retain_original = true;
-                if p < 0.25 {
-                    g.blood.hit = crate::settings::BloodStyle::Original;
-                }
+            let style = if p < 0.25 {
+                crate::settings::BloodStyle::Original
+            } else if !(0.5..0.75).contains(&p) {
+                crate::settings::BloodStyle::OriginalHd
+            } else {
+                crate::settings::BloodStyle::Modern
+            };
+            g.blood.ground = style;
+            g.blood.death = style;
+            g.blood.drips = style;
+            g.blood.retain_original = true;
+            if p < 0.75 {
+                g.blood.hit = style;
             }
             g.interpolation = true;
             g.lighting.enabled = true;

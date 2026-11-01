@@ -1,6 +1,93 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a GPU; refined blood is cached separately from artwork, refreshes on VRAM changes and never tags foliage"]
+fn original_hd_blood_materials_are_isolated_and_cached() {
+    let mut vram = Vram::default();
+    vram.words[5 * 1024 + 5] = 31;
+    let image = tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [16, 16],
+    };
+    vram.images.push(image);
+    let (mut renderer, _) = crate::renderer::tests::fixture(&vram);
+    let region = Region::sprite(&vram, image);
+    let regular = renderer.materials.register(region);
+    let mut vertices = crate::render_effects::quad([[0.0; 3]; 4], [[1.0; 3]; 4], Some(image), 0);
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::STAIN | render_mesh::BLOOD_HD;
+    }
+    let mut annotated = vertices.clone();
+    renderer.materials.annotate(&mut annotated);
+    let refined = annotated[0].material;
+    assert_ne!(regular, refined);
+    renderer
+        .materials
+        .flush(&renderer.device, &renderer.queue)
+        .unwrap();
+    let pixels = renderer.materials.entries[refined as usize - 1]
+        .image
+        .rgba
+        .as_ptr();
+    for _ in 0..30 {
+        annotated.clone_from(&vertices);
+        renderer.materials.annotate(&mut annotated);
+        assert_eq!(annotated[0].material, refined);
+        assert!(
+            !renderer
+                .materials
+                .flush(&renderer.device, &renderer.queue)
+                .unwrap()
+        );
+        assert_eq!(
+            renderer.materials.entries[refined as usize - 1]
+                .image
+                .rgba
+                .as_ptr(),
+            pixels
+        );
+    }
+    let id = renderer.materials.entries[regular as usize - 1].id.clone();
+    renderer.materials.set_pack(&crate::visuals::pack::Pack {
+        textures: [(
+            id,
+            Arc::new(Image {
+                size: [16, 16],
+                rgba: [0, 255, 0, 255].repeat(256),
+            }),
+        )]
+        .into(),
+        ..Default::default()
+    });
+    assert_eq!(
+        renderer.materials.entries[regular as usize - 1].image.rgba[1],
+        255
+    );
+    assert!(
+        renderer.materials.entries[refined as usize - 1]
+            .image
+            .rgba
+            .chunks_exact(4)
+            .all(|p| p[1] == 0)
+    );
+    vram.words[5 * 1024 + 5] = 0;
+    renderer.materials.update(&vram);
+    assert!(
+        renderer.materials.entries[refined as usize - 1]
+            .image
+            .rgba
+            .iter()
+            .all(|&n| n == 0)
+    );
+    for vertex in &mut vertices {
+        vertex.flags |= render_mesh::FOLIAGE | 255 << render_mesh::WIND_WEIGHT_SHIFT;
+        assert!(!render_mesh::original_hd_blood(vertex.flags));
+    }
+}
+
+#[test]
 fn animation_changes_include_packed_pixels_and_wrapping_palettes() {
     let before = Vram::default();
     let four_bit = Region {

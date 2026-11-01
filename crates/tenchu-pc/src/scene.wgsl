@@ -18,6 +18,11 @@ const WATERFALL: u32 = 131072u;
 const FOOTPRINT: u32 = 1048576u;
 const WET_CONTACT: u32 = 2097152u;
 const UNLIT: u32 = 8388608u;
+const BLOOD_HD: u32 = 16777216u;
+
+fn original_hd_blood(flags: u32) -> bool {
+    return (flags & (STAIN | SOFT | FOLIAGE | BLOOD_HD)) == (STAIN | BLOOD_HD);
+}
 
 struct Camera { matrix: mat4x4<f32>, viewport: vec4<f32>, fog: vec4<f32>, options: vec4<f32>, fog_color: vec4<f32>, detail: vec4<f32>, eye: vec4<f32>, water: vec4<f32>, motion: vec4<f32> }
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -75,6 +80,8 @@ struct Fragment {
 fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
     var v = input;
     let original_stain = (v.flags & (STAIN | SOFT)) == STAIN;
+    let blood_hd = original_hd_blood(v.flags);
+    var coverage = 1.0;
     if !original_stain && (v.flags & (SCREEN | DEBUG | UNLIT)) == 0u {
         v.uv = material_coordinate(v.material, v.world, v.uv);
     }
@@ -110,7 +117,16 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         let replaced = !original_stain && (v.flags & DEBUG) == 0u && select(material_replaced(v.material), material_authored(v.material), (v.flags & UI) != 0u);
         let filtered_material = !original_stain && FILTER_MATERIALS && (!screen || replaced) && (MATERIAL_FILTERING >= 2.0 || ((replaced || MATERIAL_MAGNIFICATION != 0.0) && MATERIAL_FILTERING != 0.0));
         var base = vec3(0.0);
-        if replaced {
+        if blood_hd && material_replaced(v.material) {
+            // Retail UVs address texel boundaries; material sampling addresses centers.
+            let centered = coordinate - vec2(0.5);
+            let decoded = material_texel(v.material, centered);
+            semi = semi && decoded.a < 0.75;
+            let sample = blood_material(v.material, centered, du, dv, semi, (v.flags & TRANSLUCENT) != 0u);
+            coverage = sample.a;
+            if coverage < select(0.5, 0.001, (v.flags & ALPHA) != 0u) { discard; }
+            base = sample.rgb / max(coverage, 0.001);
+        } else if replaced {
             if filtered_material && (v.flags & EMITTER) == 0u && (material_info(v.material).w & 128u) != 0u {
                 semi = false;
             } else {
@@ -127,7 +143,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         }
         if semi != translucent_pass { discard; }
         if screen || camera.options.y != 0.0 {
-            if filtered_material {
+            if blood_hd {
+                color *= base;
+            } else if filtered_material {
                 color *= material_color(v.material, coordinate, du, dv, camera.viewport.y, MATERIAL_FILTERING, MATERIAL_MAGNIFICATION, semi, (v.flags & TRANSLUCENT) != 0u, base);
             } else if !original_stain && FILTER_MATERIALS && !screen && MATERIAL_FILTERING != 0.0 {
                 color *= filtered(coordinate, v.page, v.palette, pixel);
@@ -175,14 +193,15 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         color = rain_atmosphere(color, v.world, linear_lighting);
         color *= camera.options.x;
     }
-    if hdr { return vec4(max(color, vec3(0.0)), select(0.0, 1.0, semi)); }
+    let alpha = select(select(0.0, 1.0, semi), coverage, blood_hd);
+    if hdr { return vec4(max(color, vec3(0.0)), alpha); }
     if linear_lighting {
         // Preserve hue and texture contrast instead of clipping bright lamp pools to white.
         let peak = max(color.r, max(color.g, color.b));
         if peak > 0.5 { color *= (0.5 + (peak - 0.5) / (1.0 + (peak - 0.5) * 2.0)) / peak; }
         color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
     }
-    return vec4(clamp(color, vec3(0.0), vec3(1.0)), select(0.0, 1.0, semi));
+    return vec4(clamp(color, vec3(0.0), vec3(1.0)), alpha);
 }
 
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
@@ -200,6 +219,10 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     let color = shade(v, front_facing, false);
     var opacity = v.opacity;
+    if original_hd_blood(v.flags) {
+        if (v.flags & TEXTURED) != 0u { opacity *= color.a; }
+        else { opacity *= 1.0 - smoothstep(0.72, 0.92, dot(v.uv, v.uv)); }
+    }
     if (v.flags & FOOTPRINT) != 0u {
         if !WEATHER_ENABLED { discard; }
         opacity *= weather_snow(normalize(v.normal), v.world);

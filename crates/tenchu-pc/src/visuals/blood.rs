@@ -224,9 +224,13 @@ impl Blood {
         }
         self.random();
         let mut mark = Self::project_contact(surfaces, hinge, hit, radius, self.seed);
-        if self.settings.ground == BloodStyle::Original {
+        if self.settings.ground.uses_original() {
             // The adjacent white sprite is a subtraction mask used only while fading.
-            Self::original_texture(&mut mark, game.mission.images[(self.seed as usize % 2) * 2]);
+            Self::original_texture(
+                &mut mark,
+                game.mission.images[(self.seed as usize % 2) * 2],
+                self.settings.ground,
+            );
         }
         self.retain(mark, limit);
         self.start_runoff(surfaces, hinge, hit, radius);
@@ -273,7 +277,7 @@ impl Blood {
         Mark(vec![patch], Kind::Ground)
     }
 
-    fn original_texture(mark: &mut Mark, image: tenchu_assets::texture::Image) {
+    fn original_texture(mark: &mut Mark, image: tenchu_assets::texture::Image, style: BloodStyle) {
         for v in mark.0.iter_mut().flat_map(|p| &mut p.vertices) {
             v.uv = std::array::from_fn(|axis| {
                 f32::from(image.uv[axis])
@@ -288,7 +292,12 @@ impl Blood {
                 | render_mesh::ALPHA
                 | render_mesh::FOG
                 | render_mesh::DOUBLE_SIDED
-                | render_mesh::STAIN;
+                | render_mesh::STAIN
+                | if style == BloodStyle::OriginalHd {
+                    render_mesh::BLOOD_HD
+                } else {
+                    0
+                };
             v.opacity = 0.9;
         }
     }
@@ -678,8 +687,15 @@ impl Blood {
                     * amount.sqrt()
                     * size
                     * (0.2 + 0.8 * growth.sqrt());
-                pool.mark = if self.settings.death == BloodStyle::Original {
-                    Self::original_pool(game, actor, hit, growth, amount * size * size)
+                pool.mark = if self.settings.death.uses_original() {
+                    let mut mark =
+                        Self::original_pool(game, actor, hit, growth, amount * size * size);
+                    if self.settings.death == BloodStyle::OriginalHd {
+                        for vertex in mark.0.iter_mut().flat_map(|patch| &mut patch.vertices) {
+                            vertex.flags |= render_mesh::BLOOD_HD;
+                        }
+                    }
+                    mark
                 } else {
                     let mut mark = Self::project_contact(surfaces, None, hit, radius, pool.seed);
                     mark.1 = Kind::Death {
@@ -865,7 +881,12 @@ impl Blood {
                     flags: render_mesh::ALPHA
                         | render_mesh::FOG
                         | render_mesh::DOUBLE_SIDED
-                        | if modern { render_mesh::SOFT } else { 0 },
+                        | if modern { render_mesh::SOFT } else { 0 }
+                        | if self.settings.drips == BloodStyle::OriginalHd {
+                            render_mesh::STAIN | render_mesh::BLOOD_HD
+                        } else {
+                            0
+                        },
                     ..Vertex::zeroed()
                 }));
             }

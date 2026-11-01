@@ -966,7 +966,7 @@ toggled independently of the outfit selected at mission load. Internal item
 timers and campaign stock/unlocks are preserved. These edits end input recording;
 a new mission restores ordinary gameplay. Cutscenes retain their scripted behavior.
 
-**F1 → Persistent effects** independently selects **Off / Original / Modern**
+**F1 → Persistent effects** independently selects **Off / Original / Original HD / Modern**
 for blood spurts on hit, extra wound drips, death stars/pools, and ground spots.
 **Death pool beneath player** applies the chosen death style to the player too;
 **Stain wounded models** independently enables attached body stains. Original
@@ -974,21 +974,29 @@ preserves retail's hit/ground/death effects, without extra wound drips or a play
 pool. Modern presets enable all four modern styles, body stains and player pools.
 No external texture pack is required.
 
+**Original HD** keeps the retail red spatter, star shapes and patterned pools,
+with smoother contours and color transitions reconstructed from the disc at
+load/first use. It preserves the original geometry, timing, trajectories and
+scale. Extra wound drips use small rounded drops in the original color. It works
+with either texture pack setting and has the same optional retention as Original.
+Existing presets keep their chosen blood styles; select Original HD per category.
+
 Pools start after the death animation finishes and the body lands. **Death pool
 size** scales original stars and modern pools from 10–200% (default 100%), without
 changing other blood effects. Changing size clears and regrows cosmetic pools.
 
 **Blood runs down surfaces** lets retained spots trickle down walls and slopes,
 following the receiving geometry until they settle, reach an edge, or dry out.
-It uses the ground blood style; Original needs **Retain original blood** enabled.
+It uses the ground blood style; Original and Original HD need **Retain original
+blood** enabled.
 Modern presets enable runoff. Turning it off stops active trails while keeping
 existing stains. Work is capped at 32 short-lived streams, independent of how
 many old stains are retained, and trails share the existing stain budget.
 
 Original blood uses the disc artwork even when replacement artwork is enabled.
 Modern ground spots and death pools persist. **Retain original blood** also keeps
-original ground artwork and death stars after their ordinary lifetime. Changing a
-ground/death style clears only that category's existing marks. Turning off the
+Original and Original HD ground artwork and death stars after their ordinary
+lifetime. Changing a ground/death style clears only that category's existing marks. Turning off the
 player pool leaves enemy pools intact. **Clear blood** removes retained marks,
 active pools and wound drips. Marks are not written into campaign saves; changing
 mission or reloading models/artwork clears them.
@@ -1004,8 +1012,8 @@ surface; extra Original drips use the retail square-particle appearance.
 Retention goes up to **65,535 stains** (Modern High: 8,192; Ultra: 16,384), with a
 shared 256 MiB vertex budget (CPU and GPU each retain a copy). Oldest marks are
 removed when either budget fills. Static marks use cached, culled GPU pages;
-unchanged pages require no uploads. `demo --clips blood` compares retained original,
-modern and mixed styles in an ordinary guard encounter.
+unchanged pages require no uploads. `demo --clips blood` compares retained
+Original, Original HD, Modern and mixed styles in an ordinary guard encounter.
 
 **F1 → Effects → Modern gunfire** replaces Echigoya's gun sprites with brief muzzle
 flashes, warm lights, drifting smoke and impact sparks. It is enabled by Modern

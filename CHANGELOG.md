@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Original HD** blood under F1 → Persistent effects: smoother retail spatter,
+  stars and patterned pools, independently selectable for hits, drips, death pools
+  and ground spots. Uses the user's disc and cached textures, needs no HD pack,
+  and preserves gameplay and the existing Original/Modern choices.
+
 ## 0.9.3 — 2026-10-31
 
 - Link the separate HD artwork download and installation/update guide from

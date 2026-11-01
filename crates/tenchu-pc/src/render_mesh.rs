@@ -36,7 +36,13 @@ pub const FOOTPRINT: u32 = 1048576;
 pub const WET_CONTACT: u32 = 2097152;
 pub const ORIGINAL_SPLASH: u32 = 4194304;
 pub const UNLIT: u32 = 8388608;
+// The high byte is type-specific: foliage weights or blood presentation, never both.
+pub const BLOOD_HD: u32 = 1 << 24;
 pub const WIND_WEIGHT_SHIFT: u32 = 24;
+
+pub fn original_hd_blood(flags: u32) -> bool {
+    flags & (STAIN | SOFT | FOLIAGE | BLOOD_HD) == STAIN | BLOOD_HD
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]

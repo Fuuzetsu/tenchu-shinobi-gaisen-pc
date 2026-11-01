@@ -5,23 +5,29 @@ use serde::{Deserialize, Serialize};
 pub enum Style {
     Off,
     Original,
+    OriginalHd,
     Modern,
 }
 
 impl Style {
-    pub const ALL: [Self; 3] = [Self::Off, Self::Original, Self::Modern];
+    pub const ALL: [Self; 4] = [Self::Off, Self::Original, Self::OriginalHd, Self::Modern];
 
     pub fn label(self) -> &'static str {
         match self {
             Self::Off => "Off",
             Self::Original => "Original",
+            Self::OriginalHd => "Original HD",
             Self::Modern => "Modern",
         }
     }
 
     pub fn cycle(self, delta: i32) -> Self {
         let index = Self::ALL.iter().position(|&s| s == self).unwrap() as i32;
-        Self::ALL[(index + delta).rem_euclid(3) as usize]
+        Self::ALL[(index + delta).rem_euclid(Self::ALL.len() as i32) as usize]
+    }
+
+    pub fn uses_original(self) -> bool {
+        matches!(self, Self::Original | Self::OriginalHd)
     }
 }
 
@@ -77,8 +83,7 @@ impl Blood {
 
     pub fn retained_ground(self) -> bool {
         self.amount != 0
-            && (self.ground == Style::Modern
-                || self.ground == Style::Original && self.retain_original)
+            && (self.ground == Style::Modern || self.ground.uses_original() && self.retain_original)
     }
 
     pub fn custom_death(self, player: bool) -> bool {
@@ -184,7 +189,7 @@ mod tests {
             hit: Style::Off,
             drips: Style::Original,
             ground: Style::Original,
-            death: Style::Modern,
+            death: Style::OriginalHd,
             retain_original: true,
             player_death: false,
             death_size: 45,

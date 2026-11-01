@@ -801,19 +801,19 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodHit,
                 "Blood spurts on hit",
                 s.graphics.blood.hit.label().into(),
-                "Off, original blood balls, or soft modern droplets. Damage, trajectories and gameplay RNG stay unchanged.",
+                "Off, Original, smoother Original HD, or soft Modern droplets. Original HD keeps the retail spatter shapes, colors and timing; gameplay stays unchanged.",
             ),
             (
                 Item::BloodDrips,
                 "Wound drips",
                 s.graphics.blood.drips.label().into(),
-                "Extra bleeding after damage: off, original square particles, or soft modern droplets. Duration is adjustable below.",
+                "Extra bleeding after damage: Off, original square particles, rounded Original HD drops, or soft Modern droplets. Duration is adjustable below.",
             ),
             (
                 Item::BloodDeath,
                 "Death pool / star",
                 s.graphics.blood.death.label().into(),
-                "Off, the original blood star, or a soft pool that follows the ground after the death animation and landing. Changing this style clears existing death pools only.",
+                "Off, Original, Original HD with smoother retail patterns, or a Modern pool. Appears after death and landing. Changing style clears existing death pools only.",
             ),
             (
                 Item::BloodPlayerDeath,
@@ -831,13 +831,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodGround,
                 "Ground blood spots",
                 s.graphics.blood.ground.label().into(),
-                "Off, original artwork, or modern surface stains. Modern spots persist; original spots can also be retained below. Changing style clears existing spots only.",
+                "Off, Original, smoother Original HD artwork, or Modern surface stains. Retain either original style below; Modern spots persist. Changing style clears existing spots only.",
             ),
             (
                 Item::BloodRetain,
                 "Retain original blood",
                 on(s.graphics.blood.retain_original),
-                "Keep original ground splats and death stars after their normal lifetime, using the same bounded storage as modern blood.",
+                "Keep Original or Original HD ground splats and death stars after their normal lifetime, using the same bounded storage as Modern blood.",
             ),
             (
                 Item::BloodModels,
@@ -855,7 +855,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodRunoff,
                 "Blood runs down surfaces",
                 on(s.graphics.blood.runoff),
-                "Let retained blood trickle down walls and slopes. Uses the ground blood style; Original spots need Retain original blood enabled. Turning off stops new trails without clearing stains.",
+                "Let retained blood trickle down walls and slopes. Original and Original HD need Retain original blood enabled. Turning off stops new trails without clearing stains.",
             ),
             (
                 Item::BloodSeconds,

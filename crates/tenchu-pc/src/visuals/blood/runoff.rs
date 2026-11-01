@@ -110,10 +110,11 @@ impl Blood {
             flow.life -= 1;
             if flow.life.is_multiple_of(2) || hit.normal.y < -0.98 {
                 let mut mark = Self::project_contact(surfaces, hinge, hit, radius, flow.seed);
-                if self.settings.ground == BloodStyle::Original {
+                if self.settings.ground.uses_original() {
                     Self::original_texture(
                         &mut mark,
                         game.mission.images[(flow.seed as usize % 2) * 2],
+                        self.settings.ground,
                     );
                 }
                 self.retain(mark, limit);
@@ -200,7 +201,11 @@ mod tests {
             world: &wall,
             hinges: Vec::new(),
         };
-        for ground in [BloodStyle::Original, BloodStyle::Modern] {
+        for ground in [
+            BloodStyle::Original,
+            BloodStyle::OriginalHd,
+            BloodStyle::Modern,
+        ] {
             let mut blood = Blood::default();
             let settings = settings::Blood {
                 ground,

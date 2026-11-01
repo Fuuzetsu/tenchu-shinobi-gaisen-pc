@@ -98,7 +98,9 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                         page.iter().all(|v| (v.flags & render_mesh::SOFT != 0)
                             == (ground == BloodStyle::Modern))
                     );
-                    if ground == BloodStyle::Original {
+                    assert!(page.iter().all(|v| render_mesh::original_hd_blood(v.flags)
+                        == (ground == BloodStyle::OriginalHd)));
+                    if ground.uses_original() {
                         assert!(
                             page.iter().all(
                                 |v| v.flags & render_mesh::TEXTURED != 0 && v.color == [1.0; 3]
@@ -141,7 +143,11 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                 blood = Blood::default();
             }
         }
-        for drips in [BloodStyle::Original, BloodStyle::Modern] {
+        for drips in [
+            BloodStyle::Original,
+            BloodStyle::OriginalHd,
+            BloodStyle::Modern,
+        ] {
             let settings = settings::Blood {
                 hit: BloodStyle::Off,
                 drips,
@@ -164,6 +170,13 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                 blood.tick(&game, &models, &surfaces, &settings);
                 let geometry = blood.animated_geometry(&game, &models, None, None, 1.0);
                 seen |= !geometry.vertices.is_empty();
+                assert!(
+                    geometry
+                        .vertices
+                        .iter()
+                        .all(|v| render_mesh::original_hd_blood(v.flags)
+                            == (drips == BloodStyle::OriginalHd))
+                );
                 assert!(
                     geometry.vertices.iter().all(
                         |v| (v.flags & render_mesh::SOFT != 0) == (drips == BloodStyle::Modern)
@@ -202,6 +215,8 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
                     usize::from(death != BloodStyle::Off && player_death)
                 );
                 if let Some(page) = blood.pages().next() {
+                    assert!(page.iter().all(|v| render_mesh::original_hd_blood(v.flags)
+                        == (death == BloodStyle::OriginalHd)));
                     assert!(page.iter().all(
                         |v| (v.flags & render_mesh::SOFT != 0) == (death == BloodStyle::Modern)
                     ));
@@ -760,7 +775,11 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
             .unwrap();
     let output = std::env::var_os("TENCHU_DEATH_POOL_REVIEW").map(std::path::PathBuf::from);
     let mut largest_offset = 0.0_f32;
-    for death in [BloodStyle::Modern, BloodStyle::Original] {
+    for death in [
+        BloodStyle::Modern,
+        BloodStyle::Original,
+        BloodStyle::OriginalHd,
+    ] {
         for character in 0..2 {
             for (player, motion) in [
                 (true, MOT_DEAD),

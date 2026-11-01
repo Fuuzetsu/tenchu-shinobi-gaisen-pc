@@ -135,6 +135,7 @@ pub(super) fn sprites(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix, st
                 | render_mesh::UNLIT
                 | flags(&sprite.graphic, sprite.color);
         }
+        let blend = style.present(&sprite.graphic, sprite.color, &mut vertices, blend);
         surfaces.push(Surface {
             depth: z,
             blend,

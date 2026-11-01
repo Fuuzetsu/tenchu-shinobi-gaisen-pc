@@ -1,6 +1,106 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a graphics adapter; refined sprites keep their position, retail blends and fade endpoints"]
+fn original_hd_blood_keeps_placement_and_fades() {
+    let mut vram = Vram::default();
+    let image = tenchu_assets::texture::Image {
+        page: 256,
+        palette: 0,
+        uv: [0, 0],
+        size: [16, 16],
+    };
+    let mask = tenchu_assets::texture::Image {
+        uv: [16, 0],
+        ..image
+    };
+    vram.images.extend([image, mask]);
+    for y in 5..11 {
+        for x in 3..11 {
+            vram.words[y * 1024 + x] = 0x8010;
+            vram.words[y * 1024 + x + 16] = 0xffff;
+        }
+    }
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let background = renderer.upload(&rectangle(1000, 100, None, false, false, false));
+    renderer.draw(&view, camera, &[&background], None).unwrap();
+    let backdrop = read_pixels(&renderer, &target);
+    for blend in [0, 2, 3, 5] {
+        for fade in [1.0, 0.2, 0.0] {
+            let mut original = None;
+            for hd in [false, true] {
+                let mut vertices = render_effects::quad(
+                    [
+                        [-120.0, -120.0, 0.5],
+                        [120.0, -120.0, 0.5],
+                        [-120.0, 120.0, 0.5],
+                        [120.0, 120.0, 0.5],
+                    ],
+                    [[if blend == 5 { 1.0 } else { fade }; 3]; 4],
+                    Some(if blend == 3 { mask } else { image }),
+                    blend,
+                );
+                for v in &mut vertices {
+                    v.flags |= render_mesh::STAIN | if hd { render_mesh::BLOOD_HD } else { 0 };
+                    if blend == 5 {
+                        v.flags = (v.flags & !render_mesh::TRANSLUCENT) | render_mesh::ALPHA;
+                    }
+                    v.opacity = fade;
+                }
+                let effect = renderer.upload_effects(render_effects::Geometry {
+                    vertices,
+                    batches: vec![render_effects::Batch { blend, range: 0..6 }],
+                });
+                renderer
+                    .draw(&view, camera, &[&background], Some(&effect))
+                    .unwrap();
+                let pixels = read_pixels(&renderer, &target);
+                if fade == 0.0 && blend != 0 {
+                    assert_eq!(
+                        pixels, backdrop,
+                        "HD {hd}, blend {blend}: fade left stale pixels"
+                    );
+                    continue;
+                }
+                let mut total = 0.0;
+                let mut center = glam::Vec2::ZERO;
+                for (i, (p, b)) in pixels
+                    .chunks_exact(4)
+                    .zip(backdrop.chunks_exact(4))
+                    .enumerate()
+                {
+                    let weight = (0..3).map(|c| f32::from(p[c].abs_diff(b[c]))).sum::<f32>();
+                    total += weight;
+                    center += glam::Vec2::new((i % 64) as f32, (i / 64) as f32) * weight;
+                }
+                assert!(total > 0.0, "HD {hd}, blend {blend}, fade {fade}");
+                center /= total;
+                let interior: [u8; 3] = pixels[(32 * 64 + 28) * 4..(32 * 64 + 28) * 4 + 3]
+                    .try_into()
+                    .unwrap();
+                if let Some((reference_center, reference_color)) = original {
+                    assert!(
+                        center.distance(reference_center) < 0.15,
+                        "blend {blend}: {center:?} vs {reference_center:?}"
+                    );
+                    assert!(
+                        interior
+                            .into_iter()
+                            .zip(reference_color)
+                            .all(|(a, b)| a.abs_diff(b) <= 1),
+                        "blend {blend}, fade {fade}: {interior:?} vs {reference_color:?}"
+                    );
+                } else {
+                    original = Some((center, interior));
+                }
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; retained original blood uses retail texture colors/cutouts rather than the analytic stain tint"]
 fn original_blood_decals_preserve_retail_texels() {
     let mut vram = Vram::default();
@@ -184,57 +284,150 @@ fn original_blood_billboards_have_no_white_borders() {
         magnification: 3,
         ..Default::default()
     };
-    for screen in [false, true] {
-        for samples in renderer.sample_counts.clone() {
-            graphics.samples = samples;
-            for filtered in [false, true] {
-                graphics.bilinear = filtered;
-                renderer.configure(&graphics);
-                for sprite in [0, 2, 4, 56, 12] {
-                    let image = game.mission.images[sprite];
-                    for step in 0..64 {
-                        let angle = step as f32 * 0.137;
-                        let (sin, cos) = angle.sin_cos();
-                        let half = if screen { 78.0 } else { 260.0 };
-                        let points = [[-half, -half], [half, -half], [-half, half], [half, half]]
-                            .map(|[x, y]| {
-                                [
-                                    x * cos - y * sin + step as f32 * 0.37,
-                                    x * sin + y * cos,
-                                    if screen { 0.5 } else { 1000.0 },
-                                ]
+    for hd in [false, true] {
+        for screen in [false, true] {
+            for samples in renderer.sample_counts.clone() {
+                graphics.samples = samples;
+                for filtered in [false, true] {
+                    graphics.bilinear = filtered;
+                    renderer.configure(&graphics);
+                    for sprite in [0, 2, 4, 56, 12] {
+                        let image = game.mission.images[sprite];
+                        for step in 0..64 {
+                            let angle = step as f32 * 0.137;
+                            let (sin, cos) = angle.sin_cos();
+                            let half = if screen { 78.0 } else { 260.0 };
+                            let points =
+                                [[-half, -half], [half, -half], [-half, half], [half, half]].map(
+                                    |[x, y]| {
+                                        [
+                                            x * cos - y * sin + step as f32 * 0.37,
+                                            x * sin + y * cos,
+                                            if screen { 0.5 } else { 1000.0 },
+                                        ]
+                                    },
+                                );
+                            let mut vertices =
+                                render_effects::quad(points, [[1.; 3]; 4], Some(image), 0);
+                            for v in &mut vertices {
+                                v.flags = (v.flags & !render_mesh::SCREEN)
+                                    | if screen { render_mesh::SCREEN } else { 0 }
+                                    | render_mesh::DOUBLE_SIDED
+                                    | render_mesh::UNLIT
+                                    | render_mesh::STAIN
+                                    | if hd { render_mesh::BLOOD_HD } else { 0 };
+                            }
+                            let effect = renderer.upload_effects(render_effects::Geometry {
+                                vertices,
+                                batches: vec![render_effects::Batch {
+                                    blend: 0,
+                                    range: 0..6,
+                                }],
                             });
-                        let mut vertices =
-                            render_effects::quad(points, [[1.; 3]; 4], Some(image), 0);
-                        for v in &mut vertices {
-                            v.flags = (v.flags & !render_mesh::SCREEN)
-                                | if screen { render_mesh::SCREEN } else { 0 }
-                                | render_mesh::DOUBLE_SIDED
-                                | render_mesh::UNLIT
-                                | render_mesh::STAIN;
+                            renderer
+                                .draw(&target_view, camera, &[], Some(&effect))
+                                .unwrap();
+                            let pixels = read_pixels(&renderer, &target);
+                            let white = pixels
+                                .chunks_exact(4)
+                                .filter(|p| p[0] > 80 && p[1] > 80 && p[2] > 80)
+                                .count();
+                            assert_eq!(
+                                white, 0,
+                                "HD {hd}, screen {screen}, samples {samples}, sprite {sprite}, rotation {step}"
+                            );
                         }
-                        let effect = renderer.upload_effects(render_effects::Geometry {
-                            vertices,
-                            batches: vec![render_effects::Batch {
-                                blend: 0,
-                                range: 0..6,
-                            }],
-                        });
-                        renderer
-                            .draw(&target_view, camera, &[], Some(&effect))
-                            .unwrap();
-                        let pixels = read_pixels(&renderer, &target);
-                        let white = pixels
-                            .chunks_exact(4)
-                            .filter(|p| p[0] > 80 && p[1] > 80 && p[2] > 80)
-                            .count();
-                        assert_eq!(
-                            white, 0,
-                            "screen {screen}, samples {samples}, sprite {sprite}, rotation {step}"
-                        );
                     }
                 }
             }
         }
     }
+    if let Some(output) = std::env::var_os("TENCHU_BLOOD_REVIEW") {
+        review_original_hd(&game, output.as_ref());
+    }
+}
+
+fn review_original_hd(game: &tenchu_core::game::Game, output: &std::path::Path) {
+    use crate::capture::review::Review;
+    let state = crate::session::tests::state(game);
+    let mut review = Review::new(&game.mission).unwrap();
+    review.configure(crate::settings::Graphics::default());
+    let backdrop = review.backdrop(0.28);
+    let mut surfaces = Vec::new();
+    let mut labels = Vec::new();
+    for (hd, center, title) in [(false, -105.0, "Original"), (true, 105.0, "Original HD")] {
+        labels.push((center as i16 - 55, -112, title.to_owned(), [1.0; 3]));
+        for (slot, sprite) in [0, 2, 12].into_iter().enumerate() {
+            let x = center + (slot as f32 - 1.0) * 62.0;
+            let image = game.mission.images[sprite];
+            let mut vertices = render_effects::quad(
+                [
+                    [x - 27.0, -82.0, 0.5],
+                    [x + 27.0, -82.0, 0.5],
+                    [x - 27.0, -28.0, 0.5],
+                    [x + 27.0, -28.0, 0.5],
+                ],
+                [[1.0; 3]; 4],
+                Some(image),
+                0,
+            );
+            for v in &mut vertices {
+                v.flags |= render_mesh::STAIN | if hd { render_mesh::BLOOD_HD } else { 0 };
+            }
+            surfaces.push((0, vertices));
+        }
+        let mut pool = Vec::new();
+        for geometry in &game.mission.common_models[&31] {
+            for face in render_mesh::draw_tmd_faces(geometry) {
+                render_mesh::append_face(&mut pool, geometry, face, Matrix::default(), false);
+            }
+        }
+        let bounds = pool.iter().fold(
+            [
+                f32::INFINITY,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::NEG_INFINITY,
+            ],
+            |mut b, v| {
+                for (axis, coordinate) in [v.position[0], v.position[2]].into_iter().enumerate() {
+                    b[axis] = b[axis].min(coordinate);
+                    b[axis + 2] = b[axis + 2].max(coordinate);
+                }
+                b
+            },
+        );
+        let scale = (178.0 / (bounds[2] - bounds[0])).min(105.0 / (bounds[3] - bounds[1]));
+        for v in &mut pool {
+            v.position = [
+                center + (v.position[0] - (bounds[0] + bounds[2]) * 0.5) * scale,
+                52.0 + (v.position[2] - (bounds[1] + bounds[3]) * 0.5) * scale,
+                0.5,
+            ];
+            v.flags |= render_mesh::SCREEN
+                | render_mesh::STAIN
+                | if hd { render_mesh::BLOOD_HD } else { 0 };
+        }
+        for triangle in pool.chunks_exact(3) {
+            let blend = if triangle[0].flags & render_mesh::TRANSLUCENT != 0 {
+                ((triangle[0].page >> 5) & 3) as u8 + 1
+            } else {
+                0
+            };
+            surfaces.push((blend, triangle.to_vec()));
+        }
+    }
+    let mut geometry = crate::capture::review::effects(&surfaces, glam::Mat4::IDENTITY);
+    geometry.append(render_effects::text(&game.mission.font, &labels));
+    let effects = review.renderer.upload_effects(geometry);
+    review
+        .capture(
+            glam::Mat4::IDENTITY,
+            &[&backdrop],
+            Some(&effects),
+            false,
+            output,
+        )
+        .unwrap();
+    assert_eq!(state, crate::session::tests::state(game));
 }

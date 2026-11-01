@@ -10,6 +10,7 @@ use bytemuck::{Pod, Zeroable};
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{Result, model::Texture, texture::Vram};
 mod atlas;
+mod blood;
 mod data;
 use atlas::{Atlas, Packing};
 pub(super) use data::shader;
@@ -29,6 +30,7 @@ struct Material {
 
 struct Entry {
     region: Option<Region>,
+    blood_hd: bool,
     id: String,
     original: Image,
     image: Image,
@@ -126,6 +128,13 @@ impl Entry {
         enabled: bool,
         upscale: u16,
     ) {
+        if self.blood_hd {
+            if self.dirty {
+                self.image = blood::refine(&self.original);
+            }
+            self.replaced = true;
+            return;
+        }
         let replacement = enabled.then(|| textures.get(&self.id)).flatten();
         let image = replacement.map_or_else(
             || {
@@ -160,9 +169,9 @@ pub struct Materials {
     pub bindings: wgpu::BindGroup,
     vram: Vram,
     entries: Vec<Entry>,
-    regions: BTreeMap<Region, u32>,
+    regions: BTreeMap<(Region, bool), u32>,
     external: BTreeMap<String, u32>,
-    lookups: BTreeMap<(u16, u16, [u16; 4]), u32>,
+    lookups: BTreeMap<(u16, u16, [u16; 4], bool), u32>,
     atlas: Atlas,
     repack: bool,
     textures: BTreeMap<String, Arc<Image>>,
@@ -240,6 +249,7 @@ impl Materials {
             let rgba = region.pixels(vram);
             if rgba != entry.original.rgba {
                 entry.original.rgba = rgba;
+                entry.dirty |= entry.blood_hd;
                 entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
             }
         }
@@ -307,6 +317,7 @@ impl Materials {
                 let id = self.entries.len() as u32 + 1;
                 self.entries.push(Entry {
                     region: None,
+                    blood_hd: false,
                     id: material.id.clone(),
                     original: (*material.image).clone(),
                     image: (*material.image).clone(),
@@ -333,8 +344,10 @@ impl Materials {
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
         for triangle in vertices.chunks_exact_mut(3) {
             let first = triangle[0];
+            let blood_hd = render_mesh::original_hd_blood(first.flags);
             if first.flags & (render_mesh::DEBUG | render_mesh::TEXTURED) != render_mesh::TEXTURED
-                || first.flags & (render_mesh::STAIN | render_mesh::SOFT) == render_mesh::STAIN
+                || !blood_hd
+                    && first.flags & (render_mesh::STAIN | render_mesh::SOFT) == render_mesh::STAIN
                 || first.material != 0
             {
                 continue;
@@ -347,7 +360,7 @@ impl Materials {
                     bounds[axis + 2] = bounds[axis + 2].max(uv);
                 }
             }
-            let key = (first.page as u16, first.palette as u16, bounds);
+            let key = (first.page as u16, first.palette as u16, bounds, blood_hd);
             let id = if let Some(&id) = self.lookups.get(&key) {
                 id
             } else {
@@ -359,7 +372,7 @@ impl Materials {
                     },
                     bounds,
                 );
-                let id = self.register(region);
+                let id = self.register_variant(region, blood_hd);
                 self.lookups.insert(key, id);
                 id
             };
@@ -370,7 +383,11 @@ impl Materials {
     }
 
     fn register(&mut self, region: Region) -> u32 {
-        if let Some(&id) = self.regions.get(&region) {
+        self.register_variant(region, false)
+    }
+
+    fn register_variant(&mut self, region: Region, blood_hd: bool) -> u32 {
+        if let Some(&id) = self.regions.get(&(region, blood_hd)) {
             return id;
         }
         let id = self.entries.len() as u32 + 1;
@@ -380,6 +397,7 @@ impl Materials {
         };
         let mut entry = Entry {
             region: Some(region),
+            blood_hd,
             id: catalog::image_id(
                 original.size.map(|n| n as u16),
                 &region.original_pixels(&self.vram),
@@ -398,7 +416,7 @@ impl Materials {
         };
         entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
         self.entries.push(entry);
-        self.regions.insert(region, id);
+        self.regions.insert((region, blood_hd), id);
         id
     }
 

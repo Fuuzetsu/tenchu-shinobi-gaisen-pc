@@ -370,8 +370,7 @@ pub fn build_presented(
     for (instances, index) in [(&game.effects.shadows, 25), (&game.effects.blood_pools, 31)] {
         if (index == 25 && !blob_shadows)
             || (index == 31
-                && (style.blood.death != crate::settings::BloodStyle::Original
-                    || style.blood.custom_death(false)))
+                && (!style.blood.death.uses_original() || style.blood.custom_death(false)))
         {
             continue;
         }
@@ -403,6 +402,9 @@ pub fn build_presented(
             if index == 31 {
                 for vertex in surfaces[start..].iter_mut().flat_map(|s| &mut s.vertices) {
                     vertex.flags |= render_mesh::STAIN;
+                    if style.blood.death == crate::settings::BloodStyle::OriginalHd {
+                        vertex.flags |= render_mesh::BLOOD_HD;
+                    }
                 }
             }
         }
@@ -546,6 +548,7 @@ pub fn build_presented(
         for vertex in &mut vertices {
             vertex.flags |= world::flags(&drawing.graphic, drawing.color);
         }
+        let blend = style.present(&drawing.graphic, drawing.color, &mut vertices, blend);
         surfaces.push(Surface {
             depth: z,
             blend,

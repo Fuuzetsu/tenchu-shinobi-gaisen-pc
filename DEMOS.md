@@ -311,7 +311,7 @@ not imply that High/Ultra sustain 60 fps on every renderer, especially WebGL2.
 | Secondary motion | `secondary-motion`, `equipment-motion`, `breeze`: Ayame's hair/bow, Rikimaru's garment/equipment flex and a wind sweep through the garden with matching shadows. |
 | Image effects | `contact`, `bloom`, `atmosphere`, `grading`, `finish`: contact strength/radius, bloom strength/threshold, haze/tint, temperature, saturation, vignette, filmic mapping, contrast, gamma and sharpening. |
 | Player model | `bodies`: compatible disc bodies and configured folder bodies, with original animation and weapons. |
-| Persistent effects | `blood`, `blood-snow`: a staged guard encounter produces attached wounds and ground stains through ordinary combat, including blood staining the snow. |
+| Persistent effects | `blood` compares Original, Original HD, Modern and mixed blood styles during a staged guard encounter. `blood-snow` shows wounds and ground stains on snow. |
 | Experiment | `experiment`: refill/edit mission equipment, god/stealth toggles and two real collision-floor clicks to teleport. These tools are enabled by explicit demo setup or gameplay profiles. |
 | Contact effects | `remake-grapple`, `remake-water-contact`, `remake-petal-fall`, `remake-leaf-fall`, `remake-snow-scatter`, `remake-puddle-scatter`: rope/hook detail, lit sparks, splashes, seasonal litter and movement-scaled scatter. |
 
