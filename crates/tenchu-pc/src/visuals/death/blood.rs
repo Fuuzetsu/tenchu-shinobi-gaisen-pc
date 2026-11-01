@@ -13,6 +13,8 @@ use tenchu_core::{
 pub struct Presented {
     source: ModelId,
     effects: Effects,
+    pub settled: bool,
+    pub position: tenchu_core::math::Position,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -29,6 +31,8 @@ impl Blood {
             presented: Arc::new(Presented {
                 source: game.player().parts[1],
                 effects: Effects::default(),
+                settled: false,
+                position: game.player().position,
             }),
             random: Random::new(super::roll(game.random.seed, game.tick) as u32),
             scene: Scene::default(),
@@ -41,8 +45,13 @@ impl Blood {
         game: &Game,
         torso: Matrix,
         emit: bool,
+        root: Matrix,
+        settled: bool,
     ) -> tenchu_assets::Result<Arc<Presented>> {
-        let effects = &mut Arc::make_mut(&mut self.presented).effects;
+        let presented = Arc::make_mut(&mut self.presented);
+        presented.settled = settled;
+        presented.position = root.translation;
+        let effects = &mut presented.effects;
         effects.begin_tick();
         self.scene.update(0, torso);
         if emit {
@@ -77,6 +86,33 @@ impl Blood {
 
 fn replacement(frame: Option<&Frame>) -> Option<&Presented> {
     frame.and_then(|f| f.death_blood.as_deref())
+}
+
+pub fn for_actor<'a>(
+    frame: Option<&'a Frame>,
+    actor: &tenchu_core::actor::Actor,
+) -> Option<&'a Presented> {
+    replacement(frame).filter(|p| actor.parts.get(1) == Some(&p.source))
+}
+
+pub fn sounds<'a>(
+    effects: &'a Effects,
+    frame: Option<&'a Frame>,
+) -> impl Iterator<Item = (tenchu_core::math::Position, i16)> + 'a {
+    let death = replacement(frame);
+    effects
+        .sounds
+        .iter()
+        .enumerate()
+        .filter(move |(index, _)| {
+            death.is_none_or(|d| !effects.gore_sounds.contains(&(*index, d.source)))
+        })
+        .map(|(_, &sound)| sound)
+        .chain(
+            death
+                .into_iter()
+                .flat_map(|d| d.effects.sounds.iter().copied()),
+        )
 }
 
 pub fn slots<'a>(
@@ -180,7 +216,11 @@ mod tests {
             ..Matrix::default()
         };
         let mut frame = Frame::new(Default::default(), game.rendered_view);
-        frame.death_blood = Some(blood.tick(&game, torso, true).unwrap());
+        frame.death_blood = Some(
+            blood
+                .tick(&game, torso, true, game.player().root(&game.math), false)
+                .unwrap(),
+        );
         let (index, first) = blood
             .presented
             .effects
@@ -275,7 +315,11 @@ mod tests {
             translation: torso.translation.wrapping_add(Position::new(10000, 0, 0)),
             rotation: [[0, 0, 4096], [0, 4096, 0], [-4096, 0, 0]],
         };
-        frame.death_blood = Some(blood.tick(&game, moved, false).unwrap());
+        frame.death_blood = Some(
+            blood
+                .tick(&game, moved, false, game.player().root(&game.math), false)
+                .unwrap(),
+        );
         let Some(Effect::Blood(next)) = &blood.presented.effects.slots[index] else {
             panic!("airborne droplet");
         };
@@ -295,7 +339,9 @@ mod tests {
         assert_eq!(previous.position, first.position);
         // Continue the cosmetic stream until everything expires without more emission.
         for _ in 0..300 {
-            blood.tick(&game, moved, false).unwrap();
+            blood
+                .tick(&game, moved, false, game.player().root(&game.math), false)
+                .unwrap();
         }
         assert!(
             blood
@@ -306,5 +352,26 @@ mod tests {
                 .all(Option::is_none)
         );
         assert_eq!(crate::session::tests::state(&game), before);
+    }
+    #[test]
+    fn replacement_audio_preserves_other_sources_even_at_the_same_position() {
+        let position = tenchu_core::math::Position::ZERO;
+        let mut effects = Effects::default();
+        effects.sounds = vec![(position, 0x37), (position, 0x37), (position, 0x31)];
+        effects.gore_sounds = vec![(0, 42), (1, 43)];
+        let mut replaced = Effects::default();
+        replaced.sounds.push((position, 0x12));
+        let mut frame = Frame::new(Default::default(), Default::default());
+        frame.death_blood = Some(Arc::new(Presented {
+            source: 42,
+            effects: replaced,
+            settled: false,
+            position,
+        }));
+        assert_eq!(sounds(&effects, None).collect::<Vec<_>>(), effects.sounds);
+        assert_eq!(
+            sounds(&effects, Some(&frame)).collect::<Vec<_>>(),
+            [(position, 0x37), (position, 0x31), (position, 0x12)]
+        );
     }
 }

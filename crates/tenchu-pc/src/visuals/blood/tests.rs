@@ -844,7 +844,7 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
                     let before = crate::session::tests::state(&game);
                     blood.tick(&game, &models, &surfaces, &settings, None);
                     assert_eq!(before, crate::session::tests::state(&game));
-                    if !corpse_ready(game.roster.get(id)) {
+                    if !corpse_ready(game.roster.get(id), None) {
                         animated = true;
                         assert!(!blood.pools.contains_key(&game.roster.get(id).root_model));
                         assert!(blood.marks.is_empty());

@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Synchronize alternate player death pools and blood-impact sounds with the
+  visible animation. Each variant uses its own authored ground movement and
+  stops after settling; gameplay timing, other actors' sounds and Original/Retro
+  presentation remain unchanged.
+
 - Make flying grapple/weapon sparks and burning characters illuminate their
   surroundings. Replace the soft yellow weapon-impact orb with a short, sharp
   burst. Burning bodies no longer block all of their own flame light; walls

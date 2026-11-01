@@ -215,9 +215,15 @@ impl Audio {
         }
     }
 
-    pub fn tick(&mut self, game: &Game) -> Result<()> {
+    pub fn tick(
+        &mut self,
+        game: &Game,
+        frame: Option<&crate::visuals::interpolation::Frame>,
+    ) -> Result<()> {
         if !self.fast_forward {
-            for sound in game.sounds()? {
+            for sound in game
+                .sounds_with_effects(crate::visuals::death::blood::sounds(&game.effects, frame))?
+            {
                 self.output.send(output::Command::Effect(sound));
             }
         }

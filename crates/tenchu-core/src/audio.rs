@@ -71,6 +71,13 @@ impl Listener {
 
 impl Game {
     pub fn sounds(&self) -> Result<Vec<Sound>> {
+        self.sounds_with_effects(self.effects.sounds.iter().copied())
+    }
+
+    pub fn sounds_with_effects(
+        &self,
+        effects: impl IntoIterator<Item = (Position, i16)>,
+    ) -> Result<Vec<Sound>> {
         let listener = Listener {
             position: self.player().position,
             yaw: self.player().rotation[1],
@@ -106,7 +113,7 @@ impl Game {
                 sounds.push(sound);
             }
         }
-        for &(position, sound) in &self.effects.sounds {
+        for (position, sound) in effects {
             let position =
                 (!matches!(sound, 0x0b | 0x0e | 0x27 | 0x39 | 0x41 | 0x43)).then_some(position);
             if let Some(sound) = listener.sound(&self.math, position, sound)? {

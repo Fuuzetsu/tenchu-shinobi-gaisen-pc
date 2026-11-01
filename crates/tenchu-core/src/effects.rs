@@ -282,6 +282,7 @@ pub struct Effects {
     pub slots: Vec<Option<Effect>>,
     // Emitter provenance lets presentation replace a death pose and its particles together.
     pub gore_sources: Vec<Option<ModelId>>,
+    pub gore_sounds: Vec<(usize, ModelId)>,
     emitting_gore: Option<ModelId>,
     pub gun_sources: Vec<Option<GunEffect>>,
     emitting_gun: Option<GunEffect>,
@@ -305,6 +306,7 @@ impl Default for Effects {
         Self {
             slots: vec![None; 201],
             gore_sources: vec![None; 201],
+            gore_sounds: Vec::new(),
             emitting_gore: None,
             gun_sources: vec![None; 201],
             emitting_gun: None,
@@ -552,6 +554,7 @@ impl Effects {
         self.lines.clear();
         self.blood_pools.clear();
         self.sounds.clear();
+        self.gore_sounds.clear();
         self.rumble.clear();
         self.fades.clear();
         self.texture_moves.clear();
@@ -573,11 +576,14 @@ impl Effects {
             let gore = self.gore_sources[i];
             let drawings = self.drawings.len();
             let billboards = self.billboards.len();
+            let sounds = self.sounds.len();
             self.emitting_gore = gore;
             let result = self.update(&mut effect, rng, view, scene, env);
             self.emitting_gore = None;
             self.visiting = None;
             if let Some(gore) = gore {
+                self.gore_sounds
+                    .extend((sounds..self.sounds.len()).map(|i| (i, gore)));
                 for source in self.drawings[drawings..]
                     .iter_mut()
                     .map(|d| &mut d.gore_source)

@@ -57,8 +57,13 @@ impl Application {
             &self.settings.vibration,
         );
         let storm = self.settings.graphics.weather.mode.storm() && self.simulating();
+        let death = self
+            .view
+            .as_ref()
+            .and_then(View::death_frame)
+            .filter(|_| !self.settings.retro);
         if let Some(audio) = &mut self.audio {
-            if let Err(error) = audio.tick(&self.campaign.game) {
+            if let Err(error) = audio.tick(&self.campaign.game, death) {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
@@ -66,7 +71,7 @@ impl Application {
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
-            if let Err(error) = sound.tick(&self.assets, &self.campaign.game) {
+            if let Err(error) = sound.tick(&self.assets, &self.campaign.game, death) {
                 self.pause_error(error);
                 return false;
             }

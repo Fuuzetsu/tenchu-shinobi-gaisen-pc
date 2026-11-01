@@ -98,6 +98,10 @@ pub(super) struct View {
 }
 
 impl View {
+    pub(super) fn death_frame(&self) -> Option<&crate::visuals::interpolation::Frame> {
+        self.deaths.frame.as_ref()
+    }
+
     pub(super) fn thunder(&self) -> Option<tenchu_audio::ThunderCue> {
         self.weather.thunder()
     }

@@ -119,6 +119,8 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
             let end = deaths.clips[variant].duration - i16::from(deaths.clips[variant].sweep);
             let mut settled = None;
             let mut original_ready = false;
+            let mut original_late = 0;
+            let mut replaced_late = 0;
             for step in 0..310 {
                 game.step(0).unwrap();
                 let before = (step % 50 == 0).then(|| crate::session::tests::state(&game));
@@ -138,8 +140,26 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
                 if game.player().motion.loops < 0 {
                     original_ready = true;
                 }
-                if !original_ready {
-                    assert!(blood.pages().next().is_none());
+                let geometry = blood.geometry(&game, &models, Some(frame), None, 1.0);
+                assert_eq!(
+                    geometry.vertices.is_empty(),
+                    deaths.death.as_ref().unwrap().settled.is_none(),
+                    "hero {character}, variant {variant}, step {step}: pool must follow the visible collapse"
+                );
+                let sounds = blood::sounds(&game.effects, Some(frame)).collect::<Vec<_>>();
+                assert_eq!(
+                    game.sounds().unwrap(),
+                    game.sounds_with_effects(blood::sounds(&game.effects, None))
+                        .unwrap()
+                );
+                if step > end + 100 {
+                    original_late += game
+                        .effects
+                        .gore_sounds
+                        .iter()
+                        .filter(|(_, source)| *source == game.player().parts[1])
+                        .count();
+                    replaced_late += sounds.iter().filter(|(_, sound)| *sound == 0x37).count();
                 }
                 if step > end {
                     let poses = deaths
@@ -229,6 +249,16 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
                 }
             }
             assert!(original_ready);
+            if end < 100 {
+                assert!(
+                    original_late > 0,
+                    "fixture must expose original-duration gore sounds"
+                );
+                assert_eq!(
+                    replaced_late, 0,
+                    "short collapse must stop its own gore sounds"
+                );
+            }
             let player = game.player();
             let torso = Frame::transform(
                 deaths.frame.as_ref(),
@@ -287,10 +317,8 @@ fn alternate_corpse_settles_only_on_the_ground() {
     player.map.height = 0;
     player.velocity[1] = 0;
     deaths.tick(&game, 100).unwrap();
-    assert_eq!(
-        deaths.death.as_ref().unwrap().settled,
-        Some(game.player().root(&game.math))
-    );
+    let root = deaths.death.as_ref().unwrap().settled.unwrap();
+    assert_eq!(root.translation.y, game.player().position.y);
     let key = Part::Actor {
         root: game.player().root_model,
         model: game.player().parts[0],

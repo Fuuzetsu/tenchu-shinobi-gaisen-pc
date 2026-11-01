@@ -20,6 +20,7 @@ struct Death {
     clip: usize,
     motion: Option<Motion>,
     settled: Option<Matrix>,
+    pose: Matrix,
     blood: Option<blood::Blood>,
 }
 
@@ -123,6 +124,7 @@ impl Deaths {
                 clip,
                 motion,
                 settled: None,
+                pose: actor.root(&game.math),
                 blood: selected.then(|| blood::Blood::new(game)),
             });
         }
@@ -134,6 +136,7 @@ impl Deaths {
         if death.tick == game.tick && self.frame.is_some() {
             return Ok(());
         }
+        let advance = death.tick != game.tick;
         death.tick = game.tick;
         let Some(motion) = &mut death.motion else {
             return Ok(());
@@ -145,13 +148,39 @@ impl Deaths {
         motion.count = age
             .saturating_add(i16::from(alternate.sweep))
             .min(alternate.duration);
-        let emit = motion.count < alternate.duration && motion.count & 4 != 0;
-        if motion.count == alternate.duration && actor.map.height <= 0 && actor.velocity[1] == 0 {
-            // The original player clip can keep moving long after this collapse
-            // has finished. Keep the visible corpse where it actually landed.
-            death.settled.get_or_insert_with(|| actor.root(&game.math));
+        if advance && death.settled.is_none() {
+            let velocity = game.math.velocity(
+                actor.rotation[1],
+                i16::from(alternate.forward_speed),
+                i16::from(alternate.side_speed),
+            );
+            let mut position = death.pose.translation;
+            position.x += i32::from(velocity[0]);
+            position.z += i32::from(velocity[2]);
+            let ground = tenchu_core::terrain::vector(
+                &game.mission.terrain,
+                &mut tenchu_core::terrain::Cursor::new(&game.mission.terrain),
+                position,
+                i32::from(game.mission.characters[actor.definition].width),
+                tenchu_core::terrain::STEP_DOWN,
+            )?;
+            if ground.vector == 0
+                && ground.level != tenchu_core::terrain::NONE
+                && ground.height.abs() <= 500
+                && ground.attribute & 12 == 0
+            {
+                position.y = ground.level;
+                death.pose.translation = position;
+            }
         }
-        let root = death.settled.unwrap_or_else(|| actor.root(&game.math));
+        let emit = motion.count < alternate.duration && motion.count & 4 != 0;
+        if death.settled.is_none() && (actor.map.height > 0 || actor.velocity[1] != 0) {
+            death.pose.translation.y = actor.position.y;
+        }
+        if motion.count == alternate.duration && actor.map.height <= 0 && actor.velocity[1] == 0 {
+            death.settled.get_or_insert(death.pose);
+        }
+        let root = death.pose;
         motion.loops = 0;
         motion.step(&self.clips, &game.math.tables.hermite)?;
         let matrices = motion.pose.matrices(&game.math, root);
@@ -196,7 +225,8 @@ impl Deaths {
         }
         let mut frame = Frame::new(parts, game.rendered_view);
         if let Some(blood) = &mut death.blood {
-            frame.death_blood = Some(blood.tick(game, matrices[1], emit)?);
+            frame.death_blood =
+                Some(blood.tick(game, matrices[1], emit, root, death.settled.is_some())?);
         }
         self.frame = Some(frame);
         Ok(())

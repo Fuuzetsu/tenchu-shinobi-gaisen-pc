@@ -67,8 +67,15 @@ impl Sound {
         Ok(())
     }
 
-    pub fn tick(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
-        for sound in game.sounds()? {
+    pub fn tick(
+        &mut self,
+        assets: &GameAssets<DiscSource>,
+        game: &Game,
+        frame: Option<&crate::visuals::interpolation::Frame>,
+    ) -> Result<()> {
+        for sound in
+            game.sounds_with_effects(crate::visuals::death::blood::sounds(&game.effects, frame))?
+        {
             self.mixer.play(sound.id, sound.volume, sound.pan);
         }
         for cue in &game.music {

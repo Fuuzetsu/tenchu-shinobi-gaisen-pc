@@ -298,3 +298,20 @@ it, and that changing the emission volume invalidates cached shadows. Lifecycle
 tests cover moving/fading flames, thrown Kaen/explosions, bounded spark clusters
 and zero-density/disabled options without changing game state. Native and WASM
 library Clippy pass. Captures/logs are in `private/issues/effect-lights`.
+
+Alternate-death timing: both heroes and all four available clips now use the
+selected clip's ground speed and settle without the original clip's continued
+sideways motion. Movement stays within supported nearby terrain; falls still
+follow the gameplay body's vertical position until landing. Pool geometry is
+checked on every update against visible completion, including short variants
+that finish well before the underlying animation. Their hidden original gore
+sounds are replaced by sounds from the visible particles; co-located sounds
+from other actors remain intact. The initial death sample is about 0.52 seconds;
+the prolonged noise was repeated original blood impacts, not that voice sample.
+
+Four disc-backed death checks, the original music/death-hold regression, visual
+savestate continuation and ordinary workspace tests pass, as do strict native
+and WASM library Clippy. Native isolated death fixtures for both heroes were
+inspected with the regular and free cameras, including the held corpse/pool.
+Captures and sound/clip measurements remain in `private/issues/death-timing`.
+These checks preserve the original simulation and do not assert a new PS1 replay.

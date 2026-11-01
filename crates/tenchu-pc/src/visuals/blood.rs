@@ -95,7 +95,12 @@ fn translation(matrix: Matrix) -> Vec3 {
     Vec3::from(matrix.translation.map(|v| v as f32).to_array())
 }
 
-fn corpse_ready(actor: &tenchu_core::actor::Actor) -> bool {
+fn corpse_ready(actor: &tenchu_core::actor::Actor, frame: Option<&Frame>) -> bool {
+    if let Some(presented) = super::death::blood::for_actor(frame, actor) {
+        return actor.health == 0
+            && actor.status == tenchu_core::actor::State::Dead
+            && presented.settled;
+    }
     actor.health == 0
         && actor.status == tenchu_core::actor::State::Dead
         && actor.motion.loops < 0
@@ -612,7 +617,7 @@ impl Blood {
         }
         if !self.pools.is_empty()
             || game.roster.actors.iter().flatten().any(|actor| {
-                corpse_ready(actor)
+                corpse_ready(actor, frame)
                     && !self.dead.contains_key(&actor.root_model)
                     && settings.custom_death(actor.id == game.player_id)
             })
@@ -632,7 +637,7 @@ impl Blood {
     ) {
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
-            if !corpse_ready(actor) || !self.settings.custom_death(id == game.player_id) {
+            if !corpse_ready(actor, frame) || !self.settings.custom_death(id == game.player_id) {
                 continue;
             }
             if self
@@ -644,7 +649,11 @@ impl Blood {
                 self.pools.insert(
                     actor.root_model,
                     Pool {
-                        age: 0,
+                        age: if super::death::blood::for_actor(frame, actor).is_some() {
+                            24
+                        } else {
+                            0
+                        },
                         seed: self.seed,
                         mark: Mark(
                             Vec::new(),
@@ -674,7 +683,10 @@ impl Blood {
                 return true;
             }
             pool.age = pool.age.saturating_add(1);
-            if pool.age < 24 || actor.velocity[1] != 0 {
+            if pool.age < 24
+                || (actor.velocity[1] != 0
+                    && super::death::blood::for_actor(frame, actor).is_none())
+            {
                 return pool.age < 300;
             }
             let center = actor
@@ -696,7 +708,9 @@ impl Blood {
                     ))
                 })
                 .unwrap_or_else(|| Vec3::from(actor.position.map(|v| v as f32).to_array()));
-            let center = Vec3::new(center.x, actor.position.y as f32, center.z);
+            let floor = super::death::blood::for_actor(frame, actor)
+                .map_or(actor.position.y, |p| p.position.y);
+            let center = Vec3::new(center.x, floor as f32, center.z);
             if let Some(hit) = surfaces
                 .world
                 .cast(center - Vec3::Y * 800.0, center + Vec3::Y * 500.0)
