@@ -72,7 +72,11 @@ fn export(
             .player_models
             .values()
             .flat_map(|body| &body.parts)
-            .filter_map(|part| part.file.as_ref()),
+            .flat_map(|part| {
+                [part.file.as_ref(), part.skin.as_ref()]
+                    .into_iter()
+                    .flatten()
+            }),
     ) {
         add(path.as_str(), 64 * 1024 * 1024, false);
     }
@@ -234,7 +238,7 @@ mod tests {
             },
             "surfaces": {"menu": {"height": "images/height.png", "strength": 0.5}},
             "models": {"weapon": "weapon.obj"},
-            "player_models": {"custom": {"name": "Custom", "parts": [{"file": "body.obj", "parent": null, "position": [0, 0, 0]}]} }
+            "player_models": {"custom": {"name": "Custom", "parts": [{"file": "body.obj", "skin": "body.skin.json", "parent": null, "position": [0, 0, 0]}]} }
         });
         fs::write(
             source.join("pack.json"),
@@ -247,6 +251,7 @@ mod tests {
             "images/height.png",
             "weapon.obj",
             "body.obj",
+            "body.skin.json",
             "reference.png",
         ] {
             fs::write(source.join(name), name.as_bytes()).unwrap();
@@ -256,7 +261,15 @@ mod tests {
             files.boot,
             ["images/height.png", "images/layer.png", "pack.json"]
         );
-        assert_eq!(files.game, ["body.obj", "images/world.png", "weapon.obj"]);
+        assert_eq!(
+            files.game,
+            [
+                "body.obj",
+                "body.skin.json",
+                "images/world.png",
+                "weapon.obj"
+            ]
+        );
         assert!(!output.join("pack/reference.png").exists());
         assert_eq!(fs::read(output.join("pack/body.obj")).unwrap(), b"body.obj");
         fs::remove_file(source.join("body.obj")).unwrap();

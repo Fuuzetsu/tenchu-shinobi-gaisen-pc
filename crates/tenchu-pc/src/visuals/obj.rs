@@ -3,6 +3,7 @@ use tenchu_assets::Result;
 
 #[derive(Clone, Copy)]
 pub struct Corner {
+    pub index: usize,
     pub position: [f32; 3],
     pub normal: [f32; 3],
     pub color: [f32; 3],
@@ -100,6 +101,7 @@ pub fn decode(text: &str) -> Result<Vec<Triangle>> {
                         [0.0; 3]
                     };
                     Ok(Corner {
+                        index: vertex,
                         position: positions[vertex],
                         color: colors[vertex],
                         uv,

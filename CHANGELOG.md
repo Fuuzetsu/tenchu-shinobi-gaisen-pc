@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Custom player-model folders support optional four-joint skin weights for
+  smooth bending, including interpolated poses, shadows and gallery previews.
+  Asset-pack PNGs can be up to 2048 pixels per side, within the existing decoded
+  image budget and the GPU's atlas limits.
+
 ## 0.12.0 — 2026-11-01
 
 - Add optional high-detail hero geometry with rounded surfaces and finger

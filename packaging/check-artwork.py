@@ -22,7 +22,9 @@ def check(root, metadata_only=False):
     files = set(textures.values()) | set(manifest.get("models", {}).values())
     files.update(s["height"] for s in manifest.get("surfaces", {}).values() if s.get("height"))
     for body in manifest.get("player_models", {}).values():
-        files.update(part["file"] for part in body["parts"] if part.get("file"))
+        files.update(part[key] for part in body["parts"] for key in ("file", "skin") if part.get(key))
+    skins = {part["skin"] for body in manifest.get("player_models", {}).values()
+             for part in body["parts"] if part.get("skin")}
     for recipe in recipes.values():
         if isinstance(recipe.get("base"), dict):
             files.add(recipe["base"]["file"])
@@ -48,9 +50,9 @@ def check(root, metadata_only=False):
         if path.suffix == ".png":
             if data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
                 raise ValueError(f"Invalid PNG: {name}")
-            if not all(0 < size <= 1024 for size in struct.unpack(">II", data[16:24])):
+            if not all(0 < size <= 2048 for size in struct.unpack(">II", data[16:24])):
                 raise ValueError(f"Oversized texture: {name}")
-        elif path.suffix != ".obj":
+        elif name not in skins and path.suffix != ".obj":
             raise ValueError(f"Unexpected shipped format: {name}")
         total += len(data)
     if metadata_only:

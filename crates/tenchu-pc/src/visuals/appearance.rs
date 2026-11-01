@@ -15,6 +15,7 @@ use tenchu_core::{game::Game, math::Matrix};
 
 pub mod library;
 pub mod picker;
+pub mod skin;
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -27,6 +28,8 @@ pub struct Body {
 #[serde(deny_unknown_fields)]
 pub struct BodyPart {
     pub file: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skin: Option<String>,
     pub parent: Option<usize>,
     pub position: [i16; 3],
 }
@@ -48,6 +51,9 @@ impl Body {
             return Err("A player body needs a name and fifteen rig parts".into());
         }
         for (index, part) in self.parts.iter().enumerate() {
+            if part.skin.is_some() && part.file.is_none() {
+                return Err("Skin weights need an OBJ file".into());
+            }
             let mut parent = part.parent;
             for depth in 0..=self.parts.len() {
                 let Some(id) = parent else { break };
@@ -109,6 +115,30 @@ fn rendered_player(game: &Game, inspection: bool) -> Cow<'_, tenchu_core::actor:
     } else {
         Cow::Borrowed(game.player())
     }
+}
+
+fn rendered_matrices(
+    player: &tenchu_core::actor::Actor,
+    inspection: bool,
+    frame: Option<&Frame>,
+) -> Vec<Matrix> {
+    player
+        .rendered
+        .iter()
+        .enumerate()
+        .map(|(i, &matrix)| {
+            Frame::transform(
+                frame,
+                Part::Actor {
+                    root: player.root_model,
+                    model: player.parts[i],
+                    kind: player.rendered_mesh_kind,
+                    inspection,
+                },
+                matrix,
+            )
+        })
+        .collect()
 }
 
 impl Appearance {
@@ -191,6 +221,9 @@ impl Appearance {
             options.asset_pack = true;
         }
         let mut meshes = Meshes::build(vram, pack, &options, sources, true)?;
+        if custom {
+            meshes.skin(&parts);
+        }
         if body.is_some() {
             meshes.detach_textures();
             if graphics.asset_pack {
@@ -212,23 +245,7 @@ impl Appearance {
     ) -> BTreeMap<usize, Vec3> {
         let player = rendered_player(game, inspection);
         let original = &game.mission.models[&player.rendered_mesh_kind];
-        let matrices: Vec<_> = player
-            .rendered
-            .iter()
-            .enumerate()
-            .map(|(i, &matrix)| {
-                Frame::transform(
-                    frame,
-                    Part::Actor {
-                        root: player.root_model,
-                        model: player.parts[i],
-                        kind: player.rendered_mesh_kind,
-                        inspection,
-                    },
-                    matrix,
-                )
-            })
-            .collect();
+        let matrices = rendered_matrices(&player, inspection, frame);
         let mut offsets = BTreeMap::new();
         for _ in 0..self.parts.len() {
             for (i, parent) in self.parents.iter().copied().enumerate() {
@@ -272,23 +289,7 @@ impl Appearance {
         let player = rendered_player(game, inspection);
         let source = &game.mission.models[&player.rendered_mesh_kind];
         let source_parents = parents(source);
-        let matrices: Vec<_> = player
-            .rendered
-            .iter()
-            .enumerate()
-            .map(|(i, &matrix)| {
-                Frame::transform(
-                    frame,
-                    Part::Actor {
-                        root: player.root_model,
-                        model: player.parts[i],
-                        kind: player.rendered_mesh_kind,
-                        inspection,
-                    },
-                    matrix,
-                )
-            })
-            .collect();
+        let matrices = rendered_matrices(&player, inspection, frame);
         let root =
             rotation(matrices[0]) * rotation(game.scene.models[player.parts[0]].local).inverse();
         let origin = Vec3::from(matrices[0].translation.map(|n| n as f32).to_array())
@@ -365,6 +366,22 @@ pub fn visit_parts(
     let posed_player = transforms
         .as_ref()
         .map(|_| rendered_player(game, inspection));
+    if let Some(appearance) = appearance.filter(|a| a.meshes.has_skin()) {
+        if let Some(matrices) = &transforms {
+            appearance.meshes.pose_skin(matrices);
+        } else {
+            let player = rendered_player(game, inspection);
+            let mut matrices = rendered_matrices(&player, inspection, frame);
+            for (matrix, model) in matrices.iter_mut().zip(&player.parts) {
+                if let Some(offset) = offsets.as_ref().and_then(|o| o.get(model)) {
+                    for (value, offset) in matrix.translation.iter_mut().zip(offset.to_array()) {
+                        *value += offset.round() as i32;
+                    }
+                }
+            }
+            appearance.meshes.pose_skin(&matrices);
+        }
+    }
     render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
         let mut matrix = Frame::transform(frame, key, matrix);
         if let Part::Actor { root, model, .. } = key
@@ -446,6 +463,7 @@ pub fn exported(mission: &MissionAssets) -> BTreeMap<String, Body> {
                     .zip(parents(parts))
                     .enumerate()
                     .map(|(i, (p, parent))| BodyPart {
+                        skin: None,
                         file: p
                             .geometry
                             .iter()

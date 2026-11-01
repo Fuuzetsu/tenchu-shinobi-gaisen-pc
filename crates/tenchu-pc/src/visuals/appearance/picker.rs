@@ -75,6 +75,7 @@ impl Preview {
             motion.step(&clips, &state.game.math.tables.hermite)?;
         }
         let matrices = motion.pose.matrices(&state.game.math, Matrix::default());
+        appearance.meshes.pose_skin(&matrices);
         let mut min = Vec3::splat(f32::INFINITY);
         let mut max = Vec3::splat(f32::NEG_INFINITY);
         for (part, matrix) in appearance.parts.iter().zip(matrices) {
@@ -121,6 +122,7 @@ impl Preview {
             let _ = self.motion.step(&self.clips, &game.math.tables.hermite);
         }
         let matrices = self.motion.pose.matrices(&game.math, Matrix::default());
+        self.appearance.meshes.pose_skin(&matrices);
         let camera = Mat3::from_rotation_x(-0.10) * Mat3::from_rotation_y(-0.35);
         let scale = rect.width().min(rect.height()) * 0.48 / self.extent;
         let center = Vec2::new(rect.center().x - origin.x, rect.center().y - origin.y);

@@ -1,3 +1,4 @@
+use super::appearance::skin;
 use super::{catalog, pack::Pack, pixels::Image, smooth};
 use crate::{
     render_mesh::{self, Vertex},
@@ -269,25 +270,35 @@ struct Mesh {
     vertices: Vec<Vertex>,
     triangles: Vec<[u32; 3]>,
     flags: u32,
+    skin: Option<Vec<skin::Influence>>,
+    bind_root: Vec3,
 }
 
 impl Mesh {
-    fn new(vertices: &[Vertex]) -> Self {
+    fn new(vertices: &[Vertex], skin: Option<&[skin::Influence]>) -> Self {
         let mut mesh = Self {
             vertices: Vec::new(),
             triangles: Vec::new(),
             flags: 0,
+            skin: skin.map(|_| Vec::new()),
+            bind_root: Vec3::ZERO,
         };
         // Sharing corners must preserve UV seams, normals and material boundaries.
         let mut indices = HashMap::new();
-        for triangle in vertices.chunks_exact(3) {
+        for (face, triangle) in vertices.chunks_exact(3).enumerate() {
             mesh.flags |= triangle[0].flags;
             mesh.triangles.push(std::array::from_fn(|i| {
                 *indices
-                    .entry(bytemuck::bytes_of(&triangle[i]))
+                    .entry((
+                        bytemuck::bytes_of(&triangle[i]),
+                        skin.map(|w| w[face * 3 + i].key()),
+                    ))
                     .or_insert_with(|| {
                         let index = mesh.vertices.len() as u32;
                         mesh.vertices.push(triangle[i]);
+                        if let (Some(source), Some(target)) = (skin, &mut mesh.skin) {
+                            target.push(source[face * 3 + i]);
+                        }
                         index
                     })
             }));
@@ -304,9 +315,33 @@ pub(super) struct Meshes {
     canopies: BTreeMap<usize, Vec<super::contact::foliage::Canopy>>,
     pub replacements: usize,
     motion: BTreeMap<usize, Vec<super::motion::BoundRule>>,
+    skin: Option<skin::Pose>,
 }
 
 impl Meshes {
+    pub fn skin(&mut self, parts: &[tenchu_assets::model::Part]) {
+        if !self.meshes.values().any(|m| m.skin.is_some()) {
+            return;
+        }
+        let pose = skin::Pose::new(parts);
+        for (i, part) in parts.iter().enumerate() {
+            if let Some(mesh) = self.meshes.get_mut(&(part.geometry.as_ptr() as usize)) {
+                mesh.bind_root = pose.roots[i];
+            }
+        }
+        self.skin = Some(pose);
+    }
+
+    pub fn has_skin(&self) -> bool {
+        self.skin.is_some()
+    }
+
+    pub fn pose_skin(&self, matrices: &[Matrix]) {
+        if let Some(skin) = &self.skin {
+            skin.set(matrices);
+        }
+    }
+
     pub fn materials(&self) -> &[Material] {
         &self.materials
     }
@@ -586,8 +621,24 @@ impl Meshes {
                     super::vegetation::botanical::Shape::new(&vertices),
                 );
             }
-            out.meshes
-                .insert(source.geometry.as_ptr() as usize, Mesh::new(&vertices));
+            let skin = replacement.and_then(|model| {
+                pack.skins.get(&source.id).map(|weights| {
+                    model
+                        .iter()
+                        .flat_map(|t| t.corners.map(|c| weights[c.index]))
+                        .collect::<Vec<_>>()
+                })
+            });
+            if skin.as_ref().is_some_and(|s| s.len() != vertices.len()) {
+                return Err(format!(
+                    "{}: skin does not match prepared geometry",
+                    source.id
+                ));
+            }
+            out.meshes.insert(
+                source.geometry.as_ptr() as usize,
+                Mesh::new(&vertices, skin.as_deref()),
+            );
         }
         Ok(out)
     }
@@ -652,14 +703,19 @@ impl Meshes {
         let normal = rotation.inverse().transpose();
         let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
         let mut transformed = mesh.vertices.clone();
-        for vertex in &mut transformed {
+        let skin_pose = self.skin.as_ref().map(skin::Pose::transforms);
+        for (index, vertex) in transformed.iter_mut().enumerate() {
             if let Some(variant) = &variant {
                 variant.vertex(vertex);
             }
-            vertex.position = (rotation * Vec3::from(vertex.position) + translation).to_array();
-            vertex.normal = (normal * Vec3::from(vertex.normal))
-                .normalize_or_zero()
-                .to_array();
+            if let (Some(weights), Some(pose)) = (&mesh.skin, &skin_pose) {
+                skin::vertex(vertex, weights[index], mesh.bind_root, pose);
+            } else {
+                vertex.position = (rotation * Vec3::from(vertex.position) + translation).to_array();
+                vertex.normal = (normal * Vec3::from(vertex.normal))
+                    .normalize_or_zero()
+                    .to_array();
+            }
             vertex.flags =
                 (vertex.flags & !render_mesh::FOG) | if fog { render_mesh::FOG } else { 0 };
             if let Some(deformation) = deformation {
@@ -721,9 +777,11 @@ mod tests {
             .collect();
         vertices.extend_from_within(..);
         vertices[18].uv[0] += 0.25;
-        let indexed = Mesh::new(&vertices);
+        let indexed = Mesh::new(&vertices, None);
         assert_eq!(indexed.vertices.len(), 19);
         let mut expanded = Mesh {
+            skin: None,
+            bind_root: Vec3::ZERO,
             flags: indexed.flags,
             triangles: (0..vertices.len() as u32)
                 .step_by(3)
@@ -766,6 +824,22 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn skin_weights_keep_coincident_vertices_with_different_joints_separate() {
+        use bytemuck::Zeroable;
+        let vertices = [Vertex::zeroed(); 6];
+        let weights: Vec<_> = (0..6)
+            .map(|i| skin::Influence {
+                joints: [i / 3, 0, 0, 0],
+                weights: [1.0, 0.0, 0.0, 0.0],
+            })
+            .collect();
+        let mesh = Mesh::new(&vertices, Some(&weights));
+        assert_eq!(mesh.vertices.len(), 2);
+        assert_eq!(mesh.triangles, [[0; 3], [1; 3]]);
+        assert_eq!(mesh.skin.unwrap()[1].joints[0], 1);
     }
 
     #[test]

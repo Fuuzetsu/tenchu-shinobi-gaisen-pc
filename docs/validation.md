@@ -343,3 +343,15 @@ weather and lighting, and reset the new model/weapon options through F1 without
 changing paused game state or reporting rendering errors. Native and WASM library
 Clippy and 118 ordinary PC tests pass. Captures and logs remain outside Git in
 `private/issues/hero-models`; browser smoke checks are not performance guarantees.
+
+Custom weighted player models: a full-detail external model was exercised on
+both heroes through walking, turning, attacks and jumps, with interpolated poses,
+shadows and the animated gallery. The disc-backed check verifies finite, bounded
+geometry and byte-identical game state before and after rendering. Synthetic
+checks cover blended joint seams, invalid weights and coincident vertices with
+different influences; the existing rigid-body/weapon regression also passes.
+The 2K texture loader preserves decoded pixels and rejects oversized images.
+All 122 ordinary PC tests, native Clippy and WASM library Clippy pass; browser
+export includes skin sidecars, but this external model was tested interactively
+only on native. Its assets, conversion tools and captures remain private and
+untracked; the game needs only OBJ/PNG/JSON files, with no Python runtime.

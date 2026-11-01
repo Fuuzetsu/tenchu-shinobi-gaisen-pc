@@ -188,7 +188,7 @@ Only their final images enter the mission's decoded-image budget; temporary
 layers are freed. Browser preparation exports and prefetches all recipe inputs.
 The bundled pack's manifest contains working examples.
 
-Textures may be RGB/RGBA, grayscale or indexed PNG, up to 1024 pixels per side,
+Textures may be RGB/RGBA, grayscale or indexed PNG, up to 2048 pixels per side,
 with a budget of 16 million decoded pixels per loaded mission/outfit (including
 height maps and replacement model textures). A campaign pack can contain more:
 the loader selects current mission textures and model dependencies before
@@ -500,6 +500,15 @@ uses the pack's existing material/PNG definitions. Bodies can be renamed or
 removed from this object without changing ordinary world asset replacements.
 Custom folders require that humanoid hierarchy; the built-in animal choices use
 the disc's own skeletons.
+
+A part can also specify `"skin": "body.skin.json"` for smooth joint bending.
+The file is a JSON array in the OBJ's `v` order. Each entry has `joints: [0, 1,
+0, 0]` and `weights: [0.25, 0.75, 0, 0]`: up to four joint indices (0–14), with
+nonnegative weights totaling one. OBJ positions stay local to their owning part;
+the bind pose comes from the body's hierarchy and positions. Without `skin`, a
+part stays rigid. Skinning uses the presented pose for bodies, shadows and gallery
+previews, without changing gameplay, weapon anchors or collision. A 2048-pixel
+side requires a GPU supporting an atlas at least 4096 pixels wide.
 
 **Smooth model lighting** generates crease-aware normals for dynamic lighting.
 **Character contours** optionally rounds original actor silhouettes, with
@@ -1505,7 +1514,7 @@ using texture identities from `export-assets`:
 ```
 
 Height PNGs use the red channel: black is low, white is high. Their resolution
-can differ from the color texture (up to 1024×1024); strength is 0–2 and multiplies
+can differ from the color texture (up to 2048×2048); strength is 0–2 and multiplies
 the F1 slider. Omitting `height` uses the inferred map. Explicit maps may also
 target model materials. Reload the pack through F1; no model or color-texture edit
 is required. Browser play currently uses the automatic maps; filesystem asset

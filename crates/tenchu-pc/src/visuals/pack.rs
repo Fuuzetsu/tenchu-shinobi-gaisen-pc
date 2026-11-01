@@ -64,6 +64,7 @@ pub struct Pack {
     pub motion: BTreeMap<String, Vec<super::motion::Rule>>,
     pub images: BTreeMap<String, Arc<Image>>,
     pub models: BTreeMap<String, Vec<super::obj::Triangle>>,
+    pub skins: BTreeMap<String, Vec<super::appearance::skin::Influence>>,
     pub model_patches: BTreeMap<String, Vec<super::model_patch::Patch>>,
     pub materials: BTreeMap<String, Material>,
     pub lights: Option<Vec<super::lights::Rule>>,
@@ -243,6 +244,7 @@ impl Pack {
                 .retain(|id, _| selection.models.contains(id));
         }
         let mut models = manifest.models;
+        let mut skin_vertices = 0;
         for (id, body) in &manifest.player_models {
             if id.is_empty()
                 || !id
@@ -254,6 +256,16 @@ impl Pack {
             body.validate()?;
             for (index, part) in body.parts.iter().enumerate() {
                 let key = format!("player/{id}/{index}");
+                if let Some(path) = &part.skin {
+                    let bytes = read(path, 64 * 1024 * 1024)?;
+                    let weights = super::appearance::skin::decode(&bytes)
+                        .map_err(|error| format!("{path}: {error}"))?;
+                    skin_vertices += weights.len();
+                    if skin_vertices > 1_000_000 {
+                        return Err("Asset pack exceeds one million skin weights".into());
+                    }
+                    pack.skins.insert(key.clone(), weights);
+                }
                 if let Some(file) = &part.file {
                     models.insert(key, file.clone());
                 } else {
@@ -268,6 +280,14 @@ impl Pack {
             let data = read(&path, 64 * 1024 * 1024)?;
             let text = std::str::from_utf8(&data).map_err(|e| format!("{path}: {e}"))?;
             let model = super::obj::decode(text).map_err(|e| format!("{path}: {e}"))?;
+            if let Some(skin) = pack.skins.get(&id)
+                && model
+                    .iter()
+                    .flat_map(|t| t.corners)
+                    .any(|v| v.index >= skin.len())
+            {
+                return Err(format!("{path}: missing skin weights for an OBJ vertex"));
+            }
             for triangle in &model {
                 let material = manifest.materials.get(&triangle.material).ok_or_else(|| {
                     format!(
@@ -458,8 +478,8 @@ pub fn decode_png(bytes: &[u8]) -> Result<Image> {
     });
     let mut reader = decoder.read_info().map_err(|e| e.to_string())?;
     let size = [reader.info().width, reader.info().height];
-    if size.into_iter().any(|n| n == 0 || n > 1024) {
-        return Err("Textures must be 1–1024 pixels on each side".into());
+    if size.into_iter().any(|n| n == 0 || n > 2048) {
+        return Err("Textures must be 1–2048 pixels on each side".into());
     }
     let mut buffer = vec![0; reader.output_buffer_size()];
     let info = reader.next_frame(&mut buffer).map_err(|e| e.to_string())?;
@@ -483,6 +503,29 @@ pub fn decode_png(bytes: &[u8]) -> Result<Image> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn two_k_textures_decode_without_resampling_and_larger_images_are_rejected() {
+        for width in [2048, 2049] {
+            let rgba: Vec<u8> = (0..width).flat_map(|x| [x as u8, 17, 29, 255]).collect();
+            let mut png = Vec::new();
+            let mut encoder = png::Encoder::new(&mut png, width, 1);
+            encoder.set_color(png::ColorType::Rgba);
+            encoder.set_depth(png::BitDepth::Eight);
+            encoder
+                .write_header()
+                .unwrap()
+                .write_image_data(&rgba)
+                .unwrap();
+            if width == 2048 {
+                let image = decode_png(&png).unwrap();
+                assert_eq!(image.size, [2048, 1]);
+                assert_eq!(image.rgba, rgba);
+            } else {
+                assert!(decode_png(&png).is_err());
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; checks campaign selection against exported model and sprite artwork"]
