@@ -3,6 +3,60 @@ use bytemuck::Zeroable;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires a GPU; existing snow masks tracks to snow texels without enabling simulated weather"]
+fn baked_snow_tracks_preserve_bare_texels() {
+    let mut vram = Vram::default();
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let terrain = rectangle(
+        1000,
+        128,
+        Some(Texture {
+            page: 256,
+            palette: 0,
+        }),
+        false,
+        false,
+        false,
+    );
+    let ground = renderer.upload(&terrain);
+    for (texel, snow) in [(0x7fff, true), (0x2108, false)] {
+        vram.words[0] = texel;
+        renderer.update_vram(&vram);
+        renderer.draw(&view, camera, &[&ground], None).unwrap();
+        let bare = read_pixel(&renderer, &target);
+        for tagged in [false, true] {
+            let mut vertices = terrain.clone();
+            for v in &mut vertices {
+                v.position[2] -= 1.0;
+                v.flags |= render_mesh::ALPHA | render_mesh::FOOTPRINT;
+                if tagged {
+                    v.flags |= render_mesh::SNOW;
+                }
+                v.opacity = 1.0;
+            }
+            let effect = renderer.upload_effects(render_effects::Geometry {
+                batches: vec![render_effects::Batch {
+                    blend: 5,
+                    range: 0..vertices.len() as u32,
+                }],
+                vertices,
+            });
+            renderer
+                .draw(&view, camera, &[&ground], Some(&effect))
+                .unwrap();
+            let print = read_pixel(&renderer, &target);
+            if snow && tagged {
+                assert!(print[0] + 20 < bare[0], "{print:?} on {bare:?}");
+            } else {
+                assert_eq!(print, bare, "snow {snow}, tagged {tagged}");
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a GPU; wet reflections respond to lights, puddles ripple and rain obscures distance with black fog off"]
 fn rain_controls_change_reflections_ripples_and_visibility() {
     let (mut renderer, target) = fixture(&Vram::default());

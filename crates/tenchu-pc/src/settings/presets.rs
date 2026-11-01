@@ -217,6 +217,7 @@ fn modern(ultra: bool) -> Graphics {
     g.motion.strength = 80;
     g.motion.wind = 20;
     g.weather.quality = if ultra { 2 } else { 1 };
+    g.weather.baked_snow = true;
     g.sky.enabled = true;
     g.sky.time = 1320;
     g.sky.moon = 35;

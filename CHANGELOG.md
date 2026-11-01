@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Tracks on existing snow** in F1 → Weather for Missions 5/10 and TRIAL
+  terrain using their snowy materials. It works without extra snow or weather
+  overrides, respects bare parts of each texture, and is enabled in modern presets.
+
 - Fix camera-relative directional attacks turning the player before choosing
   the slash. Document the guard/side-slash modifier in Movement and Controls:
   hold Left Ctrl or R1/RB, then back to guard or left/right + attack to slash.

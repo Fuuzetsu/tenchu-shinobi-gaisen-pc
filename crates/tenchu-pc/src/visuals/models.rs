@@ -293,6 +293,7 @@ impl Meshes {
         let mut out = Self::default();
         let rules = super::lights::rules(pack, graphics.asset_pack);
         let water = super::water::rules(pack, graphics.asset_pack);
+        let snow = super::footprints::snow_materials(pack, graphics.asset_pack);
         let mut water_budget = 262144;
         let vegetation = super::vegetation::rules(pack, graphics.asset_pack);
         let mut refinement_budget = 1_048_576;
@@ -320,6 +321,7 @@ impl Meshes {
             let grapple = graphics.models.grapple && source.id == "common/26";
             let round = source.id.starts_with("actors/") && replacement.is_none();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
+            let snow_enabled = graphics.weather.baked_snow && source.id.starts_with("stages/");
             let foliage = (graphics.models.foliage != 0
                 || graphics.models.variation
                 || graphics.effects.leaves
@@ -338,6 +340,7 @@ impl Meshes {
                 && !graphics.smooth_models
                 && !(round && graphics.model_detail != 0)
                 && !water_enabled
+                && !snow_enabled
                 && !foliage
                 && !refined
                 && !secondary
@@ -440,6 +443,18 @@ impl Meshes {
                                 vertex.material = material;
                             }
                         }
+                    }
+                }
+            }
+            if snow_enabled {
+                for vertex in &mut vertices {
+                    if vertex
+                        .material
+                        .checked_sub(1)
+                        .and_then(|i| out.materials.get(i as usize))
+                        .is_some_and(|m| snow.contains(&m.id))
+                    {
+                        vertex.flags |= render_mesh::SNOW;
                     }
                 }
             }

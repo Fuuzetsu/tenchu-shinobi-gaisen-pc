@@ -15,6 +15,7 @@ struct ModelOptions {
     leaves: bool,
     secondary: bool,
     wind: bool,
+    baked_snow: bool,
 }
 
 fn model_options(graphics: &settings::Graphics) -> ModelOptions {
@@ -31,6 +32,7 @@ fn model_options(graphics: &settings::Graphics) -> ModelOptions {
         leaves: graphics.effects.leaves || graphics.effects.scatter,
         secondary: graphics.motion.actors(),
         wind: graphics.motion.wind != 0,
+        baked_snow: graphics.weather.baked_snow,
     }
 }
 
@@ -202,8 +204,9 @@ impl View {
             .tick(game, &self.models, &settings.graphics.motion, death);
         let blood = settings.graphics.blood.active();
         let weather = settings.graphics.weather.mode != settings::WeatherMode::Original;
+        let footprints = weather || settings.graphics.weather.baked_snow;
         let contact = settings.graphics.effects.active();
-        if blood || weather || contact {
+        if blood || weather || footprints || contact {
             let surfaces = self.surfaces.get_or_insert_with(|| {
                 crate::visuals::surfaces::Surfaces::new(&render_mesh::stage(
                     &game.mission,
@@ -224,13 +227,15 @@ impl View {
                 let center = debug.eye(game);
                 self.weather
                     .tick(game.tick, center, surfaces, &settings.graphics.weather);
+            }
+            if footprints {
                 self.footprints.tick(
                     game,
                     &self.models,
                     surfaces,
                     &settings.graphics.weather,
                     self.weather.sample(&settings.graphics.weather, 1.0).snow,
-                    center,
+                    debug.eye(game),
                 );
             }
             if contact {
@@ -248,6 +253,8 @@ impl View {
         }
         if !weather {
             self.weather = Default::default();
+        }
+        if !footprints {
             self.footprints.clear();
         }
     }
@@ -764,7 +771,8 @@ impl View {
         if configured.graphics.weather.mode == settings::WeatherMode::Original {
             self.weather = Default::default();
         }
-        if configured.graphics.weather.mode == settings::WeatherMode::Original
+        if (configured.graphics.weather.mode == settings::WeatherMode::Original
+            && !configured.graphics.weather.baked_snow)
             || !configured.graphics.weather.footprints
         {
             self.footprints.clear();
@@ -967,12 +975,15 @@ impl View {
         if campaign.scene_visible()
             && error.is_none()
             && !debug.collision_only
-            && settings.graphics.weather.mode != settings::WeatherMode::Original
+            && (settings.graphics.weather.mode != settings::WeatherMode::Original
+                || settings.graphics.weather.baked_snow)
         {
             let mut footprints = self.footprints.geometry(&settings.graphics.weather);
             footprints.append(geometry);
             geometry = footprints;
-            geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
+            if settings.graphics.weather.mode != settings::WeatherMode::Original {
+                geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
+            }
             let mut weather = self.weather.geometry(
                 self.camera_matrix(game, debug),
                 alpha,

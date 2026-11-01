@@ -383,6 +383,7 @@ impl Pack {
                     strength: rule.strength,
                     world_tile: rule.world_tile,
                     uv_tile: rule.uv_tile,
+                    snow: rule.snow,
                 },
             );
         }
@@ -731,6 +732,7 @@ mod tests {
                 strength: 0.5,
                 world_tile: Some([4000.0, 2000.0]),
                 uv_tile: true,
+                snow: Some(true),
             },
         );
         save(&manifest);
@@ -747,6 +749,9 @@ mod tests {
             Some([4000.0, 2000.0])
         );
         assert!(Pack::load(&root).unwrap().surfaces["new_art"].uv_tile);
+        let pack = Pack::load(&root).unwrap();
+        assert!(super::super::footprints::snow_materials(&pack, true).contains("new_art"));
+        assert!(!super::super::footprints::snow_materials(&pack, false).contains("new_art"));
         manifest.surfaces.get_mut("new_art").unwrap().world_tile = Some([0.0, 2000.0]);
         save(&manifest);
         assert!(Pack::load(&root).is_err());

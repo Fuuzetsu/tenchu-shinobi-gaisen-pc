@@ -1069,6 +1069,11 @@ Snow footprints follow players' and humanoid enemies' animated feet and project
 onto actual ground triangles. Fresh snowfall buries exposed tracks gradually;
 turning the wind updates which tracks receive snow. Projected tracks use compact
 geometry, and older tracks fade under budget pressure instead of disappearing.
+**Tracks on existing snow** also allows tracks on the snowy ground in Missions
+5 and 10 and TRIAL maps using those materials, without adding a weather coating.
+It works with Original weather and replacement artwork. Only the snowy portions
+of those textures receive tracks; bare paths, stones and indoor floors remain
+clear. Modern presets enable it; the Original graphics preset leaves it off.
 F1 controls the burial time
 and provides a clear action. Ground blood stains absorb the snow
 material. Tracks, particles and decals are bounded cosmetic effects; collision
@@ -1388,6 +1393,13 @@ the F1 slider. Omitting `height` uses the inferred map. Explicit maps may also
 target model materials. Reload the pack through F1; no model or color-texture edit
 is required. Browser play currently uses the automatic maps; filesystem asset
 packs remain a native feature.
+
+`"snow": true` opts a texture into existing-snow footprints; `false` removes it
+from the built-in snowy-material list in `crates/tenchu-pc/data/snow.json`.
+The bright portions of its original disc texture provide the coverage mask,
+independent of HD artwork or scene lighting. This avoids treating unrelated
+white plaster, cloth and pale stone as snow. The list contains texture hashes,
+not game artwork; replacements can override the classification per texture.
 
 `world_tile` optionally maps replacement artwork across world X/Z coordinates,
 with the two values giving its repeat periods in game units. It joins terrain

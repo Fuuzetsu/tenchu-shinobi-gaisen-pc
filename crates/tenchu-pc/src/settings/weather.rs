@@ -46,6 +46,7 @@ pub struct Weather {
     pub runoff: bool,
     pub runoff_amount: u16,
     pub footprints: bool,
+    pub baked_snow: bool,
     pub footprint_seconds: u16,
 }
 
@@ -69,6 +70,7 @@ impl Default for Weather {
             runoff: true,
             runoff_amount: 70,
             footprints: true,
+            baked_snow: false,
             footprint_seconds: 60,
         }
     }

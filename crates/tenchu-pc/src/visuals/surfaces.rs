@@ -33,9 +33,14 @@ pub struct Hit {
 pub struct Surfaces {
     triangles: Vec<[Vertex; 3]>,
     nodes: Vec<Node>,
+    flags: u32,
 }
 
 impl Surfaces {
+    pub fn contains(&self, flags: u32) -> bool {
+        self.flags & flags == flags
+    }
+
     pub fn top(&self) -> f32 {
         self.nodes.first().map_or(0.0, |node| node.bounds.min.y)
     }
@@ -53,6 +58,10 @@ impl Surfaces {
                 .map(|t| [t[0], t[1], t[2]])
                 .collect(),
             nodes: Vec::new(),
+            flags: vertices
+                .iter()
+                .filter(|v| v.flags & crate::render_mesh::FOLIAGE == 0)
+                .fold(0, |flags, v| flags | v.flags),
         };
         if !out.triangles.is_empty() {
             out.partition(0..out.triangles.len());

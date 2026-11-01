@@ -10,12 +10,31 @@ use crate::{
     settings::{Weather, WeatherMode},
 };
 use glam::Vec3;
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use tenchu_assets::model;
 use tenchu_core::game::Game;
 
 const MARK_LIMIT: usize = 512;
 const VERTEX_LIMIT: usize = 65_536;
+
+pub fn snow_materials(pack: &super::pack::Pack, artwork: bool) -> BTreeSet<String> {
+    let mut materials: BTreeSet<String> =
+        serde_json::from_str(include_str!("../../data/snow.json")).unwrap();
+    if artwork {
+        for (id, surface) in &pack.surfaces {
+            match surface.snow {
+                Some(true) => {
+                    materials.insert(id.clone());
+                }
+                Some(false) => {
+                    materials.remove(id);
+                }
+                None => {}
+            }
+        }
+    }
+    materials
+}
 
 struct Mark {
     vertices: Vec<Vertex>,
@@ -106,7 +125,9 @@ impl Footprints {
         snow: f32,
         eye: Vec3,
     ) {
-        if !settings.footprints || settings.mode == WeatherMode::Original || snow <= 0.01 {
+        let coating = settings.mode != WeatherMode::Original && snow > 0.01;
+        let baked = settings.baked_snow && surfaces.contains(render_mesh::SNOW);
+        if !settings.footprints || !coating && !baked {
             self.clear();
             self.tick = Some(game.tick);
             return;
@@ -183,7 +204,7 @@ impl Footprints {
             else {
                 continue;
             };
-            if hit.normal.y > -0.55 {
+            if hit.normal.y > -0.55 || !coating && hit.flags & render_mesh::SNOW == 0 {
                 continue;
             }
             let mut vertices = surfaces.project(&Stamp {
@@ -200,6 +221,9 @@ impl Footprints {
             for v in &mut vertices {
                 v.normal = hit.normal.to_array();
                 v.flags = (v.flags & !render_mesh::STAIN) | render_mesh::FOOTPRINT;
+                if !settings.baked_snow || v.flags & render_mesh::FOLIAGE != 0 {
+                    v.flags &= !render_mesh::SNOW;
+                }
             }
             if self.marks.len() == MARK_LIMIT || vertex_count + vertices.len() > VERTEX_LIMIT {
                 continue;
@@ -347,6 +371,149 @@ mod tests {
 #[cfg(test)]
 mod retail_tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; existing snow takes tracks with Original weather, while bare stages and the Original preset do not"]
+    fn existing_snow_takes_tracks_without_a_weather_coating() {
+        use tenchu_core::{math::Position, terrain};
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        for mission in [1, 5, 10] {
+            for character in 0..2 {
+                let mut game = crate::session::Options {
+                    mission,
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                game.intelligence.ignore_player = true;
+                game.roster.order.retain(|&id| id == game.player_id);
+                let mut graphics = crate::settings::Graphics::default();
+                graphics.weather.baked_snow = true;
+                let mut models =
+                    Models::build(&game.mission, &Default::default(), &graphics).unwrap();
+                let mut review = std::env::var_os("TENCHU_WEATHER_REVIEW").map(|_| {
+                    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+                    review.renderer.bind_models(&mut models);
+                    review
+                });
+                let stage = render_mesh::stage(&game.mission, &game.math, Some(&models));
+                let surfaces = Surfaces::new(&stage);
+                assert_eq!(surfaces.contains(render_mesh::SNOW), mission != 1);
+                if mission != 1 {
+                    let mut candidates: Vec<_> = stage
+                        .chunks_exact(3)
+                        .filter_map(|t| {
+                            if t[0].flags & render_mesh::SNOW == 0 {
+                                return None;
+                            }
+                            let [a, b, c] = std::array::from_fn(|i| Vec3::from(t[i].position));
+                            let normal = (b - a).cross(c - a);
+                            if normal.length() < 500_000.0 || normal.normalize().y.abs() < 0.9 {
+                                return None;
+                            }
+                            let uv = std::array::from_fn(|i| {
+                                (t.iter().map(|v| v.uv[i]).sum::<f32>() / 3.0) as u16
+                            });
+                            let rgba = tenchu_assets::texture::rgba8(game.mission.vram.texel(
+                                t[0].page as u16,
+                                t[0].palette as u16,
+                                uv,
+                            ));
+                            if rgba[..3].iter().any(|&v| v < 185) {
+                                return None;
+                            }
+                            Some((a + b + c) / 3.0)
+                        })
+                        .collect();
+                    let origin = Vec3::from(game.player().position.to_array().map(|v| v as f32));
+                    let mut cursor = terrain::Cursor::new(&game.mission.terrain);
+                    candidates.sort_by(|a, b| {
+                        a.distance_squared(origin)
+                            .total_cmp(&b.distance_squared(origin))
+                    });
+                    let start = candidates
+                        .into_iter()
+                        .find(|p| {
+                            let floor = terrain::level(
+                                &game.mission.terrain,
+                                &mut cursor,
+                                Position::from(p.to_array().map(|v| v as i32))
+                                    .wrapping_sub(Position::new(0, 100, 0)),
+                                0,
+                            )
+                            .unwrap();
+                            (floor as f32 - p.y).abs() < 100.0
+                        })
+                        .expect("snowy walking surface");
+                    game.teleport_player(Position::from(start.to_array().map(|v| v as i32)), true)
+                        .unwrap();
+                    println!("m{mission} c{character}: {:?}", game.player().position);
+                }
+                let mut prints = Footprints::default();
+                for tick in 0..120 {
+                    game.step(if tick < 20 { 0 } else { tenchu_core::input::UP })
+                        .unwrap();
+                    let state = crate::session::tests::state(&game);
+                    let eye = Vec3::from(game.player().position.to_array().map(|v| v as f32));
+                    prints.tick(&game, &models, &surfaces, &graphics.weather, 0.0, eye);
+                    assert_eq!(state, crate::session::tests::state(&game));
+                }
+                assert_eq!(prints.marks.is_empty(), mission == 1);
+                if mission != 1
+                    && let Some(output) = std::env::var_os("TENCHU_WEATHER_REVIEW")
+                {
+                    let output = std::path::PathBuf::from(output);
+                    std::fs::create_dir_all(&output).unwrap();
+                    let review = review.as_mut().unwrap();
+                    graphics.fog = false;
+                    review.configure(graphics.clone());
+                    let center = prints.marks[prints.marks.len() / 2].position;
+                    let camera = glam::Mat4::perspective_rh(
+                        55.0_f32.to_radians(),
+                        1280.0 / 720.0,
+                        10.0,
+                        200000.0,
+                    ) * glam::Mat4::look_at_rh(
+                        center + Vec3::new(1600.0, -4800.0, -2600.0),
+                        center,
+                        Vec3::NEG_Y,
+                    );
+                    let stage = review.renderer.upload(&stage);
+                    let actors = review
+                        .renderer
+                        .upload(&render_mesh::characters(&game, Some(&models)));
+                    let effects = review
+                        .renderer
+                        .upload_effects(prints.geometry(&graphics.weather));
+                    for (name, effects) in [("before", None), ("after", Some(&effects))] {
+                        review
+                            .capture(
+                                camera,
+                                &[&stage, &actors],
+                                effects,
+                                true,
+                                &output.join(format!("snow-m{mission}-c{character}-{name}.png")),
+                            )
+                            .unwrap();
+                    }
+                }
+                prints.tick(
+                    &game,
+                    &models,
+                    &surfaces,
+                    &Weather::default(),
+                    0.0,
+                    Vec3::ZERO,
+                );
+                assert!(prints.marks.is_empty());
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; animated feet leave grounded, bounded tracks without changing gameplay"]

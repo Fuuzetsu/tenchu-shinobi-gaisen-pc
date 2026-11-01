@@ -19,6 +19,7 @@ const FOOTPRINT: u32 = 1048576u;
 const WET_CONTACT: u32 = 2097152u;
 const UNLIT: u32 = 8388608u;
 const BLOOD_HD: u32 = 16777216u;
+const SNOW: u32 = 33554432u;
 
 fn original_hd_blood(flags: u32) -> bool {
     return (flags & (STAIN | SOFT | FOLIAGE | BLOOD_HD)) == (STAIN | BLOOD_HD);
@@ -224,8 +225,13 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         else { opacity *= 1.0 - smoothstep(0.72, 0.92, dot(v.uv, v.uv)); }
     }
     if (v.flags & FOOTPRINT) != 0u {
-        if !WEATHER_ENABLED { discard; }
-        opacity *= weather_snow(normalize(v.normal), v.world);
+        var snow = 0.0;
+        if WEATHER_ENABLED { snow = weather_snow(normalize(v.normal), v.world); }
+        if (v.flags & SNOW) != 0u {
+            let original = filtered(v.uv, v.page, v.palette, texel(vec2<i32>(floor(v.uv)), v.page, v.palette));
+            snow = max(snow, smoothstep(0.5, 0.78, min(original.r, min(original.g, original.b))));
+        }
+        opacity *= snow;
     }
     if (v.flags & (STAIN | SOFT)) == (STAIN | SOFT) {
         let p = v.color.xy;

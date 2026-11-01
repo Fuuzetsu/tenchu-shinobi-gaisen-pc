@@ -1563,6 +1563,7 @@ fn surface_relief_is_optional_filtered_and_scoped_to_scenery() {
             strength: 0.0,
             world_tile: None,
             uv_tile: false,
+            snow: None,
         },
     );
     renderer.set_asset_pack(&pack);
@@ -1578,6 +1579,7 @@ fn surface_relief_is_optional_filtered_and_scoped_to_scenery() {
             strength: 1.0,
             world_tile: None,
             uv_tile: false,
+            snow: None,
         },
     );
     renderer.set_asset_pack(&pack);

@@ -61,6 +61,7 @@ pub enum Item {
     SnowCover,
     SnowDrift,
     Footprints,
+    BakedSnowFootprints,
     FootprintSeconds,
     ClearFootprints,
     ClearWeather,
@@ -697,6 +698,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Snow footprints",
                     on(weather.footprints),
                     "Players and humanoid enemies leave grounded tracks in snow. Fresh snowfall gradually covers them.",
+                ),
+                (
+                    Item::BakedSnowFootprints,
+                    "Tracks on existing snow",
+                    on(weather.baked_snow),
+                    "Allow footprints on the original snowy terrain in Missions 5 and 10, including TRIAL maps using those materials. Works with Original weather and replacement artwork; bare soil, stone and indoor floors stay clear. Requires Snow footprints. Enabled by modern presets.",
                 ),
                 (
                     Item::FootprintSeconds,

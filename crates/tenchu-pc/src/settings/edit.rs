@@ -111,6 +111,7 @@ impl Item {
             Self::VegetationVariation => &mut settings.graphics.models.variation,
             Self::Water => &mut settings.graphics.water.enabled,
             Self::Footprints => &mut settings.graphics.weather.footprints,
+            Self::BakedSnowFootprints => &mut settings.graphics.weather.baked_snow,
             Self::RoofRunoff => &mut settings.graphics.weather.runoff,
             Self::TimeClock => &mut settings.graphics.sky.enabled,
             Self::BloodRetain => &mut settings.graphics.blood.retain_original,

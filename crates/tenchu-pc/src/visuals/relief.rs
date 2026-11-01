@@ -12,6 +12,7 @@ pub struct Rule {
     pub strength: f32,
     pub world_tile: Option<[f32; 2]>,
     pub uv_tile: bool,
+    pub snow: Option<bool>,
 }
 
 impl Default for Rule {
@@ -21,6 +22,7 @@ impl Default for Rule {
             strength: 1.0,
             world_tile: None,
             uv_tile: false,
+            snow: None,
         }
     }
 }
@@ -31,6 +33,7 @@ pub struct Surface {
     pub strength: f32,
     pub world_tile: Option<[f32; 2]>,
     pub uv_tile: bool,
+    pub snow: Option<bool>,
 }
 
 /// Remove broad painted lighting; retain softened grain, ridges and seams.

@@ -186,6 +186,7 @@ fn replacement_scroll_tracks_original_copies_and_restores_live_water() {
             strength: 0.0,
             world_tile: Some([1200.0, 1200.0]),
             uv_tile: false,
+            snow: None,
         },
     );
     renderer.set_asset_pack(&projected);
@@ -277,6 +278,7 @@ fn static_replacement_tiles_repeat_without_skipping_border_texels() {
                 strength: 0.0,
                 world_tile: None,
                 uv_tile: true,
+                snow: None,
             },
         )]),
         ..Default::default()
