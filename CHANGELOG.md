@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.7 — 2026-11-01
+
 - Add **F1 → General → Keep world running after death**. After the campaign
   death scene, guards return to patrol and effects keep running until you confirm.
   Optional and off by default; the frozen view remains available. Watching longer
