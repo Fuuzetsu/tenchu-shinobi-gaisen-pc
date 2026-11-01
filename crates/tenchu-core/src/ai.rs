@@ -103,6 +103,14 @@ pub struct Brain {
     pub timer: u8,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Recruitment {
+    #[default]
+    Available,
+    Called,
+    Reinforcement,
+}
+
 #[derive(Debug)]
 pub struct Intelligence {
     pub difficulty: Difficulty,

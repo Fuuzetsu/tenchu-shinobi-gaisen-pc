@@ -4,6 +4,8 @@ use crate::math::Position;
 use crate::{oracle, random::Random};
 use std::fmt::Write;
 
+mod reinforcement;
+
 #[test]
 #[ignore = "requires TENCHU_DISC; queued reinforcements cannot exceed the population limit or appear in open view with whole-level AI"]
 fn all_active_reinforcements_wait_for_cover_and_recheck_capacity() {
@@ -35,6 +37,8 @@ fn all_active_reinforcements_wait_for_cover_and_recheck_capacity() {
     };
     let call = |game: &mut crate::game::Game, civilian, timer| {
         let mut actor = game.roster.take(guard);
+        // These forced calls represent separate alerts; continuous AI is tested below.
+        actor.recruitment = Recruitment::Available;
         actor.position = Position::new(0, 0, 18000);
         actor.target = Some(game.player().root_model);
         actor.brain.timer = timer;
@@ -256,6 +260,7 @@ fn combat_decisions_match_original_c() {
         "static short AttackIndirect(",
         "s16 Think3chase(",
         "s16 Think3attack(",
+        "static inline s32 GetEscapeTurnHold(",
         "s16 Think3escape(",
         "s16 Think3area(",
         "s16 Think3hitaway(",
@@ -367,6 +372,8 @@ typedef s16 weapon_attack_class; typedef s16 pad_command; typedef s16 motion_id;
 #define MELEE_ATTACK_ENGAGED 1
 #define MELEE_ATTACK_DECISION_PERIOD 16
 #define SR_CLEAR_RANGE 10000
+#define ESCAPE_CLEAR_RANGE 16500
+#define ESCAPE_TURN_ANGLE 1000
 #define INDIRECT_RANGE 20000
 #define ATTACK_COOLDOWN_PER_LEVEL 10
 #define LEVEL_NONE INT32_MIN

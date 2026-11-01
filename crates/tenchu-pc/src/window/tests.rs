@@ -438,6 +438,63 @@ fn live_settings_keep_simulating_without_menu_input() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; reinforcement settings persist through reloads and graphics changes, and gameplay presets restore safe defaults"]
+fn reinforcement_call_settings_apply_and_reset() {
+    use tenchu_core::roster::ReinforcementCall;
+
+    let mut app = application(Options::default());
+    app.apply_item(Item::KeepEnemiesActive, 1).unwrap();
+    app.apply_item(Item::ReinforcementsPerCall, 3).unwrap();
+    app.apply_item(Item::RandomReinforcements, 1).unwrap();
+    let call = ReinforcementCall {
+        count: 4,
+        random: true,
+    };
+    assert_eq!(app.campaign.game.roster.reinforcement_call, call);
+    let saved: Settings =
+        serde_json::from_str(&serde_json::to_string(&app.settings).unwrap()).unwrap();
+    assert_eq!(saved.reinforcement_call, call);
+    app.settings
+        .set_visual_preset(settings::presets::MODERN_HIGH);
+    assert_eq!(app.settings.reinforcement_call, call);
+    app.campaign.screen = Screen::Launcher;
+    app.action(Action::Confirm);
+    app.action(Action::Confirm);
+    assert_eq!(app.campaign.game.roster.reinforcement_call, call);
+    assert!(settings::gameplay::current(&app.settings, &app.debug).is_none());
+    app.reset_item(Item::ReinforcementsPerCall).unwrap();
+    assert_eq!(
+        app.campaign.game.roster.reinforcement_call,
+        ReinforcementCall {
+            count: 1,
+            random: true
+        }
+    );
+    app.reset_item(Item::RandomReinforcements).unwrap();
+    assert_eq!(
+        app.campaign.game.roster.reinforcement_call,
+        Default::default()
+    );
+    app.set_reinforcement_call(call);
+    app.set_gameplay_preset(1).unwrap();
+    assert_eq!(
+        app.campaign.game.roster.reinforcement_call,
+        Default::default()
+    );
+    assert_eq!(
+        settings::gameplay::current(&app.settings, &app.debug),
+        Some(1)
+    );
+    app.set_reinforcement_call(call);
+    app.apply_item(Item::ResetTweaks, 1).unwrap();
+    assert_eq!(
+        app.campaign.game.roster.reinforcement_call,
+        Default::default()
+    );
+    assert!(!app.settings.keep_enemies_active);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; all mission/layout rosters run with activation limits disabled"]
 fn all_enemy_activation_survives_layouts_and_mission_reloads() {
     let mut app = application(Options::default());

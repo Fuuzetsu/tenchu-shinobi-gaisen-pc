@@ -9,10 +9,31 @@ use crate::{
 pub struct Roster {
     pub keep_all_active: bool,
     pub reinforcement_limit: Option<usize>,
+    pub reinforcement_call: ReinforcementCall,
     pub actors: Vec<Option<Actor>>,
     pub order: Vec<usize>,
     reserved: Option<usize>,
     retired: Vec<usize>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct ReinforcementCall {
+    pub count: u16,
+    pub random: bool,
+}
+
+impl ReinforcementCall {
+    pub const MAX_COUNT: u16 = 32;
+}
+
+impl Default for ReinforcementCall {
+    fn default() -> Self {
+        Self {
+            count: 1,
+            random: false,
+        }
+    }
 }
 
 pub(crate) struct Actors<'a> {
@@ -168,6 +189,7 @@ impl Roster {
             } else {
                 Actor::new(id, kind, position, yaw, ctx)?
             };
+            actor.recruitment = crate::ai::Recruitment::Reinforcement;
             if let Some(replacement) = replacement {
                 actor.voice_program = replacement.voice;
                 actor.health = (i32::from(actor.max_health) * i32::from(replacement.health_percent)

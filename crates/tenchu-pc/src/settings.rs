@@ -41,6 +41,7 @@ pub struct Settings {
     pub wait_after_death: bool,
     pub keep_enemies_active: bool,
     pub reinforcement_limit: u16,
+    pub reinforcement_call: tenchu_core::roster::ReinforcementCall,
     pub sight_percent: u16,
     pub retro: bool,
     pub fullscreen: bool,
@@ -71,6 +72,7 @@ impl Default for Settings {
             wait_after_death: false,
             keep_enemies_active: false,
             reinforcement_limit: 0,
+            reinforcement_call: Default::default(),
             sight_percent: 100,
             retro: false,
             fullscreen: false,
@@ -98,6 +100,10 @@ impl Settings {
         self.navigation.validate();
         self.sight_percent = self.sight_percent.min(400);
         self.reinforcement_limit = self.reinforcement_limit.min(1000);
+        self.reinforcement_call.count = self
+            .reinforcement_call
+            .count
+            .min(tenchu_core::roster::ReinforcementCall::MAX_COUNT);
         if ![0, 1, 2, 4, 8, 16].contains(&self.cutscene_speed) {
             self.cutscene_speed = 1;
         }
@@ -123,6 +129,7 @@ impl Settings {
         roster.keep_all_active = self.keep_enemies_active;
         roster.reinforcement_limit =
             (self.reinforcement_limit != 0).then_some(usize::from(self.reinforcement_limit));
+        roster.reinforcement_call = self.reinforcement_call;
     }
 
     pub fn set_visual_preset(&mut self, index: u16) {
@@ -427,6 +434,18 @@ mod tests {
         assert!(loaded.show_fps && loaded.pause_on_defocus);
         assert_eq!(loaded.volume, 100);
         assert_eq!(loaded.graphics.lighting, Lighting::default());
+        assert_eq!(loaded.reinforcement_call, Default::default());
+        fs::write(
+            &store.path,
+            br#"{"reinforcement_call":{"count":65535,"random":true}}"#,
+        )
+        .unwrap();
+        let loaded = store.load().unwrap();
+        assert_eq!(
+            loaded.reinforcement_call.count,
+            tenchu_core::roster::ReinforcementCall::MAX_COUNT
+        );
+        assert!(loaded.reinforcement_call.random);
         fs::write(&store.path, br#"{"cutscene_speed":7,"graphics":{"lighting":{"enabled":true,"count":99,"radius":0,"intensity":65535,"ambient":200,"resolution":99999}}}"#).unwrap();
         let loaded = store.load().unwrap();
         assert_eq!(loaded.cutscene_speed, 1);

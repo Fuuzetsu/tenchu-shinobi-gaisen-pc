@@ -4,6 +4,12 @@ use crate::math::Position;
 
 impl Controller<'_, '_> {
     pub fn update(&mut self) -> Result<()> {
+        if self.actor.recruitment == Recruitment::Called
+            && self.attribute & ATTR_PHASE == 0
+            && self.state.alert == 0
+        {
+            self.actor.recruitment = Recruitment::Available;
+        }
         let strain = self.state.strain;
         let distant = !self.nearby_player();
         let result = self.transition();

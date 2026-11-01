@@ -123,6 +123,14 @@ impl Application {
         self.campaign.game.roster.reinforcement_limit = (limit != 0).then_some(usize::from(limit));
     }
 
+    pub(super) fn set_reinforcement_call(&mut self, call: tenchu_core::roster::ReinforcementCall) {
+        if self.settings.reinforcement_call != call && self.campaign.game.roster.keep_all_active {
+            self.stop_edited_recording();
+        }
+        self.settings.reinforcement_call = call;
+        self.campaign.game.roster.reinforcement_call = call;
+    }
+
     fn teleport(&mut self) -> Result<()> {
         if !self.campaign.playing() {
             return Err("Start a mission before teleporting".into());
@@ -275,6 +283,7 @@ impl Application {
         }
         self.keep_enemies_active(preset.active);
         self.set_reinforcement_limit(0);
+        self.set_reinforcement_call(Default::default());
         self.set_sight(preset.sight);
         self.settings.cutscene_speed = preset.cutscenes;
         self.debug.speed = 100;
@@ -719,6 +728,19 @@ impl Application {
                 self.set_sight(value);
             }
             Item::KeepEnemiesActive => self.keep_enemies_active(!self.settings.keep_enemies_active),
+            Item::ReinforcementsPerCall => {
+                let mut call = self.settings.reinforcement_call;
+                call.count = (i32::from(call.count) + direction).clamp(
+                    0,
+                    i32::from(tenchu_core::roster::ReinforcementCall::MAX_COUNT),
+                ) as u16;
+                self.set_reinforcement_call(call);
+            }
+            Item::RandomReinforcements => {
+                let mut call = self.settings.reinforcement_call;
+                call.random = !call.random;
+                self.set_reinforcement_call(call);
+            }
             Item::ReinforcementLimit => {
                 let value = (i32::from(self.settings.reinforcement_limit) + direction * 10)
                     .clamp(0, 1000) as u16;
@@ -736,6 +758,7 @@ impl Application {
                 self.set_sight(100);
                 self.keep_enemies_active(false);
                 self.set_reinforcement_limit(0);
+                self.set_reinforcement_call(Default::default());
             }
             _ => return Err("This control has no editable value".into()),
         }

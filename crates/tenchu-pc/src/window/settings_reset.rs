@@ -105,6 +105,18 @@ impl Application {
             Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),
+            Item::ReinforcementsPerCall => {
+                self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {
+                    count: s.reinforcement_call.count,
+                    ..self.settings.reinforcement_call
+                });
+            }
+            Item::RandomReinforcements => {
+                self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {
+                    random: s.reinforcement_call.random,
+                    ..self.settings.reinforcement_call
+                });
+            }
             Item::ReinforcementLimit => self.set_reinforcement_limit(s.reinforcement_limit),
             Item::DebugLight => {
                 self.debug.light = None;

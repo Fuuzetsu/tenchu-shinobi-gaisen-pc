@@ -1,6 +1,13 @@
 use super::*;
 
 impl Controller<'_, '_> {
+    fn can_recruit(&self) -> bool {
+        self.roster.can_call_reinforcements()
+            && (!self.roster.keep_all_active
+                || (self.actor.recruitment == Recruitment::Available
+                    && self.roster.reinforcement_call.count != 0))
+    }
+
     fn reinforcement_has_cover(&self) -> Result<bool> {
         if !self.roster.keep_all_active {
             return Ok(true);
@@ -51,6 +58,9 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn call_aid(&mut self) -> Result<u16> {
+        if self.roster.keep_all_active && self.actor.recruitment == Recruitment::Reinforcement {
+            return self.escape();
+        }
         if self.distance() < 16500 || !self.reinforcement_has_cover()? {
             if self.state.detection != Detection::Gone {
                 self.state.detection = Detection::None;
@@ -90,7 +100,7 @@ impl Controller<'_, '_> {
                         Difficulty::Hard => 0,
                     };
                     self.actor.brain.timer = if self.actor.brain.count != 0
-                        || !self.roster.can_call_reinforcements()
+                        || !self.can_recruit()
                         || self.ctx.mission.stage.id == 8
                     {
                         1
@@ -115,7 +125,7 @@ impl Controller<'_, '_> {
                 }
             }
             _ => {
-                if self.roster.keep_all_active && !self.roster.can_call_reinforcements() {
+                if self.roster.keep_all_active && !self.can_recruit() {
                     self.actor.brain.timer = 1;
                     self.actor.brain.count = 0;
                     return Ok(0);
@@ -138,31 +148,54 @@ impl Controller<'_, '_> {
                     self.hold(if self.degree() > 0 { LEFT } else { RIGHT }, ticks);
                 }
                 if self.distance() > 16500 && self.reinforcement_has_cover()? {
+                    let count = if self.roster.keep_all_active {
+                        let call = self.roster.reinforcement_call;
+                        let count = call.count.min(crate::roster::ReinforcementCall::MAX_COUNT);
+                        if call.random && count > 1 {
+                            1 + self.random() as u16 % count
+                        } else {
+                            count
+                        }
+                    } else {
+                        1
+                    };
                     self.alert();
                     self.actor.brain.timer = 0;
                     self.actor.brain.count = 1;
                     let voice = if self.random() & 1 != 0 { 9 } else { 10 };
                     self.voice(voice);
-                    // The type RNG precedes the caller's raw rotation write.
-                    let choice = self.random() as usize % 2;
-                    self.actor.rotation[1] = self.actor.rotation[1].wrapping_add(degree);
-                    let id = self.roster.spawn_reinforcement(
-                        choice,
-                        self.actor.position,
-                        self.actor.rotation[1],
-                        self.ctx,
-                    )?;
-                    self.equip_guard(id)?;
-                    let actor = self.roster.get_mut(id);
-                    actor.brain.timer = 0;
-                    actor.brain.count = 1;
-                    actor.attribute |= ATTR_SEARCH | 1;
-                    let x = self.actor.brain.chase[0].wrapping_add((self.random() % 5 - 2) * 500);
-                    let z = self.actor.brain.chase[1].wrapping_add((self.random() % 5 - 2) * 500);
-                    self.roster.get_mut(id).brain.chase = [x, z];
-                    let voice = if self.random() & 1 != 0 { 9 } else { 10 };
-                    self.state.voices.push((id, voice));
-                    self.state.population_delta[0] = self.state.population_delta[0].wrapping_add(1);
+                    let yaw = self.actor.rotation[1].wrapping_add(degree);
+                    for _ in 0..count {
+                        if self.roster.keep_all_active && !self.roster.can_call_reinforcements() {
+                            break;
+                        }
+                        // The type RNG precedes the caller's raw rotation write.
+                        let choice = self.random() as usize % 2;
+                        self.actor.rotation[1] = yaw;
+                        let id = self.roster.spawn_reinforcement(
+                            choice,
+                            self.actor.position,
+                            yaw,
+                            self.ctx,
+                        )?;
+                        if self.actor.recruitment == Recruitment::Available {
+                            self.actor.recruitment = Recruitment::Called;
+                        }
+                        self.equip_guard(id)?;
+                        let actor = self.roster.get_mut(id);
+                        actor.brain.timer = 0;
+                        actor.brain.count = 1;
+                        actor.attribute |= ATTR_SEARCH | 1;
+                        let x =
+                            self.actor.brain.chase[0].wrapping_add((self.random() % 5 - 2) * 500);
+                        let z =
+                            self.actor.brain.chase[1].wrapping_add((self.random() % 5 - 2) * 500);
+                        self.roster.get_mut(id).brain.chase = [x, z];
+                        let voice = if self.random() & 1 != 0 { 9 } else { 10 };
+                        self.state.voices.push((id, voice));
+                        self.state.population_delta[0] =
+                            self.state.population_delta[0].wrapping_add(1);
+                    }
                 }
             }
         }

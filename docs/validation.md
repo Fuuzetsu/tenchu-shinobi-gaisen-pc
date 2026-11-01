@@ -133,8 +133,8 @@ and started just after an activation check; it is not a representative first
 encounter. A blocked return path, sustained search state, activation timing and
 available population capacity matter in addition to the difficulty setting.
 
-All-active + Unlimited removes both the distant suspension and the call decision
-limit. The extra terrain-cover check hides spawns but cannot stop recruitment
+Before the nonrecursive-call fix, all-active + Unlimited removed both the distant
+suspension and the call decision limit. The extra terrain-cover check hid spawns but could not stop recruitment
 feeding back into itself. A controlled, disc-backed wall fixture with one guard,
 Hard difficulty and ordinary `Game::step` updates reached 570 total actors after
 18 updates; the same fixture with the all-active limit at 30 stopped at 30.
@@ -143,11 +143,20 @@ or crash. The extracted retail alarm routine confirms the decision threshold
 and queued-call overshoot; the existing compiled-C activation comparison passes.
 YouTube preview frames were reviewed, but the full video stream was unavailable.
 
-Until a separate all-active recruitment policy is implemented, use F1 →
-Simulation → **Reinforcement population limit: 30**, or disable all-active AI.
-No new recruitment policy or automatic limit was introduced by this audit.
-An appropriate extension would allow one call per guard per alarm, mark newly
-recruited guards as having used that call, and require an ended alarm followed
-by a fresh player encounter before another recruitment round. Keep unrestricted
-reinforcements an explicit option; a cooldown alone would only delay the same
-unbounded growth. This should not change original-mode AI.
+All-active now allows one call per placed guard per alert. A caller rearms only
+after returning to calm with the shared alert ended; summoned guards permanently
+retain their reinforcement role and cannot recruit, including after civilian
+replacement or randomized actor imports. This leaves their investigation and
+combat AI intact. F1 → Simulation configures a fixed 0–32 recruits per call or
+a random 1–N count; zero disables guard calls. The optional population limit is
+checked before every spawn, including within a group. Settings changes do not
+reset caller eligibility. Original mode ignores this policy, count and randomness
+and retains its original call/RNG order and population threshold.
+
+The blocked-corner regression now stays at three actors (player, caller, recruit)
+through 920 updates with Unlimited and the default count. Fixed groups, randomized
+groups, zero calls, group clipping at a population limit, rearming after calm,
+settings changes, civilian replacements and imported reinforcement attacks also
+pass disc-backed checks. The archived PS1 campaign still matches all 33,404
+updates; compiled-C activation and combat comparisons pass. These remain separate
+from reproducing the reporter's exact route or Windows crash.

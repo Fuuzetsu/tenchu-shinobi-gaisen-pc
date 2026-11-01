@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Stop recursive reinforcement waves with **Keep all enemies active**: each placed
+  guard can call once per alert, and summoned guards cannot recruit more guards.
+  F1 → Simulation adds a fixed recruits-per-call count (default 1, 0 disables)
+  and a random 1–N option. Group calls respect the optional population limit;
+  original activation/AI rules remain unchanged.
+
 - Blend rain wetness and puddles beneath roof edges, and smooth rain haze when
   looking between exposed and sheltered areas. Enclosed interiors stay dry and
   clear; the same shelter handling applies to campaign and TRIAL maps.

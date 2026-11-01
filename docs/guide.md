@@ -1218,21 +1218,29 @@ corpse witnesses. Remote actors keep patrolling instead of reacting to every
 local alarm; actors beyond the awareness radius cannot hold the player's radar
 alerted. Nearby actors retain their usual sight/occlusion and combat rules.
 Reinforcements in this mode still follow the original difficulty and distance
-rules, but also wait for terrain cover from the player. The **Reinforcement
-population limit** on this page defaults to **Unlimited**; optionally set a limit
+rules, but also wait for terrain cover from the player. Each placed guard gets
+one call per alert, and summoned guards cannot call reinforcements themselves.
+The caller becomes eligible again only after returning to calm with no active
+alert. **Guards per reinforcement call** defaults to **1** and accepts 0–32;
+0 disables these calls. **Random reinforcement count** chooses 1–N instead of
+always N. Both settings persist across missions, and changing them does not
+give an already-spent caller another call. Summoned guards still investigate
+and fight normally. Civilian-to-guard replacements do not increase population
+and remain available, but the replacement guard cannot recruit again.
+
+The **Reinforcement population limit** defaults to **Unlimited**; optionally set a limit
 up to 1,000 total actors, including the player and corpses. New calls check the
-limit before leaving and immediately before spawning, so queued calls cannot
+limit before leaving and before each recruit spawns, so queued/group calls cannot
 exceed it. Lowering the limit does not delete existing actors or block civilians
 being replaced by guards. Actor/collision storage grows as needed; larger groups
-cost more CPU time. The gameplay presets restore Unlimited. With all-active mode
+cost more CPU time. The gameplay presets restore Unlimited and one recruit per call.
+With all-active mode
 off, the original 30-actor decision threshold and activation rules apply,
-regardless of this setting. More guards can gather naturally while the whole
+regardless of these settings. More guards can gather naturally while the whole
 level stays active; turn the option off for the original encounter density.
-Unlimited can also allow callers and their reinforcements to repeatedly recruit
-at a wall, producing runaway population growth. Set the limit to **30** to stop
-that growth while keeping distant patrols active. See the
+See the
 [reinforcement investigation](validation.md#separate-always-active-enemy-audit)
-for the retail rules and the remaining all-active behavior issue.
+for the retail rules and the former recursive-recruitment problem.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general
