@@ -1,6 +1,8 @@
 use super::*;
 use std::time::Duration;
 
+mod death;
+
 pub(super) fn application(options: Options) -> Application {
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
     let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();

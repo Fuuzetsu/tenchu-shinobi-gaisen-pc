@@ -19,6 +19,9 @@ use tenchu_assets::{
 };
 use tenchu_core::{audio::Sound, game::Game};
 
+#[cfg(test)]
+mod tests;
+
 pub struct Audio {
     output: output::Output,
     loader: loader::Loader,
@@ -29,6 +32,7 @@ pub struct Audio {
     trace: bool,
     fast_forward: bool,
     volume: u16,
+    mission_track: Option<Track>,
     current_track: Option<Track>,
     ready_track: Option<Track>,
 }
@@ -86,6 +90,7 @@ impl Audio {
             trace: std::env::var_os("TENCHU_AUDIO_TRACE").is_some(),
             fast_forward: false,
             volume: 100,
+            mission_track: None,
             current_track: None,
             ready_track: None,
         };
@@ -97,6 +102,7 @@ impl Audio {
     pub fn reload(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
         let bank = game_bank(assets, game)?;
         self.catalog = Catalog::load(&assets.executable, game.mission.scripts.language)?;
+        self.mission_track = None;
         self.track(None);
         self.output.send(output::Command::Bank(Arc::new(bank)));
         self.screen = None;
@@ -146,19 +152,29 @@ impl Audio {
             if self.trace {
                 eprintln!("Audio tick {}: {cue:?}", game.tick);
             }
-            self.track(cue.and_then(|cue| self.catalog.event(cue)).cloned());
+            let track = cue.and_then(|cue| self.catalog.event(cue)).cloned();
+            if track.as_ref().is_some_and(|track| track.repeat) {
+                self.mission_track = track.clone();
+            }
+            self.track(track);
         }
         Ok(())
     }
 
     pub fn screen(&mut self, screen: &Screen) {
-        if !matches!(screen, Screen::Playing) {
+        if !matches!(screen, Screen::Playing | Screen::DeathHold { .. }) {
             self.fast_forward(false);
         }
         if self.screen == Some(discriminant(screen)) {
             return;
         }
         self.screen = Some(discriminant(screen));
+        if matches!(screen, Screen::DeathHold { .. }) {
+            if self.current_track != self.mission_track {
+                self.track(self.mission_track.clone());
+            }
+            return;
+        }
         self.output.send(output::Command::Clear);
         let cue = match screen {
             Screen::Launcher => Some(15),

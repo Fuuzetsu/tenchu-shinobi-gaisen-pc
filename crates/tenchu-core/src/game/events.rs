@@ -107,11 +107,20 @@ fn triggered(
 impl Game {
     pub fn death_wait_ticks(&self) -> Option<u32> {
         let player = self.player();
-        (self.events.outcome == Outcome::Running
-            && !self.cinematic.active
-            && self.events.time < 0
+        if self.events.outcome != Outcome::Running || self.cinematic.active || player.health != 0 {
+            return None;
+        }
+        // Boss deaths finish through a cutscene handoff rather than death_wait.
+        // Hold its last complete frame before the game-over update clears effects.
+        if self.events.dying
+            && self.events.pending.is_some_and(|pending| {
+                (1..=3).contains(&self.mission.scripts.events[pending.event].id)
+            })
+        {
+            return Some(1);
+        }
+        (self.events.time < 0
             && self.events.slots.iter().all(Option::is_none)
-            && player.health == 0
             && player.status == ActorState::Dead
             && player.motion.loops < 0
             && player.velocity[1] == 0)

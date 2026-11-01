@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep mission music playing while watching after death, and restore it after a
+  scripted death cutscene. Boss failures now retain the complete scene and let
+  **Keep world running after death** continue updating it, instead of losing
+  particles and freezing after the cutscene. Confirmation and retries retain
+  their original behavior.
+
 - Add **F1 → Player model → Alternate player deaths**, a configurable chance of
   using the male/female ninja collapse for Rikimaru/Ayame. Defaults to 0%; try
   50% for variety. Visual only, with weapons and blood pools following the pose;

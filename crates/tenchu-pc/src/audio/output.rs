@@ -37,6 +37,8 @@ pub struct Output {
 }
 
 enum Stream {
+    #[cfg(test)]
+    Recorded,
     Device {
         _stream: cpal::Stream,
     },
@@ -47,6 +49,18 @@ enum Stream {
 }
 
 impl Output {
+    #[cfg(test)]
+    pub(super) fn recording() -> (Self, Receiver<Command>) {
+        let (commands, receiver) = mpsc::channel();
+        (
+            Self {
+                _stream: Stream::Recorded,
+                commands,
+            },
+            receiver,
+        )
+    }
+
     pub fn new() -> Result<Self> {
         #[cfg(target_os = "linux")]
         if pulseaudio::socket_path_from_env().is_some() {
