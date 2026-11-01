@@ -310,7 +310,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::CameraRelative,
                 "Camera-relative controls",
                 on(s.navigation.camera_relative),
-                "Experimental: camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Hold Left Ctrl / R1 for classic movement (backward guards with weapon drawn); Shift / Circle still crouches. Recorded input tapes require classic controls.",
+                "Camera-relative movement with full left-stick direction. Right stick / held right mouse orbits; click right stick to recenter. Attack + direction selects a slash relative to your current facing, without turning first. Hold Left Ctrl / R1 and back to guard with a drawn weapon; modifier + left/right + attack selects side slashes regardless of camera angle. Shift / Circle still crouches. Recorded input tapes require classic controls.",
             ),
             (
                 Item::AlignAim,

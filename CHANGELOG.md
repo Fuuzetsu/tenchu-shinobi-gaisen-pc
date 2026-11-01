@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix camera-relative directional attacks turning the player before choosing
+  the slash. Document the guard/side-slash modifier in Movement and Controls:
+  hold Left Ctrl or R1/RB, then back to guard or left/right + attack to slash.
+
 - Add **Multi-target player attacks** under F1 → Simulation. Each melee weapon
   can hit several enemies once per swing, with normal damage, blocking and wall
   checks. Off by default; items and enemy attacks retain their original rules.

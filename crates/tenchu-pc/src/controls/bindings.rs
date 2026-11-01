@@ -53,7 +53,7 @@ impl Target {
             Self::Circle => ("Crouch · Circle", input::CIRCLE),
             Self::Triangle => ("Use item · Triangle", input::TRIANGLE),
             Self::L1 => ("Look / aim · L1", input::L1),
-            Self::R1 => ("Crouch · R1", input::R1),
+            Self::R1 => ("Crouch / combat modifier · R1", input::R1),
             Self::L2 => ("Previous item · L2", input::L2),
             Self::R2 => ("Next item · R2", input::R2),
             Self::Select => ("Map · Select", input::SELECT),

@@ -256,3 +256,88 @@ fn camera_heading_and_pitch_seed_new_aim_without_overriding_adjustments() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; camera-relative attack directions select authored side/back attacks on both rigs"]
+fn camera_relative_combat_keeps_directional_attacks_and_guarding() {
+    use tenchu_core::ids::*;
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let settings = Navigation::default();
+    for character in 0..2 {
+        let mut game = crate::session::Options {
+            character,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        game.intelligence.ignore_player = true;
+        game.roster.order.retain(|&id| id == game.player_id);
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        let start = game.player().position;
+        let facing = game.player().rotation[1];
+        game.roster.get_mut(game.player_id).attribute |= ATTR_WEAPON_DRAWN;
+        for (direction, vector, action) in [
+            (input::LEFT, Vec2::NEG_X, MOT_ATTACK_LEFT1),
+            (input::RIGHT, Vec2::X, MOT_ATTACK_RIGHT1),
+            (input::DOWN, Vec2::NEG_Y, MOT_ATTACK_BACK),
+        ] {
+            for analog in [false, true] {
+                for modifier in [false, true] {
+                    game.roster.get_mut(game.player_id).rotation[1] = facing;
+                    game.teleport_player(start, false).unwrap();
+                    let mut orbit = Orbit::default();
+                    orbit.observe(&game);
+                    if modifier {
+                        orbit.yaw += 1.8;
+                    }
+                    let (buttons, heading) = orbit.movement(
+                        &game,
+                        input::SQUARE
+                            | if analog { 0 } else { direction }
+                            | if modifier { input::R1 } else { 0 },
+                        if analog { vector } else { Vec2::ZERO },
+                        &settings,
+                    );
+                    assert!(heading.is_none());
+                    assert_eq!(buttons, input::SQUARE | direction);
+                    game.navigation.heading = heading;
+                    game.step(buttons).unwrap();
+                    let expected = if action == MOT_ATTACK_BACK
+                        && !game.mission.characters[game.player().definition]
+                            .motions
+                            .iter()
+                            .any(|m| m.action == action)
+                    {
+                        MOT_ENGAGE_STANCE
+                    } else {
+                        action
+                    };
+                    assert_eq!(
+                        game.player().motion.action,
+                        expected,
+                        "hero {character}, analog {analog}, modifier {modifier}"
+                    );
+                    assert_eq!(game.player().rotation[1], facing);
+                }
+            }
+        }
+        game.teleport_player(start, false).unwrap();
+        let mut orbit = Orbit::default();
+        orbit.observe(&game);
+        orbit.yaw += 1.8;
+        for _ in 0..8 {
+            let (buttons, heading) =
+                orbit.movement(&game, input::R1 | input::DOWN, Vec2::ZERO, &settings);
+            assert!(heading.is_none());
+            game.step(buttons).unwrap();
+        }
+        assert_eq!(game.player().motion.action, MOT_CHASE_BACK);
+        assert_eq!(game.player().rotation[1], facing);
+    }
+}

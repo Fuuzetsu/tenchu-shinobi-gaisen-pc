@@ -134,7 +134,7 @@ impl Orbit {
         }
         let (sin, cos) = self.yaw.sin_cos();
         let world = Vec2::new(cos, -sin) * v.x + Vec2::new(sin, cos) * v.y;
-        if game.player_can_steer() {
+        if game.player_can_steer() && buttons & input::SQUARE == 0 {
             let yaw = (-world.x).atan2(-world.y) * 4096.0 / std::f32::consts::TAU;
             (buttons | input::UP, Some(yaw.round() as i16))
         } else {

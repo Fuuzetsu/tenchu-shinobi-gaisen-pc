@@ -908,8 +908,11 @@ and follow distance are adjustable. The camera pulls in at walls and eases out
 when clear. This mode reserves the sticks for movement/camera; keyboard and
 controller button mappings still apply.
 
-Hold **Left Ctrl / R1 (RB)** for original movement directions: backward guards
-with the weapon drawn, and directional attacks/rolls remain available. Shift /
+**Attack + direction** keeps the player's facing and selects the corresponding
+slash using the camera-relative direction. Side slashes and back attacks no
+longer turn into forward attacks. Hold **Left Ctrl / R1 (RB) + backward** to guard
+with the weapon drawn; modifier + left/right + attack selects side slashes
+regardless of camera angle. The modifier also retains original directional rolls. Shift /
 Circle (B) still crouches. R1 follows the existing button remapping; Left Ctrl
 is a host shortcut. Aiming, grappling, stealth kills and cinematics retain their
 original cameras; either stick can aim. **Start aiming toward camera**, enabled
