@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.11.0 — 2026-11-01
+
 - Fix small camera shakes caused by rounding interpolated views far from the
   map origin. Orbit/follow cameras now match the model cadence when interpolation
   is disabled, including Retro mode.
