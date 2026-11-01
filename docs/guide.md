@@ -1555,11 +1555,49 @@ Each input line contains a decimal tick count and hexadecimal PS1 button mask;
 `1 1040` presses jump while holding forward. The replay and window use the same
 scalar gameplay code.
 
-Saved-campaign regressions complete all ten missions for both characters,
-including the final bosses and results. Stock and RNG carry
-through real encoded/decoded saves at every boundary. The recordings include
-their starting seed and equipment, so
-`replay` can run them directly.
+For adaptations to another host (including Teensy), the [public input files](../crates/tenchu-pc/tests/data)
+contain controller inputs and launch metadata only; they need your own Shinobi
+Gaisen disc. Start with either training route above or a Mission 1 route below:
+
+```sh
+tenchu-pc replay '/path/to/game.cue' crates/tenchu-pc/tests/data/training-ayame.inputs > training.csv
+tenchu-pc replay '/path/to/game.cue' crates/tenchu-pc/tests/data/mission1-ayame.inputs > mission1.csv
+```
+
+Training uses seed 1 and the fixed hook/five-shuriken loadout. Files beginning
+`# tenchu-recording 1` supply all five launch options, the starting seed and
+twenty inventory counts themselves: read these with
+[`recording::Start::parse`](../crates/tenchu-pc/src/recording.rs). Do not discard
+that header as ordinary comments or substitute the current save's equipment.
+The route table below links individual attempts; concatenating them does not
+simulate the menus or the RNG carried between missions.
+
+Expand each `count buttons` row into `count` calls to `Game::step(buttons)`.
+Count logic updates, not USB polls, rendered frames or elapsed milliseconds;
+ordinary interactive play schedules 30 updates per second. Masks are active-high
+(`0000` releases everything), with these bits from
+[`input.rs`](../crates/tenchu-core/src/input.rs):
+
+| Buttons | Hexadecimal bits |
+| --- | --- |
+| Up / Right / Down / Left | `1000` / `2000` / `4000` / `8000` |
+| Triangle / Circle / Cross / Square | `0010` / `0020` / `0040` / `0080` |
+| L1 / R1 / L2 / R2 | `0004` / `0008` / `0001` / `0002` |
+| Select / Start | `0100` / `0800` |
+
+Combine held buttons with bitwise OR and translate to your controller protocol
+explicitly. Compare the emitted CSV's position, motion, health, clock and RNG
+using the **same source revision**, before involving host input timing. These
+PC tapes have no PS1 draw-skip timeline and are not boot-to-credits console
+movies. Emulator-derived runs use the separate
+[retail capture format](../tools/retail-capture/README.md), with per-mission
+initial state and recorded drawing cadence. Replaying a PC tape on a real PS1
+requires that additional timing work; a fixed wall-clock button sequence alone
+does not establish compatibility.
+
+These header-bearing campaign recordings have been rechecked with standalone
+`replay`; each reaches completion at the tick and health shown. Their starting
+seed and equipment are included, so no extra launch options are needed.
 
 | Character | Mission | Results tick | Health |
 | --- | --- | ---: | ---: |
@@ -1568,25 +1606,23 @@ their starting seed and equipment, so
 | Rikimaru | [3](../crates/tenchu-pc/tests/data/mission3-rikimaru-campaign.inputs) | 5,952 | 7 |
 | Ayame | [3](../crates/tenchu-pc/tests/data/mission3-ayame-campaign.inputs) | 5,883 | 46 |
 | Rikimaru | [4](../crates/tenchu-pc/tests/data/mission4-rikimaru-campaign.inputs) | 9,128 | 57 |
-| Ayame | [4](../crates/tenchu-pc/tests/data/mission4-ayame-campaign.inputs) | 12,062 | 24 |
 | Rikimaru | [5](../crates/tenchu-pc/tests/data/mission5-rikimaru-campaign.inputs) | 8,034 | 100 |
 | Ayame | [5](../crates/tenchu-pc/tests/data/mission5-ayame-campaign.inputs) | 7,919 | 46 |
 | Rikimaru | [6](../crates/tenchu-pc/tests/data/mission6-rikimaru-campaign.inputs) | 6,139 | 50 |
 | Ayame | [6](../crates/tenchu-pc/tests/data/mission6-ayame-campaign.inputs) | 6,393 | 5 |
-| Rikimaru | [7](../crates/tenchu-pc/tests/data/mission7-rikimaru-campaign.inputs) | 3,744 | 100 |
-| Ayame | [7](../crates/tenchu-pc/tests/data/mission7-ayame-campaign.inputs) | 2,546 | 100 |
 | Rikimaru | [8](../crates/tenchu-pc/tests/data/mission8-rikimaru-campaign.inputs) | 8,448 | 74 |
 | Ayame | [8](../crates/tenchu-pc/tests/data/mission8-ayame-campaign.inputs) | 8,126 | 56 |
 | Rikimaru | [9](../crates/tenchu-pc/tests/data/mission9-rikimaru-campaign.inputs) | 6,292 | 3 |
 | Ayame | [9](../crates/tenchu-pc/tests/data/mission9-ayame-campaign.inputs) | 5,741 | 67 |
 | Rikimaru | [10](../crates/tenchu-pc/tests/data/mission10-rikimaru-campaign.inputs) | 15,082 | 30 |
-| Ayame | [10](../crates/tenchu-pc/tests/data/mission10-ayame-campaign.inputs) | 16,015 | 7 |
 
-Both complete Mission 2 with 100 HP. The independent
-[Mission 7 route](../crates/tenchu-pc/tests/data/mission7-rikimaru.inputs)
-also passes with the corrected swimming camera, finishing at tick 3,461 with
-93 HP. These routes exercise ordinary controller inputs;
-they do not prove exhaustive parity with retail.
+The legacy Ayame Mission 4/10 and both Mission 7 recordings currently diverge
+from their old completion expectations, as does the independent Mission 7
+route. Do not use those as known-passing examples. The whole-campaign tests
+also have stale route/stock expectations; [validation notes](validation.md#legacy-pc-route-fixtures)
+record the comparison with the previous release. These PC routes exercise
+ordinary controller inputs; they are separate from the emulator captures below
+and do not prove exhaustive parity with retail.
 
 ```sh
 TENCHU_DISC='/path/to/game.cue' \

@@ -577,6 +577,20 @@ fn training_controller_routes_save_rankings_and_retry() {
         assert_eq!(campaign.game.tick, ticks);
         assert_eq!(campaign.game.player().health, health);
         assert_eq!(&campaign.game.player().inventory[..4], &[255, 3, 0, 0]);
+        let mut replayed = crate::recording::Start::parse(tape)
+            .unwrap()
+            .expect("Shared training tape needs its launch metadata")
+            .load(&assets)
+            .unwrap();
+        for (count, buttons) in crate::session::parse_inputs(tape).unwrap() {
+            for _ in 0..count {
+                replayed.step(buttons).unwrap();
+            }
+        }
+        assert_eq!(
+            crate::session::tests::state(&campaign.game),
+            crate::session::tests::state(&replayed)
+        );
         for id in 1..=7 {
             let enemy = campaign.game.roster.get(id);
             assert_eq!((enemy.health, enemy.status), (0, ActorState::Dead));

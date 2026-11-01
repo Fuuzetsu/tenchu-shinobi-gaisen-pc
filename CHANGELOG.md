@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Make the shared training input tapes directly replayable with their correct
+  character, seed and equipment; document input timing and button masks for
+  other hosts, and identify which public examples currently complete.
+
 - Add optional **Quick shuriken evasion** under F1 → Simulation. Armed enemies
   can sidestep a visible shuriken aim promptly using their own dodge animations,
   with a one-second cooldown. Off by default; existing attacks, damage reactions

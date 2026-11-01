@@ -1,5 +1,7 @@
-# Rikimaru, normal difficulty, training layout 1, seed 1.
-# Use the fixed training loadout: hook and five shuriken.
+# tenchu-recording 1
+# options --character rikimaru --mission training --layout 1 --difficulty normal --language english
+# seed 1
+# inventory 255 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 # Traverse the course, defeat all seven opponents and reach the instructor.
 61 0000
 27 1000

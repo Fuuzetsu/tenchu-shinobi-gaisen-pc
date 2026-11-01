@@ -160,3 +160,29 @@ settings changes, civilian replacements and imported reinforcement attacks also
 pass disc-backed checks. The archived PS1 campaign still matches all 33,404
 updates; compiled-C activation and combat comparisons pass. These remain separate
 from reproducing the reporter's exact route or Windows crash.
+
+## Legacy PC route fixtures
+
+The 2026-11-01 issue batch rechecked the public PC input examples as well as the
+emulator references. Both training tapes now include machine-readable launch
+metadata, fixing direct replay with the wrong fallback equipment. Both training
+routes and the campaign tapes listed in the [guide](guide.md) complete through
+the standalone replay command. These are useful port-integration examples, not
+console recordings.
+
+The broader `controller_route` test filter has five pre-existing failures: the
+two whole-campaign routes and the independent Rikimaru Mission 3, 7 and 10
+routes. They fail identically on the unmodified v0.9.10 tag and this batch.
+Rikimaru's campaign reaches Mission 6 with one fewer grenade than its old stock
+assertion expects; the other routes miss their endpoints or die. The causes of
+these older divergences have not been isolated. Their original expectations
+are retained pending a separate fixture audit;
+do not count this suite as passing or change gameplay to force those paths.
+Standalone Ayame Mission 4/10 and both Mission 7 campaign tapes also fail to
+complete, and are excluded from the verified examples.
+
+The independent PS1 references still match all 33,404 full-campaign updates,
+19,075 equipped Mission 1–7 updates, and the checked Mission 1 stealth-kill,
+Mission 3 item-use and mixed-input scenarios. These comparisons import initial
+state once and apply no subsequent state corrections. This supports the
+unchanged default gameplay on those paths, not every possible route.
