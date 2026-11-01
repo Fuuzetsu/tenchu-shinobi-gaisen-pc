@@ -140,7 +140,7 @@ impl Footprints {
         }
         self.tick = Some(game.tick);
         self.update_shelter(surfaces, settings.direction());
-        let falling = if settings.mode == WeatherMode::Snow {
+        let falling = if settings.mode.snow() {
             f32::from(settings.amount) / 100.0
         } else {
             0.0

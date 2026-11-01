@@ -29,6 +29,7 @@ pub enum Command {
     Volume(u16),
     Balance(u8, u8, bool),
     Voice(i16),
+    Thunder(Option<tenchu_audio::ThunderCue>),
 }
 
 pub struct Output {
@@ -144,6 +145,7 @@ impl Playback {
                     self.mixer.stereo = stereo;
                 }
                 Command::Voice(id) => self.mixer.play_note(id, 127, 64, 48),
+                Command::Thunder(cue) => self.mixer.thunder(cue),
             }
         }
     }

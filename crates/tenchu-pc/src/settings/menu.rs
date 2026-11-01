@@ -62,6 +62,9 @@ pub enum Item {
     SnowDrift,
     Footprints,
     BakedSnowFootprints,
+    StormLightning,
+    StormInterval,
+    StormThunder,
     FootprintSeconds,
     ClearFootprints,
     ClearWeather,
@@ -607,7 +610,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::Weather,
                     "Weather",
                     weather.mode.name().into(),
-                    "Original retains the mission weather. Clear, Rain and Snow replace its presentation only.",
+                    "Original retains the mission weather. Other choices replace presentation only. Rainstorm and Snowstorm add denser precipitation, cloud lightning and delayed thunder; gameplay is unchanged.",
                 ),
                 (
                     Item::ClearWeather,
@@ -626,6 +629,24 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Wind strength",
                     format!("{}%", weather.wind),
                     "Wind tilts rain and snow, wetting/dusting windward surfaces while roofs and walls shelter areas downwind. Gameplay is unchanged.",
+                ),
+                (
+                    Item::StormLightning,
+                    "Storm lightning strength",
+                    format!("{}%", weather.lightning),
+                    "Soft cloud flashes in Rainstorm/Snowstorm. Shelter blocks their light; 0 disables flashes without muting thunder.",
+                ),
+                (
+                    Item::StormInterval,
+                    "Storm lightning interval",
+                    format!("~{} s", weather.lightning_interval),
+                    "Average time between storm flashes, with small independent random variation. Thunder follows each flash after a short distance delay.",
+                ),
+                (
+                    Item::StormThunder,
+                    "Storm thunder volume",
+                    format!("{}%", weather.thunder),
+                    "Synthesized thunder in Rainstorm/Snowstorm. Also follows the master/effects volume; 0 mutes it. Pauses with the game.",
                 ),
                 (
                     Item::WeatherHeading,

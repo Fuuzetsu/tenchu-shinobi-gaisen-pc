@@ -1259,5 +1259,35 @@
     "fog": false,
     "sharp_text": true,
     "weather_warmup": 40
+  },
+  {
+    "id": "rainstorm",
+    "title": "Rainstorm",
+    "description": "Denser precipitation, restrained cloud lightning and delayed thunder. Cosmetic timing leaves gameplay and its random stream unchanged.",
+    "seconds": 18,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": "rainstorm",
+    "shot": "wide",
+    "camera": {"eye": [-48300, -7600, -39400], "target": [-44667, -5000, -34667]},
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 30
+  },
+  {
+    "id": "snowstorm",
+    "title": "Snowstorm",
+    "description": "Denser precipitation, restrained cloud lightning and delayed thunder. Cosmetic timing leaves gameplay and its random stream unchanged.",
+    "seconds": 18,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": "snowstorm",
+    "shot": "wide",
+    "camera": {"eye": [-48300, -7600, -39400], "target": [-44667, -5000, -34667]},
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 30
   }
 ]

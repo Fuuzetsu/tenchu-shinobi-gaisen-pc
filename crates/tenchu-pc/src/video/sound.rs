@@ -90,6 +90,14 @@ impl Sound {
         Ok(())
     }
 
+    pub fn weather(&mut self, cue: Option<tenchu_audio::ThunderCue>, storm: bool) {
+        if !storm {
+            self.mixer.thunder(None);
+        } else if cue.is_some() {
+            self.mixer.thunder(cue);
+        }
+    }
+
     pub fn flush(&mut self) -> Result<()> {
         self.file.flush().map_err(|e| e.to_string())
     }

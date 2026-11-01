@@ -13,6 +13,7 @@ const RUNOFF_LIMIT: usize = 192;
 const EAVE_LIMIT: usize = 96;
 
 mod runoff;
+mod storm;
 const SPLASH_LIMIT: usize = 192;
 
 struct Particle {
@@ -43,6 +44,7 @@ pub struct Weather {
     puddles: f32,
     snow: f32,
     seed: u32,
+    storm: storm::Storm,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -51,6 +53,7 @@ pub struct SurfaceWeather {
     pub puddles: f32,
     pub snow: f32,
     pub time: f32,
+    pub flash: f32,
 }
 
 impl Weather {
@@ -66,6 +69,7 @@ impl Weather {
             self.tick(step, center, surfaces, settings);
         }
         self.tick = Some(tick);
+        self.storm = Default::default();
     }
 
     fn random(&mut self) -> f32 {
@@ -94,6 +98,7 @@ impl Weather {
             puddles: self.puddles * f32::from(settings.puddles) / 100.0,
             snow: self.snow * f32::from(settings.snow) / 100.0,
             time: ((self.tick.unwrap_or(0) % 36000) as f32 + alpha.clamp(0.0, 1.0)) / 30.0,
+            flash: self.storm.flash(settings, alpha),
         }
     }
 
@@ -109,6 +114,7 @@ impl Weather {
             *self = Self::default();
         }
         self.tick = Some(tick);
+        self.storm.tick(settings);
         if self.mode != settings.mode
             || self
                 .center
@@ -119,21 +125,21 @@ impl Weather {
         self.center = Some(center);
         let intensity = f32::from(settings.amount) / 100.0;
         self.wet = (self.wet
-            + if self.mode == WeatherMode::Rain {
+            + if self.mode.rain() {
                 intensity * f32::from(settings.pooling) / 60000.0
             } else {
                 -1.0 / 3600.0
             })
         .clamp(0.0, 1.0);
         self.puddles = (self.puddles
-            + if self.mode == WeatherMode::Rain {
+            + if self.mode.rain() {
                 intensity * self.wet * f32::from(settings.pooling) / 180000.0
             } else {
                 -1.0 / 5400.0
             })
         .clamp(0.0, 1.0);
         self.snow = (self.snow
-            + if self.mode == WeatherMode::Snow {
+            + if self.mode.snow() {
                 intensity / 900.0
             } else {
                 -1.0 / 1800.0
@@ -166,7 +172,7 @@ impl Weather {
                 && (p.position - center).abs().max_element() < f32::from(settings.distance) * 1500.0
         });
         self.update_runoff(center, surfaces, settings, &mut landings);
-        if self.mode == WeatherMode::Rain {
+        if self.mode.rain() {
             for hit in landings {
                 if self.splashes.len() < SPLASH_LIMIT {
                     self.splashes.push(Splash { hit, age: 0 });
@@ -196,7 +202,7 @@ impl Weather {
                 -self.random() * HEIGHT - 100.0,
                 (self.random() * 2.0 - 1.0) * radius,
             );
-        let snow = self.mode == WeatherMode::Snow;
+        let snow = self.mode.snow();
         let velocity = settings.velocity(if snow {
             24.0 + self.random() * 24.0
         } else {
@@ -224,6 +230,10 @@ impl Weather {
             life,
             size,
         });
+    }
+
+    pub fn thunder(&self) -> Option<tenchu_audio::ThunderCue> {
+        self.storm.thunder
     }
 
     pub fn geometry(&self, camera: Mat4, alpha: f32, settings: &Settings) -> Geometry {
@@ -255,11 +265,11 @@ impl Weather {
             if runoff && (!settings.runoff || settings.runoff_amount == 0) {
                 continue;
             }
-            if !runoff && self.mode == WeatherMode::Rain && settings.streaks == 0 {
+            if !runoff && self.mode.rain() && settings.streaks == 0 {
                 continue;
             }
             let position = p.previous.lerp(p.position, alpha);
-            let snow = self.mode == WeatherMode::Snow;
+            let snow = self.mode.snow();
             let axis = if snow {
                 up
             } else {

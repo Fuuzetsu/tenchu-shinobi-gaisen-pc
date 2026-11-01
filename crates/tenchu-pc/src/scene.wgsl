@@ -167,7 +167,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     if !screen {
         let unlit = (v.flags & UNLIT) != 0u || (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER);
         var light = vec3(1.0);
-        if !unlit { light = illumination(v.world, normal, surface_normal); }
+        if !unlit {
+            light = illumination(v.world, normal, surface_normal) + storm_light(v.world, normal, surface_normal);
+        }
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);
     }
@@ -255,6 +257,7 @@ fn sky_color(direction: vec3<f32>) -> vec4<f32> {
     color += lighting.sun_color.rgb * (disc * 2.0 + halo) * min(1.0, lighting.sun_direction.w * 12.0);
     if WEATHER_ENABLED {
         color = mix(color, rain_color(), lighting.rain.y * (0.5 + 0.4 * (1.0 - height)));
+        color += vec3(0.18, 0.22, 0.3) * lighting.source.z;
     }
     color *= camera.options.x;
     if camera.viewport.z == 0.0 { color = pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)); }

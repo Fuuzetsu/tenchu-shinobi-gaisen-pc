@@ -192,6 +192,31 @@ fn rain_and_snow_respect_shelter_and_restore_original_pixels() {
     let snow = capture(&mut renderer);
     assert_eq!(at(&original, 32, 32), at(&snow, 32, 32));
     assert!(at(&snow, 10, 10) > at(&original, 10, 10) + 25);
+    for mode in [
+        crate::settings::WeatherMode::Rainstorm,
+        crate::settings::WeatherMode::Snowstorm,
+    ] {
+        graphics.weather.mode = mode;
+        renderer.weather.wet = if mode.rain() { 1.0 } else { 0.0 };
+        renderer.weather.snow = if mode.snow() { 1.0 } else { 0.0 };
+        for lighting in [false, true] {
+            graphics.lighting.enabled = lighting;
+            renderer.configure(&graphics);
+            renderer.weather.flash = 0.0;
+            let dark = capture(&mut renderer);
+            renderer.weather.flash = 0.7;
+            let flash = capture(&mut renderer);
+            assert_eq!(
+                at(&dark, 32, 32),
+                at(&flash, 32, 32),
+                "Flash penetrated roof: {mode:?}"
+            );
+            assert!(
+                at(&flash, 10, 10) > at(&dark, 10, 10) + 10,
+                "No flash on exposed ground: {mode:?}, lights {lighting}"
+            );
+        }
+    }
     renderer.configure(&crate::settings::Graphics::default());
     assert_eq!(original, capture(&mut renderer));
 }
@@ -284,6 +309,8 @@ fn weather_on_actual_roofs() {
         ("clear", crate::settings::WeatherMode::Original, 0),
         ("rain", crate::settings::WeatherMode::Rain, 900),
         ("snow", crate::settings::WeatherMode::Snow, 1500),
+        ("rainstorm", crate::settings::WeatherMode::Rainstorm, 900),
+        ("snowstorm", crate::settings::WeatherMode::Snowstorm, 1500),
     ] {
         let mut graphics = crate::settings::Graphics::default();
         graphics.set_preset(3);
@@ -320,6 +347,18 @@ fn weather_on_actual_roofs() {
                 &output.join(format!("{name}.png")),
             )
             .unwrap();
+        if mode.storm() {
+            review.renderer.weather.flash = 0.7;
+            review
+                .capture(
+                    camera,
+                    &[&stage],
+                    Some(&effects),
+                    true,
+                    &output.join(format!("{name}-flash.png")),
+                )
+                .unwrap();
+        }
     }
     assert_eq!(state, crate::session::tests::state(&game));
 }

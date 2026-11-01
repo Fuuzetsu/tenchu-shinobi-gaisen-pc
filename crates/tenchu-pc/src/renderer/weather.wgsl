@@ -122,7 +122,15 @@ fn weather_snow(normal: vec3<f32>, position: vec3<f32>) -> f32 {
 }
 
 fn rain_color() -> vec3<f32> {
-    return mix(vec3(0.025, 0.04, 0.065), vec3(0.22, 0.28, 0.34), camera.detail.w);
+    return mix(vec3(0.025, 0.04, 0.065), vec3(0.22, 0.28, 0.34), camera.detail.w)
+        + vec3(0.3, 0.34, 0.4) * lighting.source.z;
+}
+
+fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>) -> vec3<f32> {
+    if !WEATHER_ENABLED || lighting.source.z == 0.0 { return vec3(0.0); }
+    let exposed = weather_exposure(surface, position);
+    let diffuse = 0.2 + 0.8 * max(0.0, -normal.y);
+    return vec3(1.2, 1.4, 1.7) * lighting.source.z * exposed * diffuse;
 }
 
 fn rain_ripples(position: vec3<f32>, footprint: f32) -> vec3<f32> {
@@ -206,7 +214,7 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
     let grain = mix(weather_noise(position / 18.0), 0.5, smoothstep(8.0, 30.0, footprint));
     var white = vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1);
     if linear { white = pow(white, vec3(2.2)); }
-    return mix(color, white * illumination(position, normal, surface), snow);
+    return mix(color, white * (illumination(position, normal, surface) + storm_light(position, normal, surface)), snow);
 }
 
 fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<f32> {

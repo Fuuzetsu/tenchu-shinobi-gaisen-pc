@@ -228,6 +228,8 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::Rain
         | Feature::RainReflections
         | Feature::RainHaze
+        | Feature::Rainstorm
+        | Feature::Snowstorm
         | Feature::Snow
         | Feature::RainPuddles
         | Feature::RoofDrips
@@ -273,6 +275,17 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.lighting.count = 4;
             g.interpolation = true;
             match player.clip().feature {
+                Feature::Rainstorm | Feature::Snowstorm => {
+                    g.weather.mode = if player.clip().feature == Feature::Rainstorm {
+                        crate::settings::WeatherMode::Rainstorm
+                    } else {
+                        crate::settings::WeatherMode::Snowstorm
+                    };
+                    g.weather.lightning_interval = 8;
+                    g.weather.lightning = 70;
+                    g.weather.wind = 65;
+                    g.sky.time = 1200;
+                }
                 Feature::RainPuddles => {
                     g.weather.pooling = 1000;
                     g.weather.puddles = 100;
@@ -662,6 +675,9 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             s.graphics.blood.ground.label(),
         )),
         Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),
+        Feature::Rainstorm | Feature::Snowstorm => {
+            text("Denser precipitation · sheltered cloud flashes · delayed thunder".into())
+        }
         Feature::GrenadeLight | Feature::KaenLight => text(format!(
             "Fire / explosion lights {} · original item behavior",
             on(l.fires)

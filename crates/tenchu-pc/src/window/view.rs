@@ -96,6 +96,10 @@ pub(super) struct View {
 }
 
 impl View {
+    pub(super) fn thunder(&self) -> Option<tenchu_audio::ThunderCue> {
+        self.weather.thunder()
+    }
+
     pub(super) fn navigation_surfaces(
         &mut self,
         game: &Game,

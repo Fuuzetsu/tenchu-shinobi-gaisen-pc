@@ -1,4 +1,6 @@
 mod envelope;
+mod thunder;
+pub use thunder::ThunderCue;
 
 use envelope::Envelope;
 use std::sync::Arc;
@@ -25,6 +27,7 @@ pub struct Mixer {
     voices: [Option<Voice>; 24],
     next_voice: usize,
     music: Option<Music>,
+    thunder: Option<thunder::Thunder>,
     rate: u32,
     envelope_clock: u64,
     pause_envelope_clock: u64,
@@ -44,6 +47,7 @@ impl Mixer {
             voices: std::array::from_fn(|_| None),
             next_voice: 0,
             music: None,
+            thunder: None,
             rate,
             envelope_clock: 0,
             pause_envelope_clock: 0,
@@ -63,6 +67,13 @@ impl Mixer {
 
     pub fn clear_effects(&mut self) {
         self.voices = std::array::from_fn(|_| None);
+        self.thunder = None;
+    }
+
+    pub fn thunder(&mut self, cue: Option<ThunderCue>) {
+        self.thunder = cue
+            .filter(|c| c.strength > 0.0)
+            .map(|c| thunder::Thunder::new(c, self.rate));
     }
 
     pub fn play(&mut self, id: i16, volume: u8, pan: u8) {
@@ -176,6 +187,17 @@ impl Mixer {
                     *out += value * volume;
                 }
                 voice.position += voice.step;
+            }
+        }
+        if !self.paused
+            && let Some(thunder) = &mut self.thunder
+        {
+            if thunder.finished() {
+                self.thunder = None;
+            } else {
+                for (out, sample) in output.iter_mut().zip(thunder.frame()) {
+                    *out += sample;
+                }
             }
         }
         output = output.map(|v| v * self.effects_volume);

@@ -135,6 +135,14 @@ impl Audio {
             .send(Command::UiEffect(if paused { 9 } else { 10 }));
     }
 
+    pub fn weather(&self, cue: Option<tenchu_audio::ThunderCue>, storm: bool) {
+        if !storm || self.fast_forward {
+            self.output.send(Command::Thunder(None));
+        } else if cue.is_some() {
+            self.output.send(Command::Thunder(cue));
+        }
+    }
+
     pub fn tick(&mut self, game: &Game) -> Result<()> {
         if !self.fast_forward {
             for sound in game.sounds()? {

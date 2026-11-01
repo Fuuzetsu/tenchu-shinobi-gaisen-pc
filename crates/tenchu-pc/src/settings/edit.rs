@@ -25,6 +25,8 @@ impl Item {
             | Item::PuddleCoverage
             | Item::RainHaze
             | Item::RunoffAmount => (0, 100, 5, 1),
+            Item::StormLightning | Item::StormThunder => (0, 100, 5, 1),
+            Item::StormInterval => (8, 120, 1, 1),
             Item::RainReflections => (0, 300, 10, 1),
             Item::RainStreaks => (0, 200, 10, 1),
             Item::PoolingSpeed => (25, 1000, 25, 1),
@@ -180,6 +182,9 @@ impl Item {
             Self::PoolingSpeed => &mut settings.graphics.weather.pooling,
             Self::RainHaze => &mut settings.graphics.weather.haze,
             Self::RainStreaks => &mut settings.graphics.weather.streaks,
+            Self::StormLightning => &mut settings.graphics.weather.lightning,
+            Self::StormInterval => &mut settings.graphics.weather.lightning_interval,
+            Self::StormThunder => &mut settings.graphics.weather.thunder,
             Self::RunoffAmount => &mut settings.graphics.weather.runoff_amount,
             Self::FootprintSeconds => &mut settings.graphics.weather.footprint_seconds,
             Self::SnowCover => &mut settings.graphics.weather.snow,

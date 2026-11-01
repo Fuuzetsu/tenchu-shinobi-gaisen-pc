@@ -123,7 +123,7 @@ impl Frame {
     ) -> Self {
         if settings.mode != crate::settings::WeatherMode::Original {
             self.weather = weather;
-            let amount = if settings.mode == crate::settings::WeatherMode::Rain {
+            let amount = if settings.mode.rain() {
                 f32::from(settings.amount) / 100.0
             } else {
                 0.0
@@ -139,6 +139,7 @@ impl Frame {
                 || weather.snow > 0.0
                 || weather.puddles > 0.0
                 || self.rain[1] > 0.0
+                || settings.mode.storm()
             {
                 self.weather_resolution = [256, 512, 1024][usize::from(settings.quality.min(2))];
             }

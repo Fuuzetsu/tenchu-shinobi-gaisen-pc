@@ -53,18 +53,21 @@ impl Application {
                 && self.demo.is_none(),
             &self.settings.vibration,
         );
+        let storm = self.settings.graphics.weather.mode.storm() && self.simulating();
         if let Some(audio) = &mut self.audio {
             if let Err(error) = audio.tick(&self.campaign.game) {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
+            audio.weather(self.view.as_ref().and_then(View::thunder), storm);
         }
         #[cfg(not(target_arch = "wasm32"))]
-        if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut())
-            && let Err(error) = sound.tick(&self.assets, &self.campaign.game)
-        {
-            self.pause_error(error);
-            return false;
+        if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
+            if let Err(error) = sound.tick(&self.assets, &self.campaign.game) {
+                self.pause_error(error);
+                return false;
+            }
+            sound.weather(self.view.as_ref().and_then(View::thunder), storm);
         }
         self.trial_record_check();
         if !self.campaign.playing() && !observing {

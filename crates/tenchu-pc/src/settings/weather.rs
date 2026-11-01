@@ -7,10 +7,19 @@ pub enum WeatherMode {
     Clear,
     Rain,
     Snow,
+    Rainstorm,
+    Snowstorm,
 }
 
 impl WeatherMode {
-    pub const ALL: [Self; 4] = [Self::Original, Self::Clear, Self::Rain, Self::Snow];
+    pub const ALL: [Self; 6] = [
+        Self::Original,
+        Self::Clear,
+        Self::Rain,
+        Self::Snow,
+        Self::Rainstorm,
+        Self::Snowstorm,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -18,11 +27,25 @@ impl WeatherMode {
             Self::Clear => "Clear",
             Self::Rain => "Rain",
             Self::Snow => "Snow",
+            Self::Rainstorm => "Rainstorm",
+            Self::Snowstorm => "Snowstorm",
         }
     }
 
     pub fn precipitates(self) -> bool {
-        matches!(self, Self::Rain | Self::Snow)
+        self.rain() || self.snow()
+    }
+
+    pub fn rain(self) -> bool {
+        matches!(self, Self::Rain | Self::Rainstorm)
+    }
+
+    pub fn snow(self) -> bool {
+        matches!(self, Self::Snow | Self::Snowstorm)
+    }
+
+    pub fn storm(self) -> bool {
+        matches!(self, Self::Rainstorm | Self::Snowstorm)
     }
 }
 
@@ -48,6 +71,9 @@ pub struct Weather {
     pub footprints: bool,
     pub baked_snow: bool,
     pub footprint_seconds: u16,
+    pub lightning: u16,
+    pub lightning_interval: u16,
+    pub thunder: u16,
 }
 
 impl Default for Weather {
@@ -72,6 +98,9 @@ impl Default for Weather {
             footprints: true,
             baked_snow: false,
             footprint_seconds: 60,
+            lightning: 40,
+            lightning_interval: 25,
+            thunder: 60,
         }
     }
 }
@@ -93,20 +122,25 @@ impl Weather {
         self.snow = self.snow.min(100);
         self.snow_drift = self.snow_drift.min(100);
         self.footprint_seconds = self.footprint_seconds.clamp(10, 180);
+        self.lightning = self.lightning.min(100);
+        self.lightning_interval = self.lightning_interval.clamp(8, 120);
+        self.thunder = self.thunder.min(100);
     }
 
     pub fn particles(&self) -> usize {
-        [384, 896, 1792][usize::from(self.quality.min(2))] * usize::from(self.amount) / 100
+        let count =
+            [384, 896, 1792][usize::from(self.quality.min(2))] * usize::from(self.amount) / 100;
+        if self.mode.storm() {
+            count * 3 / 2
+        } else {
+            count
+        }
     }
 
     pub fn velocity(&self, speed: f32) -> glam::Vec3 {
         let heading = f32::from(self.heading).to_radians();
         let wind = f32::from(self.wind) * speed / self.fall_speed()
-            * if self.mode == WeatherMode::Snow {
-                0.65
-            } else {
-                1.0
-            };
+            * if self.mode.snow() { 0.65 } else { 1.0 };
         glam::Vec3::new(heading.sin() * wind, speed, heading.cos() * wind)
     }
 
@@ -115,10 +149,6 @@ impl Weather {
     }
 
     fn fall_speed(&self) -> f32 {
-        if self.mode == WeatherMode::Snow {
-            36.0
-        } else {
-            380.0
-        }
+        if self.mode.snow() { 36.0 } else { 380.0 }
     }
 }

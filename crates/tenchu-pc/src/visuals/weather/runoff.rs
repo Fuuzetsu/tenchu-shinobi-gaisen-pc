@@ -14,7 +14,7 @@ impl Weather {
         settings: &Settings,
         landings: &mut Vec<Hit>,
     ) {
-        if self.mode != WeatherMode::Rain || !settings.runoff || settings.runoff_amount == 0 {
+        if !self.mode.rain() || !settings.runoff || settings.runoff_amount == 0 {
             self.runoff.clear();
             self.eaves.clear();
             return;

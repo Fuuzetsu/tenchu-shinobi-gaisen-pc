@@ -1042,7 +1042,7 @@ The cycle is off by default. `demo --clips day-cycle` shows a day in twenty seco
 scenery as daylight rises, so midday can look like daytime while preserving the
 artwork. Set it to 0 to keep all original vertex shading throughout the cycle.
 
-**F1 → Weather** selects Original, Clear, Rain or Snow. Original retains the
+**F1 → Weather** selects Original, Clear, Rain, Snow or their storm variants. Original retains the
 mission's weather; overrides change presentation only. Precipitation, wind,
 detail, particle distance, wetness, snow cover and roof runoff are adjustable.
 Wind carries particles under eaves, while walls shelter areas downwind. **Wind
@@ -1082,6 +1082,16 @@ caps precipitation at 384/896/1792 particles, shared between near and distant
 layers, with 256/512/1024 shelter maps. Pauses freeze weather; changing missions
 or selecting Original clears it. Original weather RNG still updates when hidden.
 `demo --clips rain,snow` reviews both effects on Mission 1's roofs.
+
+**Rainstorm** and **Snowstorm** add 50% more precipitation within a bounded
+particle budget, soft cloud-lightning flashes and delayed synthesized thunder.
+F1 → Weather controls flash strength, average interval (8–120 seconds) and
+thunder volume; either flashes or thunder can be disabled independently. Roofs
+shield surfaces from cloud light through the existing shelter maps. These are
+cosmetic storms: they do not damage actors, alter detection or consume gameplay
+RNG. Master/effects volume and pause apply to thunder. Graphics presets never
+select a storm automatically. `demo --clips rainstorm,snowstorm` previews them;
+add `--sound --video storm.mp4` to include thunder in an offline recording.
 
 Rain has additional controls on that same page:
 

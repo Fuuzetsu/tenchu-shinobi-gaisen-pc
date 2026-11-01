@@ -512,7 +512,12 @@ impl Shadows {
             frame.weather.puddles,
         ]);
         data.extend(frame.rain);
-        data.extend([f32::from(settings.source_size), frame.day, 0.0, 0.0]);
+        data.extend([
+            f32::from(settings.source_size),
+            frame.day,
+            frame.weather.flash,
+            0.0,
+        ]);
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
                 self.draw_face(

@@ -164,24 +164,35 @@ fn precipitation_stops_at_roofs_and_stays_bounded_through_weather_changes() {
 fn rendering_cadence_is_read_only_and_teleports_discard_old_particles() {
     let surfaces = surfaces();
     let settings = Settings {
-        mode: WeatherMode::Snow,
+        mode: WeatherMode::Snowstorm,
+        lightning_interval: 8,
         ..Default::default()
     };
     let mut a = Weather::default();
     let mut b = Weather::default();
-    for tick in 0..90 {
+    let mut thunder = 0;
+    for tick in 0..400 {
         a.tick(tick, Vec3::ZERO, &surfaces, &settings);
         b.tick(tick, Vec3::ZERO, &surfaces, &settings);
         for alpha in [0.0, 0.1, 0.3, 0.7, 1.0] {
+            assert_eq!(
+                a.sample(&settings, alpha).flash,
+                b.sample(&settings, alpha).flash
+            );
             let mesh = a.geometry(Mat4::IDENTITY, alpha, &settings);
             assert!(mesh.vertices.len() <= settings.particles() * 6);
         }
         assert_eq!(a.seed, b.seed);
+        assert_eq!(a.thunder(), b.thunder());
+        thunder += usize::from(a.thunder().is_some());
+        a.tick(tick, Vec3::ZERO, &surfaces, &settings);
+        assert_eq!(a.thunder(), b.thunder());
         for (a, b) in a.particles.iter().zip(&b.particles) {
             assert_eq!(a.position, b.position);
         }
     }
-    a.tick(90, Vec3::new(100000.0, 0.0, 0.0), &surfaces, &settings);
+    assert!(thunder > 0);
+    a.tick(400, Vec3::new(100000.0, 0.0, 0.0), &surfaces, &settings);
     assert!(a.particles.iter().all(|p| p.previous == p.position));
 }
 
