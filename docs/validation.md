@@ -110,6 +110,29 @@ can overshoot. `CreateHumanoid` separately rejects allocation at 40 actors.
 thinking budget for other activation decisions. The call distance is 16,500
 units. Fog hides distant activity; it does not itself authorize calls.
 
+That 30-actor threshold covers the **whole mission**, including inactive and
+story actors, not just the current fight. In the archived PS1 campaign's first
+layouts, Mission 1 starts with 28 slots occupied, Mission 3 with 31 and Mission
+10 with 32. Retail can therefore reach the reinforcement threshold after only
+a few arrivals, or already be above it before combat; it does not require a
+30-enemy crowd around the player. These counts come from the emulator replay's
+mission-entry actor table, also matched by native loading. Later actor removals
+can free capacity.
+
+Nor does a successful call immediately request another. Both guards return
+toward the reported disturbance; sighting the player changes the suspicious
+search phase to combat, and expiry of the alarm can return it to calm. In an
+open-ground Hard test, a caller at 16,600 units with a search destination at the
+player summoned one guard, both reacquired the player within 32 updates, and
+the population stayed at three (player plus two guards) for 900 updates. It also
+stayed at three when all-active was enabled after that first call. A separate
+blocked-guard fixture placed immediately before an activation check froze under
+the original policy, but multiplied with all-active. The earlier explosive
+fixture deliberately set the search destination at the distant blocked caller
+and started just after an activation check; it is not a representative first
+encounter. A blocked return path, sustained search state, activation timing and
+available population capacity matter in addition to the difficulty setting.
+
 All-active + Unlimited removes both the distant suspension and the call decision
 limit. The extra terrain-cover check hides spawns but cannot stop recruitment
 feeding back into itself. A controlled, disc-backed wall fixture with one guard,
