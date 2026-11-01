@@ -383,3 +383,24 @@ The benchmark is available with `TENCHU_DISC` set through
 `./dev.sh cargo test --release -p tenchu-pc --lib profile_rewind -- --ignored --nocapture --test-threads=1`.
 Local logs and native/browser captures remain in
 `private/issues/rewind-performance`.
+
+## Ground pickup stability (#47)
+
+The supplied v0.11.0 Mission 7 report has SHA-256
+`0ef16bab6ab210a6cdb1e31b4fcf2f276557fe35359bff3e79d9bff007d4af18`.
+Its settled medicine pickup stays at (-23092, -2000, -24472); item physics
+does not move it. The renderer instead used last-tick integer sprite coordinates
+while terrain used the interpolated camera. A disc-backed reproduction near the
+reported player position measured up to 7.38 original-resolution pixels of
+misalignment across camera interpolation samples before the fix; the new check
+requires less than 0.003 pixels. Rendering leaves serialized gameplay unchanged.
+
+The regular camera now projects inventory icons from their world anchors using
+the presented view, preserving DrawSprite's five ordering-table-unit depth bias
+and icon scale. Free-camera rendering and the core drawing/physics code stay
+unchanged. The pickup-transfer and free-camera effect regressions pass, as do
+strict native/WASM Clippy and formatting. The isolated native Mission 7 build
+was checked with the report's graphics settings, a restored nearby pickup state,
+and ordinary movement. Before/after GPU captures and logs are kept outside Git
+in `private/issues/47`. The report is not a full replay, so this establishes a
+reproducible rendering defect rather than an exact replay of the reporter's run.

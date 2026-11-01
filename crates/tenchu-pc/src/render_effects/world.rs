@@ -60,6 +60,61 @@ fn depth(view: Matrix, point: Vec3) -> f32 {
         + view.translation.z as f32
 }
 
+pub(super) fn item_icon(graphic: &Graphic) -> bool {
+    matches!(
+        graphic,
+        Graphic::Sprite {
+            image: 15 | 20..=39,
+            blend: 0
+        }
+    )
+}
+
+pub(super) fn items(surfaces: &mut Vec<Surface>, game: &Game, view: Matrix) {
+    let rotation = rotation(view);
+    let translation = Vec3::from(view.translation.map(|v| v as f32).to_array());
+    for sprite in game
+        .effects
+        .billboards
+        .iter()
+        .filter(|s| item_icon(&s.graphic))
+    {
+        let center =
+            rotation * Vec3::from(sprite.position.map(|v| v as f32).to_array()) + translation;
+        if !(96.0..20016.0).contains(&center.z) {
+            continue;
+        }
+        let (image, blend, _) = material(&sprite.graphic);
+        let image = game.mission.images[image.unwrap()];
+        // DrawSprite places icons five ordering-table units in front of their anchor.
+        let z = center.z - 80.0;
+        let scale = sprite.scale.map(|v| v as f32 / 1024.0 * 300.0 / z);
+        let xy = center.truncate() * (300.0 / center.z);
+        let (sin, cos) = (sprite.rotation as f32 / 4096.0).to_radians().sin_cos();
+        let points = std::array::from_fn(|i| {
+            let x = ((i & 1) as f32 * f32::from(image.size[0]) - f32::from(image.size[0] >> 1))
+                * scale[0];
+            let y = ((i >> 1) as f32 * f32::from(image.size[1]) - f32::from(image.size[1] >> 1))
+                * scale[1];
+            [
+                xy.x + x * cos - y * sin,
+                xy.y + x * sin + y * cos,
+                super::depth(z),
+            ]
+        });
+        surfaces.push(Surface {
+            depth: z,
+            blend,
+            vertices: quad(
+                points,
+                [sprite.color.map(|v| f32::from(v) / 128.0); 4],
+                Some(image),
+                blend,
+            ),
+        });
+    }
+}
+
 pub(super) fn trail(
     surfaces: &mut Vec<Surface>,
     trail: &tenchu_core::actor::trail::Trail,
@@ -182,6 +237,119 @@ pub(super) fn line(
 mod tests {
     use super::*;
     use tenchu_core::{effects, math::Position, terrain::Cursor};
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; optional TENCHU_ITEM_REVIEW captures the camera/pickup regression"]
+    fn ground_pickups_follow_the_presented_camera_without_pixel_snapping() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut game = crate::session::Options {
+            mission: 7,
+            difficulty: tenchu_core::ai::Difficulty::Hard,
+            language: Some(tenchu_assets::script::Language::Japanese),
+            ..Default::default()
+        }
+        .load_equipped(&assets, 583148160, [0; 20])
+        .unwrap();
+        game.events = Default::default();
+        game.roster.keep_all_active = true;
+        game.roster.get_mut(game.player_id).invulnerable = true;
+        for _ in 0..70 {
+            game.step(0).unwrap();
+        }
+        game.teleport_player(Position::new(-24619, -420, -22292), true)
+            .unwrap();
+        for _ in 0..60 {
+            game.step(0).unwrap();
+        }
+        let point = game.scene.models[9].local.translation;
+        assert_eq!(point, Position::new(-23092, -2000, -24472));
+        let image = game.mission.images[23];
+        let mut history = crate::visuals::interpolation::History::default();
+        history.reset(&game);
+        let review = std::env::var_os("TENCHU_ITEM_REVIEW").map(|directory| {
+            let directory = std::path::PathBuf::from(directory);
+            std::fs::create_dir_all(&directory).unwrap();
+            let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+            let models = review.models(&game.mission).unwrap();
+            let stage = review.renderer.upload(&render_mesh::stage(
+                &game.mission,
+                &game.math,
+                Some(&models),
+            ));
+            (directory, review, models, stage)
+        });
+        let mut review = review;
+        let mut maximum_error = 0.0_f32;
+        for tick in 0..12 {
+            game.step(tenchu_core::input::RIGHT).unwrap();
+            history.tick(&game);
+            assert_eq!(game.scene.models[9].local.translation, point);
+            let state = crate::session::tests::state(&game);
+            for (sample, alpha) in [0.0, 0.5, 1.0].into_iter().enumerate() {
+                let frame = history.sample(game.tick, alpha);
+                let view = frame.as_ref().map_or(game.rendered_view, |f| f.view);
+                let geometry = super::super::build_presented(
+                    &game,
+                    false,
+                    None,
+                    false,
+                    None,
+                    frame.as_ref(),
+                    Style::default(),
+                );
+                let vertices: Vec<_> = geometry
+                    .vertices
+                    .iter()
+                    .filter(|v| {
+                        v.flags & render_mesh::SCREEN != 0
+                            && v.page == u32::from(image.page)
+                            && v.palette == u32::from(image.palette)
+                            && v.uv[0] >= f32::from(image.uv[0])
+                            && v.uv[0] < f32::from(image.uv[0]) + f32::from(image.size[0])
+                            && v.uv[1] >= f32::from(image.uv[1])
+                            && v.uv[1] < f32::from(image.uv[1]) + f32::from(image.size[1])
+                    })
+                    .collect();
+                assert_eq!(vertices.len(), 6, "one visible medicine pickup");
+                let center = vertices
+                    .iter()
+                    .map(|v| Vec3::from(v.position))
+                    .sum::<Vec3>()
+                    / 6.0;
+                let projected = crate::renderer::game_camera(view, 16.0 / 9.0)
+                    .project_point3(Vec3::from(point.map(|v| v as f32).to_array()));
+                let expected =
+                    glam::Vec2::new(projected.x * 120.0 * 16.0 / 9.0, -projected.y * 120.0);
+                maximum_error = maximum_error.max(center.truncate().distance(expected));
+                if let Some((directory, review, models, stage)) = &mut review {
+                    let actors = review.renderer.upload(&render_mesh::characters_presented(
+                        &game,
+                        Some(models),
+                        true,
+                        frame.as_ref(),
+                    ));
+                    let effects = review.renderer.upload_effects(geometry);
+                    review
+                        .capture(
+                            crate::renderer::game_camera(view, 16.0 / 9.0),
+                            &[stage, &actors],
+                            Some(&effects),
+                            true,
+                            &directory.join(format!("{:03}.png", tick * 3 + sample)),
+                        )
+                        .unwrap();
+                }
+            }
+            assert_eq!(state, crate::session::tests::state(&game));
+        }
+        assert!(
+            maximum_error < 0.003,
+            "pickup/terrain alignment error: {maximum_error} pixels"
+        );
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC"]

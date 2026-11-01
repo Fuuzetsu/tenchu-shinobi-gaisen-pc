@@ -464,6 +464,9 @@ pub fn build_presented(
             }
         }
     }
+    if !inspection {
+        world::items(&mut surfaces, game, view);
+    }
     for segment in game
         .effects
         .lines
@@ -504,7 +507,11 @@ pub fn build_presented(
     for drawing in crate::visuals::death::blood::drawings(&game.effects, frame)
         .chain(&game.items.drawings)
         .chain(&game.misc.drawings)
-        .filter(|drawing| !inspection && !style.replaces(&drawing.graphic, drawing.color))
+        .filter(|drawing| {
+            !inspection
+                && !world::item_icon(&drawing.graphic)
+                && !style.replaces(&drawing.graphic, drawing.color)
+        })
     {
         let (image, blend, bottom_origin) = world::material(&drawing.graphic);
         let image = image.map(|i| game.mission.images[i]);
