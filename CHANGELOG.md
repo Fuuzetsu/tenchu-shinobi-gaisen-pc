@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix HIME/Kiku using unrelated terrain textures in cross-stage model swaps and
+  imports. The model library now includes Ayame-specific story resources.
+
 ## 0.11.0 — 2026-11-01
 
 - Fix small camera shakes caused by rounding interpolated views far from the

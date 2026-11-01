@@ -267,3 +267,10 @@ camera cuts remain unchanged. Native movement/turn/attack checks and the existin
 body/weapon/shadow interpolation and secondary-motion tests pass. The external
 jitter report lacked a clip, preset or affected body part, so this verifies these
 specific camera defects rather than confirming that report's exact cause.
+
+HIME cross-stage appearance: the library now examines both protagonists' story
+resources. A disc-backed regression compares every HIME texture region with her
+native Mission 8 Ayame scene; all four library/import tests pass. Native Mission 1
+Ayame movement and attacks with the HIME swap show her kimono, hair and face
+textures, with the player's weapons retained. Before/after images are kept in
+`private/issues/hime`. No artwork replacement or gameplay changes are needed.

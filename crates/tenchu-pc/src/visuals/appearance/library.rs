@@ -46,50 +46,52 @@ impl Library {
         let mut voices = BTreeMap::new();
         let mut textures = Vec::new();
         for stage in assets.stages()? {
-            let mission = MissionAssets::load(assets, stage.id, 0, 0)?;
-            for spawn in mission.enemies.iter().chain(
-                mission
-                    .random_layouts
-                    .iter()
-                    .flatten()
-                    .flat_map(|l| &l.enemies),
-            ) {
-                if spawn.think != 0 {
-                    thinking.entry(spawn.kind).or_insert(spawn.think);
+            for player in 0..=1 {
+                let mission = MissionAssets::load(assets, stage.id, player, 0)?;
+                for spawn in mission.enemies.iter().chain(
+                    mission
+                        .random_layouts
+                        .iter()
+                        .flatten()
+                        .flat_map(|l| &l.enemies),
+                ) {
+                    if spawn.think != 0 {
+                        thinking.entry(spawn.kind).or_insert(spawn.think);
+                    }
                 }
-            }
-            for spawn in &mission.story {
-                if spawn.think != 0 {
-                    thinking.entry(spawn.kind).or_insert(spawn.think);
+                for spawn in &mission.story {
+                    if spawn.think != 0 {
+                        thinking.entry(spawn.kind).or_insert(spawn.think);
+                    }
                 }
-            }
-            for (program, kind) in Executable::new(&assets.executable)?
-                .appearance(stage.id)?
-                .into_iter()
-                .enumerate()
-            {
-                voices
-                    .entry(kind)
-                    .or_insert(tenchu_assets::stage::imports::Voice {
-                        stage: stage.id,
-                        character: 0,
-                        program: program + 6,
+                for (program, kind) in Executable::new(&assets.executable)?
+                    .appearance(stage.id)?
+                    .into_iter()
+                    .enumerate()
+                {
+                    voices
+                        .entry(kind)
+                        .or_insert(tenchu_assets::stage::imports::Voice {
+                            stage: stage.id,
+                            character: player,
+                            program: program + 6,
+                        });
+                }
+                let vram = Arc::new(mission.vram);
+                let clips = Arc::new(mission.clips);
+                for (kind, parts) in mission.models {
+                    let character = definitions.iter().find(|c| c.kind == kind).unwrap();
+                    found.entry(character.model.clone()).or_insert_with(|| {
+                        (
+                            parts,
+                            vram.clone(),
+                            clips.clone(),
+                            mission.common_motions.clone(),
+                        )
                     });
+                }
+                textures.push(vram);
             }
-            let vram = Arc::new(mission.vram);
-            let clips = Arc::new(mission.clips);
-            for (kind, parts) in mission.models {
-                let character = definitions.iter().find(|c| c.kind == kind).unwrap();
-                found.entry(character.model.clone()).or_insert_with(|| {
-                    (
-                        parts,
-                        vram.clone(),
-                        clips.clone(),
-                        mission.common_motions.clone(),
-                    )
-                });
-            }
-            textures.push(vram);
         }
         let mut library = Self::default();
         for path in assets.archive.files.keys() {
@@ -300,6 +302,31 @@ mod tests {
         settings::Graphics,
         visuals::{appearance, models::Models, pack::Pack},
     };
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; HIME imports use the princess textures visible in Ayame's Mission 8 scene"]
+    fn princess_textures_match_the_native_story_character() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+        let story = MissionAssets::load(&assets, 8, 1, 1).unwrap();
+        let library = Library::load(&assets).unwrap();
+        let body = library.get("disc:5").unwrap();
+        assert_eq!(body.resource, "HUMAN/HIME.MAD");
+        let regions: std::collections::BTreeSet<_> = body
+            .parts
+            .iter()
+            .flat_map(|p| &p.geometry)
+            .flat_map(crate::render_mesh::draw_tmd_faces)
+            .filter_map(|face| catalog::face_region(&story.vram, face))
+            .collect();
+        assert!(!regions.is_empty());
+        for region in regions {
+            assert!(
+                region.original_pixels(&body.vram) == region.original_pixels(&story.vram),
+                "princess region {region:?}"
+            );
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; checks all-resource swaps, texture isolation, aliases and both player rigs"]
