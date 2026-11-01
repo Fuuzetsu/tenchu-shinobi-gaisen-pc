@@ -129,7 +129,7 @@ impl Application {
         let alpha = if let Some(demo) = &self.demo {
             demo.alpha()
         } else if self.is_suspended()
-            || !self.campaign.playing()
+            || !self.simulating()
             || self.debug.speed == 0
             || self.campaign.game.cinematic.active
                 && (self.settings.cutscene_speed == 0 || self.controls.held(KeyCode::Backspace))
@@ -249,7 +249,7 @@ impl Application {
 
     fn action(&mut self, action: Action) {
         let action = self.campaign.screen.menu_action(action);
-        if matches!(self.campaign.screen, Screen::DeathHold)
+        if matches!(self.campaign.screen, Screen::DeathHold { .. })
             && !matches!(action, Action::Confirm | Action::Back | Action::Replay)
         {
             return;
@@ -403,7 +403,7 @@ impl Application {
             return;
         }
         match command {
-            Command::Pause if self.campaign.playing() && !self.faulted => {
+            Command::Pause if self.simulating() && !self.faulted => {
                 self.set_paused(!self.paused);
             }
             Command::Menu(Action::Back) if matches!(self.campaign.screen, Screen::Launcher) => {
@@ -982,7 +982,7 @@ impl ApplicationHandler for Application {
                     || self.navigation_enabled() && !suspended
                     || self.settings.graphics.animated_presentation()
                         && !suspended
-                        && self.campaign.playing()
+                        && self.simulating()
                 {
                     self.update_view();
                 }

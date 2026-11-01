@@ -23,7 +23,7 @@ pub enum Screen {
     Launcher,
     Inventory(Loadout),
     Playing,
-    DeathHold,
+    DeathHold { retry_seed: u32 },
     Results(Results),
     GameOver,
     Complete,
@@ -105,7 +105,7 @@ impl Campaign {
     }
 
     pub fn scene_visible(&self) -> bool {
-        matches!(self.screen, Screen::Playing | Screen::DeathHold)
+        matches!(self.screen, Screen::Playing | Screen::DeathHold { .. })
     }
 
     fn selection(&self, options: Options) -> Selection {
@@ -369,8 +369,9 @@ impl Campaign {
                 }
                 _ => {}
             },
-            Screen::DeathHold => {
+            Screen::DeathHold { retry_seed } => {
                 if matches!(action, Action::Confirm | Action::Back | Action::Replay) {
+                    self.game.random.seed = *retry_seed;
                     if let Some(ticks) = self.game.death_wait_ticks() {
                         self.screen = Screen::Playing;
                         // Finish the retail countdown without presenting its cleared

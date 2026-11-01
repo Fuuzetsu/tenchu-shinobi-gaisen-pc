@@ -104,6 +104,7 @@ pub enum Item {
     MusicWhilePaused,
     CircleConfirm,
     WaitAfterDeath,
+    LiveDeathScene,
     ShopLighting,
     Fullscreen,
     Vsync,
@@ -1159,6 +1160,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Wait after death",
                 on(s.wait_after_death),
                 "Hold the completed death scene until Enter, the menu confirm button or Start. Off: automatically show mission failure, as in retail.",
+            ),
+            (
+                Item::LiveDeathScene,
+                "Keep world running after death",
+                on(s.live_death_scene),
+                "Guards return to patrol and effects keep running after the campaign death animation. Also enables Wait after death. Off: freeze the final scene. Waiting longer does not change your retry seed.",
             ),
             (
                 Item::ShopLighting,

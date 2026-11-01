@@ -883,9 +883,16 @@ the quick launcher returns to the title; Escape on the title quits. Controller h
 labels differ between controller brands.
 
 **F1 → General → Wait after death** keeps the final death scene visible until
-Enter, South or Start opens mission failure. Gameplay is frozen during this wait;
-the death animation and scripts finish normally first. Off preserves retail's
-automatic transition. This preference is independent of graphics presets.
+Enter, the menu confirm button or Start opens mission failure. The death
+animation and scripts finish normally first, then the scene freezes. Off
+preserves retail's automatic transition.
+
+**Keep world running after death** also enables that wait, but lets guards
+return to patrol and keeps effects running after a campaign death. F3 pauses
+observation, F4 advances a tick and F2 still lets you inspect the scene. Turn this
+option off to freeze the view again. Waiting longer does not change the retry's
+RNG seed, inventory or progress. Both preferences are independent of graphics
+presets; TRIAL retains its own result/return flow.
 
 With your weapon drawn, back away (S / Down) to guard frontal melee attacks.
 Quick keyboard and controller taps are retained until the next gameplay tick.

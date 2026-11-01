@@ -136,6 +136,7 @@ impl Item {
             Self::MusicWhilePaused => &mut settings.music_while_paused,
             Self::CircleConfirm => &mut settings.circle_confirm,
             Self::WaitAfterDeath => &mut settings.wait_after_death,
+            Self::LiveDeathScene => &mut settings.live_death_scene,
             Self::ShopLighting => &mut settings.graphics.shop_lighting,
             Self::Fullscreen => &mut settings.fullscreen,
             Self::Vsync => &mut settings.vsync,
@@ -226,6 +227,9 @@ impl Item {
             *value = value.cycle(direction);
         } else if let Some(value) = self.boolean(settings) {
             *value = !*value;
+            if self == Self::LiveDeathScene && *value {
+                settings.wait_after_death = true;
+            }
         } else if let Some(value) = self.number(settings) {
             let slider = self.slider().expect("numeric preference has a slider");
             let next = i32::from(*value) + direction * slider.step;

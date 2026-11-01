@@ -1014,7 +1014,8 @@ impl View {
                 ));
             }
         }
-        if matches!(campaign.screen, crate::campaign::Screen::DeathHold) && !debug.photo_mode {
+        if matches!(campaign.screen, crate::campaign::Screen::DeathHold { .. }) && !debug.photo_mode
+        {
             self.labels.push(crate::debug::Label(
                 crate::debug::Anchor::BottomLeft([12.0, 20.0]),
                 format!(

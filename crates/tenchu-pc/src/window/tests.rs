@@ -168,7 +168,7 @@ fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
             }
             assert!(reference.campaign.playing());
             assert_eq!(app.campaign.game.death_wait_ticks(), Some(1));
-            assert!(matches!(app.campaign.screen, Screen::DeathHold));
+            assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
             assert!(app.campaign.scene_visible() && !app.campaign.playing());
             assert_eq!(app.controls.buttons(), 0);
             assert!(
@@ -187,7 +187,7 @@ fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
             app.debug.frame_step = true;
             app.advance_simulation(Duration::ZERO);
             app.action(Action::Up);
-            assert!(matches!(app.campaign.screen, Screen::DeathHold));
+            assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
             assert!(crate::session::tests::state(&app.campaign.game) == held_state);
             assert_eq!(app.campaign.game.effects.billboards.len(), effects);
             while reference.campaign.playing() {
@@ -203,6 +203,119 @@ fn death_hold_preserves_the_final_scene_and_requires_a_new_confirmation() {
             assert_eq!(
                 app.campaign.progress.stock,
                 reference.campaign.progress.stock
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; post-death patrols and effects continue without altering failure/retry progress or RNG"]
+fn live_death_scene_keeps_patrols_running_without_changing_retry() {
+    use tenchu_core::{actor::State, ai::Halt, game::events::Outcome, ids::MOT_DEAD};
+
+    for mission in [1, 4, 9] {
+        for character in 0..2 {
+            let options = Options {
+                mission,
+                character,
+                ..Default::default()
+            };
+            let mut app = application(options);
+            let mut reference = application(options);
+            app.apply_item(Item::LiveDeathScene, 1).unwrap();
+            assert!(app.settings.wait_after_death);
+            let saved: Settings =
+                serde_json::from_str(&serde_json::to_string(&app.settings).unwrap()).unwrap();
+            assert!(saved.live_death_scene && saved.wait_after_death);
+            app.settings.frontend.auto_save = false;
+            for game in [&mut app.campaign.game, &mut reference.campaign.game] {
+                game.roster.keep_all_active = true;
+                let player = game.roster.get_mut(game.player_id);
+                player.health = 0;
+                player.status = State::Dead;
+                player.motion.change(
+                    MOT_DEAD,
+                    &game.mission.characters[player.definition].motions,
+                    &game.mission.common_motions,
+                    &game.mission.clips,
+                );
+            }
+            for _ in 0..3000 {
+                reference.campaign.tick(0).unwrap();
+                if !app.game_tick(0) {
+                    break;
+                }
+            }
+            assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
+            assert_eq!(app.campaign.game.death_wait_ticks(), Some(1));
+            let positions: Vec<_> = app
+                .campaign
+                .game
+                .roster
+                .actors
+                .iter()
+                .map(|a| {
+                    a.as_ref()
+                        .filter(|a| a.health > 0 && a.patrol.is_some())
+                        .map(|a| a.position)
+                })
+                .collect();
+            for _ in 0..600 {
+                assert!(app.game_tick(tenchu_core::input::SQUARE));
+            }
+            let game = &app.campaign.game;
+            assert!(
+                positions.iter().enumerate().any(|(id, position)| {
+                    position.is_some_and(|p| game.roster.get(id).position != p)
+                }),
+                "No patrol moved after death in mission {mission}, character {character}"
+            );
+            assert!(
+                !game.effects.billboards.is_empty(),
+                "Flames/effects disappeared"
+            );
+            assert_eq!(game.player().status, State::Dead);
+            assert_eq!(game.player().health, 0);
+            assert_eq!(game.player().pad.held, 0);
+            assert_eq!(game.events.outcome, Outcome::Running);
+            assert_eq!(game.intelligence.action_halt, Halt::StageEnd);
+            assert!(!game.intelligence.ignore_player);
+            assert_eq!(game.death_wait_ticks(), Some(1));
+            assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
+            let tick = game.tick;
+            app.reset_item(Item::LiveDeathScene).unwrap();
+            app.advance_simulation(Duration::from_secs(1));
+            assert_eq!(app.campaign.game.tick, tick);
+            app.apply_item(Item::LiveDeathScene, 1).unwrap();
+            app.apply_item(Item::Pause, 1).unwrap();
+            app.advance_simulation(Duration::from_secs(1));
+            assert_eq!(app.campaign.game.tick, tick);
+            app.apply_item(Item::Step, 1).unwrap();
+            app.advance_simulation(Duration::ZERO);
+            assert_eq!(app.campaign.game.tick, tick + 1);
+            app.apply_item(Item::Pause, 1).unwrap();
+            app.advance_simulation(Duration::from_secs(1));
+            assert!(app.campaign.game.tick > tick);
+            while reference.campaign.playing() {
+                reference.campaign.tick(0).unwrap();
+            }
+            app.action(Action::Start);
+            assert!(matches!(app.campaign.screen, Screen::GameOver));
+            assert_eq!(app.campaign.seed, reference.campaign.seed);
+            assert_eq!(
+                app.campaign.game.random.seed,
+                reference.campaign.game.random.seed
+            );
+            assert_eq!(app.campaign.progress, reference.campaign.progress);
+            for application in [&mut app, &mut reference] {
+                application.action(Action::Confirm);
+                assert!(matches!(application.campaign.screen, Screen::Inventory(_)));
+                application.action(Action::Confirm);
+                assert!(application.campaign.playing());
+            }
+            assert!(
+                crate::session::tests::state(&app.campaign.game)
+                    == crate::session::tests::state(&reference.campaign.game)
             );
         }
     }

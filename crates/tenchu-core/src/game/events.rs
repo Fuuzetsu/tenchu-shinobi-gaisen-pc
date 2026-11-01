@@ -118,6 +118,20 @@ impl Game {
             .then(|| self.events.time.unsigned_abs())
     }
 
+    pub fn observe_death(&mut self) -> Result<()> {
+        if self.death_wait_ticks() != Some(1) || self.trial.is_some() {
+            return Err("Post-death observation requires a finished death sequence".into());
+        }
+        let events = std::mem::replace(&mut self.events.enabled, false);
+        let halt = std::mem::replace(&mut self.intelligence.action_halt, crate::ai::Halt::Running);
+        let ignore_player = std::mem::replace(&mut self.intelligence.ignore_player, true);
+        let result = self.step(0);
+        self.events.enabled = events;
+        self.intelligence.action_halt = halt;
+        self.intelligence.ignore_player = ignore_player;
+        result
+    }
+
     fn update_event(&mut self, slot: usize, id: u8) {
         self.events.update(
             slot,

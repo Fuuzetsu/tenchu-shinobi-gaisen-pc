@@ -165,7 +165,10 @@ impl Audio {
             Screen::Results(_) | Screen::Complete => Some(12),
             Screen::GameOver => Some(11),
             Screen::Playing => None,
-            Screen::Frontend | Screen::Ending(_) | Screen::Inventory(_) | Screen::DeathHold => None,
+            Screen::Frontend
+            | Screen::Ending(_)
+            | Screen::Inventory(_)
+            | Screen::DeathHold { .. } => None,
         };
         self.track(cue.and_then(|cue| self.catalog.music(cue)).cloned());
     }

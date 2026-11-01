@@ -219,7 +219,7 @@ pub fn build(
                     WHITE,
                 );
             }
-            Screen::Playing | Screen::DeathHold => {}
+            Screen::Playing | Screen::DeathHold { .. } => {}
         }
     }
     if let Some(text) = text {

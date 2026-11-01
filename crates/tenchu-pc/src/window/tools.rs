@@ -214,7 +214,9 @@ impl Application {
         if let Some(frontend) = &mut self.frontend {
             frontend.set_rumble(self.settings.frontend.rumble);
         }
-        if !self.settings.wait_after_death && matches!(self.campaign.screen, Screen::DeathHold) {
+        if !self.settings.wait_after_death
+            && matches!(self.campaign.screen, Screen::DeathHold { .. })
+        {
             if let Err(error) = self.campaign.action(Action::Confirm, &self.assets) {
                 self.pause_error(error);
                 return;
@@ -707,7 +709,7 @@ impl Application {
                 self.menu.open = false;
             }
             Item::Pause => {
-                if !self.campaign.playing() || self.faulted {
+                if !self.simulating() || self.faulted {
                     return Err("Simulation is not running".into());
                 }
                 self.paused = !self.paused;
@@ -715,7 +717,7 @@ impl Application {
                 self.menu.open = false;
             }
             Item::Step => {
-                if !self.campaign.playing() || self.faulted {
+                if !self.simulating() || self.faulted {
                     return Err("Simulation is not running".into());
                 }
                 self.paused = true;

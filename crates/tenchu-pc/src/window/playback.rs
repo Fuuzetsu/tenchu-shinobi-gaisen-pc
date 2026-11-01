@@ -2,10 +2,27 @@ use super::*;
 use std::time::Duration;
 
 impl Application {
+    pub(super) fn simulating(&self) -> bool {
+        self.campaign.playing()
+            || (matches!(self.campaign.screen, Screen::DeathHold { .. })
+                && self.settings.wait_after_death
+                && self.settings.live_death_scene
+                && self.campaign.game.death_wait_ticks() == Some(1))
+    }
+
     pub(super) fn game_tick(&mut self, buttons: u16) -> bool {
-        self.recent_inputs.record(&self.campaign.game, buttons);
-        self.record_input(buttons);
-        if let Err(error) = self.campaign.tick(buttons) {
+        let observing = matches!(self.campaign.screen, Screen::DeathHold { .. });
+        let result = if observing {
+            if !self.simulating() {
+                return false;
+            }
+            self.campaign.game.observe_death()
+        } else {
+            self.recent_inputs.record(&self.campaign.game, buttons);
+            self.record_input(buttons);
+            self.campaign.tick(buttons)
+        };
+        if let Err(error) = result {
             self.pause_error(error);
             self.clock.discard_host_backlog();
             return false;
@@ -15,7 +32,9 @@ impl Application {
             && (matches!(self.campaign.screen, Screen::GameOver)
                 || self.campaign.playing() && self.campaign.game.death_wait_ticks() == Some(1))
         {
-            self.campaign.screen = Screen::DeathHold;
+            self.campaign.screen = Screen::DeathHold {
+                retry_seed: self.campaign.game.random.seed,
+            };
         }
         if self.settings.graphics.interpolation
             && let Some(view) = &mut self.view
@@ -48,7 +67,7 @@ impl Application {
             return false;
         }
         self.trial_record_check();
-        if !self.campaign.playing() {
+        if !self.campaign.playing() && !observing {
             self.finish_recording();
             self.controls.clear();
             self.clock.discard_host_backlog();
@@ -59,7 +78,7 @@ impl Application {
 
     pub(super) fn advance_simulation(&mut self, elapsed: Duration) {
         if std::mem::take(&mut self.debug.frame_step) {
-            if self.focused && self.campaign.playing() && !self.faulted {
+            if self.focused && self.simulating() && !self.faulted {
                 self.game_tick(0);
                 self.save();
             }
@@ -81,7 +100,7 @@ impl Application {
         if let Some(audio) = &mut self.audio {
             audio.fast_forward((accelerated || unlimited_simulation) && !suspended);
         }
-        if suspended || !self.campaign.playing() {
+        if suspended || !self.simulating() {
             return;
         }
         let unlimited = unlimited_simulation || cutscene_speed == 0;
@@ -97,7 +116,11 @@ impl Application {
             if !unlimited && self.clock.step().is_none() {
                 break;
             }
-            let buttons = if self.focused && !self.menu.open && self.debug.camera.is_none() {
+            let buttons = if self.campaign.playing()
+                && self.focused
+                && !self.menu.open
+                && self.debug.camera.is_none()
+            {
                 if self.navigation_enabled() {
                     self.controls.relative_buttons()
                 } else {

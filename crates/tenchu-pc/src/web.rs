@@ -78,7 +78,7 @@ pub fn update_snapshot(campaign: &crate::campaign::Campaign, paused: bool, fault
         Screen::Launcher => "launcher",
         Screen::Inventory(_) => "equipment",
         Screen::Playing => "playing",
-        Screen::DeathHold => "death-hold",
+        Screen::DeathHold { .. } => "death-hold",
         Screen::Results(_) => "results",
         Screen::GameOver => "game-over",
         Screen::Complete => "complete",
