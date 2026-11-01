@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **F1 → Camera → Follow selected actor**. Track another actor with a
+  wall-aware orbit camera while retaining player control; right-drag/right stick
+  rotates, middle click/R3 recenters and F2 returns. Aiming/cutscenes retain their
+  cameras, and following never changes enemy activation or AI.
+
 ## 0.10.0 — 2026-11-01
 
 - Make the shared training input tapes directly replayable with their correct

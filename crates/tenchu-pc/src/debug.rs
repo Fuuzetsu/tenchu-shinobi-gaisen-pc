@@ -16,6 +16,7 @@ use tenchu_core::game::Game;
 pub struct Debug {
     pub camera: Option<Camera>,
     pub follow_camera: Option<Camera>,
+    pub camera_actor: Option<camera::Subject>,
     pub bookmark: Option<Camera>,
     pub looking: bool,
     pub flight_speed: u16,
@@ -57,6 +58,7 @@ impl Debug {
         Ok(Self {
             camera: None,
             follow_camera: None,
+            camera_actor: None,
             bookmark: None,
             looking: false,
             flight_speed: 12,
@@ -97,12 +99,10 @@ impl Debug {
     pub fn reload(&mut self, game: &Game) -> Result<()> {
         self.click_teleport = false;
         self.update(game);
-        self.camera = None;
-        self.looking = false;
+        self.return_camera();
         self.bookmark = None;
         self.light = None;
         self.light_follow = false;
-        self.teleport_armed = false;
         self.selected_actor = game.player_id;
         self.target = game.player().position;
         self.surfaces = terrain::surfaces(&game.mission.terrain)?;
@@ -131,14 +131,55 @@ impl Debug {
             .map(|p| if self.light_follow { self.eye(game) } else { p })
     }
 
-    pub fn toggle_camera(&mut self, game: &Game) {
-        self.camera = if self.camera.is_some() {
-            None
-        } else {
-            Some(Camera::from_game(game))
-        };
+    pub fn return_camera(&mut self) {
+        self.camera = None;
+        self.camera_actor = None;
+        self.follow_camera = None;
         self.looking = false;
         self.teleport_armed = false;
+    }
+
+    pub fn toggle_camera(&mut self, game: &Game) {
+        let returning = self.camera.is_some() || self.camera_actor.is_some();
+        let current = self
+            .follow_camera
+            .unwrap_or_else(|| Camera::from_game(game));
+        self.return_camera();
+        if !returning {
+            self.camera = Some(current);
+        }
+    }
+
+    pub fn free_camera(&mut self, game: &Game) -> &mut Camera {
+        self.camera_actor = None;
+        self.camera.get_or_insert_with(|| {
+            self.follow_camera
+                .unwrap_or_else(|| Camera::from_game(game))
+        })
+    }
+
+    pub fn followed_actor<'a>(&self, game: &'a Game) -> Option<&'a tenchu_core::actor::Actor> {
+        let subject = self.camera_actor?;
+        game.roster
+            .actors
+            .get(subject.id)?
+            .as_ref()
+            .filter(|actor| actor.root_model == subject.root_model)
+    }
+
+    pub fn follow_selected(&mut self, game: &Game) -> Result<()> {
+        let actor = game
+            .roster
+            .actors
+            .get(self.selected_actor)
+            .and_then(Option::as_ref)
+            .ok_or("The selected actor is no longer in this mission")?;
+        self.return_camera();
+        self.camera_actor = Some(camera::Subject {
+            id: actor.id,
+            root_model: actor.root_model,
+        });
+        Ok(())
     }
 
     pub fn focus(&mut self, game: &Game, overhead: bool) {
@@ -149,9 +190,7 @@ impl Debug {
             .and_then(Option::as_ref)
             .unwrap_or_else(|| game.player());
         let target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
-        self.camera
-            .get_or_insert_with(|| Camera::from_game(game))
-            .focus(target, overhead);
+        self.free_camera(game).focus(target, overhead);
     }
 
     pub fn select(&mut self, game: &Game, direction: i32) {
@@ -197,6 +236,9 @@ impl Debug {
     }
 
     pub fn update(&mut self, game: &Game) {
+        if self.camera_actor.is_some() && self.followed_actor(game).is_none() {
+            self.return_camera();
+        }
         self.god_mode = game.player().invulnerable;
         self.stealth = game.intelligence.ignore_player;
         self.inventory
@@ -222,6 +264,7 @@ impl Debug {
 
     pub fn active(&self) -> bool {
         self.camera.is_some()
+            || self.camera_actor.is_some()
             || self.click_teleport
             || self.hitboxes
             || self.sight

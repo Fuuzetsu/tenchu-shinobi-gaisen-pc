@@ -79,7 +79,7 @@ fn both_heroes_move_in_camera_space_without_steering_committed_actions() {
         for angle in [0.0_f32, 0.37, 0.86, 1.61, 2.83, 4.5, 5.92] {
             game.teleport_player(start, false).unwrap();
             let mut orbit = Orbit::default();
-            orbit.observe(&game);
+            orbit.observe(game.tick, game.player());
             orbit.yaw = 0.63;
             let analog = Vec2::new(angle.sin(), angle.cos());
             let expected = Vec2::new((angle + orbit.yaw).sin(), (angle + orbit.yaw).cos());
@@ -103,7 +103,7 @@ fn both_heroes_move_in_camera_space_without_steering_committed_actions() {
         }
         game.teleport_player(start, false).unwrap();
         let mut orbit = Orbit::default();
-        orbit.observe(&game);
+        orbit.observe(game.tick, game.player());
         assert!((orbit.pitch + 0.22).abs() < 0.001);
         let facing = game.player().rotation[1];
         for _ in 0..8 {
@@ -194,7 +194,7 @@ fn camera_heading_and_pitch_seed_new_aim_without_overriding_adjustments() {
                 }
                 let facing = game.player().rotation[1];
                 let mut orbit = Orbit::default();
-                orbit.observe(&game);
+                orbit.observe(game.tick, game.player());
                 orbit.yaw += 1.1;
                 orbit.pitch = if character == 0 { 0.4 } else { -0.45 };
                 let expected_heading = ((orbit.yaw + std::f32::consts::PI) * 4096.0
@@ -292,7 +292,7 @@ fn camera_relative_combat_keeps_directional_attacks_and_guarding() {
                     game.roster.get_mut(game.player_id).rotation[1] = facing;
                     game.teleport_player(start, false).unwrap();
                     let mut orbit = Orbit::default();
-                    orbit.observe(&game);
+                    orbit.observe(game.tick, game.player());
                     if modifier {
                         orbit.yaw += 1.8;
                     }
@@ -329,7 +329,7 @@ fn camera_relative_combat_keeps_directional_attacks_and_guarding() {
         }
         game.teleport_player(start, false).unwrap();
         let mut orbit = Orbit::default();
-        orbit.observe(&game);
+        orbit.observe(game.tick, game.player());
         orbit.yaw += 1.8;
         for _ in 0..8 {
             let (buttons, heading) =

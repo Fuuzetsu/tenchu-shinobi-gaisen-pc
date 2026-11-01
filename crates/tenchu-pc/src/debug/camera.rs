@@ -3,6 +3,12 @@ use glam::{Mat4, Vec3};
 use winit::keyboard::KeyCode;
 
 #[derive(Clone, Copy)]
+pub struct Subject {
+    pub id: usize,
+    pub(super) root_model: tenchu_core::scene::ModelId,
+}
+
+#[derive(Clone, Copy)]
 pub struct Camera {
     pub position: Vec3,
     pub yaw: f32,

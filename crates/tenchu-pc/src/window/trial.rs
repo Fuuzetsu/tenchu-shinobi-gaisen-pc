@@ -142,6 +142,7 @@ impl Application {
             || game.intelligence.ignore_player
             || self.debug.speed != 100
             || self.debug.camera.is_some()
+            || self.debug.camera_actor.is_some()
         {
             self.trial.eligible = false;
         }

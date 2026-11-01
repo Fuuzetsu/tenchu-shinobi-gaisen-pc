@@ -432,7 +432,7 @@ impl ApplicationHandler for Application {
                 camera.look(delta.0, delta.1);
             } else if self.orbit.looking
                 && !self.is_suspended()
-                && self.navigation_enabled()
+                && self.orbit_enabled()
                 && self.campaign.game.player_can_orbit()
                 && self.campaign.game.player().pad.held & tenchu_core::input::L1 == 0
             {
@@ -630,11 +630,11 @@ impl ApplicationHandler for Application {
             WindowEvent::MouseInput { state, button, .. }
                 if (self.debug.camera.is_some()
                     || self.debug.click_teleport
-                    || self.navigation_enabled())
+                    || self.orbit_enabled())
                     && self.focused =>
             {
                 if button == MouseButton::Right
-                    && (self.debug.camera.is_some() || self.navigation_enabled())
+                    && (self.debug.camera.is_some() || self.orbit_enabled())
                 {
                     if (self.debug.camera.is_some()
                         || !self.is_suspended() && self.campaign.game.player_can_orbit())
@@ -651,12 +651,12 @@ impl ApplicationHandler for Application {
                     }
                 } else if button == MouseButton::Middle
                     && state == ElementState::Pressed
-                    && self.navigation_enabled()
+                    && self.orbit_enabled()
                     && self.debug.camera.is_none()
                     && !self.is_suspended()
                     && self.campaign.game.player_can_orbit()
                 {
-                    self.orbit.recenter(&self.campaign.game);
+                    self.recenter_orbit();
                 } else if button == MouseButton::Left
                     && state == ElementState::Pressed
                     && (self.debug.camera.is_some() || self.debug.click_teleport)
@@ -801,7 +801,9 @@ impl ApplicationHandler for Application {
                         self.update_view();
                         return;
                     }
-                    if code == KeyCode::Escape && self.debug.camera.is_some() {
+                    if code == KeyCode::Escape
+                        && (self.debug.camera.is_some() || self.debug.camera_actor.is_some())
+                    {
                         if self.debug.looking || self.debug.teleport_armed {
                             self.release_pointer();
                             self.debug.teleport_armed = false;
@@ -983,7 +985,7 @@ impl ApplicationHandler for Application {
                     || before != self.campaign.game.tick
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
-                    || self.navigation_enabled() && !suspended
+                    || self.orbit_enabled() && !suspended
                     || self.settings.graphics.animated_presentation()
                         && !suspended
                         && self.simulating()

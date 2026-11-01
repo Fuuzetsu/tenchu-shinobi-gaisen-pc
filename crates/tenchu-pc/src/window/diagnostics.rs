@@ -133,6 +133,7 @@ impl Application {
                 "collision": debug.collision, "collision_only": debug.collision_only,
                 "patrols": debug.patrols, "events": debug.events, "labels": debug.labels,
                 "xray": debug.xray, "show_trail": debug.show_trail, "inspect_actor": debug.inspect_actor,
+                "camera_actor": debug.camera_actor.map(|subject| subject.id),
                 "selected_actor": debug.selected_actor, "target": debug.target.to_array(),
                 "snap_to_floor": debug.snap_to_floor, "teleport_armed": debug.teleport_armed,
                 "flight_speed": debug.flight_speed, "pause_view": debug.pause_view,

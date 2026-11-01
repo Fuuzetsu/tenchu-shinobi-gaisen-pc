@@ -1224,6 +1224,16 @@ and **F4** runs exactly one logic tick. The gameplay camera still runs internall
 Some effects already projected by that camera (wire lines, weapon trails and
 sprites) are omitted from the inspection view.
 
+**F1 → Camera → Follow selected actor** keeps the view on another actor as they
+move. Choose **Selected actor** on the same page (or click one in F2 first), then
+enable follow. Right-drag or the right stick orbits; middle click/R3 recenters.
+Follow distance and the Movement sensitivity settings apply, including wall
+avoidance. Player controls remain active; camera-relative movement follows the
+view's direction. Aiming and cutscenes temporarily use their usual camera.
+**F2** or Escape returns to the player. Following ends on mission changes or when
+the actor is removed, and does not change enemy activation or AI. Suspended
+actors therefore stay where they are until the normal game rules wake them.
+
 The Teleport page accepts exact X/Y/Z values (Enter to edit, Delete to clear,
 Enter to apply), floor snapping or a click on a terrain surface. Negative Y is
 up. Teleporting and changing the enemy sight-distance multiplier are explicit

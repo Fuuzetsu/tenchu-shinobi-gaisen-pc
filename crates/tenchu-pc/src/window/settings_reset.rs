@@ -88,17 +88,19 @@ impl Application {
             Item::Labels => self.debug.labels = d.labels,
             Item::Xray => self.debug.xray = d.xray,
             Item::Trail => self.debug.show_trail = d.show_trail,
-            Item::FreeCamera => {
-                self.debug.camera = None;
-                self.debug.teleport_armed = false;
-            }
+            Item::FreeCamera | Item::FollowActor => self.debug.return_camera(),
             Item::FlightSpeed => self.debug.flight_speed = d.flight_speed,
             Item::Fov => {
                 if let Some(camera) = &mut self.debug.camera {
                     camera.fov = crate::debug::camera::Camera::from_game(&self.campaign.game).fov;
                 }
             }
-            Item::Actor => self.debug.selected_actor = d.selected_actor,
+            Item::Actor => {
+                self.debug.selected_actor = d.selected_actor;
+                if self.debug.camera_actor.is_some() {
+                    self.debug.follow_selected(&self.campaign.game)?;
+                }
+            }
             Item::InspectActor => self.debug.inspect_actor = d.inspect_actor,
             Item::Target(axis) => self.debug.target[axis] = d.target[axis],
             Item::SnapFloor => self.debug.snap_to_floor = d.snap_to_floor,

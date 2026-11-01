@@ -8,20 +8,48 @@ impl Application {
             && self.benchmarks.run.is_none()
     }
 
+    pub(super) fn orbit_enabled(&self) -> bool {
+        self.navigation_enabled()
+            || self.debug.camera_actor.is_some()
+                && self.simulating()
+                && self.demo.is_none()
+                && self.benchmarks.run.is_none()
+    }
+
+    pub(super) fn observe_orbit(&mut self) {
+        let game = &self.campaign.game;
+        self.orbit.observe(
+            game.tick,
+            self.debug
+                .followed_actor(game)
+                .unwrap_or_else(|| game.player()),
+        );
+    }
+
+    pub(super) fn recenter_orbit(&mut self) {
+        let game = &self.campaign.game;
+        self.orbit.recenter(
+            self.debug
+                .followed_actor(game)
+                .unwrap_or_else(|| game.player()),
+        );
+    }
+
     pub(super) fn navigation_camera(
         &mut self,
         alpha: f32,
         elapsed: f32,
     ) -> Option<crate::debug::camera::Camera> {
         let game = &self.campaign.game;
-        if !self.navigation_enabled()
+        if !self.orbit_enabled()
             || self.debug.camera.is_some()
             || !game.player_can_orbit()
             || game.player().pad.held & tenchu_core::input::L1 != 0
         {
             return None;
         }
-        self.orbit.observe(game);
+        self.observe_orbit();
+        let game = &self.campaign.game;
         let view = self.view.as_mut()?;
         Some(self.orbit.camera(
             alpha,
@@ -33,7 +61,7 @@ impl Application {
 
     pub(super) fn advance_navigation(&mut self, elapsed: f32) {
         let recenter = self.controls.take_recenter();
-        if !self.navigation_enabled() {
+        if !self.orbit_enabled() {
             if self.orbit.looking {
                 self.release_pointer();
             }
@@ -41,7 +69,7 @@ impl Application {
             self.debug.follow_camera = None;
             return;
         }
-        self.orbit.observe(&self.campaign.game);
+        self.observe_orbit();
         if !self.campaign.game.player_can_orbit() && self.orbit.looking {
             self.release_pointer();
         }
@@ -53,7 +81,7 @@ impl Application {
             && self.campaign.game.player().pad.held & tenchu_core::input::L1 == 0
         {
             if recenter {
-                self.orbit.recenter(&self.campaign.game);
+                self.recenter_orbit();
             }
             self.orbit.analog_look(
                 self.controls.sticks()[1],
@@ -73,7 +101,7 @@ impl Application {
             return buttons;
         }
         self.stop_edited_recording();
-        self.orbit.observe(&self.campaign.game);
+        self.observe_orbit();
         let sticks = self.controls.sticks();
         let analog = if !self.focused || self.menu.open || self.randomizer.open {
             glam::Vec2::ZERO
@@ -93,7 +121,7 @@ impl Application {
             analog,
             &self.settings.navigation,
         );
-        let camera = if buttons & tenchu_core::input::L1 == 0 {
+        let camera = if buttons & tenchu_core::input::L1 == 0 && self.debug.camera_actor.is_none() {
             self.navigation_camera(1.0, 0.0)
                 .map(crate::navigation::viewpoint)
         } else {

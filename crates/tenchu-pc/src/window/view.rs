@@ -849,7 +849,11 @@ impl View {
         let mut sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,
-            debug.camera.map(|camera| camera.position),
+            debug.camera.map(|camera| camera.position).or_else(|| {
+                debug
+                    .followed_actor(game)
+                    .map(|actor| glam::Vec3::from(actor.position.to_array().map(|v| v as f32)))
+            }),
             debug.light_position(game),
             if settings.graphics.lighting.enabled && settings.graphics.lighting.lamps {
                 self.emitters.sources_presented(game, frame)

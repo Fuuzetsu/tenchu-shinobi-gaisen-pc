@@ -45,6 +45,9 @@ impl Application {
             view.cosmetic_tick(&self.campaign.game, &self.settings, &self.debug);
         }
         self.debug.update(&self.campaign.game);
+        if self.orbit_enabled() {
+            self.observe_orbit();
+        }
         self.controls.feedback(
             &self.campaign.game,
             self.settings.frontend.rumble

@@ -333,7 +333,7 @@ impl Application {
             return Ok(());
         }
         match item {
-            Item::RecenterOrbit => self.orbit.recenter(&self.campaign.game),
+            Item::RecenterOrbit => self.recenter_orbit(),
             Item::Randomizer => self.toggle_randomizer(),
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,
             Item::Stealth => self.set_stealth(!self.debug.stealth)?,
@@ -589,6 +589,7 @@ impl Application {
                 camera.yaw = direction.x.atan2(direction.z);
                 camera.focus(source.light.position, false);
                 camera.position = source.light.position - camera.forward() * 4500.0;
+                self.debug.return_camera();
                 self.debug.camera = Some(camera);
                 self.settings.graphics.lighting.markers = true;
                 self.menu.notice = format!(
@@ -681,9 +682,7 @@ impl Application {
                     (i32::from(self.debug.flight_speed) + direction * 2).clamp(2, 100) as u16
             }
             Item::Fov => {
-                let camera = self.debug.camera.get_or_insert_with(|| {
-                    crate::debug::camera::Camera::from_game(&self.campaign.game)
-                });
+                let camera = self.debug.free_camera(&self.campaign.game);
                 camera.fov = (camera.fov + direction as f32 * 5.0).clamp(20.0, 110.0);
             }
             Item::FocusPlayer => {
@@ -691,17 +690,38 @@ impl Application {
                 self.debug.focus(&self.campaign.game, false);
             }
             Item::FocusActor => self.debug.focus(&self.campaign.game, false),
+            Item::FollowActor => {
+                if self.debug.camera_actor.is_some() {
+                    self.debug.return_camera();
+                } else if self.simulating() {
+                    self.debug.follow_selected(&self.campaign.game)?;
+                } else {
+                    return Err("Start a mission before following an actor".into());
+                }
+            }
             Item::Overhead => self.debug.focus(&self.campaign.game, true),
             Item::SaveCamera => {
-                self.debug.bookmark = Some(self.debug.camera.unwrap_or_else(|| {
-                    crate::debug::camera::Camera::from_game(&self.campaign.game)
-                }));
+                self.debug.bookmark = Some(
+                    self.debug
+                        .camera
+                        .or(self.debug.follow_camera)
+                        .unwrap_or_else(|| {
+                            crate::debug::camera::Camera::from_game(&self.campaign.game)
+                        }),
+                );
                 self.menu.notice = "Camera bookmark saved".into();
             }
             Item::RestoreCamera => {
-                self.debug.camera = Some(self.debug.bookmark.ok_or("No camera bookmark saved")?);
+                let camera = self.debug.bookmark.ok_or("No camera bookmark saved")?;
+                self.debug.return_camera();
+                self.debug.camera = Some(camera);
             }
-            Item::Actor => self.debug.select(&self.campaign.game, direction),
+            Item::Actor => {
+                self.debug.select(&self.campaign.game, direction);
+                if self.debug.camera_actor.is_some() {
+                    self.debug.follow_selected(&self.campaign.game)?;
+                }
+            }
             Item::InspectActor => self.debug.inspect_actor = !self.debug.inspect_actor,
             Item::Target(axis) => {
                 self.debug.target[axis] =
@@ -724,9 +744,7 @@ impl Application {
                 if !self.campaign.playing() {
                     return Err("Start a mission before teleporting".into());
                 }
-                self.debug.camera.get_or_insert_with(|| {
-                    crate::debug::camera::Camera::from_game(&self.campaign.game)
-                });
+                self.debug.free_camera(&self.campaign.game);
                 self.debug.teleport_armed = true;
                 self.menu.open = false;
             }

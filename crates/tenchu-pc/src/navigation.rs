@@ -10,6 +10,7 @@ pub struct Orbit {
     previous: Vec3,
     center: Vec3,
     tick: Option<u64>,
+    subject: Option<(usize, usize)>,
     distance: f32,
 }
 
@@ -40,26 +41,28 @@ fn directions(v: Vec2) -> u16 {
 }
 
 impl Orbit {
-    pub fn observe(&mut self, game: &Game) {
-        let center =
-            Vec3::from(game.player().position.to_array().map(|v| v as f32)) - Vec3::Y * 1100.0;
-        if self.tick.is_none_or(|tick| game.tick < tick)
+    pub fn observe(&mut self, tick: u64, actor: &tenchu_core::actor::Actor) {
+        let subject = (actor.id, actor.root_model);
+        let center = Vec3::from(actor.position.to_array().map(|v| v as f32)) - Vec3::Y * 1100.0;
+        if self.subject != Some(subject)
+            || self.tick.is_none_or(|previous| tick < previous)
             || center.distance_squared(self.center) > 20_000.0_f32.powi(2)
         {
-            self.recenter(game);
+            self.recenter(actor);
             self.previous = center;
             self.center = center;
             self.distance = 0.0;
-        } else if self.tick != Some(game.tick) {
+        } else if self.tick != Some(tick) {
             self.previous = self.center;
             self.center = center;
         }
-        self.tick = Some(game.tick);
+        self.subject = Some(subject);
+        self.tick = Some(tick);
     }
 
-    pub fn recenter(&mut self, game: &Game) {
-        self.yaw = f32::from(game.player().rotation[1]) * std::f32::consts::TAU / 4096.0
-            + std::f32::consts::PI;
+    pub fn recenter(&mut self, actor: &tenchu_core::actor::Actor) {
+        self.yaw =
+            f32::from(actor.rotation[1]) * std::f32::consts::TAU / 4096.0 + std::f32::consts::PI;
         self.pitch = -0.22;
     }
 

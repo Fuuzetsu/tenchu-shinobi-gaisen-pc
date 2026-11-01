@@ -1,6 +1,7 @@
 use super::*;
 use std::time::Duration;
 
+mod camera;
 mod death;
 
 pub(super) fn application(options: Options) -> Application {

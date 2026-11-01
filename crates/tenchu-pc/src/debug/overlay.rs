@@ -381,6 +381,24 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
             ));
         }
     }
+    if let Some(subject) = debug.camera_actor {
+        let status = if debug
+            .followed_actor(game)
+            .is_some_and(|actor| actor.attribute & tenchu_core::ids::ATTR_SUSPEND != 0)
+        {
+            " (suspended)"
+        } else {
+            ""
+        };
+        labels.push(Label(
+            Anchor::BottomLeft([10.0, 24.0]),
+            format!(
+                "FOLLOW #{}{status}  RMB/right stick: orbit  Middle click/R3: recenter  F2: return",
+                subject.id
+            ),
+            [0.7, 0.95, 1.0],
+        ));
+    }
     if debug.camera.is_some() {
         labels.push(Label(
             Anchor::BottomLeft([10.0, 48.0]),
