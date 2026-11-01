@@ -1,37 +1,51 @@
 use super::interpolation::{Frame, Part};
 use std::collections::BTreeMap;
 use tenchu_assets::{ReadAt, Result, executable::Executable, game::GameAssets, motion::Clip};
-use tenchu_core::{actor::State, game::Game, ids::*, motion::Motion};
+use tenchu_core::{actor::State, game::Game, ids::*, math::Matrix, motion::Motion};
 
 pub struct Deaths {
-    clips: [Clip; 2],
+    clips: Vec<Clip>,
     death: Option<Death>,
     pub frame: Option<Frame>,
 }
 
 struct Death {
+    started: u64,
     tick: u64,
     root: usize,
     clip: usize,
     motion: Option<Motion>,
+    settled: Option<Matrix>,
 }
 
 impl Deaths {
     pub fn load(assets: &GameAssets<impl ReadAt>) -> Result<Self> {
         let characters = Executable::new(&assets.executable)?.characters()?;
         let clips = tenchu_assets::motion::parse(&assets.asset("HUMAN/MOTION/STAGE2.AMD")?)?;
-        let find = |kind, action| {
-            characters
+        let mut deaths = Vec::<Clip>::new();
+        for character in characters
+            .iter()
+            .filter(|c| (0x20..=0x22).contains(&c.kind))
+        {
+            for registration in character
+                .motions
                 .iter()
-                .find(|c| c.kind == kind)
-                .and_then(|c| c.motions.iter().find(|r| r.action == action))
-                .and_then(|r| clips.iter().find(|c| c.id == r.clip))
-                .cloned()
-                .ok_or_else(|| format!("Missing ninja death motion for actor {kind:04x}"))
-        };
+                .filter(|r| matches!(r.action, MOT_DEAD | MOT_DEAD_ALT))
+            {
+                if deaths.iter().any(|c| c.id == registration.clip) {
+                    continue;
+                }
+                deaths.push(
+                    clips
+                        .iter()
+                        .find(|c| c.id == registration.clip)
+                        .ok_or("Missing ninja death motion")?
+                        .clone(),
+                );
+            }
+        }
         Ok(Self {
-            // NINJAB's collapse and KUNOITI's alternate (her normal is Ayame's).
-            clips: [find(0x21, MOT_DEAD)?, find(0x22, MOT_DEAD_ALT)?],
+            clips: deaths,
             death: None,
             frame: None,
         })
@@ -68,19 +82,39 @@ impl Deaths {
                 && matches!(actor.motion.action, MOT_DEAD | MOT_DEAD_ALT)
                 && actor.map.height <= 0
                 && actor.map.attribute & 0x10c == 0;
-            let selected =
-                eligible && roll(game.random.seed, game.tick) < u32::from(chance.min(100));
+            let random = roll(game.random.seed, game.tick);
+            let original = &game.mission.clips[clip];
+            let variants = || {
+                self.clips
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, c)| c.id != original.id)
+            };
+            let count = variants().count();
+            let selected = eligible && count != 0 && random % 100 < u64::from(chance.min(100));
             let motion = selected.then(|| {
                 let mut motion = actor.motion.clone();
-                motion.clip = Some(usize::from(actor.kind != 0));
+                motion.clip = variants()
+                    .nth((random / 100 % count as u64) as usize)
+                    .map(|(i, _)| i);
                 motion.mask = u32::MAX;
                 motion
             });
+            let age = if actor.motion.loops != 0 {
+                motion.as_ref().map_or(0, |motion| {
+                    let clip = &self.clips[motion.clip.unwrap()];
+                    (clip.duration - i16::from(clip.sweep)) as u64
+                })
+            } else {
+                (actor.motion.count - i16::from(original.sweep) - 1).max(0) as u64
+            };
             self.death = Some(Death {
+                started: game.tick.saturating_sub(age),
                 tick: game.tick,
                 root: actor.root_model,
                 clip,
                 motion,
+                settled: None,
             });
         }
         let death = self.death.as_mut().unwrap();
@@ -95,19 +129,22 @@ impl Deaths {
         let Some(motion) = &mut death.motion else {
             return Ok(());
         };
-        let original = &game.mission.clips[clip];
         let alternate = &self.clips[motion.clip.unwrap()];
         // Play at the authored speed, then hold the corpse through the original
         // death countdown. No simulation motion, effect timing or RNG is changed.
-        let age = (actor.motion.count - i16::from(original.sweep) - 1).max(0);
-        motion.count = if actor.motion.loops != 0 {
-            alternate.duration
-        } else {
-            (age + i16::from(alternate.sweep)).min(alternate.duration)
-        };
+        let age = (game.tick - death.started).min(i16::MAX as u64) as i16;
+        motion.count = age
+            .saturating_add(i16::from(alternate.sweep))
+            .min(alternate.duration);
+        if motion.count == alternate.duration && actor.map.height <= 0 && actor.velocity[1] == 0 {
+            // The original player clip can keep moving long after this collapse
+            // has finished. Keep the visible corpse where it actually landed.
+            death.settled.get_or_insert_with(|| actor.root(&game.math));
+        }
+        let root = death.settled.unwrap_or_else(|| actor.root(&game.math));
         motion.loops = 0;
         motion.step(&self.clips, &game.math.tables.hermite)?;
-        let matrices = motion.pose.matrices(&game.math, actor.root(&game.math));
+        let matrices = motion.pose.matrices(&game.math, root);
         let mut parts = BTreeMap::new();
         for inspection in [false, true] {
             let kind = if inspection {
@@ -152,11 +189,11 @@ impl Deaths {
     }
 }
 
-fn roll(seed: u32, tick: u64) -> u32 {
+fn roll(seed: u32, tick: u64) -> u64 {
     let mut value = u64::from(seed) ^ tick;
     value = (value ^ (value >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
     value = (value ^ (value >> 27)).wrapping_mul(0x94d049bb133111eb);
-    ((value ^ (value >> 31)) % 100) as u32
+    value ^ (value >> 31)
 }
 
 #[cfg(test)]

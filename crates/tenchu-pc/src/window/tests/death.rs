@@ -102,6 +102,10 @@ fn boss_death_cutscene_keeps_the_world_alive_until_confirmation() {
                     assert_eq!(app.campaign.game.effects.billboards.len(), particles);
                 }
             }
+            if live {
+                let game = &app.campaign.game;
+                assert!(game.scene.models[game.player().parts[0]].conflict.is_none());
+            }
             assert_eq!(app.campaign.game.tick, tick + if live { 600 } else { 0 });
             assert_eq!(app.campaign.game.death_wait_ticks(), Some(1));
             reference.campaign.tick(0).unwrap();
@@ -162,4 +166,70 @@ fn ordinary_death_observation_retains_nearby_flames() {
         }
     }
     assert!(checked > 0);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; an overlapping guard must not shove the player corpse during observation"]
+fn death_observation_removes_player_contacts_without_creating_an_enemy_pool() {
+    for character in 0..2 {
+        let mut app = application(Options {
+            character,
+            ..Default::default()
+        });
+        app.settings.wait_after_death = true;
+        app.settings.live_death_scene = true;
+        app.settings.frontend.auto_save = false;
+        app.campaign.game.roster.keep_all_active = true;
+        let events = std::mem::take(&mut app.campaign.game.events);
+        for _ in 0..30 {
+            app.campaign.game.step(0).unwrap();
+        }
+        app.campaign.game.events = events;
+        kill(&mut app.campaign.game);
+        for _ in 0..3000 {
+            if !app.game_tick(0) {
+                break;
+            }
+        }
+        assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
+        let game = &mut app.campaign.game;
+        let position = game.player().position;
+        let rotation = game.player().rotation;
+        let body = game.player().parts[0];
+        assert!(game.scene.models[body].conflict.is_some());
+        let guard = *game
+            .roster
+            .order
+            .iter()
+            .find(|&&id| {
+                let actor = game.roster.get(id);
+                id != game.player_id
+                    && actor.health > 0
+                    && game.scene.models[actor.parts[0]].conflict.is_some()
+                    && game.scene.models[actor.parts[0]].attribute & tenchu_core::scene::COLLIDE
+                        != 0
+            })
+            .unwrap();
+        game.collision.compute(&mut game.scene).unwrap();
+        let center =
+            |body: usize| game.collision.slots[game.scene.models[body].conflict.unwrap()].position;
+        let player_center = center(body);
+        let guard_center = center(game.roster.get(guard).parts[0]);
+        let actor = game.roster.get_mut(guard);
+        for axis in 0..3 {
+            actor.position[axis] += player_center[axis] - guard_center[axis];
+        }
+        game.scene.update(actor.root_model, actor.root(&game.math));
+        game.scene.finish_tick();
+        game.collision.compute(&mut game.scene).unwrap();
+        assert!(game.collision.result(&game.scene, body, None).is_some());
+        for _ in 0..120 {
+            assert!(app.game_tick(0));
+            let game = &app.campaign.game;
+            assert!(game.scene.models[body].conflict.is_none());
+            assert_eq!(game.player().position, position);
+            assert_eq!(game.player().rotation, rotation);
+            assert!(game.effects.blood_pools.is_empty());
+        }
+    }
 }

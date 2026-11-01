@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- **Alternate player deaths** now chooses among all three ninja death motions,
+  excluding the hero's existing animation. Completed alternate corpses stop
+  drifting with the original animation, and longer variants play to their end.
+  Failure timing and game RNG remain unchanged.
+- Make the settled player corpse non-solid during **Keep world running after
+  death**, so guards cannot push or turn it. Player blood-pool settings still
+  control its pool independently of enemy corpses.
+
 ## 0.9.8 — 2026-11-01
 
 - Keep mission music playing while watching after death, and restore it after a

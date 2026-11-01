@@ -329,7 +329,7 @@ impl Game {
                         )?;
                         center
                     } else {
-                        if actor.status == ActorState::Dead {
+                        if actor.status == ActorState::Dead && id != self.player_id {
                             actor.corpse(
                                 &mut context,
                                 &mut crate::actor::ActionContext {

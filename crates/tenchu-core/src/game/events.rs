@@ -131,6 +131,11 @@ impl Game {
         if self.death_wait_ticks() != Some(1) || self.trial.is_some() {
             return Err("Post-death observation requires a finished death sequence".into());
         }
+        let player = self.player();
+        if player.status == ActorState::Dead && player.motion.loops < 0 && player.velocity[1] == 0 {
+            let body = player.parts[0];
+            self.collision.remove(&mut self.scene, body);
+        }
         let events = std::mem::replace(&mut self.events.enabled, false);
         let halt = std::mem::replace(&mut self.intelligence.action_halt, crate::ai::Halt::Running);
         let ignore_player = std::mem::replace(&mut self.intelligence.ignore_player, true);

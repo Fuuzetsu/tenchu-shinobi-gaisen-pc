@@ -886,7 +886,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::AlternateDeathChance,
                 "Alternate player deaths",
                 format!("{}%", s.alternate_death_chance),
-                "Chance of a male/female ninja collapse on your next ordinary death. Try 50% for variety; 0% keeps retail. Visual only: timing, retry and RNG are unchanged. Special deaths and model movesets keep their own animations.",
+                "Chance of a different ninja death on your next ordinary death. Both heroes can use all three ninja motions; Ayame already uses one normally. Try 50% for variety; 0% keeps retail. Visual only: failure timing, retry and RNG are unchanged. Special deaths and model movesets keep their own animations.",
             ),
             (
                 Item::PlayerModel,
