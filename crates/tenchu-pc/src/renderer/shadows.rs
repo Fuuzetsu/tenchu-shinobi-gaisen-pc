@@ -19,7 +19,7 @@ pub struct Geometry<'a> {
 #[derive(PartialEq)]
 struct FaceState {
     matrix: Mat4,
-    options: [f32; 8],
+    options: [f32; 12],
     meshes: Vec<(wgpu::Buffer, u64)>,
     static_meshes: Vec<(wgpu::Buffer, u64)>,
     damage: Option<Rect>,
@@ -173,7 +173,7 @@ impl Shadows {
         });
         let faces = (0..FACES + 2)
             .map(|_| {
-                let data = buffer(device, 96);
+                let data = buffer(device, 112);
                 let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("Shadow face and original texture"),
                     layout: &face_layout,
@@ -441,6 +441,10 @@ impl Shadows {
                         light.position.y,
                         light.position.z,
                         f32::from(settings.source_size),
+                        light.emission_radius,
+                        0.0,
+                        0.0,
+                        0.0,
                     ],
                     geometry,
                 );
@@ -462,6 +466,10 @@ impl Shadows {
                     u8::from(settings.lamps) as f32,
                     frame.visual_time,
                     frame.wind,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
                     0.0,
                     0.0,
                     0.0,
@@ -525,7 +533,20 @@ impl Shadows {
                     queue,
                     FACES + layer,
                     matrix,
-                    [0.0, frame.visual_time, frame.wind, 1.0, 0.0, 0.0, 0.0, 0.0],
+                    [
+                        0.0,
+                        frame.visual_time,
+                        frame.wind,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    ],
                     geometry,
                 );
             }
@@ -548,7 +569,7 @@ impl Shadows {
         queue: &wgpu::Queue,
         index: usize,
         matrix: Mat4,
-        options: [f32; 8],
+        options: [f32; 12],
         geometry: &Geometry,
     ) {
         let frustum = super::culling::Frustum::new(matrix);

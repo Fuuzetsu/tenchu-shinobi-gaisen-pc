@@ -140,6 +140,7 @@ impl Emitters {
         Some(Source {
             name: emitter.name.clone(),
             light: Light {
+                emission_radius: 0.0,
                 position: rotation * emitter.position
                     + Vec3::from(matrix.translation.map(|v| v as f32).to_array()),
                 color: emitter.color,

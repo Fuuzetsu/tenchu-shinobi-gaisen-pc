@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Make flying grapple/weapon sparks and burning characters illuminate their
+  surroundings. Replace the soft yellow weapon-impact orb with a short, sharp
+  burst. Burning bodies no longer block all of their own flame light; walls
+  still cast shadows. Uses the existing spark and fire-light options.
+
 - Fix HIME/Kiku using unrelated terrain textures in cross-stage model swaps and
   imports. The model library now includes Ayame-specific story resources.
 

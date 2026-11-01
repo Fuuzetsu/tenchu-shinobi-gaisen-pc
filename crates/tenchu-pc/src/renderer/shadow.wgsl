@@ -1,4 +1,4 @@
-struct Face { matrix: mat4x4<f32>, options: vec4<f32>, emitter: vec4<f32> }
+struct Face { matrix: mat4x4<f32>, options: vec4<f32>, emitter: vec4<f32>, emission: vec4<f32> }
 const SCREEN: u32 = 2u;
 const DEBUG: u32 = 64u;
 const ALPHA: u32 = 2048u;
@@ -41,6 +41,8 @@ struct Fragment {
 fn cutout(v: Fragment) {
     if face.options.w != 0.0 && (v.flags & 1024u) == 0u { discard; }
     if (v.flags & (SCREEN | DEBUG | ALPHA | WATER)) != 0u { discard; }
+    // Attached flames emit around the burning body; walls still occlude them.
+    if (v.flags & 1024u) == 0u && face.emission.x > 0.0 && distance(v.world, face.emitter.xyz) < face.emission.x { discard; }
     if (v.flags & 512u) != 0u && face.emitter.w > 0.0 && distance(v.world, face.emitter.xyz) < face.emitter.w * 4.0 { discard; }
     if (v.flags & 1u) != 0u {
         var color = vec3(0.0);

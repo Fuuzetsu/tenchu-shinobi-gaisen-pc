@@ -118,11 +118,13 @@ fn culled_shadows_match_full_stage_with_foliage() {
     let origin = glam::Vec3::from(game.player().position.map(|n| n as f32).to_array());
     let lights = [
         crate::lighting::Light {
+            emission_radius: 0.0,
             position: origin + glam::Vec3::new(4000.0, -4000.0, 0.0),
             color: [1.0, 0.8, 0.6],
             radius: 18000.0,
         },
         crate::lighting::Light {
+            emission_radius: 0.0,
             position: origin + glam::Vec3::new(-4000.0, -3000.0, 3000.0),
             color: [0.6, 0.8, 1.0],
             radius: 18000.0,

@@ -49,13 +49,33 @@ impl Painter<'_> {
                 }
                 Some(Effect::Impact(impact)) if impact.sprite == 1 => {
                     let age = f32::from(impact.count.saturating_sub(1)) + alpha;
-                    let fade = (1.0 - age / f32::from(impact.time.max(1))).max(0.0).powi(2);
+                    let fade = (1.0 - age / 4.0).max(0.0).powi(2);
                     if fade > 0.0 {
-                        let size = 60.0 + age * 12.0;
+                        let center = Vec3::from(impact.position.map(|v| v as f32).to_array());
+                        for ray in 0..7 {
+                            let seed = slot as u32 * 71 + ray * 13;
+                            let angle =
+                                ray as f32 * std::f32::consts::TAU / 7.0 + noise(seed) * 0.35;
+                            let along =
+                                self.camera.x_axis * angle.cos() + self.camera.y_axis * angle.sin();
+                            let across = along.cross(self.camera.z_axis);
+                            let length = (130.0 + noise(seed + 1) * 220.0) * (1.0 + age * 0.12);
+                            self.patch_with_opacity(
+                                center + along * length * 0.45,
+                                [
+                                    across * (3.0 + noise(seed + 2) * 4.0),
+                                    along * length * 0.55,
+                                ],
+                                [2.2, 1.6, 0.75],
+                                true,
+                                true,
+                                fade,
+                            );
+                        }
                         self.patch_with_opacity(
-                            Vec3::from(impact.position.map(|v| v as f32).to_array()),
-                            [self.camera.x_axis * size, self.camera.y_axis * size],
-                            [1.7, 1.4, 0.8],
+                            center,
+                            [self.camera.x_axis * 25.0, self.camera.y_axis * 25.0],
+                            [2.5, 2.4, 2.0],
                             true,
                             true,
                             fade,

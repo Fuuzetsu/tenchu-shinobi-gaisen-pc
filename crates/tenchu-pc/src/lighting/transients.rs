@@ -8,11 +8,12 @@ use tenchu_core::{
 
 pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
     let mut lights: Vec<Source> = Vec::new();
-    let mut add = |name: &str, position: Vec3, strength: f32, reach: f32| {
+    let mut add = |name: &str, position: Vec3, strength: f32, reach: f32, emission_radius: f32| {
         if strength <= 0.01 {
             return;
         }
         let light = Light {
+            emission_radius,
             position,
             color: [strength, strength * 0.43, strength * 0.12],
             radius: radius * reach,
@@ -62,6 +63,19 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
                 - Vec3::Y * (effect.scale as f32 / 4096.0 * 100.0).clamp(200.0, 1000.0),
             strength,
             reach,
+            0.0,
+        );
+    }
+    for flame in &game.effects.billboards {
+        if !matches!(flame.graphic, tenchu_core::effects::Graphic::Flash(_)) {
+            continue;
+        }
+        add(
+            "Burning character",
+            Vec3::from(flame.position.to_array().map(|v| v as f32)),
+            (f32::from(flame.color[0]) / 128.0) * (flame.scale[0] as f32 / 12288.0).clamp(0.0, 2.0),
+            0.5,
+            (flame.scale[0] as f32 / 12288.0 * 500.0).clamp(0.0, 1000.0),
         );
     }
     for item in &game.items.slots {
@@ -81,6 +95,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
                 Vec3::from(model.local.translation.map(|n| n as f32).to_array()),
                 strength,
                 0.6,
+                0.0,
             );
         }
     }
@@ -90,6 +105,61 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; attached flames follow their actor, fade, expire and respect fire lighting"]
+    fn burning_actor_light_follows_the_flame_lifetime() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut game = crate::session::Options::default().load(&assets).unwrap();
+        game.events = Default::default();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        game.effects = Default::default();
+        let part = game.player().parts[1];
+        game.effects
+            .flash(Some(part), [40, -60, 20].into(), 12288, 12);
+        let mut positions = Vec::new();
+        let mut strengths = Vec::new();
+        for _ in 0..24 {
+            game.step(tenchu_core::input::UP).unwrap();
+            let before = crate::session::tests::state(&game);
+            let lights = sources(&game, 12000.0);
+            assert_eq!(before, crate::session::tests::state(&game));
+            if let Some(_flame) = game
+                .effects
+                .billboards
+                .iter()
+                .find(|b| matches!(b.graphic, tenchu_core::effects::Graphic::Flash(_)))
+            {
+                assert_eq!(lights.len(), 1);
+                let light = lights[0].light;
+                let expected = game.scene.world(part).unwrap().transform([40, -60, 20]);
+                assert_eq!(
+                    light.position.to_array(),
+                    expected.to_array().map(|v| v as f32)
+                );
+                positions.push(light.position);
+                strengths.push(light.color[0]);
+            } else {
+                assert!(lights.is_empty());
+            }
+            let settings = crate::settings::Lighting {
+                enabled: true,
+                fires: false,
+                lamps: false,
+                ..Default::default()
+            };
+            assert!(super::super::sources(&game, &settings, None, None, Vec::new()).is_empty());
+        }
+        assert!(positions.windows(2).any(|p| p[0].distance(p[1]) > 10.0));
+        assert!(strengths.windows(2).all(|p| p[0] >= p[1]));
+        assert!(strengths.last().unwrap() < &0.2);
+        assert!(sources(&game, 12000.0).is_empty());
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; actual thrown explosives and kaen emit light only during their effects"]
@@ -144,6 +214,7 @@ mod tests {
                         vec![Source {
                             name: "Nearby lantern".into(),
                             light: Light {
+                                emission_radius: 0.0,
                                 position: Vec3::from(
                                     game.player().position.map(|n| n as f32).to_array(),
                                 ),

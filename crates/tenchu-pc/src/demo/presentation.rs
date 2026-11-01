@@ -661,7 +661,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
         Feature::WeaponSparks => text(if s.graphics.effects.sparks {
-            "Modern sparks · hot trails, soft impact flashes and local light".into()
+            "Modern sparks · hot trails, sharp flashes and moving spark light".into()
         } else {
             "Original weapon-block and clash particles".into()
         }),

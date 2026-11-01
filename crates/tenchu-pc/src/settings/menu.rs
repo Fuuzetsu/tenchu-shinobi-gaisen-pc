@@ -414,7 +414,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::ContactSparks,
                 "Modern impact sparks",
                 on(s.graphics.effects.sparks),
-                "Smooth sparks for weapon blocks, clashes, metal impacts and grappling; blocks, clashes and hook contacts briefly light the scene. Cosmetic only.",
+                "Sharp impact bursts and hot trails for weapon blocks, clashes, metal impacts and grappling. Moving sparks illuminate nearby surfaces when dynamic lighting is on. Cosmetic only.",
             ),
             (
                 Item::Gunfire,
@@ -1710,7 +1710,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::FireLights,
                     "Fire / explosion lights",
                     on(light.fires),
-                    "Fires, grenades, burning embers and kaen flames illuminate nearby surfaces. Transient lights share the light and shadow budgets.",
+                    "Fires, burning characters, grenades, embers and kaen flames illuminate nearby surfaces. Transient lights share the light and shadow budgets.",
                 ),
                 (
                     Item::LightCount,

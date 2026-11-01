@@ -879,7 +879,13 @@ impl View {
                 Vec::new()
             };
             if settings.graphics.effects.sparks {
-                sparks.extend(self.contact.lights());
+                sparks.extend(crate::lighting::sparks::sources(
+                    game,
+                    alpha,
+                    settings.graphics.effects.spark_density,
+                    self.contact.spark_lights(alpha),
+                ));
+                sparks.extend(self.contact.lights().into_iter().take(2));
             }
             if settings.graphics.effects.gunfire {
                 sparks.extend(crate::lighting::gunfire(game, alpha));

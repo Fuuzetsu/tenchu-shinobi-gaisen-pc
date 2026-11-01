@@ -287,3 +287,14 @@ configuration, not the reporter's Windows machine or exact input history: the
 report contains only its last 600 updates and is not a restorable state. Evidence
 is retained in `private/issues/report-jitter`; a remaining visual symptom still
 needs a clip or current-version savestate to distinguish body motion from hair.
+
+Spark/fire lighting follow-up: the native Mission 2 sparring demo now shows a
+short sharp strike and persistent light from travelling metal fragments. A native
+attached-flame fixture was exercised while moving/turning with point shadows
+enabled; it exposed complete self-occlusion of flames inside the body. Burning
+volumes now exclude close non-scenery shadow casters. The GPU regression verifies
+that this exclusion admits the flame light while nearby terrain still occludes
+it, and that changing the emission volume invalidates cached shadows. Lifecycle
+tests cover moving/fading flames, thrown Kaen/explosions, bounded spark clusters
+and zero-density/disabled options without changing game state. Native and WASM
+library Clippy pass. Captures/logs are in `private/issues/effect-lights`.

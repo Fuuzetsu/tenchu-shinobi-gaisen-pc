@@ -99,7 +99,7 @@ impl Style {
     }
 }
 
-pub(super) fn metal_spark(color: [u8; 3]) -> bool {
+pub(crate) fn metal_spark(color: [u8; 3]) -> bool {
     matches!(color, [255, 255, 0] | [0, 127, 255])
 }
 

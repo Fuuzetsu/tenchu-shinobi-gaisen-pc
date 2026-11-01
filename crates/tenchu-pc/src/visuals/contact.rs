@@ -461,6 +461,7 @@ impl Contact {
                 crate::lighting::Source {
                     name: "Metal impact".into(),
                     light: crate::lighting::Light {
+                        emission_radius: 0.0,
                         position: f.position,
                         color: [strength * 1.5, strength * 0.8, strength * 0.25],
                         radius: 3500.0,
@@ -468,6 +469,22 @@ impl Contact {
                 }
             })
             .collect()
+    }
+
+    pub fn spark_lights(&self, alpha: f32) -> impl Iterator<Item = crate::lighting::Light> + '_ {
+        let alpha = alpha.clamp(0.0, 1.0);
+        self.particles
+            .iter()
+            .filter(|p| p.kind == Kind::Spark)
+            .map(move |p| {
+                let strength = ((p.life - p.age) / (p.life * 0.5)).clamp(0.0, 1.0) * 0.1;
+                crate::lighting::Light {
+                    emission_radius: 0.0,
+                    position: p.previous.lerp(p.position, alpha),
+                    color: p.color.map(|c| c * strength),
+                    radius: 2400.0,
+                }
+            })
     }
 }
 

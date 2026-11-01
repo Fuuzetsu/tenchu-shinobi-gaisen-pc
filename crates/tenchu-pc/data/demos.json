@@ -667,7 +667,7 @@
   {
     "id": "weapon-sparks",
     "title": "Weapon blocks and clashes: original / modern",
-    "description": "Sparring with a guard compares the original impact sprites with smooth hot trails, soft flashes and brief local light. Hit detection, timing and recoil stay unchanged.",
+    "description": "Sparring with a guard compares the original impact sprites with smooth hot trails, sharp flashes and light following the flying sparks. Hit detection, timing and recoil stay unchanged.",
     "seconds": 16,
     "mission": 2,
     "character": 0,

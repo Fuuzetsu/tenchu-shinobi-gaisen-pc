@@ -1,4 +1,5 @@
 pub mod shadows;
+pub mod sparks;
 mod transients;
 use glam::Vec3;
 use tenchu_assets::misc::Kind;
@@ -9,6 +10,8 @@ pub const MAX_SHADOW_LIGHTS: usize = 8;
 
 #[derive(Clone, Copy)]
 pub struct Light {
+    /// Burning bodies emit around their surface; nearby scenery still casts shadows.
+    pub emission_radius: f32,
     pub position: Vec3,
     pub color: [f32; 3],
     pub radius: f32,
@@ -32,6 +35,7 @@ pub fn lightning(game: &Game) -> Vec<Source> {
                 sources.push(Source {
                     name: "Lightning".into(),
                     light: Light {
+                        emission_radius: 0.0,
                         position,
                         color: [0.45, 0.9, 2.0],
                         radius: 5000.0,
@@ -64,6 +68,7 @@ pub fn gunfire(game: &Game, alpha: f32) -> Vec<Source> {
             (strength > 0.0).then(|| Source {
                 name: "Gun muzzle".into(),
                 light: Light {
+                    emission_radius: 0.0,
                     position: Vec3::from(impact.position.map(|v| v as f32).to_array()),
                     color: [2.0 * strength, 0.9 * strength, 0.25 * strength],
                     radius: 4000.0,
@@ -98,6 +103,7 @@ pub fn sources(
         lights.push(Source {
             name: "Movable light".into(),
             light: Light {
+                emission_radius: 0.0,
                 position,
                 color: [1.0, 0.88, 0.7],
                 radius,
@@ -144,6 +150,7 @@ pub fn fire_sources(game: &Game, radius: f32) -> impl Iterator<Item = Source> + 
         Some(Source {
             name: "Fire".into(),
             light: Light {
+                emission_radius: 0.0,
                 position,
                 color: [1.0, 0.57, 0.25],
                 radius,

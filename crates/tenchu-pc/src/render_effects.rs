@@ -2,6 +2,7 @@ mod combat;
 mod style;
 mod world;
 pub use style::Style;
+pub(crate) use style::metal_spark;
 
 use crate::render_mesh::{self, SCREEN, TEXTURED, TRANSLUCENT, Vertex};
 use std::ops::Range;

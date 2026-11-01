@@ -268,6 +268,9 @@ fn clash_lights_follow_effect_births_and_expire() {
             .bleed([x * 5, 0, 2000].into(), [10, -20, 10], 30, [0, 127, 255]);
     }
     let state = postcard::to_allocvec(&game).unwrap();
+    let initial_sparks = crate::lighting::sparks::sources(&game, 1.0, 100, std::iter::empty());
+    assert_eq!(initial_sparks.len(), 1);
+    assert!(crate::lighting::sparks::sources(&game, 1.0, 0, std::iter::empty()).is_empty());
     for _ in 0..5 {
         contact.tick(&game, &surfaces, &graphics, weather, Vec3::ZERO);
         assert_eq!(
@@ -283,7 +286,16 @@ fn clash_lights_follow_effect_births_and_expire() {
     }
     assert!(
         contact.lights().is_empty(),
-        "light ends before the last cooled fragments"
+        "the initial flash ends while fragments remain hot"
+    );
+    let moving_sparks = crate::lighting::sparks::sources(&game, 1.0, 100, std::iter::empty());
+    assert!(!moving_sparks.is_empty());
+    assert!(
+        moving_sparks[0]
+            .light
+            .position
+            .distance(initial_sparks[0].light.position)
+            > 100.0
     );
     assert!(
         game.effects
@@ -300,6 +312,7 @@ fn clash_lights_follow_effect_births_and_expire() {
         contact.lights().is_empty(),
         "discarded slots cannot create lights"
     );
+    assert!(crate::lighting::sparks::sources(&game, 1.0, 100, std::iter::empty()).is_empty());
     game.effects.impact_ex(tenchu_core::effects::Impact {
         parent: None,
         position: [0, -800, 2000].into(),
