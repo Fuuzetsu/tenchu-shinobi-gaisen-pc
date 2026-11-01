@@ -3,6 +3,65 @@ use std::collections::BTreeMap;
 use tenchu_core::input;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; repeatable CPU benchmark for rewind recording and restore"]
+fn profile_rewind_recording() {
+    fn report(name: &str, times: &mut [f64]) {
+        times.sort_by(f64::total_cmp);
+        eprintln!(
+            "{name}: mean {:.3} ms, p95 {:.3} ms, max {:.3} ms",
+            times.iter().sum::<f64>() / times.len() as f64,
+            times[times.len() * 95 / 100],
+            times.last().unwrap()
+        );
+    }
+    for mission in [1, 2, 6, 9] {
+        let mut app = application(Options {
+            mission,
+            ..Default::default()
+        });
+        app.campaign.game.events = Default::default();
+        app.campaign
+            .game
+            .roster
+            .get_mut(app.campaign.game.player_id)
+            .invulnerable = true;
+        let mut simulation = Vec::new();
+        let mut capture = Vec::new();
+        let mut compress = Vec::new();
+        for tick in 0..300 {
+            let started = Instant::now();
+            assert!(app.game_tick(if tick % 100 < 50 {
+                input::UP
+            } else {
+                input::RIGHT
+            }));
+            simulation.push(started.elapsed().as_secs_f64() * 1000.0);
+            let started = Instant::now();
+            let state = app.capture_rewind().unwrap();
+            capture.push(started.elapsed().as_secs_f64() * 1000.0);
+            let started = Instant::now();
+            app.rewind.push(app.campaign.game.tick, 30, state).unwrap();
+            compress.push(started.elapsed().as_secs_f64() * 1000.0);
+        }
+        eprintln!(
+            "M{mission}: {} KiB compressed history",
+            app.rewind.bytes / 1024
+        );
+        report("simulation", &mut simulation);
+        report("capture", &mut capture);
+        report("compress", &mut compress);
+        let mut restore = Vec::new();
+        for _ in 0..120 {
+            let started = Instant::now();
+            app.rewind_to(app.rewind.previous(app.campaign.game.tick).unwrap())
+                .unwrap();
+            restore.push(started.elapsed().as_secs_f64() * 1000.0);
+        }
+        report("restore", &mut restore);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; capture cannot change gameplay, rewinding restores live items and resuming discards the old future"]
 fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
     for character in 0..2 {

@@ -6,6 +6,7 @@ pub(super) struct Playback {
     pub active: bool,
     pub fraction: f64,
     pub audio: Option<crate::audio::State>,
+    pub cpu: Duration,
 }
 
 impl Application {
@@ -22,10 +23,12 @@ impl Application {
         {
             return;
         }
+        let started = Instant::now();
         let result = self.capture_rewind().and_then(|state| {
             self.rewind
                 .push(self.campaign.game.tick, self.settings.rewind_seconds, state)
         });
+        self.reverse.cpu += started.elapsed();
         if let Err(error) = result {
             self.rewind.clear();
             self.settings.rewind_seconds = 0;
@@ -99,12 +102,14 @@ impl Application {
     }
 
     pub(super) fn rewind_to(&mut self, index: usize) -> Result<()> {
+        let started = Instant::now();
         let mut history = std::mem::take(&mut self.rewind);
         let result = history
             .snapshot(index)
             .and_then(|state| self.restore_rewind(state))
             .and_then(|()| history.branch(index));
         self.rewind = history;
+        self.reverse.cpu += started.elapsed();
         result
     }
 }

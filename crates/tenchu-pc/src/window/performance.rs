@@ -17,17 +17,23 @@ const COLORS: [Color32; 7] = [
 pub(super) struct CpuFrame {
     pub interval: f32,
     pub simulation: f32,
+    pub rewind: f32,
     pub prepare: f32,
     pub overlay: f32,
     pub draw: DrawTimes,
 }
 
 impl CpuFrame {
-    fn phases(self) -> [f32; 6] {
-        let measured =
-            self.simulation + self.prepare + self.overlay + self.draw.submit + self.draw.wait;
+    fn phases(self) -> [f32; 7] {
+        let measured = self.simulation
+            + self.rewind
+            + self.prepare
+            + self.overlay
+            + self.draw.submit
+            + self.draw.wait;
         [
             self.simulation,
+            self.rewind,
             self.prepare,
             self.overlay,
             self.draw.submit,
@@ -68,7 +74,7 @@ impl Performance {
         serde_json::json!({
             "units": "milliseconds", "frozen": self.frozen,
             "frame_average": average, "frame_p95": p95,
-            "cpu_columns": ["interval", "simulation_audio", "geometry_uploads", "overlay", "submit", "present_wait", "event_loop_other"],
+            "cpu_columns": ["interval", "simulation_audio", "rewind", "geometry_uploads", "overlay", "submit", "present_wait", "event_loop_other"],
             "cpu": cpu,
             "gpu_columns": ["shadows", "world_effects", "post_processing", "hud"],
             "gpu": self.gpu,
@@ -143,6 +149,7 @@ impl Performance {
                     "cpu",
                     &[
                         "Simulation + audio",
+                        "Rewind recording / playback",
                         "Geometry + uploads",
                         "Overlay CPU",
                         "Encode + submit",
@@ -305,6 +312,7 @@ mod tests {
             CpuFrame {
                 interval: 100.0,
                 prepare: 5.0,
+                rewind: 3.0,
                 ..Default::default()
             },
             None,
@@ -321,7 +329,8 @@ mod tests {
         let frame = performance.cpu.back().unwrap();
         assert_eq!(frame.interval, 20.0);
         assert_eq!(frame.prepare, 5.0);
-        assert_eq!(frame.phases()[5], 15.0);
+        assert_eq!(frame.phases()[1], 3.0);
+        assert_eq!(frame.phases()[6], 12.0);
         assert_eq!(frame.phases().iter().sum::<f32>(), frame.interval);
         performance.frozen = true;
         performance.record(
@@ -342,6 +351,6 @@ mod tests {
         );
         let frame = performance.cpu.back().unwrap();
         assert_eq!(frame.prepare, 2.0);
-        assert_eq!(frame.phases()[5], 8.0);
+        assert_eq!(frame.phases()[6], 8.0);
     }
 }

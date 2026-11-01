@@ -355,3 +355,31 @@ All 122 ordinary PC tests, native Clippy and WASM library Clippy pass; browser
 export includes skin sidecars, but this external model was tested interactively
 only on native. Its assets, conversion tools and captures remain private and
 untracked; the game needs only OBJ/PNG/JSON files, with no Python runtime.
+
+Rewind performance: a repeatable release-build fixture walks and turns for 300
+updates in Missions 1, 2, 6 and 9, then rewinds 120 updates. On this machine,
+recording (capture plus compression) falls from 2.27–2.41 ms/update to
+0.27–0.33 ms/update, about 7–9 times faster. Stored ten-second histories fall from
+16.5–19.4 MiB to 8.2–11.1 MiB. Reverse playback no longer rebuilds periodic
+keyframes; the previous 17–18 ms spikes in Missions 1, 2 and 9 are absent from
+this run, whose largest restore is 4.24 ms. A separate 4,096-splat fixture
+(98,304 vertices) takes 0.043 ms/update for cached capture and history, versus
+0.951 ms/update for full serialization alone. These are CPU fixture measurements,
+not whole-game frame-rate guarantees; first capture and resource changes still
+pay the cost of encoding those resources.
+
+Byte-for-byte comparisons cover ordinary serialization and cached capture after
+texture, terrain, animation, script and copy-on-write mesh edits. Both heroes
+run 1,080 ticks with grenades without diverging from rewind-disabled gameplay;
+checks cover history eviction, reverse speed, branching, scene allocation reuse,
+and continuation of cosmetic effects. Persistent savestate encoding is unchanged.
+All 191 ordinary workspace tests and strict native/WASM library Clippy pass.
+Disc-backed saves continue identically across all missions, live items, imported
+actors and TRIAL. Native movement/reverse/resume was inspected with an isolated
+copy of the user's settings; Chromium WebGPU and WebGL2 both pass persistent
+save/restart/rewind/branch checks. The Xvfb native run has substantial NVIDIA
+presentation latency, so its displayed FPS is not used as a performance result.
+The benchmark is available with `TENCHU_DISC` set through
+`./dev.sh cargo test --release -p tenchu-pc --lib profile_rewind -- --ignored --nocapture --test-threads=1`.
+Local logs and native/browser captures remain in
+`private/issues/rewind-performance`.

@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Substantially reduce rewind recording overhead by sharing unchanged mission
+  assets and blood geometry, copying texture words in bulk and reusing buffers.
+  Backward playback no longer rebuilds periodic keyframes. Keep every logic update
+  and all visual effects, with bounded history and unchanged savestate files.
+  The performance chart and diagnostic reports now show rewind CPU time separately.
+
 - Custom player-model folders support optional four-joint skin weights for
   smooth bending, including interpolated poses, shadows and gallery previews.
   Asset-pack PNGs can be up to 2048 pixels per side, within the existing decoded

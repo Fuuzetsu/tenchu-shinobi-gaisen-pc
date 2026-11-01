@@ -79,7 +79,7 @@ impl Library {
                 }
                 let vram = Arc::new(mission.vram);
                 let clips = Arc::new(mission.clips);
-                for (kind, parts) in mission.models {
+                for (kind, parts) in Arc::unwrap_or_clone(mission.models) {
                     let character = definitions.iter().find(|c| c.kind == kind).unwrap();
                     found.entry(character.model.clone()).or_insert_with(|| {
                         (

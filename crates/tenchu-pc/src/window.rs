@@ -993,6 +993,7 @@ impl ApplicationHandler for Application {
                     interval: elapsed.as_secs_f32() * 1000.0,
                     ..Default::default()
                 };
+                self.reverse.cpu = Default::default();
                 let phase = Instant::now();
                 let suspended = self.is_suspended();
                 self.sync_audio_pause();
@@ -1029,7 +1030,9 @@ impl ApplicationHandler for Application {
                     self.start_ending(events);
                 }
                 self.debug.update(&self.campaign.game);
-                timing.simulation = phase.elapsed().as_secs_f32() * 1000.0;
+                timing.rewind = self.reverse.cpu.as_secs_f32() * 1000.0;
+                timing.simulation =
+                    (phase.elapsed().as_secs_f32() * 1000.0 - timing.rewind).max(0.0);
                 let phase = Instant::now();
                 if self.demo.is_some()
                     || before != self.campaign.game.tick

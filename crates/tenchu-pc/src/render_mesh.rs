@@ -143,7 +143,7 @@ pub fn visit_stage(
     math: &Math,
     mut visit: impl FnMut(&[Geometry], Matrix),
 ) {
-    for part in &mission.map {
+    for part in mission.map.iter() {
         visit(
             &part.geometry,
             Matrix {

@@ -64,7 +64,7 @@ impl Model<'_> {
 fn models(game: &Game) -> Result<BTreeMap<String, Model<'_>>> {
     let mission = &game.mission;
     let mut models = BTreeMap::new();
-    for (&kind, parts) in &mission.models {
+    for (&kind, parts) in mission.models.iter() {
         let definition = mission
             .characters
             .iter()

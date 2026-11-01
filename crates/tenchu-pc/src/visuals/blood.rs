@@ -93,6 +93,40 @@ pub struct Blood {
     #[serde(with = "crate::savestate::json")]
     settings: settings::Blood,
 }
+impl Blood {
+    pub(crate) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            tick,
+            health,
+            samples,
+            marks,
+            wounds,
+            weapons,
+            drops,
+            runoff,
+            pools,
+            dead,
+            seed,
+            settings,
+        } = self;
+        out.value(tick)?;
+        out.value(health)?;
+        out.value(samples)?;
+        marks.capture(out)?;
+        out.value(wounds)?;
+        out.value(weapons)?;
+        out.value(drops)?;
+        out.value(runoff)?;
+        out.value(pools)?;
+        out.value(dead)?;
+        out.value(seed)?;
+        out.value(&crate::savestate::json::Borrowed(settings))?;
+        Ok(())
+    }
+}
 
 fn translation(matrix: Matrix) -> Vec3 {
     Vec3::from(matrix.translation.map(|v| v as f32).to_array())

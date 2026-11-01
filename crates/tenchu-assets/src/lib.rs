@@ -99,3 +99,5 @@ fn text(bytes: &[u8]) -> Result<String> {
         .map(str::to_owned)
         .map_err(|e| format!("Invalid asset name: {e}"))
 }
+
+pub mod checkpoint;

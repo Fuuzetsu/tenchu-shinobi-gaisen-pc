@@ -90,7 +90,7 @@ impl Models {
         )?;
         let mut imported = Vec::new();
         let mut imported_geometry = BTreeMap::new();
-        for (&kind, source) in &mission.imported_models {
+        for (&kind, source) in mission.imported_models.iter() {
             let parts = &mission.models[&kind];
             let sources: Vec<_> = parts
                 .iter()

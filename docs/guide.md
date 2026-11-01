@@ -1391,9 +1391,11 @@ also runs backward when enabled. Rewinding ends input recording and disables
 TRIAL records; merely capturing does not affect gameplay. Current graphics and
 the rewind preference remain unchanged. A free camera stays usable during rewind.
 
-Rewind is off by default. It adds serialization/compression work each simulation
-tick and caps retained history at 96 MiB. Large missions or accumulated effects
-can shorten the history; the menu shows its available duration and compressed size.
+Rewind is off by default. Unchanged mission assets and completed blood geometry
+are shared between updates; changing state uses reversible compressed deltas.
+Recording still has a CPU cost, shown separately as **Rewind recording / playback**
+in the performance chart. Retained history is bounded to 96 MiB. Large missions
+or accumulated effects can shorten it; the menu shows its duration and stored size.
 Retrying, switching missions, opening the title, starting a demo/benchmark or
 loading a file clears it. It does not survive closing the game; use a savestate
 slot for that.

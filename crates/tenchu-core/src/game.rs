@@ -1,3 +1,4 @@
+mod checkpoint;
 use crate::actor::State as ActorState;
 use crate::math::Position;
 pub mod activation;

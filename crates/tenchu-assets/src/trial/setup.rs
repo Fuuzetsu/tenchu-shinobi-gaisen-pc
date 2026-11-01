@@ -82,7 +82,7 @@ impl MissionAssets {
             )?);
         }
         let archive = assets.asset("IMAGE/MODELS.ARC")?;
-        let common_models = (0..33)
+        let common_models: BTreeMap<_, _> = (0..33)
             .filter(|i| !(22..=24).contains(i))
             .map(|i| Ok((i, model::tmd_model(model::arc_entry(&archive, i)?)?)))
             .collect::<Result<_>>()?;
@@ -136,14 +136,14 @@ impl MissionAssets {
                 reward: 0,
             },
             misc: crate::misc::Misc::load(assets, &[], &mut vram)?,
-            map: vec![],
+            map: Default::default(),
             map_image: images[0],
             map_placement: MapPlacement {
                 divisor: 200,
                 rotation: 0,
                 screen: [0, 0],
             },
-            objects: generated.objects,
+            objects: generated.objects.into(),
             object_names: generated.names,
             placements: generated.placements,
             terrain: generated.collision,
@@ -151,14 +151,14 @@ impl MissionAssets {
             vram,
             images,
             characters: tables.characters.clone(),
-            models,
-            imported_models: BTreeMap::new(),
+            models: models.into(),
+            imported_models: Default::default(),
             imported_voices: vec![],
             clips,
             common_motions: tables.common_motions.clone(),
             weapons: crate::weapon::Weapons::load_trial(assets, &exe)?,
             death_events: exe.death_events_at(0x80087c60)?,
-            common_models,
+            common_models: common_models.into(),
             enemies: vec![],
             construction_actors: vec![],
             construction_pickups: vec![],

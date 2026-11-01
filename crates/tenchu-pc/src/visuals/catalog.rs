@@ -181,7 +181,7 @@ pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
             geometry: &part.geometry,
         });
     }
-    for (&kind, parts) in &mission.models {
+    for (&kind, parts) in mission.models.iter() {
         if mission.imported_models.contains_key(&kind) {
             continue;
         }
@@ -207,7 +207,7 @@ pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
             geometry,
         });
     }
-    for (&kind, geometry) in &mission.common_models {
+    for (&kind, geometry) in mission.common_models.iter() {
         out.push(ModelSource {
             id: format!("common/{kind}"),
             label: format!("Common model {kind}"),

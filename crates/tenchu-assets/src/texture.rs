@@ -62,6 +62,22 @@ impl Default for Vram {
 }
 
 impl Vram {
+    pub fn capture<C: crate::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            words,
+            revision,
+            images,
+            scrolling,
+        } = self;
+        out.words(words)?;
+        out.value(revision)?;
+        out.shared(images)?;
+        out.value(scrolling)
+    }
+
     pub fn texel(&self, page: u16, palette: u16, uv: [u16; 2]) -> u16 {
         let word = |x: usize, y: usize| self.words[(y & 511) * 1024 + (x & 1023)];
         let [u, v] = uv.map(|n| usize::from(n & 255));

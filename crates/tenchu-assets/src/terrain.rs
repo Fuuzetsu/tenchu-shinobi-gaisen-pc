@@ -16,7 +16,7 @@ impl Node {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Row {
     pub height: i16,
     pub bounds: [i16; 4],
@@ -25,7 +25,7 @@ pub struct Row {
     pub lookup: Option<usize>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Eq, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AreaMap {
     data: Vec<u8>,
     pub rows: Vec<Row>,

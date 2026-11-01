@@ -1,7 +1,7 @@
 use super::*;
 use std::sync::Arc;
 
-#[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub source_kind: i16,
     pub vram: Arc<Vram>,
@@ -58,7 +58,7 @@ impl MissionAssets {
                 false
             }
         });
-        self.imported_models.insert(
+        Arc::make_mut(&mut self.imported_models).insert(
             model,
             Model {
                 source_kind: character.kind,
@@ -69,7 +69,7 @@ impl MissionAssets {
                     .collect(),
             },
         );
-        self.models.insert(model, parts);
+        Arc::make_mut(&mut self.models).insert(model, parts);
         let definition = self.characters.len();
         self.characters.push(character);
         Ok(Actor { definition, model })

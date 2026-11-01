@@ -21,6 +21,30 @@ pub(super) struct Marks {
 }
 
 impl Marks {
+    pub(super) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            pages,
+            attached,
+            vertices,
+            count,
+            serial,
+        } = self;
+        out.value(&pages.len())?;
+        for Page { entries, vertices } in pages {
+            out.value(entries)?;
+            out.shared_arc(vertices, entries.len() == PAGE_MARKS)?;
+        }
+        out.value(attached)?;
+        out.value(vertices)?;
+        out.value(count)?;
+        out.value(serial)
+    }
+}
+
+impl Marks {
     #[cfg(test)]
     pub fn len(&self) -> usize {
         self.count
@@ -123,5 +147,73 @@ impl Marks {
             page.vertices = Arc::new(vertices);
             !page.entries.is_empty()
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::visuals::blood::Patch;
+    use bytemuck::Zeroable;
+    use std::time::Instant;
+
+    #[test]
+    #[ignore = "CPU benchmark for retaining and rewinding thousands of persistent blood splats"]
+    fn profile_rewind_with_accumulated_blood() {
+        let mut marks = Marks::default();
+        for i in 0..4096 {
+            let vertices = (0..24)
+                .map(|j| Vertex {
+                    position: [i as f32, 0.0, j as f32],
+                    color: [0.5, 0.0, 0.0],
+                    ..Vertex::zeroed()
+                })
+                .collect();
+            marks.insert(
+                Mark(
+                    vec![Patch {
+                        part: None,
+                        vertices,
+                    }],
+                    Kind::Ground,
+                ),
+                16384,
+            );
+        }
+        let mut history = crate::rewind::History::default();
+        let mut full = std::time::Duration::ZERO;
+        let mut cached = std::time::Duration::ZERO;
+        for tick in 0..120 {
+            let started = Instant::now();
+            let expected = postcard::to_allocvec(&marks).unwrap();
+            full += started.elapsed();
+            let started = Instant::now();
+            history.recorder.begin();
+            marks.capture(&mut history.recorder).unwrap();
+            let state = history.recorder.finish().unwrap();
+            history.push(tick, 30, state).unwrap();
+            cached += started.elapsed();
+            if tick % 30 == 0 {
+                assert_eq!(
+                    history
+                        .snapshot(history.entries.len() - 1)
+                        .unwrap()
+                        .bytes()
+                        .unwrap(),
+                    expected
+                );
+            }
+        }
+        eprintln!(
+            "4096 splats ({} vertices): full encode {:.3} ms/update; cached encode+history {:.3} ms/update; {} KiB history",
+            marks.vertices,
+            full.as_secs_f64() * 1000.0 / 120.0,
+            cached.as_secs_f64() * 1000.0 / 120.0,
+            history.bytes / 1024
+        );
+        for index in (0..history.entries.len()).rev() {
+            let restored: Marks = history.snapshot(index).unwrap().decode().unwrap();
+            assert_eq!(restored.vertices, marks.vertices);
+        }
     }
 }

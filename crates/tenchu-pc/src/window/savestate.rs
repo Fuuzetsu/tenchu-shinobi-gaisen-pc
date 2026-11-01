@@ -66,8 +66,48 @@ impl Application {
         crate::savestate::encode(&self.snapshot()?)
     }
 
-    pub(super) fn capture_rewind(&self) -> Result<crate::rewind::Snapshot> {
-        crate::rewind::Snapshot::encode(&self.snapshot()?)
+    pub(super) fn capture_rewind(&mut self) -> Result<crate::rewind::Snapshot> {
+        use tenchu_assets::checkpoint::Capture;
+        let mut recorder = std::mem::take(&mut self.rewind.recorder);
+        recorder.begin();
+        let result = (|| {
+            let State {
+                game,
+                options,
+                progress,
+                seed,
+                randomized,
+                death_hold,
+                frontend,
+                quick_launcher,
+                preferences,
+                orbit,
+                imports,
+                actors_edited,
+                visuals,
+                audio,
+            } = self.snapshot()?;
+            game.capture(&mut recorder)?;
+            recorder.value(&options)?;
+            recorder.value(&progress)?;
+            recorder.value(&seed)?;
+            recorder.value(&randomized)?;
+            recorder.value(&death_hold)?;
+            recorder.value(&frontend)?;
+            recorder.value(&quick_launcher)?;
+            recorder.shared(&serde_json::to_string(&preferences).map_err(|e| e.to_string())?)?;
+            recorder.value(&orbit)?;
+            recorder.value(&imports)?;
+            recorder.value(&actors_edited)?;
+            recorder.value(&visuals.is_some())?;
+            if let Some(visuals) = visuals {
+                visuals.capture(&mut recorder)?;
+            }
+            recorder.value(&audio)?;
+            recorder.finish()
+        })();
+        self.rewind.recorder = recorder;
+        result
     }
 
     pub(super) fn restore_rewind(&mut self, state: &crate::rewind::Snapshot) -> Result<()> {
@@ -368,4 +408,47 @@ fn reuse_scene(next: &mut Game, previous: &mut Game) {
     std::mem::swap(&mut a.models, &mut b.models);
     std::mem::swap(&mut a.common_models, &mut b.common_models);
     std::mem::swap(&mut a.weapons.models, &mut b.weapons.models);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; cached capture must retain every field, including edited textures, animations, geometry and scripts"]
+    fn cached_rewind_matches_full_serialization_after_asset_changes() {
+        for mission in [1, 2, 6, 9] {
+            let mut app = crate::window::tests::application(Options {
+                mission,
+                ..Default::default()
+            });
+            for step in 0..6 {
+                if step == 2 {
+                    let assets = &mut app.campaign.game.mission;
+                    assets.vram.words[4096] ^= 0x70;
+                    assets.clips[0].root[0].value[0] ^= 7;
+                    assets.scripts.events[0].next[0] ^= 1;
+                    assets.placements[0].position[0] += 1;
+                    let node = assets.terrain.rows[0].list;
+                    assets.terrain.set_surface(node, -17, 3).unwrap();
+                }
+                if step == 4 {
+                    let assets = &mut app.campaign.game.mission;
+                    Arc::make_mut(&mut assets.models)
+                        .values_mut()
+                        .next()
+                        .unwrap()[0]
+                        .position[0] += 1;
+                    Arc::make_mut(&mut assets.common_models)
+                        .values_mut()
+                        .next()
+                        .unwrap()[0]
+                        .vertices[0][0] ^= 1;
+                }
+                let expected = postcard::to_allocvec(&app.snapshot().unwrap()).unwrap();
+                let state = app.capture_rewind().unwrap();
+                assert_eq!(state.bytes().unwrap(), expected, "M{mission}, step {step}");
+            }
+        }
+    }
 }

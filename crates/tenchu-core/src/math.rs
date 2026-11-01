@@ -3,7 +3,7 @@ use crate::Result;
 use tenchu_assets::executable::MathTables;
 pub use vector::{Position, Vector3};
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Math {
     pub tables: MathTables,
 }

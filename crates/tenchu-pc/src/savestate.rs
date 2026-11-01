@@ -13,6 +13,14 @@ const FILE_LIMIT: usize = 128 * 1024 * 1024;
 pub mod json {
     use serde::{Deserialize, Deserializer, Serialize, Serializer, de::DeserializeOwned};
 
+    pub struct Borrowed<'a, T>(pub &'a T);
+
+    impl<T: Serialize> Serialize for Borrowed<'_, T> {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            serialize(self.0, serializer)
+        }
+    }
+
     pub fn serialize<T: Serialize, S: Serializer>(
         value: &T,
         serializer: S,

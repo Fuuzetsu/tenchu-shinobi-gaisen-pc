@@ -23,7 +23,7 @@ pub struct Character {
     pub motions: Vec<MotionRegistration>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MathTables {
     pub trig: Vec<[i16; 2]>,
     pub atan: Vec<i16>,

@@ -1,3 +1,4 @@
+mod checkpoint;
 use crate::{
     ReadAt, Result,
     executable::{Character, Executable, MotionRegistration, StoryActor},
@@ -11,7 +12,7 @@ use crate::{
     texture::Vram,
     u32_le,
 };
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 pub mod imports;
 
@@ -102,10 +103,10 @@ pub struct MissionAssets {
     pub trial: Option<crate::trial::Setup>,
     pub misc: crate::misc::Misc,
     pub stage: Stage,
-    pub map: Vec<Part>,
+    pub map: Arc<Vec<Part>>,
     pub map_image: crate::texture::Image,
     pub map_placement: crate::hud::MapPlacement,
-    pub objects: Vec<Part>,
+    pub objects: Arc<Vec<Part>>,
     pub object_names: Vec<String>,
     pub placements: Vec<Placement>,
     pub terrain: AreaMap,
@@ -113,14 +114,14 @@ pub struct MissionAssets {
     pub vram: Vram,
     pub images: Vec<crate::texture::Image>,
     pub characters: Vec<Character>,
-    pub models: BTreeMap<i16, Vec<Part>>,
-    pub imported_models: BTreeMap<i16, imports::Model>,
+    pub models: Arc<BTreeMap<i16, Vec<Part>>>,
+    pub imported_models: Arc<BTreeMap<i16, imports::Model>>,
     pub imported_voices: Vec<imports::Voice>,
     pub clips: Vec<Clip>,
     pub common_motions: Vec<MotionRegistration>,
     pub weapons: crate::weapon::Weapons,
     pub death_events: Vec<Vec<crate::executable::DeathEvent>>,
-    pub common_models: BTreeMap<usize, Vec<model::Geometry>>,
+    pub common_models: Arc<BTreeMap<usize, Vec<model::Geometry>>>,
     pub enemies: Vec<Enemy>,
     pub construction_actors: Vec<Enemy>,
     pub construction_pickups: Vec<(usize, Pickup)>,
@@ -349,7 +350,7 @@ impl MissionAssets {
             );
         }
         let archive = game.asset("IMAGE/MODELS.ARC")?;
-        let common_models = (0..33)
+        let common_models: BTreeMap<_, _> = (0..33)
             .filter(|i| !(22..=24).contains(i))
             .map(|i| Ok((i, model::tmd_model(model::arc_entry(&archive, i)?)?)))
             .collect::<Result<_>>()?;
@@ -372,8 +373,8 @@ impl MissionAssets {
             tanka,
             scripts: crate::script::Scripts::load(game, id, character, language)?,
             stage,
-            map,
-            objects,
+            map: map.into(),
+            objects: objects.into(),
             object_names,
             placements,
             terrain,
@@ -381,14 +382,14 @@ impl MissionAssets {
             vram,
             images,
             characters,
-            models,
-            imported_models: BTreeMap::new(),
+            models: models.into(),
+            imported_models: Arc::default(),
             imported_voices: Vec::new(),
             clips,
             common_motions: exe.common_motions()?,
             weapons: crate::weapon::Weapons::load(game, &exe)?,
             death_events: exe.death_events()?,
-            common_models,
+            common_models: common_models.into(),
             enemies: initial_layout.enemies,
             construction_actors,
             construction_pickups,

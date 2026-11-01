@@ -6,7 +6,7 @@ pub struct Key {
     pub time: i16,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Clip {
     pub id: i16,
     pub duration: i16,

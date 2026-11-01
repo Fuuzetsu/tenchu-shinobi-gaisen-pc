@@ -13,6 +13,32 @@ pub(in crate::window) struct State {
     interpolation: crate::visuals::interpolation::History,
 }
 
+impl State {
+    pub(in crate::window) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            blood,
+            sky,
+            weather,
+            footprints,
+            contact,
+            deaths,
+            motion,
+            interpolation,
+        } = self;
+        blood.capture(out)?;
+        out.value(sky)?;
+        out.value(weather)?;
+        out.value(footprints)?;
+        out.value(contact)?;
+        out.value(deaths)?;
+        out.value(motion)?;
+        out.value(interpolation)
+    }
+}
+
 impl View {
     pub(in crate::window) fn capture_state(&self) -> State {
         State {
@@ -169,6 +195,19 @@ mod tests {
             }
         }
         assert!(state.blood.pages().next().is_some());
+        let mut capture = crate::rewind::Recorder::default();
+        for _ in 0..3 {
+            capture.begin();
+            state.capture(&mut capture).unwrap();
+            assert_eq!(
+                capture.finish().unwrap().bytes().unwrap(),
+                postcard::to_allocvec(&state).unwrap()
+            );
+            game.step(0).unwrap();
+            for s in [&mut state, &mut restored] {
+                tick(s, game, &models, &surfaces, &settings);
+            }
+        }
         assert_eq!(
             postcard::to_allocvec(&state).unwrap(),
             postcard::to_allocvec(&restored).unwrap()
