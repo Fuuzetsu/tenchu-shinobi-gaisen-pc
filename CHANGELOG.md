@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.10 — 2026-11-01
+
 - Share all four ordinary player/ninja death motions between Ayame and Rikimaru,
   including each other's original collapse. **Alternate player deaths** remains
   optional and does not change gameplay or retry timing.
