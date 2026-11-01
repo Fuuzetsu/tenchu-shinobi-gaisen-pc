@@ -14,6 +14,7 @@ mod sprites;
 mod stains;
 mod water;
 mod weather;
+mod weather_shelter;
 mod weather_wind;
 
 #[test]

@@ -29,6 +29,11 @@ fn weather_incidence(normal: vec3<f32>) -> f32 {
 }
 
 fn weather_compare(uv: vec2<f32>, depth: f32, gradient: vec2<f32>, layer: i32) -> f32 {
+    // A level receiver needs only the sampler's bilinear comparison. Slopes
+    // need separate depths at the four texel centers to avoid self-shelter.
+    if all(abs(gradient) < vec2(0.000001)) {
+        return textureSampleCompareLevel(weather_map, shadow_sampler, uv, layer, depth);
+    }
     let size = vec2<f32>(textureDimensions(weather_map));
     let pixel = uv * size - vec2(0.5);
     let blend = fract(pixel);
@@ -59,25 +64,37 @@ fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
         let plane = transpose(inverse) * vec4(normal, -dot(normal, position));
         var gradient = vec2(0.0);
         if abs(plane.z) > 0.00001 { gradient = vec2(-2.0, 2.0) * plane.xy / plane.z; }
-        var exposed = weather_compare(uv, p.z, gradient, layer);
-        if lighting.weather.y > 0.0 && lighting.rain.w > 0.0 {
+        var exposed = 0.0;
+        let wet = lighting.weather.x + lighting.weather.w > 0.0;
+        if wet || (lighting.weather.y > 0.0 && lighting.rain.w > 0.0) {
             let size = vec2<f32>(textureDimensions(weather_map));
             let pixel = vec2<i32>(clamp(uv * size, vec2(0.0), size - vec2(1.0)));
             let blocker = (inverse * vec4(p.xy, shelter_depth(pixel, layer), 1.0)).xyz;
             let gap = max(0.0, dot(position - blocker, direction));
-            let radius = (65.0 + min(gap * 0.08, 250.0)) * lighting.rain.w;
+            let radius = (select(65.0, 240.0, wet) + min(gap * 0.08, 250.0))
+                * select(lighting.rain.w, 1.0, wet);
             let span = vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;
-            let turn = mat2x2(vec2(0.92388, 0.382683), vec2(-0.382683, 0.92388));
-            exposed *= 4.0;
-            for (var y = -1; y <= 1; y++) {
-                for (var x = -1; x <= 1; x++) {
-                    if x == 0 && y == 0 { continue; }
-                    let offset = turn * vec2(f32(x), f32(y)) * radius / span;
-                    let weight = select(1.0, 2.0, x == 0 || y == 0);
-                    exposed += weight * weather_compare(uv + offset, p.z + dot(gradient, offset), gradient, layer);
+            if wet {
+                let taps = array(vec2(-0.85, -0.4), vec2(-0.25, 0.9), vec2(0.3, -0.8), vec2(0.9, 0.3));
+                for (var i = 0; i < 4; i++) {
+                    let offset = taps[i] * radius / span;
+                    exposed += weather_compare(uv + offset, p.z + dot(gradient, offset), gradient, layer) * 0.25;
                 }
+            } else {
+                let turn = mat2x2(vec2(0.92388, 0.382683), vec2(-0.382683, 0.92388));
+                exposed = weather_compare(uv, p.z, gradient, layer) * 4.0;
+                for (var y = -1; y <= 1; y++) {
+                    for (var x = -1; x <= 1; x++) {
+                        if x == 0 && y == 0 { continue; }
+                        let offset = turn * vec2(f32(x), f32(y)) * radius / span;
+                        let weight = select(1.0, 2.0, x == 0 || y == 0);
+                        exposed += weight * weather_compare(uv + offset, p.z + dot(gradient, offset), gradient, layer);
+                    }
+                }
+                exposed /= 16.0;
             }
-            exposed /= 16.0;
+        } else {
+            exposed = weather_compare(uv, p.z, gradient, layer);
         }
         let weight = select(1.0 - smoothstep(0.75, 0.95, max(abs(p.x), abs(p.y))), remaining, layer == 1);
         shelter += exposed * weight;
@@ -196,11 +213,36 @@ fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<
     if !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
     let delta = position - camera.eye.xyz;
     let distance = length(delta);
-    let shelter = (weather_exposure(vec3(0.0, -1.0, 0.0), camera.eye.xyz + delta * 0.25)
-        + weather_exposure(vec3(0.0, -1.0, 0.0), camera.eye.xyz + delta * 0.75)) * 0.5;
+    let radius = 80.0 + min(distance / 30.0, 420.0);
+    var shelter = 0.0;
+    for (var step = 0; step < 6; step++) {
+        let spread = vec2(radius, select(-radius, radius, step % 2 == 0));
+        shelter += rain_air_exposure(camera.eye.xyz + delta * ((f32(step) + 0.5) / 6.0), spread);
+    }
+    shelter /= 6.0;
     let haze = min(0.94, 1.0 - exp(-distance * lighting.rain.y * shelter / 18000.0));
     var color = rain_color();
     if !linear { color = pow(color, vec3(1.0 / 2.2)); }
     return mix(input, color, haze);
+}
+
+fn rain_air_exposure(position: vec3<f32>, spread: vec2<f32>) -> f32 {
+    var exposure = 0.0;
+    var remaining = 1.0;
+    for (var layer = 0; layer < 2; layer++) {
+        if remaining < 0.001 { break; }
+        let p = lighting.weather_matrix[layer] * vec4(position, 1.0);
+        let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
+        if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { continue; }
+        let inverse = lighting.weather_inverse[layer];
+        let span = vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;
+        let offset = spread / span;
+        let exposed = (textureSampleCompareLevel(weather_map, shadow_sampler, uv - offset, layer, p.z)
+            + textureSampleCompareLevel(weather_map, shadow_sampler, uv + offset, layer, p.z)) * 0.5;
+        let weight = select(1.0 - smoothstep(0.75, 0.95, max(abs(p.x), abs(p.y))), remaining, layer == 1);
+        exposure += exposed * weight;
+        remaining -= weight;
+    }
+    return exposure;
 }
 

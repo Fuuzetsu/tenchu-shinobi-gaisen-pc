@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Blend rain wetness and puddles beneath roof edges, and smooth rain haze when
+  looking between exposed and sheltered areas. Enclosed interiors stay dry and
+  clear; the same shelter handling applies to campaign and TRIAL maps.
+
 - Let snow settle mainly on upward-facing surfaces. Windward walls receive a
   light, uneven dusting instead of a broad white coat; sheltered faces and
   undersides remain clear.
