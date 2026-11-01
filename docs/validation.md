@@ -233,3 +233,18 @@ fixture, not a performance guarantee for larger/custom missions. Retained histor
 is capped at 96 MiB, evicting older checkpoints when necessary. Restore rebuilds
 render resources, so the feature provides discrete visible steps rather than
 continuous reverse animation.
+
+## Stealth-kill blood timing review
+
+The 2026-11-01 review of #15 traced all six normal paired executions against a
+Mission 1 guard, with original and modern spray captures. First gore emission
+occurred at death-motion count 38/118/none for Rikimaru's back/front/side kills
+and 38/22/100 for Ayame's. These follow the disc event tables and `ActDEAD`'s
+emission cadence; Rikimaru's side kill has no gore event. Neither added wound
+drips nor body stains appeared at the initial HP drop. All six modern corpse
+pools began only after the victim's motion completed.
+
+No early effect was reproduced on these six paths, so their timing was left
+unchanged. This is a source/timing and rendered-frame review, not a replay of
+the reporter's unidentified scene; #15 remains open for a clip or saved state
+that identifies the affected animation and effect.
