@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.13.0 — 2026-11-01
+
 - Substantially reduce rewind recording overhead by sharing unchanged mission
   assets and blood geometry, copying texture words in bulk and reusing buffers.
   Backward playback no longer rebuilds periodic keyframes. Keep every logic update
