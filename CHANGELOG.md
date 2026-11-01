@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.14.0 — 2026-11-01
+
 - Add a rewind timeline with backward/forward seeking, single-frame steps and
   jumps to the oldest/latest recorded state. The timeline appears while rewinding
   and under F1 → Simulation. Seeking keeps the complete buffer; resuming play
