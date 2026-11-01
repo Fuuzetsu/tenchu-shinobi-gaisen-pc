@@ -40,8 +40,11 @@ impl Actor {
         }
     }
 
-    fn consume_hit(ctx: &mut Context, hit: usize) {
-        if let Some(model) = ctx.collision.slots[hit].model {
+    fn consume_hit(&self, ctx: &mut Context, hit: usize) {
+        let slot = &mut ctx.collision.slots[hit];
+        if slot.multi_target {
+            slot.hit_targets.push(self.parts[0]);
+        } else if let Some(model) = slot.model {
             ctx.collision.remove(ctx.scene, model);
         }
     }
@@ -102,7 +105,7 @@ impl Actor {
             let source = ctx.collision.slots[hit].actor();
             if let Some(id) = source {
                 world.intelligence.voices.push((id, 4));
-                Self::consume_hit(ctx, hit);
+                self.consume_hit(ctx, hit);
                 let enemy = if id == self.id {
                     &*self
                 } else {
@@ -228,7 +231,7 @@ impl Actor {
                     release: 0,
                 },
             );
-            Self::consume_hit(ctx, hit);
+            self.consume_hit(ctx, hit);
             let point = ctx.scene.world(self.parts[2])?.transform([
                 0,
                 (i32::from(power) * 10 + 100) as i16,
@@ -366,7 +369,7 @@ impl Actor {
                 release: 10,
             },
         );
-        Self::consume_hit(ctx, hit);
+        self.consume_hit(ctx, hit);
         let mut position = self.position;
         position[1] =
             position[1].wrapping_sub(i32::from(ctx.mission.characters[self.definition].height) / 2);

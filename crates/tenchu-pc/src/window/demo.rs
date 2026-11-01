@@ -303,6 +303,7 @@ impl Application {
         self.settings.apply_activation(&mut game.roster);
         game.intelligence.sight_percent = self.debug.sight_percent;
         game.intelligence.independent_attacks = self.settings.independent_attacks;
+        game.combat.multi_target = self.settings.multi_target_attacks;
         self.campaign.game = game;
         self.campaign.options = options;
         self.campaign.screen = Screen::Playing;
@@ -415,6 +416,7 @@ impl Application {
                 .apply_activation(&mut self.campaign.game.roster);
             self.campaign.game.intelligence.sight_percent = self.debug.sight_percent;
             self.campaign.game.intelligence.independent_attacks = self.settings.independent_attacks;
+            self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
             if let Some(audio) = &mut self.audio {
                 audio.fast_forward(
                     player.speed() != 100

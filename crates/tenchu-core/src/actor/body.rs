@@ -16,6 +16,9 @@ impl Actor {
                 continue;
             }
             if other.class & collision::HIT != 0 {
+                if other.hit_targets.contains(&model) {
+                    continue;
+                }
                 if self.status != ActorState::Dead {
                     self.hit = Some(slot);
                     self.attribute |= ATTR_HIT;

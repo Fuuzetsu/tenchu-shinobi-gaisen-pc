@@ -12,6 +12,7 @@ pub struct Combat {
     pub death_sound: Option<usize>,
     pub life_bars: Vec<(usize, i16, i16)>,
     pub armor: bool,
+    pub multi_target: bool,
 }
 
 impl Combat {
@@ -486,6 +487,9 @@ impl Actor {
                     ctx.collision.slots[slot].count = i32::from(hitbox.radius);
                     ctx.collision.slots[slot].size = [hitbox.radius; 3];
                     ctx.collision.slots[slot].class = collision::HIT;
+                    ctx.collision.slots[slot].multi_target =
+                        self.id == world.player && world.combat.multi_target;
+                    ctx.collision.slots[slot].hit_targets.clear();
                 }
             }
             world.intelligence.voices.push((self.id, 2));

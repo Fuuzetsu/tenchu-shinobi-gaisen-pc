@@ -57,6 +57,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
     PRESETS.iter().position(|p| {
         settings.keep_enemies_active == p.active
             && !settings.independent_attacks
+            && !settings.multi_target_attacks
             && (!p.active
                 || (settings.reinforcement_limit == 0
                     && settings.reinforcement_call == Default::default()))

@@ -3,6 +3,7 @@ use crate::items::Kind;
 mod experiments;
 mod imported;
 mod independent_attacks;
+mod multi_target;
 use super::*;
 use crate::math::Position;
 use crate::{game::Game, oracle};
@@ -119,7 +120,7 @@ pub(super) fn constants() -> String {
 #[test]
 #[ignore = "requires TENCHU_DISC; preserves the weapon-clash collision-index bug"]
 fn weapon_clash_uses_collision_index_for_stun_and_keeps_the_slot() {
-    for extra_slots in [0, 160] {
+    for (extra_slots, multi_target) in [(0, false), (160, false), (0, true), (160, true)] {
         let mut game = oracle::game(0, 0);
         let player = game.player_id;
         let enemy = game
@@ -136,6 +137,7 @@ fn weapon_clash_uses_collision_index_for_stun_and_keeps_the_slot() {
         let hand = game.player().parts[13];
         let other = game.roster.get(enemy).parts[0];
         let own_slot = game.collision.insert(&mut game.scene, hand).unwrap();
+        game.collision.slots[own_slot].multi_target = multi_target;
         game.collision.slots[own_slot].owner = Some(crate::collision::Owner::Actor(player));
         for _ in 0..extra_slots {
             let model = game.scene.add(Some(0), Matrix::default());

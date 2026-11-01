@@ -112,6 +112,7 @@ impl Application {
         }
         self.debug.sight_percent = self.campaign.game.intelligence.sight_percent;
         self.campaign.game.intelligence.independent_attacks = self.settings.independent_attacks;
+        self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
         self.debug.reload(&self.campaign.game)?;
         if let Some(audio) = &mut self.audio {
             if let Err(error) = audio.reload(&self.assets, &self.campaign.game) {

@@ -25,6 +25,8 @@ pub struct Slot {
     pub offset: [i16; 3],
     pub size: [i16; 3],
     pub class: i16,
+    pub multi_target: bool,
+    pub hit_targets: Vec<ModelId>,
     pub count: i32,
     pub results: Vec<u8>,
 }
@@ -47,6 +49,8 @@ impl Default for Slot {
             offset: [0; 3],
             size: [0; 3],
             class: 0,
+            multi_target: false,
+            hit_targets: Vec::new(),
             count: 0,
             results: Vec::new(),
         }

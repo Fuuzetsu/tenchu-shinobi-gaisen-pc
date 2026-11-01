@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **Multi-target player attacks** under F1 → Simulation. Each melee weapon
+  can hit several enemies once per swing, with normal damage, blocking and wall
+  checks. Off by default; items and enemy attacks retain their original rules.
+
 ## 0.9.10 — 2026-11-01
 
 - Share all four ordinary player/ninja death motions between Ayame and Rikimaru,
