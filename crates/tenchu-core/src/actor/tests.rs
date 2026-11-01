@@ -2,6 +2,7 @@ use crate::actor::State as ActorState;
 use crate::items::Kind;
 mod experiments;
 mod imported;
+mod independent_attacks;
 use super::*;
 use crate::math::Position;
 use crate::{game::Game, oracle};

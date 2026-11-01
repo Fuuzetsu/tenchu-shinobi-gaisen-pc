@@ -154,6 +154,7 @@ pub enum Item {
     Speed,
     SightDistance,
     KeepEnemiesActive,
+    IndependentAttacks,
     ReinforcementsPerCall,
     RandomReinforcements,
     ReinforcementLimit,
@@ -1516,6 +1517,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "GAMEPLAY EDIT: distant enemies keep thinking and patrolling. Each placed guard can call once per alert; recruits cannot call. Reinforcements need terrain cover. Ends recording.",
             ),
             (
+                Item::IndependentAttacks,
+                "Independent enemy attacks",
+                on(s.independent_attacks),
+                "GAMEPLAY EDIT: each enemy uses its own attack cooldown instead of sharing a timer. More enemies can attack together; individual attack speed is unchanged. Ends recording.",
+            ),
+            (
                 Item::ReinforcementsPerCall,
                 "Guards per reinforcement call",
                 s.reinforcement_call.count.to_string(),
@@ -1547,7 +1554,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::ResetTweaks,
                 "Reset simulation tweaks",
                 "Enter".into(),
-                "Restore original speed, enemy sight and activation.",
+                "Restore original speed, enemy sight, activation and attack coordination.",
             ),
         ],
         _ => {

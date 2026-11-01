@@ -1242,6 +1242,14 @@ See the
 [reinforcement investigation](validation.md#separate-always-active-enemy-audit)
 for the retail rules and the former recursive-recruitment problem.
 
+**Simulation → Independent enemy attacks** gives each enemy its own attack
+cooldown instead of sharing the original timer. Several guards can press their
+attacks together, without speeding up individual animations or removing their
+own recovery time. It is off by default, works with either activation mode and
+persists across missions. Changing it ends input recording; TRIAL records are
+disabled while it is on. Gameplay presets and **Reset simulation tweaks** restore
+the original shared timer. Graphical presets and Retro mode leave it alone.
+
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general
 25–400% or Unlimited simulation speed. Unlimited runs across gameplay and

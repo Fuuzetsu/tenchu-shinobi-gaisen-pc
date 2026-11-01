@@ -3,6 +3,20 @@ use crate::actor::State as ActorState;
 use crate::items::Kind;
 
 impl Controller<'_, '_> {
+    pub(super) fn attack_clock(&self) -> i32 {
+        if self.state.independent_attacks {
+            self.actor.attack_clock
+        } else {
+            self.state.attack_clock
+        }
+    }
+
+    pub(super) fn delay_attack(&mut self) {
+        let clock = self.clock.wrapping_add(self.engage() * 10);
+        self.actor.attack_clock = clock;
+        self.state.attack_clock = clock;
+    }
+
     pub(super) fn succession(&mut self, distance: i32, degree: i32) -> u16 {
         if self.actor.motion.count != self.ctx.mission.weapons.attacks[self.actor.attack].combo {
             return 0;
@@ -48,7 +62,7 @@ impl Controller<'_, '_> {
         if self.distance() < 10000 && self.state.detection != Detection::Gone {
             self.state.detection = Detection::None;
         }
-        if self.state.attack_clock.wrapping_add(self.engage() * 30) < self.clock
+        if self.attack_clock().wrapping_add(self.engage() * 30) < self.clock
             && self.degree().abs() < 500
         {
             let pad = if self.distance() > 4000 {
@@ -60,7 +74,7 @@ impl Controller<'_, '_> {
             } else {
                 SQUARE
             };
-            self.state.attack_clock = self.clock.wrapping_add(self.engage() * 10);
+            self.delay_attack();
             Ok(pad)
         } else {
             self.attack_class()

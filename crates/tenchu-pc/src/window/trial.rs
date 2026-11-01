@@ -133,6 +133,7 @@ impl Application {
         }
         let game = &self.campaign.game;
         if self.settings.keep_enemies_active
+            || self.settings.independent_attacks
             || self.settings.sight_percent != 100
             || self.settings.model_moveset
             || game.player().invulnerable
@@ -191,6 +192,14 @@ mod tests {
         assert_eq!(app.trial.mission.as_ref().unwrap().records.len(), 1);
         assert!(app.campaign.save_request.is_none());
         assert_eq!(app.campaign.progress, progress);
+        app.set_independent_attacks(true);
+        app.apply_trial(Event::Play { preview: false }).unwrap();
+        assert!(app.campaign.game.intelligence.independent_attacks);
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
+        app.set_independent_attacks(false);
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
         app.apply_trial(Event::Close).unwrap();
         assert!(app.campaign.game.trial.is_none());
         assert_eq!(app.campaign.options.character, 0);

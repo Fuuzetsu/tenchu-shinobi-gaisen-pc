@@ -4,6 +4,7 @@ use crate::math::Position;
 use crate::{oracle, random::Random};
 use std::fmt::Write;
 
+mod attacks;
 mod reinforcement;
 
 #[test]

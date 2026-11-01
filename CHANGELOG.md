@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **F1 → Simulation → Independent enemy attacks**: enemies use individual
+  attack cooldowns so several guards can press their attacks together. Disabled
+  by default; retains individual attack speed and works with either activation
+  mode. This gameplay option ends input recording and disables TRIAL records.
+
 ## 0.9.5 — 2026-11-01
 
 - Stop recursive reinforcement waves with **Keep all enemies active**: each placed

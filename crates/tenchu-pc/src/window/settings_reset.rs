@@ -105,6 +105,7 @@ impl Application {
             Item::Speed => self.debug.speed = d.speed,
             Item::SightDistance => self.set_sight(d.sight_percent),
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),
+            Item::IndependentAttacks => self.set_independent_attacks(s.independent_attacks),
             Item::ReinforcementsPerCall => {
                 self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {
                     count: s.reinforcement_call.count,

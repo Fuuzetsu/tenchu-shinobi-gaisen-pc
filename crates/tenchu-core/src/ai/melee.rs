@@ -88,9 +88,9 @@ impl Controller<'_, '_> {
                 && self.distance() < 4000
                 && self.degree().abs() < 1000
                 && self.random() % (self.engage() + 1) == 0
-                && self.clock > self.state.attack_clock
+                && self.clock > self.attack_clock()
             {
-                self.state.attack_clock = self.clock.wrapping_add(self.engage() * 10);
+                self.delay_attack();
                 if self.random() % 3 == 0 {
                     pad = DOWN;
                 }
@@ -174,9 +174,9 @@ impl Controller<'_, '_> {
             && self.distance() < 3000
             && self.degree().abs() < 1200
             && self.random() % (self.engage() + 1) == 0
-            && self.clock > self.state.attack_clock
+            && self.clock > self.attack_clock()
         {
-            self.state.attack_clock = self.clock.wrapping_add(self.engage() * 10);
+            self.delay_attack();
             if self.random() % 3 == 0 {
                 pad = DOWN;
             }
@@ -255,7 +255,7 @@ impl Controller<'_, '_> {
             && self.distance() < 4000
             && self.random() % (self.engage() + 1) == 0
         {
-            self.state.attack_clock = self.clock.wrapping_add(self.engage() * 10);
+            self.delay_attack();
             return Ok(pad | SQUARE);
         }
         if self.degree().abs() > 1000 || self.distance() < 3000 {

@@ -555,6 +555,52 @@ fn all_enemy_activation_survives_layouts_and_mission_reloads() {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; independent attacks persist, apply on reload and reset without being changed by graphics"]
+fn independent_attack_settings_apply_and_reset() {
+    let mut app = application(Options::default());
+    let directory = std::env::temp_dir().join(format!(
+        "tenchu-independent-attacks-recording-{}",
+        std::process::id()
+    ));
+    app.recording_directory = Some(directory.clone());
+    let original: Settings = serde_json::from_str("{}").unwrap();
+    assert!(!original.independent_attacks);
+    app.apply_item(Item::IndependentAttacks, 1).unwrap();
+    assert!(app.campaign.game.intelligence.independent_attacks);
+    let saved: Settings =
+        serde_json::from_str(&serde_json::to_string(&app.settings).unwrap()).unwrap();
+    assert!(saved.independent_attacks);
+    app.settings
+        .set_visual_preset(settings::presets::MODERN_HIGH);
+    app.settings.retro = true;
+    assert!(app.settings.rendering().independent_attacks);
+    app.campaign.screen = Screen::Launcher;
+    app.action(Action::Confirm);
+    app.action(Action::Confirm);
+    assert!(app.campaign.game.intelligence.independent_attacks);
+    assert!(app.recording.is_none());
+    assert!(settings::gameplay::current(&app.settings, &app.debug).is_none());
+    app.reset_item(Item::IndependentAttacks).unwrap();
+    assert!(!app.campaign.game.intelligence.independent_attacks);
+    app.set_independent_attacks(true);
+    app.set_gameplay_preset(1).unwrap();
+    assert!(!app.campaign.game.intelligence.independent_attacks);
+    app.set_independent_attacks(true);
+    app.apply_item(Item::ResetTweaks, 1).unwrap();
+    assert!(!app.campaign.game.intelligence.independent_attacks);
+    app.campaign.screen = Screen::Launcher;
+    app.action(Action::Confirm);
+    app.action(Action::Confirm);
+    assert!(app.recording.is_some());
+    app.record_input(0);
+    app.apply_item(Item::IndependentAttacks, 1).unwrap();
+    assert!(app.recording.is_none());
+    let recordings: Vec<_> = std::fs::read_dir(&directory).unwrap().collect();
+    assert_eq!(recordings.len(), 1);
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; the same scripted showcase inputs produce the same game state at different display rates"]
 fn showcase_simulation_is_independent_of_display_cadence() {
     let run = |fps: Option<u64>| {

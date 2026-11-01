@@ -115,6 +115,14 @@ impl Application {
             .apply_activation(&mut self.campaign.game.roster);
     }
 
+    pub(super) fn set_independent_attacks(&mut self, enabled: bool) {
+        if self.campaign.game.intelligence.independent_attacks != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.independent_attacks = enabled;
+        self.campaign.game.intelligence.independent_attacks = enabled;
+    }
+
     pub(super) fn set_reinforcement_limit(&mut self, limit: u16) {
         if self.settings.reinforcement_limit != limit && self.campaign.game.roster.keep_all_active {
             self.stop_edited_recording();
@@ -194,6 +202,7 @@ impl Application {
             self.settings = previous.clone();
             previous.apply_activation(&mut self.campaign.game.roster);
             self.set_sight(previous.sight_percent);
+            self.set_independent_attacks(previous.independent_attacks);
             let _ = self.sync_model_moveset();
             return;
         }
@@ -282,6 +291,7 @@ impl Application {
             self.mission_edit()?;
         }
         self.keep_enemies_active(preset.active);
+        self.set_independent_attacks(false);
         self.set_reinforcement_limit(0);
         self.set_reinforcement_call(Default::default());
         self.set_sight(preset.sight);
@@ -599,6 +609,7 @@ impl Application {
                 self.set_god_mode(false)?;
                 self.set_stealth(false)?;
                 self.keep_enemies_active(false);
+                self.set_independent_attacks(false);
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
                 }
@@ -728,6 +739,9 @@ impl Application {
                 self.set_sight(value);
             }
             Item::KeepEnemiesActive => self.keep_enemies_active(!self.settings.keep_enemies_active),
+            Item::IndependentAttacks => {
+                self.set_independent_attacks(!self.settings.independent_attacks);
+            }
             Item::ReinforcementsPerCall => {
                 let mut call = self.settings.reinforcement_call;
                 call.count = (i32::from(call.count) + direction).clamp(
@@ -757,6 +771,7 @@ impl Application {
                 self.debug.speed = 100;
                 self.set_sight(100);
                 self.keep_enemies_active(false);
+                self.set_independent_attacks(false);
                 self.set_reinforcement_limit(0);
                 self.set_reinforcement_call(Default::default());
             }
