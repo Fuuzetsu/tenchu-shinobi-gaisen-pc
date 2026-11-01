@@ -1,6 +1,7 @@
 use super::*;
 use std::time::Duration;
 
+mod actors;
 mod camera;
 mod death;
 

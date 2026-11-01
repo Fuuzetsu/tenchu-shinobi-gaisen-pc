@@ -1241,6 +1241,21 @@ gameplay edits: they end an active recording before the edit, leaving a replayab
 prefix. A new attempt can record again with original sight distance. Sight
 distance does not change hearing, actor activation, attack range or occlusion.
 
+**Teleport / actor → Place / edit mission actors** searches the full disc's model
+library, including bosses, civilians and animals from other missions. Choose a
+model, set facing and X/Y/Z below (or **Pick point on floor…** in free camera),
+then **Place new actor**. It uses the model's native AI, motions, weapons and
+voice; models without their own behavior use the same animal fallback as the
+randomizer. Extra bosses do not take over the original story actor's role.
+
+Choose a live actor with **Selected actor** or click it in F2. **Copy selected
+position**, **Move selected here** and **Remove selected** edit that actor;
+moving a patrol clears its route so it guards the new position. The player,
+scripted actors and mission objectives are protected. Edits last for the current
+attempt, end input recording and disable TRIAL records. Retry restores the
+original layout; these tools do not save a custom mission file. Existing weather,
+blood and music are retained when importing models.
+
 **Simulation → Keep all enemies active** disables distance/budget suspension for
 spawned enemies and civilians, so distant patrols, AI and animation keep running. It is off
 by default and saves as a preference across mission changes. Story-controlled

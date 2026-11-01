@@ -36,6 +36,10 @@ pub struct Debug {
     pub target: tenchu_core::math::Position,
     pub snap_to_floor: bool,
     pub teleport_armed: bool,
+    pub pick_actor_position: bool,
+    pub actor_imports:
+        std::collections::BTreeMap<String, crate::visuals::appearance::library::Imported>,
+    pub actors_edited: bool,
     pub click_teleport: bool,
     pub god_mode: bool,
     pub stealth: bool,
@@ -78,6 +82,9 @@ impl Debug {
             target: game.player().position,
             snap_to_floor: true,
             teleport_armed: false,
+            pick_actor_position: false,
+            actor_imports: Default::default(),
+            actors_edited: false,
             click_teleport: false,
             god_mode: game.player().invulnerable,
             stealth: game.intelligence.ignore_player,
@@ -100,6 +107,8 @@ impl Debug {
         self.click_teleport = false;
         self.update(game);
         self.return_camera();
+        self.actor_imports.clear();
+        self.actors_edited = false;
         self.bookmark = None;
         self.light = None;
         self.light_follow = false;
@@ -137,6 +146,7 @@ impl Debug {
         self.follow_camera = None;
         self.looking = false;
         self.teleport_armed = false;
+        self.pick_actor_position = false;
     }
 
     pub fn toggle_camera(&mut self, game: &Game) {

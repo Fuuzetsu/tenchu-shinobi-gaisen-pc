@@ -201,7 +201,7 @@ impl Roster {
         })
     }
 
-    fn spawn_with(
+    pub(crate) fn spawn_with(
         &mut self,
         ctx: &mut Context,
         create: impl FnOnce(usize, &mut Context) -> Result<Actor>,

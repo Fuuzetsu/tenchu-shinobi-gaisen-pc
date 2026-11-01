@@ -1,3 +1,4 @@
+mod actors;
 use super::Game;
 use crate::items::Kind;
 use crate::math::Position;
@@ -85,10 +86,12 @@ impl Game {
         Ok(())
     }
 
-    pub fn teleport_player(&mut self, mut position: Position, snap_to_floor: bool) -> Result<()> {
-        if self.cinematic.active || self.player().scripted || self.player().health <= 0 {
-            return Err("Teleport requires a living player outside a cutscene".into());
-        }
+    fn edit_destination(
+        &self,
+        mut position: Position,
+        width: i16,
+        snap_to_floor: bool,
+    ) -> Result<(Position, terrain::Probe)> {
         if position.iter().any(|v| !(-320_000..=320_000).contains(v)) {
             return Err("Teleport coordinates must be within +/-320000".into());
         }
@@ -105,7 +108,6 @@ impl Game {
             }
             position[1] = floor;
         }
-        let width = self.mission.characters[self.player().definition].width;
         let probe = terrain::vector(
             &self.mission.terrain,
             &mut cursor,
@@ -113,6 +115,15 @@ impl Game {
             i32::from(width),
             terrain::STEP_DOWN,
         )?;
+        Ok((position, probe))
+    }
+
+    pub fn teleport_player(&mut self, position: Position, snap_to_floor: bool) -> Result<()> {
+        if self.cinematic.active || self.player().scripted || self.player().health <= 0 {
+            return Err("Teleport requires a living player outside a cutscene".into());
+        }
+        let width = self.mission.characters[self.player().definition].width;
+        let (position, probe) = self.edit_destination(position, width, snap_to_floor)?;
         let delta = std::array::from_fn::<_, 3, _>(|i| position[i] - self.player().position[i]);
         let actor = self.roster.get_mut(self.player_id);
         let mut ctx = Context {

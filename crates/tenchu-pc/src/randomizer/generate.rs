@@ -2,18 +2,14 @@ use super::*;
 use crate::{
     session::Options,
     source::DiscSource,
-    visuals::appearance::library::{Body, Library},
+    visuals::appearance::library::{Library, import_actor},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use tenchu_assets::{
-    Result,
-    executable::{Executable, MotionRegistration},
-    game::GameAssets,
-    script::Language,
-    stage::MissionAssets,
+    Result, executable::Executable, game::GameAssets, script::Language, stage::MissionAssets,
 };
-use tenchu_core::{ai::Difficulty, game::Game, ids::MOT_NORMAL};
+use tenchu_core::{ai::Difficulty, game::Game};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -270,7 +266,7 @@ impl Run {
                         .id,
                     )
                     .unwrap();
-                let source = import_body(game, library, body, &mut imported)?;
+                let source = import_actor(&mut game.mission, library, &body.id, &mut imported)?;
                 game.replace_actor(id, source.actor, source.think)?;
                 game.roster.get_mut(id).voice_program = source.voice;
             }
@@ -300,10 +296,10 @@ impl Run {
                     .document
                     .random(self.round, domain, entry)
                     .index(pool.len());
-                Some(import_body(
-                    game,
+                Some(import_actor(
+                    &mut game.mission,
                     library,
-                    library.get(&pool[choice].id).unwrap(),
+                    &pool[choice].id,
                     &mut imported,
                 )?)
             };
@@ -320,73 +316,6 @@ impl Run {
         }
         Ok(())
     }
-}
-
-#[derive(Clone, Copy)]
-struct Imported {
-    actor: tenchu_assets::stage::imports::Actor,
-    voice: Option<i16>,
-    think: i16,
-}
-
-fn import_body(
-    game: &mut Game,
-    library: &Library,
-    body: &Body,
-    imported: &mut BTreeMap<String, Imported>,
-) -> Result<Imported> {
-    if let Some(&source) = imported.get(&body.id) {
-        return Ok(source);
-    }
-    let behavior = if body.character.is_some() {
-        body
-    } else {
-        library
-            .bodies
-            .iter()
-            .filter(|b| {
-                b.character
-                    .as_ref()
-                    .is_some_and(|c| c.kind & 0xf0 == 0xa0 && c.health > 0)
-            })
-            .min_by_key(|b| {
-                (
-                    b.parts.len().abs_diff(body.parts.len()),
-                    b.character.as_ref().unwrap().health,
-                )
-            })
-            .ok_or("No animal behavior is available for this resource-only model")?
-    };
-    let mut character = behavior.character.clone().unwrap();
-    if !character.motions.iter().any(|r| r.action == MOT_NORMAL)
-        && let Some(idle) = behavior.idle
-    {
-        character.motions.push(MotionRegistration {
-            action: MOT_NORMAL,
-            clip: behavior.clips[idle].id,
-        });
-    }
-    character.health = character.health.max(1);
-    character.width = character.width.max(1);
-    character.turn = character.turn.max(1);
-    let actor = game.mission.import_actor(
-        character,
-        body.parts.clone(),
-        &behavior.clips,
-        body.vram.clone(),
-    )?;
-    let voice = behavior.voice.map(|voice| {
-        let program = 128 + game.mission.imported_voices.len() as i16;
-        game.mission.imported_voices.push(voice);
-        program
-    });
-    let source = Imported {
-        actor,
-        voice,
-        think: behavior.think,
-    };
-    imported.insert(body.id.clone(), source);
-    Ok(source)
 }
 
 impl Plan {

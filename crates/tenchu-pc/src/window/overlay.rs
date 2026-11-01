@@ -335,7 +335,7 @@ impl super::Application {
                 .unwrap_or(false);
         if view.model_library.is_none()
             && assets_ready
-            && ((self.menu.open && self.menu.page == 10)
+            && ((self.menu.open && matches!(self.menu.page, 4 | 10))
                 || !self.settings.player_model.is_empty()
                 || self.randomizer.open)
             && let Err(error) =

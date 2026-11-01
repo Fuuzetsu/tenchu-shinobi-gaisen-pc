@@ -66,6 +66,7 @@ impl Actor {
                 [0; 3]
             };
             ctx.effects.shadows.push(Shadow {
+                owner: self.root_model,
                 position,
                 rotation,
                 scale: height.wrapping_mul(4).wrapping_sub(self.map.height >> 1),

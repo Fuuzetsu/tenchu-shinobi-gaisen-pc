@@ -133,6 +133,7 @@ impl Application {
                 "collision": debug.collision, "collision_only": debug.collision_only,
                 "patrols": debug.patrols, "events": debug.events, "labels": debug.labels,
                 "xray": debug.xray, "show_trail": debug.show_trail, "inspect_actor": debug.inspect_actor,
+                "actors_edited": debug.actors_edited, "imported_actor_models": debug.actor_imports.keys().collect::<Vec<_>>(),
                 "camera_actor": debug.camera_actor.map(|subject| subject.id),
                 "selected_actor": debug.selected_actor, "target": debug.target.to_array(),
                 "snap_to_floor": debug.snap_to_floor, "teleport_armed": debug.teleport_armed,

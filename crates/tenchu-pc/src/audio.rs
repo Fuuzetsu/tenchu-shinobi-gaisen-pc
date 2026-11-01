@@ -99,6 +99,16 @@ impl Audio {
         Ok(audio)
     }
 
+    pub fn refresh_actor_bank(
+        &mut self,
+        assets: &GameAssets<DiscSource>,
+        game: &Game,
+    ) -> Result<()> {
+        self.output
+            .send(Command::Bank(Arc::new(game_bank(assets, game)?)));
+        Ok(())
+    }
+
     pub fn reload(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
         let bank = game_bank(assets, game)?;
         self.catalog = Catalog::load(&assets.executable, game.mission.scripts.language)?;

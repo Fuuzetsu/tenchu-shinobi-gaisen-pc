@@ -1,3 +1,4 @@
+mod actors;
 use super::{
     Settings,
     menu::{self, Item, Menu, Row},
@@ -138,6 +139,9 @@ pub fn show(
                         .auto_shrink([false, true])
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
+                                if menu.page == 4 {
+                                    actors::show(ui, menu, models.as_deref(), &mut edits);
+                                }
                                 for (index, row) in rows.iter().enumerate() {
                                     ui.push_id(index, |ui| {
                                         ui.horizontal(|ui| {

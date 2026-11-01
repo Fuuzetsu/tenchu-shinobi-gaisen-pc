@@ -156,6 +156,11 @@ pub enum Item {
     SnapFloor,
     Teleport,
     PickTeleport,
+    SpawnActor,
+    MoveActor,
+    RemoveActor,
+    ActorPosition,
+    PickActorPosition,
     Pause,
     Step,
     Speed,
@@ -273,6 +278,9 @@ pub struct Menu {
     pub reveal_row: bool,
     pub player_models: Vec<(String, String)>,
     pub model_directory: String,
+    pub spawn_model: String,
+    pub spawn_search: String,
+    pub spawn_yaw: i16,
     pub artwork_status: String,
 }
 

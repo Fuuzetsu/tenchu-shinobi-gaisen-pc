@@ -407,7 +407,9 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
         ));
         labels.push(Label(
             Anchor::BottomLeft([10.0, 24.0]),
-            if debug.teleport_armed || debug.click_teleport {
+            if debug.pick_actor_position {
+                "Click collision floor to choose an actor placement"
+            } else if debug.teleport_armed || debug.click_teleport {
                 "Click collision floor to teleport"
             } else {
                 "RMB: look  Click: actor  F2: return"

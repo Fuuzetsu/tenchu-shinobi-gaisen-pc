@@ -209,6 +209,7 @@ impl Drawing {
 
 #[derive(Clone, Debug)]
 pub struct Shadow {
+    pub owner: ModelId,
     pub position: Position,
     pub rotation: [i16; 3],
     pub scale: i32,

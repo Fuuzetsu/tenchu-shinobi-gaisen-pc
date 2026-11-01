@@ -533,6 +533,15 @@ impl View {
         Ok(())
     }
 
+    pub(super) fn refresh_actor_assets(&mut self, game: &Game, settings: &Settings) -> Result<()> {
+        let mut models = self.build_models(game, settings)?;
+        self.renderer.bind_models(&mut models);
+        self.models = models;
+        self.reset_interpolation(game);
+        self.dirty = true;
+        Ok(())
+    }
+
     fn build_models(&self, game: &Game, settings: &Settings) -> Result<Models> {
         let rendered = settings.rendering();
         let settings = &*rendered;

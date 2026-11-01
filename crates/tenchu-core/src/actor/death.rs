@@ -189,6 +189,7 @@ impl Actor {
                 .ok_or("Missing blood pool geometry")?;
             ctx.drawing.bytes += crate::packets::draw_tmd(mesh, &matrix, true);
             ctx.effects.blood_pools.push(crate::effects::Shadow {
+                owner: self.root_model,
                 position,
                 rotation,
                 scale,

@@ -1,3 +1,4 @@
+mod actors;
 pub mod benchmark;
 mod demo;
 mod diagnostics;
@@ -804,9 +805,13 @@ impl ApplicationHandler for Application {
                     if code == KeyCode::Escape
                         && (self.debug.camera.is_some() || self.debug.camera_actor.is_some())
                     {
-                        if self.debug.looking || self.debug.teleport_armed {
+                        if self.debug.looking
+                            || self.debug.teleport_armed
+                            || self.debug.pick_actor_position
+                        {
                             self.release_pointer();
                             self.debug.teleport_armed = false;
+                            self.debug.pick_actor_position = false;
                         } else {
                             self.debug.toggle_camera(&self.campaign.game);
                             self.controls.clear();

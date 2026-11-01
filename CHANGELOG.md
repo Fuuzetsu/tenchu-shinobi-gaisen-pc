@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add **F1 → Teleport / actor → Place / edit mission actors**: search all disc
+  models, place extra actors with their own AI, motions and voices, or move/remove
+  ordinary actors. Pick a floor point or enter coordinates and facing. Edits last
+  until retry; story actors remain protected and TRIAL records are disabled.
+
 - Add **F1 → Camera → Follow selected actor**. Track another actor with a
   wall-aware orbit camera while retaining player control; right-drag/right stick
   rotates, middle click/R3 recenters and F2 returns. Aiming/cutscenes retain their

@@ -17,11 +17,21 @@ impl Application {
         ];
         let (origin, direction) =
             crate::debug::camera::ray(self.debug.matrix(&self.campaign.game, aspect), ndc);
-        if self.debug.teleport_armed || self.debug.click_teleport {
+        if self.debug.teleport_armed || self.debug.click_teleport || self.debug.pick_actor_position
+        {
             if let Some(point) =
                 crate::debug::terrain::pick(&self.debug.surfaces, origin, direction)
             {
                 self.debug.target = point;
+                if self.debug.pick_actor_position {
+                    self.debug.pick_actor_position = false;
+                    self.menu.open = true;
+                    self.menu.page(4 - self.menu.page as i32);
+                    self.menu.reveal_row = false;
+                    self.release_pointer();
+                    self.update_view();
+                    return;
+                }
                 let snap = self.debug.snap_to_floor;
                 self.debug.snap_to_floor = false;
                 if let Err(error) = self.teleport() {
@@ -748,6 +758,11 @@ impl Application {
                 self.debug.teleport_armed = true;
                 self.menu.open = false;
             }
+            Item::SpawnActor
+            | Item::MoveActor
+            | Item::RemoveActor
+            | Item::ActorPosition
+            | Item::PickActorPosition => self.edit_actor(item)?,
             Item::Pause => {
                 if !self.simulating() || self.faulted {
                     return Err("Simulation is not running".into());
