@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.12.0 — 2026-11-01
+
 - Add optional high-detail hero geometry with rounded surfaces and finger
   creases for Rikimaru and both Ayame outfits, using the existing HD artwork.
   Modern High/Ultra enable it; original rigs, motions and gameplay are preserved.
