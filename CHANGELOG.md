@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.6 — 2026-11-01
+
 - Add **F1 → Simulation → Independent enemy attacks**: enemies use individual
   attack cooldowns so several guards can press their attacks together. Disabled
   by default; retains individual attack speed and works with either activation
