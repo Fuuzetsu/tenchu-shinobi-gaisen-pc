@@ -33,6 +33,7 @@ pub enum Item {
     MotionResponse,
     MotionWind,
     CharacterRefinement,
+    HeroModels,
     FoliageDetail,
     GrappleDetail,
     ContactSparks,
@@ -550,6 +551,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ]
         }
         15 => vec![
+            (
+                Item::HeroModels,
+                "High-detail heroes",
+                on(s.graphics.models.heroes),
+                "Denser, rounded hero geometry with finger creases. Covers Rikimaru and both Ayame outfits; uses installed HD artwork. Original joints, weapon attachments and gameplay stay unchanged. Custom models are retained.",
+            ),
             (
                 Item::CharacterRefinement,
                 "Character surfaces",

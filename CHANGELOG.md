@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional high-detail hero geometry with rounded surfaces and finger
+  creases for Rikimaru and both Ayame outfits, using the existing HD artwork.
+  Modern High/Ultra enable it; original rigs, motions and gameplay are preserved.
+  Includes three hero comparison demos and auto-optimisation support.
+
 - Add optional blood coatings to player/enemy blades, with small tip drips and
   stronger shedding on swings, plus adjustable sky/light reflections on weapon
   metal. Modern High/Ultra enable both; Original stays unchanged. Includes a

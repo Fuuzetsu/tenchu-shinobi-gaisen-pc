@@ -103,6 +103,7 @@ impl Item {
             Self::ModelNoIdleTaunts => &mut settings.model_moveset_options.no_idle_taunts,
             Self::Vibration => &mut settings.frontend.rumble,
             Self::GrappleDetail => &mut settings.graphics.models.grapple,
+            Self::HeroModels => &mut settings.graphics.models.heroes,
             Self::ContactSparks => &mut settings.graphics.effects.sparks,
             Self::Lightning => &mut settings.graphics.effects.lightning,
             Self::Gunfire => &mut settings.graphics.effects.gunfire,

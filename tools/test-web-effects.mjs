@@ -18,10 +18,11 @@ const browser = await chromium.launch({
 const context = await browser.newContext({ viewport: { width: 1280, height: 760 } });
 await context.addInitScript(() => {
   const settings = { pause_on_defocus: false, sharp_text: true, graphics: {
-    blood: { enabled: true }, sky: { enabled: true, time: 720, speed: 10 },
+    blood: { enabled: true, weapons: true }, weapon_reflections: 100,
+    lighting: { enabled: true }, sky: { enabled: true, time: 720, speed: 10 },
     weather: { mode: "Rain", amount: 100 },
     water: { enabled: true },
-    models: { characters: 1, foliage: 1 },
+    models: { heroes: true, characters: 1, foliage: 1 },
     motion: { hair: true, cloth: true, equipment: true, wind: 60 },
   } };
   localStorage.setItem("tenchu-pc/settings.json", JSON.stringify(Array.from(new TextEncoder().encode(JSON.stringify(settings)))));
@@ -58,7 +59,9 @@ try {
   await page.waitForFunction(() => document.body.dataset.assetsReady === "true", null, { timeout: 180000 });
   await page.locator("#game").click();
   await page.mouse.move(5, 5);
-  await key("Enter"); await key("Space");
+  await key("Enter");
+  await page.waitForFunction(() => JSON.parse(window.port.snapshot()).screen === "equipment");
+  await page.waitForTimeout(500); await key("Space");
   await page.waitForFunction(() => Number(document.body.dataset.tick) >= 150, null, { timeout: 90000 });
   assert.equal(await page.locator("body").getAttribute("data-renderer"), backend === "webgl2" ? "WebGL2" : "WebGPU");
   await shot("rain-daylight");
@@ -81,6 +84,9 @@ try {
   assert.equal((await settings()).graphics.water.enabled, false);
   await key("Tab"); await key("r");
   await key("ArrowDown"); await key("r");
+  await key("ArrowDown"); await key("r");
+  await key("ArrowDown"); await key("r");
+  assert.equal((await settings()).graphics.models.heroes, false);
   assert.equal((await settings()).graphics.models.characters, 0);
   assert.equal((await settings()).graphics.models.foliage, 0);
   await key("Tab"); await key("r");
@@ -97,10 +103,11 @@ try {
   assert.equal((await settings()).graphics.sky.enabled, false);
   await key("Shift+Tab"); await key("r");
   assert.equal((await settings()).graphics.blood.hit, "original");
-  for (let i=0;i<7;i++) { await key("ArrowDown"); await key("r"); }
+  for (let i=0;i<9;i++) { await key("ArrowDown"); await key("r"); }
   const blood = (await settings()).graphics.blood;
   assert.equal(blood.ground, "original"); assert.equal(blood.drips, "off");
   assert.equal(blood.player_death, false); assert.equal(blood.model_stains, false);
+  assert.equal(blood.weapons, false); assert.equal((await settings()).graphics.weapon_reflections, 0);
   assert.deepEqual(await state(), snowy, "Disabling effects must preserve paused gameplay state");
   await key("F1");
   await shot("effects-disabled");
@@ -110,6 +117,7 @@ try {
   await writeFile(`${output}/result.json`, JSON.stringify({ backend, rainFrames, state: await state(), errors }, null, 2));
   console.log(`${backend}: weather, daylight, water, model refinement, secondary motion, F1 resets and unchanged paused state passed`);
 } catch (error) {
+  await page.screenshot({ path: `${output}/failure.png` }).catch(() => {});
   await writeFile(`${output}/failure.json`, JSON.stringify({ error: String(error), errors,
     gpuErrors: await page.evaluate(() => window.effectsGpuErrors).catch(() => []),
     state: await state().catch(() => null),

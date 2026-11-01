@@ -332,3 +332,14 @@ preservation of existing ground stains were inspected; prepared weapon meshes
 avoid a scene rebuild when toggling the options. Native and WASM library Clippy
 pass. Evidence is retained in `private/issues/weapon-finishes`. Reflections use
 the sky and scene lights, not reflected images of scene geometry.
+
+High-detail heroes: all five hero/outfit combinations preserve their original
+attachment corners, finite textured geometry and unchanged gameplay state through
+walking, attacks and jumps. Prepared meshes contain 27,520–34,176 triangles.
+Native comparisons cover Rikimaru, Ayame and alternate Ayame with v3 artwork;
+the refinement retains the retail designs rather than supplying new sculpts.
+Chromium WebGPU and WebGL2 checks enter gameplay, draw the refined hero with
+weather and lighting, and reset the new model/weapon options through F1 without
+changing paused game state or reporting rendering errors. Native and WASM library
+Clippy and 118 ordinary PC tests pass. Captures and logs remain outside Git in
+`private/issues/hero-models`; browser smoke checks are not performance guarantees.

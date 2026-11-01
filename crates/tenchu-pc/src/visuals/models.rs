@@ -348,6 +348,9 @@ impl Meshes {
             let weapon = super::weapons::metal_weapon(&source.id);
             let grapple = graphics.models.grapple && source.id == "common/26";
             let round = source.id.starts_with("actors/") && replacement.is_none();
+            let hero = (graphics.models.heroes && replacement.is_none())
+                .then(|| super::heroes::part(&source.id))
+                .flatten();
             let water_enabled = graphics.water.enabled && source.id.starts_with("stages/");
             let snow_enabled = graphics.weather.baked_snow && source.id.starts_with("stages/");
             let foliage = (graphics.models.foliage != 0
@@ -371,6 +374,7 @@ impl Meshes {
                 && !snow_enabled
                 && !foliage
                 && !refined
+                && hero.is_none()
                 && !secondary
                 && !wind
                 && !grapple
@@ -510,6 +514,8 @@ impl Meshes {
             }
             if grapple {
                 super::refine::prepare(&mut vertices, 2, 0.015, &mut refinement_budget);
+            } else if let Some(part) = hero {
+                super::heroes::prepare(&mut vertices, part, &mut refinement_budget);
             } else if refined {
                 super::refine::prepare(
                     &mut vertices,

@@ -607,6 +607,43 @@
     }
   },
   {
+    "id": "hero-rikimaru",
+    "title": "High-detail Rikimaru",
+    "description": "Compare Fine surfaces with the denser hero model and finger creases, using the installed HD artwork. The original rig, motions and weapon attachments are preserved.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": "hero-models",
+    "shot": "player",
+    "sharp_text": true
+  },
+  {
+    "id": "hero-ayame",
+    "title": "High-detail Ayame",
+    "description": "Compare Fine surfaces with the denser hero model and finger creases, using the installed HD artwork. The original rig, motions and weapon attachments are preserved.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": "hero-models",
+    "shot": "player",
+    "sharp_text": true
+  },
+  {
+    "id": "hero-ayame-alternate",
+    "title": "High-detail Ayame Alternate",
+    "description": "Compare Fine surfaces with the denser hero model and finger creases, using the installed HD artwork. The original rig, motions and weapon attachments are preserved.",
+    "seconds": 12,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": "hero-models",
+    "shot": "player",
+    "sharp_text": true,
+    "alternate_outfit": true
+  },
+  {
     "id": "character-refinement",
     "title": "Refining the original character shapes",
     "description": "Additional surface geometry and smooth normals soften coarse faces while joint boundaries, UV seams and weapon attachments remain intact.",

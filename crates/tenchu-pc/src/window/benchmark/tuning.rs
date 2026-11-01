@@ -14,6 +14,7 @@ enum Change {
     PostProcessing,
     LocalLights(u16),
     Characters(u16),
+    HeroModels,
     Foliage(u16),
 }
 
@@ -38,6 +39,7 @@ const GPU: &[Change] = &[
 ];
 
 const CPU: &[Change] = &[
+    Change::HeroModels,
     Change::Characters(1),
     Change::Foliage(3),
     Change::Characters(0),
@@ -59,6 +61,7 @@ impl Change {
             Self::Characters(n) => {
                 format!("Character detail: {}", ["Original", "Refined"][n as usize])
             }
+            Self::HeroModels => "High-detail heroes off".into(),
             Self::Foliage(0) => "Foliage: Original".into(),
             Self::Foliage(_) => "Foliage: Botanical".into(),
         }
@@ -86,6 +89,7 @@ impl Change {
             Self::PostProcessing => g.post.enabled = false,
             Self::LocalLights(n) => g.lighting.count = g.lighting.count.min(n),
             Self::Characters(n) => g.models.characters = g.models.characters.min(n),
+            Self::HeroModels => g.models.heroes = false,
             Self::Foliage(n) => g.models.foliage = g.models.foliage.min(n),
         }
         *g != previous
@@ -319,10 +323,12 @@ mod tests {
         let mut tuner = Tuner::new(60, false, vec![1, 2, 4]);
         let mut graphics = ultra();
         assert!(tuner.advance(&mut graphics, &scenes(35.0, Some(20.0), 40.0), 0));
-        assert_eq!(graphics.models.characters, 1);
+        assert!(!graphics.models.heroes);
+        assert_eq!(graphics.models.characters, 2);
         assert_eq!(graphics.lighting.resolution, 2048);
         assert!(tuner.advance(&mut graphics, &scenes(5.0, Some(20.0), 25.0), 4));
-        assert_eq!(graphics.models.characters, 1);
+        assert!(!graphics.models.heroes);
+        assert_eq!(graphics.models.characters, 2);
         assert_eq!(graphics.lighting.resolution, 1024);
         let mut almost = scenes(5.0, Some(12.0), 16.7);
         almost[2].gpu = Distribution::new(std::iter::repeat_n(20.0, 240));
@@ -365,7 +371,8 @@ mod tests {
         assert!(tuner.advance(&mut graphics, &scenes(20.0, Some(12.0), 35.0), 4));
         assert!(tuner.trials[1].accepted);
         assert_eq!(graphics.lighting.resolution, 1024);
-        assert_eq!(graphics.models.characters, 1);
+        assert!(!graphics.models.heroes);
+        assert_eq!(graphics.models.characters, 2);
     }
 
     #[test]

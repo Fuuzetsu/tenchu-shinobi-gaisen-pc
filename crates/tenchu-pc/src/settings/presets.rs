@@ -202,6 +202,7 @@ fn modern(ultra: bool) -> Graphics {
     g.water.enabled = true;
     g.water.detail = if ultra { 2 } else { 1 };
     g.models.characters = if ultra { 2 } else { 1 };
+    g.models.heroes = true;
     g.models.foliage = if ultra { 4 } else { 3 };
     g.models.variation = true;
     g.models.grapple = true;

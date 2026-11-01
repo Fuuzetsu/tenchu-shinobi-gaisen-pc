@@ -104,6 +104,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     };
     let mut distance = scene.distance;
     match player.clip().feature {
+        Feature::HeroModels => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
             camera.yaw += (p - 0.5) * 0.25;
         }
@@ -213,12 +214,23 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::Presets => g.set_preset([0, 3, 4, 1, 2, 5, 6][section(p, 7)]),
         Feature::Vegetation => g.models.foliage = [0, 1, 2][section(p, 3)],
         Feature::CharacterRefinement => {
+            g.models.heroes = false;
             g.models.characters = [0, 1, 2][section(p, 3)];
             g.model_detail = 0;
             g.interpolation = true;
             g.lighting.enabled = true;
             g.sky.enabled = true;
             g.sky.time = 600;
+        }
+        Feature::HeroModels => {
+            g.models.heroes = p >= 0.3;
+            g.models.characters = 2;
+            g.model_detail = 0;
+            g.interpolation = true;
+            g.lighting.enabled = true;
+            g.sky.enabled = true;
+            g.sky.time = 600;
+            g.post.vignette = 0;
         }
         Feature::SecondaryMotion => {
             let enabled = section(p, 4) % 2 == 1;
@@ -759,6 +771,14 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
                 "Refined surfaces · original joints and UV seams",
                 "Fine surfaces · original animation and attachments",
             ][usize::from(g.models.characters)]
+            .into(),
+        ),
+        Feature::HeroModels => text(
+            if g.models.heroes {
+                "High-detail hero · rounded surfaces and finger creases · original rig"
+            } else {
+                "Existing Fine character surfaces"
+            }
             .into(),
         ),
         Feature::Lanterns => meter("Point-light strength (%)", l.intensity, 220),

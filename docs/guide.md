@@ -1168,6 +1168,15 @@ pass. It replaces the older contour option while enabled; authored replacement
 characters and weapon meshes remain as supplied. Existing animation, attachments,
 collision and AI visibility are unchanged. Original is the default for both options.
 
+**High-detail heroes** adds denser curved surfaces and finger creases for
+Rikimaru and Ayame, including armour and Ayame's alternate outfit. It uses their
+original rigs and UV layouts, so the existing v3 HD artwork supplies the modern
+textures. No extra pack download is needed. This is a refinement of the retail
+characters, not a different character design; custom replacement meshes are
+left as supplied. Modern High/Ultra enable it. Auto-optimisation can turn it off
+if character rendering is a bottleneck. The `hero-rikimaru`, `hero-ayame` and
+`hero-ayame-alternate` demos compare it with the existing Fine option.
+
 Vegetation adds angled layers to connected cutout clusters and refines selected
 trunks and dense shrubs, reusing the original or installed HD textures. Connected material tiles
 share their pivot so branch/leaf textures remain joined. Explicit fingerprints

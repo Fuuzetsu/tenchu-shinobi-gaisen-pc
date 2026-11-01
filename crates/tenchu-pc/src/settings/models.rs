@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Models {
+    pub heroes: bool,
     pub characters: u16,
     pub foliage: u16,
     pub variation: bool,

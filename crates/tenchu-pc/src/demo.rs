@@ -248,7 +248,13 @@ impl Player {
             language,
             ..Default::default()
         };
-        let mut game = options.load(assets)?;
+        let mut game = if self.clip().alternate_outfit {
+            let mut inventory = [0; 20];
+            inventory[19] = 255;
+            options.load_equipped(assets, 1, inventory)?
+        } else {
+            options.load(assets)?
+        };
         if self.clip().feature != Feature::Cinematics {
             game.events = Default::default();
             for _ in 0..30 {
@@ -363,6 +369,13 @@ impl Player {
         }
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
+            Feature::HeroModels => {
+                if tick % 100 == 35 {
+                    SQUARE
+                } else {
+                    0
+                }
+            }
             Feature::Remake(feature) => remake::buttons(feature, tick, self.clip().seconds),
             Feature::WeaponFinishes => {
                 if tick.is_multiple_of(45) {

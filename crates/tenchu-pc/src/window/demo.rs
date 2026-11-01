@@ -252,7 +252,11 @@ impl Application {
             }
             Shot::Player => {
                 scene.target = origin - Vec3::Y * 500.0;
-                scene.distance = 4200.0;
+                scene.distance = if clip.feature == Feature::HeroModels {
+                    2800.0
+                } else {
+                    4200.0
+                };
                 scene.pitch = -0.25;
                 scene.yaw += 2.2;
                 if clip.feature == Feature::SecondaryMotion {

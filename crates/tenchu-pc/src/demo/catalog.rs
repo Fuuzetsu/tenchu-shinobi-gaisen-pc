@@ -31,6 +31,7 @@ pub enum Feature {
     Waterfalls,
     Vegetation,
     CharacterRefinement,
+    HeroModels,
     SecondaryMotion,
     Breeze,
     Blood,
@@ -93,6 +94,8 @@ pub struct Clip {
     pub seconds: u16,
     pub mission: usize,
     pub character: i16,
+    #[serde(default)]
+    pub alternate_outfit: bool,
     pub preset: u16,
     pub feature: Feature,
     pub shot: Shot,
@@ -148,6 +151,7 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
         if !(2..=120).contains(&c.seconds)
             || c.mission > 10
             || !(0..=1).contains(&c.character)
+            || c.alternate_outfit && c.character != 1
             || c.preset >= crate::settings::presets::CUSTOM
             || c.weather_warmup > 60
             || c.music.is_some_and(|cue| cue > 18)
