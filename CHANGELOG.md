@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.9.9 — 2026-11-01
+
 - **Alternate player deaths** now chooses among all three ninja death motions,
   excluding the hero's existing animation. Completed alternate corpses stop
   drifting with the original animation, and longer variants play to their end.
