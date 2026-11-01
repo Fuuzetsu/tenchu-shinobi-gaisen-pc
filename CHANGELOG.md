@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- With all enemies active, reject call-aid spawn locations outside the map or
+  without a valid floor. Missing terrain no longer qualifies as hidden ground;
+  cover is checked at the new guard's floor height. Failed attempts preserve the
+  caller and its ability to recruit later.
+
 ## 0.14.0 — 2026-11-01
 
 - Add a rewind timeline with backward/forward seeking, single-frame steps and

@@ -121,9 +121,13 @@ fn all_active_alarm_calls_are_bounded() {
 }
 
 fn alarm(game: &mut Game, id: usize, timer: u8) {
+    call_at(game, id, timer, Position::new(0, 0, 18000), false);
+}
+
+fn call_at(game: &mut Game, id: usize, timer: u8, position: Position, civilian: bool) {
     let mut actor = game.roster.take(id);
-    actor.position = Position::new(0, 0, 18000);
-    actor.brain.chase = [0, 18000];
+    actor.position = position;
+    actor.brain.chase = [position.x, position.z];
     actor.brain.timer = timer;
     let mut ctx = Context {
         mission: &mut game.mission,
@@ -142,7 +146,7 @@ fn alarm(game: &mut Game, id: usize, timer: u8) {
         distance: 18000,
         direction: 0,
     };
-    Controller::new(
+    let mut controller = Controller::new(
         &mut actor,
         &mut game.roster,
         &mut game.items,
@@ -154,10 +158,61 @@ fn alarm(game: &mut Game, id: usize, timer: u8) {
             commands: &game.commands,
         },
         &mut ctx,
-    )
-    .alarm()
-    .unwrap();
+    );
+    if civilian {
+        controller.call_aid().unwrap();
+        assert!(
+            controller.replaced.is_none(),
+            "an invalid spawn must keep the caller"
+        );
+    } else {
+        controller.alarm().unwrap();
+    }
     game.roster.restore(actor);
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; missing terrain must not qualify as hidden reinforcement ground"]
+fn all_active_calls_reject_out_of_bounds_holes_and_missing_floors() {
+    for (point, civilian) in [
+        Position::new(40000, 0, 18000),
+        Position::new(20000, 0, 10000),
+        Position::new(0, 10000, 18000),
+    ]
+    .into_iter()
+    .flat_map(|point| [false, true].map(|civilian| (point, civilian)))
+    {
+        let mut game = corner();
+        let caller = game.roster.order[1];
+        let mut cursor = terrain::Cursor::new(&game.mission.terrain);
+        assert_eq!(
+            terrain::level(
+                &game.mission.terrain,
+                &mut cursor,
+                point,
+                terrain::STEP_DOWN
+            )
+            .unwrap(),
+            terrain::NONE
+        );
+        let seed = game.random.seed;
+        let population = game.roster.order.len();
+        let models = game.scene.models.len();
+        call_at(&mut game, caller, 2, point, civilian);
+        assert_eq!(
+            game.roster.order.len(),
+            population,
+            "invalid spawn point: {point:?}"
+        );
+        assert_eq!(game.scene.models.len(), models);
+        assert_eq!(game.random.seed, seed);
+        assert_eq!(game.roster.get(caller).recruitment, Recruitment::Available);
+
+        call_at(&mut game, caller, 2, Position::new(0, 0, 17500), false);
+        assert_eq!(game.roster.order.len(), population + 1);
+        let recruit = game.roster.get(*game.roster.order.last().unwrap());
+        assert_eq!(recruit.position, Position::new(0, 0, 17500));
+    }
 }
 
 #[test]

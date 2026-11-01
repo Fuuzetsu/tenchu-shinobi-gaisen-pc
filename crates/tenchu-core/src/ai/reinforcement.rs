@@ -8,19 +8,25 @@ impl Controller<'_, '_> {
                     && self.roster.reinforcement_call.count != 0))
     }
 
-    fn reinforcement_has_cover(&self) -> Result<bool> {
+    fn reinforcement_spawn_allowed(&self) -> Result<bool> {
         if !self.roster.keep_all_active {
             return Ok(true);
         }
-        // Retail relies on distance; whole-level AI also requires terrain cover.
+        let terrain = &self.ctx.mission.terrain;
+        let mut cursor = terrain::Cursor::new(terrain);
+        let mut position = self.actor.position;
+        position.y = terrain::level(terrain, &mut cursor, position, terrain::STEP_DOWN)?;
+        if position.y == terrain::NONE {
+            return Ok(false);
+        }
+        // Check the floor-snapped spawn, not the caller: missing terrain also blocks passage.
         let from =
             self.player
                 .position
                 .wrapping_sub(Position::new(0, i32::from(self.player.height), 0));
         let height = i32::from(self.ctx.mission.characters[self.actor.definition].height);
-        let mut cursor = terrain::Cursor::new(&self.ctx.mission.terrain);
         for y in [0, height / 2, height] {
-            let to = self.actor.position.wrapping_sub(Position::new(0, y, 0));
+            let to = position.wrapping_sub(Position::new(0, y, 0));
             let mut step = to.wrapping_sub(from);
             let mut count = 1i16;
             while step.iter().any(|v| v.abs() > 500) {
@@ -61,7 +67,7 @@ impl Controller<'_, '_> {
         if self.roster.keep_all_active && self.actor.recruitment == Recruitment::Reinforcement {
             return self.escape();
         }
-        if self.distance() < 16500 || !self.reinforcement_has_cover()? {
+        if self.distance() < 16500 || !self.reinforcement_spawn_allowed()? {
             if self.state.detection != Detection::Gone {
                 self.state.detection = Detection::None;
             }
@@ -147,7 +153,7 @@ impl Controller<'_, '_> {
                         .ok_or("Zero AI turn speed")?;
                     self.hold(if self.degree() > 0 { LEFT } else { RIGHT }, ticks);
                 }
-                if self.distance() > 16500 && self.reinforcement_has_cover()? {
+                if self.distance() > 16500 && self.reinforcement_spawn_allowed()? {
                     let count = if self.roster.keep_all_active {
                         let call = self.roster.reinforcement_call;
                         let count = call.count.min(crate::roster::ReinforcementCall::MAX_COUNT);

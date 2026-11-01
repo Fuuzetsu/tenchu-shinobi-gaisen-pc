@@ -426,3 +426,23 @@ and WebGL2 exercise persistent save/restart, timeline slider/buttons, exact
 return to Latest, repeated seeks and branch/resume. Ordinary workspace tests,
 disc-backed rewind tests, formatting and strict native/WASM Clippy pass.
 Logs/captures remain in `private/issues/rewind-timeline`.
+
+## Call-aid spawn bounds
+
+The all-active cover test treated a failed terrain passage as occlusion, including
+passages into missing terrain. `APPEAR.C::BreedLife` and its Rust constructor
+assign the result of the STEP_DOWN floor query directly to the new actor's Y;
+without a floor that is the `i32::MIN` sentinel. The port's all-active extension
+now validates this floor before visibility testing and tests cover at that actual
+spawn height. Original distance-only recruitment is unchanged, as specified by
+`THINK.C::Think3alarm` / `Think3callaid`.
+
+A disc-backed fixture failed before the fix by adding a guard outside its terrain
+bounds. It now checks map bounds, an interior terrain hole, and a caller below
+all floors through both alarm/call-aid paths. Rejected calls allocate no actor
+or models, consume no RNG and retain recruitment eligibility; moving the caller
+to valid hidden ground still produces a guard at the correct height. Existing
+cover/population, nonrecursive-call, recruitment reset, civilian replacement and
+original-C AI comparisons pass. This confirms an unsafe spawn condition; the
+external report did not include a mission or replay to identify its exact route.
+Logs remain in `private/issues/callaid-bounds`.
