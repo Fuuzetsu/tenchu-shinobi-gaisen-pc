@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Play rewind continuously backward, with configurable 0.25×–8× speed (default
+  2×), including model interpolation, hair/cloth motion and accumulated effects.
+  Ctrl+F12 starts/stops; F3 resumes forward. Unchanged scene resources stay cached;
+  per-update compressed history remains optional and bounded to 96 MiB.
+
 - Synchronize alternate player death pools and blood-impact sounds with the
   visible animation. Each variant uses its own authored ground movement and
   stops after settling; gameplay timing, other actors' sounds and Original/Retro

@@ -9,6 +9,8 @@ pub(in crate::window) struct State {
     footprints: footprints::Footprints,
     contact: contact::Contact,
     deaths: death::Deaths,
+    motion: crate::visuals::motion::Motion,
+    interpolation: crate::visuals::interpolation::History,
 }
 
 impl View {
@@ -20,6 +22,8 @@ impl View {
             footprints: self.footprints.clone(),
             contact: self.contact.clone(),
             deaths: self.deaths.clone(),
+            motion: self.motion.clone(),
+            interpolation: self.interpolation.clone(),
         }
     }
 
@@ -30,7 +34,11 @@ impl View {
         self.footprints = state.footprints;
         self.contact = state.contact;
         self.deaths = state.deaths;
-        self.reset_interpolation(game);
+        self.frame = None;
+        self.interpolation = state.interpolation;
+        self.motion = state.motion;
+        self.motion
+            .rebind(game, &self.models, self.deaths.frame.as_ref());
         self.dirty = true;
     }
 }
@@ -55,6 +63,16 @@ mod tests {
             .tick(game.tick, eye, surfaces, &settings.graphics.weather);
         let weather = state.weather.sample(&settings.graphics.weather, 1.0);
         state.deaths.tick(game, 100).unwrap();
+        state.interpolation.tick(game);
+        if let Some(frame) = &state.deaths.frame {
+            state.interpolation.present(game.tick, frame);
+        }
+        state.motion.tick(
+            game,
+            models,
+            &settings.graphics.motion,
+            state.deaths.frame.as_ref(),
+        );
         state.blood.tick(
             game,
             models,
@@ -81,6 +99,10 @@ mod tests {
         let mut app = crate::window::tests::application(Options::default());
         let mut settings = Settings::default();
         settings.graphics.blood = crate::settings::Blood::modern();
+        settings.graphics.motion.hair = true;
+        settings.graphics.motion.cloth = true;
+        settings.graphics.motion.equipment = true;
+        settings.graphics.motion.wind = 100;
         settings.graphics.sky.enabled = true;
         settings.graphics.sky.speed = 60;
         settings.graphics.weather.mode = crate::settings::WeatherMode::Snow;
@@ -103,6 +125,8 @@ mod tests {
             footprints: Default::default(),
             contact: Default::default(),
             deaths: death::Deaths::load(&app.assets).unwrap(),
+            motion: Default::default(),
+            interpolation: Default::default(),
         };
         let eye = Vec3::from(game.player().position.map(|n| n as f32).to_array());
         state
@@ -130,6 +154,10 @@ mod tests {
         assert!(state.weather.sample(&settings.graphics.weather, 1.0).snow > 0.0);
         let bytes = crate::savestate::encode(&state).unwrap();
         let mut restored: State = crate::savestate::decode(&bytes).unwrap();
+        restored
+            .motion
+            .rebind(game, &models, restored.deaths.frame.as_ref());
+        assert!(!restored.motion.sample(1.0).is_empty());
         assert_eq!(
             postcard::to_allocvec(&state).unwrap(),
             postcard::to_allocvec(&restored).unwrap()

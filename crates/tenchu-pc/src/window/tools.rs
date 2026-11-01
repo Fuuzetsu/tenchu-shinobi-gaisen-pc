@@ -209,6 +209,7 @@ impl Application {
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
         if self.settings.rewind_seconds != previous.rewind_seconds {
+            self.stop_rewind();
             self.rewind.clear();
             self.record_rewind();
         }
@@ -355,7 +356,7 @@ impl Application {
             }
             Item::SaveState => self.state_action(true)?,
             Item::LoadState => self.state_action(false)?,
-            Item::Rewind => self.rewind_step()?,
+            Item::Rewind => self.toggle_rewind()?,
             Item::RecenterOrbit => self.recenter_orbit(),
             Item::Randomizer => self.toggle_randomizer(),
             Item::GodMode => self.set_god_mode(!self.debug.god_mode)?,

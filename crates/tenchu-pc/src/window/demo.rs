@@ -12,6 +12,7 @@ impl Application {
         let Some(player) = &mut self.demo else {
             return Ok(());
         };
+        self.reverse = Default::default();
         self.rewind.clear();
         let clip = player.clip().clone();
         let view = self.view.as_mut().ok_or("Demo window is not ready")?;

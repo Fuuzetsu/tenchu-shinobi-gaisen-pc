@@ -38,6 +38,7 @@ impl Part {
     }
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Snapshot {
     tick: u64,
     parts: BTreeMap<Part, Matrix>,
@@ -79,7 +80,7 @@ impl Snapshot {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct History {
     previous: Option<Snapshot>,
     current: Option<Snapshot>,

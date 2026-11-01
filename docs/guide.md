@@ -1326,8 +1326,8 @@ cutscene position, edited/imported actors and randomizer context. They also reta
 blood, snow, footprints and other accumulated effects. Gameplay settings follow
 the state; current graphics settings and installed artwork/model packs remain in
 use. The view returns to the player camera. Music/dialogue resumes near its saved
-position; already-playing one-shot sounds and cosmetic hair/waterfall motion
-restart. Loading itself does not write campaign progress; subsequent normal
+position; already-playing one-shot sounds restart. Hair/cloth motion and
+time-based waterfall effects return to the saved point. Loading itself does not write campaign progress; subsequent normal
 mission completion or manual saving can do so.
 
 Desktop files are `states/slot-1.tstate` through `slot-5.tstate` below the game
@@ -1343,18 +1343,21 @@ the browser, and are removed by clearing site data. The campaign **Export save**
 button does not include these separate slots.
 
 **F1 → Simulation → Rewind history** optionally keeps up to 30 seconds of play
-in memory. **Ctrl+F12**, or the **Rewind 1s** button, shows the preceding
-checkpoint and pauses with the world visible. Press again to step further back;
-**F3** resumes from that point and replaces the old future. Checkpoints are one
-second apart, so the first step can be shorter. History includes the same game
-and visual state as file saves, including RNG, projectiles, explosions, grapple,
-blood, snow and footprints. Audio and cosmetic motion have the same limitations.
-Rewinding ends input recording and disables TRIAL records; merely capturing does
-not affect gameplay. Current graphics and the rewind preference remain unchanged.
+in memory. **Ctrl+F12**, or the **Rewind** button, plays the world backward.
+Press it again to stop, or **F3** to resume forward and replace the old future.
+**Rewind speed** ranges from 25% to 800%, with 200% (twice real time) as the default.
+The world pauses at the oldest available state. Audio is muted during reverse
+playback; music/dialogue resumes near the restored position afterward.
 
-Rewind is off by default. It adds a snapshot/compression cost once per simulation
-second and uses at most 96 MiB for stored checkpoints; unusually large states can
-shorten the available history. The menu shows its current duration and memory.
+History stores every game update, including RNG, enemies, live items, grapple,
+explosions, blood, weather, footprints and hair/cloth motion. Visual interpolation
+also runs backward when enabled. Rewinding ends input recording and disables
+TRIAL records; merely capturing does not affect gameplay. Current graphics and
+the rewind preference remain unchanged. A free camera stays usable during rewind.
+
+Rewind is off by default. It adds serialization/compression work each simulation
+tick and caps retained history at 96 MiB. Large missions or accumulated effects
+can shorten the history; the menu shows its available duration and compressed size.
 Retrying, switching missions, opening the title, starting a demo/benchmark or
 loading a file clears it. It does not survive closing the game; use a savestate
 slot for that.

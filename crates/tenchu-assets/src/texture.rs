@@ -35,14 +35,14 @@ impl Image {
     }
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ScrollingImage {
     pub image: Image,
     pub source: [u16; 2],
     pub offset: [u16; 2],
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Vram {
     pub words: Vec<u16>,
     pub revision: u64,

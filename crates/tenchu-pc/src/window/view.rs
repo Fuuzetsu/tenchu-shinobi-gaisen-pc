@@ -738,8 +738,6 @@ impl View {
 
     pub(super) fn reset_interpolation(&mut self, game: &Game) {
         self.frame = None;
-        self.motion = Default::default();
-        self.models.motion.clear();
         if self.interpolation_enabled {
             self.interpolation.reset(game);
             if let Some(frame) = &self.deaths.frame {

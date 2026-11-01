@@ -40,7 +40,7 @@ pub struct Audio {
     playhead_updated: Instant,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct State {
     current: Option<Track>,
     mission: Option<Track>,
@@ -66,6 +66,11 @@ impl Audio {
         self.catalog = catalog;
         self.output.send(Command::Clear);
         self.output.send(Command::Bank(Arc::new(bank)));
+        self.restore_playback(campaign, state);
+    }
+
+    pub fn restore_playback(&mut self, campaign: &Campaign, state: Option<State>) {
+        self.output.send(Command::Clear);
         self.screen = Some(discriminant(&campaign.screen));
         self.fast_forward = false;
         self.volume(self.volume);

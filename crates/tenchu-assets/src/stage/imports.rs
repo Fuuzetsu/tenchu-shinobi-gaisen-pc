@@ -1,27 +1,27 @@
 use super::*;
 use std::sync::Arc;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub source_kind: i16,
     pub vram: Arc<Vram>,
     pub clip_ids: BTreeMap<i16, i16>,
 }
 
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Voice {
     pub stage: usize,
     pub character: i16,
     pub program: usize,
 }
 
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Actor {
     pub definition: usize,
     pub model: i16,
 }
 
-#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Reinforcement {
     pub actor: Option<Actor>,
     pub voice: Option<i16>,

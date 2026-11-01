@@ -22,7 +22,7 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
             a.campaign.game.set_inventory(4, 10).unwrap();
             a.campaign.game.hud.cursor = 4;
         }
-        assert!(app.rewind_step().is_err());
+        assert!(app.toggle_rewind().is_err());
         app.settings.rewind_seconds = 30;
         let mut expected = BTreeMap::new();
         let mut active_items = 0;
@@ -59,7 +59,7 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
             }
         }
         assert!(active_items > 3);
-        assert!(app.rewind.entries.len() <= 31);
+        assert!(app.rewind.entries.len() <= 901);
         assert!(app.rewind.ticks(app.campaign.game.tick) <= 930);
         let bytes = app.rewind.bytes;
         let started = Instant::now();
@@ -71,7 +71,8 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
         );
         drop(sample);
         for _ in 0..6 {
-            app.rewind_step().unwrap();
+            app.rewind_to(app.rewind.previous(app.campaign.game.tick).unwrap())
+                .unwrap();
             assert_eq!(
                 &postcard::to_allocvec(&app.campaign.game).unwrap(),
                 &expected[&app.campaign.game.tick]
@@ -87,12 +88,13 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
         assert!(app.rewind.bytes < bytes);
         let branch = app.campaign.game.tick;
         app.paused = false;
-        for _ in 0..31 {
+        for _ in 0..4 {
             assert!(app.game_tick(input::DOWN));
         }
         let changed = postcard::to_allocvec(&app.campaign.game).unwrap();
-        app.rewind_step().unwrap();
-        assert_eq!(app.campaign.game.tick, branch + 30);
+        app.rewind_to(app.rewind.previous(app.campaign.game.tick).unwrap())
+            .unwrap();
+        assert_eq!(app.campaign.game.tick, branch + 3);
         assert_ne!(
             &postcard::to_allocvec(&app.campaign.game).unwrap(),
             &expected[&app.campaign.game.tick]
@@ -102,10 +104,72 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
         app.restore_state(&file).unwrap();
         assert_eq!(app.settings.rewind_seconds, 30);
         assert!(app.rewind.entries.is_empty());
-        assert!(app.rewind_step().is_err());
+        assert!(app.toggle_rewind().is_err());
         app.record_rewind();
         assert!(!app.rewind.entries.is_empty());
         app.action(Action::Replay);
         assert!(app.rewind.entries.is_empty());
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; timed reverse playback must preserve exact state and geometry caches, honor pause, and branch on resume"]
+fn continuous_rewind_obeys_speed_and_preserves_scene_allocations() {
+    use std::time::Duration;
+    let mut app = application(Options::default());
+    app.campaign.game.events = Default::default();
+    app.settings.rewind_seconds = 10;
+    let mut expected = BTreeMap::new();
+    for _ in 0..120 {
+        app.game_tick(input::UP);
+        if app.campaign.game.tick >= 90 {
+            expected.insert(
+                app.campaign.game.tick,
+                postcard::to_allocvec(&app.campaign.game).unwrap(),
+            );
+        }
+    }
+    let pointers = |game: &Game| {
+        crate::visuals::catalog::models(&game.mission)
+            .into_iter()
+            .map(|m| (m.id, m.geometry.as_ptr() as usize))
+            .collect::<Vec<_>>()
+    };
+    let scene = pointers(&app.campaign.game);
+    let before = app.campaign.game.tick;
+    app.settings.rewind_speed = 200;
+    app.toggle_rewind().unwrap();
+    for _ in 0..10 {
+        app.advance_simulation(Duration::from_nanos(16_666_667));
+        assert_eq!(pointers(&app.campaign.game), scene);
+        assert_eq!(
+            &postcard::to_allocvec(&app.campaign.game).unwrap(),
+            &expected[&app.campaign.game.tick]
+        );
+    }
+    assert_eq!(app.campaign.game.tick, before - 10);
+    app.focused = false;
+    app.advance_simulation(Duration::from_millis(100));
+    assert_eq!(app.campaign.game.tick, before - 10);
+    app.focused = true;
+    app.settings.rewind_speed = 50;
+    for _ in 0..4 {
+        app.advance_simulation(Duration::from_nanos(16_666_667));
+    }
+    assert_eq!(app.campaign.game.tick, before - 11);
+    app.toggle_rewind().unwrap();
+    app.advance_simulation(Duration::from_secs(1));
+    assert_eq!(app.campaign.game.tick, before - 11);
+    app.set_paused(false);
+    app.game_tick(input::DOWN);
+    assert_ne!(
+        &postcard::to_allocvec(&app.campaign.game).unwrap(),
+        &expected[&app.campaign.game.tick]
+    );
+    app.toggle_rewind().unwrap();
+    while app.reverse.active {
+        app.advance_simulation(Duration::from_millis(100));
+    }
+    assert_eq!(app.rewind.entries.len(), 1);
+    assert!(app.paused);
 }

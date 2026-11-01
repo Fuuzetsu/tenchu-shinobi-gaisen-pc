@@ -89,6 +89,10 @@ impl Application {
     }
 
     pub(super) fn advance_simulation(&mut self, elapsed: Duration) {
+        if self.reverse.active {
+            self.advance_rewind(elapsed);
+            return;
+        }
         if std::mem::take(&mut self.debug.frame_step) {
             if self.focused && self.simulating() && !self.faulted {
                 self.game_tick(0);

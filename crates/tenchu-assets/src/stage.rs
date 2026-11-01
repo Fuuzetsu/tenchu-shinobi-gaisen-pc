@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 
 pub mod imports;
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Placement {
     pub part: usize,
     pub cloned: bool,
@@ -23,7 +23,7 @@ pub struct Placement {
     pub facing: i32,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Enemy {
     pub slot: usize,
     pub kind: i16,
@@ -33,13 +33,13 @@ pub struct Enemy {
     pub patrol: Vec<([i32; 3], i32)>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Pickup {
     pub kind: usize,
     pub position: [i32; 3],
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Layout {
     pub index: usize,
     pub data: Vec<u8>,

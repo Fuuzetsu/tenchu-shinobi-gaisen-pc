@@ -75,6 +75,7 @@ struct Application {
     performance: performance::Performance,
     recent_inputs: diagnostics::RecentInputs,
     rewind: crate::rewind::History,
+    reverse: rewind::Playback,
     benchmarks: benchmark::Benchmarks,
     presets: settings::library::Manager,
     randomizer: crate::randomizer::Editor,
@@ -134,6 +135,8 @@ impl Application {
         );
         let alpha = if let Some(demo) = &self.demo {
             demo.alpha()
+        } else if self.reverse.active {
+            1.0 - self.reverse.fraction as f32
         } else if self.is_suspended()
             || !self.simulating()
             || self.debug.speed == 0
@@ -158,6 +161,17 @@ impl Application {
                 debug: &self.debug,
                 alpha,
             });
+            if self.reverse.active {
+                view.labels.retain(|l| !l.1.starts_with("PAUSED"));
+                view.labels.push(crate::debug::Label(
+                    crate::debug::Anchor::TopLeft([10.0, 132.0]),
+                    format!(
+                        "REWIND {:.2}×  Ctrl+F12: stop  F3: resume",
+                        f64::from(self.settings.rewind_speed) / 100.0
+                    ),
+                    [1.0, 0.85, 0.35],
+                ));
+            }
             if let Some(demo) = &self.demo {
                 view.window.set_title(&format!(
                     "Tenchu — showcase | {} | {:.1} / {}s | tick {}",
@@ -202,7 +216,10 @@ impl Application {
         if let Some(audio) = &mut self.audio {
             audio.pause(
                 paused,
-                self.settings.music_while_paused && self.campaign.scene_visible() && !self.faulted,
+                self.settings.music_while_paused
+                    && self.campaign.scene_visible()
+                    && !self.faulted
+                    && !self.reverse.active,
             );
         }
     }
@@ -256,6 +273,7 @@ impl Application {
     fn action(&mut self, action: Action) {
         let action = self.campaign.screen.menu_action(action);
         if matches!(action, Action::Replay) {
+            self.stop_rewind();
             self.rewind.clear();
         }
         if matches!(self.campaign.screen, Screen::DeathHold { .. })
@@ -366,6 +384,9 @@ impl Application {
     }
 
     fn set_paused(&mut self, paused: bool) {
+        if self.reverse.active {
+            self.stop_rewind();
+        }
         let changed = self.paused != paused;
         if paused {
             self.flush_recording();
@@ -733,7 +754,7 @@ impl ApplicationHandler for Application {
                     && matches!(code, KeyCode::F11 | KeyCode::F12)
                 {
                     let result = if code == KeyCode::F12 && self.modifiers.control_key() {
-                        self.rewind_step()
+                        self.toggle_rewind()
                     } else {
                         self.state_action(code == KeyCode::F11)
                     };
@@ -1012,6 +1033,7 @@ impl ApplicationHandler for Application {
                 let phase = Instant::now();
                 if self.demo.is_some()
                     || before != self.campaign.game.tick
+                    || self.reverse.active
                     || fps_changed && self.settings.show_fps
                     || self.debug.camera.is_some()
                     || self.orbit_enabled() && !suspended
@@ -1240,6 +1262,7 @@ pub fn run(
         performance: Default::default(),
         recent_inputs: Default::default(),
         rewind: Default::default(),
+        reverse: Default::default(),
         benchmarks: benchmark::Benchmarks::new(startup.benchmark),
         presets,
         randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),

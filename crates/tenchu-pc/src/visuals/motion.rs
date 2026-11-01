@@ -176,7 +176,9 @@ struct Input {
     limit: f32,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 struct Spring {
+    #[serde(skip)]
     geometry: usize,
     anchor: Vec3,
     drive: Vec3,
@@ -223,13 +225,28 @@ impl Spring {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Motion {
     tick: Option<u64>,
     springs: BTreeMap<(Part, usize), Spring>,
 }
 
 impl Motion {
+    pub fn rebind(
+        &mut self,
+        game: &Game,
+        models: &Models,
+        frame: Option<&super::interpolation::Frame>,
+    ) {
+        appearance::visit_parts(game, true, Some(models), frame, |key, geometry, _| {
+            for ((part, _), spring) in &mut self.springs {
+                if *part == key.canonical() {
+                    spring.geometry = geometry.as_ptr() as usize;
+                }
+            }
+        });
+    }
+
     pub fn tick(
         &mut self,
         game: &Game,

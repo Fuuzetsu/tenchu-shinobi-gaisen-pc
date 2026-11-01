@@ -54,7 +54,11 @@ impl Application {
             imports: self.debug.actor_imports.clone(),
             actors_edited: self.debug.actors_edited,
             visuals: self.view.as_ref().map(View::capture_state),
-            audio: self.audio.as_ref().map(crate::audio::Audio::capture_state),
+            audio: self
+                .reverse
+                .audio
+                .clone()
+                .or_else(|| self.audio.as_ref().map(crate::audio::Audio::capture_state)),
         })
     }
 
@@ -67,14 +71,14 @@ impl Application {
     }
 
     pub(super) fn restore_rewind(&mut self, state: &crate::rewind::Snapshot) -> Result<()> {
-        self.restore_snapshot(state.decode()?)
+        self.restore_snapshot(state.decode()?, true)
     }
 
     pub(super) fn restore_state(&mut self, bytes: &[u8]) -> Result<()> {
-        self.restore_snapshot(crate::savestate::decode(bytes)?)
+        self.restore_snapshot(crate::savestate::decode(bytes)?, false)
     }
 
-    fn restore_snapshot(&mut self, state: State<Game>) -> Result<()> {
+    fn restore_snapshot(&mut self, mut state: State<Game>, rewind: bool) -> Result<()> {
         self.state_tools_available()?;
         state.validate()?;
         #[cfg(target_arch = "wasm32")]
@@ -85,13 +89,23 @@ impl Application {
                 return Err("Preparing this savestate's language and audio; load again once the download finishes".into());
             }
         }
-        // Do all fallible disc work before replacing the running mission.
-        let bank = crate::audio::game_bank(&self.assets, &state.game)?;
-        let catalog = tenchu_assets::audio::catalog::Catalog::load(
-            &self.assets.executable,
-            state.game.mission.scripts.language,
-        )?;
-        let debug = crate::debug::Debug::new(&state.game)?;
+        let reuse = rewind
+            && self.settings.player_model == state.preferences.player_model
+            && same_scene(&state.game, &self.campaign.game);
+        let sound = if reuse {
+            None
+        } else {
+            Some((
+                crate::audio::game_bank(&self.assets, &state.game)?,
+                tenchu_assets::audio::catalog::Catalog::load(
+                    &self.assets.executable,
+                    state.game.mission.scripts.language,
+                )?,
+            ))
+        };
+        let debug = (!reuse)
+            .then(|| crate::debug::Debug::new(&state.game))
+            .transpose()?;
         let selection = state
             .randomized
             .as_ref()
@@ -109,7 +123,7 @@ impl Application {
         } else {
             None
         };
-        if let Some(setup) = &state.game.mission.trial {
+        if !reuse && let Some(setup) = &state.game.mission.trial {
             self.trial
                 .restore_playtest(&self.assets, &setup.mission, state.options.character)?;
         }
@@ -118,6 +132,9 @@ impl Application {
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
             frontend.leave();
+        }
+        if reuse {
+            reuse_scene(&mut state.game, &mut self.campaign.game);
         }
         if state.game.trial.is_some() {
             if self.trial_previous.is_none() {
@@ -149,7 +166,9 @@ impl Application {
         self.campaign.cursor = 0;
         self.settings
             .restore_gameplay(&state.preferences, &self.campaign.game);
-        self.debug = debug;
+        if let Some(debug) = debug {
+            self.debug = debug;
+        }
         self.debug.pause_view = true;
         self.debug.actor_imports = state.imports;
         self.debug.actors_edited = state.actors_edited;
@@ -157,8 +176,18 @@ impl Application {
         self.orbit.looking = false;
         self.trial.eligible = false;
         self.recent_inputs = Default::default();
-        if let Some(audio) = &mut self.audio {
-            audio.restore_state(&self.campaign, catalog, bank, state.audio);
+        if let Some((bank, catalog)) = sound
+            && let Some(audio) = &mut self.audio
+        {
+            audio.restore_state(&self.campaign, catalog, bank, None);
+            if rewind {
+                audio.pause(true, false);
+            }
+        }
+        if rewind {
+            self.reverse.audio = state.audio;
+        } else if let Some(audio) = &mut self.audio {
+            audio.restore_playback(&self.campaign, state.audio);
         }
         if let Some(view) = &mut self.view {
             if library.is_some() {
@@ -169,7 +198,7 @@ impl Application {
                 .randomized
                 .as_ref()
                 .map(|r| r.plan.player_model.clone().unwrap_or_default());
-            if let Err(error) = view.reload(&self.campaign.game, &self.settings) {
+            if !reuse && let Err(error) = view.reload(&self.campaign.game, &self.settings) {
                 eprintln!("Savestate restored with original models: {error}");
             }
             if let Some(visuals) = state.visuals {
@@ -179,13 +208,18 @@ impl Application {
         self.controls.clear();
         self.controls.stop_rumble();
         self.clock = GameClock::default();
-        self.last_frame = Instant::now();
+        if !rewind {
+            self.last_frame = Instant::now();
+        }
         self.paused = true;
         self.faulted = false;
         self.fault = None;
         self.error = None;
-        self.sync_pause();
-        self.update_view();
+        if !rewind {
+            self.reverse = Default::default();
+            self.sync_pause();
+            self.update_view();
+        }
         Ok(())
     }
 
@@ -300,4 +334,38 @@ impl State<Game> {
         }
         Ok(())
     }
+}
+
+fn same_scene(next: &Game, previous: &Game) -> bool {
+    let a = &next.mission;
+    let b = &previous.mission;
+    if a.stage != b.stage
+        || a.trial.is_some() != b.trial.is_some()
+        || next.player().kind != previous.player().kind
+    {
+        return false;
+    }
+    if a.scripts.language != b.scripts.language
+        || a.placements != b.placements
+        || a.map != b.map
+        || a.objects != b.objects
+        || a.models != b.models
+        || a.common_models != b.common_models
+        || a.weapons.models != b.weapons.models
+        || a.imported_models != b.imported_models
+        || a.imported_voices != b.imported_voices
+    {
+        return false;
+    }
+    true
+}
+
+fn reuse_scene(next: &mut Game, previous: &mut Game) {
+    let a = &mut next.mission;
+    let b = &mut previous.mission;
+    std::mem::swap(&mut a.map, &mut b.map);
+    std::mem::swap(&mut a.objects, &mut b.objects);
+    std::mem::swap(&mut a.models, &mut b.models);
+    std::mem::swap(&mut a.common_models, &mut b.common_models);
+    std::mem::swap(&mut a.weapons.models, &mut b.weapons.models);
 }

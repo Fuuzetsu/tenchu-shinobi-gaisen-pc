@@ -45,6 +45,7 @@ pub(super) fn application(options: Options) -> Application {
         performance: Default::default(),
         recent_inputs: Default::default(),
         rewind: Default::default(),
+        reverse: Default::default(),
         benchmarks: Default::default(),
         presets: settings::library::Manager::new(std::env::temp_dir().join(format!(
             "tenchu-unused-test-presets-{}.json",

@@ -214,25 +214,31 @@ cosmetic spring/waterfall motion are deliberately not serialized.
 
 The disc-backed rewind check runs both heroes for 36 seconds with movement and
 live grenades. Every captured `Game` equals a reference with capture disabled.
-Six backward steps restore every serialized simulation field, then different
-inputs replace the old future. File loads and retries clear the history; loading
-keeps the current rewind preference. A separate check exercises memory eviction
-and branching with complete, independently decodable checkpoints.
+Per-update restores match every serialized simulation field; different inputs
+replace the abandoned future. File loads and retries clear history. Delta tests
+cover variable-length states, backward/random seeking, memory eviction and
+branching across full checkpoints.
 
-Native F1/keyboard checks and the extended `tools/test-web-savestate.mjs` exercise
-visible pauses, repeated backward steps, resuming on a new branch, and empty
-history after file loads. The browser test caught the default Shift/cancel
-conflict; rewind uses **Ctrl+F12**. Chromium WebGPU passed without JS errors,
-including the existing full browser-restart and native-state import checks.
-The 183 ordinary tests and strict native/WASM Clippy pass. Rewind is a practice
-tool, off by default and excluded from demos/benchmarks; visual presets are unchanged.
+Timed playback checks exercise 2× and 0.5× reverse speed, loss of focus, stopping,
+resuming and reaching the oldest state. Geometry allocation identities remain
+unchanged on ordinary restores, preserving renderer caches. The visual-state
+continuation check includes alternate deaths, blood, weather, footprints,
+secondary motion and interpolation; hair/cloth pointers are rebound rather than
+serialized as platform addresses.
 
-In the release-build M1 fixture, 30 seconds occupied about 25 MiB of compressed
-checkpoints, with a capture taking 4–7 ms on the test host. This is a measured
-fixture, not a performance guarantee for larger/custom missions. Retained history
-is capped at 96 MiB, evicting older checkpoints when necessary. Restore rebuilds
-render resources, so the feature provides discrete visible steps rather than
-continuous reverse animation.
+Native M1 movement was viewed backward, stopped and resumed on a new branch.
+Chromium WebGPU passed `tools/test-web-savestate.mjs`, including browser restart,
+continuous backward movement, stopping, branching and history clearing, with no
+JavaScript errors. The optional practice tool remains off in graphics presets
+and excluded from deterministic demos/benchmarks. Strict native/WASM Clippy and
+118 ordinary PC tests pass.
+
+In the release-build M1 fixture with live grenades and no renderer, 30 seconds
+occupied about 59–60 MiB of compressed per-update history. Sample captures took
+2.4–3.3 ms on this host. This is not a performance guarantee for large missions
+or accumulated effects. The 96 MiB history cap reserves room for decoded frames;
+heavy states shorten the available history. Unchanged scene geometry, textures
+and static GPU resources are reused; resource changes take the full reload path.
 
 ## Stealth-kill blood timing review
 
