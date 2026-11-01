@@ -80,7 +80,10 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     {
         target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
         if player.clip().randomizer.as_ref().is_some_and(|s| s.engage)
-            || matches!(player.clip().feature, Feature::Blood | Feature::BloodSnow)
+            || matches!(
+                player.clip().feature,
+                Feature::Blood | Feature::BloodSnow | Feature::WeaponSparks
+            )
         {
             target = (target
                 + scene
@@ -151,6 +154,12 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             settings.model_moveset_options.player_movement = true;
             settings.model_moveset_options.no_idle_taunts = true;
             g.effects.gunfire = p >= 0.5;
+            g.lighting.enabled = true;
+            g.interpolation = true;
+        }
+        Feature::WeaponSparks => {
+            g.effects.sparks = p >= 0.5;
+            g.effects.spark_density = 150;
             g.lighting.enabled = true;
             g.interpolation = true;
         }
@@ -651,6 +660,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             ))
         }
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
+        Feature::WeaponSparks => text(if s.graphics.effects.sparks {
+            "Modern sparks · hot trails, soft impact flashes and local light".into()
+        } else {
+            "Original weapon-block and clash particles".into()
+        }),
         Feature::Gunfire => text(
             if s.graphics.effects.gunfire {
                 "Modern gunfire · muzzle flash and light · smoke and impact sparks"

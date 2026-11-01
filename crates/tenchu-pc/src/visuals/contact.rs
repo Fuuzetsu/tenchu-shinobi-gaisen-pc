@@ -62,6 +62,7 @@ pub struct Contact {
     flashes: Vec<Flash>,
     splashes: BTreeMap<usize, Vec3>,
     wires: BTreeMap<usize, u8>,
+    clashes: BTreeMap<usize, u8>,
     steps: steps::Tracker,
     pub canopies: Vec<foliage::Canopy>,
 }
@@ -155,6 +156,7 @@ impl Contact {
         let options = &graphics.effects;
         let mut splash_slots = BTreeMap::new();
         let mut wire_slots = BTreeMap::new();
+        let mut clash_slots = BTreeMap::new();
         for (slot, effect) in game
             .effects
             .active_slots()
@@ -163,6 +165,28 @@ impl Contact {
             .filter_map(|(i, e)| e.as_ref().map(|e| (i, e)))
         {
             match effect {
+                Effect::Impact(impact)
+                    if options.sparks
+                        && options.spark_density > 0
+                        && impact.sprite == 1
+                        && impact.time == 9
+                        && impact.count == 1
+                        && point(impact.position).distance_squared(eye) < 35000.0_f32.powi(2) =>
+                {
+                    self.flash(point(impact.position));
+                }
+                Effect::Bleed(spark) if options.sparks && spark.color == [0, 127, 255] => {
+                    clash_slots.insert(slot, spark.time);
+                    if options.spark_density > 0
+                        && point(spark.position).distance_squared(eye) < 35000.0_f32.powi(2)
+                        && self
+                            .clashes
+                            .get(&slot)
+                            .is_none_or(|&time| spark.time >= time)
+                    {
+                        self.flash(point(spark.position));
+                    }
+                }
                 Effect::Splash(s) if options.splashes => {
                     let position = point(s.position);
                     splash_slots.insert(slot, position);
@@ -210,8 +234,8 @@ impl Contact {
                         for particle in &mut self.particles[first..] {
                             particle.velocity = rotation * particle.velocity;
                         }
-                        if self.flashes.len() < 8 && options.spark_density > 0 {
-                            self.flashes.push(Flash { position, age: 0.0 });
+                        if options.spark_density > 0 {
+                            self.flash(position);
                         }
                     }
                 }
@@ -220,6 +244,7 @@ impl Contact {
         }
         self.splashes = splash_slots;
         self.wires = wire_slots;
+        self.clashes = clash_slots;
         if options.scatter {
             let contacts = self.steps.update(game, surfaces, eye);
             for contact in contacts {
@@ -418,13 +443,23 @@ impl Contact {
             self.wet.push(WetMark { vertices, age: 0.0 });
         }
     }
+    fn flash(&mut self, position: Vec3) {
+        if self.flashes.len() < 8
+            && self.flashes.iter().all(|flash| {
+                flash.age > 0.0 || flash.position.distance_squared(position) > 600.0_f32.powi(2)
+            })
+        {
+            self.flashes.push(Flash { position, age: 0.0 });
+        }
+    }
+
     pub fn lights(&self) -> Vec<crate::lighting::Source> {
         self.flashes
             .iter()
             .map(|f| {
                 let strength = (1.0 - f.age / 0.35).powi(2);
                 crate::lighting::Source {
-                    name: "Hook impact".into(),
+                    name: "Metal impact".into(),
                     light: crate::lighting::Light {
                         position: f.position,
                         color: [strength * 1.5, strength * 0.8, strength * 0.25],

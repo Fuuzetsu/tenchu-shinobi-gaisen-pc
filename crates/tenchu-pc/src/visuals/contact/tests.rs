@@ -247,3 +247,84 @@ fn contact_effects_follow_contacts_without_changing_gameplay() {
         landing[0].strength
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; clash lights cluster particles, expire and do not retrigger while paused"]
+fn clash_lights_follow_effect_births_and_expire() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut game = crate::session::Options::default().load(&assets).unwrap();
+    game.events = Default::default();
+    game.effects.reset();
+    let mut graphics = Graphics::default();
+    graphics.effects.sparks = true;
+    let mut contact = Contact::default();
+    let surfaces = Surfaces::default();
+    let weather = super::super::weather::SurfaceWeather::default();
+    for x in 0..10 {
+        game.effects
+            .bleed([x * 5, 0, 2000].into(), [10, -20, 10], 30, [0, 127, 255]);
+    }
+    let state = postcard::to_allocvec(&game).unwrap();
+    for _ in 0..5 {
+        contact.tick(&game, &surfaces, &graphics, weather, Vec3::ZERO);
+        assert_eq!(
+            contact.lights().len(),
+            1,
+            "one flash per clash, not per particle/display frame"
+        );
+    }
+    assert_eq!(postcard::to_allocvec(&game).unwrap(), state);
+    for _ in 0..12 {
+        game.step(0).unwrap();
+        contact.tick(&game, &surfaces, &graphics, weather, Vec3::ZERO);
+    }
+    assert!(
+        contact.lights().is_empty(),
+        "light ends before the last cooled fragments"
+    );
+    assert!(
+        game.effects
+            .active_slots()
+            .iter()
+            .flatten()
+            .any(|e| matches!(e, Effect::Bleed(_)))
+    );
+    game.effects.slots[200] = game.effects.slots[0].clone();
+    game.effects.slots[..200].fill(None);
+    game.tick += 1;
+    contact.tick(&game, &surfaces, &graphics, weather, Vec3::ZERO);
+    assert!(
+        contact.lights().is_empty(),
+        "discarded slots cannot create lights"
+    );
+    game.effects.impact_ex(tenchu_core::effects::Impact {
+        parent: None,
+        position: [0, -800, 2000].into(),
+        size: [8192, 24576],
+        color: [[220; 3], [0; 3]],
+        rotation: 0,
+        speed: 6,
+        sprite: 1,
+        count: 0,
+        time: 9,
+    });
+    game.step(0).unwrap();
+    contact.tick(&game, &surfaces, &graphics, weather, Vec3::ZERO);
+    assert_eq!(
+        contact.lights().len(),
+        1,
+        "a blocked hit lights up on contact"
+    );
+    for _ in 0..12 {
+        game.step(0).unwrap();
+        contact.tick(&game, &surfaces, &graphics, weather, Vec3::ZERO);
+        assert!(
+            contact.lights().len() <= 1,
+            "one blocked hit cannot keep renewing its flash"
+        );
+    }
+    assert!(contact.lights().is_empty());
+}

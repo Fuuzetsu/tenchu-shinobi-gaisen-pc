@@ -1,4 +1,5 @@
 mod gun;
+mod sparks;
 
 use super::{
     Style, Surface, quad,
@@ -272,6 +273,9 @@ pub(super) fn draw(
     if style.gunfire {
         painter.gunfire(game, style.alpha);
     }
+    if let Some(density) = style.sparks {
+        painter.sparks(game, style.alpha, density);
+    }
 }
 
 #[cfg(test)]
@@ -292,6 +296,7 @@ mod tests {
         let style = Style {
             blood: crate::settings::Blood::modern(),
             gunfire: true,
+            sparks: Some(150),
             ..Default::default()
         };
         for _ in 0..201 {
@@ -324,6 +329,90 @@ mod tests {
         game.effects.gun_sources[200] = None;
         draw(&mut surfaces, &game, Matrix::default(), style, None);
         assert!(surfaces.is_empty(), "overflow blood never renders");
+        for color in [[255, 255, 0], [0, 127, 255]] {
+            game.effects.slots[200] = Some(Effect::Bleed(effects::Bleed {
+                position,
+                velocity: [10, 20, 30],
+                color,
+                time: 20,
+                mode: 0,
+            }));
+            draw(&mut surfaces, &game, Matrix::default(), style, None);
+            assert!(surfaces.is_empty(), "overflow sparks never render");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; metal sparks share source lifetimes without replacing blood, lightning or gunfire"]
+    fn metal_sparks_are_bounded_and_leave_other_effect_styles_independent() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut game = crate::session::Options::default().load(&assets).unwrap();
+        game.effects.reset();
+        let position = Position::new(0, 0, 2000);
+        let style = Style {
+            sparks: Some(300),
+            ..Default::default()
+        };
+        for (index, color) in [[255, 255, 0], [0, 127, 255], [128, 0, 0], [255, 255, 120]]
+            .into_iter()
+            .enumerate()
+        {
+            game.effects.bleed(position, [20, -40, 15], 20, color);
+            assert_eq!(style.replaces(&effects::Graphic::Bleed, color), index < 2);
+        }
+        assert!(!style.replaces(&effects::Graphic::GunBleed, [255, 255, 0]));
+        game.effects.gun_effects(
+            effects::GunEffect {
+                part: effects::GunPart::Surface,
+                direction: Position::ZERO,
+            },
+            |effects| {
+                effects.bleed(position, [20, -40, 15], 20, [255, 255, 0]);
+            },
+        );
+        let before = postcard::to_allocvec(&game).unwrap();
+        for alpha in [0.0, 0.25, 0.5, 1.0] {
+            let mut surfaces = Vec::new();
+            draw(
+                &mut surfaces,
+                &game,
+                Matrix::default(),
+                Style { alpha, ..style },
+                None,
+            );
+            assert_eq!(
+                surfaces.len(),
+                6,
+                "three fragments per metal particle, no duplicated gun sparks"
+            );
+            assert!(surfaces.iter().flat_map(|s| &s.vertices).all(|v| {
+                v.position.iter().all(|v| v.is_finite()) && v.flags & render_mesh::SOFT != 0
+            }));
+        }
+        let mut surfaces = Vec::new();
+        draw(
+            &mut surfaces,
+            &game,
+            Matrix::default(),
+            Style {
+                sparks: Some(0),
+                ..style
+            },
+            None,
+        );
+        assert!(surfaces.is_empty());
+        draw(
+            &mut surfaces,
+            &game,
+            Matrix::default(),
+            Style::default(),
+            None,
+        );
+        assert!(surfaces.is_empty());
+        assert_eq!(postcard::to_allocvec(&game).unwrap(), before);
     }
 
     #[test]

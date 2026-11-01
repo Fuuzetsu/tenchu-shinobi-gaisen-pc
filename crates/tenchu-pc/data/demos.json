@@ -665,6 +665,18 @@
     }
   },
   {
+    "id": "weapon-sparks",
+    "title": "Weapon blocks and clashes: original / modern",
+    "description": "Sparring with a guard compares the original impact sprites with smooth hot trails, soft flashes and brief local light. Hit detection, timing and recoil stay unchanged.",
+    "seconds": 16,
+    "mission": 2,
+    "character": 0,
+    "preset": 8,
+    "feature": "weapon-sparks",
+    "shot": "guard",
+    "sharp_text": true
+  },
+  {
     "id": "gunfire",
     "title": "Echigoya's gun: original / modern",
     "description": "The model swapper gives the player Echigoya's real shooting animation. Compare original gun sprites with a short muzzle flash, warm light, drifting smoke and hot impact sparks. Timing and damage stay the same.",

@@ -16,6 +16,22 @@ use std::ffi::OsString;
 use std::{path::PathBuf, time::Duration};
 use tenchu_assets::Result;
 
+pub fn sparring(game: &mut tenchu_core::game::Game, guard: usize) -> Result<()> {
+    let position = game.roster.get(guard).position;
+    let delta = game.player().position.wrapping_sub(position);
+    let facing = game.math.atan2(-delta.x, -delta.z)?;
+    game.move_actor(guard, position, facing, true)?;
+    game.roster.get_mut(guard).health = 9999;
+    game.roster.get_mut(guard).max_health = 9999;
+    game.roster.get_mut(guard).invulnerable = true;
+    game.roster.get_mut(game.player_id).invulnerable = true;
+    game.intelligence.difficulty = tenchu_core::ai::Difficulty::Hard;
+    for _ in 0..90 {
+        game.step(0)?;
+    }
+    Ok(())
+}
+
 pub struct Player {
     pub catalog: Vec<Clip>,
     pub playlist: Vec<usize>,
@@ -348,6 +364,15 @@ impl Player {
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
             Feature::Remake(feature) => remake::buttons(feature, tick, self.clip().seconds),
+            Feature::WeaponSparks => {
+                if tick % 45 == 15 {
+                    SQUARE
+                } else if tick < 10 {
+                    UP
+                } else {
+                    0
+                }
+            }
             Feature::Gunfire => {
                 if tick >= 30 && (tick - 30).is_multiple_of(60) {
                     SQUARE

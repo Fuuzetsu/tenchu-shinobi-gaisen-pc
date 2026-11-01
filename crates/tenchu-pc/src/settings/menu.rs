@@ -412,9 +412,9 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
             (
                 Item::ContactSparks,
-                "Grapple impact sparks",
+                "Modern impact sparks",
                 on(s.graphics.effects.sparks),
-                "Small hot fragments and a short local light at hook contact; cosmetic only.",
+                "Smooth sparks for weapon blocks, clashes, metal impacts and grappling; blocks, clashes and hook contacts briefly light the scene. Cosmetic only.",
             ),
             (
                 Item::Gunfire,

@@ -352,3 +352,66 @@ fn recorded_excerpt_matches_direct_replay_before_and_after_artwork_toggle() {
     p.catalog[index].recording.as_mut().unwrap().start_tick = u32::MAX;
     assert!(p.load_game(&assets, None, None).is_err());
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; the spark comparison must show real blocked hits in both halves"]
+fn weapon_sparks_comparison_contains_live_blocks() {
+    use tenchu_core::{effects::Effect, ids::ATTR_CUSTOMAI};
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let mut demo = player(&["--clips", "weapon-sparks"]);
+    let (mut game, _) = demo.load_game(&assets, None, None).unwrap();
+    let guard = game
+        .roster
+        .order
+        .iter()
+        .copied()
+        .filter(|&id| {
+            let actor = game.roster.get(id);
+            id != game.player_id
+                && actor.patrol.is_some()
+                && actor.weapons.iter().any(Option::is_some)
+                && actor.attribute & ATTR_CUSTOMAI != 0
+        })
+        .min_by_key(|&id| {
+            let delta = game
+                .roster
+                .get(id)
+                .position
+                .wrapping_sub(game.player().position);
+            i64::from(delta.x).pow(2) + i64::from(delta.z).pow(2)
+        })
+        .unwrap();
+    let actor = game.roster.get(guard);
+    let offset = game
+        .math
+        .velocity(actor.rotation[1], 1500, 0)
+        .map(i32::from);
+    game.teleport_player(actor.position.wrapping_add(offset.into()), true)
+        .unwrap();
+    let delta = game
+        .roster
+        .get(guard)
+        .position
+        .wrapping_sub(game.player().position);
+    game.roster.get_mut(game.player_id).rotation[1] = game.math.atan2(-delta.x, -delta.z).unwrap();
+    sparring(&mut game, guard).unwrap();
+    let half = u64::from(demo.clip().seconds) * 15;
+    let mut blocks = [0; 2];
+    for tick in 0..half * 2 {
+        game.step(demo.buttons(tick)).unwrap();
+        if game.effects.active_slots().iter().flatten().any(|effect| {
+            matches!(effect, Effect::Impact(impact) if impact.sprite == 1 && impact.time == 9 && impact.count == 1)
+        }) {
+            blocks[(tick / half) as usize] += 1;
+            eprintln!("Weapon spark comparison: blocked hit at tick {tick}");
+        }
+    }
+    assert!(
+        blocks.into_iter().all(|n| n > 0),
+        "both original and modern halves need live impacts: {blocks:?}"
+    );
+    assert!(game.roster.get(guard).health > 0 && game.player().health > 0);
+}

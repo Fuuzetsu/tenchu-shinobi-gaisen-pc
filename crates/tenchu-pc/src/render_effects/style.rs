@@ -7,6 +7,7 @@ pub struct Style {
     pub blood: Blood,
     pub lightning: bool,
     pub gunfire: bool,
+    pub sparks: Option<u16>,
     pub alpha: f32,
 }
 
@@ -17,6 +18,7 @@ impl Default for Style {
             blood: Blood::default(),
             lightning: false,
             gunfire: false,
+            sparks: None,
             alpha: 1.0,
         }
     }
@@ -29,6 +31,11 @@ impl From<&Settings> for Style {
             blood: settings.graphics.blood,
             lightning: settings.graphics.effects.lightning,
             gunfire: settings.graphics.effects.gunfire,
+            sparks: settings
+                .graphics
+                .effects
+                .sparks
+                .then_some(settings.graphics.effects.spark_density),
             ..Self::default()
         }
     }
@@ -76,6 +83,9 @@ impl Style {
     pub(super) fn replaces(self, graphic: &Graphic, color: [u8; 3]) -> bool {
         (self.lightning && matches!(graphic, Graphic::Bleed) && lightning_spark(color))
             || self.gunfire && matches!(graphic, Graphic::GunImpact(_) | Graphic::GunBleed)
+            || self.sparks.is_some()
+                && (matches!(graphic, Graphic::Bleed) && metal_spark(color)
+                    || matches!(graphic, Graphic::Impact(1)))
             || self.blood_style(graphic, color).is_some_and(|style| {
                 !style.uses_original()
                     || matches!(
@@ -87,6 +97,10 @@ impl Style {
                     ) && self.blood.retained_ground()
             })
     }
+}
+
+pub(super) fn metal_spark(color: [u8; 3]) -> bool {
+    matches!(color, [255, 255, 0] | [0, 127, 255])
 }
 
 pub(super) fn lightning_spark(color: [u8; 3]) -> bool {

@@ -167,8 +167,10 @@ impl Application {
                 scene.actor = Some(actor);
                 self.settings.graphics.fog = false;
                 self.debug.selected_actor = actor;
-                if matches!(clip.feature, Feature::Blood | Feature::BloodSnow)
-                    || clip.randomizer.as_ref().is_some_and(|s| s.engage)
+                if matches!(
+                    clip.feature,
+                    Feature::Blood | Feature::BloodSnow | Feature::WeaponSparks
+                ) || clip.randomizer.as_ref().is_some_and(|s| s.engage)
                 {
                     let guard = position(actor);
                     let offset = Vec3::from(
@@ -180,7 +182,7 @@ impl Application {
                         (guard + offset).to_array().map(|v| v as i32).into(),
                         true,
                     )?;
-                    if clip.randomizer.is_some() {
+                    if clip.randomizer.is_some() || clip.feature == Feature::WeaponSparks {
                         let enemy = game.roster.get(actor).position;
                         let player = game.player().position;
                         let delta = tenchu_core::math::Position::new(
@@ -190,6 +192,10 @@ impl Application {
                         );
                         let facing = game.math.atan2(-delta.x, -delta.z)?;
                         game.roster.get_mut(game.player_id).rotation[1] = facing;
+                    }
+                    if clip.feature == Feature::WeaponSparks {
+                        self.debug.god_mode = true;
+                        demo::sparring(&mut game, actor)?;
                     }
                     scene.player_start = game.player().position;
                     scene.actor = Some(actor);
@@ -202,7 +208,7 @@ impl Application {
                     scene.pitch = -0.55;
                     demo::framing::unobstructed_area(&mut scene, &geometry, 1200.0);
                 }
-                if !far {
+                if !far && clip.feature != Feature::WeaponSparks {
                     self.settings.keep_enemies_active = true;
                     game.roster.keep_all_active = true;
                 }

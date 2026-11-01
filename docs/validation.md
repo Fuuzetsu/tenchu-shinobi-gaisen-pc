@@ -248,3 +248,12 @@ No early effect was reproduced on these six paths, so their timing was left
 unchanged. This is a source/timing and rendered-frame review, not a replay of
 the reporter's unidentified scene; #15 remains open for a clip or saved state
 that identifies the affected animation and effect.
+
+Weapon impact presentation: the `weapon-sparks` demo spars with a live Mission 2
+swordsman. Its scripted demo inputs produce blocked hits in both comparison
+halves (demo ticks 24 and 384). Modern trails consume the existing yellow impact
+and blue weapon-clash particles; block/clash lights only observe effect births.
+Focused disc-backed checks cover density limits, pause/render cadence, flash
+expiry and clustering, discarded pool slots, blood/lightning/gunfire independence
+and unchanged serialized game state. Native captures and logs are kept outside
+Git in `private/issues/impact-jitter`.

@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Extend **F1 → Contact effects → Modern impact sparks** to weapon blocks,
+  clashes and metal impacts, with smooth hot trails and short block/clash lights.
+  Modern presets enable it; spark amount remains adjustable. Add a weapon-sparks
+  comparison to the demo library.
+
 - Add optional **F1 → Simulation → Rewind history**, up to 30 seconds in
   one-second steps. **Ctrl+F12** shows the previous checkpoint and pauses;
   **F3** resumes from there, replacing the abandoned future. Restores gameplay,
