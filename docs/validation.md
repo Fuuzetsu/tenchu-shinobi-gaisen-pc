@@ -404,3 +404,25 @@ was checked with the report's graphics settings, a restored nearby pickup state,
 and ordinary movement. Before/after GPU captures and logs are kept outside Git
 in `private/issues/47`. The report is not a full replay, so this establishes a
 reproducible rendering defect rather than an exact replay of the reporter's run.
+
+## Seekable rewind timeline
+
+Both heroes pass a 1,080-update movement/grenade comparison with rewind disabled,
+followed by repeated backward/forward seeks against the recorded serialized
+states. Seeking preserves entry count and stored bytes, including after opening
+and closing F1. Resuming removes only the abandoned future; resuming at Latest
+keeps all entries. Tests also cover timed reverse playback, endpoints, clamped
+seeks, file-load/retry clearing and unchanged scene allocations. The additional
+decoded seek cache is reserved within the existing 96 MiB budget and is discarded
+when recording resumes, without extra encoding during ordinary gameplay.
+
+The M1/2/6/9 fixture retains roughly 0.27–0.33 ms per-update capture/compression
+on this host. Large jumps still decode intervening deltas on their first visit;
+the ten-second seek fixture measures up to about 60 ms. Repeated endpoint jumps
+can reuse the decoded position. These are isolated CPU measurements, not whole
+frame-rate guarantees. Native mouse seeking, frame steps, latest/oldest, menu
+access and branching were inspected with isolated user settings. Chromium WebGPU
+and WebGL2 exercise persistent save/restart, timeline slider/buttons, exact
+return to Latest, repeated seeks and branch/resume. Ordinary workspace tests,
+disc-backed rewind tests, formatting and strict native/WASM Clippy pass.
+Logs/captures remain in `private/issues/rewind-timeline`.

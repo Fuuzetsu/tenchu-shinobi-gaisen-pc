@@ -1,4 +1,5 @@
 mod actors;
+mod rewind;
 use super::{
     Settings,
     menu::{self, Item, Menu, Row},
@@ -18,6 +19,8 @@ pub enum Edit {
     Controls,
     Randomizer,
     Diagnostics,
+    SeekRewind(u64),
+    ResumeRewind,
 }
 
 #[derive(Clone, Copy)]
@@ -46,6 +49,7 @@ pub fn show(
     let mut edits = Vec::new();
     menu.hovered = None;
     if !menu.open {
+        rewind::overlay(ctx, debug, &mut edits);
         return edits;
     }
     let mut open = true;
@@ -202,9 +206,12 @@ pub fn show(
                             .color(Color32::from_rgb(167, 188, 204))).wrap(),
                     );
                     if menu.page == 5 && settings.rewind_seconds > 0 {
-                        ui.weak(format!("Rewind: {:.1}s available · {:.1} MiB",
-                            debug.rewind_ticks as f64 / 30.0,
-                            debug.rewind_bytes as f64 / 1048576.0));
+                        if let Some(timeline) = debug.rewind {
+                            rewind::timeline(ui, timeline, &mut edits);
+                        } else {
+                            ui.weak("Rewind history will fill during play.");
+                        }
+                        ui.weak(format!("{:.1} MiB stored", debug.rewind_bytes as f64 / 1048576.0));
                     }
                     if menu.page == 10 {
                         ui.separator();

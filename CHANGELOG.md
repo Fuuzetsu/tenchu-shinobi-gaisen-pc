@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add a rewind timeline with backward/forward seeking, single-frame steps and
+  jumps to the oldest/latest recorded state. The timeline appears while rewinding
+  and under F1 → Simulation. Seeking keeps the complete buffer; resuming play
+  discards only the recorded future after the selected point.
+
 ## 0.13.1 — 2026-11-01
 
 - Fix ground-item icons trembling as the gameplay camera moves. Pickups now use

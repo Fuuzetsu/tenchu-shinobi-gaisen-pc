@@ -4,6 +4,7 @@ use std::time::Duration;
 #[derive(Default)]
 pub(super) struct Playback {
     pub active: bool,
+    pub preview: bool,
     pub fraction: f64,
     pub audio: Option<crate::audio::State>,
     pub cpu: Duration,
@@ -12,6 +13,7 @@ pub(super) struct Playback {
 impl Application {
     pub(super) fn record_rewind(&mut self) {
         if self.reverse.active
+            || self.reverse.preview
             || self.settings.rewind_seconds == 0
             || self.demo.is_some()
             || self.benchmarks.run.is_some()
@@ -41,6 +43,7 @@ impl Application {
             self.stop_rewind();
             self.state_notice("Rewind paused · F3: resume · Ctrl+F12: continue back".into());
         } else {
+            self.state_tools_available()?;
             if self.settings.rewind_seconds == 0 {
                 return Err("Enable rewind history under F1 → Simulation first".into());
             }
@@ -55,6 +58,7 @@ impl Application {
             self.menu.open = false;
             self.finish_recording();
             self.controls.stop_rumble();
+            self.release_pointer();
             self.sync_pause();
         }
         self.update_view();
@@ -106,10 +110,54 @@ impl Application {
         let mut history = std::mem::take(&mut self.rewind);
         let result = history
             .snapshot(index)
-            .and_then(|state| self.restore_rewind(state))
-            .and_then(|()| history.branch(index));
+            .and_then(|state| self.restore_rewind(state));
         self.rewind = history;
+        if result.is_ok() {
+            self.reverse.preview = true;
+        }
         self.reverse.cpu += started.elapsed();
         result
+    }
+
+    pub(super) fn seek_rewind(&mut self, tick: u64) -> Result<()> {
+        if self.rewind.entries.is_empty() {
+            return Err("No rewind history available".into());
+        }
+        let index = self
+            .rewind
+            .entries
+            .iter()
+            .rposition(|e| e.tick <= tick)
+            .unwrap_or(0);
+        self.rewind_to(index)?;
+        self.reverse.active = false;
+        self.reverse.fraction = 0.0;
+        self.debug.frame_step = false;
+        self.sync_pause();
+        self.update_view();
+        Ok(())
+    }
+
+    pub(super) fn resume_rewind(&mut self) -> Result<()> {
+        if self.reverse.preview && !self.rewind.entries.is_empty() {
+            let started = Instant::now();
+            let index = self
+                .rewind
+                .entries
+                .iter()
+                .position(|e| e.tick == self.campaign.game.tick)
+                .ok_or("The selected rewind state is no longer available")?;
+            self.rewind.branch(index)?;
+            self.reverse.cpu += started.elapsed();
+        }
+        self.reverse.preview = false;
+        self.stop_rewind();
+        Ok(())
+    }
+
+    pub(super) fn clear_rewind(&mut self) {
+        self.stop_rewind();
+        self.reverse.preview = false;
+        self.rewind.clear();
     }
 }

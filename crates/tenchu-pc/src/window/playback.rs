@@ -11,6 +11,12 @@ impl Application {
     }
 
     pub(super) fn game_tick(&mut self, buttons: u16) -> bool {
+        if (self.reverse.active || self.reverse.preview)
+            && let Err(error) = self.resume_rewind()
+        {
+            self.pause_error(error);
+            return false;
+        }
         let observing = matches!(self.campaign.screen, Screen::DeathHold { .. });
         let result = if observing {
             if !self.simulating() {

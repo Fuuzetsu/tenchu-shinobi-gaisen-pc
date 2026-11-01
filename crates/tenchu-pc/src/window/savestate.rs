@@ -22,7 +22,7 @@ struct State<G> {
 }
 
 impl Application {
-    fn state_tools_available(&self) -> Result<()> {
+    pub(super) fn state_tools_available(&self) -> Result<()> {
         if self.demo.is_some() || self.benchmarks.run.is_some() {
             return Err("Finish the demo or benchmark before using savestates".into());
         }

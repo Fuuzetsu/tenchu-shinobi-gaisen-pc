@@ -13,6 +13,15 @@ pub use capture::Recorder;
 const MEMORY_LIMIT: usize = 96 * 1024 * 1024;
 const INTERVAL: u64 = tenchu_core::TICKS_PER_SECOND as u64;
 
+#[derive(Clone, Copy)]
+pub struct Timeline {
+    pub start: u64,
+    pub end: u64,
+    pub tick: u64,
+    pub playing: bool,
+    pub preview: bool,
+}
+
 struct Resource {
     bytes: Box<[u8]>,
     decoded_length: usize,
@@ -183,6 +192,7 @@ pub struct History {
     shared: HashMap<usize, (usize, usize)>,
     tail: Snapshot,
     cursor: Option<(usize, Snapshot)>,
+    anchor: Option<(usize, Snapshot)>,
     scratch: Vec<u8>,
     pub recorder: Recorder,
 }
@@ -198,6 +208,7 @@ impl History {
 
     pub fn push(&mut self, tick: u64, seconds: u16, mut state: Snapshot) -> Result<()> {
         self.cursor = None;
+        self.anchor = None;
         let largest = self
             .entries
             .iter()
@@ -205,8 +216,10 @@ impl History {
             .max()
             .unwrap_or(0)
             .max(state.data.len());
-        let buffers =
-            state.data.capacity() + self.tail.data.capacity() + self.scratch.capacity() + largest;
+        let buffers = state.data.capacity()
+            + self.tail.data.capacity()
+            + self.scratch.capacity()
+            + largest * 2;
         let budget = MEMORY_LIMIT.saturating_sub(buffers + self.recorder.bytes());
         let before =
             (!self.entries.is_empty()).then(|| Block::between(&state.data, &mut self.tail.data));
@@ -267,19 +280,32 @@ impl History {
         if index >= self.entries.len() {
             return Err("Rewind position is unavailable".into());
         }
-        let (mut at, mut state) = self
+        if self.anchor.as_ref().is_some_and(|(at, _)| {
+            at.abs_diff(index) <= self.entries.len() - 1 - index
+                && at.abs_diff(index)
+                    < self
+                        .cursor
+                        .as_ref()
+                        .map_or(usize::MAX, |(at, _)| at.abs_diff(index))
+        }) {
+            std::mem::swap(&mut self.cursor, &mut self.anchor);
+        }
+        let (mut at, mut state) = if self
             .cursor
-            .take()
-            .filter(|(at, _)| at.abs_diff(index) <= self.entries.len() - 1 - index)
-            .unwrap_or_else(|| {
-                (
-                    self.entries.len() - 1,
-                    Snapshot {
-                        data: self.tail.data.clone(),
-                        segments: Vec::new(),
-                    },
-                )
-            });
+            .as_ref()
+            .is_some_and(|(at, _)| at.abs_diff(index) <= self.entries.len() - 1 - index)
+        {
+            self.cursor.take().unwrap()
+        } else {
+            self.anchor = self.cursor.take();
+            (
+                self.entries.len() - 1,
+                Snapshot {
+                    data: self.tail.data.clone(),
+                    segments: Vec::new(),
+                },
+            )
+        };
         while at > index {
             state.apply(
                 self.entries[at].before.as_ref().unwrap(),
@@ -307,6 +333,7 @@ impl History {
 
     pub fn branch(&mut self, index: usize) -> Result<()> {
         self.snapshot(index)?;
+        self.anchor = None;
         let (_, mut state) = self.cursor.take().unwrap();
         state.segments.clear();
         self.recorder

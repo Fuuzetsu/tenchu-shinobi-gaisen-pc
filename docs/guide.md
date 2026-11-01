@@ -1380,10 +1380,16 @@ button does not include these separate slots.
 
 **F1 → Simulation → Rewind history** optionally keeps up to 30 seconds of play
 in memory. **Ctrl+F12**, or the **Rewind** button, plays the world backward.
-Press it again to stop, or **F3** to resume forward and replace the old future.
+Press it again to stop. The timeline remains visible: drag it backward or forward,
+step one game frame at a time, or jump to **Oldest** / **Latest**. It is also
+available under **F1 → Simulation**. Seeking keeps the complete recorded history,
+including the future, so you can inspect several moments without losing them.
+**Resume here** or **F3** continues forward from the selected point and discards
+only the abandoned future. Resuming from **Latest** preserves the whole buffer.
 **Rewind speed** ranges from 25% to 800%, with 200% (twice real time) as the default.
 The world pauses at the oldest available state. Audio is muted during reverse
-playback; music/dialogue resumes near the restored position afterward.
+playback and timeline previews; music/dialogue resumes near the selected position
+when gameplay resumes. F4 runs a new simulation update and also commits that branch.
 
 History stores every game update, including RNG, enemies, live items, grapple,
 explosions, blood, weather, footprints and hair/cloth motion. Visual interpolation

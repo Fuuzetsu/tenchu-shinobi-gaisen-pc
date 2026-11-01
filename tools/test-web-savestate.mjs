@@ -127,12 +127,39 @@ try {
   assert(rewound.paused && rewound.tick < before.tick);
   await page.waitForFunction(t => JSON.parse(window.port.snapshot()).tick < t - 15, rewound.tick);
   await key("Control+F12");
-  const earlier = await state();
+  let earlier = await state();
   assert(earlier.tick < rewound.tick);
   await page.waitForTimeout(150);
   assert.deepEqual(await state(), earlier, "Stopping rewind holds the visible state");
   await shot("rewound");
-  await key("F3");
+  const canvas = await page.locator("#game").boundingBox();
+  const bottom = canvas.y + canvas.height;
+  const timelineClick = async (x, y = bottom - 53) => {
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(80);
+    await page.mouse.click(x, y, { delay: 100 });
+    await page.waitForTimeout(200);
+  };
+  await timelineClick(531); // Latest
+  await restored(before);
+  await timelineClick(354); // Oldest
+  const oldest = await state();
+  assert(oldest.tick < earlier.tick && oldest.paused);
+  await timelineClick(640, bottom - 77); // Middle of the slider
+  const middle = await state();
+  assert(middle.tick > oldest.tick && middle.tick < before.tick && middle.paused);
+  await timelineClick(478); // One recorded frame forward
+  assert.equal((await state()).tick, middle.tick + 1);
+  await timelineClick(413); // One recorded frame backward
+  assert.deepEqual(await state(), middle);
+  await timelineClick(531);
+  await restored(before);
+  await timelineClick(640, bottom - 77);
+  earlier = await state();
+  assert.deepEqual(earlier, middle, "Repeated seeks retain the original future and exact state");
+  await shot("timeline-seek");
+  await timelineClick(665); // Resume here
+  assert.equal((await state()).paused, false);
   await page.keyboard.down("s");
   await page.waitForFunction(t => JSON.parse(window.port.snapshot()).tick >= t + 35, earlier.tick);
   await page.keyboard.up("s");
@@ -143,13 +170,16 @@ try {
   assert(branch.paused && branch.tick > earlier.tick);
   assert.notDeepEqual(branch.position, rewound.position, "Resuming replaces the abandoned future");
   await shot("new-branch");
+  await key("F1");
+  await key("F3");
+  assert.equal((await state()).paused, false, "F3 resumes a timeline preview even with F1 open");
   await key("F12");
   await restored(loaded);
   await key("Control+F12");
   await restored(loaded);
   assert.deepEqual(errors, []);
   await writeFile(`${output}/result.json`, JSON.stringify({ saved, before, rewound, earlier, branch, errors }, null, 2));
-  console.log(`${backend}: persistent savestates and bounded rewind restore and branch successfully`);
+  console.log(`${backend}: persistent savestates and rewind timeline seek, restore and branch successfully`);
 } catch (error) {
   await page?.screenshot({ path: `${output}/failure.png` }).catch(() => {});
   await writeFile(`${output}/failure.json`, JSON.stringify({ error: String(error), errors, state: await state().catch(() => null) }, null, 2));

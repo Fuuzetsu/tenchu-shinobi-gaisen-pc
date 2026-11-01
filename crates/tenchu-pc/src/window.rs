@@ -125,7 +125,18 @@ impl Application {
     }
 
     fn update_view(&mut self) {
-        self.debug.rewind_ticks = self.rewind.ticks(self.campaign.game.tick);
+        self.debug.rewind = self
+            .rewind
+            .entries
+            .front()
+            .zip(self.rewind.entries.back())
+            .map(|(first, last)| crate::rewind::Timeline {
+                start: first.tick,
+                end: last.tick,
+                tick: self.campaign.game.tick,
+                playing: self.reverse.active,
+                preview: self.reverse.preview,
+            });
         self.debug.rewind_bytes = self.rewind.bytes;
         #[cfg(target_arch = "wasm32")]
         crate::web::update_snapshot(
@@ -219,6 +230,7 @@ impl Application {
                 self.settings.music_while_paused
                     && self.campaign.scene_visible()
                     && !self.faulted
+                    && !self.reverse.preview
                     && !self.reverse.active,
             );
         }
@@ -273,8 +285,7 @@ impl Application {
     fn action(&mut self, action: Action) {
         let action = self.campaign.screen.menu_action(action);
         if matches!(action, Action::Replay) {
-            self.stop_rewind();
-            self.rewind.clear();
+            self.clear_rewind();
         }
         if matches!(self.campaign.screen, Screen::DeathHold { .. })
             && !matches!(action, Action::Confirm | Action::Back | Action::Replay)
@@ -384,7 +395,12 @@ impl Application {
     }
 
     fn set_paused(&mut self, paused: bool) {
-        if self.reverse.active {
+        if !paused && (self.reverse.active || self.reverse.preview) {
+            if let Err(error) = self.resume_rewind() {
+                self.state_notice(error);
+                return;
+            }
+        } else if self.reverse.active {
             self.stop_rewind();
         }
         let changed = self.paused != paused;
@@ -656,6 +672,10 @@ impl ApplicationHandler for Application {
                 if self.menu.open
                     || self.trial.open
                     || self.randomizer.open
+                    || self
+                        .view
+                        .as_ref()
+                        .is_some_and(|v| v.overlay.pointer_over_ui())
                     || self.demo.is_some() => {}
             WindowEvent::MouseInput { state, button, .. }
                 if (self.debug.camera.is_some()
@@ -748,6 +768,14 @@ impl ApplicationHandler for Application {
                     if event.state == ElementState::Pressed {
                         self.controls.editor_key(code);
                     }
+                    return;
+                }
+                if event.state == ElementState::Pressed
+                    && code == KeyCode::F3
+                    && (self.reverse.preview || self.reverse.active)
+                {
+                    self.menu.open = false;
+                    self.set_paused(false);
                     return;
                 }
                 if event.state == ElementState::Pressed

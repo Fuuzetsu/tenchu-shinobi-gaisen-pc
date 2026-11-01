@@ -58,6 +58,14 @@ fn profile_rewind_recording() {
             restore.push(started.elapsed().as_secs_f64() * 1000.0);
         }
         report("restore", &mut restore);
+        let mut seek = Vec::new();
+        let last = app.rewind.entries.len() - 1;
+        for index in [0, last, last / 2, 0, last, last / 4] {
+            let started = Instant::now();
+            app.rewind_to(index).unwrap();
+            seek.push(started.elapsed().as_secs_f64() * 1000.0);
+        }
+        report("timeline seek", &mut seek);
     }
 }
 
@@ -121,6 +129,8 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
         assert!(app.rewind.entries.len() <= 901);
         assert!(app.rewind.ticks(app.campaign.game.tick) <= 930);
         let bytes = app.rewind.bytes;
+        let latest = app.campaign.game.tick;
+        let count = app.rewind.entries.len();
         let started = Instant::now();
         let sample = app.capture_rewind().unwrap();
         eprintln!(
@@ -139,14 +149,27 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
             assert!(app.paused && app.debug.pause_view);
             assert!(!app.trial.eligible);
             assert_eq!(app.controls.buttons(), 0);
-            assert_eq!(
-                app.rewind.entries.back().unwrap().tick,
-                app.campaign.game.tick
-            );
+            assert_eq!(app.rewind.entries.back().unwrap().tick, latest);
         }
-        assert!(app.rewind.bytes < bytes);
         let branch = app.campaign.game.tick;
-        app.paused = false;
+        for tick in [latest - 2, latest - 8, latest, branch] {
+            app.seek_rewind(tick).unwrap();
+            assert_eq!(app.campaign.game.tick, tick);
+            assert_eq!(
+                &postcard::to_allocvec(&app.campaign.game).unwrap(),
+                &expected[&tick]
+            );
+            assert_eq!(app.rewind.entries.len(), count);
+            assert_eq!(app.rewind.bytes, bytes);
+            assert!(app.paused && app.reverse.preview);
+        }
+        app.toggle_menu();
+        app.toggle_menu();
+        assert_eq!(app.rewind.entries.len(), count);
+        app.set_paused(false);
+        assert!(!app.reverse.preview);
+        assert_eq!(app.rewind.entries.back().unwrap().tick, branch);
+        assert!(app.rewind.bytes < bytes);
         for _ in 0..4 {
             assert!(app.game_tick(input::DOWN));
         }
@@ -229,6 +252,18 @@ fn continuous_rewind_obeys_speed_and_preserves_scene_allocations() {
     while app.reverse.active {
         app.advance_simulation(Duration::from_millis(100));
     }
-    assert_eq!(app.rewind.entries.len(), 1);
+    assert!(app.rewind.entries.len() > 100);
     assert!(app.paused);
+    let oldest = app.campaign.game.tick;
+    let latest = app.rewind.entries.back().unwrap().tick;
+    app.seek_rewind(u64::MAX).unwrap();
+    assert_eq!(app.campaign.game.tick, latest);
+    app.seek_rewind(0).unwrap();
+    assert_eq!(app.campaign.game.tick, oldest);
+    let count = app.rewind.entries.len();
+    app.seek_rewind(latest).unwrap();
+    app.set_paused(false);
+    assert_eq!(app.rewind.entries.len(), count);
+    app.game_tick(0);
+    assert_eq!(app.rewind.entries.back().unwrap().tick, latest + 1);
 }

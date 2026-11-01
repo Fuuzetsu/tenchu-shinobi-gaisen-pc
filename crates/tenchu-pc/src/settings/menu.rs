@@ -1673,7 +1673,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::Rewind,
                 "Rewind / Ctrl+F12",
                 "Rewind".into(),
-                "Play the world backward. Ctrl+F12 stops; F3 resumes forward from there. Restores RNG, enemies, items, blood and effects. Ends input recording and disables TRIAL records.",
+                "Play backward, then use the timeline to seek either way. Ctrl+F12 stops; F3 resumes here and discards only the recorded future. Restores gameplay and effects; ends input recording and disables TRIAL records.",
             ),
             (
                 Item::StateSlot,

@@ -94,6 +94,10 @@ impl Overlay {
         self.context.wants_keyboard_input()
     }
 
+    pub fn pointer_over_ui(&self) -> bool {
+        self.context.is_pointer_over_area()
+    }
+
     pub fn update(
         &mut self,
         window: &Window,
@@ -451,10 +455,16 @@ impl super::Application {
                 Edit::Change(
                     crate::settings::menu::Item::LoadState | crate::settings::menu::Item::Rewind,
                     _
-                )
+                ) | Edit::SeekRewind(_)
             );
             let result = match edit {
                 Edit::Change(item, steps) => self.apply_item(item, steps),
+                Edit::SeekRewind(tick) => self.seek_rewind(tick),
+                Edit::ResumeRewind => {
+                    self.menu.open = false;
+                    self.set_paused(false);
+                    Ok(())
+                }
                 Edit::Preset(choice) => self.presets.library.apply(choice, &mut self.settings),
                 Edit::GameplayPreset(index) => self.set_gameplay_preset(index),
                 Edit::Benchmark => {
@@ -494,7 +504,7 @@ impl super::Application {
             }
         }
         self.apply_settings(&previous);
-        if !self.menu.open {
+        if was_open && !self.menu.open {
             self.view.as_mut().unwrap().overlay.jobs.clear();
             self.controls.close_editor();
         }
