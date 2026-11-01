@@ -1228,6 +1228,11 @@ cost more CPU time. The gameplay presets restore Unlimited. With all-active mode
 off, the original 30-actor decision threshold and activation rules apply,
 regardless of this setting. More guards can gather naturally while the whole
 level stays active; turn the option off for the original encounter density.
+Unlimited can also allow callers and their reinforcements to repeatedly recruit
+at a wall, producing runaway population growth. Set the limit to **30** to stop
+that growth while keeping distant patrols active. See the
+[reinforcement investigation](validation.md#separate-always-active-enemy-audit)
+for the retail rules and the remaining all-active behavior issue.
 
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general

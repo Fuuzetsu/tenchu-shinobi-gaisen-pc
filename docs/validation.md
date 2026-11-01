@@ -93,3 +93,38 @@ remote patrol motion, alarm expiry, radar and population stability. Both heroes
 also pass 300 updates on every mission/layout combination, including training.
 The option remains separate from original gameplay, whose seven reference tapes
 still match.
+
+The later [reinforcement report (#42)](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/issues/42)
+has a confirmed all-active failure mode. In the [reported video from 4:34](https://www.youtube.com/watch?v=iPSbiNP1Ga4&t=274s),
+successive callers accumulate near a wall. Retail's `think_alarm_reaction_`
+returns both a caller and its new guard to the approach/search state. Reaching
+the search point **or hitting a wall** can select another call: never on Easy,
+half the time on Normal, always on Hard while capacity allows. New arrivals
+need not see the player to repeat this search reaction. Calling also refreshes
+the alarm, so a stuck group can sustain its own alert.
+
+Retail stops new call decisions at 30 total actors, including the player,
+civilians and corpses. This is not an exact spawn-time cap: already queued calls
+can overshoot. `CreateHumanoid` separately rejects allocation at 40 actors.
+`ActivateHumans` suspends distant actors beyond 17,000 units and uses a 3–6
+thinking budget for other activation decisions. The call distance is 16,500
+units. Fog hides distant activity; it does not itself authorize calls.
+
+All-active + Unlimited removes both the distant suspension and the call decision
+limit. The extra terrain-cover check hides spawns but cannot stop recruitment
+feeding back into itself. A controlled, disc-backed wall fixture with one guard,
+Hard difficulty and ordinary `Game::step` updates reached 570 total actors after
+18 updates; the same fixture with the all-active limit at 30 stopped at 30.
+This is a synthetic stress reproduction, not a replay of the reporter's route
+or crash. The extracted retail alarm routine confirms the decision threshold
+and queued-call overshoot; the existing compiled-C activation comparison passes.
+YouTube preview frames were reviewed, but the full video stream was unavailable.
+
+Until a separate all-active recruitment policy is implemented, use F1 →
+Simulation → **Reinforcement population limit: 30**, or disable all-active AI.
+No new recruitment policy or automatic limit was introduced by this audit.
+An appropriate extension would allow one call per guard per alarm, mark newly
+recruited guards as having used that call, and require an ended alarm followed
+by a fresh player encounter before another recruitment round. Keep unrestricted
+reinforcements an explicit option; a cooldown alone would only delay the same
+unbounded growth. This should not change original-mode AI.
