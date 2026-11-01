@@ -274,3 +274,16 @@ native Mission 8 Ayame scene; all four library/import tests pass. Native Mission
 Ayame movement and attacks with the HIME swap show her kimono, hair and face
 textures, with the player's weapons retained. Before/after images are kept in
 `private/issues/hime`. No artwork replacement or gameplay changes are needed.
+
+Jitter-report follow-up (`tenchu-report-0.10.0-m2-tick862.json`): the Windows
+report predates the camera fix and records healthy frame times (about 6.94 ms
+average, 10.98 ms p95). A separate Mission 2 hard/layout 2 run-stop fixture near
+the reported location measured up to 24.46 units of eye error with the old view
+rounding, versus 0.86 with the fix, across both heroes. Native movement, turning
+and attacks were also exercised with the reported explicit Rikimaru swap, model
+refinement, interpolation and secondary-motion settings. No additional rig or
+spring defect was identified. This was a local Linux reproduction of the
+configuration, not the reporter's Windows machine or exact input history: the
+report contains only its last 600 updates and is not a restorable state. Evidence
+is retained in `private/issues/report-jitter`; a remaining visual symptom still
+needs a clip or current-version savestate to distinguish body motion from hair.
