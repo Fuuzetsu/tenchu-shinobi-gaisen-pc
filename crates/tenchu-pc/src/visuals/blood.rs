@@ -11,7 +11,7 @@ use crate::{
 };
 use bytemuck::Zeroable;
 use glam::{Mat3, Quat, Vec3};
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
 mod runoff;
@@ -86,6 +86,7 @@ struct Contact {
 pub struct Blood {
     tick: Option<u64>,
     health: BTreeMap<usize, i16>,
+    pending_wounds: BTreeSet<usize>,
     samples: Vec<Option<Sample>>,
     marks: Marks,
     wounds: VecDeque<Wound>,
@@ -106,6 +107,7 @@ impl Blood {
         let Self {
             tick,
             health,
+            pending_wounds,
             samples,
             marks,
             wounds,
@@ -119,6 +121,7 @@ impl Blood {
         } = self;
         out.value(tick)?;
         out.value(health)?;
+        out.value(pending_wounds)?;
         out.value(samples)?;
         marks.capture(out)?;
         out.value(wounds)?;
@@ -217,6 +220,9 @@ impl Blood {
             self.wounds.clear();
             self.drops.retain(|drop| drop.weapon && settings.weapons);
         }
+        if !settings.model_stains && (settings.drips == BloodStyle::Off || settings.seconds == 0) {
+            self.pending_wounds.clear();
+        }
         if !settings.weapons {
             self.drops.retain(|d| !d.weapon);
             self.weapons.clear();
@@ -231,6 +237,7 @@ impl Blood {
     pub fn clear(&mut self) {
         self.marks = Marks::default();
         self.wounds.clear();
+        self.pending_wounds.clear();
         self.weapons.clear();
         self.drops.clear();
         self.runoff.clear();
@@ -576,18 +583,36 @@ impl Blood {
             samples.push(current);
         }
         self.samples = samples;
+        let wounds =
+            settings.model_stains || settings.drips != BloodStyle::Off && settings.seconds != 0;
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
-            if (settings.model_stains || settings.drips != BloodStyle::Off && settings.seconds != 0)
-                && self
-                    .health
-                    .get(&actor.root_model)
-                    .is_some_and(|&old| old > actor.health)
-            {
+            let damaged = self
+                .health
+                .get(&actor.root_model)
+                .is_some_and(|&old| old > actor.health);
+            let stealth = actor.health == 0
+                && actor.motion.loops >= 0
+                && (tenchu_core::ids::MOT_DEAD_STEALTH_BACK
+                    ..=tenchu_core::ids::MOT_DEAD_STEALTH_SIDE_AYAME)
+                    .contains(&actor.motion.action);
+            if !stealth {
+                self.pending_wounds.remove(&actor.root_model);
+            } else if wounds && damaged {
+                self.pending_wounds.insert(actor.root_model);
+            }
+            let pending = self.pending_wounds.contains(&actor.root_model);
+            if wounds && (damaged || pending) {
                 let center =
                     Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 750.0;
                 if let Some(position) = new_blood
                     .iter()
+                    .filter(|contact| {
+                        !pending
+                            || contact
+                                .source
+                                .is_some_and(|part| actor.parts.contains(&part))
+                    })
                     .map(|contact| contact.position)
                     .filter(|p| p.distance_squared(center) < 1600.0_f32.powi(2))
                     .min_by(|a, b| {
@@ -595,11 +620,14 @@ impl Blood {
                             .total_cmp(&b.distance_squared(center))
                     })
                 {
+                    self.pending_wounds.remove(&actor.root_model);
                     self.wound(game, models, actor.root_model, position, settings, frame);
                 }
             }
         }
         self.health = health;
+        self.pending_wounds
+            .retain(|root| self.health.contains_key(root));
         self.dead
             .retain(|root, _| self.health.get(root) == Some(&0));
         let hits = if settings.weapons {

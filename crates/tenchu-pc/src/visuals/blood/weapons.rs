@@ -207,8 +207,8 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires TENCHU_DISC; all six paired kills must wait for actual blood before coating blades, and the neck break must stay bloodless"]
-    fn stealth_blades_wait_for_the_victims_blood() {
+    #[ignore = "requires TENCHU_DISC; six paired kills synchronize blade/body blood, including after rewind; the neck break stays bloodless"]
+    fn stealth_blades_and_wounds_wait_for_the_victims_blood() {
         use tenchu_core::{ids::*, input};
         let disc = std::env::var_os("TENCHU_DISC").unwrap();
         let assets =
@@ -288,6 +288,10 @@ mod tests {
                 blood.tick(&game, &models, &surfaces, &settings, None);
                 let mut bled = false;
                 let mut coated = false;
+                let mut wounded = false;
+                let mut stained = false;
+                let mut dripped = false;
+                let mut restored: Option<Blood> = None;
                 for tick in 0..220 {
                     game.step(if tick == 0 { input::SQUARE } else { 0 })
                         .unwrap();
@@ -310,8 +314,27 @@ mod tests {
                         });
                     let before = postcard::to_allocvec(&game).unwrap();
                     blood.tick(&game, &models, &surfaces, &settings, None);
+                    if tick == 10 {
+                        let mut recorder = crate::rewind::Recorder::default();
+                        recorder.begin();
+                        blood.capture(&mut recorder).unwrap();
+                        restored = Some(recorder.finish().unwrap().decode().unwrap());
+                    } else if let Some(restored) = &mut restored {
+                        restored.tick(&game, &models, &surfaces, &settings, None);
+                        assert_eq!(
+                            postcard::to_allocvec(&blood).unwrap(),
+                            postcard::to_allocvec(restored).unwrap()
+                        );
+                    }
                     assert_eq!(before, postcard::to_allocvec(&game).unwrap());
                     coated |= !blood.weapons.is_empty();
+                    wounded |= !blood.wounds.is_empty();
+                    stained |= blood
+                        .marks
+                        .attached
+                        .iter()
+                        .any(|(_, mark)| mark.1 == Kind::Body);
+                    dripped |= blood.drops.iter().any(|drop| !drop.weapon);
                     assert!(
                         bled || blood.weapons.is_empty(),
                         "variant {variant}: blades bloodied before contact on tick {}",
@@ -321,9 +344,21 @@ mod tests {
                         bled || blood.drops.iter().all(|drop| !drop.weapon),
                         "variant {variant}: early weapon droplets"
                     );
+                    assert!(
+                        bled || !(wounded || stained || dripped),
+                        "variant {variant}: early body blood"
+                    );
                 }
                 assert_eq!(bled, expects_blood);
                 assert_eq!(coated, expects_blood, "variant {variant}");
+                assert_eq!(wounded, expects_blood, "variant {variant}: wound");
+                assert_eq!(stained, expects_blood, "variant {variant}: body stain");
+                assert_eq!(dripped, expects_blood, "variant {variant}: dripping");
+                assert!(
+                    blood.wounds.is_empty(),
+                    "wounds must stop dripping after their configured duration"
+                );
+                assert!(blood.pending_wounds.is_empty());
             }
         }
     }

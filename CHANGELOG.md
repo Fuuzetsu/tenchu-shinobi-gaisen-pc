@@ -9,6 +9,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   of following earlier vibration cues. Rikimaru's neck break keeps clean blades;
   delayed stab animations no longer shed weapon droplets before drawing blood.
 
+- Restore modern wound stains and dripping after stealth kills. They now start
+  with the victim's blood spray even when the kill reduced health earlier in the
+  animation, and retain the configured bleeding duration.
+
 ## 0.15.1 — 2026-11-02
 
 - Enable system clipboard copy, cut and paste in desktop text fields, including
