@@ -800,3 +800,27 @@ small rounding differences. The original sampling and reconstruction remain.
 The 49 MiB shared-resource budget regression, stain expiry/style changes,
 rewind seeking/branching, visual-effect continuation and both heroes' mission
 1–10 save round-trips pass. Native/WASM strict Clippy and release builds pass.
+
+Combining pure-alpha effect layers can now retain the larger vertex buffer and
+copy only the smaller prefix. Alpha batches keep their original draw order;
+opaque geometry keeps its physical order because the opaque pass ignores the
+moved alpha vertices. Retail weather and splash filtering now happens before
+modern layers are combined, avoiding a later copy of reordered batches.
+
+Using 73 actual HD wound templates on animated Mission 1 actors, plus three
+synthetic alpha layers of 65,526, 20,898 and 3,072 vertices, CPU assembly changes
+from 0.499 → 0.297 ms for 64 marks, 11.84 → 2.41 ms for 1,024 marks and
+161.58 → 18.46 ms for 8,192 marks. The same reused staging buffer, moving poses,
+180 frames and 30-frame warm-up are used on both paths. Final opaque-vertex and
+alpha-batch draw data match. These are CPU composition times; GPU upload and
+rendering are additional costs, especially for the 3.17-million-vertex case.
+
+The streamed-effects GPU test now compares the old concatenation order with
+empty, alpha-world, alpha-HUD and opaque prefixes through growth, shrinkage and
+empty frames, with HDR on and off. Pixels match. Six other focused checks cover
+filtering, overlapping blood, snow tracks, contact effects, visibility and decal
+page reuse. Strict native/WASM Clippy and release builds pass.
+Moving 4K routes measure High 73.6/87.4/62.7/91.8 FPS, maximum rain
+50.1/62.9/44.4/79.8 and maximum snow 54.9/71.7/51.2/85.3. These ordinary
+routes have little accumulated blood and do not establish a comparable large
+FPS gain. Browser WebGL2 rain and WebGPU snow checks pass.

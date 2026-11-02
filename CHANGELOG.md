@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Avoid repeatedly copying large animated blood meshes when combining them with
+  snow tracks, precipitation and contact effects. Preserve effect blending order.
+
 - Keep rewind responsive with many model stains by sharing unchanged blood
   geometry between snapshots. Count shared storage once toward the rewind budget.
 

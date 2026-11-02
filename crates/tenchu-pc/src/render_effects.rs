@@ -83,7 +83,25 @@ impl Geometry {
         }
     }
 
-    pub fn append(&mut self, other: Geometry) {
+    pub fn append(&mut self, mut other: Geometry) {
+        if !self.vertices.is_empty()
+            && self.vertices.len() < other.vertices.len()
+            && self
+                .vertices
+                .iter()
+                .all(|v| v.flags & render_mesh::ALPHA != 0)
+        {
+            // Alpha draw order comes from batches; the opaque pass ignores these vertices.
+            let offset = other.vertices.len() as u32;
+            other.vertices.append(&mut self.vertices);
+            self.vertices = other.vertices;
+            for batch in &mut self.batches {
+                batch.range.start += offset;
+                batch.range.end += offset;
+            }
+            self.batches.extend(other.batches);
+            return;
+        }
         let offset = self.vertices.len() as u32;
         if self.vertices.is_empty() {
             self.vertices = other.vertices;

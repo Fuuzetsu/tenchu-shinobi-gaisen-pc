@@ -990,6 +990,14 @@ impl View {
                 settings.sharp_text.then_some(&mut self.text),
             )
         };
+        if campaign.scene_visible() && error.is_none() && !debug.collision_only {
+            if settings.graphics.weather.mode != settings::WeatherMode::Original {
+                geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
+            }
+            if settings.graphics.effects.splashes {
+                geometry.remove_flag(render_mesh::ORIGINAL_SPLASH);
+            }
+        }
         if campaign.scene_visible()
             && error.is_none()
             && !debug.collision_only
@@ -1023,9 +1031,6 @@ impl View {
             let mut footprints = self.footprints.geometry(&settings.graphics.weather);
             footprints.append(geometry);
             geometry = footprints;
-            if settings.graphics.weather.mode != settings::WeatherMode::Original {
-                geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
-            }
             let mut weather = self.weather.geometry(
                 self.camera_matrix(game, debug),
                 alpha,
@@ -1048,9 +1053,6 @@ impl View {
         }
         if campaign.scene_visible() && error.is_none() && !debug.collision_only {
             let options = &settings.graphics.effects;
-            if options.splashes {
-                geometry.remove_flag(render_mesh::ORIGINAL_SPLASH);
-            }
             if settings.graphics.models.grapple {
                 geometry.append(crate::visuals::contact::rope::geometry(game));
             }

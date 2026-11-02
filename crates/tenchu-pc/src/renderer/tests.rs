@@ -206,33 +206,75 @@ fn streamed_effects_preserve_batches_and_overlays() {
     for post in [false, true] {
         graphics.post.enabled = post;
         renderer.configure(&graphics);
-        for count in [1, 96, 3, 0, 6] {
-            let fresh = renderer.upload_effects(geometry(count, Vec::new()));
-            renderer
-                .draw(&view, camera, &[&terrain], Some(&fresh))
-                .unwrap();
-            let expected = read_pixels(&renderer, &target);
-            let source = geometry(count, std::mem::take(&mut staging));
-            let pointer = source.vertices.as_ptr();
-            let mut combined = render_effects::Geometry {
-                vertices: Vec::new(),
-                batches: vec![render_effects::Batch {
-                    blend: 5,
-                    range: 0..0,
-                }],
+        for prefix_kind in 0..4 {
+            let prefix = || {
+                let mut vertices = if prefix_kind == 0 {
+                    Vec::new()
+                } else {
+                    rectangle(900, 200, None, false, false, false)
+                };
+                for v in &mut vertices {
+                    v.color = [0.85, 0.08, 0.22];
+                    if prefix_kind != 3 {
+                        v.flags |= render_mesh::ALPHA;
+                        v.opacity = 0.35;
+                    }
+                    if prefix_kind == 2 {
+                        v.position = [v.position[0] / 10.0, v.position[1] / 10.0 - 70.0, 0.01];
+                        v.flags |= render_mesh::SCREEN | render_mesh::UI;
+                    }
+                }
+                render_effects::Geometry {
+                    batches: vec![render_effects::Batch {
+                        blend: if prefix_kind == 3 { 0 } else { 5 },
+                        range: 0..vertices.len() as u32,
+                    }],
+                    vertices,
+                }
             };
-            combined.append(source);
-            assert_eq!(combined.vertices.as_ptr(), pointer);
-            staging = renderer.update_effects(&mut streamed, combined);
-            assert!(staging.is_empty());
-            renderer
-                .draw(&view, camera, &[&terrain], Some(&streamed))
-                .unwrap();
-            assert_eq!(
-                read_pixels(&renderer, &target),
-                expected,
-                "post {post}, effects {count}"
-            );
+            for count in [1, 96, 3, 0, 6] {
+                let mut reference = prefix();
+                let source = geometry(count, Vec::new());
+                let offset = reference.vertices.len() as u32;
+                reference.vertices.extend(source.vertices);
+                reference
+                    .batches
+                    .extend(
+                        source
+                            .batches
+                            .into_iter()
+                            .map(|batch| render_effects::Batch {
+                                blend: batch.blend,
+                                range: batch.range.start + offset..batch.range.end + offset,
+                            }),
+                    );
+                let fresh = renderer.upload_effects(reference);
+                renderer
+                    .draw(&view, camera, &[&terrain], Some(&fresh))
+                    .unwrap();
+                let expected = read_pixels(&renderer, &target);
+
+                let mut combined = prefix();
+                let mut source = geometry(count, std::mem::take(&mut staging));
+                source.vertices.reserve(combined.vertices.len());
+                let reuses_source = prefix_kind == 0
+                    || (prefix_kind != 3 && combined.vertices.len() < source.vertices.len());
+                let pointer = source.vertices.as_ptr();
+                combined.append(source);
+                if reuses_source {
+                    assert_eq!(combined.vertices.as_ptr(), pointer);
+                }
+                staging = renderer.update_effects(&mut streamed, combined);
+                assert!(staging.is_empty());
+                renderer
+                    .draw(&view, camera, &[&terrain], Some(&streamed))
+                    .unwrap();
+                assert_eq!(
+                    read_pixels(&renderer, &target),
+                    expected,
+                    "post {post}, prefix {prefix_kind}, effects {count}"
+                );
+            }
         }
     }
 }
