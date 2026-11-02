@@ -558,7 +558,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::HeroModels,
                 "High-detail heroes",
                 on(s.graphics.models.heroes),
-                "Denser, rounded hero geometry with finger creases. Covers Rikimaru and both Ayame outfits; uses installed HD artwork. Original joints, weapon attachments and gameplay stay unchanged. Custom models are retained.",
+                "Smooth subdivided hero silhouettes with finger creases, without inflating the body or shortening limbs. Covers Rikimaru and both Ayame outfits; uses installed HD artwork. Original rigs, attachments and gameplay stay unchanged. Custom models are retained.",
             ),
             (
                 Item::CharacterRefinement,

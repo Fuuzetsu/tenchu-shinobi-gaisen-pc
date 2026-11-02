@@ -13,7 +13,6 @@ pub fn prepare(vertices: &mut Vec<Vertex>, part: usize, budget: &mut usize) {
     if vertices.is_empty() || cost > *budget {
         return;
     }
-    *budget -= cost;
     let (min, max) = vertices.iter().fold(
         (Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)),
         |(min, max), v| {
@@ -22,15 +21,8 @@ pub fn prepare(vertices: &mut Vec<Vertex>, part: usize, budget: &mut usize) {
         },
     );
     let size = max - min;
-    // PN patches retain source corners and open rims, including capped joint ends.
-    super::smooth::curve(
-        vertices,
-        true,
-        8,
-        0.85,
-        (size.max_element() * if part == 2 { 0.018 } else { 0.035 })
-            .min(size.min_element() * 0.075),
-    );
+    // Retail limbs are separate rigid meshes; shortening their Y axis opens joints.
+    super::refine::preserve_height(vertices, if part == 2 { 0.012 } else { 0.035 }, budget);
     if matches!(part, 13 | 14) {
         let sign = if part == 14 { -1.0 } else { 1.0 };
         for v in vertices.iter_mut() {
@@ -101,22 +93,25 @@ mod tests {
                     Some(&models),
                 );
                 assert!(new.len() >= old.len() * 16, "{character}/{outfit}/{i}");
-                if !matches!(i, 13 | 14) {
-                    let corners: std::collections::BTreeSet<_> =
-                        new.iter().map(|v| v.position.map(f32::to_bits)).collect();
-                    assert!(
-                        old.iter()
-                            .all(|v| corners.contains(&v.position.map(f32::to_bits))),
-                        "source attachment contour changed: {character}/{outfit}/{i}"
-                    );
-                }
                 let min = old.iter().fold(Vec3::splat(f32::INFINITY), |p, v| {
                     p.min(Vec3::from(v.position))
                 });
                 let max = old.iter().fold(Vec3::splat(f32::NEG_INFINITY), |p, v| {
                     p.max(Vec3::from(v.position))
                 });
-                let margin = (max - min) * 0.10 + Vec3::ONE;
+                let margin = Vec3::splat(0.01);
+                let refined_min_y = new
+                    .iter()
+                    .map(|v| v.position[1])
+                    .fold(f32::INFINITY, f32::min);
+                let refined_max_y = new
+                    .iter()
+                    .map(|v| v.position[1])
+                    .fold(f32::NEG_INFINITY, f32::max);
+                assert!(
+                    (refined_min_y - min.y).abs() < 0.01 && (refined_max_y - max.y).abs() < 0.01,
+                    "joint length changed: {character}/{outfit}/{i}"
+                );
                 assert!(
                     new.iter().all(|v| {
                         let p = Vec3::from(v.position);

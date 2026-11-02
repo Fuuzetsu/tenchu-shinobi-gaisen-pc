@@ -20,9 +20,23 @@ fn continuous(adjacent: &[(Point, Vec3)]) -> bool {
 }
 
 pub fn prepare(vertices: &mut Vec<Vertex>, levels: u16, maximum: f32, budget: &mut usize) {
+    refine(vertices, levels, maximum, budget, false);
+}
+
+pub fn preserve_height(vertices: &mut Vec<Vertex>, maximum: f32, budget: &mut usize) {
+    refine(vertices, 3, maximum, budget, true);
+}
+
+fn refine(
+    vertices: &mut Vec<Vertex>,
+    levels: u16,
+    maximum: f32,
+    budget: &mut usize,
+    preserve_height: bool,
+) {
     let cost = vertices
         .len()
-        .saturating_mul(4_usize.pow(u32::from(levels.min(2))));
+        .saturating_mul(4_usize.pow(u32::from(levels.min(3))));
     if levels == 0 || cost > *budget || vertices.is_empty() {
         return;
     }
@@ -36,13 +50,20 @@ pub fn prepare(vertices: &mut Vec<Vertex>, levels: u16, maximum: f32, budget: &m
             p.max(Vec3::from(v.position))
         });
     let limit = (max - min).max_element() * maximum;
-    for _ in 0..levels.min(2) {
-        subdivide(vertices, limit);
+    for _ in 0..levels.min(3) {
+        subdivide(vertices, limit, preserve_height);
     }
     super::smooth::prepare(vertices, true, 0);
 }
 
-fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
+fn subdivide(vertices: &mut Vec<Vertex>, limit: f32, preserve_height: bool) {
+    let relax = |from: Vec3, to: Vec3| {
+        let mut delta = (to - from) * 0.7;
+        if preserve_height {
+            delta.y = 0.0;
+        }
+        from + delta.clamp_length_max(limit)
+    };
     let mut positions = BTreeMap::new();
     let mut neighbors: BTreeMap<Point, BTreeSet<Point>> = BTreeMap::new();
     let mut opposite: BTreeMap<[Point; 2], Vec<(Point, Vec3)>> = BTreeMap::new();
@@ -78,7 +99,7 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
                 let beta = (0.625 - (0.375 + 0.25 * (std::f32::consts::TAU / n).cos()).powi(2)) / n;
                 p * (1.0 - n * beta) + adjacent.iter().map(|v| positions[v]).sum::<Vec3>() * beta
             };
-            (key, p + ((target - p) * 0.7).clamp_length_max(limit))
+            (key, relax(p, target))
         })
         .collect();
     let edges: BTreeMap<_, _> = opposite
@@ -92,10 +113,7 @@ fn subdivide(vertices: &mut Vec<Vertex>, limit: f32) {
             } else {
                 center
             };
-            (
-                pair,
-                center + ((target - center) * 0.7).clamp_length_max(limit),
-            )
+            (pair, relax(center, target))
         })
         .collect();
     let mut out = Vec::with_capacity(vertices.len() * 4);

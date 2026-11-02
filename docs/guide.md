@@ -1180,8 +1180,10 @@ pass. It replaces the older contour option while enabled; authored replacement
 characters and weapon meshes remain as supplied. Existing animation, attachments,
 collision and AI visibility are unchanged. Original is the default for both options.
 
-**High-detail heroes** adds denser curved surfaces and finger creases for
-Rikimaru and Ayame, including armour and Ayame's alternate outfit. It uses their
+**High-detail heroes** rounds the silhouettes with three subdivision passes and
+adds finger creases for Rikimaru and Ayame, including armour and Ayame's alternate
+outfit. Surfaces stay within the original model bounds; limb lengths and open
+seams are preserved instead of inflating the original triangles. It uses their
 original rigs and UV layouts, so the existing v3 HD artwork supplies the modern
 textures. No extra pack download is needed. This is a refinement of the retail
 characters, not a different character design; custom replacement meshes are

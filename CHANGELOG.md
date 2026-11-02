@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Rework high-detail hero smoothing to round silhouettes without puffing out
+  faces, limbs and clothing. Preserve limb lengths and open seams so separate
+  animated parts stay joined. Applies to Rikimaru and both Ayame outfits with
+  the existing HD pack.
+
 - Choose a moveset independently of the player model in F1 → Player model.
   Ayame and Rikimaru can keep their normal appearance while using any available
   actor's moves, with a searchable source selector. Existing model-following,

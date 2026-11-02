@@ -446,3 +446,12 @@ cover/population, nonrecursive-call, recruitment reset, civilian replacement and
 original-C AI comparisons pass. This confirms an unsafe spawn condition; the
 external report did not include a mission or replay to identify its exact route.
 Logs remain in `private/issues/callaid-bounds`.
+
+2026-11-02 hero refinement revision: replaced outward PN patches with bounded
+Loop subdivision for the high-detail heroes. All five hero/outfit combinations
+remain inside source bounds and retain their full joint-axis extents. The
+asset-backed animation test checks finite posed geometry and byte-identical
+simulation state over walking, jumping and attacks. Native six-angle previews
+of Rikimaru and both Ayame outfits were inspected; captures remain private under
+`private/issues/hero-revision`. This refines the original designs and rigs; it is
+not a newly authored character replacement. Native and WASM strict Clippy pass.
