@@ -362,3 +362,11 @@ unchanged pages are shared. The first capture still needs about 20 ms to encode
 the complete initial collection; it is excluded from the continued-bleeding
 statistics. The serialized state format and exact reconstructed bytes are
 unchanged.
+
+Direct integer depth reads on native/WebGPU and reuse of each occlusion sample
+remove redundant depth-addressing work from post-processing. The same 4K TRIAL
+fixture measures 3.30 to 3.12 ms for the play camera's post pass, and 2.32 to
+2.19 ms overhead. Rain and snow/blood variants show similar 0.1–0.2 ms savings.
+All six comparison captures are pixel-identical; HDR, contact occlusion, MSAA,
+timing and streamed-overlay checks pass. WebGL retains its explicit nearest
+sampler because that path avoids incomplete depth textures on that backend.

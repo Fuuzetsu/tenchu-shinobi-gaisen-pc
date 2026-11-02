@@ -60,8 +60,9 @@ fn occlusion(pixel: vec2<i32>, position: vec3<f32>) -> f32 {
         for (var j = 0; j < 2; j++) {
             let sample_pixel = pixel + vec2<i32>(round(direction * screen_radius * (0.35 + f32(j) * 0.5)));
             if any(sample_pixel < vec2(0)) || any(sample_pixel >= vec2<i32>(options.size.xy)) { continue; }
-            if depth_at(sample_pixel) >= 0.999999 { continue; }
-            let delta = surface(sample_pixel) - position;
+            let depth = depth_at(sample_pixel);
+            if depth >= 0.999999 { continue; }
+            let delta = world((vec2<f32>(sample_pixel) + vec2(0.5)) / options.size.xy, depth) - position;
             let distance = length(delta);
             if distance < 1.0 || distance > radius { continue; }
             horizon = max(horizon, max(0.0, dot(normal, delta / distance) - 0.08) * (1.0 - distance / radius));

@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce ambient-occlusion depth-reading overhead on native and WebGPU renderers
+  without changing its resolution or samples.
+
 - Avoid rewind recording spikes when old blood stains expire by reusing the
   unchanged pages that remain in the history.
 

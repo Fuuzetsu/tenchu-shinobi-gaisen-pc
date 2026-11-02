@@ -26,6 +26,7 @@ impl Post {
         samples: u32,
         depth: &wgpu::TextureView,
         occlusion: bool,
+        gl: bool,
     ) -> Self {
         let depth_resolve =
             (samples > 1 && occlusion).then(|| DepthResolve::new(device, size, samples, depth));
@@ -133,9 +134,11 @@ impl Post {
                         "DEPTH_SAMPLE",
                         if samples > 1 {
                             "textureLoad(depth_map, point, i).r"
-                        } else {
+                        } else if gl {
                             // An explicit nearest sampler avoids incomplete depth textures in WebGL.
                             "textureSampleLevel(depth_map, depth_sampler, (vec2<f32>(point) + vec2(0.5)) / vec2<f32>(textureDimensions(depth_map)), 0.0).r"
+                        } else {
+                            "textureLoad(depth_map, point, 0).r"
                         }
                     )
                 )

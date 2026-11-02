@@ -306,6 +306,7 @@ impl Renderer {
                 self.samples,
                 &self.depth,
                 self.graphics.post.occlusion > 0,
+                self.gl,
             )
         });
     }
