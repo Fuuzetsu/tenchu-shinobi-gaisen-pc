@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Bloody weapons now wait for actual blood contact during stealth kills instead
+  of following earlier vibration cues. Rikimaru's neck break keeps clean blades;
+  delayed stab animations no longer shed weapon droplets before drawing blood.
+
 ## 0.15.1 — 2026-11-02
 
 - Enable system clipboard copy, cut and paste in desktop text fields, including

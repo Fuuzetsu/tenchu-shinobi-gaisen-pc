@@ -77,6 +77,11 @@ struct Sample {
     stained: bool,
 }
 
+struct Contact {
+    position: Vec3,
+    source: Option<usize>,
+}
+
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Blood {
     tick: Option<u64>,
@@ -546,7 +551,10 @@ impl Blood {
                         && old.position.distance_squared(next.position) < 1000.0_f32.powi(2)
                 });
                 if continuous.is_none() && next.mode == 0 {
-                    new_blood.push(next.position);
+                    new_blood.push(Contact {
+                        position: next.position,
+                        source: game.effects.gore_sources.get(index).copied().flatten(),
+                    });
                 }
                 if let Some(old) = continuous {
                     next.stained = old.stained;
@@ -578,8 +586,9 @@ impl Blood {
             {
                 let center =
                     Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 750.0;
-                if let Some(&position) = new_blood
+                if let Some(position) = new_blood
                     .iter()
+                    .map(|contact| contact.position)
                     .filter(|p| p.distance_squared(center) < 1600.0_f32.powi(2))
                     .min_by(|a, b| {
                         a.distance_squared(center)
@@ -593,7 +602,12 @@ impl Blood {
         self.health = health;
         self.dead
             .retain(|root, _| self.health.get(root) == Some(&0));
-        let weapons = settings.weapons && self.weapons.needed(game);
+        let hits = if settings.weapons {
+            weapons::contacts(game, &new_blood)
+        } else {
+            Default::default()
+        };
+        let weapons = settings.weapons && (!self.weapons.is_empty() || !hits.is_empty());
         let transforms = if self.wounds.is_empty() && !weapons {
             BTreeMap::new()
         } else {
@@ -601,7 +615,7 @@ impl Blood {
         };
         if weapons {
             self.weapons
-                .tick(game, models, &transforms, &mut self.drops);
+                .tick(game, models, &transforms, &hits, &mut self.drops);
         }
         self.marks.retain_attached(|mark| {
             mark.0.iter().all(|p| {

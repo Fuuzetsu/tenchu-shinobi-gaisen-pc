@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::BTreeSet;
 use tenchu_core::{actor::State, effects::RumbleAction};
 
 const COATING_LIMIT: usize = 128;
@@ -18,17 +19,35 @@ pub(super) struct Weapons {
     coatings: BTreeMap<Part, Coating>,
 }
 
-impl Weapons {
-    pub fn needed(&self, game: &Game) -> bool {
-        !self.is_empty()
-            || game.effects.rumble.iter().any(|r| {
-                matches!(
-                    r.action,
-                    RumbleAction::Hit | RumbleAction::TargetHit | RumbleAction::StealthKill
-                )
-            })
+pub(super) fn contacts(game: &Game, blood: &[Contact]) -> BTreeSet<usize> {
+    use tenchu_core::ids::{MOT_ATTACK_STEALTH_BACK, MOT_ATTACK_STEALTH_SIDE_AYAME};
+    let mut hits: BTreeSet<_> = game
+        .effects
+        .rumble
+        .iter()
+        .filter(|r| matches!(r.action, RumbleAction::Hit | RumbleAction::TargetHit))
+        .map(|r| r.actor)
+        .collect();
+    let player = game.player();
+    if (MOT_ATTACK_STEALTH_BACK..=MOT_ATTACK_STEALTH_SIDE_AYAME).contains(&player.motion.action)
+        && let Some(victim) = game
+            .roster
+            .actors
+            .iter()
+            .flatten()
+            .find(|actor| Some(actor.root_model) == player.target)
+        && blood.iter().any(|contact| {
+            contact
+                .source
+                .is_some_and(|part| victim.parts.contains(&part))
+        })
+    {
+        hits.insert(player.id);
     }
+    hits
+}
 
+impl Weapons {
     pub fn clear(&mut self) {
         self.coatings.clear();
     }
@@ -38,20 +57,9 @@ impl Weapons {
         game: &Game,
         models: &Models,
         transforms: &BTreeMap<Part, Matrix>,
+        hits: &BTreeSet<usize>,
         drops: &mut Vec<Drop>,
     ) {
-        let hits: std::collections::BTreeSet<_> = game
-            .effects
-            .rumble
-            .iter()
-            .filter(|r| {
-                matches!(
-                    r.action,
-                    RumbleAction::Hit | RumbleAction::TargetHit | RumbleAction::StealthKill
-                )
-            })
-            .map(|r| r.actor)
-            .collect();
         let mut live = BTreeMap::new();
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
@@ -199,6 +207,128 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "requires TENCHU_DISC; all six paired kills must wait for actual blood before coating blades, and the neck break must stay bloodless"]
+    fn stealth_blades_wait_for_the_victims_blood() {
+        use tenchu_core::{ids::*, input};
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        for character in 0..2 {
+            for direction in 0..3 {
+                let mut game = crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                let player = game.player_id;
+                let victim = *game
+                    .roster
+                    .order
+                    .iter()
+                    .find(|&&id| (0x10..0x80).contains(&game.roster.get(id).kind))
+                    .unwrap();
+                for id in game.roster.order.clone() {
+                    if id != player && id != victim {
+                        let _ = game.remove_actor(id);
+                    }
+                }
+                let hero = game.roster.get_mut(player);
+                hero.rotation = [0; 3];
+                hero.status = State::Engage;
+                hero.motion.change(
+                    MOT_ENGAGE_STANCE,
+                    &game.mission.characters[hero.definition].motions,
+                    &game.mission.common_motions,
+                    &game.mission.clips,
+                );
+                game.scene.update(hero.root_model, hero.root(&game.math));
+                let mut position = game.player().position;
+                if direction == 2 {
+                    position.x += 700;
+                } else {
+                    position.z -= 700;
+                }
+                game.move_actor(
+                    victim,
+                    position,
+                    if direction == 1 { 2048 } else { 0 },
+                    false,
+                )
+                .unwrap();
+                let actor = game.roster.get_mut(victim);
+                actor.attribute = 0;
+                actor.health = actor.max_health;
+                actor.inventory.fill(0);
+                actor.status = State::Normal;
+                actor.motion.change(
+                    MOT_NORMAL,
+                    &game.mission.characters[actor.definition].motions,
+                    &game.mission.common_motions,
+                    &game.mission.clips,
+                );
+                let variant = direction + character * 3;
+                let expects_blood = game.mission.death_events[variant as usize]
+                    .iter()
+                    .any(|event| matches!(event.action, 3 | 4) && event.payload[0] != -1);
+                let settings = settings::Blood::modern();
+                let graphics = settings::Graphics {
+                    blood: settings,
+                    ..Default::default()
+                };
+                let models = Models::build(&game.mission, &Default::default(), &graphics).unwrap();
+                let surfaces = Surfaces::new(&render_mesh::stage(
+                    &game.mission,
+                    &game.math,
+                    Some(&models),
+                ));
+                let mut blood = Blood::default();
+                blood.tick(&game, &models, &surfaces, &settings, None);
+                let mut bled = false;
+                let mut coated = false;
+                for tick in 0..220 {
+                    game.step(if tick == 0 { input::SQUARE } else { 0 })
+                        .unwrap();
+                    if tick == 0 {
+                        assert_eq!(
+                            game.roster.get(victim).motion.action,
+                            MOT_DEAD_STEALTH_BACK + variant
+                        );
+                    }
+                    bled |= game
+                        .effects
+                        .active_slots()
+                        .iter()
+                        .enumerate()
+                        .any(|(i, effect)| {
+                            matches!(effect, Some(Effect::Blood(b)) if b.gore)
+                                && game.effects.gore_sources[i].is_some_and(|source| {
+                                    game.roster.get(victim).parts.contains(&source)
+                                })
+                        });
+                    let before = postcard::to_allocvec(&game).unwrap();
+                    blood.tick(&game, &models, &surfaces, &settings, None);
+                    assert_eq!(before, postcard::to_allocvec(&game).unwrap());
+                    coated |= !blood.weapons.is_empty();
+                    assert!(
+                        bled || blood.weapons.is_empty(),
+                        "variant {variant}: blades bloodied before contact on tick {}",
+                        game.tick
+                    );
+                    assert!(
+                        bled || blood.drops.iter().all(|drop| !drop.weapon),
+                        "variant {variant}: early weapon droplets"
+                    );
+                }
+                assert_eq!(bled, expects_blood);
+                assert_eq!(coated, expects_blood, "variant {variant}");
+            }
+        }
+    }
+
+    #[test]
     #[ignore = "requires TENCHU_DISC; ordinary sword combat coats both heroes and guards, swing shedding exceeds idle drips, and state restoration preserves coating"]
     fn combat_stains_blades_and_swinging_sheds_more_than_idle() {
         use tenchu_core::input;
@@ -300,13 +430,25 @@ mod tests {
                 (Vec::new(), Vec::new(), Vec::new());
             for tick in 0..120 {
                 game.tick += 1;
-                idle.tick(&game, &models, &transforms, &mut idle_drops);
+                idle.tick(
+                    &game,
+                    &models,
+                    &transforms,
+                    &BTreeSet::new(),
+                    &mut idle_drops,
+                );
                 let mut swung = transforms.clone();
                 for matrix in swung.values_mut() {
                     matrix.translation.x += if tick % 2 == 0 { 140 } else { -140 };
                 }
-                moving.tick(&game, &models, &swung, &mut moving_drops);
-                restored.tick(&game, &models, &swung, &mut restored_drops);
+                moving.tick(&game, &models, &swung, &BTreeSet::new(), &mut moving_drops);
+                restored.tick(
+                    &game,
+                    &models,
+                    &swung,
+                    &BTreeSet::new(),
+                    &mut restored_drops,
+                );
             }
             let amount = |w: &Weapons| w.coatings.values().map(|c| c.amount).sum::<f32>();
             assert!(amount(&moving) < amount(&idle) * 0.5);
