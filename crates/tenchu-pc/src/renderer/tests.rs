@@ -120,6 +120,66 @@ fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frame
     }
 }
 
+#[test]
+#[ignore = "requires a GPU; streamed effects must preserve blending and HUD separation through growth, shrinkage and empty frames"]
+fn streamed_effects_preserve_batches_and_overlays() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let terrain = renderer.upload(&rectangle(1600, 64, None, false, false, false));
+    let geometry = |count: usize| {
+        let mut geometry = render_effects::Geometry {
+            vertices: Vec::new(),
+            batches: Vec::new(),
+        };
+        for i in 0..count {
+            let blend = (i % 6) as u8;
+            let mut vertices = rectangle(1000, 128, None, (1..5).contains(&blend), false, false);
+            for v in &mut vertices {
+                v.position[0] = v.position[0] * 0.25 + (i % 3) as f32 * 200.0 - 200.0;
+                v.position[1] *= 0.25;
+                if blend == 5 {
+                    v.flags |= render_mesh::ALPHA;
+                    v.opacity = 0.4;
+                }
+                if i % 3 == 0 {
+                    v.position = [v.position[0] / 10.0, v.position[1] / 10.0 - 70.0, 0.01];
+                    v.flags |= render_mesh::SCREEN | render_mesh::UI;
+                }
+            }
+            let start = geometry.vertices.len() as u32;
+            geometry.vertices.extend(vertices);
+            geometry.batches.push(render_effects::Batch {
+                blend,
+                range: start..geometry.vertices.len() as u32,
+            });
+        }
+        geometry
+    };
+    let mut streamed = renderer.upload_effects(geometry(0));
+    let mut graphics = crate::settings::Graphics::default();
+    for post in [false, true] {
+        graphics.post.enabled = post;
+        renderer.configure(&graphics);
+        for count in [1, 96, 3, 0, 6] {
+            let fresh = renderer.upload_effects(geometry(count));
+            renderer
+                .draw(&view, camera, &[&terrain], Some(&fresh))
+                .unwrap();
+            let expected = read_pixels(&renderer, &target);
+            renderer.update_effects(&mut streamed, geometry(count));
+            renderer
+                .draw(&view, camera, &[&terrain], Some(&streamed))
+                .unwrap();
+            assert_eq!(
+                read_pixels(&renderer, &target),
+                expected,
+                "post {post}, effects {count}"
+            );
+        }
+    }
+}
+
 fn rectangle(
     z: i16,
     color: u8,

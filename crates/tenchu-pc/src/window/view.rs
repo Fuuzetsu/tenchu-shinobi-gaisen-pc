@@ -1099,7 +1099,7 @@ impl View {
                 [1.0, 0.85, 0.35],
             ));
         }
-        self.effects = self.renderer.upload_effects(geometry);
+        self.renderer.update_effects(&mut self.effects, geometry);
         self.window.set_title(&format!(
             "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
             game.tick,

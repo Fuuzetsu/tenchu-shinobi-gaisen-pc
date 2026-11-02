@@ -435,11 +435,27 @@ impl Renderer {
     }
 
     pub fn upload_effects(&mut self, geometry: render_effects::Geometry) -> EffectMesh {
-        let mut ranges: [Vec<std::ops::Range<u32>>; 2] = Default::default();
+        let mut effects = EffectMesh {
+            mesh: self.upload(&[]),
+            batches: Vec::new(),
+            ranges: Default::default(),
+        };
+        self.update_effects(&mut effects, geometry);
+        effects
+    }
+
+    pub fn update_effects(
+        &mut self,
+        effects: &mut EffectMesh,
+        mut geometry: render_effects::Geometry,
+    ) {
+        for ranges in &mut effects.ranges {
+            ranges.clear();
+        }
         for (i, triangle) in geometry.vertices.chunks_exact(3).enumerate() {
             let overlay =
                 triangle[0].flags & (crate::render_mesh::UI | crate::render_mesh::DEBUG) != 0;
-            let ranges = &mut ranges[usize::from(overlay)];
+            let ranges = &mut effects.ranges[usize::from(overlay)];
             let start = i as u32 * 3;
             if let Some(last) = ranges.last_mut().filter(|last| last.end == start) {
                 last.end += 3;
@@ -447,13 +463,8 @@ impl Renderer {
                 ranges.push(start..start + 3);
             }
         }
-        let mut mesh = self.upload(&geometry.vertices);
-        mesh.dynamic = true;
-        EffectMesh {
-            mesh,
-            batches: geometry.batches,
-            ranges,
-        }
+        self.update_mesh(&mut effects.mesh, &mut geometry.vertices);
+        effects.batches = geometry.batches;
     }
 
     #[cfg(test)]

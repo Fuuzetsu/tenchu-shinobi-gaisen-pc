@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reuse the effects GPU buffer instead of allocating a new one every frame,
+  reducing CPU upload work for dense particles, footprints and animated blood.
+
 - Speed up wind-blown rain and snow by avoiding terrain checks outside each
   particle’s flight path; precipitation, shelter and accumulation are unchanged.
 

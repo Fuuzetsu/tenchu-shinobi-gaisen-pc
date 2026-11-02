@@ -324,3 +324,15 @@ garden and waterfall, against 45.6 / 50.9 / 31.8 / 54.6 FPS before this loop.
 These are isolated Modern High 4K runs with HD v3, not a guarantee of 60 FPS;
 CPU/GPU transfer, presentation and heavier effects still need work. A separate
 sky shader was tested and discarded because it made no measurable difference.
+
+
+Effects now reuse their GPU buffer like animated actor geometry. A paired
+upload/draw fixture alternates fresh allocation and reuse, with twenty warm-up
+frames and 180 samples per pass. For 1,792 particle quads, upload CPU time falls
+from 0.071–0.072 ms to 0.040–0.041 ms; for 8,192 quads, from 0.535–0.563 ms to
+0.233–0.279 ms. The larger case's complete upload/draw/wait falls from
+2.71–2.75 ms to 2.35–2.41 ms. This removes an extra vertex copy and repeated GPU
+allocation without changing particle counts, blend order or retained effects.
+Fresh/reused render comparisons cover all blend modes, HDR HUD separation,
+growth, shrinkage and empty frames. Ordinary and heavy-rain desktop FPS is
+largely unchanged: those scenes remain limited by GPU shading and presentation.
