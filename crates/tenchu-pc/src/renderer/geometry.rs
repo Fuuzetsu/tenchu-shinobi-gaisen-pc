@@ -9,6 +9,15 @@ struct Pose {
     normal: [f32; 3],
 }
 
+impl From<&Vertex> for Pose {
+    fn from(vertex: &Vertex) -> Self {
+        Self {
+            position: vertex.position,
+            normal: vertex.normal,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct Attributes {
@@ -19,6 +28,20 @@ struct Attributes {
     flags: u32,
     material: u32,
     opacity: f32,
+}
+
+impl From<&Vertex> for Attributes {
+    fn from(vertex: &Vertex) -> Self {
+        Self {
+            color: vertex.color,
+            uv: vertex.uv,
+            page: vertex.page,
+            palette: vertex.palette,
+            flags: vertex.flags,
+            material: vertex.material,
+            opacity: vertex.opacity,
+        }
+    }
 }
 
 pub(super) const LAYOUTS: [wgpu::VertexBufferLayout<'static>; 2] = [
@@ -49,36 +72,13 @@ impl Buffers {
 
 #[derive(Default)]
 pub(super) struct Upload {
-    pose: Vec<Pose>,
     attributes: Vec<Attributes>,
 }
 
 impl Upload {
-    fn split(&mut self, vertices: &[Vertex]) {
-        self.pose.clear();
-        self.attributes.clear();
-        self.pose.reserve(vertices.len());
-        self.attributes.reserve(vertices.len());
-        for v in vertices {
-            self.pose.push(Pose {
-                position: v.position,
-                normal: v.normal,
-            });
-            self.attributes.push(Attributes {
-                color: v.color,
-                uv: v.uv,
-                page: v.page,
-                palette: v.palette,
-                flags: v.flags,
-                material: v.material,
-                opacity: v.opacity,
-            });
-        }
-    }
-
     pub fn create(device: &wgpu::Device, vertices: &[Vertex]) -> Buffers {
-        let mut upload = Self::default();
-        upload.split(vertices);
+        let poses: Vec<_> = vertices.iter().map(Pose::from).collect();
+        let attributes: Vec<_> = vertices.iter().map(Attributes::from).collect();
         let create = |label, contents| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(label),
@@ -87,8 +87,8 @@ impl Upload {
             })
         };
         Buffers {
-            pose: create("Mesh poses", bytemuck::cast_slice(&upload.pose)),
-            attributes: create("Mesh attributes", bytemuck::cast_slice(&upload.attributes)),
+            pose: create("Mesh poses", bytemuck::cast_slice(&poses)),
+            attributes: create("Mesh attributes", bytemuck::cast_slice(&attributes)),
             cached: Vec::new(),
         }
     }
@@ -100,14 +100,28 @@ impl Upload {
         buffers: &mut Buffers,
         vertices: &[Vertex],
     ) {
-        self.split(vertices);
-        update_buffer(
-            device,
-            queue,
-            &mut buffers.pose,
-            bytemuck::cast_slice(&self.pose),
-            wgpu::BufferUsages::VERTEX,
-        );
+        self.attributes.clear();
+        self.attributes.reserve(vertices.len());
+        let size = (vertices.len() * std::mem::size_of::<Pose>()) as u64;
+        if let Some(size) = wgpu::BufferSize::new(size) {
+            resize_buffer(
+                device,
+                &mut buffers.pose,
+                size.get(),
+                wgpu::BufferUsages::VERTEX,
+            );
+            let mut staging = queue
+                .write_buffer_with(&buffers.pose, 0, size)
+                .expect("Could not allocate mesh pose staging buffer");
+            for (v, bytes) in vertices.iter().zip(
+                staging
+                    .as_mut()
+                    .chunks_exact_mut(std::mem::size_of::<Pose>()),
+            ) {
+                bytes.copy_from_slice(bytemuck::bytes_of(&Pose::from(v)));
+                self.attributes.push(Attributes::from(v));
+            }
+        }
         let attributes = bytemuck::cast_slice(&self.attributes);
         if bytemuck::cast_slice::<_, u8>(&buffers.cached) != attributes {
             update_buffer(
@@ -132,13 +146,22 @@ pub(super) fn update_buffer(
     if data.is_empty() {
         return;
     }
-    if buffer.size() < data.len() as u64 {
+    resize_buffer(device, buffer, data.len() as u64, usage);
+    queue.write_buffer(buffer, 0, data);
+}
+
+fn resize_buffer(
+    device: &wgpu::Device,
+    buffer: &mut wgpu::Buffer,
+    size: u64,
+    usage: wgpu::BufferUsages,
+) {
+    if buffer.size() < size {
         *buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Dynamic geometry"),
-            size: (data.len() as u64).next_power_of_two(),
+            size: size.next_power_of_two(),
             usage: usage | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
     }
-    queue.write_buffer(buffer, 0, data);
 }

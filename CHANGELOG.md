@@ -22,6 +22,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Reduce per-frame model transfers by uploading changing poses separately from
   unchanged texture coordinates, colours and material attributes. Preserve full
   animation, effects and shadow detail, including with rain and snow enabled.
+  Write changing poses directly into transfer staging memory, avoiding another
+  CPU buffer and copy for characters and large effects meshes.
 
 - Avoid repeatedly copying large effects buffers when replacing original snow
   and splashes, reducing CPU cost with dense footprints and animated effects.

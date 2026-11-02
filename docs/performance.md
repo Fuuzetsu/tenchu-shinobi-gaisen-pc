@@ -868,3 +868,29 @@ pass. The normal moving High routes measure 72.5/86.1/61.7/92.4 FPS, within the
 recent run-to-run spread; they contain little settled litter. A separate longer
 rain route was used for CPU profiling, so its FPS is not compared with these
 short routes. Vertex packing and copying now account for the largest CPU shares.
+
+Changing model/effect poses now write directly into `wgpu`'s transfer staging
+buffer. This removes the intermediate CPU pose vector and its copy; cached
+material attributes still upload only when changed. The byte layout and all
+rendered geometry are unchanged.
+
+A repeated native upload fixture uses 10,752, 49,152, 393,216 and 3,145,728
+vertices, with stable attributes and with every opacity changing each frame.
+For stable attributes, CPU mesh-update time changes from 0.0677 → 0.0586,
+0.313 → 0.252, 3.944 → 3.354 and 36.066 → 31.464 ms respectively. Including
+the completed GPU transfer, the largest case changes from 84.35 to 78.75 ms.
+With changing attributes, the largest case changes from 45.14 to 40.72 ms of
+CPU work; its additional attribute transfer still makes completion expensive
+(170.95 → 168.94 ms). The 49,152-vertex changing-attribute case varies between
+runs rather than showing a reliable gain. These are synthetic mesh updates
+and transfers, not complete gameplay frames or a claim that extreme blood
+counts can sustain 60 FPS.
+
+Eight focused GPU checks pass: streamed/indexed geometry, changing materials,
+effect blending/HUD ordering, moving shadows, blood/snow, contact effects and
+weapon surfaces. Strict native/WASM Clippy and release builds pass, as do browser
+WebGL2 rain and WebGPU snow checks. Paired moving High routes change from
+72.4/86.0/59.8/93.5 to 73.2/86.9/62.6/91.8 FPS; maximum rain changes from
+49.6/62.7/43.5/80.3 to 50.3/62.2/44.3/79.7. These small mixed changes do not
+establish a general FPS improvement; the repeatable benefit is CPU transfer
+preparation, particularly for large meshes.
