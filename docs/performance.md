@@ -404,3 +404,19 @@ Geometry comparisons cover original/refined models, multiple missions, both
 characters, visibility modes and interpolation. GPU checks also exercise indexed
 and unindexed buffer transitions, shrinking/empty meshes, moving casters, wind,
 directional shadows and weather shelter.
+
+Projection of new blood and snow footprints also avoids work after reaching the
+subdivision limit, skips clipping allocations when a polygon lies entirely on
+one side of a plane, and computes each blood stamp's rotation once. A CPU stress
+fixture projects 946 marks onto actual Mission 1 surfaces at each size:
+
+| Newly generated marks | Before | After |
+| --- | ---: | ---: |
+| Footprints | 10.67 ms | 7.71 ms |
+| Blood stains | 7.33 ms | 5.41 ms |
+| Large pools | 18.24 ms | 12.31 ms |
+
+These are batch generation costs, not a per-frame FPS claim. All resulting
+vertices, UVs, normals and opacity values are byte-identical (313,059 vertices
+across the three cases). Retention limits, appearance and subdivision thresholds
+are unchanged; drawing retained decals remains a separate GPU cost.

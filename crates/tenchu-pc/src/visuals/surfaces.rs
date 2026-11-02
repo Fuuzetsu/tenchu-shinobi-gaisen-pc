@@ -295,6 +295,9 @@ impl Stamp {
         for (i, &vertex) in polygon.iter().enumerate().skip(1) {
             center = interpolate(center, vertex, 1.0 / (i + 1) as f32);
         }
+        let rotation = self.shape.is_none().then(|| {
+            glam::Mat2::from_angle((self.seed % 1024) as f32 * std::f32::consts::TAU / 1024.0)
+        });
         let finish = |mut v: Vertex| {
             let delta = Vec3::from(v.position) - self.center;
             let margin = planes
@@ -304,11 +307,10 @@ impl Stamp {
             let depth = (self.depth - delta.dot(self.normal).abs()) / (self.depth * 0.4);
             v.opacity =
                 (margin / (self.radius * 0.3)).clamp(0.0, 1.0) * depth.clamp(0.0, 1.0) * 0.92;
-            if self.shape.is_none() {
+            if let Some(rotation) = rotation {
                 // Analytic blood uses tint for stamp coordinates and luminance; UVs still sample the receiver.
-                let angle = (self.seed % 1024) as f32 * std::f32::consts::TAU / 1024.0;
                 let uv = glam::Vec2::new(delta.dot(tangent), delta.dot(bitangent)) / self.radius;
-                let uv = glam::Mat2::from_angle(angle) * uv;
+                let uv = rotation * uv;
                 let luminance = Vec3::from(v.color).dot(Vec3::new(0.2126, 0.7152, 0.0722));
                 v.color = [uv.x, uv.y, luminance];
                 v.opacity = depth.clamp(0.0, 1.0) * 0.92;
@@ -342,6 +344,10 @@ fn stamp_triangle(
     out: &mut Vec<Vertex>,
 ) {
     let vertices = triangle.map(finish);
+    if depth >= max_depth {
+        out.extend(vertices);
+        return;
+    }
     let middle =
         std::array::from_fn::<_, 3, _>(|i| interpolate(triangle[i], triangle[(i + 1) % 3], 0.5));
     let center = interpolate(
@@ -356,7 +362,7 @@ fn stamp_triangle(
             (finish(v).opacity - (vertices[i].opacity + vertices[(i + 1) % 3].opacity) * 0.5).abs()
                 > 0.04
         });
-    if depth < max_depth && split {
+    if split {
         let [a, b, c] = triangle;
         let [ab, bc, ca] = middle;
         for triangle in [[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]] {
@@ -383,6 +389,16 @@ fn clip(polygon: &mut Vec<Vertex>, normal: Vec3, limit: f32) {
     let distance = |v: Vertex| Vec3::from(v.position).dot(normal) - limit;
     let mut previous = last;
     let mut d0 = distance(previous);
+    let inside = d0 <= 0.0;
+    if polygon[..polygon.len() - 1]
+        .iter()
+        .all(|&v| (distance(v) <= 0.0) == inside)
+    {
+        if !inside {
+            polygon.clear();
+        }
+        return;
+    }
     let mut clipped = Vec::with_capacity(polygon.len() + 1);
     for &next in polygon.iter() {
         let d1 = distance(next);
