@@ -118,11 +118,12 @@ impl Options {
             label: Some("Original paletted textures"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
                     self.filtering != 0 || self.magnification != 0, self.lighting, self.relief, self.hdr, self.weather, self.water,
                     crate::lighting::MAX_SCENE_LIGHTS,
                     crate::lighting::MAX_LIGHTS,
                     shadows::FACES,
+                    shadows::FILTER_SAMPLES,
                     materials::MAX_MIPS,
                     shadows::NEAR,
                     crate::visuals::relief::GRADIENT_RANGE,

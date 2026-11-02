@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce soft-shadow shading cost when weather and many blood stains overlap,
+  keeping the same shadow sample count and appearance.
+
 - Reuse the effects GPU buffer instead of allocating a new one every frame,
   reducing CPU upload work for dense particles, footprints and animated blood.
 

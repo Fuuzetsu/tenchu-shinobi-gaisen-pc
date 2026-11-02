@@ -336,3 +336,13 @@ allocation without changing particle counts, blend order or retained effects.
 Fresh/reused render comparisons cover all blend modes, HDR HUD separation,
 growth, shrinkage and empty frames. Ordinary and heavy-rain desktop FPS is
 largely unchanged: those scenes remain limited by GPU shading and presentation.
+
+
+The weather shader also reads the fixed 32-point soft-shadow sampling pattern
+from uniforms, avoiding repeated trigonometry in its already large fragment
+program. A repeated TRIAL 2 comparison reduces the overlapping snow/blood case
+from 74.17 to 63.56 ms (play camera), and 29.66 to 25.80 ms (overhead). All ten
+captures remain pixel-identical. Ordinary rain/snow timings are effectively
+unchanged. Applying the same change to the smaller dry shader regressed dense
+blood rendering by about 3%, so that variant retains local arithmetic. No
+shadow samples, lights, effects or quality settings are removed.

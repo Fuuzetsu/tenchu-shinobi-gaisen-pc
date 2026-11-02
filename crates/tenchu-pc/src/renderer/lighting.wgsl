@@ -14,6 +14,7 @@ struct Lighting {
     source: vec4<f32>,
     grid: vec4<f32>,
     grid_size: vec4<f32>,
+    shadow_filter: array<vec4<f32>, SHADOW_FILTER_SAMPLES>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
@@ -126,13 +127,20 @@ fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>,
     }
     if penumbra > 1.0 / size.x {
         var visibility = 0.0;
-        for (var i = 0; i < 32; i++) {
-            let angle = f32(i) * 2.3999632;
-            let radius = sqrt((f32(i) + 0.5) / 32.0) * penumbra;
-            let point = clamp(uv + vec2(cos(angle), sin(angle)) * radius, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+        for (var i = 0u; i < SHADOW_FILTER_SAMPLES; i++) {
+            var sample: vec3<f32>;
+            // Uniform samples help the heavier weather shader; the dry variant
+            // benchmarks faster with local arithmetic.
+            if WEATHER_ENABLED { sample = lighting.shadow_filter[i].xyz; }
+            else {
+                let angle = f32(i) * 2.3999632;
+                sample = vec3(cos(angle), sin(angle), sqrt((f32(i) + 0.5) / f32(SHADOW_FILTER_SAMPLES)));
+            }
+            let radius = sample.z * penumbra;
+            let point = clamp(uv + sample.xy * radius, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
             visibility += textureSampleCompareLevel(shadow_maps, shadow_sampler, point, i32(layer), reference + dot(gradient, point - uv));
         }
-        return visibility / 32.0;
+        return visibility / f32(SHADOW_FILTER_SAMPLES);
     }
     let step = lighting.lamps.y / size;
     var visibility = 0.0;

@@ -8,6 +8,7 @@ use glam::{Mat4, Vec3};
 
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
+pub const FILTER_SAMPLES: usize = 32;
 const LIGHT_WORDS: usize = MAX_SCENE_LIGHTS * 8;
 
 pub struct Geometry<'a> {
@@ -29,6 +30,7 @@ pub struct Shadows {
     pub layout: wgpu::BindGroupLayout,
     pub bindings: wgpu::BindGroup,
     data: wgpu::Buffer,
+    filter: [[f32; 4]; FILTER_SAMPLES],
     sampler: wgpu::Sampler,
     views: Vec<wgpu::TextureView>,
     faces: Vec<(wgpu::Buffer, wgpu::BindGroup)>,
@@ -143,7 +145,10 @@ impl Shadows {
                 },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 116) * 4);
+        let data = buffer(
+            device,
+            (LIGHT_WORDS + FACES * 16 + 116 + FILTER_SAMPLES * 4) * 4,
+        );
         let grid = super::light_grid::Grid::new(device);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
@@ -314,6 +319,15 @@ impl Shadows {
             layout,
             bindings,
             data,
+            filter: std::array::from_fn(|i| {
+                let angle = i as f32 * 2.3999632;
+                [
+                    angle.cos(),
+                    angle.sin(),
+                    ((i as f32 + 0.5) / FILTER_SAMPLES as f32).sqrt(),
+                    0.0,
+                ]
+            }),
             sampler,
             views,
             faces,
@@ -546,6 +560,7 @@ impl Shadows {
             0.0,
         ]);
         data.extend(self.grid.uniform());
+        data.extend(self.filter.iter().flatten().copied());
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
                 self.draw_face(
