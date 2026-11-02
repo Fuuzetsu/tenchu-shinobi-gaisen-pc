@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.15.0 — 2026-11-02
+
 - Add optional **Call aid after witnessed kills** under F1 → Simulation.
   With all enemies active, the nearest eligible guard who sees a non-stealth
   guard kill retreats to seek reinforcements. It respects sight, cover, call
