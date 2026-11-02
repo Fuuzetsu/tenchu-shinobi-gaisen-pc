@@ -28,6 +28,7 @@ impl Contact {
         let forward = (inverse.project_point3(Vec3::Z) - near).normalize_or_zero();
         let right = forward.cross(Vec3::NEG_Y).normalize_or_zero();
         let up = right.cross(forward);
+        let frustum = crate::renderer::Frustum::new(camera);
         let mut particles: Vec<_> = self
             .particles
             .iter()
@@ -45,6 +46,13 @@ impl Contact {
         });
         for p in particles {
             let center = p.previous.lerp(p.position, alpha.clamp(0.0, 1.0));
+            let mut extent = Vec3::splat(p.size * 2.0);
+            if matches!(p.kind, Kind::Spark | Kind::Drop) {
+                extent += p.velocity.abs() * 0.3;
+            }
+            if !frustum.contains([center - extent, center + extent], 2.0) {
+                continue;
+            }
             let fade = ((p.life - p.age)
                 / if matches!(p.kind, Kind::Petal | Kind::Leaf) {
                     8.0
@@ -52,6 +60,9 @@ impl Contact {
                     p.life * 0.5
                 })
             .clamp(0.0, 1.0);
+            if fade == 0.0 {
+                continue;
+            }
             if matches!(p.kind, Kind::Petal | Kind::Leaf) {
                 let normal = p.ground.unwrap_or_else(|| {
                     Mat3::from_rotation_z((p.age * 2.0 + p.phase).sin())
@@ -115,8 +126,16 @@ impl Contact {
             .filter(|_| settings.splashes || settings.scatter)
         {
             let age = (ring.age + alpha / 30.0) / 1.2;
+            if age >= 1.0 {
+                continue;
+            }
             let radius = (30.0 + age * 550.0) * ring.strength.sqrt();
             let width = 7.0 * (1.0 - age) + 2.0;
+            let center = ring.position - Vec3::Y * 3.0;
+            let extent = Vec3::new(radius + width, 0.0, radius + width);
+            if !frustum.contains([center - extent, center + extent], 2.0) {
+                continue;
+            }
             for segment in 0..32 {
                 let quad = std::array::from_fn::<_, 4, _>(|i| {
                     let angle = (segment + i % 2) as f32 * std::f32::consts::TAU / 32.0;

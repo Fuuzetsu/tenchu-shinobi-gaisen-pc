@@ -22,6 +22,51 @@ fn floor(center: Vec3, flags: u32) -> Vec<Vertex> {
 }
 
 #[test]
+fn offscreen_effects_preserve_crossing_tails_and_interpolated_positions() {
+    let camera = Mat4::orthographic_rh(-100.0, 100.0, -100.0, 100.0, 1.0, 2000.0)
+        * Mat4::look_at_rh(Vec3::new(0.0, -1000.0, 0.0), Vec3::ZERO, Vec3::Z);
+    let options = crate::settings::Effects {
+        leaves: true,
+        scatter: true,
+        splashes: true,
+        sparks: true,
+        ..Default::default()
+    };
+    for (kind, count) in [
+        (Kind::Petal, 12),
+        (Kind::Leaf, 12),
+        (Kind::Snow, 6),
+        (Kind::Drop, 6),
+        (Kind::Spark, 6),
+    ] {
+        let mut contact = Contact::default();
+        contact.particle(kind, Vec3::X * 220.0, Vec3::ZERO, [1.0; 3], 10.0);
+        assert!(contact.geometry(camera, 1.0, &options).vertices.is_empty());
+        contact.particles[0].previous = -contact.particles[0].position;
+        let state = postcard::to_allocvec(&contact).unwrap();
+        assert_eq!(
+            contact.geometry(camera, 0.5, &options).vertices.len(),
+            count
+        );
+        assert_eq!(postcard::to_allocvec(&contact).unwrap(), state);
+        if matches!(kind, Kind::Spark | Kind::Drop) {
+            contact.particles[0].velocity = Vec3::X * 700.0;
+            assert_eq!(
+                contact.geometry(camera, 1.0, &options).vertices.len(),
+                count
+            );
+        }
+    }
+    let mut contact = Contact::default();
+    contact.ripple(Vec3::X * 220.0, 1.0);
+    assert!(contact.geometry(camera, 0.0, &options).vertices.is_empty());
+    contact.rings[0].age = 0.6;
+    assert_eq!(contact.geometry(camera, 0.0, &options).vertices.len(), 192);
+    contact.rings[0].age = 1.2;
+    assert!(contact.geometry(camera, 0.0, &options).vertices.is_empty());
+}
+
+#[test]
 fn settled_litter_fades_and_weather_clear_keeps_foliage() {
     let mut contact = Contact::default();
     contact.particle(Kind::Petal, Vec3::ZERO, Vec3::ZERO, [1.0, 0.7, 0.8], 18.0);
@@ -35,6 +80,10 @@ fn settled_litter_fades_and_weather_clear_keeps_foliage() {
     for remaining in [8.0, 6.0, 4.0, 2.0, 0.0] {
         contact.particles[0].age = contact.particles[0].life - remaining;
         let mesh = contact.geometry(Mat4::IDENTITY, 1.0, &options);
+        if remaining == 0.0 {
+            assert!(mesh.vertices.is_empty());
+            continue;
+        }
         let opacity = mesh.vertices[0].opacity;
         assert!(opacity <= previous);
         assert!((opacity - remaining / 8.0).abs() < 0.001);

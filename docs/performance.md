@@ -840,3 +840,31 @@ Fifteen focused checks pass, including both heroes' actual footsteps, distant
 active patrols, footprints on existing snow, wet-mark continuation, complete
 visual-state restoration and rewind seeking/branching. Native/WASM strict Clippy
 and release builds pass.
+
+Contact particles and splash rings now skip geometry outside the view, with
+conservative bounds covering interpolated positions, long spark/drop tails and
+partially visible rings. Culling happens after the existing particle sort, so
+remaining blend order is unchanged. Simulation, collisions and emitted light
+continue for off-screen particles; fully faded geometry is skipped too.
+
+At maximum falling-leaf density, a rotating Mission 1 garden view changes CPU
+assembly from 0.1081 to 0.0449 ms and average geometry from 13,517 to 591
+vertices. Mission 3 changes from 0.1833 to 0.0912 ms and 20,574 to 3,489 vertices.
+Both complete particle states match, and the retained final vertices are exact
+subsequences of the old geometry. Three dense-leaf garden images (dry, rain,
+snow) match exactly, as do ten TRIAL control images without leaf emitters.
+Static GPU rendering time is essentially unchanged; the benefit is reduced CPU
+assembly and per-frame transfers. Tests cover interpolated particles crossing
+the view, visible tails with off-screen centers, expanding rings and fade-outs.
+
+Two weather-projection shader experiments were discarded. Reconstructing the
+shelter gap directly from orthographic depth increased rain/blood from 67.35 to
+74.64 ms. Removing the unused fourth inverse-projection component preserved all
+fourteen images but showed no useful gain and slowed snow/blood slightly.
+
+Seven focused contact/GPU/visual-state checks pass, along with strict native
+and WASM Clippy and release builds. Browser WebGL2 rain and WebGPU snow checks
+pass. The normal moving High routes measure 72.5/86.1/61.7/92.4 FPS, within the
+recent run-to-run spread; they contain little settled litter. A separate longer
+rain route was used for CPU profiling, so its FPS is not compared with these
+short routes. Vertex packing and copying now account for the largest CPU shares.

@@ -15,8 +15,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Reuse shadow visibility checks for unchanged scenery and lights, reducing CPU
   work while keeping moving characters, wind and weather shelter current.
 
-- Avoid building and uploading fully hidden or transparent precipitation,
-  while keeping wind, distant rain/snow, roof runoff and accumulation active.
+- Avoid building and uploading off-screen or invisible precipitation, drifting
+  leaves/petals, contact particles and splash rings. Keep their simulation,
+  wind, shelter, accumulation and lights active.
 
 - Reduce per-frame model transfers by uploading changing poses separately from
   unchanged texture coordinates, colours and material attributes. Preserve full
