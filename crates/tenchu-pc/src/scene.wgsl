@@ -230,6 +230,13 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     return vec4(color.rgb, 1.0);
 }
 
+@fragment fn scenery(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    var v = input;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE | UNLIT)) | SCENERY;
+    let color = shade(v, front_facing, false, false, true);
+    return vec4(color.rgb, 1.0);
+}
+
 @fragment fn translucent(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
     let color = shade(v, front_facing, true, false, false);

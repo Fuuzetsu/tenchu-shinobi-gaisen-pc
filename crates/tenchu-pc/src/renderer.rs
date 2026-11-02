@@ -28,6 +28,7 @@ pub struct Mesh {
     indices: Option<Indices>,
     revision: u64,
     dynamic: bool,
+    scenery: bool,
     count: u32,
     bounds: Option<[glam::Vec3; 2]>,
     shadow_chunks: Vec<culling::Chunk>,
@@ -39,9 +40,21 @@ struct Indices {
 }
 
 impl Mesh {
+    fn is_scenery(vertices: &[Vertex]) -> bool {
+        use crate::render_mesh::{
+            ALPHA, DEBUG, FOOTPRINT, SCENERY, SCREEN, SKY, STAIN, UI, WET_CONTACT,
+        };
+        vertices.iter().all(|v| {
+            v.flags
+                & (SCENERY | SCREEN | DEBUG | UI | SKY | STAIN | ALPHA | FOOTPRINT | WET_CONTACT)
+                == SCENERY
+        })
+    }
+
     fn set_geometry(&mut self, vertices: &[Vertex]) {
         self.revision += 1;
         self.count = vertices.len() as u32;
+        self.scenery = Self::is_scenery(vertices);
         self.bounds = culling::update_chunks(vertices, &mut self.shadow_chunks);
     }
 
@@ -433,6 +446,7 @@ impl Renderer {
             indices: None,
             revision: 0,
             dynamic: false,
+            scenery: false,
             shadow_chunks: Vec::new(),
             bounds: None,
             vertices: geometry::Upload::create(&self.device, &vertices),
@@ -460,6 +474,7 @@ impl Renderer {
         mesh.revision += 1;
         mesh.count = geometry.indices.len() as u32;
         self.materials.annotate(&mut geometry.vertices);
+        mesh.scenery = Mesh::is_scenery(&geometry.vertices);
         mesh.bounds = culling::update_indexed_chunks(
             &geometry.vertices,
             &geometry.indices,
@@ -758,6 +773,12 @@ impl Renderer {
                 (meshes.actors, timing::SceneStage::Actors),
             ] {
                 for mesh in meshes.iter().filter(|m| m.count != 0) {
+                    let scenery = mesh.scenery;
+                    pass.set_pipeline(if scenery {
+                        &self.pipelines.scenery
+                    } else {
+                        &self.pipelines.opaque
+                    });
                     mesh.bind(&mut pass);
                     mesh.draw(&mut pass, 0..mesh.count);
                 }

@@ -698,3 +698,26 @@ small saving in ordinary rain is within the variation of these desktop runs.
 
 A separate attempt to reuse the noise function's corner calculations preserved
 all eighteen images but produced no meaningful speedup, so it was not retained.
+
+Opaque scenery now uses a specialised entry point in the shared surface shader.
+Meshes qualify only when every vertex is scenery without UI, sky, blood or
+alpha-decal flags. Characters and mixed meshes keep the general shader. Water,
+foliage movement, lamps, texture cutouts and their original blending rules are
+preserved. Classification happens when geometry changes, not every draw.
+
+Paired 4K TRIAL runs measure dry scenery at 8.41 → 7.87 ms GPU time, rain at
+14.20 → 13.55 ms, snow at 11.07 → 10.52 ms and snow with footprints at
+12.54 → 11.95 ms. Dense rain/blood changes from 67.80 to 67.44 ms because
+stain shading remains the dominant cost. The Mission 1 garden changes from
+14.36 to 13.51 ms dry and 22.78 to 21.69 ms in rain. The Mission 4 waterfall
+view is effectively unchanged. All 26 paired images match exactly.
+
+Paired moving desktop runs at 4K measure Modern High at 69.7 / 82.4 / 57.3 /
+93.6 FPS before and 72.3 / 85.8 / 59.7 / 93.4 FPS after. Maximum rain changes
+from 46.4 / 57.4 / 37.9 / 79.9 to 50.5 / 62.7 / 44.3 / 81.4 FPS. These use
+the same fixed camera paths and simulated updates, with separate settings files.
+The focused scenery comparison covers every supported sample count, filtering,
+HDR, moving foliage, water, emissive surfaces, rain and snow. Streaming and
+existing lighting, cutout, relief, weather and water GPU checks also pass.
+Native and WASM strict Clippy checks pass. Windowed WebGL2 rain and WebGPU
+snow checks pass with lighting changes, paused free camera and resumed play.

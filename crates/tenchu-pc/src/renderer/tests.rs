@@ -8,6 +8,7 @@ mod light_grid;
 mod models;
 mod motion;
 mod overlay;
+mod scenery;
 mod scrolling;
 mod shadow_regions;
 mod sky;

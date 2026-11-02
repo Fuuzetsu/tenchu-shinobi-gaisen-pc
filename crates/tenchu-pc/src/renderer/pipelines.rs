@@ -31,6 +31,7 @@ impl From<&crate::settings::Graphics> for Options {
 
 pub(super) struct Pipelines {
     pub opaque: wgpu::RenderPipeline,
+    pub scenery: wgpu::RenderPipeline,
     pub effects: [wgpu::RenderPipeline; 6],
     pub visibility: wgpu::RenderPipeline,
     pub ground_blood: wgpu::RenderPipeline,
@@ -141,6 +142,7 @@ pub(super) fn create(
     // Leave one depth unit for the color pass's strict test, preserving coplanar face order.
     Pipelines {
         opaque: pipeline,
+        scenery: make_pipeline(None, "scenery", 0, true, wgpu::CompareFunction::Less),
         effects,
         visibility: make_pipeline(None, "depth_only", 1, true, wgpu::CompareFunction::Less),
         ground_blood: make_pipeline(
