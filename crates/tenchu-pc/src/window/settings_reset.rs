@@ -47,6 +47,7 @@ impl Application {
                 self.settings.graphics.weather.quality = s.graphics.weather.quality
             }
             Item::PlayerModel => self.settings.player_model.clear(),
+            Item::MovesetModel => self.settings.moveset_model.clear(),
             Item::GameplayPreset => self.set_gameplay_preset(0)?,
             Item::Preset => self.settings.set_visual_preset(0),
             Item::PhotoMode => self.debug.photo_mode = false,

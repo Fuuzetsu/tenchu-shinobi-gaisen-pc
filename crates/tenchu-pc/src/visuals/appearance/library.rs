@@ -35,6 +35,17 @@ pub struct Library {
 }
 
 impl Library {
+    pub fn moveset(&self, settings: &crate::settings::Settings) -> Result<Option<&Body>> {
+        let Some(id) = settings.moveset_id() else {
+            return Ok(None);
+        };
+        let body = self.get(id).filter(|body| body.character.is_some());
+        if body.is_none() && !settings.moveset_model.is_empty() {
+            return Err(format!("Moveset unavailable: {id}"));
+        }
+        Ok(body)
+    }
+
     pub fn get(&self, id: &str) -> Option<&Body> {
         self.aliases.get(id).map(|&index| &self.bodies[index])
     }
@@ -432,11 +443,29 @@ mod tests {
             let inventory = game.player().inventory;
             let random = game.random;
             let tick = game.tick;
-            let onikage = library.get("disc:135").unwrap();
+            let mut settings = crate::settings::Settings {
+                model_moveset: true,
+                moveset_model: "disc:135".into(),
+                ..Default::default()
+            };
+            let onikage = library.moveset(&settings).unwrap().unwrap();
             let source = onikage.character.as_ref().unwrap();
+            for body in ["", "disc:0", "disc:1", "pack:custom"] {
+                settings.player_model = body.into();
+                assert_eq!(library.moveset(&settings).unwrap().unwrap().id, onikage.id);
+            }
+            settings.model_moveset = false;
+            assert!(library.moveset(&settings).unwrap().is_none());
+            settings.model_moveset = true;
+            settings.moveset_model.clear();
+            assert!(library.moveset(&settings).unwrap().is_none());
+            settings.player_model = "disc:135".into();
+            assert_eq!(library.moveset(&settings).unwrap().unwrap().id, onikage.id);
             game.set_player_moveset(Some(source), &onikage.clips, Default::default())
                 .unwrap();
             assert_eq!(game.player().kind, character);
+            assert_eq!(game.player().mesh_kind, character);
+            assert_eq!(game.player().rendered_mesh_kind, character);
             assert_eq!(game.player().inventory, inventory);
             assert_eq!(game.tick, tick);
             assert_eq!(game.random, random);

@@ -219,6 +219,7 @@ impl Application {
             self.release_pointer();
         }
         if (self.settings.model_moveset != previous.model_moveset
+            || self.settings.moveset_model != previous.moveset_model
             || self.settings.model_moveset_options != previous.model_moveset_options
             || self.settings.player_model != previous.player_model)
             && let Err(error) = self.sync_model_moveset()
@@ -284,20 +285,16 @@ impl Application {
         let Some(view) = &mut self.view else {
             return Ok(());
         };
-        if self.settings.model_moveset
-            && !self.settings.player_model.is_empty()
+        if self.settings.moveset_id().is_some_and(|id| !id.is_empty())
             && view.model_library.is_none()
         {
             view.load_model_library(&self.assets, &self.campaign.game, &self.settings)?;
         }
-        let body = self
-            .settings
-            .model_moveset
-            .then(|| {
-                view.model_library
-                    .as_ref()
-                    .and_then(|l| l.get(&self.settings.player_model))
-            })
+        let body = view
+            .model_library
+            .as_ref()
+            .map(|library| library.moveset(&self.settings))
+            .transpose()?
             .flatten();
         let character = body.and_then(|b| b.character.as_ref());
         let options = self.settings.model_moveset_options;
@@ -446,6 +443,20 @@ impl Application {
                         [(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
                         .0
                         .clone();
+                }
+            }
+            Item::MovesetModel => {
+                let choices = &self.menu.moveset_models;
+                if !choices.is_empty() {
+                    let index = choices
+                        .iter()
+                        .position(|(id, _)| id == &self.settings.moveset_model)
+                        .unwrap_or(0);
+                    self.settings.moveset_model = choices
+                        [(index as i32 + direction).rem_euclid(choices.len() as i32) as usize]
+                        .0
+                        .clone();
+                    self.settings.model_moveset = true;
                 }
             }
             Item::ReloadModels => {

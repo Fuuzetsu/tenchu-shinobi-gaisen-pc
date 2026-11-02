@@ -61,6 +61,7 @@ pub struct Settings {
     pub rewind_speed: u16,
     pub player_model: String,
     pub model_moveset: bool,
+    pub moveset_model: String,
     pub alternate_death_chance: u16,
     pub model_moveset_options: tenchu_core::game::moveset::Options,
     pub model_directory: String,
@@ -99,6 +100,7 @@ impl Default for Settings {
             rewind_speed: 200,
             player_model: String::new(),
             model_moveset: false,
+            moveset_model: String::new(),
             alternate_death_chance: 0,
             model_moveset_options: Default::default(),
             model_directory: String::new(),
@@ -108,6 +110,15 @@ impl Default for Settings {
 }
 
 impl Settings {
+    pub fn moveset_id(&self) -> Option<&str> {
+        self.model_moveset
+            .then_some(if self.moveset_model.is_empty() {
+                &self.player_model
+            } else {
+                &self.moveset_model
+            })
+    }
+
     pub fn restore_gameplay(&mut self, saved: &Self, game: &tenchu_core::game::Game) {
         self.wait_after_death = saved.wait_after_death;
         self.live_death_scene = saved.live_death_scene;
@@ -115,6 +126,7 @@ impl Settings {
         self.cutscene_speed = saved.cutscene_speed;
         self.player_model.clone_from(&saved.player_model);
         self.model_moveset = saved.model_moveset;
+        self.moveset_model.clone_from(&saved.moveset_model);
         self.model_moveset_options = saved.model_moveset_options;
         self.keep_enemies_active = game.roster.keep_all_active;
         self.reinforcement_limit = game.roster.reinforcement_limit.unwrap_or(0) as u16;
@@ -410,6 +422,7 @@ mod tests {
             volume: 25,
             player_model: "pack:custom".into(),
             model_moveset: true,
+            moveset_model: "disc:135".into(),
             alternate_death_chance: 50,
             model_moveset_options: tenchu_core::game::moveset::Options {
                 player_movement: true,
@@ -434,6 +447,7 @@ mod tests {
         assert_eq!(original.cutscene_speed, 4);
         assert_eq!(original.volume, 25);
         assert!(original.player_model.is_empty());
+        assert_eq!(original.moveset_model, settings.moveset_model);
         assert_eq!(original.alternate_death_chance, 0);
         assert_eq!(
             original.model_moveset_options,

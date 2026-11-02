@@ -14,6 +14,7 @@ pub enum Edit {
     Reset(Item),
     Coordinate(usize, i32),
     PlayerModel(String),
+    MovesetModel(String),
     Benchmark,
     PresetLibrary,
     Controls,
@@ -274,6 +275,34 @@ fn widget(
     edits: &mut Vec<Edit>,
 ) -> egui::Response {
     let item = row.item;
+    if item == Item::MovesetModel {
+        let selected = menu
+            .moveset_models
+            .iter()
+            .find(|(id, _)| id == &row.value)
+            .map_or("Selected player body", |(_, name)| name.as_str());
+        return egui::ComboBox::from_id_salt("moveset-source")
+            .selected_text(selected)
+            .width(ui.available_width().min(240.0))
+            .show_ui(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::singleline(&mut menu.moveset_search)
+                        .hint_text("Search movesets…")
+                        .desired_width(220.0),
+                );
+                let query = menu.moveset_search.to_lowercase();
+                for (id, name) in &menu.moveset_models {
+                    if query
+                        .split_whitespace()
+                        .all(|word| name.to_lowercase().contains(word) || id.contains(word))
+                        && ui.selectable_label(id == &row.value, name).clicked()
+                    {
+                        edits.push(Edit::MovesetModel(id.clone()));
+                    }
+                }
+            })
+            .response;
+    }
     if item == Item::PlayerModel {
         let selected = menu
             .player_models

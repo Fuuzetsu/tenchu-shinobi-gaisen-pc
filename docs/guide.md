@@ -463,12 +463,15 @@ draw/sheath transitions; interpolation and dynamic shadows use the same body.
 Different proportions can visibly differ from the original collision bounds;
 animal bodies can look unusual with humanoid movements.
 
-**Use model's moveset** also adopts the selected actor's registered animations,
-attacks and weapon profile. For example, Onikage uses his kicks while keeping
-the normal player controls. Missing player actions fall back to the protagonist,
+**Override moveset** adopts an actor's registered animations, attacks and weapon
+profile independently of appearance. Search **Moveset source** for Onikage, for
+example, and keep **Player body → Original** to use his kicks as Ayame or Rikimaru.
+**Selected player body** follows the gallery selection, preserving the previous
+model-swap behavior. Missing player actions fall back to the protagonist,
 so grappling/items remain available. This changes gameplay and resets the current
 action; campaign identity, health and inventory stay with Ayame or Rikimaru.
-Original and custom folders use the protagonist's moves. Enemy AI routines are
+Original and custom bodies can use any explicit source; when following the body,
+they retain the protagonist's moves. Enemy AI routines are
 not additional player commands. Disable the checkbox to restore normal moves.
 
 Two optional checkboxes customize that moveset: **Use player movement** restores
@@ -476,7 +479,7 @@ your protagonist's locomotion clips and speeds (walking, running, dashes,
 crouching, jumping, climbing, swimming and grappling) while retaining the selected
 actor's attacks. **Disable idle taunts** prevents random fidgets and combat taunts
 from locking player input. Enabling it also ends a taunt already in progress.
-Both are off by default, apply only with **Use model's moveset**, and are saved
+Both are off by default, apply only with **Override moveset**, and are saved
 across launches. They leave enemies and scripted animations unchanged.
 
 To edit your own bodies, export a folder:

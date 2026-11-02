@@ -349,6 +349,20 @@ impl super::Application {
             self.menu.notice = error;
         }
         self.menu.player_models.clone_from(&view.player_models);
+        if self.menu.moveset_models.is_empty()
+            && let Some(library) = &view.model_library
+        {
+            self.menu
+                .moveset_models
+                .push((String::new(), "Selected player body".into()));
+            self.menu.moveset_models.extend(
+                library
+                    .bodies
+                    .iter()
+                    .filter(|body| body.character.is_some())
+                    .map(|body| (body.id.clone(), body.name.clone())),
+            );
+        }
         self.menu.artwork_status = view.artwork_status();
         let demo_run = self.demo.as_ref().and_then(|d| d.randomized.clone());
         let updates = view.overlay.update(
@@ -489,6 +503,11 @@ impl super::Application {
                 Edit::Reset(item) => self.reset_item(item),
                 Edit::PlayerModel(id) => {
                     self.settings.player_model = id;
+                    Ok(())
+                }
+                Edit::MovesetModel(id) => {
+                    self.settings.moveset_model = id;
+                    self.settings.model_moveset = true;
                     Ok(())
                 }
                 Edit::Coordinate(axis, value) => {

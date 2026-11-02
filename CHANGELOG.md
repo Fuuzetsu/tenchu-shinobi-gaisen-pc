@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Choose a moveset independently of the player model in F1 → Player model.
+  Ayame and Rikimaru can keep their normal appearance while using any available
+  actor's moves, with a searchable source selector. Existing model-following,
+  player-movement and idle-taunt options remain available (#46).
+
 - With all enemies active, reject call-aid spawn locations outside the map or
   without a valid floor. Missing terrain no longer qualifies as hidden ground;
   cover is checked at the new guard's floor height. Failed attempts preserve the

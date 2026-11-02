@@ -155,6 +155,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::Gunfire => {
             settings.player_model = "disc:128".into();
             settings.model_moveset = true;
+            settings.moveset_model.clear();
             settings.model_moveset_options.player_movement = true;
             settings.model_moveset_options.no_idle_taunts = true;
             g.effects.gunfire = p >= 0.5;
