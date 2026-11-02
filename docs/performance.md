@@ -635,3 +635,22 @@ Repeated maximum-snow runs give 51.7 → 52.6 FPS (village), 64.7 → 66.5
 garden baseline reached 44.4 FPS with lower terrain shading time; rerunning
 the old binary reproduces the later terrain timings, so that variation is
 not attributed to precipitation culling.
+
+The rain CPU profile also found repeated per-triangle filtering in animated
+model assembly. Entirely opaque meshes now append their contiguous indices
+directly; mixed meshes append complete retained triangles after reserving
+space. This keeps the original order and sharing without another model cache.
+
+| HD model preparation (CPU, all actors active) | Before | After |
+| --- | ---: | ---: |
+| Mission 1, 50,948 vertices / 160,128 indices | 0.359 ms | 0.246 ms |
+| Mission 5, 48,501 vertices / 152,430 indices | 0.338 ms | 0.230 ms |
+| Mission 9, 53,924 vertices / 166,608 indices | 0.372 ms | 0.255 ms |
+
+The six captured vertex/index buffers match byte for byte. Existing comparisons
+against expanded character geometry also pass across five mission/character
+combinations, original/refined meshes, visibility and interpolation states.
+
+Native and WASM strict Clippy pass. Moving 4K High measures 70.3 / 83.8 /
+58.7 / 92.0 FPS. Maximum rain remains GPU-bound; the reduced model assembly
+time is not claimed as a material GPU or whole-frame improvement.

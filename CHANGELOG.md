@@ -31,8 +31,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Reduce CPU work when projecting new blood stains, death pools and footprints
   onto scenery, without changing their shapes or fading.
 
-- Reduce character geometry uploads and copying when using refined or replacement
-  models, preserving their detail, animation and shadows.
+- Reduce character geometry preparation, uploads and copying when using refined
+  or replacement models, preserving their detail, animation and shadows.
 
 - Speed up accumulated snow shading, including scenes with many blood stains,
   by avoiding redundant shadow filtering on sloped surfaces.

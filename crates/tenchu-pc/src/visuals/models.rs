@@ -720,12 +720,25 @@ impl Meshes {
         };
         let base = output.vertices.len();
         let start = output.indices.len();
-        output.indices.extend(
-            mesh.triangles
+        if mesh.flags & render_mesh::TRANSLUCENT == 0 {
+            output.indices.extend(
+                mesh.triangles
+                    .as_flattened()
+                    .iter()
+                    .map(|&i| base as u32 + i),
+            );
+        } else {
+            output.indices.reserve(mesh.triangles.len() * 3);
+            for triangle in mesh
+                .triangles
                 .iter()
                 .filter(|t| mesh.vertices[t[0] as usize].flags & render_mesh::TRANSLUCENT == 0)
-                .flat_map(|t| t.map(|i| base as u32 + i)),
-        );
+            {
+                output
+                    .indices
+                    .extend_from_slice(&triangle.map(|i| base as u32 + i));
+            }
+        }
         if output.indices.len() != start {
             output.vertices.extend_from_slice(&mesh.vertices);
             self.transform(
