@@ -271,3 +271,29 @@ reflected light, lantern shadowing and rain reflections; a WebGL2 browser check
 also exercises lit/unlit/restored gameplay. Native strict Clippy and the WASM
 build pass. CPU frame work is broadly unchanged; the moving garden still
 exceeds the 16.7 ms GPU budget for 60 FPS.
+
+
+The next pass reuses each surface's lighting for accumulated snow, skips wet
+reflection work on dry snow, and rejects fully transparent blood/particle pixels
+before expensive shading. A fixed TRIAL 2 camera uses the same Modern High
+settings, maximum weather detail, 30 seconds of precipitation, and (where noted)
+4,096 overlapping terrain-projected blood marks:
+
+| Condition | Before GPU mean | After GPU mean |
+| --- | ---: | ---: |
+| Original weather | 11.52 ms | 11.37 ms |
+| Dense blood | 36.67 ms | 33.40 ms |
+| Heavy rain and puddles | 22.39 ms | 22.26 ms |
+| Accumulated snow | 23.82 ms | 16.74 ms |
+| Accumulated snow and dense blood | 100.52 ms | 73.73 ms |
+
+Each sample follows ten warm-up frames and averages forty frames, with static
+shadow maps cached. All ten 4K captures across the play and overhead cameras
+are pixel-identical. This deliberately overlapping blood workload is a stress
+test, not typical gameplay; its remaining cost is substantial. Rain is unchanged
+within measurement variation. Sixteen focused native GPU regressions, WebGL2
+rain gameplay and windowed Chromium WebGPU snow gameplay pass. Headless WebGPU
+screenshots were black with both the previous and current builds; the windowed
+browser check avoids that capture limitation. These remain offscreen GPU
+measurements, not a claim about desktop frame intervals or weather-update CPU
+cost.

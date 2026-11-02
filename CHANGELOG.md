@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce the GPU cost of accumulated snow and dense blood stains by reusing
+  surface lighting and skipping invisible shading, without reducing coverage
+  or retained effects.
+
 - Reduce GPU cost in scenes with overlapping dynamic lights, including wet and
   reflective surfaces, without lowering light counts or shadow quality.
 

@@ -166,9 +166,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
+    let unlit = (v.flags & UNLIT) != 0u || (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER);
+    var light = vec3(1.0);
     if !screen {
-        let unlit = (v.flags & UNLIT) != 0u || (v.flags & (ALPHA | EMITTER | TEXTURED)) == (ALPHA | EMITTER);
-        var light = vec3(1.0);
         if !unlit {
             light = illumination(v.world, normal, surface_normal) + storm_light(v.world, normal, surface_normal);
         }
@@ -179,7 +179,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     let surface_decal = (v.flags & (STAIN | FOOTPRINT | WET_CONTACT)) != 0u;
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY
         && ((v.flags & ALPHA) == 0u || surface_decal) {
-        color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting);
+        color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting, light, !screen && !unlit);
     }
     if !original_stain && (v.flags & (SCENERY | STAIN)) == (SCENERY | STAIN) {
         var absorption = vec3(0.52, 0.025, 0.045);
@@ -223,12 +223,10 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
 }
 
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
-    let color = shade(v, front_facing, false);
     var opacity = v.opacity;
     if (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN) { opacity = weapon_blood(v.uv, v.opacity); }
-    if original_hd_blood(v.flags) {
-        if (v.flags & TEXTURED) != 0u { opacity *= color.a; }
-        else { opacity *= 1.0 - smoothstep(0.72, 0.92, dot(v.uv, v.uv)); }
+    if original_hd_blood(v.flags) && (v.flags & TEXTURED) == 0u {
+        opacity *= 1.0 - smoothstep(0.72, 0.92, dot(v.uv, v.uv));
     }
     if (v.flags & FOOTPRINT) != 0u {
         var snow = 0.0;
@@ -247,6 +245,9 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     } else if (v.flags & SOFT) != 0u {
         opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv));
     }
+    if opacity <= 0.0 { discard; }
+    let color = shade(v, front_facing, false);
+    if original_hd_blood(v.flags) && (v.flags & TEXTURED) != 0u { opacity *= color.a; }
     return vec4(color.rgb, clamp(opacity, 0.0, 1.0));
 }
 

@@ -193,31 +193,41 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
     return surface_reflection(position, normal, surface, puddle) * lighting.rain.x;
 }
 
-fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool) -> vec3<f32> {
+fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y + lighting.weather.w <= 0.0 { return input; }
-    let slope = clamp(-surface.y, 0.0, 1.0);
-    let shelter = weather_exposure(surface, position);
     let incidence = weather_incidence(surface);
-    let variation = weather_noise(position / 450.0);
-    let basin = weather_noise(position / 1400.0) * 0.8 + variation * 0.2;
-    let level = lighting.weather.w * 0.6;
-    let puddle = (1.0 - smoothstep(level - 0.07, level + 0.07, basin)) * smoothstep(0.0, 0.12, lighting.weather.w)
-        * smoothstep(0.96, 0.998, slope) * shelter * incidence;
-    let wet = max(lighting.weather.x * shelter * incidence * (0.75 + variation * 0.25), puddle);
-    var color = input * (1.0 - wet * 0.32 - puddle * 0.08);
-    if wet > 0.0 && lighting.rain.x > 0.0 {
-        let smooth_normal = normalize(mix(normal, surface, puddle * 0.9)
-            + rain_ripples(position, footprint) * puddle);
-        var reflection = wet_reflection(position, smooth_normal, surface, puddle) * wet;
-        if !linear { reflection = pow(max(reflection, vec3(0.0)), vec3(1.0 / 2.2)) * 0.5; }
-        color += reflection;
+    if incidence == 0.0 { return input; }
+    let shelter = weather_exposure(surface, position);
+    if shelter == 0.0 { return input; }
+    var color = input;
+    if lighting.weather.x + lighting.weather.w > 0.0 {
+        let slope = clamp(-surface.y, 0.0, 1.0);
+        let variation = weather_noise(position / 450.0);
+        let basin = weather_noise(position / 1400.0) * 0.8 + variation * 0.2;
+        let level = lighting.weather.w * 0.6;
+        let puddle = (1.0 - smoothstep(level - 0.07, level + 0.07, basin)) * smoothstep(0.0, 0.12, lighting.weather.w)
+            * smoothstep(0.96, 0.998, slope) * shelter * incidence;
+        let wet = max(lighting.weather.x * shelter * incidence * (0.75 + variation * 0.25), puddle);
+        color = input * (1.0 - wet * 0.32 - puddle * 0.08);
+        if wet > 0.0 && lighting.rain.x > 0.0 {
+            let smooth_normal = normalize(mix(normal, surface, puddle * 0.9)
+                + rain_ripples(position, footprint) * puddle);
+            var reflection = wet_reflection(position, smooth_normal, surface, puddle) * wet;
+            if !linear { reflection = pow(max(reflection, vec3(0.0)), vec3(1.0 / 2.2)) * 0.5; }
+            color += reflection;
+        }
     }
     if lighting.weather.y == 0.0 { return color; }
     let snow = snow_coverage(surface, shelter, snow_variation(position));
-    let grain = mix(weather_noise(position / 18.0), 0.5, smoothstep(8.0, 30.0, footprint));
+    if snow == 0.0 { return color; }
+    let grain_fade = smoothstep(8.0, 30.0, footprint);
+    var grain = 0.5;
+    if grain_fade < 1.0 { grain = mix(weather_noise(position / 18.0), 0.5, grain_fade); }
     var white = vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1);
     if linear { white = pow(white, vec3(2.2)); }
-    return mix(color, white * (illumination(position, normal, surface) + storm_light(position, normal, surface)), snow);
+    var snow_light = light;
+    if !already_lit { snow_light = illumination(position, normal, surface) + storm_light(position, normal, surface); }
+    return mix(color, white * snow_light, snow);
 }
 
 fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<f32> {
