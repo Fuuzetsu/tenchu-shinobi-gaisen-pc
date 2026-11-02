@@ -481,9 +481,9 @@ emissive and blood materials across filtering modes against the ordinary pass.
 Projected modern blood now uses a specialised fragment entry when a retained
 page's flags prove that unrelated sprite, weapon and water paths cannot apply.
 Geometry, shading functions and blend order are shared with the generic path.
-Original blood and other materials retain that path. Wet surfaces also use the
-generic shader: specialising them measured slightly slower, so that variant was
-not retained for rain.
+Original blood and other materials retain that path. The initial specialisation
+was slightly slower on wet surfaces, so it initially retained the generic shader
+for rain; the subsequent weather optimisation below removes that restriction.
 
 Paired 4K TRIAL 2 measurements (4,096 marks in the play view, 2,304 overhead):
 
@@ -504,3 +504,34 @@ weapon-coated and unlit fallbacks, snow/rain, HDR and supported MSAA levels.
 Native and WASM strict Clippy/builds pass, as do windowed WebGL2 rain and WebGPU
 snow gameplay checks. The four desktop High scenes without this blood stress
 remain effectively unchanged at 63.7 / 74.6 / 53.4 / 81.3 FPS.
+
+Weather shading now precomputes wind direction and shelter-map scales once per
+frame for opaque scenery and specialised ground blood. Compile-time entry-point
+constants retain the inline calculations in the generic alpha shader, where
+using the extra uniforms measured slower. Rain also skips the nine-wave ripple
+calculation on wet ground with no puddle. Ripple density, reflection quality,
+shelter samples and precipitation amounts are unchanged.
+
+The resulting ground-blood shader is now faster in rain too, so wet pages can
+use it. Compared with the previous commit's selected paths:
+
+| 4K scene | Before | After |
+| --- | ---: | ---: |
+| TRIAL 2 rain | 14.96 ms | 14.31 ms |
+| TRIAL 2 rain and 4,096 blood marks | 79.39 ms | 68.95 ms |
+| TRIAL 2 snow and 4,096 blood marks | 47.14 ms | 45.24 ms |
+| TRIAL 2 rain/blood, overhead | 33.33 ms | 29.51 ms |
+| Garden rain | 23.87 ms | 22.99 ms |
+| Garden rain and blood | 27.73 ms | 26.42 ms |
+
+Forcing generic blood remains faster than its previous version (79.39 to
+76.96 ms in TRIAL 2), protecting mixed pages and unsupported material flags.
+Seven of fourteen selected-path captures are exact; the others differ by at
+most five channels in a 4K image, each by one 8-bit level. The CPU/GPU floating
+point evaluation and ripple branch account for these rounding differences.
+Checks cover mixed blood styles, snow, wet reflections, ripples, shelter, wind,
+rain haze and footprints in baked snow.
+Strict native/WASM Clippy and builds pass, along with windowed WebGL2 rain and
+WebGPU snow checks. Desktop High remains 63.8 / 74.7 / 53.4 / 81.0 FPS. Maximum
+rain reaches 43.0 / 54.0 / 36.1 / 69.0 FPS; the earlier visibility-pass benchmark
+was 40.8 / 52.4 / 35.4 / 66.7 FPS before the intervening shader improvements.

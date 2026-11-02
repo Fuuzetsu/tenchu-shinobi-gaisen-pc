@@ -147,7 +147,7 @@ impl Shadows {
         });
         let data = buffer(
             device,
-            (LIGHT_WORDS + FACES * 16 + 116 + FILTER_SAMPLES * 4) * 4,
+            (LIGHT_WORDS + FACES * 16 + 128 + FILTER_SAMPLES * 4) * 4,
         );
         let grid = super::light_grid::Grid::new(device);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -543,8 +543,9 @@ impl Shadows {
         for matrix in weather_matrices {
             data.extend(matrix.to_cols_array());
         }
-        for matrix in weather_matrices {
-            data.extend(matrix.inverse().to_cols_array());
+        let weather_inverse = weather_matrices.map(|matrix| matrix.inverse());
+        for inverse in weather_inverse {
+            data.extend(inverse.to_cols_array());
         }
         data.extend([
             frame.weather.wet,
@@ -561,6 +562,22 @@ impl Shadows {
         ]);
         data.extend(self.grid.uniform());
         data.extend(self.filter.iter().flatten().copied());
+        data.extend(
+            weather_inverse[0]
+                .z_axis
+                .truncate()
+                .normalize()
+                .extend(0.0)
+                .to_array(),
+        );
+        for inverse in weather_inverse {
+            data.extend([
+                inverse.x_axis.truncate().length() * 2.0,
+                inverse.y_axis.truncate().length() * 2.0,
+                0.0,
+                0.0,
+            ]);
+        }
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
                 self.draw_face(

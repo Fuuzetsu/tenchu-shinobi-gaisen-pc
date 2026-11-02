@@ -62,8 +62,6 @@ impl Renderer {
 
     pub(super) fn draw_decals(&self, pass: &mut wgpu::RenderPass<'_>, matrix: Mat4) {
         let frustum = Frustum::new(matrix);
-        // The generic shader is faster for wet surfaces on the measured GPU.
-        let dry = self.weather.wet + self.weather.puddles == 0.0;
         let mut current = false;
         pass.set_pipeline(&self.pipelines.effects[5]);
         for decal in self
@@ -71,7 +69,7 @@ impl Renderer {
             .values()
             .filter(|d| frustum.contains(d.bounds, 2.0))
         {
-            let specialised = decal.ground_blood && dry;
+            let specialised = decal.ground_blood;
             #[cfg(test)]
             let specialised = specialised && !self.skip_blood_shader;
             if current != specialised {

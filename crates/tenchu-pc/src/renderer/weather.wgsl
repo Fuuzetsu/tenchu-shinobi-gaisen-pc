@@ -17,12 +17,21 @@ fn weather_noise(p: vec3<f32>) -> f32 {
     return value;
 }
 
-fn weather_direction() -> vec3<f32> {
+// Entry-point constants select these paths. Uniforms help opaque/ground-blood
+// shaders; the general alpha shader benchmarks faster with inline calculations.
+fn weather_direction(precomputed: bool) -> vec3<f32> {
+    if precomputed { return lighting.precipitation.xyz; }
     return normalize((lighting.weather_inverse[0] * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
 }
 
-fn weather_incidence(normal: vec3<f32>) -> f32 {
-    let direction = weather_direction();
+fn weather_scale(layer: i32, precomputed: bool) -> vec2<f32> {
+    if precomputed { return lighting.weather_span[layer].xy; }
+    let inverse = lighting.weather_inverse[layer];
+    return vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;
+}
+
+fn weather_incidence(normal: vec3<f32>, precomputed: bool) -> f32 {
+    let direction = weather_direction(precomputed);
     // Rainfall amount measures vertical flux, so open level ground keeps the
     // same accumulation while wind changes which slopes and walls get hit.
     return clamp(-dot(normal, direction) / max(direction.y, 0.001), 0.0, 1.0);
@@ -51,8 +60,8 @@ fn weather_compare(uv: vec2<f32>, depth: f32, gradient: vec2<f32>, layer: i32) -
     return exposed;
 }
 
-fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
-    let direction = weather_direction();
+fn weather_exposure(normal: vec3<f32>, position: vec3<f32>, precomputed: bool) -> f32 {
+    let direction = weather_direction(precomputed);
     var shelter = 0.0;
     var remaining = 1.0;
     for (var layer = 0; layer < 2; layer++) {
@@ -73,7 +82,7 @@ fn weather_exposure(normal: vec3<f32>, position: vec3<f32>) -> f32 {
             let gap = max(0.0, dot(position - blocker, direction));
             let radius = (select(65.0, 240.0, wet) + min(gap * 0.08, 250.0))
                 * select(lighting.rain.w, 1.0, wet);
-            let span = vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;
+            let span = weather_scale(layer, precomputed);
             if wet {
                 let taps = array(vec2(-0.85, -0.4), vec2(-0.25, 0.9), vec2(0.3, -0.8), vec2(0.9, 0.3));
                 for (var i = 0; i < 4; i++) {
@@ -108,17 +117,17 @@ fn snow_variation(position: vec3<f32>) -> f32 {
     return weather_noise(p) * 0.7 + weather_noise(p * 2.1 + vec3(17.0, 4.0, 29.0)) * 0.3;
 }
 
-fn snow_coverage(normal: vec3<f32>, exposure: f32, variation: f32) -> f32 {
+fn snow_coverage(normal: vec3<f32>, exposure: f32, variation: f32, precomputed: bool) -> f32 {
     let settled = smoothstep(0.2, 0.85, -normal.y);
     let dust = 0.08 * smoothstep(0.3, 0.75, variation)
         * (1.0 - smoothstep(0.0, 0.1, normal.y));
     let retention = max(settled, dust);
-    let coverage = lighting.weather.y * weather_incidence(normal);
+    let coverage = lighting.weather.y * weather_incidence(normal, precomputed);
     return retention * exposure * smoothstep(0.04 + variation * 0.2, 0.5 + variation * 0.2, coverage);
 }
 
-fn weather_snow(normal: vec3<f32>, position: vec3<f32>) -> f32 {
-    return snow_coverage(normal, weather_exposure(normal, position), snow_variation(position));
+fn weather_snow(normal: vec3<f32>, position: vec3<f32>, precomputed: bool) -> f32 {
+    return snow_coverage(normal, weather_exposure(normal, position, precomputed), snow_variation(position), precomputed);
 }
 
 fn rain_color() -> vec3<f32> {
@@ -126,9 +135,9 @@ fn rain_color() -> vec3<f32> {
         + vec3(0.3, 0.34, 0.4) * lighting.source.z;
 }
 
-fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>) -> vec3<f32> {
+fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, precomputed: bool) -> vec3<f32> {
     if !WEATHER_ENABLED || lighting.source.z == 0.0 { return vec3(0.0); }
-    let exposed = weather_exposure(surface, position);
+    let exposed = weather_exposure(surface, position, precomputed);
     let diffuse = 0.2 + 0.8 * max(0.0, -normal.y);
     return vec3(1.2, 1.4, 1.7) * lighting.source.z * exposed * diffuse;
 }
@@ -193,11 +202,11 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
     return surface_reflection(position, normal, surface, puddle) * lighting.rain.x;
 }
 
-fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool) -> vec3<f32> {
+fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool, precomputed: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y + lighting.weather.w <= 0.0 { return input; }
-    let incidence = weather_incidence(surface);
+    let incidence = weather_incidence(surface, precomputed);
     if incidence == 0.0 { return input; }
-    let shelter = weather_exposure(surface, position);
+    let shelter = weather_exposure(surface, position, precomputed);
     if shelter == 0.0 { return input; }
     var color = input;
     if lighting.weather.x + lighting.weather.w > 0.0 {
@@ -210,15 +219,17 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
         let wet = max(lighting.weather.x * shelter * incidence * (0.75 + variation * 0.25), puddle);
         color = input * (1.0 - wet * 0.32 - puddle * 0.08);
         if wet > 0.0 && lighting.rain.x > 0.0 {
+            var ripples = vec3(0.0);
+            if puddle > 0.0 { ripples = rain_ripples(position, footprint) * puddle; }
             let smooth_normal = normalize(mix(normal, surface, puddle * 0.9)
-                + rain_ripples(position, footprint) * puddle);
+                + ripples);
             var reflection = wet_reflection(position, smooth_normal, surface, puddle) * wet;
             if !linear { reflection = pow(max(reflection, vec3(0.0)), vec3(1.0 / 2.2)) * 0.5; }
             color += reflection;
         }
     }
     if lighting.weather.y == 0.0 { return color; }
-    let snow = snow_coverage(surface, shelter, snow_variation(position));
+    let snow = snow_coverage(surface, shelter, snow_variation(position), precomputed);
     if snow == 0.0 { return color; }
     let grain_fade = smoothstep(8.0, 30.0, footprint);
     var grain = 0.5;
@@ -226,11 +237,11 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
     var white = vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1);
     if linear { white = pow(white, vec3(2.2)); }
     var snow_light = light;
-    if !already_lit { snow_light = illumination(position, normal, surface) + storm_light(position, normal, surface); }
+    if !already_lit { snow_light = illumination(position, normal, surface) + storm_light(position, normal, surface, precomputed); }
     return mix(color, white * snow_light, snow);
 }
 
-fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<f32> {
+fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool, precomputed: bool) -> vec3<f32> {
     if !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
     let delta = position - camera.eye.xyz;
     let distance = length(delta);
@@ -238,7 +249,7 @@ fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<
     var shelter = 0.0;
     for (var step = 0; step < 6; step++) {
         let spread = vec2(radius, select(-radius, radius, step % 2 == 0));
-        shelter += rain_air_exposure(camera.eye.xyz + delta * ((f32(step) + 0.5) / 6.0), spread);
+        shelter += rain_air_exposure(camera.eye.xyz + delta * ((f32(step) + 0.5) / 6.0), spread, precomputed);
     }
     shelter /= 6.0;
     let haze = min(0.94, 1.0 - exp(-distance * lighting.rain.y * shelter / 18000.0));
@@ -247,7 +258,7 @@ fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool) -> vec3<
     return mix(input, color, haze);
 }
 
-fn rain_air_exposure(position: vec3<f32>, spread: vec2<f32>) -> f32 {
+fn rain_air_exposure(position: vec3<f32>, spread: vec2<f32>, precomputed: bool) -> f32 {
     var exposure = 0.0;
     var remaining = 1.0;
     for (var layer = 0; layer < 2; layer++) {
@@ -255,8 +266,7 @@ fn rain_air_exposure(position: vec3<f32>, spread: vec2<f32>) -> f32 {
         let p = lighting.weather_matrix[layer] * vec4(position, 1.0);
         let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
         if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { continue; }
-        let inverse = lighting.weather_inverse[layer];
-        let span = vec2(length(inverse[0].xyz), length(inverse[1].xyz)) * 2.0;
+        let span = weather_scale(layer, precomputed);
         let offset = spread / span;
         let exposed = (textureSampleCompareLevel(weather_map, shadow_sampler, uv - offset, layer, p.z)
             + textureSampleCompareLevel(weather_map, shadow_sampler, uv + offset, layer, p.z)) * 0.5;

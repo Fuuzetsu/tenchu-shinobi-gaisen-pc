@@ -15,6 +15,8 @@ struct Lighting {
     grid: vec4<f32>,
     grid_size: vec4<f32>,
     shadow_filter: array<vec4<f32>, SHADOW_FILTER_SAMPLES>,
+    precipitation: vec4<f32>,
+    weather_span: array<vec4<f32>, 2>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
