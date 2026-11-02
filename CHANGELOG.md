@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Avoid building and uploading fully hidden or transparent precipitation,
+  while keeping wind, distant rain/snow, roof runoff and accumulation active.
+
 - Reduce per-frame model transfers by uploading changing poses separately from
   unchanged texture coordinates, colours and material attributes. Preserve full
   animation, effects and shadow detail, including with rain and snow enabled.

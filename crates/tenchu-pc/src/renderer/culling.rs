@@ -139,7 +139,7 @@ impl Rect {
     }
 }
 
-pub(super) struct Frustum([Vec4; 6]);
+pub(crate) struct Frustum([Vec4; 6]);
 
 pub(super) struct Volume {
     planes: Frustum,
@@ -192,7 +192,7 @@ impl Frustum {
             .iter()
             .all(|p| p.truncate().dot(center) + p.w + p.truncate().abs().dot(extent) >= -0.001)
     }
-    pub fn ranges(&self, chunks: &[Chunk], wind: f32) -> (Vec<Range<u32>>, bool) {
+    pub(super) fn ranges(&self, chunks: &[Chunk], wind: f32) -> (Vec<Range<u32>>, bool) {
         let mut ranges: Vec<Range<u32>> = Vec::new();
         let mut foliage = false;
         for chunk in chunks.iter().filter(|c| {
@@ -217,7 +217,7 @@ impl Frustum {
         (ranges, foliage)
     }
 
-    pub fn damage(
+    pub(super) fn damage(
         &self,
         chunks: &[Chunk],
         wind: f32,

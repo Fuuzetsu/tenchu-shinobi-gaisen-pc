@@ -5,6 +5,7 @@ use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
 mod culling;
+pub(crate) use culling::Frustum;
 mod decals;
 mod geometry;
 mod light_grid;

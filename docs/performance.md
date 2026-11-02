@@ -601,3 +601,37 @@ pose movement, indexed/expanded transitions, growth, shrinkage, empty frames,
 blending, shadow invalidation, retained decals, cutouts and weather shelter.
 Native and WASM strict Clippy/builds pass. Windowed WebGL2 rain and WebGPU
 snow checks pass, including play, pause, free camera and lighting changes.
+
+Precipitation now uses the existing conservative view-frustum test before
+emitting rain, snow, roof-drip and splash quads. Fully transparent quads are
+also skipped. Simulation still updates the complete particle set, shelter,
+wind and accumulation; only draw geometry is culled. Bounds include the whole
+streak, so a visible tail is retained even when its tip is outside the view.
+Sorting remains unchanged, preserving alpha-blend order.
+
+All fourteen paired 4K rain/snow/blood/footprint captures match exactly. Four
+600-tick weather checks produce byte-identical serialized states; the retained
+quads are byte-identical subsequences of the old meshes. In that sheltered
+camera view, rain geometry falls from about 20,900 vertices to 6–192, and snow
+from about 10,700 to 0–12. Those counts are view-specific, not a general reduction
+in precipitation density. CPU geometry time falls from 0.123–0.125 to
+0.117–0.118 ms for rain, and 0.082–0.083 to 0.064 ms for snow.
+
+| 4K maximum-rain desktop scene | Before | After |
+| --- | ---: | ---: |
+| Village | 45.8 FPS | 47.2 FPS |
+| Snow courtyard | 57.9 FPS | 58.8 FPS |
+| Garden | 38.3 FPS | 39.3 FPS |
+| Waterfall | 78.2 FPS | 80.6 FPS |
+
+GPU shading times remain essentially unchanged. Nine weather tests pass,
+including interpolated particles entering the view and long edge-crossing
+streaks, alongside native and WASM strict Clippy/builds. Windowed WebGL2 rain
+and WebGPU snow checks also pass, including pause, free camera and lighting
+changes.
+
+Repeated maximum-snow runs give 51.7 → 52.6 FPS (village), 64.7 → 66.5
+(courtyard), 43.4 → 43.9 (garden), and 83.8 → 85.5 (waterfall). An earlier
+garden baseline reached 44.4 FPS with lower terrain shading time; rerunning
+the old binary reproduces the later terrain timings, so that variation is
+not attributed to precipitation culling.

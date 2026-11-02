@@ -252,6 +252,13 @@ impl Weather {
         let right = forward.cross(Vec3::NEG_Y).normalize_or_zero();
         let up = right.cross(forward).normalize_or_zero();
         let alpha = alpha.clamp(0.0, 1.0);
+        let frustum = crate::renderer::Frustum::new(camera);
+        let mut visible_quad = |center: Vec3, right: Vec3, up: Vec3, color, opacity| {
+            let extent = right.abs() + up.abs();
+            if opacity > 0.0 && frustum.contains([center - extent, center + extent], 2.0) {
+                quad(&mut vertices, center, right, up, color, opacity);
+            }
+        };
         let mut particles: Vec<_> = self
             .particles
             .iter()
@@ -301,8 +308,7 @@ impl Weather {
             } else {
                 p.size.max((distance * 0.0005).min(60.0)) * strength.sqrt()
             };
-            quad(
-                &mut vertices,
+            visible_quad(
                 if snow {
                     position
                 } else {
@@ -335,8 +341,7 @@ impl Weather {
                 let center = splash.hit.position
                     + normal * (8.0 + (age * std::f32::consts::PI).sin() * 18.0)
                     + ray * radius;
-                quad(
-                    &mut vertices,
+                visible_quad(
                     center,
                     ray * 12.0,
                     normal.cross(ray) * 3.0,

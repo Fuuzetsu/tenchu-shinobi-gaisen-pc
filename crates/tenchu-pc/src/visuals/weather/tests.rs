@@ -197,6 +197,52 @@ fn rendering_cadence_is_read_only_and_teleports_discard_old_particles() {
 }
 
 #[test]
+fn precipitation_culling_keeps_edge_streaks_and_interpolated_motion() {
+    let camera = Mat4::perspective_lh(std::f32::consts::FRAC_PI_2, 1.0, 1.0, 10000.0);
+    let mut settings = Settings {
+        mode: WeatherMode::Snow,
+        ..Default::default()
+    };
+    let particle = |position| Particle {
+        previous: position,
+        position,
+        velocity: Vec3::Y * 30.0,
+        hit: None,
+        life: 60,
+        size: 20.0,
+    };
+    let mut weather = Weather {
+        mode: settings.mode,
+        particles: vec![
+            particle(Vec3::new(0.0, 0.0, 1000.0)),
+            particle(Vec3::new(4000.0, 0.0, 1000.0)),
+            particle(Vec3::new(0.0, 0.0, -1000.0)),
+            particle(Vec3::new(1005.0, 0.0, 1000.0)),
+            Particle {
+                previous: Vec3::new(-4000.0, 0.0, 1000.0),
+                ..particle(Vec3::new(0.0, 100.0, 1000.0))
+            },
+        ],
+        ..Default::default()
+    };
+    let before = serde_json::to_vec(&weather).unwrap();
+    assert_eq!(weather.geometry(camera, 0.0, &settings).vertices.len(), 12);
+    assert_eq!(weather.geometry(camera, 1.0, &settings).vertices.len(), 18);
+    assert_eq!(serde_json::to_vec(&weather).unwrap(), before);
+
+    settings.mode = WeatherMode::Rain;
+    weather.mode = settings.mode;
+    weather.particles = vec![Particle {
+        velocity: Vec3::new(350.0, 200.0, 0.0),
+        ..particle(Vec3::new(1120.0, 0.0, 1000.0))
+    }];
+    let vertices = weather.geometry(camera, 1.0, &settings).vertices;
+    assert_eq!(vertices.len(), 6);
+    assert!(vertices.iter().any(|v| v.position[0] < 1000.0));
+    assert!(vertices.iter().any(|v| v.position[0] > 1000.0));
+}
+
+#[test]
 fn mesh_changes_preserve_accumulation_and_distant_precipitation_is_bounded() {
     let surfaces = surfaces();
     let settings = Settings {
