@@ -535,3 +535,32 @@ Strict native/WASM Clippy and builds pass, along with windowed WebGL2 rain and
 WebGPU snow checks. Desktop High remains 63.8 / 74.7 / 53.4 / 81.0 FPS. Maximum
 rain reaches 43.0 / 54.0 / 36.1 / 69.0 FPS; the earlier visibility-pass benchmark
 was 40.8 / 52.4 / 35.4 / 66.7 FPS before the intervening shader improvements.
+
+A footprint stress check projects up to the live 512-mark / 65,536-vertex
+budget onto actual stage surfaces. In TRIAL 2's close view, tracks add roughly
+1.4 ms of GPU effects work in snow, or 2.9 ms with rain over residual snow.
+The overhead view adds about 0.8 / 1.2 ms; the garden adds about 0.3 / 0.4 ms.
+These are incremental rendering costs, separate from simulation and uploads.
+
+CPU filtering of replaced effects was also copying the entire combined geometry
+even when it contained no original-weather/splash triangles. The filter now
+returns immediately in that case, and compacts ordered batches in place when
+removal is needed. Repeated/reordered batches retain a separate source so their
+blend order and shared vertices remain valid.
+
+Two consecutive filters, 300 measured iterations after 20 warm-up iterations:
+
+| Combined effects | Before mean / p95 | After mean / p95 |
+| --- | ---: | ---: |
+| 12,288 vertices, no removals | 0.149 / 0.156 ms | 0.003 / 0.003 ms |
+| 12,288 vertices, sparse removals | 0.149 / 0.155 ms | 0.007 / 0.007 ms |
+| 114,687 vertices, no removals | 2.038 / 2.452 ms | 0.034 / 0.035 ms |
+| 114,687 vertices, sparse removals | 2.012 / 2.345 ms | 0.090 / 0.093 ms |
+
+The large case represents a combined footprint/particle/animated-effects buffer;
+retained static blood pages are already separate. Checks compare rendered
+triangle/blend sequences for ordered, overlapping and reversed ranges, partial
+triangles, empty batches and every removal mask, plus streamed GPU rendering.
+Native and WASM strict Clippy pass. Desktop High is effectively unchanged at
+63.7 / 74.6 / 53.5 / 82.4 FPS, and maximum rain at 43.1 / 53.8 / 36.4 / 69.1 FPS;
+those scenes do not fill the combined effects buffer.

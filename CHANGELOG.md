@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Avoid repeatedly copying large effects buffers when replacing original snow
+  and splashes, reducing CPU cost with dense footprints and animated effects.
+
 - Speed up dense modern blood on dry and snow-covered scenery, preserving
   texture detail, soft edges, overlap order and retained blood counts. Reduce
   rain shading and wet-blood cost too by reusing weather calculations and

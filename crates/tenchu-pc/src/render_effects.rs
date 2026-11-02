@@ -26,8 +26,44 @@ impl Geometry {
     }
 
     pub fn remove_flag(&mut self, flag: u32) {
+        if !self.batches.iter().any(|batch| {
+            self.vertices[batch.range.start as usize..batch.range.end as usize]
+                .chunks_exact(3)
+                .any(|triangle| triangle[0].flags & flag != 0)
+        }) {
+            return;
+        }
+        if self
+            .batches
+            .windows(2)
+            .all(|pair| pair[0].range.end <= pair[1].range.start)
+        {
+            let mut write = 0;
+            self.batches.retain_mut(|batch| {
+                let start = write;
+                let mut run = batch.range.start as usize;
+                let end = run + batch.range.len() / 3 * 3;
+                for read in (run..end).step_by(3) {
+                    if self.vertices[read].flags & flag != 0 {
+                        self.vertices.copy_within(run..read, write);
+                        write += read - run;
+                        run = read + 3;
+                    }
+                }
+                self.vertices.copy_within(run..end, write);
+                write += end - run;
+                batch.range = start as u32..write as u32;
+                start < write
+            });
+            self.vertices.truncate(write);
+            return;
+        }
+        // Repeated or reordered batches can still need vertices that an earlier
+        // batch would overwrite. Keep their source intact until filtering ends.
         let vertices = std::mem::take(&mut self.vertices);
         let batches = std::mem::take(&mut self.batches);
+        self.vertices.reserve(vertices.len());
+        self.batches.reserve(batches.len());
         for batch in batches {
             let start = self.vertices.len() as u32;
             self.vertices.extend(
@@ -716,4 +752,74 @@ pub fn build_presented(
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bytemuck::Zeroable;
+
+    #[test]
+    fn filtering_preserves_triangle_and_blend_order_for_shared_batch_ranges() {
+        let cases = [
+            vec![0..9, 9..18],
+            vec![0..8, 8..17],
+            vec![0..12, 6..18],
+            vec![9..18, 0..12],
+            vec![0..0, 3..9, 12..18],
+            vec![0..18, 0..18],
+        ];
+        for ranges in cases {
+            for mask in 0..64 {
+                let source: Vec<_> = (0..18)
+                    .map(|i| Vertex {
+                        position: [i as f32, 0.0, 0.0],
+                        flags: if mask & (1 << (i / 3)) != 0 {
+                            render_mesh::ORIGINAL_SPLASH
+                        } else {
+                            0
+                        },
+                        ..Vertex::zeroed()
+                    })
+                    .collect();
+                let mut geometry = Geometry {
+                    vertices: source.clone(),
+                    batches: ranges
+                        .iter()
+                        .enumerate()
+                        .map(|(i, range)| Batch {
+                            blend: i as u8,
+                            range: range.clone(),
+                        })
+                        .collect(),
+                };
+                let expected: Vec<_> = geometry
+                    .batches
+                    .iter()
+                    .flat_map(|batch| {
+                        source[batch.range.start as usize..batch.range.end as usize]
+                            .chunks_exact(3)
+                            .filter(|triangle| {
+                                triangle[0].flags & render_mesh::ORIGINAL_SPLASH == 0
+                            })
+                            .flatten()
+                            .map(|v| (batch.blend, v.position[0]))
+                    })
+                    .collect();
+                geometry.remove_flag(render_mesh::ORIGINAL_WEATHER);
+                geometry.remove_flag(render_mesh::ORIGINAL_SPLASH);
+                let actual: Vec<_> = geometry
+                    .batches
+                    .iter()
+                    .flat_map(|batch| {
+                        geometry.vertices[batch.range.start as usize..batch.range.end as usize]
+                            .chunks_exact(3)
+                            .flatten()
+                            .map(|v| (batch.blend, v.position[0]))
+                    })
+                    .collect();
+                assert_eq!(actual, expected, "{ranges:?}, mask {mask}");
+            }
+        }
+    }
 }
