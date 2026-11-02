@@ -216,11 +216,6 @@ impl History {
             .max()
             .unwrap_or(0)
             .max(state.data.len());
-        let buffers = state.data.capacity()
-            + self.tail.data.capacity()
-            + self.scratch.capacity()
-            + largest * 2;
-        let budget = MEMORY_LIMIT.saturating_sub(buffers + self.recorder.bytes());
         let before =
             (!self.entries.is_empty()).then(|| Block::between(&state.data, &mut self.tail.data));
         let entry = Entry {
@@ -241,6 +236,10 @@ impl History {
             count.0 += 1;
         }
         self.entries.push_back(entry);
+        // The recorder and history reference the same immutable resources.
+        let buffers = self.tail.data.capacity() + self.scratch.capacity() + largest * 2;
+        let budget = MEMORY_LIMIT
+            .saturating_sub(buffers + self.recorder.bytes(|id| self.shared.contains_key(&id)));
         let oldest = tick.saturating_sub(u64::from(seconds.min(30)) * INTERVAL);
         self.trim(oldest, budget);
         if self.bytes > budget {
@@ -354,6 +353,39 @@ impl History {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "memory stress: a shared 49 MiB resource must fit the 96 MiB rewind budget"]
+    fn immutable_resources_count_once_toward_the_rewind_budget() {
+        use tenchu_assets::checkpoint::Capture;
+
+        let mut seed = 1u32;
+        let value = Arc::new(
+            (0..MEMORY_LIMIT / 2 + 1024 * 1024)
+                .map(|_| {
+                    seed ^= seed << 13;
+                    seed ^= seed >> 17;
+                    seed ^= seed << 5;
+                    seed as u8
+                })
+                .collect::<Vec<_>>(),
+        );
+        let mut history = History::default();
+        for tick in 0..5 {
+            history.recorder.begin();
+            history.recorder.value(&tick).unwrap();
+            history.recorder.shared_arc(&value, true).unwrap();
+            let snapshot = history.recorder.finish().unwrap();
+            history.push(tick, 30, snapshot).unwrap();
+        }
+        assert_eq!(history.entries.len(), 5);
+        for index in [4, 0] {
+            let (tick, restored): (u64, Vec<u8>) =
+                history.snapshot(index).unwrap().decode().unwrap();
+            assert_eq!(tick, index as u64);
+            assert_eq!(&restored, value.as_ref());
+        }
+    }
 
     #[test]
     fn reverse_deltas_restore_variable_length_states_and_branch_after_eviction() {

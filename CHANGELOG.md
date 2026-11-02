@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep rewind responsive with many model stains by sharing unchanged blood
+  geometry between snapshots. Count shared storage once toward the rewind budget.
+
 - Reuse shadow visibility checks for unchanged scenery and lights, reducing CPU
   work while keeping moving characters, wind and weather shelter current.
 

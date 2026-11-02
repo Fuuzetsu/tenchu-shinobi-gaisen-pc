@@ -777,3 +777,26 @@ the garden's vertex/index storage from 15.45 to 9.09 MB, but seventeen paired
 images and forced shadow redraws showed no useful frame-time gain. Reusing
 shelter exposure between lightning and surface shading helped snowy flashes
 slightly but substantially slowed ordinary wet blood.
+
+Attached blood now shares immutable mark geometry during rewind capture, like
+retained ground pages. Ordinary save serialization is unchanged. The recorder
+and history also count shared encoded resources once toward their existing
+96 MiB budget; previously both counted the same allocation.
+
+A CPU stress fixture retains 384 vertices per body mark and replaces one mark
+per tick. At 64 marks, recurring capture plus history changes from 0.480 to
+0.022 ms; at 1,024 marks, 15.43 to 0.050 ms; at 8,192 marks, 55.53 to
+0.271 ms. The old path exceeds its memory budget at 1,024 and 8,192 marks;
+the new path keeps all 32 tested snapshots, with 10.0 and 78.3 MiB of history.
+These are synthetic geometry-capture measurements, not complete game frame times.
+The first capture still encodes and compresses all existing marks: approximately
+21 ms for 1,024 marks and 171 ms for 8,192 in this fixture. Subsequent captures
+reuse those resources. Restored data matches ordinary serialization exactly,
+including expiry and removal of blood categories.
+
+An ambient-occlusion experiment that reused inverse-projected rays was discarded:
+it slightly increased post-processing time (about 3.00 to 3.05 ms) and introduced
+small rounding differences. The original sampling and reconstruction remain.
+The 49 MiB shared-resource budget regression, stain expiry/style changes,
+rewind seeking/branching, visual-effect continuation and both heroes' mission
+1–10 save round-trips pass. Native/WASM strict Clippy and release builds pass.

@@ -14,7 +14,7 @@ struct Page {
 #[derive(Default, serde::Serialize, serde::Deserialize, Clone)]
 pub(super) struct Marks {
     pages: VecDeque<Page>,
-    pub attached: VecDeque<(u64, Mark)>,
+    pub attached: VecDeque<(u64, Arc<Mark>)>,
     pub vertices: usize,
     count: usize,
     serial: u64,
@@ -37,7 +37,11 @@ impl Marks {
             out.value(entries)?;
             out.shared_arc(vertices, entries.len() == PAGE_MARKS)?;
         }
-        out.value(attached)?;
+        out.value(&attached.len())?;
+        for (id, mark) in attached {
+            out.value(id)?;
+            out.shared_arc(mark, true)?;
+        }
         out.value(vertices)?;
         out.value(count)?;
         out.value(serial)
@@ -83,7 +87,7 @@ impl Marks {
             page.entries.push_back((id, len, mark.1));
             Arc::make_mut(&mut page.vertices).extend(mark.0.into_iter().flat_map(|p| p.vertices));
         } else {
-            self.attached.push_back((id, mark));
+            self.attached.push_back((id, Arc::new(mark)));
         }
         self.trim(limit);
     }
@@ -156,6 +160,55 @@ mod tests {
     use crate::visuals::blood::Patch;
     use bytemuck::Zeroable;
     use std::time::Instant;
+
+    #[test]
+    fn rewind_restores_stains_after_expiry_and_style_changes() {
+        use crate::{rewind::History, visuals::interpolation::Part};
+
+        let mut marks = Marks::default();
+        let mut history = History::default();
+        let mut expected = Vec::new();
+        for tick in 0..20 {
+            let attached = tick % 2 == 0;
+            marks.insert(
+                Mark(
+                    vec![Patch {
+                        part: attached.then_some(Part::Actor {
+                            root: 0,
+                            model: 1,
+                            kind: 0,
+                            inspection: false,
+                        }),
+                        vertices: vec![
+                            Vertex {
+                                position: [tick as f32, 0.0, 0.0],
+                                ..Vertex::zeroed()
+                            };
+                            6
+                        ],
+                    }],
+                    if attached { Kind::Body } else { Kind::Ground },
+                ),
+                8,
+            );
+            if tick == 12 {
+                marks.retain_kind(|kind| kind == Kind::Body);
+            } else if tick == 16 {
+                marks.retain_attached(|_| false);
+            }
+            expected.push(postcard::to_allocvec(&marks).unwrap());
+            history.recorder.begin();
+            marks.capture(&mut history.recorder).unwrap();
+            let snapshot = history.recorder.finish().unwrap();
+            history.push(tick, 30, snapshot).unwrap();
+        }
+        for (tick, expected) in expected.into_iter().enumerate().rev() {
+            let snapshot = history.snapshot(tick).unwrap();
+            assert_eq!(snapshot.bytes().unwrap(), expected);
+            let restored: Marks = snapshot.decode().unwrap();
+            assert_eq!(postcard::to_allocvec(&restored).unwrap(), expected);
+        }
+    }
 
     #[test]
     #[ignore = "CPU benchmark for retaining and rewinding thousands of persistent blood splats"]

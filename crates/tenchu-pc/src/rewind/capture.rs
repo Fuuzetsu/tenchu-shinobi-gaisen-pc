@@ -42,13 +42,20 @@ impl Recorder {
         })
     }
 
-    pub fn bytes(&self) -> usize {
+    pub fn bytes(&self, shared: impl Fn(usize) -> bool) -> usize {
         self.output.capacity()
             + self.cache.capacity() * std::mem::size_of::<Cached>()
             + self
                 .cache
                 .iter()
-                .map(|entry| entry.bytes.size() + entry.owned_bytes)
+                .map(|entry| {
+                    entry.owned_bytes
+                        + if shared(Arc::as_ptr(&entry.bytes) as usize) {
+                            0
+                        } else {
+                            entry.bytes.size()
+                        }
+                })
                 .sum::<usize>()
     }
 
