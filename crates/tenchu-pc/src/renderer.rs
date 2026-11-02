@@ -90,6 +90,9 @@ pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pipeline: wgpu::RenderPipeline,
+    prepass: wgpu::RenderPipeline,
+    #[cfg(test)]
+    skip_prepass: bool,
     effects: [wgpu::RenderPipeline; 6],
     overlay_effects: [wgpu::RenderPipeline; 6],
     post: Option<post::Post>,
@@ -222,8 +225,8 @@ impl Renderer {
             bind_group_layouts: &[&binding_layout, &shadows.layout, &materials.layout],
             push_constant_ranges: &[],
         });
-        let (pipeline, effects) = pipelines::create(&device, format, &layout, &shader, 1);
-        let (_, overlay_effects) = pipelines::create(&device, format, &layout, &shader, 1);
+        let (pipeline, effects, prepass) = pipelines::create(&device, format, &layout, &shader, 1);
+        let overlay_effects = effects.clone();
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
             layout: &binding_layout,
@@ -248,6 +251,9 @@ impl Renderer {
             device,
             queue,
             pipeline,
+            prepass,
+            #[cfg(test)]
+            skip_prepass: false,
             effects,
             overlay_effects,
             post: None,
@@ -381,7 +387,7 @@ impl Renderer {
         }
         self.graphics = graphics.clone();
         if pipelines_changed {
-            (self.pipeline, self.effects) = pipelines::create(
+            (self.pipeline, self.effects, self.prepass) = pipelines::create(
                 &self.device,
                 self.world_format(),
                 &self.layout,
@@ -679,6 +685,43 @@ impl Renderer {
         if let Some(post) = &self.post {
             post.prepare(&self.queue, matrix, &self.graphics);
         }
+        let prepass = self.graphics.lighting.enabled
+            || self.graphics.sky.enabled
+            || self.graphics.weather.mode != crate::settings::WeatherMode::Original;
+        #[cfg(test)]
+        let prepass = prepass && !self.skip_prepass;
+        if prepass {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Scene visibility"),
+                color_attachments: &[],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pass.set_pipeline(&self.prepass);
+            pass.set_bind_group(0, &self.bindings, &[]);
+            pass.set_bind_group(1, &self.shadows.bindings, &[]);
+            pass.set_bind_group(2, &self.materials.bindings, &[]);
+            for mesh in meshes
+                .terrain
+                .iter()
+                .chain(meshes.actors)
+                .filter(|mesh| mesh.count != 0)
+            {
+                mesh.bind(&mut pass);
+                mesh.draw(&mut pass, 0..mesh.count);
+            }
+        }
+        if let Some(timer) = &self.timings {
+            timer.mark_scene_boundary(&mut encoder, timing::SceneStage::Visibility);
+        }
         {
             let sky = daylight.map(|_| self.upload(&sky::geometry(matrix)));
             let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
@@ -701,7 +744,11 @@ impl Renderer {
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &self.depth,
                     depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
+                        load: if prepass {
+                            wgpu::LoadOp::Load
+                        } else {
+                            wgpu::LoadOp::Clear(1.0)
+                        },
                         store: wgpu::StoreOp::Store,
                     }),
                     stencil_ops: None,

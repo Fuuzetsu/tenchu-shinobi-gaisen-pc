@@ -13,6 +13,7 @@ mod shadow_regions;
 mod sky;
 mod sprites;
 mod stains;
+mod visibility;
 mod water;
 mod weapons;
 mod weather;

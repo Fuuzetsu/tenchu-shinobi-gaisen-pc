@@ -1,9 +1,9 @@
-use crate::renderer::timing::{SCENE_COLUMNS, SCENE_NAMES};
+use crate::renderer::timing::{SCENE_COLUMNS, SCENE_COUNT, SCENE_NAMES};
 use egui::{Color32, Stroke};
 use std::collections::VecDeque;
 
 const HISTORY: usize = 300;
-const COLORS: [Color32; 7] = [
+const COLORS: [Color32; 8] = [
     Color32::from_rgb(120, 202, 150),
     Color32::from_rgb(98, 177, 244),
     Color32::from_rgb(225, 174, 95),
@@ -11,6 +11,7 @@ const COLORS: [Color32; 7] = [
     Color32::from_rgb(170, 180, 192),
     Color32::from_rgb(222, 125, 125),
     Color32::from_rgb(198, 203, 110),
+    Color32::from_rgb(95, 205, 210),
 ];
 
 #[derive(Clone, Copy, Default)]
@@ -54,7 +55,7 @@ pub(super) struct Performance {
     cpu: VecDeque<CpuFrame>,
     pending_cpu: Option<CpuFrame>,
     gpu: VecDeque<[f32; 4]>,
-    scene: VecDeque<[f32; 7]>,
+    scene: VecDeque<[f32; SCENE_COUNT]>,
     serial: u64,
     frozen: bool,
 }

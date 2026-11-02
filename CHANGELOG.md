@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reject hidden scenery before expensive lighting and weather shading. Preserve
+  cutouts and overlapping face order, and show the visibility pass separately
+  in the performance charts and benchmark reports.
+
 - Avoid uploading unchanged character triangle indices each frame, reducing
   transfer waits while keeping animated vertices and shadows current.
 

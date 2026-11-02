@@ -6,7 +6,9 @@ use std::sync::{
 pub const FEATURES: wgpu::Features =
     wgpu::Features::TIMESTAMP_QUERY.union(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS);
 const QUERIES: u32 = 5;
-pub const SCENE_COLUMNS: [&str; 7] = [
+pub const SCENE_COUNT: usize = 8;
+pub const SCENE_COLUMNS: [&str; SCENE_COUNT] = [
+    "visibility",
     "sky_clear",
     "terrain_props",
     "actors",
@@ -15,7 +17,8 @@ pub const SCENE_COLUMNS: [&str; 7] = [
     "in_scene_overlays",
     "resolve_finish",
 ];
-pub const SCENE_NAMES: [&str; 7] = [
+pub const SCENE_NAMES: [&str; SCENE_COUNT] = [
+    "Visibility pass",
     "Sky + clear",
     "Terrain + static props",
     "Characters + moving objects",
@@ -24,7 +27,7 @@ pub const SCENE_NAMES: [&str; 7] = [
     "In-scene overlays",
     "MSAA resolve + finish",
 ];
-const SCENE_QUERIES: u32 = 6;
+const SCENE_QUERIES: u32 = SCENE_COUNT as u32 - 1;
 const FREE: u8 = 0;
 const PENDING: u8 = 1;
 const READY: u8 = 2;
@@ -32,6 +35,7 @@ const FAILED: u8 = 3;
 
 #[derive(Clone, Copy)]
 pub enum SceneStage {
+    Visibility,
     Sky,
     Terrain,
     Actors,
@@ -44,7 +48,7 @@ pub enum SceneStage {
 pub struct Sample {
     pub serial: u64,
     pub milliseconds: [f32; 4],
-    pub scene: Option<[f32; 7]>,
+    pub scene: Option<[f32; SCENE_COUNT]>,
 }
 
 impl Sample {
@@ -55,11 +59,11 @@ impl Sample {
             *duration = elapsed(stamps[i], stamps[i + 1])?;
         }
         let scene = if stamps.len() > QUERIES as usize {
-            let mut boundaries = [0; 8];
+            let mut boundaries = [0; SCENE_COUNT + 1];
             boundaries[0] = stamps[1];
-            boundaries[1..7].copy_from_slice(&stamps[QUERIES as usize..]);
-            boundaries[7] = stamps[2];
-            let mut scene = [0.0; 7];
+            boundaries[1..SCENE_COUNT].copy_from_slice(&stamps[QUERIES as usize..]);
+            boundaries[SCENE_COUNT] = stamps[2];
+            let mut scene = [0.0; SCENE_COUNT];
             for (i, duration) in scene.iter_mut().enumerate() {
                 *duration = elapsed(boundaries[i], boundaries[i + 1])?;
             }
@@ -181,6 +185,12 @@ impl Timer {
         }
     }
 
+    pub fn mark_scene_boundary(&self, encoder: &mut wgpu::CommandEncoder, stage: SceneStage) {
+        if self.active.is_some() && self.count > QUERIES {
+            encoder.write_timestamp(&self.queries, QUERIES + stage as u32);
+        }
+    }
+
     pub fn resolve(&self, encoder: &mut wgpu::CommandEncoder) {
         if let Some(index) = self.active {
             self.mark(encoder, QUERIES - 1);
@@ -217,16 +227,16 @@ mod tests {
 
     #[test]
     fn nested_timestamps_partition_scene_time_and_reject_invalid_order() {
-        let mut stamps = [10, 20, 90, 110, 120, 30, 40, 50, 60, 70, 80];
+        let mut stamps = [10, 20, 100, 120, 130, 30, 40, 50, 60, 70, 80, 90];
         let sample = Sample::read(1, &stamps, 0.5).unwrap();
-        assert_eq!(sample.milliseconds, [5.0, 35.0, 10.0, 5.0]);
-        assert_eq!(sample.scene.unwrap(), [5.0; 7]);
+        assert_eq!(sample.milliseconds, [5.0, 40.0, 10.0, 5.0]);
+        assert_eq!(sample.scene.unwrap(), [5.0; SCENE_COUNT]);
         let coarse = Sample::read(2, &stamps[..5], 0.5).unwrap();
         assert_eq!(coarse.milliseconds, sample.milliseconds);
         assert!(coarse.scene.is_none());
-        stamps[10] = 91;
+        stamps[11] = 101;
         assert!(Sample::read(3, &stamps, 0.5).is_none());
-        stamps[10] = 69;
+        stamps[11] = 79;
         assert!(Sample::read(4, &stamps, 0.5).is_none());
     }
 }

@@ -80,7 +80,7 @@ struct Fragment {
     return out;
 }
 
-fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f32> {
+fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only: bool) -> vec4<f32> {
     var v = input;
     let original_stain = (v.flags & (STAIN | SOFT)) == STAIN;
     let blood_hd = original_hd_blood(v.flags);
@@ -145,7 +145,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
             semi = semi && (pixel & 32768u) != 0u;
         }
         if semi != translucent_pass { discard; }
-        if screen || camera.options.y != 0.0 {
+        if !depth_only && (screen || camera.options.y != 0.0) {
             if blood_hd {
                 color *= base;
             } else if filtered_material {
@@ -156,12 +156,13 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
                 color *= base;
             }
         }
-        if LIGHTING_ENABLED && !screen && (v.flags & EMITTER) != 0u && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
+        if !depth_only && LIGHTING_ENABLED && !screen && (v.flags & EMITTER) != 0u && lighting.options.w != 0.0 && lighting.lamps.x != 0.0 {
             emission = material_emission(v.material, base);
             if linear_lighting { emission = vec4(emission.rgb * pow(max(base, vec3(0.0)), vec3(1.2)), emission.a); }
         }
     }
     if semi != translucent_pass { discard; }
+    if depth_only { return vec4(0.0); }
     if !original_stain && (v.flags & (STAIN | SCENERY)) == STAIN {
         color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
     }
@@ -210,15 +211,20 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
     return vec4(clamp(color, vec3(0.0), vec3(1.0)), alpha);
 }
 
+@fragment fn depth_only(v: Fragment, @builtin(front_facing) front_facing: bool) {
+    if (v.flags & ALPHA) != 0u { discard; }
+    _ = shade(v, front_facing, false, true);
+}
+
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
-    let color = shade(v, front_facing, false);
+    let color = shade(v, front_facing, false, false);
     return vec4(color.rgb, 1.0);
 }
 
 @fragment fn translucent(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
-    let color = shade(v, front_facing, true);
+    let color = shade(v, front_facing, true, false);
     return vec4(color.rgb, 1.0);
 }
 
@@ -246,7 +252,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool) -> vec4<f3
         opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv));
     }
     if opacity <= 0.0 { discard; }
-    let color = shade(v, front_facing, false);
+    let color = shade(v, front_facing, false, false);
     if original_hd_blood(v.flags) && (v.flags & TEXTURED) != 0u { opacity *= color.a; }
     return vec4(color.rgb, clamp(opacity, 0.0, 1.0));
 }

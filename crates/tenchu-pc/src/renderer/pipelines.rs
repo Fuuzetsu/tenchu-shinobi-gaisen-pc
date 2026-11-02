@@ -36,12 +36,21 @@ pub(super) fn create(
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     samples: u32,
-) -> (wgpu::RenderPipeline, [wgpu::RenderPipeline; 6]) {
+) -> (
+    wgpu::RenderPipeline,
+    [wgpu::RenderPipeline; 6],
+    wgpu::RenderPipeline,
+) {
     let make_pipeline = |blend: Option<wgpu::BlendState>,
                          fragment: &str,
                          bias: i32,
                          depth_write_enabled: bool,
                          depth_compare: wgpu::CompareFunction| {
+        let targets = [Some(wgpu::ColorTargetState {
+            format,
+            blend,
+            write_mask: wgpu::ColorWrites::ALL,
+        })];
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(fragment), layout: Some(layout),
         vertex: wgpu::VertexState {
@@ -60,7 +69,7 @@ pub(super) fn create(
         multisample: wgpu::MultisampleState { count: samples, ..Default::default() },
         fragment: Some(wgpu::FragmentState {
             module: shader, entry_point: Some(fragment), compilation_options: Default::default(),
-            targets: &[Some(wgpu::ColorTargetState { format, blend, write_mask: wgpu::ColorWrites::ALL })],
+            targets: if fragment == "depth_only" { &[] } else { &targets },
         }),
         multiview: None, cache: None,
         })
@@ -108,7 +117,12 @@ pub(super) fn create(
             wgpu::CompareFunction::LessEqual,
         )
     });
-    (pipeline, effects)
+    // Leave one depth unit for the color pass's strict test, preserving coplanar face order.
+    (
+        pipeline,
+        effects,
+        make_pipeline(None, "depth_only", 1, true, wgpu::CompareFunction::Less),
+    )
 }
 
 impl Options {

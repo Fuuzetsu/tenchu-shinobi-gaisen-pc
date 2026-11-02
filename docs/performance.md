@@ -430,3 +430,39 @@ Actual 4K High desktop runs move from 61.0 / 67.5 / 43.8 / 79.7 FPS to
 62.7 / 69.3 / 44.6 / 81.8 FPS across village, snow courtyard, garden and
 waterfall. Geometry checks compare repeated and changed indices, vertex
 reordering, growth, empty meshes and moving cached shadows against fresh uploads.
+
+Lit and weather-enabled scenes now establish visible depth before the colour
+pass. The depth shader uses the same cutout rules and stops before lighting,
+filtering and weather colour calculations. A one-unit depth bias leaves the
+strict colour-pass depth test in charge of coincident face order. Plain Original
+rendering skips this pass. Performance charts and diagnostic/benchmark columns
+report its cost separately as `visibility`.
+
+Paired 4K TRIAL 2 GPU measurements, same process, with/without the visibility pass:
+
+| Scene | Before | After |
+| --- | ---: | ---: |
+| Dry | 10.75 ms | 8.77 ms |
+| Maximum rain | 22.05 ms | 15.09 ms |
+| Accumulated snow | 15.89 ms | 11.42 ms |
+| Snow and 4,096 blood marks | 59.33 ms | 54.79 ms |
+| Rain and 4,096 blood marks | 86.61 ms | 79.73 ms |
+
+All ten paired play/overhead captures are pixel-identical. Overhead views with
+little hidden geometry improve only slightly. An earlier depth shader that
+evaluated unused weather calculations regressed those views and was replaced.
+
+Actual Wayland 4K desktop measurements, High/full HD, unlocked on a 60 Hz display:
+
+| Scene | High before | High after | Maximum rain before | Rain after |
+| --- | ---: | ---: | ---: | ---: |
+| Village | 62.7 FPS | 63.0 FPS | 40.5 FPS | 40.8 FPS |
+| Snow courtyard | 69.3 FPS | 74.3 FPS | 48.1 FPS | 52.4 FPS |
+| Garden | 44.6 FPS | 52.6 FPS | 27.3 FPS | 35.4 FPS |
+| Waterfall | 81.8 FPS | 81.3 FPS | 67.5 FPS | 66.7 FPS |
+
+The transparent waterfall gains little from opaque depth rejection and pays the
+extra pass cost; the garden and heavy weather still need further optimisation.
+Checks cover cutouts, coincident faces, backfaces, blended effects, moving indexed
+meshes, all supported MSAA levels, HDR, weather shelter and timestamp accounting.
+Windowed WebGL2 rain and WebGPU snow also pass gameplay and lighting-toggle checks.

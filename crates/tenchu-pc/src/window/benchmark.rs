@@ -1,4 +1,5 @@
 use super::*;
+use crate::renderer::timing::SCENE_COUNT;
 use serde::Serialize;
 
 mod tuning;
@@ -109,13 +110,13 @@ pub(super) struct SceneResult {
     present_wait: Distribution,
     gpu: Distribution,
     gpu_passes: [Distribution; 4],
-    gpu_scene: [Distribution; 7],
+    gpu_scene: [Distribution; SCENE_COUNT],
 }
 
 #[derive(Serialize)]
 pub(super) struct Report {
     schema: u8,
-    gpu_scene_columns: [&'static str; 7],
+    gpu_scene_columns: [&'static str; SCENE_COUNT],
     adapter: String,
     backend: String,
     size: [u32; 2],
@@ -136,7 +137,7 @@ pub(super) struct Report {
 struct Samples {
     cpu: Vec<performance::CpuFrame>,
     gpu: Vec<[f32; 4]>,
-    scene: Vec<[f32; 7]>,
+    scene: Vec<[f32; SCENE_COUNT]>,
     gpu_serial: u64,
 }
 
