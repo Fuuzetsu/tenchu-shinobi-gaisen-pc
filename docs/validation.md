@@ -66,7 +66,9 @@ in these captures. They remain unconfirmed, rather than assumed fixed or invalid
 
 - **Seeing through walls:** original sight uses the terrain passage query. The
   source comparison includes blocked queries and their exact step arguments;
-  it does not establish every rendered wall/terrain boundary on every map.
+  a separate comparison runs 24,576 rays through actual Mission 1, 3 and 10
+  collision maps against `CONFLICT.C`, including indexed rows and their inclusive
+  edges. This does not establish that every visible wall has retail collision.
 - **Repeated respawns:** the original AI deliberately creates reinforcements.
   Replacement/order tests pass; this does not identify what happened in the report.
 - **Radar staying above minimum:** the original calm phase still contributes
@@ -87,6 +89,14 @@ the global alert could also promote remote patrols into suspicion and let them
 affect the player's radar. This mode now uses wide distances where necessary,
 and limits alarm/radar contributions to the player's neighborhood. Distant
 patrols continue their AI instead of freezing under every local alarm.
+
+The Mission 3 regression now exercises all seven distant guard patrols together
+for 600 updates. They keep patrolling, do not enter suspicion, and do not prevent
+the local alarm from expiring. A separate host regression flies F2 away and back
+in Missions 1, 3 and 10, with ordinary/all-active enemies and camera-relative
+controls enabled, comparing AI, HUD and final gameplay state with a stationary
+camera reference. It does not replace GPU/display testing or identify an unknown
+reporter's exact route.
 
 Regressions cover distant target selection, extreme coordinates, local arithmetic,
 remote patrol motion, alarm expiry, radar and population stability. Both heroes

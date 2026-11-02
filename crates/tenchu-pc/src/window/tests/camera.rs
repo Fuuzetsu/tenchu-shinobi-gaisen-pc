@@ -2,6 +2,60 @@ use super::*;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; flying F2 away and returning must preserve AI and the Ki display"]
+fn free_camera_returns_without_changing_radar_or_gameplay() {
+    for mission in [1, 3, 10] {
+        for (relative, all_active) in [(false, false), (false, true), (true, true)] {
+            let options = Options {
+                mission,
+                ..Default::default()
+            };
+            let mut app = application(options);
+            let mut reference = application(options);
+            for host in [&mut app, &mut reference] {
+                host.settings.frontend.auto_save = false;
+                host.settings.navigation.camera_relative = relative;
+                host.campaign.game.events = Default::default();
+                host.campaign.game.roster.keep_all_active = all_active;
+                for _ in 0..40 {
+                    assert!(host.game_tick(0));
+                }
+            }
+            app.apply_item(Item::FreeCamera, 1).unwrap();
+            app.controls.key(KeyCode::KeyW, true);
+            app.controls.key(KeyCode::KeyE, true);
+            app.controls.key(KeyCode::ShiftLeft, true);
+            for frame in 0..180 {
+                if frame == 90 {
+                    app.controls.clear();
+                    app.apply_item(Item::FreeCamera, 1).unwrap();
+                    assert!(app.debug.camera.is_none());
+                }
+                if let Some(camera) = &mut app.debug.camera {
+                    camera.advance(&app.controls, 1.0 / 30.0, 120_000.0);
+                    camera.look(13.0, -0.2);
+                }
+                for host in [&mut app, &mut reference] {
+                    host.advance_simulation(Duration::from_nanos(33_333_334));
+                }
+                let game = &app.campaign.game;
+                let expected = &reference.campaign.game;
+                assert_eq!(game.tick, expected.tick);
+                assert_eq!(
+                    format!("{:?}", (&game.intelligence, &game.hud)),
+                    format!("{:?}", (&expected.intelligence, &expected.hud)),
+                    "M{mission}, relative {relative}, all-active {all_active}, frame {frame}"
+                );
+            }
+            assert_eq!(
+                crate::session::tests::state(&app.campaign.game),
+                crate::session::tests::state(&reference.campaign.game)
+            );
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; follow survives death and can be selected in frozen/live death holds without altering gameplay"]
 fn actor_follow_survives_player_death() {
     for character in 0..2 {

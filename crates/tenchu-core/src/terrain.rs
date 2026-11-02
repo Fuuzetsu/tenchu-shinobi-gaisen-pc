@@ -306,6 +306,7 @@ pub fn ground_ray(
 #[cfg(test)]
 mod tests {
     use super::*;
+    mod passage;
     mod vector;
 
     fn flat_map() -> AreaMap {

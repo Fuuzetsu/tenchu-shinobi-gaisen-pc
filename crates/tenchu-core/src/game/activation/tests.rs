@@ -367,21 +367,23 @@ fn all_active_distances_and_nearest_targets_do_not_wrap() {
 #[ignore = "requires TENCHU_DISC; distant patrols must not hear every alert or hold the player's radar"]
 fn all_active_remote_patrol_ignores_local_alarm_and_radar_recovers() {
     let mut game = oracle::game(2, 1);
-    let guard = game
+    let guards: Vec<_> = game
         .roster
         .order
         .iter()
         .copied()
-        .find(|&id| {
+        .filter(|&id| {
             let actor = game.roster.get(id);
-            actor.kind & 0xf0 == 0x10
+            (0x10..0x80).contains(&actor.kind)
                 && actor.patrol.is_some()
                 && game
                     .math
                     .length_wide(actor.position.wrapping_sub(game.player().position))
-                    > 90000
+                    > 40000
         })
-        .unwrap();
+        .map(|id| (id, game.roster.get(id).position))
+        .collect();
+    assert!(guards.len() > 1);
     let player = game.player_id;
     {
         let mut ctx = crate::actor::Context {
@@ -397,22 +399,35 @@ fn all_active_remote_patrol_ignores_local_alarm_and_radar_recovers() {
             drawing: &mut game.drawing,
         };
         for id in game.roster.order.clone() {
-            if id != player && id != guard {
+            if id != player && !guards.iter().any(|&(guard, _)| guard == id) {
                 game.roster.remove(id, &mut ctx);
             }
         }
     }
-    let start = game.roster.get(guard).position;
     game.roster.keep_all_active = true;
     game.intelligence.reset_alert();
     for _ in 0..600 {
         game.step(0).unwrap();
-        assert_eq!(game.roster.get(guard).attribute & crate::ids::ATTR_PHASE, 0);
+        for &(guard, _) in &guards {
+            assert_eq!(
+                game.roster.get(guard).attribute & crate::ids::ATTR_PHASE,
+                0,
+                "guard {guard}"
+            );
+        }
         assert_eq!(game.intelligence.found, 0);
         assert_eq!(game.intelligence.strain, i32::MAX);
-        assert_eq!(game.roster.order.len(), 2);
+        assert_eq!(game.roster.order.len(), guards.len() + 1);
     }
-    assert_ne!(game.roster.get(guard).position, start);
+    let moving = guards
+        .iter()
+        .filter(|&&(id, start)| game.roster.get(id).position != start)
+        .count();
+    assert!(moving > 1, "Remote guards must actually patrol");
+    eprintln!(
+        "M3: {} remote guards, {moving} patrolled, radar clear for 600 updates",
+        guards.len()
+    );
     assert_eq!(game.intelligence.alert, 0);
     assert_eq!(game.player().health, 100);
 }
