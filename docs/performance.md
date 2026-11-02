@@ -249,3 +249,25 @@ Pack loading subsequently gained content-based image sharing. Mission 5 exceeded
 its 64 MiB decoded-image budget by about 72 KiB; shared duplicate artwork now fits
 without raising that budget. A complete-pack Mission 5 capture succeeds. The
 table above deliberately keeps the old fallback in both runs for comparability.
+
+## November 2026 renderer optimisation checks
+
+Measured on a GTX 1080 Ti / Ryzen 9 9950X3D at 3840×2160 with the full v3
+artwork pack, Modern High, original weather and all enemies active. Each moving
+scene has 60 warm-up frames and 300 measured CPU / 299 GPU frames. The
+per-fragment light-list iterator preserves the preset and light selection:
+
+| Scene | Before GPU mean | After GPU mean | Before terrain | After terrain |
+| --- | ---: | ---: | ---: | ---: |
+| Village lights | 15.26 ms | 13.80 ms | 7.49 ms | 6.06 ms |
+| Snow courtyard | 12.91 ms | 12.29 ms | 7.08 ms | 6.48 ms |
+| Garden water | 25.09 ms | 20.86 ms | 17.62 ms | 13.43 ms |
+| Waterfall | 9.41 ms | 8.58 ms | — | — |
+
+These are offscreen GPU timestamps, not desktop FPS. Static 4K garden and
+TRIAL 2 play/overview captures are pixel-identical before and after. Native
+regressions cover overlapping light budgets from zero to sixteen, diffuse and
+reflected light, lantern shadowing and rain reflections; a WebGL2 browser check
+also exercises lit/unlit/restored gameplay. Native strict Clippy and the WASM
+build pass. CPU frame work is broadly unchanged; the moving garden still
+exceeds the 16.7 ms GPU budget for 60 FPS.

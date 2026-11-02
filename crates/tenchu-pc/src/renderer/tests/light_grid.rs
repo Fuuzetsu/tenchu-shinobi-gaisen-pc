@@ -4,6 +4,71 @@ use bytemuck::Zeroable;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires a GPU; diffuse and reflected lighting must respect every local light budget"]
+fn overlapping_lights_accumulate_across_cell_groups() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let camera = game_camera(Matrix::default(), 1.0);
+    let mut graphics = crate::settings::Graphics {
+        fog: false,
+        weapon_reflections: 100,
+        ..Default::default()
+    };
+    graphics.lighting.enabled = true;
+    graphics.lighting.shadows = false;
+    graphics.lighting.ambient = 20;
+    let light = Light {
+        emission_radius: 0.0,
+        position: Vec3::new(0.0, -300.0, 0.0),
+        radius: 3000.0,
+        color: [0.03, 0.02, 0.01],
+    };
+    for metal in [false, true] {
+        let mut vertices = rectangle(1000, 128, None, false, false, true);
+        if metal {
+            for vertex in &mut vertices {
+                vertex.flags |= render_mesh::WEAPON_METAL;
+            }
+        }
+        let mesh = renderer.upload(&vertices);
+        let capture = |renderer: &mut Renderer, lights: &[Light]| {
+            renderer
+                .draw_lit(
+                    &view,
+                    camera,
+                    SceneMeshes::new(&[], &[&mesh]),
+                    None,
+                    lights,
+                    &[],
+                )
+                .unwrap();
+            read_pixels(renderer, &target)
+        };
+        for count in [0, 1, 3, 4, 5, 8, 9, 15, 16] {
+            graphics.lighting.count = count;
+            renderer.configure(&graphics);
+            let actual = capture(&mut renderer, &[light; crate::lighting::MAX_LIGHTS]);
+            graphics.lighting.count = 1;
+            renderer.configure(&graphics);
+            let expected = capture(
+                &mut renderer,
+                &[Light {
+                    color: light.color.map(|c| c * f32::from(count)),
+                    ..light
+                }],
+            );
+            assert!(
+                actual
+                    .iter()
+                    .zip(&expected)
+                    .all(|(a, b)| a.abs_diff(*b) <= 1),
+                "{count} overlapping lights, metal={metal}"
+            );
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a GPU; local light budgets illuminate distant regions independently of source priority"]
 fn distant_regions_keep_their_lights_when_priority_changes() {
     let (mut renderer, target) = fixture(&Vram::default());

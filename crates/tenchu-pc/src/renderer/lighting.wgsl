@@ -23,8 +23,10 @@ struct Lighting {
 @group(1) @binding(7) var light_cells: texture_2d<u32>;
 
 struct LocalLights {
-    indices: array<u32, MAX_LIGHTS>,
+    texel: u32,
+    slot: u32,
     count: u32,
+    indices: vec4<u32>,
 }
 
 fn local_lights(position: vec3<f32>) -> LocalLights {
@@ -33,19 +35,21 @@ fn local_lights(position: vec3<f32>) -> LocalLights {
     if any(cell < vec3(0.0)) || any(cell >= lighting.grid_size.xyz) { return result; }
     let p = vec3<u32>(cell);
     let size = vec3<u32>(lighting.grid_size.xyz);
-    let start = ((p.z * size.y + p.y) * size.x + p.x) * (MAX_LIGHTS / 4u);
-    let width = textureDimensions(light_cells).x;
-    for (var group = 0u; group < MAX_LIGHTS / 4u; group++) {
-        if group * 4u >= u32(lighting.options.z) { break; }
-        let texel = start + group;
-        let indices = textureLoad(light_cells, vec2<i32>(i32(texel % width), i32(texel / width)), 0);
-        for (var component = 0u; component < 4u; component++) {
-            if group * 4u + component >= u32(lighting.options.z) || indices[component] == 0u { break; }
-            result.indices[result.count] = indices[component] - 1u;
-            result.count++;
-        }
-    }
+    result.texel = ((p.z * size.y + p.y) * size.x + p.x) * (MAX_LIGHTS / 4u);
+    result.count = u32(lighting.options.z);
     return result;
+}
+
+fn next_light(lights: ptr<function, LocalLights>) -> u32 {
+    if (*lights).slot >= (*lights).count { return 0u; }
+    let component = (*lights).slot % 4u;
+    if component == 0u {
+        let width = textureDimensions(light_cells).x;
+        let texel = (*lights).texel + (*lights).slot / 4u;
+        (*lights).indices = textureLoad(light_cells, vec2<i32>(i32(texel % width), i32(texel / width)), 0);
+    }
+    (*lights).slot++;
+    return (*lights).indices[component];
 }
 
 fn shadow_face(direction: vec3<f32>) -> u32 {
@@ -71,8 +75,10 @@ fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32
     }
     let local = local_exposure(position, surface_normal);
     var nearby = local_lights(position);
-    for (var i = 0u; i < nearby.count; i++) {
-        let light = lighting.lights[nearby.indices[i]];
+    loop {
+        let index = next_light(&nearby);
+        if index == 0u { break; }
+        let light = lighting.lights[index - 1u];
         let delta = position - light.position.xyz;
         let distance = length(delta);
         if distance >= light.position.w || distance < 1.0 { continue; }

@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce GPU cost in scenes with overlapping dynamic lights, including wet and
+  reflective surfaces, without lowering light counts or shadow quality.
+
 ## 0.15.3 — 2026-11-02
 
 - Diagnostic reports now include the active controller, driver-reported vibration
