@@ -370,3 +370,12 @@ fixture measures 3.30 to 3.12 ms for the play camera's post pass, and 2.32 to
 All six comparison captures are pixel-identical; HDR, contact occlusion, MSAA,
 timing and streamed-overlay checks pass. WebGL retains its explicit nearest
 sampler because that path avoids incomplete depth textures on that backend.
+
+Weather shelter on sloped surfaces already interpolates four explicit depth
+comparisons to account for the receiver plane. Fetching each exact depth texel
+instead of asking the hardware to bilinearly filter again avoids redundant work.
+The same 4K TRIAL fixture measures snow at 16.54 to 16.08 ms and snow plus dense
+blood at 63.40 to 59.40 ms (overhead: 25.72 to 24.50 ms). Dry and rain cases are
+unchanged within variation. Eight of ten captures match exactly; the two overhead
+snow captures each differ by one channel level at one pixel out of 8.3 million.
+The weather map, wind, coverage and filter footprint are unchanged.

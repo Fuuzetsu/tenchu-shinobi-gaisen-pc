@@ -41,11 +41,11 @@ fn weather_compare(uv: vec2<f32>, depth: f32, gradient: vec2<f32>, layer: i32) -
     for (var y = 0; y < 2; y++) {
         for (var x = 0; x < 2; x++) {
             let corner = vec2(f32(x), f32(y));
-            let sample_uv = (clamp(floor(pixel) + corner, vec2(0.0), size - vec2(1.0)) + vec2(0.5)) / size;
+            let texel = vec2<i32>(clamp(floor(pixel) + corner, vec2(0.0), size - vec2(1.0)));
+            let sample_uv = (vec2<f32>(texel) + vec2(0.5)) / size;
             let reference = depth + dot(gradient, sample_uv - uv);
             let weight = mix(vec2(1.0) - blend, blend, corner);
-            exposed += weight.x * weight.y
-                * textureSampleCompareLevel(weather_map, shadow_sampler, sample_uv, layer, reference);
+            exposed += weight.x * weight.y * select(0.0, 1.0, reference <= shelter_depth(texel, layer));
         }
     }
     return exposed;

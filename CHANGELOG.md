@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up accumulated snow shading, including scenes with many blood stains,
+  by avoiding redundant shadow filtering on sloped surfaces.
+
 - Reduce ambient-occlusion depth-reading overhead on native and WebGPU renderers
   without changing its resolution or samples.
 
