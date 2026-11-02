@@ -124,7 +124,6 @@ impl Footprints {
         surfaces: &Surfaces,
         settings: &Weather,
         snow: f32,
-        eye: Vec3,
     ) {
         let coating = settings.mode != WeatherMode::Original && snow > 0.01;
         let baked = settings.baked_snow && surfaces.contains(render_mesh::SNOW);
@@ -160,11 +159,7 @@ impl Footprints {
         let mut soles = BTreeMap::new();
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
-            let position = Vec3::from(actor.position.map(|n| n as f32).to_array());
-            if actor.health <= 0
-                || actor.map.height.abs() > 160
-                || position.distance_squared(eye) > 30000.0_f32.powi(2)
-            {
+            if actor.health <= 0 || actor.map.height.abs() > 160 {
                 continue;
             }
             let Some(parts) = game.mission.models.get(&actor.rendered_mesh_kind) else {
@@ -374,6 +369,77 @@ mod retail_tests {
     use super::*;
 
     #[test]
+    #[ignore = "requires TENCHU_DISC; active distant patrols leave tracks on accumulated and original snow"]
+    fn distant_active_patrols_leave_tracks() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        for mission in [1, 5, 10] {
+            let mut game = crate::session::Options {
+                mission,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            game.roster.keep_all_active = true;
+            game.intelligence.ignore_player = true;
+            let mut graphics = crate::settings::Graphics {
+                fog: false,
+                ..Default::default()
+            };
+            graphics.weather.baked_snow = mission != 1;
+            if mission == 1 {
+                graphics.weather.mode = WeatherMode::Snow;
+            }
+            let models = Models::build(&game.mission, &Default::default(), &graphics).unwrap();
+            let stage = render_mesh::stage(&game.mission, &game.math, Some(&models));
+            let surfaces = Surfaces::new(&stage);
+            let mut prints = Footprints::default();
+            let mut distant_steps = 0;
+            let mut distant_actors = BTreeSet::new();
+            for _ in 0..300 {
+                game.step(0).unwrap();
+                let before = prints.last.clone();
+                let state = crate::session::tests::state(&game);
+                let eye = Vec3::from(game.camera.position.to_array().map(|n| n as f32));
+                prints.tick(
+                    &game,
+                    &models,
+                    &surfaces,
+                    &graphics.weather,
+                    if mission == 1 { 1.0 } else { 0.0 },
+                );
+                assert_eq!(state, crate::session::tests::state(&game));
+                for (&part, &position) in &prints.last {
+                    let Part::Actor { root, .. } = part else {
+                        unreachable!()
+                    };
+                    if root != game.player().root_model
+                        && before.get(&part).is_some_and(|&old| old != position)
+                        && position.distance(eye) > 35_000.0
+                    {
+                        distant_steps += 1;
+                        distant_actors.insert(root);
+                    }
+                }
+                assert!(prints.marks.len() <= MARK_LIMIT);
+                assert!(prints.geometry(&graphics.weather).vertices.len() <= VERTEX_LIMIT);
+            }
+            assert!(
+                distant_steps > 3,
+                "Mission {mission}: only {distant_steps} distant patrol steps from {} actors",
+                distant_actors.len()
+            );
+            println!(
+                "Mission {mission}: {distant_steps} distant patrol steps from {} actors",
+                distant_actors.len()
+            );
+        }
+    }
+
+    #[test]
     #[ignore = "requires TENCHU_DISC; existing snow takes tracks with Original weather, while bare stages and the Original preset do not"]
     fn existing_snow_takes_tracks_without_a_weather_coating() {
         use tenchu_core::{math::Position, terrain};
@@ -460,8 +526,7 @@ mod retail_tests {
                     game.step(if tick < 20 { 0 } else { tenchu_core::input::UP })
                         .unwrap();
                     let state = crate::session::tests::state(&game);
-                    let eye = Vec3::from(game.player().position.to_array().map(|v| v as f32));
-                    prints.tick(&game, &models, &surfaces, &graphics.weather, 0.0, eye);
+                    prints.tick(&game, &models, &surfaces, &graphics.weather, 0.0);
                     assert_eq!(state, crate::session::tests::state(&game));
                 }
                 assert_eq!(prints.marks.is_empty(), mission == 1);
@@ -503,14 +568,7 @@ mod retail_tests {
                             .unwrap();
                     }
                 }
-                prints.tick(
-                    &game,
-                    &models,
-                    &surfaces,
-                    &Weather::default(),
-                    0.0,
-                    Vec3::ZERO,
-                );
+                prints.tick(&game, &models, &surfaces, &Weather::default(), 0.0);
                 assert!(prints.marks.is_empty());
             }
         }
@@ -543,8 +601,7 @@ mod retail_tests {
                 game.step(if tick < 30 { 0 } else { tenchu_core::input::UP })
                     .unwrap();
                 let state = crate::session::tests::state(&game);
-                let eye = Vec3::from(game.player().position.map(|n| n as f32).to_array());
-                prints.tick(&game, &models, &surfaces, &settings, 1.0, eye);
+                prints.tick(&game, &models, &surfaces, &settings, 1.0);
                 assert_eq!(state, crate::session::tests::state(&game));
                 let vertices = prints.geometry(&settings).vertices;
                 assert!(vertices.len() <= VERTEX_LIMIT);
@@ -562,7 +619,7 @@ mod retail_tests {
                 "Geometry pressure retired footprints before they could fade"
             );
             let count = prints.marks.len();
-            prints.tick(&game, &models, &surfaces, &settings, 1.0, Vec3::ZERO);
+            prints.tick(&game, &models, &surfaces, &settings, 1.0);
             assert_eq!(
                 prints.marks.len(),
                 count,

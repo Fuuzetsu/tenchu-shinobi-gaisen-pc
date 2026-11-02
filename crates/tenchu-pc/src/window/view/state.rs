@@ -112,7 +112,6 @@ mod tests {
             surfaces,
             &settings.graphics.weather,
             weather.snow,
-            eye,
         );
         state
             .contact

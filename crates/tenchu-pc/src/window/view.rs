@@ -247,7 +247,6 @@ impl View {
                     surfaces,
                     &settings.graphics.weather,
                     self.weather.sample(&settings.graphics.weather, 1.0).snow,
-                    debug.eye(game),
                 );
             }
             if contact {

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Active enemies now leave snow footprints regardless of camera distance,
+  including distant patrols with all enemies active and fog disabled. Applies
+  to accumulated snow and tracks on the original snowy terrain.
+
 ## 0.15.2 — 2026-11-02
 
 - Bloody weapons now wait for actual blood contact during stealth kills instead

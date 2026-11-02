@@ -750,7 +750,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::Footprints,
                     "Snow footprints",
                     on(weather.footprints),
-                    "Players and humanoid enemies leave grounded tracks in snow. Fresh snowfall gradually covers them.",
+                    "Players and active humanoid enemies leave grounded tracks in snow at any camera distance. Fresh snowfall gradually covers them.",
                 ),
                 (
                     Item::BakedSnowFootprints,
