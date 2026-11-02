@@ -89,11 +89,11 @@ impl<'a> SceneMeshes<'a> {
 pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pipeline: wgpu::RenderPipeline,
-    prepass: wgpu::RenderPipeline,
+    pipelines: pipelines::Pipelines,
+    #[cfg(test)]
+    skip_blood_shader: bool,
     #[cfg(test)]
     skip_prepass: bool,
-    effects: [wgpu::RenderPipeline; 6],
     overlay_effects: [wgpu::RenderPipeline; 6],
     post: Option<post::Post>,
     size: [u32; 2],
@@ -225,8 +225,8 @@ impl Renderer {
             bind_group_layouts: &[&binding_layout, &shadows.layout, &materials.layout],
             push_constant_ranges: &[],
         });
-        let (pipeline, effects, prepass) = pipelines::create(&device, format, &layout, &shader, 1);
-        let overlay_effects = effects.clone();
+        let pipelines = pipelines::create(&device, format, &layout, &shader, 1);
+        let overlay_effects = pipelines.effects.clone();
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
             layout: &binding_layout,
@@ -250,11 +250,11 @@ impl Renderer {
             profiling: false,
             device,
             queue,
-            pipeline,
-            prepass,
+            pipelines,
+            #[cfg(test)]
+            skip_blood_shader: false,
             #[cfg(test)]
             skip_prepass: false,
-            effects,
             overlay_effects,
             post: None,
             size,
@@ -387,7 +387,7 @@ impl Renderer {
         }
         self.graphics = graphics.clone();
         if pipelines_changed {
-            (self.pipeline, self.effects, self.prepass) = pipelines::create(
+            self.pipelines = pipelines::create(
                 &self.device,
                 self.world_format(),
                 &self.layout,
@@ -710,7 +710,7 @@ impl Renderer {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-            pass.set_pipeline(&self.prepass);
+            pass.set_pipeline(&self.pipelines.visibility);
             pass.set_bind_group(0, &self.bindings, &[]);
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
@@ -761,7 +761,7 @@ impl Renderer {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-            pass.set_pipeline(&self.pipeline);
+            pass.set_pipeline(&self.pipelines.opaque);
             pass.set_bind_group(0, &self.bindings, &[]);
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
@@ -788,13 +788,13 @@ impl Renderer {
             self.draw_decals(&mut pass, matrix);
             mark(&mut pass, timing::SceneStage::Decals);
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
-                draw_effects(&mut pass, &self.effects, effects, Some(false));
+                draw_effects(&mut pass, &self.pipelines.effects, effects, Some(false));
             }
             mark(&mut pass, timing::SceneStage::Effects);
             if self.post.is_none()
                 && let Some(effects) = effects.filter(|e| e.mesh.count != 0)
             {
-                draw_effects(&mut pass, &self.effects, effects, Some(true));
+                draw_effects(&mut pass, &self.pipelines.effects, effects, Some(true));
             }
             mark(&mut pass, timing::SceneStage::Overlays);
         }

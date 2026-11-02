@@ -1,6 +1,135 @@
 use super::*;
 
 #[test]
+#[ignore = "requires a GPU; specialised ground blood must preserve surface textures, alpha order, snow and fallback styles"]
+fn projected_blood_shader_preserves_surface_flags_and_blending() {
+    use crate::visuals::surfaces::{Stamp, Surfaces};
+    use bytemuck::Zeroable;
+    use glam::Vec3;
+    use std::sync::Arc;
+
+    let mut vram = Vram::default();
+    for y in 0..16 {
+        for x in 0..16 {
+            vram.words[y * 1024 + x] = [0x7fff, 0, 31, 0x801f][(x / 4 + y / 4) % 4];
+        }
+    }
+    let (mut renderer, target) = fixture(&vram);
+    let view = target.create_view(&Default::default());
+    let p = [
+        [-2000.0, 0.0, -2000.0],
+        [2000.0, 0.0, -2000.0],
+        [-2000.0, 0.0, 2000.0],
+        [2000.0, 0.0, 2000.0],
+    ];
+    let vertices = [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+        position: p[i],
+        normal: Vec3::NEG_Y.to_array(),
+        uv: [
+            (p[i][0] + 2000.0) * 15.0 / 4000.0,
+            (p[i][2] + 2000.0) * 15.0 / 4000.0,
+        ],
+        page: 256,
+        color: [0.7; 3],
+        flags: render_mesh::TEXTURED | render_mesh::DOUBLE_SIDED | render_mesh::SCENERY,
+        opacity: 1.0,
+        ..Vertex::zeroed()
+    });
+    let ground = renderer.upload(&vertices);
+    let surfaces = Surfaces::new(&vertices);
+    let pages: Vec<_> = (0..8)
+        .map(|i| {
+            let mut vertices = surfaces.project(&Stamp {
+                center: Vec3::new(
+                    (i % 3) as f32 * 600.0 - 600.0,
+                    0.0,
+                    (i / 3) as f32 * 600.0 - 600.0,
+                ),
+                normal: Vec3::NEG_Y,
+                radius: 900.0,
+                depth: 15.0,
+                seed: i,
+                shape: None,
+            });
+            for v in &mut vertices {
+                match i {
+                    1 => {
+                        v.flags &= !render_mesh::SOFT;
+                        v.color = [1.0; 3];
+                    }
+                    3 => v.flags |= render_mesh::UNLIT,
+                    5 => {
+                        v.flags |= render_mesh::FOLIAGE
+                            | render_mesh::FLUTTER
+                            | (180 << render_mesh::WIND_WEIGHT_SHIFT)
+                    }
+                    6 => v.flags |= render_mesh::WEAPON_COAT,
+                    7 => v.flags |= render_mesh::TRANSLUCENT,
+                    _ => (),
+                }
+            }
+            Arc::new(vertices)
+        })
+        .collect();
+    assert!(pages.iter().all(|p| !p.is_empty()));
+    renderer.set_decals(&pages);
+    let camera = Mat4::orthographic_rh(-2000.0, 2000.0, -2000.0, 2000.0, 1.0, 15000.0)
+        * Mat4::look_at_rh(Vec3::new(0.0, -5000.0, 0.0), Vec3::ZERO, Vec3::Z);
+    let light = crate::lighting::Light {
+        position: Vec3::new(-1500.0, -2000.0, 500.0),
+        color: [1.0, 0.4, 0.2],
+        radius: 12000.0,
+        emission_radius: 0.0,
+    };
+    let capture = |renderer: &mut Renderer| {
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                SceneMeshes::new(&[&ground], &[]),
+                None,
+                &[light],
+                &[&ground],
+            )
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.lighting.enabled = true;
+    graphics.motion.wind = 50;
+    for samples in renderer.sample_counts.clone() {
+        graphics.samples = samples;
+        for mode in [
+            crate::settings::WeatherMode::Original,
+            crate::settings::WeatherMode::Snow,
+            crate::settings::WeatherMode::Rain,
+        ] {
+            graphics.weather.mode = mode;
+            for hdr in [false, true] {
+                graphics.post.enabled = hdr;
+                renderer.configure(&graphics);
+                renderer.weather = crate::visuals::weather::SurfaceWeather {
+                    snow: 0.8,
+                    wet: if mode.rain() { 0.7 } else { 0.0 },
+                    puddles: if mode.rain() { 0.5 } else { 0.0 },
+                    time: 10.0,
+                    flash: 0.0,
+                };
+                renderer.skip_blood_shader = true;
+                let expected = capture(&mut renderer);
+                assert!(expected.chunks_exact(4).any(|p| p[..3] != [0; 3]));
+                renderer.skip_blood_shader = false;
+                assert_eq!(
+                    capture(&mut renderer),
+                    expected,
+                    "samples {samples}, mode {mode:?}, HDR {hdr}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a graphics adapter; refined sprites keep their position, retail blends and fade endpoints"]
 fn original_hd_blood_keeps_placement_and_fades() {
     let mut vram = Vram::default();

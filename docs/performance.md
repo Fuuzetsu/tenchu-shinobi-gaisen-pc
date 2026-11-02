@@ -477,3 +477,30 @@ are 63.6 / 74.5 / 53.4 / 82.2 FPS; this is a small incremental saving, not a
 solution to the remaining heavy-weather and overlapping-blood cost. Additional
 GPU checks compare solid/cutout replacement textures, semi-transparent texels,
 emissive and blood materials across filtering modes against the ordinary pass.
+
+Projected modern blood now uses a specialised fragment entry when a retained
+page's flags prove that unrelated sprite, weapon and water paths cannot apply.
+Geometry, shading functions and blend order are shared with the generic path.
+Original blood and other materials retain that path. Wet surfaces also use the
+generic shader: specialising them measured slightly slower, so that variant was
+not retained for rain.
+
+Paired 4K TRIAL 2 measurements (4,096 marks in the play view, 2,304 overhead):
+
+| Scene | Generic shader | Selected blood shader |
+| --- | ---: | ---: |
+| Dry blood | 30.51 ms | 25.50 ms |
+| Snow and blood | 54.11 ms | 46.75 ms |
+| Rain and blood | 79.49 ms | 79.53 ms |
+| Dry blood, overhead | 14.45 ms | 12.20 ms |
+| Snow and blood, overhead | 23.97 ms | 22.76 ms |
+| Rain and blood, overhead | 33.07 ms | 33.03 ms |
+
+The blood stage itself falls from 22.27 to 17.36 ms dry and from 43.01 to
+35.62 ms with snow. All six paired captures are identical. Nine earlier paired
+TRIAL/garden captures also match, including the rejected specialised rain path.
+GPU regressions cover mixed retained styles, texture holes, moving foliage,
+weapon-coated and unlit fallbacks, snow/rain, HDR and supported MSAA levels.
+Native and WASM strict Clippy/builds pass, as do windowed WebGL2 rain and WebGPU
+snow gameplay checks. The four desktop High scenes without this blood stress
+remain effectively unchanged at 63.7 / 74.6 / 53.4 / 81.3 FPS.

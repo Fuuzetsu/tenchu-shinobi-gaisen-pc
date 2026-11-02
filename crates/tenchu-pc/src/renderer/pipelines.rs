@@ -30,17 +30,20 @@ impl From<&crate::settings::Graphics> for Options {
     }
 }
 
+pub(super) struct Pipelines {
+    pub opaque: wgpu::RenderPipeline,
+    pub effects: [wgpu::RenderPipeline; 6],
+    pub visibility: wgpu::RenderPipeline,
+    pub ground_blood: wgpu::RenderPipeline,
+}
+
 pub(super) fn create(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     samples: u32,
-) -> (
-    wgpu::RenderPipeline,
-    [wgpu::RenderPipeline; 6],
-    wgpu::RenderPipeline,
-) {
+) -> Pipelines {
     let make_pipeline = |blend: Option<wgpu::BlendState>,
                          fragment: &str,
                          bias: i32,
@@ -118,11 +121,18 @@ pub(super) fn create(
         )
     });
     // Leave one depth unit for the color pass's strict test, preserving coplanar face order.
-    (
-        pipeline,
+    Pipelines {
+        opaque: pipeline,
         effects,
-        make_pipeline(None, "depth_only", 1, true, wgpu::CompareFunction::Less),
-    )
+        visibility: make_pipeline(None, "depth_only", 1, true, wgpu::CompareFunction::Less),
+        ground_blood: make_pipeline(
+            Some(wgpu::BlendState::ALPHA_BLENDING),
+            "ground_blood",
+            -2,
+            false,
+            wgpu::CompareFunction::LessEqual,
+        ),
+    }
 }
 
 impl Options {

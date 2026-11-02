@@ -7,6 +7,7 @@ pub(super) struct Decal {
     _source: Arc<Vec<Vertex>>,
     mesh: Mesh,
     bounds: [Vec3; 2],
+    ground_blood: bool,
 }
 
 impl Renderer {
@@ -34,6 +35,23 @@ impl Renderer {
                         _source: page.clone(),
                         mesh: self.upload(page),
                         bounds,
+                        ground_blood: page.iter().all(|v| {
+                            use crate::render_mesh::*;
+                            let required = SCENERY | STAIN | SOFT | ALPHA;
+                            v.flags
+                                & (required
+                                    | SCREEN
+                                    | DEBUG
+                                    | UI
+                                    | EMITTER
+                                    | SKY
+                                    | WATER
+                                    | FOOTPRINT
+                                    | WET_CONTACT
+                                    | UNLIT)
+                                == required
+                                && (v.flags & FOLIAGE != 0 || v.flags & WEAPON_COAT == 0)
+                        }),
                     }
                 });
                 (key, decal)
@@ -44,12 +62,26 @@ impl Renderer {
 
     pub(super) fn draw_decals(&self, pass: &mut wgpu::RenderPass<'_>, matrix: Mat4) {
         let frustum = Frustum::new(matrix);
-        pass.set_pipeline(&self.effects[5]);
+        // The generic shader is faster for wet surfaces on the measured GPU.
+        let dry = self.weather.wet + self.weather.puddles == 0.0;
+        let mut current = false;
+        pass.set_pipeline(&self.pipelines.effects[5]);
         for decal in self
             .decals
             .values()
             .filter(|d| frustum.contains(d.bounds, 2.0))
         {
+            let specialised = decal.ground_blood && dry;
+            #[cfg(test)]
+            let specialised = specialised && !self.skip_blood_shader;
+            if current != specialised {
+                pass.set_pipeline(if specialised {
+                    &self.pipelines.ground_blood
+                } else {
+                    &self.pipelines.effects[5]
+                });
+                current = specialised;
+            }
             pass.set_vertex_buffer(0, decal.mesh.buffer.slice(..));
             pass.draw(0..decal.mesh.count, 0..1);
         }

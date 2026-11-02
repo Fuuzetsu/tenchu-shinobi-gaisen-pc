@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up dense modern blood on dry and snow-covered scenery, preserving
+  texture detail, soft edges, overlap order and retained blood counts.
+
 - Reject hidden scenery before expensive lighting and weather shading. Preserve
   cutouts and overlapping face order, and show the visibility pass separately
   in the performance charts and benchmark reports. Fully opaque replacement
