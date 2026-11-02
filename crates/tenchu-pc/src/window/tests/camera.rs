@@ -2,6 +2,83 @@ use super::*;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; follow survives death and can be selected in frozen/live death holds without altering gameplay"]
+fn actor_follow_survives_player_death() {
+    for character in 0..2 {
+        for live in [false, true] {
+            let options = Options {
+                character,
+                ..Default::default()
+            };
+            let mut app = application(options);
+            let mut reference = application(options);
+            for host in [&mut app, &mut reference] {
+                host.settings.wait_after_death = true;
+                host.settings.live_death_scene = live;
+                host.settings.frontend.auto_save = false;
+                host.campaign.game.roster.keep_all_active = true;
+                let events = std::mem::take(&mut host.campaign.game.events);
+                for _ in 0..30 {
+                    assert!(host.game_tick(0));
+                }
+                host.campaign.game.events = events;
+            }
+            let game = &app.campaign.game;
+            let subject = game
+                .roster
+                .order
+                .iter()
+                .copied()
+                .find(|&id| id != game.player_id && game.roster.get(id).patrol.is_some())
+                .unwrap();
+            app.debug.selected_actor = subject;
+            app.apply_item(Item::FollowActor, 1).unwrap();
+            for host in [&mut app, &mut reference] {
+                super::death::kill(&mut host.campaign.game);
+            }
+            for _ in 0..3000 {
+                reference.game_tick(0);
+                let running = app.game_tick(0);
+                assert!(app.orbit_available(), "Follow disabled during death");
+                if !running {
+                    break;
+                }
+            }
+            assert!(matches!(app.campaign.screen, Screen::DeathHold { .. }));
+            assert!(!app.campaign.game.player_can_orbit());
+            assert_eq!(app.simulating(), live);
+            app.apply_item(Item::FollowActor, 1).unwrap();
+            assert!(!app.orbit_available());
+            app.apply_item(Item::FollowActor, 1).unwrap();
+            assert!(app.orbit_available(), "Cannot enable follow after dying");
+            let surfaces = crate::visuals::surfaces::Surfaces::default();
+            for _ in 0..90 {
+                assert_eq!(app.game_tick(0), live);
+                assert_eq!(reference.game_tick(0), live);
+                app.advance_navigation(1.0 / 60.0);
+                assert_eq!(
+                    crate::session::tests::state(&app.campaign.game),
+                    crate::session::tests::state(&reference.campaign.game)
+                );
+                assert!(app.orbit_available());
+                let actor = app.debug.followed_actor(&app.campaign.game).unwrap();
+                assert_eq!(actor.id, subject);
+                let target =
+                    Vec3::from(actor.position.to_array().map(|v| v as f32)) - Vec3::Y * 1100.0;
+                let view = app
+                    .orbit
+                    .camera(1.0, 1.0 / 60.0, &app.settings.navigation, &surfaces);
+                let projected = view.matrix(16.0 / 9.0).project_point3(target);
+                assert!(projected.x.abs() < 0.0001 && projected.y.abs() < 0.0001);
+            }
+            app.action(Action::Start);
+            assert!(matches!(app.campaign.screen, Screen::GameOver));
+            assert!(!app.orbit_available());
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; live camera ownership must not change controls, RNG, AI or the retail camera"]
 fn actor_follow_preserves_play_and_returns_safely() {
     for (character, keep_all_active) in [(0, false), (1, false), (0, true), (1, true)] {

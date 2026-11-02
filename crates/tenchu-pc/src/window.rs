@@ -476,12 +476,7 @@ impl ApplicationHandler for Application {
                 && let Some(camera) = &mut self.debug.camera
             {
                 camera.look(delta.0, delta.1);
-            } else if self.orbit.looking
-                && !self.is_suspended()
-                && self.orbit_enabled()
-                && self.campaign.game.player_can_orbit()
-                && self.campaign.game.player().pad.held & tenchu_core::input::L1 == 0
-            {
+            } else if self.orbit.looking && !self.is_suspended() && self.orbit_available() {
                 self.orbit
                     .mouse(delta.0, delta.1, &self.settings.navigation);
             }
@@ -687,7 +682,7 @@ impl ApplicationHandler for Application {
                     && (self.debug.camera.is_some() || self.orbit_enabled())
                 {
                     if (self.debug.camera.is_some()
-                        || !self.is_suspended() && self.campaign.game.player_can_orbit())
+                        || !self.is_suspended() && self.orbit_available())
                         && let Some(view) = &self.view
                     {
                         let looking = view
@@ -701,10 +696,8 @@ impl ApplicationHandler for Application {
                     }
                 } else if button == MouseButton::Middle
                     && state == ElementState::Pressed
-                    && self.orbit_enabled()
-                    && self.debug.camera.is_none()
                     && !self.is_suspended()
-                    && self.campaign.game.player_can_orbit()
+                    && self.orbit_available()
                 {
                     self.recenter_orbit();
                 } else if button == MouseButton::Left

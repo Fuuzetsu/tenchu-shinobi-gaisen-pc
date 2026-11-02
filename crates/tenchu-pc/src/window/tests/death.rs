@@ -1,7 +1,7 @@
 use super::*;
 use tenchu_core::{actor::State, game::events::Outcome, ids::MOT_DEAD, math::Position};
 
-fn kill(game: &mut Game) {
+pub(super) fn kill(game: &mut Game) {
     let player = game.roster.get_mut(game.player_id);
     player.health = 0;
     player.status = State::Dead;

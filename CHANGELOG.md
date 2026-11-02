@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep **Follow Actor** attached to the selected actor after the player dies.
+  Following and orbiting also work while waiting on a frozen death scene;
+  player-control camera restrictions no longer interrupt the debug camera.
+
 ## 0.15.0 — 2026-11-02
 
 - Add optional **Call aid after witnessed kills** under F1 → Simulation.

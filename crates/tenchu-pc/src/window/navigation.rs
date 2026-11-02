@@ -11,9 +11,20 @@ impl Application {
     pub(super) fn orbit_enabled(&self) -> bool {
         self.navigation_enabled()
             || self.debug.camera_actor.is_some()
-                && self.simulating()
+                && self.campaign.scene_visible()
                 && self.demo.is_none()
                 && self.benchmarks.run.is_none()
+    }
+
+    pub(super) fn orbit_available(&self) -> bool {
+        self.orbit_enabled()
+            && self.debug.camera.is_none()
+            && if self.debug.camera_actor.is_some() {
+                self.debug.followed_actor(&self.campaign.game).is_some()
+            } else {
+                self.campaign.game.player_can_orbit()
+                    && self.campaign.game.player().pad.held & tenchu_core::input::L1 == 0
+            }
     }
 
     pub(super) fn observe_orbit(&mut self) {
@@ -40,12 +51,7 @@ impl Application {
         alpha: f32,
         elapsed: f32,
     ) -> Option<crate::debug::camera::Camera> {
-        let game = &self.campaign.game;
-        if !self.orbit_enabled()
-            || self.debug.camera.is_some()
-            || !game.player_can_orbit()
-            || game.player().pad.held & tenchu_core::input::L1 != 0
-        {
+        if !self.orbit_available() {
             return None;
         }
         self.observe_orbit();
@@ -75,16 +81,10 @@ impl Application {
             return;
         }
         self.observe_orbit();
-        if !self.campaign.game.player_can_orbit() && self.orbit.looking {
+        if !self.orbit_available() && self.orbit.looking {
             self.release_pointer();
         }
-        if self.focused
-            && !self.menu.open
-            && !self.is_suspended()
-            && self.debug.camera.is_none()
-            && self.campaign.game.player_can_orbit()
-            && self.campaign.game.player().pad.held & tenchu_core::input::L1 == 0
-        {
+        if self.focused && !self.menu.open && !self.is_suspended() && self.orbit_available() {
             if recenter {
                 self.recenter_orbit();
             }

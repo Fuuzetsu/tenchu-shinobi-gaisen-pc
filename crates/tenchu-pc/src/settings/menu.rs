@@ -1486,7 +1486,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::FollowActor,
                 "Follow selected actor",
                 on(d.camera_actor.is_some()),
-                "Orbit a live actor with RMB/right stick. Player input stays enabled. F2 returns; aiming/cutscenes keep their camera.",
+                "Orbit the selected actor with RMB/right stick, including after death. Player input stays enabled; F2 returns to the game camera.",
             ),
             (
                 Item::FollowDistance,

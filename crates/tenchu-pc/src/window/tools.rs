@@ -727,7 +727,7 @@ impl Application {
             Item::FollowActor => {
                 if self.debug.camera_actor.is_some() {
                     self.debug.return_camera();
-                } else if self.simulating() {
+                } else if self.campaign.scene_visible() {
                     self.debug.follow_selected(&self.campaign.game)?;
                 } else {
                     return Err("Start a mission before following an actor".into());
