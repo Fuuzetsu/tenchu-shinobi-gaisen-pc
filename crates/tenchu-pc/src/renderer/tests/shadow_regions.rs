@@ -83,7 +83,7 @@ fn moving_shadow_regions_match_full_redraws() {
                 12 => actor = renderer.upload(&vertices),
                 _ => (),
             }
-            if frame % 2 == 0 {
+            if frame % 3 != 2 {
                 renderer.update_indexed_mesh(&mut actor, &mut indexed_geometry(&vertices));
             } else {
                 renderer.update_mesh(&mut actor, &mut vertices);

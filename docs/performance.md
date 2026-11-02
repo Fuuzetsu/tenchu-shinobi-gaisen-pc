@@ -420,3 +420,13 @@ These are batch generation costs, not a per-frame FPS claim. All resulting
 vertices, UVs, normals and opacity values are byte-identical (313,059 vertices
 across the three cases). Retention limits, appearance and subdivision thresholds
 are unchanged; drawing retained decals remains a separate GPU cost.
+
+Animated meshes also retain their last uploaded triangle indices. Their vertices
+still update every frame; indices upload only when their contents change. With
+50,948 character vertices and 160,128 indices, an alternating reuse/forced-upload
+fixture measures complete upload/draw/wait at 2.67 ms versus 3.07–3.17 ms.
+The CPU upload stage remains around 0.49 ms: most savings are transfer waits.
+Actual 4K High desktop runs move from 61.0 / 67.5 / 43.8 / 79.7 FPS to
+62.7 / 69.3 / 44.6 / 81.8 FPS across village, snow courtyard, garden and
+waterfall. Geometry checks compare repeated and changed indices, vertex
+reordering, growth, empty meshes and moving cached shadows against fresh uploads.

@@ -113,9 +113,16 @@ fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frame
         let fresh = renderer.upload(&vertices);
         renderer.draw(&view, camera, &[&fresh], None).unwrap();
         let expected = read_pixels(&renderer, &target);
-        for indexed in [false, true, false] {
-            if indexed {
-                renderer.update_indexed_mesh(&mut streamed, &mut indexed_geometry(&vertices));
+        for indexing in [None, Some(false), Some(false), Some(true), None] {
+            if let Some(reverse) = indexing {
+                let mut geometry = indexed_geometry(&vertices);
+                if reverse {
+                    geometry.vertices.reverse();
+                    for index in &mut geometry.indices {
+                        *index = geometry.vertices.len() as u32 - 1 - *index;
+                    }
+                }
+                renderer.update_indexed_mesh(&mut streamed, &mut geometry);
             } else {
                 renderer.update_mesh(&mut streamed, &mut vertices);
             }

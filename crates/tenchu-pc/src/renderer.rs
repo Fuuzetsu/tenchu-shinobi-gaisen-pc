@@ -23,12 +23,17 @@ mod tests;
 
 pub struct Mesh {
     buffer: wgpu::Buffer,
-    indices: Option<wgpu::Buffer>,
+    indices: Option<Indices>,
     revision: u64,
     dynamic: bool,
     count: u32,
     bounds: Option<[glam::Vec3; 2]>,
     shadow_chunks: Vec<culling::Chunk>,
+}
+
+struct Indices {
+    buffer: wgpu::Buffer,
+    data: Vec<u32>,
 }
 
 impl Mesh {
@@ -41,7 +46,7 @@ impl Mesh {
     fn bind(&self, pass: &mut wgpu::RenderPass<'_>) {
         pass.set_vertex_buffer(0, self.buffer.slice(..));
         if let Some(indices) = &self.indices {
-            pass.set_index_buffer(indices.slice(..), wgpu::IndexFormat::Uint32);
+            pass.set_index_buffer(indices.buffer.slice(..), wgpu::IndexFormat::Uint32);
         }
     }
 
@@ -464,19 +469,23 @@ impl Renderer {
             bytemuck::cast_slice(&geometry.vertices),
             wgpu::BufferUsages::VERTEX,
         );
-        let indices = mesh.indices.get_or_insert_with(|| {
-            self.device.create_buffer(&wgpu::BufferDescriptor {
+        let indices = mesh.indices.get_or_insert_with(|| Indices {
+            buffer: self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Mesh indices"),
                 size: 0,
                 usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
-            })
+            }),
+            data: Vec::new(),
         });
-        self.update_geometry_buffer(
-            indices,
-            bytemuck::cast_slice(&geometry.indices),
-            wgpu::BufferUsages::INDEX,
-        );
+        if indices.data != geometry.indices {
+            self.update_geometry_buffer(
+                &mut indices.buffer,
+                bytemuck::cast_slice(&geometry.indices),
+                wgpu::BufferUsages::INDEX,
+            );
+            indices.data.clone_from(&geometry.indices);
+        }
     }
 
     fn update_geometry_buffer(

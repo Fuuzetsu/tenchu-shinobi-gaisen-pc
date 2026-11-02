@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Avoid uploading unchanged character triangle indices each frame, reducing
+  transfer waits while keeping animated vertices and shadows current.
+
 - Reduce CPU work when projecting new blood stains, death pools and footprints
   onto scenery, without changing their shapes or fading.
 
