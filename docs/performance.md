@@ -346,3 +346,19 @@ captures remain pixel-identical. Ordinary rain/snow timings are effectively
 unchanged. Applying the same change to the smaller dry shader regressed dense
 blood rendering by about 3%, so that variant retains local arithmetic. No
 shadow samples, lights, effects or quality settings are removed.
+
+
+Sustained bleeding exposed a separate rewind spike. With 8,192 retained marks
+of 96 vertices each, inserting another mark per update eventually removes the
+oldest page. The rewind cache used each resource's position in the capture
+sequence, so the remaining unchanged pages were all encoded again. Stable
+shared resources now reuse their existing encoded data after reordering.
+
+Across 259 continued-bleeding captures, average capture/history time falls from
+0.496 to 0.338 ms, and the maximum from 20.105 to 0.710 ms. Page turnovers at
+updates 128 and 256 fall from 20.105 / 19.284 ms to 0.622 / 0.521 ms. Retained
+history at the second turnover falls from 13,511 to 8,364 KiB because those
+unchanged pages are shared. The first capture still needs about 20 ms to encode
+the complete initial collection; it is excluded from the continued-bleeding
+statistics. The serialized state format and exact reconstructed bytes are
+unchanged.

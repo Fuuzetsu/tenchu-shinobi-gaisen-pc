@@ -128,6 +128,19 @@ impl Capture for Recorder {
     }
 
     fn shared_arc<T: Serialize + 'static>(&mut self, value: &Arc<T>, stable: bool) -> Result<()> {
+        let matches = |entry: &Cached| {
+            entry
+                .value
+                .downcast_ref::<Arc<T>>()
+                .is_some_and(|old| Arc::ptr_eq(old, value))
+        };
+        // Expiring a blood page shifts the remaining resources, not their data.
+        if stable
+            && self.cache.get(self.cursor).is_some_and(|old| !matches(old))
+            && let Some(offset) = self.cache[self.cursor + 1..].iter().position(matches)
+        {
+            self.cache.swap(self.cursor, self.cursor + 1 + offset);
+        }
         self.cached(
             stable,
             false,
@@ -146,6 +159,68 @@ impl Capture for Recorder {
 mod tests {
     use super::*;
     use crate::rewind::History;
+
+    #[test]
+    fn expiring_and_reordering_shared_resources_keeps_their_encoded_data() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        struct Tracked {
+            value: u32,
+            encodes: Arc<AtomicUsize>,
+        }
+        impl Serialize for Tracked {
+            fn serialize<S: serde::Serializer>(
+                &self,
+                serializer: S,
+            ) -> std::result::Result<S::Ok, S::Error> {
+                self.encodes.fetch_add(1, Ordering::Relaxed);
+                self.value.serialize(serializer)
+            }
+        }
+        let encodes = Arc::new(AtomicUsize::new(0));
+        let resources: Vec<_> = (0..9)
+            .map(|value| {
+                Arc::new(Tracked {
+                    value,
+                    encodes: encodes.clone(),
+                })
+            })
+            .collect();
+        let orders = [
+            vec![0, 1, 2, 3, 4, 5, 6, 7],
+            vec![1, 2, 3, 4, 5, 6, 7],
+            vec![7, 6, 5, 4, 3, 2, 1],
+            vec![7, 6, 4, 3, 2, 1, 8],
+            vec![8, 1, 2, 3, 4, 6, 7],
+        ];
+        let mut history = History::default();
+        for (tick, order) in orders.iter().enumerate() {
+            let tick = tick as u64;
+            history.recorder.begin();
+            history.recorder.value(&tick).unwrap();
+            history.recorder.value(&order.len()).unwrap();
+            for &index in order {
+                history
+                    .recorder
+                    .shared_arc(&resources[index], true)
+                    .unwrap();
+            }
+            let snapshot = history.recorder.finish().unwrap();
+            history.push(tick, 2, snapshot).unwrap();
+            assert_eq!(
+                encodes.load(Ordering::Relaxed),
+                if tick < 3 { 8 } else { 9 }
+            );
+        }
+        for (tick, order) in orders.into_iter().enumerate() {
+            let expected: Vec<_> = order
+                .into_iter()
+                .map(|index| resources[index].value)
+                .collect();
+            let restored: (u64, Vec<u32>) = history.snapshot(tick).unwrap().decode().unwrap();
+            assert_eq!(restored, (tick as u64, expected));
+        }
+    }
 
     #[test]
     fn shared_resources_packed_words_and_variable_segments_survive_eviction_and_branching() {

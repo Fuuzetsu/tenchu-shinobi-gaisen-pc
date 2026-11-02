@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Avoid rewind recording spikes when old blood stains expire by reusing the
+  unchanged pages that remain in the history.
+
 - Reduce soft-shadow shading cost when weather and many blood stains overlap,
   keeping the same shadow sample count and appearance.
 
