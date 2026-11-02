@@ -654,3 +654,27 @@ combinations, original/refined meshes, visibility and interpolation states.
 Native and WASM strict Clippy pass. Moving 4K High measures 70.3 / 83.8 /
 58.7 / 92.0 FPS. Maximum rain remains GPU-bound; the reduced model assembly
 time is not claimed as a material GPU or whole-frame improvement.
+
+Shadow preparation now caches each mesh's visible ranges and redraw bounds
+for a light face. Its key includes the projection, wind, resolution, GPU buffer,
+geometry revision and static/dynamic status. Moving actors still update each
+frame; unchanged scenery avoids another traversal. Shadow invalidation clears
+these entries too, releasing old mesh buffers and keeping resource changes
+simple.
+
+In fixed TRIAL views, CPU submission falls from 0.268 to 0.158 ms (dry),
+0.354 to 0.153 ms (rain), and 0.346 to 0.164 ms (snow). With 4,096 blood marks,
+rain submission falls from 0.401 to 0.290 ms. GPU shading is unchanged, and all
+fourteen paired captures match exactly. Moving High scenes save about
+0.16–0.28 ms of CPU submission; whole-frame FPS remains largely GPU-bound.
+
+Forced full-shadow comparisons pass with moving/removed actors, indexed and
+expanded meshes, model-buffer replacement, light movement, wind and resolution
+changes, sun shadows and precipitation shelter. Live characters/weapons,
+texture holes, directional shadows, windward walls and eave shelter checks
+also pass. Native and WASM strict Clippy pass.
+
+Windowed WebGL2 rain and WebGPU snow checks pass as well, including lighting
+changes, paused free camera and resumed play. Maximum-rain desktop scenes
+measure 47.3 / 57.6 / 37.4 / 81.9 FPS; this change reduces CPU work rather
+than the dominant wet-surface shading.

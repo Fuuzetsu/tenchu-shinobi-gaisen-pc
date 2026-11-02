@@ -3,6 +3,8 @@ use super::{EffectMesh, Mesh};
 use crate::lighting::{Light, MAX_LIGHTS, MAX_SCENE_LIGHTS, MAX_SHADOW_LIGHTS};
 use glam::{Mat4, Vec3};
 
+mod culling;
+
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
 pub const FILTER_SAMPLES: usize = 32;
@@ -45,6 +47,7 @@ pub struct Shadows {
     readable: ReadableDepth,
     gl: bool,
     cached: [Option<FaceState>; FACES + 2],
+    culling: [culling::Culling; FACES + 2],
     #[cfg(test)]
     pub(super) rendered_faces: usize,
     #[cfg(test)]
@@ -337,6 +340,7 @@ impl Shadows {
             readable,
             gl,
             cached: std::array::from_fn(|_| None),
+            culling: std::array::from_fn(|_| culling::Culling::default()),
             #[cfg(test)]
             rendered_faces: 0,
             #[cfg(test)]
@@ -348,6 +352,9 @@ impl Shadows {
 
     pub fn invalidate(&mut self) {
         self.cached.fill_with(|| None);
+        for culling in &mut self.culling {
+            culling.meshes.clear();
+        }
     }
 
     pub fn configure(&mut self, device: &wgpu::Device, frame: &super::sun::Frame, count: usize) {
@@ -616,7 +623,6 @@ impl Shadows {
         options: [f32; 12],
         geometry: &Geometry,
     ) {
-        let frustum = super::culling::Frustum::new(matrix);
         let size = if index >= FACES {
             self.weather_resolution
         } else if index == FACES - 1 {
@@ -627,29 +633,20 @@ impl Shadows {
         let mut foliage = false;
         let mut damage: Option<Rect> = None;
         let mut draws = Vec::new();
-        for mesh in geometry
+        let meshes = geometry
             .meshes
             .iter()
             .copied()
-            .chain(geometry.effects.map(|e| &e.mesh))
-        {
-            if mesh.count == 0 {
-                continue;
-            }
-            let (ranges, animated) = if mesh.shadow_chunks.is_empty() {
-                damage = Some(Rect::full(size));
-                (std::iter::once(0..mesh.count).collect(), true)
-            } else {
-                frustum.ranges(&mesh.shadow_chunks, options[2])
-            };
-            if !ranges.is_empty() {
-                foliage |= animated;
-                if let Some(rect) =
-                    frustum.damage(&mesh.shadow_chunks, options[2], mesh.dynamic, matrix, size)
-                {
+            .chain(geometry.effects.map(|e| &e.mesh));
+        let culling = &mut self.culling[index];
+        culling.update(matrix, options[2], size, meshes.clone());
+        for (mesh, culled) in meshes.zip(&culling.meshes) {
+            if !culled.ranges.is_empty() {
+                foliage |= culled.foliage;
+                if let Some(rect) = culled.damage {
                     damage = Some(damage.map_or(rect, |old| old.union(rect)));
                 }
-                draws.push((mesh, ranges));
+                draws.push((mesh, &culled.ranges));
             }
         }
         let mut state = FaceState {
@@ -761,7 +758,7 @@ impl Shadows {
         for (mesh, ranges) in draws {
             mesh.bind(&mut pass);
             for range in ranges {
-                mesh.draw(&mut pass, range);
+                mesh.draw(&mut pass, range.clone());
             }
         }
     }

@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reuse shadow visibility checks for unchanged scenery and lights, reducing CPU
+  work while keeping moving characters, wind and weather shelter current.
+
 - Avoid building and uploading fully hidden or transparent precipitation,
   while keeping wind, distant rain/snow, roof runoff and accumulation active.
 

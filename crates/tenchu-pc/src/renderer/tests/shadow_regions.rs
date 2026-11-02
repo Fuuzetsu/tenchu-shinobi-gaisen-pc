@@ -73,6 +73,14 @@ fn moving_shadow_regions_match_full_redraws() {
         renderer.configure(&graphics);
         renderer.weather.snow = f32::from(mode == 2);
         for frame in 0..18 {
+            match frame {
+                6 => graphics.motion.wind = 0,
+                7 => graphics.motion.wind = 100,
+                10 => graphics.lighting.resolution = 256,
+                11 => graphics.lighting.resolution = 512,
+                _ => (),
+            }
+            renderer.configure(&graphics);
             renderer.visual_time = frame as f32 * 0.3;
             let center = Vec3::new(-1800.0 + frame as f32 * 210.0, -1500.0, -900.0);
             let mut vertices = quad(center, 400.0, render_mesh::SCENERY).to_vec();
@@ -91,7 +99,8 @@ fn moving_shadow_regions_match_full_redraws() {
             let cached = draw(&mut renderer, &lights, &actor);
             if mode == 0
                 && renderer.shadows.rendered_area
-                    < renderer.shadows.rendered_faces as u64 * 512 * 512
+                    < renderer.shadows.rendered_faces as u64
+                        * u64::from(graphics.lighting.resolution).pow(2)
             {
                 partial += 1;
             }
