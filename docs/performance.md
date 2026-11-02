@@ -752,3 +752,28 @@ A per-part transform cache produced little improvement and was discarded.
 Likewise, a shader shortcut that skipped zero puddle calculations on steep
 surfaces preserved all fourteen images but made dense wet blood substantially
 slower, so it was not retained.
+
+Snow, snowstorms and clear weather now compile projected blood without
+active-rain haze or ripple code. Those uniforms are already zero in non-rain
+modes. Wetness, puddles, reflections and accumulated snow remain available when
+the weather changes. Scenery and general alpha shaders keep their previous
+variants: specialising those paths slowed one moving snowy scene and footprints.
+
+With 80 warm-up frames and 40 measured frames per case, the 4K TRIAL view
+measures snow at 10.44 → 10.39 ms, snow/blood at 44.77 → 43.64 ms, snow with
+footprints at 11.87 → 11.87 ms and wet snow/blood at 49.63 → 46.75 ms.
+The overhead snow/blood view changes from 21.96 to 21.31 ms and wet snow/blood
+from 26.67 to 25.20 ms. Rain measures 13.50 → 13.44 ms and rain/blood
+67.54 → 67.41 ms. All twelve paired images match exactly.
+A moving max-snow repeat measures village 56.1 → 54.6 FPS, courtyard
+71.7 → 71.9, garden 51.2 → 51.4 and waterfall 85.2 → 85.4; the village's
+GPU p95 is unchanged at about 17.5 ms. This is a dense-blood improvement,
+not a claim of faster ordinary snowfall. Modern High measures
+72.9/86.1/59.7/92.0 FPS. Ten focused GPU checks, strict native/WASM Clippy
+and WebGL2 rain/WebGPU snow checks pass.
+
+Two further experiments were not retained. Indexing static terrain reduced
+the garden's vertex/index storage from 15.45 to 9.09 MB, but seventeen paired
+images and forced shadow redraws showed no useful frame-time gain. Reusing
+shelter exposure between lightning and surface shading helped snowy flashes
+slightly but substantially slowed ordinary wet blood.

@@ -218,6 +218,30 @@ fn rain_and_snow_respect_shelter_and_restore_original_pixels() {
             );
         }
     }
+    graphics.weather.wind = 0;
+    graphics.weather.amount = 0;
+    graphics.weather.mode = crate::settings::WeatherMode::Rain;
+    renderer.configure(&graphics);
+    renderer.weather = crate::visuals::weather::SurfaceWeather {
+        wet: 0.7,
+        snow: 0.4,
+        puddles: 0.5,
+        time: 12.0,
+        flash: 0.0,
+    };
+    let settled = capture(&mut renderer);
+    for mode in [
+        crate::settings::WeatherMode::Clear,
+        crate::settings::WeatherMode::Snow,
+    ] {
+        graphics.weather.mode = mode;
+        renderer.configure(&graphics);
+        assert_eq!(
+            capture(&mut renderer),
+            settled,
+            "retained weather in {mode:?}"
+        );
+    }
     renderer.configure(&crate::settings::Graphics::default());
     assert_eq!(original, capture(&mut renderer));
 }

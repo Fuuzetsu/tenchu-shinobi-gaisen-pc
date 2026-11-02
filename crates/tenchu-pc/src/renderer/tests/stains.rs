@@ -99,10 +99,12 @@ fn projected_blood_shader_preserves_surface_flags_and_blending() {
     graphics.motion.wind = 50;
     for samples in renderer.sample_counts.clone() {
         graphics.samples = samples;
-        for mode in [
-            crate::settings::WeatherMode::Original,
-            crate::settings::WeatherMode::Snow,
-            crate::settings::WeatherMode::Rain,
+        for (mode, wet) in [
+            (crate::settings::WeatherMode::Original, 0.0),
+            (crate::settings::WeatherMode::Snow, 0.0),
+            (crate::settings::WeatherMode::Snow, 0.7),
+            (crate::settings::WeatherMode::Clear, 0.7),
+            (crate::settings::WeatherMode::Rain, 0.7),
         ] {
             graphics.weather.mode = mode;
             for hdr in [false, true] {
@@ -110,8 +112,8 @@ fn projected_blood_shader_preserves_surface_flags_and_blending() {
                 renderer.configure(&graphics);
                 renderer.weather = crate::visuals::weather::SurfaceWeather {
                     snow: 0.8,
-                    wet: if mode.rain() { 0.7 } else { 0.0 },
-                    puddles: if mode.rain() { 0.5 } else { 0.0 },
+                    wet,
+                    puddles: if wet > 0.0 { 0.5 } else { 0.0 },
                     time: 10.0,
                     flash: 0.0,
                 };
@@ -122,7 +124,7 @@ fn projected_blood_shader_preserves_surface_flags_and_blending() {
                 assert_eq!(
                     capture(&mut renderer),
                     expected,
-                    "samples {samples}, mode {mode:?}, HDR {hdr}"
+                    "samples {samples}, mode {mode:?}, wet {wet}, HDR {hdr}"
                 );
             }
         }

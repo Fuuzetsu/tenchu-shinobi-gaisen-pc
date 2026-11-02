@@ -24,7 +24,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   texture detail, soft edges, overlap order and retained blood counts. Reduce
   rain shading and wet-blood cost too by reusing weather calculations and
   skipping ripple work where no puddle exists. Reuse projected view rays for
-  rain haze, keeping its full shelter sampling.
+  rain haze, keeping its full shelter sampling. Exclude inactive rain code from
+  projected blood shaders in clear or snowy weather, preserving retained wetness.
 
 - Reject hidden scenery before expensive lighting and weather shading. Preserve
   cutouts and overlapping face order, and show the visibility pass separately

@@ -142,9 +142,9 @@ fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, preco
     return vec3(1.2, 1.4, 1.7) * lighting.source.z * exposed * diffuse;
 }
 
-fn rain_ripples(position: vec3<f32>, footprint: f32) -> vec3<f32> {
+fn rain_ripples(position: vec3<f32>, footprint: f32, enabled: bool) -> vec3<f32> {
     let fade = 1.0 - smoothstep(12.0, 80.0, footprint);
-    if fade == 0.0 || lighting.rain.z == 0.0 { return vec3(0.0); }
+    if !enabled || fade == 0.0 || lighting.rain.z == 0.0 { return vec3(0.0); }
     let p = position.xz / 380.0;
     let cell = floor(p);
     var gradient = vec2(0.0);
@@ -202,7 +202,7 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
     return surface_reflection(position, normal, surface, puddle) * lighting.rain.x;
 }
 
-fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool, precomputed: bool) -> vec3<f32> {
+fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool, precomputed: bool, rain_enabled: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y + lighting.weather.w <= 0.0 { return input; }
     let incidence = weather_incidence(surface, precomputed);
     if incidence == 0.0 { return input; }
@@ -220,7 +220,7 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
         color = input * (1.0 - wet * 0.32 - puddle * 0.08);
         if wet > 0.0 && lighting.rain.x > 0.0 {
             var ripples = vec3(0.0);
-            if puddle > 0.0 { ripples = rain_ripples(position, footprint) * puddle; }
+            if puddle > 0.0 { ripples = rain_ripples(position, footprint, rain_enabled) * puddle; }
             let smooth_normal = normalize(mix(normal, surface, puddle * 0.9)
                 + ripples);
             var reflection = wet_reflection(position, smooth_normal, surface, puddle) * wet;
@@ -241,8 +241,8 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
     return mix(color, white * snow_light, snow);
 }
 
-fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool, precomputed: bool) -> vec3<f32> {
-    if !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
+fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool, precomputed: bool, rain_enabled: bool) -> vec3<f32> {
+    if !rain_enabled || !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
     let delta = position - camera.eye.xyz;
     let distance = length(delta);
     let radius = 80.0 + min(distance / 30.0, 420.0);
