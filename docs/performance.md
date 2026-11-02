@@ -678,3 +678,23 @@ Windowed WebGL2 rain and WebGPU snow checks pass as well, including lighting
 changes, paused free camera and resumed play. Maximum-rain desktop scenes
 measure 47.3 / 57.6 / 37.4 / 81.9 FPS; this change reduces CPU work rather
 than the dominant wet-surface shading.
+
+Rain haze now projects the view ray into both orthographic shelter maps once,
+then interpolates its six sample positions in map space. Sample counts,
+spread, weights and shelter textures are unchanged. Repeated paired 4K TRIAL
+runs measure rain at 14.29 → 14.09 ms GPU time, dense rain/blood at
+68.65 → 67.16 ms, its daylight variant at 71.80 → 70.26 ms and its lightning
+variant at 78.14 → 76.76 ms. Overhead rain/blood changes from 29.53 to 29.21 ms.
+
+Ten of eighteen paired images match exactly. Six others differ in at most
+41 colour channels by one 8-bit level; two overhead daylight/lightning images
+have differences up to three levels in 9–25 channels. These are rounding
+differences from evaluating the same ray after projection. Eight focused GPU
+checks pass, covering haze crossing cover, roof edges, windward walls, wet
+reflections, blood compositing, footprints and sun/moon changes.
+Native and WASM checks pass, along with windowed WebGL2 rain and WebGPU snow.
+The moving maximum-rain scenes measure 46.8 / 57.7 / 38.0 / 81.0 FPS; the
+small saving in ordinary rain is within the variation of these desktop runs.
+
+A separate attempt to reuse the noise function's corner calculations preserved
+all eighteen images but produced no meaningful speedup, so it was not retained.

@@ -21,7 +21,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Speed up dense modern blood on dry and snow-covered scenery, preserving
   texture detail, soft edges, overlap order and retained blood counts. Reduce
   rain shading and wet-blood cost too by reusing weather calculations and
-  skipping ripple work where no puddle exists.
+  skipping ripple work where no puddle exists. Reuse projected view rays for
+  rain haze, keeping its full shelter sampling.
 
 - Reject hidden scenery before expensive lighting and weather shading. Preserve
   cutouts and overlapping face order, and show the visibility pass separately
