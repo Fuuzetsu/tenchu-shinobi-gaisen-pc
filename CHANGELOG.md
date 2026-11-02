@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.15.1 — 2026-11-02
+
 - Enable system clipboard copy, cut and paste in desktop text fields, including
   model folders, searches and shared randomizer settings.
 
