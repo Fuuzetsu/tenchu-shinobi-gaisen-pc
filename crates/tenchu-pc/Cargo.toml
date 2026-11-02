@@ -13,7 +13,6 @@ wgpu.workspace = true
 winit.workspace = true
 egui.workspace = true
 egui-wgpu.workspace = true
-egui-winit.workspace = true
 glam.workspace = true
 bytemuck.workspace = true
 png.workspace = true
@@ -27,6 +26,7 @@ sha2.workspace = true
 web-time = "1.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+egui-winit = { workspace = true, features = ["clipboard"] }
 cpal.workspace = true
 pollster.workspace = true
 rfd = "0.17.2"
@@ -37,6 +37,7 @@ ruzstd = "0.9"
 pulseaudio = "=0.3.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+egui-winit.workspace = true
 wgpu = { workspace = true, features = ["webgl"] }
 cpal = { version = "=0.18.2", features = ["audioworklet"] }
 wasm-bindgen = "=0.2.121"

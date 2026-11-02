@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Enable system clipboard copy, cut and paste in desktop text fields, including
+  model folders, searches and shared randomizer settings.
+
 - Keep **Follow Actor** attached to the selected actor after the player dies.
   Following and orbiting also work while waiting on a frozen death scene;
   player-control camera restrictions no longer interrupt the debug camera.
