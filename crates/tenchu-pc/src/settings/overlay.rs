@@ -284,6 +284,8 @@ fn widget(
         return egui::ComboBox::from_id_salt("moveset-source")
             .selected_text(selected)
             .width(ui.available_width().min(240.0))
+            .truncate()
+            .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
             .show_ui(ui, |ui| {
                 ui.add(
                     egui::TextEdit::singleline(&mut menu.moveset_search)
@@ -298,6 +300,7 @@ fn widget(
                         && ui.selectable_label(id == &row.value, name).clicked()
                     {
                         edits.push(Edit::MovesetModel(id.clone()));
+                        ui.memory_mut(|memory| memory.close_popup());
                     }
                 }
             })

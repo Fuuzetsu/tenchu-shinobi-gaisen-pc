@@ -465,3 +465,12 @@ and runs 300 further updates without recursion; disabling the option cancels a
 pending request. All nine AI tests, the original C melee/item-damage oracle, all
 six retail stealth pairs and native settings persistence/reset checks pass.
 Native and WASM strict Clippy pass. Original defaults are unchanged.
+
+2026-11-02 #46: native checks cover both heroes using independently selected
+actor moves without changing their body, including player locomotion, taunt
+suppression and restoring original moves. Chromium WebGPU and WebGL2 exercise
+the F1 search field, changing between Rikimaru and Onikage sources, disabling
+and restoring the override, persistence, walking and attacking. Paused tick,
+RNG and position remain unchanged; no page or GPU errors were reported. The
+browser check caught and now covers dropdown search focus and explicit closure
+after choosing a result. Captures/logs are in `private/issues/batch-46`.
