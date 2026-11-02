@@ -1,9 +1,6 @@
 use super::culling::Rect;
 use super::{EffectMesh, Mesh};
-use crate::{
-    lighting::{Light, MAX_LIGHTS, MAX_SCENE_LIGHTS, MAX_SHADOW_LIGHTS},
-    render_mesh::Vertex,
-};
+use crate::lighting::{Light, MAX_LIGHTS, MAX_SCENE_LIGHTS, MAX_SHADOW_LIGHTS};
 use glam::{Mat4, Vec3};
 
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
@@ -230,7 +227,6 @@ impl Shadows {
             bind_group_layouts: &[&face_layout, materials],
             push_constant_ranges: &[],
         });
-        let attributes = wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32];
         let pipeline = |label, bias| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(label),
@@ -239,11 +235,7 @@ impl Shadows {
                     module: &shader,
                     entry_point: Some("vertex"),
                     compilation_options: Default::default(),
-                    buffers: &[wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Vertex>() as u64,
-                        step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &attributes,
-                    }],
+                    buffers: &super::geometry::LAYOUTS,
                 },
                 primitive: wgpu::PrimitiveState {
                     cull_mode: None,
@@ -665,12 +657,12 @@ impl Shadows {
             options,
             meshes: draws
                 .iter()
-                .map(|(mesh, _)| (mesh.buffer.clone(), mesh.revision))
+                .map(|(mesh, _)| (mesh.vertices.pose.clone(), mesh.revision))
                 .collect(),
             static_meshes: draws
                 .iter()
                 .filter(|(mesh, _)| !mesh.dynamic)
-                .map(|(mesh, _)| (mesh.buffer.clone(), mesh.revision))
+                .map(|(mesh, _)| (mesh.vertices.pose.clone(), mesh.revision))
                 .collect(),
             damage,
         };

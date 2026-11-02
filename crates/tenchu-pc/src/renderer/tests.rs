@@ -84,6 +84,7 @@ fn detailed_timestamps_preserve_pixels_and_partition_scene_time() {
 fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frames() {
     let mut vram = Vram::default();
     vram.words[0] = 0x7c00;
+    vram.words[1] = 0x001f;
     let (mut renderer, target) = fixture(&vram);
     let view = target.create_view(&Default::default());
     let camera = game_camera(Matrix::default(), 1.0);
@@ -103,9 +104,20 @@ fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frame
         v.position[0] += 600.0;
         v.flags |= render_mesh::SCENERY;
     }
+    let mut recolored = textured.clone();
+    for v in &mut recolored {
+        v.uv[0] = 1.0;
+        v.color = [0.5, 0.75, 1.0];
+    }
+    let mut translated = recolored.clone();
+    for v in &mut translated {
+        v.position[1] += 300.0;
+    }
     let mut streamed = renderer.upload(&[]);
     for mut vertices in [
         textured.clone(),
+        recolored,
+        translated,
         moved.repeat(600),
         moved,
         Vec::new(),

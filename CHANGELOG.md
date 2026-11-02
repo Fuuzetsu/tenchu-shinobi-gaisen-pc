@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce per-frame model transfers by uploading changing poses separately from
+  unchanged texture coordinates, colours and material attributes. Preserve full
+  animation, effects and shadow detail, including with rain and snow enabled.
+
 - Avoid repeatedly copying large effects buffers when replacing original snow
   and splashes, reducing CPU cost with dense footprints and animated effects.
 

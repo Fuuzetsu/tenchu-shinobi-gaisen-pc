@@ -564,3 +564,40 @@ triangles, empty batches and every removal mask, plus streamed GPU rendering.
 Native and WASM strict Clippy pass. Desktop High is effectively unchanged at
 63.7 / 74.6 / 53.5 / 82.4 FPS, and maximum rain at 43.1 / 53.8 / 36.4 / 69.1 FPS;
 those scenes do not fill the combined effects buffer.
+
+Geometry uploads now separate the changing 24-byte position/normal stream from
+40-byte colour/UV/material/opacity attributes. Unchanged attributes stay on the
+GPU; changed attributes, index order, growth, empty frames and model swaps still
+update normally. CPU vertices, saved states and shader inputs retain their
+original values and precision. Static meshes do not keep an attribute cache.
+
+This targets a cost outside the scene timestamps: queued buffer transfers occur
+before the first timed render pass. A private frozen-upload experiment improved
+desktop throughput substantially without a similar change to shader timings.
+It was diagnostic only; the implemented cache continues to animate every pose.
+The machine's GTX 1080 Ti currently runs through PCIe 3.0 x2, so these transfer
+savings may be less pronounced on a wider link. Increasing presentation latency
+or switching to mailbox mode did not produce a meaningful improvement and was
+not retained.
+
+A 50,948-vertex / 160,128-index moving-mesh check with reused indices reduces
+upload/draw/completion time from 2.75–2.76 to 1.40–1.41 ms. CPU upload preparation
+remains about 0.52–0.58 ms. Steady vertex transfers fall from 3,260,672 to
+1,222,752 bytes while the attributes remain unchanged.
+
+| 4K moving desktop scene | High before | High after | Maximum rain before | Rain after |
+| --- | ---: | ---: | ---: | ---: |
+| Village | 63.7 FPS | 70.1 FPS | 43.1 FPS | 45.3 FPS |
+| Snow courtyard | 74.6 FPS | 82.7 FPS | 53.8 FPS | 58.0 FPS |
+| Garden | 53.5 FPS | 58.2 FPS | 36.4 FPS | 38.6 FPS |
+| Waterfall | 82.4 FPS | 92.1 FPS | 69.1 FPS | 76.6 FPS |
+
+All fourteen paired 4K TRIAL captures match exactly, including dry scenery,
+rain, snow, thousands of retained blood marks and full footprint buffers.
+Cached-scene GPU times remain essentially unchanged: this optimisation reduces
+transfers, not the heavy shading cost of overlapping rain/blood surfaces.
+Focused GPU checks cover changing attributes with identical vertex counts,
+pose movement, indexed/expanded transitions, growth, shrinkage, empty frames,
+blending, shadow invalidation, retained decals, cutouts and weather shelter.
+Native and WASM strict Clippy/builds pass. Windowed WebGL2 rain and WebGPU
+snow checks pass, including play, pause, free camera and lighting changes.

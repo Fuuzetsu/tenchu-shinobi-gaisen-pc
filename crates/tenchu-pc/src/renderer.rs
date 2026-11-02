@@ -6,6 +6,7 @@ use wgpu::util::DeviceExt;
 
 mod culling;
 mod decals;
+mod geometry;
 mod light_grid;
 mod materials;
 mod overlay;
@@ -22,7 +23,7 @@ mod benchmark;
 mod tests;
 
 pub struct Mesh {
-    buffer: wgpu::Buffer,
+    vertices: geometry::Buffers,
     indices: Option<Indices>,
     revision: u64,
     dynamic: bool,
@@ -44,7 +45,7 @@ impl Mesh {
     }
 
     fn bind(&self, pass: &mut wgpu::RenderPass<'_>) {
-        pass.set_vertex_buffer(0, self.buffer.slice(..));
+        self.vertices.bind(pass);
         if let Some(indices) = &self.indices {
             pass.set_index_buffer(indices.buffer.slice(..), wgpu::IndexFormat::Uint32);
         }
@@ -117,6 +118,7 @@ pub struct Renderer {
     pub shadow_elapsed: Option<f32>,
     shadows: shadows::Shadows,
     materials: materials::Materials,
+    uploads: geometry::Upload,
     decals: std::collections::BTreeMap<usize, decals::Decal>,
 }
 
@@ -277,6 +279,7 @@ impl Renderer {
             shadows,
             materials,
             decals: Default::default(),
+            uploads: Default::default(),
         };
         renderer.update_vram(vram);
         Ok(renderer)
@@ -431,13 +434,7 @@ impl Renderer {
             dynamic: false,
             shadow_chunks: Vec::new(),
             bounds: None,
-            buffer: self
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("Geometry"),
-                    contents: bytemuck::cast_slice(&vertices),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                }),
+            vertices: geometry::Upload::create(&self.device, &vertices),
             count: 0,
         };
         mesh.set_geometry(&vertices);
@@ -449,11 +446,8 @@ impl Renderer {
         mesh.indices = None;
         self.materials.annotate(vertices);
         mesh.set_geometry(vertices);
-        self.update_geometry_buffer(
-            &mut mesh.buffer,
-            bytemuck::cast_slice(vertices),
-            wgpu::BufferUsages::VERTEX,
-        );
+        self.uploads
+            .update(&self.device, &self.queue, &mut mesh.vertices, vertices);
     }
 
     pub fn update_indexed_mesh(
@@ -470,10 +464,11 @@ impl Renderer {
             &geometry.indices,
             &mut mesh.shadow_chunks,
         );
-        self.update_geometry_buffer(
-            &mut mesh.buffer,
-            bytemuck::cast_slice(&geometry.vertices),
-            wgpu::BufferUsages::VERTEX,
+        self.uploads.update(
+            &self.device,
+            &self.queue,
+            &mut mesh.vertices,
+            &geometry.vertices,
         );
         let indices = mesh.indices.get_or_insert_with(|| Indices {
             buffer: self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -485,33 +480,15 @@ impl Renderer {
             data: Vec::new(),
         });
         if indices.data != geometry.indices {
-            self.update_geometry_buffer(
+            geometry::update_buffer(
+                &self.device,
+                &self.queue,
                 &mut indices.buffer,
                 bytemuck::cast_slice(&geometry.indices),
                 wgpu::BufferUsages::INDEX,
             );
             indices.data.clone_from(&geometry.indices);
         }
-    }
-
-    fn update_geometry_buffer(
-        &self,
-        buffer: &mut wgpu::Buffer,
-        data: &[u8],
-        usage: wgpu::BufferUsages,
-    ) {
-        if data.is_empty() {
-            return;
-        }
-        if buffer.size() < data.len() as u64 {
-            *buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Dynamic geometry"),
-                size: (data.len() as u64).next_power_of_two(),
-                usage: usage | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-        }
-        self.queue.write_buffer(buffer, 0, data);
     }
 
     pub fn upload_effects(&mut self, geometry: render_effects::Geometry) -> EffectMesh {
@@ -766,7 +743,7 @@ impl Renderer {
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
             if let Some(sky) = &sky {
-                pass.set_vertex_buffer(0, sky.buffer.slice(..));
+                sky.bind(&mut pass);
                 pass.draw(0..sky.count, 0..1);
             }
             let mark = |pass: &mut wgpu::RenderPass<'_>, stage| {
@@ -853,7 +830,7 @@ fn draw_effects(
     effects: &EffectMesh,
     overlay: Option<bool>,
 ) {
-    pass.set_vertex_buffer(0, effects.mesh.buffer.slice(..));
+    effects.mesh.bind(pass);
     let ranges = overlay.map(|overlay| &effects.ranges[usize::from(overlay)]);
     pass.set_pipeline(&pipelines[0]);
     if let Some(ranges) = ranges {

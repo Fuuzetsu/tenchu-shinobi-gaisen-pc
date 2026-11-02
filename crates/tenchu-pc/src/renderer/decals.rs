@@ -80,7 +80,7 @@ impl Renderer {
                 });
                 current = specialised;
             }
-            pass.set_vertex_buffer(0, decal.mesh.buffer.slice(..));
+            decal.mesh.bind(pass);
             pass.draw(0..decal.mesh.count, 0..1);
         }
     }

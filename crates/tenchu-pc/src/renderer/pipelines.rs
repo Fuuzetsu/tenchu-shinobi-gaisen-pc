@@ -1,5 +1,4 @@
 use super::{materials, shadows};
-use crate::render_mesh::Vertex;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct Options {
@@ -55,26 +54,45 @@ pub(super) fn create(
             write_mask: wgpu::ColorWrites::ALL,
         })];
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some(fragment), layout: Some(layout),
-        vertex: wgpu::VertexState {
-            module: shader, entry_point: Some("vertex"), compilation_options: Default::default(),
-            buffers: &[wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vertex>() as u64, step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Float32x2, 3 => Uint32, 4 => Uint32, 5 => Uint32, 6 => Uint32, 7 => Float32x3, 8 => Float32],
-            }],
-        },
-        primitive: wgpu::PrimitiveState { front_face: wgpu::FrontFace::Cw, cull_mode: None, ..Default::default() },
-        depth_stencil: Some(wgpu::DepthStencilState {
-            format: wgpu::TextureFormat::Depth32Float, depth_write_enabled,
-            depth_compare, stencil: Default::default(),
-            bias: wgpu::DepthBiasState { constant: bias, ..Default::default() },
-        }),
-        multisample: wgpu::MultisampleState { count: samples, ..Default::default() },
-        fragment: Some(wgpu::FragmentState {
-            module: shader, entry_point: Some(fragment), compilation_options: Default::default(),
-            targets: if fragment == "depth_only" { &[] } else { &targets },
-        }),
-        multiview: None, cache: None,
+            label: Some(fragment),
+            layout: Some(layout),
+            vertex: wgpu::VertexState {
+                module: shader,
+                entry_point: Some("vertex"),
+                compilation_options: Default::default(),
+                buffers: &super::geometry::LAYOUTS,
+            },
+            primitive: wgpu::PrimitiveState {
+                front_face: wgpu::FrontFace::Cw,
+                cull_mode: None,
+                ..Default::default()
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled,
+                depth_compare,
+                stencil: Default::default(),
+                bias: wgpu::DepthBiasState {
+                    constant: bias,
+                    ..Default::default()
+                },
+            }),
+            multisample: wgpu::MultisampleState {
+                count: samples,
+                ..Default::default()
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: shader,
+                entry_point: Some(fragment),
+                compilation_options: Default::default(),
+                targets: if fragment == "depth_only" {
+                    &[]
+                } else {
+                    &targets
+                },
+            }),
+            multiview: None,
+            cache: None,
         })
     };
     // Earlier TMD faces cover later coplanar authoring/backing faces in the original OT.
