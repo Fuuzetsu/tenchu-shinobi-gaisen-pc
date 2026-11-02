@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Call aid after witnessed kills** under F1 → Simulation.
+  With all enemies active, the nearest eligible guard who sees a non-stealth
+  guard kill retreats to seek reinforcements. It respects sight, cover, call
+  counts and population limits; summoned guards cannot call again (#33).
+
 - Rework high-detail hero smoothing to round silhouettes without puffing out
   faces, limbs and clothing. Preserve limb lengths and open seams so separate
   animated parts stay joined. Applies to Rikimaru and both Ayame outfits with

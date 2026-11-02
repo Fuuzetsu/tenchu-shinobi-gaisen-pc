@@ -124,6 +124,12 @@ impl Application {
                 });
             }
             Item::ReinforcementLimit => self.set_reinforcement_limit(s.reinforcement_limit),
+            Item::WitnessedKillReinforcements => {
+                self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {
+                    witnessed_kills: false,
+                    ..self.settings.reinforcement_call
+                });
+            }
             Item::DebugLight => {
                 self.debug.light = None;
                 self.debug.light_follow = false;

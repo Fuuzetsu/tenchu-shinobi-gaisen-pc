@@ -181,6 +181,7 @@ pub enum Item {
     MultiTargetAttacks,
     ReinforcementsPerCall,
     RandomReinforcements,
+    WitnessedKillReinforcements,
     ReinforcementLimit,
     CutsceneSpeed,
     Screenshot,
@@ -1655,6 +1656,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Random reinforcement count",
                 on(s.reinforcement_call.random),
                 "All-active mode only: randomly choose 1 through Guards per reinforcement call, instead of a fixed count. 0 still disables extra guards. Ends recording.",
+            ),
+            (
+                Item::WitnessedKillReinforcements,
+                "Call aid after witnessed kills",
+                on(s.reinforcement_call.witnessed_kills),
+                "All-active mode only: the nearest guard who sees a non-stealth guard kill retreats to seek reinforcements. Requires range, facing and terrain line of sight; respects call counts and population limits. Recruits never call. Off by default.",
             ),
             (
                 Item::ReinforcementLimit,

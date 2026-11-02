@@ -1,6 +1,6 @@
 use super::*;
 
-fn swing(game: &mut Game, source: usize, hand: usize) -> ModelId {
+pub(super) fn swing(game: &mut Game, source: usize, hand: usize) -> ModelId {
     with_actor(game, source, |actor, ctx, world| {
         actor.clear_attack(ctx, 3).unwrap();
         actor.enter(ctx, MOT_ATTACK, true);
@@ -17,7 +17,7 @@ fn swing(game: &mut Game, source: usize, hand: usize) -> ModelId {
     })
 }
 
-fn contact(game: &mut Game, victim: usize) -> bool {
+pub(super) fn contact(game: &mut Game, victim: usize) -> bool {
     game.scene.finish_tick();
     game.collision.compute(&mut game.scene).unwrap();
     with_actor(game, victim, |actor, ctx, world| {

@@ -1319,6 +1319,15 @@ give an already-spent caller another call. Summoned guards still investigate
 and fight normally. Civilian-to-guard replacements do not increase population
 and remain available, but the replacement guard cannot recruit again.
 
+**Call aid after witnessed kills** adds an optional trigger in all-active mode.
+After a non-stealth guard kill, the nearest eligible guard within sight range,
+facing the kill and with clear terrain line of sight retreats to seek aid. This
+does not spawn anyone at the kill site: the guard still has to reach distant,
+hidden, valid ground. It uses the same call count and population limit, does not
+give spent callers another attempt, and excludes summoned guards, civilians,
+bosses and scripted actors. Stealth executions retain their ordinary reactions.
+The option is off by default and gameplay presets reset it to off.
+
 The **Reinforcement population limit** defaults to **Unlimited**; optionally set a limit
 up to 1,000 total actors, including the player and corpses. New calls check the
 limit before leaving and before each recruit spawns, so queued/group calls cannot

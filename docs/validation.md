@@ -455,3 +455,13 @@ simulation state over walking, jumping and attacks. Native six-angle previews
 of Rikimaru and both Ayame outfits were inspected; captures remain private under
 `private/issues/hero-revision`. This refines the original designs and rigs; it is
 not a newly authored character replacement. Native and WASM strict Clippy pass.
+
+2026-11-02 #33: optional witnessed-kill calls reuse the all-active covered-ground
+recruitment path. A lethal sword-contact fixture verifies one nearest eligible
+witness, facing/range/terrain checks, spent/recruited guards, disabled settings,
+Original mode, zero call counts and full capacity. Witness selection consumes no
+additional game RNG. A continuous AI fixture completes the three-guard request
+and runs 300 further updates without recursion; disabling the option cancels a
+pending request. All nine AI tests, the original C melee/item-damage oracle, all
+six retail stealth pairs and native settings persistence/reset checks pass.
+Native and WASM strict Clippy pass. Original defaults are unchanged.

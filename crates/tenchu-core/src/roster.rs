@@ -21,6 +21,7 @@ pub struct Roster {
 pub struct ReinforcementCall {
     pub count: u16,
     pub random: bool,
+    pub witnessed_kills: bool,
 }
 
 impl ReinforcementCall {
@@ -32,6 +33,7 @@ impl Default for ReinforcementCall {
         Self {
             count: 1,
             random: false,
+            witnessed_kills: false,
         }
     }
 }

@@ -4,8 +4,10 @@ impl Controller<'_, '_> {
     fn can_recruit(&self) -> bool {
         self.roster.can_call_reinforcements()
             && (!self.roster.keep_all_active
-                || (self.actor.recruitment == Recruitment::Available
-                    && self.roster.reinforcement_call.count != 0))
+                || (matches!(
+                    self.actor.recruitment,
+                    Recruitment::Available | Recruitment::Requested
+                ) && self.roster.reinforcement_call.count != 0))
     }
 
     fn reinforcement_spawn_allowed(&self) -> Result<bool> {
@@ -184,7 +186,10 @@ impl Controller<'_, '_> {
                             yaw,
                             self.ctx,
                         )?;
-                        if self.actor.recruitment == Recruitment::Available {
+                        if matches!(
+                            self.actor.recruitment,
+                            Recruitment::Available | Recruitment::Requested
+                        ) {
                             self.actor.recruitment = Recruitment::Called;
                         }
                         self.equip_guard(id)?;
@@ -206,5 +211,21 @@ impl Controller<'_, '_> {
             }
         }
         Ok(pad)
+    }
+
+    pub(super) fn requested_aid(&mut self) -> Result<Option<u16>> {
+        if self.actor.recruitment != Recruitment::Requested {
+            return Ok(None);
+        }
+        if !self.roster.keep_all_active
+            || !self.roster.reinforcement_call.witnessed_kills
+            || self.state.ignore_player
+            || !self.can_recruit()
+        {
+            self.actor.recruitment = Recruitment::Available;
+            self.actor.brain.timer = 0;
+            return Ok(None);
+        }
+        self.alarm().map(Some)
     }
 }

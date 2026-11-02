@@ -73,6 +73,34 @@ fn corner() -> Game {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; witnessed-kill requests use covered, bounded calls and restore ordinary AI afterwards"]
+fn witnessed_kill_request_finishes_with_nonrecursive_recruits() {
+    let mut game = corner();
+    let caller = game.roster.order[1];
+    game.roster.reinforcement_call.witnessed_kills = true;
+    game.roster.reinforcement_call.count = 3;
+    game.roster.get_mut(caller).recruitment = Recruitment::Requested;
+    game.roster.get_mut(caller).brain.timer = 2;
+    for _ in 0..20 {
+        game.step(0).unwrap();
+    }
+    assert_eq!(game.roster.order.len(), 5);
+    assert_eq!(game.roster.get(caller).recruitment, Recruitment::Called);
+    for &id in &game.roster.order[2..] {
+        assert_eq!(game.roster.get(id).recruitment, Recruitment::Reinforcement);
+    }
+    for _ in 0..300 {
+        game.step(0).unwrap();
+    }
+    assert_eq!(game.roster.order.len(), 5);
+
+    game.roster.get_mut(caller).recruitment = Recruitment::Requested;
+    game.roster.reinforcement_call.witnessed_kills = false;
+    game.step(0).unwrap();
+    assert_ne!(game.roster.get(caller).recruitment, Recruitment::Requested);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; a blocked caller and recruits must not recursively populate an unlimited roster"]
 fn all_active_alarm_calls_are_bounded() {
     for (count, random, limit) in [
@@ -86,7 +114,11 @@ fn all_active_alarm_calls_are_bounded() {
         for seed in [1, 19, 73] {
             let mut game = corner();
             game.random = Random::new(seed);
-            game.roster.reinforcement_call = ReinforcementCall { count, random };
+            game.roster.reinforcement_call = ReinforcementCall {
+                count,
+                random,
+                ..Default::default()
+            };
             game.roster.reinforcement_limit = limit;
             for _ in 0..20 {
                 game.step(0).unwrap();
@@ -256,6 +288,7 @@ fn recruitment_permissions_survive_new_alerts_and_settings_changes() {
     game.roster.reinforcement_call = ReinforcementCall {
         count: 0,
         random: true,
+        ..Default::default()
     };
     alarm(&mut game, recruit, 2);
     assert_eq!(

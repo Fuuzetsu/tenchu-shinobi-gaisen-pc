@@ -9,7 +9,7 @@ use crate::{
 use tenchu_assets::weapon::kind::KATANAL;
 
 impl Actor {
-    fn score_death(&self, world: &mut ActionContext) {
+    fn score_death(&self, ctx: &mut Context, world: &mut ActionContext) -> Result<()> {
         let counter = if self.kind & 0xf0 == 0x90 {
             &mut world.statistics.friend_hits
         } else if self.attribute & (ATTR_WEAPON_DRAWN | 2) == 0 {
@@ -18,6 +18,7 @@ impl Actor {
             &mut world.statistics.murders
         };
         *counter = counter.wrapping_add(1);
+        self.request_witness_aid(ctx, world)
     }
 
     fn recoil_source(
@@ -134,7 +135,7 @@ impl Actor {
                 MOT_DAMAGE
             } else {
                 if self.kind != 0xa9 && (source == Some(world.player) || source.is_none()) {
-                    self.score_death(world);
+                    self.score_death(ctx, world)?;
                 }
                 if self.attribute & (ATTR_WEAPON_DRAWN | 2) != 0 {
                     world.intelligence.voices.push((self.id, 8));
@@ -340,7 +341,7 @@ impl Actor {
                 movement = true;
             }
             if source == world.player {
-                self.score_death(world);
+                self.score_death(ctx, world)?;
             }
             if self.attribute & (ATTR_WEAPON_DRAWN | 2) != 0 {
                 world.intelligence.voices.push((self.id, 8));
@@ -508,7 +509,7 @@ impl Actor {
                 world.items.kind_for_contact(ctx.scene, hit),
                 Kind::Gun | Kind::Arrow | Kind::Lightning
             ) {
-                self.score_death(world);
+                self.score_death(ctx, world)?;
             }
             8
         } else if ctx.random.next15() & 1 != 0 {

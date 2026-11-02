@@ -581,9 +581,12 @@ fn reinforcement_call_settings_apply_and_reset() {
     app.apply_item(Item::KeepEnemiesActive, 1).unwrap();
     app.apply_item(Item::ReinforcementsPerCall, 3).unwrap();
     app.apply_item(Item::RandomReinforcements, 1).unwrap();
+    app.apply_item(Item::WitnessedKillReinforcements, 1)
+        .unwrap();
     let call = ReinforcementCall {
         count: 4,
         random: true,
+        witnessed_kills: true,
     };
     assert_eq!(app.campaign.game.roster.reinforcement_call, call);
     let saved: Settings =
@@ -600,12 +603,11 @@ fn reinforcement_call_settings_apply_and_reset() {
     app.reset_item(Item::ReinforcementsPerCall).unwrap();
     assert_eq!(
         app.campaign.game.roster.reinforcement_call,
-        ReinforcementCall {
-            count: 1,
-            random: true
-        }
+        ReinforcementCall { count: 1, ..call }
     );
     app.reset_item(Item::RandomReinforcements).unwrap();
+    assert!(app.campaign.game.roster.reinforcement_call.witnessed_kills);
+    app.reset_item(Item::WitnessedKillReinforcements).unwrap();
     assert_eq!(
         app.campaign.game.roster.reinforcement_call,
         Default::default()

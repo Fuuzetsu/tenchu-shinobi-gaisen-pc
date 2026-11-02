@@ -110,6 +110,7 @@ pub enum Recruitment {
     Available,
     Called,
     Reinforcement,
+    Requested,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

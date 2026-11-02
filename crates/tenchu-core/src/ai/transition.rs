@@ -145,6 +145,10 @@ impl Controller<'_, '_> {
             self.finish(pad & !(SQUARE | TRIANGLE), saved_strain);
             return Ok(());
         }
+        if let Some(pad) = self.requested_aid()? {
+            self.finish(pad, saved_strain);
+            return Ok(());
+        }
         let mut pad = match self.attribute & ATTR_PHASE {
             0 => {
                 self.state.strain = self.state.strain.min(player_distance);

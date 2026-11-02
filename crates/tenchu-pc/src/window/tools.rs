@@ -842,6 +842,11 @@ impl Application {
                 call.random = !call.random;
                 self.set_reinforcement_call(call);
             }
+            Item::WitnessedKillReinforcements => {
+                let mut call = self.settings.reinforcement_call;
+                call.witnessed_kills = !call.witnessed_kills;
+                self.set_reinforcement_call(call);
+            }
             Item::ReinforcementLimit => {
                 let value = (i32::from(self.settings.reinforcement_limit) + direction * 10)
                     .clamp(0, 1000) as u16;

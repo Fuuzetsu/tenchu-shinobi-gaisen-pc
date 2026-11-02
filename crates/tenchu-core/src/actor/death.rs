@@ -2,6 +2,88 @@ use super::*;
 use crate::actor::State as ActorState;
 
 impl Actor {
+    pub(super) fn request_witness_aid(
+        &self,
+        ctx: &mut Context,
+        world: &mut ActionContext,
+    ) -> Result<()> {
+        use crate::ai::Recruitment;
+        if !world.roster.keep_all_active
+            || !world.roster.reinforcement_call.witnessed_kills
+            || world.roster.reinforcement_call.count == 0
+            || !world.roster.can_call_reinforcements()
+            || world.intelligence.cinematic
+            || world.intelligence.ignore_player
+            || self.scripted
+            || self.id == world.player
+            || !(0x10..0x80).contains(&self.kind)
+            || ctx.mission.stage.id == 8
+        {
+            return Ok(());
+        }
+        let mut nearest = None;
+        let range = crate::actor::sight::profile(false, world.intelligence.sight_percent);
+        for &id in &world.roster.order {
+            if id == self.id || id == world.player {
+                continue;
+            }
+            let witness = world.roster.get(id);
+            if witness.health <= 0
+                || witness.scripted
+                || !(0x10..0x80).contains(&witness.kind)
+                || witness.attribute & (ATTR_CUSTOMAI | ATTR_SUSPEND) != ATTR_CUSTOMAI
+                || witness.recruitment != Recruitment::Available
+                || matches!(witness.status, ActorState::Dead | ActorState::Damaged)
+            {
+                continue;
+            }
+            let delta = self.position.wrapping_sub(witness.position);
+            let distance = ctx.math.length_wide(delta);
+            if distance >= range.sight
+                || nearest.is_some_and(|(best, _)| distance >= best)
+                || i32::from(ctx.math.direction(delta.x, delta.z, witness.rotation[1])?).abs()
+                    >= i32::from(range.half_angle)
+            {
+                continue;
+            }
+            let mut from = witness.position;
+            from.y -= i32::from(ctx.mission.characters[witness.definition].height) - 300;
+            let mut to = self.position;
+            to.y -= i32::from(ctx.mission.characters[self.definition].height) / 2;
+            let mut step = to.wrapping_sub(from);
+            let mut count = 1;
+            while step.iter().any(|v| v.abs() > 500) {
+                step = step.map(|v| v >> 1);
+                count *= 2;
+            }
+            if terrain::passage(
+                &ctx.mission.terrain,
+                ctx.cursor,
+                from,
+                step.map(|v| v as i16).to_array(),
+                count,
+            )?
+            .is_none()
+            {
+                nearest = Some((distance, id));
+            }
+        }
+        if let Some((_, id)) = nearest {
+            let target = world.roster.get(world.player).root_model;
+            let witness = world.roster.get_mut(id);
+            witness.clear_attack(ctx, 3)?;
+            witness.enter(ctx, MOT_ENGAGE_STANCE, true);
+            witness.target = Some(target);
+            witness.recruitment = Recruitment::Requested;
+            witness.attribute = (witness.attribute & !ATTR_PHASE) | ATTR_SEARCH | 1;
+            witness.brain.chase = [self.position.x, self.position.z];
+            witness.brain.timer = 2;
+            witness.brain.count = 0;
+            world.intelligence.voices.push((id, 14));
+        }
+        Ok(())
+    }
+
     pub(super) fn dead(
         &mut self,
         ctx: &mut Context,
