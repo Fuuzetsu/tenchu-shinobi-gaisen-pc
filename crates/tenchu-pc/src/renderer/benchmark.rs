@@ -9,7 +9,9 @@ fn profile_mission_rendering() {
         tenchu_assets::game::GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap())
             .unwrap();
     let mut game = crate::session::Options {
-        mission: 5,
+        mission: std::env::var("TENCHU_PROFILE_MISSION")
+            .map(|value| value.parse().expect("TENCHU_PROFILE_MISSION"))
+            .unwrap_or(5),
         ..Default::default()
     }
     .load(&assets)
@@ -65,6 +67,13 @@ fn profile_mission_rendering() {
     let pack = crate::visuals::pack::Pack::default();
     let mut options = crate::settings::Graphics::default();
     options.set_preset(2);
+    if std::env::var_os("TENCHU_SETTINGS").is_some() {
+        options = crate::settings::Store::new()
+            .unwrap()
+            .load()
+            .unwrap()
+            .graphics;
+    }
     options.fog = false;
     let mut models = crate::visuals::models::Models::build(&game.mission, &pack, &options).unwrap();
     let emitters = crate::visuals::lights::Emitters::build(&game, &pack, true);
@@ -94,7 +103,7 @@ fn profile_mission_rendering() {
         camera.position.y -= 12000.0;
         camera.pitch = -0.3;
     }
-    let lights: Vec<_> = crate::lighting::sources(
+    let mut lights: Vec<_> = crate::lighting::sources(
         &game,
         &options.lighting,
         Some(camera.position),
@@ -104,6 +113,14 @@ fn profile_mission_rendering() {
     .into_iter()
     .map(|s| s.light)
     .collect();
+    if let Ok(limit) = std::env::var("TENCHU_PROFILE_LIGHT_LIMIT") {
+        lights.truncate(limit.parse().expect("TENCHU_PROFILE_LIGHT_LIMIT"));
+    }
+    eprintln!(
+        "{} scene lights, {} per region",
+        lights.len(),
+        options.lighting.count
+    );
     for (samples, occlusion) in [(1, 0), (4, 0), (1, 70), (4, 70)] {
         if !renderer.sample_counts.contains(&samples) {
             continue;

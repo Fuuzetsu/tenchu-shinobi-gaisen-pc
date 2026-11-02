@@ -2,8 +2,12 @@
 
 Measured on 2026-10-28 with a Ryzen 9 9950X3D, GTX 1080 Ti and NVIDIA
 580.126.09, using Linux/Vulkan and release revision `af886a6`. These are costs
-of the current implementation, not requirements for other hardware or predictions
+of that revision, not requirements for other hardware or predictions
 for WebGL/WebGPU.
+
+The point-light limit now applies per world region, independently of the shadow
+budget. The older measurements below for reducing maximum local lights include
+reducing shadow work too; they do not predict the cost of the new region limit.
 
 The reference is **Modern Ultra at 3840×2160**, with the complete campaign
 replacement artwork and clear HUD text. Each comparison changes only the named
@@ -177,7 +181,7 @@ the measurements; it does not assign invented timings to untested situations.
 | Controls | What affects performance |
 | --- | --- |
 | Dynamic lighting; lantern/prop lights; fire lights | Add/remove local light sources. An unshadowed light adds per-pixel distance/facing/lighting work. Turning local lighting off leaves the separately enabled sun/moon cycle active. Fire, explosion and spark lights depend on the current action. |
-| Maximum lights | Caps active local lights. Raising it can also admit more shadow casters up to the separate shadow budget. A scene with fewer available sources cannot use the whole budget. |
+| Lights per region | Caps overlapping sources in each world region, rather than across the map. Distant lamps stay lit without making every pixel evaluate every scene light. A cached spatial index supplies local lists; camera movement and brightness changes reuse it. Raising the budget increases per-pixel work where lights overlap; shadow casters have a separate cap. |
 | Dynamic shadows | Controls both local and directional shadows. Disabling them also avoids preparing extra actor shadow geometry. |
 | Shadowed point lights | Each source requires six shadow views. Keeping many shadowed lamps is substantially more expensive than keeping the same number of unshadowed lamps. |
 | Local shadow resolution | Resolution is per face. At 2048, one six-face Depth32Float map uses about 96 MiB; 1024 uses 24 MiB and 512 uses 6 MiB. Eight allocated sources therefore use about 768/192/48 MiB for these maps alone. Lower resolution saves rendering work and memory while retaining lights and shadows. |

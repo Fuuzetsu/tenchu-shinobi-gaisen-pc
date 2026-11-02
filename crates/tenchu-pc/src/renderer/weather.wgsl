@@ -170,8 +170,9 @@ fn surface_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>
             reflection += lighting.sun_color.rgb * lighting.sun_direction.w * specular
                 * pow(max(0.0, dot(normal, halfway)), power) * sun_visibility(position, surface);
         }
-        for (var i = 0u; i < u32(lighting.options.z); i++) {
-            let light = lighting.lights[i];
+        var nearby = local_lights(position);
+        for (var i = 0u; i < nearby.count; i++) {
+            let light = lighting.lights[nearby.indices[i]];
             let delta = light.position.xyz - position;
             let distance = length(delta);
             if distance < 1.0 || distance >= light.position.w || dot(normal, delta) <= 0.0 { continue; }

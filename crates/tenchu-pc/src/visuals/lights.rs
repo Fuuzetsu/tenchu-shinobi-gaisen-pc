@@ -282,6 +282,23 @@ mod tests {
             let before = crate::session::tests::state(&game);
             let emitters = Emitters::build(&game, &Pack::default(), true);
             let sources = emitters.sources(&game);
+            let selected = crate::lighting::sources(
+                &game,
+                &crate::settings::Lighting {
+                    enabled: true,
+                    fires: false,
+                    count: 1,
+                    ..Default::default()
+                },
+                None,
+                None,
+                sources.clone(),
+            );
+            assert_eq!(
+                selected.len(),
+                sources.len(),
+                "Mission {mission}: local budgets must retain distant lamps"
+            );
             let names: std::collections::BTreeSet<_> =
                 emitters.models.values().map(|s| s.name.as_str()).collect();
             eprintln!(

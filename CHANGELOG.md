@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep distant lamps lit as the player and camera move. **Lights per region**
+  now limits overlapping lights locally instead of switching all but the nearest
+  lamps off across the map. Cached world light lists bound shading work; the
+  separate shadow budget still prioritizes nearby sources with gradual handovers.
+
 - Active enemies now leave snow footprints regardless of camera distance,
   including distant patrols with all enemies active and fog disabled. Applies
   to accumulated snow and tracks on the original snowy terrain.

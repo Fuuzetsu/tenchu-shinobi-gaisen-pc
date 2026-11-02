@@ -877,7 +877,7 @@ impl View {
                 Vec::new()
             },
         );
-        if settings.graphics.lighting.enabled {
+        if settings.graphics.lighting.enabled && settings.graphics.lighting.count > 0 {
             let mut sparks = if settings.graphics.effects.lightning {
                 crate::lighting::lightning(game)
             } else {
@@ -896,9 +896,7 @@ impl View {
                 sparks.extend(crate::lighting::gunfire(game, alpha));
             }
             sparks.append(&mut sources);
-            sparks.truncate(
-                usize::from(settings.graphics.lighting.count).min(crate::lighting::MAX_LIGHTS),
-            );
+            sparks.truncate(crate::lighting::MAX_SCENE_LIGHTS);
             sources = sparks;
         }
         self.lights = sources.iter().map(|s| s.light).collect();

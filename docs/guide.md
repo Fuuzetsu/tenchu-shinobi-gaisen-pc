@@ -126,11 +126,11 @@ anisotropy in the distance. Enhanced selects Crisp; Cinematic selects Cubic.
 These work with the optional Scale2x/4x reconstruction and replacement PNGs.
 The Original preset keeps its original nearest sampling.
 
-Both enhanced presets shadow all four active point lights. Ambient brightness
-is lower so lamp occlusion remains visible on scenery, models and weapons.
-Increasing the light budget beyond the shadow budget allows the extra lights
-to shine through geometry; the Lighting page reports that difference. Previously
-saved custom settings are preserved: reselect a preset to use the revised balance.
+Both enhanced presets shadow the four highest-priority point lights. Ambient
+brightness is lower so lamp occlusion remains visible on scenery, models and
+weapons. Other lamps remain lit across the map but can shine through geometry
+without a shadow slot; the Lighting page reports both budgets. Previously saved
+custom settings are preserved: reselect a preset to use the revised balance.
 
 An asset export is available for reviewing and editing the original art:
 
@@ -1444,11 +1444,15 @@ adding another full bright layer. Original baked light painted into textures
 remains; replacement artwork can remove it for a fully relit look.
 
 This is a new visual treatment over the original baked colors.
-**Point-light budget** allows 0/1/2/4/8/16 simultaneous sources (default 2).
-Nearest sources fill the budget; the movable light takes priority.
+**Lights per region** allows 0/1/2/4/8/16 overlapping sources in each part of the
+world (default 2), rather than limiting the entire map to the lamps nearest the
+player. Distant visible lamps remain lit when approaching or turning the camera.
+World light lists are cached until sources move or their radius changes; brightness
+changes and camera movement do not rebuild them. Up to 256 scene sources are supported.
 **Shadowed point lights** independently limits shadow rendering to 0–8 lights.
-Stable slots and gradual handovers avoid abrupt nearby activation. Unshadowed
-lights are cheaper but can shine through walls.
+Nearest sources fill this separate budget; the movable light and transient flashes
+take priority. Stable slots and gradual handovers soften shadow changes. Unshadowed
+lights still illuminate their surroundings but can shine through walls.
 The menu shows active lights, shadow views and depth-map memory. Each shadowed
 point light costs six extra scene passes and about 6 MiB at 512 or 96 MiB at 2048.
 WebGL2 keeps an additional readable depth copy for soft-light filtering.
@@ -1495,7 +1499,7 @@ Its single shadow map has independent 512–4096 resolution and a 10k–60k cove
 radius around the view. The projection moves in texel increments to reduce
 shimmer, with a gradual fade at its boundary. Wider coverage reduces detail;
 2048 is a useful starting point. The shared shadow switch and filtering radius
-also apply to sky shadows. A point-light budget of zero leaves just sky/ambient
+also apply to sky shadows. Setting Lights per region to zero leaves just sky/ambient
 lighting and glowing panels.
 
 F1 → **Image effects** enables HDR finishing with bloom, contact shading,

@@ -6,6 +6,7 @@ use tenchu_assets::misc::Kind;
 use tenchu_core::game::Game;
 
 pub const MAX_LIGHTS: usize = 16;
+pub const MAX_SCENE_LIGHTS: usize = 256;
 pub const MAX_SHADOW_LIGHTS: usize = 8;
 
 #[derive(Clone, Copy)]
@@ -86,10 +87,10 @@ pub fn sources(
     debug_light: Option<Vec3>,
     lamps: Vec<Source>,
 ) -> Vec<Source> {
-    if !settings.enabled {
+    if !settings.enabled || settings.count == 0 {
         return Vec::new();
     }
-    // Orbiting the player must not reshuffle the limited light and shadow slots.
+    // Orbiting the player must not reshuffle shadow priority.
     let focus = free_camera.unwrap_or_else(|| {
         if game.cinematic.active {
             crate::debug::camera::Camera::from_game(game).position
@@ -117,8 +118,6 @@ pub fn sources(
     if settings.fires {
         candidates.extend(fire_sources(game, radius));
     }
-    candidates
-        .retain(|s| focus.distance_squared(s.light.position) < (s.light.radius + 15_000.0).powi(2));
     candidates.sort_by(|a, b| {
         focus
             .distance_squared(a.light.position)
@@ -126,9 +125,6 @@ pub fn sources(
     });
     if settings.fires {
         let mut flashes = transients::sources(game, radius);
-        flashes.retain(|s| {
-            focus.distance_squared(s.light.position) < (s.light.radius + 15000.0).powi(2)
-        });
         flashes.sort_by(|a, b| {
             focus
                 .distance_squared(a.light.position)
@@ -137,7 +133,7 @@ pub fn sources(
         lights.extend(flashes.into_iter().take(2));
     }
     lights.extend(candidates);
-    lights.truncate(usize::from(settings.count).min(MAX_LIGHTS));
+    lights.truncate(MAX_SCENE_LIGHTS);
     lights
 }
 
@@ -162,6 +158,45 @@ pub fn fire_sources(game: &Game, radius: f32) -> impl Iterator<Item = Source> + 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; approaching distant lamps does not activate or reset them"]
+    fn distant_lights_do_not_switch_on_when_approached() {
+        let path = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap())
+                .unwrap();
+        let game = crate::session::Options::default().load(&assets).unwrap();
+        let lamp = Source {
+            name: "Distant lantern".into(),
+            light: Light {
+                emission_radius: 0.0,
+                position: Vec3::new(90_000.0, -2000.0, 0.0),
+                color: [1.0, 0.6, 0.3],
+                radius: 12_000.0,
+            },
+        };
+        let settings = crate::settings::Lighting {
+            enabled: true,
+            fires: false,
+            count: 1,
+            shadow_count: 1,
+            ..Default::default()
+        };
+        let mut shadows = shadows::Selection::default();
+        for distance in [90_000.0, 40_000.0, 27_001.0, 26_999.0, 15_000.0, 5000.0] {
+            let focus = lamp.light.position - Vec3::X * distance;
+            let selected = sources(&game, &settings, Some(focus), None, vec![lamp.clone()]);
+            assert_eq!(selected.len(), 1, "Light missing at distance {distance}");
+            assert_eq!(selected[0].light.color, lamp.light.color);
+            assert_eq!(selected[0].light.radius, lamp.light.radius);
+            assert_eq!(
+                shadows.update(&[selected[0].light], 1, Some(1.0 / 60.0)),
+                [Some((0, 1.0))],
+                "Approaching a selected light must not restart its shadows"
+            );
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; orbiting the gameplay camera preserves light and shadow selection"]
@@ -190,6 +225,7 @@ mod tests {
         let positions = |game: &Game, camera| {
             sources(game, &settings, camera, None, lamps.clone())
                 .into_iter()
+                .take(usize::from(settings.count))
                 .map(|source| source.light.position)
                 .collect::<Vec<_>>()
         };
@@ -210,7 +246,9 @@ mod tests {
         }
         // This scene crosses the old camera-distance ranking boundary.
         assert!(camera_selected.windows(2).any(|pair| pair[0] != pair[1]));
-        // Free-camera travel still selects lights near the inspected scene.
-        assert!(positions(&game, Some(target + Vec3::splat(500_000.0))).is_empty());
+        // Free-camera travel reprioritizes sources without introducing a distance cutoff.
+        let distant = positions(&game, Some(target + Vec3::splat(500_000.0)));
+        assert_eq!(distant.len(), 2);
+        assert_ne!(distant, expected);
     }
 }

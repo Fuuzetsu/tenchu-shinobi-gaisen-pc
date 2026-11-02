@@ -1758,9 +1758,9 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
                 (
                     Item::LightCount,
-                    "Point-light budget",
+                    "Lights per region",
                     light.count.to_string(),
-                    "0-16 nearest sources; shadows cost extra.",
+                    "0-16 overlapping lights per world region. Distant visible lamps stay lit independently of player/camera distance. Shadows have a separate budget and cost extra.",
                 ),
                 (
                     Item::LightRadius,
@@ -1838,7 +1838,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::ShadowCount,
                     "Shadowed point lights",
                     light.shadow_count.to_string(),
-                    "0-8 nearby lights; gradual handovers, six views per source. High/Ultra cover more lights before you approach.",
+                    "0-8 nearby shadow casters with gradual handovers; six views per source. Other lamps remain lit without dynamic shadows. High/Ultra cover more shadow casters before you approach.",
                 ),
                 (
                     Item::LightMarkers,

@@ -945,7 +945,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             }
         }
         Feature::LightBudget => text(format!(
-            "{} point lights · {} shadowed · lamps {} · fire lights On",
+            "{} lights per region · {} shadowed · lamps {} · fire lights On",
             l.count,
             l.shadow_count,
             on(l.lamps)

@@ -1,6 +1,6 @@
 struct Light { position: vec4<f32>, color: vec4<f32> }
 struct Lighting {
-    lights: array<Light, MAX_LIGHTS>,
+    lights: array<Light, MAX_SCENE_LIGHTS>,
     matrices: array<mat4x4<f32>, SHADOW_FACES>,
     options: vec4<f32>,
     lamps: vec4<f32>,
@@ -12,12 +12,41 @@ struct Lighting {
     weather: vec4<f32>,
     rain: vec4<f32>,
     source: vec4<f32>,
+    grid: vec4<f32>,
+    grid_size: vec4<f32>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
 @group(1) @binding(2) var shadow_sampler: sampler_comparison;
 @group(1) @binding(3) var sun_map: texture_depth_2d;
 @group(1) @binding(4) var weather_map: texture_depth_2d_array;
+@group(1) @binding(7) var light_cells: texture_2d<u32>;
+
+struct LocalLights {
+    indices: array<u32, MAX_LIGHTS>,
+    count: u32,
+}
+
+fn local_lights(position: vec3<f32>) -> LocalLights {
+    var result: LocalLights;
+    let cell = floor((position - lighting.grid.xyz) * lighting.grid.w);
+    if any(cell < vec3(0.0)) || any(cell >= lighting.grid_size.xyz) { return result; }
+    let p = vec3<u32>(cell);
+    let size = vec3<u32>(lighting.grid_size.xyz);
+    let start = ((p.z * size.y + p.y) * size.x + p.x) * (MAX_LIGHTS / 4u);
+    let width = textureDimensions(light_cells).x;
+    for (var group = 0u; group < MAX_LIGHTS / 4u; group++) {
+        if group * 4u >= u32(lighting.options.z) { break; }
+        let texel = start + group;
+        let indices = textureLoad(light_cells, vec2<i32>(i32(texel % width), i32(texel / width)), 0);
+        for (var component = 0u; component < 4u; component++) {
+            if group * 4u + component >= u32(lighting.options.z) || indices[component] == 0u { break; }
+            result.indices[result.count] = indices[component] - 1u;
+            result.count++;
+        }
+    }
+    return result;
+}
 
 fn shadow_face(direction: vec3<f32>) -> u32 {
     let a = abs(direction);
@@ -41,8 +70,9 @@ fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32
             * sun_diffuse * sun_visibility(position, surface_normal);
     }
     let local = local_exposure(position, surface_normal);
-    for (var i = 0u; i < u32(lighting.options.z); i++) {
-        let light = lighting.lights[i];
+    var nearby = local_lights(position);
+    for (var i = 0u; i < nearby.count; i++) {
+        let light = lighting.lights[nearby.indices[i]];
         let delta = position - light.position.xyz;
         let distance = length(delta);
         if distance >= light.position.w || distance < 1.0 { continue; }

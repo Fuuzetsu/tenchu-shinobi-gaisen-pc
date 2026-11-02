@@ -129,7 +129,7 @@ pub fn show(
                         } else {
                             0
                         };
-                        ui.label(format!("{lights} active lights · {shadowed} shadowed"));
+                        ui.label(format!("{lights} scene lights · up to {} per region · {shadowed} shadowed", light.count));
                         if lights > shadowed {
                             ui.colored_label(
                                 Color32::from_rgb(231, 179, 104),

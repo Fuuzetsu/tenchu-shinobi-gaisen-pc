@@ -77,12 +77,13 @@ pub fn frame(
         None,
         emitters.sources(game),
     );
-    if settings.graphics.lighting.enabled && settings.graphics.effects.lightning {
+    if settings.graphics.lighting.enabled
+        && settings.graphics.lighting.count > 0
+        && settings.graphics.effects.lightning
+    {
         let mut flashes = crate::lighting::lightning(game);
         flashes.append(&mut sources);
-        flashes.truncate(
-            usize::from(settings.graphics.lighting.count).min(crate::lighting::MAX_LIGHTS),
-        );
+        flashes.truncate(crate::lighting::MAX_SCENE_LIGHTS);
         sources = flashes;
     }
     let lights: Vec<_> = sources.into_iter().map(|source| source.light).collect();

@@ -1,14 +1,14 @@
 use super::culling::Rect;
 use super::{EffectMesh, Mesh};
 use crate::{
-    lighting::{Light, MAX_LIGHTS, MAX_SHADOW_LIGHTS},
+    lighting::{Light, MAX_LIGHTS, MAX_SCENE_LIGHTS, MAX_SHADOW_LIGHTS},
     render_mesh::Vertex,
 };
 use glam::{Mat4, Vec3};
 
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
-const LIGHT_WORDS: usize = MAX_LIGHTS * 8;
+const LIGHT_WORDS: usize = MAX_SCENE_LIGHTS * 8;
 
 pub struct Geometry<'a> {
     pub meshes: &'a [&'a Mesh],
@@ -42,6 +42,7 @@ pub struct Shadows {
     weather_layers: [wgpu::TextureView; 2],
     weather_resolution: u32,
     selection: crate::lighting::shadows::Selection,
+    grid: super::light_grid::Grid,
     readable: ReadableDepth,
     gl: bool,
     cached: [Option<FaceState>; FACES + 2],
@@ -130,9 +131,20 @@ impl Shadows {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Uint,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
             ],
         });
-        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 108) * 4);
+        let data = buffer(device, (LIGHT_WORDS + FACES * 16 + 116) * 4);
+        let grid = super::light_grid::Grid::new(device);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Shadow comparison filter"),
             compare: Some(wgpu::CompareFunction::LessEqual),
@@ -151,6 +163,7 @@ impl Shadows {
             1,
             MapTargets {
                 views: [&sun, &weather],
+                grid: &grid.view,
                 sizes: [1, 1],
                 gl,
             },
@@ -314,6 +327,7 @@ impl Shadows {
             weather_layers,
             weather_resolution: 1,
             selection: Default::default(),
+            grid,
             readable,
             gl,
             cached: std::array::from_fn(|_| None),
@@ -335,7 +349,7 @@ impl Shadows {
         let count = count
             .min(usize::from(settings.shadow_count))
             .min(MAX_SHADOW_LIGHTS);
-        let active = settings.enabled && settings.shadows && count > 0;
+        let active = settings.enabled && settings.count > 0 && settings.shadows && count > 0;
         let layers = if active { count * 6 } else { 1 };
         let resolution = if active { settings.resolution } else { 1 };
         let sun_resolution =
@@ -368,6 +382,7 @@ impl Shadows {
                 layers,
                 MapTargets {
                     views: [&self.sun, &self.weather],
+                    grid: &self.grid.view,
                     sizes: [self.sun_resolution, self.weather_resolution],
                     gl: self.gl,
                 },
@@ -395,8 +410,8 @@ impl Shadows {
             }
         }
         let settings = &frame.settings;
-        let count = if settings.enabled {
-            lights.len().min(MAX_LIGHTS)
+        let count = if settings.enabled && settings.count > 0 {
+            lights.len().min(MAX_SCENE_LIGHTS)
         } else {
             0
         };
@@ -411,12 +426,16 @@ impl Shadows {
             },
             frame.elapsed,
         );
+        self.grid
+            .update(queue, &lights[..count], usize::from(settings.count));
         let mut data = vec![0.0f32; LIGHT_WORDS + FACES * 16];
         let receivers = super::culling::Volume::new(camera);
-        for (i, light) in lights.iter().take(count).enumerate() {
+        for i in 0..self.grid.order.len() {
+            let source = self.grid.order[i];
+            let light = &lights[source];
             data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
             data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
-            let Some((slot, strength)) = selected[i] else {
+            let Some((slot, strength)) = selected[source] else {
                 continue;
             };
             data[i * 8 + 7] = (slot + 1) as f32 + strength * 0.5;
@@ -482,7 +501,7 @@ impl Shadows {
         data.extend([
             frame.ambient,
             f32::from(settings.intensity) / 100.0,
-            count as f32,
+            usize::from(settings.count).min(MAX_LIGHTS) as f32,
             if !settings.enabled {
                 0.0
             } else if settings.shadows {
@@ -526,6 +545,7 @@ impl Shadows {
             frame.weather.flash,
             0.0,
         ]);
+        data.extend(self.grid.uniform());
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
                 self.draw_face(
@@ -734,6 +754,7 @@ fn buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {
 
 struct MapTargets<'a> {
     views: [&'a wgpu::TextureView; 2],
+    grid: &'a wgpu::TextureView,
     sizes: [u32; 2],
     gl: bool,
 }
@@ -861,6 +882,10 @@ fn maps(
             wgpu::BindGroupEntry {
                 binding: 6,
                 resource: wgpu::BindingResource::TextureView(&readable.weather.0),
+            },
+            wgpu::BindGroupEntry {
+                binding: 7,
+                resource: wgpu::BindingResource::TextureView(sky.grid),
             },
         ],
     });

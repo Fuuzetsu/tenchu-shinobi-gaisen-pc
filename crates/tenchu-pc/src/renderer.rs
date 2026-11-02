@@ -6,6 +6,7 @@ use wgpu::util::DeviceExt;
 
 mod culling;
 mod decals;
+mod light_grid;
 mod materials;
 mod overlay;
 mod pipelines;
