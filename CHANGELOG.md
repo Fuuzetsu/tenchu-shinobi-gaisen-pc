@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Diagnostic reports now include the active controller, driver-reported vibration
+  support, mapping and recent vibration errors to help investigate controller
+  problems across platforms.
+
 - Keep distant lamps lit as the player and camera move. **Lights per region**
   now limits overlapping lights locally instead of switching all but the nearest
   lamps off across the map. Cached world light lists bound shading work; the

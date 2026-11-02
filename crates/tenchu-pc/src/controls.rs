@@ -190,6 +190,7 @@ pub struct Controls {
     gilrs: Option<Gilrs>,
     pad: Pad,
     rumble: Option<gilrs::ff::Effect>,
+    pub(super) vibration_error: Option<String>,
 }
 
 impl Controls {
@@ -200,7 +201,27 @@ impl Controls {
             .flat_map(|g| g.gamepads())
             .map(|(_, pad)| pad.name().to_owned())
             .collect();
-        serde_json::json!({"bindings": self.bindings, "controllers": controllers})
+        let details: Vec<_> = self
+            .gilrs
+            .iter()
+            .flat_map(|g| g.gamepads())
+            .map(|(id, pad)| {
+                serde_json::json!({
+                    "name": pad.name(),
+                    "active": self.pad.active == Some(usize::from(id)),
+                    "vendor_id": pad.vendor_id(),
+                    "product_id": pad.product_id(),
+                    "mapping": format!("{:?}", pad.mapping_source()),
+                    "power": format!("{:?}", pad.power_info()),
+                    "vibration_supported": pad.is_ff_supported(),
+                })
+            })
+            .collect();
+        serde_json::json!({
+            "bindings": self.bindings, "controllers": controllers,
+            "controller_details": details, "controller_backend_available": self.gilrs.is_some(),
+            "vibration_error": self.vibration_error,
+        })
     }
 
     pub fn held(&self, key: KeyCode) -> bool {

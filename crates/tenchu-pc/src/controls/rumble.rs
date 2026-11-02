@@ -43,8 +43,14 @@ impl Controls {
             effect.play()?;
             Ok(effect)
         }) {
-            Ok(effect) => self.rumble = Some(effect),
-            Err(error) => eprintln!("Controller vibration: {error}"),
+            Ok(effect) => {
+                self.rumble = Some(effect);
+                self.vibration_error = None;
+            }
+            Err(error) => {
+                eprintln!("Controller vibration: {error}");
+                self.vibration_error = Some(error.to_string());
+            }
         }
     }
 }

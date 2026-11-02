@@ -257,6 +257,7 @@ mod tests {
         });
         app.settings.retro = true;
         app.settings.model_directory = "/home/private/models".into();
+        app.controls.vibration_error = Some("Test driver error /home/private/models".into());
         app.keep_enemies_active(true);
         app.set_sight(150);
         for _ in 0..605 {
@@ -269,6 +270,19 @@ mod tests {
         assert_eq!(report["settings"]["retro"], true);
         assert_eq!(report["game"]["activation"]["keep_all_active"], true);
         assert_eq!(report["game"]["ai"]["sight_percent"], 150);
+        assert_eq!(report["controls"]["controller_backend_available"], false);
+        assert!(
+            report["controls"]["controller_details"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            report["controls"]["vibration_error"]
+                .as_str()
+                .unwrap()
+                .starts_with("Test driver error")
+        );
         assert_eq!(
             report["recent_inputs"]["inputs"].as_array().unwrap().len(),
             600

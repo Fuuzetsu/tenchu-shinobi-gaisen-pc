@@ -12,6 +12,10 @@ The report includes:
   compiler; OS/browser, GPU, driver, renderer, resolution and presentation mode.
 - Current settings and controller/keyboard bindings, effective renderer settings,
   gameplay/debug overrides, model selection and loaded artwork counts/errors.
+- Connected controller names, active device, vendor/product IDs, mapping,
+  wired/battery status, driver-reported vibration support and the last
+  effect-start error. These are capabilities reported by the input backend,
+  not confirmation that the physical motors work.
 - Mission, character, difficulty, layout, randomizer seed/configuration if active,
   RNG, actors, AI/alert/radar, inventory, active items, camera and mission counters.
 - Up to 600 recent gameplay inputs and their preceding player/alert state, plus
