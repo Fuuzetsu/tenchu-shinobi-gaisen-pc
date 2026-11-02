@@ -170,9 +170,10 @@ fn streamed_effects_preserve_batches_and_overlays() {
     let view = target.create_view(&Default::default());
     let camera = game_camera(Matrix::default(), 1.0);
     let terrain = renderer.upload(&rectangle(1600, 64, None, false, false, false));
-    let geometry = |count: usize| {
+    let geometry = |count: usize, mut vertices: Vec<Vertex>| {
+        vertices.clear();
         let mut geometry = render_effects::Geometry {
-            vertices: Vec::new(),
+            vertices,
             batches: Vec::new(),
         };
         for i in 0..count {
@@ -199,18 +200,31 @@ fn streamed_effects_preserve_batches_and_overlays() {
         }
         geometry
     };
-    let mut streamed = renderer.upload_effects(geometry(0));
+    let mut streamed = renderer.upload_effects(geometry(0, Vec::new()));
+    let mut staging = Vec::new();
     let mut graphics = crate::settings::Graphics::default();
     for post in [false, true] {
         graphics.post.enabled = post;
         renderer.configure(&graphics);
         for count in [1, 96, 3, 0, 6] {
-            let fresh = renderer.upload_effects(geometry(count));
+            let fresh = renderer.upload_effects(geometry(count, Vec::new()));
             renderer
                 .draw(&view, camera, &[&terrain], Some(&fresh))
                 .unwrap();
             let expected = read_pixels(&renderer, &target);
-            renderer.update_effects(&mut streamed, geometry(count));
+            let source = geometry(count, std::mem::take(&mut staging));
+            let pointer = source.vertices.as_ptr();
+            let mut combined = render_effects::Geometry {
+                vertices: Vec::new(),
+                batches: vec![render_effects::Batch {
+                    blend: 5,
+                    range: 0..0,
+                }],
+            };
+            combined.append(source);
+            assert_eq!(combined.vertices.as_ptr(), pointer);
+            staging = renderer.update_effects(&mut streamed, combined);
+            assert!(staging.is_empty());
             renderer
                 .draw(&view, camera, &[&terrain], Some(&streamed))
                 .unwrap();

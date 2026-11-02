@@ -909,7 +909,7 @@ impl Blood {
             }],
             vertices,
         };
-        geometry.append(self.animated_geometry(game, models, frame, camera, alpha));
+        geometry.append(self.animated_geometry(game, models, frame, camera, alpha, Vec::new()));
         geometry
     }
 
@@ -920,8 +920,10 @@ impl Blood {
         frame: Option<&Frame>,
         camera: Option<Matrix>,
         alpha: f32,
+        mut vertices: Vec<Vertex>,
     ) -> Geometry {
-        let mut vertices = Vec::new();
+        vertices.clear();
+        vertices.reserve(self.marks.attached.iter().map(|(_, mark)| mark.len()).sum());
         for pool in self.pools.values() {
             vertices.extend(pool.mark.0.iter().flat_map(|p| p.vertices.iter().copied()));
         }

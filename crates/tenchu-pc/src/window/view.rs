@@ -65,6 +65,7 @@ pub(super) struct View {
     lighting_updated: Instant,
     pub(super) lights: Vec<crate::lighting::Light>,
     pub(super) effects: EffectMesh,
+    effect_vertices: Vec<render_mesh::Vertex>,
     pub(super) labels: Vec<crate::debug::Label>,
     pub(super) text: Vec<crate::fonts::Text>,
     pub(super) overlay: super::overlay::Overlay,
@@ -476,6 +477,7 @@ impl View {
             actor,
             shadow_stage: None,
             shadow_models: None,
+            effect_vertices: Vec::new(),
             shared_actor_shadows: false,
             actor_vertices,
             vertices: Vec::new(),
@@ -1005,6 +1007,7 @@ impl View {
                 } else {
                     1.0
                 },
+                std::mem::take(&mut self.effect_vertices),
             );
             cosmetics.append(geometry);
             geometry = cosmetics;
@@ -1110,7 +1113,7 @@ impl View {
                 [1.0, 0.85, 0.35],
             ));
         }
-        self.renderer.update_effects(&mut self.effects, geometry);
+        self.effect_vertices = self.renderer.update_effects(&mut self.effects, geometry);
         self.window.set_title(&format!(
             "Tenchu — gameplay preview | tick {} | HP {} | motion {:04x}",
             game.tick,

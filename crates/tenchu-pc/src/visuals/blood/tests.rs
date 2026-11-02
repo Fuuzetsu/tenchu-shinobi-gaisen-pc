@@ -169,7 +169,7 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
             for _ in 0..180 {
                 game.tick += 1;
                 blood.tick(&game, &models, &surfaces, &settings, None);
-                let geometry = blood.animated_geometry(&game, &models, None, None, 1.0);
+                let geometry = blood.animated_geometry(&game, &models, None, None, 1.0, Vec::new());
                 seen |= !geometry.vertices.is_empty();
                 assert!(
                     geometry

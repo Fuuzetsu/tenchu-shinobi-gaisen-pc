@@ -85,7 +85,11 @@ impl Geometry {
 
     pub fn append(&mut self, other: Geometry) {
         let offset = self.vertices.len() as u32;
-        self.vertices.extend(other.vertices);
+        if self.vertices.is_empty() {
+            self.vertices = other.vertices;
+        } else {
+            self.vertices.extend(other.vertices);
+        }
         self.batches
             .extend(other.batches.into_iter().map(|batch| Batch {
                 blend: batch.blend,

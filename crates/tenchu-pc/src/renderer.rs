@@ -521,7 +521,7 @@ impl Renderer {
         &mut self,
         effects: &mut EffectMesh,
         mut geometry: render_effects::Geometry,
-    ) {
+    ) -> Vec<Vertex> {
         for ranges in &mut effects.ranges {
             ranges.clear();
         }
@@ -538,6 +538,8 @@ impl Renderer {
         }
         self.update_mesh(&mut effects.mesh, &mut geometry.vertices);
         effects.batches = geometry.batches;
+        geometry.vertices.clear();
+        geometry.vertices
     }
 
     #[cfg(test)]

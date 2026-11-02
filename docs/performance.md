@@ -721,3 +721,34 @@ HDR, moving foliage, water, emissive surfaces, rain and snow. Streaming and
 existing lighting, cutout, relief, weather and water GPU checks also pass.
 Native and WASM strict Clippy checks pass. Windowed WebGL2 rain and WebGPU
 snow checks pass with lighting changes, paused free camera and resumed play.
+
+The attached-blood CPU stress fixture now seeds actual HD wound patches on
+loaded Mission 1 actors and animates their poses. Unlike the ground-stain GPU
+fixture, these marks must follow moving body parts. At 64 / 1,024 / 8,192 marks
+(24,342 / 387,447 / 3,082,074 vertices), geometry construction initially costs
+0.157 / 5.50 / 50.54 ms. Preallocating the output helps the middle case, but
+reusing the effects staging buffer across frames brings the costs to
+0.154 / 2.12 / 16.62 ms. All three captured vertex streams match byte for byte.
+
+Empty footprint, weather and contact layers also used to copy their successor's
+entire vertex buffer during composition. They now take ownership of that buffer.
+A composition fixture with three empty prefix layers measures 0.259 / 11.68 /
+186.31 ms before and 0.181 / 2.14 / 16.64 ms with staging reuse and transfer of
+ownership. Its emitted vertices also match exactly. This fixture measures CPU
+geometry and assembly, not GPU upload, shading or whole-frame performance;
+millions of animated stain vertices remain an extreme workload.
+
+Five CPU checks and seven focused GPU/disc-backed checks pass, including
+retention limits, independent blood styles, finite drips, death timing and
+streaming through growth, empty frames and resumed drawing. Formatting and
+strict native/WASM Clippy pass. Ordinary moving 4K scenes measure
+73.5 / 87.5 / 62.8 / 92.2 FPS on Modern High and 50.4 / 62.5 / 44.5 / 81.4 FPS
+with maximum rain. These scenes have little attached blood; the main measured
+benefit is in the separate dense-blood CPU fixture.
+Windowed WebGL2 rain and WebGPU snow also pass, including lighting toggles,
+paused free camera and resumed play.
+
+A per-part transform cache produced little improvement and was discarded.
+Likewise, a shader shortcut that skipped zero puddle calculations on steep
+surfaces preserved all fourteen images but made dense wet blood substantially
+slower, so it was not retained.
