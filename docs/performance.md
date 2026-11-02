@@ -297,3 +297,30 @@ screenshots were black with both the previous and current builds; the windowed
 browser check avoids that capture limitation. These remain offscreen GPU
 measurements, not a claim about desktop frame intervals or weather-update CPU
 cost.
+
+
+A CPU profile of maximum-detail precipitation found most strong-wind update
+cost in triangle intersections. Surface queries traversed the entire box around
+a diagonal segment. Testing that segment against each spatial node now rejects
+unrelated terrain before testing its triangles. An isolated Mission 1 garden
+fixture prewarms 30 seconds, then measures 600 updates and geometry builds:
+
+| Weather / wind | Before update mean | After update mean | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Rain / none | 0.112 ms | 0.113 ms | 0.129 ms | 0.129 ms |
+| Rain / maximum | 0.810 ms | 0.138 ms | 1.071 ms | 0.162 ms |
+| Snow / none | 0.016 ms | 0.016 ms | 0.023 ms | 0.024 ms |
+| Snow / maximum | 1.439 ms | 0.040 ms | 2.533 ms | 0.063 ms |
+
+Both runs use `perf` sampling. All four final particle states and generated
+meshes are byte-identical; geometry construction remains about 0.08–0.13 ms.
+Exhaustive segment comparisons include excluded water surfaces, diagonal rays,
+parallel axes, exact face/edge contacts and zero-length segments. The index
+belongs only to presentation effects; game collision and AI do not use it.
+
+The real Wayland desktop benchmark, after the light-list and snow-shading
+changes, averaged 48.6 / 53.5 / 36.1 / 58.1 FPS for village, snow courtyard,
+garden and waterfall, against 45.6 / 50.9 / 31.8 / 54.6 FPS before this loop.
+These are isolated Modern High 4K runs with HD v3, not a guarantee of 60 FPS;
+CPU/GPU transfer, presentation and heavier effects still need work. A separate
+sky shader was tested and discarded because it made no measurable difference.

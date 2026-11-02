@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up wind-blown rain and snow by avoiding terrain checks outside each
+  particle’s flight path; precipitation, shelter and accumulation are unchanged.
+
 - Reduce the GPU cost of accumulated snow and dense blood stains by reusing
   surface lighting and skipping invisible shading, without reducing coverage
   or retained effects.

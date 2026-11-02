@@ -12,6 +12,17 @@ impl Bounds {
     fn overlaps(self, other: Self) -> bool {
         self.min.cmple(other.max).all() && self.max.cmpge(other.min).all()
     }
+
+    fn intersects_segment(self, start: Vec3, inverse: Vec3) -> bool {
+        let a = (self.min - start) * inverse;
+        let b = (self.max - start) * inverse;
+        // The bounding-box overlap already checks parallel axes, including
+        // rays exactly on a face where multiplying zero by infinity gives NaN.
+        let parallel = inverse.abs().cmpeq(Vec3::splat(f32::INFINITY));
+        let near = Vec3::select(parallel, Vec3::splat(f32::NEG_INFINITY), a.min(b));
+        let far = Vec3::select(parallel, Vec3::splat(f32::INFINITY), a.max(b));
+        near.max_element().max(0.0) <= far.min_element().min(1.0) + 8.0 * f32::EPSILON
+    }
 }
 
 struct Node {
@@ -108,14 +119,14 @@ impl Surfaces {
         index
     }
 
-    fn visit(&self, bounds: Bounds, mut visit: impl FnMut(&[Vertex; 3])) {
+    fn visit(&self, intersects: impl Fn(Bounds) -> bool, mut visit: impl FnMut(&[Vertex; 3])) {
         if self.nodes.is_empty() {
             return;
         }
         let mut stack = vec![0];
         while let Some(index) = stack.pop() {
             let node = &self.nodes[index];
-            if !node.bounds.overlaps(bounds) {
+            if !intersects(node.bounds) {
                 continue;
             }
             if let Some(children) = node.children {
@@ -133,11 +144,13 @@ impl Surfaces {
     }
     pub fn cast_excluding(&self, start: Vec3, end: Vec3, excluded: u32) -> Option<Hit> {
         let mut nearest: Option<Hit> = None;
+        let bounds = Bounds {
+            min: start.min(end),
+            max: start.max(end),
+        };
+        let inverse = (end - start).recip();
         self.visit(
-            Bounds {
-                min: start.min(end),
-                max: start.max(end),
-            },
+            |node| node.overlaps(bounds) && node.intersects_segment(start, inverse),
             |triangle| {
                 if triangle[0].flags & excluded == 0
                     && let Some(hit) = intersect(triangle, start, end)
@@ -153,11 +166,12 @@ impl Surfaces {
     pub fn project(&self, stamp: &Stamp) -> Vec<Vertex> {
         let extent = Vec3::splat(stamp.radius + stamp.depth);
         let mut out = Vec::new();
+        let bounds = Bounds {
+            min: stamp.center - extent,
+            max: stamp.center + extent,
+        };
         self.visit(
-            Bounds {
-                min: stamp.center - extent,
-                max: stamp.center + extent,
-            },
+            |node| node.overlaps(bounds),
             |triangle| {
                 stamp.project(triangle, &mut out);
             },
@@ -435,19 +449,61 @@ mod tests {
     fn spatial_index_matches_exhaustive_segment_intersections() {
         let mut vertices = Vec::new();
         for i in 0..40 {
-            vertices.extend(plane(i as f32 * 3.));
+            vertices.extend(plane(i as f32 * 3.).into_iter().map(|mut v| {
+                if i % 2 == 0 {
+                    v.flags |= crate::render_mesh::WATER;
+                }
+                v
+            }));
         }
         let surface = Surfaces::new(&vertices);
-        for i in 0..60 {
-            let start = Vec3::new(i as f32 - 30., -5., 0.);
-            let end = Vec3::new(0., 130., i as f32 - 30.);
+        let check = |start, end, excluded| {
             let exhaustive = vertices
                 .chunks_exact(3)
+                .filter(|t| t[0].flags & excluded == 0)
                 .filter_map(|t| intersect(&[t[0], t[1], t[2]], start, end))
                 .min_by(|a, b| a.fraction.total_cmp(&b.fraction));
             assert_eq!(
-                surface.cast(start, end).map(|h| h.fraction),
-                exhaustive.map(|h| h.fraction)
+                surface
+                    .cast_excluding(start, end, excluded)
+                    .map(|h| h.fraction),
+                exhaustive.map(|h| h.fraction),
+                "{start:?} -> {end:?}, excluded {excluded}"
+            );
+        };
+        for x in [-10.0, -0.0, 0.0, 10.0] {
+            for z in [-10.0, 0.0, 10.0] {
+                let start = Vec3::new(x, 0.0, z);
+                for end in [start, start + Vec3::Y * 130.0, start - Vec3::Y * 5.0] {
+                    check(start, end, 0);
+                    check(end, start, crate::render_mesh::WATER);
+                }
+            }
+        }
+        let mut seed = 1_u32;
+        let mut random = || {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 8) as f32 / 16777216.0
+        };
+        for i in 0..2048 {
+            let start = Vec3::new(
+                random() * 60.0 - 30.0,
+                random() * 140.0 - 10.0,
+                random() * 60.0 - 30.0,
+            );
+            let end = Vec3::new(
+                random() * 60.0 - 30.0,
+                random() * 140.0 - 10.0,
+                random() * 60.0 - 30.0,
+            );
+            check(
+                start,
+                end,
+                if i % 2 == 0 {
+                    crate::render_mesh::WATER
+                } else {
+                    0
+                },
             );
         }
     }
