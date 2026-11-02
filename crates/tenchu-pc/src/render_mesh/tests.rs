@@ -2,6 +2,62 @@ use super::*;
 use tenchu_assets::game::GameAssets;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; shared vertices must retain every original/refined triangle through animation and interpolation"]
+fn indexed_characters_preserve_expanded_poses() {
+    let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+    let mut indexed = Indexed::default();
+    for (mission, character) in [(1, 0), (1, 1), (3, 1), (5, 0), (9, 1)] {
+        let mut game = crate::session::Options {
+            mission,
+            character,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        game.roster.keep_all_active = true;
+        let mut history = crate::visuals::interpolation::History::default();
+        history.reset(&game);
+        for _ in 0..30 {
+            game.step(tenchu_core::input::UP).unwrap();
+            history.tick(&game);
+        }
+        let frame = history.sample(game.tick, 0.4);
+        let state = crate::session::tests::state(&game);
+        let mut graphics = crate::settings::Graphics::default();
+        graphics.set_preset(crate::settings::presets::MODERN_HIGH);
+        let models = Models::build(
+            &game.mission,
+            &crate::visuals::pack::Pack::default(),
+            &graphics,
+        )
+        .unwrap();
+        for models in [None, Some(&models)] {
+            for inspection in [false, true] {
+                for frame in [None, frame.as_ref()] {
+                    update_indexed_characters(&mut indexed, &game, models, inspection, frame);
+                    let expected = characters_presented(&game, models, inspection, frame);
+                    let expanded: Vec<_> = indexed
+                        .indices
+                        .iter()
+                        .map(|&i| indexed.vertices[i as usize])
+                        .collect();
+                    assert_eq!(
+                        bytemuck::cast_slice::<_, u8>(&expanded),
+                        bytemuck::cast_slice::<_, u8>(&expected)
+                    );
+                    if models.is_some() && inspection {
+                        assert!(indexed.vertices.len() < indexed.indices.len());
+                    }
+                }
+            }
+        }
+        assert_eq!(crate::session::tests::state(&game), state);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and TENCHU_RETAIL_TAPE; recorded skips must not blank presentation or mutate the validated core"]
 fn recorded_skips_keep_character_poses_without_changing_core_state() {
     use crate::retail::tape::Tape;

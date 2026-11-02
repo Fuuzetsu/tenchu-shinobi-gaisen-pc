@@ -23,6 +23,7 @@ mod tests;
 
 pub struct Mesh {
     buffer: wgpu::Buffer,
+    indices: Option<wgpu::Buffer>,
     revision: u64,
     dynamic: bool,
     count: u32,
@@ -35,6 +36,21 @@ impl Mesh {
         self.revision += 1;
         self.count = vertices.len() as u32;
         self.bounds = culling::update_chunks(vertices, &mut self.shadow_chunks);
+    }
+
+    fn bind(&self, pass: &mut wgpu::RenderPass<'_>) {
+        pass.set_vertex_buffer(0, self.buffer.slice(..));
+        if let Some(indices) = &self.indices {
+            pass.set_index_buffer(indices.slice(..), wgpu::IndexFormat::Uint32);
+        }
+    }
+
+    fn draw(&self, pass: &mut wgpu::RenderPass<'_>, range: std::ops::Range<u32>) {
+        if self.indices.is_some() {
+            pass.draw_indexed(range, 0, 0..1);
+        } else {
+            pass.draw(range, 0..1);
+        }
     }
 }
 
@@ -399,6 +415,7 @@ impl Renderer {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
         let mut mesh = Mesh {
+            indices: None,
             revision: 0,
             dynamic: false,
             shadow_chunks: Vec::new(),
@@ -418,21 +435,68 @@ impl Renderer {
 
     pub fn update_mesh(&mut self, mesh: &mut Mesh, vertices: &mut [Vertex]) {
         mesh.dynamic = true;
+        mesh.indices = None;
         self.materials.annotate(vertices);
         mesh.set_geometry(vertices);
-        if vertices.is_empty() {
+        self.update_geometry_buffer(
+            &mut mesh.buffer,
+            bytemuck::cast_slice(vertices),
+            wgpu::BufferUsages::VERTEX,
+        );
+    }
+
+    pub fn update_indexed_mesh(
+        &mut self,
+        mesh: &mut Mesh,
+        geometry: &mut crate::render_mesh::Indexed,
+    ) {
+        mesh.dynamic = true;
+        mesh.revision += 1;
+        mesh.count = geometry.indices.len() as u32;
+        self.materials.annotate(&mut geometry.vertices);
+        mesh.bounds = culling::update_indexed_chunks(
+            &geometry.vertices,
+            &geometry.indices,
+            &mut mesh.shadow_chunks,
+        );
+        self.update_geometry_buffer(
+            &mut mesh.buffer,
+            bytemuck::cast_slice(&geometry.vertices),
+            wgpu::BufferUsages::VERTEX,
+        );
+        let indices = mesh.indices.get_or_insert_with(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Mesh indices"),
+                size: 0,
+                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            })
+        });
+        self.update_geometry_buffer(
+            indices,
+            bytemuck::cast_slice(&geometry.indices),
+            wgpu::BufferUsages::INDEX,
+        );
+    }
+
+    fn update_geometry_buffer(
+        &self,
+        buffer: &mut wgpu::Buffer,
+        data: &[u8],
+        usage: wgpu::BufferUsages,
+    ) {
+        if data.is_empty() {
             return;
         }
-        let data = bytemuck::cast_slice(vertices);
-        if mesh.buffer.size() < data.len() as u64 {
-            mesh.buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+        if buffer.size() < data.len() as u64 {
+            *buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Dynamic geometry"),
                 size: (data.len() as u64).next_power_of_two(),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                usage: usage | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
         }
-        self.queue.write_buffer(&mesh.buffer, 0, data);
+        self.queue.write_buffer(buffer, 0, data);
     }
 
     pub fn upload_effects(&mut self, geometry: render_effects::Geometry) -> EffectMesh {
@@ -655,8 +719,8 @@ impl Renderer {
                 (meshes.actors, timing::SceneStage::Actors),
             ] {
                 for mesh in meshes.iter().filter(|m| m.count != 0) {
-                    pass.set_vertex_buffer(0, mesh.buffer.slice(..));
-                    pass.draw(0..mesh.count, 0..1);
+                    mesh.bind(&mut pass);
+                    mesh.draw(&mut pass, 0..mesh.count);
                 }
                 mark(&mut pass, stage);
             }

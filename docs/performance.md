@@ -379,3 +379,28 @@ blood at 63.40 to 59.40 ms (overhead: 25.72 to 24.50 ms). Dry and rain cases are
 unchanged within variation. Eight of ten captures match exactly; the two overhead
 snow captures each differ by one channel level at one pixel out of 8.3 million.
 The weather map, wind, coverage and filter footprint are unchanged.
+
+Character models now retain their existing shared vertices and triangle indices
+through the GPU upload and shadow passes. Poses transform directly into reused
+storage, preserving the expanded vertex bytes and triangle order. In the TRIAL 2
+fixture, 134,028 triangle corners become 38,652 shared vertices: the per-frame
+upload falls from 8.58 MB to 3.01 MB including indices. Six paired 4K captures
+(dry, rain and snow with dense blood, from two cameras) are pixel-identical.
+
+Real Wayland 4K Modern High measurements, full HD artwork and all actors active:
+
+| Scene | Before indexed uploads | After | Heavy rain before | Heavy rain after |
+| --- | ---: | ---: | ---: | ---: |
+| Village | 48.8 FPS | 60.8 FPS | 34.1 FPS | 39.5 FPS |
+| Snow courtyard | 53.5 FPS | 66.5 FPS | 39.9 FPS | 46.5 FPS |
+| Garden | 37.2 FPS | 42.4 FPS | 24.3 FPS | 26.4 FPS |
+| Waterfall | 58.1 FPS | 78.7 FPS | 50.6 FPS | 66.1 FPS |
+
+These are unlocked rendering rates on the 60 Hz desktop. The repeat runs above
+had no concurrent compiler. The GPU scene cost is largely unchanged; the gain
+comes from reduced geometry preparation and transfer waits, which render-pass
+timestamps do not include. The garden and heavy rain remain below 60 FPS.
+Geometry comparisons cover original/refined models, multiple missions, both
+characters, visibility modes and interpolation. GPU checks also exercise indexed
+and unindexed buffer transitions, shrinking/empty meshes, moving casters, wind,
+directional shadows and weather shelter.

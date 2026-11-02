@@ -113,11 +113,33 @@ fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frame
         let fresh = renderer.upload(&vertices);
         renderer.draw(&view, camera, &[&fresh], None).unwrap();
         let expected = read_pixels(&renderer, &target);
-        renderer.update_mesh(&mut streamed, &mut vertices);
-        renderer.draw(&view, camera, &[&streamed], None).unwrap();
-        assert_eq!(read_pixels(&renderer, &target), expected);
-        assert_eq!(streamed.bounds, fresh.bounds);
+        for indexed in [false, true, false] {
+            if indexed {
+                renderer.update_indexed_mesh(&mut streamed, &mut indexed_geometry(&vertices));
+            } else {
+                renderer.update_mesh(&mut streamed, &mut vertices);
+            }
+            renderer.draw(&view, camera, &[&streamed], None).unwrap();
+            assert_eq!(read_pixels(&renderer, &target), expected);
+            assert_eq!(streamed.bounds, fresh.bounds);
+        }
     }
+}
+
+fn indexed_geometry(vertices: &[Vertex]) -> render_mesh::Indexed {
+    let mut mesh = render_mesh::Indexed::default();
+    let mut indices = std::collections::HashMap::new();
+    for vertex in vertices {
+        let index = *indices
+            .entry(bytemuck::bytes_of(vertex))
+            .or_insert_with(|| {
+                let index = mesh.vertices.len() as u32;
+                mesh.vertices.push(*vertex);
+                index
+            });
+        mesh.indices.push(index);
+    }
+    mesh
 }
 
 #[test]

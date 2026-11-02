@@ -9,26 +9,41 @@ pub(super) struct Chunk {
 }
 
 pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Option<[Vec3; 2]> {
+    collect_chunks(vertices.len(), |i| &vertices[i], chunks)
+}
+
+pub(super) fn update_indexed_chunks(
+    vertices: &[Vertex],
+    indices: &[u32],
+    chunks: &mut Vec<Chunk>,
+) -> Option<[Vec3; 2]> {
+    collect_chunks(indices.len(), |i| &vertices[indices[i] as usize], chunks)
+}
+
+fn collect_chunks<'a>(
+    count: usize,
+    vertex: impl Fn(usize) -> &'a Vertex,
+    chunks: &mut Vec<Chunk>,
+) -> Option<[Vec3; 2]> {
     chunks.clear();
     let mut scenery: Option<[Vec3A; 2]> = None;
     let mut start = 0;
-    while start < vertices.len() {
-        let limit = (start + 1536).min(vertices.len());
+    while start < count {
+        let limit = (start + 1536).min(count);
         let mut end = limit;
         // Keep distant actors from sharing a chunk that spans the space between them.
         for next in (start + 3..limit).step_by(3) {
-            if Vec3A::from(vertices[next].position)
-                .distance_squared(Vec3A::from(vertices[next - 1].position))
+            if Vec3A::from(vertex(next).position)
+                .distance_squared(Vec3A::from(vertex(next - 1).position))
                 > 5000.0_f32.powi(2)
             {
                 end = next;
                 break;
             }
         }
-        let vertices = &vertices[start..end];
         let mut bounds: Option<[Vec3A; 2]> = None;
         let mut foliage = false;
-        for v in vertices {
+        for v in (start..end).map(&vertex) {
             let p = Vec3A::from(v.position);
             if v.flags & render_mesh::SCENERY != 0 {
                 scenery = Some(scenery.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
@@ -49,11 +64,13 @@ pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Opt
             bounds: bounds.map(|b| b.map(Vec3::from)),
             foliage: foliage.then(|| {
                 let mut bounds = [Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)];
-                for triangle in vertices
-                    .chunks_exact(3)
-                    .filter(|t| t.iter().any(|v| v.flags & render_mesh::FOLIAGE != 0))
-                {
-                    for v in triangle {
+                for triangle in (start..end - (end - start) % 3).step_by(3) {
+                    if !(triangle..triangle + 3)
+                        .any(|i| vertex(i).flags & render_mesh::FOLIAGE != 0)
+                    {
+                        continue;
+                    }
+                    for v in (triangle..triangle + 3).map(&vertex) {
                         let p = Vec3::from(v.position);
                         bounds = [bounds[0].min(p), bounds[1].max(p)];
                     }

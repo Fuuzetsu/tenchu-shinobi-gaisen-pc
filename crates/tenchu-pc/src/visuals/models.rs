@@ -183,44 +183,42 @@ impl Models {
         fog: bool,
         required_flags: u32,
         deformation: Option<&super::motion::Deformation<'_>>,
-        mut visit: impl FnMut([&Vertex; 3]),
+        visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
-        if let Some(player) = &self.player
-            && player.meshes.visit(
-                geometry,
-                matrix,
-                fog,
-                required_flags,
-                deformation,
-                &mut visit,
-            )
-        {
-            return true;
-        }
-        if let Some(&index) = self.imported_geometry.get(&(geometry.as_ptr() as usize)) {
-            return self.imported[index].visit(
-                geometry,
-                matrix,
-                fog,
-                required_flags,
-                deformation,
-                visit,
-            );
-        }
-        if self.weapon_materials
-            && self.weapons.visit(
-                geometry,
-                matrix,
-                fog,
-                required_flags,
-                deformation,
-                &mut visit,
-            )
-        {
-            return true;
-        }
-        self.world
+        self.source(geometry)
             .visit(geometry, matrix, fog, required_flags, deformation, visit)
+    }
+
+    fn source(&self, geometry: &[Geometry]) -> &Meshes {
+        let key = geometry.as_ptr() as usize;
+        if let Some(player) = &self.player
+            && player.meshes.meshes.contains_key(&key)
+        {
+            &player.meshes
+        } else if let Some(&index) = self.imported_geometry.get(&key) {
+            &self.imported[index]
+        } else if self.weapon_materials && self.weapons.meshes.contains_key(&key) {
+            &self.weapons
+        } else {
+            &self.world
+        }
+    }
+
+    pub fn append_indexed_part(
+        &self,
+        output: &mut render_mesh::Indexed,
+        part: super::interpolation::Part,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        fog: bool,
+    ) -> bool {
+        self.source(geometry).append_indexed(
+            output,
+            geometry,
+            matrix,
+            fog,
+            self.deformation(part, matrix).as_ref(),
+        )
     }
 
     pub fn motion_rules(&self, geometry: usize) -> Option<&[super::motion::BoundRule]> {
@@ -689,20 +687,75 @@ impl Meshes {
         deformation: Option<&super::motion::Deformation<'_>>,
         mut visit: impl FnMut([&Vertex; 3]),
     ) -> bool {
-        let Some(mesh) = self.meshes.get(&(geometry.as_ptr() as usize)) else {
+        let key = geometry.as_ptr() as usize;
+        let Some(mesh) = self.meshes.get(&key) else {
             return false;
         };
         if mesh.flags & required_flags != required_flags {
             return true;
         }
+        let mut transformed = mesh.vertices.clone();
+        self.transform(key, mesh, matrix, fog, deformation, &mut transformed);
+        for triangle in mesh
+            .triangles
+            .iter()
+            .filter(|t| mesh.vertices[t[0] as usize].flags & required_flags == required_flags)
+        {
+            visit(triangle.map(|index| &transformed[index as usize]));
+        }
+        true
+    }
+
+    fn append_indexed(
+        &self,
+        output: &mut render_mesh::Indexed,
+        geometry: &[Geometry],
+        matrix: Matrix,
+        fog: bool,
+        deformation: Option<&super::motion::Deformation<'_>>,
+    ) -> bool {
+        let key = geometry.as_ptr() as usize;
+        let Some(mesh) = self.meshes.get(&key) else {
+            return false;
+        };
+        let base = output.vertices.len();
+        let start = output.indices.len();
+        output.indices.extend(
+            mesh.triangles
+                .iter()
+                .filter(|t| mesh.vertices[t[0] as usize].flags & render_mesh::TRANSLUCENT == 0)
+                .flat_map(|t| t.map(|i| base as u32 + i)),
+        );
+        if output.indices.len() != start {
+            output.vertices.extend_from_slice(&mesh.vertices);
+            self.transform(
+                key,
+                mesh,
+                matrix,
+                fog,
+                deformation,
+                &mut output.vertices[base..],
+            );
+        }
+        true
+    }
+
+    fn transform(
+        &self,
+        key: usize,
+        mesh: &Mesh,
+        matrix: Matrix,
+        fog: bool,
+        deformation: Option<&super::motion::Deformation<'_>>,
+        transformed: &mut [Vertex],
+    ) {
         let variant = self
             .variants
-            .get(&(geometry.as_ptr() as usize))
+            .get(&key)
             .map(|shape| shape.variant(matrix.translation.to_array()));
         let rotation = rotation(matrix);
         let normal = rotation.inverse().transpose();
         let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
-        let mut transformed = mesh.vertices.clone();
         let skin_pose = self.skin.as_ref().map(skin::Pose::transforms);
         for (index, vertex) in transformed.iter_mut().enumerate() {
             if let Some(variant) = &variant {
@@ -722,14 +775,6 @@ impl Meshes {
                 deformation.vertex(vertex);
             }
         }
-        for triangle in mesh
-            .triangles
-            .iter()
-            .filter(|t| mesh.vertices[t[0] as usize].flags & required_flags == required_flags)
-        {
-            visit(triangle.map(|index| &transformed[index as usize]));
-        }
-        true
     }
 }
 

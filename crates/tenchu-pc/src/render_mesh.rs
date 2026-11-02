@@ -61,6 +61,12 @@ pub struct Vertex {
     pub(crate) opacity: f32,
 }
 
+#[derive(Default)]
+pub struct Indexed {
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
+}
+
 pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
     geometry.faces.iter().take_while(|face| face.flags & 1 != 0)
 }
@@ -374,10 +380,12 @@ pub fn stage(mission: &MissionAssets, math: &Math, models: Option<&Models>) -> V
     vertices
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn characters(game: &tenchu_core::game::Game, models: Option<&Models>) -> Vec<Vertex> {
     characters_presented(game, models, false, None)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn characters_presented(
     game: &tenchu_core::game::Game,
     models: Option<&Models>,
@@ -389,6 +397,7 @@ pub fn characters_presented(
     vertices
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn update_characters(
     vertices: &mut Vec<Vertex>,
     game: &tenchu_core::game::Game,
@@ -404,6 +413,41 @@ pub fn update_characters(
         frame,
         |key, geometry, matrix| {
             append_character(vertices, geometry, matrix, models, key, false, false)
+        },
+    );
+}
+
+pub fn update_indexed_characters(
+    mesh: &mut Indexed,
+    game: &tenchu_core::game::Game,
+    models: Option<&Models>,
+    inspection: bool,
+    frame: Option<&Frame>,
+) {
+    mesh.vertices.clear();
+    mesh.indices.clear();
+    crate::visuals::appearance::visit_parts(
+        game,
+        inspection,
+        models,
+        frame,
+        |key, geometry, matrix| {
+            let base = mesh.vertices.len() as u32;
+            if models
+                .is_some_and(|models| models.append_indexed_part(mesh, key, geometry, matrix, true))
+            {
+                return;
+            }
+            append_character(
+                &mut mesh.vertices,
+                geometry,
+                matrix,
+                None,
+                key,
+                false,
+                false,
+            );
+            mesh.indices.extend(base..mesh.vertices.len() as u32);
         },
     );
 }

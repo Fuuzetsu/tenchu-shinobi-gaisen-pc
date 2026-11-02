@@ -60,6 +60,7 @@ pub(super) struct View {
     shadow_stage: Option<Mesh>,
     shadow_models: Option<Mesh>,
     shared_actor_shadows: bool,
+    actor_vertices: render_mesh::Indexed,
     vertices: Vec<render_mesh::Vertex>,
     lighting_updated: Instant,
     pub(super) lights: Vec<crate::lighting::Light>,
@@ -438,7 +439,16 @@ impl View {
         } else {
             Default::default()
         };
-        let actor = renderer.upload(&render_mesh::characters(game, Some(&models)));
+        let mut actor = renderer.upload(&[]);
+        let mut actor_vertices = render_mesh::Indexed::default();
+        render_mesh::update_indexed_characters(
+            &mut actor_vertices,
+            game,
+            Some(&models),
+            false,
+            None,
+        );
+        renderer.update_indexed_mesh(&mut actor, &mut actor_vertices);
         let effects = renderer.upload_effects(render_effects::build_options(
             game,
             true,
@@ -467,6 +477,7 @@ impl View {
             shadow_stage: None,
             shadow_models: None,
             shared_actor_shadows: false,
+            actor_vertices,
             vertices: Vec::new(),
             lighting_updated: Instant::now(),
             lights: Vec::new(),
@@ -853,15 +864,15 @@ impl View {
         let frame = self.frame.as_ref();
         let camera = debug.camera.or(debug.follow_camera);
         let inspection = camera.is_some() || game.roster.keep_all_active;
-        render_mesh::update_characters(
-            &mut self.vertices,
+        render_mesh::update_indexed_characters(
+            &mut self.actor_vertices,
             game,
             Some(&self.models),
             inspection,
             frame,
         );
         self.renderer
-            .update_mesh(&mut self.actor, &mut self.vertices);
+            .update_indexed_mesh(&mut self.actor, &mut self.actor_vertices);
         let mut sources = crate::lighting::sources(
             game,
             &settings.graphics.lighting,

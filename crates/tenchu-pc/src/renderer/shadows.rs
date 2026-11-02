@@ -750,9 +750,9 @@ impl Shadows {
             &self.pipeline
         });
         for (mesh, ranges) in draws {
-            pass.set_vertex_buffer(0, mesh.buffer.slice(..));
+            mesh.bind(&mut pass);
             for range in ranges {
-                pass.draw(range, 0..1);
+                mesh.draw(&mut pass, range);
             }
         }
     }

@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce character geometry uploads and copying when using refined or replacement
+  models, preserving their detail, animation and shadows.
+
 - Speed up accumulated snow shading, including scenes with many blood stains,
   by avoiding redundant shadow filtering on sloped surfaces.
 

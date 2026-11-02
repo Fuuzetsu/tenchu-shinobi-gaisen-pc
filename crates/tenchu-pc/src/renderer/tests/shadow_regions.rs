@@ -83,7 +83,11 @@ fn moving_shadow_regions_match_full_redraws() {
                 12 => actor = renderer.upload(&vertices),
                 _ => (),
             }
-            renderer.update_mesh(&mut actor, &mut vertices);
+            if frame % 2 == 0 {
+                renderer.update_indexed_mesh(&mut actor, &mut indexed_geometry(&vertices));
+            } else {
+                renderer.update_mesh(&mut actor, &mut vertices);
+            }
             let cached = draw(&mut renderer, &lights, &actor);
             if mode == 0
                 && renderer.shadows.rendered_area
@@ -92,12 +96,14 @@ fn moving_shadow_regions_match_full_redraws() {
                 partial += 1;
             }
             renderer.shadows.draw_all_faces = true;
-            let reference = draw(&mut renderer, &lights, &actor);
+            let expanded = renderer.upload(&vertices);
+            let reference = draw(&mut renderer, &lights, &expanded);
             renderer.shadows.draw_all_faces = false;
             assert!(
                 cached == reference,
                 "Shadow mismatch in mode {mode}, frame {frame}"
             );
+            assert!(draw(&mut renderer, &lights, &actor) == reference);
             assert!(draw(&mut renderer, &lights, &actor) == reference);
             assert_eq!(renderer.shadows.rendered_faces, 0);
         }
