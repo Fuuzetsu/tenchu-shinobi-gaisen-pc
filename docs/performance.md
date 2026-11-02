@@ -824,3 +824,19 @@ Moving 4K routes measure High 73.6/87.4/62.7/91.8 FPS, maximum rain
 50.1/62.9/44.4/79.8 and maximum snow 54.9/71.7/51.2/85.3. These ordinary
 routes have little accumulated blood and do not establish a comparable large
 FPS gain. Browser WebGL2 rain and WebGPU snow checks pass.
+
+Rewind also shares the immutable meshes of retained footprints and wet contact
+marks. Aging, burial, exposure and retirement remain per-snapshot data. The
+ordinary save format is unchanged. With one mark replaced per tick across 90
+snapshots, footprint capture plus history changes from 0.0669 → 0.0072 ms
+for 32 marks, 0.2433 → 0.0119 ms for 128 and 0.9989 → 0.0218 ms for 512
+(126 vertices each). History for the largest case changes from 14.3 to 2.5 MiB.
+For wet marks with 510 vertices each, 24 marks change from 0.1524 → 0.0211 ms
+and 96 from 0.6054 → 0.0244 ms; the latter's history changes from 9.0 to
+1.9 MiB. Final serialized states match the old path. As with blood, the first
+capture encodes all current geometry: 2.76 ms for 512 footprints and 1.99 ms
+for 96 wet marks in these CPU fixtures.
+Fifteen focused checks pass, including both heroes' actual footsteps, distant
+active patrols, footprints on existing snow, wet-mark continuation, complete
+visual-state restoration and rewind seeking/branching. Native/WASM strict Clippy
+and release builds pass.

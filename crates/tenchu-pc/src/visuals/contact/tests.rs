@@ -163,9 +163,25 @@ fn contact_effects_follow_contacts_without_changing_gameplay() {
         contact
             .wet
             .iter()
-            .flat_map(|m| &m.vertices)
+            .flat_map(|m| m.vertices.iter())
             .all(|v| v.flags & render_mesh::WET_CONTACT != 0)
     );
+    let mut recorder = crate::rewind::Recorder::default();
+    recorder.begin();
+    contact.capture(&mut recorder).unwrap();
+    let mut restored: Contact = recorder.finish().unwrap().decode().unwrap();
+    for _ in 0..30 {
+        game.tick += 1;
+        for state in [&mut contact, &mut restored] {
+            state.tick(&game, &surfaces, &graphics, weather, origin);
+        }
+        recorder.begin();
+        contact.capture(&mut recorder).unwrap();
+        assert_eq!(
+            recorder.finish().unwrap().bytes().unwrap(),
+            postcard::to_allocvec(&restored).unwrap()
+        );
+    }
 
     contact.clear();
     game.effects.reset();

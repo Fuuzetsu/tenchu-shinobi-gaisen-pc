@@ -10,7 +10,10 @@ use crate::{
     settings::{Weather, WeatherMode},
 };
 use glam::Vec3;
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::{
+    collections::{BTreeMap, BTreeSet, VecDeque},
+    sync::Arc,
+};
 use tenchu_assets::model;
 use tenchu_core::game::Game;
 
@@ -38,7 +41,7 @@ pub fn snow_materials(pack: &super::pack::Pack, artwork: bool) -> BTreeSet<Strin
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Mark {
-    vertices: Vec<Vertex>,
+    vertices: Arc<Vec<Vertex>>,
     position: Vec3,
     age: f32,
     burial: f32,
@@ -102,6 +105,34 @@ fn feet(parts: &[model::Part]) -> Vec<(usize, [i16; 3])> {
 }
 
 impl Footprints {
+    pub(crate) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            tick,
+            direction,
+            rigs,
+            last,
+            marks,
+        } = self;
+        out.value(&(tick, direction, rigs, last))?;
+        out.value(&marks.len())?;
+        for Mark {
+            vertices,
+            position,
+            age,
+            burial,
+            exposed,
+            retirement,
+        } in marks
+        {
+            out.shared_arc(vertices, true)?;
+            out.value(&(position, age, burial, exposed, retirement))?;
+        }
+        Ok(())
+    }
+
     fn update_shelter(&mut self, surfaces: &Surfaces, direction: Vec3) {
         if self.direction == Some(direction) {
             return;
@@ -227,7 +258,7 @@ impl Footprints {
             vertex_count += vertices.len();
             self.last.insert(key, position);
             self.marks.push_back(Mark {
-                vertices,
+                vertices: Arc::new(vertices),
                 position: hit.position,
                 age: 0.0,
                 burial: 0.0,
@@ -287,7 +318,7 @@ mod tests {
     #[test]
     fn fresh_snow_buries_tracks_without_an_abrupt_expiry() {
         let mut mark = Mark {
-            vertices: Vec::new(),
+            vertices: Arc::default(),
             position: Vec3::ZERO,
             age: 0.0,
             burial: 0.0,
@@ -307,7 +338,7 @@ mod tests {
         let mut prints = Footprints::default();
         for _ in 0..MARK_LIMIT {
             prints.marks.push_back(Mark {
-                vertices: Vec::new(),
+                vertices: Arc::default(),
                 position: Vec3::ZERO,
                 age: 0.0,
                 burial: 0.0,
@@ -346,7 +377,7 @@ mod tests {
         }));
         let mut prints = Footprints::default();
         prints.marks.push_back(Mark {
-            vertices: Vec::new(),
+            vertices: Arc::default(),
             position: Vec3::ZERO,
             age: 1.0,
             burial: 0.5,
@@ -625,6 +656,22 @@ mod retail_tests {
                 count,
                 "presentation cadence must not create tracks"
             );
+            let mut recorder = crate::rewind::Recorder::default();
+            recorder.begin();
+            prints.capture(&mut recorder).unwrap();
+            let mut restored: Footprints = recorder.finish().unwrap().decode().unwrap();
+            for _ in 0..30 {
+                game.step(tenchu_core::input::UP).unwrap();
+                for state in [&mut prints, &mut restored] {
+                    state.tick(&game, &models, &surfaces, &settings, 1.0);
+                }
+                recorder.begin();
+                prints.capture(&mut recorder).unwrap();
+                assert_eq!(
+                    recorder.finish().unwrap().bytes().unwrap(),
+                    postcard::to_allocvec(&restored).unwrap()
+                );
+            }
             if let Some(output) = std::env::var_os("TENCHU_WEATHER_REVIEW") {
                 let output = std::path::PathBuf::from(output);
                 std::fs::create_dir_all(&output).unwrap();

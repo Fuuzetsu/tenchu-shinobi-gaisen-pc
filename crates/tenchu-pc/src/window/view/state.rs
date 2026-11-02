@@ -31,8 +31,8 @@ impl State {
         blood.capture(out)?;
         out.value(sky)?;
         out.value(weather)?;
-        out.value(footprints)?;
-        out.value(contact)?;
+        footprints.capture(out)?;
+        contact.capture(out)?;
         out.value(deaths)?;
         out.value(motion)?;
         out.value(interpolation)

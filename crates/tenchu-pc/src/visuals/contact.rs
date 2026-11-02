@@ -9,7 +9,7 @@ use crate::{
     settings::Graphics,
 };
 use glam::Vec3;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 use tenchu_core::{effects::Effect, game::Game};
 
 const LIMIT: usize = 2048;
@@ -43,7 +43,7 @@ struct Ripple {
 }
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct WetMark {
-    vertices: Vec<Vertex>,
+    vertices: Arc<Vec<Vertex>>,
     age: f32,
 }
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -70,6 +70,32 @@ fn point(p: tenchu_core::math::Position) -> Vec3 {
     p.map(|n| n as f32).to_array().into()
 }
 impl Contact {
+    pub(crate) fn capture<C: tenchu_assets::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            tick,
+            seed,
+            particles,
+            rings,
+            wet,
+            flashes,
+            splashes,
+            wires,
+            clashes,
+            steps,
+            canopies,
+        } = self;
+        out.value(&(tick, seed, particles, rings))?;
+        out.value(&wet.len())?;
+        for WetMark { vertices, age } in wet {
+            out.shared_arc(vertices, true)?;
+            out.value(age)?;
+        }
+        out.value(&(flashes, splashes, wires, clashes, steps, canopies))
+    }
+
     pub fn clear(&mut self) {
         let canopies = std::mem::take(&mut self.canopies);
         *self = Self {
@@ -440,7 +466,10 @@ impl Contact {
             v.normal = hit.normal.to_array();
         }
         if !vertices.is_empty() {
-            self.wet.push(WetMark { vertices, age: 0.0 });
+            self.wet.push(WetMark {
+                vertices: Arc::new(vertices),
+                age: 0.0,
+            });
         }
     }
     fn flash(&mut self, position: Vec3) {
