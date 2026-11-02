@@ -685,9 +685,14 @@ impl Renderer {
         if let Some(post) = &self.post {
             post.prepare(&self.queue, matrix, &self.graphics);
         }
-        let prepass = self.graphics.lighting.enabled
-            || self.graphics.sky.enabled
-            || self.graphics.weather.mode != crate::settings::WeatherMode::Original;
+        let prepass = meshes
+            .terrain
+            .iter()
+            .chain(meshes.actors)
+            .any(|mesh| mesh.count != 0)
+            && (self.graphics.lighting.enabled
+                || self.graphics.sky.enabled
+                || self.graphics.weather.mode != crate::settings::WeatherMode::Original);
         #[cfg(test)]
         let prepass = prepass && !self.skip_prepass;
         if prepass {

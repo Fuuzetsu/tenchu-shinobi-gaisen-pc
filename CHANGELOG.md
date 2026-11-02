@@ -7,7 +7,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Reject hidden scenery before expensive lighting and weather shading. Preserve
   cutouts and overlapping face order, and show the visibility pass separately
-  in the performance charts and benchmark reports.
+  in the performance charts and benchmark reports. Fully opaque replacement
+  textures skip unnecessary coverage sampling in that pass.
 
 - Avoid uploading unchanged character triangle indices each frame, reducing
   transfer waits while keeping animated vertices and shadows current.

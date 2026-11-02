@@ -466,3 +466,14 @@ extra pass cost; the garden and heavy weather still need further optimisation.
 Checks cover cutouts, coincident faces, backfaces, blended effects, moving indexed
 meshes, all supported MSAA levels, HDR, weather shelter and timestamp accounting.
 Windowed WebGL2 rain and WebGPU snow also pass gameplay and lighting-toggle checks.
+
+The visibility shader also uses the existing fully opaque replacement-texture
+metadata to skip relief/texture sampling when it cannot affect coverage. It
+retains the normal cutout path for original, translucent and emissive materials;
+empty scenes skip the pass. The TRIAL 2 visibility stage drops from 0.95 to
+0.71–0.76 ms, its overhead view from 0.45 to 0.35 ms, and the garden from 1.38 to
+1.30 ms. All nine paired 4K captures are identical. Total desktop High results
+are 63.6 / 74.5 / 53.4 / 82.2 FPS; this is a small incremental saving, not a
+solution to the remaining heavy-weather and overlapping-blood cost. Additional
+GPU checks compare solid/cutout replacement textures, semi-transparent texels,
+emissive and blood materials across filtering modes against the ordinary pass.
