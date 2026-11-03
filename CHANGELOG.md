@@ -5,81 +5,33 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
-- Avoid repeatedly copying large animated blood meshes when combining them with
-  snow tracks, precipitation and contact effects. Preserve effect blending order.
+- Improve rendering performance without reducing visual quality, light or shadow
+  counts, retained effects, or gameplay activity. Four moving 4K Modern High
+  benchmarks with HD artwork on a GTX 1080 Ti / Ryzen 9 9950X3D improved from
+  45.6–54.6 FPS (31.8 FPS in the garden) to 62.8–92.0 FPS. Heavy rain and extreme
+  blood accumulation can still fall below 60 FPS. See the
+  [measurements and limits](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/blob/v0.15.4/docs/performance.md#november-optimisation-loop-cumulative-result).
 
-- Keep rewind responsive with many model stains by sharing unchanged blood
-  geometry between snapshots. Count shared storage once toward the rewind budget.
-  Share retained snow tracks and wet splash marks too, preserving their fading.
+- Reduce the cost of terrain lighting, soft shadows, accumulated snow, rain
+  reflections and overlapping blood. Avoid expensive shading of hidden scenery
+  and reuse visibility checks for unchanged scenery and lights. Performance
+  charts now show the scenery visibility pass separately.
 
-- Reuse shadow visibility checks for unchanged scenery and lights, reducing CPU
-  work while keeping moving characters, wind and weather shelter current.
+- Reduce CPU work and GPU transfers for refined/replacement character models,
+  animated blood and dense effects. Reuse buffers and unchanged model data,
+  avoid large repeated copies, and skip redundant particle drawing passes.
 
-- Avoid building and uploading off-screen or invisible precipitation, drifting
-  leaves/petals, contact particles and splash rings. Keep their simulation,
-  wind, shelter, accumulation and lights active.
-  Skip off-screen body-stain geometry too, preserving the marks and accounting
-  for animated poses, secondary motion and wind at the edge of the view.
-  Skip redundant opaque and retail-translucent draws for alpha-only blood,
-  weather and contact effects, preserving blending and HUD order.
+- Speed up wind-blown rain and snow terrain checks. Avoid building and uploading
+  off-screen precipitation, leaves, petals, contact particles, splash rings and
+  body stains, while keeping their simulation, accumulation and lights active.
 
-- Reduce per-frame model transfers by uploading changing poses separately from
-  unchanged texture coordinates, colours and material attributes. Preserve full
-  animation, effects and shadow detail, including with rain and snow enabled.
-  Write changing poses directly into transfer staging memory, avoiding another
-  CPU buffer and copy for characters and large effects meshes.
+- Keep rewind responsive with many blood stains, snow tracks and wet splash
+  marks by sharing unchanged geometry between snapshots. Avoid recording spikes
+  when old blood expires, and count shared storage once toward the history budget.
+  The first capture of a large existing collection still takes additional time.
 
-- Avoid repeatedly copying large effects buffers when replacing original snow
-  and splashes, reducing CPU cost with dense footprints and animated effects.
-  Reuse the uploaded effects staging buffer for animated blood, and avoid
-  copying it when combining empty weather, footprint or contact layers.
-
-- Speed up dense modern blood on dry and snow-covered scenery, preserving
-  texture detail, soft edges, overlap order and retained blood counts. Reduce
-  rain shading and wet-blood cost too by reusing weather calculations and
-  skipping ripple work where no puddle exists. Reuse projected view rays for
-  rain haze, keeping its full shelter sampling. Exclude inactive rain code from
-  projected blood shaders in clear or snowy weather, preserving retained wetness.
-
-- Reject hidden scenery before expensive lighting and weather shading. Preserve
-  cutouts and overlapping face order, and show the visibility pass separately
-  in the performance charts and benchmark reports. Fully opaque replacement
-  textures skip unnecessary coverage sampling in that pass. Reduce terrain
-  shading cost in dry, rainy and snowy scenes while preserving materials.
-
-- Avoid uploading unchanged character triangle indices each frame, reducing
-  transfer waits while keeping animated vertices and shadows current.
-
-- Reduce CPU work when projecting new blood stains, death pools and footprints
-  onto scenery, without changing their shapes or fading.
-
-- Reduce character geometry preparation, uploads and copying when using refined
-  or replacement models, preserving their detail, animation and shadows.
-
-- Speed up accumulated snow shading, including scenes with many blood stains,
-  by avoiding redundant shadow filtering on sloped surfaces.
-
-- Reduce ambient-occlusion depth-reading overhead on native and WebGPU renderers
-  without changing its resolution or samples.
-
-- Avoid rewind recording spikes when old blood stains expire by reusing the
-  unchanged pages that remain in the history.
-
-- Reduce soft-shadow shading cost when weather and many blood stains overlap,
-  keeping the same shadow sample count and appearance.
-
-- Reuse the effects GPU buffer instead of allocating a new one every frame,
-  reducing CPU upload work for dense particles, footprints and animated blood.
-
-- Speed up wind-blown rain and snow by avoiding terrain checks outside each
-  particle’s flight path; precipitation, shelter and accumulation are unchanged.
-
-- Reduce the GPU cost of accumulated snow and dense blood stains by reusing
-  surface lighting and skipping invisible shading, without reducing coverage
-  or retained effects.
-
-- Reduce GPU cost in scenes with overlapping dynamic lights, including wet and
-  reflective surfaces, without lowering light counts or shadow quality.
+- Reduce the CPU cost of projecting new blood stains, death pools and footprints
+  onto scenery, preserving their shapes, overlap order, textures and fading.
 
 ## 0.15.3 — 2026-11-02
 
