@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.15.5 — 2026-11-03
+
 - Fix guards repeatedly drawing and lowering their weapons at the alarm-range
   boundary with **Keep all enemies active** enabled. Guards remember an alarm
   they have heard until it ends; distant patrols still ignore unheard alarms.
