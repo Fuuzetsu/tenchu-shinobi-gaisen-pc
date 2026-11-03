@@ -169,7 +169,7 @@ mod tests {
         let mission = tape
             .missions
             .iter()
-            .find(|m| field >= m.entry_field && field < m.result_field)
+            .find(|m| field >= m.entry_field && m.result_field.is_none_or(|end| field < end))
             .expect("field inside gameplay/cutscene");
         let mut game = mission.initial.load(&assets).unwrap();
         for update in mission.updates.iter().take_while(|u| u.field <= field) {

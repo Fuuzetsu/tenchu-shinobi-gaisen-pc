@@ -201,8 +201,8 @@ impl Update {
 pub struct Mission {
     pub initial: Initial,
     pub entry_field: u32,
-    pub result_field: u32,
-    pub result_end: u32,
+    pub result_field: Option<u32>,
+    pub result_end: Option<u32>,
     pub updates: Vec<Update>,
 }
 
@@ -221,6 +221,7 @@ impl Tape {
         archive: &Path,
         observations: &Path,
         output: &Path,
+        scenario: bool,
     ) -> Result<()> {
         let archive: serde_json::Value =
             serde_json::from_reader(File::open(archive).map_err(|e| e.to_string())?)
@@ -228,6 +229,7 @@ impl Tape {
         self.version = 1;
         self.fields = archive["fields"]
             .as_u64()
+            .or_else(|| archive["scenario"]["end_field"].as_u64())
             .ok_or("Missing archived duration")?
             .try_into()
             .map_err(|_| "Invalid archived duration")?;
@@ -242,23 +244,44 @@ impl Tape {
         )
         .map_err(|e| e.to_string())?;
         self.source_updates_sha256 = format!("{:x}", hash.finalize());
-        let results: Vec<_> = archive["sections"]
-            .as_array()
-            .ok_or("Missing archived sections")?
-            .iter()
-            .filter(|s| !s["results"].is_null())
-            .collect();
-        if results.len() != self.missions.len() {
-            return Err("Archived mission count disagrees with replay".into());
-        }
-        for (mission, result) in self.missions.iter_mut().zip(results) {
-            mission.result_field = result["from_field"]
-                .as_u64()
-                .ok_or("Missing results field")? as u32;
-            mission.result_end = mission.result_field
-                + result["fields"]
+        if scenario {
+            if self.missions.len() != 1 {
+                return Err("Scenario export requires a single mission".into());
+            }
+            // A capture can stop inside EndDrawing. Export only finished updates.
+            let last = self.missions[0]
+                .updates
+                .last()
+                .ok_or("No finished updates")?;
+            self.fields = self.fields.min(last.field.saturating_add(1));
+        } else {
+            let results: Vec<_> = archive["sections"]
+                .as_array()
+                .ok_or("Missing archived sections")?
+                .iter()
+                .filter(|s| !s["results"].is_null())
+                .collect();
+            if results.len() != self.missions.len() {
+                return Err("Archived mission count disagrees with replay".into());
+            }
+            for (mission, result) in self.missions.iter_mut().zip(results) {
+                let start: u32 = result["from_field"]
                     .as_u64()
-                    .ok_or("Missing results duration")? as u32;
+                    .ok_or("Missing results field")?
+                    .try_into()
+                    .map_err(|_| "Invalid results field")?;
+                let duration: u32 = result["fields"]
+                    .as_u64()
+                    .ok_or("Missing results duration")?
+                    .try_into()
+                    .map_err(|_| "Invalid results duration")?;
+                mission.result_field = Some(start);
+                mission.result_end = Some(
+                    start
+                        .checked_add(duration)
+                        .ok_or("Results duration overflow")?,
+                );
+            }
         }
         self.validate()?;
         let data = serde_json::to_vec(self).map_err(|e| e.to_string())?;
@@ -282,7 +305,7 @@ impl Tape {
             return Err("Invalid retail replay".into());
         }
         let mut last = 0;
-        for mission in &self.missions {
+        for (index, mission) in self.missions.iter().enumerate() {
             if mission.entry_field <= last || mission.updates.is_empty() {
                 return Err("Invalid mission boundary".into());
             }
@@ -293,13 +316,14 @@ impl Tape {
                 }
                 last = update.field;
             }
-            if last > mission.result_field || mission.result_end < mission.result_field {
-                return Err("Invalid results boundary".into());
+            match (mission.result_field, mission.result_end) {
+                (Some(start), Some(end)) if last <= start && start <= end => last = end,
+                (None, None) if index + 1 == self.missions.len() => (),
+                _ => return Err("Invalid results boundary".into()),
             }
-            last = mission.result_end;
         }
         if last > self.fields {
-            return Err("Recording ends before results".into());
+            return Err("Recording ends before the replay timeline".into());
         }
         Ok(())
     }
@@ -308,6 +332,40 @@ impl Tape {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unfinished_scenario_has_no_results_or_following_mission() {
+        let mut tape: Tape = serde_json::from_value(serde_json::json!({
+            "version": 1, "fields": 105,
+            "source_inputs_sha256": "", "source_updates_sha256": "",
+            "missions": [{
+                "initial": {"stage": 9, "character": 1, "layout": 1, "language": 0,
+                    "difficulty": 1, "seed": 1, "epoch": 0, "armor": 0,
+                    "inventory": vec![0; 26], "terrain_caches": [], "sound_timers": []},
+                "entry_field": 100, "result_field": null, "result_end": null,
+                "updates": [{"field": 104, "input": 0, "skip": 1, "swap": false,
+                    "clock": 1, "seed": 2}]
+            }]
+        }))
+        .unwrap();
+        assert!(tape.validate().is_ok());
+        tape.fields = 103;
+        assert!(tape.validate().is_err());
+        tape.fields = 105;
+        tape.missions[0].result_end = Some(105);
+        assert!(tape.validate().is_err());
+        tape.missions[0].result_field = Some(104);
+        assert!(tape.validate().is_ok());
+        tape.missions[0].result_field = None;
+        tape.missions[0].result_end = None;
+        let mut next: Mission =
+            serde_json::from_value(serde_json::to_value(&tape.missions[0]).unwrap()).unwrap();
+        next.entry_field = 106;
+        next.updates[0].field = 108;
+        tape.fields = 109;
+        tape.missions.push(next);
+        assert!(tape.validate().is_err());
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC and TENCHU_RETAIL_TAPE; replays every recorded mission without RAM corrections"]

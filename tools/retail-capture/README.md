@@ -75,8 +75,9 @@ experiment, not a claim to reproduce an archived win. `--scenario` requires ever
 observed update to match but permits an unfinished mission or death. A capture
 can stop in the PS1's display wait after gameplay has been compared; the report
 then explicitly sets `pending_display_boundary`. Such a scenario cannot export
-a completed-run movie tape. No RNG,
-actor or item state is repaired from later snapshots.
+a completed-run movie tape, but can export a partial recording with
+`prepare-retail ... --scenario` as described below. No RNG, actor or item state
+is repaired from later snapshots.
 
 The checker covers clocks/RNG, actors and poses, AI, collision slots, inventory,
 active item processors/coordinates and projectile parameters, armour, alert and
@@ -115,10 +116,32 @@ and ambient sound timers as well as RNG; RNG alone is insufficient. The recordin
 checks every update's clock/RNG again and never imports subsequent console state.
 Frame ranges always replay their entire prefix, including cosmetic ticks.
 
-The recorder uses Showcase, sharp fonts and the specified artwork pack. It
-does not load/write normal preferences or saves, and does not apply gameplay
-modifiers. Presentation interpolates models with one source update of visual
-latency. The original NTSC field rate is converted rationally to exactly 60 fps:
+An unfinished single-mission experiment can also be exported after its full
+scenario comparison passes:
+
+```sh
+./dev.sh cargo run --release -p tenchu-pc -- \
+  prepare-retail DISC NEW_OUTPUT/updates.ram.gz NEW_OUTPUT.json SCENARIO.json --scenario \
+  > scenario-validation.json
+TENCHU_SETTINGS=original-settings.json ./dev.sh target/release/tenchu-pc \
+  record-retail DISC SCENARIO.json COMPARISON.mp4 START_FRAME END_FRAME
+```
+
+Scenario tapes have no result-screen boundaries. The exporter retains finished
+updates only; a final pending display wait is not invented or completed with
+guessed timing. This does not claim a mission win. Existing complete campaign
+tapes remain compatible.
+
+The recorder defaults to Showcase, sharp fonts and the specified artwork pack.
+An explicit `TENCHU_SETTINGS` loads presentation settings for comparisons; it
+never applies their gameplay modifiers or writes preferences/saves. For original
+artwork, also set `graphics.asset_pack` to `false`: switching visual presets
+intentionally preserves the artwork toggle. Normal saved preferences are not
+loaded unless explicitly requested through this variable.
+
+Showcase interpolates models with one source update of visual latency; disable
+`graphics.interpolation` for original-cadence comparisons. The original NTSC
+field rate is converted rationally to exactly 60 fps:
 88,075 fields produce 88,164 video frames, rather than accelerating the source
 timeline by treating console fields as 60 Hz. Every frame is rendered offline;
 GPU speed affects export time only.

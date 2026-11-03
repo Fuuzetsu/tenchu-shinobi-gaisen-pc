@@ -1,4 +1,4 @@
-# Gameplay validation — 2026-10-30
+# Gameplay validation
 
 The PS1 emulator is the reference for original gameplay. Optional settings such
 as **Keep all enemies active** need separate tests: those modes do not exist in
@@ -44,9 +44,10 @@ Additional bounded experiments also match every observed update:
 
 Prefixes overlap the completed routes and are not additional unique coverage.
 `--scenario` checks unfinished missions/deaths and explicitly reports a pending
-display boundary if the recording stops during the PS1 display wait. It cannot
-export a completed-run movie. Custom experiments can use different pre-mission
-loadouts and text input segments; see the capture tool's instructions.
+display boundary if the recording stops during the PS1 display wait. Partial
+scenario recordings omit mission results and retain only finished updates.
+Custom experiments can use different pre-mission loadouts and text input
+segments; see the capture tool's instructions.
 
 This work corrected an equipped-armour replay initialization error and a real
 gameplay divergence after death: the stage-end halt value and guard sheathing
@@ -119,12 +120,56 @@ and Mission 10 explicitly. Earlier notes incorrectly called internal stage 9
 "Mission 10"; it is Mission 4. Mission 10 is internal stage 7. The original 24,576
 rays covered Missions 1, 3 and 4; the expanded check covers 32,772 rays.
 
-No default gameplay change follows from these results: they establish an
-inherited corpse-sight quirk and a plausible explanation for the group reaction,
-not that the reporter's precise encounter matches the emulator. Both tickets
-remain open. A more natural corpse sight ray would be a separate optional
-gameplay change; silently substituting rendered-triangle visibility would also
-change which original scenery blocks sight.
+### Controller-only BizHawk follow-up
+
+Two new Mission 4 routes now reproduce corpse alarms in the actual PS1 runtime,
+with ordinary actor activation, Ayame, Normal difficulty and layout 1. They
+branch from the equipped search's verified receipt
+`d2542abfb69f02cb987105fc5293bfedb60c69293834a03bb6fadf5550b8bc79` and retain its
+approach before adding controller inputs around the northern watchtowers. All
+four inherited checkpoints match the archived 2 MiB RAM exactly. The archived
+pre-mission item setup supplies the loadout; neither experiment relocates actors
+or patches in-mission RAM. Both initialize RNG to `0x38665927`.
+
+| Route | Matched updates | Recorded draw skips | Observed behavior |
+| --- | ---: | ---: | --- |
+| Discovery during execution | 4,005 | 8 | Guard 15 discovers victim 25 at clock 2534, during Ayame's stealth kill. Alarm becomes 300; times spotted stays zero throughout the captured aftermath. |
+| Discovery then direct sight | 4,078 | 11 | The same guard discovers the victim at clock 2677 after a different stealth-kill animation. Alarm becomes 300 with zero times spotted. At clock 2737, direct detection increments times spotted to one. |
+
+The routes include the same approach; their update counts are not unique
+coverage. The native checker matched every selected-state comparison from mission
+entry, using recorded input consumption, draw skips and swaps, with no later
+state corrections. Both captures end at a completed display boundary. The
+discovery display fields are 9387 and 9672; direct sight in the second route is
+field 9792. This distinguishes a shared corpse alarm from the separate detection
+counter instead of inferring both from the radar icon.
+
+The original `StateTransition` also explains guards waiting during an execution:
+`ActionHalt` allows turning/backing away but bypasses normal attacks. Corpse
+registration runs independently of that halt. These checks can therefore raise
+an alarm while nearby guards wait for the kill animation to finish.
+
+Reconstructing the second discovery's rays through the original terrain routine
+finds a clear original feet-to-elevated-root ray, while an eye-to-root-minus-300
+diagnostic ray is blocked. **This is not proof of a fully hidden corpse being
+seen through a solid wall:** the free-camera witness-eye view still shows parts
+of the corpse. The overlay is reconstructed from recorded coordinates, not a
+ray drawn or logged by the emulator. The exact external report of `!!` and a
+spotted-count increment *during* the execution has not been reproduced here.
+
+Local evidence is in `private/parity-film-16-17/`: `case-a3` and `case-b4` contain
+input/provenance records, traces, validation reports and partial native tapes.
+The 4K/60 side-by-side viewing edit uses Original graphics/artwork and labelled
+analysis freezes. Its console soundtrack was captured separately, with the
+decoded event/RAM streams verified identical to the corresponding video runs;
+it does not validate native audio. Diagnostic views disable fog to expose the
+geometry. Recordings, RAM and extracted artwork remain outside Git.
+
+No default gameplay change follows from these results. They establish matching
+corpse alarms for these routes and the inherited ray geometry, not every reported
+encounter. Both tickets remain open. A more natural corpse sight ray would be a
+separate optional gameplay change; silently substituting rendered-triangle
+visibility would also change which original scenery blocks sight.
 
 ## Separate always-active-enemy audit
 

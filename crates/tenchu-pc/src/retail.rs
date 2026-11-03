@@ -58,8 +58,8 @@ pub fn check(
     coverage: Coverage,
     export: Option<(&Path, &Path)>,
 ) -> Result<()> {
-    if export.is_some() && coverage != Coverage::Complete {
-        return Err("Only complete mission validation can be exported".into());
+    if export.is_some() && matches!(coverage, Coverage::Prefix(_)) {
+        return Err("Use scenario coverage to export an unfinished mission".into());
     }
     if coverage == Coverage::Prefix(0) {
         return Err("The update limit must be positive".into());
@@ -87,8 +87,8 @@ pub fn check(
             tape.missions.push(tape::Mission {
                 initial,
                 entry_field: row.field,
-                result_field: 0,
-                result_end: 0,
+                result_field: None,
+                result_end: None,
                 updates: Vec::new(),
             });
             eprintln!(
@@ -173,7 +173,7 @@ pub fn check(
         }
     }
     if let Some((archive, output)) = export {
-        tape.save(archive, path, output)?;
+        tape.save(archive, path, output, coverage == Coverage::Scenario)?;
     }
     println!("{}", serde_json::to_string_pretty(&serde_json::json!({
         "matched_updates": checked, "reached_end_of_recording": reached_end, "missions": reports,

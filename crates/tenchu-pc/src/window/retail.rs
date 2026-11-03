@@ -113,7 +113,10 @@ impl Recorder {
                 self.current_field = update.field;
                 self.update += 1;
             }
-            if field >= f64::from(entry.result_field) {
+            if entry
+                .result_field
+                .is_some_and(|start| field >= f64::from(start))
+            {
                 if self.update != entry.updates.len() {
                     return Err("Results precede final update".into());
                 }
@@ -143,7 +146,9 @@ impl Recorder {
             }
         }
         if self.completed
-            && field >= f64::from(self.tape.missions[self.mission].result_end)
+            && self.tape.missions[self.mission]
+                .result_end
+                .is_some_and(|end| field >= f64::from(end))
             && self.mission + 1 < self.tape.missions.len()
         {
             self.mission += 1;
@@ -348,9 +353,14 @@ pub fn record(
     if start >= end || end > total {
         return Err("Invalid video frame range".into());
     }
-    let mut settings = Settings::default();
-    settings.set_visual_preset(crate::settings::presets::SHOWCASE);
-    settings.graphics.asset_pack = true;
+    let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
+        crate::settings::Store::new()?.load()?
+    } else {
+        let mut settings = Settings::default();
+        settings.set_visual_preset(crate::settings::presets::SHOWCASE);
+        settings.graphics.asset_pack = true;
+        settings
+    };
     let options = tape.missions[0].initial.options(1)?;
     let campaign = Campaign::new(&assets, options, None)?;
     let frontend = Frontend::new(&assets, disc, &campaign, settings.frontend.clone())?;

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Allow validated unfinished PS1 replay scenarios to be recorded with
+  `prepare-retail --scenario`. `record-retail` now accepts explicit
+  `TENCHU_SETTINGS` presentation settings for comparisons.
+
 ## 0.15.4 — 2026-11-03
 
 - Improve rendering performance without reducing visual quality, light or shadow
