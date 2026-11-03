@@ -173,6 +173,16 @@ a **one-update red indicator** at kill start in BizHawk and the native port.
 All 4,159 checked updates match, including 8 observed draw skips. The same four
 archived checkpoints match all RAM; no in-mission memory is changed.
 
+This route was selected by searching variations of movement and attack timing
+for a red indicator at execution start. The search accepted that visible symptom
+without requiring a successful sight check or an increased spotted counter.
+The no-attack control below establishes that it selected a coincidence: the
+archer's combat transition occurs independently of the execution. Consequently,
+this case demonstrates a different retail behavior with a superficially similar
+indicator; it is not a reproduction of a stealth kill causing detection, shared
+alert or a scoring penalty, and must not be used as evidence that the complete
+reported encounter has been explained.
+
 | Gameplay clock | Radar strain | Times spotted | Stealth kills | Execution halt |
 | ---: | ---: | ---: | ---: | --- |
 | 2646 | 791: proximity | 0 | 0 | Off |
@@ -190,6 +200,26 @@ shows the wall flag, a new Square input (`0x0080`), the counter resetting to zer
 and the walking motion (`0x200`) changing to weapon draw (`0x80e`). The AI phase
 remains calm until the draw finishes. These observations and the original source
 identify the blocked-navigation path, rather than an enemy witnessing the kill.
+
+The initial retail layout assigns this archer think mix `0x4448` and no patrol
+waypoints. Its idle function is already `Think1chase` at mission start and never
+changes during this capture. Of the 25 placed actors in this layout, it alone
+uses that routine; 15 watch, five follow patrol routes, three use the separate
+random-wander routine, and one sleeps. Thus this is not a general response of
+guards to blocked movement. In particular, `Think1random` resets its destination
+counter on encountering the wall flag instead of issuing Square there.
+
+At clock 2527 the archer has no other actor within the 5,000-unit acquisition
+radius. Its destination `[-40654, 144844]` is its spawn X/Z `[-40072, 140245]`
+plus random offsets `[-582, 4599]`; these match the next two draws from the
+recorded RNG seed `0x3f0505b3` exactly. It walks toward that point, reaching the
+edge of the raised ground before drawing at 2634. This is its first weapon draw
+in the capture, about 55 seconds after activation at clock 990. The source does
+not validate the random destination's reachability before choosing it. The
+recorded activation history, random destination and approach explain this
+particular occurrence; its frequency across ordinary play has not been measured.
+Initial assignments and the complete archer timeline are retained privately as
+`archer-initial-ai.json` and `archer-provenance.json`.
 
 Temporary native branch logging, with all 4,159 updates still checked against the
 console capture, confirms the navigation branch directly: clock 2634 has the
