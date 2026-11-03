@@ -1,6 +1,105 @@
 use super::*;
 
 #[test]
+fn attached_bounds_keep_transformed_deformed_and_wind_shifted_vertices() {
+    let patch = Patch {
+        vertices: [-45.0, 0.0, 45.0]
+            .into_iter()
+            .flat_map(|x| {
+                [-70.0, 0.0, 70.0].into_iter().flat_map(move |y| {
+                    [-15.0, 15.0].into_iter().map(move |z| Vertex {
+                        position: [x, y, z],
+                        normal: [0.0, -1.0, 0.0],
+                        ..Vertex::zeroed()
+                    })
+                })
+            })
+            .collect(),
+        ..Default::default()
+    };
+    let serialized = postcard::to_allocvec(&patch).unwrap();
+    let rules = [super::super::motion::BoundRule::new(
+        &super::super::motion::Rule {
+            kind: super::super::motion::Kind::Cloth,
+            axis: [0.0, 1.0, 0.0],
+            start: -70.0,
+            end: 70.0,
+            anchor: [0.0; 3],
+            limit: 20.0,
+            absolute: false,
+            materials: Vec::new(),
+        },
+        &[],
+    )
+    .unwrap()];
+    let pose = super::super::motion::Pose {
+        geometry: 0,
+        offsets: [
+            Vec3::new(30.0, -20.0, -40.0),
+            Vec3::ZERO,
+            Vec3::ZERO,
+            Vec3::ZERO,
+        ],
+    };
+    let frustum = crate::renderer::Frustum::new(
+        Mat4::orthographic_rh(-100.0, 100.0, -100.0, 100.0, 1.0, 1000.0)
+            * Mat4::look_at_rh(Vec3::new(0.0, -300.0, 0.0), Vec3::ZERO, Vec3::Z),
+    );
+    let mut culled = 0;
+    let mut visible = 0;
+    for angle in [0.0, 0.5, 1.3, 3.1] {
+        for scale in [
+            Vec3::ONE,
+            Vec3::new(0.5, 1.5, 0.75),
+            Vec3::new(-1.2, 0.8, 0.7),
+        ] {
+            let r = Mat3::from_rotation_y(angle) * Mat3::from_diagonal(scale);
+            for x in [-10000, -180, -120, -80, 0, 80, 120, 180, 10000] {
+                let matrix = Matrix {
+                    rotation: std::array::from_fn(|row| {
+                        std::array::from_fn(|column| (r.col(column)[row] * 4096.0) as i16)
+                    }),
+                    translation: [x, 0, 0].into(),
+                };
+                let deformation =
+                    super::super::motion::Deformation::new(&rules, &pose, matrix).unwrap();
+                for wind in [0.0, 1.0] {
+                    let r = rotation(matrix);
+                    let offset = translation(matrix);
+                    let retained = patch.visible(&frustum, r, offset, Some(&deformation), wind);
+                    culled += usize::from(!retained);
+                    for vertex in &patch.vertices {
+                        let mut vertex = Vertex {
+                            position: (r * Vec3::from(vertex.position) + offset).to_array(),
+                            ..*vertex
+                        };
+                        deformation.vertex(&mut vertex);
+                        for dx in [-91.0, 0.0, 91.0] {
+                            for dz in [-91.0, 0.0, 91.0] {
+                                let point =
+                                    Vec3::from(vertex.position) + Vec3::new(dx, 0.0, dz) * wind;
+                                if frustum.contains([point, point], 0.0) {
+                                    visible += 1;
+                                    assert!(
+                                        retained,
+                                        "angle {angle}, scale {scale}, x {x}, wind {wind}"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert!(culled > 0 && visible > 0);
+    assert_eq!(postcard::to_allocvec(&patch).unwrap(), serialized);
+    let restored: Patch = postcard::from_bytes(&serialized).unwrap();
+    assert!(restored.bounds.get().is_none());
+    assert!(restored.visible(&frustum, Mat3::IDENTITY, Vec3::ZERO, None, 0.0));
+}
+
+#[test]
 fn changing_one_blood_category_preserves_other_cached_marks() {
     let mut blood = Blood::default();
     let mut settings = settings::Blood::modern();
@@ -16,6 +115,7 @@ fn changing_one_blood_category_preserves_other_cached_marks() {
                 vec![Patch {
                     part: None,
                     vertices: vec![Vertex::zeroed(); 6],
+                    bounds: Default::default(),
                 }],
                 kind,
             ),
@@ -169,7 +269,16 @@ fn original_and_modern_blood_styles_are_independent_and_persistent() {
             for _ in 0..180 {
                 game.tick += 1;
                 blood.tick(&game, &models, &surfaces, &settings, None);
-                let geometry = blood.animated_geometry(&game, &models, None, None, 1.0, Vec::new());
+                let geometry = blood.animated_geometry(
+                    &game,
+                    &models,
+                    None,
+                    View {
+                        alpha: 1.0,
+                        ..Default::default()
+                    },
+                    Vec::new(),
+                );
                 seen |= !geometry.vertices.is_empty();
                 assert!(
                     geometry
@@ -277,6 +386,7 @@ fn retained_stains_respect_both_count_and_vertex_budgets() {
                         inspection: false,
                     }),
                     vertices: vec![Vertex::zeroed(); if i % 2 == 0 { 30 } else { 3000 }],
+                    bounds: Default::default(),
                 }],
                 Kind::Ground,
             ),
@@ -627,6 +737,7 @@ fn full_retention_keeps_old_stains_and_only_changes_the_active_page() {
         vec![Patch {
             part: None,
             vertices: vec![Vertex::zeroed(); 36],
+            bounds: Default::default(),
         }],
         Kind::Ground,
     );
@@ -638,6 +749,7 @@ fn full_retention_keeps_old_stains_and_only_changes_the_active_page() {
                 vec![Patch {
                     part: None,
                     vertices,
+                    bounds: Default::default(),
                 }],
                 Kind::Ground,
             ),

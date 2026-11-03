@@ -186,6 +186,7 @@ mod tests {
                             };
                             6
                         ],
+                        bounds: Default::default(),
                     }],
                     if attached { Kind::Body } else { Kind::Ground },
                 ),
@@ -227,6 +228,7 @@ mod tests {
                     vec![Patch {
                         part: None,
                         vertices,
+                        bounds: Default::default(),
                     }],
                     Kind::Ground,
                 ),

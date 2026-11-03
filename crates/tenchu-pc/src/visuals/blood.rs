@@ -10,8 +10,11 @@ use crate::{
     settings::{self, BloodStyle},
 };
 use bytemuck::Zeroable;
-use glam::{Mat3, Quat, Vec3};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use glam::{Mat3, Mat4, Quat, Vec3};
+use std::{
+    collections::{BTreeMap, BTreeSet, VecDeque},
+    sync::OnceLock,
+};
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
 mod runoff;
@@ -24,10 +27,54 @@ use storage::VERTEX_LIMIT;
 const WOUND_LIMIT: usize = 64;
 const DROP_LIMIT: usize = 128;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Default)]
 struct Patch {
     part: Option<Part>,
     vertices: Vec<Vertex>,
+    #[serde(skip)]
+    bounds: OnceLock<[Vec3; 2]>,
+}
+
+impl Patch {
+    fn visible(
+        &self,
+        frustum: &crate::renderer::Frustum,
+        rotation: Mat3,
+        offset: Vec3,
+        deformation: Option<&super::motion::Deformation<'_>>,
+        wind: f32,
+    ) -> bool {
+        let [min, max] = *self.bounds.get_or_init(|| {
+            self.vertices.iter().fold(
+                [Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)],
+                |[min, max], vertex| {
+                    let point = Vec3::from(vertex.position);
+                    [min.min(point), max.max(point)]
+                },
+            )
+        });
+        let center = rotation * ((min + max) * 0.5) + offset;
+        let local_extent = (max - min) * 0.5;
+        let extent = rotation.x_axis.abs() * local_extent.x
+            + rotation.y_axis.abs() * local_extent.y
+            + rotation.z_axis.abs() * local_extent.z;
+        let mut bounds = [center - extent, center + extent];
+        if let Some(deformation) = deformation {
+            for delta in deformation.pose.offsets {
+                bounds[0] += delta.min(Vec3::ZERO);
+                bounds[1] += delta.max(Vec3::ZERO);
+            }
+        }
+        frustum.contains(bounds, wind.abs() * 100.0 + 2.0)
+    }
+}
+
+#[derive(Default)]
+pub struct View {
+    pub camera: Option<Matrix>,
+    pub projection: Option<Mat4>,
+    pub alpha: f32,
+    pub wind: f32,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -332,11 +379,13 @@ impl Blood {
             Patch {
                 part: Some(*key),
                 vertices,
+                bounds: Default::default(),
             }
         } else {
             Patch {
                 part: None,
                 vertices: surfaces.world.project(&stamp),
+                bounds: Default::default(),
             }
         };
         Mark(vec![patch], Kind::Ground)
@@ -476,6 +525,7 @@ impl Blood {
                 patches.push(Patch {
                     part: Some(key),
                     vertices: projected,
+                    bounds: Default::default(),
                 });
             }
         }
@@ -885,6 +935,7 @@ impl Blood {
             vec![Patch {
                 part: None,
                 vertices,
+                bounds: Default::default(),
             }],
             Kind::Death {
                 player: actor.id == game.player_id,
@@ -909,7 +960,17 @@ impl Blood {
             }],
             vertices,
         };
-        geometry.append(self.animated_geometry(game, models, frame, camera, alpha, Vec::new()));
+        geometry.append(self.animated_geometry(
+            game,
+            models,
+            frame,
+            View {
+                camera,
+                alpha,
+                ..Default::default()
+            },
+            Vec::new(),
+        ));
         geometry
     }
 
@@ -918,10 +979,12 @@ impl Blood {
         game: &Game,
         models: &Models,
         frame: Option<&Frame>,
-        camera: Option<Matrix>,
-        alpha: f32,
+        view: View,
         mut vertices: Vec<Vertex>,
     ) -> Geometry {
+        let camera = view.camera;
+        let alpha = view.alpha;
+        let frustum = view.projection.map(crate::renderer::Frustum::new);
         vertices.clear();
         vertices.reserve(self.marks.attached.iter().map(|(_, mark)| mark.len()).sum());
         for pool in self.pools.values() {
@@ -952,12 +1015,17 @@ impl Blood {
                     if rotation.determinant().abs() < 0.0001 {
                         continue;
                     }
-                    let normal = rotation.inverse().transpose();
                     let deformation = patch.part.and_then(|key| {
                         transforms
                             .get(&key)
                             .and_then(|&matrix| models.deformation(key, matrix))
                     });
+                    if frustum.as_ref().is_some_and(|frustum| {
+                        !patch.visible(frustum, rotation, offset, deformation.as_ref(), view.wind)
+                    }) {
+                        continue;
+                    }
+                    let normal = rotation.inverse().transpose();
                     vertices.extend(patch.vertices.iter().map(|v| {
                         let mut vertex = Vertex {
                             position: (rotation * Vec3::from(v.position) + offset).to_array(),

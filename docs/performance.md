@@ -918,3 +918,83 @@ blend classes, modern blood cutouts, weather tracks and timestamp partitioning.
 Strict native/WASM Clippy and release builds pass. Browser WebGL2 rain and WebGPU
 snow checks pass. Moving High routes measure 72.5/85.9/62.7/93.3 FPS, maximum
 rain 49.7/62.3/43.7/80.0, consistent with recent results.
+
+Attached blood now caches each immutable patch's local bounds and skips its
+vertex transforms and upload when the transformed bounds miss the camera view.
+The bounds include secondary-motion offsets and the maximum shader wind sway.
+Marks remain in memory and continue aging normally. The bounds cache is omitted
+from saves and rewind serialization and is rebuilt lazily after restoration.
+
+A rotating-camera CPU fixture uses 73 actual HD wound templates on animated
+Mission 1 actors. It measures 180 frames after 30 warm-up frames, reusing the
+same staging buffer:
+
+| Body marks | Before assembly | After assembly | Before vertices | After, mean vertices |
+| --- | ---: | ---: | ---: | ---: |
+| 64 | 0.156 ms | 0.042 ms | 24,342 | 728 |
+| 1,024 | 2.129 ms | 0.200 ms | 387,447 | 12,862 |
+| 8,192 | 17.189 ms | 1.520 ms | 3,082,074 | 99,768 |
+
+This camera usually sees only a small fraction of the stained actors. These
+are CPU geometry times, not full-frame FPS. An intentionally wide view retaining
+every mark measures 0.159 / 2.206 / 18.089 ms, versus
+0.155 / 2.161 / 17.730 ms with culling disabled: the bounds checks add about
+2–3% when nothing can be discarded. The first bounds calculation costs more
+than subsequent frames; each live immutable patch reuses its cached bounds.
+
+All three serialized blood states match. Seven captured geometry streams retain
+exact ordered subsequences of the previous vertices. Sixteen full-scene images
+and sixteen isolated blood-layer images match pixel for pixel across both
+heroes, shifted camera edges, a near-plane view and a wide aspect ratio. The
+isolated layer is also compared with an empty frame to confirm the comparison
+contains rendered blood; the initial player close-up hid almost all its marks.
+Twelve additional actor close-ups match. The bounds regression exercises
+rotations, reflected/nonuniform scales, secondary deformation and wind offsets.
+
+Thirteen focused checks pass, covering bounds, stain retention and style changes,
+finite drips, death pools, complete visual-state restoration, rewind playback
+and branching, and both heroes' save continuation across missions 1–10. Native
+and WASM strict Clippy and release builds pass.
+
+## November optimisation loop: cumulative result
+
+The final real-desktop repeat uses the same 3840×2160 Modern High preset,
+full v3 artwork, all-active enemies and four moving routes as the initial run.
+The GTX 1080 Ti and Ryzen 9 9950X3D are unchanged. VSync is disabled to expose
+throughput; each scene contributes 300 measured frames after 60 warm-up frames.
+The final browser checks also pass on windowed Chromium: WebGL2 with rain
+and WebGPU with snow, including movement, lighting toggles,
+paused free camera and resumed play.
+
+| Moving route | Initial High FPS | Final High FPS | Gain | Final maximum-rain FPS |
+| --- | ---: | ---: | ---: | ---: |
+| Village lights | 45.6 | 73.2 | 61% | 50.8 |
+| Snow courtyard | 50.9 | 87.5 | 72% | 62.4 |
+| Garden water | 31.8 | 62.8 | 97% | 44.5 |
+| Waterfall | 54.6 | 92.0 | 68% | 81.7 |
+
+High frame-interval p95 is 15.66 / 13.45 / 17.67 / 12.02 ms. The garden
+therefore still drops below 60 FPS despite averaging above it. Maximum rain
+and extreme overlapping blood remain expensive. These results do not establish
+60 FPS throughout every mission, on every machine, or with every setting maxed.
+
+The main gains come from less repeated lighting/weather shading, early rejection
+of hidden scenery, indexed character meshes, smaller recurring pose transfers,
+reused effect buffers and avoiding off-screen particle geometry. Separate stress
+fixtures above cover accumulated snow, thousands of blood marks, contact effects
+and rewind; their isolated CPU/GPU times should not be added together or treated
+as whole-frame FPS.
+
+Rewind now shares unchanged geometry and avoids re-encoding remaining blood
+pages when older pages expire. Its first capture of a large existing collection
+still has to encode that collection. Likewise, millions of simultaneously
+visible animated stain vertices still cost substantial CPU work and transfer
+bandwidth. This machine reports a PCIe 3.0 ×2 GPU link, making recurring uploads
+particularly relevant; the optimisation results do not assume a wider link.
+
+No preset quality, retained-effect limit, simulation tick rate or gameplay
+mechanic was reduced. Paired image checks are predominantly pixel-identical;
+the few retained shader arithmetic changes have the small rounding differences
+documented above. Experiments that regressed representative workloads or showed
+no useful gain were discarded. The loop is stopped at the user's request after
+the attached-blood optimisation; these commits have not been released.

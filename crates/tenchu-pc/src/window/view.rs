@@ -1009,11 +1009,15 @@ impl View {
                 game,
                 &self.models,
                 frame,
-                camera.map(|camera| camera.source_view()),
-                if self.interpolation_enabled {
-                    alpha
-                } else {
-                    1.0
+                crate::visuals::blood::View {
+                    camera: camera.map(|camera| camera.source_view()),
+                    projection: Some(self.camera_matrix(game, debug)),
+                    alpha: if self.interpolation_enabled {
+                        alpha
+                    } else {
+                        1.0
+                    },
+                    wind: f32::from(settings.graphics.motion.wind) / 100.0,
                 },
                 std::mem::take(&mut self.effect_vertices),
             );
