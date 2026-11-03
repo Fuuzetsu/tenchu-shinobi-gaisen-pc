@@ -191,6 +191,13 @@ and the walking motion (`0x200`) changing to weapon draw (`0x80e`). The AI phase
 remains calm until the draw finishes. These observations and the original source
 identify the blocked-navigation path, rather than an enemy witnessing the kill.
 
+Temporary native branch logging, with all 4,159 updates still checked against the
+console capture, confirms the navigation branch directly: clock 2634 has the
+wall flag, direction 13, and a missing forward terrain level. Both side probes
+return 260; no turn input is requested, so `GotoPosition` returns zero. This is
+a deterministic collision/navigation result, not a random detection roll. The
+archer's scheduled sight checks at clocks 2613 and 2645 both return `Gone`.
+
 The red icon is not itself a reliable detection-counter readout. Here guard 11
 finishes drawing its weapon on clock 2646 while its AI phase is calm. The retail
 `ActSTATE` completion branch sets `ATTR_SEARCH | PHASE_ALERT`, without incrementing
@@ -208,6 +215,19 @@ phase at 2805 (the radar reflects that on 2806). The spotted counter and shared
 alarm remain zero through the capture's final clock, 2849. Thus this guard is
 hostile despite the absence of a scored spotting event; the execution temporarily
 suppresses AI/radar processing, not the stored alert state.
+
+Guard 11 is an **archer**, and its attack is a bow shot rather than an out-of-range
+melee swing. At clock 2805, the next scheduled sight check returns `Gone`: the
+player is roughly 3,760 units lower and the original sight rule, with the shared
+alarm at zero, rejects height differences of at least 3,000. Changing the AI phase
+does not cancel the ongoing bow animation. It releases an arrow at clock 2828,
+after entering search.
+The projectile target ray stops at its own launch point,
+`[-40354, -12051, 143147]`, without selecting a character target. On clock 2829,
+the arrow changes from flying to embedded/waiting with the original terrain
+status `OutsideTerrain`; its position does not advance. Both the native and PS1
+item states agree, and Ayame remains at 100 HP. Thus this shot fails through the
+original terrain handling, not simply because the archer is too far away.
 
 A console control (`case-c-control`) replaces only the attack-button interval
 with crouch. It also matches 4,159 native updates and 8 draw skips. The indicator
@@ -229,6 +249,17 @@ control, radar timelines, screenshots and hashes are retained alongside the
 first two routes in `private/parity-film-16-17/`. The extracted weapon-draw and
 aftermath observations for both captures are in
 `red-flash-draw-and-aftermath.json` there.
+
+`tenchu-red-flash-explained-4k60.mp4` expands this third route with a location
+overview, simultaneous player/archer views, normal-speed playback, slowed
+sections, and labelled analysis freezes. Persistent labels distinguish Ayame,
+victim 25, archer 11 and the background guard 15 (which stays calm). The cards
+separate AI phase, animation, execution halt and the spotting/alarm counters.
+Diagnostic terrain/actor views reconstruct presentation only; the arrow marker
+comes from the matched item position. The closing PS1/native stills account for
+the console presentation delay. Its edit, extraction, branch logs and checks are
+retained in `private/parity-film-16-17/c1-explanation/`; no instrumentation remains
+in gameplay code.
 
 No default gameplay change follows from these results. They establish matching
 corpse alarms for these routes and the inherited ray geometry, not every reported
