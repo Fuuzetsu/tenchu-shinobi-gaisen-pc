@@ -1,5 +1,6 @@
 use crate::actor::State as ActorState;
 use crate::items::Kind;
+mod corpses;
 mod experiments;
 mod imported;
 mod independent_attacks;

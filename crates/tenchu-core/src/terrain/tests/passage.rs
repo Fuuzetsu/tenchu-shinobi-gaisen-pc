@@ -76,7 +76,7 @@ int main(void) {{
     let mut input = String::new();
     let mut expected = Vec::new();
     let mut random = Random::new(16);
-    for stage in [0, 2, 9] {
+    for stage in [0, 2, 9, 7] {
         let game = oracle::game(stage, 1);
         let map = &game.mission.terrain;
         writeln!(input, "{}", map.rows.len()).unwrap();
@@ -138,25 +138,48 @@ int main(void) {{
                 nodes.push(node);
             }
         }
-        let cases = 8192;
+        // Witness/body positions from the Mission 4 stealth-kill regression.
+        // Compare retail's feet-to-head ray and the obstructed eye-to-body alternative.
+        let corpse_rays = if stage == 9 {
+            &[
+                ([-22894, -7000, 155067], [-26882, -8600, 148810]),
+                ([-22894, -8300, 155067], [-26882, -7300, 148810]),
+                ([-35887, -7000, 155959], [-26828, -8600, 148990]),
+                ([-35887, -8300, 155959], [-26828, -7300, 148990]),
+            ][..]
+        } else {
+            &[][..]
+        };
+        let cases = 8192 + corpse_rays.len();
         writeln!(input, "{cases}").unwrap();
         let mut cursor = Cursor::new(map);
         let mut blocked = 0;
         for case in 0..cases {
-            let node = nodes[random.next15() as usize % nodes.len()];
-            let [x1, z1, x2, z2] = node.bounds.map(|v| i32::from(v) * 10);
-            let position = Position::new(
-                [x1, (x1 + x2) / 2, x2][case % 3],
-                i32::from(node.y) * 10 - [900, 1500, 2100][case / 3 % 3],
-                [z1, (z1 + z2) / 2, z2][case / 9 % 3],
-            );
-            let mut delta = Position::new(
-                random.next15() % 30001 - 15000,
-                random.next15() % 6001 - 3000,
-                random.next15() % 30001 - 15000,
-            );
+            let (position, mut delta, limit) = if case >= 8192 {
+                let (from, to) = corpse_rays[case - 8192];
+                (
+                    from.into(),
+                    Position::from(to).wrapping_sub(from.into()),
+                    500,
+                )
+            } else {
+                let node = nodes[random.next15() as usize % nodes.len()];
+                let [x1, z1, x2, z2] = node.bounds.map(|v| i32::from(v) * 10);
+                (
+                    Position::new(
+                        [x1, (x1 + x2) / 2, x2][case % 3],
+                        i32::from(node.y) * 10 - [900, 1500, 2100][case / 3 % 3],
+                        [z1, (z1 + z2) / 2, z2][case / 9 % 3],
+                    ),
+                    Position::new(
+                        random.next15() % 30001 - 15000,
+                        random.next15() % 6001 - 3000,
+                        random.next15() % 30001 - 15000,
+                    ),
+                    [300, 500][case % 2],
+                )
+            };
             let mut count = 1;
-            let limit = [300, 500][case % 2];
             while delta.iter().any(|v| v.abs() > limit) {
                 delta = delta.map(|v| v >> 1);
                 count *= 2;
@@ -188,7 +211,7 @@ int main(void) {{
         );
         eprintln!(
             "M{}: {blocked} blocked, {} clear sight rays",
-            stage + 1,
+            game.mission.stage.order,
             cases - blocked
         );
     }

@@ -66,7 +66,7 @@ in these captures. They remain unconfirmed, rather than assumed fixed or invalid
 
 - **Seeing through walls:** original sight uses the terrain passage query. The
   source comparison includes blocked queries and their exact step arguments;
-  a separate comparison runs 24,576 rays through actual Mission 1, 3 and 10
+  a separate comparison runs 32,772 rays through actual Mission 1, 3, 4 and 10
   collision maps against `CONFLICT.C`, including indexed rows and their inclusive
   edges. This does not establish that every visible wall has retail collision.
 - **Repeated respawns:** the original AI deliberately creates reinforcements.
@@ -80,6 +80,51 @@ in these captures. They remain unconfirmed, rather than assumed fixed or invalid
 
 If one recurs, save a [diagnostic report](diagnostics.md) immediately. Its settings,
 actor/AI state, mission/layout and recent inputs help distinguish these cases.
+
+## Cross the Checkpoint body witnesses (#16, #17)
+
+The November 3 follow-up identifies Mission 4, with group reactions during a
+stealth kill past the bridge toward Senjuro. A controlled native setup near the
+northern watchtowers reproduces body discovery during Ayame's execution in both
+ordinary and all-active modes. This relocates one victim onto a flat, valid tile;
+it is not a replay of the reporter's route.
+
+With ordinary activation, guard 15 discovers the victim on update 45 while the
+execution is still running. The shared alarm becomes 300, but the player-spotted
+counter remains zero. Nearby guards become suspicious when the execution ends.
+All-active mode lets guard 25 discover the body earlier, on update 27. Marking
+the body already discovered as a control removes the alarm during the execution;
+ordinary player detection still works afterward. The regression preserves this
+distinction between body discovery, shared suspicion and spotting the player.
+
+`THINK.C:register_character_death` uses a different ray from ordinary player
+sight. It starts at the witness's feet and ends at the corpse's root position
+minus the witness's standing height. It does not trace from the witness's eyes
+to the animated body. At the ordinary-mode discovery above, that original ray
+is clear while an eye-to-body ray is blocked by the same terrain collision map.
+The port uses the original endpoints. Body checks also run during the execution,
+before the victim finishes falling, as in `HUMAN.C:ControlHumanoid`.
+
+A local comparison ran 99 controlled cases through the original C corpse
+routine **and** its original terrain functions on Mission 4's collision map.
+All matched native discovery flags, alert duration, notice/draw calls, chase
+coordinates and witness selection, including the two witness/body arrangements
+from the execution. The direction and square-root inputs came from the separately
+validated native PS1 math; sound and motion calls were recorded by stubs. This is
+a host-C comparison, not a new emulator input replay. Evidence and review images
+are retained outside Git in `private/issues/detection-16-17/`.
+
+The passage regression now includes both ray variants from those arrangements
+and Mission 10 explicitly. Earlier notes incorrectly called internal stage 9
+"Mission 10"; it is Mission 4. Mission 10 is internal stage 7. The original 24,576
+rays covered Missions 1, 3 and 4; the expanded check covers 32,772 rays.
+
+No default gameplay change follows from these results: they establish an
+inherited corpse-sight quirk and a plausible explanation for the group reaction,
+not that the reporter's precise encounter matches the emulator. Both tickets
+remain open. A more natural corpse sight ray would be a separate optional
+gameplay change; silently substituting rendered-triangle visibility would also
+change which original scenery blocks sight.
 
 ## Separate always-active-enemy audit
 
