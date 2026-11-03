@@ -291,6 +291,45 @@ the console presentation delay. Its edit, extraction, branch logs and checks are
 retained in `private/parity-film-16-17/c1-explanation/`; no instrumentation remains
 in gameplay code.
 
+A further retail replay observes the archer without a nearby fight or execution.
+After the approach, Ayame turns toward the ridge and holds crouch + L1 look.
+From console field 7684 through 11523, every controller input is `0x0401`, and
+her position remains `[-38335, -7000, 147755]`. The archer remains unharmed.
+The approach is not pacifist: the reused route kills the entrance opponent with
+five shuriken and uses three Lightfoot Scrolls before reaching the vantage point.
+Those actions are included in the video, not cut out. There is no stealth kill,
+additional dust/RNG steering or in-mission RAM patching in this follow-up.
+
+| Gameplay clock | Archer state | Times spotted | Shared alarm |
+| ---: | --- | ---: | --- |
+| 2836 | Blocked movement requests Square; starts drawing, still calm | 0 | Off |
+| 2848 | Draw completes; enters combat | 0 | Off |
+| 2849 | Radar turns red | 0 | Off |
+| 2869–2870 | Enters search; radar turns blue next update | 0 | Off |
+| 3221 | Search ends; returns to calm | 0 | Off |
+| 3317 | Later, a real sight check succeeds after coming down from the ridge | 1 | On |
+
+`private/parity-film-16-17/tenchu-archer-observation-retail-4k60.mp4` shows the
+continuous mission-entry replay with labelled fast-forward and slow motion,
+game sound, the held inputs, an archer marker and read-only state annotations.
+It includes the later genuine detection and attacks. This establishes that this
+archer's unscored red transition can occur during stationary observation; it
+does not establish its frequency or reproduce the reported stealth-kill penalty.
+
+The standalone `watch/tape/tenchu-m4-observe-archer.bk2` embeds a mission-entry
+state and contains 9,997 console fields. Ordinary Nymashock movie playback,
+without tool-supplied inputs or game-memory writes, matches all 2 MiB of RAM at
+four checkpoints, including the end. The entry state was recreated without CPU
+debugger callbacks and matches the instrumented capture's RAM exactly. The
+stocked menu setup is retained from the archived search. Tape instructions,
+hashes, the raw console recording and the verification logs remain private.
+
+Native comparison with the recorded draw cadence matches the first 4,743 updates,
+through clock 3433, including the unscored red and the later real detection. At
+3434 another spearguard's terrain/contact state diverges; that later discrepancy
+is a separate follow-up, not a full-tape parity pass. The trace and first
+differences are preserved under `watch/`. This video uses console footage only.
+
 No default gameplay change follows from these results. They establish matching
 corpse alarms for these routes and the inherited ray geometry, not every reported
 encounter. Both tickets remain open. A more natural corpse sight ray would be a
