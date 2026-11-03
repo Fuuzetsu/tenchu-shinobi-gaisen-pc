@@ -12,6 +12,10 @@ impl Controller<'_, '_> {
         }
         let strain = self.state.strain;
         let distant = !self.nearby_player();
+        // Drawing can move a guard out of hearing range; do not forget an ongoing alarm.
+        self.actor.heard_alert = self.roster.keep_all_active
+            && self.state.alert != 0
+            && (!distant || (self.actor.heard_alert && self.attribute & ATTR_PHASE != 0));
         let result = self.transition();
         if distant {
             self.state.strain = strain;
@@ -166,7 +170,7 @@ impl Controller<'_, '_> {
                             self.found();
                         }
                     } else if self.state.detection == Detection::Glimpse {
-                        if self.state.alert != 0 {
+                        if self.hears_alert() {
                             self.motion(MOT_STATE_DRAW);
                             self.actor.brain.chase = [0; 2];
                         }

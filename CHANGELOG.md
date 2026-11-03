@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix guards repeatedly drawing and lowering their weapons at the alarm-range
+  boundary with **Keep all enemies active** enabled. Guards remember an alarm
+  they have heard until it ends; distant patrols still ignore unheard alarms.
+
 - Allow validated unfinished PS1 replay scenarios to be recorded with
   `prepare-retail --scenario`. `record-retail` now accepts explicit
   `TENCHU_SETTINGS` presentation settings for comparisons.

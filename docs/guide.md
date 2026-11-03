@@ -1308,6 +1308,8 @@ Whole-level mode uses wider distance calculations for distant AI, targeting and
 corpse witnesses. Remote actors keep patrolling instead of reacting to every
 local alarm; actors beyond the awareness radius cannot hold the player's radar
 alerted. Nearby actors retain their usual sight/occlusion and combat rules.
+A guard who hears an alarm remembers it until it expires or they return to calm,
+so crossing the hearing boundary does not repeatedly interrupt drawing a weapon.
 Reinforcements in this mode still follow the original difficulty and distance
 rules, but also wait for terrain cover from the player. Each placed guard gets
 one call per alert, and summoned guards cannot call reinforcements themselves.

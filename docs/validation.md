@@ -739,3 +739,38 @@ and restoring the override, persistence, walking and attacking. Paused tick,
 RNG and position remain unchanged; no page or GPU errors were reported. The
 browser check caught and now covers dropdown search focus and explicit closure
 after choosing a result. Captures/logs are in `private/issues/batch-46`.
+
+## Mission 9 guard repeatedly drawing a weapon
+
+2026-11-04: the [reported castle footage around 6:39](https://www.youtube.com/watch?v=Zr6QOl0PA_4&t=399s)
+shows an ONIKERAI polearm guard repeatedly readying/lowering his weapon near the
+garden. The exact save, settings and earlier inputs were not supplied. Native
+Mission 9 layout A reproduces a matching loop with **Keep all enemies active**;
+this is a reproducible port defect, not a verified replay of that particular run.
+
+The all-active extension limits reception of the shared alarm to 20,000 units
+from the player. Drawing moves this guard's root away from the player, across
+that boundary. The next sight check then abandons suspicion and requests
+sheathing; patrol movement brings him back into range of the same alarm. No new
+spotting is necessary. A stationary-player fixture using the real castle terrain,
+guard motions and patrol produces 11 draw entries during a single 600-tick alarm.
+Other guards' AI is disabled in this fixture to isolate that cause; the initial
+positions/alarm are constructed, not claimed to come from a retail controller tape.
+
+Each all-active guard now remembers an alarm actually heard until the shared
+alarm expires or the guard returns to calm. A distant glimpse no longer borrows
+an unheard global alarm to request drawing. The same fixture now draws once,
+finishes the animation outside the radius, and sheathes once after expiration;
+the spotting counter remains zero. A separate distant-patrol fixture confirms
+that an unheard alarm does not spread to remote actors. Memory is part of the
+saved/rewound actor state and diagnostic reports. The savestate envelope format
+is advanced so older binary actor layouts are rejected rather than misread.
+
+This hearing-radius extension has no counterpart in retail `THINK.C`; original
+`WORLD.C::ActivateHumans` normally suspends actors beyond 17,000 units. Original
+activation mode keeps the original alarm rules. This case is separate from the
+Mission 4 archer's blocked-navigation Square input described above. Core tests,
+all eleven disc-backed AI tests (including the original-C combat oracle), and
+save/restore continuation checks cover the fix. Video crops, native captures,
+transition traces and the private probe remain outside Git under
+`private/issues/weapon-loop-20261104`.

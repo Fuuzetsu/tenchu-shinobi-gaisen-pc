@@ -30,6 +30,7 @@ pub fn game(game: &Game) -> Value {
         "status": a.status.source_id(), "attribute": a.attribute, "scripted": a.scripted,
         "target_model": a.target, "hit_actor": a.hit, "home": a.home,
         "think": a.think.source_ids(), "recruitment": format!("{:?}", a.recruitment),
+        "heard_alert": a.heard_alert,
         "attack_clock": a.attack_clock,
         "evasion_clock": a.evasion_clock,
         "brain": {"mode": a.brain.mode, "flag": a.brain.flag, "count": a.brain.count,

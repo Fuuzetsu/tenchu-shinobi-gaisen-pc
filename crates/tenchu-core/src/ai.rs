@@ -308,7 +308,7 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn hears_alert(&self) -> bool {
-        self.state.alert != 0 && self.nearby_player()
+        self.state.alert != 0 && (self.actor.heard_alert || self.nearby_player())
     }
 
     fn found(&mut self) {
