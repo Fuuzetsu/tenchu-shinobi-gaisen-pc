@@ -154,8 +154,8 @@ finds a clear original feet-to-elevated-root ray, while an eye-to-root-minus-300
 diagnostic ray is blocked. **This is not proof of a fully hidden corpse being
 seen through a solid wall:** the free-camera witness-eye view still shows parts
 of the corpse. The overlay is reconstructed from recorded coordinates, not a
-ray drawn or logged by the emulator. The exact external report of `!!` and a
-spotted-count increment *during* the execution has not been reproduced here.
+ray drawn or logged by the emulator. These two routes do not reproduce a
+spotted-count increment *during* the execution.
 
 Local evidence is in `private/parity-film-16-17/`: `case-a3` and `case-b4` contain
 input/provenance records, traces, validation reports and partial native tapes.
@@ -164,6 +164,47 @@ analysis freezes. Its console soundtrack was captured separately, with the
 decoded event/RAM streams verified identical to the corresponding video runs;
 it does not validate native audio. Diagnostic views disable fog to expose the
 geometry. Recordings, RAM and extracted artwork remain outside Git.
+
+### Brief red indicator at the start of a stealth kill
+
+The reporter subsequently described a very brief `!!` flash as the kill begins,
+followed by `!?`. A third controller-only Mission 4 route (`case-c1`) reproduces
+a **one-update red indicator** at kill start in BizHawk and the native port.
+All 4,159 checked updates match, including 8 observed draw skips. The same four
+archived checkpoints match all RAM; no in-mission memory is changed.
+
+| Gameplay clock | Radar strain | Times spotted | Stealth kills | Execution halt |
+| ---: | ---: | ---: | ---: | --- |
+| 2646 | 791: proximity | 0 | 0 | Off |
+| 2647 | 0: red alert | 0 | 1 | Off |
+| 2648 | `0x7fffffff`: no indicator | 0 | 1 | On |
+
+The red icon is not itself a reliable detection-counter readout. Here guard 11
+finishes drawing its weapon on clock 2646 while its AI phase is calm. The retail
+`ActSTATE` completion branch sets `ATTR_SEARCH | PHASE_ALERT`, without incrementing
+`Findenemies` or setting the shared alarm. Its next AI update contributes zero
+radar strain, selecting the red icon. The execution's action halt begins on the
+next update and suppresses those normal AI contributions. The killed actor is
+guard 25; the transient red indication comes from guard 11.
+
+A console control (`case-c-control`) replaces only the attack-button interval
+with crouch. It also matches 4,159 native updates and 8 draw skips. The indicator
+still turns red at clock 2647, but stays red on subsequent updates because no
+execution halt starts. Both the spotted counter and shared alarm remain zero
+across this interval. This establishes that the red transition in this case
+does not depend on the kill or corpse discovery.
+
+The captured PS1 image shows red on console fields 9615–9616, about 33 ms: one
+gameplay update, two video fields. The update's EndDrawing return is field 9613;
+the console capture presents it two fields later than the native recorder.
+`stealth-kill-red-flash-comparison.png` aligns the displayed images and labels
+that offset. The HUD uses the Japanese red `殺` symbol in these captures.
+
+This confirms a brief red flash can be original behavior without a spotting
+penalty. It does **not** yet reproduce the complete reported red-to-`!?`
+transition with group alert and a spotted-count increment. The third route and
+control, radar timelines, screenshots and hashes are retained alongside the
+first two routes in `private/parity-film-16-17/`.
 
 No default gameplay change follows from these results. They establish matching
 corpse alarms for these routes and the inherited ray geometry, not every reported
