@@ -178,6 +178,18 @@ archived checkpoints match all RAM; no in-mission memory is changed.
 | 2646 | 791: proximity | 0 | 0 | Off |
 | 2647 | 0: red alert | 0 | 1 | Off |
 | 2648 | `0x7fffffff`: no indicator | 0 | 1 | On |
+| 2776 | `0x7fffffff`: no indicator | 0 | 1 | Clears late in update |
+| 2777 | 0: red alert | 0 | 1 | Off |
+| 2806 | -32768: searching | 0 | 1 | Off |
+
+The weapon draw itself comes from idle navigation, not a successful sight check.
+Guard 11's recorded idle function is `Think1chase` (`0x8002c39c`, native `hunt`).
+When `GotoPosition` returns no movement from its blocked-terrain branch, this
+routine issues Square and resets its idle counter. At clock 2634, the capture
+shows the wall flag, a new Square input (`0x0080`), the counter resetting to zero,
+and the walking motion (`0x200`) changing to weapon draw (`0x80e`). The AI phase
+remains calm until the draw finishes. These observations and the original source
+identify the blocked-navigation path, rather than an enemy witnessing the kill.
 
 The red icon is not itself a reliable detection-counter readout. Here guard 11
 finishes drawing its weapon on clock 2646 while its AI phase is calm. The retail
@@ -186,6 +198,16 @@ finishes drawing its weapon on clock 2646 while its AI phase is calm. The retail
 radar strain, selecting the red icon. The execution's action halt begins on the
 next update and suppresses those normal AI contributions. The killed actor is
 guard 25; the transient red indication comes from guard 11.
+
+An empty radar does **not** mean the guard forgets the player. Each update resets
+the radar aggregate to its no-indicator value; halted guards return before
+contributing their normal readings. Guard 11 retains its combat phase and player
+target throughout the execution. After the halt ends, the red indicator returns
+at clock 2777, the guard starts an attack at 2790, and it changes to the search
+phase at 2805 (the radar reflects that on 2806). The spotted counter and shared
+alarm remain zero through the capture's final clock, 2849. Thus this guard is
+hostile despite the absence of a scored spotting event; the execution temporarily
+suppresses AI/radar processing, not the stored alert state.
 
 A console control (`case-c-control`) replaces only the attack-button interval
 with crouch. It also matches 4,159 native updates and 8 draw skips. The indicator
@@ -204,7 +226,9 @@ This confirms a brief red flash can be original behavior without a spotting
 penalty. It does **not** yet reproduce the complete reported red-to-`!?`
 transition with group alert and a spotted-count increment. The third route and
 control, radar timelines, screenshots and hashes are retained alongside the
-first two routes in `private/parity-film-16-17/`.
+first two routes in `private/parity-film-16-17/`. The extracted weapon-draw and
+aftermath observations for both captures are in
+`red-flash-draw-and-aftermath.json` there.
 
 No default gameplay change follows from these results. They establish matching
 corpse alarms for these routes and the inherited ray geometry, not every reported
