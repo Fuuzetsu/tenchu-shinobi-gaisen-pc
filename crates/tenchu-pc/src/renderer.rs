@@ -88,6 +88,7 @@ pub struct EffectMesh {
     mesh: Mesh,
     batches: Vec<render_effects::Batch>,
     ranges: [Vec<std::ops::Range<u32>>; 2],
+    opaque_ranges: Vec<std::ops::Range<u32>>,
 }
 
 pub struct SceneMeshes<'a> {
@@ -512,6 +513,7 @@ impl Renderer {
             mesh: self.upload(&[]),
             batches: Vec::new(),
             ranges: Default::default(),
+            opaque_ranges: Vec::new(),
         };
         self.update_effects(&mut effects, geometry);
         effects
@@ -525,15 +527,21 @@ impl Renderer {
         for ranges in &mut effects.ranges {
             ranges.clear();
         }
-        for (i, triangle) in geometry.vertices.chunks_exact(3).enumerate() {
-            let overlay =
-                triangle[0].flags & (crate::render_mesh::UI | crate::render_mesh::DEBUG) != 0;
-            let ranges = &mut effects.ranges[usize::from(overlay)];
-            let start = i as u32 * 3;
+        effects.opaque_ranges.clear();
+        let append = |ranges: &mut Vec<std::ops::Range<u32>>, start: u32| {
             if let Some(last) = ranges.last_mut().filter(|last| last.end == start) {
                 last.end += 3;
             } else {
                 ranges.push(start..start + 3);
+            }
+        };
+        for (i, triangle) in geometry.vertices.chunks_exact(3).enumerate() {
+            let flags = triangle[0].flags;
+            let overlay = flags & (crate::render_mesh::UI | crate::render_mesh::DEBUG) != 0;
+            let start = i as u32 * 3;
+            append(&mut effects.ranges[usize::from(overlay)], start);
+            if flags & crate::render_mesh::ALPHA == 0 {
+                append(&mut effects.opaque_ranges, start);
             }
         }
         self.update_mesh(&mut effects.mesh, &mut geometry.vertices);
@@ -856,13 +864,24 @@ fn draw_effects(
 ) {
     effects.mesh.bind(pass);
     let ranges = overlay.map(|overlay| &effects.ranges[usize::from(overlay)]);
-    pass.set_pipeline(&pipelines[0]);
-    if let Some(ranges) = ranges {
-        for range in ranges {
-            pass.draw(range.clone(), 0..1);
+    let draw = |pass: &mut wgpu::RenderPass<'_>, range: std::ops::Range<u32>| {
+        if let Some(ranges) = ranges {
+            for visible in ranges {
+                let start = visible.start.max(range.start);
+                let end = visible.end.min(range.end);
+                if start < end {
+                    pass.draw(start..end, 0..1);
+                }
+            }
+        } else {
+            pass.draw(range, 0..1);
         }
-    } else {
-        pass.draw(0..effects.mesh.count, 0..1);
+    };
+    if !effects.opaque_ranges.is_empty() {
+        pass.set_pipeline(&pipelines[0]);
+        for range in &effects.opaque_ranges {
+            draw(pass, range.clone());
+        }
     }
     for batch in &effects.batches {
         if batch.blend == 0 {
@@ -876,16 +895,16 @@ fn draw_effects(
             a: 1.0,
         });
         pass.set_pipeline(&pipelines[usize::from(batch.blend)]);
-        if let Some(ranges) = ranges {
-            for range in ranges {
+        if batch.blend == 5 {
+            draw(pass, batch.range.clone());
+        } else {
+            for range in &effects.opaque_ranges {
                 let start = range.start.max(batch.range.start);
                 let end = range.end.min(batch.range.end);
                 if start < end {
-                    pass.draw(start..end, 0..1);
+                    draw(pass, start..end);
                 }
             }
-        } else {
-            pass.draw(batch.range.clone(), 0..1);
         }
     }
 }

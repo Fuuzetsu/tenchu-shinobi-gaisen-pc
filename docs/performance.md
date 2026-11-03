@@ -894,3 +894,27 @@ WebGL2 rain and WebGPU snow checks. Paired moving High routes change from
 49.6/62.7/43.5/80.3 to 50.3/62.2/44.3/79.7. These small mixed changes do not
 establish a general FPS improvement; the repeatable benefit is CPU transfer
 preparation, particularly for large meshes.
+
+Effects now record contiguous non-alpha ranges during the existing overlay
+classification. Only these ranges are submitted to opaque and retail-translucent
+passes, whose shaders already discard alpha-only vertices. Alpha-blended batches
+keep their original ranges and order; HUD separation remains independent.
+
+In a 768×432 isolated particle fixture, scene GPU time changes from 0.055 to
+0.038 ms for 8,192 quads, 0.246 to 0.135 ms for 65,536 and 1.589 to 0.764 ms
+for 524,288. With interspersed opaque triangles, the corresponding timings are
+0.057 → 0.042, 0.248 → 0.136 and 1.463 → 0.768 ms. All six images match.
+These timings exclude recurring uploads and are not gameplay FPS.
+
+Eight 4K TRIAL/garden images with rain, snow, accumulated tracks and dense
+falling leaves also match exactly. Their whole-scene gains are small or within
+noise: snow/tracks changes from 11.919 to 11.879 ms total GPU time; garden rain
+from 21.816 to 21.773 ms. The streamed-effects regression now compares filtered
+draws against the former full opaque range, including all blend modes,
+interleaved HUD geometry, buffer growth/shrinkage and HDR on/off.
+
+Ten focused GPU checks pass, including retail/HD blood fading, mask edges, sprite
+blend classes, modern blood cutouts, weather tracks and timestamp partitioning.
+Strict native/WASM Clippy and release builds pass. Browser WebGL2 rain and WebGPU
+snow checks pass. Moving High routes measure 72.5/85.9/62.7/93.3 FPS, maximum
+rain 49.7/62.3/43.7/80.0, consistent with recent results.

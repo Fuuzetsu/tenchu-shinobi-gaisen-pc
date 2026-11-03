@@ -182,7 +182,7 @@ fn streamed_effects_preserve_batches_and_overlays() {
             for v in &mut vertices {
                 v.position[0] = v.position[0] * 0.25 + (i % 3) as f32 * 200.0 - 200.0;
                 v.position[1] *= 0.25;
-                if blend == 5 {
+                if blend == 5 || (i != 0 && i % 7 == 0) {
                     v.flags |= render_mesh::ALPHA;
                     v.opacity = 0.4;
                 }
@@ -248,7 +248,8 @@ fn streamed_effects_preserve_batches_and_overlays() {
                                 range: batch.range.start + offset..batch.range.end + offset,
                             }),
                     );
-                let fresh = renderer.upload_effects(reference);
+                let mut fresh = renderer.upload_effects(reference);
+                fresh.opaque_ranges = std::iter::once(0..fresh.mesh.count).collect();
                 renderer
                     .draw(&view, camera, &[&terrain], Some(&fresh))
                     .unwrap();

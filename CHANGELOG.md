@@ -18,6 +18,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Avoid building and uploading off-screen or invisible precipitation, drifting
   leaves/petals, contact particles and splash rings. Keep their simulation,
   wind, shelter, accumulation and lights active.
+  Skip redundant opaque and retail-translucent draws for alpha-only blood,
+  weather and contact effects, preserving blending and HUD order.
 
 - Reduce per-frame model transfers by uploading changing poses separately from
   unchanged texture coordinates, colours and material attributes. Preserve full
