@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.15.4 — 2026-11-03
+
 - Improve rendering performance without reducing visual quality, light or shadow
   counts, retained effects, or gameplay activity. Four moving 4K Modern High
   benchmarks with HD artwork on a GTX 1080 Ti / Ryzen 9 9950X3D improved from
