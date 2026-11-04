@@ -1261,3 +1261,32 @@ triangle scan, including empty geometry, parallel axes, exact boundaries and
 zero-length segments. All 59 ordinary visual tests and four disc-based
 footprint/contact regressions pass, as do formatting and native/WASM strict
 Clippy.
+
+
+## November 4: precipitation sorting and faded geometry
+
+Weather geometry now calculates camera depth once per particle instead of
+repeating it during every sorting comparison. The sort still includes the same
+particles. Fully faded particles then skip streak-axis and width calculations
+that could not produce visible geometry.
+
+Using the same 24 cases and repeated CPU-pinned measurements as above, geometry
+assembly falls by 13–23% for rain and 28–37% for snow. Selected mean times are:
+
+| Mission | Maximum-wind rain before → after | Maximum-wind snow before → after | Snowstorm before → after |
+| --- | ---: | ---: | ---: |
+| 1 | 0.1219 → 0.0959 ms | 0.0660 → 0.0418 ms | 0.1020 → 0.0651 ms |
+| 2 | 0.1423 → 0.1217 ms | 0.0606 → 0.0418 ms | 0.0950 → 0.0647 ms |
+| 9 | 0.1507 → 0.1299 ms | 0.0619 → 0.0413 ms | 0.0958 → 0.0634 ms |
+
+All 24 serialized weather states and final ordered geometry streams match
+exactly. A separate comparison with many tied depths, five view directions and
+particle counts up to 8,192 also preserves the old sorting order. These are CPU
+assembly times, excluding uploads and GPU rendering. The views include many
+off-screen particles, especially Mission 1; they do not establish the same
+percentage improvement when every particle is visible.
+Nine weather regressions, formatting, native/WASM strict Clippy and the native
+release build pass. The moving 4K desktop smoke test completes at
+72.2/85.8/59.7/93.3 FPS with High and 51.7/63.5/44.5/79.4 with maximum rain.
+These mixed whole-frame results do not establish a GPU or overall FPS gain;
+the garden still drops below 60 FPS.

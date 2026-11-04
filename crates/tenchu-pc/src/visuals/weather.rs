@@ -264,13 +264,10 @@ impl Weather {
             .iter()
             .map(|p| (p, false))
             .chain(self.runoff.iter().map(|p| (p, true)))
+            .map(|(p, runoff)| (p, runoff, forward.dot(p.position - near)))
             .collect();
-        particles.sort_unstable_by(|(a, _), (b, _)| {
-            forward
-                .dot(b.position - near)
-                .total_cmp(&forward.dot(a.position - near))
-        });
-        for (p, runoff) in particles {
+        particles.sort_unstable_by(|a, b| b.2.total_cmp(&a.2));
+        for (p, runoff, _) in particles {
             if runoff && (!settings.runoff || settings.runoff_amount == 0) {
                 continue;
             }
@@ -278,6 +275,13 @@ impl Weather {
                 continue;
             }
             let position = p.previous.lerp(p.position, alpha);
+            let distance = position.distance(near);
+            let limit = f32::from(settings.distance) * 1000.0;
+            let fade = ((forward.dot(position - near) - 60.0) / 500.0).clamp(0.0, 1.0)
+                * ((limit - distance) / (limit * 0.2)).clamp(0.0, 1.0);
+            if fade == 0.0 {
+                continue;
+            }
             let snow = self.mode.snow();
             let axis = if snow {
                 up
@@ -294,10 +298,6 @@ impl Weather {
             } else {
                 (p.velocity.length() * if runoff { 1.8 } else { 0.8 }).min(650.0)
             };
-            let distance = position.distance(near);
-            let limit = f32::from(settings.distance) * 1000.0;
-            let fade = ((forward.dot(position - near) - 60.0) / 500.0).clamp(0.0, 1.0)
-                * ((limit - distance) / (limit * 0.2)).clamp(0.0, 1.0);
             let strength = if snow || runoff {
                 1.0
             } else {
