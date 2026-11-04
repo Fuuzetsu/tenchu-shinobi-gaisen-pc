@@ -66,10 +66,7 @@ impl Weather {
                 continue;
             }
             // Only persist a drip if there is a real fall beneath the roof edge.
-            if surfaces
-                .cast(position, position + Vec3::Y * 350.0)
-                .is_none()
-            {
+            if !surfaces.blocked(position, position + Vec3::Y * 350.0) {
                 self.eaves.push(Eave {
                     position,
                     velocity,

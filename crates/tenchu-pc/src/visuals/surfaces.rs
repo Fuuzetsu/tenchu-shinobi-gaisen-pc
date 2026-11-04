@@ -1,6 +1,6 @@
 use crate::render_mesh::Vertex;
 use glam::Vec3;
-use std::ops::Range;
+use std::ops::{ControlFlow, Range};
 
 #[derive(Clone, Copy)]
 struct Bounds {
@@ -59,7 +59,7 @@ impl Surfaces {
     pub fn exposed(&self, position: Vec3, velocity: Vec3) -> bool {
         let rise = (position.y - self.top() + 100.0).max(100.0);
         let start = position - velocity * (rise / velocity.y.max(0.001));
-        self.cast(start, position).is_none()
+        !self.blocked(start, position)
     }
 
     pub fn new(vertices: &[Vertex]) -> Self {
@@ -119,9 +119,13 @@ impl Surfaces {
         index
     }
 
-    fn visit(&self, intersects: impl Fn(Bounds) -> bool, mut visit: impl FnMut(&[Vertex; 3])) {
+    fn visit(
+        &self,
+        intersects: impl Fn(Bounds) -> bool,
+        mut visit: impl FnMut(&[Vertex; 3]) -> ControlFlow<()>,
+    ) -> ControlFlow<()> {
         if self.nodes.is_empty() {
-            return;
+            return ControlFlow::Continue(());
         }
         let mut stack = vec![0];
         while let Some(index) = stack.pop() {
@@ -133,10 +137,30 @@ impl Surfaces {
                 stack.extend(children);
             } else {
                 for triangle in &self.triangles[node.triangles.clone()] {
-                    visit(triangle);
+                    visit(triangle)?;
                 }
             }
         }
+        ControlFlow::Continue(())
+    }
+
+    pub fn blocked(&self, start: Vec3, end: Vec3) -> bool {
+        let bounds = Bounds {
+            min: start.min(end),
+            max: start.max(end),
+        };
+        let inverse = (end - start).recip();
+        self.visit(
+            |node| node.overlaps(bounds) && node.intersects_segment(start, inverse),
+            |triangle| {
+                if intersect(triangle, start, end).is_some() {
+                    ControlFlow::Break(())
+                } else {
+                    ControlFlow::Continue(())
+                }
+            },
+        )
+        .is_break()
     }
 
     pub fn cast(&self, start: Vec3, end: Vec3) -> Option<Hit> {
@@ -149,7 +173,7 @@ impl Surfaces {
             max: start.max(end),
         };
         let inverse = (end - start).recip();
-        self.visit(
+        let _ = self.visit(
             |node| node.overlaps(bounds) && node.intersects_segment(start, inverse),
             |triangle| {
                 if triangle[0].flags & excluded == 0
@@ -158,6 +182,7 @@ impl Surfaces {
                 {
                     nearest = Some(hit);
                 }
+                ControlFlow::Continue(())
             },
         );
         nearest
@@ -171,10 +196,11 @@ impl Surfaces {
             max: stamp.center + extent,
         };
         let projection = stamp.prepare();
-        self.visit(
+        let _ = self.visit(
             |node| node.overlaps(bounds),
             |triangle| {
                 projection.project(triangle, &mut out);
+                ControlFlow::Continue(())
             },
         );
         out
@@ -487,6 +513,7 @@ mod tests {
 
     #[test]
     fn spatial_index_matches_exhaustive_segment_intersections() {
+        assert!(!Surfaces::default().blocked(Vec3::ZERO, Vec3::Y));
         let mut vertices = Vec::new();
         for i in 0..40 {
             vertices.extend(plane(i as f32 * 3.).into_iter().map(|mut v| {
@@ -503,6 +530,13 @@ mod tests {
                 .filter(|t| t[0].flags & excluded == 0)
                 .filter_map(|t| intersect(&[t[0], t[1], t[2]], start, end))
                 .min_by(|a, b| a.fraction.total_cmp(&b.fraction));
+            if excluded == 0 {
+                assert_eq!(
+                    surface.blocked(start, end),
+                    exhaustive.is_some(),
+                    "{start:?} -> {end:?}"
+                );
+            }
             assert_eq!(
                 surface
                     .cast_excluding(start, end, excluded)

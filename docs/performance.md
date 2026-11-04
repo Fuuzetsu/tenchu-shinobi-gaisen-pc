@@ -1234,3 +1234,30 @@ The 59 ordinary visual tests and nine disc-based regressions pass, covering
 independent blood styles, finite wound bleeding, death-pool timing and size,
 both heroes' footprints, distant patrols, original snow, contact effects and
 combat/stealth-kill wounds. Native/WASM strict Clippy and formatting pass.
+
+
+## November 4: precipitation shelter queries
+
+Checking whether a drop is exposed previously searched for the nearest blocking
+triangle. Boolean shelter and roof-edge queries now stop at any blocker. Impact
+queries still search for the nearest surface, in the same traversal order.
+The spatial index is used only by presentation effects, not gameplay collision.
+
+Two baseline/final comparisons cover 24 Mission 1/2/9 cases: maximum-detail
+rain and snow with no wind or maximum wind, both storm modes, and wind direction
+changes every 120 updates. Each case prewarms 30 seconds and measures 1,200
+updates plus geometry assembly, pinned to one CPU. All 24 complete weather
+states and final geometry streams match byte for byte.
+
+The clearest benefit is redirecting existing snow. Mean CPU time on wind-change
+updates falls from 2.20 → 1.96 ms in Mission 1 and 1.18 → 0.84 ms in Mission 9;
+Mission 2 stays about 0.63 ms. Steady maximum-wind Mission 1 snow changes from
+0.0384 → 0.0346 ms per update, and snowstorm from 0.0577 → 0.0519 ms. Steady
+rain results are small and mixed: Mission 1 maximum wind changes from
+0.1441 → 0.1404 ms, Mission 2 from 0.0549 → 0.0557 ms. This does not change
+GPU shading cost or establish an overall frame-rate improvement.
+The exhaustive segment test now also checks boolean queries against a full
+triangle scan, including empty geometry, parallel axes, exact boundaries and
+zero-length segments. All 59 ordinary visual tests and four disc-based
+footprint/contact regressions pass, as do formatting and native/WASM strict
+Clippy.

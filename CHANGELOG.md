@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Stop weather shelter queries at the first blocking surface, reducing CPU work
+  especially when wind redirects existing snow. Rain impacts, roof runoff and
+  shelter coverage retain their existing behavior.
+
 - Reduce CPU work when creating blood stains, death pools and snow footprints
   by preparing each mark once and skipping unused opacity calculations. Shapes,
   surface clipping, textures and retained-effect limits are unchanged.
