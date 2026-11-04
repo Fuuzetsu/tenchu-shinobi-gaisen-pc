@@ -1659,3 +1659,48 @@ actors, moving light/actor shadows, wind, snow, partial updates and full redraws
 Formatting, native and WASM strict Clippy and release builds pass. Chromium
 WebGPU and WebGL2 also load the portable snow/blood state, move, change lighting,
 use paused free camera and resume without errors or changing paused game state.
+
+## November 5: opaque depth coverage with unfiltered artwork
+
+The depth pass already knows which replacement materials are fully opaque.
+It now uses that information with nearest and bilinear filtering too, avoiding
+texture and relief sampling that cannot change coverage. Cutouts, blended
+materials and the final surface shading retain their usual paths.
+
+A reconstructed Mission 1 view uses the diagnostic report's 3826 × 2146
+resolution, camera matrix and effective graphics: HD artwork, parallax, eight
+2048-pixel soft local shadows, rainstorm, wet reflections and post-processing.
+The fixture reproduces the reported GPU cost closely, but does not restore the
+report's actor states or exact weather accumulation. Its wetness/puddles are
+pre-filled to the configured levels. On the GTX 1080 Ti, sequential runs with
+60 warm-up frames and 180 measured frames give:
+
+| View/settings | GPU mean before → after | GPU p95 before → after | GPU p99 before → after |
+|---|---|---|---|
+| Report camera/settings | 21.50 → 20.62 ms | 21.97 → 21.20 ms | 22.21 → 21.31 ms |
+| Same view, dry control | 15.30 → 14.31 ms | 15.81 → 14.73 ms | 16.04 → 14.92 ms |
+| Same view, daytime | 22.21 → 21.21 ms | 22.72 → 21.70 ms | 24.15 → 21.89 ms |
+| Heavy rain and 4,096 projected stains | 27.73 → 26.94 ms | 28.28 → 27.46 ms | 28.38 → 27.59 ms |
+
+The report view's visibility pass falls from 1.81 to 0.88 ms. An initial separate
+pair measured total GPU time at 21.51 → 20.38 ms. Seven before/after 4K captures
+are pixel-identical. GPU regressions cover replacement alpha classes, filtering
+modes, coplanar draw order, indexed moving actors, effects, MSAA and HDR.
+
+These are GPU measurements, not interactive frame rates. The report view remains
+above the 16.67 ms budget for 60 FPS. Diagnostic changes indicate that soft local
+shadow filtering and wet reflections dominate its remaining cost; rain particle
+geometry costs approximately 0.13 ms. Disabling those effects was only a profiling
+control. Unrolling shadow filters gave no gain, and caching one light's shadow
+between diffuse lighting and reflections slowed this view; neither experiment
+was retained.
+
+Four 20-second moving benchmark routes using the report's graphics at the same
+resolution also improve slightly. GPU p95 is 31.44 → 30.64 ms in the village,
+28.93 → 28.76 ms in the courtyard, 30.53 → 30.20 ms in the garden and
+11.10 → 10.90 ms at the waterfall. These offscreen runs include simulation and
+render preparation but serialize CPU/GPU execution. Moving shadow-map updates
+add substantial cost: the baseline village spends 10.52 ms on them on average,
+versus almost zero with the fixed view and poses. Native/WASM strict Clippy,
+release builds and Chromium WebGPU/WebGL2 gameplay, lighting, free-camera and
+portable weather-state checks pass.

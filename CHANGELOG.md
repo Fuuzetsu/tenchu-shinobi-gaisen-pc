@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce GPU work for opaque HD scenery with nearest or bilinear texture
+  filtering, skipping unnecessary texture-relief calculations in the depth pass.
+
 - With **Keep all enemies active**, stealth kills no longer make distant guards
   turn toward the player or wake sleeping guards across the map. Nearby guards
   retain the original game's reactions.

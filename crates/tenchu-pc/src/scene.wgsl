@@ -102,8 +102,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     if !front_facing && (v.flags & (SCREEN | DOUBLE_SIDED)) == 0u { discard; }
     if depth_only {
         if (v.flags & (TEXTURED | TRANSLUCENT)) == 0u { return vec4(0.0); }
-        if FILTER_MATERIALS && MATERIAL_FILTERING >= 2.0
-            && (v.flags & (SCENERY | TEXTURED | STAIN | EMITTER | SCREEN | DEBUG | UI)) == (SCENERY | TEXTURED)
+        if (v.flags & (SCENERY | TEXTURED | STAIN | EMITTER | SCREEN | DEBUG | UI)) == (SCENERY | TEXTURED)
             && material_replaced(v.material) && (material_info(v.material).w & 128u) != 0u {
             return vec4(0.0);
         }
