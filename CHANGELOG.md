@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU work when creating blood stains, death pools and snow footprints
+  by preparing each mark once and skipping unused opacity calculations. Shapes,
+  surface clipping, textures and retained-effect limits are unchanged.
+
 - Reduce CPU allocation and texture uploads when fire, sparks and other lights
   move. Unchanged light-table rows are reused without changing light selection,
   brightness or shadow settings.

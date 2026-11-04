@@ -1205,3 +1205,32 @@ strict Clippy, formatting and release builds pass. Chromium WebGL2 rain and
 WebGPU snow checks perform a grapple, then movement and lighting toggles without
 errors; captured upload calls include 1–12-row light-table updates instead of
 the full 120-row table where applicable.
+
+
+## November 4: blood and footprint projection setup
+
+A CPU profile of repeated projection onto actual Mission 1 terrain attributes
+about 16% of samples to trigonometry. Each receiving triangle recalculated the
+same mark's axes, twelve clipping planes and blood-pattern rotation. These are
+now prepared once per mark, including wounds projected onto multiple model
+parts. Modern blood also skips the edge-opacity calculation that its analytic
+shape immediately replaced. Footprints retain that calculation.
+
+Repeated CPU-pinned comparisons project 946 marks per Mission 1 batch and
+1,024 per Mission 2/9 batch, with 24 batches per case and the first excluded.
+Two baseline and two final runs alternate order; mean CPU time per batch is:
+
+| Mission | Footprints before → after | Blood stains before → after | Death pools before → after |
+| --- | ---: | ---: | ---: |
+| 1 | 8.07 → 6.96 ms | 5.16 → 3.30 ms | 11.61 → 7.10 ms |
+| 2 | 8.93 → 7.64 ms | 5.53 → 3.51 ms | 13.34 → 8.19 ms |
+| 9 | 8.92 → 7.59 ms | 5.64 → 3.52 ms | 12.08 → 7.52 ms |
+
+This reduces creation work by 14–15% for footprints and 36–39% for blood,
+not whole-frame time. All nine resulting meshes, totaling 993,588 vertices,
+match the previous build byte for byte. Rendering and retention are unchanged;
+heavy overlap still incurs the same GPU shading cost.
+The 59 ordinary visual tests and nine disc-based regressions pass, covering
+independent blood styles, finite wound bleeding, death-pool timing and size,
+both heroes' footprints, distant patrols, original snow, contact effects and
+combat/stealth-kill wounds. Native/WASM strict Clippy and formatting pass.

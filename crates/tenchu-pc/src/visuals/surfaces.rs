@@ -170,10 +170,11 @@ impl Surfaces {
             min: stamp.center - extent,
             max: stamp.center + extent,
         };
+        let projection = stamp.prepare();
         self.visit(
             |node| node.overlaps(bounds),
             |triangle| {
-                stamp.project(triangle, &mut out);
+                projection.project(triangle, &mut out);
             },
         );
         out
@@ -245,16 +246,16 @@ pub struct Stamp {
     pub shape: Option<(Vec3, f32)>,
 }
 
+pub struct StampProjection<'a> {
+    stamp: &'a Stamp,
+    tangent: Vec3,
+    bitangent: Vec3,
+    planes: [(Vec3, f32); 12],
+    rotation: Option<glam::Mat2>,
+}
+
 impl Stamp {
-    pub fn project(&self, triangle: &[Vertex; 3], out: &mut Vec<Vertex>) {
-        if triangle[0].flags & crate::render_mesh::WATER != 0 {
-            return;
-        }
-        let [a, b, c] = triangle.map(|v| Vec3::from(v.position));
-        let face_normal = (b - a).cross(c - a).normalize_or_zero();
-        if face_normal.dot(self.normal).abs() < 0.3 || self.radius <= 0.0 {
-            return;
-        }
+    pub fn prepare(&self) -> StampProjection<'_> {
         let mut tangent = self.shape.map_or_else(
             || self.normal.any_orthonormal_vector(),
             |(forward, _)| (forward - self.normal * forward.dot(self.normal)).normalize_or_zero(),
@@ -263,7 +264,6 @@ impl Stamp {
             tangent = self.normal.any_orthonormal_vector();
         }
         let bitangent = self.normal.cross(tangent);
-        let mut polygon = triangle.to_vec();
         let planes = std::array::from_fn::<_, 12, _>(|side| {
             let angle =
                 (side as f32 + (self.seed % 32) as f32 / 32.0) * std::f32::consts::TAU / 12.0;
@@ -275,18 +275,42 @@ impl Stamp {
                 );
             (normal, radius)
         });
-        for (normal, radius) in planes {
-            clip(&mut polygon, normal, normal.dot(self.center) + radius);
+        StampProjection {
+            stamp: self,
+            tangent,
+            bitangent,
+            planes,
+            rotation: self.shape.is_none().then(|| {
+                glam::Mat2::from_angle((self.seed % 1024) as f32 * std::f32::consts::TAU / 1024.0)
+            }),
+        }
+    }
+}
+
+impl StampProjection<'_> {
+    pub fn project(&self, triangle: &[Vertex; 3], out: &mut Vec<Vertex>) {
+        let stamp = self.stamp;
+        if triangle[0].flags & crate::render_mesh::WATER != 0 {
+            return;
+        }
+        let [a, b, c] = triangle.map(|v| Vec3::from(v.position));
+        let face_normal = (b - a).cross(c - a).normalize_or_zero();
+        if face_normal.dot(stamp.normal).abs() < 0.3 || stamp.radius <= 0.0 {
+            return;
+        }
+        let mut polygon = triangle.to_vec();
+        for (normal, radius) in self.planes {
+            clip(&mut polygon, normal, normal.dot(stamp.center) + radius);
         }
         clip(
             &mut polygon,
-            self.normal,
-            self.normal.dot(self.center) + self.depth,
+            stamp.normal,
+            stamp.normal.dot(stamp.center) + stamp.depth,
         );
         clip(
             &mut polygon,
-            -self.normal,
-            -self.normal.dot(self.center) + self.depth,
+            -stamp.normal,
+            -stamp.normal.dot(stamp.center) + stamp.depth,
         );
         if polygon.len() < 3 {
             return;
@@ -295,28 +319,28 @@ impl Stamp {
         for (i, &vertex) in polygon.iter().enumerate().skip(1) {
             center = interpolate(center, vertex, 1.0 / (i + 1) as f32);
         }
-        let rotation = self.shape.is_none().then(|| {
-            glam::Mat2::from_angle((self.seed % 1024) as f32 * std::f32::consts::TAU / 1024.0)
-        });
         let finish = |mut v: Vertex| {
-            let delta = Vec3::from(v.position) - self.center;
-            let margin = planes
-                .iter()
-                .map(|(normal, radius)| radius - delta.dot(*normal))
-                .fold(f32::INFINITY, f32::min);
-            let depth = (self.depth - delta.dot(self.normal).abs()) / (self.depth * 0.4);
-            v.opacity =
-                (margin / (self.radius * 0.3)).clamp(0.0, 1.0) * depth.clamp(0.0, 1.0) * 0.92;
-            if let Some(rotation) = rotation {
+            let delta = Vec3::from(v.position) - stamp.center;
+            let depth = (stamp.depth - delta.dot(stamp.normal).abs()) / (stamp.depth * 0.4);
+            if let Some(rotation) = self.rotation {
                 // Analytic blood uses tint for stamp coordinates and luminance; UVs still sample the receiver.
-                let uv = glam::Vec2::new(delta.dot(tangent), delta.dot(bitangent)) / self.radius;
+                let uv = glam::Vec2::new(delta.dot(self.tangent), delta.dot(self.bitangent))
+                    / stamp.radius;
                 let uv = rotation * uv;
                 let luminance = Vec3::from(v.color).dot(Vec3::new(0.2126, 0.7152, 0.0722));
                 v.color = [uv.x, uv.y, luminance];
                 v.opacity = depth.clamp(0.0, 1.0) * 0.92;
                 v.flags |= crate::render_mesh::SOFT;
+            } else {
+                let margin = self
+                    .planes
+                    .iter()
+                    .map(|(normal, radius)| radius - delta.dot(*normal))
+                    .fold(f32::INFINITY, f32::min);
+                v.opacity =
+                    (margin / (stamp.radius * 0.3)).clamp(0.0, 1.0) * depth.clamp(0.0, 1.0) * 0.92;
             }
-            v.position = (Vec3::from(v.position) + self.normal * 0.5).to_array();
+            v.position = (Vec3::from(v.position) + stamp.normal * 0.5).to_array();
             v.flags = (v.flags & !crate::render_mesh::EMITTER)
                 | crate::render_mesh::ALPHA
                 | crate::render_mesh::STAIN;
@@ -326,7 +350,7 @@ impl Stamp {
             stamp_triangle(
                 [center, polygon[i], polygon[(i + 1) % polygon.len()]],
                 0,
-                if self.shape.is_some() { 1 } else { 0 },
+                if stamp.shape.is_some() { 1 } else { 0 },
                 &finish,
                 out,
             );

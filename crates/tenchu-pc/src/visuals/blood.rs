@@ -505,6 +505,7 @@ impl Blood {
             seed: self.seed,
             shape: None,
         };
+        let projection = stamp.prepare();
         let mut patches = Vec::new();
         for &(key, matrix, ref vertices) in &parts {
             let r = rotation(matrix);
@@ -515,7 +516,7 @@ impl Blood {
             let offset = translation(matrix);
             let mut projected = Vec::new();
             for triangle in vertices.chunks_exact(3) {
-                stamp.project(&[triangle[0], triangle[1], triangle[2]], &mut projected);
+                projection.project(&[triangle[0], triangle[1], triangle[2]], &mut projected);
             }
             for v in &mut projected {
                 v.position = (inverse * (Vec3::from(v.position) - offset)).to_array();
