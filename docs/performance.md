@@ -1456,3 +1456,61 @@ Formatting, native/WASM strict Clippy and release builds pass. Checks cover
 exact cached-versus-full mission snapshots after asset edits, item-active
 rewind/branching on both heroes, timed reverse playback, restoring visual
 history and the shared-resource memory budget.
+
+## November 4: snow shelter bounds for overlapping blood
+
+Modern ground stains can repeat the same expensive snow-shelter filter many
+times over one pixel. Each weather shelter map now has a small hierarchy of
+minimum/maximum world heights. On level ground, four bounds lookups can prove
+that the complete filter is exposed or sheltered; ambiguous samples and slopes
+still use the original filter. World heights avoid the depth gradient that wind
+introduces on horizontal ground.
+
+The hierarchy follows the existing dirty shadow regions and costs about
+1.33 MiB at the highest weather resolution. It updates only when modern ground
+blood needs it. A separate fragment entry keeps the original path for rain,
+wet residue and ordinary scenery. No settings, sampling quality, retained-effect
+limits or gameplay behavior change.
+
+Two 20-second native 4K snow/blood/footprint/rewind pairs give:
+
+| Village measurement | Before → after, first pair | Before → after, reverse pair |
+| --- | ---: | ---: |
+| Frame p95 | 51.56 → 47.74 ms | 52.42 → 47.59 ms |
+| Frame p99 | 53.72 → 49.63 ms | 53.56 → 50.42 ms |
+| GPU p95 | 47.24 → 43.67 ms | 48.07 → 43.13 ms |
+| GPU p99 | 49.08 → 45.36 ms | 49.07 → 45.72 ms |
+
+The courtyard, garden and waterfall show no consistent additional improvement.
+These use the growing-effects stress fixture described above, with 1,140 CPU
+and 1,138 GPU samples per route. The village remains far below 60 FPS at the
+tail; this is not a claim that extreme overlapping blood is now inexpensive.
+
+The final shader split was also checked in 360-frame offscreen TRIAL 2 runs,
+excluding 60 warm-up frames, with 4,096 blood marks:
+
+| Case | GPU mean before → after | GPU p95 before → after | GPU p99 before → after |
+| --- | ---: | ---: | ---: |
+| Rain | 60.63 → 59.85 ms | 62.58 → 60.58 ms | 63.68 → 61.01 ms |
+| Snow | 43.30 → 39.45 ms | 44.07 → 41.65 ms | 46.30 → 44.18 ms |
+| Snow over retained rain puddles | 46.22 → 45.93 ms | 46.55 → 46.54 ms | 46.78 → 48.12 ms |
+| Snow with animated shadow casters | 43.82 → 39.28 ms | 44.43 → 40.04 ms | 44.87 → 40.47 ms |
+
+Rain and wet-residue paths do not use the optimization; their variation does
+not establish a gain. An earlier final-shader pair measured those means at
+60.53/46.34 ms, and dry/animated snow at 39.00/40.13 ms.
+
+All four final comparison images are pixel-identical. Twelve earlier pairs
+also match, covering garden footprints, daytime lighting, lightning, wet
+residue and disabled snow drift. An interrupted desktop repeat was discarded.
+The new regression compares eighteen combinations of moving roof cover, wind,
+weather quality and slopes against full filtering and full shadow redraws,
+including disabling/re-enabling decals while cover changes. The existing
+blood blending, weather exposure and moving-shadow checks also pass.
+
+Formatting, native/WASM strict Clippy and release builds pass. WebGPU and
+WebGL2 load the same portable snow/blood savestate, execute the bounds passes,
+move, toggle lighting, use paused free camera and resume without errors or
+altering paused gameplay. Both browsers' paused captures match their respective
+full-filter reference images exactly. Sampling array layers explicitly also
+avoids WebGL2's unsupported sampled views of individual array layers.

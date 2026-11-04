@@ -19,6 +19,100 @@ fn horizontal(renderer: &mut Renderer, y: f32, x: [f32; 2], z: [f32; 2]) -> Mesh
 }
 
 #[test]
+#[ignore = "requires a GPU; snow bounds must preserve shelter edges, slopes and moving blockers, including re-enabling decals"]
+fn snow_blood_bounds_match_full_filter_after_shelter_changes() {
+    use crate::visuals::surfaces::{Stamp, Surfaces};
+    use std::sync::Arc;
+
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let plane = |slope: f32, center: Vec3, radius: f32| {
+        let points = [
+            Vec3::new(-radius, -radius * slope, -radius),
+            Vec3::new(radius, radius * slope, -radius),
+            Vec3::new(-radius, -radius * slope, radius),
+            Vec3::new(radius, radius * slope, radius),
+        ];
+        [0, 1, 2, 1, 3, 2].map(|i| Vertex {
+            position: (points[i] + center).to_array(),
+            color: [0.6; 3],
+            opacity: 1.0,
+            flags: render_mesh::SCENERY | render_mesh::DOUBLE_SIDED,
+            ..Vertex::zeroed()
+        })
+    };
+    let camera = Mat4::perspective_rh(1.0, 1.0, 10.0, 220000.0)
+        * Mat4::look_at_rh(
+            Vec3::new(0.0, -15000.0, -24000.0),
+            Vec3::new(0.0, 0.0, 12000.0),
+            Vec3::NEG_Y,
+        );
+    let capture = |renderer: &mut Renderer, ground: &Mesh, roof: &Mesh| {
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                SceneMeshes::new(&[ground], &[]),
+                None,
+                &[],
+                &[ground, roof],
+            )
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.weather.mode = crate::settings::WeatherMode::Snow;
+    graphics.weather.snow_drift = 100;
+    for slope in [0.0, 0.00008, 0.02] {
+        let vertices = plane(slope, Vec3::ZERO, 60000.0);
+        let ground = renderer.upload(&vertices);
+        let surfaces = Surfaces::new(&vertices);
+        let normal = Vec3::new(slope, -1.0, 0.0).normalize();
+        let pages: Vec<_> = [-20000.0, 0.0, 20000.0]
+            .into_iter()
+            .map(|x| {
+                Arc::new(surfaces.project(&Stamp {
+                    center: Vec3::new(x, x * slope, x),
+                    normal,
+                    radius: 18000.0,
+                    depth: 15.0,
+                    seed: 3,
+                    shape: None,
+                }))
+            })
+            .collect();
+        let mut roof = renderer.upload(&[]);
+        for (step, wind) in [0, 55, 100, 100, 100, 100].into_iter().enumerate() {
+            graphics.weather.wind = wind;
+            graphics.weather.heading = 67;
+            graphics.weather.quality = step.min(2) as u16;
+            renderer.configure(&graphics);
+            renderer.weather.snow = 0.9;
+            renderer.update_mesh(
+                &mut roof,
+                &mut plane(
+                    0.0,
+                    Vec3::new(step as f32 * 6000.0 - 18000.0, -2200.0, 0.0),
+                    10000.0,
+                ),
+            );
+            if step == 4 {
+                renderer.set_decals(std::iter::empty());
+                capture(&mut renderer, &ground, &roof);
+            }
+            renderer.set_decals(&pages);
+            renderer.skip_blood_shader = true;
+            let expected = capture(&mut renderer, &ground, &roof);
+            renderer.skip_blood_shader = false;
+            let cached = capture(&mut renderer, &ground, &roof);
+            assert_eq!(cached, expected, "slope {slope}, step {step}");
+            renderer.shadows.invalidate();
+            assert_eq!(capture(&mut renderer, &ground, &roof), cached);
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a GPU; rain haze must blend continuously when a view crosses a roof edge"]
 fn rain_haze_crosses_shelter_without_bands() {
     let (mut renderer, target) = fixture(&Vram::default());

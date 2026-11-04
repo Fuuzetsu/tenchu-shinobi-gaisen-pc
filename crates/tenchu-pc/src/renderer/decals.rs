@@ -7,7 +7,7 @@ pub(super) struct Decal {
     _source: Arc<Vec<Vertex>>,
     mesh: Mesh,
     bounds: [Vec3; 2],
-    ground_blood: bool,
+    pub(super) ground_blood: bool,
 }
 
 impl Renderer {
@@ -60,9 +60,17 @@ impl Renderer {
         uploaded
     }
 
+    pub(super) fn snow_bounds(&self) -> bool {
+        self.graphics.weather.snow_drift > 0
+            && !self.graphics.weather.mode.rain()
+            && self.weather.snow > 0.0
+            && self.weather.wet + self.weather.puddles == 0.0
+    }
+
     pub(super) fn draw_decals(&self, pass: &mut wgpu::RenderPass<'_>, matrix: Mat4) {
         let frustum = Frustum::new(matrix);
         let mut current = false;
+        let bounds = self.snow_bounds();
         pass.set_pipeline(&self.pipelines.effects[5]);
         for decal in self
             .decals
@@ -74,7 +82,11 @@ impl Renderer {
             let specialised = specialised && !self.skip_blood_shader;
             if current != specialised {
                 pass.set_pipeline(if specialised {
-                    &self.pipelines.ground_blood
+                    if bounds {
+                        &self.pipelines.snow_blood
+                    } else {
+                        &self.pipelines.ground_blood
+                    }
                 } else {
                     &self.pipelines.effects[5]
                 });

@@ -4,6 +4,7 @@ use crate::lighting::{Light, MAX_LIGHTS, MAX_SCENE_LIGHTS, MAX_SHADOW_LIGHTS};
 use glam::{Mat4, Vec3};
 
 mod culling;
+mod weather_bounds;
 
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
@@ -42,6 +43,7 @@ pub struct Shadows {
     weather: wgpu::TextureView,
     weather_layers: [wgpu::TextureView; 2],
     weather_resolution: u32,
+    weather_bounds: weather_bounds::Bounds,
     selection: crate::lighting::shadows::Selection,
     grid: super::light_grid::Grid,
     readable: ReadableDepth,
@@ -77,6 +79,16 @@ impl Shadows {
             label: Some("Point lights and shadow maps"),
             entries: &[
                 uniform,
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStages::FRAGMENT,
@@ -159,7 +171,7 @@ impl Shadows {
         });
         let sun = super::sun::target(device, 1);
         let (weather, weather_layers) = weather_targets(device, 1);
-        let (bindings, views, readable) = maps(
+        let (bindings, views, readable, weather_bounds) = maps(
             device,
             &layout,
             &data,
@@ -335,6 +347,7 @@ impl Shadows {
             weather,
             weather_layers,
             weather_resolution: 1,
+            weather_bounds,
             selection: Default::default(),
             grid,
             readable,
@@ -386,7 +399,12 @@ impl Shadows {
             || sun_changed
             || weather_changed
         {
-            (self.bindings, self.views, self.readable) = maps(
+            (
+                self.bindings,
+                self.views,
+                self.readable,
+                self.weather_bounds,
+            ) = maps(
                 device,
                 &self.layout,
                 &self.data,
@@ -600,6 +618,15 @@ impl Shadows {
                     ],
                     geometry,
                 );
+                if frame.weather_bounds {
+                    let inv = weather_inverse[layer].to_cols_array();
+                    self.weather_bounds.draw(
+                        encoder,
+                        queue,
+                        layer,
+                        [inv[1], inv[5], inv[9], inv[13]],
+                    );
+                }
             }
         }
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
@@ -761,6 +788,10 @@ impl Shadows {
                 mesh.draw(&mut pass, range.clone());
             }
         }
+        drop(pass);
+        if index >= FACES {
+            self.weather_bounds.invalidate(index - FACES, region);
+        }
     }
 }
 
@@ -843,7 +874,12 @@ fn maps(
     resolution: u32,
     layers: usize,
     sky: MapTargets<'_>,
-) -> (wgpu::BindGroup, Vec<wgpu::TextureView>, ReadableDepth) {
+) -> (
+    wgpu::BindGroup,
+    Vec<wgpu::TextureView>,
+    ReadableDepth,
+    weather_bounds::Bounds,
+) {
     let readable = ReadableDepth::new(
         device,
         if sky.gl {
@@ -867,10 +903,24 @@ fn maps(
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
     });
+    let weather_bounds = weather_bounds::Bounds::new(
+        device,
+        sky.sizes[1],
+        if sky.gl {
+            &readable.weather.0
+        } else {
+            sky.views[1]
+        },
+        sky.gl,
+    );
     let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Lighting textures"),
         layout,
         entries: &[
+            wgpu::BindGroupEntry {
+                binding: 8,
+                resource: wgpu::BindingResource::TextureView(&weather_bounds.view),
+            },
             wgpu::BindGroupEntry {
                 binding: 0,
                 resource: data.as_entire_binding(),
@@ -921,7 +971,7 @@ fn maps(
             })
         })
         .collect();
-    (bindings, views, readable)
+    (bindings, views, readable, weather_bounds)
 }
 
 fn weather_targets(

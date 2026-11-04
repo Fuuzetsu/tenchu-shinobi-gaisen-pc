@@ -80,7 +80,7 @@ struct Fragment {
     return out;
 }
 
-fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only: bool, precomputed_weather: bool, rain_enabled: bool) -> vec4<f32> {
+fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only: bool, precomputed_weather: bool, rain_enabled: bool, use_bounds: bool) -> vec4<f32> {
     var v = input;
     let original_stain = (v.flags & (STAIN | SOFT)) == STAIN;
     let blood_hd = original_hd_blood(v.flags);
@@ -188,7 +188,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     let surface_decal = (v.flags & (STAIN | FOOTPRINT | WET_CONTACT)) != 0u;
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY
         && ((v.flags & ALPHA) == 0u || surface_decal) {
-        color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting, light, !screen && !unlit, precomputed_weather, rain_enabled);
+        color = weather_surface(color, normal, surface_normal, v.world, max(length(world_dx), length(world_dy)), linear_lighting, light, !screen && !unlit, precomputed_weather, rain_enabled, use_bounds);
     }
     if !original_stain && (v.flags & (SCENERY | STAIN)) == (SCENERY | STAIN) {
         var absorption = vec3(0.52, 0.025, 0.045);
@@ -221,29 +221,29 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
 
 @fragment fn depth_only(v: Fragment, @builtin(front_facing) front_facing: bool) {
     if (v.flags & ALPHA) != 0u { discard; }
-    _ = shade(v, front_facing, false, true, true, true);
+    _ = shade(v, front_facing, false, true, true, true, false);
 }
 
 @fragment fn opaque(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
-    let color = shade(v, front_facing, false, false, true, true);
+    let color = shade(v, front_facing, false, false, true, true, false);
     return vec4(color.rgb, 1.0);
 }
 
 @fragment fn scenery(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     var v = input;
     v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE | UNLIT)) | SCENERY;
-    let color = shade(v, front_facing, false, false, true, true);
+    let color = shade(v, front_facing, false, false, true, true, false);
     return vec4(color.rgb, 1.0);
 }
 
 @fragment fn translucent(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     if (v.flags & ALPHA) != 0u { discard; }
-    let color = shade(v, front_facing, true, false, false, true);
+    let color = shade(v, front_facing, true, false, false, true, false);
     return vec4(color.rgb, 1.0);
 }
 
-fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool) -> vec4<f32> {
+fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool, use_bounds: bool) -> vec4<f32> {
     var opacity = v.opacity;
     if (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN) { opacity = weapon_blood(v.uv, v.opacity); }
     if original_hd_blood(v.flags) && (v.flags & TEXTURED) == 0u {
@@ -268,19 +268,27 @@ fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool) -> ve
     }
     if opacity <= 0.0 { discard; }
     // Specialising rain benefits projected blood; other paths keep their combined shader.
-    let color = shade(v, front_facing, false, false, precomputed_weather, RAIN_ENABLED || !precomputed_weather);
+    let color = shade(v, front_facing, false, false, precomputed_weather, RAIN_ENABLED || !precomputed_weather, use_bounds);
     if original_hd_blood(v.flags) && (v.flags & TEXTURED) != 0u { opacity *= color.a; }
     return vec4(color.rgb, clamp(opacity, 0.0, 1.0));
 }
 
 @fragment fn alpha(v: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
-    return alpha_color(v, front_facing, false);
+    return alpha_color(v, front_facing, false, false);
+}
+
+fn ground_blood_color(input: Fragment, front_facing: bool, use_bounds: bool) -> vec4<f32> {
+    var v = input;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | FOLIAGE)) | SCENERY | STAIN | SOFT | ALPHA;
+    return alpha_color(v, front_facing, true, use_bounds);
 }
 
 @fragment fn ground_blood(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
-    var v = input;
-    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | FOLIAGE)) | SCENERY | STAIN | SOFT | ALPHA;
-    return alpha_color(v, front_facing, true);
+    return ground_blood_color(input, front_facing, false);
+}
+
+@fragment fn snow_blood(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    return ground_blood_color(input, front_facing, true);
 }
 
 fn sky_color(direction: vec3<f32>) -> vec4<f32> {

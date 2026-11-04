@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce GPU work for overlapping blood stains on snow by reusing conservative
+  shelter-height bounds. Roof edges, sloped surfaces and moving blockers retain
+  the existing shelter filtering and appearance.
+
 - Reduce rewind recording spikes when new blood pages and footprints are added,
   by retaining encoded data for unchanged effects.
 

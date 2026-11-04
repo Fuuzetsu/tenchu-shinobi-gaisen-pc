@@ -37,6 +37,7 @@ pub(super) struct Pipelines {
     pub effects: [wgpu::RenderPipeline; 6],
     pub visibility: wgpu::RenderPipeline,
     pub ground_blood: wgpu::RenderPipeline,
+    pub snow_blood: wgpu::RenderPipeline,
 }
 
 pub(super) fn create(
@@ -147,6 +148,13 @@ pub(super) fn create(
         scenery: make_pipeline(None, "scenery", 0, true, wgpu::CompareFunction::Less),
         effects,
         visibility: make_pipeline(None, "depth_only", 1, true, wgpu::CompareFunction::Less),
+        snow_blood: make_pipeline(
+            Some(wgpu::BlendState::ALPHA_BLENDING),
+            "snow_blood",
+            -2,
+            false,
+            wgpu::CompareFunction::LessEqual,
+        ),
         ground_blood: make_pipeline(
             Some(wgpu::BlendState::ALPHA_BLENDING),
             "ground_blood",

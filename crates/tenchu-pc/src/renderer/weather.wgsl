@@ -1,3 +1,29 @@
+@group(1) @binding(8) var weather_bounds: texture_2d_array<f32>;
+
+fn weather_bound_exposure(uv: vec2<f32>, center: f32, span: vec2<f32>, radius: f32, normal: vec3<f32>, layer: i32) -> f32 {
+    // World-height bounds cancel the large depth gradient on level ground.
+    // Other slopes retain the full shelter filter.
+    if normal.y > -0.9999 || any(abs(normal.xz) > vec2(0.0001)) { return -1.0; }
+    let size = vec2<f32>(textureDimensions(weather_map));
+    let spread = vec2(1.31 * radius) / span;
+    let low = vec2<u32>(clamp(floor((uv - spread) * size - vec2(0.5)), vec2(0.0), size - vec2(1.0))) / 4u;
+    let high = vec2<u32>(clamp(floor((uv + spread) * size - vec2(0.5)) + vec2(1.0), vec2(0.0), size - vec2(1.0))) / 4u;
+    let extent = high - low;
+    let mip = 32u - countLeadingZeros(max(extent.x, extent.y));
+    let a = vec2<i32>(low >> vec2(mip));
+    let b = vec2<i32>(high >> vec2(mip));
+    let a0 = textureLoad(weather_bounds, a, layer, i32(mip)).rg;
+    let a1 = textureLoad(weather_bounds, vec2(b.x, a.y), layer, i32(mip)).rg;
+    let b0 = textureLoad(weather_bounds, vec2(a.x, b.y), layer, i32(mip)).rg;
+    let b1 = textureLoad(weather_bounds, b, layer, i32(mip)).rg;
+    let bounds = vec2(min(min(a0.x, a1.x), min(b0.x, b1.x)), max(max(a0.y, a1.y), max(b0.y, b1.y)));
+    // Include the tiny accepted slope across the kernel/texels and projection rounding.
+    let margin = 2.0 + radius * 0.002 + (span.x + span.y) / size.x * 0.001;
+    if center + margin < bounds.x { return 1.0; }
+    if center - margin > bounds.y { return 0.0; }
+    return -1.0;
+}
+
 fn weather_hash(cell: vec3<f32>) -> f32 {
     var h = fract(cell * 0.1031);
     h += dot(h, h.yzx + vec3(33.33));
@@ -57,7 +83,7 @@ fn weather_compare(uv: vec2<f32>, depth: f32, gradient: vec2<f32>, layer: i32) -
     return exposed;
 }
 
-fn weather_exposure(normal: vec3<f32>, position: vec3<f32>, precomputed: bool) -> f32 {
+fn weather_exposure(normal: vec3<f32>, position: vec3<f32>, precomputed: bool, use_bounds: bool) -> f32 {
     let direction = weather_direction(precomputed);
     var shelter = 0.0;
     var remaining = 1.0;
@@ -80,7 +106,12 @@ fn weather_exposure(normal: vec3<f32>, position: vec3<f32>, precomputed: bool) -
             let radius = (select(65.0, 240.0, wet) + min(gap * 0.08, 250.0))
                 * select(lighting.rain.w, 1.0, wet);
             let span = weather_scale(layer, precomputed);
-            if wet {
+            var bounded = -1.0;
+            if use_bounds && !RAIN_ENABLED && !wet {
+                bounded = weather_bound_exposure(uv, position.y - direction.y * 35.0, span, radius, normal, layer);
+            }
+            if bounded >= 0.0 { exposed = bounded; }
+            else if wet {
                 let taps = array(vec2(-0.85, -0.4), vec2(-0.25, 0.9), vec2(0.3, -0.8), vec2(0.9, 0.3));
                 for (var i = 0; i < 4; i++) {
                     let offset = taps[i] * radius / span;
@@ -124,7 +155,7 @@ fn snow_coverage(normal: vec3<f32>, exposure: f32, variation: f32, precomputed: 
 }
 
 fn weather_snow(normal: vec3<f32>, position: vec3<f32>, precomputed: bool) -> f32 {
-    return snow_coverage(normal, weather_exposure(normal, position, precomputed), snow_variation(position), precomputed);
+    return snow_coverage(normal, weather_exposure(normal, position, precomputed, false), snow_variation(position), precomputed);
 }
 
 fn rain_color() -> vec3<f32> {
@@ -134,7 +165,7 @@ fn rain_color() -> vec3<f32> {
 
 fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, precomputed: bool) -> vec3<f32> {
     if !WEATHER_ENABLED || lighting.source.z == 0.0 { return vec3(0.0); }
-    let exposed = weather_exposure(surface, position, precomputed);
+    let exposed = weather_exposure(surface, position, precomputed, false);
     let diffuse = 0.2 + 0.8 * max(0.0, -normal.y);
     return vec3(1.2, 1.4, 1.7) * lighting.source.z * exposed * diffuse;
 }
@@ -199,11 +230,11 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
     return surface_reflection(position, normal, surface, puddle) * lighting.rain.x;
 }
 
-fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool, precomputed: bool, rain_enabled: bool) -> vec3<f32> {
+fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool, precomputed: bool, rain_enabled: bool, use_bounds: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y + lighting.weather.w <= 0.0 { return input; }
     let incidence = weather_incidence(surface, precomputed);
     if incidence == 0.0 { return input; }
-    let shelter = weather_exposure(surface, position, precomputed);
+    let shelter = weather_exposure(surface, position, precomputed, use_bounds);
     if shelter == 0.0 { return input; }
     var color = input;
     if lighting.weather.x + lighting.weather.w > 0.0 {
