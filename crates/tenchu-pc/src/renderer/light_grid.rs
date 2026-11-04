@@ -68,6 +68,9 @@ impl Cells {
                         let center = corner + Vec3::splat(self.spacing * 0.5);
                         let score = center.distance_squared(position) / (light.w * light.w);
                         let cell = ((z * self.size[1] + y) * self.size[0] + x) as usize;
+                        if score >= self.scores[cell][budget - 1] {
+                            continue;
+                        }
                         let Some(slot) = self.scores[cell][..budget]
                             .iter()
                             .position(|&old| score < old)
@@ -245,6 +248,59 @@ mod tests {
         assert!(!cells.update(lights.clone(), 1));
         assert!(cells.update(lights, 0));
         assert!(cells.indices.is_empty());
+    }
+
+    #[test]
+    fn local_light_selection_matches_exhaustive_stable_ranking() {
+        let lights: Vec<_> = (0..48)
+            .map(|i| {
+                if i % 3 == 0 {
+                    Vec4::new(0.0, 0.0, 0.0, 8192.0)
+                } else {
+                    Vec4::new(
+                        ((i * 13) % 9 - 4) as f32 * 4096.0,
+                        ((i * 7) % 5 - 2) as f32 * 4096.0,
+                        ((i * 11) % 7 - 3) as f32 * 4096.0,
+                        (i % 4 + 1) as f32 * 4096.0,
+                    )
+                }
+            })
+            .collect();
+        let mut cells = Cells::default();
+        for budget in [1, 8, MAX_LIGHTS] {
+            cells.update(lights.clone(), budget);
+            for (index, actual) in cells.indices.iter().enumerate() {
+                let [nx, ny, _] = cells.size.map(|n| n as usize);
+                let position = Vec3::new(
+                    (index % nx) as f32,
+                    (index / nx % ny) as f32,
+                    (index / (nx * ny)) as f32,
+                );
+                let low = cells.origin + position * cells.spacing;
+                let high = low + Vec3::splat(cells.spacing);
+                let center = low + Vec3::splat(cells.spacing * 0.5);
+                let mut candidates: Vec<_> = lights
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, light)| {
+                        let p = light.truncate();
+                        let radius_squared = light.w * light.w;
+                        (p.clamp(low, high).distance_squared(p) < radius_squared).then(|| {
+                            (
+                                center.distance_squared(p) / radius_squared,
+                                index as u32 + 1,
+                            )
+                        })
+                    })
+                    .collect();
+                candidates.sort_by(|a, b| a.0.total_cmp(&b.0));
+                let mut expected = [0; MAX_LIGHTS];
+                for (slot, &(_, light)) in candidates.iter().take(budget).enumerate() {
+                    expected[slot] = light;
+                }
+                assert_eq!(*actual, expected, "budget {budget}, cell {index}");
+            }
+        }
     }
 
     #[test]

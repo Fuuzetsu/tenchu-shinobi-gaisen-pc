@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce moving-light selection work by rejecting lights that cannot enter a
+  region's configured light budget. Light choices and tie ordering are unchanged.
+
 - Reduce rain and snow geometry CPU work by caching particle depth for sorting
   and skipping fully faded streaks before constructing them. Particle counts,
   motion, visibility and blending order are unchanged.

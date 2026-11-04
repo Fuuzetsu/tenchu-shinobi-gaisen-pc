@@ -1290,3 +1290,24 @@ release build pass. The moving 4K desktop smoke test completes at
 72.2/85.8/59.7/93.3 FPS with High and 51.7/63.5/44.5/79.4 with maximum rain.
 These mixed whole-frame results do not establish a GPU or overall FPS gain;
 the garden still drops below 60 FPS.
+
+## November 4: light-list insertion cutoff
+
+A CPU profile attributes most light-table construction work to cell selection,
+including repeated scans of each cell's sorted scores. A candidate that cannot
+beat the last selected score now skips the scan and insertion immediately.
+Strict ties retain their previous ordering.
+
+Two baseline/final comparisons, pinned to one CPU, measure 1,200 cell-table
+updates per mission with two moving sources and the actual HD lamps. Excluding
+60 warm-up updates, mean construction time falls from 0.2891 / 0.1328 / 0.1075 /
+0.1122 ms to 0.2684 / 0.1212 / 0.0990 / 0.1031 ms for Missions 1 / 2 / 7 / 9.
+This is 7–9% less CPU work for that operation.
+
+The complete table-update and upload-submission fixture, with two or 32 moving
+sources, also improves by about 3–8%; stationary tables keep their existing
+cache. All twelve table/uniform hashes match in repeated runs. An independent
+exhaustive ranking test covers overlapping lights, tied scores, cell boundaries
+and budgets of 1, 8 and 16. GPU readback through partial uploads and resizing,
+distant-light and accumulation checks pass, as do native/WASM strict Clippy
+and formatting. No GPU shading or whole-frame FPS improvement is claimed.
