@@ -1172,3 +1172,36 @@ from about 66 to 73 ms on this GPU despite doing fewer samples in source code.
 Native/WASM strict Clippy, release builds and formatting pass. Chromium WebGL2
 rain and WebGPU snow checks pass through movement, lighting toggles, paused
 free camera and resumed play without rendering errors.
+
+
+## November 4: moving-light table updates
+
+Moving sources used to allocate a new ranking buffer and upload the complete
+world light table even when its cell lists were unchanged. Ranking storage is
+now reused. GPU uploads cover the span between the first and last changed rows,
+or are skipped when only source positions changed and cell membership did not.
+Positions, brightness and shadow uniforms still update normally.
+
+Two CPU-pinned comparisons use each mission's actual HD lamps plus two or 32
+moving sources. Each case runs 240 updates and excludes the first 40. Mean CPU
+time for table construction and upload submission is:
+
+| Mission | Two moving lights, before → after | 32 moving lights, before → after |
+| --- | ---: | ---: |
+| 1 | 0.317 → 0.301 ms | 0.321 → 0.309 ms |
+| 2 | 0.172 → 0.148 ms | 0.175 → 0.159 ms |
+| 7 | 0.133 → 0.120 ms | 0.136 → 0.125 ms |
+| 9 | 0.159 → 0.129 ms | 0.162 → 0.143 ms |
+
+This is about 4–19% less work in this small part of the frame. With two moving
+sources, uploads occur on 107 / 133 / 98 / 96 of 200 measured updates instead
+of every update. Stationary lamps keep their existing cache. All twelve final
+table/uniform hashes match across the repeated runs, including stationary cases.
+GPU readback verifies partial uploads through movement, growth, shrinkage,
+disabled lighting and changed budgets against complete CPU tables. Existing
+checks for distant lights, overlapping budgets and moving shadow casters pass.
+Moving 4K Modern High rates remain 73.0 / 87.2 / 62.5 / 91.9 FPS. Native/WASM
+strict Clippy, formatting and release builds pass. Chromium WebGL2 rain and
+WebGPU snow checks perform a grapple, then movement and lighting toggles without
+errors; captured upload calls include 1–12-row light-table updates instead of
+the full 120-row table where applicable.

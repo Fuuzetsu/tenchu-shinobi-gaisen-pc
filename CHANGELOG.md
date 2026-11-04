@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU allocation and texture uploads when fire, sparks and other lights
+  move. Unchanged light-table rows are reused without changing light selection,
+  brightness or shadow settings.
+
 - Reduce rewind recording work by sharing unchanged animation and weapon-model
   resources between captures. Edited wall poses, imported movesets and weapon
   geometry remain part of the saved state.

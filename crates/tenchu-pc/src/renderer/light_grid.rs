@@ -4,6 +4,7 @@ use glam::{Vec3, Vec4};
 const WIDTH: u32 = 256;
 const CELLS: usize = 32_768;
 const TEXELS_PER_CELL: usize = MAX_LIGHTS / 4;
+const CELLS_PER_ROW: usize = WIDTH as usize / TEXELS_PER_CELL;
 const HEIGHT: u32 = (CELLS * TEXELS_PER_CELL / WIDTH as usize) as u32;
 
 #[derive(Default)]
@@ -14,6 +15,7 @@ struct Cells {
     size: [u32; 3],
     budget: usize,
     indices: Vec<[u32; MAX_LIGHTS]>,
+    scores: Vec<[f32; MAX_LIGHTS]>,
 }
 
 impl Cells {
@@ -48,7 +50,8 @@ impl Cells {
         }
         let count = self.size.iter().product::<u32>() as usize;
         self.indices.resize(count, [0; MAX_LIGHTS]);
-        let mut scores = vec![[f32::INFINITY; MAX_LIGHTS]; count];
+        self.scores.resize(count, [f32::INFINITY; MAX_LIGHTS]);
+        self.scores.fill([f32::INFINITY; MAX_LIGHTS]);
         for (index, light) in self.lights.iter().enumerate() {
             let position = light.truncate();
             let min = self.cell(position - Vec3::splat(light.w));
@@ -65,13 +68,15 @@ impl Cells {
                         let center = corner + Vec3::splat(self.spacing * 0.5);
                         let score = center.distance_squared(position) / (light.w * light.w);
                         let cell = ((z * self.size[1] + y) * self.size[0] + x) as usize;
-                        let Some(slot) = scores[cell][..budget].iter().position(|&old| score < old)
+                        let Some(slot) = self.scores[cell][..budget]
+                            .iter()
+                            .position(|&old| score < old)
                         else {
                             continue;
                         };
-                        scores[cell].copy_within(slot..budget - 1, slot + 1);
+                        self.scores[cell].copy_within(slot..budget - 1, slot + 1);
                         self.indices[cell].copy_within(slot..budget - 1, slot + 1);
-                        scores[cell][slot] = score;
+                        self.scores[cell][slot] = score;
                         self.indices[cell][slot] = index as u32 + 1;
                     }
                 }
@@ -90,11 +95,15 @@ pub(super) struct Grid {
     pub view: wgpu::TextureView,
     texture: wgpu::Texture,
     cells: Cells,
+    uploaded: Vec<[u32; MAX_LIGHTS]>,
     pub order: Vec<usize>,
 }
 
 impl Grid {
     pub fn new(device: &wgpu::Device) -> Self {
+        let usage = wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST;
+        #[cfg(test)]
+        let usage = usage | wgpu::TextureUsages::COPY_SRC;
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("World light cells"),
             size: wgpu::Extent3d {
@@ -106,13 +115,14 @@ impl Grid {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba32Uint,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage,
             view_formats: &[],
         });
         Self {
             view: texture.create_view(&Default::default()),
             texture,
             cells: Cells::default(),
+            uploaded: Vec::new(),
             order: Vec::new(),
         }
     }
@@ -140,20 +150,33 @@ impl Grid {
         if !self.cells.update(geometry, budget.min(MAX_LIGHTS)) || self.cells.indices.is_empty() {
             return false;
         }
-        let height = (self.cells.indices.len() * TEXELS_PER_CELL).div_ceil(WIDTH as usize) as u32;
-        let mut data = self.cells.indices.clone();
-        data.resize(
-            height as usize * WIDTH as usize / TEXELS_PER_CELL,
+        self.cells.indices.resize(
+            self.cells.indices.len().next_multiple_of(CELLS_PER_ROW),
             [0; MAX_LIGHTS],
         );
+        let rows = changed_rows(&self.cells.indices, &self.uploaded);
+        if rows.is_empty() {
+            return false;
+        }
+        if self.uploaded.len() < self.cells.indices.len() {
+            self.uploaded
+                .resize(self.cells.indices.len(), [0; MAX_LIGHTS]);
+        }
+        let cells = rows.start * CELLS_PER_ROW..rows.end * CELLS_PER_ROW;
+        let data = &self.cells.indices[cells.clone()];
+        self.uploaded[cells].copy_from_slice(data);
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
+                origin: wgpu::Origin3d {
+                    x: 0,
+                    y: rows.start as u32,
+                    z: 0,
+                },
                 aspect: wgpu::TextureAspect::All,
             },
-            bytemuck::cast_slice(&data),
+            bytemuck::cast_slice(data),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(WIDTH * 16),
@@ -161,7 +184,7 @@ impl Grid {
             },
             wgpu::Extent3d {
                 width: WIDTH,
-                height,
+                height: rows.len() as u32,
                 depth_or_array_layers: 1,
             },
         );
@@ -182,6 +205,23 @@ impl Grid {
             0.0,
         ]
     }
+}
+
+fn changed_rows(
+    current: &[[u32; MAX_LIGHTS]],
+    previous: &[[u32; MAX_LIGHTS]],
+) -> std::ops::Range<usize> {
+    let changed = |(index, row): (usize, &[[u32; MAX_LIGHTS]])| {
+        previous.get(index * CELLS_PER_ROW..(index + 1) * CELLS_PER_ROW) != Some(row)
+    };
+    let mut rows = current.chunks_exact(CELLS_PER_ROW).enumerate();
+    let Some((first, _)) = rows.find(|&row| changed(row)) else {
+        return 0..0;
+    };
+    let last = rows
+        .rfind(|&row| changed(row))
+        .map_or(first, |(index, _)| index);
+    first..last + 1
 }
 
 #[cfg(test)]
@@ -205,5 +245,80 @@ mod tests {
         assert!(!cells.update(lights.clone(), 1));
         assert!(cells.update(lights, 0));
         assert!(cells.indices.is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires a GPU; partial light-table uploads must match full tables through motion, resizing, removal and budget changes"]
+    fn partial_uploads_preserve_light_tables() {
+        let instance = wgpu::Instance::new(&Default::default());
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&Default::default(), None)).unwrap();
+        let mut grid = Grid::new(&device);
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Light table verification"),
+            size: u64::from(WIDTH * HEIGHT * 16),
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let lamp = |x, radius| Light {
+            position: Vec3::new(x, 0.0, 0.0),
+            radius,
+            color: [1.0; 3],
+            emission_radius: 0.0,
+        };
+        let mut partial = false;
+        let mut reused = false;
+        for step in 0..24 {
+            let mut lights = vec![lamp(-40_000.0, 12_000.0), lamp(40_000.0, 12_000.0)];
+            if step < 16 {
+                lights.push(lamp(step as f32 * 400.0, 3000.0));
+            }
+            if (8..12).contains(&step) {
+                lights.push(lamp(-120_000.0, 8000.0));
+            }
+            let budget = [8, 1, 0, 16][step / 6];
+            let previous = grid.uploaded.clone();
+            grid.update(&queue, &lights, budget);
+            if grid.cells.indices.is_empty() {
+                continue;
+            }
+            let rows = changed_rows(&grid.cells.indices, &previous);
+            partial |= !rows.is_empty() && rows.len() < grid.cells.indices.len() / CELLS_PER_ROW;
+            reused |= rows.is_empty();
+            let mut encoder = device.create_command_encoder(&Default::default());
+            encoder.copy_texture_to_buffer(
+                grid.texture.as_image_copy(),
+                wgpu::TexelCopyBufferInfo {
+                    buffer: &buffer,
+                    layout: wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(WIDTH * 16),
+                        rows_per_image: None,
+                    },
+                },
+                wgpu::Extent3d {
+                    width: WIDTH,
+                    height: (grid.cells.indices.len() / CELLS_PER_ROW) as u32,
+                    depth_or_array_layers: 1,
+                },
+            );
+            queue.submit([encoder.finish()]);
+            let (send, receive) = std::sync::mpsc::channel();
+            buffer
+                .slice(..)
+                .map_async(wgpu::MapMode::Read, move |result| {
+                    send.send(result).unwrap();
+                });
+            device.poll(wgpu::Maintain::Wait);
+            receive.recv().unwrap().unwrap();
+            {
+                let actual = buffer.slice(..).get_mapped_range();
+                let expected: &[u8] = bytemuck::cast_slice(&grid.cells.indices);
+                assert_eq!(&actual[..expected.len()], expected, "step {step}");
+            }
+            buffer.unmap();
+        }
+        assert!(partial && reused);
     }
 }
