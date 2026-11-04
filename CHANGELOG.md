@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Improve frame times around animated textures by preserving cached shadows
+  when only water or other noncaster artwork changes. Animated cutouts, lantern
+  transmission and replacement-artwork changes still refresh their shadows.
+
 - Reduce shadow-map GPU cost around buildings and trees by drawing solid scenery
   before foliage and nearer casters first on large maps, preserving animated
   leaves and their shadows.

@@ -420,7 +420,6 @@ impl Renderer {
     }
 
     pub fn update_vram(&mut self, vram: &Vram) {
-        self.shadows.invalidate();
         self.materials.update(vram);
         self.queue.write_texture(
             self.texture.as_image_copy(),

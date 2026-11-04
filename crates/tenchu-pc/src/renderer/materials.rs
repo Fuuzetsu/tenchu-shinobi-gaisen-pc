@@ -7,7 +7,10 @@ use crate::{
     },
 };
 use bytemuck::{Pod, Zeroable};
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 use tenchu_assets::{Result, model::Texture, texture::Vram};
 mod atlas;
 mod blood;
@@ -31,6 +34,7 @@ struct Material {
 struct Entry {
     region: Option<Region>,
     blood_hd: bool,
+    shadow_caster: bool,
     id: String,
     original: Image,
     image: Image,
@@ -169,6 +173,8 @@ pub struct Materials {
     pub bindings: wgpu::BindGroup,
     vram: Vram,
     entries: Vec<Entry>,
+    raw_shadow_pages: BTreeSet<Region>,
+    shadows_dirty: bool,
     regions: BTreeMap<(Region, bool), u32>,
     external: BTreeMap<String, u32>,
     lookups: BTreeMap<(u16, u16, [u16; 4], bool), u32>,
@@ -224,6 +230,8 @@ impl Materials {
             layout,
             vram: vram.clone(),
             entries: Vec::new(),
+            raw_shadow_pages: BTreeSet::new(),
+            shadows_dirty: false,
             regions: BTreeMap::new(),
             external: BTreeMap::new(),
             lookups: BTreeMap::new(),
@@ -240,6 +248,7 @@ impl Materials {
 
     pub fn update(&mut self, vram: &Vram) {
         let changes = Changes::between(&self.vram, vram);
+        self.shadows_dirty |= self.raw_shadow_pages.iter().any(|&r| changes.affects(r));
         for entry in &mut self.entries {
             let Some(region) = entry.region else { continue };
             entry.scroll = region.scroll_offset(vram);
@@ -248,6 +257,7 @@ impl Materials {
             }
             let rgba = region.pixels(vram);
             if rgba != entry.original.rgba {
+                self.shadows_dirty |= entry.shadow_caster && !entry.replaced;
                 entry.original.rgba = rgba;
                 entry.dirty |= entry.blood_hd;
                 entry.prepare(&self.textures, &self.surfaces, self.enabled, self.upscale);
@@ -262,6 +272,8 @@ impl Materials {
     pub fn reset(&mut self, vram: &Vram) {
         self.vram = vram.clone();
         self.entries.clear();
+        self.raw_shadow_pages.clear();
+        self.shadows_dirty = true;
         self.regions.clear();
         self.external.clear();
         self.lookups.clear();
@@ -318,6 +330,7 @@ impl Materials {
                 self.entries.push(Entry {
                     region: None,
                     blood_hd: false,
+                    shadow_caster: false,
                     id: material.id.clone(),
                     original: (*material.image).clone(),
                     image: (*material.image).clone(),
@@ -344,12 +357,33 @@ impl Materials {
     pub fn annotate(&mut self, vertices: &mut [Vertex]) {
         for triangle in vertices.chunks_exact_mut(3) {
             let first = triangle[0];
+            let shadow_caster = first.flags
+                & (render_mesh::TEXTURED
+                    | render_mesh::SCREEN
+                    | render_mesh::DEBUG
+                    | render_mesh::ALPHA
+                    | render_mesh::WATER)
+                == render_mesh::TEXTURED;
+            if first.material != 0 {
+                if shadow_caster
+                    && let Some(entry) = self.entries.get_mut(first.material as usize - 1)
+                {
+                    entry.shadow_caster = true;
+                }
+                continue;
+            }
             let blood_hd = render_mesh::original_hd_blood(first.flags);
             if first.flags & (render_mesh::DEBUG | render_mesh::TEXTURED) != render_mesh::TEXTURED
                 || !blood_hd
                     && first.flags & (render_mesh::STAIN | render_mesh::SOFT) == render_mesh::STAIN
-                || first.material != 0
             {
+                if shadow_caster {
+                    self.raw_shadow_pages.insert(Region {
+                        page: first.page as u16,
+                        palette: first.palette as u16,
+                        rect: [0, 0, 256, 256],
+                    });
+                }
                 continue;
             }
             let mut bounds = [255, 255, 0, 0];
@@ -376,6 +410,7 @@ impl Materials {
                 self.lookups.insert(key, id);
                 id
             };
+            self.entries[id as usize - 1].shadow_caster |= shadow_caster;
             for vertex in triangle {
                 vertex.material = id;
             }
@@ -398,6 +433,7 @@ impl Materials {
         let mut entry = Entry {
             region: Some(region),
             blood_hd,
+            shadow_caster: false,
             id: catalog::image_id(
                 original.size.map(|n| n as u16),
                 &region.original_pixels(&self.vram),
@@ -420,6 +456,7 @@ impl Materials {
         id
     }
 
+    /// Returns whether cached shadow coverage may have changed.
     pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<bool> {
         if self.entries.len() + 1 > data::Data::limit(device) {
             return Err("Material metadata exceeds the GPU size limit".into());
@@ -459,7 +496,7 @@ impl Materials {
                 }
             }
         }
-        let mut changed = self.repack;
+        let mut changed = self.repack || self.shadows_dirty;
         if self.repack {
             self.rebuild(device, queue)?;
         } else {
@@ -479,7 +516,7 @@ impl Materials {
                 if !entry.dirty && material.source == entry.source() {
                     continue;
                 }
-                changed = true;
+                changed |= entry.shadow_caster;
                 if entry.dirty {
                     self.atlas.materials[index + 1] = self.material(entry, material.mips);
                 } else {
@@ -513,6 +550,7 @@ impl Materials {
         for entry in &mut self.entries {
             entry.dirty = false;
         }
+        self.shadows_dirty = false;
         Ok(changed)
     }
 

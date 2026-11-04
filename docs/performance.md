@@ -1782,3 +1782,48 @@ Two scenery-shader splits were also tested and discarded: their modest gains
 in some views did not consistently improve the report's night-time workload.
 Skipping only the shadow vertex wind calculation did not improve map time, so
 no separate wind-position cache was added.
+
+
+## November 5: preserve shadows across unrelated texture animation
+
+Every VRAM revision previously invalidated all shadow faces and their culling
+ranges. Updating material scroll coordinates did the same, even for water that
+cannot cast a shadow. Ordinary texture animation therefore repeatedly discarded
+otherwise reusable results.
+
+Material records now track whether geometry can use them for shadow coverage.
+VRAM and material uploads continue normally, but only changes relevant to casters
+invalidate the maps. Original palette/cutout changes, animated replacement
+coordinates and lantern transmission retain conservative invalidation. Legacy
+stains that sample VRAM directly track their texture pages and palettes; changing
+them still refreshes shadows. Pack replacement and atlas rebuilding invalidate
+all maps as before. No additional shadow-map allocation is needed.
+
+The same four 20-second offscreen routes use the report's 3826 × 2146 settings,
+including eight 2048-pixel local shadows, 4096-pixel moon shadows, rain, wet
+reflections, HD artwork and active enemies:
+
+| Route | Shadow-map mean before → after | GPU p99 before → after | Whole-frame p95 before → after | Whole-frame p99 before → after |
+|---|---|---|---|---|
+| Village | 8.13 → 6.48 ms | 28.57 → 24.91 ms | 36.01 → 31.32 ms | 36.70 → 32.01 ms |
+| Courtyard | 5.51 → 2.49 ms | 27.73 → 21.96 ms | 33.77 → 27.27 ms | 34.36 → 28.12 ms |
+| Garden | 7.36 → 6.76 ms | 28.95 → 27.66 ms | 35.51 → 33.81 ms | 36.04 → 34.46 ms |
+| Waterfall | 2.37 → 2.35 ms | 11.15 → 11.03 ms | 21.57 → 21.21 ms | 22.36 → 21.95 ms |
+
+CPU work means fall from 3.74/3.13/3.61/5.74 to 3.39/2.86/3.36/5.66 ms.
+These serialized offscreen measurements are not interactive FPS; the demanding
+routes still exceed the 16.67 ms budget for 60 FPS.
+
+Four 4K captures match forced full shadow redraws exactly, including animated
+VRAM updates, foliage, daytime and rain with 4,096 blood stains. The point-light
+regression checks that unrelated/water texture changes reuse maps while original
+and HD cutouts, lantern transmission and raw legacy-texture changes stay correct.
+Incremental-atlas, scrolling, partial-shadow, wind and snow-shelter checks pass,
+as do formatting, native/WASM strict Clippy and release builds. Chromium WebGPU
+and WebGL2 both pass weather-state loading, movement, free-camera, lighting-toggle
+and resume checks.
+
+Two earlier approaches were rejected. Conservative wall occlusion gave no
+consistent moving-frame improvement. A separate static-depth cache added
+768 MiB at these settings and made moving-frame tails worse because the same
+texture updates kept invalidating it. Neither experiment is included.

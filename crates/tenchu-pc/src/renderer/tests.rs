@@ -903,6 +903,25 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     renderer.visual_time += 1.0;
     assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
     assert_eq!(renderer.shadows.rendered_faces, 0);
+    let mut water = quad(
+        blocker_position,
+        140.0,
+        render_mesh::TEXTURED | render_mesh::WATER,
+    );
+    for vertex in &mut water {
+        vertex.page = 257;
+    }
+    let water = renderer.upload(&water);
+    for pixel in [0x7fff, 0] {
+        vram.words[64] = pixel;
+        vram.words[1000] = pixel;
+        renderer.update_vram(&vram);
+        assert_eq!(draw(&mut renderer, &[light], &[&blocker, &water]), shadowed);
+        assert_eq!(
+            renderer.shadows.rendered_faces, 0,
+            "noncaster texture update"
+        );
+    }
     renderer
         .draw_lit(
             &view,
@@ -935,6 +954,21 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     vram.words[0] |= 0x8000;
     renderer.update_vram(&vram);
     assert_eq!(draw(&mut renderer, &[light], &[&mixed]), lit);
+
+    let mut raw = quad(
+        blocker_position,
+        140.0,
+        render_mesh::TEXTURED | render_mesh::STAIN | render_mesh::TRANSLUCENT,
+    );
+    for vertex in &mut raw {
+        vertex.page = 258;
+    }
+    let raw = renderer.upload(&raw);
+    for (pixel, expected) in [(0x7fff, shadowed), (0, lit)] {
+        vram.words[128] = pixel;
+        renderer.update_vram(&vram);
+        assert_eq!(draw(&mut renderer, &[light], &[&raw]), expected);
+    }
 
     for (alpha, expected) in [(255, shadowed), (128, lit), (0, lit)] {
         let mut rgba = vec![255; 64];
