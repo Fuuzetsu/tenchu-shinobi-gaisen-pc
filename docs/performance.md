@@ -1311,3 +1311,33 @@ exhaustive ranking test covers overlapping lights, tied scores, cell boundaries
 and budgets of 1, 8 and 16. GPU readback through partial uploads and resizing,
 distant-light and accumulation checks pass, as do native/WASM strict Clippy
 and formatting. No GPU shading or whole-frame FPS improvement is claimed.
+
+## November 4: rigid model transforms
+
+Refined model transforms now use glam's portable aligned vector and matrix
+types. Matrix construction and inverse-transpose calculation retain the
+existing scalar arithmetic; vertices retain their packed representation.
+Combining copying and transformation into one iterator was also tested, but
+regressed assembly by about 25–30% and was discarded.
+
+Repeated CPU-pinned measurements cover both heroes in Missions 1 and 2 with HD
+artwork, refinement, interpolation, hair motion and all enemies active. Each
+case runs 360 simulation updates and presents twice per update, excluding the
+first 30 updates. Mean actor geometry assembly time is:
+
+| Mission / hero | Normal population before → after | 32 extra guards before → after |
+| --- | ---: | ---: |
+| 1 / Rikimaru | 0.331 → 0.262 ms | 0.549 → 0.447 ms |
+| 1 / Ayame | 0.329 → 0.260 ms | 0.552 → 0.445 ms |
+| 2 / Rikimaru | 0.288 → 0.228 ms | 0.491 → 0.396 ms |
+| 2 / Ayame | 0.290 → 0.227 ms | 0.496 → 0.397 ms |
+
+This saves about 19–22% of assembly CPU time, excluding uploads and rendering.
+All eight sampled vertex/index streams and final game states match exactly.
+Eight 4K TRIAL/garden/waterfall comparisons, including rain and snow, are
+pixel-identical. The 59 ordinary visual tests, folding-screen check and imported
+skinned-model test on both heroes pass. The older disc-model export/import test
+fails on a weapon-material flag in both the unchanged baseline and candidate;
+it is not counted as passing. Native/WASM strict Clippy, formatting and release
+builds pass. Chromium WebGL2 rain and WebGPU snow play checks pass through
+grappling, movement, lighting toggles, paused free camera and resumed play.

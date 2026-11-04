@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up refined model transforms with portable vector math, reducing actor
+  geometry CPU work while preserving poses, normals and secondary motion.
+
 - Reduce moving-light selection work by rejecting lights that cannot enter a
   region's configured light budget. Light choices and tie ordering are unchanged.
 

@@ -4,7 +4,7 @@ use crate::{
     render_mesh::{self, Vertex},
     settings::Graphics,
 };
-use glam::{Mat3, Vec3};
+use glam::{Mat3, Mat3A, Vec3, Vec3A};
 use std::{
     collections::{BTreeMap, HashMap},
     sync::Arc,
@@ -767,8 +767,9 @@ impl Meshes {
             .get(&key)
             .map(|shape| shape.variant(matrix.translation.to_array()));
         let rotation = rotation(matrix);
-        let normal = rotation.inverse().transpose();
-        let translation = Vec3::from(matrix.translation.map(|n| n as f32).to_array());
+        let normal = Mat3A::from(rotation.inverse().transpose());
+        let rotation = Mat3A::from(rotation);
+        let translation = Vec3A::from(matrix.translation.map(|n| n as f32).to_array());
         let skin_pose = self.skin.as_ref().map(skin::Pose::transforms);
         for (index, vertex) in transformed.iter_mut().enumerate() {
             if let Some(variant) = &variant {
@@ -777,8 +778,9 @@ impl Meshes {
             if let (Some(weights), Some(pose)) = (&mesh.skin, &skin_pose) {
                 skin::vertex(vertex, weights[index], mesh.bind_root, pose);
             } else {
-                vertex.position = (rotation * Vec3::from(vertex.position) + translation).to_array();
-                vertex.normal = (normal * Vec3::from(vertex.normal))
+                vertex.position =
+                    (rotation * Vec3A::from(vertex.position) + translation).to_array();
+                vertex.normal = (normal * Vec3A::from(vertex.normal))
                     .normalize_or_zero()
                     .to_array();
             }
