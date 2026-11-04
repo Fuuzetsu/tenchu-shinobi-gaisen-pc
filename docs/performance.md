@@ -1576,3 +1576,45 @@ Formatting and strict native/WASM Clippy pass. Focused disc checks cover both
 heroes' swapped bodies and weapon attachments, lanterns across ten missions,
 stealth-kill/combat coatings, independent blood styles, finite wounds, player
 pools and continued visual state after saving/loading.
+
+## November 4: avoid repacking unchanged mesh attributes
+
+Dynamic meshes already uploaded positions/normals separately from material
+attributes, but still rebuilt and copied the attribute array on every update.
+The renderer now compares attribute fields directly with the retained copy and
+rebuilds it only when needed. Changed attributes are packed into that retained
+vector, removing the separate scratch vector and its extra copy. Comparisons
+preserve float bits, including signed zero. Mesh growth/shrinkage and material
+changes still trigger the necessary upload.
+
+A byte-comparison prototype was rejected: generated code called `bcmp` for
+every vertex, increasing CPU time. Direct field comparisons eliminate those
+calls. The final code has fewer lines and no separate upload-state object.
+
+The final 4K crowded High run, relative to the preceding effect-pose change:
+
+| Route | CPU work p95 before → after | CPU work p99 before → after | Frame p99 before → after |
+| --- | ---: | ---: | ---: |
+| Village | 9.32 → 8.95 ms | 10.57 → 10.05 ms | 31.78 → 31.19 ms |
+| Snow courtyard | 9.95 → 9.55 ms | 11.07 → 10.34 ms | 32.12 → 30.97 ms |
+| Garden | 9.25 → 8.78 ms | 10.28 → 9.52 ms | 33.12 → 33.33 ms |
+| Waterfall | 10.20 → 9.89 ms | 11.18 → 10.80 ms | 25.46 → 25.71 ms |
+
+CPU-work means improve by 0.35–0.40 ms. The earlier direct-comparison run also
+improves CPU p95/p99 on all four routes; whole-frame tails remain mixed. These
+are the serialized offscreen stress measurements, not interactive FPS.
+
+A separate 20-second-per-route 4K pair enables maximum rain, adds blood and
+footprints continuously, and records rewind history. Geometry/upload means are
+1.86/1.43/1.85/2.67 ms before and 1.84/1.40/1.74/2.57 ms after. CPU p99 is
+6.58/4.85/6.16/6.72 ms before and 6.55/4.78/6.04/6.57 ms after. This checks
+frequently changing effect attributes as well as stable character materials.
+The heavily stained village remains GPU-bound: frame p95/p99 is
+79.82/81.33 ms before and 79.94/81.47 ms after. No GPU improvement is claimed.
+
+Formatting, strict native/WASM Clippy and release builds pass. GPU readback
+checks cover growing/shrinking indexed and unindexed meshes, changed attributes,
+empty frames, streamed blended effects/HUD, moving shadows and blood blending.
+Chromium WebGPU and WebGL2 also load the portable snow/blood state, move, change
+lighting, use paused free camera and resume without errors or modifying paused
+gameplay state.

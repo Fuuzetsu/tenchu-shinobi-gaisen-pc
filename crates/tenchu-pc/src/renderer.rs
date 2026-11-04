@@ -133,7 +133,6 @@ pub struct Renderer {
     pub shadow_elapsed: Option<f32>,
     shadows: shadows::Shadows,
     materials: materials::Materials,
-    uploads: geometry::Upload,
     decals: std::collections::BTreeMap<usize, decals::Decal>,
 }
 
@@ -294,7 +293,6 @@ impl Renderer {
             shadows,
             materials,
             decals: Default::default(),
-            uploads: Default::default(),
         };
         renderer.update_vram(vram);
         Ok(renderer)
@@ -450,7 +448,7 @@ impl Renderer {
             scenery: false,
             shadow_chunks: Vec::new(),
             bounds: None,
-            vertices: geometry::Upload::create(&self.device, &vertices),
+            vertices: geometry::Buffers::new(&self.device, &vertices),
             count: 0,
         };
         mesh.set_geometry(&vertices);
@@ -462,8 +460,7 @@ impl Renderer {
         mesh.indices = None;
         self.materials.annotate(vertices);
         mesh.set_geometry(vertices);
-        self.uploads
-            .update(&self.device, &self.queue, &mut mesh.vertices, vertices);
+        mesh.vertices.update(&self.device, &self.queue, vertices);
     }
 
     pub fn update_indexed_mesh(
@@ -481,12 +478,8 @@ impl Renderer {
             &geometry.indices,
             &mut mesh.shadow_chunks,
         );
-        self.uploads.update(
-            &self.device,
-            &self.queue,
-            &mut mesh.vertices,
-            &geometry.vertices,
-        );
+        mesh.vertices
+            .update(&self.device, &self.queue, &geometry.vertices);
         let indices = mesh.indices.get_or_insert_with(|| Indices {
             buffer: self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Mesh indices"),

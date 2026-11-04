@@ -44,6 +44,18 @@ impl From<&Vertex> for Attributes {
     }
 }
 
+impl Attributes {
+    fn matches(&self, vertex: &Vertex) -> bool {
+        self.color.map(f32::to_bits) == vertex.color.map(f32::to_bits)
+            && self.uv.map(f32::to_bits) == vertex.uv.map(f32::to_bits)
+            && self.page == vertex.page
+            && self.palette == vertex.palette
+            && self.flags == vertex.flags
+            && self.material == vertex.material
+            && self.opacity.to_bits() == vertex.opacity.to_bits()
+    }
+}
+
 pub(super) const LAYOUTS: [wgpu::VertexBufferLayout<'static>; 2] = [
     wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<Pose>() as u64,
@@ -68,15 +80,8 @@ impl Buffers {
         pass.set_vertex_buffer(0, self.pose.slice(..));
         pass.set_vertex_buffer(1, self.attributes.slice(..));
     }
-}
 
-#[derive(Default)]
-pub(super) struct Upload {
-    attributes: Vec<Attributes>,
-}
-
-impl Upload {
-    pub fn create(device: &wgpu::Device, vertices: &[Vertex]) -> Buffers {
+    pub fn new(device: &wgpu::Device, vertices: &[Vertex]) -> Self {
         let poses: Vec<_> = vertices.iter().map(Pose::from).collect();
         let attributes: Vec<_> = vertices.iter().map(Attributes::from).collect();
         let create = |label, contents| {
@@ -86,52 +91,48 @@ impl Upload {
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             })
         };
-        Buffers {
+        Self {
             pose: create("Mesh poses", bytemuck::cast_slice(&poses)),
             attributes: create("Mesh attributes", bytemuck::cast_slice(&attributes)),
             cached: Vec::new(),
         }
     }
 
-    pub fn update(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        buffers: &mut Buffers,
-        vertices: &[Vertex],
-    ) {
-        self.attributes.clear();
-        self.attributes.reserve(vertices.len());
+    pub fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, vertices: &[Vertex]) {
+        let changed = self.cached.len() != vertices.len()
+            || vertices
+                .iter()
+                .zip(&self.cached)
+                .any(|(vertex, cached)| !cached.matches(vertex));
         let size = (vertices.len() * std::mem::size_of::<Pose>()) as u64;
         if let Some(size) = wgpu::BufferSize::new(size) {
             resize_buffer(
                 device,
-                &mut buffers.pose,
+                &mut self.pose,
                 size.get(),
                 wgpu::BufferUsages::VERTEX,
             );
             let mut staging = queue
-                .write_buffer_with(&buffers.pose, 0, size)
+                .write_buffer_with(&self.pose, 0, size)
                 .expect("Could not allocate mesh pose staging buffer");
-            for (v, bytes) in vertices.iter().zip(
+            for (vertex, bytes) in vertices.iter().zip(
                 staging
                     .as_mut()
                     .chunks_exact_mut(std::mem::size_of::<Pose>()),
             ) {
-                bytes.copy_from_slice(bytemuck::bytes_of(&Pose::from(v)));
-                self.attributes.push(Attributes::from(v));
+                bytes.copy_from_slice(bytemuck::bytes_of(&Pose::from(vertex)));
             }
         }
-        let attributes = bytemuck::cast_slice(&self.attributes);
-        if bytemuck::cast_slice::<_, u8>(&buffers.cached) != attributes {
+        if changed {
+            self.cached.clear();
+            self.cached.extend(vertices.iter().map(Attributes::from));
             update_buffer(
                 device,
                 queue,
-                &mut buffers.attributes,
-                attributes,
+                &mut self.attributes,
+                bytemuck::cast_slice(&self.cached),
                 wgpu::BufferUsages::VERTEX,
             );
-            buffers.cached.clone_from(&self.attributes);
         }
     }
 }

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce animated-geometry CPU copies by repacking material attributes only
+  when they change. Positions, normals and changed materials still update each
+  frame as required.
+
 - Reduce CPU work for blood and lantern lighting in crowded scenes by requesting
   poses only for affected or light-emitting model parts. Attached stains, wounds,
   bloody weapons and moving lights keep their existing behavior.
