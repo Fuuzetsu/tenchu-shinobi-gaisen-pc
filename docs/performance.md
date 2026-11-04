@@ -1376,3 +1376,52 @@ weapon reflections and visibility. Native/WASM strict Clippy, formatting and
 release builds pass. Chromium WebGL2 rain and WebGPU snow both switch live
 through bump/parallax/off/bump, grapple, move, toggle lighting and resume from
 paused free camera without errors or changing paused gameplay state.
+
+## November 4: footprint assembly and slow-frame stress runs
+
+Longer 4K measurements now emphasize p95/p99 frame times. Maximum rain in the
+ordinary garden path has frame p95/p99 of 24.94/25.35 ms, GPU p95/p99 of
+22.52/22.72 ms and CPU-work p95/p99 of 4.37/4.88 ms. Sustained GPU terrain
+shading dominates this case. Combining shelter texture fetches, combining wet
+reflection/diffuse lighting, and specializing absent weather were tested; their
+regressions or insufficient gains did not justify keeping them.
+
+A separate stress fixture adds projected blood and footprints while moving the
+camera, with all enemies active and rewind recording. It uses 20 seconds of
+fixed 60 Hz presentation per route, excluding the first 60 frames: 1,140 CPU
+and 1,138 GPU samples. Sixteen stamp attempts per logic tick, one quarter for
+footprints, grow the retained effects during the run; blood is capped at 4,096
+marks. This is a deliberately heavy workload, not a claim about ordinary combat.
+
+Profiling identified repeated allocation/copying in footprint assembly. Tracks
+now cache their bounds, exclude marks outside the camera frustum with room for
+wind displacement, and reserve the exact visible vertex count before copying.
+Their positions, age, burial, retirement and serialization remain unchanged.
+There is no distance cutoff: active distant guards still leave visible tracks.
+
+Pinned CPU comparisons on actual Mission 1/5 surfaces, with approximately
+65,500 footprint vertices, reduce unculled assembly from 0.297–0.312 ms to
+0.075–0.079 ms. Camera culling reduces it further to 0.002–0.054 ms in eight
+views. Retained vertices and serialized states match exactly; all eight
+unculled/culled image pairs are pixel-identical. A regression check covers
+tracks 100,000 units away, camera edges, wind and restoring the same history.
+
+Two paired native Snow runs, with the second pair in reverse order, give:
+
+| Route | Frame p95 before → after (two runs) | Frame p99 before → after (two runs) |
+| --- | --- | --- |
+| village-lights | 53.24 → 51.58; 53.47 → 51.32 ms | 55.32 → 53.51; 55.23 → 54.02 ms |
+| snow-courtyard | 17.38 → 15.68; 17.46 → 15.95 ms | 17.64 → 16.09; 18.01 → 16.90 ms |
+| garden-water | 28.71 → 27.33; 28.73 → 27.58 ms | 30.14 → 28.63; 30.24 → 28.62 ms |
+| waterfall | 13.22 → 12.98; 13.27 → 12.64 ms | 13.57 → 13.22; 13.69 → 13.04 ms |
+
+Geometry/upload CPU p95 falls by approximately 0.5–1.0 ms across these
+routes. GPU times remain broadly similar, so the heavily stained village and
+garden still miss 60 FPS. Rain stress results are mostly unchanged; the snowy
+courtyard improves by about 0.7 ms at p95. This change addresses track assembly,
+not the large wet-blood shading cost.
+
+Formatting, native/WASM strict Clippy and release builds pass, together with
+ordinary visual/rewind tests and four disc-based footprint/savestate checks.
+Chromium WebGPU snow play passes movement, grappling, paused free camera,
+lighting changes and resumed play without errors or changes to paused state.

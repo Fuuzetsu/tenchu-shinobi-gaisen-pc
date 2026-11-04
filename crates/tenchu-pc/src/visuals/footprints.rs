@@ -9,10 +9,10 @@ use crate::{
     render_mesh::{self, Vertex},
     settings::{Weather, WeatherMode},
 };
-use glam::Vec3;
+use glam::{Mat4, Vec3};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
-    sync::Arc,
+    sync::{Arc, OnceLock},
 };
 use tenchu_assets::model;
 use tenchu_core::game::Game;
@@ -47,9 +47,24 @@ struct Mark {
     burial: f32,
     exposed: bool,
     retirement: Option<f32>,
+    #[serde(skip)]
+    bounds: OnceLock<[Vec3; 2]>,
 }
 
 impl Mark {
+    fn visible(&self, frustum: &crate::renderer::Frustum, wind: f32) -> bool {
+        let bounds = *self.bounds.get_or_init(|| {
+            self.vertices.iter().fold(
+                [Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)],
+                |[min, max], vertex| {
+                    let point = Vec3::from(vertex.position);
+                    [min.min(point), max.max(point)]
+                },
+            )
+        });
+        frustum.contains(bounds, wind.abs() * 100.0 + 2.0)
+    }
+
     fn opacity(&self, seconds: u16) -> f32 {
         (1.0 - self.burial / f32::from(seconds))
             .clamp(0.0, 1.0)
@@ -125,6 +140,7 @@ impl Footprints {
             burial,
             exposed,
             retirement,
+            bounds: _,
         } in marks
         {
             out.shared_arc(vertices, true)?;
@@ -263,6 +279,7 @@ impl Footprints {
                 age: 0.0,
                 burial: 0.0,
                 retirement: None,
+                bounds: Default::default(),
                 exposed: surfaces.exposed(hit.position - Vec3::Y * 5.0, settings.direction()),
             });
         }
@@ -288,18 +305,22 @@ impl Footprints {
         }
     }
 
-    pub fn geometry(&self, settings: &Weather) -> Geometry {
-        let vertices: Vec<_> = self
-            .marks
-            .iter()
-            .flat_map(|mark| {
-                let opacity = mark.opacity(settings.footprint_seconds);
-                mark.vertices.iter().map(move |v| Vertex {
-                    opacity: v.opacity * opacity,
-                    ..*v
-                })
-            })
-            .collect();
+    pub fn geometry(&self, settings: &Weather, projection: Option<Mat4>, wind: f32) -> Geometry {
+        let frustum = projection.map(crate::renderer::Frustum::new);
+        let visible = self.marks.iter().filter(|mark| {
+            frustum
+                .as_ref()
+                .is_none_or(|frustum| mark.visible(frustum, wind))
+        });
+        let mut vertices = Vec::with_capacity(visible.clone().map(|m| m.vertices.len()).sum());
+        for mark in visible {
+            let start = vertices.len();
+            vertices.extend_from_slice(&mark.vertices);
+            let opacity = mark.opacity(settings.footprint_seconds);
+            for vertex in &mut vertices[start..] {
+                vertex.opacity *= opacity;
+            }
+        }
         let count = vertices.len() as u32;
         Geometry {
             vertices,
@@ -316,6 +337,72 @@ mod tests {
     use super::*;
 
     #[test]
+    fn camera_culling_keeps_distant_and_wind_shifted_tracks_without_changing_history() {
+        use bytemuck::Zeroable;
+
+        let mut prints = Footprints::default();
+        for position in [
+            Vec3::new(0.0, 0.0, 5000.0),
+            Vec3::new(0.0, 0.0, 100000.0),
+            Vec3::new(0.0, 0.0, -5000.0),
+            Vec3::new(10050.0, 0.0, 10000.0),
+        ] {
+            let corners = [
+                position + Vec3::new(-10.0, 0.0, -10.0),
+                position + Vec3::new(10.0, 0.0, -10.0),
+                position + Vec3::new(-10.0, 0.0, 10.0),
+                position + Vec3::new(10.0, 0.0, 10.0),
+            ];
+            prints.marks.push_back(Mark {
+                vertices: Arc::new(
+                    [0, 1, 2, 1, 3, 2]
+                        .map(|i| Vertex {
+                            position: corners[i].to_array(),
+                            opacity: 0.8,
+                            flags: render_mesh::FOOTPRINT | render_mesh::FOLIAGE,
+                            ..Vertex::zeroed()
+                        })
+                        .to_vec(),
+                ),
+                position,
+                age: 5.0,
+                burial: 2.0,
+                exposed: true,
+                retirement: Some(0.75),
+                bounds: Default::default(),
+            });
+        }
+        let projection = Mat4::perspective_rh(std::f32::consts::FRAC_PI_2, 1.0, 10.0, 200000.0)
+            * Mat4::look_at_rh(
+                Vec3::new(0.0, -1000.0, 0.0),
+                Vec3::new(0.0, -1000.0, 1.0),
+                Vec3::NEG_Y,
+            );
+        let settings = Weather::default();
+        let before = postcard::to_allocvec(&prints).unwrap();
+        let all = prints.geometry(&settings, None, 0.0).vertices;
+        let visible = prints.geometry(&settings, Some(projection), 0.0).vertices;
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&visible),
+            bytemuck::cast_slice::<_, u8>(&all[..12])
+        );
+        let windy = prints.geometry(&settings, Some(projection), 1.0).vertices;
+        let expected: Vec<_> = all[..12].iter().chain(&all[18..]).copied().collect();
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(&windy),
+            bytemuck::cast_slice::<_, u8>(&expected)
+        );
+        assert_eq!(postcard::to_allocvec(&prints).unwrap(), before);
+        let restored: Footprints = postcard::from_bytes(&before).unwrap();
+        assert_eq!(
+            bytemuck::cast_slice::<_, u8>(
+                &restored.geometry(&settings, Some(projection), 1.0).vertices
+            ),
+            bytemuck::cast_slice::<_, u8>(&windy)
+        );
+    }
+
+    #[test]
     fn fresh_snow_buries_tracks_without_an_abrupt_expiry() {
         let mut mark = Mark {
             vertices: Arc::default(),
@@ -324,6 +411,7 @@ mod tests {
             burial: 0.0,
             exposed: true,
             retirement: None,
+            bounds: Default::default(),
         };
         assert_eq!(mark.opacity(60), 1.0);
         mark.age = 30.0;
@@ -344,6 +432,7 @@ mod tests {
                 burial: 0.0,
                 exposed: true,
                 retirement: None,
+                bounds: Default::default(),
             });
         }
         prints.retire_to_budget();
@@ -383,6 +472,7 @@ mod tests {
             burial: 0.5,
             exposed: true,
             retirement: None,
+            bounds: Default::default(),
         });
         prints.update_shelter(&surfaces, Vec3::Y);
         assert!(!prints.marks[0].exposed);
@@ -456,7 +546,9 @@ mod retail_tests {
                     }
                 }
                 assert!(prints.marks.len() <= MARK_LIMIT);
-                assert!(prints.geometry(&graphics.weather).vertices.len() <= VERTEX_LIMIT);
+                assert!(
+                    prints.geometry(&graphics.weather, None, 0.0).vertices.len() <= VERTEX_LIMIT
+                );
             }
             assert!(
                 distant_steps > 3,
@@ -584,9 +676,11 @@ mod retail_tests {
                     let actors = review
                         .renderer
                         .upload(&render_mesh::characters(&game, Some(&models)));
-                    let effects = review
-                        .renderer
-                        .upload_effects(prints.geometry(&graphics.weather));
+                    let effects = review.renderer.upload_effects(prints.geometry(
+                        &graphics.weather,
+                        None,
+                        0.0,
+                    ));
                     for (name, effects) in [("before", None), ("after", Some(&effects))] {
                         review
                             .capture(
@@ -634,7 +728,7 @@ mod retail_tests {
                 let state = crate::session::tests::state(&game);
                 prints.tick(&game, &models, &surfaces, &settings, 1.0);
                 assert_eq!(state, crate::session::tests::state(&game));
-                let vertices = prints.geometry(&settings).vertices;
+                let vertices = prints.geometry(&settings, None, 0.0).vertices;
                 assert!(vertices.len() <= VERTEX_LIMIT);
                 assert!(vertices.iter().all(|v| Vec3::from(v.position).is_finite()
                     && Vec3::from(v.normal).length_squared() > 0.9));
@@ -691,7 +785,9 @@ mod retail_tests {
                 let actors = review
                     .renderer
                     .upload(&render_mesh::characters(&game, Some(&models)));
-                let effects = review.renderer.upload_effects(prints.geometry(&settings));
+                let effects = review
+                    .renderer
+                    .upload_effects(prints.geometry(&settings, None, 0.0));
                 let mut graphics = graphics.clone();
                 graphics.weather = settings;
                 graphics.fog = false;

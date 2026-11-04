@@ -1032,7 +1032,11 @@ impl View {
             && (settings.graphics.weather.mode != settings::WeatherMode::Original
                 || settings.graphics.weather.baked_snow)
         {
-            let mut footprints = self.footprints.geometry(&settings.graphics.weather);
+            let mut footprints = self.footprints.geometry(
+                &settings.graphics.weather,
+                Some(self.camera_matrix(game, debug)),
+                f32::from(settings.graphics.motion.wind) / 100.0,
+            );
             footprints.append(geometry);
             geometry = footprints;
             let mut weather = self.weather.geometry(

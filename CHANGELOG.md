@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce frame-time spikes and CPU work with many snow footprints by assembling
+  only tracks inside the camera view and avoiding repeated geometry allocations.
+  Distant tracks, wind movement, fading and rewind history remain intact.
+
 - Reduce GPU work for bump-mapped surfaces by omitting unused parallax code,
   particularly when rain and many blood stains overlap. Surface-depth modes
   retain their existing appearance.
