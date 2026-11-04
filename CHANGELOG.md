@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce rewind recording spikes when new blood pages and footprints are added,
+  by retaining encoded data for unchanged effects.
+
 - Reduce frame-time spikes and CPU work with many snow footprints by assembling
   only tracks inside the camera view and avoiding repeated geometry allocations.
   Distant tracks, wind movement, fading and rewind history remain intact.

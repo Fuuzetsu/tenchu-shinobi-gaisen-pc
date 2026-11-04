@@ -9,6 +9,16 @@ struct Cached {
     owned_bytes: usize,
 }
 
+impl Cached {
+    fn new<T: 'static>(value: T, bytes: Vec<u8>, stable: bool, owns_value: bool) -> Self {
+        Self {
+            owned_bytes: std::mem::size_of::<T>() + if owns_value { bytes.len() * 2 } else { 0 },
+            value: Box::new(value),
+            bytes: Arc::new(Resource::new(bytes, stable)),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Recorder {
     cache: Vec<Cached>,
@@ -64,32 +74,7 @@ impl Recorder {
         self.output = bytes;
     }
 
-    fn cached<T: 'static>(
-        &mut self,
-        stable: bool,
-        owns_value: bool,
-        matches: impl FnOnce(&T) -> bool,
-        make: impl FnOnce() -> Result<(T, Vec<u8>)>,
-    ) -> Result<()> {
-        if self.cache.get(self.cursor).is_none_or(|entry| {
-            entry
-                .value
-                .downcast_ref::<T>()
-                .is_none_or(|old| !matches(old))
-        }) {
-            let (value, bytes) = make()?;
-            let entry = Cached {
-                owned_bytes: std::mem::size_of::<T>()
-                    + if owns_value { bytes.len() * 2 } else { 0 },
-                value: Box::new(value),
-                bytes: Arc::new(Resource::new(bytes, stable)),
-            };
-            if self.cursor == self.cache.len() {
-                self.cache.push(entry);
-            } else {
-                self.cache[self.cursor] = entry;
-            }
-        }
+    fn append_cached(&mut self, stable: bool) -> Result<()> {
         if stable {
             self.segments.push(Segment::Shared {
                 offset: self.output.len(),
@@ -113,17 +98,20 @@ impl Capture for Recorder {
     }
 
     fn shared<T: Serialize + Clone + PartialEq + 'static>(&mut self, value: &T) -> Result<()> {
-        self.cached(
-            true,
-            true,
-            |old: &T| old == value,
-            || {
-                Ok((
-                    value.clone(),
-                    postcard::to_allocvec(value).map_err(|e| e.to_string())?,
-                ))
-            },
-        )
+        if self
+            .cache
+            .get(self.cursor)
+            .is_none_or(|entry| entry.value.downcast_ref::<T>() != Some(value))
+        {
+            let bytes = postcard::to_allocvec(value).map_err(|e| e.to_string())?;
+            let entry = Cached::new(value.clone(), bytes, true, true);
+            if self.cursor == self.cache.len() {
+                self.cache.push(entry);
+            } else {
+                self.cache[self.cursor] = entry;
+            }
+        }
+        self.append_cached(true)
     }
 
     fn words(&mut self, value: &[u16]) -> Result<()> {
@@ -141,24 +129,19 @@ impl Capture for Recorder {
                 .downcast_ref::<Arc<T>>()
                 .is_some_and(|old| Arc::ptr_eq(old, value))
         };
-        // Expiring a blood page shifts the remaining resources, not their data.
-        if stable
-            && self.cache.get(self.cursor).is_some_and(|old| !matches(old))
-            && let Some(offset) = self.cache[self.cursor + 1..].iter().position(matches)
-        {
-            self.cache.swap(self.cursor, self.cursor + 1 + offset);
+        if self.cache.get(self.cursor).is_none_or(|old| !matches(old)) {
+            if let Some(offset) = self.cache[self.cursor..].iter().position(matches) {
+                self.cache.swap(self.cursor, self.cursor + offset);
+            } else {
+                // New blood pages must not evict cached tracks or other retained resources.
+                let bytes = postcard::to_allocvec(value).map_err(|e| e.to_string())?;
+                self.cache.insert(
+                    self.cursor,
+                    Cached::new(value.clone(), bytes, stable, false),
+                );
+            }
         }
-        self.cached(
-            stable,
-            false,
-            |old: &Arc<T>| Arc::ptr_eq(old, value),
-            || {
-                Ok((
-                    value.clone(),
-                    postcard::to_allocvec(value).map_err(|e| e.to_string())?,
-                ))
-            },
-        )
+        self.append_cached(stable)
     }
 }
 
@@ -168,7 +151,7 @@ mod tests {
     use crate::rewind::History;
 
     #[test]
-    fn expiring_and_reordering_shared_resources_keeps_their_encoded_data() {
+    fn inserting_expiring_and_reordering_resources_keeps_their_encoded_data() {
         use std::sync::atomic::{AtomicUsize, Ordering};
 
         struct Tracked {
@@ -185,7 +168,7 @@ mod tests {
             }
         }
         let encodes = Arc::new(AtomicUsize::new(0));
-        let resources: Vec<_> = (0..9)
+        let resources: Vec<_> = (0..11)
             .map(|value| {
                 Arc::new(Tracked {
                     value,
@@ -199,7 +182,13 @@ mod tests {
             vec![7, 6, 5, 4, 3, 2, 1],
             vec![7, 6, 4, 3, 2, 1, 8],
             vec![8, 1, 2, 3, 4, 6, 7],
+            vec![9, 8, 1, 2, 3, 4, 6, 7],
+            vec![9, 8, 1, 2, 10, 3, 4, 6, 7],
+            vec![10, 9, 7, 6, 4, 3, 2, 1, 8],
+            vec![9, 7, 6, 4, 3, 2, 1, 8],
+            vec![],
         ];
+        let expected_encodes = [8, 8, 8, 9, 9, 10, 11, 11, 11, 11];
         let mut history = History::default();
         for (tick, order) in orders.iter().enumerate() {
             let tick = tick as u64;
@@ -209,14 +198,19 @@ mod tests {
             for &index in order {
                 history
                     .recorder
-                    .shared_arc(&resources[index], true)
+                    .shared_arc(
+                        &resources[index],
+                        !matches!((tick, index), (5, 9) | (6, 10)),
+                    )
                     .unwrap();
             }
             let snapshot = history.recorder.finish().unwrap();
+            assert_eq!(history.recorder.cache.len(), order.len());
             history.push(tick, 2, snapshot).unwrap();
             assert_eq!(
                 encodes.load(Ordering::Relaxed),
-                if tick < 3 { 8 } else { 9 }
+                expected_encodes[tick as usize],
+                "tick {tick}"
             );
         }
         for (tick, order) in orders.into_iter().enumerate() {

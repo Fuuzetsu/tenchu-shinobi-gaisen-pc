@@ -1425,3 +1425,34 @@ Formatting, native/WASM strict Clippy and release builds pass, together with
 ordinary visual/rewind tests and four disc-based footprint/savestate checks.
 Chromium WebGPU snow play passes movement, grappling, paused free camera,
 lighting changes and resumed play without errors or changes to paused state.
+
+## November 4: rewind cache insertions
+
+Inserting a new shared resource previously replaced the next cache entry. That
+could cascade through unchanged footprints and encode them again. The recorder
+now inserts new Arc resources without evicting the remaining entries and finds
+retained resources even when they are stored inline. The snapshot format is
+unchanged; unused cache entries are still discarded after each capture.
+
+The serialization-count regression failed before the change: inserting one
+resource encoded seven unchanged resources again. It now passes insertion,
+expiry, reordering, inline/shared transitions and decoding every retained state.
+
+In two 4K snow/blood/footprint/rewind runs, village recording p99 falls from
+3.45–3.55 to 1.72–1.82 ms. The matched repeat gives:
+
+| Route | Rewind p95 before → after | Rewind p99 before → after | Frame p99 before → after |
+| --- | ---: | ---: | ---: |
+| Village | 1.54 → 1.51 ms | 3.45 → 1.72 ms | 53.38 → 53.72 ms |
+| Snow courtyard | 0.82 → 0.81 ms | 0.95 → 0.94 ms | 16.35 → 16.18 ms |
+| Garden | 1.35 → 1.33 ms | 1.73 → 1.57 ms | 28.53 → 28.47 ms |
+| Waterfall | 0.74 → 0.75 ms | 0.81 → 0.89 ms | 13.18 → 13.08 ms |
+
+Village CPU-work p99 falls from 8.34 to 7.64 ms. Overall frame times do not
+establish a material improvement: heavy blood remains GPU-bound. These are the
+same 1,140-frame stress samples described above, not ordinary-play guarantees.
+
+Formatting, native/WASM strict Clippy and release builds pass. Checks cover
+exact cached-versus-full mission snapshots after asset edits, item-active
+rewind/branching on both heroes, timed reverse playback, restoring visual
+history and the shared-resource memory budget.
