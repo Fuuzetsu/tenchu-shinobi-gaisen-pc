@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce model-interpolation CPU work in crowded scenes by matching ordered
+  pose snapshots in one pass. Poses, camera cuts and saved states are unchanged.
+
 - Reduce GPU work for overlapping blood stains on snow by reusing conservative
   shelter-height bounds. Roof edges, sloped surfaces and moving blockers retain
   the existing shelter filtering and appearance.

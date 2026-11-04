@@ -1514,3 +1514,34 @@ move, toggle lighting, use paused free camera and resume without errors or
 altering paused gameplay. Both browsers' paused captures match their respective
 full-filter reference images exactly. Sampling array layers explicitly also
 avoids WebGL2's unsupported sampled views of individual array layers.
+
+## November 4: crowded-scene interpolation
+
+A 4K Modern High stress fixture adds 128 guards using the existing placement
+API, keeps every actor active, and lets combat proceed during four moving
+camera routes. It contains about 155 actors; this is an artificial stress case,
+not a normal mission population. Each route measures 1,140 frames after warm-up.
+The virtual-display offscreen mode serializes rendering and completion, so its
+frame intervals must not be treated as interactive FPS.
+
+Baseline geometry/upload p99 is 7.7–8.9 ms. CPU profiling identifies geometry
+packing, model transforms and ordered pose-map searches among the larger costs.
+Packing poses into a temporary CPU vector before a bulk GPU upload makes CPU
+work about 0.8 ms slower; that experiment was discarded after a repeat baseline.
+
+Interpolation now walks the previous and current ordered snapshots together,
+and builds the resulting map in bulk. This replaces repeated searches and
+insertions without changing stored data or the interpolation math. In an
+alternating reference/candidate CPU fixture with 128 extra guards, both heroes
+and missions 1, 2, 5 and 10, sampling means fall from 0.376–0.456 ms to
+0.280–0.334 ms. For mission 1 Rikimaru, p95/p99 falls from 0.475/0.478 ms to
+0.347/0.351 ms. Serialized presentation frames match exactly at five fractions
+of each of 180 logic ticks in all eight runs.
+
+The moving end-to-end runs do not establish an overall p95/p99 improvement;
+variation in other work exceeds this approximately 0.10–0.12 ms local saving.
+The larger geometry/upload costs remain the next target.
+
+Formatting and strict native/WASM Clippy pass. Focused checks cover changing
+part sets, teleports, hinged meshes, both heroes' body/weapon interpolation,
+alternative deaths with attached effects, and savestate visual continuation.

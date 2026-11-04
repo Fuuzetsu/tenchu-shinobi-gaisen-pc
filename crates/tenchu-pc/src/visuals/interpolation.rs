@@ -127,27 +127,33 @@ impl History {
         if alpha >= 1.0 {
             return None;
         }
-        let mut parts = BTreeMap::new();
         let mut hinges = Vec::new();
-        for (&key, &matrix) in &current.parts {
-            let continuous = match key {
-                Part::Actor { root, .. } => previous
-                    .roots
-                    .get(&root)
-                    .zip(current.roots.get(&root))
-                    .is_some_and(|(a, b)| close(*a, *b, 2000.0)),
-                Part::Hinge { .. } | Part::TrialCover(_) => true,
-            };
-            let pose = previous
-                .parts
-                .get(&key)
-                .filter(|_| continuous)
-                .map_or(matrix, |&before| blend(before, matrix, alpha));
-            parts.insert(key, pose);
-            if let Part::Hinge { mesh, .. } = key {
-                hinges.push((mesh, matrix, pose));
-            }
-        }
+        let mut previous_parts = previous.parts.iter().peekable();
+        let parts = current
+            .parts
+            .iter()
+            .map(|(&key, &matrix)| {
+                while previous_parts.peek().is_some_and(|(old, _)| **old < key) {
+                    previous_parts.next();
+                }
+                let continuous = match key {
+                    Part::Actor { root, .. } => previous
+                        .roots
+                        .get(&root)
+                        .zip(current.roots.get(&root))
+                        .is_some_and(|(a, b)| close(*a, *b, 2000.0)),
+                    Part::Hinge { .. } | Part::TrialCover(_) => true,
+                };
+                let pose = previous_parts
+                    .peek()
+                    .filter(|(old, _)| **old == key && continuous)
+                    .map_or(matrix, |(_, before)| blend(**before, matrix, alpha));
+                if let Part::Hinge { mesh, .. } = key {
+                    hinges.push((mesh, matrix, pose));
+                }
+                (key, pose)
+            })
+            .collect();
         // Script cameras can cut even between nearby viewpoints. Keep their authored cuts exact.
         let view = if current.cinematic.0
             || previous.camera_mode != current.camera_mode
@@ -382,6 +388,72 @@ mod tests {
             pose(10_000)
         );
         assert_eq!(snap.view, pose(-10_000));
+    }
+
+    #[test]
+    fn changing_part_sets_keep_pose_identity_and_hinged_meshes() {
+        let pose = |x| Matrix {
+            translation: [x, 0, 0].into(),
+            ..Default::default()
+        };
+        let mut parts = BTreeMap::new();
+        for i in 0..120 {
+            let key = match i % 3 {
+                0 => Part::TrialCover(i),
+                1 => Part::Actor {
+                    root: i / 10,
+                    model: i,
+                    kind: (i % 7) as i16,
+                    inspection: i % 2 == 0,
+                },
+                _ => Part::Hinge {
+                    object: i / 10,
+                    part: i % 10,
+                    mesh: i,
+                },
+            };
+            parts.insert(key, pose(i as i32));
+        }
+        let previous = Snapshot {
+            tick: 1,
+            parts,
+            roots: (0..12).map(|i| (i, Position::ZERO)).collect(),
+            view: pose(0),
+            cinematic: (false, 0),
+            camera_mode: tenchu_core::camera::Mode::Normal,
+            death_blood: None,
+        };
+        let mut current = previous.clone();
+        current.tick = 2;
+        current
+            .parts
+            .retain(|_, matrix| matrix.translation.x % 4 != 0);
+        for matrix in current.parts.values_mut() {
+            matrix.translation.x += 100;
+        }
+        current.parts.insert(Part::TrialCover(300), pose(300));
+        current.roots.remove(&3);
+        current.roots.insert(5, Position::new(10_000, 0, 0));
+        let history = History {
+            previous: Some(previous.clone()),
+            current: Some(current.clone()),
+        };
+        for alpha in [0.0, 0.25, 0.75, 0.99] {
+            let frame = history.sample(2, alpha).unwrap();
+            assert_eq!(frame.parts.len(), current.parts.len());
+            for (&key, &matrix) in &current.parts {
+                let continuous = !matches!(key, Part::Actor { root: 3 | 5, .. });
+                let expected = previous
+                    .parts
+                    .get(&key)
+                    .filter(|_| continuous)
+                    .map_or(matrix, |&before| blend(before, matrix, alpha));
+                assert_eq!(Frame::transform(Some(&frame), key, matrix), expected);
+                if let Part::Hinge { mesh, .. } = key {
+                    assert_eq!(frame.hinged(mesh, matrix), expected);
+                }
+            }
+        }
     }
 
     #[test]
