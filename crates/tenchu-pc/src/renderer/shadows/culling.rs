@@ -54,13 +54,7 @@ impl Culling {
                     Some(Rect::full(size)),
                 )
             } else {
-                let (ranges, foliage) = frustum.ranges(&mesh.shadow_chunks, wind);
-                let damage = if ranges.is_empty() {
-                    None
-                } else {
-                    frustum.damage(&mesh.shadow_chunks, wind, mesh.dynamic, matrix, size)
-                };
-                (ranges, foliage, damage)
+                frustum.cull(&mesh.shadow_chunks, wind, mesh.dynamic, matrix, size)
             };
             let culled = Culled {
                 buffer: mesh.vertices.pose.clone(),

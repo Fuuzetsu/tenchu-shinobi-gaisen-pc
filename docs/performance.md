@@ -997,4 +997,34 @@ mechanic was reduced. Paired image checks are predominantly pixel-identical;
 the few retained shader arithmetic changes have the small rounding differences
 documented above. Experiments that regressed representative workloads or showed
 no useful gain were discarded. The loop is stopped at the user's request after
-the attached-blood optimisation; these commits have not been released.
+the attached-blood optimisation; these changes were released in v0.15.4.
+
+
+## November 4: shadow visibility CPU work
+
+Fresh 4K Modern High and maximum-rain runs reproduce the previous performance
+range on the same GTX 1080 Ti / Ryzen 9 9950X3D. A CPU sample identified repeated
+frustum tests in shadow preparation. Moving casters were tested once for draw
+ranges and again for the region of the shadow map that needs refreshing. Those
+results now share one traversal. The bounds arithmetic also uses the existing
+portable aligned vector type, without changing the bounds or padding.
+
+An isolated Mission 1 workload uses 1,461 actual shadow-geometry chunks and 18
+camera directions. Vectorized bounds tests take 46.3 instead of 52.8 ms for
+500 repetitions (about 13% less). Combining the traversals takes 9.8 instead of
+13.6 ms for 40 repetitions with moving geometry (28% less); wind-animated
+scenery takes 5.0 instead of 5.3 ms (7% less). These are aggregate CPU timings,
+not frame times or GPU improvements. Draw ranges and refresh rectangles match
+the previous calculation for every tested direction, wind and mobility mode.
+
+Mission 1/5/9 comparison captures are pixel-identical. GPU checks compare culled
+and full-stage shadows, moving regions against full redraws, wind-animated
+foliage and snow shelter. Native strict workspace Clippy, WASM library Clippy
+and formatting pass.
+
+Unprofiled moving 4K runs put average render submission/preparation at
+1.286 → 1.131 ms (village), 1.294 → 1.175 ms (snow courtyard),
+1.147 → 1.047 ms (garden), and 2.667 → 1.585 ms (waterfall). Whole-frame
+rates stay within run-to-run variation: 73.2 / 86.9 / 62.6 / 91.8 FPS before,
+72.6 / 87.1 / 62.7 / 91.1 after. These views remain GPU-bound; this change
+reduces CPU work rather than claiming a material FPS gain.

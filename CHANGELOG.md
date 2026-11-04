@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU work for camera and shadow visibility checks, reusing moving
+  casters' visibility when determining which shadow-map regions need refreshing.
+  Shadow coverage, wind animation and rendering quality are unchanged.
+
 ## 0.15.5 — 2026-11-03
 
 - Fix guards repeatedly drawing and lowering their weapons at the alarm-range

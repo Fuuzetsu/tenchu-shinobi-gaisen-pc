@@ -186,69 +186,60 @@ impl Frustum {
         ])
     }
     pub fn contains(&self, bounds: [Vec3; 2], padding: f32) -> bool {
-        let center = (bounds[0] + bounds[1]) * 0.5;
-        let extent = (bounds[1] - bounds[0]) * 0.5 + Vec3::splat(padding);
-        self.0
-            .iter()
-            .all(|p| p.truncate().dot(center) + p.w + p.truncate().abs().dot(extent) >= -0.001)
+        let [low, high] = bounds.map(Vec3A::from);
+        let center = (low + high) * 0.5;
+        let extent = (high - low) * 0.5 + Vec3A::splat(padding);
+        self.0.iter().all(|p| {
+            let normal = Vec3A::from(p.truncate());
+            normal.dot(center) + p.w + normal.abs().dot(extent) >= -0.001
+        })
     }
-    pub(super) fn ranges(&self, chunks: &[Chunk], wind: f32) -> (Vec<Range<u32>>, bool) {
-        let mut ranges: Vec<Range<u32>> = Vec::new();
-        let mut foliage = false;
-        for chunk in chunks.iter().filter(|c| {
-            c.bounds.is_some_and(|b| {
-                self.contains(
-                    b,
-                    if c.foliage.is_some() {
-                        wind.abs() * 100.0 + 2.0
-                    } else {
-                        2.0
-                    },
-                )
-            })
-        }) {
-            foliage |= chunk.foliage.is_some();
-            if let Some(previous) = ranges.last_mut().filter(|r| r.end == chunk.range.start) {
-                previous.end = chunk.range.end;
-            } else {
-                ranges.push(chunk.range.clone());
-            }
-        }
-        (ranges, foliage)
-    }
-
-    pub(super) fn damage(
+    pub(super) fn cull(
         &self,
         chunks: &[Chunk],
         wind: f32,
         dynamic: bool,
         matrix: Mat4,
         size: u32,
-    ) -> Option<Rect> {
+    ) -> (Vec<Range<u32>>, bool, Option<Rect>) {
+        let mut ranges: Vec<Range<u32>> = Vec::new();
+        let mut foliage = false;
         let mut damage: Option<Rect> = None;
         for chunk in chunks {
-            let bounds = if dynamic {
-                chunk.bounds
-            } else if wind != 0.0 {
-                chunk.foliage
-            } else {
-                None
-            };
-            let Some(bounds) = bounds else {
-                continue;
-            };
             let padding = if chunk.foliage.is_some() {
                 wind.abs() * 100.0 + 2.0
             } else {
                 2.0
             };
-            if !self.contains(bounds, padding) {
-                continue;
+            let visible = chunk
+                .bounds
+                .is_some_and(|bounds| self.contains(bounds, padding));
+            if visible {
+                foliage |= chunk.foliage.is_some();
+                if let Some(previous) = ranges.last_mut().filter(|r| r.end == chunk.range.start) {
+                    previous.end = chunk.range.end;
+                } else {
+                    ranges.push(chunk.range.clone());
+                }
             }
-            let rect = Rect::projected(bounds, matrix, size, padding);
-            damage = Some(damage.map_or(rect, |old| old.union(rect)));
+            let bounds = if dynamic {
+                chunk.bounds.filter(|_| visible)
+            } else if wind != 0.0 {
+                chunk
+                    .foliage
+                    .filter(|&bounds| self.contains(bounds, padding))
+            } else {
+                None
+            };
+            if let Some(bounds) = bounds {
+                let rect = Rect::projected(bounds, matrix, size, padding);
+                damage = Some(damage.map_or(rect, |old| old.union(rect)));
+            }
         }
-        damage
+        if ranges.is_empty() {
+            damage = None;
+        }
+        (ranges, foliage, damage)
     }
 }
 
