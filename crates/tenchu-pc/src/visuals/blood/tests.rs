@@ -642,7 +642,13 @@ fn capture(
             )
             .unwrap();
     }
-    let poses = transforms(game, models, None, true);
+    let needed = blood
+        .marks
+        .attached
+        .iter()
+        .flat_map(|(_, mark)| mark.0.iter().filter_map(|patch| patch.part))
+        .collect();
+    let poses = transforms(game, models, None, true, &needed);
     if let Some(patch) = blood
         .marks
         .attached

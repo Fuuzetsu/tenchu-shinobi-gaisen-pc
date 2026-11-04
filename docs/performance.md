@@ -1545,3 +1545,34 @@ The larger geometry/upload costs remain the next target.
 Formatting and strict native/WASM Clippy pass. Focused checks cover changing
 part sets, teleports, hinged meshes, both heroes' body/weapon interpolation,
 alternative deaths with attached effects, and savestate visual continuation.
+
+## November 4: request poses only for affected effects
+
+Lantern-source collection previously interpolated every body/weapon part before
+checking whether its geometry emits light. Blood likewise built complete pose
+maps whenever any attached stain, wound or coated weapon needed one. Lighting
+now evaluates poses after finding an emitter; blood requests just the affected
+parts, including newly struck weapons. The shared appearance path still handles
+swapped rigs, attachments, visibility and inspection poses.
+
+In the same 4K crowded fixture, two pairs reduce CPU-work means by about
+0.2–0.5 ms. The repeat pair gives:
+
+| Route | CPU work p95 before → after | CPU work p99 before → after | Frame p99 before → after |
+| --- | ---: | ---: | ---: |
+| Village | 9.65 → 9.32 ms | 10.75 → 10.57 ms | 31.30 → 31.78 ms |
+| Snow courtyard | 10.51 → 9.95 ms | 11.84 → 11.07 ms | 32.79 → 32.12 ms |
+| Garden | 9.44 → 9.25 ms | 10.36 → 10.28 ms | 33.33 → 33.12 ms |
+| Waterfall | 10.43 → 10.20 ms | 11.36 → 11.18 ms | 25.91 → 25.46 ms |
+
+Whole-frame tails remain noisy and the village p99 does not improve. This is
+less CPU work, not a solution to GPU-heavy rendering or a 60 FPS guarantee.
+
+A private old-path comparison matches the complete serialized blood state for
+900 combat ticks per hero. All 3,600 rendered-geometry comparisons also match
+byte for byte across inspection/ordinary views and three interpolation fractions.
+
+Formatting and strict native/WASM Clippy pass. Focused disc checks cover both
+heroes' swapped bodies and weapon attachments, lanterns across ten missions,
+stealth-kill/combat coatings, independent blood styles, finite wounds, player
+pools and continued visual state after saving/loading.

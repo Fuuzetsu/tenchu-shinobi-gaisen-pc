@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU work for blood and lantern lighting in crowded scenes by requesting
+  poses only for affected or light-emitting model parts. Attached stains, wounds,
+  bloody weapons and moving lights keep their existing behavior.
+
 - Reduce model-interpolation CPU work in crowded scenes by matching ordered
   pose snapshots in one pass. Poses, camera cuts and saved states are unchanged.
 

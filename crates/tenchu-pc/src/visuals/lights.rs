@@ -122,18 +122,19 @@ impl Emitters {
             }
         }
         render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
-            if let Some(source) = out.source(geometry, matrix) {
+            if let Some(source) = out.source(geometry, || matrix) {
                 out.placed.push(source);
             }
         });
         out
     }
 
-    fn source(&self, geometry: &[Geometry], matrix: Matrix) -> Option<Source> {
+    fn source(&self, geometry: &[Geometry], matrix: impl FnOnce() -> Matrix) -> Option<Source> {
         if geometry.is_empty() {
             return None;
         }
         let emitter = self.models.get(&(geometry.as_ptr() as usize))?;
+        let matrix = matrix();
         let rotation = Mat3::from_cols_array(&std::array::from_fn(|i| {
             f32::from(matrix.rotation[i % 3][i / 3]) / 4096.0
         }));
@@ -159,18 +160,15 @@ impl Emitters {
         frame: Option<&super::interpolation::Frame>,
     ) -> Vec<Source> {
         let mut out = self.placed.clone();
-        render_mesh::visit_character_parts(game, true, |key, geometry, matrix| {
-            let matrix = super::interpolation::Frame::transform(frame, key, matrix);
-            if let Some(source) = self.source(geometry, matrix) {
+        let mut append = |key, geometry: &[Geometry], matrix| {
+            if let Some(source) = self.source(geometry, || {
+                super::interpolation::Frame::transform(frame, key, matrix)
+            }) {
                 out.push(source);
             }
-        });
-        render_mesh::visit_hinged_parts(game, |key, geometry, matrix| {
-            let matrix = super::interpolation::Frame::transform(frame, key, matrix);
-            if let Some(source) = self.source(geometry, matrix) {
-                out.push(source);
-            }
-        });
+        };
+        render_mesh::visit_character_parts(game, true, &mut append);
+        render_mesh::visit_hinged_parts(game, append);
         out
     }
 }
@@ -276,12 +274,44 @@ mod tests {
             }
             .load(&assets)
             .unwrap();
+            let mut history = super::super::interpolation::History::default();
+            history.reset(&game);
             for _ in 0..40 {
                 game.step(0).unwrap();
+                history.tick(&game);
             }
             let before = crate::session::tests::state(&game);
             let emitters = Emitters::build(&game, &Pack::default(), true);
             let sources = emitters.sources(&game);
+            let frame = history.sample(game.tick, 0.5).unwrap();
+            let mut expected = emitters.placed.clone();
+            let mut append = |key, geometry: &[Geometry], matrix| {
+                let matrix =
+                    super::super::interpolation::Frame::transform(Some(&frame), key, matrix);
+                if let Some(source) = emitters.source(geometry, || matrix) {
+                    expected.push(source);
+                }
+            };
+            render_mesh::visit_character_parts(&game, true, &mut append);
+            render_mesh::visit_hinged_parts(&game, append);
+            let fields = |sources: Vec<Source>| {
+                sources
+                    .into_iter()
+                    .map(|source| {
+                        (
+                            source.name,
+                            source.light.position,
+                            source.light.color,
+                            source.light.radius,
+                            source.light.emission_radius,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(
+                fields(emitters.sources_presented(&game, Some(&frame))),
+                fields(expected)
+            );
             let selected = crate::lighting::sources(
                 &game,
                 &crate::settings::Lighting {

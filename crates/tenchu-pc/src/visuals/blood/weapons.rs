@@ -48,6 +48,10 @@ pub(super) fn contacts(game: &Game, blood: &[Contact]) -> BTreeSet<usize> {
 }
 
 impl Weapons {
+    pub fn parts(&self) -> impl Iterator<Item = Part> + '_ {
+        self.coatings.keys().copied()
+    }
+
     pub fn clear(&mut self) {
         self.coatings.clear();
     }
@@ -456,7 +460,8 @@ mod tests {
             let mut idle: Weapons = postcard::from_bytes(&bytes).unwrap();
             let mut moving = idle.clone();
             let mut restored: Weapons = postcard::from_bytes(&bytes).unwrap();
-            let transforms = transforms(&game, &models, None, true);
+            let transforms =
+                transforms(&game, &models, None, true, &blood.weapons.parts().collect());
             game.effects.rumble.clear();
             for actor in game.roster.actors.iter_mut().flatten() {
                 actor.status = State::Attack;

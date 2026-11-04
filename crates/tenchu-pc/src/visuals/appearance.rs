@@ -351,6 +351,17 @@ pub fn visit_parts(
     inspection: bool,
     models: Option<&super::models::Models>,
     frame: Option<&Frame>,
+    visit: impl FnMut(Part, &[model::Geometry], Matrix),
+) {
+    visit_parts_filtered(game, inspection, models, frame, |_| true, visit);
+}
+
+pub(super) fn visit_parts_filtered(
+    game: &Game,
+    inspection: bool,
+    models: Option<&super::models::Models>,
+    frame: Option<&Frame>,
+    include: impl Fn(Part) -> bool,
     mut visit: impl FnMut(Part, &[model::Geometry], Matrix),
 ) {
     let appearance = models.and_then(|m| m.player.as_ref());
@@ -383,6 +394,9 @@ pub fn visit_parts(
         }
     }
     render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
+        if !include(key) {
+            return;
+        }
         let mut matrix = Frame::transform(frame, key, matrix);
         if let Part::Actor { root, model, .. } = key
             && root == game.player().root_model
@@ -563,15 +577,33 @@ mod tests {
                         for inspection in [false, true] {
                             let offsets = appearance.offsets(&game, inspection, frame.as_ref());
                             let mut presented = Vec::new();
+                            let include =
+                                |key| matches!(key, Part::Actor { model, .. } if model % 3 == 0);
+                            let mut expected_filtered = Vec::new();
                             visit_parts(
                                 &game,
                                 inspection,
                                 Some(&models),
                                 frame.as_ref(),
-                                |_, geometry, matrix| {
+                                |key, geometry, matrix| {
                                     presented.push((geometry.as_ptr(), matrix));
+                                    if include(key) {
+                                        expected_filtered.push((key, geometry.as_ptr(), matrix));
+                                    }
                                 },
                             );
+                            let mut filtered = Vec::new();
+                            visit_parts_filtered(
+                                &game,
+                                inspection,
+                                Some(&models),
+                                frame.as_ref(),
+                                include,
+                                |key, geometry, matrix| {
+                                    filtered.push((key, geometry.as_ptr(), matrix));
+                                },
+                            );
+                            assert!(filtered == expected_filtered);
                             render_mesh::visit_character_parts(
                                 &game,
                                 inspection,

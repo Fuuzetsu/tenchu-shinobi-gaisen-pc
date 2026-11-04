@@ -206,13 +206,26 @@ fn transforms(
     models: &Models,
     frame: Option<&Frame>,
     inspection: bool,
+    needed: &BTreeSet<Part>,
 ) -> BTreeMap<Part, Matrix> {
     let mut parts = BTreeMap::new();
-    appearance::visit_parts(game, inspection, Some(models), frame, |key, _, matrix| {
-        parts.insert(key.canonical(), matrix);
-    });
+    if needed.is_empty() {
+        return parts;
+    }
+    appearance::visit_parts_filtered(
+        game,
+        inspection,
+        Some(models),
+        frame,
+        |key| needed.contains(&key.canonical()),
+        |key, _, matrix| {
+            parts.insert(key.canonical(), matrix);
+        },
+    );
     render_mesh::visit_hinged_parts(game, |key, _, matrix| {
-        parts.insert(key, Frame::transform(frame, key, matrix));
+        if needed.contains(&key) {
+            parts.insert(key, Frame::transform(frame, key, matrix));
+        }
     });
     parts
 }
@@ -687,11 +700,27 @@ impl Blood {
             Default::default()
         };
         let weapons = settings.weapons && (!self.weapons.is_empty() || !hits.is_empty());
-        let transforms = if self.wounds.is_empty() && !weapons {
-            BTreeMap::new()
-        } else {
-            transforms(game, models, frame, true)
-        };
+        let transforms =
+            if self.wounds.is_empty() && !weapons {
+                BTreeMap::new()
+            } else {
+                let mut needed: BTreeSet<_> = self.wounds.iter().map(|wound| wound.part).collect();
+                if weapons {
+                    needed.extend(self.weapons.parts());
+                    for &id in game.roster.order.iter().filter(|id| hits.contains(id)) {
+                        let actor = game.roster.get(id);
+                        needed.extend(actor.weapons[..2].iter().flatten().map(|weapon| {
+                            Part::Actor {
+                                root: actor.root_model,
+                                model: weapon.model,
+                                kind: weapon.kind,
+                                inspection: false,
+                            }
+                        }));
+                    }
+                }
+                transforms(game, models, frame, true, &needed)
+            };
         if weapons {
             self.weapons
                 .tick(game, models, &transforms, &hits, &mut self.drops);
@@ -993,11 +1022,19 @@ impl Blood {
         }
         if !self.marks.attached.is_empty() || !self.drops.is_empty() || !self.weapons.is_empty() {
             let transforms = if !self.marks.attached.is_empty() || !self.weapons.is_empty() {
+                let needed = self
+                    .marks
+                    .attached
+                    .iter()
+                    .flat_map(|(_, mark)| mark.0.iter().filter_map(|patch| patch.part))
+                    .chain(self.weapons.parts())
+                    .collect();
                 transforms(
                     game,
                     models,
                     frame,
                     camera.is_some() || game.roster.keep_all_active,
+                    &needed,
                 )
             } else {
                 BTreeMap::new()
