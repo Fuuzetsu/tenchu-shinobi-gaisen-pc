@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce shadow-map GPU cost around buildings and trees by drawing solid scenery
+  before foliage, preserving animated leaves and their shadows.
+
 - Reduce GPU work for opaque HD scenery with nearest or bilinear texture
   filtering, skipping unnecessary texture-relief calculations in the depth pass.
 

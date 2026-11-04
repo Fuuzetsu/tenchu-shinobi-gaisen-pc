@@ -292,7 +292,8 @@ pub(super) fn spatial(vertices: &[Vertex]) -> Vec<Vertex> {
     triangles.sort_by_cached_key(|t| {
         let center = t.iter().map(|v| Vec3::from(v.position)).sum::<Vec3>() / 3.0;
         let cell = (center / 5000.0).floor().as_ivec3();
-        (cell.x, cell.z, cell.y)
+        let foliage = t.iter().any(|v| v.flags & render_mesh::FOLIAGE != 0);
+        (foliage, cell.x, cell.z, cell.y)
     });
     triangles.into_iter().flatten().collect()
 }

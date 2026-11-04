@@ -1704,3 +1704,40 @@ add substantial cost: the baseline village spends 10.52 ms on them on average,
 versus almost zero with the fixed view and poses. Native/WASM strict Clippy,
 release builds and Chromium WebGPU/WebGL2 gameplay, lighting, free-camera and
 portable weather-state checks pass.
+
+
+## November 5: shadow scenery before foliage
+
+Direct GPU timestamps on the moving report-settings routes separate point-light,
+directional and weather shadow maps. In the village their mean costs are
+8.57, 1.53 and 0.42 ms respectively. Local maps, rather than the moon or rain
+shelter, account for most of the moving shadow cost.
+
+Shadow-stage geometry now groups solid scenery before foliage while retaining
+spatial ordering within each group. Buildings can reject hidden leaf fragments
+earlier. This changes only shadow geometry ordering; the color passes retain
+their original draw order and the number, resolution and filtering of shadows
+are unchanged.
+
+Sequential 20-second offscreen routes at 3826 × 2146 with the report's graphics,
+after the opaque-depth improvement above, give:
+
+| Route | Shadow-map mean before → after | GPU p99 before → after | Whole-frame p99 before → after |
+|---|---|---|---|
+| Village | 10.54 → 9.34 ms | 31.14 → 29.39 ms | 39.44 → 37.28 ms |
+| Courtyard | 6.87 → 6.20 ms | 29.09 → 28.84 ms | 35.92 → 35.82 ms |
+| Garden | 9.17 → 8.45 ms | 30.67 → 29.76 ms | 38.27 → 37.41 ms |
+| Waterfall | 2.62 → 2.51 ms | 11.28 → 11.21 ms | 22.76 → 22.85 ms |
+
+Four paired report-view captures are pixel-identical, covering fixed poses,
+animated actors and foliage, daytime, and heavy rain with 4,096 blood stains.
+In that fixed-camera animated case, shadow-map time falls from 3.89 to 2.77 ms.
+The moving routes remain above the budget for 60 FPS; these serialized offscreen
+measurements are not interactive frame rates. Reducing geometry to each updated
+shadow scissor was also tested and rejected: it increased CPU preparation without
+reducing GPU time.
+
+Shadow culling, partial redraws, wind animation and actor-independent snow
+shelter regressions pass. Native/WASM strict Clippy and release builds pass;
+Chromium WebGPU and WebGL2 load the portable snow/blood state, move, change
+lighting, use free camera and resume with paused simulation unchanged.
