@@ -43,7 +43,7 @@ fn surface_detail(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>, 
     let height = min(length(tangent), length(bitangent)) * 0.06 * strength;
     let eye = normalize(camera.eye.xyz - v.world);
     let facing = dot(eye, normal);
-    if camera.detail.x == 2.0 && facing > 0.1 && footprint < 2.0 {
+    if PARALLAX_ENABLED && camera.detail.x == 2.0 && facing > 0.1 && footprint < 2.0 {
         // Bounded ray/height intersection. Fade grazing rays and region edges to avoid atlas seams.
         let ray = clamp(vec2(dot(eye, u_gradient), dot(eye, v_gradient)) * height
             / max(facing, 0.25), vec2(-0.06), vec2(0.06)) * smoothstep(0.1, 0.35, facing) * (1.0 - smoothstep(0.75, 2.0, footprint));

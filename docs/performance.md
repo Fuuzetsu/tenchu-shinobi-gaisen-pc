@@ -1343,3 +1343,36 @@ full geometry/UV/blend/attachment comparison now passes on both heroes.
 Native/WASM strict Clippy, formatting and release
 builds pass. Chromium WebGL2 rain and WebGPU snow play checks pass through
 grappling, movement, lighting toggles, paused free camera and resumed play.
+
+## November 4: surface-detail shader specialization
+
+The shader configuration now distinguishes bump mapping from parallax, allowing
+the bump-only program to omit the unused height-ray loop. Surface-detail
+settings, sampling and strength stay unchanged.
+
+Two 90-frame 4K comparisons, with the second pair in reverse order and the last
+40 frames measured, give the following TRIAL 2 GPU totals:
+
+| Stress case | Before | After |
+| --- | ---: | ---: |
+| Rain with 4,096 projected blood marks | 65.77 / 66.41 ms | 60.65 / 60.55 ms |
+| Snow with the same blood marks | 43.28 / 43.49 ms | 42.99 / 43.03 ms |
+| Rain/blood with parallax enabled | 69.92 / 70.25 ms | 69.96 / 69.90 ms |
+
+A daytime rain/blood comparison changes from 69.22 to 64.65 ms. The first suite
+has eighteen paired images across TRIAL play/overhead, garden and waterfall
+views, including all surface-depth modes; the reverse-order repeat adds ten.
+Every image is pixel-identical. GPU clock logging during the repeat records
+1,885 MHz under load. These deliberately extreme blood cases remain expensive.
+
+Moving desktop High results vary with run order: the garden measures
+61.8 → 59.8 FPS in the first pair and 59.4 → 60.9 in the reverse pair. Maximum
+rain routes change from 51.6 / 62.9 / 44.3 / 80.6 to 51.9 / 63.3 / 44.3 / 79.9
+FPS. These do not establish an ordinary-play FPS gain or a consistent garden
+regression; the useful measured gain is overlapping wet blood.
+
+Five focused GPU checks pass for surface-depth switching, scenery, blood,
+weapon reflections and visibility. Native/WASM strict Clippy, formatting and
+release builds pass. Chromium WebGL2 rain and WebGPU snow both switch live
+through bump/parallax/off/bump, grapple, move, toggle lighting and resume from
+paused free camera without errors or changing paused gameplay state.

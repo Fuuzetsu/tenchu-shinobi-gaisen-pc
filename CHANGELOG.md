@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce GPU work for bump-mapped surfaces by omitting unused parallax code,
+  particularly when rain and many blood stains overlap. Surface-depth modes
+  retain their existing appearance.
+
 - Speed up refined model transforms with portable vector math, reducing actor
   geometry CPU work while preserving poses, normals and secondary motion.
 
