@@ -38,13 +38,19 @@ fn movement_probes_match_original_c_and_retail_directions() {
         ]
     });
     let source = oracle::source("CONFLICT.C");
-    let function = oracle::function(&source, "long GetAreaMapVector(").replace("long", "int32_t");
+    let function = [
+        "static inline int IsMissingAreaLevel(",
+        "static inline int ProbeMaskWithDirection(",
+        "long GetAreaMapVector(",
+    ]
+    .map(|signature| oracle::function(&source, signature).replace("long", "int32_t"))
+    .join("\n");
     let harness = format!(
         r#"
 #include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
-typedef uint32_t u32; typedef uint16_t u16;
+typedef uint32_t u32; typedef uint16_t u16; typedef uint8_t u8;
 typedef int AreaMapType;
 typedef struct {{int32_t vx,vy,vz,pad;}} VECTOR;
 typedef struct {{int32_t level,height,attrib,area,index,angleH,angleL,vector;}} MapVector;

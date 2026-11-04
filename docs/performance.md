@@ -1060,3 +1060,36 @@ Vulkan checks cover daylight shadows, local-light budgets, wet reflections,
 metal weapons and blood blending. Chromium WebGL2 rain and WebGPU snow smoke
 tests pass with lighting toggles, free camera, pause/resume and no rendering
 errors. Native/WASM strict Clippy and formatting pass.
+
+
+## November 4: terrain queries with active crowds
+
+A CPU profile of 20,000 updates in Mission 1 with 128 extra active actors found
+about one third of sampled execution in terrain-record reads and their endian
+helpers. A node already validates its complete 16-byte record before reading
+the fields; repeatedly validating each two-byte field prevented those reads
+from being simplified. Decode the checked record directly with portable
+`from_le_bytes` calls. No terrain cache or new invalidation rules are needed.
+
+The same 1,200-update input sequence, with an invulnerable player and added actors
+placed through the existing editor API, gives these mean simulation times:
+
+| Mission | Active actors | Before | After |
+| --- | ---: | ---: | ---: |
+| 1 | Original population, all active | 0.0843 ms | 0.0527 ms |
+| 1 | 128 extra, all active | 0.3895 ms | 0.2578 ms |
+| 4 | Original population, all active | 0.0912 ms | 0.0549 ms |
+| 4 | 128 extra, all active | 0.4501 ms | 0.2593 ms |
+| 9 | Original population, all active | 0.0584 ms | 0.0405 ms |
+| 9 | 128 extra, all active | 0.2150 ms | 0.1661 ms |
+
+Ordinary activation also improves slightly (about 0.001 ms per update). These
+are core simulation measurements, excluding audio and rendering; they do not
+claim an equivalent increase in GPU-bound frame rate. Complete serialized game
+state hashes match in all twelve scenarios: ordinary activation, all-active,
+32 extra actors and 128 extra actors across the three missions. Parsing checks
+cover unaligned records, signed extremes, live surface edits and invalid spans.
+Original C comparisons for mission sight passages and movement probes pass,
+along with the terrain arithmetic regressions, native/WASM strict Clippy and
+formatting. The movement harness imports the decomp's newly extracted helper
+functions as part of the same original C reference.

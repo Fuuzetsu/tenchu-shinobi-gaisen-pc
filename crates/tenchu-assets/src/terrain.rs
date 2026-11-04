@@ -109,18 +109,15 @@ impl AreaMap {
     }
 
     pub fn node(&self, offset: usize) -> Result<Node> {
-        let row = slice(&self.data, offset, 16)?;
+        let row: &[u8; 16] = slice(&self.data, offset, 16)?.try_into().unwrap();
+        let [y, dy, x1, z1, x2, z2, attributes, division] =
+            std::array::from_fn(|i| u16::from_le_bytes([row[i * 2], row[i * 2 + 1]]));
         Ok(Node {
-            y: i16_le(row, 0)?,
-            dy: i16_le(row, 2)?,
-            bounds: [
-                i16_le(row, 4)?,
-                i16_le(row, 6)?,
-                i16_le(row, 8)?,
-                i16_le(row, 10)?,
-            ],
-            attributes: u16_le(row, 12)?,
-            division: u16_le(row, 14)?,
+            y: y as i16,
+            dy: dy as i16,
+            bounds: [x1 as i16, z1 as i16, x2 as i16, z2 as i16],
+            attributes,
+            division,
         })
     }
 
@@ -140,5 +137,37 @@ impl AreaMap {
             &self.data,
             usize::try_from(at).map_err(|_| "ACM lookup before file")?,
         )? as usize)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unaligned_nodes_preserve_signed_fields_and_surface_edits() {
+        let mut map = AreaMap {
+            data: vec![
+                0xaa, 0x00, 0x80, 0xff, 0x7f, 0xff, 0xff, 0x00, 0x00, 0xd2, 0x04, 0x00, 0xf8, 0x23,
+                0x81, 0xdc, 0xfe,
+            ],
+            rows: Vec::new(),
+        };
+        let mut expected = Node {
+            y: i16::MIN,
+            dy: i16::MAX,
+            bounds: [-1, 0, 1234, -2048],
+            attributes: 0x8123,
+            division: 0xfedc,
+        };
+        assert_eq!(map.node(1).unwrap(), expected);
+        map.set_surface(1, -17, 0x0401).unwrap();
+        expected.y = -17;
+        expected.division = 0x0401;
+        assert_eq!(map.node(1).unwrap(), expected);
+        for offset in [2, usize::MAX] {
+            assert!(map.node(offset).is_err());
+            assert!(map.set_surface(offset, 0, 0).is_err());
+        }
     }
 }

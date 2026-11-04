@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up terrain queries used by movement, AI and effects, especially with
+  **Keep all enemies active** and crowded levels. Terrain edits and original
+  collision behavior are preserved.
+
 - Reduce GPU shading work in rain and snow by sharing daylight-shadow checks
   on opaque surfaces, retaining the existing paths for dry scenes and blood.
 
