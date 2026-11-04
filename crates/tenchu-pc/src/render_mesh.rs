@@ -65,6 +65,12 @@ pub struct Vertex {
 pub struct Indexed {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
+    pub groups: Vec<IndexedGroup>,
+}
+
+pub struct IndexedGroup {
+    pub vertices: std::ops::Range<usize>,
+    pub indices: std::ops::Range<u32>,
 }
 
 pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face> {
@@ -426,28 +432,49 @@ pub fn update_indexed_characters(
 ) {
     mesh.vertices.clear();
     mesh.indices.clear();
+    mesh.groups.clear();
+    let mut previous_root = None;
     crate::visuals::appearance::visit_parts(
         game,
         inspection,
         models,
         frame,
         |key, geometry, matrix| {
-            let base = mesh.vertices.len() as u32;
-            if models
+            let base = mesh.vertices.len();
+            let start = mesh.indices.len() as u32;
+            if !models
                 .is_some_and(|models| models.append_indexed_part(mesh, key, geometry, matrix, true))
             {
+                append_character(
+                    &mut mesh.vertices,
+                    geometry,
+                    matrix,
+                    None,
+                    key,
+                    false,
+                    false,
+                );
+                mesh.indices.extend(base as u32..mesh.vertices.len() as u32);
+            }
+            let end = mesh.indices.len() as u32;
+            if start == end {
                 return;
             }
-            append_character(
-                &mut mesh.vertices,
-                geometry,
-                matrix,
-                None,
-                key,
-                false,
-                false,
-            );
-            mesh.indices.extend(base..mesh.vertices.len() as u32);
+            let root = match key {
+                Part::Actor { root, .. } => Some(root),
+                _ => None,
+            };
+            if root.is_some() && root == previous_root {
+                let group = mesh.groups.last_mut().unwrap();
+                group.vertices.end = mesh.vertices.len();
+                group.indices.end = end;
+            } else {
+                mesh.groups.push(IndexedGroup {
+                    vertices: base..mesh.vertices.len(),
+                    indices: start..end,
+                });
+            }
+            previous_root = root;
         },
     );
 }

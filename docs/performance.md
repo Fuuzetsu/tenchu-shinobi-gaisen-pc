@@ -1618,3 +1618,44 @@ empty frames, streamed blended effects/HUD, moving shadows and blood blending.
 Chromium WebGPU and WebGL2 also load the portable snow/blood state, move, change
 lighting, use paused free camera and resume without errors or modifying paused
 gameplay state.
+
+## November 4: use actor boundaries for indexed shadow casters
+
+Animated indexed meshes now retain each actor's contiguous vertex/index ranges.
+Shadow bounds scan the unique vertices in each range, instead of repeatedly
+visiting triangle corners and guessing where one actor ends. The existing path
+remains for geometry without known groups. No geometry is removed or reordered.
+
+The Mission 1/2 crowded fixture has 187,000–203,000 unique vertices versus
+493,000–525,000 indices. Actor groups reduce the number of culling chunks from
+349–409 to 138–153. The first isolated bounds comparison reduced mean preparation
+from 0.54–0.58 ms to 0.38–0.41 ms. Across eight nearby lamp projections, grouping
+submits 1.3–4.3% more actor indices but fewer draw ranges; projected update area
+can increase or decrease with the view. GPU savings are not assumed from fewer
+CPU groups.
+
+A sequential 20-second-per-route 4K Modern High comparison with 128 additional
+active guards gives:
+
+| Route | CPU work mean before → after | CPU work p95 before → after | CPU work p99 before → after |
+|---|---|---|---|
+| Village | 7.38 → 6.98 ms | 9.11 → 8.95 ms | 10.06 → 9.92 ms |
+| Courtyard | 8.15 → 7.52 ms | 10.07 → 9.40 ms | 11.32 → 10.42 ms |
+| Garden | 7.35 → 6.73 ms | 9.00 → 8.33 ms | 10.32 → 9.04 ms |
+| Waterfall | 8.73 → 8.25 ms | 10.26 → 9.71 ms | 11.54 → 10.90 ms |
+
+GPU means are 13.51/11.49/16.09/8.80 ms before and
+13.83/11.35/15.83/8.75 ms after. Whole-frame p99 remains mixed, including a village
+regression from 31.82 to 38.95 ms; this is a CPU improvement, not a demonstrated
+uniform frame-tail improvement. These offscreen runs serialize CPU/GPU work and
+are not interactive FPS measurements. An earlier pair was discarded because a
+separate actively running game competed for the GPU; the retained pair ran while
+that game was idle.
+
+Expanded geometry remains byte-identical across five mission/hero combinations,
+original/refined models, inspection and interpolation. GPU comparisons cover
+changed attributes, reversed vertex storage, growth, empty meshes, separated
+actors, moving light/actor shadows, wind, snow, partial updates and full redraws.
+Formatting, native and WASM strict Clippy and release builds pass. Chromium
+WebGPU and WebGL2 also load the portable snow/blood state, move, change lighting,
+use paused free camera and resume without errors or changing paused game state.

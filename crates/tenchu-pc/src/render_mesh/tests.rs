@@ -47,6 +47,18 @@ fn indexed_characters_preserve_expanded_poses() {
                         bytemuck::cast_slice::<_, u8>(&expanded),
                         bytemuck::cast_slice::<_, u8>(&expected)
                     );
+                    let mut end = 0;
+                    for group in &indexed.groups {
+                        assert_eq!(group.indices.start, end);
+                        assert!(
+                            indexed.indices
+                                [group.indices.start as usize..group.indices.end as usize]
+                                .iter()
+                                .all(|&i| group.vertices.contains(&(i as usize)))
+                        );
+                        end = group.indices.end;
+                    }
+                    assert_eq!(end as usize, indexed.indices.len());
                     if models.is_some() && inspection {
                         assert!(indexed.vertices.len() < indexed.indices.len());
                     }

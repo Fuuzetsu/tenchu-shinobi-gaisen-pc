@@ -89,12 +89,18 @@ fn moving_shadow_regions_match_full_redraws() {
                 8 => vertices.extend(quad(lights[0].position, 600.0, 0)),
                 9 => lights[0].position.x += 500.0,
                 12 => actor = renderer.upload(&vertices),
+                13..=15 => vertices.extend(quad(
+                    Vec3::new(1300.0, -600.0, 1700.0),
+                    300.0,
+                    render_mesh::FOLIAGE | 255 << render_mesh::WIND_WEIGHT_SHIFT,
+                )),
+                16 => vertices.extend(quad(Vec3::new(20000.0, -1500.0, 0.0), 400.0, 0)),
                 _ => (),
             }
-            if frame % 3 != 2 {
-                renderer.update_indexed_mesh(&mut actor, &mut indexed_geometry(&vertices));
-            } else {
-                renderer.update_mesh(&mut actor, &mut vertices);
+            match frame % 4 {
+                0 | 3 => renderer.update_indexed_mesh(&mut actor, &mut grouped_geometry(&vertices)),
+                1 => renderer.update_indexed_mesh(&mut actor, &mut indexed_geometry(&vertices)),
+                _ => renderer.update_mesh(&mut actor, &mut vertices),
             }
             let cached = draw(&mut renderer, &lights, &actor);
             if mode == 0

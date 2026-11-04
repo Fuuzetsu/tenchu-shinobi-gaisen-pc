@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce shadow-bound preparation in crowded scenes by scanning shared model
+  vertices once per actor, preserving all geometry and shadow casters.
+
 - Reduce animated-geometry CPU copies by repacking material attributes only
   when they change. Positions, normals and changed materials still update each
   frame as required.

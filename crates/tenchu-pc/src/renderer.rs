@@ -473,11 +473,7 @@ impl Renderer {
         mesh.count = geometry.indices.len() as u32;
         self.materials.annotate(&mut geometry.vertices);
         mesh.scenery = Mesh::is_scenery(&geometry.vertices);
-        mesh.bounds = culling::update_indexed_chunks(
-            &geometry.vertices,
-            &geometry.indices,
-            &mut mesh.shadow_chunks,
-        );
+        mesh.bounds = culling::update_indexed_chunks(geometry, &mut mesh.shadow_chunks);
         mesh.vertices
             .update(&self.device, &self.queue, &geometry.vertices);
         let indices = mesh.indices.get_or_insert_with(|| Indices {

@@ -127,13 +127,28 @@ fn streamed_geometry_matches_fresh_uploads_after_growth_movement_and_empty_frame
         let fresh = renderer.upload(&vertices);
         renderer.draw(&view, camera, &[&fresh], None).unwrap();
         let expected = read_pixels(&renderer, &target);
-        for indexing in [None, Some(false), Some(false), Some(true), None] {
-            if let Some(reverse) = indexing {
-                let mut geometry = indexed_geometry(&vertices);
+        for indexing in [
+            None,
+            Some((false, false)),
+            Some((false, true)),
+            Some((true, false)),
+            Some((true, true)),
+            None,
+        ] {
+            if let Some((reverse, grouped)) = indexing {
+                let mut geometry = if grouped {
+                    grouped_geometry(&vertices)
+                } else {
+                    indexed_geometry(&vertices)
+                };
                 if reverse {
                     geometry.vertices.reverse();
                     for index in &mut geometry.indices {
                         *index = geometry.vertices.len() as u32 - 1 - *index;
+                    }
+                    for group in &mut geometry.groups {
+                        group.vertices = geometry.vertices.len() - group.vertices.end
+                            ..geometry.vertices.len() - group.vertices.start;
                     }
                 }
                 renderer.update_indexed_mesh(&mut streamed, &mut geometry);
@@ -159,6 +174,23 @@ fn indexed_geometry(vertices: &[Vertex]) -> render_mesh::Indexed {
                 index
             });
         mesh.indices.push(index);
+    }
+    mesh
+}
+
+fn grouped_geometry(vertices: &[Vertex]) -> render_mesh::Indexed {
+    let mut mesh = render_mesh::Indexed::default();
+    for vertices in vertices.chunks(6) {
+        let group = indexed_geometry(vertices);
+        let base = mesh.vertices.len();
+        let start = mesh.indices.len() as u32;
+        mesh.vertices.extend(group.vertices);
+        mesh.indices
+            .extend(group.indices.iter().map(|i| base as u32 + i));
+        mesh.groups.push(render_mesh::IndexedGroup {
+            vertices: base..mesh.vertices.len(),
+            indices: start..mesh.indices.len() as u32,
+        });
     }
     mesh
 }

@@ -13,11 +13,52 @@ pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Opt
 }
 
 pub(super) fn update_indexed_chunks(
-    vertices: &[Vertex],
-    indices: &[u32],
+    geometry: &render_mesh::Indexed,
     chunks: &mut Vec<Chunk>,
 ) -> Option<[Vec3; 2]> {
-    collect_chunks(indices.len(), |i| &vertices[indices[i] as usize], chunks)
+    if geometry.groups.is_empty() {
+        return collect_chunks(
+            geometry.indices.len(),
+            |i| &geometry.vertices[geometry.indices[i] as usize],
+            chunks,
+        );
+    }
+    chunks.clear();
+    let mut scenery = None;
+    for group in &geometry.groups {
+        let (bounds, foliage) = collect_bounds(
+            geometry.vertices[group.vertices.clone()].iter(),
+            &mut scenery,
+        );
+        chunks.push(Chunk {
+            range: group.indices.clone(),
+            bounds,
+            foliage: foliage.then_some(bounds).flatten(),
+        });
+    }
+    scenery.map(|b| b.map(Vec3::from))
+}
+
+fn collect_bounds<'a>(
+    vertices: impl Iterator<Item = &'a Vertex>,
+    scenery: &mut Option<[Vec3A; 2]>,
+) -> (Option<[Vec3; 2]>, bool) {
+    let mut bounds: Option<[Vec3A; 2]> = None;
+    let mut foliage = false;
+    for v in vertices {
+        let p = Vec3A::from(v.position);
+        if v.flags & render_mesh::SCENERY != 0 {
+            *scenery = Some(scenery.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
+        }
+        if v.flags
+            & (render_mesh::SCREEN | render_mesh::DEBUG | render_mesh::ALPHA | render_mesh::WATER)
+            == 0
+        {
+            bounds = Some(bounds.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
+            foliage |= v.flags & render_mesh::FOLIAGE != 0;
+        }
+    }
+    (bounds.map(|b| b.map(Vec3::from)), foliage)
 }
 
 fn collect_chunks<'a>(
