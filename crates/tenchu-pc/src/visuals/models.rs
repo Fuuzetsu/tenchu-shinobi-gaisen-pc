@@ -1017,8 +1017,17 @@ mod tests {
             .unwrap();
             let pack = Pack::load(&root).unwrap();
             let models = Models::build(&game.mission, &pack, &Graphics::default()).unwrap();
-            let original_models =
-                Models::build(&game.mission, &Pack::default(), &Graphics::default()).unwrap();
+            let original_models = Models {
+                world: Meshes::build(
+                    &game.mission.vram,
+                    &Pack::default(),
+                    &Graphics::default(),
+                    catalog::models(&game.mission),
+                    true,
+                )
+                .unwrap(),
+                ..Default::default()
+            };
             assert!(models.replacements > 500);
             let region_ids = super::catalog::regions(&game.mission);
             let mut checked = 0;

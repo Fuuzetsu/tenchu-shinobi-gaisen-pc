@@ -1337,7 +1337,9 @@ All eight sampled vertex/index streams and final game states match exactly.
 Eight 4K TRIAL/garden/waterfall comparisons, including rain and snow, are
 pixel-identical. The 59 ordinary visual tests, folding-screen check and imported
 skinned-model test on both heroes pass. The older disc-model export/import test
-fails on a weapon-material flag in both the unchanged baseline and candidate;
-it is not counted as passing. Native/WASM strict Clippy, formatting and release
+initially failed in both builds because its reference skipped material metadata
+for raw weapons. Processing that metadata consistently fixes the fixture; the
+full geometry/UV/blend/attachment comparison now passes on both heroes.
+Native/WASM strict Clippy, formatting and release
 builds pass. Chromium WebGL2 rain and WebGPU snow play checks pass through
 grappling, movement, lighting toggles, paused free camera and resumed play.
