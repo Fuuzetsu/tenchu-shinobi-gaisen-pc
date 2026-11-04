@@ -237,7 +237,7 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
     var white = vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1);
     if linear { white = pow(white, vec3(2.2)); }
     var snow_light = light;
-    if !already_lit { snow_light = illumination(position, normal, surface) + storm_light(position, normal, surface, precomputed); }
+    if !already_lit { snow_light = illumination(position, normal, surface, false) + storm_light(position, normal, surface, precomputed); }
     return mix(color, white * snow_light, snow);
 }
 

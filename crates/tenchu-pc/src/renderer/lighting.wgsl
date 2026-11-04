@@ -64,19 +64,37 @@ fn shadow_face(direction: vec3<f32>) -> u32 {
 
 fn local_exposure(position: vec3<f32>, surface: vec3<f32>) -> f32 {
     if lighting.source.y == 0.0 || lighting.sun_direction.w == 0.0 { return 1.0; }
-    let daylight = lighting.source.y * lighting.sun_direction.w * sun_visibility(position, surface);
+    return daylight_exposure(sun_visibility(position, surface));
+}
+
+fn daylight_exposure(visibility: f32) -> f32 {
+    let daylight = lighting.source.y * lighting.sun_direction.w * visibility;
     return 1.0 / (1.0 + 24.0 * daylight);
 }
 
-fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32>) -> vec3<f32> {
+fn illumination(position: vec3<f32>, normal: vec3<f32>, surface_normal: vec3<f32>, reuse_sun: bool) -> vec3<f32> {
     if !LIGHTING_ENABLED || lighting.options.w == 0.0 { return vec3(1.0); }
     var result = lighting.options.x * mix(vec3(1.0), vec3(0.6, 0.75, 1.0), lighting.lamps.z);
     let sun_diffuse = max(0.0, dot(normal, lighting.sun_direction.xyz));
-    if lighting.sun_direction.w > 0.0 && sun_diffuse > 0.0 {
-        result += lighting.sun_color.rgb * lighting.sun_direction.w
-            * sun_diffuse * sun_visibility(position, surface_normal);
+    var local = 1.0;
+    // Shared samples help opaque weather shading; dry and alpha shaders
+    // benchmark faster with separate samples.
+    if reuse_sun {
+        var sun = 1.0;
+        if lighting.sun_direction.w > 0.0 && (sun_diffuse > 0.0 || lighting.source.y != 0.0) {
+            sun = sun_visibility(position, surface_normal);
+        }
+        if lighting.sun_direction.w > 0.0 && sun_diffuse > 0.0 {
+            result += lighting.sun_color.rgb * lighting.sun_direction.w * sun_diffuse * sun;
+        }
+        local = daylight_exposure(sun);
+    } else {
+        if lighting.sun_direction.w > 0.0 && sun_diffuse > 0.0 {
+            result += lighting.sun_color.rgb * lighting.sun_direction.w
+                * sun_diffuse * sun_visibility(position, surface_normal);
+        }
+        local = local_exposure(position, surface_normal);
     }
-    let local = local_exposure(position, surface_normal);
     var nearby = local_lights(position);
     loop {
         let index = next_light(&nearby);

@@ -179,7 +179,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     var light = vec3(1.0);
     if !screen {
         if !unlit {
-            light = illumination(v.world, normal, surface_normal) + storm_light(v.world, normal, surface_normal, precomputed_weather);
+            light = illumination(v.world, normal, surface_normal, WEATHER_ENABLED && (v.flags & ALPHA) == 0u) + storm_light(v.world, normal, surface_normal, precomputed_weather);
         }
         color = mix(color * detail.cavity * light, emission.rgb, emission.a);
         color = water_color(v, color, normal, surface_normal, light, linear_lighting);

@@ -1028,3 +1028,35 @@ Unprofiled moving 4K runs put average render submission/preparation at
 rates stay within run-to-run variation: 73.2 / 86.9 / 62.6 / 91.8 FPS before,
 72.6 / 87.1 / 62.7 / 91.1 after. These views remain GPU-bound; this change
 reduces CPU work rather than claiming a material FPS gain.
+
+
+## November 4: weather lighting
+
+Weather-shaded opaque surfaces reuse the same sun-shadow result for directional
+light and attenuation of local lamps. The dry and alpha paths retain separate
+samples: sharing across all paths regressed the garden and heavily overlapping
+wet blood on this GPU. A fixed-width light-table lookup was also discarded;
+removing runtime integer division made the wet-blood shader slower.
+
+The static 4K TRIAL 2 fixture, play camera, measures:
+
+| Workload | Before | After |
+| --- | ---: | ---: |
+| Rain | 13.52 ms | 12.43 ms |
+| Daytime rain | 14.06 ms | 12.68 ms |
+| Rain plus dense blood | 66.71 ms | 66.21 ms |
+| Daytime rain plus dense blood | 70.58 ms | 69.08 ms |
+| Snow plus dense blood | 44.21 ms | 43.40 ms |
+
+These are GPU totals, not interactive frame intervals. The overhead camera's
+rain case improves from 8.60 to 8.02 ms. All 14 paired images match exactly.
+Moving maximum-rain runs improve from 50.0 to 52.1 FPS in the village,
+62.2 to 63.0 in the courtyard and 43.3 to 44.0 in the garden; the waterfall
+measures 81.1 versus 79.6 FPS. Dry High rates remain within normal variation
+at 73.1 / 87.2 / 62.5 / 92.1 FPS with the final weather-only specialization.
+Dense blood and heavy rain still exceed a 60 FPS budget.
+
+Vulkan checks cover daylight shadows, local-light budgets, wet reflections,
+metal weapons and blood blending. Chromium WebGL2 rain and WebGPU snow smoke
+tests pass with lighting toggles, free camera, pause/resume and no rendering
+errors. Native/WASM strict Clippy and formatting pass.
