@@ -1147,3 +1147,28 @@ Full-state hashes match the previous build for all three scenarios, and retained
 snapshots decode back to identical serialized state. Existing mutation checks
 cover Missions 1/2/6/9, now including changed weapon geometry, alongside wall
 movement, imported movesets and all 17 built-in TRIAL missions with both heroes.
+
+
+## November 4: weather variation interpolation
+
+Rain puddles and snow coverage use smooth three-dimensional noise. Interpolating
+the same eight corner values along each axis avoids repeatedly multiplying all
+three corner weights. Sample positions, hashes and smoothing remain unchanged.
+
+The first paired 4K TRIAL measurements put rain/blood at 66.28 → 65.95 ms,
+daytime rain/blood at 69.39 → 68.62 ms, snow/blood at 43.59 → 43.06 ms, and
+wet snow/blood at 46.52 → 46.00 ms. A repeat in reversed order with longer
+warm-up also improves these cases, by 0.59–1.66 ms. Treat this as a small
+shading improvement: moving maximum-rain rates are mixed at
+51.8 → 52.5 / 63.2 → 63.4 / 44.4 → 44.1 / 80.9 → 79.5 FPS across the usual
+four scenes, without a reliable overall gain.
+
+Dry comparison images match exactly. Across twelve paired captures, at most
+13 colour-channel values per image differ by one 8-bit level from floating-point
+rounding. Twelve GPU checks cover shelter, wind, snow retention, reflections,
+stains, water and restoration of original rendering. Sharing sun samples in
+wet reflections was separately rejected: it increased heavy wet-blood rendering
+from about 66 to 73 ms on this GPU despite doing fewer samples in source code.
+Native/WASM strict Clippy, release builds and formatting pass. Chromium WebGL2
+rain and WebGPU snow checks pass through movement, lighting toggles, paused
+free camera and resumed play without rendering errors.

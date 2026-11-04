@@ -18,7 +18,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   collision behavior are preserved.
 
 - Reduce GPU shading work in rain and snow by sharing daylight-shadow checks
-  on opaque surfaces, retaining the existing paths for dry scenes and blood.
+  on opaque surfaces and simplifying surface-variation interpolation. Retain
+  the existing shadow-sampling paths for dry scenes and blood.
 
 - Reduce CPU work for camera and shadow visibility checks, reusing moving
   casters' visibility when determining which shadow-map regions need refreshing.

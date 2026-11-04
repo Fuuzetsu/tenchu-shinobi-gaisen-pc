@@ -1,20 +1,17 @@
+fn weather_hash(cell: vec3<f32>) -> f32 {
+    var h = fract(cell * 0.1031);
+    h += dot(h, h.yzx + vec3(33.33));
+    return fract((h.x + h.y) * h.z);
+}
+
 fn weather_noise(p: vec3<f32>) -> f32 {
     let cell = floor(p);
     let f = smoothstep(vec3(0.0), vec3(1.0), fract(p));
-    var value = 0.0;
-    for (var z = 0; z <= 1; z++) {
-        for (var y = 0; y <= 1; y++) {
-            for (var x = 0; x <= 1; x++) {
-                let corner = vec3(f32(x), f32(y), f32(z));
-                let weight = mix(vec3(1.0) - f, f, corner);
-                var h = fract((cell + corner) * 0.1031);
-                h += dot(h, h.yzx + vec3(33.33));
-                let hash = fract((h.x + h.y) * h.z);
-                value += hash * weight.x * weight.y * weight.z;
-            }
-        }
-    }
-    return value;
+    let x00 = mix(weather_hash(cell), weather_hash(cell + vec3(1.0, 0.0, 0.0)), f.x);
+    let x10 = mix(weather_hash(cell + vec3(0.0, 1.0, 0.0)), weather_hash(cell + vec3(1.0, 1.0, 0.0)), f.x);
+    let x01 = mix(weather_hash(cell + vec3(0.0, 0.0, 1.0)), weather_hash(cell + vec3(1.0, 0.0, 1.0)), f.x);
+    let x11 = mix(weather_hash(cell + vec3(0.0, 1.0, 1.0)), weather_hash(cell + vec3(1.0, 1.0, 1.0)), f.x);
+    return mix(mix(x00, x10, f.y), mix(x01, x11, f.y), f.z);
 }
 
 // Entry-point constants select these paths. Uniforms help opaque/ground-blood
