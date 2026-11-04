@@ -10,6 +10,16 @@ pub struct Clip {
     pub fog: bool,
 }
 
+const RECIPROCAL: [u8; 257] = {
+    let mut table = [0; 257];
+    let mut index = 0;
+    while index < 256 {
+        table[index] = ((0x40000u32 / (index as u32 + 0x100)).div_ceil(2) - 0x101) as u8;
+        index += 1;
+    }
+    table
+};
+
 pub(crate) fn divide(h: u16, z: u16) -> u32 {
     if u32::from(h) >= u32::from(z) * 2 {
         return 0x1ffff;
@@ -18,12 +28,7 @@ pub(crate) fn divide(h: u16, z: u16) -> u32 {
     let d = u32::from(z) << shift;
     let n = u32::from(h) << shift;
     let index = (d - 0x7fc0) >> 7;
-    let table = if index == 256 {
-        0
-    } else {
-        ((0x40000 / (index + 0x100)).div_ceil(2) - 0x101) as u8
-    };
-    let estimate = 0x101 + u32::from(table);
+    let estimate = 0x101 + u32::from(RECIPROCAL[index as usize]);
     let correction = (0x2000080 - d * estimate) >> 8;
     let reciprocal = (correction * estimate + 0x80) >> 8;
     (((u64::from(n) * u64::from(reciprocal) + 0x8000) >> 16) as u32).min(0x1ffff)

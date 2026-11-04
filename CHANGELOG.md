@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU work in visibility and logical drawing calculations by building
+  the fixed reciprocal lookup table at compile time. Original projection
+  rounding, clipping and gameplay behavior are unchanged.
+
 - Speed up terrain queries used by movement, AI and effects, especially with
   **Keep all enemies active** and crowded levels. Terrain edits and original
   collision behavior are preserved.

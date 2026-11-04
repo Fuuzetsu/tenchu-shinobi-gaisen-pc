@@ -1093,3 +1093,30 @@ Original C comparisons for mission sight passages and movement probes pass,
 along with the terrain arithmetic regressions, native/WASM strict Clippy and
 formatting. The movement harness imports the decomp's newly extracted helper
 functions as part of the same original C reference.
+
+
+## November 4: fixed projection reciprocal table
+
+A fresh eight-second CPU profile of Mission 1 with 128 extra active actors,
+attached after mission loading, identified projection as a major remaining
+cost. Disassembly showed integer division constructing a fixed reciprocal-table
+entry for every projected vertex. The same 257-byte table is now generated at
+compile time; reciprocal refinement, saturation, rounding and all GTE flags
+remain unchanged. This uses ordinary portable Rust.
+
+In the same twelve 1,200-update scenarios, mean simulation times improve from
+0.0305 / 0.0290 / 0.0238 to 0.0293 / 0.0275 / 0.0220 ms with ordinary activation
+in Missions 1 / 4 / 9. With all original actors active, means change from
+0.0525 / 0.0543 / 0.0403 to 0.0510 / 0.0531 / 0.0391 ms. With 128 extra actors,
+they change from 0.2442 / 0.2590 / 0.1736 to 0.2429 / 0.2533 / 0.1692 ms.
+These are small CPU savings, not a claim of comparable GPU-bound FPS gains.
+Full serialized game-state hashes match in all twelve cases. The 67,584-case
+independent BizHawk/Mednafen GTE oracle, packet allocation/subdivision tests,
+visibility boundaries, formatting and strict native/WASM Clippy all pass.
+
+Other experiments were rejected: camera culling and tighter partial-shadow
+draw bounds preserved their comparison images but gave no reliable moving
+frame-time gain. Smaller light-grid entries reduced memory but slowed dry
+gameplay; packing indices also regressed dense rain/blood by about 7 ms.
+A conservative projection overflow fast path preserved the independent GTE
+results but gave little measurable improvement. None of those changes remain.
