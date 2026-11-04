@@ -1827,3 +1827,36 @@ Two earlier approaches were rejected. Conservative wall occlusion gave no
 consistent moving-frame improvement. A separate static-depth cache added
 768 MiB at these settings and made moving-frame tails worse because the same
 texture updates kept invalidating it. Neither experiment is included.
+
+## November 5: keep actors out of shelter-map invalidation
+
+The shelter shader discards characters, but their meshes previously participated
+in weather-map culling and cache keys. Adding or moving a character could therefore
+redraw both shelter maps without changing either map's contents. Shelter drawing
+now excludes meshes with no scenery bounds. Mixed meshes remain eligible, so
+hinged doors and other moving scenery retain their original behavior.
+
+The existing snow-shelter regression now checks cache reuse through actor insertion
+and movement, plus redraws when the same mesh becomes or stops being a roof. It
+fails on the old code (two unnecessary map draws) and passes with the filter.
+Four paired 4K report-view captures, including animated actors, foliage, daytime
+and heavy rain/blood, are pixel-identical; their forced full-redraw references
+also match. Fixed-camera timings show no reliable whole-frame gain: animated
+scenery already requires shelter updates, and mixed actor/scenery meshes still
+participate. This is a targeted cache correction, not a claim that the report's
+30 FPS workload now reaches 60 FPS.
+
+Further experiments were discarded. Combining overlapping blood opacity can
+roughly halve a heavy blood shader's cost, but equal shading cannot be assumed
+across different surfaces. Checking base colours reduces the rain stress gain
+from about 29 ms to 5 ms while adding roughly 158 MiB at 4K, and still needs
+normal/height safeguards. No such shortcut is enabled. Retesting a 768 MiB static
+shadow-depth cache after selective texture invalidation gives mixed moving-route
+results, with regressions in the village and waterfall, so it remains excluded.
+
+On the four 20-second moving routes, shelter filtering changes total shadow-map
+means from 6.48/2.49/6.76/2.35 ms to 6.45/2.47/6.72/2.34 ms; frame tails remain
+mixed and effectively unchanged overall. Six focused GPU regressions, native/WASM
+strict Clippy, formatting and release builds pass. Chromium WebGPU and WebGL2 both
+load the snow/blood checkpoint, move, toggle lighting, use free camera and resume
+without errors or changes to paused simulation state.

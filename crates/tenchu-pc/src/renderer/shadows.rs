@@ -664,7 +664,9 @@ impl Shadows {
             .meshes
             .iter()
             .copied()
-            .chain(geometry.effects.map(|e| &e.mesh));
+            .chain(geometry.effects.map(|e| &e.mesh))
+            // Shelter excludes actors, so their poses must not invalidate its maps.
+            .filter(|mesh| index < FACES || mesh.bounds.is_some());
         let culling = &mut self.culling[index];
         culling.update(matrix, options[2], size, meshes.clone());
         for (mesh, culled) in meshes.zip(&culling.meshes) {

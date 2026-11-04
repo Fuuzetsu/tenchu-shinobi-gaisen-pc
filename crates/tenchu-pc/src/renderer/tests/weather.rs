@@ -268,7 +268,7 @@ fn snowfall_shelter_excludes_actors_and_follows_the_wind() {
     };
     let ground = renderer.upload(&quad(0.0, 1500.0, render_mesh::SCENERY));
     let roof = renderer.upload(&quad(-500.0, 400.0, render_mesh::SCENERY));
-    let actor = renderer.upload(&quad(-500.0, 400.0, 0));
+    let mut actor = renderer.upload(&quad(-500.0, 400.0, 0));
     let camera = Mat4::orthographic_rh(-1500.0, 1500.0, -1500.0, 1500.0, 1.0, 10000.0)
         * Mat4::look_at_rh(Vec3::new(0.0, -3000.0, 0.0), Vec3::ZERO, Vec3::Z);
     let mut graphics = crate::settings::Graphics::default();
@@ -293,7 +293,23 @@ fn snowfall_shelter_excludes_actors_and_follows_the_wind() {
     };
     let open = capture(&mut renderer, None);
     assert_eq!(open, capture(&mut renderer, Some(&actor)));
+    assert_eq!(renderer.shadows.rendered_faces, 0);
+    for y in [-800.0, -300.0] {
+        renderer.update_mesh(&mut actor, &mut quad(y, 400.0, 0));
+        assert_eq!(open, capture(&mut renderer, Some(&actor)));
+        assert_eq!(
+            renderer.shadows.rendered_faces, 0,
+            "Actor movement must not redraw shelter maps"
+        );
+    }
+    renderer.update_mesh(&mut actor, &mut quad(-500.0, 400.0, render_mesh::SCENERY));
+    let moving_roof = capture(&mut renderer, Some(&actor));
+    assert!(renderer.shadows.rendered_faces > 0);
+    renderer.update_mesh(&mut actor, &mut quad(-500.0, 400.0, 0));
+    assert_eq!(open, capture(&mut renderer, Some(&actor)));
+    assert!(renderer.shadows.rendered_faces > 0);
     let calm = capture(&mut renderer, Some(&roof));
+    assert_eq!(calm, moving_roof);
     let at = |image: &[u8], x: usize| image[(32 * 64 + x) * 4];
     assert!(at(&calm, 32) + 20 < at(&open, 32));
     graphics.weather.wind = 100;

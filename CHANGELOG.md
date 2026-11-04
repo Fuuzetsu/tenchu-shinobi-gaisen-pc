@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Exclude character-only meshes from rain/snow shelter updates so they do not
+  invalidate cached shelter. Moving doors and other scenery still update it.
+
 - Improve frame times around animated textures by preserving cached shadows
   when only water or other noncaster artwork changes. Animated cutouts, lantern
   transmission and replacement-artwork changes still refresh their shadows.
