@@ -1004,7 +1004,8 @@ impl View {
             && (menu.open || !paused || debug.active())
             && settings.graphics.blood.active()
         {
-            self.renderer.set_decals(self.blood.pages());
+            self.renderer
+                .set_projected_decals(self.blood.projected_pages());
             let mut cosmetics = self.blood.animated_geometry(
                 game,
                 &self.models,

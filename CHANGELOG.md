@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce GPU load from overlapping modern blood stains, especially with rain or
+  snow, by sharing shading on the same flat surface. Sparse stains, slopes,
+  foliage and mixed surfaces retain their existing rendering. This optimisation
+  uses HDR with edge anti-aliasing disabled and a compatible graphics backend.
+  Retained stains now blend in stable creation order.
+
+- Update the mid-mission savestate format for retained blood surface data.
+  Older snapshots require the build that created them; campaign saves are unchanged.
+
 - Exclude character-only meshes from rain/snow shelter updates so they do not
   invalidate cached shelter. Moving doors and other scenery still update it.
 

@@ -3,6 +3,7 @@ use crate::render_mesh;
 use tenchu_assets::model::{Corner, Face, Geometry, Texture};
 use tenchu_core::math::Matrix;
 
+mod blood_composite;
 mod contact;
 mod light_grid;
 mod models;

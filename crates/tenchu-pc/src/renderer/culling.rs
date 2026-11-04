@@ -146,7 +146,7 @@ impl Rect {
         self
     }
 
-    fn projected(bounds: [Vec3; 2], matrix: Mat4, size: u32, padding: f32) -> Self {
+    pub(super) fn projected(bounds: [Vec3; 2], matrix: Mat4, size: u32, padding: f32) -> Self {
         let [min, max] = [
             bounds[0] - Vec3::splat(padding),
             bounds[1] + Vec3::splat(padding),

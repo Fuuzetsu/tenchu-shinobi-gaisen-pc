@@ -54,9 +54,11 @@ struct Fragment {
     @location(7) @interpolate(flat) material: u32,
     @location(8) normal: vec3<f32>,
     @location(9) opacity: f32,
+    @location(10) @interpolate(flat) identity: u32,
+    @location(11) @interpolate(flat) source: u32,
 }
 
-@vertex fn vertex(v: Vertex) -> Fragment {
+fn project_vertex(v: Vertex) -> Fragment {
     var out: Fragment;
     let position = foliage_position(v.position, v.flags, camera.eye.w, camera.motion.x);
     if (v.flags & SCREEN) != 0u {
@@ -78,6 +80,10 @@ struct Fragment {
     out.normal = v.normal;
     out.opacity = v.opacity;
     return out;
+}
+
+@vertex fn vertex(v: Vertex) -> Fragment {
+    return project_vertex(v);
 }
 
 fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only: bool, precomputed_weather: bool, rain_enabled: bool, use_bounds: bool) -> vec4<f32> {
@@ -242,6 +248,12 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     return vec4(color.rgb, 1.0);
 }
 
+fn blood_mask(p: vec2<f32>) -> f32 {
+    let ripple = sin(p.x * 11.0 + sin(p.y * 9.0)) * sin(p.y * 13.0 - p.x * 3.0);
+    let radius = length(p) + ripple * 0.045;
+    return 1.0 - smoothstep(0.52, 0.82, radius);
+}
+
 fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool, use_bounds: bool) -> vec4<f32> {
     var opacity = v.opacity;
     if (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN) { opacity = weapon_blood(v.uv, v.opacity); }
@@ -258,10 +270,7 @@ fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool, use_b
         opacity *= snow;
     }
     if (v.flags & (STAIN | SOFT)) == (STAIN | SOFT) {
-        let p = v.color.xy;
-        let ripple = sin(p.x * 11.0 + sin(p.y * 9.0)) * sin(p.y * 13.0 - p.x * 3.0);
-        let radius = length(p) + ripple * 0.045;
-        opacity *= 1.0 - smoothstep(0.52, 0.82, radius);
+        opacity *= blood_mask(v.color.xy);
     } else if (v.flags & SOFT) != 0u {
         opacity *= 1.0 - smoothstep(0.1, 1.0, dot(v.uv, v.uv));
     }
@@ -288,6 +297,55 @@ fn ground_blood_color(input: Fragment, front_facing: bool, use_bounds: bool) -> 
 
 @fragment fn snow_blood(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
     return ground_blood_color(input, front_facing, true);
+}
+
+@group(3) @binding(0) var blood_opacity: texture_2d<f32>;
+@group(3) @binding(1) var blood_identity: texture_2d<u32>;
+@group(3) @binding(2) var blood_surface: texture_2d<f32>;
+
+@vertex fn blood_vertex(v: Vertex, @location(9) source: u32,
+    @builtin(vertex_index) vertex_id: u32, @builtin(instance_index) first: u32) -> Fragment {
+    var out = project_vertex(v);
+    out.identity = first + vertex_id / 3u;
+    out.source = source;
+    return out;
+}
+
+struct BloodCoverage {
+    @location(0) opacity: vec4<f32>,
+    @location(1) identity: u32,
+    @location(2) surface: vec4<f32>,
+}
+
+@fragment fn blood_coverage(input: Fragment, @builtin(front_facing) front_facing: bool) -> BloodCoverage {
+    var v = input;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | FOLIAGE)) | SCENERY | SOFT | ALPHA;
+    let opacity = clamp(v.opacity * blood_mask(v.color.xy), 0.0, 1.0);
+    if opacity <= 0.0 { discard; }
+    _ = shade(v, front_facing, false, true, true, true, false);
+    // Half floats represent these digits exactly. Min of digits and complements
+    // proves that every contributing stain has the same nonzero source ID.
+    let code = vec2(f32(v.source & 2047u), f32(v.source >> 11u));
+    let tag = select(vec4(0.0), vec4(code, vec2(2047.0) - code), v.source != 0u);
+    return BloodCoverage(vec4(opacity, 0.0, 0.0, opacity), v.identity, tag);
+}
+
+fn composed_blood(input: Fragment, front_facing: bool, bounds: bool) -> vec4<f32> {
+    let pixel = vec2<i32>(input.position.xy);
+    let tag = textureLoad(blood_surface, pixel, 0);
+    let merge = all(tag.xy + tag.zw == vec2(2047.0));
+    if merge && textureLoad(blood_identity, pixel, 0).r != input.identity { discard; }
+    let color = ground_blood_color(input, front_facing, bounds);
+    let opacity = textureLoad(blood_opacity, pixel, 0).r;
+    return vec4(color.rgb, select(color.a, opacity, merge));
+}
+
+@fragment fn blood_composite(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    return composed_blood(input, front_facing, false);
+}
+
+@fragment fn snow_blood_composite(input: Fragment, @builtin(front_facing) front_facing: bool) -> @location(0) vec4<f32> {
+    return composed_blood(input, front_facing, true);
 }
 
 fn sky_color(direction: vec3<f32>) -> vec4<f32> {

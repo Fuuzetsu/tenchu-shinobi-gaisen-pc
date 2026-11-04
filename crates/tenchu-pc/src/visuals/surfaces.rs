@@ -1,6 +1,12 @@
 use crate::render_mesh::Vertex;
 use glam::Vec3;
-use std::ops::{ControlFlow, Range};
+use std::{
+    ops::{ControlFlow, Range},
+    sync::Arc,
+};
+
+mod projected;
+pub(crate) use projected::{Projected, Source, SourceRange};
 
 #[derive(Clone, Copy)]
 struct Bounds {
@@ -189,6 +195,33 @@ impl Surfaces {
     }
 
     pub fn project(&self, stamp: &Stamp) -> Vec<Vertex> {
+        self.project_with(stamp, |_, _| {})
+    }
+
+    pub(crate) fn project_decal(&self, stamp: &Stamp) -> Projected {
+        let mut sources = Vec::new();
+        let vertices = self.project_with(stamp, |triangle, vertices| {
+            if stamp.shape.is_none()
+                && stamp.normal == Vec3::NEG_Y
+                && triangle.iter().all(|v| {
+                    v.position[1] == triangle[0].position[1]
+                        && v.flags & crate::render_mesh::FOLIAGE == 0
+                })
+            {
+                sources.push(SourceRange {
+                    vertices,
+                    source: Arc::new(Source::new(triangle)),
+                });
+            }
+        });
+        Projected { vertices, sources }
+    }
+
+    fn project_with(
+        &self,
+        stamp: &Stamp,
+        mut record: impl FnMut(&[Vertex; 3], Range<usize>),
+    ) -> Vec<Vertex> {
         let extent = Vec3::splat(stamp.radius + stamp.depth);
         let mut out = Vec::new();
         let bounds = Bounds {
@@ -199,7 +232,11 @@ impl Surfaces {
         let _ = self.visit(
             |node| node.overlaps(bounds),
             |triangle| {
+                let first = out.len();
                 projection.project(triangle, &mut out);
+                if out.len() > first {
+                    record(triangle, first..out.len());
+                }
                 ControlFlow::Continue(())
             },
         );
@@ -483,6 +520,66 @@ mod tests {
                 ..Vertex::zeroed()
             })
             .to_vec()
+    }
+
+    #[test]
+    fn decal_sources_survive_rebuilding_but_distinguish_receiver_changes() {
+        let vertices = plane(0.0);
+        let stamp = Stamp {
+            center: Vec3::ZERO,
+            normal: Vec3::NEG_Y,
+            radius: 5.0,
+            depth: 1.0,
+            seed: 7,
+            shape: None,
+        };
+        let sources = |vertices: &[Vertex], stamp: &Stamp| {
+            let projected = Surfaces::new(vertices).project_decal(stamp);
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&projected.vertices),
+                bytemuck::cast_slice::<_, u8>(&Surfaces::new(vertices).project(stamp)),
+            );
+            projected
+                .sources
+                .into_iter()
+                .map(|range| range.source)
+                .collect::<Vec<_>>()
+        };
+        let original = sources(&vertices, &stamp);
+        assert_eq!(original.len(), 2);
+        let restored: Vec<Arc<Source>> =
+            postcard::from_bytes(&postcard::to_allocvec(&original).unwrap()).unwrap();
+        assert!(restored == sources(&vertices, &Stamp { seed: 31, ..stamp }));
+        for change in 0..4 {
+            let mut changed = vertices.clone();
+            for vertex in &mut changed {
+                match change {
+                    0 => vertex.position[1] = 0.25,
+                    1 => vertex.uv[0] += 1.0,
+                    2 => vertex.color = [0.8; 3],
+                    _ => vertex.normal = [0.0, -1.0, 0.0],
+                }
+            }
+            assert!(
+                sources(&changed, &stamp)
+                    .iter()
+                    .all(|source| !original.contains(source))
+            );
+        }
+        for change in 0..3 {
+            let mut changed = vertices.clone();
+            let mut stamp = Stamp { ..stamp };
+            match change {
+                0 => stamp.shape = Some((Vec3::Z, 0.5)),
+                1 => changed
+                    .iter_mut()
+                    .for_each(|v| v.position[1] = v.position[0] * 0.1),
+                _ => changed
+                    .iter_mut()
+                    .for_each(|v| v.flags |= crate::render_mesh::FOLIAGE),
+            }
+            assert!(sources(&changed, &stamp).is_empty());
+        }
     }
 
     #[test]

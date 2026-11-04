@@ -13,7 +13,7 @@ use bytemuck::Zeroable;
 use glam::{Mat3, Mat4, Quat, Vec3};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
-    sync::OnceLock,
+    sync::{Arc, OnceLock},
 };
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
@@ -31,6 +31,7 @@ const DROP_LIMIT: usize = 128;
 struct Patch {
     part: Option<Part>,
     vertices: Vec<Vertex>,
+    sources: Vec<surfaces::SourceRange>,
     #[serde(skip)]
     bounds: OnceLock<[Vec3; 2]>,
 }
@@ -320,8 +321,15 @@ impl Blood {
         self.marks.trim(limit);
     }
 
-    pub fn pages(&self) -> impl Iterator<Item = &std::sync::Arc<Vec<Vertex>>> {
+    #[cfg(test)]
+    pub fn pages(&self) -> impl Iterator<Item = &Arc<Vec<Vertex>>> {
         self.marks.pages()
+    }
+
+    pub(crate) fn projected_pages(
+        &self,
+    ) -> impl Iterator<Item = (&Arc<Vec<Vertex>>, &[surfaces::SourceRange])> {
+        self.marks.projected_pages()
     }
 
     fn stain(
@@ -392,12 +400,15 @@ impl Blood {
             Patch {
                 part: Some(*key),
                 vertices,
+                sources: Vec::new(),
                 bounds: Default::default(),
             }
         } else {
+            let projected = surfaces.world.project_decal(&stamp);
             Patch {
                 part: None,
-                vertices: surfaces.world.project(&stamp),
+                vertices: projected.vertices,
+                sources: projected.sources,
                 bounds: Default::default(),
             }
         };
@@ -405,6 +416,9 @@ impl Blood {
     }
 
     fn original_texture(mark: &mut Mark, image: tenchu_assets::texture::Image, style: BloodStyle) {
+        for patch in &mut mark.0 {
+            patch.sources.clear();
+        }
         for v in mark.0.iter_mut().flat_map(|p| &mut p.vertices) {
             v.uv = std::array::from_fn(|axis| {
                 f32::from(image.uv[axis])
@@ -539,6 +553,7 @@ impl Blood {
                 patches.push(Patch {
                     part: Some(key),
                     vertices: projected,
+                    sources: Vec::new(),
                     bounds: Default::default(),
                 });
             }
@@ -965,6 +980,7 @@ impl Blood {
             vec![Patch {
                 part: None,
                 vertices,
+                sources: Vec::new(),
                 bounds: Default::default(),
             }],
             Kind::Death {

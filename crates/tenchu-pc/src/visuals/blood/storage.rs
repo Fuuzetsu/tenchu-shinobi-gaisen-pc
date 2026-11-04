@@ -1,4 +1,5 @@
 use super::{Kind, Mark, Vertex};
+use crate::visuals::surfaces::SourceRange;
 use std::{collections::VecDeque, sync::Arc};
 
 pub(super) const VERTEX_LIMIT: usize = 4_194_304;
@@ -9,6 +10,7 @@ const MARK_VERTEX_LIMIT: usize = 3072;
 struct Page {
     entries: VecDeque<(u64, usize, Kind)>,
     vertices: Arc<Vec<Vertex>>,
+    sources: Arc<Vec<SourceRange>>,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Clone)]
@@ -33,9 +35,15 @@ impl Marks {
             serial,
         } = self;
         out.value(&pages.len())?;
-        for Page { entries, vertices } in pages {
+        for Page {
+            entries,
+            vertices,
+            sources,
+        } in pages
+        {
             out.value(entries)?;
             out.shared_arc(vertices, entries.len() == PAGE_MARKS)?;
+            out.shared_arc(sources, entries.len() == PAGE_MARKS)?;
         }
         out.value(&attached.len())?;
         for (id, mark) in attached {
@@ -59,8 +67,15 @@ impl Marks {
         self.count == 0
     }
 
+    #[cfg(test)]
     pub fn pages(&self) -> impl Iterator<Item = &Arc<Vec<Vertex>>> {
         self.pages.iter().map(|page| &page.vertices)
+    }
+
+    pub fn projected_pages(&self) -> impl Iterator<Item = (&Arc<Vec<Vertex>>, &[SourceRange])> {
+        self.pages
+            .iter()
+            .map(|page| (&page.vertices, page.sources.as_slice()))
     }
 
     pub fn insert(&mut self, mark: Mark, limit: usize) {
@@ -81,11 +96,21 @@ impl Marks {
                 self.pages.push_back(Page {
                     entries: VecDeque::new(),
                     vertices: Arc::default(),
+                    sources: Arc::default(),
                 });
             }
             let page = self.pages.back_mut().unwrap();
             page.entries.push_back((id, len, mark.1));
-            Arc::make_mut(&mut page.vertices).extend(mark.0.into_iter().flat_map(|p| p.vertices));
+            let vertices = Arc::make_mut(&mut page.vertices);
+            let sources = Arc::make_mut(&mut page.sources);
+            for patch in mark.0 {
+                let offset = vertices.len();
+                sources.extend(patch.sources.into_iter().map(|mut source| {
+                    source.vertices = source.vertices.start + offset..source.vertices.end + offset;
+                    source
+                }));
+                vertices.extend(patch.vertices);
+            }
         } else {
             self.attached.push_back((id, Arc::new(mark)));
         }
@@ -107,6 +132,14 @@ impl Marks {
                     self.pages.pop_front();
                 } else {
                     Arc::make_mut(&mut page.vertices).drain(..len);
+                    Arc::make_mut(&mut page.sources).retain_mut(|source| {
+                        if source.vertices.end <= len {
+                            return false;
+                        }
+                        source.vertices =
+                            source.vertices.start.saturating_sub(len)..source.vertices.end - len;
+                        true
+                    });
                 }
                 len
             } else {
@@ -136,9 +169,23 @@ impl Marks {
                 return true;
             }
             let mut vertices = Vec::new();
+            let mut sources = Vec::new();
+            let mut previous_sources = page.sources.iter().peekable();
             let mut offset = 0;
             page.entries.retain(|&(_, len, kind)| {
                 let retained = keep(kind);
+                while previous_sources
+                    .peek()
+                    .is_some_and(|source| source.vertices.start < offset + len)
+                {
+                    let source = previous_sources.next().unwrap();
+                    if retained {
+                        let mut source = source.clone();
+                        source.vertices = source.vertices.start - offset + vertices.len()
+                            ..source.vertices.end - offset + vertices.len();
+                        sources.push(source);
+                    }
+                }
                 if retained {
                     vertices.extend_from_slice(&page.vertices[offset..offset + len]);
                 } else {
@@ -149,6 +196,7 @@ impl Marks {
                 retained
             });
             page.vertices = Arc::new(vertices);
+            page.sources = Arc::new(sources);
             !page.entries.is_empty()
         });
     }
@@ -163,13 +211,33 @@ mod tests {
 
     #[test]
     fn rewind_restores_stains_after_expiry_and_style_changes() {
+        use crate::visuals::surfaces::{Stamp, Surfaces};
         use crate::{rewind::History, visuals::interpolation::Part};
+        use glam::Vec3;
 
         let mut marks = Marks::default();
         let mut history = History::default();
         let mut expected = Vec::new();
+        let mut receivers = Vec::new();
         for tick in 0..20 {
             let attached = tick % 2 == 0;
+            let vertices =
+                [[-10.0, 0.0, -10.0], [10.0, 0.0, -10.0], [0.0, 0.0, 10.0]].map(|position| {
+                    Vertex {
+                        position,
+                        uv: [tick as f32, 0.0],
+                        ..Vertex::zeroed()
+                    }
+                });
+            let projected = Surfaces::new(&vertices).project_decal(&Stamp {
+                center: Vec3::ZERO,
+                normal: Vec3::NEG_Y,
+                radius: 6.0,
+                depth: 1.0,
+                seed: tick,
+                shape: None,
+            });
+            receivers.push(projected.sources[0].source.clone());
             marks.insert(
                 Mark(
                     vec![Patch {
@@ -179,29 +247,42 @@ mod tests {
                             kind: 0,
                             inspection: false,
                         }),
-                        vertices: vec![
-                            Vertex {
-                                position: [tick as f32, 0.0, 0.0],
-                                ..Vertex::zeroed()
-                            };
-                            6
-                        ],
-                        bounds: Default::default(),
+                        vertices: projected.vertices,
+                        sources: if attached {
+                            Vec::new()
+                        } else {
+                            projected.sources
+                        },
+                        ..Default::default()
                     }],
-                    if attached { Kind::Body } else { Kind::Ground },
+                    if attached {
+                        Kind::Body
+                    } else if tick % 3 == 0 {
+                        Kind::Death { player: false }
+                    } else {
+                        Kind::Ground
+                    },
                 ),
                 8,
             );
             if tick == 12 {
-                marks.retain_kind(|kind| kind == Kind::Body);
+                marks.retain_kind(|kind| kind != Kind::Ground);
             } else if tick == 16 {
                 marks.retain_attached(|_| false);
+            }
+            for page in &marks.pages {
+                for source in page.sources.iter() {
+                    let vertices = &page.vertices[source.vertices.clone()];
+                    let tick = vertices[0].uv[0] as usize;
+                    assert!(vertices.iter().all(|v| v.uv[0] == tick as f32));
+                    assert!(source.source == receivers[tick]);
+                }
             }
             expected.push(postcard::to_allocvec(&marks).unwrap());
             history.recorder.begin();
             marks.capture(&mut history.recorder).unwrap();
             let snapshot = history.recorder.finish().unwrap();
-            history.push(tick, 30, snapshot).unwrap();
+            history.push(u64::from(tick), 30, snapshot).unwrap();
         }
         for (tick, expected) in expected.into_iter().enumerate().rev() {
             let snapshot = history.snapshot(tick).unwrap();
@@ -228,7 +309,7 @@ mod tests {
                     vec![Patch {
                         part: None,
                         vertices,
-                        bounds: Default::default(),
+                        ..Default::default()
                     }],
                     Kind::Ground,
                 ),

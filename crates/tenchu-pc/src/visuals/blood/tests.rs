@@ -115,7 +115,7 @@ fn changing_one_blood_category_preserves_other_cached_marks() {
                 vec![Patch {
                     part: None,
                     vertices: vec![Vertex::zeroed(); 6],
-                    bounds: Default::default(),
+                    ..Default::default()
                 }],
                 kind,
             ),
@@ -386,7 +386,7 @@ fn retained_stains_respect_both_count_and_vertex_budgets() {
                         inspection: false,
                     }),
                     vertices: vec![Vertex::zeroed(); if i % 2 == 0 { 30 } else { 3000 }],
-                    bounds: Default::default(),
+                    ..Default::default()
                 }],
                 Kind::Ground,
             ),
@@ -743,7 +743,7 @@ fn full_retention_keeps_old_stains_and_only_changes_the_active_page() {
         vec![Patch {
             part: None,
             vertices: vec![Vertex::zeroed(); 36],
-            bounds: Default::default(),
+            ..Default::default()
         }],
         Kind::Ground,
     );
@@ -755,7 +755,7 @@ fn full_retention_keeps_old_stains_and_only_changes_the_active_page() {
                 vec![Patch {
                     part: None,
                     vertices,
-                    bounds: Default::default(),
+                    ..Default::default()
                 }],
                 Kind::Ground,
             ),

@@ -109,9 +109,13 @@ pub struct Renderer {
     #[cfg(test)]
     skip_blood_shader: bool,
     #[cfg(test)]
+    force_blood_composite: Option<bool>,
+    #[cfg(test)]
     skip_prepass: bool,
     overlay_effects: [wgpu::RenderPipeline; 6],
     post: Option<post::Post>,
+    composite: Option<decals::composite::Composite>,
+    composite_supported: bool,
     size: [u32; 2],
     bindings: wgpu::BindGroup,
     camera: wgpu::Buffer,
@@ -133,7 +137,8 @@ pub struct Renderer {
     pub shadow_elapsed: Option<f32>,
     shadows: shadows::Shadows,
     materials: materials::Materials,
-    decals: std::collections::BTreeMap<usize, decals::Decal>,
+    decals: Vec<decals::Decal>,
+    decal_sources: std::collections::HashMap<std::sync::Arc<crate::visuals::surfaces::Source>, u32>,
 }
 
 impl Renderer {
@@ -159,6 +164,12 @@ impl Renderer {
         let color = format_flags(format);
         let hdr = format_flags(post::FORMAT);
         let depth = format_flags(wgpu::TextureFormat::Depth32Float);
+        let composite_supported = adapter
+            .get_downlevel_capabilities()
+            .flags
+            .contains(wgpu::DownlevelFlags::INDEPENDENT_BLEND)
+            && (hdr & format_flags(wgpu::TextureFormat::R16Float))
+                .contains(wgpu::TextureFormatFeatureFlags::BLENDABLE);
         let sample_counts = [1, 2, 4, 8, 16]
             .into_iter()
             .filter(|&n| {
@@ -270,9 +281,13 @@ impl Renderer {
             #[cfg(test)]
             skip_blood_shader: false,
             #[cfg(test)]
+            force_blood_composite: None,
+            #[cfg(test)]
             skip_prepass: false,
             overlay_effects,
             post: None,
+            composite: None,
+            composite_supported,
             size,
             bindings,
             camera,
@@ -293,6 +308,7 @@ impl Renderer {
             shadows,
             materials,
             decals: Default::default(),
+            decal_sources: Default::default(),
         };
         renderer.update_vram(vram);
         Ok(renderer)
@@ -328,6 +344,9 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, size: [u32; 2]) {
+        if let Some(composite) = &mut self.composite {
+            composite.targets = None;
+        }
         self.size = size;
         self.depth = Self::attachment(
             &self.device,
@@ -364,6 +383,7 @@ impl Renderer {
 
     pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
         self.decals.clear();
+        self.decal_sources.clear();
         self.materials.set_pack(pack);
     }
 
@@ -377,6 +397,7 @@ impl Renderer {
 
     pub fn reset_vram(&mut self, vram: &Vram) {
         self.decals.clear();
+        self.decal_sources.clear();
         self.materials.reset(vram);
         self.update_vram(vram);
     }
@@ -416,6 +437,20 @@ impl Renderer {
             self.resize(self.size);
         } else if self.graphics.post.enabled && occlusion_changed {
             self.configure_post();
+        }
+        let compose_blood = self.composite_supported
+            && samples == 1
+            && graphics.post.enabled
+            && (graphics.lighting.enabled
+                || graphics.sky.enabled
+                || graphics.weather.mode != crate::settings::WeatherMode::Original)
+            && [graphics.blood.ground, graphics.blood.death]
+                .contains(&crate::settings::BloodStyle::Modern);
+        if !compose_blood || pipelines_changed {
+            self.composite = None;
+        }
+        if compose_blood && self.composite.is_none() {
+            self.composite = Some(decals::composite::Composite::new(self));
         }
     }
 
@@ -646,6 +681,13 @@ impl Renderer {
         ]);
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
+        let composite = decals::composite::useful(self, matrix);
+        if composite {
+            self.composite
+                .as_mut()
+                .unwrap()
+                .prepare(&self.device, self.size);
+        }
         let mut encoder = self.device.create_command_encoder(&Default::default());
         if self.profiling
             && let Some(timer) = &mut self.timings
@@ -657,7 +699,7 @@ impl Renderer {
             .with_motion(self.visual_time, &self.graphics.motion);
         lighting.elapsed = self.shadow_elapsed;
         lighting.weather_bounds =
-            self.snow_bounds() && self.decals.values().any(|decal| decal.ground_blood);
+            self.snow_bounds() && self.decals.iter().any(|decal| decal.ground_blood);
         self.shadows
             .configure(&self.device, &lighting, lights.len());
         self.shadows.draw(
@@ -784,7 +826,38 @@ impl Renderer {
                 }
                 mark(&mut pass, stage);
             }
-            self.draw_decals(&mut pass, matrix);
+            if composite {
+                drop(pass);
+                let compositor = self.composite.as_ref().unwrap();
+                compositor.coverage(self, &mut encoder, matrix);
+                pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Scene after blood coverage"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: world_target,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &self.depth,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        }),
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pass.set_bind_group(0, &self.bindings, &[]);
+                pass.set_bind_group(1, &self.shadows.bindings, &[]);
+                pass.set_bind_group(2, &self.materials.bindings, &[]);
+                compositor.shade(self, &mut pass, matrix);
+            } else {
+                self.draw_decals(&mut pass, matrix);
+            }
             mark(&mut pass, timing::SceneStage::Decals);
             if let Some(effects) = effects.filter(|e| e.mesh.count != 0) {
                 draw_effects(&mut pass, &self.pipelines.effects, effects, Some(false));

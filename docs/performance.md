@@ -1860,3 +1860,80 @@ mixed and effectively unchanged overall. Six focused GPU regressions, native/WAS
 strict Clippy, formatting and release builds pass. Chromium WebGPU and WebGL2 both
 load the snow/blood checkpoint, move, toggle lighting, use free camera and resume
 without errors or changes to paused simulation state.
+
+## November 5: compose blood only on matching receivers
+
+Overlapping modern ground stains previously repeated the same material, lighting,
+shadow and weather calculations. A coverage pass now accumulates opacity and
+identifies pixels whose contributing stains all came from the same source
+triangle. Only the last contributing triangle shades those pixels. Mixed or
+unknown receivers retain their individual shading and original blending order.
+
+The proof uses the full source triangle's bitwise geometry, UVs, colour, flags
+and normals, not a model-local index or allocation address. Only horizontal
+receivers with a downward projection qualify. Source ranges follow immutable
+blood pages through trimming, style changes, saves and rewind. Renderer IDs live
+in a separate vertex buffer; texture identifiers and gameplay state are unchanged.
+Retained pages now draw in creation order rather than allocation-address order.
+
+This path requires HDR, one sample per pixel and independent attachment blending.
+The renderer keeps forward drawing for sparse/distant stains, incompatible
+backends or mixed visible styles. Coverage targets allocate only when useful,
+adding approximately 111 MiB at 3840 × 2160. Pipelines compile when graphics
+settings are applied, rather than when the first dense pool appears.
+
+Paired 4K tests on the GTX 1080 Ti with the report's graphics settings and 4,096
+stains in TRIAL Mission 2 give:
+
+| Workload | GPU mean before → after | GPU p99 before → after |
+|---|---|---|
+| Rain and blood | 60.53 → 29.08 ms | 60.99 → 29.70 ms |
+| Snow and blood | 38.25 → 20.98 ms | 39.64 → 21.77 ms |
+| Wet snow and blood | 44.80 → 23.72 ms | 45.03 → 24.46 ms |
+| Rain, blood and moving actors | 62.09 → 30.20 ms | 63.02 → 30.84 ms |
+
+Four 20-second moving routes at 3826 × 2146 add stains and footprints while
+recording rewind, exercising metadata creation and GPU uploads as well as shading:
+
+| Route | GPU p99 before → after | Frame p95 before → after | Frame p99 before → after |
+|---|---|---|---|
+| Village | 72.37 → 39.69 ms | 80.10 → 48.67 ms | 82.00 → 49.86 ms |
+| Courtyard, no accumulated stains | 21.73 → 21.87 ms | 27.85 → 27.86 ms | 28.35 → 28.67 ms |
+| Garden | 36.04 → 31.24 ms | 42.52 → 38.82 ms | 44.79 → 40.45 ms |
+| Waterfall, no accumulated stains | 10.98 → 11.00 ms | 22.53 → 22.51 ms | 23.10 → 23.13 ms |
+
+Village CPU work averages 4.35 → 4.55 ms; the other routes remain roughly unchanged.
+These are serialized offscreen timings, not interactive FPS. The ordinary Mission
+1 report views stay at approximately 20.5/22.5/21.3 ms GPU for stationary,
+animated-night and animated-day views, with identical images. This improvement
+addresses blood accumulation; it does not make the ordinary 30 FPS report reach
+60 FPS.
+
+The composition is not bit-exact: half-float alpha accumulation and different
+triangle interpolation introduce small rounding differences. The Mission 1 blood
+capture differs in 5,635 colour channels out of 24.6 million, by at most 3/255.
+TRIAL stress captures differ in 18,202–40,643 channels out of 24.9 million, with
+mean absolute differences below 0.002/255 and isolated texel-edge differences up
+to 29/255. Enlarged worst-pixel crops were inspected; final captures match those
+reviewed prototype images. All report captures also match forced full shadow
+redraws. Synthetic mixed-floor, slope and foliage cases are exact; matching
+receivers and mixed known/unknown identities differ by at most 1/255.
+
+Focused tests cover receiver changes/rebuilding, high renderer IDs, texture
+cutouts, sparse and distant fallback, multisampling/HDR fallback, style removal,
+trimming, rewind and save restoration. The internal snapshot format is incremented
+so older development snapshots fail clearly rather than decoding the new metadata
+as old fields. Campaign progress files are unaffected.
+
+Formatting, 134 ordinary tests, focused GPU checks, native/WASM strict Clippy and
+release builds pass. Chromium WebGPU loads a native snapshot and executes the
+new coverage pass; WebGL2 passes with forward rendering. Both exercise movement,
+paused-state stability, lighting changes, free camera and resume. Browser validation
+uses the actual `cargo rustc --crate-type cdylib` artifact; compiling the WASM Rust
+library alone does not refresh the browser binary.
+
+A dry lit blood stress test also improves from 24.49 to 16.63 ms GPU. The same
+geometry with lighting, sky, weather and surface detail disabled instead regresses
+from 6.28 to 8.29 ms with composition forced on: the extra coverage pass outweighs
+its saved shading. Composition therefore remains disabled when both lighting and
+weather are disabled. The fallback regression checks this configuration too.
