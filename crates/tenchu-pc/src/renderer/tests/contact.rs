@@ -155,6 +155,8 @@ fn culled_shadows_match_full_stage_with_foliage() {
         renderer.visual_time = frame as f32 * 0.37;
         renderer.shadows.draw_all_faces = false;
         graphics.asset_pack = replacements;
+        graphics.lighting.resolution = if replacements { 2048 } else { 256 };
+        graphics.lighting.directional.resolution = graphics.lighting.resolution;
         renderer.configure(&graphics);
         renderer
             .draw_lit(

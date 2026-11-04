@@ -243,7 +243,17 @@ impl Frustum {
         matrix: Mat4,
         size: u32,
     ) -> (Vec<Range<u32>>, bool, Option<Rect>) {
+        // Large maps benefit from early depth rejection; small maps favor fewer draws.
+        let depth_order = !dynamic && size >= 2048;
+        let mut visible_chunks = Vec::new();
         let mut ranges: Vec<Range<u32>> = Vec::new();
+        let mut append = |range: &Range<u32>| {
+            if let Some(previous) = ranges.last_mut().filter(|r| r.end == range.start) {
+                previous.end = range.end;
+            } else {
+                ranges.push(range.clone());
+            }
+        };
         let mut foliage = false;
         let mut damage: Option<Rect> = None;
         for chunk in chunks {
@@ -254,17 +264,18 @@ impl Frustum {
             };
             let visible = chunk
                 .bounds
-                .is_some_and(|bounds| self.contains(bounds, padding));
-            if visible {
+                .filter(|&bounds| self.contains(bounds, padding));
+            if let Some([low, high]) = visible {
                 foliage |= chunk.foliage.is_some();
-                if let Some(previous) = ranges.last_mut().filter(|r| r.end == chunk.range.start) {
-                    previous.end = chunk.range.end;
+                if depth_order {
+                    let depth = matrix.row(2).dot(((low + high) * 0.5).extend(1.0));
+                    visible_chunks.push((chunk, depth));
                 } else {
-                    ranges.push(chunk.range.clone());
+                    append(&chunk.range);
                 }
             }
             let bounds = if dynamic {
-                chunk.bounds.filter(|_| visible)
+                visible
             } else if wind != 0.0 {
                 chunk
                     .foliage
@@ -276,6 +287,17 @@ impl Frustum {
                 let rect = Rect::projected(bounds, matrix, size, padding);
                 damage = Some(damage.map_or(rect, |old| old.union(rect)));
             }
+        }
+        if depth_order {
+            visible_chunks.sort_by(|(a, a_depth), (b, b_depth)| {
+                a.foliage
+                    .is_some()
+                    .cmp(&b.foliage.is_some())
+                    .then_with(|| a_depth.total_cmp(b_depth))
+            });
+        }
+        for (chunk, _) in visible_chunks {
+            append(&chunk.range);
         }
         if ranges.is_empty() {
             damage = None;

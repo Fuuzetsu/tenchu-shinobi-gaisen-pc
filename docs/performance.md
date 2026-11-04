@@ -1741,3 +1741,44 @@ Shadow culling, partial redraws, wind animation and actor-independent snow
 shelter regressions pass. Native/WASM strict Clippy and release builds pass;
 Chromium WebGPU and WebGL2 load the portable snow/blood state, move, change
 lighting, use free camera and resume with paused simulation unchanged.
+
+
+## November 5: depth ordering for large shadow maps
+
+Static shadow chunks now draw near to far within the solid and foliage groups.
+This lets earlier surfaces reject more hidden fragments. The per-face culling
+cache retains the ordered ranges; unchanged static geometry is not sorted every
+frame. Color-pass ordering, animated poses, shadow coverage and filtering are
+unchanged.
+
+The extra draws pay off on large maps. At 512 pixels, an animated report-view
+fixture saves only 0.01 ms on the GPU while adding 0.17 ms of CPU work; at 1024,
+the 0.08 ms GPU saving approximately offsets the CPU cost. Depth ordering is
+therefore limited to static maps of at least 2048 pixels. Smaller maps and
+moving actor meshes retain their existing merged draw ranges.
+
+Sequential 20-second offscreen routes use the same 3826 × 2146 report settings
+as above, with a repeated baseline after the preceding shadow-order improvement:
+
+| Route | Shadow-map mean before → after | GPU p99 before → after | Whole-frame p99 before → after |
+|---|---|---|---|
+| Village | 9.53 → 8.12 ms | 30.67 → 28.71 ms | 37.98 → 36.48 ms |
+| Courtyard | 6.29 → 5.40 ms | 28.83 → 27.68 ms | 35.30 → 34.17 ms |
+| Garden | 8.44 → 7.35 ms | 29.75 → 28.97 ms | 37.00 → 36.42 ms |
+| Waterfall | 2.51 → 2.36 ms | 11.19 → 10.95 ms | 22.25 → 22.04 ms |
+
+CPU means rise by 0.08–0.31 ms because there are more draws. The demanding routes
+still improve overall; the waterfall's mean is essentially unchanged. These
+serialized measurements remain above the 60 FPS budget in the three demanding
+routes and are not interactive FPS measurements.
+
+Four paired 4K captures, including animated foliage, daytime and rain with
+4,096 blood stains, are pixel-identical. The full-stage shadow comparison now
+also exercises 2048-pixel maps. Partial redraw, wind and snow-shelter checks,
+native/WASM strict Clippy and release builds, and Chromium WebGPU/WebGL2
+weather-state, movement, lighting and free-camera checks pass.
+
+Two scenery-shader splits were also tested and discarded: their modest gains
+in some views did not consistently improve the report's night-time workload.
+Skipping only the shadow vertex wind calculation did not improve map time, so
+no separate wind-position cache was added.
