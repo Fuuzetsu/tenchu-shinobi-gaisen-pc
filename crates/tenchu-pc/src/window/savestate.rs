@@ -426,7 +426,7 @@ mod tests {
                 if step == 2 {
                     let assets = &mut app.campaign.game.mission;
                     assets.vram.words[4096] ^= 0x70;
-                    assets.clips[0].root[0].value[0] ^= 7;
+                    Arc::make_mut(&mut assets.clips)[0].root[0].value[0] ^= 7;
                     assets.scripts.events[0].next[0] ^= 1;
                     assets.placements[0].position[0] += 1;
                     let node = assets.terrain.rows[0].list;
@@ -434,6 +434,11 @@ mod tests {
                 }
                 if step == 4 {
                     let assets = &mut app.campaign.game.mission;
+                    Arc::make_mut(&mut assets.weapons.models)
+                        .values_mut()
+                        .next()
+                        .unwrap()[0]
+                        .vertices[0][0] ^= 1;
                     Arc::make_mut(&mut assets.models)
                         .values_mut()
                         .next()

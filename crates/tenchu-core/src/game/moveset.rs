@@ -80,7 +80,7 @@ impl Game {
                 if !ctx.mission.clips.iter().any(|c| c.id == registration.clip)
                     && let Some(clip) = clips.iter().find(|c| c.id == registration.clip)
                 {
-                    ctx.mission.clips.push(clip.clone());
+                    std::sync::Arc::make_mut(&mut ctx.mission.clips).push(clip.clone());
                 }
             }
             let index = *self.moveset.definition.get_or_insert_with(|| {

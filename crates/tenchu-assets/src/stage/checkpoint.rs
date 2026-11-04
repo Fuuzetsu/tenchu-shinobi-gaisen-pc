@@ -61,9 +61,9 @@ impl MissionAssets {
         out.shared_arc(models, true)?;
         out.shared_arc(imported_models, true)?;
         out.value(imported_voices)?;
-        out.shared(clips)?;
+        out.shared_arc(clips, true)?;
         out.value(common_motions)?;
-        out.value(weapons)?;
+        weapons.capture(out)?;
         out.value(death_events)?;
         out.shared_arc(common_models, true)?;
         out.value(enemies)?;

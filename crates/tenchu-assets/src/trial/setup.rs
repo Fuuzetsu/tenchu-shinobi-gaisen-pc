@@ -154,7 +154,7 @@ impl MissionAssets {
             models: models.into(),
             imported_models: Default::default(),
             imported_voices: vec![],
-            clips,
+            clips: clips.into(),
             common_motions: tables.common_motions.clone(),
             weapons: crate::weapon::Weapons::load_trial(assets, &exe)?,
             death_events: exe.death_events_at(0x80087c60)?,

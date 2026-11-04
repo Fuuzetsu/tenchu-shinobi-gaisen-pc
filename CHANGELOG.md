@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce rewind recording work by sharing unchanged animation and weapon-model
+  resources between captures. Edited wall poses, imported movesets and weapon
+  geometry remain part of the saved state.
+
 - Reduce CPU work in visibility and logical drawing calculations by building
   the fixed reciprocal lookup table at compile time. Original projection
   rounding, clipping and gameplay behavior are unchanged.

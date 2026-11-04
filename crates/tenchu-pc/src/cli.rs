@@ -374,7 +374,7 @@ fn run() -> Result<()> {
                 for parts in mission.models.values() {
                     tenchu_core::motion::Pose::new(parts)?;
                 }
-                for clip in &mission.clips {
+                for clip in mission.clips.iter() {
                     for track in std::iter::once(&clip.root)
                         .chain(&clip.bones)
                         .filter(|t| !t.is_empty())

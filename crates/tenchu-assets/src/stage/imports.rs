@@ -48,7 +48,7 @@ impl MissionAssets {
             let mut imported = clip.clone();
             remap.insert(imported.id, next);
             imported.id = next;
-            self.clips.push(imported);
+            Arc::make_mut(&mut self.clips).push(imported);
         }
         character.motions.retain_mut(|motion| {
             if let Some(&clip) = remap.get(&motion.clip) {

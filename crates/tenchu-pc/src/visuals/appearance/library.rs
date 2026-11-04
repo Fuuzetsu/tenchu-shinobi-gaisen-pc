@@ -89,7 +89,7 @@ impl Library {
                         });
                 }
                 let vram = Arc::new(mission.vram);
-                let clips = Arc::new(mission.clips);
+                let clips = mission.clips;
                 for (kind, parts) in Arc::unwrap_or_clone(mission.models) {
                     let character = definitions.iter().find(|c| c.kind == kind).unwrap();
                     found.entry(character.model.clone()).or_insert_with(|| {
@@ -135,7 +135,7 @@ impl Library {
                         .clone();
                     let player = if family == "AYAME" { 1 } else { 0 };
                     let mission = MissionAssets::load(assets, 0, player, 1)?;
-                    (parts, vram, Arc::new(mission.clips), mission.common_motions)
+                    (parts, vram, mission.clips, mission.common_motions)
                 }
             };
             if matches!(family, "RIKIMARU" | "AYAME") {

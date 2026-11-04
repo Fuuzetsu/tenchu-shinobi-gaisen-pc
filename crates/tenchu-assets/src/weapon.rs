@@ -6,7 +6,7 @@ use crate::{
     model::{self, Geometry},
     short3, u32_le,
 };
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 pub mod kind {
     pub const CLAW: i16 = 0x01;
@@ -69,7 +69,7 @@ pub struct Attack {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Weapons {
-    pub models: BTreeMap<i16, Vec<Geometry>>,
+    pub models: Arc<BTreeMap<i16, Vec<Geometry>>>,
     pub names: BTreeMap<i16, String>,
     pub hitboxes: Vec<Hitbox>,
     pub attacks: Vec<Attack>,
@@ -77,6 +77,24 @@ pub struct Weapons {
 }
 
 impl Weapons {
+    pub fn capture<C: crate::checkpoint::Capture>(
+        &self,
+        out: &mut C,
+    ) -> std::result::Result<(), C::Error> {
+        let Self {
+            models,
+            names,
+            hitboxes,
+            attacks,
+            bow_timing,
+        } = self;
+        out.shared_arc(models, true)?;
+        out.value(names)?;
+        out.value(hitboxes)?;
+        out.value(attacks)?;
+        out.value(bow_timing)
+    }
+
     pub fn load<S: ReadAt>(game: &GameAssets<S>, exe: &Executable) -> Result<Self> {
         Self::load_tables(
             game,
@@ -153,7 +171,7 @@ impl Weapons {
             if clip == -1 {
                 return Ok(Self {
                     names,
-                    models,
+                    models: models.into(),
                     hitboxes,
                     attacks,
                     bow_timing: [

@@ -200,7 +200,7 @@ pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
             });
         }
     }
-    for (&kind, geometry) in &mission.weapons.models {
+    for (&kind, geometry) in mission.weapons.models.iter() {
         out.push(ModelSource {
             id: format!("weapons/{kind:04x}"),
             label: mission.weapons.names[&kind].clone(),

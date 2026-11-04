@@ -74,16 +74,26 @@ impl Actor {
                         as i16;
                     let relative = relative as i16;
                     let velocity = ctx.math.velocity(relative, -300, 0);
-                    let clip =
-                        &mut ctx.mission.clips[self.motion.clip.ok_or("Missing wall motion")?];
-                    clip.bones[0][0].value[1] = relative;
-                    clip.bones[2][0].value[1] = if relative & 1024 != 0 {
+                    let index = self.motion.clip.ok_or("Missing wall motion")?;
+                    let shoulder = if relative & 1024 != 0 {
                         relative.wrapping_neg()
                     } else {
                         0
                     };
-                    clip.root[0].value[0] = velocity[0];
-                    clip.root[0].value[2] = velocity[2];
+                    let clip = &ctx.mission.clips[index];
+                    if [
+                        clip.bones[0][0].value[1],
+                        clip.bones[2][0].value[1],
+                        clip.root[0].value[0],
+                        clip.root[0].value[2],
+                    ] != [relative, shoulder, velocity[0], velocity[2]]
+                    {
+                        let clip = &mut std::sync::Arc::make_mut(&mut ctx.mission.clips)[index];
+                        clip.bones[0][0].value[1] = relative;
+                        clip.bones[2][0].value[1] = shoulder;
+                        clip.root[0].value[0] = velocity[0];
+                        clip.root[0].value[2] = velocity[2];
+                    }
                 } else if self.motion.loops > 0 {
                     self.motion.loops = -1;
                 }

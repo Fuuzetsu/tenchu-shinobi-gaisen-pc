@@ -1120,3 +1120,30 @@ frame-time gain. Smaller light-grid entries reduced memory but slowed dry
 gameplay; packing indices also regressed dense rain/blood by about 7 ms.
 A conservative projection overflow fast path preserved the independent GTE
 results but gave little measurable improvement. None of those changes remain.
+
+
+## November 4: rewind resource capture
+
+Steady recording compared the entire animation bank every update and serialized
+all weapon geometry again. Both now use shared ownership and the existing
+resource cache. Wall poses and imported movesets still modify the animation
+bank through copy-on-write; unchanged wall keys avoid an unnecessary copy.
+This does not change the serialized format or omit mutable data.
+
+Two repeated, CPU-pinned comparisons run 960 Mission 1 updates with all enemies
+active and record every update. Mean CPU times exclude the first 60 updates:
+
+| Extra actors | Capture before → after | Compression/storage before → after | Combined before → after |
+| --- | ---: | ---: | ---: |
+| 0 | 0.153 → 0.111 ms | 0.168 → 0.166 ms | 0.321 → 0.277 ms |
+| 32 | 0.206 → 0.158 ms | 0.218 → 0.215 ms | 0.425 → 0.373 ms |
+| 128 | 0.372 → 0.325 ms | 0.346 → 0.339 ms | 0.718 → 0.665 ms |
+
+This reduces recording cost by about 7–13%, not overall frame time. First
+captures still encode the resources, and compression remains a significant
+cost. The ordinary and 32-extra-actor cases retain the configured 30 seconds;
+the 128-extra-actor case still reaches the memory budget after about 12 seconds.
+Full-state hashes match the previous build for all three scenarios, and retained
+snapshots decode back to identical serialized state. Existing mutation checks
+cover Missions 1/2/6/9, now including changed weapon geometry, alongside wall
+movement, imported movesets and all 17 built-in TRIAL missions with both heroes.
