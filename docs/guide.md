@@ -1310,6 +1310,10 @@ local alarm; actors beyond the awareness radius cannot hold the player's radar
 alerted. Nearby actors retain their usual sight/occlusion and combat rules.
 A guard who hears an alarm remembers it until it expires or they return to calm,
 so crossing the hearing boundary does not repeatedly interrupt drawing a weapon.
+Stealth kills do not interrupt remote guards' ordinary AI. Within the local
+awareness radius, the original game can turn awake guards toward a kill and wake
+sleepers even without a sighting; these reactions do not themselves increase the
+spotted counter.
 Reinforcements in this mode still follow the original difficulty and distance
 rules, but also wait for terrain cover from the player. Each placed guard gets
 one call per alert, and summoned guards cannot call reinforcements themselves.

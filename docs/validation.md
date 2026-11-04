@@ -774,3 +774,69 @@ all eleven disc-backed AI tests (including the original-C combat oracle), and
 save/restore continuation checks cover the fix. Video crops, native captures,
 transition traces and the private probe remain outside Git under
 `private/issues/weapon-loop-20261104`.
+
+## Mission 1 sleepers waking during stealth kills
+
+2026-11-05: diagnostic `my-tenchu-report-0.15.5-m1-tick1837.json` has whole-level
+AI enabled, zero sightings/alarms, one stealth kill, and two initially sleeping
+guards searching toward the kill location. Their home positions are about
+23,000 and 33,000 units away. Its 585 recent inputs start after mission entry,
+so this report is not a complete replay.
+
+Retail `THINK.C::StateTransition` handles `ActionHalt` before normal sight checks:
+active guards turn toward their target and back away at close range, regardless
+of awareness or terrain visibility. `MOTION.C::ActACTION` treats nonzero input
+as a reason to leave the sleeping pose. Getting up leads to drawing a weapon;
+the draw completion can start a personal search without `Found` or a shared
+alarm. Awake guards also receive the turning input, but that alone does not
+change their awareness phase or record a sighting.
+
+A controlled BizHawk pair executes the unmodified PS1 game with and without a
+stealth kill. Both runs share boot/menu inputs and two player-placement edits:
+first to activate the local actors while hidden, then behind an existing patrol.
+The second placement also resets the player's previous position/velocity and
+copies the target's local terrain probe. Guard positions, motions, AI, RNG and
+awareness are never written. These are controlled experiments, not controller-only
+routes or a replay of the supplied report. The original archived menu loadout
+setup is retained and documented separately.
+
+| Logic tick | Kill case | No-kill control |
+|---|---|---|
+| 107 | Stealth kill starts; sightings and alarm remain zero | Patrol continues |
+| 108 | Sleeping guard 11 starts getting up; awake archer 13 receives turn input | Sleeper remains asleep; archer remains idle |
+| 143 | Archer has turned from yaw 779 to 2479 and is still calm; no alarm/sighting | Archer has not made that turn |
+| 165 | Sleeper starts drawing; still no alarm/sighting | Sleeper remains asleep |
+| 173 | Corpse discovery raises an alarm; sighting count stays zero | No alarm/sighting |
+| 210 | Stealth-kill AI pause ends | No alarm/sighting |
+| 215 | The woken guard actually sees the player; sighting count becomes one | No alarm/sighting |
+
+Actor numbers in this table are the PS1 roster indices. The core's stable IDs
+for these observers are 9 and 11. A nearby kill can therefore make subsequent
+detection more likely, but turning is not an automatic sighting, and normal sight
+and terrain checks resume afterward. Corpse discovery is a separate path that
+can operate during the kill animation.
+
+A second controlled pair kills the archer instead, across the building from the
+sleeper. Again the sleeper gets up at tick 108 and draws at 165, but this time
+draw completion puts him into phase 2 at tick 195 with both alarm and sightings
+still zero. The radar becomes red when the pause ends at 210; the first corpse
+alarm occurs only at 294 and the sighting counter stays zero through tick 359.
+The no-kill control leaves him asleep with neither alarm nor sighting throughout.
+This also confirms that the forced draw can produce an unscored alert state,
+not just a blue search indicator. A zero sighting counter alone cannot establish
+that every later sight test failed after a guard has already entered phase 2.
+
+Whole-level AI had extended the same forced turn to remote sleepers that retail
+activation would suspend. The port now leaves nonscripted remote actors on their
+normal AI during this pause, using the existing local awareness radius. Nearby
+reactions, original activation, scripted actors and stage-end control remain
+unchanged. A disc-backed regression failed before the fix for a distant sleeper
+with whole-level AI, then passed for both activation modes and nearby/distant
+cases. It suppresses separate corpse discovery to isolate this wake-up chain.
+Private inputs, placement audits, RAM observations and native traces are retained
+under `private/issues/m1-blue-alert-20261104`; no game resources are committed.
+Formatting, strict native/WASM Clippy, 41 ordinary core checks, eleven disc-backed
+AI checks and both corpse fixtures pass. The archived Mission 1 stealth/item
+routes still match all 4,121 observed PS1 updates, including 30 skipped draws,
+without correcting native state after initialization. Those controller-only
+parity routes are separate from the controlled placement experiments above.

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- With **Keep all enemies active**, stealth kills no longer make distant guards
+  turn toward the player or wake sleeping guards across the map. Nearby guards
+  retain the original game's reactions.
+
 - Reduce shadow-bound preparation in crowded scenes by scanning shared model
   vertices once per actor, preserving all geometry and shadow casters.
 
