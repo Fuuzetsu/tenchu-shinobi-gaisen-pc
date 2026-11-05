@@ -1988,3 +1988,35 @@ and actual WASM cdylib builds pass. All 134 ordinary application tests and five
 focused GPU regressions pass, including a penumbra comparison against the original
 locally calculated samples. Actual Chromium WebGPU and WebGL2 smoke tests pass
 with native saved-state loading, movement, lighting changes and resume.
+
+## November 5: cumulative comparison with the diagnostic's development revision
+
+The user's 0.15.5 diagnostic was produced by development revision
+`3bbe8aa-dirty`, rather than the published tag. A saved native binary from that
+revision, made before the diagnostic, provides the closest available baseline.
+The dirty revision string does not prove byte-identical source. Both builds run
+the same fixed camera paths and report graphics at 3840 × 2160 on Wayland, with
+HD artwork, rainstorm, eight soft shadow lights and all-active enemies. Each path
+has 1,200 frames, excluding 60 warm-up frames. These are actual windowed timings;
+loading, compilation and other GPU benchmarks are excluded.
+
+| Route | Average FPS, report-era → `26d291f` | Frame p95 | Frame p99 | GPU p99 |
+|---|---|---|---|---|
+| Mission 1 village | 36.0 → 40.6 | 33.20 → 27.56 ms | 34.42 → 28.06 ms | 30.83 → 24.97 ms |
+| Mission 5 courtyard | 38.6 → 46.8 | 30.71 → 22.65 ms | 31.18 → 23.10 ms | 28.08 → 20.56 ms |
+| Mission 1 garden | 33.7 → 37.7 | 32.51 → 28.48 ms | 33.10 → 28.91 ms | 29.69 → 26.12 ms |
+| Mission 4 waterfall | 69.0 → 72.0 | 15.48 → 14.76 ms | 15.95 → 15.08 ms | 10.80 → 10.37 ms |
+
+Most of the improvement comes from less shadow-map work: mean shadow time falls
+from 10.23 to 7.27 ms in the village, 6.68 to 2.42 ms in the courtyard and 8.89 to
+6.54 ms in the garden. Village CPU p99 falls from 5.59 to 4.88 ms. Gameplay settings
+and visual quality are unchanged. Mission 1 still falls short of 60 FPS with this
+configuration; these paths reconstruct the graphics workload, not the diagnostic's
+complete actor and weather history. The report has no selected custom player body,
+so the redacted model directory does not affect its rendered player.
+
+Further private experiments were rejected: selectively clearing shadow pixels
+adds more mask/render-pass work than it saves; early terrain lighting and ambient
+occlusion gather variants fail to improve the rainy views. Precomputing radial
+shadow offsets saves roughly 0.2–0.3 ms in fixed views but produces mixed moving
+frame tails in repeated runs, so it is not included in the comparison above.
