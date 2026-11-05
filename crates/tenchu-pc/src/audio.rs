@@ -212,7 +212,17 @@ impl Audio {
             .send(Command::UiEffect(if paused { 9 } else { 10 }));
     }
 
-    pub fn weather(&self, cue: Option<tenchu_audio::ThunderCue>, storm: bool) {
+    pub fn weather(
+        &self,
+        cue: Option<tenchu_audio::ThunderCue>,
+        storm: bool,
+        rainfall: tenchu_audio::Rainfall,
+    ) {
+        self.output.send(Command::Rainfall(if self.fast_forward {
+            Default::default()
+        } else {
+            rainfall
+        }));
         if !storm || self.fast_forward {
             self.output.send(Command::Thunder(None));
         } else if cue.is_some() {

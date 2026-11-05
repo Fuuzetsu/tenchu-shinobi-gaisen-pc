@@ -75,6 +75,7 @@ pub enum Item {
     StormLightning,
     StormInterval,
     StormThunder,
+    RainVolume,
     FootprintSeconds,
     ClearFootprints,
     ClearWeather,
@@ -698,6 +699,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Storm lightning interval",
                     format!("~{} s", weather.lightning_interval),
                     "Average time between storm flashes, with small independent random variation. Thunder follows each flash after a short distance delay.",
+                ),
+                (
+                    Item::RainVolume,
+                    "Rain ambience volume",
+                    format!("{}%", weather.rain_volume),
+                    "Continuous stereo rainfall in Rain/Rainstorm, following precipitation intensity and wind-driven shelter at the camera. Smoothly muffles under cover; follows master/effects volume and pause. 0 disables.",
                 ),
                 (
                     Item::StormThunder,

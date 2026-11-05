@@ -62,7 +62,15 @@ impl Application {
                 && self.demo.is_none(),
             &self.settings.vibration,
         );
-        let storm = self.settings.graphics.weather.mode.storm() && self.simulating();
+        let weather_settings = &self.settings.rendering().graphics.weather;
+        let storm = weather_settings.mode.storm() && self.simulating();
+        let rainfall = if self.simulating() {
+            self.view
+                .as_ref()
+                .map_or_else(Default::default, |view| view.rainfall(weather_settings))
+        } else {
+            Default::default()
+        };
         let death = self
             .view
             .as_ref()
@@ -73,7 +81,7 @@ impl Application {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
-            audio.weather(self.view.as_ref().and_then(View::thunder), storm);
+            audio.weather(self.view.as_ref().and_then(View::thunder), storm, rainfall);
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
@@ -81,7 +89,7 @@ impl Application {
                 self.pause_error(error);
                 return false;
             }
-            sound.weather(self.view.as_ref().and_then(View::thunder), storm);
+            sound.weather(self.view.as_ref().and_then(View::thunder), storm, rainfall);
         }
         self.trial_record_check();
         self.record_rewind();

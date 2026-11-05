@@ -110,6 +110,14 @@ impl View {
         self.weather.thunder()
     }
 
+    pub(super) fn rainfall(&self, settings: &settings::Weather) -> tenchu_audio::Rainfall {
+        self.surfaces
+            .as_ref()
+            .map_or_else(Default::default, |surfaces| {
+                self.weather.rainfall(surfaces, settings)
+            })
+    }
+
     pub(super) fn navigation_surfaces(
         &mut self,
         game: &Game,

@@ -1,5 +1,7 @@
 mod envelope;
+mod rain;
 mod thunder;
+pub use rain::Rainfall;
 pub use thunder::ThunderCue;
 
 use envelope::Envelope;
@@ -28,6 +30,7 @@ pub struct Mixer {
     next_voice: usize,
     music: Option<Music>,
     thunder: Option<thunder::Thunder>,
+    rain: Option<rain::Rain>,
     rate: u32,
     envelope_clock: u64,
     pause_envelope_clock: u64,
@@ -48,6 +51,7 @@ impl Mixer {
             next_voice: 0,
             music: None,
             thunder: None,
+            rain: None,
             rate,
             envelope_clock: 0,
             pause_envelope_clock: 0,
@@ -68,6 +72,15 @@ impl Mixer {
     pub fn clear_effects(&mut self) {
         self.voices = std::array::from_fn(|_| None);
         self.thunder = None;
+        self.rain = None;
+    }
+
+    pub fn rainfall(&mut self, rainfall: Rainfall) {
+        if rainfall.volume > 0.0 || self.rain.is_some() {
+            self.rain
+                .get_or_insert_with(|| rain::Rain::new(self.rate))
+                .set(rainfall);
+        }
     }
 
     pub fn thunder(&mut self, cue: Option<ThunderCue>) {
@@ -203,6 +216,17 @@ impl Mixer {
                 self.thunder = None;
             } else {
                 for (out, sample) in output.iter_mut().zip(thunder.frame()) {
+                    *out += sample;
+                }
+            }
+        }
+        if !self.paused
+            && let Some(rain) = &mut self.rain
+        {
+            if rain.finished() {
+                self.rain = None;
+            } else {
+                for (out, sample) in output.iter_mut().zip(rain.frame()) {
                     *out += sample;
                 }
             }

@@ -382,3 +382,43 @@ fn hidden_rain_streaks_keep_roof_drips_and_runoff_toggle_clears_them() {
             .all(|v| v.opacity == 0.0)
     );
 }
+
+#[test]
+fn rain_ambience_follows_intensity_and_windward_shelter() {
+    let surfaces = Surfaces::new(&[]);
+    let mut settings = Settings {
+        mode: WeatherMode::Rain,
+        amount: 50,
+        wind: 0,
+        rain_volume: 80,
+        ..Default::default()
+    };
+    let mut weather = Weather::default();
+    weather.tick(1, Vec3::new(0.0, -500.0, 0.0), &surfaces, &settings);
+    assert_eq!(weather.rainfall(&surfaces, &settings).volume, 0.4);
+    assert_eq!(weather.rainfall(&surfaces, &settings).exposure, 1.0);
+    let roof = Surfaces::new(&[
+        Vertex {
+            position: [-2000.0, -2000.0, -2000.0],
+            ..Vertex::zeroed()
+        },
+        Vertex {
+            position: [2000.0, -2000.0, -2000.0],
+            ..Vertex::zeroed()
+        },
+        Vertex {
+            position: [0.0, -2000.0, 4000.0],
+            ..Vertex::zeroed()
+        },
+    ]);
+    assert_eq!(weather.rainfall(&roof, &settings).exposure, 0.0);
+    settings.wind = 100;
+    settings.heading = 90;
+    // Wind-driven rain can still reach the listener near the edge of the roof.
+    weather.center = Some(Vec3::new(-1900.0, 0.0, -1800.0));
+    assert_eq!(weather.rainfall(&roof, &settings).exposure, 1.0);
+    for mode in [WeatherMode::Clear, WeatherMode::Original, WeatherMode::Snow] {
+        settings.mode = mode;
+        assert_eq!(weather.rainfall(&surfaces, &settings), Default::default());
+    }
+}

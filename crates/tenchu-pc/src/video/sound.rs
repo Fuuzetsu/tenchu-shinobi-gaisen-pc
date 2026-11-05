@@ -97,7 +97,13 @@ impl Sound {
         Ok(())
     }
 
-    pub fn weather(&mut self, cue: Option<tenchu_audio::ThunderCue>, storm: bool) {
+    pub fn weather(
+        &mut self,
+        cue: Option<tenchu_audio::ThunderCue>,
+        storm: bool,
+        rainfall: tenchu_audio::Rainfall,
+    ) {
+        self.mixer.rainfall(rainfall);
         if !storm {
             self.mixer.thunder(None);
         } else if cue.is_some() {

@@ -74,6 +74,7 @@ pub struct Weather {
     pub lightning: u16,
     pub lightning_interval: u16,
     pub thunder: u16,
+    pub rain_volume: u16,
 }
 
 impl Default for Weather {
@@ -101,6 +102,7 @@ impl Default for Weather {
             lightning: 40,
             lightning_interval: 25,
             thunder: 60,
+            rain_volume: 0,
         }
     }
 }
@@ -125,6 +127,7 @@ impl Weather {
         self.lightning = self.lightning.min(100);
         self.lightning_interval = self.lightning_interval.clamp(8, 120);
         self.thunder = self.thunder.min(100);
+        self.rain_volume = self.rain_volume.min(100);
     }
 
     pub fn particles(&self) -> usize {

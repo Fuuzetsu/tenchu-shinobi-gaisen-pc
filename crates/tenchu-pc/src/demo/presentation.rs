@@ -284,6 +284,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                 crate::settings::WeatherMode::Rain
             };
             g.weather.amount = 100;
+            g.weather.rain_volume = 80;
             g.weather.quality = 2;
             g.weather.wind = 30;
             g.weather.heading = 90;
@@ -723,9 +724,9 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             s.graphics.blood.ground.label(),
         )),
         Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),
-        Feature::Rainstorm | Feature::Snowstorm => {
-            text("Denser precipitation · sheltered cloud flashes · delayed thunder".into())
-        }
+        Feature::Rainstorm | Feature::Snowstorm => text(
+            "Denser precipitation · rain ambience · sheltered flashes · delayed thunder".into(),
+        ),
         Feature::GrenadeLight | Feature::KaenLight => text(format!(
             "Fire / explosion lights {} · original item behavior",
             on(l.fires)

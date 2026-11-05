@@ -234,6 +234,23 @@ impl Weather {
         });
     }
 
+    pub fn rainfall(&self, surfaces: &Surfaces, settings: &Settings) -> tenchu_audio::Rainfall {
+        if !settings.mode.rain() || settings.rain_volume == 0 || settings.amount == 0 {
+            return Default::default();
+        }
+        let Some(center) = self.center else {
+            return Default::default();
+        };
+        tenchu_audio::Rainfall {
+            volume: f32::from(settings.rain_volume) * f32::from(settings.amount) / 10000.0,
+            exposure: if surfaces.exposed(center, settings.direction()) {
+                1.0
+            } else {
+                0.0
+            },
+        }
+    }
+
     pub fn thunder(&self) -> Option<tenchu_audio::ThunderCue> {
         self.storm.thunder
     }
