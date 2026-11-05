@@ -21,7 +21,6 @@ let
       ''
         mkdir -p staging/${name} "$out"
         cp -R ${contents}/. staging/${name}/
-        chmod -R u+w staging
         cp ${instructions} staging/${name}/README.txt
         cp ${
           pkgs.writeText "build-info.json" (
@@ -31,6 +30,7 @@ let
             }
           )
         } staging/${name}/build-info.json
+        chmod -R u+w staging
         ${
           if zip then
             ''

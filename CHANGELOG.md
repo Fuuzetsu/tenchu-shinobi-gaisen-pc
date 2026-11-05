@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Make packaged README and build information writable by their owner, avoiding permission errors when updating an extracted installation.
+
 - Add an optional persistent-blood surface cache under F1 → Rendering trials. Dense modern stains on flat terrain reuse their coverage while lighting and weather remain live; other surfaces and blood styles retain their existing renderer.
 
 - Add an opt-in adaptive shadow renderer: smaller distant light maps, cheaper soft filtering and staggered foliage updates, while keeping lamps lit and character shadows live.
