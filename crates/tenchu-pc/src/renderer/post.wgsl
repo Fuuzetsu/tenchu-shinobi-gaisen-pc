@@ -14,6 +14,7 @@ struct Options {
 @group(0) @binding(6) var depth_map: DEPTH_TYPE;
 @group(0) @binding(7) var<uniform> options: Options;
 @group(0) @binding(8) var depth_sampler: sampler;
+@group(0) @binding(9) var ambient_occlusion: texture_2d<f32>;
 
 struct Fragment { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> }
 struct Output { @location(0) color: vec4<f32>, @builtin(frag_depth) depth: f32 }
@@ -72,6 +73,41 @@ fn occlusion(pixel: vec2<i32>, position: vec3<f32>) -> f32 {
     return 1.0 - clamp(sum / 8.0 * options.effects.y * 2.0, 0.0, 0.8);
 }
 
+@fragment fn occlusion_pass(v: Fragment) -> @location(0) vec2<f32> {
+    let pixel = vec2<i32>(v.uv * options.size.xy);
+    let depth = depth_at(pixel);
+    if depth >= 0.999999 { return vec2(1.0, 0.0); }
+    let uv = (vec2<f32>(pixel) + vec2(0.5)) / options.size.xy;
+    let position = world(uv, depth);
+    let distance = length(position - world(uv, 0.0));
+    return vec2(occlusion(pixel, position), distance / 1000.0);
+}
+
+fn reconstructed_occlusion(v: Fragment, depth: f32) -> f32 {
+    let position = world(v.uv, depth);
+    let distance = length(position - world(v.uv, 0.0));
+    let size = vec2<i32>(textureDimensions(ambient_occlusion));
+    let sample = v.uv * vec2<f32>(size) - vec2(0.5);
+    let base = vec2<i32>(floor(sample));
+    let blend = fract(sample);
+    let tolerance = max(32.0, distance * 0.003);
+    var value = 0.0;
+    var weight = 0.0;
+    for (var y = 0; y < 2; y++) {
+        for (var x = 0; x < 2; x++) {
+            let corner = vec2(x, y);
+            let data = textureLoad(ambient_occlusion, clamp(base + corner, vec2(0), size - vec2(1)), 0).rg;
+            let edge = max(0.0, 1.0 - abs(data.y * 1000.0 - distance) / tolerance);
+            let bilinear = mix(vec2(1.0) - blend, blend, vec2<f32>(corner));
+            let contribution = bilinear.x * bilinear.y * edge * edge;
+            value += data.x * contribution;
+            weight += contribution;
+        }
+    }
+    if weight < 0.00001 { return occlusion(vec2<i32>(v.position.xy), position); }
+    return value / weight;
+}
+
 fn filmic(color: vec3<f32>) -> vec3<f32> {
     // Narkowicz's CC0 fitted curve: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
     return clamp((color * (2.51 * color + vec3(0.03))) / (color * (2.43 * color + vec3(0.59)) + vec3(0.14)), vec3(0.0), vec3(1.0));
@@ -83,7 +119,9 @@ fn filmic(color: vec3<f32>) -> vec3<f32> {
     var color = textureSampleLevel(scene, linear_sampler, v.uv, 0.0).rgb;
     let original_color = color;
     if depth < 0.999999 && options.effects.y > 0.0 {
-        let ao = occlusion(pixel, world(v.uv, depth));
+        var ao: f32;
+        if HALF_RES_AO { ao = reconstructed_occlusion(v, depth); }
+        else { ao = occlusion(pixel, world(v.uv, depth)); }
         color *= mix(ao, 1.0, clamp(max(color.r, max(color.g, color.b)) - 1.0, 0.0, 1.0));
     }
     if options.finish.z > 0.0 {

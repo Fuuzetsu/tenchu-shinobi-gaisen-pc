@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an optional half-resolution ambient-occlusion renderer under F1 → Rendering trials, with depth-aware reconstruction at full display resolution.
+
+
 - Keep shared terrain lighting when rain reflections are disabled, and use it for accumulated snow to reduce rendering cost.
 
 

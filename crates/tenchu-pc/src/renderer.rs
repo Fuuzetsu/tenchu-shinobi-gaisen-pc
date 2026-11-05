@@ -384,7 +384,7 @@ impl Renderer {
                 self.size,
                 self.samples,
                 &self.depth,
-                self.graphics.post.occlusion > 0,
+                &self.graphics,
                 self.gl,
             )
         });
@@ -432,7 +432,8 @@ impl Renderer {
         };
         let attachments_changed =
             samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
-        let occlusion_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0);
+        let occlusion_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0)
+            || graphics.rendering.half_resolution_ao != self.graphics.rendering.half_resolution_ao;
         let options = pipelines::Options::new(graphics, samples);
         let shader_changed = options != pipelines::Options::new(&self.graphics, self.samples);
         let pipelines_changed = attachments_changed || shader_changed;

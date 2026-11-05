@@ -2600,3 +2600,17 @@ outweigh the saved bandwidth. This prototype was removed; captures, timings and
 its patch remain in the private comparison evidence. Extending shared materials
 to all dry scenes also regressed the garden, so that extension was not retained.
 Evidence: `private/optimisation-loop/2026-11-05/perceptual-trials/`.
+
+
+The ambient-occlusion trial is available under F1 → Rendering trials. It shades
+at half width/height, stores AO with linear distance, and reconstructs with
+bilinear weights rejected across depth boundaries. Unsupported edge samples
+fall back to the full-resolution calculation; there is no history to ghost on
+cuts or rewind. Native 4K GPU time falls by 0.46–0.66 ms across the two views
+and rain, reflections-off rain, dry and snow. Rain changes from 13.90 to 13.30 ms
+in the corridor and 21.26 to 20.72 ms in the garden. Paired captures differ by
+mean channel values 0.017–0.038/255; maximum differences are 8–17/255 at edges.
+Full-resolution textures, HDR finishing and UI are unchanged. The extended GPU
+regression exercises full/half/full toggles, actual contact occlusion, all
+supported MSAA counts, UI isolation and restoring Original rendering. This
+remains opt-in; Modern presets are unchanged during comparison trials.

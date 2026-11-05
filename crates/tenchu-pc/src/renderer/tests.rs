@@ -443,6 +443,12 @@ fn hdr_finishing_preserves_ui_and_restores_original_rendering() {
     let view = target.create_view(&Default::default());
     let camera = game_camera(Matrix::default(), 1.0);
     let mut vertices = rectangle(1000, 96, None, false, false, false);
+    let mut occluder = rectangle(700, 64, None, false, false, false);
+    for vertex in &mut occluder {
+        vertex.position[0] = vertex.position[0] * 0.25 - 350.0;
+        vertex.position[1] = vertex.position[1] * 0.25 + 250.0;
+    }
+    vertices.extend(occluder);
     let mut highlight = rectangle(900, 255, None, false, false, false);
     for vertex in &mut highlight {
         vertex.position[0] *= 0.15;
@@ -484,6 +490,7 @@ fn hdr_finishing_preserves_ui_and_restores_original_rendering() {
     for samples in renderer.sample_counts.clone() {
         graphics.samples = samples;
         graphics.post.bloom = 0;
+        graphics.post.occlusion = 0;
         renderer.configure(&graphics);
         renderer
             .draw(&view, camera, &[&mesh], Some(&effects))
@@ -506,6 +513,25 @@ fn hdr_finishing_preserves_ui_and_restores_original_rendering() {
             "highlight halo with {samples} samples"
         );
         assert_eq!(pixel(&bloom, 8, 8), pixel(&original, 8, 8));
+        graphics.post.bloom = 0;
+        graphics.post.occlusion = 70;
+        for half in [false, true, false] {
+            graphics.rendering.half_resolution_ao = half;
+            renderer.configure(&graphics);
+            renderer
+                .draw(&view, camera, &[&mesh], Some(&effects))
+                .unwrap();
+            let shaded = read_pixels(&renderer, &target);
+            assert_eq!(pixel(&shaded, 8, 8), pixel(&original, 8, 8));
+            assert!(
+                shaded
+                    .chunks_exact(4)
+                    .zip(neutral.chunks_exact(4))
+                    .any(|(a, b)| a[0].saturating_add(1) < b[0]),
+                "Contact shading with {samples} samples, half resolution {half}"
+            );
+        }
+        graphics.post.occlusion = 0;
     }
     graphics.post.saturation = 0;
     graphics.post.contrast = 120;

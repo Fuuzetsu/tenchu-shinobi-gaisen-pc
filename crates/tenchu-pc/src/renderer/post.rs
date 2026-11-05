@@ -15,7 +15,8 @@ pub struct Post {
     data: wgpu::Buffer,
     bloom_data: wgpu::Buffer,
     size: [u32; 2],
-    depth_resolve: Option<DepthResolve>,
+    depth_resolve: Option<DepthPass>,
+    occlusion: Option<DepthPass>,
 }
 
 impl Post {
@@ -25,15 +26,26 @@ impl Post {
         size: [u32; 2],
         samples: u32,
         depth: &wgpu::TextureView,
-        occlusion: bool,
+        graphics: &Graphics,
         gl: bool,
     ) -> Self {
+        let occlusion = graphics.post.occlusion > 0;
+        let half_ao = occlusion && graphics.rendering.half_resolution_ao;
         let depth_resolve =
-            (samples > 1 && occlusion).then(|| DepthResolve::new(device, size, samples, depth));
+            (samples > 1 && occlusion).then(|| DepthPass::resolve(device, size, samples, depth));
         let depth = depth_resolve
             .as_ref()
             .map_or(depth, |resolve| &resolve.target);
         let samples = if depth_resolve.is_some() { 1 } else { samples };
+        let ao_target = target(
+            device,
+            if half_ao {
+                size.map(|n| n.div_ceil(2))
+            } else {
+                [1, 1]
+            },
+            wgpu::TextureFormat::Rg16Float,
+        );
         let scene = target(device, size, FORMAT);
         let overlay_depth = target(device, size, wgpu::TextureFormat::Depth32Float);
         let levels: Vec<_> = (1..=4)
@@ -107,6 +119,7 @@ impl Post {
             sampler_entry(5),
             texture_entry(6, true, samples > 1),
             uniform_entry(7),
+            texture_entry(9, false, false),
             wgpu::BindGroupLayoutEntry {
                 binding: 8,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -122,7 +135,7 @@ impl Post {
             label: Some("HDR finishing and depth resolve"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const SAMPLE_COUNT: i32 = {samples};\n{}",
+                    "const SAMPLE_COUNT: i32 = {samples}; const HALF_RES_AO: bool = {half_ao};\n{}",
                     include_str!("post.wgsl").replace(
                         "DEPTH_TYPE",
                         if samples > 1 {
@@ -144,6 +157,51 @@ impl Post {
                 )
                 .into(),
             ),
+        });
+        let occlusion = half_ao.then(|| {
+            let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Half-resolution ambient occlusion"),
+                entries: &[
+                    texture_entry(6, true, samples > 1),
+                    uniform_entry(7),
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 8,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                        count: None,
+                    },
+                ],
+            });
+            let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Ambient occlusion depth"),
+                layout: &layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 6,
+                        resource: wgpu::BindingResource::TextureView(depth),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 7,
+                        resource: data.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 8,
+                        resource: wgpu::BindingResource::Sampler(&depth_sampler),
+                    },
+                ],
+            });
+            DepthPass {
+                target: ao_target.clone(),
+                pipeline: pipeline(
+                    device,
+                    &layout,
+                    &shader,
+                    "occlusion_pass",
+                    wgpu::TextureFormat::Rg16Float,
+                    false,
+                ),
+                bindings,
+            }
         });
         let composite = pipeline(device, &layout, &shader, "fragment", format, true);
         let mut entries: Vec<_> = std::iter::once(&scene)
@@ -168,6 +226,10 @@ impl Post {
                 resource: data.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
+                binding: 9,
+                resource: wgpu::BindingResource::TextureView(&ao_target),
+            },
+            wgpu::BindGroupEntry {
                 binding: 8,
                 resource: wgpu::BindingResource::Sampler(&depth_sampler),
             },
@@ -190,6 +252,7 @@ impl Post {
             bloom_data,
             size,
             depth_resolve,
+            occlusion,
         }
     }
 
@@ -225,17 +288,22 @@ impl Post {
         target: &wgpu::TextureView,
         bloom: bool,
     ) {
-        if let Some(resolve) = &self.depth_resolve {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Scene depth resolve"),
-                color_attachments: &[Some(attachment(&resolve.target))],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            pass.set_pipeline(&resolve.pipeline);
-            pass.set_bind_group(0, &resolve.bindings, &[]);
-            pass.draw(0..3, 0..1);
+        for (label, source) in [
+            ("Scene depth resolve", &self.depth_resolve),
+            ("Half-resolution ambient occlusion", &self.occlusion),
+        ] {
+            if let Some(source) = source {
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some(label),
+                    color_attachments: &[Some(attachment(&source.target))],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pass.set_pipeline(&source.pipeline);
+                pass.set_bind_group(0, &source.bindings, &[]);
+                pass.draw(0..3, 0..1);
+            }
         }
         if bloom {
             for (i, view) in self.levels.iter().enumerate() {
@@ -399,14 +467,19 @@ fn pipeline(
     })
 }
 
-struct DepthResolve {
+struct DepthPass {
     target: wgpu::TextureView,
     pipeline: wgpu::RenderPipeline,
     bindings: wgpu::BindGroup,
 }
 
-impl DepthResolve {
-    fn new(device: &wgpu::Device, size: [u32; 2], samples: u32, depth: &wgpu::TextureView) -> Self {
+impl DepthPass {
+    fn resolve(
+        device: &wgpu::Device,
+        size: [u32; 2],
+        samples: u32,
+        depth: &wgpu::TextureView,
+    ) -> Self {
         let format = wgpu::TextureFormat::R32Float;
         let target = target(device, size, format);
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

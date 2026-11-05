@@ -17,6 +17,8 @@ mod motion;
 pub use motion::Motion;
 pub mod gameplay;
 pub mod library;
+mod rendering;
+pub use rendering::Rendering;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -189,6 +191,7 @@ impl Settings {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Graphics {
+    pub rendering: Rendering,
     pub blood: Blood,
     pub weapon_reflections: u16,
     pub shop_lighting: bool,
@@ -223,6 +226,7 @@ pub struct Graphics {
 impl Default for Graphics {
     fn default() -> Self {
         Self {
+            rendering: Rendering::default(),
             blood: Blood::default(),
             weapon_reflections: 0,
             shop_lighting: false,

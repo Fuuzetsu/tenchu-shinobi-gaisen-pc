@@ -4,6 +4,7 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    HalfResolutionAo,
     StateSlot,
     SaveState,
     LoadState,
@@ -304,7 +305,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 21] = [
+pub const PAGES: [&str; 22] = [
     "General",
     "Graphics",
     "Overlays",
@@ -326,6 +327,7 @@ pub const PAGES: [&str; 21] = [
     "Contact effects",
     "Vibration",
     "Movement",
+    "Rendering trials",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -335,6 +337,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        21 => vec![(
+            Item::HalfResolutionAo,
+            "Half-resolution ambient occlusion",
+            on(s.graphics.rendering.half_resolution_ao),
+            "Calculate contact shading at half width/height and reconstruct along depth edges. Textures and the final image keep full resolution. Requires HDR and ambient occlusion; compare with off.",
+        )],
         20 => vec![
             (
                 Item::CameraRelative,
