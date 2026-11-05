@@ -2666,3 +2666,51 @@ about 1600 projected stains respectively. The GPU regression verifies actual
 cache use, removing half/all marks and restoring them, rain/snow, cutout
 materials, unknown receivers, slopes, foliage and overlapping floors. Cache
 allocation does not change source state or the savestate format.
+
+### Combined movement and desktop results
+
+The final moving-camera probes advance precipitation and actor/foliage poses,
+using identical camera paths and inputs in each pair. At 4K, all three accepted
+options together change rainy corridor GPU mean/p99 from 14.08/15.32 to
+13.32/14.44 ms, and rainy garden from 21.35/22.60 to 16.43/17.78 ms. Snow changes
+the corridor from 13.55/14.61 to 12.79/13.75 ms and garden from 20.66/21.88 to
+15.52/16.74 ms. These particular combined runs contain no synthetic blood;
+separate dense-blood cases exercise that option.
+
+Changing a blood page every 15 frames retains the cache's GPU benefit. Rainy
+corridor mean/p99 is 17.06/17.98 → 16.51/17.39 ms; garden is 26.50/27.25 →
+24.07/24.89 ms. Mask preparation adds CPU work on those updates: submission
+p99 changes from 1.40 to 2.00 ms in the corridor and 1.37 to 2.26 ms in the
+garden. Snowy update-heavy GPU means improve 15.74 → 15.31 and 24.36 → 22.52 ms.
+This is a bounded tradeoff for dense stains, not an optimisation for every
+sparse blood mark. The cache remains optional.
+
+A separate full-application benchmark compares the frozen v0.15.6 executable
+against the retained changes with all three trial options enabled, using the
+reported graphics, HD pack and a 3840×2160 Wayland window. Each of four routes
+has 60 warm-up frames and 1140 measured frames. No compilation, capture,
+encoding or other test renderer runs concurrently. FPS below is the reciprocal
+of the measured mean application frame interval, not the monitor refresh rate.
+
+| Route | Mean FPS before → after | Frame p95, ms | Frame p99, ms |
+| --- | ---: | ---: | ---: |
+| Village lights | 54.7 → 78.6 | 19.50 → 13.75 | 19.81 → 13.99 |
+| Snow courtyard | 62.9 → 101.3 | 16.81 → 10.65 | 17.42 → 10.95 |
+| Garden and water | 46.0 → 59.8 | 22.80 → 17.62 | 23.28 → 17.96 |
+| Waterfall and spray | 85.4 → 100.0 | 12.47 → 10.79 | 12.91 → 11.10 |
+
+The garden is close to 60 FPS on average but still lacks consistent headroom.
+The trials therefore stay opt-in under **F1 → Rendering trials**, with Original
+and built-in presets unchanged while their visual compromises are reviewed.
+The private comparison page contains full-resolution before/after sliders,
+individual timing files and paired 60 FPS motion clips. Clip export advances
+at a fixed cadence and is not evidence of achieved rendering speed.
+
+Native GPU checks cover moving shadow regions against full redraws, AO toggles
+and resizing/MSAA/UI isolation, wet materials, and blood cache changes/fallbacks.
+Native all-target and WASM library Clippy pass. WebGPU and WebGL2 play checks
+load a current native blood fixture, toggle each option, resize and resume
+without GPU errors. The WebGPU trace confirms mask generation; WebGL2 retains
+the fallback. The comparison page verifies 46 image pairs and four paired motion
+clips, with links to each original 4K clip. All image/video evidence stays outside
+Git at `private/optimisation-loop/2026-11-05/perceptual-trials/comparison/`.
