@@ -323,6 +323,7 @@ impl Application {
             && !self.settings.walking.enabled
             && !self.settings.sheathing.enabled
             && !self.settings.damage_escalation.enabled()
+            && !self.settings.attack_assist
             && !self.settings.multi_target_attacks
             && !self.settings.model_moveset
             && matches!(action, Action::Confirm)
@@ -369,6 +370,7 @@ impl Application {
                         || self.settings.walking.enabled
                         || self.settings.sheathing.enabled
                         || self.settings.damage_escalation.enabled()
+                        || self.settings.attack_assist
                         || self.settings.multi_target_attacks)
                 {
                     self.menu.notice = "Recording disabled: gameplay modified".into();
@@ -1226,6 +1228,7 @@ pub fn run(
         .game
         .set_damage_escalation(settings.damage_escalation);
     campaign.game.combat.multi_target = settings.multi_target_attacks;
+    campaign.game.combat.attack_assist = settings.attack_assist;
     let frontend = if demo.is_none() && startup.benchmark.is_none() {
         campaign.frontend = true;
         campaign.quick_launcher = false;

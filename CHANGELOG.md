@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Forward melee assist** under F1 → Simulation. Prefer visible enemies ahead and retain a valid target through a combo, with smoother turning during the original wind-up. Hitboxes, damage, attack timing, stealth kills and enemy combat stay unchanged; original targeting remains the default.
+
 - Add optional **Unarmed attacks while sheathed** under F1 → Movement. Both heroes can use Onikage's kicks and grounded combos with the original limb hitboxes and timing, then draw their own weapons for blade attacks. Stealth kills still equip blades automatically. Includes demos for both heroes; disabled by default.
 
 - Add optional player weapon sheathing under F1 → Movement, using ninja draw/stow animations for both heroes. Rebind the action in Controls (default keyboard H); attacks draw first and stealth kills equip immediately. Separate speed, visibility and vulnerability controls have neutral defaults. Includes demos for both heroes; original controls remain the default.

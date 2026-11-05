@@ -13,6 +13,7 @@ pub struct Combat {
     pub life_bars: Vec<(usize, i16, i16)>,
     pub armor: bool,
     pub multi_target: bool,
+    pub attack_assist: bool,
 }
 
 impl Combat {
@@ -197,10 +198,14 @@ impl Actor {
             MOT_ATTACK
         };
         if self.id == world.player {
-            self.target = world
-                .roster
-                .nearest(self, 3000, ctx.math)
-                .map(|id| world.roster.get(id).root_model);
+            self.target = if world.combat.attack_assist && self.assisted_melee(ctx, action) {
+                self.select_melee_target(ctx, world.roster, false)?
+            } else {
+                world
+                    .roster
+                    .nearest(self, 3000, ctx.math)
+                    .map(|id| world.roster.get(id).root_model)
+            };
         }
         Ok(Some((action, true)))
     }
@@ -293,7 +298,14 @@ impl Actor {
             ));
         }
         let battle = ctx.mission.weapons.attacks[self.attack].clone();
-        if let Some(target) = self.target
+        let assisted = self.id == world.player
+            && world.combat.attack_assist
+            && self.assisted_melee(ctx, self.motion.action);
+        if assisted {
+            if self.motion.count >= 0 && self.motion.count < battle.steering.min(battle.start) {
+                self.steer_melee_target(ctx, world.roster)?;
+            }
+        } else if let Some(target) = self.target
             && self.motion.count >= 0
             && self.motion.count < battle.steering
         {
@@ -477,6 +489,9 @@ impl Actor {
             self.clear_attack(ctx, 3)?;
             if self.enter_unless_scripted(ctx, next, true) {
                 self.snap_attack(ctx);
+                if assisted {
+                    self.target = self.select_melee_target(ctx, world.roster, true)?;
+                }
             }
         }
         if self.motion.loops < 0 {

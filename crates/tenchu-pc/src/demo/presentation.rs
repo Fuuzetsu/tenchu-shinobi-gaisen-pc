@@ -66,7 +66,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     if player.clip().shot == Shot::Player
         && !matches!(
             player.clip().feature,
-            Feature::Teleport | Feature::Remake(_)
+            Feature::Teleport | Feature::Remake(_) | Feature::AttackAssist(_)
         )
     {
         let alpha = if interpolate { player.alpha() } else { 1.0 };
@@ -211,6 +211,13 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::UnarmedAttacks => {
             settings.sheathing.enabled = true;
             settings.sheathing.unarmed = true;
+            g.interpolation = true;
+            g.blood = crate::settings::Blood::modern();
+            g.sky.enabled = true;
+            g.sky.time = 660;
+        }
+        Feature::AttackAssist(enabled) => {
+            settings.attack_assist = enabled;
             g.interpolation = true;
             g.blood = crate::settings::Blood::modern();
             g.sky.enabled = true;
@@ -841,6 +848,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             90..200 => "Onikage's three-kick combo · original limb hitboxes, damage and timing",
             200..300 => "Directional attacks use the available Onikage moves · weapons remain stowed",
             _ => "Draw explicitly to return to the hero's own blade attacks · stealth kills still draw automatically",
+        }.into()),
+        Feature::AttackAssist(enabled) => text(if enabled {
+            "Forward assist · ignores the closer guard behind · retains the front target through the combo"
+        } else {
+            "Original targeting · the closer guard behind is selected · same positions and inputs"
         }.into()),
         Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {

@@ -53,6 +53,7 @@ pub struct Settings {
     pub sheathing: tenchu_core::game::sheathing::Settings,
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
     pub multi_target_attacks: bool,
+    pub attack_assist: bool,
     pub reinforcement_limit: u16,
     pub reinforcement_call: tenchu_core::roster::ReinforcementCall,
     pub sight_percent: u16,
@@ -98,6 +99,7 @@ impl Default for Settings {
             sheathing: Default::default(),
             damage_escalation: Default::default(),
             multi_target_attacks: false,
+            attack_assist: false,
             reinforcement_limit: 0,
             reinforcement_call: Default::default(),
             sight_percent: 100,
@@ -162,6 +164,7 @@ impl Settings {
         self.walking.enabled = game.walking.is_some();
         self.damage_escalation = game.intelligence.damage_escalation;
         self.multi_target_attacks = game.combat.multi_target;
+        self.attack_assist = game.combat.attack_assist;
         self.sight_percent = game.intelligence.sight_percent;
     }
 

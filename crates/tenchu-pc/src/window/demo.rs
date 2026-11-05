@@ -6,6 +6,7 @@ use std::time::Duration;
 
 mod additions;
 mod remake;
+mod tracking;
 
 impl Application {
     pub(super) fn start_demo_clip(&mut self) -> Result<()> {
@@ -350,6 +351,11 @@ impl Application {
             }
             Shot::Cinematic | Shot::Gameplay => {}
         }
+        if matches!(clip.feature, Feature::AttackAssist(_)) {
+            tracking::setup(&mut game, &mut scene)?;
+            demo::framing::unobstructed_area(&mut scene, &geometry, 1800.0);
+            self.debug.god_mode = true;
+        }
         if let Some(staged) = &clip.randomizer {
             if let Some(distance) = staged.distance {
                 scene.distance = distance;
@@ -423,6 +429,7 @@ impl Application {
         crate::sheathing::configure(&mut game, &self.assets, self.settings.sheathing)?;
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
+        game.combat.attack_assist = self.settings.attack_assist;
         self.campaign.game = game;
         self.campaign.options = options;
         self.campaign.screen = Screen::Playing;
@@ -543,6 +550,7 @@ impl Application {
                 .game
                 .set_damage_escalation(self.settings.damage_escalation);
             self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
+            self.campaign.game.combat.attack_assist = self.settings.attack_assist;
             if let Some(audio) = &mut self.audio {
                 audio.fast_forward(
                     player.speed() != 100

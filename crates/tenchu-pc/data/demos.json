@@ -713,6 +713,32 @@
     }
   },
   {
+    "id": "tracking-original",
+    "title": "Original melee targeting",
+    "description": "The same two guards and attack inputs. The rear guard is closer; the optional assist prefers the enemy ahead, turns during wind-up and retains that target through the combo. Hitboxes, damage and timing are unchanged.",
+    "seconds": 8,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": {
+      "attack-assist": false
+    },
+    "shot": "player"
+  },
+  {
+    "id": "tracking-assisted",
+    "title": "Forward melee assist",
+    "description": "The same two guards and attack inputs. The rear guard is closer; the optional assist prefers the enemy ahead, turns during wind-up and retains that target through the combo. Hitboxes, damage and timing are unchanged.",
+    "seconds": 8,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": {
+      "attack-assist": true
+    },
+    "shot": "player"
+  },
+  {
     "id": "unarmed-ayame",
     "title": "Ayame: unarmed combat",
     "description": "Optional Onikage kicks and combos use the authored Gaisen limb hitboxes and timing. Put away the blades to fight unarmed, then draw to restore the hero's original armed attacks.",

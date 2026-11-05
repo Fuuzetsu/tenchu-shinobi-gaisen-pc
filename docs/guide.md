@@ -1387,6 +1387,20 @@ persists across missions. Changing it ends input recording; TRIAL records are
 disabled while it is on. Gameplay presets and **Reset simulation tweaks** restore
 the original shared timer. Graphical presets and Retro mode leave it alone.
 
+**Simulation → Forward melee assist** prefers enemies within 60° of the player's
+facing and the original 3,000-unit target range. Candidates need a clear
+chest-to-chest terrain path and must be on a similar level. Targets nearer the
+center are favored over those off to the side; a valid target stays selected
+through a combo. Turning is capped at about 12° per logic tick and ends when
+the original wind-up ends or the hitbox activates, whichever comes first.
+Losing a target does not redirect an ongoing swing to somebody else. Hitboxes,
+damage and timing stay original. Stealth kills, ranged/backward attacks and
+enemy attacks are unaffected. This is an optional gameplay change, off by
+default; gameplay presets reset it and graphical presets leave it alone.
+It disables ordinary input recording and TRIAL records. Savestates and rewind
+retain the setting and selected target. Compare the `tracking-original` and
+`tracking-assisted` demos.
+
 **Simulation → Quick shuriken evasion** lets alert armed enemies sidestep when
 you aim shuriken toward them at medium range. It uses their own lateral dash
 motions, requires clear terrain sight and allows at most one reaction per second.

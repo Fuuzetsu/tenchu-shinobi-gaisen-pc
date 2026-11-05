@@ -141,6 +141,14 @@ impl Application {
         self.campaign.game.combat.multi_target = enabled;
     }
 
+    pub(super) fn set_attack_assist(&mut self, enabled: bool) {
+        if self.campaign.game.combat.attack_assist != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.attack_assist = enabled;
+        self.campaign.game.combat.attack_assist = enabled;
+    }
+
     pub(super) fn set_strict_corpse_sight(&mut self, enabled: bool) {
         if self.campaign.game.intelligence.strict_corpse_sight != enabled {
             self.stop_edited_recording();
@@ -296,6 +304,7 @@ impl Application {
             let _ = self.set_sheathing(previous.sheathing);
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
+            self.set_attack_assist(previous.attack_assist);
             let _ = self.sync_model_moveset();
             return;
         }
@@ -390,6 +399,7 @@ impl Application {
         self.set_sheathing(Default::default())?;
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
+        self.set_attack_assist(false);
         self.set_reinforcement_limit(0);
         self.set_reinforcement_call(Default::default());
         self.set_sight(preset.sight);
@@ -746,6 +756,7 @@ impl Application {
                 self.set_sheathing(Default::default())?;
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
+                self.set_attack_assist(false);
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
                 }
@@ -900,6 +911,7 @@ impl Application {
             Item::IndependentAttacks => {
                 self.set_independent_attacks(!self.settings.independent_attacks);
             }
+            Item::AttackAssist => self.set_attack_assist(!self.settings.attack_assist),
             Item::MultiTargetAttacks => {
                 self.set_multi_target_attacks(!self.settings.multi_target_attacks);
             }
@@ -990,6 +1002,7 @@ impl Application {
                 self.set_sheathing(Default::default())?;
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
+                self.set_attack_assist(false);
                 self.set_reinforcement_limit(0);
                 self.set_reinforcement_call(Default::default());
             }

@@ -16,6 +16,7 @@ mod shadow;
 pub mod sight;
 #[cfg(test)]
 mod tests;
+mod tracking;
 pub mod trail;
 mod weapon;
 

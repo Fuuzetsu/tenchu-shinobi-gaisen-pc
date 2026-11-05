@@ -46,6 +46,7 @@ pub enum Feature {
     AnalogWalking,
     Sheathing,
     UnarmedAttacks,
+    AttackAssist(bool),
     WeaponFinishes,
     TextureSampling,
     Reconstruction,
@@ -138,8 +139,8 @@ pub fn builtin() -> Result<Vec<Clip>> {
 pub fn parse(bytes: &[u8]) -> Result<Vec<Clip>> {
     let clips: Vec<Clip> =
         serde_json::from_slice(bytes).map_err(|e| format!("Demo catalog: {e}"))?;
-    if clips.is_empty() || clips.len() > 100 {
-        return Err("Demo catalog needs 1–100 clips".into());
+    if clips.is_empty() || clips.len() > 128 {
+        return Err("Demo catalog needs 1–128 clips".into());
     }
     let mut ids = std::collections::BTreeSet::new();
     for c in &clips {

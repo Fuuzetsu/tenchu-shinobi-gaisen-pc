@@ -202,6 +202,7 @@ pub enum Item {
     DetectionDamage,
     DetectionDamageLimit,
     MultiTargetAttacks,
+    AttackAssist,
     ReinforcementsPerCall,
     RandomReinforcements,
     WitnessedKillReinforcements,
@@ -1798,6 +1799,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Multi-target player attacks",
                 on(s.multi_target_attacks),
                 "New melee swings can hit several targets, once per target with each weapon hitbox. Keeps normal damage, blocking, weapon clashes and terrain checks. Items and enemy attacks are unchanged. Gameplay option; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::AttackAssist,
+                "Forward melee assist",
+                on(s.attack_assist),
+                "Prefer a nearby enemy in front with a clear terrain path, then retain it through a combo. Turns smoothly during the original wind-up only; no extra reach, damage or hit time. Stealth kills, ranged attacks and backward attacks stay original. Gameplay option; off by default.",
             ),
             (
                 Item::StrictCorpseSight,

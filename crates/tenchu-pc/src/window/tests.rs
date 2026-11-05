@@ -7,6 +7,7 @@ mod death;
 mod rewind;
 mod savestate;
 mod sheathing;
+mod tracking;
 mod walking;
 
 pub(super) fn application(options: Options) -> Application {
@@ -699,6 +700,7 @@ fn combat_settings_apply_and_reset() {
     for (index, item) in [
         Item::IndependentAttacks,
         Item::MultiTargetAttacks,
+        Item::AttackAssist,
         Item::QuickShurikenDodge,
         Item::StrictCorpseSight,
         Item::GuardControls,
@@ -711,6 +713,7 @@ fn combat_settings_apply_and_reset() {
     {
         let enabled = |app: &Application| match item {
             Item::IndependentAttacks => app.campaign.game.intelligence.independent_attacks,
+            Item::AttackAssist => app.campaign.game.combat.attack_assist,
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
             Item::GuardControls => app.campaign.game.intelligence.guard_controls,
@@ -721,6 +724,7 @@ fn combat_settings_apply_and_reset() {
         };
         let selected = |settings: &Settings| match item {
             Item::IndependentAttacks => settings.independent_attacks,
+            Item::AttackAssist => settings.attack_assist,
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
             Item::StrictCorpseSight => settings.strict_corpse_sight,
             Item::GuardControls => settings.guard_controls,
