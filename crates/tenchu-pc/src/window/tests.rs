@@ -698,6 +698,7 @@ fn combat_settings_apply_and_reset() {
         Item::IndependentAttacks,
         Item::MultiTargetAttacks,
         Item::QuickShurikenDodge,
+        Item::StrictCorpseSight,
     ]
     .into_iter()
     .enumerate()
@@ -705,11 +706,13 @@ fn combat_settings_apply_and_reset() {
         let enabled = |app: &Application| match item {
             Item::IndependentAttacks => app.campaign.game.intelligence.independent_attacks,
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
+            Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
             _ => app.campaign.game.combat.multi_target,
         };
         let selected = |settings: &Settings| match item {
             Item::IndependentAttacks => settings.independent_attacks,
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
+            Item::StrictCorpseSight => settings.strict_corpse_sight,
             _ => settings.multi_target_attacks,
         };
         let mut app = application(Options::default());

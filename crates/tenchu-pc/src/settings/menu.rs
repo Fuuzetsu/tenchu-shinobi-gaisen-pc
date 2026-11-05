@@ -181,6 +181,7 @@ pub enum Item {
     KeepEnemiesActive,
     IndependentAttacks,
     QuickShurikenDodge,
+    StrictCorpseSight,
     MultiTargetAttacks,
     ReinforcementsPerCall,
     RandomReinforcements,
@@ -1662,6 +1663,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Multi-target player attacks",
                 on(s.multi_target_attacks),
                 "New melee swings can hit several targets, once per target with each weapon hitbox. Keeps normal damage, blocking, weapon clashes and terrain checks. Items and enemy attacks are unchanged. Gameplay option; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::StrictCorpseSight,
+                "Strict corpse visibility",
+                on(s.strict_corpse_sight),
+                "Require clear terrain sight from a guard's eyes to the body's animated position before discovering it. Prevents the original feet-to-air ray from seeing bodies behind cover. Visible bodies still raise shared alerts. Gameplay option; off by default.",
             ),
             (
                 Item::QuickShurikenDodge,

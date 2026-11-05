@@ -110,6 +110,7 @@ impl Application {
             Item::KeepEnemiesActive => self.keep_enemies_active(s.keep_enemies_active),
             Item::IndependentAttacks => self.set_independent_attacks(s.independent_attacks),
             Item::QuickShurikenDodge => self.set_quick_shuriken_dodge(s.quick_shuriken_dodge),
+            Item::StrictCorpseSight => self.set_strict_corpse_sight(s.strict_corpse_sight),
             Item::MultiTargetAttacks => self.set_multi_target_attacks(s.multi_target_attacks),
             Item::ReinforcementsPerCall => {
                 self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {

@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Strict corpse visibility** under F1 → Gameplay. Guards must have a clear eye-to-body terrain ray before discovering a corpse; visible bodies still raise shared alerts. Original behavior remains the default.
+- Update the mid-mission savestate format for the new gameplay option. Older snapshots require the build that created them; campaign saves are unchanged.
+
 - Let tinted and non-metallic weapons receive blood when no silver blade surface is identified, fixing the Mission 9 Kunoichi's clean weapons after successful hits.
 
 - Keep the selected savestate slot when rewinding across model/scene rebuilds or restoring a state.

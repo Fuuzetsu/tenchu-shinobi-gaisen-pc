@@ -103,7 +103,12 @@ sight. It starts at the witness's feet and ends at the corpse's root position
 minus the witness's standing height. It does not trace from the witness's eyes
 to the animated body. At the ordinary-mode discovery above, that original ray
 is clear while an eye-to-body ray is blocked by the same terrain collision map.
-The port uses the original endpoints. Body checks also run during the execution,
+The default uses the original endpoints. **Strict corpse visibility** adds a
+second ray from the witness's eye height to the animated body's root part, using
+the same terrain collision map at smaller steps. The opt-in regression hides the
+Mission 4 body behind cover and still discovers the same posed corpse on open
+ground. It does not make decorative meshes into new collision obstacles or
+suppress alerts from genuinely visible bodies. Body checks still run during the execution,
 before the victim finishes falling, as in `HUMAN.C:ControlHumanoid`.
 
 A local comparison ran 99 controlled cases through the original C corpse

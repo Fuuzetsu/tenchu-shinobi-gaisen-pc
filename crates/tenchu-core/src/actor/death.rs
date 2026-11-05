@@ -336,6 +336,28 @@ impl Actor {
         )?
         .is_none()
         {
+            if world.intelligence.strict_corpse_sight {
+                let mut from = witness.position;
+                from.y += 300 - i32::from(ctx.mission.characters[witness.definition].height);
+                let body = ctx.scene.world(self.parts[0])?.translation;
+                let mut step = body.wrapping_sub(from);
+                let mut count = 1;
+                while step.iter().any(|v| v.wrapping_abs() > 300) {
+                    step = step.map(|v| v >> 1);
+                    count *= 2;
+                }
+                if terrain::passage(
+                    &ctx.mission.terrain,
+                    ctx.cursor,
+                    from,
+                    step.map(|v| v as i16).to_array(),
+                    count,
+                )?
+                .is_some()
+                {
+                    return Ok(());
+                }
+            }
             if !world.roster.keep_all_active
                 || ctx.math.length_wide(
                     witness

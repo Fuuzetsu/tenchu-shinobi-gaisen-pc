@@ -45,6 +45,7 @@ pub struct Settings {
     pub keep_enemies_active: bool,
     pub independent_attacks: bool,
     pub quick_shuriken_dodge: bool,
+    pub strict_corpse_sight: bool,
     pub multi_target_attacks: bool,
     pub reinforcement_limit: u16,
     pub reinforcement_call: tenchu_core::roster::ReinforcementCall,
@@ -84,6 +85,7 @@ impl Default for Settings {
             keep_enemies_active: false,
             independent_attacks: false,
             quick_shuriken_dodge: false,
+            strict_corpse_sight: false,
             multi_target_attacks: false,
             reinforcement_limit: 0,
             reinforcement_call: Default::default(),
@@ -135,6 +137,7 @@ impl Settings {
         self.reinforcement_call = game.roster.reinforcement_call;
         self.independent_attacks = game.intelligence.independent_attacks;
         self.quick_shuriken_dodge = game.intelligence.quick_shuriken_dodge;
+        self.strict_corpse_sight = game.intelligence.strict_corpse_sight;
         self.multi_target_attacks = game.combat.multi_target;
         self.sight_percent = game.intelligence.sight_percent;
     }

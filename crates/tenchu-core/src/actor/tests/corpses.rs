@@ -147,3 +147,68 @@ fn checkpoint_corpse_alarm_is_distinct_from_spotting_the_player() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; Mission 4 cover must hide bodies without suppressing open-ground discovery"]
+fn strict_corpse_sight_requires_an_eye_to_body_passage() {
+    for strict in [false, true] {
+        for covered in [false, true] {
+            let mut game = oracle::game(9, 1);
+            let victim = 1;
+            let witness = 15;
+            let (body, observer) = if covered {
+                (
+                    Position::new(-26882, -7000, 148810),
+                    Position::new(-22894, -7000, 155067),
+                )
+            } else {
+                oracle::flat_ground(&mut game);
+                (Position::ZERO, Position::new(0, 0, 7000))
+            };
+            game.intelligence.strict_corpse_sight = strict;
+            game.intelligence.alert = 0;
+            game.intelligence.found = 0;
+            let index = game
+                .roster
+                .order
+                .iter()
+                .position(|&id| id == witness)
+                .unwrap();
+            game.intelligence.death_index =
+                (index + game.roster.order.len() - 1) % game.roster.order.len();
+            with_actor(&mut game, witness, |actor, ctx, _| {
+                actor.position = observer;
+                let delta = body.wrapping_sub(observer);
+                actor.rotation[1] = ctx.math.atan2(-delta.x, -delta.z).unwrap();
+                actor.attribute = ATTR_CUSTOMAI;
+                actor.enter(ctx, MOT_NORMAL, true);
+                ctx.scene.update(actor.root_model, actor.root(ctx.math));
+            });
+            with_actor(&mut game, victim, |actor, ctx, world| {
+                actor.position = body;
+                actor.rotation = [0; 3];
+                actor.velocity = [0; 3];
+                actor.attribute = ATTR_CUSTOMAI;
+                actor.health = 0;
+                actor.enter(ctx, MOT_DEAD, true);
+                actor.motion.count = ctx.mission.clips[actor.motion.clip.unwrap()].duration;
+                actor.play_pose(ctx).unwrap();
+                actor.motion.loops = 0;
+                ctx.scene.update(actor.root_model, actor.root(ctx.math));
+                actor.corpse(ctx, world).unwrap();
+            });
+            let discovered = !strict || !covered;
+            assert_eq!(
+                game.roster.get(victim).attribute & ATTR_SEARCH != 0,
+                discovered,
+                "strict {strict}, covered {covered}"
+            );
+            assert_eq!(game.intelligence.alert, if discovered { 300 } else { 0 });
+            assert_eq!(game.intelligence.found, 0);
+            assert_eq!(
+                game.roster.get(witness).motion.action == MOT_STATE_DRAW,
+                discovered
+            );
+        }
+    }
+}

@@ -58,6 +58,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
         settings.keep_enemies_active == p.active
             && !settings.independent_attacks
             && !settings.quick_shuriken_dodge
+            && !settings.strict_corpse_sight
             && !settings.multi_target_attacks
             && (!p.active
                 || (settings.reinforcement_limit == 0

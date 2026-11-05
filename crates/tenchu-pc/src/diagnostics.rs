@@ -74,6 +74,7 @@ pub fn game(game: &Game) -> Value {
         "ai": {"difficulty": ai.difficulty.name(), "sight_percent": ai.sight_percent,
             "independent_attacks": ai.independent_attacks,
             "quick_shuriken_dodge": ai.quick_shuriken_dodge,
+            "strict_corpse_sight": ai.strict_corpse_sight,
             "multi_target_attacks": game.combat.multi_target,
             "ignore_player": ai.ignore_player, "alert": ai.alert, "strain": ai.strain,
             "player_strain": ai.player_strain, "found": ai.found, "death_index": ai.death_index,

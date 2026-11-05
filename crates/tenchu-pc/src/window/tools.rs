@@ -141,6 +141,14 @@ impl Application {
         self.campaign.game.combat.multi_target = enabled;
     }
 
+    pub(super) fn set_strict_corpse_sight(&mut self, enabled: bool) {
+        if self.campaign.game.intelligence.strict_corpse_sight != enabled {
+            self.stop_edited_recording();
+        }
+        self.settings.strict_corpse_sight = enabled;
+        self.campaign.game.intelligence.strict_corpse_sight = enabled;
+    }
+
     pub(super) fn set_quick_shuriken_dodge(&mut self, enabled: bool) {
         if self.campaign.game.intelligence.quick_shuriken_dodge != enabled {
             self.stop_edited_recording();
@@ -237,6 +245,7 @@ impl Application {
             self.set_sight(previous.sight_percent);
             self.set_independent_attacks(previous.independent_attacks);
             self.set_quick_shuriken_dodge(previous.quick_shuriken_dodge);
+            self.set_strict_corpse_sight(previous.strict_corpse_sight);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             let _ = self.sync_model_moveset();
             return;
@@ -326,6 +335,7 @@ impl Application {
         self.keep_enemies_active(preset.active);
         self.set_independent_attacks(false);
         self.set_quick_shuriken_dodge(false);
+        self.set_strict_corpse_sight(false);
         self.set_multi_target_attacks(false);
         self.set_reinforcement_limit(0);
         self.set_reinforcement_call(Default::default());
@@ -668,6 +678,7 @@ impl Application {
                 self.keep_enemies_active(false);
                 self.set_independent_attacks(false);
                 self.set_quick_shuriken_dodge(false);
+                self.set_strict_corpse_sight(false);
                 self.set_multi_target_attacks(false);
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
@@ -826,6 +837,9 @@ impl Application {
             Item::MultiTargetAttacks => {
                 self.set_multi_target_attacks(!self.settings.multi_target_attacks);
             }
+            Item::StrictCorpseSight => {
+                self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
+            }
             Item::QuickShurikenDodge => {
                 self.set_quick_shuriken_dodge(!self.settings.quick_shuriken_dodge);
             }
@@ -865,6 +879,7 @@ impl Application {
                 self.keep_enemies_active(false);
                 self.set_independent_attacks(false);
                 self.set_quick_shuriken_dodge(false);
+                self.set_strict_corpse_sight(false);
                 self.set_multi_target_attacks(false);
                 self.set_reinforcement_limit(0);
                 self.set_reinforcement_call(Default::default());

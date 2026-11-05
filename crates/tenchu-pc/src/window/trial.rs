@@ -135,6 +135,7 @@ impl Application {
         if self.settings.keep_enemies_active
             || self.settings.independent_attacks
             || self.settings.quick_shuriken_dodge
+            || self.settings.strict_corpse_sight
             || self.settings.multi_target_attacks
             || self.settings.sight_percent != 100
             || self.settings.model_moveset
