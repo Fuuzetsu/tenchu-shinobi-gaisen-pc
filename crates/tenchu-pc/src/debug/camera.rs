@@ -2,13 +2,13 @@ use crate::controls::Controls;
 use glam::{Mat4, Vec3};
 use winit::keyboard::KeyCode;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Subject {
     pub id: usize,
     pub(super) root_model: tenchu_core::scene::ModelId,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Camera {
     pub position: Vec3,
     pub yaw: f32,

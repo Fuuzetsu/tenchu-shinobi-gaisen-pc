@@ -271,7 +271,7 @@ impl Application {
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
         if self.settings.rewind_seconds != previous.rewind_seconds {
             self.clear_rewind();
-            self.record_rewind();
+            self.record_rewind(None);
         }
         if self.settings.navigation.camera_relative != previous.navigation.camera_relative {
             self.orbit = Default::default();

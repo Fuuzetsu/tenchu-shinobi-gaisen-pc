@@ -282,7 +282,7 @@ mod tests {
             history.recorder.begin();
             marks.capture(&mut history.recorder).unwrap();
             let snapshot = history.recorder.finish().unwrap();
-            history.push(u64::from(tick), 30, snapshot).unwrap();
+            history.push(u64::from(tick), 30, snapshot, None).unwrap();
         }
         for (tick, expected) in expected.into_iter().enumerate().rev() {
             let snapshot = history.snapshot(tick).unwrap();
@@ -327,7 +327,7 @@ mod tests {
             history.recorder.begin();
             marks.capture(&mut history.recorder).unwrap();
             let state = history.recorder.finish().unwrap();
-            history.push(tick, 30, state).unwrap();
+            history.push(tick, 30, state, None).unwrap();
             cached += started.elapsed();
             if tick % 30 == 0 {
                 assert_eq!(

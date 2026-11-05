@@ -3,6 +3,121 @@ use std::collections::BTreeMap;
 use tenchu_core::input;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; a selected recording must preserve inputs, settings, exact states and editable continuation"]
+fn exported_rewind_restores_recorded_inputs_graphics_and_continuation() {
+    let mut app = application(Options::default());
+    app.campaign.game.events = Default::default();
+    app.settings.rewind_seconds = 5;
+    app.set_sheathing(tenchu_core::game::sheathing::Settings {
+        enabled: true,
+        ..Default::default()
+    })
+    .unwrap();
+    app.set_walking(true).unwrap();
+    let mut expected = BTreeMap::new();
+    for tick in 0..80 {
+        app.settings.graphics.fog = tick < 40;
+        let game = &mut app.campaign.game;
+        game.navigation.heading = Some((tick * 13) as i16);
+        game.walking.as_mut().unwrap().held = tick < 20;
+        game.roster
+            .get_mut(game.player_id)
+            .sheathing
+            .as_mut()
+            .unwrap()
+            .input(tick == 30);
+        assert!(app.game_tick(if tick < 30 { input::UP } else { 0 }));
+        expected.insert(
+            app.campaign.game.tick,
+            postcard::to_allocvec(&app.campaign.game).unwrap(),
+        );
+    }
+    let report = String::from_utf8(app.diagnostic_report().unwrap()).unwrap();
+    let bytes = app.rewind.export([10, 70], report).unwrap();
+    assert_eq!(app.rewind.entries.len(), 80);
+    if let Some(path) = std::env::var_os("TENCHU_REWIND_REVIEW") {
+        std::fs::write(path, &bytes).unwrap();
+    }
+    app.load_recording(&bytes).unwrap();
+    let report: serde_json::Value =
+        serde_json::from_slice(&app.diagnostic_report().unwrap()).unwrap();
+    assert_eq!(report["recording_source"]["game"]["tick"], 80);
+    assert_eq!(app.campaign.game.tick, 10);
+    assert!(app.settings.graphics.fog);
+    assert_eq!(app.rewind.entries.len(), 61);
+    for tick in [70, 10, 30, 55] {
+        app.seek_rewind(tick).unwrap();
+        assert_eq!(
+            postcard::to_allocvec(&app.campaign.game).unwrap(),
+            expected[&tick]
+        );
+        assert_eq!(app.settings.graphics.fog, tick <= 40);
+    }
+    // Input metadata can rerun an individual simulation update from a restored frame.
+    app.seek_rewind(29).unwrap();
+    let input = app
+        .rewind
+        .entries
+        .iter()
+        .find(|e| e.tick == 30)
+        .unwrap()
+        .input
+        .as_ref()
+        .unwrap()
+        .clone();
+    let game = &mut app.campaign.game;
+    game.navigation = input.navigation;
+    game.walking = input.walking;
+    game.roster.get_mut(game.player_id).sheathing = input.sheathing;
+    game.step(input.buttons).unwrap();
+    assert_eq!(postcard::to_allocvec(game).unwrap(), expected[&30]);
+
+    app.reverse.recorded_visuals = Some(false);
+    app.settings.graphics.fog = false;
+    app.seek_rewind(11).unwrap();
+    assert!(!app.settings.graphics.fog);
+    app.play_rewind_forward().unwrap();
+    for _ in 0..40 {
+        app.advance_rewind(Duration::from_secs_f64(1.0 / 30.0));
+    }
+    assert_eq!(app.campaign.game.tick, 70);
+    assert!(!app.reverse.active);
+    assert_eq!(
+        postcard::to_allocvec(&app.campaign.game).unwrap(),
+        expected[&70]
+    );
+    app.seek_rewind(35).unwrap();
+    app.set_paused(false);
+    assert!(app.game_tick(input::LEFT));
+    assert_eq!(app.rewind.entries.back().unwrap().tick, 36);
+    assert_eq!(app.reverse.recorded_visuals, None);
+    assert!(app.reverse.source_report.is_none());
+    assert_eq!(
+        app.rewind
+            .entries
+            .back()
+            .unwrap()
+            .input
+            .as_ref()
+            .unwrap()
+            .buttons,
+        input::LEFT
+    );
+    if let Some(path) = std::env::var_os("TENCHU_REWIND_IMPORT") {
+        app.load_recording(&std::fs::read(path).unwrap()).unwrap();
+        let ticks: Vec<_> = app.rewind.entries.iter().map(|e| e.tick).collect();
+        for tick in ticks {
+            app.seek_rewind(tick).unwrap();
+            assert_eq!(
+                postcard::to_allocvec(&app.campaign.game).unwrap(),
+                expected[&tick],
+                "imported frame {tick}"
+            );
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; slot selection is UI state, including across model rebuilds and file restores"]
 fn rewind_keeps_the_selected_savestate_slot() {
     let mut app = application(Options::default());
@@ -66,7 +181,9 @@ fn profile_rewind_recording() {
             let state = app.capture_rewind().unwrap();
             capture.push(started.elapsed().as_secs_f64() * 1000.0);
             let started = Instant::now();
-            app.rewind.push(app.campaign.game.tick, 30, state).unwrap();
+            app.rewind
+                .push(app.campaign.game.tick, 30, state, None)
+                .unwrap();
             compress.push(started.elapsed().as_secs_f64() * 1000.0);
         }
         eprintln!(
@@ -213,7 +330,7 @@ fn rewind_restores_bounded_history_and_branches_without_changing_gameplay() {
         assert_eq!(app.settings.rewind_seconds, 30);
         assert!(app.rewind.entries.is_empty());
         assert!(app.toggle_rewind().is_err());
-        app.record_rewind();
+        app.record_rewind(None);
         assert!(!app.rewind.entries.is_empty());
         app.action(Action::Replay);
         assert!(app.rewind.entries.is_empty());

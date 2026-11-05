@@ -8,6 +8,7 @@ use std::{
 use tenchu_assets::Result;
 
 mod capture;
+pub mod recording;
 pub use capture::Recorder;
 
 const MEMORY_LIMIT: usize = 96 * 1024 * 1024;
@@ -20,8 +21,12 @@ pub struct Timeline {
     pub tick: u64,
     pub playing: bool,
     pub preview: bool,
+    pub selection: [u64; 2],
+    pub forward: bool,
+    pub recorded_visuals: Option<bool>,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Resource {
     bytes: Box<[u8]>,
     decoded_length: usize,
@@ -46,8 +51,11 @@ impl Resource {
         } else {
             let start = output.len();
             output.resize(start + self.decoded_length, 0);
-            lz4_flex::decompress_into(&self.bytes, &mut output[start..])
+            let length = lz4_flex::decompress_into(&self.bytes, &mut output[start..])
                 .map_err(|e| e.to_string())?;
+            if length != self.decoded_length {
+                return Err("Incomplete rewind resource".into());
+            }
         }
         Ok(())
     }
@@ -59,22 +67,28 @@ impl Resource {
 
 #[derive(Clone)]
 enum Segment {
-    Shared { offset: usize, bytes: Arc<Resource> },
-    Words(std::ops::Range<usize>),
+    Shared {
+        offset: usize,
+        bytes: Arc<Resource>,
+    },
+    Words {
+        range: std::ops::Range<usize>,
+        little_endian: bool,
+    },
 }
 
 impl Segment {
     fn resource(&self) -> Option<&Arc<Resource>> {
         match self {
             Self::Shared { bytes, .. } => Some(bytes),
-            Self::Words(_) => None,
+            Self::Words { .. } => None,
         }
     }
 
     fn extra_bytes(&self) -> usize {
         match self {
             Self::Shared { bytes, .. } => bytes.decoded_length,
-            Self::Words(range) => range.len() / 2,
+            Self::Words { range, .. } => range.len() / 2,
         }
     }
 }
@@ -114,7 +128,7 @@ impl Snapshot {
         for segment in &self.segments {
             let start = match segment {
                 Segment::Shared { offset, .. } => *offset,
-                Segment::Words(range) => range.start,
+                Segment::Words { range, .. } => range.start,
             };
             bytes.extend_from_slice(&self.data[offset..start]);
             match segment {
@@ -122,10 +136,17 @@ impl Snapshot {
                     shared.append(&mut bytes)?;
                     offset = start;
                 }
-                Segment::Words(range) => {
+                Segment::Words {
+                    range,
+                    little_endian,
+                } => {
                     // VRAM is copied in bulk while recording; expand its varints only on restore.
                     for word in self.data[range.clone()].chunks_exact(2) {
-                        let mut value = u16::from_ne_bytes([word[0], word[1]]);
+                        let mut value = if *little_endian {
+                            u16::from_le_bytes([word[0], word[1]])
+                        } else {
+                            u16::from_be_bytes([word[0], word[1]])
+                        };
                         while value >= 128 {
                             bytes.push(value as u8 | 128);
                             value >>= 7;
@@ -142,7 +163,11 @@ impl Snapshot {
 
     fn apply(&mut self, block: &Block, length: usize, scratch: &mut Vec<u8>) -> Result<()> {
         scratch.resize(block.encoded_length, 0);
-        lz4_flex::decompress_into(&block.bytes, scratch).map_err(|e| e.to_string())?;
+        if lz4_flex::decompress_into(&block.bytes, scratch).map_err(|e| e.to_string())?
+            != block.encoded_length
+        {
+            return Err("Incomplete rewind frame".into());
+        }
         self.data.resize(scratch.len(), 0);
         for (value, delta) in self.data.iter_mut().zip(scratch) {
             *value ^= *delta;
@@ -152,6 +177,7 @@ impl Snapshot {
     }
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Block {
     bytes: Box<[u8]>,
     encoded_length: usize,
@@ -172,6 +198,7 @@ impl Block {
 
 pub struct Entry {
     pub tick: u64,
+    pub input: Option<Box<recording::Input>>,
     length: usize,
     before: Option<Block>,
     segments: Vec<Segment>,
@@ -180,6 +207,10 @@ pub struct Entry {
 impl Entry {
     fn bytes(&self) -> usize {
         std::mem::size_of::<Self>()
+            + self
+                .input
+                .as_ref()
+                .map_or(0, |_| std::mem::size_of::<recording::Input>())
             + self.segments.capacity() * std::mem::size_of::<Segment>()
             + self.before.as_ref().map_or(0, |b| b.bytes.len())
     }
@@ -206,7 +237,13 @@ impl History {
         self.entries.back().is_none_or(|entry| tick > entry.tick)
     }
 
-    pub fn push(&mut self, tick: u64, seconds: u16, mut state: Snapshot) -> Result<()> {
+    pub fn push(
+        &mut self,
+        tick: u64,
+        seconds: u16,
+        mut state: Snapshot,
+        input: Option<recording::Input>,
+    ) -> Result<()> {
         self.cursor = None;
         self.anchor = None;
         let largest = self
@@ -220,6 +257,7 @@ impl History {
             (!self.entries.is_empty()).then(|| Block::between(&state.data, &mut self.tail.data));
         let entry = Entry {
             tick,
+            input: input.map(Box::new),
             length: state.data.len(),
             before,
             segments: std::mem::take(&mut state.segments),
@@ -376,7 +414,7 @@ mod tests {
             history.recorder.value(&tick).unwrap();
             history.recorder.shared_arc(&value, true).unwrap();
             let snapshot = history.recorder.finish().unwrap();
-            history.push(tick, 30, snapshot).unwrap();
+            history.push(tick, 30, snapshot, None).unwrap();
         }
         assert_eq!(history.entries.len(), 5);
         for index in [4, 0] {
@@ -405,7 +443,7 @@ mod tests {
             value.truncate(value.len() - (tick as usize % 7) * 51);
             value[tick as usize * 17] ^= 1;
             history
-                .push(tick, 2, Snapshot::encode(&value).unwrap())
+                .push(tick, 2, Snapshot::encode(&value).unwrap(), None)
                 .unwrap();
             expected.push(value);
         }
@@ -437,7 +475,7 @@ mod tests {
         let tick = history.entries.back().unwrap().tick;
         let replacement = vec![123u8; 100];
         history
-            .push(tick + 1, 2, Snapshot::encode(&replacement).unwrap())
+            .push(tick + 1, 2, Snapshot::encode(&replacement).unwrap(), None)
             .unwrap();
         let last = history.entries.len() - 1;
         assert_eq!(

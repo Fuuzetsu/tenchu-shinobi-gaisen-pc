@@ -7,7 +7,7 @@ use tenchu_assets::Result;
 const MAGIC: &[u8; 8] = b"TENCHUST";
 const FORMAT: u32 = 14;
 const LIMIT: usize = 512 * 1024 * 1024;
-const FILE_LIMIT: usize = 128 * 1024 * 1024;
+pub(crate) const FILE_LIMIT: usize = 128 * 1024 * 1024;
 
 // Preferences have legacy JSON migrations whose input fields differ from their output.
 pub mod json {

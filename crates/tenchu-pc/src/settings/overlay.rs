@@ -22,6 +22,11 @@ pub enum Edit {
     Diagnostics,
     SeekRewind(u64),
     ResumeRewind,
+    PlayRewindForward,
+    SelectRewind([u64; 2]),
+    ExportRewind,
+    ImportRewind,
+    RecordedVisuals(bool),
 }
 
 #[derive(Clone, Copy)]
@@ -100,6 +105,7 @@ pub fn show(
                             if ui.button("Save diagnostic report…")
                                 .on_hover_text("Save settings, version, hardware, recent inputs/timings and gameplay state as readable JSON. No game assets or raw memory. Personal paths are redacted; review before sharing.")
                                 .clicked() { edits.push(Edit::Diagnostics); }
+                            if ui.button("Import rewind recording…").clicked() { edits.push(Edit::ImportRewind); }
                         });
                         ui.separator();
                     }
@@ -206,7 +212,7 @@ pub fn show(
                             .small()
                             .color(Color32::from_rgb(167, 188, 204))).wrap(),
                     );
-                    if menu.page == 5 && settings.rewind_seconds > 0 {
+                    if menu.page == 5 && (settings.rewind_seconds > 0 || debug.rewind.is_some()) {
                         if let Some(timeline) = debug.rewind {
                             rewind::timeline(ui, timeline, &mut edits);
                         } else {

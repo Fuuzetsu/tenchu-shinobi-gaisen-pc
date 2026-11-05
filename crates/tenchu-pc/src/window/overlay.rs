@@ -470,10 +470,22 @@ impl super::Application {
                     crate::settings::menu::Item::LoadState | crate::settings::menu::Item::Rewind,
                     _
                 ) | Edit::SeekRewind(_)
+                    | Edit::ImportRewind
             );
             let result = match edit {
                 Edit::Change(item, steps) => self.apply_item(item, steps),
                 Edit::SeekRewind(tick) => self.seek_rewind(tick),
+                Edit::SelectRewind(range) => {
+                    self.reverse.selection = Some(range);
+                    Ok(())
+                }
+                Edit::ExportRewind => self.export_rewind(),
+                Edit::ImportRewind => self.import_rewind(),
+                Edit::PlayRewindForward => self.play_rewind_forward(),
+                Edit::RecordedVisuals(enabled) => {
+                    self.reverse.recorded_visuals = Some(enabled);
+                    Ok(())
+                }
                 Edit::ResumeRewind => {
                     self.menu.open = false;
                     self.set_paused(false);

@@ -171,7 +171,7 @@ impl Settings {
         self.sight_percent = game.intelligence.sight_percent;
     }
 
-    fn validate(&mut self) {
+    pub(crate) fn validate(&mut self) {
         self.walking.validate();
         self.sheathing.validate();
         self.rewind_seconds = self.rewind_seconds.min(30);

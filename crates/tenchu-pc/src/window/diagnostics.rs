@@ -105,7 +105,7 @@ fn platform() -> Value {
 }
 
 impl Application {
-    fn diagnostic_report(&self) -> Result<Vec<u8>> {
+    pub(super) fn diagnostic_report(&self) -> Result<Vec<u8>> {
         let game = &self.campaign.game;
         let debug = &self.debug;
         let mut settings = serde_json::to_value(&self.settings).map_err(|e| e.to_string())?;
@@ -148,6 +148,7 @@ impl Application {
             "format": crate::diagnostics::FORMAT, "schema_version": crate::diagnostics::VERSION,
             "created_unix_ms": web_time::SystemTime::now().duration_since(web_time::UNIX_EPOCH).ok().map(|d| d.as_millis() as u64),
             "build": crate::diagnostics::build(), "platform": platform(),
+            "recording_source": self.reverse.source_report.as_ref().and_then(|s| serde_json::from_str::<Value>(s).ok()),
             "notes": ["No disc assets, raw process memory, saved campaign or filesystem paths are required to read this report.",
                 "Snapshot and recent inputs are diagnostic context, not a restorable savestate or complete replay.",
                 "Game positions use original integer coordinates; inputs are PS1 pad bitmasks. Timings are milliseconds.",

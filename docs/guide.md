@@ -1566,6 +1566,7 @@ available under **F1 → Simulation**. Seeking keeps the complete recorded histo
 including the future, so you can inspect several moments without losing them.
 **Resume here** or **F3** continues forward from the selected point and discards
 only the abandoned future. Resuming from **Latest** preserves the whole buffer.
+**Play forward** plays recorded states toward Latest without running new gameplay.
 **Rewind speed** ranges from 25% to 800%, with 200% (twice real time) as the default.
 The world pauses at the oldest available state. Audio is muted during reverse
 playback and timeline previews; music/dialogue resumes near the selected position
@@ -1583,8 +1584,36 @@ Recording still has a CPU cost, shown separately as **Rewind recording / playbac
 in the performance chart. Retained history is bounded to 96 MiB. Large missions
 or accumulated effects can shorten it; the menu shows its duration and stored size.
 Retrying, switching missions, opening the title, starting a demo/benchmark or
-loading a file clears it. It does not survive closing the game; use a savestate
-slot for that.
+loading a savestate clears it. Ordinary history does not survive closing the game;
+use a savestate slot or export a recording to keep it.
+
+To share a reproducible bug, seek to the beginning and choose **Start here**, then
+seek past the problem and choose **End here → Export selected…**. **Whole interval**
+selects everything still retained. Exporting preserves the buffer, including its
+future. The `.treplay` file contains the selected states, original tick numbers,
+inputs (including camera-relative movement/walking/sheathing), settings, visual
+effects and a diagnostic report. It reuses the history's compressed deltas and
+shared assets instead of saving a full copy of the mission for every frame.
+
+Choose **F1 → General → Import rewind recording…** to inspect one on another
+desktop or in the browser running the same version/state format. The timeline
+starts paused; seek or play in either direction, or press F3 to take control from
+any frame. Playback restores recorded states rather than resimulating the input
+tape, preserving intervening edits as well. **Recorded graphics and camera** is
+on initially; disable it to inspect with your own graphics/free camera. The
+installed artwork pack still supplies replacement textures. Playback is muted;
+ordinary play resumes saved audio as with rewind. Version, integrity, disc
+edition and size checks reject incompatible/damaged recordings. This is a
+portable recording, not process memory, and does not rely on Windows paths.
+While inspecting an imported recording, **Save diagnostic report** also includes
+its original diagnostic under `recording_source`, preserving the reporter's
+hardware/settings alongside those of the machine playing it back.
+
+Recordings include disc-derived game data, imported models and saved preferences;
+**share them privately**, not in public source/artwork releases. The small JSON
+diagnostic remains the appropriate public report. Nothing is uploaded
+automatically. Export uses a desktop file picker or browser download; import uses
+a file picker on both platforms.
 
 **F9** saves the current view as PNG under `screenshots/`, or `TENCHU_SCREENSHOTS`.
 **F10** toggles a clean photo view, hiding HUD, captions, FPS and inspection

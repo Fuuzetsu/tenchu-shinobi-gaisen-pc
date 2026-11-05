@@ -51,7 +51,7 @@ pub(super) fn timeline(ui: &mut egui::Ui, state: Timeline, edits: &mut Vec<Edit>
             .add_enabled(
                 state.playing || tick > state.start,
                 egui::Button::new(if state.playing {
-                    "Pause rewind"
+                    "Pause playback"
                 } else {
                     "Rewind"
                 }),
@@ -60,9 +60,55 @@ pub(super) fn timeline(ui: &mut egui::Ui, state: Timeline, edits: &mut Vec<Edit>
         {
             edits.push(Edit::Change(Item::Rewind, 1));
         }
+        if ui
+            .add_enabled(
+                !state.playing && tick < state.end,
+                egui::Button::new("Play forward"),
+            )
+            .clicked()
+        {
+            edits.push(Edit::PlayRewindForward);
+        }
         if ui.button("Resume here (F3)").clicked() {
             edits.push(Edit::ResumeRewind);
         }
     });
+    if state.playing {
+        ui.weak(if state.forward {
+            "Playing recorded states forward (audio muted)"
+        } else {
+            "Playing recorded states backward (audio muted)"
+        });
+    }
+    ui.horizontal_wrapped(|ui| {
+        if ui.button("Start here").clicked() {
+            edits.push(Edit::SelectRewind([tick, state.selection[1].max(tick)]));
+        }
+        if ui.button("End here").clicked() {
+            edits.push(Edit::SelectRewind([state.selection[0].min(tick), tick]));
+        }
+        if ui.button("Whole interval").clicked() {
+            edits.push(Edit::SelectRewind([state.start, state.end]));
+        }
+        if ui
+            .add_enabled(
+                state.selection[0] < state.selection[1],
+                egui::Button::new("Export selected…"),
+            )
+            .clicked()
+        {
+            edits.push(Edit::ExportRewind);
+        }
+    });
+    ui.weak(format!(
+        "Export ticks {}–{} ({:.2}s). Includes restorable game data: share privately.",
+        state.selection[0],
+        state.selection[1],
+        state.selection[1].saturating_sub(state.selection[0]) as f64 / 30.0
+    ));
+    if let Some(mut recorded) = state.recorded_visuals
+        && ui.checkbox(&mut recorded, "Recorded graphics and camera").on_hover_text("Disable to inspect the recording with your own graphics or free camera. Replacements still come from your installed artwork pack.").changed() {
+        edits.push(Edit::RecordedVisuals(recorded));
+    }
     ui.weak("Seeking keeps the recorded future. Resume discards only the part after this point.");
 }

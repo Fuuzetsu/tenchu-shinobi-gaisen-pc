@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Export a selected rewind interval as a portable `.treplay` bug recording, then import it from F1 → General on desktop or in the browser. Keeps complete recorded states, inputs, settings and visual effects without discarding the current buffer. Adds forward timeline playback and a recorded-graphics/camera toggle; recordings contain game data and should be shared privately.
+
 - Support MSAA with **Cached terrain blood** and prevent isolated uncached marks from disabling the whole cache. Dense blood accumulation has substantially lower GPU spikes; cache preparation also reuses immutable receiver metadata. The rendering trial remains optional and keeps conservative fallbacks for unsupported surfaces.
 
 - Add optional **Enemy behavior** profiles in F1: cowardly, reckless, cautious, flanking and adaptive guards, with seeded mixing, per-guard overrides, patrol/lookout choices and optional mission progression. Story actors stay protected; original AI remains the default. Includes matched combat demos, saved-state/rewind support and bounded reinforcement calls.

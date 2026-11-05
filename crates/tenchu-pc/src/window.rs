@@ -137,6 +137,17 @@ impl Application {
                 tick: self.campaign.game.tick,
                 playing: self.reverse.active,
                 preview: self.reverse.preview,
+                selection: self
+                    .reverse
+                    .selection
+                    .map_or([first.tick, last.tick], |[a, b]| {
+                        [
+                            a.clamp(first.tick, last.tick),
+                            b.clamp(first.tick, last.tick),
+                        ]
+                    }),
+                forward: self.reverse.forward,
+                recorded_visuals: self.reverse.recorded_visuals,
             });
         self.debug.rewind_bytes = self.rewind.bytes;
         #[cfg(target_arch = "wasm32")]
@@ -148,7 +159,11 @@ impl Application {
         let alpha = if let Some(demo) = &self.demo {
             demo.alpha()
         } else if self.reverse.active {
-            1.0 - self.reverse.fraction as f32
+            if self.reverse.forward {
+                self.reverse.fraction as f32
+            } else {
+                1.0 - self.reverse.fraction as f32
+            }
         } else if self.is_suspended()
             || !self.simulating()
             || self.debug.speed == 0
@@ -178,7 +193,12 @@ impl Application {
                 view.labels.push(crate::debug::Label(
                     crate::debug::Anchor::TopLeft([10.0, 132.0]),
                     format!(
-                        "REWIND {:.2}×  Ctrl+F12: stop  F3: resume",
+                        "{} {:.2}×  Ctrl+F12: stop  F3: resume",
+                        if self.reverse.forward {
+                            "PLAYBACK"
+                        } else {
+                            "REWIND"
+                        },
                         f64::from(self.settings.rewind_speed) / 100.0
                     ),
                     [1.0, 0.85, 0.35],
@@ -919,6 +939,8 @@ impl ApplicationHandler for Application {
             WindowEvent::RedrawRequested => {
                 #[cfg(target_arch = "wasm32")]
                 self.poll_state();
+                #[cfg(target_arch = "wasm32")]
+                self.poll_recording();
                 #[cfg(target_arch = "wasm32")]
                 crate::web::prepare_language(
                     &self.assets,

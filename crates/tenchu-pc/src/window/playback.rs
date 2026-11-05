@@ -18,6 +18,18 @@ impl Application {
             return false;
         }
         let observing = matches!(self.campaign.screen, Screen::DeathHold { .. });
+        let recorded_input =
+            (self.settings.rewind_seconds != 0).then(|| crate::rewind::recording::Input {
+                buttons,
+                observing_death: observing,
+                navigation: self.campaign.game.navigation,
+                walking: self.campaign.game.walking,
+                sheathing: self.campaign.game.player().sheathing.clone(),
+                camera: self.debug.camera,
+                camera_actor: self.debug.camera_actor,
+                light: self.debug.light,
+                light_follow: self.debug.light_follow,
+            });
         let result = if observing {
             if !self.simulating() {
                 return false;
@@ -92,7 +104,7 @@ impl Application {
             sound.weather(self.view.as_ref().and_then(View::thunder), storm, ambience);
         }
         self.trial_record_check();
-        self.record_rewind();
+        self.record_rewind(recorded_input);
         if !self.campaign.playing() && !observing {
             self.finish_recording();
             self.controls.clear();

@@ -121,6 +121,13 @@ impl Application {
     fn restore_snapshot(&mut self, mut state: State<Game>, rewind: bool) -> Result<()> {
         self.state_tools_available()?;
         state.validate()?;
+        let recorded_graphics = rewind && self.reverse.recorded_visuals == Some(true);
+        if recorded_graphics {
+            state.preferences.validate();
+        }
+        let graphics_changed = recorded_graphics
+            && (self.settings.graphics != state.preferences.graphics
+                || self.settings.retro != state.preferences.retro);
         #[cfg(target_arch = "wasm32")]
         {
             let language = state.game.mission.scripts.language;
@@ -206,6 +213,10 @@ impl Application {
         self.campaign.cursor = 0;
         self.settings
             .restore_gameplay(&state.preferences, &self.campaign.game);
+        if recorded_graphics {
+            self.settings.graphics = state.preferences.graphics;
+            self.settings.retro = state.preferences.retro;
+        }
         if let Some(mut debug) = debug {
             debug.state_slot = self.debug.state_slot;
             self.debug = debug;
@@ -241,6 +252,9 @@ impl Application {
                 .map(|r| r.plan.player_model.clone().unwrap_or_default());
             if !reuse && let Err(error) = view.reload(&self.campaign.game, &self.settings) {
                 eprintln!("Savestate restored with original models: {error}");
+            }
+            if reuse && graphics_changed {
+                view.settings(&self.settings, &self.campaign.game)?;
             }
             if let Some(visuals) = state.visuals {
                 view.restore_state(visuals, &self.campaign.game);

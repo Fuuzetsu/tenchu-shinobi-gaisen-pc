@@ -118,7 +118,10 @@ impl Capture for Recorder {
         self.value(&value.len())?;
         let start = self.output.len();
         self.output.extend_from_slice(bytemuck::cast_slice(value));
-        self.segments.push(Segment::Words(start..self.output.len()));
+        self.segments.push(Segment::Words {
+            range: start..self.output.len(),
+            little_endian: cfg!(target_endian = "little"),
+        });
         Ok(())
     }
 
@@ -206,7 +209,7 @@ mod tests {
             }
             let snapshot = history.recorder.finish().unwrap();
             assert_eq!(history.recorder.cache.len(), order.len());
-            history.push(tick, 2, snapshot).unwrap();
+            history.push(tick, 2, snapshot, None).unwrap();
             assert_eq!(
                 encodes.load(Ordering::Relaxed),
                 expected_encodes[tick as usize],
@@ -244,7 +247,7 @@ mod tests {
             let bytes = postcard::to_allocvec(&(&prefix, &words, &resource, tick)).unwrap();
             assert_eq!(snapshot.bytes().unwrap(), bytes);
             expected.push(bytes);
-            history.push(tick as u64, 2, snapshot).unwrap();
+            history.push(tick as u64, 2, snapshot, None).unwrap();
         }
         assert!(history.entries.len() <= 61);
         assert!(history.shared.len() <= 3);
@@ -275,7 +278,7 @@ mod tests {
         history.branch(20).unwrap();
         assert!(history.bytes < before);
         history
-            .push(120, 2, Snapshot::encode(&42u64).unwrap())
+            .push(120, 2, Snapshot::encode(&42u64).unwrap(), None)
             .unwrap();
         assert_eq!(
             history
