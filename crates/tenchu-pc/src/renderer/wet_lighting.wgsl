@@ -5,6 +5,7 @@
 // Geometry stores three octahedral normals and full-precision linear depth.
 // Zero depth is empty; FORWARD_SURFACE stores an already shaded color.
 // The sign of the reflection exponent in diffuse.w carries the fog flag.
+// Negative emission.w marks water's sun-only reflections.
 const FORWARD_SURFACE: u32 = 0xffffffffu;
 
 struct PreparedSurface {
@@ -53,7 +54,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
         var sun = 1.0;
         let view = normalize(camera.eye.xyz - position);
         let power = abs(base.w);
-        let specular = unlit_color.w;
+        let specular = abs(unlit_color.w);
         if lighting.sun_direction.w > 0.0 {
             if sun_diffuse > 0.0 || lighting.source.y != 0.0 || specular > 0.0 { sun = sun_visibility(position, surface); }
             if sun_diffuse > 0.0 { light += lighting.sun_color.rgb * lighting.sun_direction.w * sun_diffuse * sun; }
@@ -74,7 +75,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
             if distance >= source.position.w || distance < 1.0 { continue; }
             let diffuse = max(0.0, dot(normal, -delta / distance));
             var glint = 0.0;
-            if specular > 0.0 && dot(wet_normal, -delta) > 0.0 {
+            if unlit_color.w > 0.0 && dot(wet_normal, -delta) > 0.0 {
                 let halfway = normalize(view + -delta / distance);
                 glint = pow(max(0.0, dot(wet_normal, halfway)), power);
             }
@@ -106,7 +107,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
 
 @fragment fn deferred_material(input: Fragment, @builtin(front_facing) front_facing: bool) -> PreparedSurface {
     var v = input;
-    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATERFALL | FOLIAGE)) | SCENERY;
+    v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE)) | SCENERY;
     let material = prepare_material(v, front_facing, false, false);
     let color = material.color;
     let emission = material.emission;
@@ -118,6 +119,15 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
     var wet_normal = normal;
     var power = 1.0;
     var specular = 0.0;
+    if WATER_ENABLED && (v.flags & WATER) != 0u {
+        let water = prepare_water(normalize(camera.eye.xyz - v.world), normal);
+        let transmission = 1.0 - water.fresnel * camera.water.y * 0.18;
+        let reflection = water_reflection(v);
+        diffuse = diffuse * transmission + vec3(water_foam(v));
+        unlit_color = unlit_color * transmission + water.sky * reflection;
+        power = 110.0;
+        specular = -0.8 * reflection;
+    }
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY {
         if lighting.weather.x + lighting.weather.y + lighting.weather.w > 0.0 {
             let incidence = weather_incidence(surface_normal, true);

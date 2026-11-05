@@ -32,7 +32,16 @@ fn wet_lighting_preserves_surfaces_and_actors() {
     renderer.weather.puddles = 1.0;
     assert!(renderer.wet_lighting.is_some());
     let mut actor = renderer.upload(&[]);
-    for special in [0, render_mesh::WATER, render_mesh::UNLIT] {
+    for (special, water) in [
+        (0, false),
+        (render_mesh::WATER, false),
+        (render_mesh::WATER, true),
+        (render_mesh::WATER | render_mesh::WATERFALL, true),
+        (render_mesh::UNLIT, false),
+    ] {
+        graphics.water.enabled = water;
+        graphics.sky.enabled = true;
+        renderer.configure(&graphics);
         let mut vertices = rectangle(
             1000,
             128,
@@ -89,6 +98,9 @@ fn wet_lighting_preserves_surfaces_and_actors() {
                 }
                 renderer.update_mesh(&mut actor, &mut moving);
                 renderer.weather.time += 0.3;
+                renderer.visual_time += 0.3;
+                renderer.daylight =
+                    (x > 0.0).then(|| crate::visuals::sky::Daylight::at(720.0, &graphics.sky));
                 let light = crate::lighting::Light {
                     position: Vec3::new(x - 500.0, -700.0, 1800.0),
                     color: [1.0, 0.5, 0.2],

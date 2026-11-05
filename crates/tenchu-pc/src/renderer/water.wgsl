@@ -22,22 +22,40 @@ fn water_normal(v: Fragment, normal: vec3<f32>, dx: vec3<f32>, dy: vec3<f32>) ->
     return normalize(normal + gradient * camera.water.x * fade);
 }
 
+struct WaterSurface {
+    fresnel: f32,
+    sky: vec3<f32>,
+}
+
+fn prepare_water(view: vec3<f32>, normal: vec3<f32>) -> WaterSurface {
+    let fresnel = 0.025 + 0.975 * pow(1.0 - max(0.0, dot(normal, view)), 5.0);
+    let sky = mix(vec3(0.02, 0.035, 0.055), vec3(0.16, 0.23, 0.3), camera.detail.w);
+    return WaterSurface(fresnel, sky * fresnel);
+}
+
+fn water_foam(v: Fragment) -> f32 {
+    let time = camera.eye.w * camera.water.z;
+    let phase = dot(v.world.xz, vec2(0.018, 0.014)) + v.world.y * 0.004 - time * 5.0;
+    return pow(0.5 + 0.5 * sin(phase), 8.0) * camera.water.w
+        * select(0.018, 0.1, (v.flags & WATERFALL) != 0u);
+}
+
+fn water_reflection(v: Fragment) -> f32 {
+    return camera.water.y * select(1.0, 0.2, (v.flags & WATERFALL) != 0u);
+}
+
 fn water_color(v: Fragment, input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, light: vec3<f32>, linear: bool) -> vec3<f32> {
     if !WATER_ENABLED || (v.flags & WATER) == 0u { return input; }
     let view = normalize(camera.eye.xyz - v.world);
-    let fresnel = 0.025 + 0.975 * pow(1.0 - max(0.0, dot(normal, view)), 5.0);
-    let sky = mix(vec3(0.02, 0.035, 0.055), vec3(0.16, 0.23, 0.3), camera.detail.w);
-    var reflected = sky * fresnel;
+    let water = prepare_water(view, normal);
+    var reflected = water.sky;
     if lighting.sun_direction.w > 0.0 && lighting.options.w != 0.0 {
         let halfway = normalize(view + lighting.sun_direction.xyz);
         reflected += lighting.sun_color.rgb * lighting.sun_direction.w * 0.8
             * pow(max(0.0, dot(normal, halfway)), 110.0) * sun_visibility(v.world, surface);
     }
-    let time = camera.eye.w * camera.water.z;
-    let phase = dot(v.world.xz, vec2(0.018, 0.014)) + v.world.y * 0.004 - time * 5.0;
-    let foam = pow(0.5 + 0.5 * sin(phase), 8.0) * camera.water.w
-        * select(0.018, 0.1, (v.flags & WATERFALL) != 0u);
-    reflected *= camera.water.y * select(1.0, 0.2, (v.flags & WATERFALL) != 0u);
+    let foam = water_foam(v);
+    reflected *= water_reflection(v);
     if !linear { reflected = pow(max(reflected, vec3(0.0)), vec3(1.0 / 2.2)) * 0.5; }
-    return input * (1.0 - fresnel * camera.water.y * 0.18) + reflected + light * foam;
+    return input * (1.0 - water.fresnel * camera.water.y * 0.18) + reflected + light * foam;
 }

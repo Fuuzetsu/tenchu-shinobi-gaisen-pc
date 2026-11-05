@@ -2190,3 +2190,56 @@ ordinary tests. Formatting, strict native/WASM Clippy and release builds pass.
 Actual Chromium WebGPU and WebGL2 both load/grow the new atlas, restore the
 portable weather/blood state, move, toggle lighting and use free camera without
 GPU errors or changes to paused gameplay.
+
+## November 5: include water in prepared wet lighting
+
+Opaque water now uses the existing material attachments and lighting pass when
+wet-terrain lighting is active. Its material preparation retains waves, foam,
+sky reflections and the original sun-only highlights. Unlit geometry retains
+ordered forward rendering. The existing eligibility checks and attachment sizes
+are unchanged, including the forward path for MSAA and views containing only
+water. The implementation shares the water formulas with forward rendering.
+
+A separate timing probe identified water's forward fallback as much of the
+Mission 1 garden's material-pass cost. The prototype reduced total GPU time by
+about 0.4–0.5 ms in fixed night/day/animated garden views. Paired 3826 × 2146
+captures matched exactly away from water; garden differences reached at most
+one 8-bit color level, with mean absolute differences below 0.006/255.
+
+An initial shared helper calculated foam before shadow filtering and regressed
+Modern High's forward rendering. Computing foam and reflection strength after
+the filter restored that path's performance. This is why the shared helpers
+retain the original calculation order rather than eagerly preparing all water
+parameters together.
+
+The final actual Wayland comparison uses 3840 × 2160, the diagnostic graphics
+and HD artwork, 1,200 frames per route and 60 warm-up frames. Compared with
+`4625057`, without concurrent compiler/browser/GPU workloads:
+
+| Route | Average FPS before → after | Frame p95 | Frame p99 |
+|---|---|---|---|
+| Mission 1 village | 49.8 → 49.4 | 21.34 → 21.49 ms | 21.70 → 21.91 ms |
+| Mission 5 courtyard | 56.8 → 56.0 | 18.59 → 18.82 ms | 19.14 → 19.17 ms |
+| Mission 1 garden | 41.9 → 43.0 | 24.99 → 24.34 ms | 25.42 → 24.80 ms |
+| Mission 4 waterfall | 73.4 → 73.0 | 14.25 → 14.62 ms | 14.69 → 14.84 ms |
+
+Garden GPU mean/p99 falls from 21.32/22.36 to 20.72/21.80 ms. Other routes
+shift upward by about 0.1–0.2 ms of GPU time, so this is a targeted improvement
+to the slow garden route. Two earlier runs, including reversed execution order,
+also improved its frame p99 by about 0.5–0.7 ms. The difficult routes remain
+below 60 FPS.
+
+A separate 600-frame Modern High comparison preserves the diagnostic's rain
+mode and uses two-sample MSAA, exercising forward rendering. Garden GPU
+mean/p99 changes from 19.38/22.77 to 19.50/22.80 ms; whole-frame p99 changes
+from 24.78 to 24.90 ms. Other routes have small, mixed tail changes. This check
+is not a dry-weather benchmark.
+
+The expanded wet-lighting regression covers water enabled/disabled, waterfalls,
+daylight, cutouts, coplanar surfaces and moving actors. Five other focused GPU
+checks and 134 ordinary tests pass, along with formatting, strict native/WASM
+Clippy, native release and actual WASM cdylib builds.
+Chromium WebGPU and WebGL2 both pass saved-state loading, movement, lighting
+controls, free camera and resume without GPU errors. WebGPU records 761 wet
+preparation and 766 shadow-bound passes; WebGL2 uses its forward fallback.
+Paused gameplay stays unchanged while graphics controls are exercised.

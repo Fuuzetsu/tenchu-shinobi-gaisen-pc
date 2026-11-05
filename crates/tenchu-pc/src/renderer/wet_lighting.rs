@@ -12,6 +12,7 @@ const FORMATS: [wgpu::TextureFormat; 3] = [
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum Material {
     Surface,
+    Water,
     Forward,
 }
 
@@ -213,7 +214,7 @@ impl WetLighting {
             // Keep authoring order so coplanar backing faces only fill texture cutouts.
             for batch in &mesh.material_batches {
                 pass.set_pipeline(match batch.material {
-                    Material::Surface => &self.surface,
+                    Material::Surface | Material::Water => &self.surface,
                     Material::Forward => &self.forward,
                 });
                 mesh.draw(&mut pass, batch.vertices.clone());
@@ -261,8 +262,10 @@ pub(super) fn update_batches(batches: &mut Vec<Batch>, flags: impl ExactSizeIter
     let count = flags.len() as u32;
     batches.clear();
     for (i, flags) in flags.enumerate().step_by(3) {
-        let material = if flags & (render_mesh::WATER | render_mesh::UNLIT) != 0 {
+        let material = if flags & render_mesh::UNLIT != 0 {
             Material::Forward
+        } else if flags & render_mesh::WATER != 0 {
+            Material::Water
         } else {
             Material::Surface
         };

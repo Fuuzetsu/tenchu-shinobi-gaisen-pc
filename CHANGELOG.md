@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce water rendering cost in reflective rain scenes by reusing the existing
+  material and lighting passes, preserving waves, foam and sky reflections.
+
 - Speed up animated vegetation shadows by sampling compact opacity data instead
   of full-color replacement textures. Cutout shapes and lantern transmission
   remain unchanged.
