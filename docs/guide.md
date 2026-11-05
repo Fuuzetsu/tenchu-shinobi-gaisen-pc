@@ -90,8 +90,9 @@ custom settings keep both off. Try `demo --clips flame-motion` for a comparison.
 
 **F1 → Rendering trials** offers opt-in rendering alternatives for comparison:
 adaptive local shadows, half-resolution ambient occlusion with depth-aware
-reconstruction, and cached modern terrain blood. The blood cache uses HDR
-without MSAA on native/WebGPU; other configurations retain the existing path.
+reconstruction, and cached modern terrain blood. The blood cache uses HDR on
+native/WebGPU, including MSAA in Modern High/Ultra; other configurations retain
+the existing path.
 These trials are off in all built-in presets pending evaluation. Gameplay is
 unchanged. See [measured comparisons](performance.md#november-5-perceptual-rendering-trials)
 for the tested workloads and limitations.

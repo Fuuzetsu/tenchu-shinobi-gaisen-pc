@@ -2714,3 +2714,47 @@ without GPU errors. The WebGPU trace confirms mask generation; WebGL2 retains
 the fallback. The comparison page verifies 46 image pairs and four paired motion
 clips, with links to each original 4K clip. All image/video evidence stays outside
 Git at `private/optimisation-loop/2026-11-05/perceptual-trials/comparison/`.
+
+### Combat and accumulated blood follow-up (#68)
+
+A matched Mission 1 sword fight uses Modern High at 3840×2160, 2× MSAA,
+HD artwork, maximum cosmetic wound spurts/weapon flow and no fog. A stress
+variant adds 16 projected stains per logic tick, accumulating up to 8192
+retained stains (about 409,000 decal vertices). Each run has 1200 presented
+frames, excluding the first 60 from distributions. The opponent receives
+the same damage in each run. Native Vulkan uses the GTX 1080 Ti and Ryzen
+9950X3D. These offscreen runs wait for submitted GPU work, so their frame
+intervals are workload comparisons, not predictions of interactive FPS.
+
+The blood cache now supports MSAA. Previously, one mark without receiver
+metadata invalidated every cached receiver, causing intermittent full-cost
+frames. Only receivers overlapping such a mark now fall back; ambiguous
+overlapping receivers still all use the conservative path. `perf` also found
+repeated hashing of complete receiver vertices and rescanning immutable stamp
+opacity. Both are now computed when that immutable data is created. Full
+bitwise receiver equality, saved bytes and original mark metadata are retained.
+
+| Accumulation workload | Mean frame, ms | Frame p95, ms | Frame p99, ms | GPU p99, ms |
+| --- | ---: | ---: | ---: | ---: |
+| Cache off → updated cache on | 44.18 → 20.56 | 66.54 → 25.86 | 68.75 → 27.07 | 64.33 → 19.11 |
+| Same, rewind recording on | 44.77 → 21.38 | 67.89 → 27.57 | 70.71 → 29.42 | 64.19 → 19.10 |
+
+Ordinary combat without synthetic accumulation measured 16.65 ms mean frame
+and 18.86 ms p99 with the cache off. Recording rewind raised those to
+17.22/20.29 ms; rewind capture itself averaged 0.49 ms. Heavy accumulation
+with the updated cache and rewind costs 0.67 ms mean / 2.09 ms p99 for rewind
+capture. This does not establish the cause of every reported combat slowdown:
+the original report still needs an equivalent current diagnostic/reproduction.
+
+Paired final 4K captures differ by mean RGB values 0.018/0.018/0.007 out of
+255, with sparse edge differences up to 127/255. This is still an optional
+coverage approximation, not pixel-identical rendering. GPU regression checks
+exercise every supported MSAA count, changing/removing/reusing masks, varying
+opacity, rain/snow, cutouts, slopes, foliage, overlapping floors and both nearby
+and distant unknown receivers. Private measurements and captures are in
+`private/issue-68/`; the synthetic stress hooks are not shipped.
+
+The native blood-heavy snapshot also loads in WebGPU and WebGL2; the F1 cache
+toggle and resumed combat produce no runtime/GPU errors. WebGPU uses 4× MSAA
+for this check; WebGL2 keeps its existing fallback. Saved-state continuation
+and cached rewind serialization checks pass without format changes.

@@ -475,7 +475,6 @@ impl Renderer {
         }
         let cache_blood = graphics.rendering.cached_blood
             && self.composite_supported
-            && samples == 1
             && graphics.post.enabled
             && !self.gl;
         if !cache_blood || pipelines_changed {
@@ -884,12 +883,18 @@ impl Renderer {
         }
         {
             let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
+            let blood_pass =
+                composite || self.blood_cache.as_ref().is_some_and(|cache| cache.dirty());
             let clear = fog_color.map(f64::from);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Scene"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: self.multisample.as_ref().unwrap_or(world_target),
-                    resolve_target: self.multisample.as_ref().map(|_| world_target),
+                    resolve_target: self
+                        .multisample
+                        .as_ref()
+                        .filter(|_| !blood_pass)
+                        .map(|_| world_target),
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
                             r: clear[0],
@@ -951,7 +956,7 @@ impl Renderer {
                 }
                 mark(&mut pass, stage);
             }
-            if composite || self.blood_cache.as_ref().is_some_and(|cache| cache.dirty()) {
+            if blood_pass {
                 drop(pass);
                 if let Some(cache) = &mut self.blood_cache {
                     cache.update(&mut encoder);
@@ -965,8 +970,8 @@ impl Renderer {
                 pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Scene after blood coverage"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: world_target,
-                        resolve_target: None,
+                        view: self.multisample.as_ref().unwrap_or(world_target),
+                        resolve_target: self.multisample.as_ref().map(|_| world_target),
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Load,
                             store: wgpu::StoreOp::Store,

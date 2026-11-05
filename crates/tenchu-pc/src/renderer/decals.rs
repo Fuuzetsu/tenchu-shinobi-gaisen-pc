@@ -16,6 +16,7 @@ pub(super) struct Decal {
     source_ids: Option<wgpu::Buffer>,
     source_bounds: Vec<[Vec3; 2]>,
     sources: Vec<SourceRange>,
+    constant_opacity: Vec<bool>,
 }
 
 impl Renderer {
@@ -48,6 +49,17 @@ impl Renderer {
                         source_ids: None,
                         source_bounds: Vec::new(),
                         sources: sources.to_vec(),
+                        constant_opacity: sources
+                            .iter()
+                            .map(|source| {
+                                page.get(source.vertices.clone()).is_some_and(|vertices| {
+                                    vertices.len() >= 3
+                                        && vertices.iter().all(|v| {
+                                            (v.opacity - vertices[0].opacity).abs() < 0.00001
+                                        })
+                                })
+                            })
+                            .collect(),
                         mesh: self.upload(page),
                         bounds,
                         ground_blood: page.iter().all(|v| {

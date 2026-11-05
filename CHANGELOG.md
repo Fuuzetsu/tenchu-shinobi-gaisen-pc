@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Support MSAA with **Cached terrain blood** and prevent isolated uncached marks from disabling the whole cache. Dense blood accumulation has substantially lower GPU spikes; cache preparation also reuses immutable receiver metadata. The rendering trial remains optional and keeps conservative fallbacks for unsupported surfaces.
+
 - Add optional **Enemy behavior** profiles in F1: cowardly, reckless, cautious, flanking and adaptive guards, with seeded mixing, per-guard overrides, patrol/lookout choices and optional mission progression. Story actors stay protected; original AI remains the default. Includes matched combat demos, saved-state/rewind support and bounded reinforcement calls.
 
 - Add optional **Forward melee assist** under F1 → Simulation. Prefer visible enemies ahead and retain a valid target through a combo, with smoother turning during the original wind-up. Hitboxes, damage, attack timing, stealth kills and enemy combat stay unchanged; original targeting remains the default.

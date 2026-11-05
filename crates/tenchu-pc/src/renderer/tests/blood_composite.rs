@@ -46,7 +46,15 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
     options.post.enabled = true;
     options.lighting.enabled = true;
     options.lighting.shadows = false;
-    for case in ["same", "two-floors", "slope", "foliage", "unknown"] {
+    for case in [
+        "same",
+        "two-floors",
+        "slope",
+        "foliage",
+        "unknown",
+        "distant-unknown",
+        "varying-opacity",
+    ] {
         let slope = if case == "slope" { 0.15 } else { 0.0 };
         let flags = if case == "foliage" {
             render_mesh::FOLIAGE
@@ -58,10 +66,10 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
             vertices.extend(quad(-0.25, 0.0, 0.2, 0));
         }
         let ground = renderer.upload(&vertices);
-        let pages: Vec<_> = (0..12)
+        let mut pages: Vec<_> = (0..12)
             .map(|i| {
                 // Rebuilding and decoding identities must not alias distinct receivers.
-                let projected = Surfaces::new(&vertices).project_decal(&Stamp {
+                let mut projected = Surfaces::new(&vertices).project_decal(&Stamp {
                     center: Vec3::new(
                         (i % 3) as f32 * 450.0 - 450.0,
                         0.0,
@@ -73,6 +81,11 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
                     seed: i,
                     shape: None,
                 });
+                if case == "varying-opacity" {
+                    for (index, vertex) in projected.vertices.iter_mut().enumerate() {
+                        vertex.opacity *= if index % 3 == 0 { 0.25 } else { 0.75 };
+                    }
+                }
                 let sources: Vec<SourceRange> = if case == "unknown" && i % 2 == 0 {
                     Vec::new()
                 } else {
@@ -82,6 +95,13 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
                 (Arc::new(projected.vertices), sources)
             })
             .collect();
+        if case == "distant-unknown" {
+            let mut vertices = pages[0].0.as_ref().clone();
+            for vertex in &mut vertices {
+                vertex.position[0] += 10000.0;
+            }
+            pages.push((Arc::new(vertices), Vec::new()));
+        }
         for (_, sources) in &pages {
             for source in sources {
                 let id = (1 << 22) - 1 - renderer.decal_sources.len() as u32;
@@ -134,43 +154,62 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
                 .max()
                 .unwrap();
             assert!(
-                error <= u8::from(case == "same" || case == "unknown"),
+                error
+                    <= u8::from(matches!(
+                        case,
+                        "same" | "unknown" | "distant-unknown" | "varying-opacity"
+                    )),
                 "{case} {mode:?}: error {error}"
             );
             options.rendering.cached_blood = true;
-            renderer.configure(&options);
-            renderer.force_blood_composite = Some(false);
-            for count in [12, 6, 0, 12] {
-                renderer.set_projected_decals(
-                    pages[..count]
+            for samples in renderer.sample_counts.clone() {
+                options.samples = samples;
+                renderer.configure(&options);
+                renderer.force_blood_composite = Some(false);
+                for count in [pages.len(), 6, 0, pages.len()] {
+                    renderer.set_projected_decals(
+                        pages[..count]
+                            .iter()
+                            .map(|(page, sources)| (page, sources.as_slice())),
+                    );
+                    let cache = renderer.blood_cache.take();
+                    let expected = capture(&mut renderer);
+                    renderer.blood_cache = cache;
+                    let actual = capture(&mut renderer);
+                    assert_eq!(
+                        actual,
+                        capture(&mut renderer),
+                        "rebuilding and reusing cached coverage differ"
+                    );
+                    assert_eq!(
+                        renderer.blood_cache.as_ref().unwrap().useful(camera),
+                        matches!(case, "same" | "distant-unknown") && count > 0
+                    );
+                    let error = actual
                         .iter()
-                        .map(|(page, sources)| (page, sources.as_slice())),
-                );
-                let cache = renderer.blood_cache.take();
-                let expected = capture(&mut renderer);
-                renderer.blood_cache = cache;
-                let actual = capture(&mut renderer);
-                assert_eq!(
-                    renderer.blood_cache.as_ref().unwrap().useful(camera),
-                    case == "same" && count > 0
-                );
-                let error = actual
-                    .iter()
-                    .zip(&expected)
-                    .map(|(&a, &b)| a.abs_diff(b))
-                    .max()
-                    .unwrap();
-                let mean = actual
-                    .iter()
-                    .zip(&expected)
-                    .map(|(&a, &b)| f32::from(a.abs_diff(b)))
-                    .sum::<f32>()
-                    / actual.len() as f32;
-                assert!(
-                    error <= 6 && mean < 0.15,
-                    "cached {case} {mode:?} pages {count}: max {error}, mean {mean}"
-                );
+                        .zip(&expected)
+                        .map(|(&a, &b)| a.abs_diff(b))
+                        .max()
+                        .unwrap();
+                    let mean = actual
+                        .iter()
+                        .zip(&expected)
+                        .map(|(&a, &b)| f32::from(a.abs_diff(b)))
+                        .sum::<f32>()
+                        / actual.len() as f32;
+                    let changed = actual
+                        .chunks_exact(4)
+                        .zip(expected.chunks_exact(4))
+                        .filter(|(a, b)| a.iter().zip(*b).any(|(&a, &b)| a.abs_diff(b) > 6))
+                        .count();
+                    // MSAA can move a few cutout-edge samples; interiors must still match.
+                    assert!(
+                        (error <= 6 || samples > 1 && changed <= 8) && mean < 0.15,
+                        "cached {case} {mode:?} {samples}x MSAA pages {count}: max {error}, mean {mean}, changed {changed}"
+                    );
+                }
             }
+            options.samples = 1;
             options.rendering.cached_blood = false;
             renderer.configure(&options);
         }

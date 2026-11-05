@@ -17,6 +17,7 @@ const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R16Float;
 struct Stamp {
     page: Arc<Vec<Vertex>>,
     range: Range<usize>,
+    constant_opacity: bool,
 }
 impl PartialEq for Stamp {
     fn eq(&self, other: &Self) -> bool {
@@ -149,7 +150,10 @@ impl Cache {
                         ..Default::default()
                     },
                 }),
-                multisample: Default::default(),
+                multisample: wgpu::MultisampleState {
+                    count: renderer.samples,
+                    ..Default::default()
+                },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: Some(entry),
@@ -223,7 +227,7 @@ impl Cache {
         let mut groups: HashMap<Arc<Source>, Vec<Stamp>> = HashMap::new();
         let mut order = Vec::new();
         for decal in decals.iter().filter(|d| d.ground_blood) {
-            for source in &decal.sources {
+            for (source, &constant_opacity) in decal.sources.iter().zip(&decal.constant_opacity) {
                 let entry = groups.entry(source.source.clone()).or_insert_with(|| {
                     order.push(source.source.clone());
                     Vec::new()
@@ -231,6 +235,7 @@ impl Cache {
                 entry.push(Stamp {
                     page: decal._source.clone(),
                     range: source.vertices.clone(),
+                    constant_opacity,
                 });
             }
         }
@@ -239,34 +244,38 @@ impl Cache {
             let bound = bounds(&tri);
             stamps.len() >= 4
                 && (bound[1] - bound[0]).max_element() <= 4000.0
-                && stamps.iter().all(|s| {
-                    s.page.get(s.range.clone()).is_some_and(|v| {
-                        v.len() >= 3 && v.iter().all(|p| (p.opacity - v[0].opacity).abs() < 0.00001)
-                    })
-                })
+                && stamps.iter().all(|s| s.constant_opacity)
         });
         if groups.len() > CAPACITY {
             groups.clear();
         }
-        let keys: Vec<_> = groups.keys().cloned().collect();
+        let unknown: Vec<_> = decals
+            .iter()
+            .filter(|d| d.ground_blood && d.sources.is_empty())
+            .map(|d| d.bounds)
+            .collect();
+        let keys: Vec<_> = groups
+            .keys()
+            .map(|key| (key.clone(), key.vertices()))
+            .collect();
         let mut ambiguous = std::collections::HashSet::new();
-        for (i, a) in keys.iter().enumerate() {
-            let ta = a.vertices();
-            for b in &keys[i + 1..] {
-                let tb = b.vertices();
-                if (ta[0].position[1] - tb[0].position[1]).abs() < 1.0 && overlaps(&ta, &tb) {
+        for (i, (a, ta)) in keys.iter().enumerate() {
+            for (b, tb) in &keys[i + 1..] {
+                if (ta[0].position[1] - tb[0].position[1]).abs() < 1.0 && overlaps(ta, tb) {
                     ambiguous.insert(a.clone());
                     ambiguous.insert(b.clone());
                 }
             }
         }
-        groups.retain(|key, _| !ambiguous.contains(key));
-        if decals
-            .iter()
-            .any(|d| d.ground_blood && d.sources.is_empty())
-        {
-            groups.clear();
-        }
+        groups.retain(|source, _| {
+            let bound = bounds(&source.vertices());
+            !ambiguous.contains(source)
+                && !unknown.iter().any(|other| {
+                    (bound[0] - Vec3::ONE).cmple(other[1]).all()
+                        && (bound[1] + Vec3::ONE).cmpge(other[0]).all()
+                })
+        });
+
         let mut geometry_changed = false;
         // Keep existing slots; regenerating one receiver must not move the others.
         for slot in &mut self.slots {

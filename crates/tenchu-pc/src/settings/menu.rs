@@ -469,7 +469,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::CachedBlood,
                 "Cached terrain blood",
                 on(s.graphics.rendering.cached_blood),
-                "Cache modern blood coverage on flat terrain; lighting and weather still update every frame. Other blood styles, slopes and unsupported surfaces keep their existing renderer. Requires HDR without MSAA on native/WebGPU.",
+                "Cache modern blood coverage on flat terrain; lighting and weather still update every frame. Other blood styles, slopes and unsupported surfaces keep their existing renderer. Requires HDR on native/WebGPU; edge antialiasing is supported.",
             ),
         ],
         20 => vec![
