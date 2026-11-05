@@ -146,6 +146,10 @@ fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>,
         return textureSampleCompareLevel(shadow_maps, shadow_sampler, uv, i32(layer), reference);
     }
     if penumbra > 1.0 / size.x {
+        if COARSE_SHADOWS && WEATHER_ENABLED {
+            let bounded = coarse_visibility(uv, layer, reference, gradient, penumbra, size);
+            if bounded >= 0.0 { return bounded; }
+        }
         var visibility = 0.0;
         for (var i = 0u; i < SHADOW_FILTER_SAMPLES; i++) {
             var sample: vec3<f32>;

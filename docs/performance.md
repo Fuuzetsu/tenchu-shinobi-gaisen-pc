@@ -2101,3 +2101,46 @@ actual WASM cdylib builds pass. Chromium WebGPU records 757 wet preparation
 passes through saved-state loading, movement, lighting toggles, free camera and
 resume; WebGL2 completes the same flow with forward rendering. Neither reports
 GPU errors, and paused gameplay remains unchanged by graphics controls.
+
+## November 5: conservative depth summaries for soft local shadows
+
+Reflective rain scenes now maintain small min/max depth summaries of local
+shadow maps. Before the 32-sample filter, the shader checks whether the complete
+filter footprint is certainly lit or shadowed. Ambiguous areas retain the full
+filter. The bounds include bilinear neighbors, receiver-plane depth gradients
+and a floating-point margin; no shadow samples or resolution are reduced.
+
+The cache starts at one texel per 32 × 32 shadow pixels and costs about 2 MiB
+for eight 2048-pixel cubemaps. Only changed shadow regions are reduced, with
+one compute pass and seven dispatches at this resolution. CPU region buffers
+are reused. It uses portable WebGPU compute without subgroup requirements;
+WebGL2 and configurations outside the wet-lighting path keep their old shading.
+An optional native subgroup prototype gave no useful improvement and was removed.
+
+The final production comparison uses actual Wayland presentation at 3840 × 2160,
+the diagnostic settings and HD artwork, 1,200 frames per route and 60 warm-up
+frames. Compared with `a02dfc4`, with no competing compiler/browser workloads:
+
+| Route | Average FPS before → after | Frame p95 | Frame p99 |
+|---|---|---|---|
+| Mission 1 village | 42.0 → 44.4 | 26.07 → 23.88 ms | 26.43 → 24.26 ms |
+| Mission 5 courtyard | 50.6 → 56.0 | 20.68 → 18.88 ms | 21.21 → 19.66 ms |
+| Mission 1 garden | 39.0 → 39.5 | 26.89 → 26.38 ms | 27.22 → 26.85 ms |
+| Mission 4 waterfall | 73.2 → 72.6 | 14.40 → 14.62 ms | 14.75 → 14.87 ms |
+
+Building summaries adds approximately 0.92/0.51/0.98/0.44 ms to the shadow-map
+category. Reduced filtering offsets that cost in the demanding routes: total
+GPU means change from 21.32/17.66/23.15 to 20.10/15.91/22.73 ms. The waterfall
+is effectively neutral, with GPU p99 10.13 → 10.08 ms. The garden gain is small;
+these changes do not yet deliver 60 FPS in the difficult Mission 1 scenes.
+
+The cache regression compares partial redraws with full redraws and full
+filtering through moving/disappearing casters, indexed/expanded geometry,
+wind, moving lights and changed resolutions. Those images match exactly.
+Twelve paired 4K prototype captures across tile-size variants, including
+animated actors and foliage, also match exactly. Wet-terrain, blood composition,
+cutout/transmission and daylight regressions pass, as do 134 ordinary tests,
+formatting, strict native/WASM Clippy and both release builds. Actual Chromium
+WebGPU records 762 reduction passes through saved-state loading, movement,
+lighting toggles, free camera and resume; WebGL2 records none and passes the
+same flow without GPU errors. Graphics controls leave paused gameplay unchanged.

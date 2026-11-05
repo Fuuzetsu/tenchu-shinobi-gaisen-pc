@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce soft-shadow filtering work in reflective rain scenes using conservative
+  GPU depth summaries. Shadow resolution, samples and appearance are unchanged;
+  other graphics configurations keep their existing rendering.
+
 - Improve frame times for reflective wet terrain with soft shadows by sharing
   lighting between surface shading and rain reflections. The optimisation uses
   HDR without edge anti-aliasing on native/WebGPU backends; other configurations

@@ -210,9 +210,12 @@ impl Options {
                 include_str!("depth.wgsl")
             }
         );
+        let bounds = include_str!("shadows/bounds_query.wgsl");
+        let bounds_tile = shadows::BOUNDS_TILE;
+        let bounds_enabled = !gl;
         device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Scene materials and lighting"),
-            source: wgpu::ShaderSource::Wgsl(format!("{common}\n{pass}").into()),
+            source: wgpu::ShaderSource::Wgsl(format!("const COARSE_SHADOWS: bool = {bounds_enabled}; const SHADOW_BOUND_TILE: u32 = {bounds_tile}u;\n{common}\n{pass}\n{bounds}").into()),
         })
     }
 }

@@ -738,8 +738,12 @@ impl Renderer {
         lighting.elapsed = self.shadow_elapsed;
         lighting.weather_bounds =
             self.snow_bounds() && self.decals.iter().any(|decal| decal.ground_blood);
-        self.shadows
-            .configure(&self.device, &lighting, lights.len());
+        self.shadows.configure(
+            &self.device,
+            &lighting,
+            lights.len(),
+            self.wet_lighting.is_some(),
+        );
         self.shadows.draw(
             &mut encoder,
             &self.queue,

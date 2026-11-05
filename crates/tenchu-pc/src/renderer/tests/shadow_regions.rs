@@ -61,17 +61,20 @@ fn moving_shadow_regions_match_full_redraws() {
         read_pixels(renderer, &target)
     };
     let mut partial = 0;
-    for mode in 0..3 {
+    for mode in 0..4 {
+        graphics.post.enabled = mode == 3;
+        graphics.lighting.source_size = if mode == 3 { 100 } else { 0 };
         graphics.lighting.directional.intensity = if mode == 1 { 100 } else { 0 };
         graphics.lighting.directional.radius = 8;
         graphics.lighting.directional.resolution = 512;
-        graphics.weather.mode = if mode == 2 {
-            crate::settings::WeatherMode::Snow
-        } else {
-            crate::settings::WeatherMode::Original
+        graphics.weather.mode = match mode {
+            2 => crate::settings::WeatherMode::Snow,
+            3 => crate::settings::WeatherMode::Rain,
+            _ => crate::settings::WeatherMode::Original,
         };
         renderer.configure(&graphics);
         renderer.weather.snow = f32::from(mode == 2);
+        renderer.weather.wet = f32::from(mode == 3);
         for frame in 0..18 {
             match frame {
                 6 => graphics.motion.wind = 0,
@@ -103,6 +106,7 @@ fn moving_shadow_regions_match_full_redraws() {
                 _ => renderer.update_mesh(&mut actor, &mut vertices),
             }
             let cached = draw(&mut renderer, &lights, &actor);
+            assert_eq!(renderer.shadows.bounds_enabled(), mode == 3 && !renderer.gl);
             if mode == 0
                 && renderer.shadows.rendered_area
                     < renderer.shadows.rendered_faces as u64
@@ -111,9 +115,11 @@ fn moving_shadow_regions_match_full_redraws() {
                 partial += 1;
             }
             renderer.shadows.draw_all_faces = true;
+            renderer.shadows.skip_bounds = true;
             let expanded = renderer.upload(&vertices);
             let reference = draw(&mut renderer, &lights, &expanded);
             renderer.shadows.draw_all_faces = false;
+            renderer.shadows.skip_bounds = false;
             assert!(
                 cached == reference,
                 "Shadow mismatch in mode {mode}, frame {frame}"
