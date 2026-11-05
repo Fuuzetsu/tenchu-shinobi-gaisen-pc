@@ -488,15 +488,19 @@ impl Shadows {
         let mut data = vec![0.0f32; LIGHT_WORDS + FACES * 16];
         let receivers = super::culling::Volume::new(camera);
         let eye = camera.inverse().project_point3(Vec3::ZERO);
+        let mut flame_offsets = [Vec3::ZERO; MAX_SHADOW_LIGHTS];
         for i in 0..self.grid.order.len() {
             let source = self.grid.order[i];
             let light = &lights[source];
             data[i * 8..i * 8 + 4].copy_from_slice(&light.position.extend(light.radius).to_array());
-            data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color);
+            let (offset, brightness) =
+                crate::lighting::flames::motion(light, frame.visual_time, settings.flame_motion);
+            data[i * 8 + 4..i * 8 + 7].copy_from_slice(&light.color.map(|c| c * brightness));
             let Some((slot, strength)) = selected[source] else {
                 continue;
             };
             data[i * 8 + 7] = (slot + 1) as f32 + strength * 0.5;
+            flame_offsets[slot] = offset;
             let distance = eye.distance(light.position);
             self.point_sizes[slot] = if frame.adaptive_shadows {
                 point_resolution(distance, self.point_sizes[slot], self.resolution)
@@ -643,8 +647,13 @@ impl Shadows {
                 0.0,
             ]);
         }
-        for size in self.point_sizes {
-            data.extend([size as f32 / self.resolution as f32, 0.0, 0.0, 0.0]);
+        for (size, offset) in self.point_sizes.into_iter().zip(flame_offsets) {
+            data.extend([
+                size as f32 / self.resolution as f32,
+                offset.x,
+                offset.y,
+                offset.z,
+            ]);
         }
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {

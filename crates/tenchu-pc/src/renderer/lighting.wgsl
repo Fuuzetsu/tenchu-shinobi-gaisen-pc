@@ -210,13 +210,19 @@ fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>,
 
 fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>) -> f32 {
     if light.color.w == 0.0 { return 1.0; }
-    let delta = position - light.position.xyz;
-    let distance = max(length(delta), 1.0);
     let slot = u32(floor(light.color.w) - 1.0);
+    var surface = position;
+    if FLAME_MOTION {
+        let offset = lighting.shadow_extent[slot].yzw;
+        // Stay on the receiver's plane: a depth offset would make it shadow itself.
+        surface += offset - surface_normal * dot(offset, surface_normal);
+    }
+    let delta = surface - light.position.xyz;
+    let distance = max(length(delta), 1.0);
     let scale = shadow_scale(slot * 6u);
     let layer = slot * 6u + shadow_face(delta);
     let matrix = lighting.matrices[layer];
-    let receiver = position - delta / distance * 2.0;
+    let receiver = surface - delta / distance * 2.0;
     let p = matrix * vec4(receiver, 1.0);
     let uv = (p.xy / p.w * vec2(0.5, -0.5) + vec2(0.5)) * scale;
     let right = vec3(matrix[0].x, matrix[1].x, matrix[2].x);

@@ -31,6 +31,7 @@ pub fn sources(
                 / 100.0
                 * 0.12;
             Some(Light {
+                flame: false,
                 emission_radius: 0.0,
                 position: Vec3::from(spark.position.to_array().map(|v| v as f32))
                     - Vec3::from(spark.velocity.map(f32::from)) * (1.0 - alpha),
@@ -93,6 +94,7 @@ mod tests {
     fn moving_sparks_keep_bounded_lights_without_inflating_brightness() {
         let lights = |offset: Vec3, strength| {
             clusters((0..200).map(|i| Light {
+                flame: false,
                 emission_radius: 0.0,
                 position: offset + Vec3::new(i as f32 * 12.0, 0.0, 0.0),
                 color: [strength, strength * 0.5, 0.0],

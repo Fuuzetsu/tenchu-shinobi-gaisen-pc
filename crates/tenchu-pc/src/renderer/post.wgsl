@@ -15,6 +15,7 @@ struct Options {
 @group(0) @binding(7) var<uniform> options: Options;
 @group(0) @binding(8) var depth_sampler: sampler;
 @group(0) @binding(9) var ambient_occlusion: texture_2d<f32>;
+@group(0) @binding(10) var heat_map: texture_2d<f32>;
 
 struct Fragment { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> }
 struct Output { @location(0) color: vec4<f32>, @builtin(frag_depth) depth: f32 }
@@ -23,12 +24,6 @@ struct Output { @location(0) color: vec4<f32>, @builtin(frag_depth) depth: f32 }
     return Fragment(vec4(uv * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 0.0, 1.0), uv);
 }
 
-fn depth_at(pixel: vec2<i32>) -> f32 {
-    let point = clamp(pixel, vec2(0), vec2<i32>(textureDimensions(depth_map)) - vec2(1));
-    var depth = 1.0;
-    for (var i = 0; i < SAMPLE_COUNT; i++) { depth = min(depth, DEPTH_SAMPLE); }
-    return depth;
-}
 
 fn world(uv: vec2<f32>, depth: f32) -> vec3<f32> {
     let p = options.inverse * vec4(uv * vec2(2.0, -2.0) + vec2(-1.0, 1.0), depth, 1.0);
@@ -116,7 +111,19 @@ fn filmic(color: vec3<f32>) -> vec3<f32> {
 @fragment fn fragment(v: Fragment) -> Output {
     let pixel = vec2<i32>(v.position.xy);
     let depth = depth_at(pixel);
-    var color = textureSampleLevel(scene, linear_sampler, v.uv, 0.0).rgb;
+    var uv = v.uv;
+    if HEAT && options.finish.w > 0.0 {
+        let heat = textureSampleLevel(heat_map, linear_sampler, uv, 0.0);
+        if heat.w > 0.0001 {
+            let plume_depth = heat.z / heat.w * 1000.0;
+            let shift = heat.xy / max(1.0, heat.w);
+            let warped = clamp(uv + shift, vec2(0.0), vec2(1.0));
+            let surface = options.inverse * vec4(uv * vec2(2.0, -2.0) + vec2(-1.0, 1.0), depth, 1.0);
+            let neighbor = options.inverse * vec4(warped * vec2(2.0, -2.0) + vec2(-1.0, 1.0), depth_at(vec2<i32>(warped * options.size.xy)), 1.0);
+            if 1.0 / surface.w >= plume_depth && 1.0 / neighbor.w >= plume_depth { uv = warped; }
+        }
+    }
+    var color = textureSampleLevel(scene, linear_sampler, uv, 0.0).rgb;
     let original_color = color;
     if depth < 0.999999 && options.effects.y > 0.0 {
         var ao: f32;
@@ -126,18 +133,18 @@ fn filmic(color: vec3<f32>) -> vec3<f32> {
     }
     if options.finish.z > 0.0 {
         let step = 1.0 / options.size.xy;
-        let neighbors = (textureSampleLevel(scene, linear_sampler, v.uv + vec2(step.x, 0.0), 0.0).rgb
-            + textureSampleLevel(scene, linear_sampler, v.uv - vec2(step.x, 0.0), 0.0).rgb
-            + textureSampleLevel(scene, linear_sampler, v.uv + vec2(0.0, step.y), 0.0).rgb
-            + textureSampleLevel(scene, linear_sampler, v.uv - vec2(0.0, step.y), 0.0).rgb) * 0.25;
+        let neighbors = (textureSampleLevel(scene, linear_sampler, uv + vec2(step.x, 0.0), 0.0).rgb
+            + textureSampleLevel(scene, linear_sampler, uv - vec2(step.x, 0.0), 0.0).rgb
+            + textureSampleLevel(scene, linear_sampler, uv + vec2(0.0, step.y), 0.0).rgb
+            + textureSampleLevel(scene, linear_sampler, uv - vec2(0.0, step.y), 0.0).rgb) * 0.25;
         color = max(vec3(0.0), color + (original_color - neighbors) * options.finish.z);
     }
     if options.effects.x > 0.0 {
         color += options.effects.x * (
-            textureSampleLevel(bloom0, linear_sampler, v.uv, 0.0).rgb * 0.35
-            + textureSampleLevel(bloom1, linear_sampler, v.uv, 0.0).rgb * 0.3
-            + textureSampleLevel(bloom2, linear_sampler, v.uv, 0.0).rgb * 0.2
-            + textureSampleLevel(bloom3, linear_sampler, v.uv, 0.0).rgb * 0.15);
+            textureSampleLevel(bloom0, linear_sampler, uv, 0.0).rgb * 0.35
+            + textureSampleLevel(bloom1, linear_sampler, uv, 0.0).rgb * 0.3
+            + textureSampleLevel(bloom2, linear_sampler, uv, 0.0).rgb * 0.2
+            + textureSampleLevel(bloom3, linear_sampler, uv, 0.0).rgb * 0.15);
     }
     color *= options.color.x * vec3(1.0 + options.color.w * 0.3, 1.0, 1.0 - options.color.w * 0.3);
     if options.effects.w != 0.0 { color = filmic(color); }

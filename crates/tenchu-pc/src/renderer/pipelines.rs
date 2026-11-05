@@ -12,6 +12,7 @@ pub(super) struct Options {
     water: bool,
     coarse_shadows: bool,
     adaptive_shadows: bool,
+    flame_motion: bool,
 }
 
 impl Options {
@@ -31,6 +32,7 @@ impl Options {
             water: graphics.water.enabled,
             coarse_shadows: super::wet_lighting::configured(graphics, samples, false),
             adaptive_shadows: graphics.rendering.adaptive_shadows,
+            flame_motion: graphics.lighting.enabled && graphics.lighting.flame_motion > 0,
         }
     }
 }
@@ -185,7 +187,8 @@ impl Options {
 
     fn module(self, device: &wgpu::Device, gl: bool, pass: &str) -> wgpu::ShaderModule {
         let common = format!(
-            "const ADAPTIVE_SHADOWS: bool = {}; const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_TAPS: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "const FLAME_MOTION: bool = {}; const ADAPTIVE_SHADOWS: bool = {}; const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_TAPS: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            self.flame_motion,
             self.adaptive_shadows,
             self.filtering != 0 || self.magnification != 0,
             self.lighting,

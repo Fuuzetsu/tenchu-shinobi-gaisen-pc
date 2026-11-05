@@ -283,6 +283,7 @@ fn compare_surface_relief() {
             ) * Mat4::look_at_rh(eye, center, Vec3::NEG_Y);
             eprintln!("{name}/{view_name}: eye {eye:?}, target {center:?}");
             let lights = [crate::lighting::Light {
+                flame: false,
                 emission_radius: 0.0,
                 position: center + normal * 1800.0 + Vec3::X * 3000.0 - Vec3::Y * 2000.0,
                 color: [1.0, 0.9, 0.8],

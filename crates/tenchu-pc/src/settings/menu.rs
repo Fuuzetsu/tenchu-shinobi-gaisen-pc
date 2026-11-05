@@ -212,6 +212,8 @@ pub enum Item {
     ShadowCount,
     ShadowSoftness,
     LightSourceSize,
+    FlameMotion,
+    HeatShimmer,
     LampLights,
     LightMarkers,
     FocusLight,
@@ -1987,6 +1989,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Shadow filtering radius",
                     light.softness.to_string(),
                     "0: bilinear; 1-8: nine-tap soft edges.",
+                ),
+                (
+                    Item::FlameMotion,
+                    "Flame light / shadow motion",
+                    format!("{}%", light.flame_motion),
+                    "Gentle flame flicker and moving shadow edges. Reuses cached shadow maps; does not move lights or affect gameplay. 0: steady lights.",
+                ),
+                (
+                    Item::HeatShimmer,
+                    "Flame heat shimmer",
+                    format!("{}%", light.heat_shimmer),
+                    "Local heat distortion above flames and lanterns. Requires dynamic lighting and HDR image finishing. Foreground objects and the interface stay clear. 0: off.",
                 ),
             ]
         }

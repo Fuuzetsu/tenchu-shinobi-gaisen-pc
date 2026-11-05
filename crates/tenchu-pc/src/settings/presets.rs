@@ -83,6 +83,8 @@ fn preset(index: u16) -> Graphics {
         g.lighting.resolution = 512;
         g.lighting.directional.resolution = if medium { 1024 } else { 512 };
         g.lighting.softness = 2;
+        g.lighting.flame_motion = 0;
+        g.lighting.heat_shimmer = 0;
         g.post.enabled = medium;
         g.post.occlusion = 0;
         return g;
@@ -234,6 +236,8 @@ fn modern(ultra: bool) -> Graphics {
     g.lighting.count = 8;
     g.lighting.shadow_count = if ultra { 8 } else { 6 };
     g.lighting.radius = 18;
+    g.lighting.flame_motion = if ultra { 50 } else { 35 };
+    g.lighting.heat_shimmer = if ultra { 40 } else { 25 };
     g.lighting.intensity = 120;
     g.lighting.ambient = 50;
     g.lighting.softness = 3;

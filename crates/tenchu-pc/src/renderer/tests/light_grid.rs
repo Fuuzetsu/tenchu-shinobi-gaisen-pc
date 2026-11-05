@@ -18,6 +18,7 @@ fn overlapping_lights_accumulate_across_cell_groups() {
     graphics.lighting.shadows = false;
     graphics.lighting.ambient = 20;
     let light = Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(0.0, -300.0, 0.0),
         radius: 3000.0,
@@ -89,6 +90,7 @@ fn distant_regions_keep_their_lights_when_priority_changes() {
     let camera = Mat4::orthographic_rh(-60_000.0, 60_000.0, -60_000.0, 60_000.0, 1.0, 200_000.0)
         * Mat4::look_to_rh(Vec3::new(0.0, 0.0, -100_000.0), Vec3::Z, Vec3::NEG_Y);
     let lights = [-40_000.0, 40_000.0].map(|x| Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(x, 0.0, -3000.0),
         radius: 12_000.0,

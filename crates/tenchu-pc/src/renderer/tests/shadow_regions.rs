@@ -35,6 +35,7 @@ fn moving_shadow_regions_match_full_redraws() {
     ));
     let mut actor = renderer.upload(&[]);
     let mut lights = [crate::lighting::Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(300.0, -4000.0, 200.0),
         color: [1.0; 3],

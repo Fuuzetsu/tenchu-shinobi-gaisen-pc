@@ -434,8 +434,9 @@ impl Renderer {
         };
         let attachments_changed =
             samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
-        let occlusion_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0)
-            || graphics.rendering.half_resolution_ao != self.graphics.rendering.half_resolution_ao;
+        let post_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0)
+            || graphics.rendering.half_resolution_ao != self.graphics.rendering.half_resolution_ao
+            || post::heat_enabled(graphics) != post::heat_enabled(&self.graphics);
         let options = pipelines::Options::new(graphics, samples);
         let shader_changed = options != pipelines::Options::new(&self.graphics, self.samples);
         let pipelines_changed = attachments_changed || shader_changed;
@@ -455,7 +456,7 @@ impl Renderer {
         if attachments_changed {
             self.samples = samples;
             self.resize(self.size);
-        } else if self.graphics.post.enabled && occlusion_changed {
+        } else if self.graphics.post.enabled && post_changed {
             self.configure_post();
         }
         let compose_blood = self.composite_supported
@@ -814,8 +815,14 @@ impl Renderer {
         if let Some(timer) = &self.timings {
             timer.mark(&mut encoder, 1);
         }
-        if let Some(post) = &self.post {
-            post.prepare(&self.queue, matrix, &self.graphics);
+        if let Some(post) = &mut self.post {
+            post.prepare(
+                &self.queue,
+                matrix,
+                &self.graphics,
+                lights,
+                self.visual_time,
+            );
         }
         let prepass = meshes
             .terrain

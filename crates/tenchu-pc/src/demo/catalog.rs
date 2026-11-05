@@ -9,6 +9,7 @@ pub enum Feature {
     Presets,
     Lanterns,
     FireLights,
+    FlameMotion,
     Shadows,
     Moon,
     DayCycle,

@@ -78,6 +78,7 @@ fn rain_controls_change_reflections_ripples_and_visibility() {
     let camera = Mat4::perspective_rh(1.0, 1.0, 10.0, 30000.0)
         * Mat4::look_at_rh(Vec3::new(0.0, -1500.0, -2000.0), Vec3::ZERO, Vec3::NEG_Y);
     let light = crate::lighting::Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(0.0, -1500.0, 2000.0),
         color: [1.0, 0.45, 0.15],

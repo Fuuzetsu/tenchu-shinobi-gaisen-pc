@@ -5,6 +5,7 @@ use tenchu_core::math::Matrix;
 
 mod blood_composite;
 mod contact;
+mod flames;
 mod light_grid;
 mod models;
 mod motion;
@@ -890,6 +891,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     let receiver = renderer.upload(&quad(Vec3::ZERO, 1000.0, 0));
     let sample = Vec3::new(-234.375, -234.375, 0.0);
     let light = Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(1000.0, -800.0, -1000.0),
         color: [1.0; 3],
@@ -1135,6 +1137,7 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
     draw(&mut renderer, &[], &[]);
     assert_eq!(draw(&mut renderer, &[light], &[&blocker]), shadowed);
     let burning = Light {
+        flame: false,
         emission_radius: 1200.0,
         ..light
     };
@@ -1201,6 +1204,7 @@ fn live_character_and_weapon_meshes_cast_shadows() {
         let matrix = Mat4::orthographic_rh(-4000.0, 4000.0, -4000.0, 4000.0, 1.0, 20000.0)
             * Mat4::look_at_rh(origin - Vec3::Y * 9000.0, origin, Vec3::Z);
         let lights = [Light {
+            flame: false,
             emission_radius: 0.0,
             position: origin + Vec3::new(2500.0, -4000.0, 1500.0),
             radius: 15000.0,
@@ -1626,6 +1630,7 @@ fn lanterns_fill_moon_shadows_without_lighting_backfaces_or_clipping() {
     let bright = renderer.upload(&quad(Vec3::ZERO, 1000.0, 1.0));
     let sample = Vec3::new(-234.375, -234.375, 0.0);
     let lamp = Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(-800.0, 300.0, -900.0),
         color: [1.0; 3],
@@ -1912,6 +1917,7 @@ fn finite_lamps_and_daylight_keep_local_shadows_balanced() {
     };
     let receiver = renderer.upload(&quad(Vec3::ZERO, glam::Vec2::splat(1000.0)));
     let lamp = Light {
+        flame: false,
         emission_radius: 0.0,
         position: Vec3::new(0.0, 0.0, -1200.0),
         color: [1.0; 3],

@@ -30,6 +30,7 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
         position: Vec3::new(0.0, -300.0, 0.0),
         color: [1.0, 0.8, 0.6],
         radius: 3000.0,
+        flame: false,
         emission_radius: 0.0,
     };
     let draw = |renderer: &mut Renderer, mesh: &Mesh, light: crate::lighting::Light| {

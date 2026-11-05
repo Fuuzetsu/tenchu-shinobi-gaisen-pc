@@ -429,6 +429,21 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.lighting.intensity = (wave * 220.0).round() as u16;
             g.lighting.directional.intensity = 0;
         }
+        Feature::FlameMotion => {
+            g.lighting.enabled = true;
+            g.lighting.shadows = true;
+            g.post.enabled = true;
+            g.lighting.flame_motion = match section(p, 4) {
+                2 => 100,
+                3 => 35,
+                _ => 0,
+            };
+            g.lighting.heat_shimmer = match section(p, 4) {
+                1 => 100,
+                3 => 25,
+                _ => 0,
+            };
+        }
         Feature::FireLights => {
             g.lighting.enabled = true;
             g.lighting.lamps = false;
@@ -883,6 +898,12 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
                 minutes % 60
             ))
         }
+        Feature::FlameMotion => text([
+            "Steady flame lighting · no distortion",
+            "Heat shimmer 100% · background only",
+            "Flame motion 100% · cached shadow maps",
+            "Modern High · gentle shimmer and dancing shadows",
+        ][section(p, 4)].into()),
         Feature::FireLights => text(format!("Authored fire lights: {}", on(l.fires))),
         Feature::Shadows => {
             text(["Shadows off", "Hard model shadows", "Soft model shadows"][section(p, 3)].into())

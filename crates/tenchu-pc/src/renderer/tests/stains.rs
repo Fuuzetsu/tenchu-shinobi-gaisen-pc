@@ -79,6 +79,7 @@ fn projected_blood_shader_preserves_surface_flags_and_blending() {
         position: Vec3::new(-1500.0, -2000.0, 500.0),
         color: [1.0, 0.4, 0.2],
         radius: 12000.0,
+        flame: false,
         emission_radius: 0.0,
     };
     let capture = |renderer: &mut Renderer| {

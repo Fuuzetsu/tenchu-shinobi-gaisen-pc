@@ -8,11 +8,17 @@ use tenchu_core::{
 
 pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
     let mut lights: Vec<Source> = Vec::new();
-    let mut add = |name: &str, position: Vec3, strength: f32, reach: f32, emission_radius: f32| {
+    let mut add = |name: &str,
+                   position: Vec3,
+                   strength: f32,
+                   reach: f32,
+                   emission_radius: f32,
+                   flame: bool| {
         if strength <= 0.01 {
             return;
         }
         let light = Light {
+            flame,
             emission_radius,
             position,
             color: [strength, strength * 0.43, strength * 0.12],
@@ -34,7 +40,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
         }
     };
     for effect in game.effects.active_slots().iter().flatten() {
-        let (name, effect, strength, reach) = match effect {
+        let (name, effect, strength, reach, flame) = match effect {
             Effect::Explosion(e) => (
                 "Explosion",
                 e,
@@ -44,6 +50,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
                     _ => 1.4 * f32::from(e.time) / 5.0,
                 },
                 0.9,
+                false,
             ),
             Effect::Ember(e) => (
                 "Burning embers",
@@ -54,6 +61,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
                     f32::from(e.time) / 30.0
                 },
                 0.45,
+                true,
             ),
             _ => continue,
         };
@@ -64,6 +72,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
             strength,
             reach,
             0.0,
+            flame,
         );
     }
     for flame in &game.effects.billboards {
@@ -76,6 +85,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
             (f32::from(flame.color[0]) / 128.0) * (flame.scale[0] as f32 / 12288.0).clamp(0.0, 2.0),
             0.5,
             (flame.scale[0] as f32 / 12288.0 * 500.0).clamp(0.0, 1000.0),
+            true,
         );
     }
     for item in &game.items.slots {
@@ -96,6 +106,7 @@ pub(super) fn sources(game: &Game, radius: f32) -> Vec<Source> {
                 strength,
                 0.6,
                 0.0,
+                true,
             );
         }
     }
@@ -137,6 +148,7 @@ mod tests {
             {
                 assert_eq!(lights.len(), 1);
                 let light = lights[0].light;
+                assert!(light.flame);
                 let expected = game.scene.world(part).unwrap().transform([40, -60, 20]);
                 assert_eq!(
                     light.position.to_array(),
@@ -214,6 +226,7 @@ mod tests {
                         vec![Source {
                             name: "Nearby lantern".into(),
                             light: Light {
+                                flame: false,
                                 emission_radius: 0.0,
                                 position: Vec3::from(
                                     game.player().position.map(|n| n as f32).to_array(),

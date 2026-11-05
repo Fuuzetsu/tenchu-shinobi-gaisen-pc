@@ -80,6 +80,14 @@ lantern panels diffuse their own light; caps and surrounding objects still cast
 shadows. Daylight reduces lantern fill on sunlit surfaces while sheltered lamps
 remain useful. This approximates area lighting with shadow maps.
 
+**Flame light / shadow motion** adds subtle flicker and shifting shadow edges to
+fires, burning characters and lanterns. It reuses the existing shadow maps rather
+than moving their cameras. **Flame heat shimmer** distorts small areas above those
+sources; it needs dynamic lighting and HDR image finishing. Scene depth protects
+foreground objects, and the HUD stays clear. Both strengths range from 0 (off) to
+100%. Modern High uses 35% motion / 25% shimmer; Ultra uses 50% / 40%. Existing
+custom settings keep both off. Try `demo --clips flame-motion` for a comparison.
+
 **F1 → Rendering trials** offers opt-in rendering alternatives for comparison:
 adaptive local shadows, half-resolution ambient occlusion with depth-aware
 reconstruction, and cached modern terrain blood. The blood cache uses HDR
@@ -1537,7 +1545,8 @@ case-insensitive `name_contains`, or an exact catalogue `model` identity. Rules
 accept `enabled`, `threshold` (0.05–1 brightness), `emission` (0–10),
 `radius_scale` (0.1–4), optional RGB `color` and a local-space `offset`.
 `emit_caps: true` permits emission from upward/downward surfaces for custom
-fixtures; the default excludes them.
+fixtures; the default excludes them. `flame: false` opts a rule out of flame
+flicker and heat shimmer (for example, an electric replacement fixture).
 Defaults derive color and position from the original mesh/texture; offsets let
 replacement authors adjust them. Reload through Visual assets. No mission
 coordinates are embedded in the renderer.

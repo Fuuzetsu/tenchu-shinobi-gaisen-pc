@@ -79,6 +79,7 @@ mod tests {
     #[test]
     fn shadow_budget_handover_fades_without_changing_on_list_reordering() {
         let a = Light {
+            flame: false,
             emission_radius: 0.0,
             position: glam::Vec3::ZERO,
             color: [1.0; 3],

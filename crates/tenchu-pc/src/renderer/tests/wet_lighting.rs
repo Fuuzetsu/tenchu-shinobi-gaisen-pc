@@ -113,6 +113,7 @@ fn wet_lighting_preserves_surfaces_and_actors() {
                         position: Vec3::new(x - 500.0, -700.0, 1800.0),
                         color: [1.0, 0.5, 0.2],
                         radius: 7000.0,
+                        flame: false,
                         emission_radius: 0.0,
                     };
                     let camera =

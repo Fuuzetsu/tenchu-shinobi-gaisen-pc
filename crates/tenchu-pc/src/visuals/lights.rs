@@ -18,6 +18,7 @@ pub struct Rule {
     pub threshold: f32,
     pub emission: f32,
     pub emit_caps: bool,
+    pub flame: bool,
     pub radius_scale: f32,
     pub color: Option<[f32; 3]>,
     pub offset: [f32; 3],
@@ -32,6 +33,7 @@ impl Default for Rule {
             threshold: 0.65,
             emission: 1.0,
             emit_caps: false,
+            flame: true,
             radius_scale: 1.0,
             color: None,
             offset: [0.0; 3],
@@ -93,6 +95,7 @@ pub fn rules(pack: &Pack, artwork: bool) -> Vec<Rule> {
 }
 
 struct Emitter {
+    flame: bool,
     name: String,
     position: Vec3,
     color: [f32; 3],
@@ -141,6 +144,7 @@ impl Emitters {
         Some(Source {
             name: emitter.name.clone(),
             light: Light {
+                flame: emitter.flame,
                 emission_radius: 0.0,
                 position: rotation * emitter.position
                     + Vec3::from(matrix.translation.map(|v| v as f32).to_array()),
@@ -246,6 +250,7 @@ fn detect(
         }
     }
     (weight > 0.0).then(|| Emitter {
+        flame: rule.flame,
         name: model.label.clone(),
         position: position / weight + Vec3::from(rule.offset),
         color: rule

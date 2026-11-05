@@ -321,6 +321,7 @@ mod tests {
             position: Vec3::new(x, 0.0, 0.0),
             radius,
             color: [1.0; 3],
+            flame: false,
             emission_radius: 0.0,
         };
         let mut partial = false;

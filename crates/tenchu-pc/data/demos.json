@@ -22,6 +22,17 @@
     "shot": "lamp"
   },
   {
+    "id": "flame-motion",
+    "title": "Warm air and dancing shadows",
+    "description": "Heat gently warps the background above a lantern. Flame flicker moves shadow edges while reusing cached shadow maps. Foreground objects and gameplay stay unchanged.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 5,
+    "feature": "flame-motion",
+    "shot": "lamp"
+  },
+  {
     "id": "fires",
     "title": "Warmth from authored fires",
     "description": "The original fire and bonfire placements become real light sources. Compare their effect on nearby surfaces with fire lighting disabled and enabled.",

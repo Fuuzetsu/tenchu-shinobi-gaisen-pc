@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add adjustable **Flame heat shimmer** and **Flame light / shadow motion** under F1 → Lighting. Heat distorts backgrounds above fires and lanterns without disturbing foreground objects or the interface; subtle flicker and dancing shadow edges reuse cached shadow maps. Modern High/Ultra enable gentle amounts, with a dedicated comparison demo. Original and existing custom settings remain unchanged.
+
 - Add optional Onikage-inspired **Death gush strength/duration** under F1 → Blood. Repeated upward bursts follow dying characters after their original blood cue, including alternate player deaths. Clear blood stops them; cinematic blood and gameplay are unchanged. Includes a death-gush demo; disabled by default.
 
 - Add optional **R1 guard / dash / roll** controls under F1 → Movement. Hold the rebindable R1 action to block frontal melee attacks while standing; press a direction for one dash, or hold crouch for a roll. Original recoil and committed actions still apply. Includes a guard-control demo; existing controls remain the default.

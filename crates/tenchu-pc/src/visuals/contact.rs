@@ -490,6 +490,7 @@ impl Contact {
                 crate::lighting::Source {
                     name: "Metal impact".into(),
                     light: crate::lighting::Light {
+                        flame: false,
                         emission_radius: 0.0,
                         position: f.position,
                         color: [strength * 1.5, strength * 0.8, strength * 0.25],
@@ -508,6 +509,7 @@ impl Contact {
             .map(move |p| {
                 let strength = ((p.life - p.age) / (p.life * 0.5)).clamp(0.0, 1.0) * 0.1;
                 crate::lighting::Light {
+                    flame: false,
                     emission_radius: 0.0,
                     position: p.previous.lerp(p.position, alpha),
                     color: p.color.map(|c| c * strength),

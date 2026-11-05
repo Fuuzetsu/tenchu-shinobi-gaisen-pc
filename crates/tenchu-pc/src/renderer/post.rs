@@ -1,5 +1,6 @@
 use crate::settings::Graphics;
 use glam::Mat4;
+mod heat;
 
 pub const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
@@ -17,6 +18,7 @@ pub struct Post {
     size: [u32; 2],
     depth_resolve: Option<DepthPass>,
     occlusion: Option<DepthPass>,
+    heat: Option<heat::Heat>,
 }
 
 impl Post {
@@ -46,6 +48,16 @@ impl Post {
             },
             wgpu::TextureFormat::Rg16Float,
         );
+        let heat_enabled = heat_enabled(graphics);
+        let heat_target = target(
+            device,
+            if heat_enabled {
+                size.map(|n| n.div_ceil(4))
+            } else {
+                [1, 1]
+            },
+            FORMAT,
+        );
         let scene = target(device, size, FORMAT);
         let overlay_depth = target(device, size, wgpu::TextureFormat::Depth32Float);
         let levels: Vec<_> = (1..=4)
@@ -61,6 +73,8 @@ impl Post {
             label: Some("Unfiltered scene depth"),
             ..Default::default()
         });
+        let heat = heat_enabled
+            .then(|| heat::Heat::new(device, &heat_target, depth, &depth_sampler, samples, gl));
         let data = buffer(device, 32 * 4);
         let bloom_data = buffer(device, 16);
         let bloom_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -120,6 +134,7 @@ impl Post {
             texture_entry(6, true, samples > 1),
             uniform_entry(7),
             texture_entry(9, false, false),
+            texture_entry(10, false, false),
             wgpu::BindGroupLayoutEntry {
                 binding: 8,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -135,25 +150,8 @@ impl Post {
             label: Some("HDR finishing and depth resolve"),
             source: wgpu::ShaderSource::Wgsl(
                 format!(
-                    "const SAMPLE_COUNT: i32 = {samples}; const HALF_RES_AO: bool = {half_ao};\n{}",
-                    include_str!("post.wgsl").replace(
-                        "DEPTH_TYPE",
-                        if samples > 1 {
-                            "texture_multisampled_2d<f32>"
-                        } else {
-                            "texture_2d<f32>"
-                        }
-                    ).replace(
-                        "DEPTH_SAMPLE",
-                        if samples > 1 {
-                            "textureLoad(depth_map, point, i).r"
-                        } else if gl {
-                            // An explicit nearest sampler avoids incomplete depth textures in WebGL.
-                            "textureSampleLevel(depth_map, depth_sampler, (vec2<f32>(point) + vec2(0.5)) / vec2<f32>(textureDimensions(depth_map)), 0.0).r"
-                        } else {
-                            "textureLoad(depth_map, point, 0).r"
-                        }
-                    )
+                    "const HALF_RES_AO: bool = {half_ao}; const HEAT: bool = {heat_enabled};\n{}",
+                    depth_shader(include_str!("post.wgsl"), samples, gl)
                 )
                 .into(),
             ),
@@ -230,6 +228,10 @@ impl Post {
                 resource: wgpu::BindingResource::TextureView(&ao_target),
             },
             wgpu::BindGroupEntry {
+                binding: 10,
+                resource: wgpu::BindingResource::TextureView(&heat_target),
+            },
+            wgpu::BindGroupEntry {
                 binding: 8,
                 resource: wgpu::BindingResource::Sampler(&depth_sampler),
             },
@@ -253,10 +255,28 @@ impl Post {
             size,
             depth_resolve,
             occlusion,
+            heat,
         }
     }
 
-    pub fn prepare(&self, queue: &wgpu::Queue, camera: Mat4, graphics: &Graphics) {
+    pub fn prepare(
+        &mut self,
+        queue: &wgpu::Queue,
+        camera: Mat4,
+        graphics: &Graphics,
+        lights: &[crate::lighting::Light],
+        time: f32,
+    ) {
+        let heat_active = self.heat.as_mut().is_some_and(|heat| {
+            heat.prepare(
+                queue,
+                camera,
+                lights,
+                time,
+                graphics.lighting.heat_shimmer,
+                self.size,
+            )
+        });
         let settings = &graphics.post;
         let mut data = camera.inverse().to_cols_array().to_vec();
         data.extend([
@@ -271,7 +291,7 @@ impl Post {
             f32::from(settings.gamma) / 100.0,
             f32::from(settings.vignette) / 100.0,
             f32::from(settings.sharpen) / 100.0,
-            0.0,
+            u8::from(heat_active) as f32,
         ]);
         data.extend([self.size[0] as f32, self.size[1] as f32, 0.0, 0.0]);
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&data));
@@ -304,6 +324,9 @@ impl Post {
                 pass.set_bind_group(0, &source.bindings, &[]);
                 pass.draw(0..3, 0..1);
             }
+        }
+        if let Some(heat) = &self.heat {
+            heat.draw(encoder);
         }
         if bloom {
             for (i, view) in self.levels.iter().enumerate() {
@@ -511,4 +534,19 @@ impl DepthPass {
             bindings,
         }
     }
+}
+
+fn depth_shader(source: &str, samples: u32, gl: bool) -> String {
+    format!("const SAMPLE_COUNT: i32 = {samples};\n{}\n{source}", include_str!("post/depth.wgsl"))
+        .replace("DEPTH_TYPE", if samples > 1 { "texture_multisampled_2d<f32>" } else { "texture_2d<f32>" })
+        .replace("DEPTH_SAMPLE", if samples > 1 {
+            "textureLoad(depth_map, point, i).r"
+        } else if gl {
+            // WebGL depth textures require an explicit nearest sampler.
+            "textureSampleLevel(depth_map, depth_sampler, (vec2<f32>(point) + vec2(0.5)) / vec2<f32>(textureDimensions(depth_map)), 0.0).r"
+        } else { "textureLoad(depth_map, point, 0).r" })
+}
+
+pub(super) fn heat_enabled(graphics: &Graphics) -> bool {
+    graphics.lighting.enabled && graphics.lighting.count > 0 && graphics.lighting.heat_shimmer > 0
 }

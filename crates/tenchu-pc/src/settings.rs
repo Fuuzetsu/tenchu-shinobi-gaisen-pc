@@ -342,6 +342,8 @@ pub struct Lighting {
     pub markers: bool,
     pub softness: u16,
     pub source_size: u16,
+    pub flame_motion: u16,
+    pub heat_shimmer: u16,
     pub sky_tint: u16,
     pub directional: Directional,
 }
@@ -362,6 +364,8 @@ impl Default for Lighting {
             markers: false,
             softness: 0,
             source_size: 100,
+            flame_motion: 0,
+            heat_shimmer: 0,
             sky_tint: 0,
             directional: Directional::default(),
         }
@@ -399,6 +403,8 @@ impl Lighting {
         self.ambient = self.ambient.min(100);
         self.softness = self.softness.min(8);
         self.source_size = self.source_size.min(400);
+        self.flame_motion = self.flame_motion.min(100);
+        self.heat_shimmer = self.heat_shimmer.min(100);
         self.sky_tint = self.sky_tint.min(100);
         self.directional.validate();
         self.count = self.count.min(crate::lighting::MAX_LIGHTS as u16);

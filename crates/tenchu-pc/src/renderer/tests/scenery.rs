@@ -79,6 +79,7 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
         position: Vec3::new(-1500.0, -1800.0, 2000.0),
         color: [1.0, 0.4, 0.2],
         radius: 12000.0,
+        flame: false,
         emission_radius: 0.0,
     };
     let capture = |renderer: &mut Renderer, terrain: &Mesh| {
