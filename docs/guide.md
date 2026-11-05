@@ -1395,6 +1395,19 @@ difficulty change is off by default; it is not a PS1 bug fix. Graphical presets
 leave it alone. Gameplay presets/reset restore retail reactions, and changing
 it ends ordinary input recording and disqualifies the current TRIAL record.
 
+**Movement → Analog / modifier walking** lets light stick tilt select a slower
+walk; full tilt keeps the original run. Adjust the walk/run threshold from
+25–95% of travel after the deadzone. A small transition margin avoids rapid
+switching near the threshold. Keyboard/D-pad users can hold the rebindable
+**Walk modifier** (new/default bindings: Left Alt or left-stick click).
+
+Rikimaru uses NinjaA's walking animation and speed; Ayame uses Kunoichi's.
+These are loaded from your disc. Weapons, attacks and collision remain the
+heroes' own, with no extra visibility or damage bonuses. Classic controls walk
+forward; camera-relative controls walk in any direction. This gameplay option
+is off by default, independent of graphical presets, and disables ordinary
+input recording and TRIAL records. Try `walk-ayame` and `walk-rikimaru` demos.
+
 **Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
 binding to stand and block frontal melee hits; press a direction while holding
 it for one dash. Hold crouch (Circle) as well to roll. Directions stay relative

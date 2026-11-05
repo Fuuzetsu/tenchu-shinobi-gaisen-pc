@@ -713,6 +713,28 @@
     }
   },
   {
+    "id": "walk-ayame",
+    "title": "Ayame: walk and run",
+    "description": "Optional analog walking borrows Kunoichi's walk cycle and speed. Light stick tilt or a rebindable modifier walks; full tilt runs. Original weapons and combat remain.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": "analog-walking",
+    "shot": "player"
+  },
+  {
+    "id": "walk-rikimaru",
+    "title": "Rikimaru: walk and run",
+    "description": "The optional walking control uses NinjaA's cycle for Rikimaru. Compare walking and running without changing the rest of his moveset.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "analog-walking",
+    "shot": "player"
+  },
+  {
     "id": "guard-controls",
     "title": "Guard, dash and roll",
     "description": "Optional R1 guard controls: stand and block with original recoil, then dash or crouch-roll on a fresh direction press. Rebind R1 in the controls editor.",

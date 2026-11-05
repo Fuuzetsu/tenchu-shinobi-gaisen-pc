@@ -97,6 +97,37 @@ impl Application {
         self.navigation_camera(1.0, if self.is_suspended() { 0.0 } else { elapsed });
     }
 
+    pub(super) fn player_input(&mut self) -> u16 {
+        use tenchu_core::input::{DOWN, LEFT, RIGHT, UP};
+        let (buttons, magnitude) = if self.navigation_enabled() {
+            let buttons = self.controls.relative_buttons();
+            let magnitude = if buttons & (UP | DOWN | LEFT | RIGHT) != 0 {
+                1.0
+            } else {
+                crate::navigation::stick(
+                    self.controls.sticks()[0],
+                    self.settings.navigation.deadzone,
+                )
+                .length()
+            };
+            (buttons, magnitude)
+        } else if self.settings.walking.enabled {
+            self.controls
+                .walking_buttons(self.settings.navigation.deadzone)
+        } else {
+            (self.controls.buttons(), 1.0)
+        };
+        if let Some(walk) = &mut self.campaign.game.walking {
+            walk.held = crate::walking::requested(
+                buttons,
+                magnitude,
+                self.settings.walking.threshold,
+                walk.held,
+            );
+        }
+        buttons & !crate::controls::WALK
+    }
+
     pub(super) fn navigation_input(&mut self, buttons: u16) -> u16 {
         self.campaign.game.navigation = Default::default();
         if !self.navigation_enabled()

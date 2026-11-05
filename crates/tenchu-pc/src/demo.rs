@@ -369,6 +369,13 @@ impl Player {
         }
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
+            Feature::AnalogWalking => {
+                if tick < 240 {
+                    UP
+                } else {
+                    0
+                }
+            }
             Feature::HeroModels => {
                 if tick % 100 == 35 {
                     SQUARE

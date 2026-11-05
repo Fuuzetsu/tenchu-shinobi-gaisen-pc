@@ -43,6 +43,7 @@ pub enum Feature {
     Gunfire,
     WeaponSparks,
     GuardControls,
+    AnalogWalking,
     WeaponFinishes,
     TextureSampling,
     Reconstruction,

@@ -7,6 +7,7 @@ mod hang;
 mod swim;
 #[cfg(test)]
 mod tests;
+mod walking;
 mod wall;
 
 use super::*;
@@ -48,6 +49,7 @@ impl Actor {
             }
             None
         };
+        self.walking_motion(ctx, world);
         let next = if self.guard_input(world) {
             self.guard_motion(ctx, held)
         } else {
@@ -83,6 +85,7 @@ impl Actor {
         {
             self.enter_unless_scripted(ctx, action, movement);
         }
+        self.walking_motion(ctx, world);
         ctx.scene.set_translation(self.root_model, self.position);
         let visible = if ctx.drawing.step != crate::drawing::Step::Normal {
             false

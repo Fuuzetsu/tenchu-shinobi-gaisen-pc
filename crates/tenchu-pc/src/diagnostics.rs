@@ -78,6 +78,7 @@ pub fn game(game: &Game) -> Value {
             "quick_shuriken_dodge": ai.quick_shuriken_dodge,
             "strict_corpse_sight": ai.strict_corpse_sight,
             "guard_controls": ai.guard_controls,
+            "walking": game.walking,
             "damage_escalation": ai.damage_escalation,
             "multi_target_attacks": game.combat.multi_target,
             "ignore_player": ai.ignore_player, "alert": ai.alert, "strain": ai.strain,

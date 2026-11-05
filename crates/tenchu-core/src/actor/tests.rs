@@ -32,6 +32,7 @@ pub(super) fn with_actor<T>(
         drawing: &mut game.drawing,
     };
     let mut world = ActionContext {
+        walking: game.walking,
         roster: &mut game.roster,
         intelligence: &mut game.intelligence,
         statistics: &mut game.statistics,

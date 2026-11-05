@@ -116,6 +116,11 @@ impl Application {
         self.campaign.game.intelligence.quick_shuriken_dodge = self.settings.quick_shuriken_dodge;
         self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
         self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
+        crate::walking::configure(
+            &mut self.campaign.game,
+            &self.assets,
+            self.settings.walking.enabled,
+        )?;
         self.campaign
             .game
             .set_damage_escalation(self.settings.damage_escalation);

@@ -143,11 +143,17 @@ impl Actor {
         match self.motion.action {
             MOT_CHASE => {
                 let duration = ctx.mission.clips[self.motion.clip.unwrap()].duration;
-                if self.motion.count == 0 || self.motion.count == duration / 2 {
+                let walking = self.id == world.player
+                    && world
+                        .walking
+                        .is_some_and(|walk| self.motion.clip == Some(walk.clip));
+                if self.motion.count == i16::from(walking) || self.motion.count == duration / 2 {
                     world.intelligence.voices.push((
                         self.id,
                         if self.map.attribute & 8 != 0 {
                             0x14
+                        } else if walking {
+                            0x11
                         } else {
                             0x12
                         },

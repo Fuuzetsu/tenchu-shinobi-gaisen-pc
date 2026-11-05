@@ -400,6 +400,7 @@ impl Application {
         game.intelligence.quick_shuriken_dodge = self.settings.quick_shuriken_dodge;
         game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
         game.intelligence.guard_controls = self.settings.guard_controls;
+        crate::walking::configure(&mut game, &self.assets, self.settings.walking.enabled)?;
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
         self.campaign.game = game;
@@ -532,6 +533,11 @@ impl Application {
             let cinematic = self.campaign.game.cinematic.active;
             let cinematic_clip = player.clip().feature == Feature::Cinematics;
             for (index, buttons) in inputs.into_iter().enumerate() {
+                if self.demo.as_ref().unwrap().clip().feature == Feature::AnalogWalking
+                    && let Some(walk) = &mut self.campaign.game.walking
+                {
+                    walk.held = !matches!(first + index as u64, 90..120 | 210..);
+                }
                 let scene = &mut self.demo.as_mut().unwrap().scene;
                 scene.previous_player = scene.current_player;
                 let running = self.game_tick(buttons);

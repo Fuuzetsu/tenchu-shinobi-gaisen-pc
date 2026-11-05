@@ -5,6 +5,8 @@ use tenchu_assets::Result;
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
 
+pub const WALK: u16 = 0x0200;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Target {
@@ -22,10 +24,11 @@ pub enum Target {
     R2,
     Select,
     Start,
+    Walk,
 }
 
 impl Target {
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 15] = [
         Self::Up,
         Self::Down,
         Self::Left,
@@ -40,6 +43,7 @@ impl Target {
         Self::R2,
         Self::Select,
         Self::Start,
+        Self::Walk,
     ];
 
     pub fn description(self) -> (&'static str, u16) {
@@ -58,6 +62,7 @@ impl Target {
             Self::R2 => ("Next item · R2", input::R2),
             Self::Select => ("Map · Select", input::SELECT),
             Self::Start => ("Pause · Start", input::START),
+            Self::Walk => ("Walk modifier (optional)", WALK),
         }
     }
 
@@ -94,6 +99,7 @@ impl Target {
             Self::R2 => ([Some(KeyC), None], Button::RightTrigger2, None),
             Self::Select => ([Some(KeyM), Some(Tab)], Button::Select, None),
             Self::Start => ([Some(KeyP), None], Button::Start, None),
+            Self::Walk => ([Some(AltLeft), None], Button::LeftThumb, None),
         };
         Binding {
             keys,
@@ -188,13 +194,16 @@ impl Binding {
 }
 
 pub fn menu_buttons(pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u16 {
-    Target::ALL.into_iter().fold(0, |held, target| {
-        held | if target.defaults().active(&pressed, sticks) {
-            target.description().1
-        } else {
-            0
-        }
-    })
+    Target::ALL
+        .into_iter()
+        .filter(|target| *target != Target::Walk)
+        .fold(0, |held, target| {
+            held | if target.defaults().active(&pressed, sticks) {
+                target.description().1
+            } else {
+                0
+            }
+        })
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -210,11 +219,31 @@ impl Default for Bindings {
 impl Bindings {
     pub fn decode(bytes: &[u8]) -> Result<Self> {
         let mut bindings: Self = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+        let mut used_keys: HashSet<_> = bindings
+            .0
+            .values()
+            .flat_map(|row| row.keys.iter().flatten().copied())
+            .collect();
+        let mut used_buttons: HashSet<_> = bindings
+            .0
+            .values()
+            .flat_map(|row| row.controller.iter().flatten().copied())
+            .collect();
         for target in Target::ALL {
-            bindings
-                .0
-                .entry(target)
-                .or_insert_with(|| target.defaults());
+            bindings.0.entry(target).or_insert_with(|| {
+                let mut row = target.defaults();
+                for key in &mut row.keys {
+                    if key.is_some_and(|key| !used_keys.insert(key)) {
+                        *key = None;
+                    }
+                }
+                for button in &mut row.controller {
+                    if button.is_some_and(|button| !used_buttons.insert(button)) {
+                        *button = None;
+                    }
+                }
+                row
+            });
         }
         let mut keys = HashSet::new();
         let mut buttons = HashSet::new();
@@ -251,6 +280,28 @@ impl Bindings {
             let active = row.active(&pressed, sticks);
             held | if active { target.description().1 } else { 0 }
         })
+    }
+
+    pub fn movement_stick(&self, sticks: [glam::Vec2; 2], deadzone: u16) -> glam::Vec2 {
+        let axes = sticks.map(|s| crate::navigation::stick(s, deadzone));
+        let axes = [axes[0].x, axes[0].y, axes[1].x, axes[1].y];
+        let value = |target| {
+            self.0
+                .get(&target)
+                .into_iter()
+                .flat_map(|row| row.controller.iter().flatten())
+                .filter_map(|binding| {
+                    let PadInput::Stick { axis, positive } = *binding else {
+                        return None;
+                    };
+                    Some((axes[axis.index()] * if positive { 1.0 } else { -1.0 }).max(0.0))
+                })
+                .fold(0.0_f32, f32::max)
+        };
+        glam::Vec2::new(
+            value(Target::Right) - value(Target::Left),
+            value(Target::Up) - value(Target::Down),
+        )
     }
 
     pub fn bind_key(&mut self, target: Target, slot: usize, key: KeyCode) -> Result<()> {

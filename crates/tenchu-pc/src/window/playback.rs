@@ -151,12 +151,11 @@ impl Application {
                 && !self.menu.open
                 && self.debug.camera.is_none()
             {
-                if self.navigation_enabled() {
-                    self.controls.relative_buttons()
-                } else {
-                    self.controls.buttons()
-                }
+                self.player_input()
             } else {
+                if let Some(walk) = &mut self.campaign.game.walking {
+                    walk.held = false;
+                }
                 0
             };
             let buttons = self

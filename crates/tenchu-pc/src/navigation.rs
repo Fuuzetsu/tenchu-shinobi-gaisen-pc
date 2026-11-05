@@ -24,7 +24,7 @@ pub fn stick(value: Vec2, deadzone: u16) -> Vec2 {
     }
 }
 
-fn directions(v: Vec2) -> u16 {
+pub(crate) fn directions(v: Vec2) -> u16 {
     let mut bits = 0;
     for (value, positive, negative) in [
         (v.x, input::RIGHT, input::LEFT),

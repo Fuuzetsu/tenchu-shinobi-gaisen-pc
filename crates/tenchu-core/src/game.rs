@@ -12,6 +12,7 @@ mod retail_tests;
 pub mod score;
 mod setup;
 pub mod trial;
+pub mod walking;
 pub use setup::Statistics;
 
 use crate::{
@@ -65,6 +66,7 @@ pub struct Game {
     pub construction: Construction,
     pub moveset: moveset::State,
     pub navigation: navigation::Navigation,
+    pub walking: Option<walking::State>,
     pub(crate) body: BodyTables,
     pub(crate) commands: Vec<Command>,
     pub(crate) cursor: Cursor,
@@ -163,6 +165,7 @@ impl Game {
             sound_appearance,
             moveset: moveset::State::default(),
             navigation: navigation::Navigation::default(),
+            walking: None,
         };
         if game.trial.is_some() {
             game.activate_trial(true)?;
@@ -341,6 +344,7 @@ impl Game {
                                     statistics: &mut self.statistics,
                                     combat: &mut self.combat,
                                     player: self.player_id,
+                                    walking: self.walking,
                                     selected_item: self.hud.selected,
                                     clock: self.clock,
                                 },
@@ -359,6 +363,7 @@ impl Game {
                             statistics: &mut self.statistics,
                             combat: &mut self.combat,
                             player: self.player_id,
+                            walking: self.walking,
                             selected_item: self.hud.selected,
                             clock: self.clock,
                         },

@@ -249,16 +249,30 @@ impl Motion {
         if action == self.action {
             return Change::Unchanged;
         }
+        let Some(index) = Self::clip_index(action, registry, common, clips) else {
+            return Change::Missing;
+        };
+        self.action = action;
+        self.select_clip(index, clips);
+        Change::Changed
+    }
+
+    pub fn clip_index(
+        action: i16,
+        registry: &[MotionRegistration],
+        common: &[MotionRegistration],
+        clips: &[Clip],
+    ) -> Option<usize> {
         let find = |table: &[MotionRegistration]| {
             table
                 .iter()
                 .find(|r| r.action == action)
                 .and_then(|r| clips.iter().position(|c| c.id == r.clip))
         };
-        let Some(index) = find(registry).or_else(|| find(common)) else {
-            return Change::Missing;
-        };
-        self.action = action;
+        find(registry).or_else(|| find(common))
+    }
+
+    pub(crate) fn select_clip(&mut self, index: usize, clips: &[Clip]) {
         self.clip = Some(index);
         self.count = i16::from(clips[index].sweep);
         self.loops = 0;
@@ -272,7 +286,6 @@ impl Motion {
                 } % 4096) as i16;
             }
         }
-        Change::Changed
     }
 
     pub fn step(&mut self, clips: &[Clip], table: &[[i16; 4]; 33]) -> Result<i16> {

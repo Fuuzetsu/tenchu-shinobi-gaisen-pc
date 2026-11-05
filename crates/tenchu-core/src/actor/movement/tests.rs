@@ -240,3 +240,48 @@ fn player_idle_suppression_keeps_rng_and_npc_gestures() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; optional walking leaves NPCs and committed actions alone and restores running for cutscenes"]
+fn walking_only_changes_free_player_locomotion() {
+    use crate::input::*;
+    for character in 0..2 {
+        let mut game = oracle::game(1, character);
+        let clip = game
+            .mission
+            .clips
+            .iter()
+            .find(|c| c.id == if character == 0 { 36 } else { 37 })
+            .unwrap()
+            .clone();
+        game.set_player_walk(Some(&clip)).unwrap();
+        game.walking.as_mut().unwrap().held = true;
+        let npc = arena(&mut game, character);
+        let player = game.player_id;
+        for id in [player, npc] {
+            for action in [
+                MOT_ATTACK,
+                MOT_JUMP,
+                MOT_DAMAGE_FRONT_MID,
+                MOT_DEAD,
+                MOT_CHASE,
+            ] {
+                with_actor(&mut game, id, |actor, ctx, world| {
+                    actor.enter(ctx, action, true);
+                    actor.pad.update(UP);
+                    let before = actor.motion.clip;
+                    actor.walking_motion(ctx, world);
+                    if id == player && action == MOT_CHASE {
+                        assert_eq!(actor.motion.clip, Some(world.walking.unwrap().clip));
+                        world.intelligence.cinematic = true;
+                        actor.walking_motion(ctx, world);
+                        assert_eq!(actor.motion.clip, before);
+                        world.intelligence.cinematic = false;
+                    } else {
+                        assert_eq!(actor.motion.clip, before);
+                    }
+                });
+            }
+        }
+    }
+}

@@ -68,6 +68,7 @@ impl Context<'_> {
 }
 
 pub struct ActionContext<'a> {
+    pub walking: Option<crate::game::walking::State>,
     pub items: &'a mut crate::items::Items,
     pub roster: &'a mut crate::roster::Roster,
     pub intelligence: &'a mut crate::ai::Intelligence,

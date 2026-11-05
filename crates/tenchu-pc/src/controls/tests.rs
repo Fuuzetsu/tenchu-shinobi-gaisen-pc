@@ -267,3 +267,60 @@ fn pause_is_remappable_while_menu_escape_and_enter_remain_available() {
         Some(Command::Menu(Action::Confirm))
     ));
 }
+
+#[test]
+fn walking_uses_remapped_sticks_and_suppresses_held_inputs_after_focus_changes() {
+    use bindings::Target;
+    let mut controls = Controls::default();
+    controls.pad.axes = [0.0, 0.4, 0.0, 0.0];
+    let (buttons, amount) = controls.walking_buttons(20);
+    assert_eq!(buttons, input::UP);
+    assert!((amount - 0.25).abs() < 0.001);
+    assert!(crate::walking::requested(buttons, amount, 65, false));
+    controls.pad.axes[1] = 1.0;
+    let (buttons, amount) = controls.walking_buttons(20);
+    assert!(!crate::walking::requested(buttons, amount, 65, true));
+    controls.key(KeyCode::AltLeft, true);
+    let (buttons, amount) = controls.walking_buttons(20);
+    assert!(crate::walking::requested(buttons, amount, 65, false));
+    controls.clear();
+    assert_eq!(controls.walking_buttons(20), (0, 0.0));
+    controls.pad.axes_blocked = [false; 2];
+    controls.pad.axes = [0.0, 0.0, 0.0, 0.5];
+    controls.bindings.bind_controller(
+        Target::Up,
+        1,
+        PadInput::Stick {
+            axis: StickAxis::RightY,
+            positive: true,
+        },
+    );
+    let (buttons, amount) = controls.walking_buttons(20);
+    assert_eq!(buttons, input::UP);
+    assert!((amount - 0.375).abs() < 0.001);
+    controls.key(KeyCode::KeyW, true);
+    assert_eq!(controls.walking_buttons(20), (input::UP, 1.0));
+    assert!(!crate::walking::requested(0, 0.64, 65, false));
+    assert!(crate::walking::requested(0, 0.64, 65, true));
+    assert!(!crate::walking::requested(0, f32::NAN, 65, true));
+}
+
+#[test]
+fn new_walk_defaults_preserve_existing_alt_and_stick_click_bindings() {
+    use bindings::Target;
+    let mut old = Bindings::default();
+    old.0.remove(&Target::Walk);
+    old.bind_key(Target::Square, 1, KeyCode::AltLeft).unwrap();
+    old.bind_controller(Target::Circle, 1, PadInput::Button(Button::LeftThumb));
+    let updated = Bindings::decode(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(updated.key(KeyCode::AltLeft), input::SQUARE);
+    assert_eq!(
+        updated.controller(|b| b == Button::LeftThumb, [0; 4]),
+        input::CIRCLE
+    );
+    assert_eq!(updated.0[&Target::Walk], Default::default());
+    assert_eq!(
+        bindings::menu_buttons(|b| b == Button::LeftThumb, [0; 4]),
+        0
+    );
+}

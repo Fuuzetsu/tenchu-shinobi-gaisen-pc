@@ -60,6 +60,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.quick_shuriken_dodge
             && !settings.strict_corpse_sight
             && !settings.guard_controls
+            && !settings.walking.enabled
             && !settings.damage_escalation.enabled()
             && !settings.multi_target_attacks
             && (!p.active

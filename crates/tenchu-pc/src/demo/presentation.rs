@@ -199,6 +199,10 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.lighting.enabled = true;
             g.interpolation = true;
         }
+        Feature::AnalogWalking => {
+            settings.walking.enabled = true;
+            g.interpolation = true;
+        }
         Feature::WeaponSparks => {
             g.effects.sparks = p >= 0.5;
             g.effects.spark_density = 150;
@@ -807,6 +811,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             330..360 => "Hold crouch + guard to prepare a roll",
             360..420 => "Crouch + guard + left: one roll · original collision and motion",
             _ => "Hold guard: stand and block frontal melee hits · original recoil · vulnerable from behind",
+        }.into()),
+        Feature::AnalogWalking => text(match player.simulation_ticks {
+            90..120 | 210..240 => "Full stick tilt: original run speed · weapons and combat retained",
+            240.. => "F1 → Movement · rebind Walk modifier under General → Controls",
+            _ => "Light stick tilt / Walk modifier: borrowed ninja walk cycle and speed · optional gameplay change",
         }.into()),
         Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {

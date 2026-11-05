@@ -35,6 +35,7 @@ impl Game {
             construction,
             moveset,
             navigation,
+            walking,
             body,
             commands,
             cursor,
@@ -69,6 +70,7 @@ impl Game {
         out.value(construction)?;
         out.value(moveset)?;
         out.value(navigation)?;
+        out.value(walking)?;
         out.value(body)?;
         out.value(commands)?;
         out.value(cursor)?;

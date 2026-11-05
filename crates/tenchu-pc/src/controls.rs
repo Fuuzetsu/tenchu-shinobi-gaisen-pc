@@ -4,6 +4,7 @@ use std::{collections::HashSet, mem, path::PathBuf};
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
 mod bindings;
+pub use bindings::WALK;
 mod editor;
 mod rumble;
 use bindings::{Bindings, PadInput, StickAxis};
@@ -334,6 +335,20 @@ impl Controls {
         self.keys
             .iter()
             .fold(buttons, |bits, key| bits | self.bindings.key(*key))
+    }
+
+    pub fn walking_buttons(&mut self, deadzone: u16) -> (u16, f32) {
+        let pending = self.pad.buttons() | self.pad.pending;
+        let directions = input::UP | input::DOWN | input::LEFT | input::RIGHT;
+        let buttons = self.relative_buttons() | (pending & !directions);
+        if buttons & directions != 0 {
+            return (buttons, 1.0);
+        }
+        let analog = self.bindings.movement_stick(self.sticks(), deadzone);
+        (
+            buttons | crate::navigation::directions(analog.normalize_or_zero()),
+            analog.length().min(1.0),
+        )
     }
 
     pub fn sticks(&self) -> [glam::Vec2; 2] {

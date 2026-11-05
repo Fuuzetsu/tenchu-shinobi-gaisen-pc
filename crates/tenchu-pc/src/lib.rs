@@ -30,6 +30,7 @@ mod ui;
 #[cfg(not(target_arch = "wasm32"))]
 mod video;
 mod visuals;
+mod walking;
 mod window;
 
 #[cfg(not(target_arch = "wasm32"))]

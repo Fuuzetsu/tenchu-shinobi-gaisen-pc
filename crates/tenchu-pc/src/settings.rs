@@ -26,6 +26,8 @@ mod vibration;
 pub use vibration::Vibration;
 mod navigation;
 pub use navigation::Navigation;
+mod walking;
+pub use walking::Walking;
 
 use serde::{Deserialize, Serialize};
 mod store;
@@ -47,6 +49,7 @@ pub struct Settings {
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
     pub guard_controls: bool,
+    pub walking: Walking,
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
     pub multi_target_attacks: bool,
     pub reinforcement_limit: u16,
@@ -90,6 +93,7 @@ impl Default for Settings {
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
             guard_controls: false,
+            walking: Walking::default(),
             damage_escalation: Default::default(),
             multi_target_attacks: false,
             reinforcement_limit: 0,
@@ -145,12 +149,15 @@ impl Settings {
         self.quick_shuriken_dodge = game.intelligence.quick_shuriken_dodge;
         self.strict_corpse_sight = game.intelligence.strict_corpse_sight;
         self.guard_controls = game.intelligence.guard_controls;
+        self.walking = saved.walking;
+        self.walking.enabled = game.walking.is_some();
         self.damage_escalation = game.intelligence.damage_escalation;
         self.multi_target_attacks = game.combat.multi_target;
         self.sight_percent = game.intelligence.sight_percent;
     }
 
     fn validate(&mut self) {
+        self.walking.validate();
         self.rewind_seconds = self.rewind_seconds.min(30);
         self.rewind_speed = self.rewind_speed.clamp(25, 800);
         self.alternate_death_chance = self.alternate_death_chance.min(100);

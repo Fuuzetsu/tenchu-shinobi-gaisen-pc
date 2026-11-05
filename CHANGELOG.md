@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional analog/modifier walking under F1 → Movement. Light stick tilt or a rebindable Walk modifier uses NinjaA/Kunoichi walking cycles for Rikimaru/Ayame; full tilt retains running. Includes an adjustable threshold and demos for both heroes. Off by default, with original weapons and combat retained.
+
 - Add adjustable **Flame heat shimmer** and **Flame light / shadow motion** under F1 → Lighting. Heat distorts backgrounds above fires and lanterns without disturbing foreground objects or the interface; subtle flicker and dancing shadow edges reuse cached shadow maps. Modern High/Ultra enable gentle amounts, with a dedicated comparison demo. Original and existing custom settings remain unchanged.
 
 - Add optional Onikage-inspired **Death gush strength/duration** under F1 → Blood. Repeated upward bursts follow dying characters after their original blood cue, including alternate player deaths. Clear blood stops them; cinematic blood and gameplay are unchanged. Includes a death-gush demo; disabled by default.

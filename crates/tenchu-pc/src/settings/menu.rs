@@ -15,6 +15,8 @@ pub enum Item {
     Rewind,
     CameraRelative,
     GuardControls,
+    AnalogWalking,
+    WalkThreshold,
     AlignAim,
     MouseSensitivity,
     StickSensitivity,
@@ -375,6 +377,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ),
         ],
         20 => vec![
+            (
+                Item::AnalogWalking,
+                "Analog / modifier walking",
+                on(s.walking.enabled),
+                "GAMEPLAY EDIT: lightly tilt the movement stick to walk with NinjaA/Kunoichi motions; full tilt runs. Hold the rebindable Walk modifier for keyboard or D-pad walking (new bindings: Left Alt / left-stick click). Original weapons and combat remain. Forward movement only in classic controls; camera-relative walking supports any direction. Disables input recording and TRIAL records.",
+            ),
+            (
+                Item::WalkThreshold,
+                "Walk / run threshold",
+                format!("{}%", s.walking.threshold),
+                "Stick travel after the circular deadzone. Below this walks, above it runs, with a small margin to prevent jitter. The Walk modifier always walks. NPC walk speeds: Rikimaru 38, Ayame 31 units/tick; no extra sight or damage bonuses.",
+            ),
             (
                 Item::GuardControls,
                 "R1 guard / dash / roll",
