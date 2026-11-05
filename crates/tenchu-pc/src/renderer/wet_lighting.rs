@@ -66,7 +66,8 @@ impl WetLighting {
             ],
             push_constant_ranges: &[],
         });
-        let shader = pipelines::Options::from(&renderer.graphics).wet_shader(device, renderer.gl);
+        let shader = pipelines::Options::new(&renderer.graphics, renderer.samples)
+            .wet_shader(device, renderer.gl);
         let pipeline = |vertex,
                         fragment,
                         layout: &wgpu::PipelineLayout,

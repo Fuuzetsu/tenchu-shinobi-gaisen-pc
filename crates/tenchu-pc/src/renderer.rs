@@ -212,7 +212,7 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
         let graphics = crate::settings::Graphics::default();
         let gl = adapter.get_info().backend == wgpu::Backend::Gl;
-        let shader = pipelines::Options::from(&graphics).shader(&device, gl);
+        let shader = pipelines::Options::new(&graphics, 1).shader(&device, gl);
         let binding_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Scene bindings"),
             entries: &[
@@ -431,8 +431,8 @@ impl Renderer {
         let attachments_changed =
             samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
         let occlusion_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0);
-        let options = pipelines::Options::from(graphics);
-        let shader_changed = options != (&self.graphics).into();
+        let options = pipelines::Options::new(graphics, samples);
+        let shader_changed = options != pipelines::Options::new(&self.graphics, self.samples);
         let pipelines_changed = attachments_changed || shader_changed;
         if shader_changed {
             self.shader = options.shader(&self.device, self.gl);

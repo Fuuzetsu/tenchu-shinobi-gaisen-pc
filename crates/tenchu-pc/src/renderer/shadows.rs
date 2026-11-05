@@ -10,6 +10,7 @@ mod weather_bounds;
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
 pub const NEAR: f32 = 20.0;
 pub const FILTER_SAMPLES: usize = 32;
+pub const FILTER_GROUP_SAMPLES: usize = 8;
 pub const BOUNDS_TILE: u32 = 32;
 const LIGHT_WORDS: usize = MAX_SCENE_LIGHTS * 8;
 
@@ -847,6 +848,21 @@ fn filter_samples() -> [[f32; 4]; FILTER_SAMPLES] {
         let [x, y] = [s[0], s[1]].map(|v| ((v * s[2] * 0.5 + 0.5) * 1023.0) as u32);
         (y / 128, x, y)
     });
+    // Store each group's footprint in the samples' unused fourth components.
+    for group in samples.chunks_mut(FILTER_GROUP_SAMPLES) {
+        let mut low = [f32::INFINITY; 2];
+        let mut high = [f32::NEG_INFINITY; 2];
+        for sample in group.iter() {
+            for axis in 0..2 {
+                let coordinate = sample[axis] * sample[2];
+                low[axis] = low[axis].min(coordinate);
+                high[axis] = high[axis].max(coordinate);
+            }
+        }
+        for (sample, value) in group.iter_mut().zip([low[0], low[1], high[0], high[1]]) {
+            sample[3] = value;
+        }
+    }
     samples
 }
 

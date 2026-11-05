@@ -151,6 +151,29 @@ fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>,
             if bounded >= 0.0 { return bounded; }
         }
         var visibility = 0.0;
+        if COARSE_SHADOWS && WEATHER_ENABLED {
+            for (var base = 0u; base < SHADOW_FILTER_SAMPLES; base += SHADOW_FILTER_GROUP) {
+                var bounded = -1.0;
+                if penumbra * size.x >= f32(SHADOW_BOUND_TILE) {
+                    let offsets = vec4(lighting.shadow_filter[base].w, lighting.shadow_filter[base + 1u].w,
+                        lighting.shadow_filter[base + 2u].w, lighting.shadow_filter[base + 3u].w) * penumbra;
+                    // Enclose rounding differences between CPU and GPU sample products.
+                    bounded = coarse_box_visibility(uv, layer, reference, gradient,
+                        uv + offsets.xy - vec2(0.000001), uv + offsets.zw + vec2(0.000001), size);
+                }
+                if bounded >= 0.0 {
+                    visibility += bounded * f32(SHADOW_FILTER_GROUP);
+                } else {
+                    for (var j = 0u; j < SHADOW_FILTER_GROUP; j++) {
+                        let sample = lighting.shadow_filter[base + j].xyz;
+                        let radius = sample.z * penumbra;
+                        let point = clamp(uv + sample.xy * radius, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+                        visibility += textureSampleCompareLevel(shadow_maps, shadow_sampler, point, i32(layer), reference + dot(gradient, point - uv));
+                    }
+                }
+            }
+            return visibility / f32(SHADOW_FILTER_SAMPLES);
+        }
         for (var i = 0u; i < SHADOW_FILTER_SAMPLES; i++) {
             var sample: vec3<f32>;
             // Uniform samples help the heavier weather shader; the dry variant

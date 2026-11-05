@@ -10,10 +10,11 @@ pub(super) struct Options {
     weather: bool,
     rain: bool,
     water: bool,
+    coarse_shadows: bool,
 }
 
-impl From<&crate::settings::Graphics> for Options {
-    fn from(graphics: &crate::settings::Graphics) -> Self {
+impl Options {
+    pub(super) fn new(graphics: &crate::settings::Graphics, samples: u32) -> Self {
         Self {
             filtering: if graphics.mipmaps {
                 2
@@ -27,6 +28,7 @@ impl From<&crate::settings::Graphics> for Options {
             weather: graphics.weather.mode != crate::settings::WeatherMode::Original,
             rain: graphics.weather.mode.rain(),
             water: graphics.water.enabled,
+            coarse_shadows: super::wet_lighting::configured(graphics, samples, false),
         }
     }
 }
@@ -177,7 +179,7 @@ impl Options {
 
     fn module(self, device: &wgpu::Device, gl: bool, pass: &str) -> wgpu::ShaderModule {
         let common = format!(
-            "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
             self.filtering != 0 || self.magnification != 0,
             self.lighting,
             self.relief != 0,
@@ -190,6 +192,7 @@ impl Options {
             crate::lighting::MAX_LIGHTS,
             shadows::FACES,
             shadows::FILTER_SAMPLES,
+            shadows::FILTER_GROUP_SAMPLES,
             materials::MAX_MIPS,
             shadows::NEAR,
             crate::visuals::relief::GRADIENT_RANGE,
@@ -212,7 +215,7 @@ impl Options {
         );
         let bounds = include_str!("shadows/bounds_query.wgsl");
         let bounds_tile = shadows::BOUNDS_TILE;
-        let bounds_enabled = !gl;
+        let bounds_enabled = !gl && self.coarse_shadows;
         device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Scene materials and lighting"),
             source: wgpu::ShaderSource::Wgsl(format!("const COARSE_SHADOWS: bool = {bounds_enabled}; const SHADOW_BOUND_TILE: u32 = {bounds_tile}u;\n{common}\n{pass}\n{bounds}").into()),

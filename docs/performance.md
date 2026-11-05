@@ -2243,3 +2243,62 @@ Chromium WebGPU and WebGL2 both pass saved-state loading, movement, lighting
 controls, free camera and resume without GPU errors. WebGPU records 761 wet
 preparation and 766 shadow-bound passes; WebGL2 uses its forward fallback.
 Paused gameplay stays unchanged while graphics controls are exercised.
+
+## November 5: bound smaller groups of soft-shadow samples
+
+The existing depth summaries can now prove that a group of eight shadow samples
+is fully lit or blocked, even when the complete 32-sample filter crosses a shadow
+edge. Ambiguous groups retain their original samples and ordering. Group queries
+are worthwhile only for broad filters: their radius must reach one 32-pixel bounds
+tile. Narrower filters retain full sampling without these extra queries.
+
+Four group rectangles fit in unused components of the existing sample uniforms.
+The query reuses the same min/max pyramid, bilinear-neighbor coverage and receiver
+plane bounds. A small UV margin encloses CPU/GPU product-rounding differences.
+There are no additional render passes, texture allocations or reduced samples
+at ambiguous boundaries.
+
+Shader variants now use the actual supported sample count and the same eligibility
+predicate as the shadow-summary cache. This omits unused grouped-filter code from
+MSAA and other ineligible configurations. A runtime fallback initially kept both
+filter loops in the shader and lost the improvement; selecting the variant when
+configuring the renderer avoids that overhead.
+
+Four paired 3826 × 2146 prototype captures match exactly, with static and animated
+actors/foliage in the reported corner and garden. Fixed GPU means change from
+13.38/14.87 to 12.17/13.68 ms in the corner and from 15.97/21.60 to 15.46/21.08 ms
+in the garden. Applying group queries to narrow filters regressed the moving
+garden test; the final implementation includes the radius check.
+
+The final actual Wayland comparison against `33805da` uses the diagnostic graphics,
+HD artwork, 3840 × 2160, 1,200 frames per route and 60 warm-up frames. Compiler,
+browser and other benchmark workloads are kept separate:
+
+| Route | Average FPS before → after | Frame p95 | Frame p99 |
+|---|---|---|---|
+| Mission 1 village | 49.6 → 51.2 | 21.31 → 20.83 ms | 21.84 → 21.18 ms |
+| Mission 5 courtyard | 56.2 → 58.7 | 18.83 → 17.96 ms | 19.32 → 18.46 ms |
+| Mission 1 garden | 42.5 → 43.6 | 24.57 → 23.95 ms | 25.64 → 24.38 ms |
+| Mission 4 waterfall | 73.5 → 74.5 | 14.24 → 14.16 ms | 14.68 → 14.58 ms |
+
+GPU means fall from 17.77/15.78/20.98/9.63 to 17.14/15.08/20.39/9.36 ms;
+shadow-map construction stays effectively unchanged. Garden GPU p99 improves
+from 21.94 to 21.32 ms. Whole-frame tail gains also include CPU/presentation
+variation and should not all be attributed to shading. These demanding Mission 1
+routes remain below 60 FPS.
+
+A separate 600-frame Modern High comparison retains rain and uses two-sample
+MSAA, exercising the ordinary filter. Whole-frame p99 changes from
+21.90/16.89/24.61/13.80 to 21.71/16.08/24.44/13.14 ms. Garden GPU mean is roughly
+unchanged, 19.42 → 19.51 ms; other routes improve. This checks the broader preset
+rather than assuming a gain in one shader applies to every configuration.
+
+The moving-region regression matches full redraws and full filtering through
+caster movement/removal, indexed geometry, wind and changing light settings.
+Wet surfaces, blood composition, point-light cutouts, daylight balance, complete
+stage shadow culling and rain/snow shelter regressions pass, along with 134
+ordinary tests. Formatting, strict native/WASM Clippy, native release and actual
+WASM cdylib builds pass. Chromium WebGPU and WebGL2 both complete saved-state
+loading, movement, lighting controls, free camera and resume without GPU errors.
+WebGPU records 769 wet-material and 774 shadow-bound passes; WebGL2 retains its
+forward path. Paused gameplay is unchanged by graphics controls.

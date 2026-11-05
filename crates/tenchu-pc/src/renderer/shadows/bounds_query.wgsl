@@ -1,8 +1,11 @@
 @group(1) @binding(9) var coarse_shadows: texture_2d_array<f32>;
 fn coarse_visibility(uv: vec2<f32>, layer: u32, reference: f32, gradient: vec2<f32>, radius: f32, size: vec2<f32>) -> f32 {
+    return coarse_box_visibility(uv, layer, reference, gradient, uv - vec2(radius), uv + vec2(radius), size);
+}
+fn coarse_box_visibility(uv: vec2<f32>, layer: u32, reference: f32, gradient: vec2<f32>, low_bound: vec2<f32>, high_bound: vec2<f32>, size: vec2<f32>) -> f32 {
     if lighting.lamps.w == 0.0 { return -1.0; }
-    let low_uv = clamp(uv - vec2(radius), vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
-    let high_uv = clamp(uv + vec2(radius), vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+    let low_uv = clamp(low_bound, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+    let high_uv = clamp(high_bound, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
     // Include both texels of every bilinear comparison and the receiver depth gradient.
     let low = vec2<u32>(max(floor(low_uv * size - vec2(0.5)),vec2(0.0))) / SHADOW_BOUND_TILE;
     let high = vec2<u32>(min(floor(high_uv * size - vec2(0.5)) + vec2(1.0), size - vec2(1.0))) / SHADOW_BOUND_TILE;

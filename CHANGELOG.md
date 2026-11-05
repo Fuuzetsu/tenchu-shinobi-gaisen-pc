@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Further improve soft-shadow frame times in reflective rain scenes by reusing
+  depth summaries for smaller groups of samples, preserving shadow detail.
+
 - Reduce water rendering cost in reflective rain scenes by reusing the existing
   material and lighting passes, preserving waves, foam and sky reflections.
 
