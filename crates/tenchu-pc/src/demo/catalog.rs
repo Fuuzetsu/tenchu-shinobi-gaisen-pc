@@ -15,6 +15,7 @@ pub enum Feature {
     Rain,
     Rainstorm,
     Snowstorm,
+    Blizzard,
     RainReflections,
     RainHaze,
     RainPuddles,

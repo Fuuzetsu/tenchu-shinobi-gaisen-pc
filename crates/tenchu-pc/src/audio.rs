@@ -216,12 +216,12 @@ impl Audio {
         &self,
         cue: Option<tenchu_audio::ThunderCue>,
         storm: bool,
-        rainfall: tenchu_audio::Rainfall,
+        ambience: tenchu_audio::Ambience,
     ) {
-        self.output.send(Command::Rainfall(if self.fast_forward {
+        self.output.send(Command::Ambience(if self.fast_forward {
             Default::default()
         } else {
-            rainfall
+            ambience
         }));
         if !storm || self.fast_forward {
             self.output.send(Command::Thunder(None));

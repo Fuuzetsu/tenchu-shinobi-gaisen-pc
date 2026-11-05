@@ -101,9 +101,9 @@ impl Sound {
         &mut self,
         cue: Option<tenchu_audio::ThunderCue>,
         storm: bool,
-        rainfall: tenchu_audio::Rainfall,
+        ambience: tenchu_audio::Ambience,
     ) {
-        self.mixer.rainfall(rainfall);
+        self.mixer.ambience(ambience);
         if !storm {
             self.mixer.thunder(None);
         } else if cue.is_some() {

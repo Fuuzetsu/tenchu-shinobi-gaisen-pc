@@ -1337,6 +1337,21 @@
     "weather_warmup": 30
   },
   {
+    "id": "blizzard",
+    "title": "A howling blizzard",
+    "description": "Dense wind-driven snow and a changing wind howl. Shelter muffles the ambience; Blizzard has no lightning or thunder.",
+    "seconds": 18,
+    "mission": 1,
+    "character": 1,
+    "preset": 8,
+    "feature": "blizzard",
+    "shot": "wide",
+    "camera": { "eye": [-40000, -1800, -16500], "target": [-31000, -1000, -16500] },
+    "fog": false,
+    "sharp_text": true,
+    "weather_warmup": 30
+  },
+  {
     "id": "snowstorm",
     "title": "Snowstorm",
     "description": "Denser precipitation, restrained cloud lightning and delayed thunder. Cosmetic timing leaves gameplay and its random stream unchanged.",

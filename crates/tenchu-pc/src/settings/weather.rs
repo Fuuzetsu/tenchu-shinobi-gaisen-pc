@@ -9,16 +9,18 @@ pub enum WeatherMode {
     Snow,
     Rainstorm,
     Snowstorm,
+    Blizzard,
 }
 
 impl WeatherMode {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Original,
         Self::Clear,
         Self::Rain,
         Self::Snow,
         Self::Rainstorm,
         Self::Snowstorm,
+        Self::Blizzard,
     ];
 
     pub fn name(self) -> &'static str {
@@ -29,6 +31,7 @@ impl WeatherMode {
             Self::Snow => "Snow",
             Self::Rainstorm => "Rainstorm",
             Self::Snowstorm => "Snowstorm",
+            Self::Blizzard => "Blizzard",
         }
     }
 
@@ -41,7 +44,7 @@ impl WeatherMode {
     }
 
     pub fn snow(self) -> bool {
-        matches!(self, Self::Snow | Self::Snowstorm)
+        matches!(self, Self::Snow | Self::Snowstorm | Self::Blizzard)
     }
 
     pub fn storm(self) -> bool {
@@ -75,6 +78,7 @@ pub struct Weather {
     pub lightning_interval: u16,
     pub thunder: u16,
     pub rain_volume: u16,
+    pub wind_volume: u16,
 }
 
 impl Default for Weather {
@@ -103,6 +107,7 @@ impl Default for Weather {
             lightning_interval: 25,
             thunder: 60,
             rain_volume: 0,
+            wind_volume: 70,
         }
     }
 }
@@ -128,12 +133,13 @@ impl Weather {
         self.lightning_interval = self.lightning_interval.clamp(8, 120);
         self.thunder = self.thunder.min(100);
         self.rain_volume = self.rain_volume.min(100);
+        self.wind_volume = self.wind_volume.min(100);
     }
 
     pub fn particles(&self) -> usize {
         let count =
             [384, 896, 1792][usize::from(self.quality.min(2))] * usize::from(self.amount) / 100;
-        if self.mode.storm() {
+        if self.mode.storm() || self.mode == WeatherMode::Blizzard {
             count * 3 / 2
         } else {
             count
@@ -143,7 +149,12 @@ impl Weather {
     pub fn velocity(&self, speed: f32) -> glam::Vec3 {
         let heading = f32::from(self.heading).to_radians();
         let wind = f32::from(self.wind) * speed / self.fall_speed()
-            * if self.mode.snow() { 0.65 } else { 1.0 };
+            * if self.mode.snow() { 0.65 } else { 1.0 }
+            * if self.mode == WeatherMode::Blizzard {
+                2.5
+            } else {
+                1.0
+            };
         glam::Vec3::new(heading.sin() * wind, speed, heading.cos() * wind)
     }
 

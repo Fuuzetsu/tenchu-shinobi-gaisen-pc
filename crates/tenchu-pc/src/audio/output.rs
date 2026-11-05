@@ -31,7 +31,7 @@ pub enum Command {
     Balance(u8, u8, bool),
     Voice(i16),
     Thunder(Option<tenchu_audio::ThunderCue>),
-    Rainfall(tenchu_audio::Rainfall),
+    Ambience(tenchu_audio::Ambience),
 }
 
 pub struct Output {
@@ -149,7 +149,7 @@ impl Playback {
                 }
                 Command::Voice(id) => self.mixer.play_note(id, 127, 64, 48),
                 Command::Thunder(cue) => self.mixer.thunder(cue),
-                Command::Rainfall(rainfall) => self.mixer.rainfall(rainfall),
+                Command::Ambience(ambience) => self.mixer.ambience(ambience),
             }
         }
     }

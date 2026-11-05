@@ -110,11 +110,11 @@ impl View {
         self.weather.thunder()
     }
 
-    pub(super) fn rainfall(&self, settings: &settings::Weather) -> tenchu_audio::Rainfall {
+    pub(super) fn ambience(&self, settings: &settings::Weather) -> tenchu_audio::Ambience {
         self.surfaces
             .as_ref()
             .map_or_else(Default::default, |surfaces| {
-                self.weather.rainfall(surfaces, settings)
+                self.weather.ambience(surfaces, settings)
             })
     }
 

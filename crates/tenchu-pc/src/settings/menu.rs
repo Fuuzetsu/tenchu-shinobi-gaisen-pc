@@ -76,6 +76,7 @@ pub enum Item {
     StormInterval,
     StormThunder,
     RainVolume,
+    WindVolume,
     FootprintSeconds,
     ClearFootprints,
     ClearWeather,
@@ -668,7 +669,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::Weather,
                     "Weather",
                     weather.mode.name().into(),
-                    "Original retains the mission weather. Other choices replace presentation only. Rainstorm and Snowstorm add denser precipitation, cloud lightning and delayed thunder; gameplay is unchanged.",
+                    "Original retains the mission weather. Other choices replace presentation only. Rainstorm and Snowstorm add lightning and delayed thunder. Blizzard adds dense, strongly wind-driven snow and howling wind without lightning; gameplay is unchanged.",
                 ),
                 (
                     Item::ClearWeather,
@@ -699,6 +700,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Storm lightning interval",
                     format!("~{} s", weather.lightning_interval),
                     "Average time between storm flashes, with small independent random variation. Thunder follows each flash after a short distance delay.",
+                ),
+                (
+                    Item::WindVolume,
+                    "Blizzard wind volume",
+                    format!("{}%", weather.wind_volume),
+                    "Continuous gusting wind in Blizzard mode, following wind strength and muffling under shelter. No thunder or lightning; choose Snowstorm for those. Follows master/effects volume and pause. 0 disables.",
                 ),
                 (
                     Item::RainVolume,

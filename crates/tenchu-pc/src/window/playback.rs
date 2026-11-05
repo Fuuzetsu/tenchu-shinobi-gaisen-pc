@@ -64,10 +64,10 @@ impl Application {
         );
         let weather_settings = &self.settings.rendering().graphics.weather;
         let storm = weather_settings.mode.storm() && self.simulating();
-        let rainfall = if self.simulating() {
+        let ambience = if self.simulating() {
             self.view
                 .as_ref()
-                .map_or_else(Default::default, |view| view.rainfall(weather_settings))
+                .map_or_else(Default::default, |view| view.ambience(weather_settings))
         } else {
             Default::default()
         };
@@ -81,7 +81,7 @@ impl Application {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
-            audio.weather(self.view.as_ref().and_then(View::thunder), storm, rainfall);
+            audio.weather(self.view.as_ref().and_then(View::thunder), storm, ambience);
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
@@ -89,7 +89,7 @@ impl Application {
                 self.pause_error(error);
                 return false;
             }
-            sound.weather(self.view.as_ref().and_then(View::thunder), storm, rainfall);
+            sound.weather(self.view.as_ref().and_then(View::thunder), storm, ambience);
         }
         self.trial_record_check();
         self.record_rewind();

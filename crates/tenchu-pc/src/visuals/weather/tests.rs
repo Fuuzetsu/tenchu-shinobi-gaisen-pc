@@ -395,8 +395,8 @@ fn rain_ambience_follows_intensity_and_windward_shelter() {
     };
     let mut weather = Weather::default();
     weather.tick(1, Vec3::new(0.0, -500.0, 0.0), &surfaces, &settings);
-    assert_eq!(weather.rainfall(&surfaces, &settings).volume, 0.4);
-    assert_eq!(weather.rainfall(&surfaces, &settings).exposure, 1.0);
+    assert_eq!(weather.ambience(&surfaces, &settings).rain, 0.4);
+    assert_eq!(weather.ambience(&surfaces, &settings).exposure, 1.0);
     let roof = Surfaces::new(&[
         Vertex {
             position: [-2000.0, -2000.0, -2000.0],
@@ -411,14 +411,56 @@ fn rain_ambience_follows_intensity_and_windward_shelter() {
             ..Vertex::zeroed()
         },
     ]);
-    assert_eq!(weather.rainfall(&roof, &settings).exposure, 0.0);
+    assert_eq!(weather.ambience(&roof, &settings).exposure, 0.0);
     settings.wind = 100;
     settings.heading = 90;
     // Wind-driven rain can still reach the listener near the edge of the roof.
     weather.center = Some(Vec3::new(-1900.0, 0.0, -1800.0));
-    assert_eq!(weather.rainfall(&roof, &settings).exposure, 1.0);
+    assert_eq!(weather.ambience(&roof, &settings).exposure, 1.0);
     for mode in [WeatherMode::Clear, WeatherMode::Original, WeatherMode::Snow] {
         settings.mode = mode;
-        assert_eq!(weather.rainfall(&surfaces, &settings), Default::default());
+        assert_eq!(weather.ambience(&surfaces, &settings), Default::default());
     }
+}
+
+#[test]
+fn blizzard_has_wind_snow_and_no_thunder() {
+    let surfaces = Surfaces::new(&[]);
+    let settings = Settings {
+        mode: WeatherMode::Blizzard,
+        amount: 100,
+        quality: 0,
+        wind: 50,
+        heading: 90,
+        lightning_interval: 8,
+        ..Default::default()
+    };
+    let mut weather = Weather::default();
+    for tick in 0..1800 {
+        weather.tick(tick, Vec3::ZERO, &surfaces, &settings);
+        assert_eq!(weather.thunder(), None);
+        assert_eq!(weather.sample(&settings, 0.5).flash, 0.0);
+    }
+    assert!(weather.snow > 0.99);
+    assert_eq!(weather.wet, 0.0);
+    assert!(!weather.particles.is_empty());
+    assert!(
+        weather
+            .particles
+            .iter()
+            .all(|p| p.velocity.x > p.velocity.y)
+    );
+    let ambience = weather.ambience(&surfaces, &settings);
+    assert_eq!(ambience.rain, 0.0);
+    assert!(ambience.wind > 0.0);
+    let calm = Settings {
+        mode: WeatherMode::Snow,
+        ..settings.clone()
+    };
+    assert_eq!(weather.ambience(&surfaces, &calm).wind, 0.0);
+    let muted = Settings {
+        wind_volume: 0,
+        ..settings
+    };
+    assert_eq!(weather.ambience(&surfaces, &muted).wind, 0.0);
 }

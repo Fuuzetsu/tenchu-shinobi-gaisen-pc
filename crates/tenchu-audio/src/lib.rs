@@ -1,7 +1,7 @@
+mod ambience;
 mod envelope;
-mod rain;
 mod thunder;
-pub use rain::Rainfall;
+pub use ambience::Ambience;
 pub use thunder::ThunderCue;
 
 use envelope::Envelope;
@@ -30,7 +30,7 @@ pub struct Mixer {
     next_voice: usize,
     music: Option<Music>,
     thunder: Option<thunder::Thunder>,
-    rain: Option<rain::Rain>,
+    ambience: Option<ambience::Bed>,
     rate: u32,
     envelope_clock: u64,
     pause_envelope_clock: u64,
@@ -51,7 +51,7 @@ impl Mixer {
             next_voice: 0,
             music: None,
             thunder: None,
-            rain: None,
+            ambience: None,
             rate,
             envelope_clock: 0,
             pause_envelope_clock: 0,
@@ -72,14 +72,14 @@ impl Mixer {
     pub fn clear_effects(&mut self) {
         self.voices = std::array::from_fn(|_| None);
         self.thunder = None;
-        self.rain = None;
+        self.ambience = None;
     }
 
-    pub fn rainfall(&mut self, rainfall: Rainfall) {
-        if rainfall.volume > 0.0 || self.rain.is_some() {
-            self.rain
-                .get_or_insert_with(|| rain::Rain::new(self.rate))
-                .set(rainfall);
+    pub fn ambience(&mut self, ambience: Ambience) {
+        if ambience.rain > 0.0 || ambience.wind > 0.0 || self.ambience.is_some() {
+            self.ambience
+                .get_or_insert_with(|| ambience::Bed::new(self.rate))
+                .set(ambience);
         }
     }
 
@@ -221,10 +221,10 @@ impl Mixer {
             }
         }
         if !self.paused
-            && let Some(rain) = &mut self.rain
+            && let Some(rain) = &mut self.ambience
         {
             if rain.finished() {
-                self.rain = None;
+                self.ambience = None;
             } else {
                 for (out, sample) in output.iter_mut().zip(rain.frame()) {
                     *out += sample;

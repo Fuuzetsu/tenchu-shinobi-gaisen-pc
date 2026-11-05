@@ -234,15 +234,26 @@ impl Weather {
         });
     }
 
-    pub fn rainfall(&self, surfaces: &Surfaces, settings: &Settings) -> tenchu_audio::Rainfall {
-        if !settings.mode.rain() || settings.rain_volume == 0 || settings.amount == 0 {
+    pub fn ambience(&self, surfaces: &Surfaces, settings: &Settings) -> tenchu_audio::Ambience {
+        let rain = if settings.mode.rain() {
+            f32::from(settings.rain_volume) * f32::from(settings.amount) / 10000.0
+        } else {
+            0.0
+        };
+        let wind = if settings.mode == WeatherMode::Blizzard {
+            f32::from(settings.wind_volume) * (f32::from(settings.wind) / 100.0).sqrt() / 100.0
+        } else {
+            0.0
+        };
+        if rain == 0.0 && wind == 0.0 {
             return Default::default();
         }
         let Some(center) = self.center else {
             return Default::default();
         };
-        tenchu_audio::Rainfall {
-            volume: f32::from(settings.rain_volume) * f32::from(settings.amount) / 10000.0,
+        tenchu_audio::Ambience {
+            rain,
+            wind,
             exposure: if surfaces.exposed(center, settings.direction()) {
                 1.0
             } else {
