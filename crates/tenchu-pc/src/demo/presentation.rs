@@ -83,6 +83,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
             || matches!(
                 player.clip().feature,
                 Feature::Blood
+                    | Feature::WoundSpurts
                     | Feature::BloodSnow
                     | Feature::WeaponSparks
                     | Feature::WeaponFinishes
@@ -178,6 +179,19 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.effects.spark_density = 150;
             g.lighting.enabled = true;
             g.interpolation = true;
+        }
+        Feature::WoundSpurts => {
+            g.blood = crate::settings::Blood::modern();
+            g.blood.hit = crate::settings::BloodStyle::Off;
+            g.blood.runoff = false;
+            g.blood.spurts = if p < 0.5 { 0 } else { 100 };
+            g.blood.weapons = false;
+            g.blood.seconds = 4;
+            g.interpolation = true;
+            g.lighting.enabled = true;
+            g.sky.enabled = true;
+            g.sky.time = 660;
+            g.post.vignette = 0;
         }
         Feature::Blood => {
             g.blood = crate::settings::Blood::modern();
@@ -732,6 +746,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             s.graphics.blood.ground.label(),
         )),
         Feature::BloodSnow => text("Blood stains the snow; the covered ground stays intact".into()),
+        Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {
+            "Drips only · hit spray hidden · 4 seconds per wound".into()
+        } else {
+            "Pulsing jets follow wounds · weaken over 4 seconds · cosmetic only".into()
+        }),
         Feature::Blizzard => meter("Blizzard wind", g.weather.wind, 100),
         Feature::Rainstorm | Feature::Snowstorm => text(
             "Denser precipitation · rain ambience · sheltered flashes · delayed thunder".into(),

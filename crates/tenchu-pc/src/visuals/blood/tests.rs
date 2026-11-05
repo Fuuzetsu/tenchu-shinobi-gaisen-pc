@@ -790,7 +790,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
     let assets =
         tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
             .unwrap();
-    for character in 0..2 {
+    for (character, spurts) in [(0, 0), (1, 0), (0, 120), (1, 120)] {
         let mut game = crate::session::Options {
             mission: 1,
             character,
@@ -811,6 +811,7 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         ));
         let mut blood = Blood::default();
         let mut settings = settings::Blood::modern();
+        settings.spurts = spurts;
         blood.tick(&game, &models, &surfaces, &settings, None);
         let root = game.player().root_model;
         let position =
@@ -840,14 +841,27 @@ fn wound_drips_stop_and_player_death_leaves_a_pool() {
         blood.wound(&game, &models, root, position, &settings, None);
         assert_eq!(blood.wounds.len(), 1);
         let mut emitted = false;
+        let mut jetted = false;
         for _ in 0..150 {
             game.tick += 1;
             let state = crate::session::tests::state(&game);
             blood.tick(&game, &models, &surfaces, &settings, None);
             assert_eq!(state, crate::session::tests::state(&game));
             emitted |= !blood.drops.is_empty();
+            jetted |= blood
+                .drops
+                .iter()
+                .any(|drop| drop.life == 89 && drop.velocity.length() > 40.0);
+            assert!(blood.drops.len() <= DROP_LIMIT);
+            assert!(
+                blood
+                    .drops
+                    .iter()
+                    .all(|drop| { drop.position.is_finite() && drop.velocity.is_finite() })
+            );
         }
         assert!(emitted);
+        assert_eq!(jetted, spurts != 0);
         assert!(blood.wounds.is_empty() && blood.drops.is_empty());
         assert!(blood.marks.len() > 1);
         settings.seconds = 60;

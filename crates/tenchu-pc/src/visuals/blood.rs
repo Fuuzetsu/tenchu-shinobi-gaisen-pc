@@ -20,10 +20,12 @@ use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 mod runoff;
 mod storage;
 mod weapons;
+mod wounds;
 use runoff::Runoff;
 use storage::Marks;
 #[cfg(test)]
 use storage::VERTEX_LIMIT;
+use wounds::Wound;
 const WOUND_LIMIT: usize = 64;
 const DROP_LIMIT: usize = 128;
 
@@ -92,13 +94,6 @@ impl Mark {
     fn len(&self) -> usize {
         self.0.iter().map(|p| p.vertices.len()).sum()
     }
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
-struct Wound {
-    part: Part,
-    position: Vec3,
-    age: u16,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -575,6 +570,7 @@ impl Blood {
         self.wounds.push_back(Wound {
             part: *part,
             position: r.inverse() * (center - translation(*matrix)),
+            normal: r.transpose() * normal,
             age: 0,
         });
         while self.wounds.len() > WOUND_LIMIT {
@@ -748,38 +744,7 @@ impl Blood {
                 })
             })
         });
-        self.wounds.retain_mut(|wound| {
-            wound.age = wound.age.saturating_add(1);
-            wound.age < settings.seconds.min(60) * 30 && transforms.contains_key(&wound.part)
-        });
-        if game.tick.is_multiple_of(8) {
-            let sources: Vec<_> = self
-                .wounds
-                .iter()
-                .filter_map(|wound| {
-                    transforms
-                        .get(&wound.part)
-                        .map(|&m| rotation(m) * wound.position + translation(m))
-                })
-                .collect();
-            for position in sources {
-                if self.drops.len() >= DROP_LIMIT || self.random() > amount.min(1.0) {
-                    break;
-                }
-                let velocity = Vec3::new(
-                    (self.random() - 0.5) * 18.0,
-                    12.0,
-                    (self.random() - 0.5) * 18.0,
-                );
-                self.drops.push(Drop {
-                    weapon: false,
-                    previous: position,
-                    position,
-                    velocity,
-                    life: 90,
-                });
-            }
-        }
+        self.emit_wounds(game.tick, settings, &transforms);
         let mut drops = std::mem::take(&mut self.drops);
         drops.retain_mut(|drop| {
             drop.previous = drop.position;

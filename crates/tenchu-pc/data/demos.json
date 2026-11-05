@@ -752,6 +752,17 @@
     "frontend": {"page": "shop", "language": "en"}
   },
   {
+    "id": "wound-spurts",
+    "title": "Pulsing wound spurts",
+    "description": "Compare drips with pulsing jets during ordinary sparring. Blood follows animated wounds and weakens over the chosen duration. The extra bleeding is cosmetic, with no health loss or gameplay RNG changes.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "wound-spurts",
+    "shot": "guard"
+  },
+  {
     "id": "blood",
     "title": "Persistent wounds and stains",
     "description": "Original, smoother Original HD, Modern and mixed blood styles in ordinary combat. Retain original splats or soft surface stains, with runoff down walls and slopes; choose hit spray, wound drips and death pools independently without changing gameplay.",

@@ -377,7 +377,7 @@ impl Player {
                 }
             }
             Feature::Remake(feature) => remake::buttons(feature, tick, self.clip().seconds),
-            Feature::WeaponFinishes => {
+            Feature::WeaponFinishes | Feature::WoundSpurts => {
                 if tick.is_multiple_of(45) {
                     SQUARE
                 } else {

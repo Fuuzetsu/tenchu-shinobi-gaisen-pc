@@ -150,7 +150,7 @@ impl Application {
                     .collect::<Vec<_>>();
                 let position =
                     |id| Vec3::from(game.roster.get(id).position.map(|v| v as f32).to_array());
-                if clip.feature != Feature::WeaponFinishes {
+                if !matches!(clip.feature, Feature::WeaponFinishes | Feature::WoundSpurts) {
                     actors.sort_by(|&a, &b| {
                         let order = position(a)
                             .distance_squared(origin)
@@ -176,6 +176,7 @@ impl Application {
                         | Feature::BloodSnow
                         | Feature::WeaponSparks
                         | Feature::WeaponFinishes
+                        | Feature::WoundSpurts
                 ) || clip.randomizer.as_ref().is_some_and(|s| s.engage)
                 {
                     let guard = position(actor);
@@ -183,7 +184,10 @@ impl Application {
                         game.math
                             .velocity(
                                 game.roster.get(actor).rotation[1],
-                                if clip.feature == Feature::WeaponFinishes {
+                                if matches!(
+                                    clip.feature,
+                                    Feature::WeaponFinishes | Feature::WoundSpurts
+                                ) {
                                     1300
                                 } else {
                                     1500
@@ -199,7 +203,7 @@ impl Application {
                     if clip.randomizer.is_some()
                         || matches!(
                             clip.feature,
-                            Feature::WeaponSparks | Feature::WeaponFinishes
+                            Feature::WeaponSparks | Feature::WeaponFinishes | Feature::WoundSpurts
                         )
                     {
                         let enemy = game.roster.get(actor).position;
@@ -214,12 +218,15 @@ impl Application {
                     }
                     if matches!(
                         clip.feature,
-                        Feature::WeaponSparks | Feature::WeaponFinishes
+                        Feature::WeaponSparks | Feature::WeaponFinishes | Feature::WoundSpurts
                     ) {
                         self.debug.god_mode = true;
                         demo::sparring(&mut game, actor)?;
-                        if clip.feature == Feature::WeaponFinishes {
+                        if matches!(clip.feature, Feature::WeaponFinishes | Feature::WoundSpurts) {
                             game.intelligence.difficulty = tenchu_core::ai::Difficulty::Easy;
+                        }
+                        if clip.feature == Feature::WoundSpurts {
+                            game.roster.get_mut(actor).invulnerable = false;
                         }
                     }
                     scene.player_start = game.player().position;
@@ -227,7 +234,8 @@ impl Application {
                     scene.target = guard - Vec3::Y * 600.0;
                     scene.distance = if clip.feature == Feature::BloodSnow {
                         6200.0
-                    } else if clip.feature == Feature::WeaponFinishes {
+                    } else if matches!(clip.feature, Feature::WeaponFinishes | Feature::WoundSpurts)
+                    {
                         3200.0
                     } else {
                         4200.0
@@ -238,7 +246,7 @@ impl Application {
                 if !far
                     && !matches!(
                         clip.feature,
-                        Feature::WeaponSparks | Feature::WeaponFinishes
+                        Feature::WeaponSparks | Feature::WeaponFinishes | Feature::WoundSpurts
                     )
                 {
                     self.settings.keep_enemies_active = true;

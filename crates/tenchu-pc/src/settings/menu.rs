@@ -104,6 +104,7 @@ pub enum Item {
     BloodAmount,
     BloodDeathSize,
     BloodSeconds,
+    BloodSpurts,
     BloodMarks,
     ClearBlood,
     PlayerModel,
@@ -990,7 +991,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodSeconds,
                 "Wound bleeding",
                 format!("{} s", s.graphics.blood.seconds),
-                "How long each wound drips (default 3 seconds). Changes also affect active wounds; 0 stops extra bleeding. Retained stains and death pools remain.",
+                "How long each wound drips or spurts (default 3 seconds). Changes also affect active wounds; 0 stops extra bleeding. Retained stains and death pools remain.",
+            ),
+            (
+                Item::BloodSpurts,
+                "Wound spurt strength",
+                format!("{}%", s.graphics.blood.spurts),
+                "0 keeps drips only. Add pulsing jets from animated wounds using the selected Wound drips style. Strength and frequency weaken over the Wound bleeding duration. Cosmetic only; no health loss.",
             ),
             (
                 Item::BloodMarks,

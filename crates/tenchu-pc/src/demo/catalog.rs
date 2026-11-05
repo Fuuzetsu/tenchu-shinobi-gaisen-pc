@@ -36,6 +36,7 @@ pub enum Feature {
     SecondaryMotion,
     Breeze,
     Blood,
+    WoundSpurts,
     ShopLighting,
     Gunfire,
     WeaponSparks,

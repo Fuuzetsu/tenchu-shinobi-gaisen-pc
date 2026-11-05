@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add adjustable cosmetic wound spurts under F1 → Blood, with jets that follow animated wounds and taper over the bleeding duration. Modern High/Ultra enable them; a sparring demo compares them with drips. Existing custom settings and Original stay unchanged.
+
 - Add selectable rolling thunder with layered rumbles, stereo reverberation and overlapping tails, plus an optional retro 8-bit/11 kHz sound. Modern presets and storm demos use Rolling; the previous sound remains available.
 
 - Add **Blizzard** weather: dense wind-driven snow with adjustable howling-wind ambience and no lightning/thunder. Snowstorm remains available separately. Includes a Blizzard feature demo.
@@ -12,7 +14,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Add continuous stereo rain ambience with its own F1 weather volume. It follows rain intensity, muffles smoothly under cover, pauses with the game and is included in recordings. Modern presets enable it when Rain or Rainstorm is selected; Original stays unchanged.
 
 - Add optional **Strict corpse visibility** under F1 → Gameplay. Guards must have a clear eye-to-body terrain ray before discovering a corpse; visible bodies still raise shared alerts. Original behavior remains the default.
-- Update the mid-mission savestate format for the new gameplay option. Older snapshots require the build that created them; campaign saves are unchanged.
+- Update the mid-mission savestate format for the new gameplay option and wound data. Older snapshots require the build that created them; campaign saves are unchanged.
 
 - Let tinted and non-metallic weapons receive blood when no silver blade surface is identified, fixing the Mission 9 Kunoichi's clean weapons after successful hits.
 

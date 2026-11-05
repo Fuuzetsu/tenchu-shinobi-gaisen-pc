@@ -46,6 +46,7 @@ pub struct Blood {
     pub amount: u16,
     pub death_size: u16,
     pub seconds: u16,
+    pub spurts: u16,
     pub marks: u16,
 }
 
@@ -64,6 +65,7 @@ impl Default for Blood {
             amount: 100,
             death_size: 100,
             seconds: 3,
+            spurts: 0,
             marks: 8192,
         }
     }
@@ -113,6 +115,7 @@ impl Blood {
         self.amount = self.amount.min(200);
         self.death_size = self.death_size.clamp(10, 200);
         self.seconds = self.seconds.min(60);
+        self.spurts = self.spurts.min(200);
         self.marks = self.marks.max(32);
     }
 }
@@ -134,6 +137,7 @@ struct SavedBlood {
     amount: Option<u16>,
     death_size: Option<u16>,
     seconds: Option<u16>,
+    spurts: Option<u16>,
     marks: Option<u16>,
 }
 
@@ -161,6 +165,7 @@ impl From<SavedBlood> for Blood {
             amount: saved.amount.unwrap_or(default.amount),
             death_size: saved.death_size.unwrap_or(default.death_size),
             seconds: saved.seconds.unwrap_or(default.seconds),
+            spurts: saved.spurts.unwrap_or_default(),
             marks: saved.marks.unwrap_or(default.marks),
         }
     }
@@ -189,6 +194,7 @@ mod tests {
                 assert_eq!(blood.model_stains, enabled);
                 assert_eq!(blood.marks, 12000);
                 assert!(!blood.runoff, "Existing saved preferences keep runoff off");
+                assert_eq!(blood.spurts, 0);
             }
         }
         let blood = Blood {
@@ -199,6 +205,7 @@ mod tests {
             retain_original: true,
             player_death: false,
             death_size: 45,
+            spurts: 120,
             ..Blood::modern()
         };
         let encoded = serde_json::to_value(blood).unwrap();
