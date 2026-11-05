@@ -4,6 +4,7 @@ struct RoomLighting {
     horizon: vec4<f32>,
     zenith: vec4<f32>,
     options: vec4<f32>,
+    precipitation: vec4<f32>,
 }
 @group(0) @binding(2) var<uniform> room: RoomLighting;
 
@@ -30,10 +31,47 @@ fn room_sky(p: vec2<f32>) -> vec3<f32> {
     let disc = smoothstep(cos(0.007), cos(0.0045), alignment);
     color += room.color.rgb * (disc * 2.0 + pow(alignment, 500.0) * 0.12)
         * min(1.0, room.direction.w * 12.0) * room.zenith.w;
+    let overcast = mix(vec3(0.025, 0.04, 0.065), vec3(0.22, 0.28, 0.34), room.options.x);
+    color = mix(color, overcast, room.horizon.w * (0.5 + 0.4 * (1.0 - height)));
     return pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
 }
 
-fn room_shade(uv: vec2<f32>, painted: vec3<f32>) -> vec3<f32> {
+fn room_hash(cell: vec2<f32>) -> vec3<f32> {
+    var h = fract(cell.xyx * vec3(0.1031, 0.1030, 0.0973));
+    h += dot(h, h.yxz + vec3(33.33));
+    return fract((h.xxy + h.yzz) * h.zyx);
+}
+
+fn room_precipitation(p: vec2<f32>, pixel: vec2<f32>) -> f32 {
+    let rain = room.precipitation.x > 0.0;
+    let amount = max(room.precipitation.x, room.precipitation.y);
+    if amount == 0.0 { return 0.0; }
+    let slope = room.precipitation.w;
+    let speed = select(0.11, 1.8, rain);
+    let time = room.precipitation.z;
+    var coverage = 0.0;
+    for (var layer = 0; layer < 3; layer++) {
+        let scale = 9.0 + f32(layer) * 6.0;
+        let fall = speed * (1.0 + f32(layer) * 0.2);
+        var point = p - vec2(slope, 1.0) * (time * fall);
+        if rain { point.x -= slope * point.y; }
+        let grid = point * scale + vec2(f32(layer) * 17.7);
+        let cell = floor(grid);
+        let random = room_hash(cell);
+        let center = vec2(0.3) + random.xy * 0.4;
+        let local = fract(grid) - center;
+        var distance = length(local) - mix(0.045, 0.1, random.y);
+        if rain {
+            distance = max(abs(local.x) - 0.014, abs(local.y) - 0.23);
+        }
+        let aa = max(0.005, max(pixel.x, pixel.y) * scale * (1.0 + abs(slope)));
+        coverage += (1.0 - smoothstep(-aa, aa, distance))
+            * step(random.z, amount * 0.7) * (0.65 - f32(layer) * 0.15);
+    }
+    return min(coverage, 1.0);
+}
+
+fn room_shade(uv: vec2<f32>, painted: vec3<f32>, pixel: vec2<f32>) -> vec3<f32> {
     let luminance = dot(painted, vec3(0.2126, 0.7152, 0.0722));
     let saturation = max(painted.r, max(painted.g, painted.b)) - min(painted.r, min(painted.g, painted.b));
     // Lettering is baked into all four retail paintings; icons/counts are separate draws.
@@ -44,7 +82,15 @@ fn room_shade(uv: vec2<f32>, painted: vec3<f32>) -> vec3<f32> {
     let window = room_window(uv);
     let inside = min(min(window.x, 1.0 - window.x), min(window.y, 1.0 - window.y));
     let pane = smoothstep(-0.035, 0.01, inside) * smoothstep(0.14, 0.6, luminance);
-    let outside = room_sky(window) * (0.55 + 0.45 * luminance);
+    var outside = room_sky(window) * (0.55 + 0.45 * luminance);
+    if pane > 0.0 && all(window > vec2(0.0)) && all(window < vec2(1.0)) {
+        let bars = min(fract(window.x * 8.0), 1.0 - fract(window.x * 8.0));
+        let crossbar = min(abs(window.y - 0.33), abs(window.y - 0.74));
+        let opening = smoothstep(0.07, 0.1, bars) * smoothstep(0.014, 0.022, crossbar);
+        let flakes = room_precipitation(window, pixel) * opening;
+        let color = mix(vec3(0.45, 0.55, 0.7), vec3(0.85, 0.9, 1.0), room.options.x);
+        outside = mix(outside, color, flakes);
+    }
 
     // A shallow projection onto the painted back wall and chest top, not a 3D room.
     let chest = smoothstep(0.58, 0.65, uv.y) * (1.0 - smoothstep(0.38, 0.45, uv.x));

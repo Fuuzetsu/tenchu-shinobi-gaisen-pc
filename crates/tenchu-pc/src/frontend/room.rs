@@ -1,4 +1,8 @@
-use crate::{renderer::sun, settings::Graphics, visuals::sky::Daylight};
+use crate::{
+    renderer::sun,
+    settings::{Graphics, WeatherMode},
+    visuals::sky::Daylight,
+};
 use bytemuck::{Pod, Zeroable};
 use glam::Vec3;
 
@@ -10,10 +14,11 @@ pub(super) struct Lighting {
     horizon: [f32; 4],
     zenith: [f32; 4],
     options: [f32; 4],
+    precipitation: [f32; 4],
 }
 
 impl Lighting {
-    pub fn sample(graphics: &Graphics, seconds: f64) -> Option<Self> {
+    pub fn sample(graphics: &Graphics, seconds: f64, native_snow: bool) -> Option<Self> {
         if !graphics.shop_lighting {
             return None;
         }
@@ -26,6 +31,17 @@ impl Lighting {
         let zenith = daylight.map_or(horizon, |sky| {
             Vec3::new(0.00015, 0.0004, 0.0015).lerp(Vec3::new(0.018, 0.08, 0.23), sky.day)
         });
+        let weather = &graphics.weather;
+        let amount = f32::from(weather.amount) / 100.0;
+        let rain = if weather.mode.rain() { amount } else { 0.0 };
+        let snow = if weather.mode == WeatherMode::Original && native_snow {
+            0.3
+        } else if weather.mode.snow() {
+            amount
+        } else {
+            0.0
+        };
+        let velocity = weather.direction();
         Some(Self {
             direction: light
                 .direction
@@ -39,7 +55,9 @@ impl Lighting {
                 .color
                 .extend(f32::from(graphics.lighting.shadows))
                 .to_array(),
-            horizon: horizon.extend(0.0).to_array(),
+            horizon: horizon
+                .extend(rain * f32::from(weather.haze) / 100.0)
+                .to_array(),
             zenith: zenith.extend(f32::from(sky.enabled)).to_array(),
             options: [
                 light.day,
@@ -54,6 +72,20 @@ impl Lighting {
                     0.0
                 },
                 graphics.lighting.softness as f32,
+            ],
+            precipitation: [
+                rain,
+                snow,
+                if rain + snow > 0.0 {
+                    seconds as f32
+                } else {
+                    0.0
+                },
+                if weather.mode == WeatherMode::Original {
+                    0.0
+                } else {
+                    velocity.x / velocity.y
+                },
             ],
         })
     }

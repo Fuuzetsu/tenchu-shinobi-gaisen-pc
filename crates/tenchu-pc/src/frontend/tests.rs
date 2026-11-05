@@ -770,3 +770,36 @@ fn shuriken_title_only_replaces_the_english_heading() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; shop weather must follow the selected mission before loading its game state"]
+fn shop_snow_follows_selection_before_mission_is_loaded() {
+    let path = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    let state = crate::session::tests::state(&campaign.game);
+    for mission in [1, 5, 1] {
+        campaign.options.mission = mission;
+        campaign.inventory();
+        frontend.prepare(&campaign, &assets, false).unwrap();
+        assert_eq!(frontend.shop_snow, mission == 5);
+        let loaded = crate::session::Options {
+            mission,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        assert_eq!(
+            frontend.shop_snow,
+            loaded
+                .mission
+                .misc
+                .spawns
+                .iter()
+                .any(|spawn| { matches!(spawn.kind, tenchu_assets::misc::Kind::Snowfall) })
+        );
+        assert_eq!(state, crate::session::tests::state(&campaign.game));
+    }
+}

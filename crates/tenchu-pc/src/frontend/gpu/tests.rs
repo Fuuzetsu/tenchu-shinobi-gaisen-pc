@@ -180,19 +180,60 @@ fn shop_window_tracks_sky_without_changing_ui_or_gameplay() {
         };
         settings.sky.enabled = true;
         settings.sky.time = 720;
-        let day = render(Lighting::sample(&settings, 0.0), "noon");
+        let day = render(Lighting::sample(&settings, 0.0, false), "noon");
         settings.sky.time = 0;
-        let night = render(Lighting::sample(&settings, 0.0), "midnight");
+        let night = render(Lighting::sample(&settings, 0.0, false), "midnight");
         settings.sky.time = 600;
-        let morning = render(Lighting::sample(&settings, 0.0), "morning");
+        let morning = render(Lighting::sample(&settings, 0.0, false), "morning");
         settings.lighting.shadows = false;
-        let no_shadows = render(Lighting::sample(&settings, 0.0), "no-shadows");
+        let no_shadows = render(Lighting::sample(&settings, 0.0, false), "no-shadows");
         assert!(day != night, "day and night must differ");
         assert!(day != morning, "sun angle must change the room");
         assert!(
             morning != no_shadows,
             "window bars must affect projected light"
         );
+        settings.weather.haze = 0;
+        settings.weather.amount = 100;
+        settings.weather.mode = crate::settings::WeatherMode::Rain;
+        let rain = render(Lighting::sample(&settings, 1.0, false), "rain");
+        let falling = render(Lighting::sample(&settings, 1.5, false), "falling-rain");
+        settings.weather.wind = 100;
+        settings.weather.heading = 270;
+        let windy = render(Lighting::sample(&settings, 1.0, false), "windy-rain");
+        settings.weather.mode = crate::settings::WeatherMode::Snow;
+        let snow = render(Lighting::sample(&settings, 1.0, false), "snow");
+        settings.weather.mode = crate::settings::WeatherMode::Clear;
+        let clear = render(Lighting::sample(&settings, 1.0, true), "clear");
+        settings.weather.mode = crate::settings::WeatherMode::Original;
+        let native = render(Lighting::sample(&settings, 1.0, true), "native-snow");
+        assert_eq!(
+            clear,
+            render(Lighting::sample(&settings, 1.0, false), "dry-mission")
+        );
+        assert_ne!(
+            rain, falling,
+            "rain must move while the mission stays at tick zero"
+        );
+        assert_ne!(rain, windy, "wind must change the precipitation direction");
+        assert_ne!(
+            snow, native,
+            "the original light snowfall has its own amount and drift"
+        );
+        for weather in [&rain, &falling, &windy, &snow, &native] {
+            assert_ne!(*weather, clear, "precipitation must be visible");
+            for (i, (a, b)) in weather
+                .chunks_exact(4)
+                .zip(clear.chunks_exact(4))
+                .enumerate()
+            {
+                let x = i % 1280;
+                let y = i / 1280;
+                if !(134..410).contains(&x) || !(148..526).contains(&y) {
+                    assert_eq!(a, b, "precipitation escaped the window at {x}, {y}");
+                }
+            }
+        }
         assert!(
             original == render(None, "restored"),
             "disabling must restore the original painting exactly"

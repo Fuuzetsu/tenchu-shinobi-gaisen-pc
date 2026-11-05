@@ -1330,7 +1330,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::ShopLighting,
                 "Shop window and lighting",
                 on(s.graphics.shop_lighting),
-                "Match the window to the game's sky settings, with moving window-grid light and soft shadows on the painted room. Uses Sky lighting / Time of day; Original keeps the painting unchanged.",
+                "Show the configured sky, wind-driven rain/snow and the mission's original snowfall outside the window. Moving window-grid light and soft shadows relight the painted room. Off keeps the painting unchanged.",
             ),
             (
                 Item::Fullscreen,

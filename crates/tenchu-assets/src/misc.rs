@@ -50,6 +50,14 @@ pub struct Misc {
 }
 
 impl Misc {
+    pub fn has_snowfall(construction: &[u8]) -> bool {
+        construction
+            .chunks_exact(32)
+            .filter(|row| i16_le(row, 0) == Ok(11))
+            .take(200)
+            .any(|row| u32_le(row, 4) == Ok(3))
+    }
+
     pub fn load<S: ReadAt>(
         game: &GameAssets<S>,
         construction: &[u8],

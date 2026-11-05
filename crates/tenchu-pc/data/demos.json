@@ -739,9 +739,9 @@
   },
   {
     "id": "shop-lighting",
-    "title": "Light through the shop window",
-    "description": "The shop window follows the game's sky and light settings. Soft window-grid shadows move across the painted room; item icons and quantities stay readable.",
-    "seconds": 14,
+    "title": "Sky and weather through the shop window",
+    "description": "The window follows the configured sky, time of day and wind-driven rain or snow. Window bars shelter the painted room; moving shadows leave item icons and quantities readable.",
+    "seconds": 20,
     "mission": 1,
     "character": 0,
     "preset": 11,

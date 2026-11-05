@@ -38,7 +38,13 @@ impl Frontend {
         settings: &crate::settings::Settings,
     ) -> Option<Action> {
         let lighting = (self.page == Page::Shop)
-            .then(|| room::Lighting::sample(&settings.graphics, f64::from(self.ticks) / 60.0))
+            .then(|| {
+                room::Lighting::sample(
+                    &settings.graphics,
+                    f64::from(self.ticks) / 60.0,
+                    self.shop_snow,
+                )
+            })
             .flatten();
         if self.shop_lighting != lighting {
             self.shop_lighting = lighting;

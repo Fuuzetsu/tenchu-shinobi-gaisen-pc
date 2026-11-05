@@ -16,12 +16,13 @@ fn vs_main(@location(0) position: vec2<f32>, @location(1) uv: vec2<f32>, @locati
 }
 
 fn shade(v: Vertex, kind: u32) -> vec4<f32> {
+    let window_pixel = fwidth(room_window(v.uv));
     let half_texel = 0.5 / vec2<f32>(textureDimensions(artwork));
     let uv = clamp(v.uv, v.uv_bounds.xy + half_texel, v.uv_bounds.zw - half_texel);
     let texel = textureSample(artwork, artwork_sampler, uv);
     if texel.a < 0.01 || (kind == 1u && texel.a < 0.75) || (kind == 2u && texel.a >= 0.75) { discard; }
     var rgb = min(texel.rgb * v.color, vec3<f32>(1.0));
-    if v.room != 0.0 { rgb = room_shade(uv, rgb); }
+    if v.room != 0.0 { rgb = room_shade(uv, rgb, window_pixel); }
     if srgb_target {
         rgb = select(rgb / 12.92, pow((rgb + 0.055) / 1.055, vec3<f32>(2.4)), rgb > vec3<f32>(0.04045));
     }

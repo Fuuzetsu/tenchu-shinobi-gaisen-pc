@@ -849,7 +849,10 @@ strength, softness and the moving window shadows. Modern presets enable it;
 Original leaves the painting unchanged. This is a shallow projection onto the
 original or HD backdrop, not a reconstructed 3D room: baked lighting remains,
 and the window shows sky rather than a view of the mission terrain. Icons and
-quantities retain their normal appearance. Try `demo --clips shop-lighting`.
+quantities retain their normal appearance. Rain and snow outside follow the
+Weather tab's amount and wind direction. Original weather shows light snowfall
+on snowy missions, and Clear removes it. The window remains behind its bars;
+weather does not enter the room or advance gameplay. Try `demo --clips shop-lighting`.
 
 The shop and main Options screen are silent, matching retail. Volume previews
 the last Sound Test selection (character-selection music initially); leaving

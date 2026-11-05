@@ -144,13 +144,27 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
     match player.clip().feature {
         Feature::Randomizer => {}
         Feature::ShopLighting => {
-            g.shop_lighting = p >= 0.15;
+            g.shop_lighting = p >= 0.12;
             g.sky.enabled = true;
-            g.sky.time = ((p - 0.15).max(0.0) / 0.85 * 1440.0) as u16 % 1440;
+            g.sky.time = if p < 0.55 {
+                ((p - 0.12).max(0.0) / 0.43 * 1440.0) as u16 % 1440
+            } else {
+                660
+            };
             g.sky.speed = 0;
             g.lighting.enabled = true;
             g.lighting.shadows = true;
             g.lighting.softness = 2;
+            g.weather.mode = if p < 0.55 {
+                crate::settings::WeatherMode::Clear
+            } else if p < 0.78 {
+                crate::settings::WeatherMode::Rain
+            } else {
+                crate::settings::WeatherMode::Snow
+            };
+            g.weather.amount = 100;
+            g.weather.wind = 70;
+            g.weather.heading = if p < 0.78 { 90 } else { 270 };
         }
         Feature::Remake(feature) => super::remake::animate(feature, player, settings, debug),
         Feature::Gunfire => {
@@ -736,9 +750,10 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         ),
         Feature::ShopLighting => text(if s.graphics.shop_lighting {
             format!(
-                "Sky and window shadows · {:02}:{:02} · painted-room relighting",
+                "Sky and window shadows · {:02}:{:02} · {} outside",
                 s.graphics.sky.time / 60,
-                s.graphics.sky.time % 60
+                s.graphics.sky.time % 60,
+                s.graphics.weather.mode.name()
             )
         } else {
             "Original painted room".into()

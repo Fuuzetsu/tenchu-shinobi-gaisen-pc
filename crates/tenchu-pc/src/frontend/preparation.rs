@@ -179,6 +179,7 @@ impl Frontend {
         briefing: bool,
     ) -> Result<()> {
         self.language(assets, campaign.options.language.unwrap_or_default())?;
+        self.prepare_room(campaign, assets)?;
         self.briefing = None;
         self.shop_help = None;
         self.shop_clicked = None;
@@ -201,6 +202,17 @@ impl Frontend {
         } else {
             self.open_shop();
         }
+        Ok(())
+    }
+
+    pub(super) fn prepare_room(
+        &mut self,
+        campaign: &Campaign,
+        assets: &GameAssets<DiscSource>,
+    ) -> Result<()> {
+        let stage = &campaign.stages[stage_id(campaign, campaign.options.mission)];
+        let construction = assets.asset(&format!("STAGE/{}/STAGE.CON", stage.directory))?;
+        self.shop_snow = tenchu_assets::misc::Misc::has_snowfall(&construction);
         Ok(())
     }
 

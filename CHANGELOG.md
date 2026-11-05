@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Show wind-driven rain and snow outside the item-shop window when **Shop window and lighting** is enabled. It follows the weather controls, including light original snowfall on snowy missions; Clear removes it. The shop demo now includes weather as well as the day/night lighting cycle.
+
 - Add an optional English **Shuriken** shop title under F1 → General, matching the throwing-star icon. The disc's Crimson Blade title remains the default; the description still comes from the disc or texture pack.
 
 - Add weapon-blood coverage and flow controls under F1 → Blood. Wet streaks follow gravity and drip from the lowest edge; dry traces remain and swings still shed blood. Modern presets enable the effect, while saved custom settings keep their previous coatings.

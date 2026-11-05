@@ -51,6 +51,9 @@ impl Frontend {
         let language = scene.language()?;
         self.language(assets, language)?;
         campaign.options.language = Some(language);
+        if matches!(scene.page, Menu::Shop) {
+            self.prepare_room(campaign, assets)?;
+        }
         self.movie = None;
         self.visual_random = tenchu_core::random::Random::new(1);
         self.reset_title();
