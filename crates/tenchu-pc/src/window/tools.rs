@@ -906,10 +906,12 @@ impl Application {
             Item::StrictCorpseSight => {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
-            Item::Sheathing | Item::SheathedOneHit => {
+            Item::Sheathing | Item::SheathedOneHit | Item::UnarmedAttacks => {
                 let mut settings = self.settings.sheathing;
                 if item == Item::Sheathing {
                     settings.enabled = !settings.enabled;
+                } else if item == Item::UnarmedAttacks {
+                    settings.unarmed = !settings.unarmed;
                 } else {
                     settings.one_hit = !settings.one_hit;
                 }

@@ -18,6 +18,16 @@ the listed Git revisions alone need not describe those contents.
 The portable clock, byte-source interface, ISO/CUE parsing and host executable
 are new code. No sibling checkout is a build or runtime dependency.
 
+## Optional walking, sheathing and unarmed controls (2026-11-06)
+
+These are new gameplay options, not claims about retail player controls. Runtime
+imports read the user's Gaisen disc: NinjaA/Kunoichi walk and draw/stow motions
+from `HUMAN/MOTION/STAGE2.AMD`, and Onikage's grounded attacks from
+`HUMAN/MOTION/STAGE4.AMD`. Character registrations and battle/hitbox data come
+from the supported executable. The existing `MOTION.C`-based actor logic supplies
+weapon swaps, animation timing, combo windows and limb hitboxes. No motion data
+is checked in, and no Tenchu 2/Tatsumaru assets are used.
+
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 
 The asset decoders and texture shader adapt the viewer’s format knowledge.

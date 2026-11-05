@@ -88,6 +88,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
                     | Feature::BloodSnow
                     | Feature::WeaponSparks
                     | Feature::GuardControls
+                    | Feature::UnarmedAttacks
                     | Feature::WeaponFinishes
             )
         {
@@ -107,7 +108,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     };
     let mut distance = scene.distance;
     match player.clip().feature {
-        Feature::GuardControls | Feature::DeathGush => target.y += 700.0,
+        Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks => target.y += 700.0,
         Feature::HeroModels => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
             camera.yaw += (p - 0.5) * 0.25;
@@ -206,6 +207,14 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::Sheathing => {
             settings.sheathing.enabled = true;
             g.interpolation = true;
+        }
+        Feature::UnarmedAttacks => {
+            settings.sheathing.enabled = true;
+            settings.sheathing.unarmed = true;
+            g.interpolation = true;
+            g.blood = crate::settings::Blood::modern();
+            g.sky.enabled = true;
+            g.sky.time = 660;
         }
         Feature::WeaponSparks => {
             g.effects.sparks = p >= 0.5;
@@ -826,6 +835,12 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             100..190 => "Weapons stay stowed while moving · speed, sight and vulnerability are configurable",
             190..240 => "Attack draws first · stealth kills draw immediately for their paired animation",
             _ => "Armed attacks retain the hero's original moveset · assign a controller button in Controls",
+        }.into()),
+        Feature::UnarmedAttacks => text(match player.simulation_ticks {
+            0..90 => "Put away the blades · Unarmed attacks is a separate optional gameplay setting",
+            90..200 => "Onikage's three-kick combo · original limb hitboxes, damage and timing",
+            200..300 => "Directional attacks use the available Onikage moves · weapons remain stowed",
+            _ => "Draw explicitly to return to the hero's own blade attacks · stealth kills still draw automatically",
         }.into()),
         Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {

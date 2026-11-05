@@ -34,7 +34,7 @@ impl Actor {
     }
 
     fn hands(&self, ctx: &Context) -> Result<[ModelId; 2]> {
-        let indices = match ctx.mission.characters[self.definition].weapon {
+        let indices = match self.attack_weapon_kind(ctx) {
             FIST => [8, 11],
             JAW => [2, 1],
             _ => [13, 14],
@@ -51,6 +51,26 @@ impl Actor {
         ])
     }
 
+    fn attack_weapon_kind(&self, ctx: &Context) -> i16 {
+        if self.unarmed_attack() {
+            FIST
+        } else {
+            ctx.mission.characters[self.definition].weapon
+        }
+    }
+
+    fn attack_hitboxes(&self, ctx: &Context) -> [Option<usize>; 2] {
+        if self.unarmed_attack() {
+            [ctx.mission
+                .weapons
+                .hitboxes
+                .iter()
+                .position(|h| h.kind == FIST); 2]
+        } else {
+            self.weapon_hitbox
+        }
+    }
+
     pub(crate) fn clear_attack(&mut self, ctx: &mut Context, mode: u8) -> Result<()> {
         let kind = ctx.mission.characters[self.definition].weapon;
         if mode & 1 != 0 && kind != 0 {
@@ -58,6 +78,11 @@ impl Actor {
             ctx.collision.remove(ctx.scene, hands[0]);
             if kind != JAW {
                 ctx.collision.remove(ctx.scene, hands[1]);
+            }
+        }
+        if mode & 1 != 0 && self.sheathing.is_some() {
+            for &part in [8, 11, 13, 14].iter().filter_map(|&i| self.parts.get(i)) {
+                ctx.collision.remove(ctx.scene, part);
             }
         }
         if mode & 2 != 0 {
@@ -137,7 +162,9 @@ impl Actor {
                 }
             }
         }
-        if self.sheathing.is_some() && self.attribute & ATTR_WEAPON_DRAWN == 0 {
+        if self.sheathing.as_ref().is_some_and(|s| !s.settings.unarmed)
+            && self.attribute & ATTR_WEAPON_DRAWN == 0
+        {
             return Ok(Some((MOT_STATE_DRAW, true)));
         }
         let current = pending.map_or(self.motion.action, |p| p.0);
@@ -287,7 +314,7 @@ impl Actor {
                 self.motion_velocity(ctx);
             }
         }
-        let kind = ctx.mission.characters[self.definition].weapon;
+        let kind = self.attack_weapon_kind(ctx);
         let action = self.motion.action;
         let mut pending = None;
         match action {
@@ -461,7 +488,12 @@ impl Actor {
         }
         if self.motion.count == 0 && self.motion.loops == 1 {
             self.clear_attack(ctx, 3)?;
-            self.enter_unless_scripted(ctx, MOT_ENGAGE_STANCE, true);
+            let stance = if self.unarmed_attack() {
+                self.return_normal(ctx, world.player)?
+            } else {
+                MOT_ENGAGE_STANCE
+            };
+            self.enter_unless_scripted(ctx, stance, true);
             let base = ctx.mission.clips[self.motion.clip.unwrap()].bones[0][0].value[1];
             self.rotation[1] =
                 self.rotation[1].wrapping_add(self.motion.pose.rotation[0][1].wrapping_sub(base));
@@ -481,7 +513,7 @@ impl Actor {
         let hands = self.hands(ctx)?;
         if self.motion.count == battle.start {
             for (hand, &model) in hands.iter().enumerate() {
-                if let Some(index) = self.weapon_hitbox[hand] {
+                if let Some(index) = self.attack_hitboxes(ctx)[hand] {
                     let hitbox = &ctx.mission.weapons.hitboxes[index];
                     let slot = ctx.collision.insert(ctx.scene, model)?;
                     ctx.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(self.id));
@@ -512,7 +544,7 @@ impl Actor {
         }
         if self.motion.count == battle.trail_start {
             for (hand, &parent) in hands.iter().enumerate() {
-                if let Some(index) = self.weapon_hitbox[hand] {
+                if let Some(index) = self.attack_hitboxes(ctx)[hand] {
                     self.trails[hand] = Some(trail::Trail::new(
                         parent,
                         ctx.mission.weapons.hitboxes[index].trail,

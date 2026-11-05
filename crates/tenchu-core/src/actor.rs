@@ -450,6 +450,13 @@ impl Actor {
 
     fn motion_id(&self, ctx: &Context, action: i16) -> i16 {
         let action = self.sheathing_action(action);
+        if self.unarmed_action(action) {
+            return self
+                .sheathing
+                .as_ref()
+                .and_then(|s| s.unarmed_clip(action))
+                .map_or(-1, |index| ctx.mission.clips[index].id);
+        }
         if let Some(index) = self.sheathing.as_ref().and_then(|s| s.clip(action)) {
             return ctx.mission.clips[index].id;
         }
@@ -472,9 +479,20 @@ impl Actor {
 
     pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
         let action = self.sheathing_action(action);
-        let optional = self.sheathing.as_ref().and_then(|s| s.clip(action));
+        let optional = if self.unarmed_action(action) {
+            let Some(index) = self.sheathing.as_ref().and_then(|s| s.unarmed_clip(action)) else {
+                return false;
+            };
+            Some(index)
+        } else {
+            self.sheathing.as_ref().and_then(|s| s.clip(action))
+        };
         let entered = self.enter_definition(ctx, self.definition, action, movement, optional);
-        if entered && self.sheathing.is_some() && State::from_motion(action) == State::Attack {
+        if entered
+            && self.sheathing.is_some()
+            && State::from_motion(action) == State::Attack
+            && !self.unarmed_attack()
+        {
             self.equip(ctx, true);
         }
         entered
@@ -559,6 +577,24 @@ impl Actor {
             .as_ref()
             .filter(|_| self.attribute & ATTR_WEAPON_DRAWN == 0)
             .map(|s| s.settings)
+    }
+
+    pub(crate) fn unarmed_attack(&self) -> bool {
+        self.status == State::Attack
+            && self.attribute & ATTR_WEAPON_DRAWN == 0
+            && self
+                .sheathing
+                .as_ref()
+                .is_some_and(|s| s.contains_attack(self.motion.clip))
+    }
+
+    fn unarmed_action(&self, action: i16) -> bool {
+        self.attribute & ATTR_WEAPON_DRAWN == 0
+            && matches!(action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_TAUNT)
+            && self
+                .sheathing
+                .as_ref()
+                .is_some_and(|s| s.settings.unarmed || self.unarmed_attack())
     }
 
     pub fn sight_percent(&self, base: u16) -> u16 {

@@ -1427,6 +1427,17 @@ reset these options, graphical presets leave them alone, and enabling sheathing
 disables ordinary input recording and TRIAL records. Savestates and rewind retain
 the stance and settings. Try `sheathe-ayame` and `sheathe-rikimaru` demos.
 
+**Unarmed attacks while sheathed** is a separate option on the same page.
+With sheathing enabled and weapons put away, Attack uses Onikage's three-kick
+combo; timed presses continue the combo. His available left/right, crouched and
+forward-dash lunge attacks also work. They use the Gaisen disc's original limb
+hitboxes, damage and timing. Weapons remain stowed until you draw explicitly,
+perform a stealth kill, or use an armed aerial attack. Drawing restores your
+chosen armed moveset. Turning the unarmed option off lets a kick finish; turning
+sheathing off entirely cancels it and clears its hitboxes. Try `unarmed-ayame`
+and `unarmed-rikimaru`. This uses Gaisen's kicks, not Tatsumaru's Tenchu 2 punches
+and kicks; those animations would require separate source assets.
+
 **Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
 binding to stand and block frontal melee hits; press a direction while holding
 it for one dash. Hold crouch (Circle) as well to roll. Directions stay relative

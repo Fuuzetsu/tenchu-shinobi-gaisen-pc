@@ -45,6 +45,7 @@ pub enum Feature {
     GuardControls,
     AnalogWalking,
     Sheathing,
+    UnarmedAttacks,
     WeaponFinishes,
     TextureSampling,
     Reconstruction,

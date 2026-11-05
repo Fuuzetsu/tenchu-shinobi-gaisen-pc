@@ -7,6 +7,7 @@ use tenchu_assets::motion::Clip;
 #[serde(default)]
 pub struct Settings {
     pub enabled: bool,
+    pub unarmed: bool,
     pub speed: u16,
     pub visibility: u16,
     pub damage: u16,
@@ -17,6 +18,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             enabled: false,
+            unarmed: false,
             speed: 100,
             visibility: 100,
             damage: 100,
@@ -45,11 +47,32 @@ pub struct Motions<T> {
 pub struct State {
     pub settings: Settings,
     motions: Motions<usize>,
+    attacks: Vec<(i16, usize)>,
     held: bool,
     pub(crate) requested: bool,
 }
 
 impl State {
+    pub fn needs_unarmed_motions(&self) -> bool {
+        self.attacks.is_empty()
+    }
+
+    pub(crate) fn unarmed_clip(&self, action: i16) -> Option<usize> {
+        let action = match action {
+            MOT_ATTACK_SLASH2_LEFT | MOT_ATTACK_SLASH2_RIGHT => MOT_ATTACK_SLASH2,
+            MOT_ATTACK_RIGHT2_LEFT => MOT_ATTACK_RIGHT2,
+            _ => action,
+        };
+        self.attacks
+            .iter()
+            .find(|(a, _)| *a == action)
+            .map(|(_, c)| *c)
+    }
+
+    pub(crate) fn contains_attack(&self, clip: Option<usize>) -> bool {
+        clip.is_some_and(|c| self.attacks.iter().any(|(_, index)| *index == c))
+    }
+
     pub fn input(&mut self, held: bool) {
         self.requested = held && !self.held;
         self.held = held;
@@ -122,6 +145,7 @@ impl Game {
                 self.roster.get_mut(self.player_id).sheathing = Some(State {
                     settings,
                     motions,
+                    attacks: Vec::new(),
                     held: false,
                     requested: false,
                 });
@@ -151,6 +175,10 @@ impl Game {
         };
         if !settings.enabled {
             let stowed = player.attribute & ATTR_WEAPON_DRAWN == 0;
+            let unarmed_attack = player.unarmed_attack();
+            if unarmed_attack {
+                player.clear_attack(&mut ctx, 3)?;
+            }
             player.sheathing = None;
             player.equip(&ctx, true);
             if player.health > 0
@@ -166,6 +194,7 @@ impl Game {
                             | MOT_STATE_SHEATHE
                     ))
                 && (player.free_stance()
+                    || unarmed_attack
                     || matches!(player.motion.action, MOT_STATE_DRAW | MOT_STATE_SHEATHE))
             {
                 player.enter(&ctx, MOT_ENGAGE_STANCE, true);
@@ -175,6 +204,31 @@ impl Game {
         } else if matches!(player.motion.action, MOT_CHASE | MOT_CHASE_BACK) {
             player.motion_velocity(&ctx);
         }
+        Ok(())
+    }
+
+    pub fn set_player_unarmed(&mut self, attacks: &[(i16, Clip)]) -> Result<()> {
+        if self.player().sheathing.is_none() {
+            return Err("Enable player sheathing before importing unarmed attacks".into());
+        }
+        if !attacks.iter().any(|(action, _)| *action == MOT_ATTACK)
+            || attacks.iter().any(|(action, clip)| {
+                !matches!(*action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_LUNGE_BACK)
+                    || clip.bones.is_empty() || clip.duration <= 0
+                    || !self.mission.weapons.attacks.iter().any(|a| a.clip == clip.id && a.start > 0)
+            }) {
+            return Err("Unarmed attacks require animated combat clips with valid hit timings".into());
+        }
+        let attacks = attacks
+            .iter()
+            .map(|(a, c)| (*a, self.import_clip(c)))
+            .collect();
+        self.roster
+            .get_mut(self.player_id)
+            .sheathing
+            .as_mut()
+            .unwrap()
+            .attacks = attacks;
         Ok(())
     }
 }

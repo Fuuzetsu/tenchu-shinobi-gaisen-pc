@@ -369,6 +369,12 @@ impl Player {
         }
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
+            Feature::UnarmedAttacks => match tick {
+                100 | 122 | 136 | 340 => SQUARE,
+                180..210 => UP,
+                220 => SQUARE | tenchu_core::input::LEFT,
+                _ => 0,
+            },
             Feature::Sheathing => match tick {
                 100..160 => UP,
                 190 | 240 => SQUARE,

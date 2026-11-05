@@ -18,6 +18,7 @@ pub enum Item {
     AnalogWalking,
     WalkThreshold,
     Sheathing,
+    UnarmedAttacks,
     SheathedSpeed,
     SheathedVisibility,
     SheathedDamage,
@@ -399,6 +400,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Draw / sheathe weapons",
                 on(s.sheathing.enabled),
                 "GAMEPLAY EDIT: press the rebindable Draw / sheathe action (H by default; assign a controller button under General > Controls). Uses NinjaA/Kunoichi animations; cannot interrupt attacks, injuries or jumps. Grounded attacks draw first; stealth kills and air attacks equip automatically. Off by default; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::UnarmedAttacks,
+                "Unarmed attacks while sheathed",
+                on(s.sheathing.unarmed),
+                "GAMEPLAY EDIT: with sheathing enabled, use Onikage's grounded kick/combo, side, crouch and lunge attacks from your Gaisen disc. Their original hitboxes, timing and damage apply. Draw explicitly for blades; stealth kills and aerial attacks still draw. Existing armed movesets are retained. Off by default; this is not Tatsumaru's Tenchu 2 style.",
             ),
             (
                 Item::SheathedSpeed,

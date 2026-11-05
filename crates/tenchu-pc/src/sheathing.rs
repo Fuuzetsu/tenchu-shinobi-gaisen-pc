@@ -39,5 +39,29 @@ pub fn configure(
     } else {
         None
     };
-    game.set_player_sheathing(settings, motions.as_ref())
+    let attacks = if settings.enabled
+        && settings.unarmed
+        && game
+            .player()
+            .sheathing
+            .as_ref()
+            .is_none_or(|s| s.needs_unarmed_motions())
+    {
+        let characters = Executable::new(&assets.executable)?.characters()?;
+        let character = characters
+            .iter()
+            .find(|c| c.kind == 0x87)
+            .ok_or("Missing Onikage character")?;
+        let clips = tenchu_assets::motion::parse(&assets.asset("HUMAN/MOTION/STAGE4.AMD")?)?;
+        Some(character.motions.iter().filter(|m| matches!(m.action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_LUNGE_BACK))
+            .map(|m| clips.iter().find(|c| c.id == m.clip).cloned().map(|c| (m.action, c)).ok_or("Missing Onikage attack motion".to_string()))
+            .collect::<Result<Vec<_>>>()?)
+    } else {
+        None
+    };
+    game.set_player_sheathing(settings, motions.as_ref())?;
+    if let Some(attacks) = attacks {
+        game.set_player_unarmed(&attacks)?;
+    }
+    Ok(())
 }

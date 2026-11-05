@@ -224,6 +224,25 @@ mod tests {
         app.set_quick_shuriken_dodge(false);
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);
+        app.set_sheathing(tenchu_core::game::sheathing::Settings {
+            enabled: true,
+            unarmed: true,
+            ..Default::default()
+        })
+        .unwrap();
+        app.apply_trial(Event::Play { preview: false }).unwrap();
+        assert!(
+            !app.campaign
+                .game
+                .player()
+                .sheathing
+                .as_ref()
+                .unwrap()
+                .needs_unarmed_motions()
+        );
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
+        app.set_sheathing(Default::default()).unwrap();
         app.apply_trial(Event::Close).unwrap();
         assert!(app.campaign.game.trial.is_none());
         assert_eq!(app.campaign.options.character, 0);

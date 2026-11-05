@@ -2,7 +2,7 @@ use super::*;
 use crate::game::sheathing::{Motions, Settings};
 use crate::input::*;
 
-fn ready(character: i16, settings: Settings) -> (Game, usize) {
+pub(super) fn ready(character: i16, settings: Settings) -> (Game, usize) {
     let mut game = oracle::game(0, character);
     let enemy = arena(&mut game, 0x10);
     let source = oracle::game(1, character);

@@ -713,6 +713,28 @@
     }
   },
   {
+    "id": "unarmed-ayame",
+    "title": "Ayame: unarmed combat",
+    "description": "Optional Onikage kicks and combos use the authored Gaisen limb hitboxes and timing. Put away the blades to fight unarmed, then draw to restore the hero's original armed attacks.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": "unarmed-attacks",
+    "shot": "guard"
+  },
+  {
+    "id": "unarmed-rikimaru",
+    "title": "Rikimaru: unarmed combat",
+    "description": "Optional Onikage kicks and combos use the authored Gaisen limb hitboxes and timing. Put away the blades to fight unarmed, then draw to restore the hero's original armed attacks.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "unarmed-attacks",
+    "shot": "guard"
+  },
+  {
     "id": "sheathe-ayame",
     "title": "Ayame: draw and sheathe",
     "description": "Optional weapon sheathing uses Kunoichi's stow/draw motions. Movement keeps weapons put away; a grounded attack draws first. Speed, sight range and vulnerability have separate settings with neutral defaults.",

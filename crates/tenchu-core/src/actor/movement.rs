@@ -506,8 +506,8 @@ impl Actor {
         Ok((held & SQUARE != 0
             && mid != MOT_JUMP_FLIP
             && self.velocity[1] > 0
-            && self.attribute & ATTR_WEAPON_DRAWN != 0)
-            .then_some((MOT_ATTACK_DIVE, false)))
+            && (self.attribute & ATTR_WEAPON_DRAWN != 0 || self.sheathing.is_some()))
+        .then_some((MOT_ATTACK_DIVE, false)))
     }
 
     fn state(

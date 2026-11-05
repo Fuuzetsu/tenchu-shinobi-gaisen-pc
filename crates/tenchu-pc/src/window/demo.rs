@@ -182,12 +182,16 @@ impl Application {
                         | Feature::DeathGush
                         | Feature::WeaponSparks
                         | Feature::GuardControls
+                        | Feature::UnarmedAttacks
                         | Feature::WeaponFinishes
                         | Feature::WoundSpurts
                 ) || clip.randomizer.as_ref().is_some_and(|s| s.engage)
                 {
                     let mut guard = position(actor);
-                    if matches!(clip.feature, Feature::GuardControls | Feature::DeathGush) {
+                    if matches!(
+                        clip.feature,
+                        Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks
+                    ) {
                         let facing = game.player().rotation[1];
                         let offset = game.math.velocity(facing, 2800, 0).map(i32::from);
                         let start = game.player().position.wrapping_add(offset.into());
@@ -226,6 +230,7 @@ impl Application {
                                 | Feature::WoundSpurts
                                 | Feature::DeathGush
                                 | Feature::GuardControls
+                                | Feature::UnarmedAttacks
                         )
                     {
                         let enemy = game.roster.get(actor).position;
@@ -244,6 +249,7 @@ impl Application {
                             | Feature::WeaponFinishes
                             | Feature::WoundSpurts
                             | Feature::GuardControls
+                            | Feature::UnarmedAttacks
                     ) {
                         self.debug.god_mode = true;
                         demo::sparring(&mut game, actor)?;
@@ -252,6 +258,15 @@ impl Application {
                         }
                         if clip.feature == Feature::WoundSpurts {
                             game.roster.get_mut(actor).invulnerable = false;
+                        }
+                        if clip.feature == Feature::UnarmedAttacks {
+                            game.roster.get_mut(actor).setup_think(0)?;
+                            for _ in 0..90 {
+                                game.step(0)?;
+                            }
+                            game.roster.get_mut(actor).invulnerable = false;
+                            let at = game.roster.get(actor).position;
+                            game.move_actor(actor, at, game.player().rotation[1], true)?;
                         }
                         if clip.feature == Feature::GuardControls {
                             self.debug.god_mode = false;
@@ -276,7 +291,10 @@ impl Application {
                         4200.0
                     };
                     scene.pitch = -0.55;
-                    if matches!(clip.feature, Feature::GuardControls | Feature::DeathGush) {
+                    if matches!(
+                        clip.feature,
+                        Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks
+                    ) {
                         scene.distance = 5600.0;
                         scene.pitch = -0.60;
                     }
@@ -289,6 +307,7 @@ impl Application {
                             | Feature::WeaponFinishes
                             | Feature::WoundSpurts
                             | Feature::GuardControls
+                            | Feature::UnarmedAttacks
                             | Feature::DeathGush
                     )
                 {
@@ -534,7 +553,8 @@ impl Application {
             let cinematic = self.campaign.game.cinematic.active;
             let cinematic_clip = player.clip().feature == Feature::Cinematics;
             for (index, buttons) in inputs.into_iter().enumerate() {
-                if self.demo.as_ref().unwrap().clip().feature == Feature::Sheathing
+                let feature = self.demo.as_ref().unwrap().clip().feature;
+                if matches!(feature, Feature::Sheathing | Feature::UnarmedAttacks)
                     && let Some(sheathing) = &mut self
                         .campaign
                         .game
@@ -542,7 +562,9 @@ impl Application {
                         .get_mut(self.campaign.game.player_id)
                         .sheathing
                 {
-                    sheathing.input(first + index as u64 == 10);
+                    let tick = first + index as u64;
+                    sheathing
+                        .input(tick == 10 || feature == Feature::UnarmedAttacks && tick == 300);
                 }
                 if self.demo.as_ref().unwrap().clip().feature == Feature::AnalogWalking
                     && let Some(walk) = &mut self.campaign.game.walking

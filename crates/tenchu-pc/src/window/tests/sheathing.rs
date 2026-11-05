@@ -191,3 +191,71 @@ fn sheathing_armed_parity_and_saved_state() {
         assert!(postcard::to_allocvec(&on.campaign.game).unwrap() == expected);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; unarmed imports, menu resets, mid-kick saves and rewind retain the source attack"]
+fn unarmed_controls_save_and_rewind() {
+    for character in 0..2 {
+        let mut app = ready(character);
+        app.apply_item(Item::UnarmedAttacks, 1).unwrap();
+        assert!(app.settings.sheathing.unarmed);
+        assert!(
+            !app.campaign
+                .game
+                .player()
+                .sheathing
+                .as_ref()
+                .unwrap()
+                .needs_unarmed_motions()
+        );
+        press_sheathe(&mut app);
+        app.controls.key(KeyCode::KeyJ, true);
+        let input = app.player_input();
+        app.game_tick(input);
+        app.controls.key(KeyCode::KeyJ, false);
+        for _ in 0..10 {
+            app.game_tick(0);
+        }
+        let game = &app.campaign.game;
+        assert_eq!(
+            game.mission.clips[game.player().motion.clip.unwrap()].id,
+            454
+        );
+        assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+        let bytes = app.capture_state().unwrap();
+        let mut restored = application(Options {
+            character,
+            ..Default::default()
+        });
+        restored.restore_state(&bytes).unwrap();
+        assert!(restored.settings.sheathing.unarmed);
+        for tick in 0..90 {
+            let buttons = if tick == 10 || tick == 22 {
+                input::SQUARE
+            } else {
+                0
+            };
+            app.game_tick(buttons);
+            restored.game_tick(buttons);
+        }
+        assert!(
+            postcard::to_allocvec(&app.campaign.game).unwrap()
+                == postcard::to_allocvec(&restored.campaign.game).unwrap()
+        );
+        app.settings.rewind_seconds = 5;
+        app.game_tick(input::SQUARE);
+        for _ in 0..10 {
+            app.game_tick(0);
+        }
+        let expected = postcard::to_allocvec(&app.campaign.game).unwrap();
+        let index = app.rewind.entries.len() - 1;
+        for _ in 0..40 {
+            app.game_tick(0);
+        }
+        app.rewind_to(index).unwrap();
+        assert!(postcard::to_allocvec(&app.campaign.game).unwrap() == expected);
+        app.reset_item(Item::UnarmedAttacks).unwrap();
+        assert!(!app.settings.sheathing.unarmed);
+        assert!(app.settings.sheathing.enabled);
+    }
+}
