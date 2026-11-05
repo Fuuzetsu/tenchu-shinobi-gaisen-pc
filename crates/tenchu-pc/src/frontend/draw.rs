@@ -79,8 +79,17 @@ impl Frame {
         key
     }
 
-    pub fn triangles(&mut self, image: &frontend::Image, vertices: &[Vertex], blend: Blend) {
+    pub fn triangles(
+        &mut self,
+        image: &frontend::Image,
+        vertices: &[Vertex],
+        blend: Blend,
+        filtered: bool,
+    ) {
         let key = self.image(pixels(image));
+        if filtered {
+            self.filtered.insert(key.clone());
+        }
         let scale = Vec2::from_array(image.size.map(|n| n as f32));
         let lo = vertices
             .iter()

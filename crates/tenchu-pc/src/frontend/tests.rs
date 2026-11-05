@@ -386,6 +386,7 @@ fn showcase_pages_restart_identically_without_advancing_gameplay() {
         showcase::Menu::Character,
         showcase::Menu::Missions,
         showcase::Menu::Shop,
+        showcase::Menu::Briefing,
     ] {
         for language in ["en", "ja", "fr", "it"] {
             let scene = showcase::Scene {

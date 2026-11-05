@@ -1456,7 +1456,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::SharpText,
                 "High-definition text",
                 on(s.sharp_text),
-                "Sharp HUD numbers, subtitles, mission titles, ranks and menu labels.",
+                "Sharp HUD, subtitles, menu labels and clearer disc-derived briefing calligraphy.",
             ),
             (
                 Item::AssetPack,

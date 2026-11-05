@@ -11,6 +11,7 @@ pub enum Menu {
     Volume,
     Language,
     Shop,
+    Briefing,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -51,6 +52,23 @@ impl Frontend {
         let language = scene.language()?;
         self.language(assets, language)?;
         campaign.options.language = Some(language);
+        if matches!(scene.page, Menu::Briefing) {
+            self.movie = None;
+            self.prepare(campaign, assets, true)?;
+            for _ in 0..60 {
+                self.advance_briefing();
+            }
+            self.narration_ready(None);
+            let briefing = self.briefing.as_ref().ok_or("Missing briefing showcase")?;
+            let duration = briefing.assets.narration.end - briefing.assets.narration.start;
+            for _ in 0..duration * 60 / 300 {
+                self.advance_briefing();
+            }
+            self.events.clear();
+            self.events.push(Event::Music(None));
+            campaign.screen = crate::campaign::Screen::Frontend;
+            return Ok(());
+        }
         if matches!(scene.page, Menu::Shop) {
             self.prepare_room(campaign, assets)?;
         }
@@ -77,6 +95,7 @@ impl Frontend {
             Menu::Volume => Page::Volume,
             Menu::Language => Page::Choice(9),
             Menu::Shop => Page::Shop,
+            Menu::Briefing => Page::Briefing,
         });
         self.ticks = 120;
         self.events.clear();

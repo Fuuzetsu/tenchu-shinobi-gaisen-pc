@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use tenchu_assets::Result;
 
 mod resize;
+pub(crate) use resize::resize;
 
 #[derive(Clone, Copy, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]

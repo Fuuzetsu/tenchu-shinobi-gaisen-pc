@@ -103,6 +103,10 @@ impl Capture {
         frontend.paint(campaign);
         self.draw(frontend.canvas.frame.take().unwrap());
         crate::fonts::capture(&self.gpu, &self.target, &frontend.canvas.text);
+        self.save(name);
+    }
+
+    fn save(&self, name: &str) {
         if let Some(directory) = std::env::var_os("TENCHU_FRONTEND_CAPTURE") {
             let directory = std::path::Path::new(&directory);
             std::fs::create_dir_all(directory).unwrap();
@@ -309,10 +313,27 @@ fn hd_mission_screens_cover_all_languages_and_briefings() {
                 frontend.advance_briefing();
             }
             assert_eq!(frontend.page, Page::Briefing);
-            capture.review(
-                &mut frontend,
-                &campaign,
-                &format!("{language:?}-briefing-{mission:02}"),
+            let name = format!("{language:?}-briefing-{mission:02}");
+            frontend.canvas.sharp_text = false;
+            frontend.canvas.frame =
+                Some(Frame::new(frontend.canvas.size, frontend.artwork.clone()));
+            frontend.paint(&campaign);
+            let original = capture.draw(frontend.canvas.frame.take().unwrap());
+            capture.save(&format!("{name}-before"));
+            let timing = {
+                let briefing = frontend.briefing.as_ref().unwrap();
+                (briefing.scroll, briefing.fade)
+            };
+            capture.review(&mut frontend, &campaign, &name);
+            let briefing = frontend.briefing.as_ref().unwrap();
+            assert_eq!((briefing.scroll, briefing.fade), timing);
+            frontend.canvas.sharp_text = false;
+            frontend.canvas.frame =
+                Some(Frame::new(frontend.canvas.size, frontend.artwork.clone()));
+            frontend.paint(&campaign);
+            assert_eq!(
+                original,
+                capture.draw(frontend.canvas.frame.take().unwrap())
             );
         }
         let record = tenchu_core::game::score::Record {

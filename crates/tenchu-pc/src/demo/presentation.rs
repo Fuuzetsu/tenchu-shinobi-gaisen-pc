@@ -1115,6 +1115,13 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             }
         )),
         Feature::Performance => text("Live CPU / GPU timings · F1 to freeze or clear".into()),
+        Feature::Artwork
+            if player.clip().frontend.as_ref().is_some_and(|scene| {
+                matches!(scene.page, crate::frontend::showcase::Menu::Briefing)
+            }) =>
+        {
+            text(format!("High-definition text: {}", on(s.sharp_text)))
+        }
         Feature::Artwork if player.clip().artwork.is_some() => text(
             if g.asset_pack {
                 "AFTER · Replacement artwork"

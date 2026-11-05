@@ -852,6 +852,40 @@
     "sharp_text": true
   },
   {
+    "id": "briefing-lettering-before",
+    "title": "Briefing lettering · previous",
+    "description": "Original brush lettering over Mission 5 artwork. High-definition text is off; the HD pack uses its previous resampling.",
+    "seconds": 6,
+    "mission": 5,
+    "character": 0,
+    "preset": 11,
+    "feature": "artwork",
+    "shot": "wide",
+    "artwork": true,
+    "sharp_text": false,
+    "frontend": {
+      "page": "briefing",
+      "language": "ja"
+    }
+  },
+  {
+    "id": "briefing-lettering-after",
+    "title": "Briefing lettering · sharp",
+    "description": "High-definition text sharpens the same disc-derived strokes. Wording, placement and scrolling are unchanged. Narration is omitted from this staged comparison.",
+    "seconds": 6,
+    "mission": 5,
+    "character": 0,
+    "preset": 11,
+    "feature": "artwork",
+    "shot": "wide",
+    "artwork": true,
+    "sharp_text": true,
+    "frontend": {
+      "page": "briefing",
+      "language": "ja"
+    }
+  },
+  {
     "id": "shop-lighting",
     "title": "Sky and weather through the shop window",
     "description": "The window follows the configured sky, time of day and wind-driven rain or snow. Window bars shelter the painted room; moving shadows leave item icons and quantities readable.",

@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Make narrated briefing calligraphy clearer with **High-definition text**, sharpening strokes from the user's disc while keeping the original lettering, scroll and narration. Works with or without the HD pack and includes a matched comparison demo.
+
 - Add optional **Player bleeding** under F1 → Bleeding, with configurable hit chance, duration, health loss and bandage supply. Rebindable quick-use bandages stop blood loss without healing; medicine can also cure it. Includes a HUD status, a feature demo and saved-state/rewind support. Disabled by default and independent of cosmetic blood.
 
 - Export a selected rewind interval as a portable `.treplay` bug recording, then import it from F1 → General on desktop or in the browser. Keeps complete recorded states, inputs, settings and visual effects without discarding the current buffer. Adds forward timeline playback and a recorded-graphics/camera toggle; recordings contain game data and should be shared privately.

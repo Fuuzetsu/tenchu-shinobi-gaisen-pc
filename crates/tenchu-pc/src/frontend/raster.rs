@@ -19,6 +19,7 @@ pub struct Sprite<'a> {
     angle: f32,
     color: Vec3,
     blend: Blend,
+    filtered: bool,
 }
 
 impl<'a> Sprite<'a> {
@@ -31,6 +32,7 @@ impl<'a> Sprite<'a> {
             angle: 0.0,
             color: Vec3::splat(128.0),
             blend: Blend::Opaque,
+            filtered: false,
         }
     }
     pub fn row(mut self, row: usize, count: usize) -> Self {
@@ -59,6 +61,10 @@ impl<'a> Sprite<'a> {
     }
     pub fn blend(mut self, blend: Blend) -> Self {
         self.blend = blend;
+        self
+    }
+    pub fn filtered(mut self, filtered: bool) -> Self {
+        self.filtered = filtered;
         self
     }
 }
@@ -181,6 +187,7 @@ impl Canvas {
             angle,
             color,
             blend,
+            filtered,
         } = sprite;
         let rotation = Vec2::from_angle(angle);
         let half = Vec2::new(w as f32, h as f32) * 0.5;
@@ -204,7 +211,7 @@ impl Canvas {
                     color,
                 }
             });
-            frame.triangles(image, &vertices, blend);
+            frame.triangles(image, &vertices, blend, filtered);
             return;
         }
         let radius = rotation.abs() * half.x * scale.x.abs()
@@ -268,7 +275,7 @@ impl Canvas {
 
     pub fn image_triangles(&mut self, image: &Image, vertices: &[Vertex], blend: Blend) {
         if let Some(frame) = &mut self.frame {
-            frame.triangles(image, vertices, blend);
+            frame.triangles(image, vertices, blend, false);
         } else {
             for triangle in vertices.chunks_exact(3) {
                 self.triangle(triangle.try_into().unwrap(), blend, |uv| {

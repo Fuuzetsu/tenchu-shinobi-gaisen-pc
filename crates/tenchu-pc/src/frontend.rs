@@ -1,3 +1,4 @@
+mod calligraphy;
 mod captions;
 mod characters;
 pub(crate) mod draw;

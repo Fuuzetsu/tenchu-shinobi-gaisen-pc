@@ -189,12 +189,16 @@ a mission from 1–10, no camera/recording, and for example:
 "frontend": {"page": "missions", "language": "ja"}
 ```
 
-Pages are `title`, `character`, `missions`, `options`, `controls`, `volume` and
-`language`; language codes are `en` (default), `ja`, `fr` and `it`. The clip's
+Pages are `title`, `character`, `missions`, `options`, `controls`, `volume`,
+`language`, `shop` and `briefing`; language codes are `en` (default), `ja`, `fr` and `it`. The clip's
 mission and character select the preview and ninja. Each clip starts from the
 same settled page and animation state, then runs the original menu timing on the
 60 Hz presentation timeline. Gameplay and campaign progress stay frozen, and
 menu interaction is disabled. Captions use the pillarbox margin.
+Briefing clips begin halfway through their scroll, without narration, so short
+comparisons start at identical text positions. `briefing-lettering-before` and
+`briefing-lettering-after` compare the old filtered lettering with the sharper
+disc-derived calligraphy, over the same Mission 5 artwork.
 
 ## Campaign artwork recording
 

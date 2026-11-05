@@ -79,6 +79,7 @@ pub(super) struct Briefing {
     pub assets: BriefingAssets,
     pub background: Image,
     pub text: Image,
+    sharp_text: Option<Vec<Image>>,
     phase: Phase,
     pub fade: i32,
     pub scroll: i32,
@@ -98,6 +99,7 @@ impl Briefing {
         Ok(Self {
             background: Image::parse(&assets.asset(&data.background)?)?,
             text: Image::parse(&assets.asset(&data.text)?)?,
+            sharp_text: None,
             assets: data,
             phase: Phase::FadeIn,
             fade: 254,
@@ -299,15 +301,18 @@ impl Frontend {
     }
 
     pub(super) fn paint_briefing(&mut self) {
-        let Some(briefing) = &self.briefing else {
+        let Some(briefing) = &mut self.briefing else {
             return;
         };
         self.canvas
             .sprite(Sprite::new(&briefing.background, 0.0, 0.0));
         if briefing.scrolling() {
-            let text = &briefing.text;
-            for column in (0..text.size[0] / 16).rev() {
-                let x = briefing.scroll / 256 - (text.size[0] - column * 16) as i32 * 2;
+            let size = briefing.text.size;
+            if self.canvas.sharp_text && briefing.sharp_text.is_none() {
+                briefing.sharp_text = Some(super::calligraphy::sharpen(&briefing.text));
+            }
+            for column in (0..size[0] / 16).rev() {
+                let x = briefing.scroll / 256 - (size[0] - column * 16) as i32 * 2;
                 let brightness = if !(-160..=160).contains(&x) {
                     0
                 } else if x < -120 {
@@ -317,9 +322,24 @@ impl Frontend {
                 } else {
                     128
                 };
+                if self.canvas.sharp_text && brightness == 0 {
+                    continue;
+                }
+                let (text, region, scale) = if self.canvas.sharp_text {
+                    let text = &briefing.sharp_text.as_ref().unwrap()[column];
+                    (
+                        text,
+                        [0, 0, text.size[0], text.size[1]],
+                        super::calligraphy::SCALE,
+                    )
+                } else {
+                    (&briefing.text, [column * 16, 0, 16, size[1]], 1)
+                };
                 self.canvas.sprite(
-                    Sprite::new(text, x as f32, -104.0 + text.size[1] as f32 / 2.0)
-                        .region([column * 16, 0, 16, text.size[1]])
+                    Sprite::new(text, x as f32, -104.0 + size[1] as f32 / 2.0)
+                        .region(region)
+                        .scale(1.0 / scale as f32, 1.0 / scale as f32)
+                        .filtered(self.canvas.sharp_text)
                         .light(brightness)
                         .blend(Blend::Add),
                 );

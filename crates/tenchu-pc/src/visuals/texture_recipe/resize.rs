@@ -56,7 +56,7 @@ fn weights(input: usize, output: usize, filter: Filter) -> Vec<Weights> {
         .collect()
 }
 
-pub(super) fn resize(image: &Image, size: [u32; 2], filter: Filter) -> Image {
+pub(crate) fn resize(image: &Image, size: [u32; 2], filter: Filter) -> Image {
     if image.size == size {
         return image.clone();
     }

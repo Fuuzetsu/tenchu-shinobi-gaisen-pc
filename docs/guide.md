@@ -130,6 +130,9 @@ labels with a portable outline font at the window's resolution. English,
 Japanese, French and Italian are supported; the original options screens keep
 their Japanese wording. It is off in Original and enabled in the modern quality tiers. It does not change text timing,
 navigation or gameplay. It includes all ten mission titles and the five ranks.
+Briefings retain the disc's brush calligraphy, with cached high-resolution stroke
+filtering for clearer edges instead of changing the wording or font style.
+This works without the HD pack and preserves column positions, fades and narration.
 Lettering baked into backgrounds needs replacement artwork; movie subtitles
 retain their original presentation.
 The [font and license](../crates/tenchu-pc/data/hd-font/README.md)
