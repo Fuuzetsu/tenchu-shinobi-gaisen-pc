@@ -40,6 +40,7 @@ impl Packing {
 
 pub(super) struct Atlas {
     pub texture: wgpu::Texture,
+    pub coverage: wgpu::Texture,
     pub data: data::Data,
     pub materials: Vec<Material>,
     pub side: u32,
@@ -57,7 +58,13 @@ impl Atlas {
     ) -> Self {
         let capacity = (packing.pages() + u32::from(side > 1)).min(page_limit(device, layers));
         Self {
-            texture: texture(device, side, capacity * layers as u32),
+            texture: texture(
+                device,
+                side,
+                capacity * layers as u32,
+                wgpu::TextureFormat::Rgba8Unorm,
+            ),
+            coverage: texture(device, side, capacity, wgpu::TextureFormat::R8Unorm),
             data: data::Data::new(device, queue, &materials),
             materials,
             side,
@@ -80,18 +87,30 @@ impl Atlas {
         let mut changed = false;
         if needed > capacity {
             let capacity = needed.max(capacity * 2).min(limit);
-            let texture = texture(device, self.side, capacity * layers as u32);
+            let color = texture(
+                device,
+                self.side,
+                capacity * layers as u32,
+                wgpu::TextureFormat::Rgba8Unorm,
+            );
+            let coverage = texture(device, self.side, capacity, wgpu::TextureFormat::R8Unorm);
             let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Grow material atlas"),
             });
             encoder.copy_texture_to_texture(
                 self.texture.as_image_copy(),
-                texture.as_image_copy(),
+                color.as_image_copy(),
                 self.texture.size(),
+            );
+            encoder.copy_texture_to_texture(
+                self.coverage.as_image_copy(),
+                coverage.as_image_copy(),
+                self.coverage.size(),
             );
             // Submit the copy before any new tile writes into the retained pages.
             queue.submit([encoder.finish()]);
-            self.texture = texture;
+            self.texture = color;
+            self.coverage = coverage;
             changed = true;
         }
         if self.materials.len() > self.data.capacity() {
@@ -117,6 +136,15 @@ impl Atlas {
             layout,
             entries: &[
                 wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&self.coverage.create_view(
+                        &wgpu::TextureViewDescriptor {
+                            dimension: Some(wgpu::TextureViewDimension::D2Array),
+                            ..Default::default()
+                        },
+                    )),
+                },
+                wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::TextureView(
                         &self.texture.create_view(&Default::default()),
@@ -141,9 +169,18 @@ pub(super) fn page_limit(device: &wgpu::Device, layers: usize) -> u32 {
     pages - u32::from(super::super::array_layers(device, pages * layers as u32) > limit)
 }
 
-fn texture(device: &wgpu::Device, side: u32, layers: u32) -> wgpu::Texture {
+fn texture(
+    device: &wgpu::Device,
+    side: u32,
+    layers: u32,
+    format: wgpu::TextureFormat,
+) -> wgpu::Texture {
     device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Isolated opaque and semi-transparent mip chains"),
+        label: Some(if format == wgpu::TextureFormat::R8Unorm {
+            "Shadow opacity classes"
+        } else {
+            "Isolated opaque and semi-transparent mip chains"
+        }),
         size: wgpu::Extent3d {
             width: side,
             height: side,
@@ -152,7 +189,7 @@ fn texture(device: &wgpu::Device, side: u32, layers: u32) -> wgpu::Texture {
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
+        format,
         usage: wgpu::TextureUsages::TEXTURE_BINDING
             | wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::COPY_SRC,

@@ -239,11 +239,13 @@ fn late_materials_preserve_existing_gpu_pixels_and_coordinates() {
     }
 }
 
-fn assert_atlas_pixels(renderer: &crate::renderer::Renderer) {
-    let materials = &renderer.materials;
-    let atlas = &materials.atlas;
-    let stride = (atlas.side * 4).div_ceil(256) * 256;
-    let size = stride * atlas.side * atlas.texture.depth_or_array_layers();
+fn read_atlas(
+    renderer: &crate::renderer::Renderer,
+    texture: &wgpu::Texture,
+    channels: u32,
+) -> (Vec<u8>, u32) {
+    let stride = (texture.width() * channels).div_ceil(256) * 256;
+    let size = stride * texture.height() * texture.depth_or_array_layers();
     let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Incremental atlas regression"),
         size: u64::from(size),
@@ -252,16 +254,16 @@ fn assert_atlas_pixels(renderer: &crate::renderer::Renderer) {
     });
     let mut encoder = renderer.device.create_command_encoder(&Default::default());
     encoder.copy_texture_to_buffer(
-        atlas.texture.as_image_copy(),
+        texture.as_image_copy(),
         wgpu::TexelCopyBufferInfo {
             buffer: &buffer,
             layout: wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(stride),
-                rows_per_image: Some(atlas.side),
+                rows_per_image: Some(texture.height()),
             },
         },
-        atlas.texture.size(),
+        texture.size(),
     );
     renderer.queue.submit([encoder.finish()]);
     let (send, receive) = std::sync::mpsc::channel();
@@ -272,7 +274,14 @@ fn assert_atlas_pixels(renderer: &crate::renderer::Renderer) {
         });
     renderer.device.poll(wgpu::Maintain::Wait);
     receive.recv().unwrap().unwrap();
-    let pixels = buffer.slice(..).get_mapped_range();
+    let pixels = buffer.slice(..).get_mapped_range().to_vec();
+    (pixels, stride)
+}
+
+fn assert_atlas_pixels(renderer: &crate::renderer::Renderer) {
+    let materials = &renderer.materials;
+    let atlas = &materials.atlas;
+    let (pixels, stride) = read_atlas(renderer, &atlas.texture, 4);
     for (index, entry) in materials.entries.iter().enumerate() {
         for (mip, image) in entry.mips.iter().enumerate() {
             let rect = atlas.materials[index + 1].mips[mip];
@@ -293,6 +302,31 @@ fn assert_atlas_pixels(renderer: &crate::renderer::Renderer) {
                         "material {index}, mip {mip}, class {class}, row {dy}"
                     );
                 }
+            }
+        }
+    }
+    let (coverage, stride) = read_atlas(renderer, &atlas.coverage, 1);
+    for (index, entry) in materials.entries.iter().enumerate() {
+        let rect = atlas.materials[index + 1].mips[0];
+        let x = rect[0] as u32 % atlas.side - 1;
+        let y = rect[1] as u32 - 1;
+        let layer = rect[0] as u32 / atlas.side;
+        let source = padded(entry.image.size, &entry.image.rgba, entry.repeating());
+        let width = (entry.image.size[0] + 2) as usize;
+        for (dy, row) in source.chunks_exact(width * 4).enumerate() {
+            for (dx, pixel) in row.chunks_exact(4).enumerate() {
+                let offset = ((layer * atlas.side + y + dy as u32) * stride + x) as usize + dx;
+                let class = if pixel[3] == 0 {
+                    0
+                } else if pixel[3] >= 192 {
+                    255
+                } else {
+                    128
+                };
+                assert_eq!(
+                    coverage[offset], class,
+                    "coverage of material {index}, ({dx}, {dy})"
+                );
             }
         }
     }

@@ -972,7 +972,14 @@ fn point_lights_occlude_and_move_without_shadowing_texture_holes() {
         assert_eq!(draw(&mut renderer, &[light], &[&raw]), expected);
     }
 
-    for (alpha, expected) in [(255, shadowed), (128, lit), (0, lit)] {
+    for (alpha, expected) in [
+        (255, shadowed),
+        (192, shadowed),
+        (191, lit),
+        (128, lit),
+        (1, lit),
+        (0, lit),
+    ] {
         let mut rgba = vec![255; 64];
         // The sampled texel alone changes; opaque neighbors must not hide this hole.
         rgba[(2 * 4 + 2) * 4 + 3] = alpha;

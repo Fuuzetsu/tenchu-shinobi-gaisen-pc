@@ -1,5 +1,6 @@
 @group(2) @binding(0) var material_images: texture_2d_array<f32>;
 @group(2) @binding(1) var material_sampler: sampler;
+@group(2) @binding(3) var material_coverage: texture_2d_array<f32>;
 
 fn material_emission(index: u32, color: vec3<f32>) -> vec4<f32> {
     if index == 0u || index >= material_count() { return vec4(0.0); }
@@ -37,19 +38,30 @@ fn material_uv(index: u32, uv: vec2<f32>) -> vec2<f32> {
     return uv;
 }
 
-fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
+fn material_point(index: u32, coordinate: vec2<f32>) -> vec3<i32> {
     let source = material_source(index);
-    let info = material_info(index);
     let uv = material_uv(index, (coordinate - source.xy + vec2(0.5)) / source.zw);
     let rect = material_rect(index, 0u);
     let side = textureDimensions(material_images).x;
     let page = u32(rect.x) / side;
     let origin = vec2<i32>(i32(u32(rect.x) % side), i32(rect.y));
     let point = origin + vec2<i32>(clamp(floor(uv * rect.zw), vec2(0.0), rect.zw - vec2(1.0)));
+    return vec3(point, i32(page));
+}
+
+fn material_coverage_at(index: u32, coordinate: vec2<f32>) -> f32 {
+    let point = material_point(index, coordinate);
+    return textureLoad(material_coverage, point.xy, point.z, 0).r;
+}
+
+fn material_texel(index: u32, coordinate: vec2<f32>) -> vec4<f32> {
+    let info = material_info(index);
+    let point = material_point(index, coordinate);
+    let layer = point.z * select(2, 3, (info.w & 8u) != 0u);
     var opaque = vec4(0.0);
     var semi = vec4(0.0);
-    if (info.w & 2u) != 0u { opaque = textureLoad(material_images, point, i32(page * select(2u, 3u, (info.w & 8u) != 0u)), 0); }
-    if (info.w & 4u) != 0u { semi = textureLoad(material_images, point, i32(page * select(2u, 3u, (info.w & 8u) != 0u) + 1u), 0); }
+    if (info.w & 2u) != 0u { opaque = textureLoad(material_images, point.xy, layer, 0); }
+    if (info.w & 4u) != 0u { semi = textureLoad(material_images, point.xy, layer + 1, 0); }
     return vec4(opaque.rgb + semi.rgb, opaque.a + semi.a * 0.5);
 }
 

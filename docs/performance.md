@@ -2144,3 +2144,49 @@ formatting, strict native/WASM Clippy and both release builds. Actual Chromium
 WebGPU records 762 reduction passes through saved-state loading, movement,
 lighting toggles, free camera and resume; WebGL2 records none and passes the
 same flow without GPU errors. Graphics controls leave paused gameplay unchanged.
+
+## November 5: compact opacity data for shadow cutouts
+
+Shadow rendering now reads one byte of opacity-class data for replacement
+cutouts, instead of their full-color opaque/semi-transparent images. Solid
+materials still bypass sampling; emitters retain RGB tests for lantern
+transmission. Color rendering and cutout coordinates are unchanged.
+
+A single-channel atlas shares the color atlas's coordinates and growth policy.
+Only base-level coverage is uploaded, only when a tile changes; atlas growth
+copies existing GPU data. It allocates one byte per atlas pixel per page,
+compared with eight or twelve bytes for the color/detail layers. The browser
+Mission 1 check grows this allocation to seven 2048-pixel pages, or 28 MiB.
+No new user setting or asset-pack format is required.
+
+Paired 3826 × 2146 prototype captures match exactly for static and animated
+report/garden views. In the animated report view, shadow-map GPU time falls
+from 2.38 to 1.54 ms; the garden changes from 7.01 to 5.64 ms. Static timings
+are effectively unchanged because those maps are cached.
+
+The integrated implementation uses actual Wayland presentation at 3840 × 2160,
+the report's graphics and HD artwork, 1,200 frames per route and 60 warm-up
+frames. Sequential before/after runs against `df66aad` have no concurrent
+compiler, browser or other GPU workload:
+
+| Route | Average FPS before → after | Frame p95 | Frame p99 |
+|---|---|---|---|
+| Mission 1 village | 44.5 → 49.5 | 23.87 → 21.44 ms | 24.28 → 22.35 ms |
+| Mission 5 courtyard | 56.0 → 56.6 | 18.91 → 18.72 ms | 19.18 → 19.60 ms |
+| Mission 1 garden | 38.9 → 42.3 | 26.73 → 24.68 ms | 26.99 → 24.97 ms |
+| Mission 4 waterfall | 72.6 → 73.6 | 14.57 → 14.18 ms | 14.75 → 14.69 ms |
+
+Village/garden shadow-map means fall from 8.17/7.47 to 5.85/5.85 ms; GPU
+p99 falls from 21.02/24.07 to 18.64/22.14 ms. The courtyard has little shadow
+work to save and its whole-frame p99 is mixed despite the small GPU reduction.
+CPU means remain close. The difficult Mission 1 routes still miss 60 FPS.
+
+The existing incremental-atlas test now reads opacity data back from the GPU
+through atlas/metadata growth and animation updates. Point-light tests cover
+transparency-class boundaries at alpha 1/191/192, ordinary holes and lantern
+transmission. Replacement reloads, scrolling borders, moving shadows, scenery,
+foliage wind, snow shelter and original blend rules pass, along with 134
+ordinary tests. Formatting, strict native/WASM Clippy and release builds pass.
+Actual Chromium WebGPU and WebGL2 both load/grow the new atlas, restore the
+portable weather/blood state, move, toggle lighting and use free camera without
+GPU errors or changes to paused gameplay.

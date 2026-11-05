@@ -194,6 +194,16 @@ impl Materials {
             label: Some("Decoded materials"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
@@ -529,6 +539,13 @@ impl Materials {
                 if !entry.dirty {
                     continue;
                 }
+                write_coverage(
+                    queue,
+                    &self.atlas.coverage,
+                    self.atlas.side,
+                    material.mips[0],
+                    entry,
+                );
                 for (mip, image) in entry.mips.iter().enumerate() {
                     let rect = material.mips[mip];
                     let x = rect[0] as u32 % self.atlas.side - 1;
@@ -639,6 +656,15 @@ impl Materials {
                 bytes,
             );
         }
+        for (index, entry) in self.entries.iter().enumerate() {
+            write_coverage(
+                queue,
+                &self.atlas.coverage,
+                self.atlas.side,
+                self.atlas.materials[index + 1].mips[0],
+                entry,
+            );
+        }
         self.bindings = self.atlas.bindings(device, &self.layout);
         self.repack = false;
         Ok(())
@@ -681,6 +707,50 @@ fn padded(size: [u32; 2], pixels: &[u8], wrap: bool) -> Vec<u8> {
         }
     }
     bytes
+}
+
+fn write_coverage(
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    side: u32,
+    rect: [f32; 4],
+    entry: &Entry,
+) {
+    let [width, height] = entry.image.size;
+    let bytes: Vec<u8> = (0..height + 2)
+        .flat_map(|y| {
+            let sy = border_pixel(y, height, entry.repeating());
+            (0..width + 2).map(move |x| {
+                let sx = border_pixel(x, width, entry.repeating());
+                match entry.image.rgba[((sy * width + sx) * 4 + 3) as usize] {
+                    0 => 0,
+                    1..192 => 128,
+                    _ => 255,
+                }
+            })
+        })
+        .collect();
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            origin: wgpu::Origin3d {
+                x: rect[0] as u32 % side - 1,
+                y: rect[1] as u32 - 1,
+                z: rect[0] as u32 / side,
+            },
+            ..texture.as_image_copy()
+        },
+        &bytes,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(width + 2),
+            rows_per_image: Some(height + 2),
+        },
+        wgpu::Extent3d {
+            width: width + 2,
+            height: height + 2,
+            depth_or_array_layers: 1,
+        },
+    );
 }
 
 fn write_texture(

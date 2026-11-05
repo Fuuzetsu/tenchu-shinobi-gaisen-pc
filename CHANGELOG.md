@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Speed up animated vegetation shadows by sampling compact opacity data instead
+  of full-color replacement textures. Cutout shapes and lantern transmission
+  remain unchanged.
+
 - Reduce soft-shadow filtering work in reflective rain scenes using conservative
   GPU depth summaries. Shadow resolution, samples and appearance are unchanged;
   other graphics configurations keep their existing rendering.
