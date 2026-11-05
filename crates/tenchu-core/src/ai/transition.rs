@@ -4,6 +4,10 @@ use crate::math::Position;
 
 impl Controller<'_, '_> {
     pub fn update(&mut self) -> Result<()> {
+        self.actor.encounters.prepare(
+            self.state.damage_escalation.enabled(),
+            self.attribute & ATTR_PHASE == 0 && self.state.alert == 0,
+        );
         if self.actor.recruitment == Recruitment::Called
             && self.attribute & ATTR_PHASE == 0
             && self.state.alert == 0
@@ -87,6 +91,7 @@ impl Controller<'_, '_> {
             },
             self.ctx,
         )?;
+        let directly_seen = self.state.detection == Detection::Seen && self.player_target();
         let player_distance = if self.player_target() {
             self.distance()
         } else {
@@ -152,6 +157,13 @@ impl Controller<'_, '_> {
             self.state.detection = Detection::Gone;
             self.finish(pad & !(SQUARE | TRIANGLE), saved_strain);
             return Ok(());
+        }
+        if self.state.damage_escalation.enabled()
+            && directly_seen
+            && self.state.detection == Detection::Seen
+            && self.actor.id != self.player.id
+        {
+            self.actor.encounters.see_player();
         }
         if let Some(pad) = self.requested_aid()? {
             self.finish(pad, saved_strain);

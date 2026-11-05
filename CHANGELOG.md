@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional enemy damage escalation under F1 → Simulation. A guard’s first direct sighting does normal damage; repeated encounters after fully calming down add a configurable bonus, with a configurable cap. Shared alarms and brief sight loss do not raise damage. Disabled by default.
+
 - Show wind-driven rain and snow outside the item-shop window when **Shop window and lighting** is enabled. It follows the weather controls, including light original snowfall on snowy missions; Clear removes it. The shop demo now includes weather as well as the day/night lighting cycle.
 
 - Add an optional English **Shuriken** shop title under F1 → General, matching the throwing-star icon. The disc's Crimson Blade title remains the default; the description still comes from the disc or texture pack.
@@ -20,7 +22,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Add continuous stereo rain ambience with its own F1 weather volume. It follows rain intensity, muffles smoothly under cover, pauses with the game and is included in recordings. Modern presets enable it when Rain or Rainstorm is selected; Original stays unchanged.
 
 - Add optional **Strict corpse visibility** under F1 → Gameplay. Guards must have a clear eye-to-body terrain ray before discovering a corpse; visible bodies still raise shared alerts. Original behavior remains the default.
-- Update the mid-mission savestate format for the new gameplay option and wound/weapon-flow data. Older snapshots require the build that created them; campaign saves are unchanged.
+- Update the mid-mission savestate format for the new gameplay options, per-guard encounter memory and wound/weapon-flow data. Older snapshots require the build that created them; campaign saves are unchanged.
 
 - Let tinted and non-metallic weapons receive blood when no silver blade surface is identified, fixing the Mission 9 Kunoichi's clean weapons after successful hits.
 

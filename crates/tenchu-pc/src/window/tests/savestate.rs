@@ -49,6 +49,42 @@ fn continue_identically(original: &mut Application, restored: &mut Application, 
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; encounter damage settings and guard memory survive file saves and continue identically"]
+fn savestates_preserve_detection_escalation() {
+    let mut app = application(Options::default());
+    app.apply_item(Item::DetectionDamage, 5).unwrap();
+    app.apply_item(Item::DetectionDamageLimit, 2).unwrap();
+    let options = app.settings.damage_escalation;
+    assert_eq!(options.increment, 50);
+    assert_eq!(options.maximum, 150);
+    for actor in app.campaign.game.roster.actors.iter_mut().flatten() {
+        actor.encounters.detections = 4;
+    }
+    let bytes = app.capture_state().unwrap();
+    let mut restored = application(Options::default());
+    restored.restore_state(&bytes).unwrap();
+    assert_eq!(restored.settings.damage_escalation, options);
+    assert_eq!(exact(&restored.campaign.game), exact(&app.campaign.game));
+    continue_identically(&mut app, &mut restored, 120);
+    restored.reset_item(Item::DetectionDamageLimit).unwrap();
+    assert_eq!(restored.settings.damage_escalation.increment, 50);
+    assert_eq!(restored.settings.damage_escalation.maximum, 100);
+    assert_eq!(restored.campaign.game.player().encounters.detections, 4);
+    restored.reset_item(Item::DetectionDamage).unwrap();
+    assert!(!restored.settings.damage_escalation.enabled());
+    assert!(
+        restored
+            .campaign
+            .game
+            .roster
+            .actors
+            .iter()
+            .flatten()
+            .all(|actor| actor.encounters.detections == 0)
+    );
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; restored TRIAL attempts remain editable but cannot award records"]
 fn savestates_restore_trial_playtests_as_unranked_drafts() {
     let mut app = application(Options::default());

@@ -42,6 +42,8 @@ pub fn game(game: &Game) -> Value {
         "pad": {"held": a.pad.held, "previous": a.pad.previous, "trigger": a.pad.trigger,
             "stream": a.pad.stream, "time": a.pad.time, "hold_counter": a.pad.hold_counter},
         "inventory": a.inventory.iter().copied().chain([u8::from(a.aiming)]).collect::<Vec<_>>(), "active_item": a.active_item, "attack": a.attack,
+        "encounters": a.encounters,
+        "damage_bonus_percent": a.encounters.bonus(game.intelligence.damage_escalation),
         "root_model": a.root_model, "render_mask": a.render_mask, "draw_fog": a.draw_fog,
     })).collect();
     let items: Vec<_> = game
@@ -75,6 +77,7 @@ pub fn game(game: &Game) -> Value {
             "independent_attacks": ai.independent_attacks,
             "quick_shuriken_dodge": ai.quick_shuriken_dodge,
             "strict_corpse_sight": ai.strict_corpse_sight,
+            "damage_escalation": ai.damage_escalation,
             "multi_target_attacks": game.combat.multi_target,
             "ignore_player": ai.ignore_player, "alert": ai.alert, "strain": ai.strain,
             "player_strain": ai.player_strain, "found": ai.found, "death_index": ai.death_index,

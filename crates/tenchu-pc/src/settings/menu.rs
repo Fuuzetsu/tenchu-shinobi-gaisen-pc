@@ -188,6 +188,8 @@ pub enum Item {
     IndependentAttacks,
     QuickShurikenDodge,
     StrictCorpseSight,
+    DetectionDamage,
+    DetectionDamageLimit,
     MultiTargetAttacks,
     ReinforcementsPerCall,
     RandomReinforcements,
@@ -1729,6 +1731,22 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Quick shuriken evasion",
                 on(s.quick_shuriken_dodge),
                 "Alert armed enemies immediately sidestep when you aim shuriken at them, at most once a second. Requires clear sight and their own dodge motion; attacks, injuries and scripted scenes are not interrupted. Changes gameplay; off by default.",
+            ),
+            (
+                Item::DetectionDamage,
+                "Damage per repeat detection",
+                if s.damage_escalation.increment == 0 {
+                    "Off".into()
+                } else {
+                    format!("+{}%", s.damage_escalation.increment)
+                },
+                "GAMEPLAY EDIT: first sighting does normal damage. Each time this guard sees you again after fully calming down, increase its damage to you. Shared alarms and brief sight loss do not count. Turning off or starting a mission resets encounters. Disables input recording and TRIAL records.",
+            ),
+            (
+                Item::DetectionDamageLimit,
+                "Maximum detection damage bonus",
+                format!("+{}%", s.damage_escalation.maximum),
+                "Cap the extra health damage from repeat detections. +100% doubles damage; 0 disables escalation. Attack speed, knockback and hit reactions stay unchanged.",
             ),
             (
                 Item::ReinforcementsPerCall,

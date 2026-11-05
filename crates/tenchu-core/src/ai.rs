@@ -1,3 +1,4 @@
+pub mod escalation;
 pub mod programs;
 use crate::actor::State as ActorState;
 use crate::math::Position;
@@ -121,6 +122,7 @@ pub struct Intelligence {
     pub independent_attacks: bool,
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
+    pub damage_escalation: escalation::Settings,
     pub attack_clock: i32,
     pub alert: i32,
     pub strain: i32,
@@ -146,6 +148,7 @@ impl Default for Intelligence {
             independent_attacks: false,
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
+            damage_escalation: Default::default(),
             attack_clock: 0,
             alert: 0,
             strain: 0,

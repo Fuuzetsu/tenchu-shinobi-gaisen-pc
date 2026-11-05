@@ -478,10 +478,14 @@ impl Items {
     }
 
     pub fn kind_for_contact(&self, scene: &Scene, slot: usize) -> Kind {
+        self.item_for_contact(scene, slot)
+            .map_or(Kind::Grapple, |item| item.kind)
+    }
+
+    pub(crate) fn item_for_contact(&self, scene: &Scene, slot: usize) -> Option<&Item> {
         self.slots
             .iter()
             .find(|item| scene.models[item.model].conflict == Some(slot))
-            .map_or(Kind::Grapple, |item| item.kind)
     }
 
     pub(crate) fn restore_layout(&mut self, roster: &mut Roster, ctx: &mut Context) -> Result<()> {

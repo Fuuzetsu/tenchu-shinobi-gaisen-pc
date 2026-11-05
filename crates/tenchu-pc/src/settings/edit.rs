@@ -56,6 +56,8 @@ impl Item {
             Item::BloodSeconds => (0, 60, 1, 1),
             Item::BloodMarks => (32, i32::from(u16::MAX), 256, 1),
             Item::ReinforcementLimit => (0, 1000, 10, 1),
+            Item::DetectionDamage => (0, 100, 10, 1),
+            Item::DetectionDamageLimit => (0, 400, 25, 1),
             Item::ReinforcementsPerCall => (
                 0,
                 i32::from(tenchu_core::roster::ReinforcementCall::MAX_COUNT),

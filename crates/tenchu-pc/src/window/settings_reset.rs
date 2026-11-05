@@ -114,6 +114,18 @@ impl Application {
             Item::IndependentAttacks => self.set_independent_attacks(s.independent_attacks),
             Item::QuickShurikenDodge => self.set_quick_shuriken_dodge(s.quick_shuriken_dodge),
             Item::StrictCorpseSight => self.set_strict_corpse_sight(s.strict_corpse_sight),
+            Item::DetectionDamage => {
+                self.set_damage_escalation(tenchu_core::ai::escalation::Settings {
+                    increment: s.damage_escalation.increment,
+                    ..self.settings.damage_escalation
+                })
+            }
+            Item::DetectionDamageLimit => {
+                self.set_damage_escalation(tenchu_core::ai::escalation::Settings {
+                    maximum: s.damage_escalation.maximum,
+                    ..self.settings.damage_escalation
+                })
+            }
             Item::MultiTargetAttacks => self.set_multi_target_attacks(s.multi_target_attacks),
             Item::ReinforcementsPerCall => {
                 self.set_reinforcement_call(tenchu_core::roster::ReinforcementCall {

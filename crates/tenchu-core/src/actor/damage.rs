@@ -9,6 +9,20 @@ use crate::{
 use tenchu_assets::weapon::kind::KATANAL;
 
 impl Actor {
+    fn damage_from(&self, damage: i16, source: Option<usize>, world: &ActionContext) -> i16 {
+        if self.id != world.player || !world.intelligence.damage_escalation.enabled() {
+            return damage;
+        }
+        source
+            .filter(|&id| id != world.player)
+            .and_then(|id| world.roster.actors.get(id)?.as_ref())
+            .map_or(damage, |enemy| {
+                enemy
+                    .encounters
+                    .damage(damage, world.intelligence.damage_escalation)
+            })
+    }
+
     fn score_death(&self, ctx: &mut Context, world: &mut ActionContext) -> Result<()> {
         let counter = if self.kind & 0xf0 == 0x90 {
             &mut world.statistics.friend_hits
@@ -115,7 +129,9 @@ impl Actor {
                 let damage =
                     ctx.mission.weapons.attacks[enemy.attack_id(ctx, enemy.motion.action)].power;
                 if !self.invulnerable {
-                    self.health = self.health.wrapping_sub(damage);
+                    self.health = self
+                        .health
+                        .wrapping_sub(self.damage_from(damage, source, world));
                 }
                 if self.health < 0 || self.attribute & ATTR_WEAPON_DRAWN == 0 {
                     self.health = 0;
@@ -317,7 +333,9 @@ impl Actor {
             MOT_DAMAGE_LAUNCH_FORE,
         ];
         if !self.invulnerable {
-            self.health = self.health.wrapping_sub(damage);
+            self.health = self
+                .health
+                .wrapping_sub(self.damage_from(damage, Some(source), world));
         }
         let (mut next, movement);
         if self.health <= 0 {
@@ -433,7 +451,9 @@ impl Actor {
             return Ok(None);
         }
         ctx.collision.result(ctx.scene, self.root_model, Some(hit));
-        let kind = world.items.kind_for_contact(ctx.scene, hit);
+        let item = world.items.item_for_contact(ctx.scene, hit);
+        let kind = item.map_or(Kind::Grapple, |item| item.kind);
+        let source = item.and_then(|item| item.owner());
         let mut next = self.motion.action;
         let mut movement = true;
         let mut damage: i16 = match kind {
@@ -497,7 +517,9 @@ impl Actor {
             damage = damage * 7 / 10;
         }
         if !self.invulnerable {
-            self.health = self.health.wrapping_sub(damage);
+            self.health = self
+                .health
+                .wrapping_sub(self.damage_from(damage, source, world));
         }
         let voice = if self.health <= 0 {
             self.health = 0;

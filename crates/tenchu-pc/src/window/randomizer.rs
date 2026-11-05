@@ -115,6 +115,9 @@ impl Application {
         self.campaign.game.intelligence.independent_attacks = self.settings.independent_attacks;
         self.campaign.game.intelligence.quick_shuriken_dodge = self.settings.quick_shuriken_dodge;
         self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
+        self.campaign
+            .game
+            .set_damage_escalation(self.settings.damage_escalation);
         self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
         self.debug.reload(&self.campaign.game)?;
         if let Some(audio) = &mut self.audio {

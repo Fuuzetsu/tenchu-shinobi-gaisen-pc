@@ -1375,6 +1375,17 @@ difficulty change is off by default; it is not a PS1 bug fix. Graphical presets
 leave it alone. Gameplay presets/reset restore retail reactions, and changing
 it ends ordinary input recording and disqualifies the current TRIAL record.
 
+**Simulation → Damage per repeat detection** optionally increases the damage a
+guard deals to you each time it spots you again after fully calming down. The
+first direct sighting does normal damage; shared alerts and brief breaks in line
+of sight do not count. Choose an increment from 0–100% and a maximum bonus from
+0–400% (100% means double damage). Both must be nonzero to enable it. Only health
+loss from that enemy’s melee attacks and attributed projectiles changes; attack
+speed, hit reactions, knockback and environmental damage stay unchanged. Turning
+it off or starting/retrying a mission clears encounters. Savestates and rewind
+restore them. This gameplay option is off by default, stays separate from visual
+presets/retro mode, and disables input recording and TRIAL records.
+
 Hold **Backspace** during a cutscene to fast-forward at maximum bounded throughput.
 The Simulation page offers automatic 2×/4×/8×/16×/Max cutscene speed and general
 25–400% or Unlimited simulation speed. Unlimited runs across gameplay and

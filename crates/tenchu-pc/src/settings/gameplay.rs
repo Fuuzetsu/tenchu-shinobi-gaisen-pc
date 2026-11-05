@@ -59,6 +59,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.independent_attacks
             && !settings.quick_shuriken_dodge
             && !settings.strict_corpse_sight
+            && !settings.damage_escalation.enabled()
             && !settings.multi_target_attacks
             && (!p.active
                 || (settings.reinforcement_limit == 0

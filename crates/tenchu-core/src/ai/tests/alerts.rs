@@ -27,6 +27,10 @@ fn castle_guard(position: Position) -> crate::game::Game {
 #[ignore = "requires TENCHU_DISC; Mission 9 draw motion crosses the all-active alarm radius"]
 fn all_active_guard_finishes_one_alarm_across_the_range_boundary() {
     let mut game = castle_guard(Position::new(-24500, 12000, -9250));
+    game.set_damage_escalation(crate::ai::escalation::Settings {
+        increment: 50,
+        maximum: 100,
+    });
     let mut draws = 0;
     let mut sheathes = 0;
     let mut crossed_boundary = false;
@@ -55,6 +59,11 @@ fn all_active_guard_finishes_one_alarm_across_the_range_boundary() {
     assert!(!game.roster.get(11).heard_alert);
     assert_eq!(game.intelligence.alert, 0);
     assert_eq!(game.intelligence.found, 0);
+    assert_eq!(
+        game.roster.get(11).encounters.detections,
+        0,
+        "A shared alarm is not direct sight"
+    );
 }
 
 #[test]

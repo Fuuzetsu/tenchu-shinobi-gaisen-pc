@@ -116,6 +116,7 @@ pub struct Actor {
     pub recruitment: crate::ai::Recruitment,
     #[serde(default)]
     pub heard_alert: bool,
+    pub encounters: crate::ai::escalation::Encounters,
     pub active_item: i16,
     pub inventory: [u8; crate::items::KINDS],
     pub aiming: bool,
@@ -224,6 +225,7 @@ impl Actor {
             evasion_clock: 0,
             recruitment: crate::ai::Recruitment::default(),
             heard_alert: false,
+            encounters: Default::default(),
             active_item: 0,
             inventory: [0; crate::items::KINDS],
             aiming: false,
