@@ -32,6 +32,7 @@ impl Storm {
                     seed: self.seed,
                     strength: self.strength * f32::from(settings.thunder) / 100.0,
                     pan: self.pan,
+                    style: settings.thunder_style,
                 });
             }
         }

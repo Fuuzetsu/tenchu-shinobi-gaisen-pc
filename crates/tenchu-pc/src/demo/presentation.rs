@@ -326,6 +326,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                         crate::settings::WeatherMode::Snowstorm
                     };
                     g.weather.lightning_interval = 8;
+                    g.weather.thunder_style = tenchu_audio::ThunderStyle::Rolling;
                     g.weather.lightning = 70;
                     g.weather.wind = 65;
                     g.sky.time = 1200;

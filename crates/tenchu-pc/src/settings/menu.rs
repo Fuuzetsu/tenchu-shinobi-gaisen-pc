@@ -75,6 +75,7 @@ pub enum Item {
     StormLightning,
     StormInterval,
     StormThunder,
+    ThunderStyle,
     RainVolume,
     WindVolume,
     FootprintSeconds,
@@ -712,6 +713,17 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Rain ambience volume",
                     format!("{}%", weather.rain_volume),
                     "Continuous stereo rainfall in Rain/Rainstorm, following precipitation intensity and wind-driven shelter at the camera. Smoothly muffles under cover; follows master/effects volume and pause. 0 disables.",
+                ),
+                (
+                    Item::ThunderStyle,
+                    "Thunder sound",
+                    match weather.thunder_style {
+                        tenchu_audio::ThunderStyle::Simple => "Existing",
+                        tenchu_audio::ThunderStyle::Rolling => "Rolling",
+                        tenchu_audio::ThunderStyle::Retro => "Retro rolling",
+                    }
+                    .into(),
+                    "Existing keeps the earlier synthesized sound. Rolling adds layered rumbles and diffuse stereo echoes; Retro rolling adds 8-bit/11 kHz coloration. Timing and volume stay separate.",
                 ),
                 (
                     Item::StormThunder,

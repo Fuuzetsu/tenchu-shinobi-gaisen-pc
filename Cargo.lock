@@ -2612,6 +2612,7 @@ dependencies = [
 name = "tenchu-audio"
 version = "0.15.6"
 dependencies = [
+ "serde",
  "tenchu-assets",
 ]
 

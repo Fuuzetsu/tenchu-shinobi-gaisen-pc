@@ -77,6 +77,7 @@ pub struct Weather {
     pub lightning: u16,
     pub lightning_interval: u16,
     pub thunder: u16,
+    pub thunder_style: tenchu_audio::ThunderStyle,
     pub rain_volume: u16,
     pub wind_volume: u16,
 }
@@ -106,6 +107,7 @@ impl Default for Weather {
             lightning: 40,
             lightning_interval: 25,
             thunder: 60,
+            thunder_style: Default::default(),
             rain_volume: 0,
             wind_volume: 70,
         }

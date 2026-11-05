@@ -411,6 +411,15 @@ impl Application {
                     (i32::from(self.settings.graphics.water.detail) + direction).rem_euclid(3)
                         as u16
             }
+            Item::ThunderStyle => {
+                let styles = tenchu_audio::ThunderStyle::ALL;
+                let index = styles
+                    .iter()
+                    .position(|&s| s == self.settings.graphics.weather.thunder_style)
+                    .unwrap();
+                self.settings.graphics.weather.thunder_style =
+                    styles[(index as i32 + direction).rem_euclid(styles.len() as i32) as usize];
+            }
             Item::Weather => {
                 let modes = settings::WeatherMode::ALL;
                 let index = modes

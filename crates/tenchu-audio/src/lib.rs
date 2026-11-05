@@ -2,7 +2,7 @@ mod ambience;
 mod envelope;
 mod thunder;
 pub use ambience::Ambience;
-pub use thunder::ThunderCue;
+pub use thunder::{ThunderCue, ThunderStyle};
 
 use envelope::Envelope;
 use std::sync::Arc;
@@ -29,7 +29,7 @@ pub struct Mixer {
     voices: [Option<Voice>; 24],
     next_voice: usize,
     music: Option<Music>,
-    thunder: Option<thunder::Thunder>,
+    thunder: [Option<thunder::Thunder>; 2],
     ambience: Option<ambience::Bed>,
     rate: u32,
     envelope_clock: u64,
@@ -50,7 +50,7 @@ impl Mixer {
             voices: std::array::from_fn(|_| None),
             next_voice: 0,
             music: None,
-            thunder: None,
+            thunder: [None, None],
             ambience: None,
             rate,
             envelope_clock: 0,
@@ -71,7 +71,7 @@ impl Mixer {
 
     pub fn clear_effects(&mut self) {
         self.voices = std::array::from_fn(|_| None);
-        self.thunder = None;
+        self.thunder = [None, None];
         self.ambience = None;
     }
 
@@ -84,9 +84,16 @@ impl Mixer {
     }
 
     pub fn thunder(&mut self, cue: Option<ThunderCue>) {
-        self.thunder = cue
-            .filter(|c| c.strength > 0.0)
-            .map(|c| thunder::Thunder::new(c, self.rate));
+        if let Some(cue) = cue.filter(|c| c.strength > 0.0) {
+            self.thunder[1] = if cue.style == ThunderStyle::Simple {
+                None
+            } else {
+                self.thunder[0].take()
+            };
+            self.thunder[0] = Some(thunder::Thunder::new(cue, self.rate));
+        } else {
+            self.thunder = [None, None];
+        }
     }
 
     pub fn play(&mut self, id: i16, volume: u8, pan: u8) {
@@ -209,14 +216,16 @@ impl Mixer {
                 voice.position += voice.step;
             }
         }
-        if !self.paused
-            && let Some(thunder) = &mut self.thunder
-        {
-            if thunder.finished() {
-                self.thunder = None;
-            } else {
-                for (out, sample) in output.iter_mut().zip(thunder.frame()) {
-                    *out += sample;
+        if !self.paused {
+            for slot in &mut self.thunder {
+                if let Some(thunder) = slot {
+                    if thunder.finished() {
+                        *slot = None;
+                    } else {
+                        for (out, sample) in output.iter_mut().zip(thunder.frame()) {
+                            *out += sample;
+                        }
+                    }
                 }
             }
         }

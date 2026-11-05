@@ -43,6 +43,9 @@ impl Application {
             }
             Item::WaterDetail => self.settings.graphics.water.detail = s.graphics.water.detail,
             Item::Weather => self.settings.graphics.weather.mode = s.graphics.weather.mode,
+            Item::ThunderStyle => {
+                self.settings.graphics.weather.thunder_style = s.graphics.weather.thunder_style
+            }
             Item::WeatherQuality => {
                 self.settings.graphics.weather.quality = s.graphics.weather.quality
             }
