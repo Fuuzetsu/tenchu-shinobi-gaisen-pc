@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Let tinted and non-metallic weapons receive blood when no silver blade surface is identified, fixing the Mission 9 Kunoichi's clean weapons after successful hits.
+
 - Keep the selected savestate slot when rewinding across model/scene rebuilds or restoring a state.
 
 - Make packaged README and build information writable by their owner, avoiding permission errors when updating an extracted installation.

@@ -90,9 +90,15 @@ impl Weapons {
                         Matrix::default(),
                         Some(models),
                     );
+                    let has_metal = vertices
+                        .iter()
+                        .any(|v| v.flags & render_mesh::WEAPON_METAL != 0);
                     let mut vertices: Vec<_> = vertices
                         .chunks_exact(3)
-                        .filter(|t| t[0].flags & render_mesh::WEAPON_METAL != 0)
+                        .filter(|t| {
+                            t[0].flags & render_mesh::TRANSLUCENT == 0
+                                && (!has_metal || t[0].flags & render_mesh::WEAPON_METAL != 0)
+                        })
                         .flat_map(|t| t.iter().copied())
                         .collect();
                     if vertices.is_empty() {
@@ -125,8 +131,8 @@ impl Weapons {
                         v.uv = [p.x * 0.008 + p.z * 0.003, p.y * 0.006 + p.z * 0.007];
                         v.color = [0.31, 0.006, 0.012];
                         v.material = 0;
-                        v.flags = render_mesh::WEAPON_COAT
-                            | render_mesh::WEAPON_METAL
+                        v.flags = (v.flags & render_mesh::WEAPON_METAL)
+                            | render_mesh::WEAPON_COAT
                             | render_mesh::FOG
                             | render_mesh::STAIN
                             | render_mesh::ALPHA
@@ -209,6 +215,88 @@ impl Weapons {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; successful Kunoichi melee hits must coat both weapons with original and replacement artwork"]
+    fn kunoichi_hits_stain_both_weapons() {
+        use tenchu_assets::weapon::kind::{EN, JYUTE};
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        for (mission, kind) in [(2, JYUTE), (9, EN)] {
+            for artwork in [false, true] {
+                let mut game = crate::session::Options {
+                    mission,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap();
+                game.events = Default::default();
+                let guard = *game
+                    .roster
+                    .order
+                    .iter()
+                    .find(|&&id| {
+                        game.mission.characters[game.roster.get(id).definition].weapon == kind
+                    })
+                    .unwrap();
+                for id in game.roster.order.clone() {
+                    if id != guard && id != game.player_id {
+                        let _ = game.remove_actor(id);
+                    }
+                }
+                let enemy = game.roster.get(guard);
+                let offset = game
+                    .math
+                    .velocity(enemy.rotation[1], 1300, 0)
+                    .map(i32::from);
+                game.teleport_player(enemy.position.wrapping_add(offset.into()), true)
+                    .unwrap();
+                crate::demo::sparring(&mut game, guard).unwrap();
+                let hero = game.roster.get_mut(game.player_id);
+                hero.invulnerable = false;
+                hero.health = 30000;
+                let graphics = settings::Graphics {
+                    asset_pack: artwork,
+                    blood: settings::Blood::modern(),
+                    ..Default::default()
+                };
+                let pack = crate::visuals::pack::Pack::from_env(&game.mission).unwrap();
+                let models = Models::build(&game.mission, &pack, &graphics).unwrap();
+                let surfaces = Surfaces::new(&render_mesh::stage(
+                    &game.mission,
+                    &game.math,
+                    Some(&models),
+                ));
+                let mut blood = Blood::default();
+                blood.tick(&game, &models, &surfaces, &graphics.blood, None);
+                let mut hit = false;
+                for _ in 0..900 {
+                    game.step(0).unwrap();
+                    blood.tick(&game, &models, &surfaces, &graphics.blood, None);
+                    if game.player().health < 30000
+                        && game
+                            .effects
+                            .rumble
+                            .iter()
+                            .any(|r| r.actor == guard && r.action == RumbleAction::Hit)
+                    {
+                        hit = true;
+                        break;
+                    }
+                }
+                assert!(hit, "M{mission}: no successful melee hit");
+                let actor = game.roster.get(guard);
+                let coated = blood
+                    .weapons
+                    .parts()
+                    .filter(|part| matches!(part, Part::Actor { root, .. } if *root == actor.root_model))
+                    .count();
+                assert_eq!(coated, 2, "M{mission}, replacement artwork: {artwork}");
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; six paired kills synchronize blade/body blood, including after rewind; the neck break stays bloodless"]
