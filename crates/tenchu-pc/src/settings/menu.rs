@@ -4,6 +4,14 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Bleeding,
+    BleedChance,
+    BleedSeconds,
+    BleedDamage,
+    BandageLoadout,
+    Bandages,
+    UseBandage,
+    MedicineBleeding,
     HalfResolutionAo,
     AdaptiveShadows,
     CachedBlood,
@@ -275,7 +283,8 @@ impl Item {
     pub fn button(self) -> bool {
         matches!(
             self,
-            Self::Reset
+            Self::UseBandage
+                | Self::Reset
                 | Self::RecenterOrbit
                 | Self::Randomizer
                 | Self::SaveState
@@ -339,7 +348,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 23] = [
+pub const PAGES: [&str; 24] = [
     "General",
     "Graphics",
     "Overlays",
@@ -363,6 +372,7 @@ pub const PAGES: [&str; 23] = [
     "Movement",
     "Rendering trials",
     "Enemy behavior",
+    "Bleeding",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -372,6 +382,61 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        23 => vec![
+            (
+                Item::Bleeding,
+                "Player bleeding",
+                on(s.bleeding.enabled),
+                "Optional gameplay: enemy melee and piercing projectiles can cause blood loss. Refreshes duration instead of stacking, leaves at least 1 HP, and pauses during scripted scenes. Cosmetic blood settings are independent. Disables input-only recordings and TRIAL records.",
+            ),
+            (
+                Item::BleedChance,
+                "Chance per damaging hit",
+                format!("{}%", s.bleeding.chance),
+                "0–100%. Blocked hits, god mode, fire, explosions and fall damage do not start bleeding. Uses a separate seeded generator.",
+            ),
+            (
+                Item::BleedSeconds,
+                "Bleeding duration",
+                if s.bleeding.seconds == 0 {
+                    "Until treated".into()
+                } else {
+                    format!("{} s", s.bleeding.seconds)
+                },
+                "0 means until treated; otherwise 1–120 seconds. Further wounds refresh this duration without increasing damage per second.",
+            ),
+            (
+                Item::BleedDamage,
+                "Blood loss per second",
+                format!("{} HP", s.bleeding.damage),
+                "0–20 HP per second; never reduces health below 1. God mode prevents blood loss. Changing cosmetic blood does not change this.",
+            ),
+            (
+                Item::BandageLoadout,
+                "Bandages per mission",
+                s.bleeding.bandages.to_string(),
+                "0–99 separate quick-use bandages on mission start. Does not replace any disc item or change campaign stock; does not refill the current mission.",
+            ),
+            (
+                Item::MedicineBleeding,
+                "Medicine also stops bleeding",
+                on(s.bleeding.medicine),
+                "Cures bleeding when the healing potion actually takes effect. Resurrection always cures bleeding.",
+            ),
+            (
+                Item::Bandages,
+                "Carried bandages",
+                d.bandages
+                    .map_or_else(|| "Disabled".into(), |n| n.to_string()),
+                "Edit the current mission count for experiments (0–99). Only available with Player bleeding enabled.",
+            ),
+            (
+                Item::UseBandage,
+                "Use bandage",
+                "Treat".into(),
+                "Stops bleeding without healing; consumes one only when bleeding. Available while grounded and free to act. Default keyboard B; rebind in Controls. From here, treatment happens on the next gameplay tick.",
+            ),
+        ],
         22 => vec![
             (
                 Item::BehaviorProfiles,

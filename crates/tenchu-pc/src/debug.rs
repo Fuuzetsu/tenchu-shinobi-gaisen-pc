@@ -50,6 +50,7 @@ pub struct Debug {
     pub god_mode: bool,
     pub stealth: bool,
     pub inventory: [u8; 19],
+    pub bandages: Option<u16>,
     pub armor: bool,
     pub speed: u16,
     pub sight_percent: u16,
@@ -101,6 +102,7 @@ impl Debug {
             god_mode: game.player().invulnerable,
             stealth: game.intelligence.ignore_player,
             inventory: game.player().inventory[..19].try_into().unwrap(),
+            bandages: game.player().bleeding.as_ref().map(|s| s.bandages),
             armor: game.combat.armor,
             speed: 100,
             sight_percent: game.intelligence.sight_percent,
@@ -282,6 +284,7 @@ impl Debug {
         self.stealth = game.intelligence.ignore_player;
         self.inventory
             .copy_from_slice(&game.player().inventory[..19]);
+        self.bandages = game.player().bleeding.as_ref().map(|s| s.bandages);
         self.armor = game.combat.armor;
         if self.last_tick != game.tick {
             if game.tick < self.last_tick {

@@ -126,6 +126,7 @@ impl Application {
             &self.assets,
             self.settings.sheathing,
         )?;
+        self.campaign.game.set_bleeding(self.settings.bleeding);
         self.campaign
             .game
             .set_damage_escalation(self.settings.damage_escalation);

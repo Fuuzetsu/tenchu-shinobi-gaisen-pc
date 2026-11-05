@@ -91,17 +91,17 @@ pub fn gamepad_command(
 #[derive(Default)]
 struct Pad {
     active: Option<usize>,
-    raw: u16,
-    blocked: u16,
-    pending: u16,
+    raw: u32,
+    blocked: u32,
+    pending: u32,
     menu_raw: u16,
     menu_blocked: u16,
     stick: [i8; 4],
     axes: [f32; 4],
     axes_blocked: [bool; 2],
-    direct: u16,
-    direct_pending: u16,
-    direct_blocked: u16,
+    direct: u32,
+    direct_pending: u32,
+    direct_blocked: u32,
     recenter: bool,
 }
 
@@ -116,7 +116,7 @@ fn direction(value: f32, previous: i8) -> i8 {
 }
 
 impl Pad {
-    fn buttons(&self) -> u16 {
+    fn buttons(&self) -> u32 {
         self.raw & !self.blocked
     }
 
@@ -132,7 +132,7 @@ impl Pad {
         }
     }
 
-    fn sample(&mut self, id: usize, buttons: u16, focused: bool) -> u16 {
+    fn sample(&mut self, id: usize, buttons: u32, focused: bool) -> u32 {
         if self.active.is_some_and(|active| active != id) || self.active.is_none() && !focused {
             return 0;
         }
@@ -187,7 +187,7 @@ pub struct Controls {
     pub editor: editor::Editor,
     bindings_path: Option<PathBuf>,
     keys: HashSet<KeyCode>,
-    pending_keys: u16,
+    pending_keys: u32,
     gilrs: Option<Gilrs>,
     pad: Pad,
     rumble: Option<gilrs::ff::Effect>,
@@ -295,7 +295,7 @@ impl Controls {
 
     pub fn key_command(&self, code: KeyCode, playing: bool, paused: bool) -> Option<Command> {
         keyboard_command(code, playing)
-            .or_else(|| gamepad_command(self.bindings.key(code), playing, paused, false))
+            .or_else(|| gamepad_command(self.bindings.key(code) as u16, playing, paused, false))
     }
 
     pub fn key(&mut self, code: KeyCode, pressed: bool) -> bool {
@@ -318,13 +318,34 @@ impl Controls {
         self.pad.suppress();
     }
 
+    pub fn bandage(&self) -> bool {
+        (self.pad.buttons() | self.pad.pending | self.pending_keys) & bindings::BANDAGE != 0
+            || self
+                .keys
+                .iter()
+                .any(|&key| self.bindings.key(key) & bindings::BANDAGE != 0)
+    }
+
+    pub fn bandage_label(&self) -> String {
+        let row = &self.bindings.0[&bindings::Target::Bandage];
+        if self.pad.active.is_some()
+            && let Some(button) = row.controller.iter().flatten().next()
+        {
+            return button.label();
+        }
+        row.keys.iter().flatten().next().map_or_else(
+            || "F1 → Bleeding".into(),
+            |key| format!("{key:?}").trim_start_matches("Key").to_owned(),
+        )
+    }
+
     pub fn buttons(&mut self) -> u16 {
         let buttons = self.pad.buttons()
             | mem::take(&mut self.pad.pending)
             | mem::take(&mut self.pending_keys);
         self.keys
             .iter()
-            .fold(buttons, |buttons, key| buttons | self.bindings.key(*key))
+            .fold(buttons, |buttons, key| buttons | self.bindings.key(*key)) as u16
     }
 
     pub fn relative_buttons(&mut self) -> u16 {
@@ -334,11 +355,11 @@ impl Controls {
             | mem::take(&mut self.pending_keys);
         self.keys
             .iter()
-            .fold(buttons, |bits, key| bits | self.bindings.key(*key))
+            .fold(buttons, |bits, key| bits | self.bindings.key(*key)) as u16
     }
 
     pub fn walking_buttons(&mut self, deadzone: u16) -> (u16, f32) {
-        let pending = self.pad.buttons() | self.pad.pending;
+        let pending = (self.pad.buttons() | self.pad.pending) as u16;
         let directions = input::UP | input::DOWN | input::LEFT | input::RIGHT;
         let buttons = self.relative_buttons() | (pending & !directions);
         if buttons & directions != 0 {
@@ -459,7 +480,7 @@ impl Controls {
             let buttons = self
                 .bindings
                 .controller(|button| gamepad.is_pressed(button), self.pad.stick);
-            update.pressed |= self.pad.sample(id, buttons, focused);
+            update.pressed |= self.pad.sample(id, buttons, focused) as u16;
             let menu_buttons =
                 bindings::menu_buttons(|button| gamepad.is_pressed(button), self.pad.stick);
             update.menu_pressed |= self.pad.sample_menu(id, menu_buttons, focused);

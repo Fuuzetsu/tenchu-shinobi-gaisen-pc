@@ -7,6 +7,7 @@ const EXPANDED_LIMIT: usize = 512 * 1024 * 1024;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Input {
     pub buttons: u16,
+    pub bandage: bool,
     pub observing_death: bool,
     pub navigation: tenchu_core::game::navigation::Navigation,
     pub walking: Option<tenchu_core::game::walking::State>,

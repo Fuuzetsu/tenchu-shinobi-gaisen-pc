@@ -188,6 +188,34 @@ impl Application {
                 debug: &self.debug,
                 alpha,
             });
+            if self.settings.show_hud
+                && !self.debug.photo_mode
+                && self.campaign.playing()
+                && !self.campaign.game.cinematic.active
+                && self.campaign.game.player().health > 0
+                && let Some(state) = &self.campaign.game.player().bleeding
+            {
+                let status = if !state.active {
+                    "No bleeding".into()
+                } else if state.settings.seconds == 0 {
+                    "Bleeding until treated".into()
+                } else {
+                    format!("Bleeding · {} s", state.remaining.div_ceil(30))
+                };
+                view.labels.push(crate::debug::Label(
+                    crate::debug::Anchor::TopLeft([10.0, 108.0]),
+                    format!(
+                        "{status} · {} bandages · {}: treat",
+                        state.bandages,
+                        self.controls.bandage_label()
+                    ),
+                    if state.active {
+                        [1.0, 0.4, 0.35]
+                    } else {
+                        [0.8, 0.8, 0.8]
+                    },
+                ));
+            }
             if self.reverse.active {
                 view.labels.retain(|l| !l.1.starts_with("PAUSED"));
                 view.labels.push(crate::debug::Label(
@@ -343,6 +371,7 @@ impl Application {
             && !self.settings.guard_controls
             && !self.settings.walking.enabled
             && !self.settings.sheathing.enabled
+            && !self.settings.bleeding.enabled
             && !self.settings.damage_escalation.enabled()
             && !self.settings.attack_assist
             && !self.settings.behavior_profiles.enabled
@@ -391,6 +420,7 @@ impl Application {
                         || self.settings.guard_controls
                         || self.settings.walking.enabled
                         || self.settings.sheathing.enabled
+                        || self.settings.bleeding.enabled
                         || self.settings.damage_escalation.enabled()
                         || self.settings.attack_assist
                         || self.settings.behavior_profiles.enabled
@@ -1249,6 +1279,7 @@ pub fn run(
     campaign.game.intelligence.guard_controls = settings.guard_controls;
     crate::walking::configure(&mut campaign.game, &assets, settings.walking.enabled)?;
     crate::sheathing::configure(&mut campaign.game, &assets, settings.sheathing)?;
+    campaign.game.set_bleeding(settings.bleeding);
     campaign
         .game
         .set_damage_escalation(settings.damage_escalation);

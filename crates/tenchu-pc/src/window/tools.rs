@@ -190,6 +190,23 @@ impl Application {
         Ok(())
     }
 
+    pub(super) fn set_bleeding(&mut self, mut settings: tenchu_core::game::bleeding::Settings) {
+        settings.validate();
+        if self
+            .campaign
+            .game
+            .player()
+            .bleeding
+            .as_ref()
+            .map(|s| s.settings)
+            != settings.enabled.then_some(settings)
+        {
+            self.stop_edited_recording();
+        }
+        self.settings.bleeding = settings;
+        self.campaign.game.set_bleeding(settings);
+    }
+
     pub(super) fn set_damage_escalation(
         &mut self,
         mut settings: tenchu_core::ai::escalation::Settings,
@@ -269,6 +286,9 @@ impl Application {
     }
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if self.settings.bleeding != previous.bleeding {
+            self.set_bleeding(self.settings.bleeding);
+        }
         if self.settings.rewind_seconds != previous.rewind_seconds {
             self.clear_rewind();
             self.record_rewind(None);
@@ -302,6 +322,7 @@ impl Application {
             self.set_guard_controls(previous.guard_controls);
             let _ = self.set_walking(previous.walking.enabled);
             let _ = self.set_sheathing(previous.sheathing);
+            self.set_bleeding(previous.bleeding);
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             self.set_attack_assist(previous.attack_assist);
@@ -398,6 +419,7 @@ impl Application {
         self.set_guard_controls(false);
         self.set_walking(false)?;
         self.set_sheathing(Default::default())?;
+        self.set_bleeding(Default::default());
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
         self.set_attack_assist(false);
@@ -421,6 +443,37 @@ impl Application {
             return Ok(());
         }
         match item {
+            Item::UseBandage => {
+                self.state_tools_available()?;
+                let state = self
+                    .campaign
+                    .game
+                    .roster
+                    .get_mut(self.campaign.game.player_id)
+                    .bleeding
+                    .as_mut()
+                    .ok_or("Enable Player bleeding first")?;
+                if !state.active {
+                    return Err("No bleeding to treat".into());
+                }
+                if state.bandages == 0 {
+                    return Err("No bandages left".into());
+                }
+                state.request_bandage();
+            }
+            Item::Bandages => {
+                self.mission_edit()?;
+                self.stop_edited_recording();
+                let state = self
+                    .campaign
+                    .game
+                    .roster
+                    .get_mut(self.campaign.game.player_id)
+                    .bleeding
+                    .as_mut()
+                    .ok_or("Enable Player bleeding first")?;
+                state.bandages = (i32::from(state.bandages) + direction).clamp(0, 99) as u16;
+            }
             Item::StateSlot => {
                 self.debug.state_slot =
                     (i32::from(self.debug.state_slot) + direction).rem_euclid(5) as u8
@@ -756,6 +809,7 @@ impl Application {
                 self.set_guard_controls(false);
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
+                self.set_bleeding(Default::default());
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_attack_assist(false);
@@ -1011,6 +1065,7 @@ impl Application {
                 self.set_guard_controls(false);
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
+                self.set_bleeding(Default::default());
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_attack_assist(false);

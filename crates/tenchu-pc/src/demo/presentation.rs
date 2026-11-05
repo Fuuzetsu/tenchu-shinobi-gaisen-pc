@@ -84,6 +84,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
                 player.clip().feature,
                 Feature::Blood
                     | Feature::WoundSpurts
+                    | Feature::Bleeding
                     | Feature::DeathGush
                     | Feature::BloodSnow
                     | Feature::WeaponSparks
@@ -259,6 +260,19 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.sky.enabled = true;
             g.sky.time = 660;
             g.post.vignette = 0;
+        }
+        Feature::Bleeding => {
+            settings.bleeding = tenchu_core::game::bleeding::Settings {
+                enabled: true,
+                chance: 100,
+                seconds: 0,
+                damage: 3,
+                ..Default::default()
+            };
+            g.blood = crate::settings::Blood::modern();
+            g.interpolation = true;
+            g.sky.enabled = true;
+            g.sky.time = 660;
         }
         Feature::WoundSpurts => {
             g.blood = crate::settings::Blood::modern();
@@ -882,6 +896,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             "Original targeting · the closer guard behind is selected · same positions and inputs"
         }.into()),
         Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
+        Feature::Bleeding => text(match player.simulation_ticks {
+            0..150 => "Optional gameplay: enemy hits start bleeding · 3 HP/s in this demonstration",
+            150..240 => "Opponent stands down · bleeding continues until treatment · cosmetic blood is independent",
+            _ => "Use a bandage: stops blood loss without healing · chance, duration, damage and stock are configurable",
+        }.into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {
             "Drips only · hit spray hidden · 4 seconds per wound".into()
         } else {

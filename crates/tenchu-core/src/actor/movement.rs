@@ -34,6 +34,12 @@ impl Actor {
         world: &mut ActionContext,
     ) -> Result<bool> {
         let player = self.id == world.player;
+        if player {
+            self.bleeding_tick(
+                world.intelligence.cinematic
+                    || world.intelligence.action_halt != crate::ai::Halt::Running,
+            );
+        }
         let command = self.pad.consume(commands);
         let held = if self.pad.held & L1 != 0 {
             self.pad.held & !0xf000

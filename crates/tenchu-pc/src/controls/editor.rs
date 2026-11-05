@@ -195,7 +195,7 @@ mod tests {
         assert_eq!(controls.buttons(), 0);
         let saved = std::fs::read(&path).unwrap();
         assert_eq!(
-            Bindings::decode(&saved).unwrap().key(KeyCode::KeyK),
+            Bindings::decode(&saved).unwrap().key(KeyCode::KeyK) as u16,
             input::CROSS
         );
         controls.editor.capture = Some(Capture {
@@ -215,7 +215,7 @@ mod tests {
         controls.editor_button(PadInput::Button(gilrs::Button::RightThumb));
         let restored = Bindings::decode(&std::fs::read(&path).unwrap()).unwrap();
         assert_eq!(
-            restored.controller(|b| b == gilrs::Button::RightThumb, [0; 4]),
+            restored.controller(|b| b == gilrs::Button::RightThumb, [0; 4]) as u16,
             input::CROSS
         );
         assert_eq!(controls.buttons(), 0);

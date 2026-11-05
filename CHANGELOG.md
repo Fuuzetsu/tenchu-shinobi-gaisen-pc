@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Player bleeding** under F1 → Bleeding, with configurable hit chance, duration, health loss and bandage supply. Rebindable quick-use bandages stop blood loss without healing; medicine can also cure it. Includes a HUD status, a feature demo and saved-state/rewind support. Disabled by default and independent of cosmetic blood.
+
 - Export a selected rewind interval as a portable `.treplay` bug recording, then import it from F1 → General on desktop or in the browser. Keeps complete recorded states, inputs, settings and visual effects without discarding the current buffer. Adds forward timeline playback and a recorded-graphics/camera toggle; recordings contain game data and should be shared privately.
 
 - Support MSAA with **Cached terrain blood** and prevent isolated uncached marks from disabling the whole cache. Dense blood accumulation has substantially lower GPU spikes; cache preparation also reuses immutable receiver metadata. The rendering trial remains optional and keeps conservative fallbacks for unsupported surfaces.
@@ -42,7 +44,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Add continuous stereo rain ambience with its own F1 weather volume. It follows rain intensity, muffles smoothly under cover, pauses with the game and is included in recordings. Modern presets enable it when Rain or Rainstorm is selected; Original stays unchanged.
 
 - Add optional **Strict corpse visibility** under F1 → Gameplay. Guards must have a clear eye-to-body terrain ray before discovering a corpse; visible bodies still raise shared alerts. Original behavior remains the default.
-- Update the mid-mission savestate format for the new gameplay options, per-guard encounter memory and wound/weapon-flow/death-gush data. Older snapshots require the build that created them; campaign saves are unchanged.
+- Update the mid-mission savestate format for the new gameplay options, bleeding/bandage state, per-guard encounter memory and wound/weapon-flow/death-gush data. Older snapshots require the build that created them; campaign saves are unchanged.
 
 - Let tinted and non-metallic weapons receive blood when no silver blade surface is identified, fixing the Mission 9 Kunoichi's clean weapons after successful hits.
 

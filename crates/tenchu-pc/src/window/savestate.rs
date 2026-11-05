@@ -373,6 +373,13 @@ impl State<Game> {
                 .get(id)
                 .and_then(Option::as_ref)
                 .ok_or("Missing savestate actor")?;
+            if actor
+                .bleeding
+                .as_ref()
+                .is_some_and(|s| id != game.player_id || !s.valid())
+            {
+                return Err("Invalid bleeding status in savestate".into());
+            }
             if actor.id != id
                 || actor.parts.is_empty()
                 || actor.definition >= game.mission.characters.len()

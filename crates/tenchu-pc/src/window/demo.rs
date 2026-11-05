@@ -6,6 +6,7 @@ use std::time::Duration;
 
 mod additions;
 mod behavior;
+mod bleeding;
 mod remake;
 mod tracking;
 
@@ -352,6 +353,11 @@ impl Application {
             }
             Shot::Cinematic | Shot::Gameplay => {}
         }
+        if clip.feature == Feature::Bleeding {
+            bleeding::setup(&mut game, &mut scene)?;
+            demo::framing::unobstructed_area(&mut scene, &geometry, 1600.0);
+            self.debug.god_mode = false;
+        }
         if matches!(clip.feature, Feature::EnemyBehavior(_)) {
             behavior::setup(&mut game, &mut scene)?;
             demo::framing::unobstructed_area(&mut scene, &geometry, 1800.0);
@@ -433,6 +439,7 @@ impl Application {
         game.intelligence.guard_controls = self.settings.guard_controls;
         crate::walking::configure(&mut game, &self.assets, self.settings.walking.enabled)?;
         crate::sheathing::configure(&mut game, &self.assets, self.settings.sheathing)?;
+        game.set_bleeding(self.settings.bleeding);
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
         game.combat.attack_assist = self.settings.attack_assist;
@@ -553,6 +560,7 @@ impl Application {
                 self.settings.quick_shuriken_dodge;
             self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
             self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
+            self.campaign.game.set_bleeding(self.settings.bleeding);
             self.campaign
                 .game
                 .set_damage_escalation(self.settings.damage_escalation);
@@ -572,6 +580,9 @@ impl Application {
             let cinematic_clip = player.clip().feature == Feature::Cinematics;
             for (index, buttons) in inputs.into_iter().enumerate() {
                 let feature = self.demo.as_ref().unwrap().clip().feature;
+                if feature == Feature::Bleeding {
+                    bleeding::advance(&mut self.campaign.game, first + index as u64);
+                }
                 if matches!(feature, Feature::Sheathing | Feature::UnarmedAttacks)
                     && let Some(sheathing) = &mut self
                         .campaign

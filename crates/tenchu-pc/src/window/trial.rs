@@ -139,6 +139,7 @@ impl Application {
             || self.settings.guard_controls
             || self.settings.walking.enabled
             || self.settings.sheathing.enabled
+            || self.settings.bleeding.enabled
             || self.settings.damage_escalation.enabled()
             || self.settings.attack_assist
             || self.settings.behavior_profiles.enabled

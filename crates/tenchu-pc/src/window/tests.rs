@@ -3,6 +3,7 @@ use std::time::Duration;
 
 mod actors;
 mod behavior;
+mod bleeding;
 mod camera;
 mod death;
 mod rewind;

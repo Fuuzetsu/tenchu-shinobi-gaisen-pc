@@ -2,6 +2,7 @@ mod checkpoint;
 use crate::actor::State as ActorState;
 use crate::math::Position;
 pub mod activation;
+pub mod bleeding;
 pub mod cinematic;
 mod debug;
 pub mod events;

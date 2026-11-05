@@ -38,6 +38,7 @@ pub enum Feature {
     Breeze,
     Blood,
     WoundSpurts,
+    Bleeding,
     DeathGush,
     ShopLighting,
     Gunfire,

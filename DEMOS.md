@@ -65,7 +65,7 @@ BT.709 limited-range 4:2:0, fast start). The Nix package and shell supply FFmpeg
 `TENCHU_FFMPEG` can select another installation. The destination directory must
 exist, and existing video/chapter files are never overwritten.
 
-The full catalog is 1,101 seconds / 66,060 frames. No display capture is involved:
+The selected clips determine the duration and frame count. No display capture is involved:
 the renderer waits for GPU readback and encoding before advancing the exact
 60 Hz timeline. Host speed changes completion time, never output cadence.
 Mission loading adds no video time. The window is only a host for the renderer;
@@ -114,6 +114,8 @@ no exact catalog is available; omit `--youtube` for clips shorter than ten secon
 ## Authoring clips
 
 The built-in catalog is [demos.json](crates/tenchu-pc/data/demos.json).
+`bleeding-bandages` demonstrates the optional gameplay status, ongoing health loss
+and quick-use treatment; `wound-spurts` covers the independent cosmetic effect.
 Copy it outside the repository, keep/edit the clips you want, and launch with
 `--catalog /path/to/my-demos.json`. IDs must be unique; descriptions, titles,
 duration (2–120 seconds), mission (0–10), character (0/1), preset (0–10), shot and

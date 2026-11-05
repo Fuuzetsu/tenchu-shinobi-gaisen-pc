@@ -86,6 +86,11 @@ impl Items {
             }
             state::Medicine::Recover => {
                 owner.health = owner.max_health;
+                if let Some(state) = &mut owner.bleeding
+                    && state.settings.medicine
+                {
+                    state.clear();
+                }
                 Self::recovery_particles(owner, [255, 255, 126], ctx);
                 ctx.effects.sounds.push((owner.position, 0x24));
                 self.dispose(id, actors, ctx)?;

@@ -21,6 +21,13 @@ impl Application {
         let recorded_input =
             (self.settings.rewind_seconds != 0).then(|| crate::rewind::recording::Input {
                 buttons,
+                bandage: self
+                    .campaign
+                    .game
+                    .player()
+                    .bleeding
+                    .as_ref()
+                    .is_some_and(|s| s.bandage_requested()),
                 observing_death: observing,
                 navigation: self.campaign.game.navigation,
                 walking: self.campaign.game.walking,
@@ -173,6 +180,9 @@ impl Application {
                     .game
                     .roster
                     .get_mut(self.campaign.game.player_id);
+                if let Some(state) = &mut player.bleeding {
+                    state.input(false);
+                }
                 if let Some(sheathing) = &mut player.sheathing {
                     sheathing.input(false);
                 }

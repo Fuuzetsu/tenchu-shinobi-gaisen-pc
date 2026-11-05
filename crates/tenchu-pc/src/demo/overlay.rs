@@ -33,6 +33,7 @@ pub fn show(
             || matches!(
                 clip.feature,
                 super::Feature::Experiment
+                    | super::Feature::Bleeding
                     | super::Feature::Remake(super::remake::Feature::GameplayProfiles)
             );
         let top = !randomizer_menu

@@ -29,6 +29,17 @@ impl Application {
             Item::GodMode => self.set_god_mode(false)?,
             Item::Stealth => self.set_stealth(false)?,
             Item::ClickTeleport => self.debug.click_teleport = false,
+            Item::Bandages => {
+                if let Some(state) = &mut self
+                    .campaign
+                    .game
+                    .roster
+                    .get_mut(self.campaign.game.player_id)
+                    .bleeding
+                {
+                    state.bandages = 0;
+                }
+            }
             Item::Inventory(slot) => self.set_inventory(slot, 0)?,
             Item::Armor => {
                 if self.debug.armor {

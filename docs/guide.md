@@ -1380,6 +1380,33 @@ See the
 [reinforcement investigation](validation.md#separate-always-active-enemy-audit)
 for the retail rules and the former recursive-recruitment problem.
 
+**F1 → Bleeding** adds an optional player blood-loss mechanic, disabled by default.
+Successful enemy melee hits and piercing projectiles roll the configured chance
+(default 25%). A wound costs 1 HP per second for 10 seconds by default, always
+leaving at least 1 HP. Further wounds refresh the duration without stacking the
+rate. Set duration to 0 for bleeding that lasts until treated; chance, duration
+and damage are adjustable. Blocked hits, falls, fire, explosions and god-mode
+hits do not start it. Scripted scenes pause the timer; god mode prevents health
+loss. Its separate seeded RNG does not advance the original game's generator.
+
+Bandages are a separate quick-use supply: three per mission by default, adjustable
+from 0–99. Press **B** (rebind **Use bandage** in Controls), or choose **Use bandage**
+on the Bleeding page. Treatment is instant while grounded and free to act; it
+consumes one bandage only when bleeding and does not heal. It cannot interrupt
+an attack, injury, climb, swim or cutscene. Holding the action does not consume
+another bandage. The HUD shows status, remaining time, stock and the current
+binding. The F1 button queues treatment for the next gameplay tick; **Carried
+bandages** edits the current stock for experiments. Changing the mission loadout
+does not refill it. Bandages do not replace disc items or use campaign shop stock.
+
+By default a healing potion also cures bleeding when recovery actually happens;
+an interrupted drink does not. This cure can be disabled. Resurrection always
+clears bleeding. Cosmetic particles, spurts and stain retention remain separate
+visual settings. Graphical presets leave the mechanic alone; gameplay presets
+and Reset simulation tweaks turn it off. Saved states and rewind retain the
+status and supply; input-only recordings and TRIAL records are disabled while
+it is enabled. Try `demo --clips bleeding-bandages` for a staged demonstration.
+
 **F1 → Enemy behavior** offers optional decisions for ordinary living guards.
 The master switch defaults to off, preserving authored AI and its RNG. It does
 not affect bosses, story/objective actors, civilians or animals, including
@@ -1591,7 +1618,7 @@ To share a reproducible bug, seek to the beginning and choose **Start here**, th
 seek past the problem and choose **End here → Export selected…**. **Whole interval**
 selects everything still retained. Exporting preserves the buffer, including its
 future. The `.treplay` file contains the selected states, original tick numbers,
-inputs (including camera-relative movement/walking/sheathing), settings, visual
+inputs (including camera-relative movement/walking/sheathing/bandage use), settings, visual
 effects and a diagnostic report. It reuses the history's compressed deltas and
 shared assets instead of saving a full copy of the mission for every frame.
 

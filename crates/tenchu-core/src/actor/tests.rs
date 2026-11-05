@@ -1,5 +1,6 @@
 use crate::actor::State as ActorState;
 use crate::items::Kind;
+mod bleeding;
 mod corpses;
 mod escalation;
 mod experiments;

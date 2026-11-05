@@ -10,6 +10,10 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Self::BleedChance => (0, 100, 5, 1),
+            Self::BleedSeconds => (0, 120, 1, 1),
+            Self::BleedDamage => (0, 20, 1, 1),
+            Self::BandageLoadout | Self::Bandages => (0, 99, 1, 1),
             Item::BehaviorSeed => (0, 65535, 1, 1),
             Item::RewindHistory => (0, 30, 5, 1),
             Item::RewindSpeed => (25, 800, 25, 1),
@@ -111,6 +115,8 @@ impl Item {
 
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
+            Self::Bleeding => &mut settings.bleeding.enabled,
+            Self::MedicineBleeding => &mut settings.bleeding.medicine,
             Self::HalfResolutionAo => &mut settings.graphics.rendering.half_resolution_ao,
             Self::AdaptiveShadows => &mut settings.graphics.rendering.adaptive_shadows,
             Self::CachedBlood => &mut settings.graphics.rendering.cached_blood,
@@ -178,6 +184,10 @@ impl Item {
 
     fn number(self, settings: &mut Settings) -> Option<&mut u16> {
         Some(match self {
+            Self::BleedChance => &mut settings.bleeding.chance,
+            Self::BleedSeconds => &mut settings.bleeding.seconds,
+            Self::BleedDamage => &mut settings.bleeding.damage,
+            Self::BandageLoadout => &mut settings.bleeding.bandages,
             Self::RewindHistory => &mut settings.rewind_seconds,
             Self::RewindSpeed => &mut settings.rewind_speed,
             Self::MouseSensitivity => &mut settings.navigation.mouse_sensitivity,

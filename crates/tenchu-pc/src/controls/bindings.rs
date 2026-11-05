@@ -7,6 +7,7 @@ use winit::keyboard::KeyCode;
 
 pub const WALK: u16 = 0x0200;
 pub const SHEATHE: u16 = 0x0400;
+pub const BANDAGE: u32 = 1 << 16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -27,10 +28,11 @@ pub enum Target {
     Start,
     Walk,
     Sheathe,
+    Bandage,
 }
 
 impl Target {
-    pub const ALL: [Self; 16] = [
+    pub const ALL: [Self; 17] = [
         Self::Up,
         Self::Down,
         Self::Left,
@@ -47,26 +49,31 @@ impl Target {
         Self::Start,
         Self::Walk,
         Self::Sheathe,
+        Self::Bandage,
     ];
 
-    pub fn description(self) -> (&'static str, u16) {
+    pub fn description(self) -> (&'static str, u32) {
         match self {
-            Self::Up => ("Forward / up", input::UP),
-            Self::Down => ("Backward / down", input::DOWN),
-            Self::Left => ("Turn left", input::LEFT),
-            Self::Right => ("Turn right", input::RIGHT),
-            Self::Cross => ("Jump · Cross", input::CROSS),
-            Self::Square => ("Attack · Square", input::SQUARE),
-            Self::Circle => ("Crouch · Circle", input::CIRCLE),
-            Self::Triangle => ("Use item · Triangle", input::TRIANGLE),
-            Self::L1 => ("Look / aim · L1", input::L1),
-            Self::R1 => ("Crouch / modifier / optional guard · R1", input::R1),
-            Self::L2 => ("Previous item · L2", input::L2),
-            Self::R2 => ("Next item · R2", input::R2),
-            Self::Select => ("Map · Select", input::SELECT),
-            Self::Start => ("Pause · Start", input::START),
-            Self::Walk => ("Walk modifier (optional)", WALK),
-            Self::Sheathe => ("Draw / sheathe (optional)", SHEATHE),
+            Self::Up => ("Forward / up", u32::from(input::UP)),
+            Self::Down => ("Backward / down", u32::from(input::DOWN)),
+            Self::Left => ("Turn left", u32::from(input::LEFT)),
+            Self::Right => ("Turn right", u32::from(input::RIGHT)),
+            Self::Cross => ("Jump · Cross", u32::from(input::CROSS)),
+            Self::Square => ("Attack · Square", u32::from(input::SQUARE)),
+            Self::Circle => ("Crouch · Circle", u32::from(input::CIRCLE)),
+            Self::Triangle => ("Use item · Triangle", u32::from(input::TRIANGLE)),
+            Self::L1 => ("Look / aim · L1", u32::from(input::L1)),
+            Self::R1 => (
+                "Crouch / modifier / optional guard · R1",
+                u32::from(input::R1),
+            ),
+            Self::L2 => ("Previous item · L2", u32::from(input::L2)),
+            Self::R2 => ("Next item · R2", u32::from(input::R2)),
+            Self::Select => ("Map · Select", u32::from(input::SELECT)),
+            Self::Start => ("Pause · Start", u32::from(input::START)),
+            Self::Walk => ("Walk modifier (optional)", u32::from(WALK)),
+            Self::Sheathe => ("Draw / sheathe (optional)", u32::from(SHEATHE)),
+            Self::Bandage => ("Use bandage (optional)", BANDAGE),
         }
     }
 
@@ -104,9 +111,9 @@ impl Target {
             Self::Select => ([Some(KeyM), Some(Tab)], Button::Select, None),
             Self::Start => ([Some(KeyP), None], Button::Start, None),
             Self::Walk => ([Some(AltLeft), None], Button::LeftThumb, None),
-            Self::Sheathe => {
+            Self::Sheathe | Self::Bandage => {
                 return Binding {
-                    keys: [Some(KeyH), None],
+                    keys: [Some(if self == Self::Sheathe { KeyH } else { KeyB }), None],
                     controller: [None; 2],
                 };
             }
@@ -206,10 +213,10 @@ impl Binding {
 pub fn menu_buttons(pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u16 {
     Target::ALL
         .into_iter()
-        .filter(|target| !matches!(target, Target::Walk | Target::Sheathe))
+        .filter(|target| !matches!(target, Target::Walk | Target::Sheathe | Target::Bandage))
         .fold(0, |held, target| {
             held | if target.defaults().active(&pressed, sticks) {
-                target.description().1
+                target.description().1 as u16
             } else {
                 0
             }
@@ -274,7 +281,7 @@ impl Bindings {
         Ok(bindings)
     }
 
-    pub fn key(&self, code: KeyCode) -> u16 {
+    pub fn key(&self, code: KeyCode) -> u32 {
         self.0
             .iter()
             .find_map(|(target, row)| {
@@ -285,7 +292,7 @@ impl Bindings {
             .unwrap_or(0)
     }
 
-    pub fn controller(&self, pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u16 {
+    pub fn controller(&self, pressed: impl Fn(Button) -> bool, sticks: [i8; 4]) -> u32 {
         self.0.iter().fold(0, |held, (target, row)| {
             let active = row.active(&pressed, sticks);
             held | if active { target.description().1 } else { 0 }

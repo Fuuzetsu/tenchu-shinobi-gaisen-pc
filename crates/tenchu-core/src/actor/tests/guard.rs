@@ -68,6 +68,11 @@ fn guard_controls_block_melee_with_original_recoil() {
     for character in 0..2 {
         for behind in [false, true] {
             let (mut game, enemy) = ready(character);
+            game.set_bleeding(crate::game::bleeding::Settings {
+                enabled: true,
+                chance: 100,
+                ..Default::default()
+            });
             if behind {
                 game.roster.get_mut(game.player_id).rotation[1] = 0;
             }
@@ -92,6 +97,7 @@ fn guard_controls_block_melee_with_original_recoil() {
                     break;
                 }
             }
+            assert_eq!(game.player().bleeding.as_ref().unwrap().active, hit);
             if behind {
                 assert!(hit && !blocked);
             } else {

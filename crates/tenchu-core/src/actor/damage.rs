@@ -9,6 +9,17 @@ use crate::{
 use tenchu_assets::weapon::kind::KATANAL;
 
 impl Actor {
+    fn bleeding_hit(&mut self, previous: i16, source: Option<usize>, player: usize) {
+        if self.id == player
+            && self.health > 0
+            && self.health < previous
+            && source.is_some_and(|id| id != player)
+            && let Some(state) = &mut self.bleeding
+        {
+            state.hit();
+        }
+    }
+
     fn damage_from(&self, damage: i16, source: Option<usize>, world: &ActionContext) -> i16 {
         if self.id != world.player {
             return damage;
@@ -144,11 +155,13 @@ impl Actor {
                 };
                 let damage =
                     ctx.mission.weapons.attacks[enemy.attack_id(ctx, enemy.motion.action)].power;
+                let previous = self.health;
                 if !self.invulnerable {
                     self.health = self
                         .health
                         .wrapping_sub(self.damage_from(damage, source, world));
                 }
+                self.bleeding_hit(previous, source, world.player);
                 if self.health < 0 || self.attribute & ATTR_WEAPON_DRAWN == 0 {
                     self.health = 0;
                 }
@@ -354,11 +367,13 @@ impl Actor {
             MOT_DAMAGE_BACK_HEAVY,
             MOT_DAMAGE_LAUNCH_FORE,
         ];
+        let previous = self.health;
         if !self.invulnerable {
             self.health = self
                 .health
                 .wrapping_sub(self.damage_from(damage, Some(source), world));
         }
+        self.bleeding_hit(previous, Some(source), world.player);
         let (mut next, movement);
         if self.health <= 0 {
             self.health = 0;
@@ -444,6 +459,9 @@ impl Actor {
                 ctx,
             )?;
             self.health = self.max_health;
+            if let Some(state) = &mut self.bleeding {
+                state.clear();
+            }
             if !matches!(next, MOT_DAMAGE_LAUNCH_BACK | MOT_DAMAGE_LAUNCH_FORE) {
                 next = MOT_DAMAGE_FRONT_HEAVY;
                 movement = true;
@@ -538,10 +556,14 @@ impl Actor {
         if self.id == world.player && world.combat.armor {
             damage = damage * 7 / 10;
         }
+        let previous = self.health;
         if !self.invulnerable {
             self.health = self
                 .health
                 .wrapping_sub(self.damage_from(damage, source, world));
+        }
+        if matches!(kind, Kind::Shuriken | Kind::Darts | Kind::Gun | Kind::Arrow) {
+            self.bleeding_hit(previous, source, world.player);
         }
         let voice = if self.health <= 0 {
             self.health = 0;
