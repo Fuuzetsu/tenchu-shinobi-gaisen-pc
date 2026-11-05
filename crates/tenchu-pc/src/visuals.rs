@@ -15,6 +15,7 @@ pub mod motion;
 pub mod obj;
 pub mod pack;
 pub mod pixels;
+pub(crate) mod posing;
 mod refine;
 pub mod relief;
 pub mod sky;

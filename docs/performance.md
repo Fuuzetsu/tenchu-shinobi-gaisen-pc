@@ -2302,3 +2302,65 @@ WASM cdylib builds pass. Chromium WebGPU and WebGL2 both complete saved-state
 loading, movement, lighting controls, free camera and resume without GPU errors.
 WebGPU records 769 wet-material and 774 shadow-bound passes; WebGL2 retains its
 forward path. Paused gameplay is unchanged by graphics controls.
+
+## November 5: cache model geometry and compute GPU poses
+
+The renderer now keeps eligible models' local positions and normals on the GPU,
+transfers their part matrices and secondary-motion parameters, and computes the
+posed vertex stream once before the shadow and scene passes. It keeps the same
+vertex layout, indexed triangle order, materials and CPU culling bounds. Weighted
+custom skins, botanical variants and parts exceeding device limits retain their
+CPU upload path. WebGL2 continues to use CPU posing. Cache generations track model
+replacements and material binding; mixed CPU/GPU frames share the same output.
+
+The initial investigation measured approximately 2.5 MB of geometry uploads per
+frame in the Mission 1 village and 5.3 MB in the waterfall route. An isolated
+actual-character test reduced the model pose transfer from 2.07 MB to about
+108 KB of matrices, deformation parameters and jobs. On this GTX 1080 Ti/PCIe
+3.0 ×2 connection, explicit GPU timestamps measured 1.37 ms for the old pose
+copy versus 0.11 ms for the smaller transfers plus computation. This transfer
+result is hardware-dependent and is not a full-frame benchmark.
+
+CPU transforms are deliberately retained in this increment to preserve existing
+exact culling bounds. Removing that work needs a separate comparison of both CPU
+savings and the shadow redraw cost of more conservative bounds. The new compute
+pass is included in the first GPU timing category, alongside shadow maps; the
+old large queue uploads occurred before the first timestamp. Consequently,
+whole-frame time can improve even where reported GPU render time rises slightly.
+
+The final actual Wayland comparison against `4ea7cfb` uses the diagnostic graphics,
+HD artwork, 3840 × 2160, 1,200 frames per route and 60 warm-up frames. It runs the
+new build first, with compiler/browser workloads kept separate:
+
+| Route | Average FPS before → after | Frame p95 | Frame p99 |
+|---|---|---|---|
+| Mission 1 village | 51.2 → 55.0 | 20.81 → 19.38 ms | 21.10 → 19.72 ms |
+| Mission 5 courtyard | 58.7 → 63.1 | 17.87 → 16.73 ms | 18.66 → 17.09 ms |
+| Mission 1 garden | 43.7 → 46.3 | 23.97 → 22.67 ms | 24.68 → 23.11 ms |
+| Mission 4 waterfall | 75.3 → 85.6 | 14.00 → 12.47 ms | 14.76 → 12.78 ms |
+
+An earlier 600-frame comparison toggled the implementation inside one binary,
+with the old path first, and improved all four routes. The longer run confirms
+its direction with reversed order. The demanding Mission 1 routes still do not
+reach 60 FPS.
+
+A separate 600-frame Modern High comparison retains Rainstorm and two-sample
+MSAA. Whole-frame p99 changes from 21.85/17.06/25.33/13.14 ms to
+21.02/15.34/24.15/12.20 ms. GPU times vary more in the courtyard and garden than
+the small compute pass alone explains; these are measured whole-frame results,
+not a claim that all shader work became faster.
+
+The actual-model regression compares 2,371,194 vertices across both heroes,
+three detail levels, movement, secondary motion, generation changes, CPU-only
+frames and mixed fallback frames. Maximum position and normal differences from
+the original CPU transforms are 0.00390625 game units and 0.00000532. Paired
+3826 × 2146 captures cover the rainy corridor, static/animated garden and
+post-animation daylight close-ups. Two pairs are identical; the others differ
+by at most one 8-bit color level, with mean differences below 0.000003/255.
+
+Six focused GPU regressions and all 134 ordinary tests pass. Formatting, strict
+native workspace/all-target Clippy, strict WASM workspace/library Clippy, native
+release and actual WASM cdylib builds pass. Chromium WebGPU and WebGL2 complete
+saved-state loading, movement, lighting controls, free camera and resume without
+GPU errors or changes to paused gameplay. WebGPU records 782 character-pose
+compute passes; WebGL2 records none and retains the CPU path.

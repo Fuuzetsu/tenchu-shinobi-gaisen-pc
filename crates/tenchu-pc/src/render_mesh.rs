@@ -61,8 +61,25 @@ pub struct Vertex {
     pub(crate) opacity: f32,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub(crate) struct Pose {
+    pub position: [f32; 3],
+    pub normal: [f32; 3],
+}
+
+impl From<&Vertex> for Pose {
+    fn from(vertex: &Vertex) -> Self {
+        Self {
+            position: vertex.position,
+            normal: vertex.normal,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Indexed {
+    pub(crate) poses: Option<crate::visuals::posing::Frame>,
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
     pub groups: Vec<IndexedGroup>,
@@ -433,6 +450,9 @@ pub fn update_indexed_characters(
     mesh.vertices.clear();
     mesh.indices.clear();
     mesh.groups.clear();
+    if let Some(poses) = &mut mesh.poses {
+        poses.clear(models.map(|m| &m.pose_generation));
+    }
     let mut previous_root = None;
     crate::visuals::appearance::visit_parts(
         game,

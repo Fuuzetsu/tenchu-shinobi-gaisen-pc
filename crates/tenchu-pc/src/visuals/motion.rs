@@ -110,6 +110,12 @@ impl BoundRule {
         })
     }
 
+    pub(super) fn affects(&self, material: u32) -> bool {
+        self.materials
+            .as_ref()
+            .is_none_or(|ids| ids.contains(&material))
+    }
+
     pub fn bind(&mut self, handles: &[u32]) {
         if let Some(materials) = &mut self.materials {
             for id in materials {
@@ -151,12 +157,7 @@ impl<'a> Deformation<'a> {
         let mut p = position;
         let mut normal = Vec3::from(vertex.normal);
         for (bound, &delta) in self.rules.iter().zip(&self.pose.offsets) {
-            if delta == Vec3::ZERO
-                || bound
-                    .materials
-                    .as_ref()
-                    .is_some_and(|ids| !ids.contains(&vertex.material))
-            {
+            if delta == Vec3::ZERO || !bound.affects(vertex.material) {
                 continue;
             }
             let (weight, gradient) = bound.rule.influence(local);

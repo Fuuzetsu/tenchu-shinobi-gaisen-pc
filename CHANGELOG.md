@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Improve animated-character frame times on native and WebGPU by caching model
+  geometry and transferring part transforms instead of complete posed meshes.
+  Model detail, secondary motion and the WebGL2 fallback are preserved.
+
 - Further improve soft-shadow frame times in reflective rain scenes by reusing
   depth summaries for smaller groups of samples, preserving shadow detail.
 

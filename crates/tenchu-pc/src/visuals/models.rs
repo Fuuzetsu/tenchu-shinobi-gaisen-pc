@@ -7,7 +7,7 @@ use crate::{
 use glam::{Mat3, Mat3A, Vec3, Vec3A};
 use std::{
     collections::{BTreeMap, HashMap},
-    sync::Arc,
+    sync::{Arc, OnceLock},
 };
 use tenchu_assets::{Result, model::Geometry, stage::MissionAssets};
 use tenchu_core::math::Matrix;
@@ -20,6 +20,8 @@ pub struct Material {
 
 #[derive(Default)]
 pub struct Models {
+    // Identifies prepared meshes across settings, model swaps and mission reloads.
+    pub(crate) pose_generation: Arc<()>,
     world: Meshes,
     weapons: Meshes,
     pub weapon_materials: bool,
@@ -117,6 +119,7 @@ impl Models {
             imported.push(meshes);
         }
         Ok(Self {
+            pose_generation: Arc::default(),
             replacements: world.replacements
                 + imported.iter().map(|m| m.replacements).sum::<usize>(),
             grapple: graphics.models.grapple,
@@ -141,10 +144,12 @@ impl Models {
     ) -> Result<Self> {
         self.player =
             super::appearance::Appearance::build(game, selection, pack, bodies, graphics, library)?;
+        self.pose_generation = Arc::default();
         Ok(self)
     }
 
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
+        self.pose_generation = Arc::default();
         self.world.bind(&mut bind);
         self.weapons.bind(&mut bind);
         for meshes in &mut self.imported {
@@ -218,6 +223,7 @@ impl Models {
             matrix,
             fog,
             self.deformation(part, matrix).as_ref(),
+            self.motion_rules(geometry.as_ptr() as usize).unwrap_or(&[]),
         )
     }
 
@@ -265,6 +271,7 @@ impl Models {
 }
 
 struct Mesh {
+    pose_source: OnceLock<Arc<super::posing::Source>>,
     vertices: Vec<Vertex>,
     triangles: Vec<[u32; 3]>,
     flags: u32,
@@ -275,6 +282,7 @@ struct Mesh {
 impl Mesh {
     fn new(vertices: &[Vertex], skin: Option<&[skin::Influence]>) -> Self {
         let mut mesh = Self {
+            pose_source: OnceLock::new(),
             vertices: Vec::new(),
             triangles: Vec::new(),
             flags: 0,
@@ -671,7 +679,10 @@ impl Meshes {
         for rule in self.motion.values_mut().flatten() {
             rule.bind(&handles);
         }
-        for vertex in self.meshes.values_mut().flat_map(|mesh| &mut mesh.vertices) {
+        for vertex in self.meshes.values_mut().flat_map(|mesh| {
+            mesh.pose_source.take();
+            &mut mesh.vertices
+        }) {
             if vertex.material != 0 {
                 vertex.material = handles[vertex.material as usize - 1];
             }
@@ -713,6 +724,7 @@ impl Meshes {
         matrix: Matrix,
         fog: bool,
         deformation: Option<&super::motion::Deformation<'_>>,
+        rules: &[super::motion::BoundRule],
     ) -> bool {
         let key = geometry.as_ptr() as usize;
         let Some(mesh) = self.meshes.get(&key) else {
@@ -741,6 +753,15 @@ impl Meshes {
         }
         if output.indices.len() != start {
             output.vertices.extend_from_slice(&mesh.vertices);
+            if let Some(frame) = &mut output.poses
+                && mesh.skin.is_none()
+                && !self.variants.contains_key(&key)
+            {
+                let source = mesh
+                    .pose_source
+                    .get_or_init(|| Arc::new(super::posing::Source::new(&mesh.vertices, rules)));
+                frame.push(source.clone(), matrix, deformation, base);
+            }
             self.transform(
                 key,
                 mesh,
@@ -840,6 +861,7 @@ mod tests {
         let indexed = Mesh::new(&vertices, None);
         assert_eq!(indexed.vertices.len(), 19);
         let mut expanded = Mesh {
+            pose_source: OnceLock::new(),
             skin: None,
             bind_root: Vec3::ZERO,
             flags: indexed.flags,

@@ -12,6 +12,7 @@ mod light_grid;
 mod materials;
 mod overlay;
 mod pipelines;
+mod posing;
 mod post;
 mod shadows;
 mod sky;
@@ -25,6 +26,7 @@ mod benchmark;
 mod tests;
 
 pub struct Mesh {
+    posed: Option<posing::Posing>,
     material_batches: Vec<wet_lighting::Batch>,
     vertices: geometry::Buffers,
     indices: Option<Indices>,
@@ -498,6 +500,7 @@ impl Renderer {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
         let mut mesh = Mesh {
+            posed: None,
             material_batches: Vec::new(),
             indices: None,
             revision: 0,
@@ -513,11 +516,27 @@ impl Renderer {
     }
 
     pub fn update_mesh(&mut self, mesh: &mut Mesh, vertices: &mut [Vertex]) {
+        mesh.posed = None;
         mesh.dynamic = true;
         mesh.indices = None;
         self.materials.annotate(vertices);
         mesh.set_geometry(vertices);
         mesh.vertices.update(&self.device, &self.queue, vertices);
+    }
+
+    pub(crate) fn pose_frame(&self) -> Option<crate::visuals::posing::Frame> {
+        if self.gl {
+            return None;
+        }
+        let limits = self.device.limits();
+        (limits.max_storage_buffers_per_shader_stage >= 4
+            && limits.max_compute_invocations_per_workgroup >= 128)
+            .then(|| {
+                crate::visuals::posing::Frame::new(
+                    u64::from(limits.max_storage_buffer_binding_size),
+                    limits.max_compute_workgroups_per_dimension,
+                )
+            })
     }
 
     pub fn update_indexed_mesh(
@@ -541,8 +560,21 @@ impl Renderer {
             );
         }
         mesh.bounds = culling::update_indexed_chunks(geometry, &mut mesh.shadow_chunks);
-        mesh.vertices
-            .update(&self.device, &self.queue, &geometry.vertices);
+        if let Some(frame) = geometry
+            .poses
+            .as_ref()
+            .filter(|frame| !frame.parts.is_empty())
+        {
+            mesh.vertices
+                .update_posed(&self.device, &self.queue, &geometry.vertices, frame);
+            mesh.posed
+                .get_or_insert_with(|| posing::Posing::new(&self.device))
+                .prepare(&self.device, &self.queue, frame, &mesh.vertices.pose);
+        } else {
+            mesh.posed = None;
+            mesh.vertices
+                .update(&self.device, &self.queue, &geometry.vertices);
+        }
         let indices = mesh.indices.get_or_insert_with(|| Indices {
             buffer: self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Mesh indices"),
@@ -731,6 +763,11 @@ impl Renderer {
             && let Some(timer) = &mut self.timings
         {
             timer.begin(&self.device, &mut encoder);
+        }
+        for mesh in meshes.terrain.iter().chain(meshes.actors).chain(casters) {
+            if let Some(posed) = &mesh.posed {
+                posed.draw(&mut encoder);
+            }
         }
         let mut lighting = sun::Frame::new(&self.graphics.lighting, daylight)
             .with_weather(self.weather, &self.graphics.weather)

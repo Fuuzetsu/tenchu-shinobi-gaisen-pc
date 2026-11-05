@@ -441,7 +441,10 @@ impl View {
             Default::default()
         };
         let mut actor = renderer.upload(&[]);
-        let mut actor_vertices = render_mesh::Indexed::default();
+        let mut actor_vertices = render_mesh::Indexed {
+            poses: renderer.pose_frame(),
+            ..Default::default()
+        };
         render_mesh::update_indexed_characters(
             &mut actor_vertices,
             game,

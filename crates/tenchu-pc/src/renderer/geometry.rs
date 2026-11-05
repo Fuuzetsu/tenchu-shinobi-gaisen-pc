@@ -1,22 +1,6 @@
-use crate::render_mesh::Vertex;
+use crate::render_mesh::{Pose, Vertex};
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-struct Pose {
-    position: [f32; 3],
-    normal: [f32; 3],
-}
-
-impl From<&Vertex> for Pose {
-    fn from(vertex: &Vertex) -> Self {
-        Self {
-            position: vertex.position,
-            normal: vertex.normal,
-        }
-    }
-}
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -99,30 +83,69 @@ impl Buffers {
     }
 
     pub fn update(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, vertices: &[Vertex]) {
+        resize_buffer(
+            device,
+            &mut self.pose,
+            (vertices.len() * size_of::<Pose>()) as u64,
+            wgpu::BufferUsages::VERTEX,
+        );
+        self.upload_poses(queue, vertices, 0..vertices.len());
+        self.update_attributes(device, queue, vertices);
+    }
+
+    pub fn update_posed(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        vertices: &[Vertex],
+        frame: &crate::visuals::posing::Frame,
+    ) {
+        resize_buffer(
+            device,
+            &mut self.pose,
+            (vertices.len() * size_of::<Pose>()) as u64,
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
+        );
+        let mut start = 0;
+        for part in &frame.parts {
+            self.upload_poses(queue, vertices, start..part.start);
+            start = part.end();
+        }
+        self.upload_poses(queue, vertices, start..vertices.len());
+        self.update_attributes(device, queue, vertices);
+    }
+
+    fn upload_poses(
+        &self,
+        queue: &wgpu::Queue,
+        vertices: &[Vertex],
+        range: std::ops::Range<usize>,
+    ) {
+        let size = (range.len() * size_of::<Pose>()) as u64;
+        if let Some(size) = wgpu::BufferSize::new(size) {
+            let mut staging = queue
+                .write_buffer_with(&self.pose, (range.start * size_of::<Pose>()) as u64, size)
+                .expect("Could not allocate mesh pose staging buffer");
+            for (vertex, bytes) in vertices[range]
+                .iter()
+                .zip(staging.as_mut().chunks_exact_mut(size_of::<Pose>()))
+            {
+                bytes.copy_from_slice(bytemuck::bytes_of(&Pose::from(vertex)));
+            }
+        }
+    }
+
+    fn update_attributes(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        vertices: &[Vertex],
+    ) {
         let changed = self.cached.len() != vertices.len()
             || vertices
                 .iter()
                 .zip(&self.cached)
                 .any(|(vertex, cached)| !cached.matches(vertex));
-        let size = (vertices.len() * std::mem::size_of::<Pose>()) as u64;
-        if let Some(size) = wgpu::BufferSize::new(size) {
-            resize_buffer(
-                device,
-                &mut self.pose,
-                size.get(),
-                wgpu::BufferUsages::VERTEX,
-            );
-            let mut staging = queue
-                .write_buffer_with(&self.pose, 0, size)
-                .expect("Could not allocate mesh pose staging buffer");
-            for (vertex, bytes) in vertices.iter().zip(
-                staging
-                    .as_mut()
-                    .chunks_exact_mut(std::mem::size_of::<Pose>()),
-            ) {
-                bytes.copy_from_slice(bytemuck::bytes_of(&Pose::from(vertex)));
-            }
-        }
         if changed {
             self.cached.clear();
             self.cached.extend(vertices.iter().map(Attributes::from));
@@ -157,7 +180,7 @@ fn resize_buffer(
     size: u64,
     usage: wgpu::BufferUsages,
 ) {
-    if buffer.size() < size {
+    if buffer.size() < size || !buffer.usage().contains(usage) {
         *buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Dynamic geometry"),
             size: size.next_power_of_two(),
