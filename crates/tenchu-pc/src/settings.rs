@@ -46,6 +46,7 @@ pub struct Settings {
     pub independent_attacks: bool,
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
+    pub guard_controls: bool,
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
     pub multi_target_attacks: bool,
     pub reinforcement_limit: u16,
@@ -88,6 +89,7 @@ impl Default for Settings {
             independent_attacks: false,
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
+            guard_controls: false,
             damage_escalation: Default::default(),
             multi_target_attacks: false,
             reinforcement_limit: 0,
@@ -142,6 +144,7 @@ impl Settings {
         self.independent_attacks = game.intelligence.independent_attacks;
         self.quick_shuriken_dodge = game.intelligence.quick_shuriken_dodge;
         self.strict_corpse_sight = game.intelligence.strict_corpse_sight;
+        self.guard_controls = game.intelligence.guard_controls;
         self.damage_escalation = game.intelligence.damage_escalation;
         self.multi_target_attacks = game.combat.multi_target;
         self.sight_percent = game.intelligence.sight_percent;

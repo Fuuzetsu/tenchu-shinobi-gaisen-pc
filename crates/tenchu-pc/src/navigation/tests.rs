@@ -118,6 +118,17 @@ fn both_heroes_move_in_camera_space_without_steering_committed_actions() {
             game.player().motion.action,
             tenchu_core::ids::MOT_MOVE_BACK | tenchu_core::ids::MOT_CHASE_BACK
         ));
+        game.intelligence.guard_controls = true;
+        orbit.yaw += 1.7;
+        for direction in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
+            let (buttons, heading) = orbit.movement(&game, input::R1, direction, &settings);
+            assert_eq!(buttons, input::R1 | directions(direction));
+            assert!(
+                heading.is_none(),
+                "Guard dodges retain facing with an off-center camera"
+            );
+        }
+        game.intelligence.guard_controls = false;
         game.teleport_player(start, false).unwrap();
         let mut jumped = false;
         for tick in 0..45 {

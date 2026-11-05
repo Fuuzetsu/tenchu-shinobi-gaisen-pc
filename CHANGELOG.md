@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **R1 guard / dash / roll** controls under F1 → Movement. Hold the rebindable R1 action to block frontal melee attacks while standing; press a direction for one dash, or hold crouch for a roll. Original recoil and committed actions still apply. Includes a guard-control demo; existing controls remain the default.
+
 - Add optional enemy damage escalation under F1 → Simulation. A guard’s first direct sighting does normal damage; repeated encounters after fully calming down add a configurable bonus, with a configurable cap. Shared alarms and brief sight loss do not raise damage. Disabled by default.
 
 - Show wind-driven rain and snow outside the item-shop window when **Shop window and lighting** is enabled. It follows the weather controls, including light original snowfall on snowy missions; Clear removes it. The shop demo now includes weather as well as the day/night lighting cycle.

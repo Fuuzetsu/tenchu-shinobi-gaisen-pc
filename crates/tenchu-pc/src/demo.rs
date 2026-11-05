@@ -384,6 +384,15 @@ impl Player {
                     0
                 }
             }
+            Feature::GuardControls => {
+                use tenchu_core::input::{CIRCLE, LEFT, RIGHT};
+                R1 | match tick {
+                    270..330 => RIGHT,
+                    330..360 => CIRCLE,
+                    360..420 => CIRCLE | LEFT,
+                    _ => 0,
+                }
+            }
             Feature::WeaponSparks => {
                 if tick % 45 == 15 {
                     SQUARE

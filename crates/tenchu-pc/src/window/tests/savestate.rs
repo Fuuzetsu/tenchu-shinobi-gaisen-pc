@@ -53,6 +53,7 @@ fn continue_identically(original: &mut Application, restored: &mut Application, 
 fn savestates_preserve_detection_escalation() {
     let mut app = application(Options::default());
     app.apply_item(Item::DetectionDamage, 5).unwrap();
+    app.apply_item(Item::GuardControls, 1).unwrap();
     app.apply_item(Item::DetectionDamageLimit, 2).unwrap();
     let options = app.settings.damage_escalation;
     assert_eq!(options.increment, 50);
@@ -64,6 +65,7 @@ fn savestates_preserve_detection_escalation() {
     let mut restored = application(Options::default());
     restored.restore_state(&bytes).unwrap();
     assert_eq!(restored.settings.damage_escalation, options);
+    assert!(restored.settings.guard_controls && restored.campaign.game.intelligence.guard_controls);
     assert_eq!(exact(&restored.campaign.game), exact(&app.campaign.game));
     continue_identically(&mut app, &mut restored, 120);
     restored.reset_item(Item::DetectionDamageLimit).unwrap();

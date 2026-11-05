@@ -702,6 +702,17 @@
     }
   },
   {
+    "id": "guard-controls",
+    "title": "Guard, dash and roll",
+    "description": "Optional R1 guard controls: stand and block with original recoil, then dash or crouch-roll on a fresh direction press. Rebind R1 in the controls editor.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": "guard-controls",
+    "shot": "guard"
+  },
+  {
     "id": "weapon-sparks",
     "title": "Weapon blocks and clashes: original / modern",
     "description": "Sparring with a guard compares the original impact sprites with smooth hot trails, sharp flashes and light following the flying sparks. Hit detection, timing and recoil stay unchanged.",

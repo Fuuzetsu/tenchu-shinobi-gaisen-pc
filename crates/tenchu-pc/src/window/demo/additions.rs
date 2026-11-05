@@ -3,6 +3,14 @@ use super::*;
 impl Application {
     pub(super) fn advance_demo_tools(&mut self) -> Result<()> {
         let player = self.demo.as_ref().unwrap();
+        if player.clip().feature == Feature::GuardControls {
+            if player.frame == 360
+                && let Some(id) = player.scene.actor
+            {
+                self.campaign.game.roster.get_mut(id).setup_think(0)?;
+            }
+            return Ok(());
+        }
         if player.clip().feature != Feature::Experiment {
             return Ok(());
         }

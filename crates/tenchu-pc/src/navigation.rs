@@ -129,7 +129,12 @@ impl Orbit {
             return (buttons | directions(v), None);
         }
         if buttons & input::R1 != 0 {
-            return ((buttons & !input::R1) | directions(v), None);
+            let buttons = if game.intelligence.guard_controls {
+                buttons
+            } else {
+                buttons & !input::R1
+            };
+            return (buttons | directions(v), None);
         }
         let buttons = buttons & !(input::UP | input::DOWN | input::LEFT | input::RIGHT);
         if v == Vec2::ZERO {

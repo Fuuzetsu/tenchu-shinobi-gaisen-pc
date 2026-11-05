@@ -319,6 +319,7 @@ impl Application {
             && !self.settings.independent_attacks
             && !self.settings.quick_shuriken_dodge
             && !self.settings.strict_corpse_sight
+            && !self.settings.guard_controls
             && !self.settings.damage_escalation.enabled()
             && !self.settings.multi_target_attacks
             && !self.settings.model_moveset
@@ -362,6 +363,7 @@ impl Application {
                         || self.settings.independent_attacks
                         || self.settings.quick_shuriken_dodge
                         || self.settings.strict_corpse_sight
+                        || self.settings.guard_controls
                         || self.settings.damage_escalation.enabled()
                         || self.settings.multi_target_attacks)
                 {
@@ -1213,6 +1215,7 @@ pub fn run(
     campaign.game.intelligence.independent_attacks = settings.independent_attacks;
     campaign.game.intelligence.quick_shuriken_dodge = settings.quick_shuriken_dodge;
     campaign.game.intelligence.strict_corpse_sight = settings.strict_corpse_sight;
+    campaign.game.intelligence.guard_controls = settings.guard_controls;
     campaign
         .game
         .set_damage_escalation(settings.damage_escalation);

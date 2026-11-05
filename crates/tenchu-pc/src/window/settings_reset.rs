@@ -114,6 +114,7 @@ impl Application {
             Item::IndependentAttacks => self.set_independent_attacks(s.independent_attacks),
             Item::QuickShurikenDodge => self.set_quick_shuriken_dodge(s.quick_shuriken_dodge),
             Item::StrictCorpseSight => self.set_strict_corpse_sight(s.strict_corpse_sight),
+            Item::GuardControls => self.set_guard_controls(s.guard_controls),
             Item::DetectionDamage => {
                 self.set_damage_escalation(tenchu_core::ai::escalation::Settings {
                     increment: s.damage_escalation.increment,

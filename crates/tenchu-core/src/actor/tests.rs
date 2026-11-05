@@ -3,6 +3,7 @@ use crate::items::Kind;
 mod corpses;
 mod escalation;
 mod experiments;
+mod guard;
 mod imported;
 mod independent_attacks;
 mod multi_target;

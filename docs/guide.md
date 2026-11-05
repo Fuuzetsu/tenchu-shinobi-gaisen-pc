@@ -1375,6 +1375,23 @@ difficulty change is off by default; it is not a PS1 bug fix. Graphical presets
 leave it alone. Gameplay presets/reset restore retail reactions, and changing
 it ends ordinary input recording and disqualifies the current TRIAL record.
 
+**Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
+binding to stand and block frontal melee hits; press a direction while holding
+it for one dash. Hold crouch (Circle) as well to roll. Directions stay relative
+to the character, even with camera-relative movement. Release and press a
+direction again to repeat; holding it does not repeatedly dodge. Guarding keeps
+the original block angle, recoil and recovery, offers no protection from behind
+or against projectiles, and cannot interrupt attacks, injuries or jumps. Ordinary
+jump/attack continuations within a dash still work where the original allows them.
+
+R1 is rebindable under **General → Controls**: controller RB by default, **K** in
+new/default keyboard bindings. Existing bindings are kept; assign a keyboard key
+there if R1 is unbound. Circle remains crouch. Camera-relative mode also retains
+its Left Ctrl alias. With this option off, R1 keeps its original crouch/combat
+modifier behavior. Gameplay presets/reset turn it off, graphics presets leave it
+alone, and enabling it disables input recording and TRIAL records. Try the
+`guard-controls` demo for blocking, a side dash and a crouched roll.
+
 **Simulation → Damage per repeat detection** optionally increases the damage a
 guard deals to you each time it spots you again after fully calming down. The
 first direct sighting does normal damage; shared alerts and brief breaks in line

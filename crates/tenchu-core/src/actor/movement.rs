@@ -2,6 +2,7 @@ use crate::actor::State as ActorState;
 use crate::math::Position;
 mod chase;
 mod crouch;
+mod guard;
 mod hang;
 mod swim;
 #[cfg(test)]
@@ -47,30 +48,34 @@ impl Actor {
             }
             None
         };
-        let next = match self.status {
-            ActorState::Normal => self.normal(ctx, world, held, command, center)?,
-            ActorState::Action => self.action(ctx, world, held)?,
-            ActorState::Walk => self.walk(ctx, world, held, center)?,
-            ActorState::Swim => self.swim(ctx, world, held)?,
-            ActorState::Grapple => self.grapple_control(ctx, world)?,
-            ActorState::Engage => self.engage(ctx, world, held, command, center)?,
-            ActorState::Chase => self.chase(ctx, world, held, command, center)?,
-            ActorState::Attack => self.attack(ctx, world, held)?,
-            ActorState::Transition => self.state(ctx, world, held)?,
-            ActorState::Jump => self.jump(ctx, world, held)?,
-            ActorState::Hang => self.hang(ctx, held, world.player)?,
-            ActorState::Crouch => self.crouch(ctx, world, held, command)?,
-            ActorState::Wall => self.wall(ctx, world, held, command)?,
-            ActorState::CeilingHang => None,
-            ActorState::AimShuriken => self.shuriken_control(ctx, world)?,
-            ActorState::UseItem => self.item_control(ctx, world)?,
-            ActorState::Damaged => self.damaged(ctx, world)?,
-            ActorState::Dead => self.dead(ctx, world)?,
-            ActorState::Unsupported(status) => {
-                return Err(format!(
-                    "Actor state {status:#x}, motion {:#x} is not implemented yet",
-                    self.motion.action
-                ));
+        let next = if self.guard_input(world) {
+            self.guard_motion(ctx, held)
+        } else {
+            match self.status {
+                ActorState::Normal => self.normal(ctx, world, held, command, center)?,
+                ActorState::Action => self.action(ctx, world, held)?,
+                ActorState::Walk => self.walk(ctx, world, held, center)?,
+                ActorState::Swim => self.swim(ctx, world, held)?,
+                ActorState::Grapple => self.grapple_control(ctx, world)?,
+                ActorState::Engage => self.engage(ctx, world, held, command, center)?,
+                ActorState::Chase => self.chase(ctx, world, held, command, center)?,
+                ActorState::Attack => self.attack(ctx, world, held)?,
+                ActorState::Transition => self.state(ctx, world, held)?,
+                ActorState::Jump => self.jump(ctx, world, held)?,
+                ActorState::Hang => self.hang(ctx, held, world.player)?,
+                ActorState::Crouch => self.crouch(ctx, world, held, command)?,
+                ActorState::Wall => self.wall(ctx, world, held, command)?,
+                ActorState::CeilingHang => None,
+                ActorState::AimShuriken => self.shuriken_control(ctx, world)?,
+                ActorState::UseItem => self.item_control(ctx, world)?,
+                ActorState::Damaged => self.damaged(ctx, world)?,
+                ActorState::Dead => self.dead(ctx, world)?,
+                ActorState::Unsupported(status) => {
+                    return Err(format!(
+                        "Actor state {status:#x}, motion {:#x} is not implemented yet",
+                        self.motion.action
+                    ));
+                }
             }
         };
         if let Some((action, movement)) =

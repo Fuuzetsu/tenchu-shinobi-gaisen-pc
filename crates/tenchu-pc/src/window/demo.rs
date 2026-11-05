@@ -175,11 +175,21 @@ impl Application {
                     Feature::Blood
                         | Feature::BloodSnow
                         | Feature::WeaponSparks
+                        | Feature::GuardControls
                         | Feature::WeaponFinishes
                         | Feature::WoundSpurts
                 ) || clip.randomizer.as_ref().is_some_and(|s| s.engage)
                 {
-                    let guard = position(actor);
+                    let mut guard = position(actor);
+                    if clip.feature == Feature::GuardControls {
+                        let facing = game.player().rotation[1];
+                        let offset = game.math.velocity(facing, 2800, 0).map(i32::from);
+                        let start = game.player().position.wrapping_add(offset.into());
+                        game.move_actor(actor, start, facing.wrapping_add(2048), true)?;
+                        guard = Vec3::from(
+                            game.roster.get(actor).position.to_array().map(|v| v as f32),
+                        );
+                    }
                     let offset = Vec3::from(
                         game.math
                             .velocity(
@@ -203,7 +213,10 @@ impl Application {
                     if clip.randomizer.is_some()
                         || matches!(
                             clip.feature,
-                            Feature::WeaponSparks | Feature::WeaponFinishes | Feature::WoundSpurts
+                            Feature::WeaponSparks
+                                | Feature::WeaponFinishes
+                                | Feature::WoundSpurts
+                                | Feature::GuardControls
                         )
                     {
                         let enemy = game.roster.get(actor).position;
@@ -218,7 +231,10 @@ impl Application {
                     }
                     if matches!(
                         clip.feature,
-                        Feature::WeaponSparks | Feature::WeaponFinishes | Feature::WoundSpurts
+                        Feature::WeaponSparks
+                            | Feature::WeaponFinishes
+                            | Feature::WoundSpurts
+                            | Feature::GuardControls
                     ) {
                         self.debug.god_mode = true;
                         demo::sparring(&mut game, actor)?;
@@ -227,6 +243,13 @@ impl Application {
                         }
                         if clip.feature == Feature::WoundSpurts {
                             game.roster.get_mut(actor).invulnerable = false;
+                        }
+                        if clip.feature == Feature::GuardControls {
+                            self.debug.god_mode = false;
+                            let player = game.roster.get_mut(game.player_id);
+                            player.invulnerable = false;
+                            player.health = 9999;
+                            player.max_health = 9999;
                         }
                     }
                     scene.player_start = game.player().position;
@@ -241,12 +264,19 @@ impl Application {
                         4200.0
                     };
                     scene.pitch = -0.55;
+                    if clip.feature == Feature::GuardControls {
+                        scene.distance = 5600.0;
+                        scene.pitch = -0.60;
+                    }
                     demo::framing::unobstructed_area(&mut scene, &geometry, 1200.0);
                 }
                 if !far
                     && !matches!(
                         clip.feature,
-                        Feature::WeaponSparks | Feature::WeaponFinishes | Feature::WoundSpurts
+                        Feature::WeaponSparks
+                            | Feature::WeaponFinishes
+                            | Feature::WoundSpurts
+                            | Feature::GuardControls
                     )
                 {
                     self.settings.keep_enemies_active = true;
@@ -356,6 +386,7 @@ impl Application {
         game.intelligence.independent_attacks = self.settings.independent_attacks;
         game.intelligence.quick_shuriken_dodge = self.settings.quick_shuriken_dodge;
         game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
+        game.intelligence.guard_controls = self.settings.guard_controls;
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
         self.campaign.game = game;
@@ -473,6 +504,7 @@ impl Application {
             self.campaign.game.intelligence.quick_shuriken_dodge =
                 self.settings.quick_shuriken_dodge;
             self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
+            self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
             self.campaign
                 .game
                 .set_damage_escalation(self.settings.damage_escalation);

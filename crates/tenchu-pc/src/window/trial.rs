@@ -136,6 +136,7 @@ impl Application {
             || self.settings.independent_attacks
             || self.settings.quick_shuriken_dodge
             || self.settings.strict_corpse_sight
+            || self.settings.guard_controls
             || self.settings.damage_escalation.enabled()
             || self.settings.multi_target_attacks
             || self.settings.sight_percent != 100

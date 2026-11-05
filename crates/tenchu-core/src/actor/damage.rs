@@ -205,6 +205,12 @@ impl Actor {
         let direction = ctx.math.direction(delta[0], delta[2], self.rotation[1])?;
         let angle = i32::from(direction).abs();
         let mut action = self.motion.action;
+        if self.guard_input(world)
+            && self.pad.held & crate::input::CIRCLE == 0
+            && self.attribute & ATTR_WEAPON_DRAWN != 0
+        {
+            action = MOT_CHASE_BACK;
+        }
         if self.id != world.player
             && self.status != ActorState::Attack
             && self.attribute & ATTR_WEAPON_DRAWN != 0

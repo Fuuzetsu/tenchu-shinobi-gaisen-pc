@@ -122,6 +122,7 @@ pub struct Intelligence {
     pub independent_attacks: bool,
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
+    pub guard_controls: bool,
     pub damage_escalation: escalation::Settings,
     pub attack_clock: i32,
     pub alert: i32,
@@ -148,6 +149,7 @@ impl Default for Intelligence {
             independent_attacks: false,
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
+            guard_controls: false,
             damage_escalation: Default::default(),
             attack_clock: 0,
             alert: 0,
@@ -434,7 +436,7 @@ impl<'a, 'b> Controller<'a, 'b> {
         {
             pad &= !0xf000;
         }
-        if pad & R1 != 0 {
+        if pad & R1 != 0 && !(self.state.guard_controls && self.actor.id == self.player.id) {
             pad = (pad & !R1) | CIRCLE;
         }
         pad

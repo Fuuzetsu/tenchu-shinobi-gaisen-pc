@@ -699,6 +699,7 @@ fn combat_settings_apply_and_reset() {
         Item::MultiTargetAttacks,
         Item::QuickShurikenDodge,
         Item::StrictCorpseSight,
+        Item::GuardControls,
         Item::DetectionDamage,
     ]
     .into_iter()
@@ -708,6 +709,7 @@ fn combat_settings_apply_and_reset() {
             Item::IndependentAttacks => app.campaign.game.intelligence.independent_attacks,
             Item::QuickShurikenDodge => app.campaign.game.intelligence.quick_shuriken_dodge,
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
+            Item::GuardControls => app.campaign.game.intelligence.guard_controls,
             Item::DetectionDamage => app.campaign.game.intelligence.damage_escalation.enabled(),
             _ => app.campaign.game.combat.multi_target,
         };
@@ -715,6 +717,7 @@ fn combat_settings_apply_and_reset() {
             Item::IndependentAttacks => settings.independent_attacks,
             Item::QuickShurikenDodge => settings.quick_shuriken_dodge,
             Item::StrictCorpseSight => settings.strict_corpse_sight,
+            Item::GuardControls => settings.guard_controls,
             Item::DetectionDamage => settings.damage_escalation.enabled(),
             _ => settings.multi_target_attacks,
         };

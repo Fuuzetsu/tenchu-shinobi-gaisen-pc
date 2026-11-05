@@ -105,7 +105,7 @@ impl Editor {
             });
             ui.label("Click a binding, then press a key, button or stick direction. Changes save automatically. × clears a binding; Escape cancels capture.");
             ui.weak("Actions shown for original layout 1. Other original layouts still apply. Assigning an input moves it from its previous action.");
-            ui.weak("Camera-relative controls: hold the R1 binding + backward to guard, or + left/right + attack for side slashes. Left Ctrl also acts as this modifier.");
+            ui.weak("Camera-relative controls: R1 + backward guards; R1 + left/right + attack selects side slashes. Left Ctrl also acts as this modifier. Optional R1 guard mode (F1 > Movement) instead holds guard, with a fresh direction press to dash; hold crouch to roll.");
             ui.weak("Menu buttons stay at their physical positions. F1 → General → Circle confirms in menus selects Japanese or Western confirmation.");
             ui.horizontal(|ui| {
                 for (device, label) in [(Device::Keyboard, "Keyboard"), (Device::Controller, "Controller")] {

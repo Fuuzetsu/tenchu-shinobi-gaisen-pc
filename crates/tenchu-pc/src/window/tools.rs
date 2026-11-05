@@ -149,6 +149,15 @@ impl Application {
         self.campaign.game.intelligence.strict_corpse_sight = enabled;
     }
 
+    pub(super) fn set_guard_controls(&mut self, enabled: bool) {
+        if self.campaign.game.intelligence.guard_controls != enabled {
+            self.stop_edited_recording();
+            self.controls.clear();
+        }
+        self.settings.guard_controls = enabled;
+        self.campaign.game.intelligence.guard_controls = enabled;
+    }
+
     pub(super) fn set_damage_escalation(
         &mut self,
         mut settings: tenchu_core::ai::escalation::Settings,
@@ -258,6 +267,7 @@ impl Application {
             self.set_independent_attacks(previous.independent_attacks);
             self.set_quick_shuriken_dodge(previous.quick_shuriken_dodge);
             self.set_strict_corpse_sight(previous.strict_corpse_sight);
+            self.set_guard_controls(previous.guard_controls);
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             let _ = self.sync_model_moveset();
@@ -349,6 +359,7 @@ impl Application {
         self.set_independent_attacks(false);
         self.set_quick_shuriken_dodge(false);
         self.set_strict_corpse_sight(false);
+        self.set_guard_controls(false);
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
         self.set_reinforcement_limit(0);
@@ -702,6 +713,7 @@ impl Application {
                 self.set_independent_attacks(false);
                 self.set_quick_shuriken_dodge(false);
                 self.set_strict_corpse_sight(false);
+                self.set_guard_controls(false);
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 if self.debug.sight_percent != 100 {
@@ -864,6 +876,9 @@ impl Application {
             Item::StrictCorpseSight => {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
+            Item::GuardControls => {
+                self.set_guard_controls(!self.settings.guard_controls);
+            }
             Item::QuickShurikenDodge => {
                 self.set_quick_shuriken_dodge(!self.settings.quick_shuriken_dodge);
             }
@@ -916,6 +931,7 @@ impl Application {
                 self.set_independent_attacks(false);
                 self.set_quick_shuriken_dodge(false);
                 self.set_strict_corpse_sight(false);
+                self.set_guard_controls(false);
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_reinforcement_limit(0);
