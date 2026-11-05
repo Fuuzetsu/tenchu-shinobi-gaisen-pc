@@ -47,7 +47,11 @@ impl Item {
             Item::SunPath => (0, 345, 15, 1),
             Item::SunStrength | Item::MoonStrength => (0, 200, 5, 1),
             Item::DayAmbient | Item::NightAmbient | Item::DayRelighting => (0, 100, 5, 1),
-            Item::BloodAmount | Item::BloodSpurts | Item::WeaponReflections => (0, 200, 10, 1),
+            Item::BloodAmount
+            | Item::BloodSpurts
+            | Item::WeaponBloodCoverage
+            | Item::WeaponBloodFlow
+            | Item::WeaponReflections => (0, 200, 10, 1),
             Item::BloodDeathSize => (10, 200, 10, 1),
             Item::BloodSeconds => (0, 60, 1, 1),
             Item::BloodMarks => (32, i32::from(u16::MAX), 256, 1),
@@ -215,6 +219,8 @@ impl Item {
             Self::BloodDeathSize => &mut settings.graphics.blood.death_size,
             Self::BloodSeconds => &mut settings.graphics.blood.seconds,
             Self::BloodSpurts => &mut settings.graphics.blood.spurts,
+            Self::WeaponBloodCoverage => &mut settings.graphics.blood.weapon_coverage,
+            Self::WeaponBloodFlow => &mut settings.graphics.blood.weapon_flow,
             Self::AlternateDeathChance => &mut settings.alternate_death_chance,
             Self::BloodMarks => &mut settings.graphics.blood.marks,
             Self::Bloom => &mut settings.graphics.post.bloom,

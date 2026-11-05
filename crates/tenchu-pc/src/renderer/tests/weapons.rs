@@ -69,8 +69,7 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
         ),
         reflected
     );
-    let mut changed = Vec::new();
-    for amount in [0.0, 0.3, 0.7, 1.0] {
+    let draw_coating = |renderer: &mut Renderer, amount: f32, flow: [f32; 2], wet: f32| {
         let mut coating = plain.clone();
         for v in &mut coating {
             v.position[2] -= 1.0;
@@ -81,6 +80,9 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
                 | render_mesh::ALPHA
                 | render_mesh::DOUBLE_SIDED;
             v.opacity = amount;
+            v.page = flow[0].to_bits();
+            v.palette = flow[1].to_bits();
+            v.material = wet.to_bits();
         }
         let effects = renderer.upload_effects(render_effects::Geometry {
             vertices: coating,
@@ -99,7 +101,11 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
                 &[],
             )
             .unwrap();
-        let pixels = read_pixels(&renderer, &target);
+        read_pixels(renderer, &target)
+    };
+    let mut changed = Vec::new();
+    for amount in [0.0, 0.3, 0.7, 1.0] {
+        let pixels = draw_coating(&mut renderer, amount, [0.0; 2], 0.0);
         let count = pixels
             .chunks_exact(4)
             .zip(original.chunks_exact(4))
@@ -117,4 +123,11 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
         );
     }
     assert!(changed.windows(2).all(|c| c[1] > c[0]), "{changed:?}");
+    let dry = draw_coating(&mut renderer, 0.7, [0.0; 2], 0.0);
+    assert_eq!(dry, draw_coating(&mut renderer, 0.7, [0.2, -0.6], 0.0));
+    let wet = draw_coating(&mut renderer, 0.7, [0.0; 2], 1.0);
+    let flowed = draw_coating(&mut renderer, 0.7, [0.2, -0.6], 1.0);
+    assert_ne!(wet, dry);
+    assert_ne!(wet, flowed);
+    assert_eq!(draw_coating(&mut renderer, 0.0, [0.2, -0.6], 1.0), original);
 }

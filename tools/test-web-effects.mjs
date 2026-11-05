@@ -103,7 +103,7 @@ try {
   assert.equal((await settings()).graphics.sky.enabled, false);
   await key("Shift+Tab"); await key("r");
   assert.equal((await settings()).graphics.blood.hit, "original");
-  for (let i=0;i<9;i++) { await key("ArrowDown"); await key("r"); }
+  for (let i=0;i<11;i++) { await key("ArrowDown"); await key("r"); }
   const blood = (await settings()).graphics.blood;
   assert.equal(blood.ground, "original"); assert.equal(blood.drips, "off");
   assert.equal(blood.player_death, false); assert.equal(blood.model_stains, false);

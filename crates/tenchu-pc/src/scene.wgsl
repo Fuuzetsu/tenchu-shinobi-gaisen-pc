@@ -282,7 +282,7 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
 
 fn alpha_color(v: Fragment, front_facing: bool, precomputed_weather: bool, use_bounds: bool) -> vec4<f32> {
     var opacity = v.opacity;
-    if (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN) { opacity = weapon_blood(v.uv, v.opacity); }
+    if (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN) { opacity = weapon_blood(v); }
     if original_hd_blood(v.flags) && (v.flags & TEXTURED) == 0u {
         opacity *= 1.0 - smoothstep(0.72, 0.92, dot(v.uv, v.uv));
     }

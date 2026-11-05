@@ -734,7 +734,7 @@ impl Blood {
             };
         if weapons {
             self.weapons
-                .tick(game, models, &transforms, &hits, &mut self.drops);
+                .tick(game, models, &transforms, &hits, &mut self.drops, settings);
         }
         self.marks.retain_attached(|mark| {
             mark.0.iter().all(|p| {
@@ -1020,7 +1020,8 @@ impl Blood {
             } else {
                 BTreeMap::new()
             };
-            self.weapons.append(&mut vertices, &transforms);
+            self.weapons
+                .append(&mut vertices, &transforms, &self.settings, alpha);
             for (_, mark) in &self.marks.attached {
                 for patch in &mark.0 {
                     let (rotation, offset) = if let Some(key) = patch.part {

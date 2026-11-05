@@ -42,6 +42,8 @@ pub struct Blood {
     pub retain_original: bool,
     pub model_stains: bool,
     pub weapons: bool,
+    pub weapon_coverage: u16,
+    pub weapon_flow: u16,
     pub runoff: bool,
     pub amount: u16,
     pub death_size: u16,
@@ -61,6 +63,8 @@ impl Default for Blood {
             retain_original: false,
             model_stains: false,
             weapons: false,
+            weapon_coverage: 100,
+            weapon_flow: 0,
             runoff: false,
             amount: 100,
             death_size: 100,
@@ -116,6 +120,8 @@ impl Blood {
         self.death_size = self.death_size.clamp(10, 200);
         self.seconds = self.seconds.min(60);
         self.spurts = self.spurts.min(200);
+        self.weapon_coverage = self.weapon_coverage.min(200);
+        self.weapon_flow = self.weapon_flow.min(200);
         self.marks = self.marks.max(32);
     }
 }
@@ -133,6 +139,8 @@ struct SavedBlood {
     retain_original: Option<bool>,
     model_stains: Option<bool>,
     weapons: bool,
+    weapon_coverage: Option<u16>,
+    weapon_flow: Option<u16>,
     runoff: bool,
     amount: Option<u16>,
     death_size: Option<u16>,
@@ -161,6 +169,8 @@ impl From<SavedBlood> for Blood {
             retain_original: saved.retain_original.unwrap_or(default.retain_original),
             model_stains: saved.model_stains.unwrap_or(default.model_stains),
             weapons: saved.weapons,
+            weapon_coverage: saved.weapon_coverage.unwrap_or(100),
+            weapon_flow: saved.weapon_flow.unwrap_or_default(),
             runoff: saved.runoff,
             amount: saved.amount.unwrap_or(default.amount),
             death_size: saved.death_size.unwrap_or(default.death_size),
@@ -195,6 +205,7 @@ mod tests {
                 assert_eq!(blood.marks, 12000);
                 assert!(!blood.runoff, "Existing saved preferences keep runoff off");
                 assert_eq!(blood.spurts, 0);
+                assert_eq!((blood.weapon_coverage, blood.weapon_flow), (100, 0));
             }
         }
         let blood = Blood {
@@ -206,6 +217,8 @@ mod tests {
             player_death: false,
             death_size: 45,
             spurts: 120,
+            weapon_coverage: 140,
+            weapon_flow: 80,
             ..Blood::modern()
         };
         let encoded = serde_json::to_value(blood).unwrap();

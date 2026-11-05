@@ -9,6 +9,8 @@ struct Coating {
     vertices: Vec<Vertex>,
     tip: Vec3,
     previous: Vec3,
+    flow: Vec3,
+    previous_flow: Vec3,
     amount: f32,
     wet: f32,
     hit: u64,
@@ -63,6 +65,7 @@ impl Weapons {
         transforms: &BTreeMap<Part, Matrix>,
         hits: &BTreeSet<usize>,
         drops: &mut Vec<Drop>,
+        settings: &settings::Blood,
     ) {
         let mut live = BTreeMap::new();
         for &id in &game.roster.order {
@@ -142,6 +145,8 @@ impl Weapons {
                         vertices,
                         tip,
                         previous: rotation(matrix) * tip + translation(matrix),
+                        flow: Vec3::ZERO,
+                        previous_flow: Vec3::ZERO,
                         amount: 0.0,
                         wet: 0.0,
                         hit: game.tick,
@@ -160,15 +165,31 @@ impl Weapons {
             let Some(&matrix) = transforms.get(key) else {
                 return true;
             };
-            let position = rotation(matrix) * c.tip + translation(matrix);
+            let r = rotation(matrix);
+            let position = r * c.tip + translation(matrix);
             let velocity = position - c.previous;
             c.previous = position;
             c.wet = (c.wet - 1.0 / 1800.0).max(0.0);
+            c.previous_flow = c.flow;
+            let flow = f32::from(settings.weapon_flow.min(200)) / 100.0;
+            if flow > 0.0 && c.wet > 0.0 && r.determinant().abs() >= 0.0001 {
+                c.flow += r.inverse() * Vec3::Y * (8.0 * flow * c.wet);
+            }
             if c.amount <= 0.08 || c.wet == 0.0 || drops.len() >= DROP_LIMIT {
                 return true;
             }
             let swing = attacking && velocity.length() > 75.0 && velocity.length() < 1500.0;
-            if swing && game.tick.is_multiple_of(2) || game.tick.is_multiple_of(60) {
+            let drip_interval = (60.0 / (1.0 + flow)).round() as u64;
+            if swing && game.tick.is_multiple_of(2) || game.tick.is_multiple_of(drip_interval) {
+                let position = if flow > 0.0 && !swing {
+                    c.vertices
+                        .iter()
+                        .map(|v| r * Vec3::from(v.position) + translation(matrix))
+                        .max_by(|a, b| a.y.total_cmp(&b.y))
+                        .unwrap_or(position)
+                } else {
+                    position
+                };
                 let speed = if swing {
                     velocity.clamp_length_max(160.0) * 0.6
                 } else {
@@ -191,18 +212,48 @@ impl Weapons {
         }
     }
 
-    pub fn append(&self, out: &mut Vec<Vertex>, transforms: &BTreeMap<Part, Matrix>) {
+    pub fn append(
+        &self,
+        out: &mut Vec<Vertex>,
+        transforms: &BTreeMap<Part, Matrix>,
+        settings: &settings::Blood,
+        alpha: f32,
+    ) {
         for (key, coating) in &self.coatings {
             let Some(&matrix) = transforms.get(key) else {
                 continue;
             };
             let r = rotation(matrix);
             let offset = translation(matrix);
-            out.extend(coating.vertices.iter().map(|v| Vertex {
-                position: (r * Vec3::from(v.position) + offset).to_array(),
-                normal: (r * Vec3::from(v.normal)).normalize_or_zero().to_array(),
-                opacity: coating.amount,
-                ..*v
+            let flow = coating
+                .previous_flow
+                .lerp(coating.flow, alpha.clamp(0.0, 1.0));
+            let wet = if settings.weapon_flow == 0 {
+                0.0
+            } else {
+                coating.wet
+            };
+            out.extend(coating.vertices.iter().map(|v| {
+                let normal = Vec3::from(v.normal).normalize_or_zero();
+                let tangent = flow - normal * flow.dot(normal);
+                let flow = [
+                    tangent.x * 0.008 + tangent.z * 0.003,
+                    tangent.y * 0.006 + tangent.z * 0.007,
+                ];
+                Vertex {
+                    position: (r * Vec3::from(v.position) + offset).to_array(),
+                    normal: (r * normal).normalize_or_zero().to_array(),
+                    opacity: (coating.amount * f32::from(settings.weapon_coverage) / 100.0)
+                        .min(1.0),
+                    color: Vec3::from(v.color)
+                        .lerp(Vec3::new(0.43, 0.009, 0.018), wet)
+                        .to_array(),
+                    // Untextured WEAPON_COAT uses these slots for tangent flow and wetness.
+                    page: flow[0].to_bits(),
+                    palette: flow[1].to_bits(),
+                    material: wet.to_bits(),
+                    ..*v
+                }
             }));
         }
     }
@@ -564,18 +615,27 @@ mod tests {
                     &transforms,
                     &BTreeSet::new(),
                     &mut idle_drops,
+                    &graphics.blood,
                 );
                 let mut swung = transforms.clone();
                 for matrix in swung.values_mut() {
                     matrix.translation.x += if tick % 2 == 0 { 140 } else { -140 };
                 }
-                moving.tick(&game, &models, &swung, &BTreeSet::new(), &mut moving_drops);
+                moving.tick(
+                    &game,
+                    &models,
+                    &swung,
+                    &BTreeSet::new(),
+                    &mut moving_drops,
+                    &graphics.blood,
+                );
                 restored.tick(
                     &game,
                     &models,
                     &swung,
                     &BTreeSet::new(),
                     &mut restored_drops,
+                    &graphics.blood,
                 );
             }
             let amount = |w: &Weapons| w.coatings.values().map(|c| c.amount).sum::<f32>();
@@ -586,8 +646,76 @@ mod tests {
                 postcard::to_allocvec(&restored).unwrap()
             );
             assert!(moving_drops.len() <= DROP_LIMIT);
+            let mut flowing = idle.clone();
+            let flow_settings = settings::Blood {
+                weapon_flow: 100,
+                weapon_coverage: 140,
+                ..graphics.blood
+            };
+            let mut flow_drops = Vec::new();
+            for _ in 0..120 {
+                game.tick += 1;
+                flowing.tick(
+                    &game,
+                    &models,
+                    &transforms,
+                    &BTreeSet::new(),
+                    &mut flow_drops,
+                    &flow_settings,
+                );
+            }
+            assert!(!flow_drops.is_empty());
+            for (part, coating) in &flowing.coatings {
+                let matrix = transforms[part];
+                let world_flow = rotation(matrix) * (coating.flow - idle.coatings[part].flow);
+                assert!(world_flow.y > 0.0 && world_flow.x.abs() < 0.1 && world_flow.z.abs() < 0.1);
+                let bottom = coating
+                    .vertices
+                    .iter()
+                    .map(|v| rotation(matrix) * Vec3::from(v.position) + translation(matrix))
+                    .max_by(|a, b| a.y.total_cmp(&b.y))
+                    .unwrap();
+                if idle.coatings[part].amount > 0.08 && idle.coatings[part].wet > 0.0 {
+                    assert!(
+                        flow_drops
+                            .iter()
+                            .any(|d| d.position.distance(bottom) < 0.01),
+                        "wet coating must drip at the lowest edge"
+                    );
+                }
+            }
+            let mut wet_vertices = Vec::new();
+            flowing.append(&mut wet_vertices, &transforms, &flow_settings, 0.5);
+            assert!(
+                wet_vertices
+                    .iter()
+                    .any(|v| f32::from_bits(v.material) > 0.0)
+            );
+            assert!(wet_vertices.iter().all(
+                |v| f32::from_bits(v.page).is_finite() && f32::from_bits(v.palette).is_finite()
+            ));
+            for coating in flowing.coatings.values_mut() {
+                coating.wet = 0.0;
+            }
+            let dry = flowing
+                .coatings
+                .iter()
+                .map(|(&key, c)| (key, c.flow))
+                .collect::<BTreeMap<_, _>>();
+            flow_drops.clear();
+            game.tick += 60;
+            flowing.tick(
+                &game,
+                &models,
+                &transforms,
+                &BTreeSet::new(),
+                &mut flow_drops,
+                &flow_settings,
+            );
+            assert!(flow_drops.is_empty());
+            assert!(flowing.coatings.iter().all(|(key, c)| dry[key] == c.flow));
             let mut vertices = Vec::new();
-            moving.append(&mut vertices, &transforms);
+            moving.append(&mut vertices, &transforms, &graphics.blood, 0.5);
             assert!(!vertices.is_empty());
             assert!(
                 vertices

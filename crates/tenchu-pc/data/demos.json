@@ -716,7 +716,7 @@
   {
     "id": "weapon-finishes",
     "title": "Bloodied blades and moving metal highlights",
-    "description": "Both sides' melee hits stain their blades. Wet blood drips slowly and flies off during swings; dry traces remain. Reflective metal catches the changing sky and nearby light, while wooden grips remain matte. These are cosmetic options.",
+    "description": "Compare the previous static blood coating with fuller wet streaks that follow gravity and drip from the lowest edge. Hits stain both fighters’ weapons; swings shed blood and metal reflects the changing sky and lights.",
     "seconds": 18,
     "mission": 2,
     "character": 1,

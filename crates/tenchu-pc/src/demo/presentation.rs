@@ -166,6 +166,8 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
         Feature::WeaponFinishes => {
             g.blood = crate::settings::Blood::modern();
             g.blood.weapons = p >= 0.05;
+            g.blood.weapon_coverage = if p < 0.25 { 100 } else { 140 };
+            g.blood.weapon_flow = if p < 0.25 { 0 } else { 100 };
             g.weapon_reflections = if p >= 0.5 { 100 } else { 0 };
             g.lighting.enabled = true;
             g.interpolation = true;
@@ -712,8 +714,10 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         Feature::Remake(feature) => text(super::remake::readout(feature, player, s, d)),
         Feature::WeaponFinishes => text(if !s.graphics.blood.weapons {
             "Clean weapon surfaces".into()
+        } else if s.graphics.blood.weapon_flow == 0 {
+            "Previous static coating · tip drips".into()
         } else if s.graphics.weapon_reflections == 0 {
-            "Hits coat blades · slow drips · swings shed wet blood".into()
+            "Fuller wet coating · gravity-driven streaks · drips from the lowest edge".into()
         } else {
             "Metal reflects sky and lights · player and enemy weapons".into()
         }),

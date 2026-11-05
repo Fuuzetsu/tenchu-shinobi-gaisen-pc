@@ -98,6 +98,8 @@ pub enum Item {
     BloodRetain,
     BloodModels,
     BloodWeapons,
+    WeaponBloodCoverage,
+    WeaponBloodFlow,
     WeaponReflections,
     BloodRunoff,
     BloodPlayerDeath,
@@ -968,6 +970,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Blood on weapons",
                 on(s.graphics.blood.weapons),
                 "Successful melee hits and stealth kills stain metal on player and enemy weapons. Small drips gradually remove wet blood; swinging sheds more. Dry traces remain until Clear blood or mission change. Cosmetic only.",
+            ),
+            (
+                Item::WeaponBloodCoverage,
+                "Weapon blood coverage",
+                format!("{}%", s.graphics.blood.weapon_coverage),
+                "Make coatings more visible without changing body/ground blood. 100% keeps the previous coverage. Requires Blood on weapons; 0 hides the coating.",
+            ),
+            (
+                Item::WeaponBloodFlow,
+                "Wet weapon blood flow",
+                format!("{}%", s.graphics.blood.weapon_flow),
+                "Gravity moves wet streaks across the blade and droplets fall from its lowest edge. Higher values flow and drip faster. Swings still shed blood; drying stops the flow. 0 keeps the previous static coating and tip drips.",
             ),
             (
                 Item::WeaponReflections,
