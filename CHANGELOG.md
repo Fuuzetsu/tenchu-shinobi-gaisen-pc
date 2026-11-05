@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep shared terrain lighting when rain reflections are disabled, and use it for accumulated snow to reduce rendering cost.
+
+
 ## 0.15.6 — 2026-11-05
 
 - Avoid repeating GPU character poses on the CPU solely to calculate shadow

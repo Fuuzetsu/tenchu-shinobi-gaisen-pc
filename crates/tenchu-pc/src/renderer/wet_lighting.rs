@@ -233,15 +233,16 @@ impl WetLighting {
 pub(super) fn configured(graphics: &Graphics, samples: u32, gl: bool) -> bool {
     !gl && samples == 1
         && graphics.post.enabled
-        && graphics.weather.mode.rain()
-        && graphics.weather.reflections > 0
+        && graphics.weather.mode != crate::settings::WeatherMode::Original
         && graphics.lighting.enabled
         && graphics.lighting.shadows
         && graphics.lighting.source_size > 0
 }
 
 pub(super) fn useful(renderer: &Renderer, matrix: Mat4, meshes: &[&Mesh]) -> bool {
-    if renderer.wet_lighting.is_none() || renderer.weather.wet + renderer.weather.puddles <= 0.0 {
+    if renderer.wet_lighting.is_none()
+        || renderer.weather.wet + renderer.weather.puddles + renderer.weather.snow <= 0.0
+    {
         return false;
     }
     if meshes.iter().any(|mesh| mesh.count > 0 && !mesh.scenery) {

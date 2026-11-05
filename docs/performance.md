@@ -2579,3 +2579,24 @@ one fixed view. These techniques fit native and WebGPU rendering; WebGL2 can
 retain simpler capability fallbacks. Dropping browser support would not eliminate
 the native GPU work measured above. Gameplay, AI, collision and RNG remain a
 separate behavioural specification throughout the rendering redesign.
+
+
+## November 5: perceptual rendering trials
+
+The first retained change removes the reflection-strength requirement from
+shared weather lighting and admits accumulated snow. It retains the original
+single-pass dry path. At 4K, the same corridor with rain reflections disabled
+improves from 18.01 to 13.59 ms GPU; snow improves from 17.39 to 13.36 ms. Garden
+improvements are smaller, 21.40 to 20.99 ms and 20.77 to 20.49 ms respectively.
+Reflective rain is unchanged, with pixel-identical paired captures. Other final
+captures differ by mean channel values below 0.011/255 (maximum 19/255); the
+expanded GPU regression covers cutouts, coplanar order, water, actors and sky.
+
+A separate 24-byte material representation was tried against the existing
+32-byte representation. It quantises octahedral normals and packs HDR emission,
+preserving full-precision depth. Although the images are close, rainy views are
+approximately 0.5–0.7 ms slower on the GTX 1080 Ti. Extra encoding/decoding costs
+outweigh the saved bandwidth. This prototype was removed; captures, timings and
+its patch remain in the private comparison evidence. Extending shared materials
+to all dry scenes also regressed the garden, so that extension was not retained.
+Evidence: `private/optimisation-loop/2026-11-05/perceptual-trials/`.
