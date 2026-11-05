@@ -5,4 +5,5 @@ use serde::{Deserialize, Serialize};
 pub struct Rendering {
     pub half_resolution_ao: bool,
     pub adaptive_shadows: bool,
+    pub cached_blood: bool,
 }

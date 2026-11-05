@@ -80,6 +80,14 @@ lantern panels diffuse their own light; caps and surrounding objects still cast
 shadows. Daylight reduces lantern fill on sunlit surfaces while sheltered lamps
 remain useful. This approximates area lighting with shadow maps.
 
+**F1 → Rendering trials** offers opt-in rendering alternatives for comparison:
+adaptive local shadows, half-resolution ambient occlusion with depth-aware
+reconstruction, and cached modern terrain blood. The blood cache uses HDR
+without MSAA on native/WebGPU; other configurations retain the existing path.
+These trials are off in all built-in presets pending evaluation. Gameplay is
+unchanged. See [measured comparisons](performance.md#november-5-perceptual-rendering-trials)
+for the tested workloads and limitations.
+
 **Model refinement → Vegetation volume** now includes Botanical and Botanical
 dense. These add folded leaf sprays and round bamboo stalks using existing
 materials. **Varied tree shapes** gives repeated placements different crowns and

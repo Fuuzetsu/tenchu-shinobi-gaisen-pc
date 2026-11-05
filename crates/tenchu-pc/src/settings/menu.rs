@@ -6,6 +6,7 @@ use tenchu_core::effects::RumbleAction;
 pub enum Item {
     HalfResolutionAo,
     AdaptiveShadows,
+    CachedBlood,
     StateSlot,
     SaveState,
     LoadState,
@@ -350,6 +351,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Adaptive shadow detail",
                 on(s.graphics.rendering.adaptive_shadows),
                 "Keep nearby shadow detail; use smaller maps and fewer filter samples for local lights, with slower distant foliage-shadow updates. Lamps and character motion stay live. Compare edges and camera movement with off.",
+            ),
+            (
+                Item::CachedBlood,
+                "Cached terrain blood",
+                on(s.graphics.rendering.cached_blood),
+                "Cache modern blood coverage on flat terrain; lighting and weather still update every frame. Other blood styles, slopes and unsupported surfaces keep their existing renderer. Requires HDR without MSAA on native/WebGPU.",
             ),
         ],
         20 => vec![

@@ -129,6 +129,7 @@ pub struct Renderer {
     overlay_effects: [wgpu::RenderPipeline; 6],
     post: Option<post::Post>,
     composite: Option<decals::composite::Composite>,
+    blood_cache: Option<decals::cache::Cache>,
     composite_supported: bool,
     size: [u32; 2],
     bindings: wgpu::BindGroup,
@@ -324,6 +325,7 @@ impl Renderer {
             shadow_elapsed: None,
             shadows,
             materials,
+            blood_cache: None,
             decals: Default::default(),
             decal_sources: Default::default(),
         };
@@ -469,6 +471,17 @@ impl Renderer {
         }
         if compose_blood && self.composite.is_none() {
             self.composite = Some(decals::composite::Composite::new(self));
+        }
+        let cache_blood = graphics.rendering.cached_blood
+            && self.composite_supported
+            && samples == 1
+            && graphics.post.enabled
+            && !self.gl;
+        if !cache_blood || pipelines_changed {
+            self.blood_cache = None;
+        }
+        if cache_blood && self.blood_cache.is_none() {
+            self.blood_cache = Some(decals::cache::Cache::new(self));
         }
         let wet = wet_lighting::configured(graphics, samples, self.gl);
         if !wet || pipelines_changed {
@@ -752,6 +765,9 @@ impl Renderer {
         camera.extend(rays.unwrap_or([0.0; 16]));
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
+        if let Some(cache) = &mut self.blood_cache {
+            cache.prepare(&self.device, &self.decals);
+        }
         let composite = decals::composite::useful(self, matrix);
         if composite {
             self.composite
@@ -928,10 +944,17 @@ impl Renderer {
                 }
                 mark(&mut pass, stage);
             }
-            if composite {
+            if composite || self.blood_cache.as_ref().is_some_and(|cache| cache.dirty()) {
                 drop(pass);
-                let compositor = self.composite.as_ref().unwrap();
-                compositor.coverage(self, &mut encoder, matrix);
+                if let Some(cache) = &mut self.blood_cache {
+                    cache.update(&mut encoder);
+                }
+                if composite {
+                    self.composite
+                        .as_ref()
+                        .unwrap()
+                        .coverage(self, &mut encoder, matrix);
+                }
                 pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Scene after blood coverage"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -956,7 +979,17 @@ impl Renderer {
                 pass.set_bind_group(0, &self.bindings, &[]);
                 pass.set_bind_group(1, &self.shadows.bindings, &[]);
                 pass.set_bind_group(2, &self.materials.bindings, &[]);
-                compositor.shade(self, &mut pass, matrix);
+                if composite {
+                    self.composite
+                        .as_ref()
+                        .unwrap()
+                        .shade(self, &mut pass, matrix);
+                    if let Some(cache) = &self.blood_cache {
+                        cache.draw(&mut pass, self.snow_bounds());
+                    }
+                } else {
+                    self.draw_decals(&mut pass, matrix);
+                }
             } else {
                 self.draw_decals(&mut pass, matrix);
             }

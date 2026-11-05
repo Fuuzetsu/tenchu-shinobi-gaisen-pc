@@ -137,6 +137,42 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
                 error <= u8::from(case == "same" || case == "unknown"),
                 "{case} {mode:?}: error {error}"
             );
+            options.rendering.cached_blood = true;
+            renderer.configure(&options);
+            renderer.force_blood_composite = Some(false);
+            for count in [12, 6, 0, 12] {
+                renderer.set_projected_decals(
+                    pages[..count]
+                        .iter()
+                        .map(|(page, sources)| (page, sources.as_slice())),
+                );
+                let cache = renderer.blood_cache.take();
+                let expected = capture(&mut renderer);
+                renderer.blood_cache = cache;
+                let actual = capture(&mut renderer);
+                assert_eq!(
+                    renderer.blood_cache.as_ref().unwrap().useful(camera),
+                    case == "same" && count > 0
+                );
+                let error = actual
+                    .iter()
+                    .zip(&expected)
+                    .map(|(&a, &b)| a.abs_diff(b))
+                    .max()
+                    .unwrap();
+                let mean = actual
+                    .iter()
+                    .zip(&expected)
+                    .map(|(&a, &b)| f32::from(a.abs_diff(b)))
+                    .sum::<f32>()
+                    / actual.len() as f32;
+                assert!(
+                    error <= 6 && mean < 0.15,
+                    "cached {case} {mode:?} pages {count}: max {error}, mean {mean}"
+                );
+            }
+            options.rendering.cached_blood = false;
+            renderer.configure(&options);
         }
     }
     renderer.force_blood_composite = None;

@@ -184,14 +184,21 @@ impl Composite {
     fn geometry(renderer: &Renderer, pass: &mut wgpu::RenderPass<'_>, matrix: Mat4) {
         let frustum = Frustum::new(matrix);
         let mut first = 1;
-        for decal in renderer
+        for (index, decal) in renderer
             .decals
             .iter()
-            .filter(|d| frustum.contains(d.bounds, 2.0))
+            .enumerate()
+            .filter(|(_, d)| frustum.contains(d.bounds, 2.0))
         {
             decal.mesh.bind(pass);
             pass.set_vertex_buffer(2, decal.source_ids.as_ref().unwrap().slice(..));
-            pass.draw(0..decal.mesh.count, first..first + 1);
+            if let Some(cache) = &renderer.blood_cache {
+                for range in &cache.fallback[index] {
+                    pass.draw(range.clone(), first..first + 1);
+                }
+            } else {
+                pass.draw(0..decal.mesh.count, first..first + 1);
+            }
             first += decal.mesh.count / 3;
         }
     }
@@ -260,11 +267,19 @@ pub(in crate::renderer) fn useful(renderer: &Renderer, matrix: Mat4) -> bool {
     let mut area = 0_u64;
     let mut count = 0;
     let mut union: Option<Rect> = None;
-    for decal in renderer
+    for (index, decal) in renderer
         .decals
         .iter()
-        .filter(|d| frustum.contains(d.bounds, 2.0))
+        .enumerate()
+        .filter(|(_, d)| frustum.contains(d.bounds, 2.0))
     {
+        if renderer
+            .blood_cache
+            .as_ref()
+            .is_some_and(|cache| cache.fallback[index].is_empty())
+        {
+            continue;
+        }
         if !decal.ground_blood {
             return false;
         }

@@ -2632,3 +2632,37 @@ its already optimised rainy/snowy path changes by at most 0.18 ms. Mean RGB
 channel differences are 0.002–0.115/255; the largest garden shadow-edge
 pixel difference is 67/255. These are fixed-view GPU timings, not displayed FPS.
 Camera-motion and transition comparisons remain part of the final trial report.
+
+
+Two weather-field caches were tested and rejected on this machine. A 1024²
+world-space ripple-gradient texture kept the original procedural seed/time,
+with interpolation near the camera and procedural fallback outside its area.
+Generating it every frame cost slightly more than it saved: the four rain pairs
+were 0.04–0.14 ms slower, with almost identical captures. A second prototype
+cached the four stable wetness/snow noise lattices in a 64³ RGBA16F volume,
+regenerated only when the camera crossed a lattice region. It retained the same
+world coordinates and interpolation, with procedural fallback outside the
+volume. Mean GPU differences across rain/snow and both views were within 0.08 ms;
+there was no repeatable benefit to justify the extra path and memory. Their
+patches, binaries, screenshots and timings remain in the comparison evidence.
+Neither cache changes wind/shelter or accumulation logic; neither is shipped.
+
+
+The optional persistent-blood cache stores modern coverage per flat terrain
+receiver in a bounded 32 MiB R16F array. Changed/removed/fading pages rebuild
+only affected masks; original mark metadata remains authoritative for rewind.
+Mask projection extends beyond receiver edges before sampling to avoid seams.
+Current lighting, wetness and snow still shade each receiver. Slopes, ambiguous
+overlapping floors, untracked receivers and other blood styles fall back to the
+existing renderer. Sparse receivers also retain it. More than 256 eligible
+receivers use the fallback rather than grow the atlas. Cached receivers are
+batched, and uncached marks retain the existing overlap-composition heuristic.
+
+That last detail mattered: an earlier prototype disabled overlap composition
+for remaining marks, making the corridor slower despite improving the garden.
+The retained version fixes it. Dense rainy corridor GPU time is 16.84→16.29 ms;
+dense rainy garden is 26.42→24.01 ms. These synthetic workloads use 4096 and
+about 1600 projected stains respectively. The GPU regression verifies actual
+cache use, removing half/all marks and restoring them, rain/snow, cutout
+materials, unknown receivers, slopes, foliage and overlapping floors. Cache
+allocation does not change source state or the savestate format.

@@ -5,6 +5,7 @@ use glam::{Mat4, Vec3};
 use std::{collections::HashMap, sync::Arc};
 use wgpu::util::DeviceExt;
 
+pub(super) mod cache;
 pub(super) mod composite;
 
 pub(super) struct Decal {
@@ -14,6 +15,7 @@ pub(super) struct Decal {
     pub(super) ground_blood: bool,
     source_ids: Option<wgpu::Buffer>,
     source_bounds: Vec<[Vec3; 2]>,
+    sources: Vec<SourceRange>,
 }
 
 impl Renderer {
@@ -45,6 +47,7 @@ impl Renderer {
                         _source: page.clone(),
                         source_ids: None,
                         source_bounds: Vec::new(),
+                        sources: sources.to_vec(),
                         mesh: self.upload(page),
                         bounds,
                         ground_blood: page.iter().all(|v| {
@@ -117,13 +120,17 @@ impl Renderer {
 
     pub(super) fn draw_decals(&self, pass: &mut wgpu::RenderPass<'_>, matrix: Mat4) {
         let frustum = Frustum::new(matrix);
+        if let Some(cache) = &self.blood_cache {
+            cache.draw(pass, self.snow_bounds());
+        }
         let mut current = false;
         let bounds = self.snow_bounds();
         pass.set_pipeline(&self.pipelines.effects[5]);
-        for decal in self
+        for (index, decal) in self
             .decals
             .iter()
-            .filter(|d| frustum.contains(d.bounds, 2.0))
+            .enumerate()
+            .filter(|(_, d)| frustum.contains(d.bounds, 2.0))
         {
             let specialised = decal.ground_blood;
             #[cfg(test)]
@@ -141,7 +148,13 @@ impl Renderer {
                 current = specialised;
             }
             decal.mesh.bind(pass);
-            pass.draw(0..decal.mesh.count, 0..1);
+            if let Some(cache) = &self.blood_cache {
+                for range in &cache.fallback[index] {
+                    pass.draw(range.clone(), 0..1);
+                }
+            } else {
+                pass.draw(0..decal.mesh.count, 0..1);
+            }
         }
     }
 }

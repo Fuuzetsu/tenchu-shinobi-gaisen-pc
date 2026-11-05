@@ -6,6 +6,10 @@ use std::{ops::Range, sync::Arc};
 pub(crate) struct Source([[u32; 16]; 3]);
 
 impl Source {
+    pub(crate) fn vertices(&self) -> [Vertex; 3] {
+        *bytemuck::cast_ref(&self.0)
+    }
+
     pub(super) fn new(triangle: &[Vertex; 3]) -> Self {
         Self(*bytemuck::cast_ref(triangle))
     }

@@ -175,6 +175,10 @@ impl Options {
         self.module(device, gl, include_str!("blood_composite.wgsl"))
     }
 
+    pub(super) fn blood_cache_shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
+        self.module(device, gl, include_str!("decals/cache_shading.wgsl"))
+    }
+
     pub(super) fn wet_shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
         self.module(device, gl, include_str!("wet_lighting.wgsl"))
     }
@@ -206,7 +210,11 @@ impl Options {
             crate::visuals::relief::GRADIENT_RANGE,
             self.magnification,
             self.filtering,
-            include_str!("../scene.wgsl"),
+            concat!(
+                include_str!("blood_mask.wgsl"),
+                "\n",
+                include_str!("../scene.wgsl")
+            ),
             include_str!("palette.wgsl"),
             include_str!("lighting.wgsl"),
             include_str!("weather.wgsl"),
