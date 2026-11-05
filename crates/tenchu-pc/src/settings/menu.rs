@@ -108,6 +108,8 @@ pub enum Item {
     BloodDeathSize,
     BloodSeconds,
     BloodSpurts,
+    DeathGush,
+    GushSeconds,
     BloodMarks,
     ClearBlood,
     PlayerModel,
@@ -1022,6 +1024,18 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Wound spurt strength",
                 format!("{}%", s.graphics.blood.spurts),
                 "0 keeps drips only. Add pulsing jets from animated wounds using the selected Wound drips style. Strength and frequency weaken over the Wound bleeding duration. Cosmetic only; no health loss.",
+            ),
+            (
+                Item::DeathGush,
+                "Death gush strength",
+                format!("{}%", s.graphics.blood.death_gush),
+                "Optional Onikage-inspired upward bursts of modern blood from dying characters. Starts with their original death blood and follows the body. Death pools must not be Off; Player death pool also controls the player. Cinematics and gameplay stay unchanged.",
+            ),
+            (
+                Item::GushSeconds,
+                "Death gush duration",
+                format!("{} s", s.graphics.blood.gush_seconds),
+                "How long a death gush lasts, with weakening pressure. Independent of wound bleeding; 0 stops it. Clear blood also stops active gushes.",
             ),
             (
                 Item::BloodMarks,

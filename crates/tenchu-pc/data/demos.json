@@ -763,6 +763,17 @@
     "frontend": {"page": "shop", "language": "en"}
   },
   {
+    "id": "death-gush",
+    "title": "Onikage-inspired death gushes",
+    "description": "Optional repeated upward bursts of modern blood. They begin with the original death-blood cue, follow the body, weaken over six seconds and leave retained stains. Original gameplay and cinematic blood are unchanged.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "death-gush",
+    "shot": "guard"
+  },
+  {
     "id": "wound-spurts",
     "title": "Pulsing wound spurts",
     "description": "Compare drips with pulsing jets during ordinary sparring. Blood follows animated wounds and weakens over the chosen duration. The extra bleeding is cosmetic, with no health loss or gameplay RNG changes.",

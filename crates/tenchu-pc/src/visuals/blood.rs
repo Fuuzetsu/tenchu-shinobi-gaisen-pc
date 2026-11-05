@@ -17,10 +17,12 @@ use std::{
 };
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
+mod gush;
 mod runoff;
 mod storage;
 mod weapons;
 mod wounds;
+use gush::Gush;
 use runoff::Runoff;
 use storage::Marks;
 #[cfg(test)]
@@ -103,9 +105,16 @@ struct Pool {
     mark: Mark,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq)]
+enum DropKind {
+    Wound,
+    Weapon,
+    Gush,
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Drop {
-    weapon: bool,
+    kind: DropKind,
     previous: Vec3,
     position: Vec3,
     velocity: Vec3,
@@ -133,6 +142,7 @@ pub struct Blood {
     samples: Vec<Option<Sample>>,
     marks: Marks,
     wounds: VecDeque<Wound>,
+    gushes: BTreeMap<usize, Gush>,
     weapons: weapons::Weapons,
     drops: Vec<Drop>,
     runoff: Vec<Runoff>,
@@ -154,6 +164,7 @@ impl Blood {
             samples,
             marks,
             wounds,
+            gushes,
             weapons,
             drops,
             runoff,
@@ -168,6 +179,7 @@ impl Blood {
         out.value(samples)?;
         marks.capture(out)?;
         out.value(wounds)?;
+        out.value(gushes)?;
         out.value(weapons)?;
         out.value(drops)?;
         out.value(runoff)?;
@@ -274,14 +286,18 @@ impl Blood {
         }
         if settings.drips == BloodStyle::Off {
             self.wounds.clear();
-            self.drops.retain(|drop| drop.weapon && settings.weapons);
+            self.drops.retain(|drop| drop.kind != DropKind::Wound);
         }
         if !settings.model_stains && (settings.drips == BloodStyle::Off || settings.seconds == 0) {
             self.pending_wounds.clear();
         }
         if !settings.weapons {
-            self.drops.retain(|d| !d.weapon);
+            self.drops.retain(|d| d.kind != DropKind::Weapon);
             self.weapons.clear();
+        }
+        if !settings.gush(false) {
+            self.gushes.clear();
+            self.drops.retain(|d| d.kind != DropKind::Gush);
         }
         if !settings.runoff || ground_changed || !settings.retained_ground() {
             self.runoff.clear();
@@ -293,6 +309,7 @@ impl Blood {
     pub fn clear(&mut self) {
         self.marks = Marks::default();
         self.wounds.clear();
+        self.gushes.values_mut().for_each(|g| *g = Gush::Finished);
         self.pending_wounds.clear();
         self.weapons.clear();
         self.drops.clear();
@@ -635,7 +652,7 @@ impl Blood {
                 if continuous.is_none() && next.mode == 0 {
                     new_blood.push(Contact {
                         position: next.position,
-                        source: game.effects.gore_sources.get(index).copied().flatten(),
+                        source: super::death::blood::gore_source(&game.effects, frame, index),
                     });
                 }
                 if let Some(old) = continuous {
@@ -700,6 +717,7 @@ impl Blood {
                 }
             }
         }
+        self.track_gushes(game, models, &new_blood, settings, &health, frame);
         self.health = health;
         self.pending_wounds
             .retain(|root| self.health.contains_key(root));
@@ -712,10 +730,11 @@ impl Blood {
         };
         let weapons = settings.weapons && (!self.weapons.is_empty() || !hits.is_empty());
         let transforms =
-            if self.wounds.is_empty() && !weapons {
+            if self.wounds.is_empty() && !weapons && !self.gushes.values().any(Gush::active) {
                 BTreeMap::new()
             } else {
                 let mut needed: BTreeSet<_> = self.wounds.iter().map(|wound| wound.part).collect();
+                needed.extend(self.gushes.values().filter_map(Gush::part));
                 if weapons {
                     needed.extend(self.weapons.parts());
                     for &id in game.roster.order.iter().filter(|id| hits.contains(id)) {
@@ -745,6 +764,7 @@ impl Blood {
             })
         });
         self.emit_wounds(game.tick, settings, &transforms);
+        self.emit_gushes(settings, &transforms);
         let mut drops = std::mem::take(&mut self.drops);
         drops.retain_mut(|drop| {
             drop.previous = drop.position;
@@ -1065,16 +1085,22 @@ impl Blood {
             for drop in &self.drops {
                 let center = drop.previous.lerp(drop.position, alpha.clamp(0.0, 1.0));
                 let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
-                let modern = drop.weapon || self.settings.drips == BloodStyle::Modern;
+                let modern =
+                    drop.kind != DropKind::Wound || self.settings.drips == BloodStyle::Modern;
+                let scale = if drop.kind == DropKind::Gush {
+                    2.5
+                } else {
+                    1.0
+                };
                 let along = if modern {
                     projected.try_normalize().unwrap_or(camera.y_axis)
                 } else {
                     camera.y_axis
                 };
-                let right = along.cross(camera.z_axis) * if modern { 7.0 } else { 11.0 };
+                let right = along.cross(camera.z_axis) * if modern { 7.0 * scale } else { 11.0 };
                 let up = along
                     * if modern {
-                        9.0 + projected.length().min(150.0) * 0.12
+                        (9.0 + projected.length().min(150.0) * 0.12) * scale
                     } else {
                         11.0
                     };
@@ -1100,7 +1126,9 @@ impl Blood {
                         | render_mesh::FOG
                         | render_mesh::DOUBLE_SIDED
                         | if modern { render_mesh::SOFT } else { 0 }
-                        | if !drop.weapon && self.settings.drips == BloodStyle::OriginalHd {
+                        | if drop.kind == DropKind::Wound
+                            && self.settings.drips == BloodStyle::OriginalHd
+                        {
                             render_mesh::STAIN | render_mesh::BLOOD_HD
                         } else {
                             0

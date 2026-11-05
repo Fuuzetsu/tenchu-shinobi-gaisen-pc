@@ -200,7 +200,7 @@ impl Weapons {
                     position,
                     velocity: speed,
                     life: 90,
-                    weapon: true,
+                    kind: DropKind::Weapon,
                 });
                 c.amount = (c.amount - if swing { 0.055 } else { 0.008 } * c.wet).max(0.08);
             }
@@ -477,14 +477,14 @@ mod tests {
                         .attached
                         .iter()
                         .any(|(_, mark)| mark.1 == Kind::Body);
-                    dripped |= blood.drops.iter().any(|drop| !drop.weapon);
+                    dripped |= blood.drops.iter().any(|drop| drop.kind != DropKind::Weapon);
                     assert!(
                         bled || blood.weapons.is_empty(),
                         "variant {variant}: blades bloodied before contact on tick {}",
                         game.tick
                     );
                     assert!(
-                        bled || blood.drops.iter().all(|drop| !drop.weapon),
+                        bled || blood.drops.iter().all(|drop| drop.kind != DropKind::Weapon),
                         "variant {variant}: early weapon droplets"
                     );
                     assert!(

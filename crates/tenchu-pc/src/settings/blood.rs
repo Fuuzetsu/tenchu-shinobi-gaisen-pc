@@ -49,6 +49,8 @@ pub struct Blood {
     pub death_size: u16,
     pub seconds: u16,
     pub spurts: u16,
+    pub death_gush: u16,
+    pub gush_seconds: u16,
     pub marks: u16,
 }
 
@@ -70,6 +72,8 @@ impl Default for Blood {
             death_size: 100,
             seconds: 3,
             spurts: 0,
+            death_gush: 0,
+            gush_seconds: 6,
             marks: 8192,
         }
     }
@@ -105,11 +109,20 @@ impl Blood {
             }
     }
 
+    pub fn gush(self, player: bool) -> bool {
+        self.amount != 0
+            && self.death_gush != 0
+            && self.gush_seconds != 0
+            && self.death != Style::Off
+            && (!player || self.player_death)
+    }
+
     pub fn active(self) -> bool {
         self.amount != 0
             && (self.retained_ground()
                 || self.custom_death(false)
                 || self.custom_death(true)
+                || self.gush(false)
                 || self.weapons
                 || self.model_stains
                 || self.drips != Style::Off && self.seconds != 0)
@@ -120,6 +133,8 @@ impl Blood {
         self.death_size = self.death_size.clamp(10, 200);
         self.seconds = self.seconds.min(60);
         self.spurts = self.spurts.min(200);
+        self.death_gush = self.death_gush.min(200);
+        self.gush_seconds = self.gush_seconds.min(15);
         self.weapon_coverage = self.weapon_coverage.min(200);
         self.weapon_flow = self.weapon_flow.min(200);
         self.marks = self.marks.max(32);
@@ -146,6 +161,8 @@ struct SavedBlood {
     death_size: Option<u16>,
     seconds: Option<u16>,
     spurts: Option<u16>,
+    death_gush: Option<u16>,
+    gush_seconds: Option<u16>,
     marks: Option<u16>,
 }
 
@@ -176,6 +193,8 @@ impl From<SavedBlood> for Blood {
             death_size: saved.death_size.unwrap_or(default.death_size),
             seconds: saved.seconds.unwrap_or(default.seconds),
             spurts: saved.spurts.unwrap_or_default(),
+            death_gush: saved.death_gush.unwrap_or_default(),
+            gush_seconds: saved.gush_seconds.unwrap_or(default.gush_seconds),
             marks: saved.marks.unwrap_or(default.marks),
         }
     }
@@ -205,6 +224,7 @@ mod tests {
                 assert_eq!(blood.marks, 12000);
                 assert!(!blood.runoff, "Existing saved preferences keep runoff off");
                 assert_eq!(blood.spurts, 0);
+                assert_eq!((blood.death_gush, blood.gush_seconds), (0, 6));
                 assert_eq!((blood.weapon_coverage, blood.weapon_flow), (100, 0));
             }
         }
@@ -217,6 +237,8 @@ mod tests {
             player_death: false,
             death_size: 45,
             spurts: 120,
+            death_gush: 140,
+            gush_seconds: 9,
             weapon_coverage: 140,
             weapon_flow: 80,
             ..Blood::modern()

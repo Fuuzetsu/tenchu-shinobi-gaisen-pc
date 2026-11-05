@@ -135,6 +135,20 @@ pub fn slots<'a>(
         )
 }
 
+pub fn gore_source(effects: &Effects, frame: Option<&Frame>, index: usize) -> Option<ModelId> {
+    let count = effects.active_slots().len();
+    if index < count {
+        effects.gore_sources.get(index).copied().flatten()
+    } else {
+        let death = replacement(frame)?;
+        death
+            .effects
+            .gore_sources
+            .get(index - count)?
+            .map(|_| death.source)
+    }
+}
+
 pub fn drawings<'a>(
     effects: &'a Effects,
     frame: Option<&'a Frame>,

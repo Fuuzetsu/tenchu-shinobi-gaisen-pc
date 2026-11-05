@@ -35,7 +35,7 @@ impl Blood {
                     (self.random() - 0.5) * 18.0,
                 );
                 self.drops.push(Drop {
-                    weapon: false,
+                    kind: DropKind::Wound,
                     previous: position,
                     position,
                     velocity,
@@ -75,7 +75,7 @@ impl Blood {
                     + spread * 18.0
                     - Vec3::Y * 12.0;
                 self.drops.push(Drop {
-                    weapon: false,
+                    kind: DropKind::Wound,
                     previous: position,
                     position,
                     velocity,

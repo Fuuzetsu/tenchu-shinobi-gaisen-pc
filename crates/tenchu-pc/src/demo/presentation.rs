@@ -84,6 +84,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
                 player.clip().feature,
                 Feature::Blood
                     | Feature::WoundSpurts
+                    | Feature::DeathGush
                     | Feature::BloodSnow
                     | Feature::WeaponSparks
                     | Feature::GuardControls
@@ -106,7 +107,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     };
     let mut distance = scene.distance;
     match player.clip().feature {
-        Feature::GuardControls => target.y += 700.0,
+        Feature::GuardControls | Feature::DeathGush => target.y += 700.0,
         Feature::HeroModels => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
             camera.yaw += (p - 0.5) * 0.25;
@@ -203,6 +204,18 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.effects.spark_density = 150;
             g.lighting.enabled = true;
             g.interpolation = true;
+        }
+        Feature::DeathGush => {
+            g.blood = crate::settings::Blood::modern();
+            g.blood.death_gush = 100;
+            g.blood.gush_seconds = 6;
+            g.blood.spurts = 0;
+            g.blood.drips = crate::settings::BloodStyle::Off;
+            g.lighting.enabled = true;
+            g.interpolation = true;
+            g.sky.enabled = true;
+            g.sky.time = 660;
+            g.post.vignette = 0;
         }
         Feature::WoundSpurts => {
             g.blood = crate::settings::Blood::modern();
@@ -780,6 +793,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             360..420 => "Crouch + guard + left: one roll · original collision and motion",
             _ => "Hold guard: stand and block frontal melee hits · original recoil · vulnerable from behind",
         }.into()),
+        Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {
             "Drips only · hit spray hidden · 4 seconds per wound".into()
         } else {

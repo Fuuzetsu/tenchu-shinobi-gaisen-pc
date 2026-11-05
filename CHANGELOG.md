@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional Onikage-inspired **Death gush strength/duration** under F1 → Blood. Repeated upward bursts follow dying characters after their original blood cue, including alternate player deaths. Clear blood stops them; cinematic blood and gameplay are unchanged. Includes a death-gush demo; disabled by default.
+
 - Add optional **R1 guard / dash / roll** controls under F1 → Movement. Hold the rebindable R1 action to block frontal melee attacks while standing; press a direction for one dash, or hold crouch for a roll. Original recoil and committed actions still apply. Includes a guard-control demo; existing controls remain the default.
 
 - Add optional enemy damage escalation under F1 → Simulation. A guard’s first direct sighting does normal damage; repeated encounters after fully calming down add a configurable bonus, with a configurable cap. Shared alarms and brief sight loss do not raise damage. Disabled by default.
@@ -24,7 +26,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Add continuous stereo rain ambience with its own F1 weather volume. It follows rain intensity, muffles smoothly under cover, pauses with the game and is included in recordings. Modern presets enable it when Rain or Rainstorm is selected; Original stays unchanged.
 
 - Add optional **Strict corpse visibility** under F1 → Gameplay. Guards must have a clear eye-to-body terrain ray before discovering a corpse; visible bodies still raise shared alerts. Original behavior remains the default.
-- Update the mid-mission savestate format for the new gameplay options, per-guard encounter memory and wound/weapon-flow data. Older snapshots require the build that created them; campaign saves are unchanged.
+- Update the mid-mission savestate format for the new gameplay options, per-guard encounter memory and wound/weapon-flow/death-gush data. Older snapshots require the build that created them; campaign saves are unchanged.
 
 - Let tinted and non-metallic weapons receive blood when no silver blade surface is identified, fixing the Mission 9 Kunoichi's clean weapons after successful hits.
 

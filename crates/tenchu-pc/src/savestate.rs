@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use tenchu_assets::Result;
 
 const MAGIC: &[u8; 8] = b"TENCHUST";
-const FORMAT: u32 = 8;
+const FORMAT: u32 = 9;
 const LIMIT: usize = 512 * 1024 * 1024;
 const FILE_LIMIT: usize = 128 * 1024 * 1024;
 

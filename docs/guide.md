@@ -1060,6 +1060,18 @@ preserve surface detail/cutouts and follow interpolated poses and compatible
 replacement models. Original retained spots use disc artwork projected onto the
 surface; extra Original drips use the retail square-particle appearance.
 
+**Death gush strength** adds repeated upward bursts inspired by Onikage's final
+scene, using smooth modern droplets. It starts at the original death-blood cue,
+including delayed stealth-kill bleeding, and follows the animated body. Strength
+is 0–200%; **Death gush duration** is 0–15 seconds (default 6). Death pools must
+not be Off, and **Player death pool** controls whether the player also gushes.
+It does not alter scripted cinematics, drowning or animal deaths. **Clear blood**
+stops current gushes; loading an already-dead corpse does not start a new one.
+
+This deliberately exaggerated effect stays off in all presets. Use
+`demo --clips death-gush` to preview it. Gushes share the existing 128 extra-drop
+budget with wound and weapon blood, and stains share the retention limit.
+
 Retention goes up to **65,535 stains** (Modern High: 8,192; Ultra: 16,384), with a
 shared 256 MiB vertex budget (CPU and GPU each retain a copy). Oldest marks are
 removed when either budget fills. Static marks use cached, culled GPU pages;

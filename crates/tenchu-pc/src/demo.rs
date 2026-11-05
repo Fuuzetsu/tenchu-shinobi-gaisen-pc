@@ -384,6 +384,13 @@ impl Player {
                     0
                 }
             }
+            Feature::DeathGush => {
+                if tick == 30 {
+                    SQUARE
+                } else {
+                    0
+                }
+            }
             Feature::GuardControls => {
                 use tenchu_core::input::{CIRCLE, LEFT, RIGHT};
                 R1 | match tick {

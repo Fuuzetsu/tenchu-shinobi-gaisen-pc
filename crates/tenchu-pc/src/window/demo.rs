@@ -174,6 +174,7 @@ impl Application {
                     clip.feature,
                     Feature::Blood
                         | Feature::BloodSnow
+                        | Feature::DeathGush
                         | Feature::WeaponSparks
                         | Feature::GuardControls
                         | Feature::WeaponFinishes
@@ -181,7 +182,7 @@ impl Application {
                 ) || clip.randomizer.as_ref().is_some_and(|s| s.engage)
                 {
                     let mut guard = position(actor);
-                    if clip.feature == Feature::GuardControls {
+                    if matches!(clip.feature, Feature::GuardControls | Feature::DeathGush) {
                         let facing = game.player().rotation[1];
                         let offset = game.math.velocity(facing, 2800, 0).map(i32::from);
                         let start = game.player().position.wrapping_add(offset.into());
@@ -199,6 +200,8 @@ impl Application {
                                     Feature::WeaponFinishes | Feature::WoundSpurts
                                 ) {
                                     1300
+                                } else if clip.feature == Feature::DeathGush {
+                                    -800
                                 } else {
                                     1500
                                 },
@@ -216,6 +219,7 @@ impl Application {
                             Feature::WeaponSparks
                                 | Feature::WeaponFinishes
                                 | Feature::WoundSpurts
+                                | Feature::DeathGush
                                 | Feature::GuardControls
                         )
                     {
@@ -252,6 +256,9 @@ impl Application {
                             player.max_health = 9999;
                         }
                     }
+                    if clip.feature == Feature::DeathGush {
+                        game.roster.get_mut(actor).setup_think(0)?;
+                    }
                     scene.player_start = game.player().position;
                     scene.actor = Some(actor);
                     scene.target = guard - Vec3::Y * 600.0;
@@ -264,7 +271,7 @@ impl Application {
                         4200.0
                     };
                     scene.pitch = -0.55;
-                    if clip.feature == Feature::GuardControls {
+                    if matches!(clip.feature, Feature::GuardControls | Feature::DeathGush) {
                         scene.distance = 5600.0;
                         scene.pitch = -0.60;
                     }
@@ -277,6 +284,7 @@ impl Application {
                             | Feature::WeaponFinishes
                             | Feature::WoundSpurts
                             | Feature::GuardControls
+                            | Feature::DeathGush
                     )
                 {
                     self.settings.keep_enemies_active = true;
