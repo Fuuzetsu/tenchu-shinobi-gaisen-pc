@@ -18,7 +18,7 @@ pub const SCENE_COLUMNS: [&str; SCENE_COUNT] = [
     "resolve_finish",
 ];
 pub const SCENE_NAMES: [&str; SCENE_COUNT] = [
-    "Visibility pass",
+    "Visibility + material preparation",
     "Sky + clear",
     "Terrain + static props",
     "Characters + moving objects",

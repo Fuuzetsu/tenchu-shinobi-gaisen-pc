@@ -8,6 +8,16 @@ pub(super) struct Chunk {
     foliage: Option<[Vec3; 2]>,
 }
 
+impl Chunk {
+    fn padding(&self, wind: f32) -> f32 {
+        if self.foliage.is_some() {
+            wind.abs() * 100.0 + 2.0
+        } else {
+            2.0
+        }
+    }
+}
+
 pub(super) fn update_chunks(vertices: &[Vertex], chunks: &mut Vec<Chunk>) -> Option<[Vec3; 2]> {
     collect_chunks(vertices.len(), |i| &vertices[i], chunks)
 }
@@ -235,6 +245,14 @@ impl Frustum {
             normal.dot(center) + p.w + normal.abs().dot(extent) >= -0.001
         })
     }
+    pub(super) fn any_visible(&self, chunks: &[Chunk], wind: f32) -> bool {
+        chunks.iter().any(|chunk| {
+            chunk
+                .bounds
+                .is_some_and(|bounds| self.contains(bounds, chunk.padding(wind)))
+        })
+    }
+
     pub(super) fn cull(
         &self,
         chunks: &[Chunk],
@@ -257,11 +275,7 @@ impl Frustum {
         let mut foliage = false;
         let mut damage: Option<Rect> = None;
         for chunk in chunks {
-            let padding = if chunk.foliage.is_some() {
-                wind.abs() * 100.0 + 2.0
-            } else {
-                2.0
-            };
+            let padding = chunk.padding(wind);
             let visible = chunk
                 .bounds
                 .filter(|&bounds| self.contains(bounds, padding));

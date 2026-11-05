@@ -2035,3 +2035,69 @@ Shortening lighting intermediate lifetimes reduced the garden regression, but
 still added about 0.34 ms GPU and gave smaller village gains. The polygon cache,
 shader shortcut and lifetime experiment were removed together. None of those
 experimental gains are included in the retained cumulative results above.
+
+
+## November 5: separate wet materials from terrain lighting
+
+Reflective wet terrain now prepares its materials before a dedicated lighting
+pass. Diffuse light and rain reflections share each shadow visibility result,
+and the lighting shader no longer carries texture and weather intermediates
+through the shadow filter. Cutouts and coplanar faces retain their original
+draw order; water and unlit materials use ordered forward batches. Actors,
+particles and decals keep their existing rendering.
+
+This path is limited to HDR, one sample per pixel, rain reflections and soft
+local shadows on native/WebGPU backends. Dry scenes, WebGL2, MSAA, orthographic
+views, mixed terrain/actor meshes and views without visible ordinary terrain
+use the forward path. The last check reuses existing geometry bounds; forcing
+the extra pass on the waterfall route was a measurable regression.
+
+Three attachments cost 32 bytes per pixel, about 253 MiB at 3840 × 2160,
+allocated lazily and reused. Linear depth retains 32-bit precision; normals
+use 16-bit octahedral coordinates and color intermediates use half floats.
+Invariant vertex positions keep the preparation and forward passes consistent
+at depth boundaries. The profiler labels the first scene category
+“Visibility + material preparation”; its data column remains unchanged.
+
+Fixed 3826 × 2146 views, with the diagnostic's settings and HD artwork,
+use 240 frames each and exclude 30 warm-up frames. Paired GPU means are:
+
+| View | Night | Day | Wet blood stress |
+|---|---|---|---|
+| Reported Mission 1 corner | 20.37 → 18.86 ms | 20.93 → 18.87 ms | 23.88 → 22.41 ms |
+| Mission 1 garden | 19.45 → 17.46 ms | 20.05 → 17.50 ms | 23.85 → 21.79 ms |
+
+The comparisons hold geometry, lights, camera and animation time constant.
+Images are not bit-identical: average absolute channel differences are
+0.0042–0.0201 on the 0–255 scale. Largest differences are 2/5 in the
+reported night/day views and 12 in the garden; only one/four garden channels
+exceed 8, at shadow boundaries. No shadow samples or resolution were removed.
+
+The final actual Wayland comparison uses 3840 × 2160, the same report settings,
+HD artwork and 1,200 frames per route, excluding 60 warm-up frames. No compiler,
+browser or other benchmark runs concurrently. Against `26d291f`:
+
+| Route | Average FPS before → after | Frame p95 | Frame p99 |
+|---|---|---|---|
+| Mission 1 village | 41.0 → 42.0 | 27.44 → 26.03 ms | 27.88 → 26.39 ms |
+| Mission 5 courtyard | 46.9 → 50.7 | 22.63 → 20.60 ms | 22.96 → 20.93 ms |
+| Mission 1 garden | 37.8 → 38.9 | 28.29 → 26.97 ms | 29.05 → 27.56 ms |
+| Mission 4 waterfall | 71.9 → 72.6 | 14.78 → 14.79 ms | 15.20 → 15.06 ms |
+
+Point-shadow map work is effectively unchanged; the gains come from shading.
+Village CPU mean rises from 3.38 to 3.67 ms with the additional pass, while its
+GPU mean falls from 21.93 to 21.33 ms. Garden GPU p99 falls from 26.04 to
+24.44 ms. The waterfall uses forward rendering and remains effectively neutral.
+These are modest improvements; the difficult Mission 1 routes remain below
+60 FPS. They reconstruct the diagnostic's graphics workload, not its complete
+actor and weather history.
+
+Validation includes the new GPU comparison for cutouts, coplanar surfaces,
+indexed meshes, water/unlit materials, moving actors, blended effects and
+far-plane sky ordering. Existing visibility, rain/snow shelter, scenery, blood
+and daylight GPU regressions pass, as do 134 ordinary application tests.
+Formatting, strict workspace/all-target and WASM Clippy, native release and
+actual WASM cdylib builds pass. Chromium WebGPU records 757 wet preparation
+passes through saved-state loading, movement, lighting toggles, free camera and
+resume; WebGL2 completes the same flow with forward rendering. Neither reports
+GPU errors, and paused gameplay remains unchanged by graphics controls.

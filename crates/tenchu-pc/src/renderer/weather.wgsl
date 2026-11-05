@@ -230,6 +230,30 @@ fn wet_reflection(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, pu
     return surface_reflection(position, normal, surface, puddle) * lighting.rain.x;
 }
 
+struct WetSurface {
+    puddle: f32,
+    wet: f32,
+    normal: vec3<f32>,
+}
+
+fn prepare_wet_surface(normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, shelter: f32, incidence: f32, rain_enabled: bool) -> WetSurface {
+    let slope = clamp(-surface.y, 0.0, 1.0);
+    let variation = weather_noise(position / 450.0);
+    let basin = weather_noise(position / 1400.0) * 0.8 + variation * 0.2;
+    let level = lighting.weather.w * 0.6;
+    let puddle = (1.0 - smoothstep(level - 0.07, level + 0.07, basin)) * smoothstep(0.0, 0.12, lighting.weather.w)
+        * smoothstep(0.96, 0.998, slope) * shelter * incidence;
+    let wet = max(lighting.weather.x * shelter * incidence * (0.75 + variation * 0.25), puddle);
+    var smooth_normal = normal;
+    if wet > 0.0 && lighting.rain.x > 0.0 {
+        var ripples = vec3(0.0);
+        if puddle > 0.0 { ripples = rain_ripples(position, footprint, rain_enabled) * puddle; }
+        smooth_normal = normalize(mix(normal, surface, puddle * 0.9)
+            + ripples);
+    }
+    return WetSurface(puddle, wet, smooth_normal);
+}
+
 fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, linear: bool, light: vec3<f32>, already_lit: bool, precomputed: bool, rain_enabled: bool, use_bounds: bool) -> vec3<f32> {
     if lighting.weather.x + lighting.weather.y + lighting.weather.w <= 0.0 { return input; }
     let incidence = weather_incidence(surface, precomputed);
@@ -238,19 +262,12 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
     if shelter == 0.0 { return input; }
     var color = input;
     if lighting.weather.x + lighting.weather.w > 0.0 {
-        let slope = clamp(-surface.y, 0.0, 1.0);
-        let variation = weather_noise(position / 450.0);
-        let basin = weather_noise(position / 1400.0) * 0.8 + variation * 0.2;
-        let level = lighting.weather.w * 0.6;
-        let puddle = (1.0 - smoothstep(level - 0.07, level + 0.07, basin)) * smoothstep(0.0, 0.12, lighting.weather.w)
-            * smoothstep(0.96, 0.998, slope) * shelter * incidence;
-        let wet = max(lighting.weather.x * shelter * incidence * (0.75 + variation * 0.25), puddle);
+        let wet_surface = prepare_wet_surface(normal, surface, position, footprint, shelter, incidence, rain_enabled);
+        let puddle = wet_surface.puddle;
+        let wet = wet_surface.wet;
         color = input * (1.0 - wet * 0.32 - puddle * 0.08);
         if wet > 0.0 && lighting.rain.x > 0.0 {
-            var ripples = vec3(0.0);
-            if puddle > 0.0 { ripples = rain_ripples(position, footprint, rain_enabled) * puddle; }
-            let smooth_normal = normalize(mix(normal, surface, puddle * 0.9)
-                + ripples);
+            let smooth_normal = wet_surface.normal;
             var reflection = wet_reflection(position, smooth_normal, surface, puddle) * wet;
             if !linear { reflection = pow(max(reflection, vec3(0.0)), vec3(1.0 / 2.2)) * 0.5; }
             color += reflection;

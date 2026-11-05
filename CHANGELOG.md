@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Improve frame times for reflective wet terrain with soft shadows by sharing
+  lighting between surface shading and rain reflections. The optimisation uses
+  HDR without edge anti-aliasing on native/WebGPU backends; other configurations
+  retain the existing rendering path.
+
 - Small soft-shadow rendering performance improvements with weather enabled;
   shadow resolution and sample count are unchanged.
 

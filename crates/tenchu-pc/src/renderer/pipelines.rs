@@ -168,34 +168,51 @@ pub(super) fn create(
 impl Options {
     pub(super) fn shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
         // Distinct modules also avoid wgpu 24 GL's cache ignoring pipeline overrides.
+        self.module(device, gl, include_str!("blood_composite.wgsl"))
+    }
+
+    pub(super) fn wet_shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
+        self.module(device, gl, include_str!("wet_lighting.wgsl"))
+    }
+
+    fn module(self, device: &wgpu::Device, gl: bool, pass: &str) -> wgpu::ShaderModule {
+        let common = format!(
+            "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            self.filtering != 0 || self.magnification != 0,
+            self.lighting,
+            self.relief != 0,
+            self.relief == 2,
+            self.hdr,
+            self.weather,
+            self.rain,
+            self.water,
+            crate::lighting::MAX_SCENE_LIGHTS,
+            crate::lighting::MAX_LIGHTS,
+            shadows::FACES,
+            shadows::FILTER_SAMPLES,
+            materials::MAX_MIPS,
+            shadows::NEAR,
+            crate::visuals::relief::GRADIENT_RANGE,
+            self.magnification,
+            self.filtering,
+            include_str!("../scene.wgsl"),
+            include_str!("palette.wgsl"),
+            include_str!("lighting.wgsl"),
+            include_str!("weather.wgsl"),
+            materials::shader(device),
+            include_str!("relief.wgsl"),
+            include_str!("water.wgsl"),
+            include_str!("weapons.wgsl"),
+            include_str!("foliage.wgsl"),
+            if gl {
+                include_str!("depth_gl.wgsl")
+            } else {
+                include_str!("depth.wgsl")
+            }
+        );
         device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Original paletted textures"),
-            source: wgpu::ShaderSource::Wgsl(
-                format!(
-                    "const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-                    self.filtering != 0 || self.magnification != 0, self.lighting, self.relief != 0, self.relief == 2, self.hdr, self.weather, self.rain, self.water,
-                    crate::lighting::MAX_SCENE_LIGHTS,
-                    crate::lighting::MAX_LIGHTS,
-                    shadows::FACES,
-                    shadows::FILTER_SAMPLES,
-                    materials::MAX_MIPS,
-                    shadows::NEAR,
-                    crate::visuals::relief::GRADIENT_RANGE,
-                    self.magnification,
-                    self.filtering,
-                    include_str!("../scene.wgsl"),
-                    include_str!("palette.wgsl"),
-                    include_str!("lighting.wgsl"),
-                    include_str!("weather.wgsl"),
-                    materials::shader(device),
-                    include_str!("relief.wgsl"),
-                    include_str!("water.wgsl"),
-                    include_str!("weapons.wgsl"),
-                    include_str!("foliage.wgsl"),
-                    if gl { include_str!("depth_gl.wgsl") } else { include_str!("depth.wgsl") }
-                )
-                .into(),
-            ),
+            label: Some("Scene materials and lighting"),
+            source: wgpu::ShaderSource::Wgsl(format!("{common}\n{pass}").into()),
         })
     }
 }

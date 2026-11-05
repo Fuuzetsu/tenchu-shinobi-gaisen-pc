@@ -21,6 +21,7 @@ mod weapons;
 mod weather;
 mod weather_shelter;
 mod weather_wind;
+mod wet_lighting;
 
 #[test]
 #[ignore = "requires GPU timestamps; validates asynchronous scene timing without changing rendered pixels"]

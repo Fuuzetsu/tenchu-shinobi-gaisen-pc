@@ -17,6 +17,7 @@ mod shadows;
 mod sky;
 pub(crate) mod sun;
 pub mod timing;
+mod wet_lighting;
 
 #[cfg(test)]
 mod benchmark;
@@ -24,6 +25,7 @@ mod benchmark;
 mod tests;
 
 pub struct Mesh {
+    material_batches: Vec<wet_lighting::Batch>,
     vertices: geometry::Buffers,
     indices: Option<Indices>,
     revision: u64,
@@ -55,6 +57,13 @@ impl Mesh {
         self.revision += 1;
         self.count = vertices.len() as u32;
         self.scenery = Self::is_scenery(vertices);
+        self.material_batches.clear();
+        if self.scenery {
+            wet_lighting::update_batches(
+                &mut self.material_batches,
+                vertices.iter().map(|v| v.flags),
+            );
+        }
         self.bounds = culling::update_chunks(vertices, &mut self.shadow_chunks);
     }
 
@@ -103,6 +112,9 @@ impl<'a> SceneMeshes<'a> {
 }
 
 pub struct Renderer {
+    wet_lighting: Option<wet_lighting::WetLighting>,
+    #[cfg(test)]
+    skip_wet_lighting: bool,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pipelines: pipelines::Pipelines,
@@ -228,7 +240,7 @@ impl Renderer {
         });
         let camera = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera"),
-            contents: bytemuck::cast_slice(&[0.0f32; 48]),
+            contents: bytemuck::cast_slice(&[0.0f32; 64]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -273,6 +285,9 @@ impl Renderer {
         let depth = Self::attachment(&device, size, wgpu::TextureFormat::Depth32Float, 1);
         let timings = timing::Timer::new(&device, &queue);
         let mut renderer = Self {
+            wet_lighting: None,
+            #[cfg(test)]
+            skip_wet_lighting: false,
             timings,
             profiling: false,
             device,
@@ -452,6 +467,13 @@ impl Renderer {
         if compose_blood && self.composite.is_none() {
             self.composite = Some(decals::composite::Composite::new(self));
         }
+        let wet = wet_lighting::configured(graphics, samples, self.gl);
+        if !wet || pipelines_changed {
+            self.wet_lighting = None;
+        }
+        if wet && self.wet_lighting.is_none() {
+            self.wet_lighting = Some(wet_lighting::WetLighting::new(self));
+        }
     }
 
     pub fn update_vram(&mut self, vram: &Vram) {
@@ -476,6 +498,7 @@ impl Renderer {
         let mut vertices = vertices.to_vec();
         self.materials.annotate(&mut vertices);
         let mut mesh = Mesh {
+            material_batches: Vec::new(),
             indices: None,
             revision: 0,
             dynamic: false,
@@ -507,6 +530,16 @@ impl Renderer {
         mesh.count = geometry.indices.len() as u32;
         self.materials.annotate(&mut geometry.vertices);
         mesh.scenery = Mesh::is_scenery(&geometry.vertices);
+        mesh.material_batches.clear();
+        if mesh.scenery {
+            wet_lighting::update_batches(
+                &mut mesh.material_batches,
+                geometry
+                    .indices
+                    .iter()
+                    .map(|&i| geometry.vertices[i as usize].flags),
+            );
+        }
         mesh.bounds = culling::update_indexed_chunks(geometry, &mut mesh.shadow_chunks);
         mesh.vertices
             .update(&self.device, &self.queue, &geometry.vertices);
@@ -679,6 +712,11 @@ impl Renderer {
             0.0,
             0.0,
         ]);
+        let rays = self
+            .wet_lighting
+            .as_ref()
+            .and_then(|_| wet_lighting::camera_rays(matrix));
+        camera.extend(rays.unwrap_or([0.0; 16]));
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
         let composite = decals::composite::useful(self, matrix);
@@ -759,11 +797,26 @@ impl Renderer {
                 mesh.draw(&mut pass, 0..mesh.count);
             }
         }
+        let sky = daylight.map(|_| self.upload(&sky::geometry(matrix)));
+        let wet = prepass && rays.is_some() && wet_lighting::useful(self, matrix, meshes.terrain);
+        #[cfg(test)]
+        let wet = wet && !self.skip_wet_lighting;
+        if wet {
+            self.wet_lighting
+                .as_mut()
+                .unwrap()
+                .prepare(&self.device, self.size);
+            self.wet_lighting.as_ref().unwrap().surfaces(
+                self,
+                &mut encoder,
+                meshes.terrain,
+                sky.as_ref(),
+            );
+        }
         if let Some(timer) = &self.timings {
             timer.mark_scene_boundary(&mut encoder, timing::SceneStage::Visibility);
         }
         {
-            let sky = daylight.map(|_| self.upload(&sky::geometry(matrix)));
             let world_target = self.post.as_ref().map_or(target, |post| &post.scene);
             let clear = fog_color.map(f64::from);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -800,7 +853,7 @@ impl Renderer {
             pass.set_bind_group(0, &self.bindings, &[]);
             pass.set_bind_group(1, &self.shadows.bindings, &[]);
             pass.set_bind_group(2, &self.materials.bindings, &[]);
-            if let Some(sky) = &sky {
+            if !wet && let Some(sky) = &sky {
                 sky.bind(&mut pass);
                 pass.draw(0..sky.count, 0..1);
             }
@@ -810,12 +863,18 @@ impl Renderer {
                 }
             };
             mark(&mut pass, timing::SceneStage::Sky);
-            for (meshes, stage) in [
-                (meshes.terrain, timing::SceneStage::Terrain),
-                (meshes.actors, timing::SceneStage::Actors),
+            if wet {
+                self.wet_lighting.as_ref().unwrap().light(&mut pass);
+            }
+            for (meshes, stage, terrain) in [
+                (meshes.terrain, timing::SceneStage::Terrain, true),
+                (meshes.actors, timing::SceneStage::Actors, false),
             ] {
                 for mesh in meshes.iter().filter(|m| m.count != 0) {
                     let scenery = mesh.scenery;
+                    if wet && terrain && scenery {
+                        continue;
+                    }
                     pass.set_pipeline(if scenery {
                         &self.pipelines.scenery
                     } else {
