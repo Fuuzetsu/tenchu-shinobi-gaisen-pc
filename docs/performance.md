@@ -2403,3 +2403,179 @@ strict native all-target and WASM library Clippy, native release and actual WASM
 builds. Real Chromium WebGPU and WebGL2 pass movement, saved-state loading,
 lighting, free-camera and resume checks; WebGPU records 812 pose passes and
 WebGL2 none. Experimental switches and private image hooks are removed.
+
+## November 5: rendering design review after v0.15.6
+
+The next rendering work should optimise perceived quality, rather than preserve
+every existing shader result. The following are investigation results and design
+recommendations. The released `v0.15.6` retains the preceding verified renderer;
+the private probes described here were removed from the working source.
+
+### Where the time goes
+
+The final moving 4K benchmark above, on the GTX 1080 Ti with the diagnostic's
+graphics and HD artwork, measures:
+
+| GPU work | Village | Garden |
+|---|---|---|
+| Shadow/shelter maps, summaries and character posing | 5.97 ms | 6.02 ms |
+| Visibility and surface-material preparation | 4.06 ms | 4.79 ms |
+| Terrain lighting | 4.18 ms | 6.82 ms |
+| Remaining scene work | 0.41 ms | 0.38 ms |
+| Post-processing | 2.54 ms | 2.52 ms |
+| UI | 0.08 ms | 0.06 ms |
+| Total GPU | 17.24 ms | 20.59 ms |
+
+Average displayed rates are 55.1 and 46.4 FPS. CPU work averages approximately
+3 ms; CPU and GPU execution overlap, so these figures should not be added.
+The garden's GPU alone already exceeds the 16.67 ms budget. A practical target
+is nearer 14 ms GPU to leave room for submission, presentation and slower frames.
+Hair and character color drawing are not the main cost in these views; their
+shadow and posing work belongs to the first row.
+
+The source explains the high cost despite relatively simple original geometry:
+
+- [Local shadows](../crates/tenchu-pc/src/renderer/shadows.rs) allocate up to
+  eight six-face depth maps. At 2048 pixels this is 768 MiB of point-shadow depth,
+  plus a 64 MiB 4096-pixel sun/moon map. Allocation does not mean every texel is
+  redrawn: caching, culling and changed-region redraws already exist. Animated
+  foliage repeatedly invalidates large regions, however.
+- [Shadow filtering](../crates/tenchu-pc/src/renderer/lighting.wgsl) performs five
+  blocker-search samples and up to 32 comparison samples for a broad local soft
+  shadow, per contributing light and receiver pixel. Coarse bounds avoid many
+  samples, and a world-cell light list already limits relevant lights. Adding
+  clustered lighting alone would not remove this filtering cost.
+- [Wet materials](../crates/tenchu-pc/src/renderer/wet_lighting.rs) use three
+  full-resolution attachments totalling 32 bytes per pixel, about 253 MiB at 4K.
+  They preserve three different normals and separate old diffuse/emission/
+  reflection conventions. This saved repeated lighting, but it is an expensive
+  intermediate representation to make permanent.
+- [Weather shading](../crates/tenchu-pc/src/renderer/weather.wgsl) reconstructs
+  noise, shelter and puddle data per fragment. Near puddles, ripple normals visit
+  nine neighbouring cells with hashing, sine and exponential calculations. Many
+  screen pixels repeat calculations for the same small patch of ground.
+- [Ambient occlusion](../crates/tenchu-pc/src/renderer/post.wgsl) reconstructs a
+  normal from neighbouring depths and tests 16 further depths at full display
+  resolution. Lowering its strength does not reduce the sampling count. These
+  passes have no temporal accumulation.
+
+### Controlled experiments
+
+Separate fixed-camera 3840 × 2160 tests animate actors, vegetation and surface
+time for 240 frames, excluding 60 warm-up frames. They use the same settings and
+two Mission 1 views, with no competing compiler or GPU workload. GPU completion
+is fenced after each frame: these are GPU comparisons, not interactive FPS or a
+reconstruction of the diagnostic's complete state. Captures remain outside Git.
+
+| Change in isolation | Corridor GPU mean | Garden GPU mean |
+|---|---|---|
+| Current renderer | 13.98 ms | 21.37 ms |
+| 1024 point maps instead of 2048 | 13.34 ms | 17.33 ms |
+| 2048 sun/moon map instead of 4096 | 13.64 ms | 21.11 ms |
+| Ambient occlusion off | 12.43 ms | 19.82 ms |
+| Bump mapping instead of parallax | 13.75 ms | 21.35 ms |
+| All surface relief off | 12.99 ms | 20.51 ms |
+| Vegetation wind off | 13.59 ms | 16.72 ms |
+| Rain reflections off | 18.06 ms | 21.61 ms |
+| Zero local-light source size | 13.83 ms | 19.61 ms |
+| Weather off | 15.82 ms | 17.81 ms |
+| Prototype: 16 soft-shadow samples | 13.80 ms | 19.81 ms |
+| Prototype: 16 samples and 1024 point maps | 13.08 ms | 15.99 ms |
+
+Disabled effects diagnose cost; removing them is not the proposed solution.
+These differences are not additive, and some settings change rendering paths.
+For example, reducing the map resolution cuts garden map work from 5.76 to
+2.34 ms; disabling wind cuts it to 1.03 ms. Those savings overlap. Parallax is
+already limited by footprint and viewing angle, and has little cost in the
+garden; replacing all detailed surfaces would attack the wrong bottleneck.
+
+The combined shadow prototype improves garden GPU p99 from 22.12 to 16.88 ms.
+Viewed final captures are close: mean channel differences are 0.0023/255 in the
+corridor and 0.0783/255 in the garden; worst differences are 4 and 37/255.
+Small average image error does not prove acceptable shadow edges or temporal
+stability. A moving camera, close contact shadows, sunlight, doors and foliage
+need review before choosing a production quality policy. This is evidence for
+adaptive shadow budgets, not a claim that this prototype guarantees 60 FPS.
+
+The reflections-off result exposes an architectural boundary. The shared
+material/lighting path and its shadow summaries currently require reflective
+rain, HDR and single-sample rendering. Disabling reflections exits that path.
+A private probe keeps the shared path while leaving reflections disabled:
+corridor GPU time falls from 18.06 to 13.66 ms, garden from 21.61 to 21.08 ms.
+Mean capture differences are below 0.007/255. Generalising this path should
+precede adding further special cases. This improvement does not apply to the
+user's current reflective-rain configuration, which already takes the fast path.
+
+Dense retained blood remains a separate workload. With 4,096 projected stains
+in the corridor, rain takes 16.89 ms GPU and snow takes 20.39 ms. With 1,600 valid
+garden stains, rain takes 26.38 ms and snow 24.17 ms. The blood category costs
+2.8–5.1 ms. Existing composition avoids repeated expensive shading on matching
+flat receivers, but still rasterises coverage every frame and retains individual
+shading on other receivers.
+
+### Recommended implementation order
+
+1. **Consolidate modern material and lighting evaluation.** Use one material
+   description and shared lighting helpers across wet/dry surfaces, water and
+   decals; remove incidental fast-path dependencies such as requiring rain
+   reflections. Then measure a compact material buffer, targeting roughly half
+   the current intermediate storage. A unified shading model can avoid keeping
+   three normals solely to reproduce separate historical effects. Keep the
+   Original presentation path and capability fallbacks explicit.
+2. **Budget shadows by visible importance.** Keep detailed, frequently updated
+   character/contact shadows. Give small or heavily softened shadows smaller
+   maps and cheaper filtering, with stable allocation and gradual transitions.
+   Keep lamps illuminated throughout. Use simpler foliage shadow casters or
+   tolerate subpixel movement before invalidating their cached shadows, while
+   retaining visible tree animation. Start here before building a complete
+   virtual-shadow system. Deforming foliage invalidating cached shadows is a
+   recognised problem in other engines too; Epic documents distance-dependent
+   deformation and separate caching as remedies. Its full virtual-map system
+   has different requirements and is not a drop-in recommendation.
+   [Epic's shadow caching guidance](https://dev.epicgames.com/documentation/en-us/unreal-engine/virtual-shadow-maps-in-unreal-engine#caching).
+3. **Separate ambient occlusion from the full-resolution finish pass.** Evaluate
+   a depth-aware, spatially filtered AO buffer at reduced resolution, then
+   composite it while keeping textures and UI at 4K. The measured AO portion is
+   about 1.55 ms here. Preserve wall contacts and fine silhouettes; do not merely
+   blur the finished image. GTAO/XeGTAO provide established references for depth
+   preparation, sampling and edge-aware denoising; their published timings are
+   for other hardware, not predictions for this machine.
+   [XeGTAO implementation](https://github.com/GameTechDev/XeGTAO).
+4. **Cache weather fields and make material detail scale with footprint.**
+   Generate filtered ripple/noise fields once and sample them, instead of
+   evaluating nine ripple cells independently at every nearby screen pixel.
+   Cache slowly changing wetness/snow masks separately from lighting, invalidating
+   affected regions for changing wind, shelter, accumulation and footprints.
+   Preserve windward walls, roof shelter and snowfall edges. This needs visual
+   comparisons; no speedup for the replacement algorithm has yet been measured.
+5. **Make persistent stains part of the surface.** Investigate a bounded,
+   incrementally updated surface-mask atlas for static terrain, applied before
+   lighting. Keep fresh droplets, runoff and moving-character stains separate.
+   Preserve mark metadata for fading, removal, styles and rewind, with the atlas
+   as derived state. This replaces repeated coverage drawing with local updates;
+   it is more substantial work than reducing a retention slider.
+
+For particle-heavy waterfall/smoke views, a separate lower-resolution soft-particle
+buffer is also worth testing. It should target soft spray/haze, while leaving
+sharp sparks, droplets and debris at full resolution. Depth-aware composition
+must avoid halos at geometry intersections; NVIDIA's treatment explains both
+the savings and those failure modes.
+[Off-screen particle rendering](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-23-high-speed-screen-particles).
+
+Temporal shadow filtering is a later candidate if spatial methods do not meet
+the budget. It requires reliable reprojection, rejection of newly revealed
+surfaces and reset rules for cuts, teleporting, rewind, resizing and lighting
+changes. A few cheap samples with unmanaged history would trade frame time for
+ghosting. Alternative filter families such as variance shadows also deserve
+comparison rather than automatic adoption: their filtering savings can come
+with light leaks. Filament maintains several shadow methods rather than treating
+one as universally best. [Filament's rendering features](https://github.com/google/filament).
+
+Judge each candidate with paired moving clips and actual displayed p95/p99 on the
+village, garden, courtyard, waterfall and dense rain/snow/blood workloads. Keep
+nearby contact detail, smooth transitions and stable thin geometry as quality
+criteria. Target enough GPU headroom for 60 FPS rather than exactly 16.67 ms in
+one fixed view. These techniques fit native and WebGPU rendering; WebGL2 can
+retain simpler capability fallbacks. Dropping browser support would not eliminate
+the native GPU work measured above. Gameplay, AI, collision and RNG remain a
+separate behavioural specification throughout the rendering redesign.
