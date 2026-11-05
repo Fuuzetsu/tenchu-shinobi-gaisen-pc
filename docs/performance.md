@@ -2614,3 +2614,21 @@ Full-resolution textures, HDR finishing and UI are unchanged. The extended GPU
 regression exercises full/half/full toggles, actual contact occlusion, all
 supported MSAA counts, UI isolation and restoring Original rendering. This
 remains opt-in; Modern presets are unchanged during comparison trials.
+
+
+The adaptive-shadow trial is also opt-in on Rendering trials. Nearby lamps keep
+configured map resolution; farther lamps use 1024/512 viewports with hysteresis.
+Soft filtering uses 16 rather than 32 samples. Distant foliage updates at 30 or
+15 Hz, staggered across lamp slots; actors and nearby foliage retain normal
+updates. Physical array allocation remains unchanged, so this is a raster/filter
+saving, not a shadow-memory reduction. The moving-region GPU regression matches
+full redraws with wind, moving/disappearing casters, resized maps and indexed
+geometry in both modes.
+
+Across eight fixed-view animated 4K pairs, the garden improves by 4.5–5.0 ms:
+reflective rain 21.44→16.90 ms mean and 22.19→17.98 ms p99; dry 17.43→12.40 ms
+mean and 18.36→13.36 ms p99. The corridor's dry path improves 15.55→10.69 ms;
+its already optimised rainy/snowy path changes by at most 0.18 ms. Mean RGB
+channel differences are 0.002–0.115/255; the largest garden shadow-edge
+pixel difference is 67/255. These are fixed-view GPU timings, not displayed FPS.
+Camera-motion and transition comparisons remain part of the final trial report.

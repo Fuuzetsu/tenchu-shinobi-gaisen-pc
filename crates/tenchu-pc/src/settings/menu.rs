@@ -5,6 +5,7 @@ use tenchu_core::effects::RumbleAction;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
     HalfResolutionAo,
+    AdaptiveShadows,
     StateSlot,
     SaveState,
     LoadState,
@@ -337,12 +338,20 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
-        21 => vec![(
-            Item::HalfResolutionAo,
-            "Half-resolution ambient occlusion",
-            on(s.graphics.rendering.half_resolution_ao),
-            "Calculate contact shading at half width/height and reconstruct along depth edges. Textures and the final image keep full resolution. Requires HDR and ambient occlusion; compare with off.",
-        )],
+        21 => vec![
+            (
+                Item::HalfResolutionAo,
+                "Half-resolution ambient occlusion",
+                on(s.graphics.rendering.half_resolution_ao),
+                "Calculate contact shading at half width/height and reconstruct along depth edges. Textures and the final image keep full resolution. Requires HDR and ambient occlusion; compare with off.",
+            ),
+            (
+                Item::AdaptiveShadows,
+                "Adaptive shadow detail",
+                on(s.graphics.rendering.adaptive_shadows),
+                "Keep nearby shadow detail; use smaller maps and fewer filter samples for local lights, with slower distant foliage-shadow updates. Lamps and character motion stay live. Compare edges and camera movement with off.",
+            ),
+        ],
         20 => vec![
             (
                 Item::CameraRelative,

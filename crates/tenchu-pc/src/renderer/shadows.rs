@@ -1,4 +1,4 @@
-use super::culling::Rect;
+use super::culling::{Damage, Rect};
 use super::{EffectMesh, Mesh};
 use crate::lighting::{Light, MAX_LIGHTS, MAX_SCENE_LIGHTS, MAX_SHADOW_LIGHTS};
 use glam::{Mat4, Vec3};
@@ -26,14 +26,17 @@ struct FaceState {
     options: [f32; 12],
     meshes: Vec<(wgpu::Buffer, u64)>,
     static_meshes: Vec<(wgpu::Buffer, u64)>,
-    damage: Option<Rect>,
+    damage: Damage,
+    size: u32,
 }
 
 pub struct Shadows {
     pub layout: wgpu::BindGroupLayout,
     pub bindings: wgpu::BindGroup,
     data: wgpu::Buffer,
-    filter: [[f32; 4]; FILTER_SAMPLES],
+    filter: [[[f32; 4]; FILTER_SAMPLES]; 2],
+    // Faces use smaller viewports inside the configured array; receivers scale their UVs.
+    point_sizes: [u32; MAX_SHADOW_LIGHTS],
     sampler: wgpu::Sampler,
     views: Vec<wgpu::TextureView>,
     faces: Vec<(wgpu::Buffer, wgpu::BindGroup)>,
@@ -175,7 +178,7 @@ impl Shadows {
         });
         let data = buffer(
             device,
-            (LIGHT_WORDS + FACES * 16 + 128 + FILTER_SAMPLES * 4) * 4,
+            (LIGHT_WORDS + FACES * 16 + 128 + FILTER_SAMPLES * 4 + MAX_SHADOW_LIGHTS * 4) * 4,
         );
         let grid = super::light_grid::Grid::new(device);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -343,7 +346,8 @@ impl Shadows {
             layout,
             bindings,
             data,
-            filter: filter_samples(),
+            filter: [filter_samples(FILTER_SAMPLES), filter_samples(16)],
+            point_sizes: [1; MAX_SHADOW_LIGHTS],
             sampler,
             views,
             faces,
@@ -483,6 +487,7 @@ impl Shadows {
             .update(queue, &lights[..count], usize::from(settings.count));
         let mut data = vec![0.0f32; LIGHT_WORDS + FACES * 16];
         let receivers = super::culling::Volume::new(camera);
+        let eye = camera.inverse().project_point3(Vec3::ZERO);
         for i in 0..self.grid.order.len() {
             let source = self.grid.order[i];
             let light = &lights[source];
@@ -492,6 +497,19 @@ impl Shadows {
                 continue;
             };
             data[i * 8 + 7] = (slot + 1) as f32 + strength * 0.5;
+            let distance = eye.distance(light.position);
+            self.point_sizes[slot] = if frame.adaptive_shadows {
+                point_resolution(distance, self.point_sizes[slot], self.resolution)
+            } else {
+                self.resolution
+            };
+            let foliage_time = if frame.adaptive_shadows && distance > 8000.0 {
+                let rate = if distance > 20000.0 { 15.0 } else { 30.0 };
+                let phase = slot as f32 / MAX_SHADOW_LIGHTS as f32;
+                ((frame.visual_time * rate + phase).floor() - phase) / rate
+            } else {
+                frame.visual_time
+            };
             for (face, matrix) in matrices(light).iter().enumerate() {
                 let index = slot * 6 + face;
                 data[LIGHT_WORDS + index * 16..LIGHT_WORDS + (index + 1) * 16]
@@ -506,7 +524,7 @@ impl Shadows {
                     *matrix,
                     [
                         u8::from(settings.lamps) as f32,
-                        frame.visual_time,
+                        foliage_time,
                         frame.wind,
                         0.0,
                         light.position.x,
@@ -603,7 +621,12 @@ impl Shadows {
             0.0,
         ]);
         data.extend(self.grid.uniform());
-        data.extend(self.filter.iter().flatten().copied());
+        data.extend(
+            self.filter[usize::from(frame.adaptive_shadows)]
+                .iter()
+                .flatten()
+                .copied(),
+        );
         data.extend(
             weather_inverse[0]
                 .z_axis
@@ -619,6 +642,9 @@ impl Shadows {
                 0.0,
                 0.0,
             ]);
+        }
+        for size in self.point_sizes {
+            data.extend([size as f32 / self.resolution as f32, 0.0, 0.0, 0.0]);
         }
         if self.weather_resolution > 1 {
             for (layer, matrix) in weather_matrices.into_iter().enumerate() {
@@ -688,10 +714,10 @@ impl Shadows {
         } else if index == FACES - 1 {
             self.sun_resolution
         } else {
-            self.resolution
+            self.point_sizes[index / 6]
         };
         let mut foliage = false;
-        let mut damage: Option<Rect> = None;
+        let mut damage = Damage::default();
         let mut draws = Vec::new();
         let meshes = geometry
             .meshes
@@ -705,15 +731,14 @@ impl Shadows {
         for (mesh, culled) in meshes.zip(&culling.meshes) {
             if !culled.ranges.is_empty() {
                 foliage |= culled.foliage;
-                if let Some(rect) = culled.damage {
-                    damage = Some(damage.map_or(rect, |old| old.union(rect)));
-                }
+                damage = damage.union(culled.damage);
                 draws.push((mesh, &culled.ranges));
             }
         }
         let mut state = FaceState {
             matrix,
             options,
+            size,
             meshes: draws
                 .iter()
                 .map(|(mesh, _)| (mesh.vertices.pose.clone(), mesh.revision))
@@ -732,6 +757,9 @@ impl Shadows {
         if self.cached[index].as_ref() == Some(&state) {
             return;
         }
+        let resized = self.cached[index]
+            .as_ref()
+            .is_none_or(|old| old.size != size);
         // Clear both footprints so moving casters uncover the fixed geometry below.
         let mut region = Rect::full(size);
         if let Some(previous) = self.cached[index].as_ref() {
@@ -739,14 +767,15 @@ impl Shadows {
             let mut b = state.options;
             a[1] = 0.0;
             b[1] = 0.0;
-            if previous.matrix == state.matrix
+            if previous.size == state.size
+                && previous.matrix == state.matrix
                 && a == b
                 && previous.static_meshes == state.static_meshes
             {
-                let mut damage = previous.damage;
-                if let Some(rect) = state.damage {
-                    damage = Some(damage.map_or(rect, |old| old.union(rect)));
-                }
+                let damage = previous
+                    .damage
+                    .union(state.damage)
+                    .region(previous.options[1] != state.options[1]);
                 if let Some(damage) = damage {
                     region = damage;
                 }
@@ -802,6 +831,7 @@ impl Shadows {
         });
         pass.set_bind_group(0, bindings, &[]);
         pass.set_bind_group(1, geometry.materials, &[]);
+        pass.set_viewport(0.0, 0.0, size as f32, size as f32, 0.0, 1.0);
         pass.set_scissor_rect(
             region.min[0],
             region.min[1],
@@ -825,7 +855,14 @@ impl Shadows {
         }
         drop(pass);
         if index < FACES - 1 {
-            self.bounds.invalidate(index, region);
+            self.bounds.invalidate(
+                index,
+                if resized {
+                    Rect::full(self.resolution)
+                } else {
+                    region
+                },
+            );
         }
         if index >= FACES {
             self.weather_bounds.invalidate(index - FACES, region);
@@ -833,23 +870,38 @@ impl Shadows {
     }
 }
 
-fn filter_samples() -> [[f32; 4]; FILTER_SAMPLES] {
-    let mut samples = std::array::from_fn(|i| {
+fn point_resolution(distance: f32, previous: u32, maximum: u32) -> u32 {
+    if !distance.is_finite() {
+        return maximum;
+    }
+    let mut size = maximum;
+    for (limit, threshold) in [(1024, 8000.0), (512, 24000.0)] {
+        let threshold = threshold * if previous > limit { 1.15 } else { 0.85 };
+        if distance > threshold {
+            size = size.min(limit);
+        }
+    }
+    size
+}
+
+fn filter_samples(count: usize) -> [[f32; 4]; FILTER_SAMPLES] {
+    let mut samples = [[0.0; 4]; FILTER_SAMPLES];
+    for (i, sample) in samples[..count].iter_mut().enumerate() {
         let angle = i as f32 * 2.3999632;
-        [
+        *sample = [
             angle.cos(),
             angle.sin(),
-            ((i as f32 + 0.5) / FILTER_SAMPLES as f32).sqrt(),
+            ((i as f32 + 0.5) / count as f32).sqrt(),
             0.0,
-        ]
-    });
+        ];
+    }
     // Keep nearby disk samples together for shadow-texture cache locality.
-    samples.sort_by_key(|s| {
+    samples[..count].sort_by_key(|s| {
         let [x, y] = [s[0], s[1]].map(|v| ((v * s[2] * 0.5 + 0.5) * 1023.0) as u32);
         (y / 128, x, y)
     });
     // Store each group's footprint in the samples' unused fourth components.
-    for group in samples.chunks_mut(FILTER_GROUP_SAMPLES) {
+    for group in samples[..count].chunks_mut(FILTER_GROUP_SAMPLES) {
         let mut low = [f32::INFINITY; 2];
         let mut high = [f32::NEG_INFINITY; 2];
         for sample in group.iter() {

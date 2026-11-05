@@ -78,6 +78,7 @@ pub struct Frame {
     pub wind: f32,
     pub day: f32,
     pub elapsed: Option<f32>,
+    pub adaptive_shadows: bool,
 }
 
 impl Frame {
@@ -98,6 +99,7 @@ impl Frame {
             wind: 0.0,
             day: 0.0,
             elapsed: None,
+            adaptive_shadows: false,
         };
         if let Some(sky) = daylight {
             frame.settings.enabled = true;

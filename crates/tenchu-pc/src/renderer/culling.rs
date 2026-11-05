@@ -2,6 +2,34 @@ use crate::render_mesh::{self, Vertex};
 use glam::{Mat4, Vec3, Vec3A, Vec4};
 use std::ops::Range;
 
+#[derive(Clone, Copy, Default, PartialEq)]
+pub(super) struct Damage {
+    pub moving: Option<Rect>,
+    pub foliage: Option<Rect>,
+}
+
+impl Damage {
+    pub fn union(self, other: Self) -> Self {
+        Self {
+            moving: [self.moving, other.moving]
+                .into_iter()
+                .flatten()
+                .reduce(Rect::union),
+            foliage: [self.foliage, other.foliage]
+                .into_iter()
+                .flatten()
+                .reduce(Rect::union),
+        }
+    }
+
+    pub fn region(self, foliage_changed: bool) -> Option<Rect> {
+        [self.moving, self.foliage.filter(|_| foliage_changed)]
+            .into_iter()
+            .flatten()
+            .reduce(Rect::union)
+    }
+}
+
 pub(super) struct Chunk {
     range: Range<u32>,
     bounds: Option<[Vec3; 2]>,
@@ -253,7 +281,7 @@ impl Frustum {
         dynamic: bool,
         matrix: Mat4,
         size: u32,
-    ) -> (Vec<Range<u32>>, bool, Option<Rect>) {
+    ) -> (Vec<Range<u32>>, bool, Damage) {
         // Large maps benefit from early depth rejection; small maps favor fewer draws.
         let depth_order = !dynamic && size >= 2048;
         let mut visible_chunks = Vec::new();
@@ -266,7 +294,7 @@ impl Frustum {
             }
         };
         let mut foliage = false;
-        let mut damage: Option<Rect> = None;
+        let mut damage = Damage::default();
         for chunk in chunks {
             let padding = chunk.padding(wind);
             let visible = chunk
@@ -292,7 +320,12 @@ impl Frustum {
             };
             if let Some(bounds) = bounds {
                 let rect = Rect::projected(bounds, matrix, size, padding);
-                damage = Some(damage.map_or(rect, |old| old.union(rect)));
+                let target = if dynamic {
+                    &mut damage.moving
+                } else {
+                    &mut damage.foliage
+                };
+                *target = Some(target.map_or(rect, |old| old.union(rect)));
             }
         }
         if depth_order {
@@ -307,7 +340,7 @@ impl Frustum {
             append(&chunk.range);
         }
         if ranges.is_empty() {
-            damage = None;
+            damage = Damage::default();
         }
         (ranges, foliage, damage)
     }

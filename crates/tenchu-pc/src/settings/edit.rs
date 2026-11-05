@@ -96,6 +96,7 @@ impl Item {
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
             Self::HalfResolutionAo => &mut settings.graphics.rendering.half_resolution_ao,
+            Self::AdaptiveShadows => &mut settings.graphics.rendering.adaptive_shadows,
             Self::CameraRelative => &mut settings.navigation.camera_relative,
             Self::AlignAim => &mut settings.navigation.align_aim,
             Self::InvertCameraY => &mut settings.navigation.invert_y,

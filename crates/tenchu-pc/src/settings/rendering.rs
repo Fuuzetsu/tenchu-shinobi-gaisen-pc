@@ -4,4 +4,5 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct Rendering {
     pub half_resolution_ao: bool,
+    pub adaptive_shadows: bool,
 }

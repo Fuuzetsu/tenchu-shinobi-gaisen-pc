@@ -47,21 +47,31 @@ fn moving_shadow_regions_match_full_redraws() {
     graphics.lighting.resolution = 512;
     graphics.lighting.source_size = 0;
     graphics.motion.wind = 100;
-    let draw = |renderer: &mut Renderer, lights: &[crate::lighting::Light], actor: &Mesh| {
-        renderer
-            .draw_lit(
-                &view,
-                camera,
-                SceneMeshes::new(&[&ground], &[]),
-                None,
-                lights,
-                &[&ground, &wall, &tree, actor],
-            )
-            .unwrap();
-        read_pixels(renderer, &target)
-    };
+    let draw =
+        |renderer: &mut Renderer, lights: &[crate::lighting::Light], actor: &Mesh, camera| {
+            renderer
+                .draw_lit(
+                    &view,
+                    camera,
+                    SceneMeshes::new(&[&ground], &[]),
+                    None,
+                    lights,
+                    &[&ground, &wall, &tree, actor],
+                )
+                .unwrap();
+            read_pixels(renderer, &target)
+        };
     let mut partial = 0;
-    for mode in 0..4 {
+    for variation in 0..8 {
+        let mode = variation % 4;
+        graphics.rendering.adaptive_shadows = variation >= 4;
+        graphics.lighting.resolution = if variation >= 4 { 2048 } else { 512 };
+        let camera = if variation >= 4 {
+            Mat4::orthographic_rh(-5000.0, 5000.0, -5000.0, 5000.0, 1.0, 40000.0)
+                * Mat4::look_at_rh(Vec3::new(0.0, -19000.0, 0.0), Vec3::ZERO, Vec3::Z)
+        } else {
+            camera
+        };
         graphics.post.enabled = mode == 3;
         graphics.lighting.source_size = if mode == 3 { 100 } else { 0 };
         graphics.lighting.directional.intensity = if mode == 1 { 100 } else { 0 };
@@ -105,7 +115,7 @@ fn moving_shadow_regions_match_full_redraws() {
                 1 => renderer.update_indexed_mesh(&mut actor, &mut indexed_geometry(&vertices)),
                 _ => renderer.update_mesh(&mut actor, &mut vertices),
             }
-            let cached = draw(&mut renderer, &lights, &actor);
+            let cached = draw(&mut renderer, &lights, &actor, camera);
             assert_eq!(renderer.shadows.bounds_enabled(), mode == 3 && !renderer.gl);
             if mode == 0
                 && renderer.shadows.rendered_area
@@ -117,15 +127,15 @@ fn moving_shadow_regions_match_full_redraws() {
             renderer.shadows.draw_all_faces = true;
             renderer.shadows.skip_bounds = true;
             let expanded = renderer.upload(&vertices);
-            let reference = draw(&mut renderer, &lights, &expanded);
+            let reference = draw(&mut renderer, &lights, &expanded, camera);
             renderer.shadows.draw_all_faces = false;
             renderer.shadows.skip_bounds = false;
             assert!(
                 cached == reference,
                 "Shadow mismatch in mode {mode}, frame {frame}"
             );
-            assert!(draw(&mut renderer, &lights, &actor) == reference);
-            assert!(draw(&mut renderer, &lights, &actor) == reference);
+            assert!(draw(&mut renderer, &lights, &actor, camera) == reference);
+            assert!(draw(&mut renderer, &lights, &actor, camera) == reference);
             assert_eq!(renderer.shadows.rendered_faces, 0);
         }
     }

@@ -17,6 +17,7 @@ struct Lighting {
     shadow_filter: array<vec4<f32>, SHADOW_FILTER_SAMPLES>,
     precipitation: vec4<f32>,
     weather_span: array<vec4<f32>, 2>,
+    shadow_extent: array<vec4<f32>, (SHADOW_FACES - 1u) / 6u>,
 }
 @group(1) @binding(0) var<uniform> lighting: Lighting;
 @group(1) @binding(1) var shadow_maps: texture_depth_2d_array;
@@ -53,6 +54,11 @@ fn next_light(lights: ptr<function, LocalLights>) -> u32 {
     }
     (*lights).slot++;
     return (*lights).indices[component];
+}
+
+fn shadow_scale(layer: u32) -> f32 {
+    if ADAPTIVE_SHADOWS { return lighting.shadow_extent[layer / 6u].x; }
+    return 1.0;
 }
 
 fn shadow_face(direction: vec3<f32>) -> u32 {
@@ -141,9 +147,10 @@ fn sun_visibility(position: vec3<f32>, normal: vec3<f32>) -> f32 {
 
 fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>, penumbra: f32) -> f32 {
     let size = vec2<f32>(textureDimensions(shadow_maps));
+    let edge = vec2(shadow_scale(layer));
     let reference = depth - dot(abs(gradient), vec2(0.5) / size);
     if lighting.lamps.y == 0.0 && penumbra == 0.0 {
-        return textureSampleCompareLevel(shadow_maps, shadow_sampler, uv, i32(layer), reference);
+        return textureSampleCompareLevel(shadow_maps, shadow_sampler, clamp(uv, vec2(0.5) / size, edge - vec2(0.5) / size), i32(layer), reference);
     }
     if penumbra > 1.0 / size.x {
         if COARSE_SHADOWS && WEATHER_ENABLED {
@@ -152,7 +159,7 @@ fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>,
         }
         var visibility = 0.0;
         if COARSE_SHADOWS && WEATHER_ENABLED {
-            for (var base = 0u; base < SHADOW_FILTER_SAMPLES; base += SHADOW_FILTER_GROUP) {
+            for (var base = 0u; base < SHADOW_FILTER_TAPS; base += SHADOW_FILTER_GROUP) {
                 var bounded = -1.0;
                 if penumbra * size.x >= f32(SHADOW_BOUND_TILE) {
                     let offsets = vec4(lighting.shadow_filter[base].w, lighting.shadow_filter[base + 1u].w,
@@ -167,33 +174,33 @@ fn shadow_visibility(uv: vec2<f32>, layer: u32, depth: f32, gradient: vec2<f32>,
                     for (var j = 0u; j < SHADOW_FILTER_GROUP; j++) {
                         let sample = lighting.shadow_filter[base + j].xyz;
                         let radius = sample.z * penumbra;
-                        let point = clamp(uv + sample.xy * radius, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+                        let point = clamp(uv + sample.xy * radius, vec2(0.5) / size, edge - vec2(0.5) / size);
                         visibility += textureSampleCompareLevel(shadow_maps, shadow_sampler, point, i32(layer), reference + dot(gradient, point - uv));
                     }
                 }
             }
-            return visibility / f32(SHADOW_FILTER_SAMPLES);
+            return visibility / f32(SHADOW_FILTER_TAPS);
         }
-        for (var i = 0u; i < SHADOW_FILTER_SAMPLES; i++) {
+        for (var i = 0u; i < SHADOW_FILTER_TAPS; i++) {
             var sample: vec3<f32>;
             // Uniform samples help the heavier weather shader; the dry variant
             // benchmarks faster with local arithmetic.
             if WEATHER_ENABLED { sample = lighting.shadow_filter[i].xyz; }
             else {
                 let angle = f32(i) * 2.3999632;
-                sample = vec3(cos(angle), sin(angle), sqrt((f32(i) + 0.5) / f32(SHADOW_FILTER_SAMPLES)));
+                sample = vec3(cos(angle), sin(angle), sqrt((f32(i) + 0.5) / f32(SHADOW_FILTER_TAPS)));
             }
             let radius = sample.z * penumbra;
-            let point = clamp(uv + sample.xy * radius, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+            let point = clamp(uv + sample.xy * radius, vec2(0.5) / size, edge - vec2(0.5) / size);
             visibility += textureSampleCompareLevel(shadow_maps, shadow_sampler, point, i32(layer), reference + dot(gradient, point - uv));
         }
-        return visibility / f32(SHADOW_FILTER_SAMPLES);
+        return visibility / f32(SHADOW_FILTER_TAPS);
     }
     let step = lighting.lamps.y / size;
     var visibility = 0.0;
     for (var y = -1; y <= 1; y++) {
         for (var x = -1; x <= 1; x++) {
-            let point = clamp(uv + vec2(f32(x), f32(y)) * step, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+            let point = clamp(uv + vec2(f32(x), f32(y)) * step, vec2(0.5) / size, edge - vec2(0.5) / size);
             visibility += textureSampleCompareLevel(shadow_maps, shadow_sampler,
                 point, i32(layer), reference + dot(gradient, point - uv));
         }
@@ -205,11 +212,13 @@ fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>
     if light.color.w == 0.0 { return 1.0; }
     let delta = position - light.position.xyz;
     let distance = max(length(delta), 1.0);
-    let layer = u32(floor(light.color.w) - 1.0) * 6u + shadow_face(delta);
+    let slot = u32(floor(light.color.w) - 1.0);
+    let scale = shadow_scale(slot * 6u);
+    let layer = slot * 6u + shadow_face(delta);
     let matrix = lighting.matrices[layer];
     let receiver = position - delta / distance * 2.0;
     let p = matrix * vec4(receiver, 1.0);
-    let uv = p.xy / p.w * vec2(0.5, -0.5) + vec2(0.5);
+    let uv = (p.xy / p.w * vec2(0.5, -0.5) + vec2(0.5)) * scale;
     let right = vec3(matrix[0].x, matrix[1].x, matrix[2].x);
     let up = vec3(matrix[0].y, matrix[1].y, matrix[2].y);
     let plane = dot(surface_normal, receiver - light.position.xyz);
@@ -218,17 +227,18 @@ fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>
         // Receiver-plane depth gradients for the 90-degree point-light projection.
         let projection = SHADOW_NEAR * light.position.w / (light.position.w - SHADOW_NEAR);
         gradient = 2.0 * projection / plane
-            * vec2(-dot(surface_normal, right), dot(surface_normal, up));
+            * vec2(-dot(surface_normal, right), dot(surface_normal, up)) / scale;
     }
     var penumbra = 0.0;
     if lighting.source.x > 0.0 {
         let size = vec2<i32>(textureDimensions(shadow_maps));
-        let search = min(0.1, lighting.source.x / max(p.w, 1.0));
+        let search = min(0.1, lighting.source.x / max(p.w, 1.0)) * scale;
+        let limit = vec2<i32>(vec2<f32>(size) * scale);
         var blockers = 0.0;
         var count = 0.0;
         for (var i = 0; i < 5; i++) {
             let offset = select(vec2(0.0), vec2(select(-1.0, 1.0, (i & 1) != 0), select(-1.0, 1.0, (i & 2) != 0)) * search, i < 4);
-            let pixel = clamp(vec2<i32>((uv + offset) * vec2<f32>(size)), vec2(0), size - vec2(1));
+            let pixel = clamp(vec2<i32>((uv + offset) * vec2<f32>(size)), vec2(0), limit - vec2(1));
             let depth = point_depth(pixel, i32(layer), light.position.w);
             if depth < p.z / p.w + dot(gradient, offset) - 0.00001 {
                 let blocker = SHADOW_NEAR * light.position.w / max(0.001, light.position.w - depth * (light.position.w - SHADOW_NEAR));
@@ -241,6 +251,6 @@ fn point_visibility(light: Light, position: vec3<f32>, surface_normal: vec3<f32>
             penumbra = clamp(lighting.source.x * (p.w - blocker) / (2.0 * blocker * p.w), 0.0, 0.25);
         }
     }
-    let visibility = shadow_visibility(uv, layer, p.z / p.w, gradient, penumbra);
+    let visibility = shadow_visibility(uv, layer, p.z / p.w, gradient, penumbra * scale);
     return mix(1.0, visibility, fract(light.color.w) * 2.0);
 }

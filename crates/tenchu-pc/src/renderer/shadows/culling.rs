@@ -1,4 +1,7 @@
-use super::super::{Mesh, culling::Frustum};
+use super::super::{
+    Mesh,
+    culling::{Damage, Frustum},
+};
 use super::Rect;
 use glam::Mat4;
 use std::ops::Range;
@@ -17,7 +20,7 @@ pub(super) struct Culled {
     dynamic: bool,
     pub ranges: Vec<Range<u32>>,
     pub foliage: bool,
-    pub damage: Option<Rect>,
+    pub damage: Damage,
 }
 
 impl Culling {
@@ -46,12 +49,15 @@ impl Culling {
                 continue;
             }
             let (ranges, foliage, damage) = if mesh.count == 0 {
-                (Vec::new(), false, None)
+                (Vec::new(), false, Damage::default())
             } else if mesh.shadow_chunks.is_empty() {
                 (
                     std::iter::once(0..mesh.count).collect(),
                     true,
-                    Some(Rect::full(size)),
+                    Damage {
+                        moving: Some(Rect::full(size)),
+                        foliage: Some(Rect::full(size)),
+                    },
                 )
             } else {
                 frustum.cull(&mesh.shadow_chunks, wind, mesh.dynamic, matrix, size)

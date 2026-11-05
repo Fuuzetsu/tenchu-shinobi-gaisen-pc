@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an opt-in adaptive shadow renderer: smaller distant light maps, cheaper soft filtering and staggered foliage updates, while keeping lamps lit and character shadows live.
+
 - Add an optional half-resolution ambient-occlusion renderer under F1 → Rendering trials, with depth-aware reconstruction at full display resolution.
 
 
