@@ -2364,3 +2364,42 @@ release and actual WASM cdylib builds pass. Chromium WebGPU and WebGL2 complete
 saved-state loading, movement, lighting controls, free camera and resume without
 GPU errors or changes to paused gameplay. WebGPU records 782 character-pose
 compute passes; WebGL2 records none and retains the CPU path.
+
+## November 5: avoid duplicate CPU poses for GPU models
+
+Eligible models now derive conservative shadow/scenery bounds from cached local
+part boxes, transformed by their pose matrices and expanded for secondary motion
+and floating-point roundoff. The CPU no longer transforms every vertex solely to
+measure those bounds. Mixed frames still scan the world-space vertices of CPU
+fallback parts; WebGL2, weighted skins and botanical variants keep their original
+transforms. The GPU output, materials and triangle order are unchanged.
+
+Two actual Wayland 3840 × 2160 comparisons use the diagnostic graphics, HD pack,
+four moving routes, 600 frames and 60 warm-up frames. A same-binary toggle first
+measured CPU savings of 0.19–0.38 ms. The final build, compared against `d8867e5`
+with the new build first, gives:
+
+| Route | CPU mean before → after | GPU mean before → after | Frame p99 before → after |
+|---|---|---|---|
+| Mission 1 village | 3.29 → 3.02 ms | 17.31 → 17.24 ms | 19.88 → 19.57 ms |
+| Mission 5 courtyard | 2.68 → 2.51 ms | 15.11 → 15.11 ms | 17.56 → 17.56 ms |
+| Mission 1 garden | 3.30 → 3.04 ms | 20.56 → 20.59 ms | 22.98 → 23.22 ms |
+| Mission 4 waterfall | 5.81 → 5.64 ms | 9.28 → 9.29 ms | 13.00 → 12.67 ms |
+
+This is a small CPU saving, not a solution to the GPU bottleneck. Average FPS is
+effectively unchanged: 54.8 → 55.1, 63.0 → 62.9, 46.5 → 46.4 and 85.9 → 85.9.
+Do not interpret the small, mixed frame-tail changes as a general FPS improvement.
+The preceding GPU upload optimisation supplies the larger measured frame gains.
+
+The actual-model GPU regression now builds a separate CPU reference and checks
+both transformed vertices and conservative bound coverage, including mixed
+fallback frames. All 2,371,194 vertices pass with the preceding numerical error
+limits. Six paired 3826 × 2146 images are pixel-identical, including animated
+characters and fixed-camera daytime garden/corridor views. The private fixture's
+daytime camera is explicitly reset before each variant.
+
+All 134 ordinary tests and six focused GPU regressions pass, along with formatting,
+strict native all-target and WASM library Clippy, native release and actual WASM
+builds. Real Chromium WebGPU and WebGL2 pass movement, saved-state loading,
+lighting, free-camera and resume checks; WebGPU records 812 pose passes and
+WebGL2 none. Experimental switches and private image hooks are removed.

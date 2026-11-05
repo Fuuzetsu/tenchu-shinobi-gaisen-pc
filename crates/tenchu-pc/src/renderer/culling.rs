@@ -26,49 +26,42 @@ pub(super) fn update_indexed_chunks(
     geometry: &render_mesh::Indexed,
     chunks: &mut Vec<Chunk>,
 ) -> Option<[Vec3; 2]> {
-    if geometry.groups.is_empty() {
+    let posing = geometry
+        .poses
+        .as_ref()
+        .filter(|frame| !frame.parts.is_empty());
+    if geometry.groups.is_empty() && posing.is_none() {
         return collect_chunks(
             geometry.indices.len(),
             |i| &geometry.vertices[geometry.indices[i] as usize],
             chunks,
         );
     }
+    let whole = render_mesh::IndexedGroup {
+        vertices: 0..geometry.vertices.len(),
+        indices: 0..geometry.indices.len() as u32,
+    };
+    let groups = if geometry.groups.is_empty() {
+        std::slice::from_ref(&whole)
+    } else {
+        &geometry.groups
+    };
     chunks.clear();
-    let mut scenery = None;
-    for group in &geometry.groups {
-        let (bounds, foliage) = collect_bounds(
-            geometry.vertices[group.vertices.clone()].iter(),
-            &mut scenery,
+    let mut scenery = render_mesh::Bounds::default();
+    for group in groups {
+        let bounds = posing.map_or_else(
+            || render_mesh::Bounds::collect(geometry.vertices[group.vertices.clone()].iter()),
+            |poses| poses.bounds(&geometry.vertices, group.vertices.clone()),
         );
+        scenery.merge(bounds);
+        let shadow = bounds.shadow.map(|b| b.map(Vec3::from));
         chunks.push(Chunk {
             range: group.indices.clone(),
-            bounds,
-            foliage: foliage.then_some(bounds).flatten(),
+            bounds: shadow,
+            foliage: bounds.foliage.then_some(shadow).flatten(),
         });
     }
-    scenery.map(|b| b.map(Vec3::from))
-}
-
-fn collect_bounds<'a>(
-    vertices: impl Iterator<Item = &'a Vertex>,
-    scenery: &mut Option<[Vec3A; 2]>,
-) -> (Option<[Vec3; 2]>, bool) {
-    let mut bounds: Option<[Vec3A; 2]> = None;
-    let mut foliage = false;
-    for v in vertices {
-        let p = Vec3A::from(v.position);
-        if v.flags & render_mesh::SCENERY != 0 {
-            *scenery = Some(scenery.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
-        }
-        if v.flags
-            & (render_mesh::SCREEN | render_mesh::DEBUG | render_mesh::ALPHA | render_mesh::WATER)
-            == 0
-        {
-            bounds = Some(bounds.map_or([p, p], |[a, b]| [a.min(p), b.max(p)]));
-            foliage |= v.flags & render_mesh::FOLIAGE != 0;
-        }
-    }
-    (bounds.map(|b| b.map(Vec3::from)), foliage)
+    scenery.scenery.map(|b| b.map(Vec3::from))
 }
 
 fn collect_chunks<'a>(

@@ -753,6 +753,7 @@ impl Meshes {
         }
         if output.indices.len() != start {
             output.vertices.extend_from_slice(&mesh.vertices);
+            let mut posed = false;
             if let Some(frame) = &mut output.poses
                 && mesh.skin.is_none()
                 && !self.variants.contains_key(&key)
@@ -760,7 +761,14 @@ impl Meshes {
                 let source = mesh
                     .pose_source
                     .get_or_init(|| Arc::new(super::posing::Source::new(&mesh.vertices, rules)));
-                frame.push(source.clone(), matrix, deformation, base);
+                posed = frame.push(source.clone(), matrix, deformation, base);
+            }
+            if posed {
+                for vertex in &mut output.vertices[base..] {
+                    vertex.flags =
+                        (vertex.flags & !render_mesh::FOG) | if fog { render_mesh::FOG } else { 0 };
+                }
+                return true;
             }
             self.transform(
                 key,

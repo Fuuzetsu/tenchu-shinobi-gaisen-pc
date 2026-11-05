@@ -9,6 +9,9 @@ use tenchu_assets::{
 };
 use tenchu_core::math::{Math, Matrix};
 
+mod bounds;
+pub(crate) use bounds::Bounds;
+
 #[cfg(test)]
 mod tests;
 

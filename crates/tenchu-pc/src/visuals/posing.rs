@@ -1,6 +1,7 @@
 use super::{models::rotation, motion};
-use crate::render_mesh::{Pose, Vertex};
+use crate::render_mesh::{Bounds, Pose, Vertex};
 use bytemuck::{Pod, Zeroable};
+use glam::{Mat3A, Vec3A};
 use std::sync::Arc;
 use tenchu_core::math::Matrix;
 
@@ -16,11 +17,13 @@ pub(crate) struct Rest {
 
 pub(crate) struct Source {
     pub vertices: Vec<Rest>,
+    bounds: Bounds,
 }
 
 impl Source {
     pub fn new(vertices: &[Vertex], rules: &[motion::BoundRule]) -> Self {
         Self {
+            bounds: Bounds::collect(vertices.iter()),
             vertices: vertices
                 .iter()
                 .map(|v| Rest {
@@ -92,6 +95,25 @@ impl Part {
     pub fn end(&self) -> usize {
         self.start + self.source.vertices.len()
     }
+
+    fn bounds(&self) -> Bounds {
+        let c = &self.transform.columns;
+        let rotation = Mat3A::from_cols(
+            Vec3A::new(c[0][0], c[0][1], c[0][2]),
+            Vec3A::new(c[1][0], c[1][1], c[1][2]),
+            Vec3A::new(c[2][0], c[2][1], c[2][2]),
+        );
+        let translation = Vec3A::new(c[0][3], c[1][3], c[2][3]);
+        let mut displacement = [Vec3A::ZERO; 2];
+        for rule in &self.transform.rules[..self.transform.control[1] as usize] {
+            let delta = Vec3A::new(rule[1][0], rule[1][1], rule[1][2]);
+            displacement[0] += delta.min(Vec3A::ZERO);
+            displacement[1] += delta.max(Vec3A::ZERO);
+        }
+        self.source
+            .bounds
+            .transformed(rotation, translation, displacement)
+    }
 }
 
 pub(crate) struct Frame {
@@ -130,7 +152,7 @@ impl Frame {
         matrix: Matrix,
         deformation: Option<&motion::Deformation<'_>>,
         start: usize,
-    ) {
+    ) -> bool {
         let count = source.vertices.len();
         let source_bytes = self.source_bytes + (count * size_of::<Rest>()) as u64;
         let jobs = self.jobs + count.div_ceil(WORKGROUP_SIZE) as u32;
@@ -140,7 +162,7 @@ impl Frame {
             || jobs > self.max_jobs
             || u64::from(jobs) * 16 > self.max_bytes
         {
-            return;
+            return false;
         }
         self.parts.push(Part {
             source,
@@ -149,5 +171,23 @@ impl Frame {
         });
         self.source_bytes = source_bytes;
         self.jobs = jobs;
+        true
+    }
+
+    pub fn bounds(&self, vertices: &[Vertex], range: std::ops::Range<usize>) -> Bounds {
+        let first = self.parts.partition_point(|part| part.end() <= range.start);
+        let mut start = range.start;
+        let mut bounds = Bounds::default();
+        for part in self.parts[first..]
+            .iter()
+            .take_while(|p| p.start < range.end)
+        {
+            let end = part.start.max(range.start);
+            bounds.merge(Bounds::collect(vertices[start..end].iter()));
+            bounds.merge(part.bounds());
+            start = part.end().min(range.end);
+        }
+        bounds.merge(Bounds::collect(vertices[start..range.end].iter()));
+        bounds
     }
 }

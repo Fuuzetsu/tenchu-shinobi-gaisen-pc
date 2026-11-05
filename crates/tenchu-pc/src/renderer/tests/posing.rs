@@ -34,6 +34,7 @@ fn gpu_poses_preserve_moving_characters_and_cpu_fallbacks() {
             renderer.bind_models(&mut models);
             let mut motion = Motion::default();
             let mut geometry = render_mesh::Indexed::default();
+            let mut reference = render_mesh::Indexed::default();
             for tick in 0..90 {
                 use tenchu_core::input::{CROSS, SQUARE, UP};
                 let buttons = if tick < 30 {
@@ -63,6 +64,44 @@ fn gpu_poses_preserve_moving_characters_and_cpu_fallbacks() {
                     true,
                     None,
                 );
+                render_mesh::update_indexed_characters(
+                    &mut reference,
+                    &game,
+                    Some(&models),
+                    true,
+                    None,
+                );
+                assert_eq!(geometry.indices, reference.indices);
+                assert_eq!(geometry.vertices.len(), reference.vertices.len());
+                for (a, b) in geometry.vertices.iter().zip(&reference.vertices) {
+                    let mut attributes = *a;
+                    attributes.position = b.position;
+                    attributes.normal = b.normal;
+                    assert_eq!(bytemuck::bytes_of(&attributes), bytemuck::bytes_of(b));
+                }
+                if let Some(frame) = &geometry.poses {
+                    for group in &geometry.groups {
+                        let bounds = frame.bounds(&geometry.vertices, group.vertices.clone());
+                        for vertex in &reference.vertices[group.vertices.clone()] {
+                            let position = glam::Vec3A::from(vertex.position);
+                            if vertex.flags & render_mesh::SCENERY != 0 {
+                                let [min, max] = bounds.scenery.unwrap();
+                                assert!(position.cmpge(min).all() && position.cmple(max).all());
+                            }
+                            if vertex.flags
+                                & (render_mesh::SCREEN
+                                    | render_mesh::DEBUG
+                                    | render_mesh::ALPHA
+                                    | render_mesh::WATER)
+                                == 0
+                            {
+                                let [min, max] = bounds.shadow.unwrap();
+                                assert!(position.cmpge(min).all() && position.cmple(max).all());
+                                assert!(vertex.flags & render_mesh::FOLIAGE == 0 || bounds.foliage);
+                            }
+                        }
+                    }
+                }
                 if tick == 44 {
                     let parts = &geometry.poses.as_ref().unwrap().parts;
                     assert!(!parts.is_empty());
@@ -113,7 +152,7 @@ fn gpu_poses_preserve_moving_characters_and_cpu_fallbacks() {
                 rx.recv().unwrap().unwrap();
                 let bytes = readback.slice(..).get_mapped_range();
                 let poses: &[[f32; 6]] = bytemuck::cast_slice(&bytes);
-                for (actual, expected) in poses.iter().zip(&geometry.vertices) {
+                for (actual, expected) in poses.iter().zip(&reference.vertices) {
                     for (i, value) in actual.iter().enumerate() {
                         assert!(value.is_finite());
                         let error = if i < 3 {

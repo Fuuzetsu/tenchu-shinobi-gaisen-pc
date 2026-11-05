@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Avoid repeating GPU character poses on the CPU solely to calculate shadow
+  bounds. Conservative bounds preserve moving characters and their shadows;
+  custom skins and WebGL2 retain CPU transforms.
+
 - Improve animated-character frame times on native and WebGPU by caching model
   geometry and transferring part transforms instead of complete posed meshes.
   Model detail, secondary motion and the WebGL2 fallback are preserved.
