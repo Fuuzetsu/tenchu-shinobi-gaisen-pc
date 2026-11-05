@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep the selected savestate slot when rewinding across model/scene rebuilds or restoring a state.
+
 - Make packaged README and build information writable by their owner, avoiding permission errors when updating an extracted installation.
 
 - Add an optional persistent-blood surface cache under F1 → Rendering trials. Dense modern stains on flat terrain reuse their coverage while lighting and weather remain live; other surfaces and blood styles retain their existing renderer.

@@ -206,7 +206,8 @@ impl Application {
         self.campaign.cursor = 0;
         self.settings
             .restore_gameplay(&state.preferences, &self.campaign.game);
-        if let Some(debug) = debug {
+        if let Some(mut debug) = debug {
+            debug.state_slot = self.debug.state_slot;
             self.debug = debug;
         }
         self.debug.pause_view = true;
@@ -283,7 +284,6 @@ impl Application {
         } else {
             let bytes = crate::savestate::read(&path)?;
             self.restore_state(&bytes)?;
-            self.debug.state_slot = slot;
             format!("Loaded state {} · F3 to resume", slot + 1)
         };
         self.state_notice(message);

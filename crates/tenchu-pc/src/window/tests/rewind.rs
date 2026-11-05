@@ -3,6 +3,32 @@ use std::collections::BTreeMap;
 use tenchu_core::input;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; slot selection is UI state, including across model rebuilds and file restores"]
+fn rewind_keeps_the_selected_savestate_slot() {
+    let mut app = application(Options::default());
+    app.campaign.game.events = Default::default();
+    app.settings.rewind_seconds = 5;
+    for _ in 0..12 {
+        assert!(app.game_tick(0));
+    }
+    app.debug.state_slot = 4;
+    app.seek_rewind(4).unwrap();
+    assert_eq!(app.debug.state_slot, 4);
+
+    app.settings.player_model = "disc:144".into();
+    app.seek_rewind(8).unwrap();
+    assert_eq!(app.debug.state_slot, 4, "model rebuild lost slot selection");
+    app.set_paused(false);
+    assert!(app.game_tick(0));
+    assert_eq!(app.debug.state_slot, 4);
+
+    let bytes = app.capture_state().unwrap();
+    app.debug.state_slot = 2;
+    app.restore_state(&bytes).unwrap();
+    assert_eq!(app.debug.state_slot, 2, "file restore lost slot selection");
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; repeatable CPU benchmark for rewind recording and restore"]
 fn profile_rewind_recording() {
     fn report(name: &str, times: &mut [f64]) {
