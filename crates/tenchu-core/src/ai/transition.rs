@@ -252,7 +252,11 @@ impl Controller<'_, '_> {
                 } else {
                     self.state.strain = -1;
                 }
-                let mut pad = if self.attribute & ATTR_SEARCH != 0 {
+                let profile = self.combat_profile().is_some();
+                if profile && self.attribute & ATTR_WEAPON_DRAWN == 0 {
+                    self.motion(MOT_STATE_DRAW);
+                }
+                let mut pad = if self.attribute & ATTR_SEARCH != 0 || profile {
                     self.combat_program()?
                 } else {
                     if self.attribute & ATTR_WEAPON_DRAWN == 0 {

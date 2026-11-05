@@ -1501,5 +1501,95 @@
     "fog": false,
     "sharp_text": true,
     "weather_warmup": 30
+  },
+  {
+    "id": "behavior-original",
+    "title": "Enemy behavior: Original",
+    "description": "Compare the same sword guard with optional decisions. F1 offers seeded mixes, per-guard overrides and progression; authored AI remains the default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "enemy-behavior": "original"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true
+  },
+  {
+    "id": "behavior-coward",
+    "title": "Enemy behavior: Coward",
+    "description": "Compare the same sword guard with optional decisions. F1 offers seeded mixes, per-guard overrides and progression; authored AI remains the default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "enemy-behavior": "coward"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true
+  },
+  {
+    "id": "behavior-reckless",
+    "title": "Enemy behavior: Reckless",
+    "description": "Compare the same sword guard with optional decisions. F1 offers seeded mixes, per-guard overrides and progression; authored AI remains the default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "enemy-behavior": "reckless"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true
+  },
+  {
+    "id": "behavior-cautious",
+    "title": "Enemy behavior: Cautious",
+    "description": "Compare the same sword guard with optional decisions. F1 offers seeded mixes, per-guard overrides and progression; authored AI remains the default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "enemy-behavior": "cautious"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true
+  },
+  {
+    "id": "behavior-flanker",
+    "title": "Enemy behavior: Flanker",
+    "description": "Compare the same sword guard with optional decisions. F1 offers seeded mixes, per-guard overrides and progression; authored AI remains the default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "enemy-behavior": "flanker"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true
+  },
+  {
+    "id": "behavior-watchman",
+    "title": "Enemy behavior: Watchman",
+    "description": "Compare the same sword guard with optional decisions. F1 offers seeded mixes, per-guard overrides and progression; authored AI remains the default.",
+    "seconds": 10,
+    "mission": 1,
+    "character": 0,
+    "preset": 8,
+    "feature": {
+      "enemy-behavior": "watchman"
+    },
+    "shot": "player",
+    "fog": false,
+    "sharp_text": true
   }
 ]

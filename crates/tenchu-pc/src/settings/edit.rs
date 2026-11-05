@@ -10,6 +10,7 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Item::BehaviorSeed => (0, 65535, 1, 1),
             Item::RewindHistory => (0, 30, 5, 1),
             Item::RewindSpeed => (25, 800, 25, 1),
             Item::AlternateDeathChance => (0, 100, 5, 1),

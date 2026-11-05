@@ -5,6 +5,7 @@ use glam::Vec3;
 use std::time::Duration;
 
 mod additions;
+mod behavior;
 mod remake;
 mod tracking;
 
@@ -351,6 +352,11 @@ impl Application {
             }
             Shot::Cinematic | Shot::Gameplay => {}
         }
+        if matches!(clip.feature, Feature::EnemyBehavior(_)) {
+            behavior::setup(&mut game, &mut scene)?;
+            demo::framing::unobstructed_area(&mut scene, &geometry, 1800.0);
+            self.debug.god_mode = true;
+        }
         if matches!(clip.feature, Feature::AttackAssist(_)) {
             tracking::setup(&mut game, &mut scene)?;
             demo::framing::unobstructed_area(&mut scene, &geometry, 1800.0);
@@ -430,6 +436,7 @@ impl Application {
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
         game.combat.attack_assist = self.settings.attack_assist;
+        game.set_behavior_profiles(self.settings.behavior_profiles);
         self.campaign.game = game;
         self.campaign.options = options;
         self.campaign.screen = Screen::Playing;
@@ -551,6 +558,9 @@ impl Application {
                 .set_damage_escalation(self.settings.damage_escalation);
             self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
             self.campaign.game.combat.attack_assist = self.settings.attack_assist;
+            self.campaign
+                .game
+                .set_behavior_profiles(self.settings.behavior_profiles);
             if let Some(audio) = &mut self.audio {
                 audio.fast_forward(
                     player.speed() != 100

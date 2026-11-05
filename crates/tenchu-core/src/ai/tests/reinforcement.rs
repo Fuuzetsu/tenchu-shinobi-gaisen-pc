@@ -2,7 +2,7 @@ use super::*;
 use crate::{game::Game, roster::ReinforcementCall};
 use tenchu_assets::terrain::{AreaMap, Node};
 
-fn corner() -> Game {
+pub(super) fn corner() -> Game {
     let mut game = oracle::game(7, 0);
     let guard = game
         .roster

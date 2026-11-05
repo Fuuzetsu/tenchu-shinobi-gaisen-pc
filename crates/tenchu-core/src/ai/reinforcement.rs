@@ -2,16 +2,30 @@ use super::*;
 
 impl Controller<'_, '_> {
     fn can_recruit(&self) -> bool {
+        self.can_recruit_with_limits(self.bounded_recruitment())
+    }
+
+    fn bounded_recruitment(&self) -> bool {
+        self.roster.keep_all_active
+            || self.state.profiles.applies(
+                self.actor,
+                self.ctx.mission,
+                self.player.id,
+                self.state.difficulty,
+            )
+    }
+
+    pub(super) fn can_recruit_with_limits(&self, bounded: bool) -> bool {
         self.roster.can_call_reinforcements()
-            && (!self.roster.keep_all_active
+            && (!bounded
                 || (matches!(
                     self.actor.recruitment,
                     Recruitment::Available | Recruitment::Requested
                 ) && self.roster.reinforcement_call.count != 0))
     }
 
-    fn reinforcement_spawn_allowed(&self) -> Result<bool> {
-        if !self.roster.keep_all_active {
+    fn reinforcement_spawn_allowed(&self, bounded: bool) -> Result<bool> {
+        if !bounded {
             return Ok(true);
         }
         let terrain = &self.ctx.mission.terrain;
@@ -69,7 +83,9 @@ impl Controller<'_, '_> {
         if self.roster.keep_all_active && self.actor.recruitment == Recruitment::Reinforcement {
             return self.escape();
         }
-        if self.distance() < 16500 || !self.reinforcement_spawn_allowed()? {
+        if self.distance() < 16500
+            || !self.reinforcement_spawn_allowed(self.roster.keep_all_active)?
+        {
             if self.state.detection != Detection::Gone {
                 self.state.detection = Detection::None;
             }
@@ -93,6 +109,10 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn alarm(&mut self) -> Result<u16> {
+        self.alarm_with_limits(self.bounded_recruitment())
+    }
+
+    pub(super) fn alarm_with_limits(&mut self, bounded: bool) -> Result<u16> {
         let x = self.actor.brain.chase[0].wrapping_sub(self.actor.position.x);
         let z = self.actor.brain.chase[1].wrapping_sub(self.actor.position.z);
         let mut pad = 0;
@@ -108,7 +128,7 @@ impl Controller<'_, '_> {
                         Difficulty::Hard => 0,
                     };
                     self.actor.brain.timer = if self.actor.brain.count != 0
-                        || !self.can_recruit()
+                        || !self.can_recruit_with_limits(bounded)
                         || self.ctx.mission.stage.id == 8
                     {
                         1
@@ -133,7 +153,7 @@ impl Controller<'_, '_> {
                 }
             }
             _ => {
-                if self.roster.keep_all_active && !self.can_recruit() {
+                if bounded && !self.can_recruit_with_limits(true) {
                     self.actor.brain.timer = 1;
                     self.actor.brain.count = 0;
                     return Ok(0);
@@ -155,8 +175,8 @@ impl Controller<'_, '_> {
                         .ok_or("Zero AI turn speed")?;
                     self.hold(if self.degree() > 0 { LEFT } else { RIGHT }, ticks);
                 }
-                if self.distance() > 16500 && self.reinforcement_spawn_allowed()? {
-                    let count = if self.roster.keep_all_active {
+                if self.distance() > 16500 && self.reinforcement_spawn_allowed(bounded)? {
+                    let count = if bounded {
                         let call = self.roster.reinforcement_call;
                         let count = call.count.min(crate::roster::ReinforcementCall::MAX_COUNT);
                         if call.random && count > 1 {
@@ -174,7 +194,7 @@ impl Controller<'_, '_> {
                     self.voice(voice);
                     let yaw = self.actor.rotation[1].wrapping_add(degree);
                     for _ in 0..count {
-                        if self.roster.keep_all_active && !self.roster.can_call_reinforcements() {
+                        if bounded && !self.roster.can_call_reinforcements() {
                             break;
                         }
                         // The type RNG precedes the caller's raw rotation write.

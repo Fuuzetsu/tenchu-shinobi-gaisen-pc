@@ -305,6 +305,7 @@ impl Application {
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             self.set_attack_assist(previous.attack_assist);
+            self.set_behavior_profiles(previous.behavior_profiles);
             let _ = self.sync_model_moveset();
             return;
         }
@@ -400,6 +401,7 @@ impl Application {
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
         self.set_attack_assist(false);
+        self.set_behavior_profiles(Default::default());
         self.set_reinforcement_limit(0);
         self.set_reinforcement_call(Default::default());
         self.set_sight(preset.sight);
@@ -757,6 +759,7 @@ impl Application {
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_attack_assist(false);
+                self.set_behavior_profiles(Default::default());
                 if self.debug.sight_percent != 100 {
                     self.stop_edited_recording();
                 }
@@ -911,6 +914,14 @@ impl Application {
             Item::IndependentAttacks => {
                 self.set_independent_attacks(!self.settings.independent_attacks);
             }
+            Item::BehaviorProfiles
+            | Item::BehaviorCombat
+            | Item::BehaviorIdle
+            | Item::BehaviorQuickTurns
+            | Item::BehaviorProgression
+            | Item::BehaviorSeed
+            | Item::ActorCombat
+            | Item::ActorIdle => self.edit_behavior(item, direction, false)?,
             Item::AttackAssist => self.set_attack_assist(!self.settings.attack_assist),
             Item::MultiTargetAttacks => {
                 self.set_multi_target_attacks(!self.settings.multi_target_attacks);
@@ -1003,6 +1014,7 @@ impl Application {
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_attack_assist(false);
+                self.set_behavior_profiles(Default::default());
                 self.set_reinforcement_limit(0);
                 self.set_reinforcement_call(Default::default());
             }

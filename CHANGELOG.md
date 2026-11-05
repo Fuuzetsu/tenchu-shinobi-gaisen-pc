@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Enemy behavior** profiles in F1: cowardly, reckless, cautious, flanking and adaptive guards, with seeded mixing, per-guard overrides, patrol/lookout choices and optional mission progression. Story actors stay protected; original AI remains the default. Includes matched combat demos, saved-state/rewind support and bounded reinforcement calls.
+
 - Add optional **Forward melee assist** under F1 → Simulation. Prefer visible enemies ahead and retain a valid target through a combo, with smoother turning during the original wind-up. Hitboxes, damage, attack timing, stealth kills and enemy combat stay unchanged; original targeting remains the default.
 
 - Add optional **Unarmed attacks while sheathed** under F1 → Movement. Both heroes can use Onikage's kicks and grounded combos with the original limb hitboxes and timing, then draw their own weapons for blade attacks. Stealth kills still equip blades automatically. Includes demos for both heroes; disabled by default.

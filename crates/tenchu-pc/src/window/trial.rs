@@ -141,6 +141,7 @@ impl Application {
             || self.settings.sheathing.enabled
             || self.settings.damage_escalation.enabled()
             || self.settings.attack_assist
+            || self.settings.behavior_profiles.enabled
             || self.settings.multi_target_attacks
             || self.settings.sight_percent != 100
             || self.settings.model_moveset
@@ -221,6 +222,16 @@ mod tests {
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);
         app.set_attack_assist(false);
+        app.set_behavior_profiles(tenchu_core::ai::profiles::Settings {
+            enabled: true,
+            progression: true,
+            ..Default::default()
+        });
+        app.apply_trial(Event::Play { preview: false }).unwrap();
+        assert!(app.campaign.game.intelligence.profiles.enabled);
+        assert!(app.game_tick(0));
+        assert!(!app.trial.eligible);
+        app.set_behavior_profiles(Default::default());
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);
         app.set_quick_shuriken_dodge(true);

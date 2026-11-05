@@ -145,6 +145,14 @@ impl Application {
                     ..self.settings.damage_escalation
                 })
             }
+            Item::BehaviorProfiles
+            | Item::BehaviorCombat
+            | Item::BehaviorIdle
+            | Item::BehaviorQuickTurns
+            | Item::BehaviorProgression
+            | Item::BehaviorSeed
+            | Item::ActorCombat
+            | Item::ActorIdle => self.edit_behavior(item, 0, true)?,
             Item::AttackAssist => self.set_attack_assist(s.attack_assist),
             Item::MultiTargetAttacks => self.set_multi_target_attacks(s.multi_target_attacks),
             Item::ReinforcementsPerCall => {

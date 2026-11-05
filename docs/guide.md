@@ -1379,6 +1379,49 @@ See the
 [reinforcement investigation](validation.md#separate-always-active-enemy-audit)
 for the retail rules and the former recursive-recruitment problem.
 
+**F1 → Enemy behavior** offers optional decisions for ordinary living guards.
+The master switch defaults to off, preserving authored AI and its RNG. It does
+not affect bosses, story/objective actors, civilians or animals, including
+randomizer replacements that retain those story roles. Turning it on changes
+gameplay and prevents input recording/TRIAL records; graphical presets and
+retro comparison leave it alone.
+
+Choose one global combat profile or **Seeded mix**:
+
+- **Coward:** retreats to seek aid. Calls require valid ground, terrain cover and
+  the original 16,500-unit distance. Each guard can call once per alert; recruits
+  cannot recruit. The Simulation call-count/random-count controls apply. Normal
+  activation retains the 30-actor capacity; all-active mode uses its chosen limit.
+- **Reckless:** closes distance and attacks as its normal cooldown allows.
+- **Cautious:** retreats while the player attacks and waits for periodic openings.
+- **Flanker:** alternates lateral dashes and attacks.
+- **Watchman:** retreats defensively when hurt or threatened, closes a large gap,
+  and otherwise flanks. None of these profiles use inventory items.
+
+They retain authored animations, hitboxes, damage, collision, perception and
+recovery. The separate Independent enemy attacks option still controls whether
+attack cooldowns are shared. **Original** keeps that guard's authored combat decisions; reinforcement calls
+still use the bounded policy while profiles apply to the mission.
+The assignment seed combines with actor ID and kind without consuming gameplay
+RNG; the same mission/layout/seed gives the same mixed assignments. Subsequent
+AI decisions still use the game's RNG normally.
+
+Undetected behavior can remain original, follow the existing patrol route,
+watch from one spot, or periodically turn toward the player. Guards without a
+route watch in place. **Patrol quick turns** controls the rapid turnaround at a
+route's end; disabling it makes the guard turn normally toward its next point.
+Sleeping guards and scripted actions retain their original behavior.
+**Later-mission progression**, off by default, starts profiles at Mission 6 on
+Easy, 4 on Normal or 2 on Hard; TRIAL maps always allow them.
+
+Use **Selected actor** on this page, or click a guard in F2 free camera, to set
+individual combat/idle overrides. **Follow global** removes an override; R resets
+the selected value. The selected actor shows its current effective combat
+profile. Overrides last until retry and survive savestates and rewind. Global
+settings persist between missions; existing gameplay presets restore profiles
+to off. The demo catalog includes `behavior-original`, `behavior-coward`,
+`behavior-reckless`, `behavior-cautious`, `behavior-flanker` and `behavior-watchman`.
+
 **Simulation → Independent enemy attacks** gives each enemy its own attack
 cooldown instead of sharing the original timer. Several guards can press their
 attacks together, without speeding up individual animations or removing their

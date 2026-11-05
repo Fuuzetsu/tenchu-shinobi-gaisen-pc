@@ -38,6 +38,9 @@ impl Controller<'_, '_> {
     }
 
     pub(super) fn item(&mut self) -> Result<()> {
+        if self.combat_profile().is_some() {
+            return Ok(());
+        }
         if self.actor.motion.count != 0 || self.actor.status != ActorState::Engage {
             return Ok(());
         }

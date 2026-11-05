@@ -79,7 +79,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
         .and_then(Option::as_ref)
     {
         target = Vec3::from(actor.position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
-        if player.clip().randomizer.as_ref().is_some_and(|s| s.engage)
+        if (player.clip().randomizer.as_ref().is_some_and(|s| s.engage)
             || matches!(
                 player.clip().feature,
                 Feature::Blood
@@ -89,8 +89,11 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
                     | Feature::WeaponSparks
                     | Feature::GuardControls
                     | Feature::UnarmedAttacks
+                    | Feature::EnemyBehavior(_)
                     | Feature::WeaponFinishes
-            )
+            ))
+            && player.clip().feature
+                != Feature::EnemyBehavior(tenchu_core::ai::profiles::Combat::Coward)
         {
             target = (target
                 + scene
@@ -108,6 +111,12 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
     };
     let mut distance = scene.distance;
     match player.clip().feature {
+        Feature::EnemyBehavior(tenchu_core::ai::profiles::Combat::Coward) => {
+            let escape = target - scene.current_player;
+            camera.yaw = escape.x.atan2(escape.z);
+            camera.pitch = -0.1;
+            distance = 4000.0;
+        }
         Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks => target.y += 700.0,
         Feature::HeroModels => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
@@ -213,6 +222,16 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             settings.sheathing.unarmed = true;
             g.interpolation = true;
             g.blood = crate::settings::Blood::modern();
+            g.sky.enabled = true;
+            g.sky.time = 660;
+        }
+        Feature::EnemyBehavior(combat) => {
+            settings.behavior_profiles = tenchu_core::ai::profiles::Settings {
+                enabled: true,
+                combat,
+                ..Default::default()
+            };
+            g.interpolation = true;
             g.sky.enabled = true;
             g.sky.time = 660;
         }
@@ -848,6 +867,14 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             90..200 => "Onikage's three-kick combo · original limb hitboxes, damage and timing",
             200..300 => "Directional attacks use the available Onikage moves · weapons remain stowed",
             _ => "Draw explicitly to return to the hero's own blade attacks · stealth kills still draw automatically",
+        }.into()),
+        Feature::EnemyBehavior(combat) => text(match combat {
+            tenchu_core::ai::profiles::Combat::Original => "Original authored decisions · same guard and starting positions",
+            tenchu_core::ai::profiles::Combat::Coward => "Coward retreats for help · valid ground and terrain cover required · recruits cannot call again",
+            tenchu_core::ai::profiles::Combat::Reckless => "Reckless closes distance and attacks · original hitboxes, damage and recovery",
+            tenchu_core::ai::profiles::Combat::Cautious => "Cautious backs away and attacks in openings · does not interrupt committed moves",
+            tenchu_core::ai::profiles::Combat::Flanker => "Flanker alternates side dashes and attacks · ordinary collision rules",
+            _ => "Watchman adapts to distance, health and player attacks · no items · F1 → Enemy behavior",
         }.into()),
         Feature::AttackAssist(enabled) => text(if enabled {
             "Forward assist · ignores the closer guard behind · retains the front target through the combo"

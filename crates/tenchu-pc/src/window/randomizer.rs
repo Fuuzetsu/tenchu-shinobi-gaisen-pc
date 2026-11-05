@@ -131,6 +131,9 @@ impl Application {
             .set_damage_escalation(self.settings.damage_escalation);
         self.campaign.game.combat.multi_target = self.settings.multi_target_attacks;
         self.campaign.game.combat.attack_assist = self.settings.attack_assist;
+        self.campaign
+            .game
+            .set_behavior_profiles(self.settings.behavior_profiles);
         self.debug.reload(&self.campaign.game)?;
         if let Some(audio) = &mut self.audio {
             if let Err(error) = audio.reload(&self.assets, &self.campaign.game) {

@@ -1,4 +1,5 @@
 pub mod escalation;
+pub mod profiles;
 pub mod programs;
 use crate::actor::State as ActorState;
 use crate::math::Position;
@@ -123,6 +124,7 @@ pub struct Intelligence {
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
     pub guard_controls: bool,
+    pub profiles: profiles::Settings,
     pub damage_escalation: escalation::Settings,
     pub attack_clock: i32,
     pub alert: i32,
@@ -150,6 +152,7 @@ impl Default for Intelligence {
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
             guard_controls: false,
+            profiles: Default::default(),
             damage_escalation: Default::default(),
             attack_clock: 0,
             alert: 0,
@@ -443,6 +446,9 @@ impl<'a, 'b> Controller<'a, 'b> {
     }
 
     fn idle_program(&mut self) -> Result<u16> {
+        if let Some(pad) = self.profile_idle()? {
+            return Ok(pad);
+        }
         match self.actor.think.idle {
             programs::Idle::None | programs::Idle::Disabled => Ok(0),
             programs::Idle::Player => Ok(self.player_input()),
@@ -469,6 +475,9 @@ impl<'a, 'b> Controller<'a, 'b> {
     fn combat_program(&mut self) -> Result<u16> {
         if self.evade_shuriken()? {
             return Ok(0);
+        }
+        if let Some(profile) = self.combat_profile() {
+            return self.profile_combat(profile);
         }
         match self.actor.think.combat {
             programs::Combat::None | programs::Combat::Disabled => Ok(0),

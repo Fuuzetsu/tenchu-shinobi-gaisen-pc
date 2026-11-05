@@ -37,6 +37,8 @@ pub struct Debug {
     pub show_trail: bool,
     pub inspect_actor: bool,
     pub selected_actor: usize,
+    pub actor_behavior: Option<tenchu_core::ai::profiles::Overrides>,
+    pub actor_combat: Option<tenchu_core::ai::profiles::Combat>,
     pub target: tenchu_core::math::Position,
     pub snap_to_floor: bool,
     pub teleport_armed: bool,
@@ -87,6 +89,8 @@ impl Debug {
             show_trail: false,
             inspect_actor: false,
             selected_actor: game.player_id,
+            actor_behavior: None,
+            actor_combat: None,
             target: game.player().position,
             snap_to_floor: true,
             teleport_armed: false,
@@ -257,6 +261,23 @@ impl Debug {
         if self.camera_actor.is_some() && self.followed_actor(game).is_none() {
             self.return_camera();
         }
+        let actor = game
+            .roster
+            .actors
+            .get(self.selected_actor)
+            .and_then(Option::as_ref)
+            .filter(|a| tenchu_core::ai::profiles::eligible(a, &game.mission, game.player_id));
+        self.actor_behavior = actor.map(|a| a.behavior);
+        self.actor_combat = actor
+            .filter(|a| {
+                game.intelligence.profiles.applies(
+                    a,
+                    &game.mission,
+                    game.player_id,
+                    game.intelligence.difficulty,
+                )
+            })
+            .map(|a| game.intelligence.profiles.combat(a));
         self.god_mode = game.player().invulnerable;
         self.stealth = game.intelligence.ignore_player;
         self.inventory

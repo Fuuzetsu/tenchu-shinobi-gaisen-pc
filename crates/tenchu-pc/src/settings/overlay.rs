@@ -441,6 +441,26 @@ fn widget(
         return response;
     }
     let choices: Vec<String> = match item {
+        Item::BehaviorCombat | Item::ActorCombat => (item == Item::ActorCombat)
+            .then_some("Follow global")
+            .into_iter()
+            .chain(
+                tenchu_core::ai::profiles::Combat::ALL
+                    .into_iter()
+                    .map(|p| p.name()),
+            )
+            .map(String::from)
+            .collect(),
+        Item::BehaviorIdle | Item::ActorIdle => (item == Item::ActorIdle)
+            .then_some("Follow global")
+            .into_iter()
+            .chain(
+                tenchu_core::ai::profiles::Idle::ALL
+                    .into_iter()
+                    .map(|p| p.name()),
+            )
+            .map(String::from)
+            .collect(),
         Item::BloodHit | Item::BloodDrips | Item::BloodDeath | Item::BloodGround => {
             super::BloodStyle::ALL
                 .iter()

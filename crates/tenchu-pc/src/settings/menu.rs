@@ -203,6 +203,14 @@ pub enum Item {
     DetectionDamageLimit,
     MultiTargetAttacks,
     AttackAssist,
+    BehaviorProfiles,
+    BehaviorCombat,
+    BehaviorIdle,
+    BehaviorQuickTurns,
+    BehaviorProgression,
+    BehaviorSeed,
+    ActorCombat,
+    ActorIdle,
     ReinforcementsPerCall,
     RandomReinforcements,
     WitnessedKillReinforcements,
@@ -331,7 +339,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 22] = [
+pub const PAGES: [&str; 23] = [
     "General",
     "Graphics",
     "Overlays",
@@ -354,6 +362,7 @@ pub const PAGES: [&str; 22] = [
     "Vibration",
     "Movement",
     "Rendering trials",
+    "Enemy behavior",
 ];
 
 pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
@@ -363,6 +372,86 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
+        22 => vec![
+            (
+                Item::BehaviorProfiles,
+                "Enemy behavior profiles",
+                on(s.behavior_profiles.enabled),
+                "GAMEPLAY EDIT: optional decisions for ordinary guards. Original AI is the default. Story actors, bosses, civilians and animals are protected. Perception, damage and collision rules remain; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::BehaviorCombat,
+                "Combat profile",
+                s.behavior_profiles.combat.name().into(),
+                "Coward retreats to seek one bounded reinforcement group per alert. Reckless rushes and attacks; Cautious retreats and waits for openings; Flanker sidesteps; Watchman adapts to distance, health and attacks. Seeded mix chooses per actor. These profiles use no items.",
+            ),
+            (
+                Item::BehaviorIdle,
+                "Undetected behavior",
+                s.behavior_profiles.idle.name().into(),
+                "Keep authored behavior, follow an existing patrol route (look out if none), watch from one spot, or turn periodically toward the player. Sleeping guards and scripted actions retain their authored behavior.",
+            ),
+            (
+                Item::BehaviorQuickTurns,
+                "Patrol quick turns",
+                on(s.behavior_profiles.quick_turns),
+                "Allow the original rapid turnaround at the end of a patrol loop when Follow patrol is selected. Off turns naturally toward the next point.",
+            ),
+            (
+                Item::BehaviorProgression,
+                "Later-mission progression",
+                on(s.behavior_profiles.progression),
+                "Optional starting thresholds: Mission 6 on Easy, 4 on Normal, 2 on Hard. Earlier missions retain authored AI. Off applies to all missions; TRIAL maps always allow profiles.",
+            ),
+            (
+                Item::BehaviorSeed,
+                "Assignment seed",
+                s.behavior_profiles.seed.to_string(),
+                "Seeded mix uses actor ID, kind and this seed; it does not consume the game's RNG. The same stage/layout and seed reproduce the assignment. Savestates retain profiles and individual overrides.",
+            ),
+            (
+                Item::Actor,
+                "Selected actor",
+                format!(
+                    "#{} · {}",
+                    d.selected_actor,
+                    d.actor_combat.map_or("Inactive / protected", |p| p.name())
+                ),
+                "Choose a guard for individual overrides, or click an actor in the free camera. Global profiles must be enabled. Overrides last until retry and are included in savestates/rewind.",
+            ),
+            (
+                Item::ActorCombat,
+                "Guard combat override",
+                d.actor_behavior
+                    .map_or("Unavailable", |o| {
+                        o.combat.map_or("Follow global", |p| p.name())
+                    })
+                    .into(),
+                "Override only the selected living, non-story guard. Original keeps its authored combat; Follow global removes the override. R resets this guard to Follow global.",
+            ),
+            (
+                Item::ActorIdle,
+                "Guard idle override",
+                d.actor_behavior
+                    .map_or("Unavailable", |o| {
+                        o.idle.map_or("Follow global", |p| p.name())
+                    })
+                    .into(),
+                "Override only the selected guard's undetected behavior. Does not replace sleeping or scripted actions. R resets this guard to Follow global.",
+            ),
+            (
+                Item::InspectActor,
+                "Inspect selected actor",
+                on(d.inspect_actor),
+                "Show the selected actor's current state, motion and position.",
+            ),
+            (
+                Item::FocusActor,
+                "Focus selected actor",
+                "Enter".into(),
+                "Move the inspection camera to the selected guard. F2 returns to the game camera.",
+            ),
+        ],
         21 => vec![
             (
                 Item::HalfResolutionAo,

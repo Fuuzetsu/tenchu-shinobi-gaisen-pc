@@ -47,6 +47,7 @@ pub enum Feature {
     Sheathing,
     UnarmedAttacks,
     AttackAssist(bool),
+    EnemyBehavior(tenchu_core::ai::profiles::Combat),
     WeaponFinishes,
     TextureSampling,
     Reconstruction,

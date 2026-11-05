@@ -7,6 +7,7 @@ use std::fmt::Write;
 mod alerts;
 mod attacks;
 mod evasion;
+mod profiles;
 mod reinforcement;
 
 #[test]

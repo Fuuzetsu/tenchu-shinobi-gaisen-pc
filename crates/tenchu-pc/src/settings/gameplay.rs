@@ -64,6 +64,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.sheathing.enabled
             && !settings.damage_escalation.enabled()
             && !settings.attack_assist
+            && !settings.behavior_profiles.enabled
             && !settings.multi_target_attacks
             && (!p.active
                 || (settings.reinforcement_limit == 0

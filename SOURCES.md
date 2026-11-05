@@ -1197,3 +1197,13 @@ Both use the protagonists' fifteen-part hierarchy; KUNOITI's normal death is
 already Ayame's motion. The shorter collapses hold their final poses while the
 original simulation completes its death sequence. No original animation data
 is embedded, and the selector never advances gameplay RNG.
+
+### Optional guard behavior profiles
+
+`tenchu-core::ai::profiles` implements the opt-in proposal in issue #58; it is
+new gameplay, not a claim about differences between PlayStation editions.
+Profiles reuse the scalar `THINK.C`-derived controllers above for patrol, watch,
+trace, attack cooldown/combo inputs, evasion and covered reinforcement calls.
+The original transition, sight and collision engines remain authoritative.
+Disabled profiles take the original dispatch path without assignment RNG or AI
+state resets. No code, motion tables or assets from another game are imported.
