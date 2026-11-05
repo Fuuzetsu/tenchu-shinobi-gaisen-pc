@@ -121,6 +121,11 @@ impl Application {
             &self.assets,
             self.settings.walking.enabled,
         )?;
+        crate::sheathing::configure(
+            &mut self.campaign.game,
+            &self.assets,
+            self.settings.sheathing,
+        )?;
         self.campaign
             .game
             .set_damage_escalation(self.settings.damage_escalation);

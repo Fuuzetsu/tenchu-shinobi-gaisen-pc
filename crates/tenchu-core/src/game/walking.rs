@@ -28,26 +28,19 @@ impl Game {
             let player = self.roster.get_mut(self.player_id);
             player.motion.select_clip(index, &self.mission.clips);
             let source = &self.mission.clips[index];
+            let speed = i32::from(player.sheathed_settings().map_or(100, |s| s.speed));
             let v = self.math.velocity(
                 player.rotation[1],
-                i16::from(source.forward_speed),
-                i16::from(source.side_speed),
+                (i32::from(source.forward_speed) * speed / 100) as i16,
+                (i32::from(source.side_speed) * speed / 100) as i16,
             );
+
             player.velocity[0] = v[0];
             player.velocity[2] = v[2];
         }
-        self.walking = clip.map(|source| {
-            let clip = self
-                .mission
-                .clips
-                .iter()
-                .position(|c| c == source)
-                .unwrap_or_else(|| {
-                    let clips = std::sync::Arc::make_mut(&mut self.mission.clips);
-                    clips.push(source.clone());
-                    clips.len() - 1
-                });
-            State { clip, held: false }
+        self.walking = clip.map(|source| State {
+            clip: self.import_clip(source),
+            held: false,
         });
         Ok(())
     }

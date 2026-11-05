@@ -203,6 +203,10 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             settings.walking.enabled = true;
             g.interpolation = true;
         }
+        Feature::Sheathing => {
+            settings.sheathing.enabled = true;
+            g.interpolation = true;
+        }
         Feature::WeaponSparks => {
             g.effects.sparks = p >= 0.5;
             g.effects.spark_density = 150;
@@ -816,6 +820,12 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             90..120 | 210..240 => "Full stick tilt: original run speed · weapons and combat retained",
             240.. => "F1 → Movement · rebind Walk modifier under General → Controls",
             _ => "Light stick tilt / Walk modifier: borrowed ninja walk cycle and speed · optional gameplay change",
+        }.into()),
+        Feature::Sheathing => text(match player.simulation_ticks {
+            0..100 => "Press Draw / sheathe: original ninja stowing animation · H by default",
+            100..190 => "Weapons stay stowed while moving · speed, sight and vulnerability are configurable",
+            190..240 => "Attack draws first · stealth kills draw immediately for their paired animation",
+            _ => "Armed attacks retain the hero's original moveset · assign a controller button in Controls",
         }.into()),
         Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
         Feature::WoundSpurts => text(if s.graphics.blood.spurts == 0 {

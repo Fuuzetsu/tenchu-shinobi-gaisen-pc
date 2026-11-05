@@ -86,7 +86,13 @@ impl Controller<'_, '_> {
                 player: self.player,
                 clock: self.clock,
                 alert: self.state.alert,
-                range_percent: self.state.sight_percent,
+                range_percent: if self.player_target() {
+                    self.roster
+                        .get(self.player.id)
+                        .sight_percent(self.state.sight_percent)
+                } else {
+                    self.state.sight_percent
+                },
                 all_active: self.roster.keep_all_active,
             },
             self.ctx,

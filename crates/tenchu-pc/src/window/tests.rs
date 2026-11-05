@@ -6,6 +6,7 @@ mod camera;
 mod death;
 mod rewind;
 mod savestate;
+mod sheathing;
 mod walking;
 
 pub(super) fn application(options: Options) -> Application {
@@ -702,6 +703,7 @@ fn combat_settings_apply_and_reset() {
         Item::StrictCorpseSight,
         Item::GuardControls,
         Item::AnalogWalking,
+        Item::Sheathing,
         Item::DetectionDamage,
     ]
     .into_iter()
@@ -713,6 +715,7 @@ fn combat_settings_apply_and_reset() {
             Item::StrictCorpseSight => app.campaign.game.intelligence.strict_corpse_sight,
             Item::GuardControls => app.campaign.game.intelligence.guard_controls,
             Item::AnalogWalking => app.campaign.game.walking.is_some(),
+            Item::Sheathing => app.campaign.game.player().sheathing.is_some(),
             Item::DetectionDamage => app.campaign.game.intelligence.damage_escalation.enabled(),
             _ => app.campaign.game.combat.multi_target,
         };
@@ -722,6 +725,7 @@ fn combat_settings_apply_and_reset() {
             Item::StrictCorpseSight => settings.strict_corpse_sight,
             Item::GuardControls => settings.guard_controls,
             Item::AnalogWalking => settings.walking.enabled,
+            Item::Sheathing => settings.sheathing.enabled,
             Item::DetectionDamage => settings.damage_escalation.enabled(),
             _ => settings.multi_target_attacks,
         };

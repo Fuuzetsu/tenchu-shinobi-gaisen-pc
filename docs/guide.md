@@ -1408,6 +1408,25 @@ forward; camera-relative controls walk in any direction. This gameplay option
 is off by default, independent of graphical presets, and disables ordinary
 input recording and TRIAL records. Try `walk-ayame` and `walk-rikimaru` demos.
 
+**Movement → Draw / sheathe weapons** enables a rebindable **Draw / sheathe**
+action: **H** in new/default keyboard bindings. Assign a controller button under
+**General → Controls**. A fresh press during a free grounded stance draws or
+stows the weapons using NinjaA/Kunoichi animations from your disc. It cannot
+cancel an attack, injury, jump or cutscene, and holding the button does not repeat.
+Grounded attacks draw first; press attack again once drawn. Stealth kills equip
+the blades immediately so the original paired kill can proceed. Scripted scenes
+use their original motions, and disabling the option restores drawn weapons.
+
+Separate **Sheathed movement speed**, **Sheathed detection range**,
+**Sheathed damage taken**, and **Sheathed one-hit death** controls
+let you choose tradeoffs. All multipliers start at 100%, with one-hit death off;
+enabling sheathing alone grants no speed or visibility bonus. Damage settings
+affect incoming melee/item damage, not falls or ongoing poison, and god mode
+still takes precedence. Walking can be combined with sheathing. Gameplay presets
+reset these options, graphical presets leave them alone, and enabling sheathing
+disables ordinary input recording and TRIAL records. Savestates and rewind retain
+the stance and settings. Try `sheathe-ayame` and `sheathe-rikimaru` demos.
+
 **Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
 binding to stand and block frontal melee hits; press a direction while holding
 it for one dash. Hold crouch (Circle) as well to roll. Directions stay relative

@@ -40,7 +40,7 @@ fn corner() -> Game {
     actor.attribute = ATTR_CUSTOMAI | ATTR_SEARCH | ATTR_WEAPON_DRAWN | 1;
     actor.setup_think(0x4444).unwrap();
     actor.brain.chase = [0, 18000];
-    actor.equip(&mut ctx, true);
+    actor.equip(&ctx, true);
     actor.enter(&ctx, MOT_ENGAGE_STANCE, true);
     ctx.scene.models[actor.parts[0]].attribute |= crate::scene::COLLIDE;
     ctx.scene.set_translation(actor.root_model, actor.position);

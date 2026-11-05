@@ -21,6 +21,7 @@ mod rewind;
 mod savestate;
 mod session;
 mod settings;
+mod sheathing;
 mod source;
 #[cfg(not(target_arch = "wasm32"))]
 mod startup;

@@ -138,6 +138,7 @@ impl Application {
             || self.settings.strict_corpse_sight
             || self.settings.guard_controls
             || self.settings.walking.enabled
+            || self.settings.sheathing.enabled
             || self.settings.damage_escalation.enabled()
             || self.settings.multi_target_attacks
             || self.settings.sight_percent != 100

@@ -158,6 +158,20 @@ impl Application {
         self.campaign.game.intelligence.guard_controls = enabled;
     }
 
+    pub(super) fn set_sheathing(
+        &mut self,
+        mut settings: tenchu_core::game::sheathing::Settings,
+    ) -> Result<()> {
+        settings.validate();
+        crate::sheathing::configure(&mut self.campaign.game, &self.assets, settings)?;
+        if self.settings.sheathing != settings {
+            self.stop_edited_recording();
+            self.controls.clear();
+        }
+        self.settings.sheathing = settings;
+        Ok(())
+    }
+
     pub(super) fn set_walking(&mut self, enabled: bool) -> Result<()> {
         if self.campaign.game.walking.is_some() != enabled {
             crate::walking::configure(&mut self.campaign.game, &self.assets, enabled)?;
@@ -279,6 +293,7 @@ impl Application {
             self.set_strict_corpse_sight(previous.strict_corpse_sight);
             self.set_guard_controls(previous.guard_controls);
             let _ = self.set_walking(previous.walking.enabled);
+            let _ = self.set_sheathing(previous.sheathing);
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             let _ = self.sync_model_moveset();
@@ -372,6 +387,7 @@ impl Application {
         self.set_strict_corpse_sight(false);
         self.set_guard_controls(false);
         self.set_walking(false)?;
+        self.set_sheathing(Default::default())?;
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
         self.set_reinforcement_limit(0);
@@ -727,6 +743,7 @@ impl Application {
                 self.set_strict_corpse_sight(false);
                 self.set_guard_controls(false);
                 self.set_walking(false)?;
+                self.set_sheathing(Default::default())?;
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 if self.debug.sight_percent != 100 {
@@ -889,6 +906,27 @@ impl Application {
             Item::StrictCorpseSight => {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
+            Item::Sheathing | Item::SheathedOneHit => {
+                let mut settings = self.settings.sheathing;
+                if item == Item::Sheathing {
+                    settings.enabled = !settings.enabled;
+                } else {
+                    settings.one_hit = !settings.one_hit;
+                }
+                self.set_sheathing(settings)?;
+            }
+            Item::SheathedSpeed | Item::SheathedVisibility | Item::SheathedDamage => {
+                let mut settings = self.settings.sheathing;
+                let field = match item {
+                    Item::SheathedSpeed => &mut settings.speed,
+                    Item::SheathedVisibility => &mut settings.visibility,
+                    _ => &mut settings.damage,
+                };
+                let slider = item.slider().unwrap();
+                *field = (i32::from(*field) + direction * slider.step).clamp(slider.min, slider.max)
+                    as u16;
+                self.set_sheathing(settings)?;
+            }
             Item::AnalogWalking => self.set_walking(!self.settings.walking.enabled)?,
             Item::GuardControls => {
                 self.set_guard_controls(!self.settings.guard_controls);
@@ -947,6 +985,7 @@ impl Application {
                 self.set_strict_corpse_sight(false);
                 self.set_guard_controls(false);
                 self.set_walking(false)?;
+                self.set_sheathing(Default::default())?;
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_reinforcement_limit(0);

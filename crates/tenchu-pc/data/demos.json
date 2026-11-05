@@ -713,6 +713,28 @@
     }
   },
   {
+    "id": "sheathe-ayame",
+    "title": "Ayame: draw and sheathe",
+    "description": "Optional weapon sheathing uses Kunoichi's stow/draw motions. Movement keeps weapons put away; a grounded attack draws first. Speed, sight range and vulnerability have separate settings with neutral defaults.",
+    "seconds": 11,
+    "mission": 1,
+    "character": 1,
+    "preset": 4,
+    "feature": "sheathing",
+    "shot": "player"
+  },
+  {
+    "id": "sheathe-rikimaru",
+    "title": "Rikimaru: draw and sheathe",
+    "description": "NinjaA's motions let Rikimaru put away and draw his own blade. Attacks still use the original hero moveset. Off by default; H or a chosen controller binding toggles weapons.",
+    "seconds": 11,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "sheathing",
+    "shot": "player"
+  },
+  {
     "id": "walk-ayame",
     "title": "Ayame: walk and run",
     "description": "Optional analog walking borrows Kunoichi's walk cycle and speed. Light stick tilt or a rebindable modifier walks; full tilt runs. Original weapons and combat remain.",

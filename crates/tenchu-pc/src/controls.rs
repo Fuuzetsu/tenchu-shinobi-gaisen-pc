@@ -4,7 +4,7 @@ use std::{collections::HashSet, mem, path::PathBuf};
 use tenchu_core::input;
 use winit::keyboard::KeyCode;
 mod bindings;
-pub use bindings::WALK;
+pub use bindings::{SHEATHE, WALK};
 mod editor;
 mod rumble;
 use bindings::{Bindings, PadInput, StickAxis};

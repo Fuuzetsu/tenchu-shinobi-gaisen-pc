@@ -61,6 +61,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.strict_corpse_sight
             && !settings.guard_controls
             && !settings.walking.enabled
+            && !settings.sheathing.enabled
             && !settings.damage_escalation.enabled()
             && !settings.multi_target_attacks
             && (!p.active

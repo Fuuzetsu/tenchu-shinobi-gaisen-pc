@@ -274,7 +274,10 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                     None,
                 ))
             });
-            let profile = tenchu_core::actor::sight::profile(sneaking, debug.sight_percent);
+            let profile = tenchu_core::actor::sight::profile(
+                sneaking,
+                game.player().sight_percent(debug.sight_percent),
+            );
             let eye = position
                 + Vec3::Y * (300.0 - f32::from(game.mission.characters[actor.definition].height));
             for (range, color) in [

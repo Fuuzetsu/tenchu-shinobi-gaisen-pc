@@ -144,7 +144,7 @@ impl Actor {
         Ok(())
     }
 
-    pub(crate) fn equip(&mut self, ctx: &mut Context, drawn: bool) {
+    pub(crate) fn equip(&mut self, ctx: &Context, drawn: bool) {
         if (self.attribute & ATTR_WEAPON_DRAWN != 0) == drawn {
             return;
         }

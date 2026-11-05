@@ -8,6 +8,7 @@ mod imported;
 mod independent_attacks;
 mod multi_target;
 mod reinforcements;
+mod sheathing;
 use super::*;
 use crate::math::Position;
 use crate::{game::Game, oracle};

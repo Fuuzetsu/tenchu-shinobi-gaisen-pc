@@ -137,6 +137,9 @@ impl Actor {
                 }
             }
         }
+        if self.sheathing.is_some() && self.attribute & ATTR_WEAPON_DRAWN == 0 {
+            return Ok(Some((MOT_STATE_DRAW, true)));
+        }
         let current = pending.map_or(self.motion.action, |p| p.0);
         let action = if held & DOWN != 0 {
             if !self.registered(ctx, MOT_ATTACK_BACK) {

@@ -10,24 +10,7 @@ impl Actor {
             && self.health > 0
             && self.map.height == 0
             && self.pad.held & (R1 | L1) == R1
-            && matches!(
-                self.motion.action,
-                MOT_NORMAL
-                    | MOT_NORMAL_TURN_L
-                    | MOT_NORMAL_TURN_R
-                    | MOT_MOVE
-                    | MOT_MOVE_BACK
-                    | MOT_ENGAGE_STANCE
-                    | MOT_ENGAGE_TURN_L
-                    | MOT_ENGAGE_TURN_R
-                    | MOT_CHASE
-                    | MOT_CHASE_BACK
-                    | MOT_SQUAT
-                    | MOT_SQUAT_WALK_F
-                    | MOT_SQUAT_WALK_B
-                    | MOT_SQUAT_WALK_L
-                    | MOT_SQUAT_WALK_R
-            )
+            && self.free_stance()
     }
 
     pub(super) fn guard_motion(&mut self, ctx: &Context, held: u16) -> Option<(i16, bool)> {

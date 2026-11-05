@@ -10,17 +10,33 @@ use tenchu_assets::weapon::kind::KATANAL;
 
 impl Actor {
     fn damage_from(&self, damage: i16, source: Option<usize>, world: &ActionContext) -> i16 {
-        if self.id != world.player || !world.intelligence.damage_escalation.enabled() {
+        if self.id != world.player {
             return damage;
         }
-        source
-            .filter(|&id| id != world.player)
-            .and_then(|id| world.roster.actors.get(id)?.as_ref())
-            .map_or(damage, |enemy| {
-                enemy
-                    .encounters
-                    .damage(damage, world.intelligence.damage_escalation)
-            })
+        let damage = if world.intelligence.damage_escalation.enabled() {
+            source
+                .filter(|&id| id != world.player)
+                .and_then(|id| world.roster.actors.get(id)?.as_ref())
+                .map_or(damage, |enemy| {
+                    enemy
+                        .encounters
+                        .damage(damage, world.intelligence.damage_escalation)
+                })
+        } else {
+            damage
+        };
+        if damage > 0
+            && let Some(settings) = self.sheathed_settings()
+        {
+            if settings.one_hit {
+                self.health.max(damage)
+            } else {
+                (i32::from(damage) * i32::from(settings.damage) / 100).min(i32::from(i16::MAX))
+                    as i16
+            }
+        } else {
+            damage
+        }
     }
 
     fn score_death(&self, ctx: &mut Context, world: &mut ActionContext) -> Result<()> {

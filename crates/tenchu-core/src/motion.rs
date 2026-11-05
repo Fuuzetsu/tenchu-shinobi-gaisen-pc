@@ -252,6 +252,13 @@ impl Motion {
         let Some(index) = Self::clip_index(action, registry, common, clips) else {
             return Change::Missing;
         };
+        self.change_clip(action, index, clips)
+    }
+
+    pub(crate) fn change_clip(&mut self, action: i16, index: usize, clips: &[Clip]) -> Change {
+        if action == self.action {
+            return Change::Unchanged;
+        }
         self.action = action;
         self.select_clip(index, clips);
         Change::Changed

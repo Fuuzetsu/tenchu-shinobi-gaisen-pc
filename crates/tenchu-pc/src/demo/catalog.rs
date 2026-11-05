@@ -44,6 +44,7 @@ pub enum Feature {
     WeaponSparks,
     GuardControls,
     AnalogWalking,
+    Sheathing,
     WeaponFinishes,
     TextureSampling,
     Reconstruction,

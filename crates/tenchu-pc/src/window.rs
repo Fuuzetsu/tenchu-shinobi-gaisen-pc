@@ -321,6 +321,7 @@ impl Application {
             && !self.settings.strict_corpse_sight
             && !self.settings.guard_controls
             && !self.settings.walking.enabled
+            && !self.settings.sheathing.enabled
             && !self.settings.damage_escalation.enabled()
             && !self.settings.multi_target_attacks
             && !self.settings.model_moveset
@@ -366,6 +367,7 @@ impl Application {
                         || self.settings.strict_corpse_sight
                         || self.settings.guard_controls
                         || self.settings.walking.enabled
+                        || self.settings.sheathing.enabled
                         || self.settings.damage_escalation.enabled()
                         || self.settings.multi_target_attacks)
                 {
@@ -1219,6 +1221,7 @@ pub fn run(
     campaign.game.intelligence.strict_corpse_sight = settings.strict_corpse_sight;
     campaign.game.intelligence.guard_controls = settings.guard_controls;
     crate::walking::configure(&mut campaign.game, &assets, settings.walking.enabled)?;
+    crate::sheathing::configure(&mut campaign.game, &assets, settings.sheathing)?;
     campaign
         .game
         .set_damage_escalation(settings.damage_escalation);

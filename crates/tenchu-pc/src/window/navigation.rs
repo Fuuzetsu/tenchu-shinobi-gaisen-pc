@@ -125,7 +125,15 @@ impl Application {
                 walk.held,
             );
         }
-        buttons & !crate::controls::WALK
+        let player = self
+            .campaign
+            .game
+            .roster
+            .get_mut(self.campaign.game.player_id);
+        if let Some(sheathing) = &mut player.sheathing {
+            sheathing.input(buttons & crate::controls::SHEATHE != 0);
+        }
+        buttons & !(crate::controls::WALK | crate::controls::SHEATHE)
     }
 
     pub(super) fn navigation_input(&mut self, buttons: u16) -> u16 {

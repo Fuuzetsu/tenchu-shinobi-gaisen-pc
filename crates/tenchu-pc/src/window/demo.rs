@@ -401,6 +401,7 @@ impl Application {
         game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
         game.intelligence.guard_controls = self.settings.guard_controls;
         crate::walking::configure(&mut game, &self.assets, self.settings.walking.enabled)?;
+        crate::sheathing::configure(&mut game, &self.assets, self.settings.sheathing)?;
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
         self.campaign.game = game;
@@ -533,6 +534,16 @@ impl Application {
             let cinematic = self.campaign.game.cinematic.active;
             let cinematic_clip = player.clip().feature == Feature::Cinematics;
             for (index, buttons) in inputs.into_iter().enumerate() {
+                if self.demo.as_ref().unwrap().clip().feature == Feature::Sheathing
+                    && let Some(sheathing) = &mut self
+                        .campaign
+                        .game
+                        .roster
+                        .get_mut(self.campaign.game.player_id)
+                        .sheathing
+                {
+                    sheathing.input(first + index as u64 == 10);
+                }
                 if self.demo.as_ref().unwrap().clip().feature == Feature::AnalogWalking
                     && let Some(walk) = &mut self.campaign.game.walking
                 {

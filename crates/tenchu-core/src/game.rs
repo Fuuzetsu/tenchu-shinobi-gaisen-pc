@@ -11,6 +11,7 @@ pub mod navigation;
 mod retail_tests;
 pub mod score;
 mod setup;
+pub mod sheathing;
 pub mod trial;
 pub mod walking;
 pub use setup::Statistics;

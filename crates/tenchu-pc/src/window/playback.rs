@@ -156,6 +156,14 @@ impl Application {
                 if let Some(walk) = &mut self.campaign.game.walking {
                     walk.held = false;
                 }
+                let player = self
+                    .campaign
+                    .game
+                    .roster
+                    .get_mut(self.campaign.game.player_id);
+                if let Some(sheathing) = &mut player.sheathing {
+                    sheathing.input(false);
+                }
                 0
             };
             let buttons = self

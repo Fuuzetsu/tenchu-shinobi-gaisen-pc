@@ -99,6 +99,7 @@ pub struct Actor {
     pub rotation: [i16; 3],
     pub health: i16,
     pub invulnerable: bool,
+    pub sheathing: Option<crate::game::sheathing::State>,
     pub(crate) suppress_idle_taunts: bool,
     pub max_health: i16,
     pub attribute: u16,
@@ -213,6 +214,7 @@ impl Actor {
             status: State::Normal,
             scripted: false,
             invulnerable: false,
+            sheathing: None,
             suppress_idle_taunts: false,
             map,
             pad: Pad::default(),
@@ -447,6 +449,10 @@ impl Actor {
     }
 
     fn motion_id(&self, ctx: &Context, action: i16) -> i16 {
+        let action = self.sheathing_action(action);
+        if let Some(index) = self.sheathing.as_ref().and_then(|s| s.clip(action)) {
+            return ctx.mission.clips[index].id;
+        }
         let clip = ctx.mission.characters[self.definition]
             .motions
             .iter()
@@ -465,7 +471,13 @@ impl Actor {
     }
 
     pub(crate) fn enter(&mut self, ctx: &Context, action: i16, movement: bool) -> bool {
-        self.enter_definition(ctx, self.definition, action, movement)
+        let action = self.sheathing_action(action);
+        let optional = self.sheathing.as_ref().and_then(|s| s.clip(action));
+        let entered = self.enter_definition(ctx, self.definition, action, movement, optional);
+        if entered && self.sheathing.is_some() && State::from_motion(action) == State::Attack {
+            self.equip(ctx, true);
+        }
+        entered
     }
 
     pub(crate) fn enter_cinematic(&mut self, ctx: &Context, action: i16) -> bool {
@@ -473,7 +485,11 @@ impl Actor {
             .script_kind
             .and_then(|kind| ctx.mission.characters.iter().position(|c| c.kind == kind))
             .unwrap_or(self.definition);
-        self.enter_definition(ctx, definition, action, true)
+        let entered = self.enter_definition(ctx, definition, action, true, None);
+        if entered && self.sheathing.is_some() {
+            self.equip(ctx, true);
+        }
+        entered
     }
 
     fn enter_definition(
@@ -482,18 +498,23 @@ impl Actor {
         definition: usize,
         action: i16,
         movement: bool,
+        optional: Option<usize>,
     ) -> bool {
         if self.status == ActorState::Dead && self.motion.loops == -1 {
             return false;
         }
         let data = &ctx.mission.characters[definition];
-        if self.motion.change(
-            action,
-            &data.motions,
-            &ctx.mission.common_motions,
-            &ctx.mission.clips,
-        ) == Change::Missing
-        {
+        let changed = if let Some(index) = optional {
+            self.motion.change_clip(action, index, &ctx.mission.clips)
+        } else {
+            self.motion.change(
+                action,
+                &data.motions,
+                &ctx.mission.common_motions,
+                &ctx.mission.clips,
+            )
+        };
+        if changed == Change::Missing {
             return false;
         }
         self.status = ActorState::from_motion(action);
@@ -512,12 +533,38 @@ impl Actor {
     pub(crate) fn motion_velocity(&mut self, ctx: &Context) {
         if let Some(i) = self.motion.clip {
             let clip = &ctx.mission.clips[i];
+            let speed = if matches!(self.motion.action, MOT_CHASE | MOT_CHASE_BACK) {
+                self.sheathed_settings().map_or(100, |s| s.speed)
+            } else {
+                100
+            };
             self.move_at(
                 ctx.math,
-                i16::from(clip.forward_speed),
-                i16::from(clip.side_speed),
+                (i32::from(clip.forward_speed) * i32::from(speed) / 100) as i16,
+                (i32::from(clip.side_speed) * i32::from(speed) / 100) as i16,
             );
         }
+    }
+
+    fn sheathing_action(&self, action: i16) -> i16 {
+        if self.sheathing.is_some() {
+            crate::game::sheathing::State::locomotion(action)
+        } else {
+            action
+        }
+    }
+
+    pub(crate) fn sheathed_settings(&self) -> Option<crate::game::sheathing::Settings> {
+        self.sheathing
+            .as_ref()
+            .filter(|_| self.attribute & ATTR_WEAPON_DRAWN == 0)
+            .map(|s| s.settings)
+    }
+
+    pub fn sight_percent(&self, base: u16) -> u16 {
+        self.sheathed_settings().map_or(base, |s| {
+            (u32::from(base) * u32::from(s.visibility) / 100).min(400) as u16
+        })
     }
 
     pub(crate) fn return_normal(&self, ctx: &mut Context, player: usize) -> Result<i16> {

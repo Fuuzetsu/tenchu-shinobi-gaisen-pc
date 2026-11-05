@@ -43,6 +43,7 @@ pub fn game(game: &Game) -> Value {
             "stream": a.pad.stream, "time": a.pad.time, "hold_counter": a.pad.hold_counter},
         "inventory": a.inventory.iter().copied().chain([u8::from(a.aiming)]).collect::<Vec<_>>(), "active_item": a.active_item, "attack": a.attack,
         "encounters": a.encounters,
+        "sheathing": a.sheathing,
         "damage_bonus_percent": a.encounters.bonus(game.intelligence.damage_escalation),
         "root_model": a.root_model, "render_mask": a.render_mask, "draw_fog": a.draw_fog,
     })).collect();

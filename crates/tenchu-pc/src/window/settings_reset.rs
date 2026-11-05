@@ -114,6 +114,21 @@ impl Application {
             Item::IndependentAttacks => self.set_independent_attacks(s.independent_attacks),
             Item::QuickShurikenDodge => self.set_quick_shuriken_dodge(s.quick_shuriken_dodge),
             Item::StrictCorpseSight => self.set_strict_corpse_sight(s.strict_corpse_sight),
+            Item::Sheathing
+            | Item::SheathedSpeed
+            | Item::SheathedVisibility
+            | Item::SheathedDamage
+            | Item::SheathedOneHit => {
+                let mut settings = self.settings.sheathing;
+                match item {
+                    Item::Sheathing => settings.enabled = s.sheathing.enabled,
+                    Item::SheathedSpeed => settings.speed = s.sheathing.speed,
+                    Item::SheathedVisibility => settings.visibility = s.sheathing.visibility,
+                    Item::SheathedDamage => settings.damage = s.sheathing.damage,
+                    _ => settings.one_hit = s.sheathing.one_hit,
+                }
+                self.set_sheathing(settings)?;
+            }
             Item::AnalogWalking => self.set_walking(s.walking.enabled)?,
             Item::GuardControls => self.set_guard_controls(s.guard_controls),
             Item::DetectionDamage => {

@@ -306,19 +306,23 @@ fn walking_uses_remapped_sticks_and_suppresses_held_inputs_after_focus_changes()
 }
 
 #[test]
-fn new_walk_defaults_preserve_existing_alt_and_stick_click_bindings() {
+fn new_optional_defaults_preserve_existing_key_and_stick_click_bindings() {
     use bindings::Target;
     let mut old = Bindings::default();
     old.0.remove(&Target::Walk);
+    old.0.remove(&Target::Sheathe);
     old.bind_key(Target::Square, 1, KeyCode::AltLeft).unwrap();
+    old.bind_key(Target::Cross, 1, KeyCode::KeyH).unwrap();
     old.bind_controller(Target::Circle, 1, PadInput::Button(Button::LeftThumb));
     let updated = Bindings::decode(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(updated.key(KeyCode::AltLeft), input::SQUARE);
+    assert_eq!(updated.key(KeyCode::KeyH), input::CROSS);
     assert_eq!(
         updated.controller(|b| b == Button::LeftThumb, [0; 4]),
         input::CIRCLE
     );
     assert_eq!(updated.0[&Target::Walk], Default::default());
+    assert_eq!(updated.0[&Target::Sheathe], Default::default());
     assert_eq!(
         bindings::menu_buttons(|b| b == Button::LeftThumb, [0; 4]),
         0

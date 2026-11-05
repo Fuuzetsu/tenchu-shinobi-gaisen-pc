@@ -369,6 +369,11 @@ impl Player {
         }
         use tenchu_core::input::{R1, R2, SQUARE, TRIANGLE, UP};
         match self.clip().feature {
+            Feature::Sheathing => match tick {
+                100..160 => UP,
+                190 | 240 => SQUARE,
+                _ => 0,
+            },
             Feature::AnalogWalking => {
                 if tick < 240 {
                     UP

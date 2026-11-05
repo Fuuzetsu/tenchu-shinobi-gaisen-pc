@@ -4,6 +4,7 @@ mod chase;
 mod crouch;
 mod guard;
 mod hang;
+mod sheathing;
 mod swim;
 #[cfg(test)]
 mod tests;
@@ -50,7 +51,9 @@ impl Actor {
             None
         };
         self.walking_motion(ctx, world);
-        let next = if self.guard_input(world) {
+        let next = if let Some(next) = self.sheath_input(world) {
+            Some(next)
+        } else if self.guard_input(world) {
             self.guard_motion(ctx, held)
         } else {
             match self.status {
@@ -211,6 +214,9 @@ impl Actor {
         }
         if self.attribute & ATTR_WEAPON_DRAWN != 0 {
             return Ok(Some((MOT_ENGAGE_STANCE, true)));
+        }
+        if self.sheathing.is_some() && self.pad.trigger & SQUARE != 0 {
+            return self.attack_input(ctx, world, held, pending);
         }
         if command != 0 {
             return Ok(match command {
@@ -536,7 +542,10 @@ impl Actor {
                         .push((self.id, if drawing { 0 } else { 1 }));
                     self.equip(ctx, drawing);
                 } else if count == 0 && self.motion.loops != 0 {
-                    if drawing && self.attribute & ATTR_PHASE == 0 {
+                    if drawing
+                        && self.attribute & ATTR_PHASE == 0
+                        && !(self.id == world.player && self.sheathing.is_some())
+                    {
                         self.attribute |= ATTR_SEARCH | 2;
                         let position = if self.id == world.player {
                             self.position
