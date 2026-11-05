@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an optional English **Shuriken** shop title under F1 → General, matching the throwing-star icon. The disc's Crimson Blade title remains the default; the description still comes from the disc or texture pack.
+
 - Add weapon-blood coverage and flow controls under F1 → Blood. Wet streaks follow gravity and drip from the lowest edge; dry traces remain and swings still shed blood. Modern presets enable the effect, while saved custom settings keep their previous coatings.
 
 - Add adjustable cosmetic wound spurts under F1 → Blood, with jets that follow animated wounds and taper over the bleeding duration. Modern High/Ultra enable them; a sparring demo compares them with drips. Existing custom settings and Original stay unchanged.

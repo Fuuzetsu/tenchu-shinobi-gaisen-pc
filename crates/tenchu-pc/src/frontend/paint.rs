@@ -57,11 +57,13 @@ impl Frontend {
             || self.artwork_enabled != settings.graphics.asset_pack
             || self.canvas.sharp_text != settings.sharp_text
             || self.circle_confirm != settings.circle_confirm
+            || self.english_shuriken != settings.english_shuriken
         {
             self.high_definition = high_definition;
             self.artwork_enabled = settings.graphics.asset_pack;
             self.canvas.sharp_text = settings.sharp_text;
             self.circle_confirm = settings.circle_confirm;
+            self.english_shuriken = settings.english_shuriken;
             self.dirty = true;
         }
         if self.dirty {

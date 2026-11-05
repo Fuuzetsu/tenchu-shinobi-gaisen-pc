@@ -219,6 +219,7 @@ pub enum Item {
     ShadowPreview,
     AssetPack,
     SharpText,
+    EnglishShuriken,
     ReloadAssets,
     Upscale,
     SmoothModels,
@@ -1354,6 +1355,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Master volume",
                 format!("{}%", s.volume),
                 "Changes output volume; 0 is mute.",
+            ),
+            (
+                Item::EnglishShuriken,
+                "English item name: Shuriken",
+                on(s.english_shuriken),
+                "Use Shuriken in English shop help to match the throwing-star icon. Off uses the disc's Crimson Blade title. Works with original and replacement artwork.",
             ),
             (
                 Item::Reset,

@@ -362,12 +362,26 @@ impl Frontend {
             .or_else(|| (loadout.stock[item] != LOCKED).then_some(item - 1));
         if let Some(help) = help {
             let image = &self.mission_art.help[help];
+            let top = if self.english_shuriken && self.language == Language::English && help == 0 {
+                self.canvas.text.push(crate::fonts::Text {
+                    position: egui::pos2(-140.0, 35.0),
+                    text: crate::ui::ITEMS[1].into(),
+                    color: egui::Color32::from_rgb(65, 167, 190),
+                    size: 14.0,
+                    width: image.size[0] as f32,
+                    centered: false,
+                });
+                17.min(image.size[1])
+            } else {
+                0
+            };
             self.canvas.sprite(
                 Sprite::new(
                     image,
                     -146.0 + image.size[0] as f32 / 2.0,
-                    35.0 + image.size[1] as f32 / 2.0,
+                    35.0 + (image.size[1] + top) as f32 / 2.0,
                 )
+                .region([0, top, image.size[0], image.size[1] - top])
                 .blend(Blend::Add),
             );
         }

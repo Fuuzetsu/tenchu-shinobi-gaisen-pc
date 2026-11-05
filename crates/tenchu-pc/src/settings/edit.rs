@@ -140,6 +140,7 @@ impl Item {
             Self::SmoothModels => &mut settings.graphics.smooth_models,
             Self::AssetPack => &mut settings.graphics.asset_pack,
             Self::SharpText => &mut settings.sharp_text,
+            Self::EnglishShuriken => &mut settings.english_shuriken,
             Self::Lighting => &mut settings.graphics.lighting.enabled,
             Self::Shadows => &mut settings.graphics.lighting.shadows,
             Self::FireLights => &mut settings.graphics.lighting.fires,

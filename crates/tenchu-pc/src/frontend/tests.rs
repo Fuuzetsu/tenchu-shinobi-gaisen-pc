@@ -702,3 +702,71 @@ fn briefing_narration_has_audio_for_each_language() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; the optional English Shuriken title must preserve descriptions, other items/languages and shop state"]
+fn shuriken_title_only_replaces_the_english_heading() {
+    let path = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, crate::session::Options::default(), None).unwrap();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Preferences::default()).unwrap();
+    campaign.inventory();
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    frontend.ticks = 16;
+    let context = egui::Context::default();
+    crate::fonts::install(&context);
+    let mut settings = crate::settings::Settings::default();
+    settings.graphics.asset_pack = false;
+    for language in [
+        Language::English,
+        Language::Japanese,
+        Language::French,
+        Language::Italian,
+    ] {
+        frontend.language(&assets, language).unwrap();
+        for item in [1, 2] {
+            campaign.cursor = campaign
+                .shop
+                .order
+                .iter()
+                .position(|&id| id == item)
+                .unwrap();
+            frontend.dirty = true;
+            settings.english_shuriken = false;
+            let _ = context.run(Default::default(), |ctx| {
+                frontend.show(ctx, &campaign, false, true, &settings);
+            });
+            let original = frontend.canvas.pixels.clone();
+            let state = crate::session::tests::state(&campaign.game);
+            settings.english_shuriken = true;
+            let _ = context.run(Default::default(), |ctx| {
+                frontend.show(ctx, &campaign, false, true, &settings);
+            });
+            let changed = language == Language::English && item == 1;
+            assert_eq!(
+                frontend
+                    .canvas
+                    .text
+                    .iter()
+                    .any(|text| text.text == "Shuriken"),
+                changed
+            );
+            assert_eq!(frontend.canvas.pixels != original, changed);
+            if changed {
+                let rows = (120 + 35 + 17) * frontend.canvas.size[0] * 4;
+                assert_eq!(
+                    &original[rows..],
+                    &frontend.canvas.pixels[rows..],
+                    "The disc's description must remain intact"
+                );
+            }
+            assert_eq!(state, crate::session::tests::state(&campaign.game));
+            settings.english_shuriken = false;
+            let _ = context.run(Default::default(), |ctx| {
+                frontend.show(ctx, &campaign, false, true, &settings);
+            });
+            assert_eq!(frontend.canvas.pixels, original);
+        }
+    }
+}
