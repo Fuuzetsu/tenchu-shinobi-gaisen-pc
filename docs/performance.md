@@ -2020,3 +2020,18 @@ adds more mask/render-pass work than it saves; early terrain lighting and ambien
 occlusion gather variants fail to improve the rainy views. Precomputing radial
 shadow offsets saves roughly 0.2–0.3 ms in fixed views but produces mixed moving
 frame tails in repeated runs, so it is not included in the comparison above.
+
+A subsequent conservative solid-polygon shortcut was also rejected. It skipped
+32-tap filtering only where opaque scenery covered the entire sampling area.
+Ten paired 4K captures and twenty cached/full-redraw comparisons were exact;
+texture changes, moving geometry, large coordinates and both browser backends
+passed their correctness checks. The reported corner improved from 21.04 to
+17.06 ms GPU, but that did not generalise to the slowest moving route.
+
+Against the previous production binary, the final version improved village
+frame p99 from 27.66 to 26.41 ms and courtyard p99 from 23.40 to 21.59 ms, while
+the garden worsened from 29.73 to 30.52 ms. Earlier repeat runs were mixed.
+Shortening lighting intermediate lifetimes reduced the garden regression, but
+still added about 0.34 ms GPU and gave smaller village gains. The polygon cache,
+shader shortcut and lifetime experiment were removed together. None of those
+experimental gains are included in the retained cumulative results above.
