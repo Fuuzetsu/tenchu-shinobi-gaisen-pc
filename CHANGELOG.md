@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.15.6 — 2026-11-05
+
 - Avoid repeating GPU character poses on the CPU solely to calculate shadow
   bounds. Conservative bounds preserve moving characters and their shadows;
   custom skins and WebGL2 retain CPU transforms.
