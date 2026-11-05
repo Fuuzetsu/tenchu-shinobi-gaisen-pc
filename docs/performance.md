@@ -1937,3 +1937,54 @@ geometry with lighting, sky, weather and surface detail disabled instead regress
 from 6.28 to 8.29 ms with composition forced on: the extra coverage pass outweighs
 its saved shading. Composition therefore remains disabled when both lighting and
 weather are disabled. The fallback regression checks this configuration too.
+
+
+## November 5: ordinary Mission 1 baseline and shadow sample locality
+
+A fresh ablation of the report's 3826 × 2146 Mission 1 view gives 20.44 ms GPU
+with all supplied graphics settings. Disabling local shadows reduces this to
+9.03 ms; retaining shadows but removing area-source softening gives 11.96 ms.
+Disabling rain reflections gives 16.56 ms, all weather 14.26 ms, relief 18.80 ms,
+and ambient occlusion 18.94 ms. These are diagnostic reductions, not changes to
+users' settings. Soft point-light filtering is the largest remaining shading cost.
+
+The retained change groups the existing 32 disk samples into spatial rows when
+building their uniform table. Positions, weights, resolution and shadow geometry
+are unchanged; only the order of texture accesses and floating-point accumulation
+changes. The dry shader retains its existing local sample calculation. There are
+no extra render passes or textures and no per-frame CPU sorting.
+
+Four paired 4K captures are pixel-identical. GPU means in the reported view change
+from 20.65 to 20.26 ms at night and 21.18 to 20.84 ms by day. A second Mission 1
+garden view stays effectively unchanged, at 19.57 → 19.53 and 19.96 → 19.99 ms.
+Longer offscreen routes show small village/courtyard gains and effectively neutral
+garden/waterfall GPU tails. This is a modest improvement, not a 30-to-60 FPS fix.
+
+Actual Wayland presentation at 3840 × 2160, using the report's graphics settings,
+HD artwork and four ten-second routes, gives the following frame distributions.
+The first 60 frames of each route and loading are excluded; no other GPU benchmark,
+compiler or browser ran concurrently.
+
+| Route | Frame p95 before → after | Frame p99 before → after |
+|---|---|---|
+| Village | 27.13 → 27.20 ms | 27.73 → 27.63 ms |
+| Courtyard | 23.00 → 22.83 ms | 23.87 → 23.53 ms |
+| Garden | 29.45 → 29.22 ms | 30.07 → 29.76 ms |
+| Waterfall | 14.75 → 14.74 ms | 15.65 → 14.98 ms |
+
+These changes are small relative to run-to-run variation. The difficult Mission 1
+routes still average approximately 41 and 37 FPS. Presented frames are much closer
+to GPU time than the serialized offscreen benchmark's CPU-plus-GPU intervals.
+
+Rejected experiments are kept out of production: screen-space caches for diffuse
+lighting or per-light visibility add more pass/memory cost than they save. A
+same-fragment two-bit shadow-result cache improves the reported corner from 20.6
+to 18.9 ms but worsens outdoor Mission 1 terrain by roughly 0.7 ms. Restricting it
+to scenery removes the effect-particle regression but not the terrain regression.
+Caching full per-light or sunlight visibility also fails the broader-view checks.
+
+Validation: formatting, strict native/workspace and WASM Clippy, native release
+and actual WASM cdylib builds pass. All 134 ordinary application tests and five
+focused GPU regressions pass, including a penumbra comparison against the original
+locally calculated samples. Actual Chromium WebGPU and WebGL2 smoke tests pass
+with native saved-state loading, movement, lighting changes and resume.

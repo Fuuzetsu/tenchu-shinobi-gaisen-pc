@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Small soft-shadow rendering performance improvements with weather enabled;
+  shadow resolution and sample count are unchanged.
+
 - Reduce GPU load from overlapping modern blood stains, especially with rain or
   snow, by sharing shading on the same flat surface. Sparse stains, slopes,
   foliage and mixed surfaces retain their existing rendering. This optimisation

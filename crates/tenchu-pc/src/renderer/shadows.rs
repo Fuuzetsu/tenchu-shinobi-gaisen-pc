@@ -326,15 +326,7 @@ impl Shadows {
             layout,
             bindings,
             data,
-            filter: std::array::from_fn(|i| {
-                let angle = i as f32 * 2.3999632;
-                [
-                    angle.cos(),
-                    angle.sin(),
-                    ((i as f32 + 0.5) / FILTER_SAMPLES as f32).sqrt(),
-                    0.0,
-                ]
-            }),
+            filter: filter_samples(),
             sampler,
             views,
             faces,
@@ -795,6 +787,24 @@ impl Shadows {
             self.weather_bounds.invalidate(index - FACES, region);
         }
     }
+}
+
+fn filter_samples() -> [[f32; 4]; FILTER_SAMPLES] {
+    let mut samples = std::array::from_fn(|i| {
+        let angle = i as f32 * 2.3999632;
+        [
+            angle.cos(),
+            angle.sin(),
+            ((i as f32 + 0.5) / FILTER_SAMPLES as f32).sqrt(),
+            0.0,
+        ]
+    });
+    // Keep nearby disk samples together for shadow-texture cache locality.
+    samples.sort_by_key(|s| {
+        let [x, y] = [s[0], s[1]].map(|v| ((v * s[2] * 0.5 + 0.5) * 1023.0) as u32);
+        (y / 128, x, y)
+    });
+    samples
 }
 
 fn buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {

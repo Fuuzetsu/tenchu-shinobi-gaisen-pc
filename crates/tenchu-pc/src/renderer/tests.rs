@@ -1919,6 +1919,17 @@ fn finite_lamps_and_daylight_keep_local_shadows_balanced() {
     graphics.lighting.source_size = 120;
     renderer.configure(&graphics);
     let soft = draw(&mut renderer, &[lamp], &[&grating]);
+    graphics.weather.mode = crate::settings::WeatherMode::Clear;
+    renderer.configure(&graphics);
+    let uniform_samples = draw(&mut renderer, &[lamp], &[&grating]);
+    assert!(
+        soft.iter()
+            .zip(&uniform_samples)
+            .all(|(a, b)| a.abs_diff(*b) <= 1),
+        "Uniform shadow samples must preserve the locally calculated penumbra"
+    );
+    graphics.weather.mode = crate::settings::WeatherMode::Original;
+    renderer.configure(&graphics);
     let dark = |p: &[u8]| p.chunks_exact(4).filter(|p| p[0] < 75).count();
     assert!(
         dark(&soft) < dark(&hard) / 2,
