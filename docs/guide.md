@@ -1085,7 +1085,12 @@ replacement models. Original retained spots use disc artwork projected onto the
 surface; extra Original drips use the retail square-particle appearance.
 
 **Death gush strength** adds repeated upward bursts inspired by Onikage's final
-scene, using smooth modern droplets. It starts at the original death-blood cue,
+scene. **Death gush style** chooses Off, Original, Original HD or Modern;
+**Severed blood style** independently chooses the appearance of detached-part
+drips and the jets from their wounds. Original uses the disc blood artwork,
+Original HD smooths that artwork, and Modern uses elongated droplets. Ordinary
+wound jets follow **Wound drips**. Ground stains always follow **Ground blood**.
+The death gush starts at the original death-blood cue,
 including delayed stealth-kill bleeding, and follows the animated body. Strength
 is 0–200%; **Death gush duration** is 0–15 seconds (default 6). Death pools must
 not be Off, and **Player death pool** controls whether the player also gushes.

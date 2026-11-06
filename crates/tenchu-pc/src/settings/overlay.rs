@@ -432,6 +432,8 @@ fn widget(
                 | Item::BloodDrips
                 | Item::BloodDeath
                 | Item::BloodGround
+                | Item::GushStyle
+                | Item::SeveredStyle
         )
     {
         let mut on = row.value == "On";
@@ -564,12 +566,15 @@ fn widget(
             )
             .map(String::from)
             .collect(),
-        Item::BloodHit | Item::BloodDrips | Item::BloodDeath | Item::BloodGround => {
-            super::BloodStyle::ALL
-                .iter()
-                .map(|s| s.label().into())
-                .collect()
-        }
+        Item::BloodHit
+        | Item::BloodDrips
+        | Item::BloodDeath
+        | Item::BloodGround
+        | Item::GushStyle
+        | Item::SeveredStyle => super::BloodStyle::ALL
+            .iter()
+            .map(|s| s.label().into())
+            .collect(),
         Item::GameplayPreset => super::gameplay::PRESETS
             .iter()
             .map(|p| p.name.to_string())

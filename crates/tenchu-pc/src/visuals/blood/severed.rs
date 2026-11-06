@@ -8,7 +8,7 @@ impl Blood {
         settings: &settings::Blood,
         frame: Option<&Frame>,
     ) {
-        if settings.severed == 0 || settings.severed_seconds == 0 {
+        if !settings.severed_bleeding() {
             return;
         }
         self.severed.retain(|root, _| {

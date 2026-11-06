@@ -920,7 +920,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             "Original targeting · the closer guard behind is selected · same positions and inputs"
         }.into()),
         Feature::Dismemberment => text("SA dismemberment · forced 100% head chance for demonstration · default 4% · disabled by default".into()),
-        Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
+        Feature::DeathGush => text(format!("{} death gush · 100% · 6 seconds · Original / Original HD / Modern selectable in F1", s.graphics.blood.gush_style.label())),
         Feature::Bleeding => text(match player.simulation_ticks {
             0..150 => "Optional gameplay: enemy hits start bleeding · 3 HP/s in this demonstration",
             150..240 => "Opponent stands down · bleeding continues until treatment · cosmetic blood is independent",

@@ -38,6 +38,8 @@ pub struct Blood {
     pub drips: Style,
     pub death: Style,
     pub ground: Style,
+    pub gush_style: Style,
+    pub severed_style: Style,
     pub player_death: bool,
     pub retain_original: bool,
     pub conform_retained: bool,
@@ -65,6 +67,8 @@ impl Default for Blood {
             drips: Style::Off,
             death: Style::Original,
             ground: Style::Original,
+            gush_style: Style::Modern,
+            severed_style: Style::Modern,
             player_death: false,
             retain_original: false,
             conform_retained: true,
@@ -120,10 +124,18 @@ impl Blood {
 
     pub fn gush(self, player: bool) -> bool {
         self.amount != 0
+            && self.gush_style != Style::Off
             && self.death_gush != 0
             && self.gush_seconds != 0
             && self.death != Style::Off
             && (!player || self.player_death)
+    }
+
+    pub fn severed_bleeding(self) -> bool {
+        self.amount != 0
+            && self.severed_style != Style::Off
+            && self.severed != 0
+            && self.severed_seconds != 0
     }
 
     pub fn active(self) -> bool {
@@ -132,7 +144,7 @@ impl Blood {
                 || self.custom_death(false)
                 || self.custom_death(true)
                 || self.gush(false)
-                || self.severed != 0 && self.severed_seconds != 0
+                || self.severed_bleeding()
                 || self.weapons
                 || self.model_stains
                 || self.drips != Style::Off && self.seconds != 0)
@@ -162,6 +174,8 @@ struct SavedBlood {
     drips: Option<Style>,
     death: Option<Style>,
     ground: Option<Style>,
+    gush_style: Option<Style>,
+    severed_style: Option<Style>,
     player_death: Option<bool>,
     retain_original: Option<bool>,
     conform_retained: Option<bool>,
@@ -198,6 +212,8 @@ impl From<SavedBlood> for Blood {
             drips: saved.drips.unwrap_or(default.drips),
             death: saved.death.unwrap_or(default.death),
             ground: saved.ground.unwrap_or(default.ground),
+            gush_style: saved.gush_style.unwrap_or(default.gush_style),
+            severed_style: saved.severed_style.unwrap_or(default.severed_style),
             player_death: saved.player_death.unwrap_or(default.player_death),
             retain_original: saved.retain_original.unwrap_or(default.retain_original),
             conform_retained: saved.conform_retained.unwrap_or(default.conform_retained),

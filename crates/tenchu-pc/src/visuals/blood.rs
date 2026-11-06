@@ -318,7 +318,7 @@ impl Blood {
             self.gushes.clear();
             self.drops.retain(|d| d.kind != DropKind::Gush);
         }
-        if settings.severed == 0 || settings.severed_seconds == 0 {
+        if !settings.severed_bleeding() {
             self.severed.values_mut().for_each(|age| *age = u16::MAX);
             self.drops.retain(|d| d.kind != DropKind::Severed);
         }
@@ -1127,10 +1127,18 @@ impl Blood {
                 rotation(camera.unwrap_or_else(|| frame.map_or(game.rendered_view, |f| f.view)))
                     .transpose();
             for drop in &self.drops {
+                let style = match drop.kind {
+                    DropKind::Wound => self.settings.drips,
+                    DropKind::Weapon => BloodStyle::Modern,
+                    DropKind::Gush => self.settings.gush_style,
+                    DropKind::Severed => self.settings.severed_style,
+                };
+                if style == BloodStyle::Off {
+                    continue;
+                }
                 let center = drop.previous.lerp(drop.position, alpha.clamp(0.0, 1.0));
                 let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
-                let modern =
-                    drop.kind != DropKind::Wound || self.settings.drips == BloodStyle::Modern;
+                let modern = style == BloodStyle::Modern;
                 let scale = if matches!(drop.kind, DropKind::Gush | DropKind::Severed) {
                     2.5
                 } else {
@@ -1141,12 +1149,12 @@ impl Blood {
                 } else {
                     camera.y_axis
                 };
-                let right = along.cross(camera.z_axis) * if modern { 7.0 * scale } else { 11.0 };
+                let right = along.cross(camera.z_axis) * if modern { 7.0 } else { 11.0 } * scale;
                 let up = along
                     * if modern {
                         (9.0 + projected.length().min(150.0) * 0.12) * scale
                     } else {
-                        11.0
+                        11.0 * scale
                     };
                 let points = [
                     center - right - up,
@@ -1154,6 +1162,31 @@ impl Blood {
                     center - right + up,
                     center + right + up,
                 ];
+                if style.uses_original() && matches!(drop.kind, DropKind::Gush | DropKind::Severed)
+                {
+                    let image = game.mission.images[0];
+                    let mut sprite = crate::render_effects::quad(
+                        points.map(|p| p.to_array()),
+                        [[1.0; 3]; 4],
+                        Some(image),
+                        0,
+                    );
+                    for v in &mut sprite {
+                        v.flags = render_mesh::TEXTURED
+                            | render_mesh::ALPHA
+                            | render_mesh::FOG
+                            | render_mesh::DOUBLE_SIDED
+                            | render_mesh::STAIN
+                            | if style == BloodStyle::OriginalHd {
+                                render_mesh::BLOOD_HD
+                            } else {
+                                0
+                            };
+                        v.opacity = 0.9;
+                    }
+                    vertices.extend(sprite);
+                    continue;
+                }
                 vertices.extend([0, 1, 2, 1, 3, 2].map(|i| Vertex {
                     position: points[i].to_array(),
                     color: if modern {
@@ -1170,9 +1203,7 @@ impl Blood {
                         | render_mesh::FOG
                         | render_mesh::DOUBLE_SIDED
                         | if modern { render_mesh::SOFT } else { 0 }
-                        | if drop.kind == DropKind::Wound
-                            && self.settings.drips == BloodStyle::OriginalHd
-                        {
+                        | if style == BloodStyle::OriginalHd {
                             render_mesh::STAIN | render_mesh::BLOOD_HD
                         } else {
                             0

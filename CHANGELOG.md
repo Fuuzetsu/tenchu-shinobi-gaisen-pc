@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add independent Off / Original / Original HD / Modern styles for death gushes
+  and severed-part bleeding in F1 → Persistent effects. Ordinary wound jets keep
+  following Wound drips; all ground stains retain their separately selected style.
+- Mid-mission savestates use a new format for the additional settings. Older
+  mid-mission files must be recreated; campaign progress is unchanged.
+
 ## 0.18.0 — 2026-11-06
 
 - Mid-mission savestates use a new format for the additional effect state.

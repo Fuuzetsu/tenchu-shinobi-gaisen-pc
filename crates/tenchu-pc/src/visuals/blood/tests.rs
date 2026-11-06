@@ -1331,3 +1331,87 @@ fn body_stains_stay_on_refined_and_skinned_heroes() {
         }
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; independently styled extra jets retain their geometry, original artwork and ground setting"]
+fn extra_jets_select_original_artwork_without_changing_ground_blood() {
+    let disc = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let game = crate::session::Options::default().load(&assets).unwrap();
+    let models = Models::build(&game.mission, &Default::default(), &Default::default()).unwrap();
+    let output = std::env::var_os("TENCHU_JET_REVIEW").map(std::path::PathBuf::from);
+    if let Some(output) = &output {
+        std::fs::create_dir_all(output).unwrap();
+    }
+    for (index, kind) in [DropKind::Wound, DropKind::Gush, DropKind::Severed]
+        .into_iter()
+        .enumerate()
+    {
+        for style in BloodStyle::ALL {
+            let mut blood = Blood::default();
+            blood.configure(&settings::Blood {
+                hit: BloodStyle::Off,
+                death: BloodStyle::Original,
+                ground: BloodStyle::Original,
+                drips: style,
+                gush_style: style,
+                severed_style: style,
+                ..Default::default()
+            });
+            blood.drops.push(Drop {
+                kind,
+                position: Vec3::ZERO,
+                previous: Vec3::ZERO,
+                velocity: Vec3::new(35.0, -50.0, 0.0),
+                life: 45,
+            });
+            let geometry = blood.geometry(&game, &models, None, Some(Matrix::default()), 1.0);
+            assert_eq!(blood.settings.ground, BloodStyle::Original);
+            if style == BloodStyle::Off {
+                assert!(geometry.vertices.is_empty());
+                continue;
+            }
+            assert_eq!(geometry.vertices.len(), 6);
+            let textured = style.uses_original() && kind != DropKind::Wound;
+            for v in &geometry.vertices {
+                assert_eq!(v.flags & render_mesh::TEXTURED != 0, textured);
+                assert_eq!(
+                    render_mesh::original_hd_blood(v.flags),
+                    style == BloodStyle::OriginalHd
+                );
+                if textured {
+                    assert_eq!(v.page, u32::from(game.mission.images[0].page));
+                    assert_eq!(v.palette, u32::from(game.mission.images[0].palette));
+                }
+            }
+            if let Some(output) = &output {
+                let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+                let effects = review.renderer.upload_effects(geometry);
+                let view = glam::Mat4::perspective_rh(0.65, 1280.0 / 720.0, 1.0, 10000.0)
+                    * glam::Mat4::look_at_rh(Vec3::new(0.0, 0.0, 160.0), Vec3::ZERO, Vec3::NEG_Y);
+                review
+                    .capture(
+                        view,
+                        &[],
+                        Some(&effects),
+                        false,
+                        &output.join(format!("kind-{index}-{}.png", style.label())),
+                    )
+                    .unwrap();
+            }
+            blood.configure(&settings::Blood {
+                drips: BloodStyle::Off,
+                gush_style: BloodStyle::Off,
+                severed_style: BloodStyle::Off,
+                model_stains: true,
+                ..blood.settings
+            });
+            assert!(
+                blood.drops.is_empty(),
+                "disabling a style must clear its existing airborne drops"
+            );
+        }
+    }
+}

@@ -350,6 +350,8 @@ impl Item {
             Self::BloodDrips => &mut blood.drips,
             Self::BloodDeath => &mut blood.death,
             Self::BloodGround => &mut blood.ground,
+            Self::GushStyle => &mut blood.gush_style,
+            Self::SeveredStyle => &mut blood.severed_style,
             _ => return None,
         })
     }

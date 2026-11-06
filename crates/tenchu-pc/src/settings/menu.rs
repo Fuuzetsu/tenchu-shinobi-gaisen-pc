@@ -16,6 +16,7 @@ pub enum Item {
     PlayerSeverArms,
     PlayerSeverSide,
     SeveredBlood,
+    SeveredStyle,
     SeveredSeconds,
     Bleeding,
     BleedChance,
@@ -142,6 +143,7 @@ pub enum Item {
     BloodSeconds,
     BloodSpurts,
     DeathGush,
+    GushStyle,
     GushSeconds,
     BloodMarks,
     ClearBlood,
@@ -1242,6 +1244,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Restore Stealth Assassins' Rikimaru/Kataoka execution camera sequence in Mission 5, including the severed head. Keeps Gaisen's localized dialogue and audio; no additional disc required. Enable before the scene starts; off by default. Independent of random enemy/player severing chances.",
             ),
             (
+                Item::SeveredStyle,
+                "Severed blood style",
+                s.graphics.blood.severed_style.label().into(),
+                "Original disc droplets, smoothed Original HD, or modern jets from detached parts and their body wounds. Off hides both. Independent of wound drips, hit spurts and ground blood.",
+            ),
+            (
                 Item::SeveredBlood,
                 "Severed wound bleeding",
                 format!("{}%", s.graphics.blood.severed),
@@ -1362,10 +1370,16 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "0 keeps drips only. Add pulsing jets from animated wounds using the selected Wound drips style. Strength and frequency weaken over the Wound bleeding duration. Cosmetic only; no health loss.",
             ),
             (
+                Item::GushStyle,
+                "Death gush style",
+                s.graphics.blood.gush_style.label().into(),
+                "Choose Original, Original HD or Modern for the optional upward death bursts. Off disables the extra gush without changing the death pool or ground spots.",
+            ),
+            (
                 Item::DeathGush,
                 "Death gush strength",
                 format!("{}%", s.graphics.blood.death_gush),
-                "Optional Onikage-inspired upward bursts of modern blood from dying characters. Starts with their original death blood and follows the body. Death pools must not be Off; Player death pool also controls the player. Cinematics and gameplay stay unchanged.",
+                "Optional Onikage-inspired upward bursts using Death gush style. Starts with the original death blood and follows the body. Death pools must not be Off; Player death pool also controls the player. Cinematics and gameplay stay unchanged.",
             ),
             (
                 Item::GushSeconds,
