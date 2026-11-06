@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.19.0 — 2026-11-06
+
 - Bandages can be selected and used in the normal carried-item row, including
   Android touch controls. Their icon, count and selection survive saved states
   and rewind; the quick-use binding and configurable starting supply remain.
