@@ -280,7 +280,8 @@ impl Blood {
             return;
         }
         let previous = self.settings;
-        let ground_changed = previous.ground != settings.ground
+        let ground_changed = previous.conform_retained != settings.conform_retained
+            || previous.ground != settings.ground
             || previous.retain_original != settings.retain_original;
         let death_changed = previous.death != settings.death
             || previous.death_size != settings.death_size
@@ -309,7 +310,7 @@ impl Blood {
         if !settings.model_stains && (settings.drips == BloodStyle::Off || settings.seconds == 0) {
             self.pending_wounds.clear();
         }
-        if !settings.weapons {
+        if !settings.weapons || previous.weapon_metal_only != settings.weapon_metal_only {
             self.drops.retain(|d| d.kind != DropKind::Weapon);
             self.weapons.clear();
         }
@@ -686,7 +687,7 @@ impl Blood {
                     && settings.ground.uses_original()
                     && settings.amount != 0
                 {
-                    self.retain_retail(old, next, continuous.is_some());
+                    self.retain_retail(old, next, continuous.is_some(), game, &receivers);
                 }
                 if let Some(old) = continuous {
                     if settings.ground == BloodStyle::Modern {
@@ -712,7 +713,7 @@ impl Blood {
                 }
             }
             if current.is_none() && settings.retain_original && settings.ground.uses_original() {
-                self.retain_missing_retail(old);
+                self.retain_missing_retail(old, game, &receivers);
             }
             samples.push(current);
         }

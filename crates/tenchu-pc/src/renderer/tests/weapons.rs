@@ -74,16 +74,16 @@ fn weapon_reflections_and_blood_are_isolated_to_marked_surfaces() {
         let mut coating = plain.clone();
         for v in &mut coating {
             v.position[2] -= 1.0;
-            v.color = [0.31, 0.006, 0.012];
-            v.uv = [v.position[0] * 0.008, v.position[1] * 0.006];
+            v.color = [
+                v.position[0] * 0.008 - flow[0] * wet,
+                v.position[1] * 0.006 - flow[1] * wet,
+                wet,
+            ];
             v.flags = render_mesh::WEAPON_COAT
                 | render_mesh::STAIN
                 | render_mesh::ALPHA
                 | render_mesh::DOUBLE_SIDED;
             v.opacity = amount;
-            v.page = flow[0].to_bits();
-            v.palette = flow[1].to_bits();
-            v.material = wet.to_bits();
         }
         let effects = renderer.upload_effects(render_effects::Geometry {
             vertices: coating,

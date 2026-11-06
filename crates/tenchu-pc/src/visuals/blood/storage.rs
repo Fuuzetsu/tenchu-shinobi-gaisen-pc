@@ -5,6 +5,7 @@ use std::{collections::VecDeque, sync::Arc};
 pub(super) const VERTEX_LIMIT: usize = 4_194_304;
 const PAGE_MARKS: usize = 128;
 const MARK_VERTEX_LIMIT: usize = 3072;
+const BODY_VERTEX_LIMIT: usize = 65_536;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct Page {
@@ -79,7 +80,12 @@ impl Marks {
 
     pub fn insert(&mut self, mark: Mark, limit: usize) {
         let len = mark.len();
-        if len == 0 || len > MARK_VERTEX_LIMIT {
+        let vertex_limit = if mark.1 == Kind::Body {
+            BODY_VERTEX_LIMIT
+        } else {
+            MARK_VERTEX_LIMIT
+        };
+        if len == 0 || len > vertex_limit {
             return;
         }
         let id = self.serial;

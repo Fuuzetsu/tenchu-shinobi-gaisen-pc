@@ -104,7 +104,8 @@ struct SurfaceMaterial {
 fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only: bool) -> SurfaceMaterial {
     var empty: SurfaceMaterial;
     var v = input;
-    let original_stain = (v.flags & (STAIN | SOFT)) == STAIN;
+    let weapon_coat = (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN);
+    let original_stain = (v.flags & (STAIN | SOFT)) == STAIN && !weapon_coat;
     let blood_hd = original_hd_blood(v.flags);
     var coverage = 1.0;
     if !original_stain && (v.flags & (SCREEN | DEBUG | UNLIT)) == 0u {
@@ -136,6 +137,7 @@ fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool,
     let hdr = HDR_ENABLED && camera.viewport.z != 0.0 && (v.flags & (UI | DEBUG)) == 0u;
     let linear_lighting = hdr || (LIGHTING_ENABLED && !screen && lighting.options.w != 0.0);
     var color = v.color;
+    if weapon_coat { color = vec3(1.0); }
     if (v.flags & (STAIN | SOFT)) == (STAIN | SOFT) { color = vec3(v.color.z); }
     var emission = vec4(0.0);
     if !screen && camera.options.z == 0.0 { color = vec3(1.0); }
@@ -192,7 +194,10 @@ fn prepare_material(input: Fragment, front_facing: bool, translucent_pass: bool,
     }
     if semi != translucent_pass { discard; }
     if depth_only { return empty; }
-    if !original_stain && (v.flags & (STAIN | SCENERY)) == STAIN {
+    if weapon_coat {
+        color = mix(vec3(0.31, 0.006, 0.012), vec3(0.43, 0.009, 0.018), v.color.z)
+            * (0.65 + 0.35 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
+    } else if !original_stain && (v.flags & (STAIN | SCENERY)) == STAIN {
         color = vec3(0.34, 0.012, 0.018) * (0.4 + 0.6 * dot(color, vec3(0.2126, 0.7152, 0.0722)));
     }
     if linear_lighting { color = pow(max(color, vec3(0.0)), vec3(2.2)); }
@@ -205,7 +210,8 @@ fn shade(input: Fragment, front_facing: bool, translucent_pass: bool, depth_only
     if depth_only { return vec4(0.0); }
     var v = input;
     v.uv = material.uv;
-    let original_stain = (v.flags & (STAIN | SOFT)) == STAIN;
+    let weapon_coat = (v.flags & (WEAPON_COAT | STAIN | FOLIAGE)) == (WEAPON_COAT | STAIN);
+    let original_stain = (v.flags & (STAIN | SOFT)) == STAIN && !weapon_coat;
     let blood_hd = original_hd_blood(v.flags);
     var color = material.color;
     let normal = material.normal;

@@ -188,12 +188,40 @@ impl Surfaces {
     }
 
     pub fn project(&self, stamp: &Stamp) -> Vec<Vertex> {
-        self.project_with(stamp, |_, _| {})
+        self.project_with(&stamp.prepare(), |_, _| {})
+    }
+
+    pub fn project_rectangle(
+        &self,
+        stamp: &Stamp,
+        tangent: Vec3,
+        half_size: glam::Vec2,
+    ) -> Vec<Vertex> {
+        let tangent = (tangent - stamp.normal * tangent.dot(stamp.normal)).normalize_or_zero();
+        let bitangent = stamp.normal.cross(tangent);
+        let projection = StampProjection {
+            stamp,
+            tangent,
+            bitangent,
+            planes: std::array::from_fn(|i| match i % 4 {
+                0 => (tangent, half_size.x),
+                1 => (-tangent, half_size.x),
+                2 => (bitangent, half_size.y),
+                _ => (-bitangent, half_size.y),
+            }),
+            rotation: Some(glam::Mat2::IDENTITY),
+        };
+        let mut vertices = self.project_with(&projection, |_, _| {});
+        for v in &mut vertices {
+            v.color[0] *= stamp.radius / half_size.x.max(0.001);
+            v.color[1] *= stamp.radius / half_size.y.max(0.001);
+        }
+        vertices
     }
 
     pub(crate) fn project_decal(&self, stamp: &Stamp) -> Projected {
         let mut sources = Vec::new();
-        let vertices = self.project_with(stamp, |triangle, vertices| {
+        let vertices = self.project_with(&stamp.prepare(), |triangle, vertices| {
             if stamp.shape.is_none()
                 && stamp.normal == Vec3::NEG_Y
                 && triangle.iter().all(|v| {
@@ -212,16 +240,16 @@ impl Surfaces {
 
     fn project_with(
         &self,
-        stamp: &Stamp,
+        projection: &StampProjection<'_>,
         mut record: impl FnMut(&[Vertex; 3], Range<usize>),
     ) -> Vec<Vertex> {
+        let stamp = projection.stamp;
         let extent = Vec3::splat(stamp.radius + stamp.depth);
         let mut out = Vec::new();
         let bounds = Bounds {
             min: stamp.center - extent,
             max: stamp.center + extent,
         };
-        let projection = stamp.prepare();
         let _ = self.visit(
             |node| node.overlaps(bounds),
             |triangle| {

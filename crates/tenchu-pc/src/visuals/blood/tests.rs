@@ -23,6 +23,7 @@ fn retained_retail_splats_keep_their_sprite_size_and_rotation() {
                 ground,
                 hit,
                 retain_original: true,
+                conform_retained: false,
                 ..Default::default()
             };
             game.effects = Default::default();
@@ -1200,4 +1201,133 @@ fn death_pools_wait_for_finished_animations_and_respect_size() {
         largest_offset > 200.0,
         "Exercise a death pose displaced from the standing origin"
     );
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; set TENCHU_MODEL_DIR to also verify skinned replacement models"]
+fn body_stains_stay_on_refined_and_skinned_heroes() {
+    let disc = std::env::var_os("TENCHU_DISC").unwrap();
+    let assets =
+        tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+            .unwrap();
+    let bodies = std::env::var_os("TENCHU_MODEL_DIR")
+        .map(|p| crate::visuals::pack::Pack::load(p.as_ref()).unwrap());
+    for character in 0..2 {
+        for custom in [false, true] {
+            if custom && bodies.is_none() {
+                continue;
+            }
+            let mut game = crate::session::Options {
+                character,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            game.events = Default::default();
+            for _ in 0..20 {
+                game.step(0).unwrap();
+            }
+            let mut graphics = settings::Graphics::default();
+            graphics.models.heroes = true;
+            graphics.blood = settings::Blood {
+                model_stains: true,
+                ..Default::default()
+            };
+            let pack = crate::visuals::pack::Pack::default();
+            let mut models = Models::build(&game.mission, &pack, &graphics).unwrap();
+            if custom {
+                let bodies = bodies.as_ref().unwrap();
+                let id = bodies.player_models.keys().next().unwrap();
+                models = models
+                    .with_player(&game, &format!("pack:{id}"), &pack, bodies, &graphics, None)
+                    .unwrap();
+            }
+            let output = std::env::var_os("TENCHU_BODY_REVIEW").map(std::path::PathBuf::from);
+            let mut review = output.as_ref().map(|path| {
+                std::fs::create_dir_all(path).unwrap();
+                let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+                review.configure(graphics.clone());
+                review.renderer.bind_models(&mut models);
+                review
+            });
+            let mut blood = Blood::default();
+            blood.configure(&graphics.blood);
+            let point =
+                Vec3::from(game.player().position.map(|n| n as f32).to_array()) - Vec3::Y * 750.0;
+            blood.wound(
+                &game,
+                &models,
+                game.player().root_model,
+                point,
+                &graphics.blood,
+                None,
+            );
+            assert!(
+                !blood.marks.attached.is_empty(),
+                "hero {character} custom {custom}"
+            );
+            for ticks in [0, 7, 12] {
+                for _ in 0..ticks {
+                    game.step(tenchu_core::input::UP).unwrap();
+                }
+                let geometry = blood.geometry(&game, &models, None, Some(game.rendered_view), 1.0);
+                assert!(!geometry.vertices.is_empty());
+                let mut body = Vec::new();
+                appearance::visit_parts(&game, true, Some(&models), None, |key, part, matrix| {
+                    if matches!(key, Part::Actor { root, model, .. } if root == game.player().root_model && game.player().parts.contains(&model))
+                    {
+                        render_mesh::append_geometry(&mut body, part, matrix, Some(&models));
+                    }
+                });
+                let mut maximum: f32 = 0.0;
+                for v in geometry
+                    .vertices
+                    .iter()
+                    .step_by((geometry.vertices.len() / 64).max(1))
+                {
+                    let p = Vec3::from(v.position);
+                    let distance = body
+                        .chunks_exact(3)
+                        .map(|t| surfaces::closest(&[t[0], t[1], t[2]], p).distance(p))
+                        .fold(f32::INFINITY, f32::min);
+                    maximum = maximum.max(distance);
+                }
+                if ticks == 0
+                    && let Some(review) = &mut review
+                {
+                    let actors = review.renderer.upload(&render_mesh::characters_presented(
+                        &game,
+                        Some(&models),
+                        true,
+                        None,
+                    ));
+                    let effects = review.renderer.upload_effects(geometry);
+                    let focus = Vec3::from(game.player().position.to_array().map(|n| n as f32))
+                        - Vec3::Y * 800.0;
+                    let camera = Mat4::perspective_rh(0.65, 1280.0 / 720.0, 10.0, 100000.0)
+                        * Mat4::look_at_rh(
+                            focus + Vec3::new(1400.0, -300.0, -2400.0),
+                            focus,
+                            Vec3::NEG_Y,
+                        );
+                    review
+                        .capture(
+                            camera,
+                            &[&actors],
+                            Some(&effects),
+                            false,
+                            &output
+                                .as_ref()
+                                .unwrap()
+                                .join(format!("hero-{character}-custom-{custom}.png")),
+                        )
+                        .unwrap();
+                }
+                assert!(
+                    maximum < 3.0,
+                    "hero {character}, custom {custom}, ticks {ticks}: stain drift {maximum}"
+                );
+            }
+        }
+    }
 }

@@ -5,6 +5,17 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- High-detail heroes and replacement player models can retain body blood stains;
+  dense meshes no longer lose entire stains to the ground-decal size limit.
+
+- Weapon-hit blood now coats striking weapons rather than scabbard/handle slots,
+  covers both sides of flat blades, and preserves cutout texture silhouettes.
+  Add an optional metal-only restriction; colored blades can now be fully stained.
+
+- Retained original ground blood can follow terrain and slopes, preserving the
+  selected pixel artwork rather than hovering as camera-facing sprites. F1 →
+  Persistent effects can restore sprite placement independently of blood style.
+
 - Remove the final bounce offset that could leave detached heads/arms hovering.
   F1 → Persistent effects adds face-up, left-side, right-side, varied and tumble
   resting poses for severed heads; each pose rests on the actual mesh bounds.

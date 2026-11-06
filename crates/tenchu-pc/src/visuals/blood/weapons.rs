@@ -70,7 +70,13 @@ impl Weapons {
         let mut live = BTreeMap::new();
         for &id in &game.roster.order {
             let actor = game.roster.get(id);
-            for weapon in actor.weapons[..2].iter().flatten() {
+            for weapon in actor.weapons[..2].iter().flatten().filter(|weapon| {
+                actor
+                    .weapon_hitbox
+                    .iter()
+                    .flatten()
+                    .any(|&index| game.mission.weapons.hitboxes[index].kind == weapon.kind)
+            }) {
                 let key = Part::Actor {
                     root: actor.root_model,
                     model: weapon.model,
@@ -100,7 +106,9 @@ impl Weapons {
                         .chunks_exact(3)
                         .filter(|t| {
                             t[0].flags & render_mesh::TRANSLUCENT == 0
-                                && (!has_metal || t[0].flags & render_mesh::WEAPON_METAL != 0)
+                                && (!settings.weapon_metal_only
+                                    || !has_metal
+                                    || t[0].flags & render_mesh::WEAPON_METAL != 0)
                         })
                         .flat_map(|t| t.iter().copied())
                         .collect();
@@ -127,14 +135,23 @@ impl Weapons {
                             }
                         }
                     }
+                    let backs: Vec<_> = vertices
+                        .chunks_exact(3)
+                        .filter(|t| t[0].flags & render_mesh::DOUBLE_SIDED != 0)
+                        .flat_map(|t| {
+                            [t[0], t[2], t[1]].map(|mut v| {
+                                v.normal = v.normal.map(|n| -n);
+                                v
+                            })
+                        })
+                        .collect();
+                    vertices.extend(backs);
                     for v in &mut vertices {
                         let p = Vec3::from(v.position);
                         v.position =
                             (p + Vec3::from(v.normal).normalize_or_zero() * 1.2).to_array();
-                        v.uv = [p.x * 0.008 + p.z * 0.003, p.y * 0.006 + p.z * 0.007];
-                        v.color = [0.31, 0.006, 0.012];
-                        v.material = 0;
-                        v.flags = (v.flags & render_mesh::WEAPON_METAL)
+                        v.color = [p.x * 0.008 + p.z * 0.003, p.y * 0.006 + p.z * 0.007, 0.0];
+                        v.flags = (v.flags & (render_mesh::WEAPON_METAL | render_mesh::TEXTURED))
                             | render_mesh::WEAPON_COAT
                             | render_mesh::FOG
                             | render_mesh::STAIN
@@ -245,13 +262,7 @@ impl Weapons {
                     normal: (r * normal).normalize_or_zero().to_array(),
                     opacity: (coating.amount * f32::from(settings.weapon_coverage) / 100.0)
                         .min(1.0),
-                    color: Vec3::from(v.color)
-                        .lerp(Vec3::new(0.43, 0.009, 0.018), wet)
-                        .to_array(),
-                    // Untextured WEAPON_COAT uses these slots for tangent flow and wetness.
-                    page: flow[0].to_bits(),
-                    palette: flow[1].to_bits(),
-                    material: wet.to_bits(),
+                    color: [v.color[0] - flow[0] * wet, v.color[1] - flow[1] * wet, wet],
                     ..*v
                 }
             }));
@@ -339,6 +350,51 @@ mod tests {
                 }
                 assert!(hit, "M{mission}: no successful melee hit");
                 let actor = game.roster.get(guard);
+                if let Some(path) = std::env::var_os("TENCHU_WEAPON_REVIEW") {
+                    let output = std::path::Path::new(&path);
+                    std::fs::create_dir_all(output).unwrap();
+                    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+                    let mut captured_models =
+                        Models::build(&game.mission, &pack, &graphics).unwrap();
+                    review.renderer.bind_models(&mut captured_models);
+                    let stage = review.renderer.upload(&render_mesh::stage(
+                        &game.mission,
+                        &game.math,
+                        Some(&captured_models),
+                    ));
+                    let actors = review.renderer.upload(&render_mesh::characters_presented(
+                        &game,
+                        Some(&captured_models),
+                        true,
+                        None,
+                    ));
+                    let focus =
+                        Vec3::from(actor.position.map(|n| n as f32).to_array()) - Vec3::Y * 800.0;
+                    for side in [-1, 1] {
+                        let camera = Mat4::perspective_rh(0.65, 1280.0 / 720.0, 10.0, 100000.0)
+                            * Mat4::look_at_rh(
+                                focus + Vec3::new(side as f32 * 2000.0, -600.0, -2400.0),
+                                focus,
+                                Vec3::NEG_Y,
+                            );
+                        let effects = review.renderer.upload_effects(blood.geometry(
+                            &game,
+                            &captured_models,
+                            None,
+                            None,
+                            1.0,
+                        ));
+                        review
+                            .capture(
+                                camera,
+                                &[&stage, &actors],
+                                Some(&effects),
+                                artwork,
+                                &output.join(format!("m{mission}-{artwork}-{side}.png")),
+                            )
+                            .unwrap();
+                    }
+                }
                 let coated = blood
                     .weapons
                     .parts()
@@ -595,6 +651,28 @@ mod tests {
                 hits.contains(&game.roster.get(guard).root_model),
                 "guard never stained a weapon: {hits:?}"
             );
+            for key in blood.weapons.parts() {
+                let Part::Actor { root, model, .. } = key else {
+                    unreachable!()
+                };
+                let actor = game
+                    .roster
+                    .actors
+                    .iter()
+                    .flatten()
+                    .find(|a| a.root_model == root)
+                    .unwrap();
+                let weapon = actor
+                    .weapons
+                    .iter()
+                    .flatten()
+                    .find(|w| w.model == model)
+                    .unwrap();
+                assert!(
+                    !matches!(weapon.kind, 0 | 1),
+                    "Blood coated a stowed grip/scabbard"
+                );
+            }
             let bytes = postcard::to_allocvec(&blood.weapons).unwrap();
             let mut idle: Weapons = postcard::from_bytes(&bytes).unwrap();
             let mut moving = idle.clone();
@@ -686,14 +764,12 @@ mod tests {
             }
             let mut wet_vertices = Vec::new();
             flowing.append(&mut wet_vertices, &transforms, &flow_settings, 0.5);
+            assert!(wet_vertices.iter().any(|v| v.color[2] > 0.0));
             assert!(
                 wet_vertices
                     .iter()
-                    .any(|v| f32::from_bits(v.material) > 0.0)
+                    .all(|v| v.color.iter().all(|n| n.is_finite()))
             );
-            assert!(wet_vertices.iter().all(
-                |v| f32::from_bits(v.page).is_finite() && f32::from_bits(v.palette).is_finite()
-            ));
             for coating in flowing.coatings.values_mut() {
                 coating.wet = 0.0;
             }

@@ -127,8 +127,10 @@ pub enum Item {
     BloodDeath,
     BloodGround,
     BloodRetain,
+    BloodConform,
     BloodModels,
     BloodWeapons,
+    WeaponBloodMetalOnly,
     WeaponBloodCoverage,
     WeaponBloodFlow,
     WeaponReflections,
@@ -1283,7 +1285,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodRetain,
                 "Retain original blood",
                 on(s.graphics.blood.retain_original),
-                "Extend the lifetime of Original / Original HD ground splats without changing their sprite, size, rotation or camera-facing placement. Also retains original death stars. Ground style is independent of hit spurts; the shared blood limit still applies.",
+                "Extend the lifetime of Original / Original HD ground splats, keeping their chosen artwork. Also retains original death stars. Ground style is independent of hit spurts; the shared blood limit still applies.",
+            ),
+            (
+                Item::BloodConform,
+                "Retained original blood follows surfaces",
+                on(s.graphics.blood.conform_retained),
+                "Lay retained Original / Original HD splats onto the floor and slopes instead of leaving camera-facing sprites floating in space. Preserves pixel artwork and size. Off keeps retail sprite placement. Changing clears existing ground splats.",
             ),
             (
                 Item::BloodModels,
@@ -1296,6 +1304,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Blood on weapons",
                 on(s.graphics.blood.weapons),
                 "Successful melee hits and stealth kills stain metal on player and enemy weapons. Small drips gradually remove wet blood; swinging sheds more. Dry traces remain until Clear blood or mission change. Cosmetic only.",
+            ),
+            (
+                Item::WeaponBloodMetalOnly,
+                "Weapon blood on metal only",
+                on(s.graphics.blood.weapon_metal_only),
+                "Restrict coating to silver-colored faces when available. Off stains the whole striking weapon, including colored blades and handles. Scabbards never receive weapon-hit blood.",
             ),
             (
                 Item::WeaponBloodCoverage,

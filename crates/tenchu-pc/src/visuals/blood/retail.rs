@@ -2,7 +2,62 @@ use super::*;
 use tenchu_core::effects::{Billboard, Graphic};
 
 impl Blood {
-    fn retain_spot(&mut self, sample: Sample) {
+    fn retain_spot(&mut self, sample: Sample, game: &Game, surfaces: &Receivers<'_>) {
+        if self.settings.conform_retained {
+            let start = sample.position - Vec3::Y * 200.0;
+            let end = sample.position + Vec3::Y * 700.0;
+            let mut nearest = surfaces.world.cast(start, end).map(|hit| (None, hit));
+            for (index, (_, _, surface)) in surfaces.hinges.iter().enumerate() {
+                if let Some(hit) = surface.cast(start, end)
+                    && nearest.is_none_or(|(_, old)| hit.fraction < old.fraction)
+                {
+                    nearest = Some((Some(index), hit));
+                }
+            }
+            let Some((hinge, hit)) = nearest.filter(|(_, hit)| hit.flags & render_mesh::WATER == 0)
+            else {
+                return;
+            };
+            let image = game.mission.images[[0, 2, 4, 56][usize::from(sample.sprite)]];
+            let half_size = glam::Vec2::from(
+                image
+                    .size
+                    .map(|n| f32::from(n) * sample.scale.abs() as f32 / 2048.0),
+            );
+            let stamp = Stamp {
+                center: hit.position,
+                normal: hit.normal,
+                radius: half_size.length(),
+                depth: 80.0,
+                seed: 0,
+                shape: None,
+            };
+            let angle = (sample.rotation as f32 / 4096.0).to_radians();
+            let tangent = Vec3::new(angle.cos(), 0.0, angle.sin());
+            let surface = hinge.map_or(surfaces.world, |i| &surfaces.hinges[i].2);
+            let mut vertices = surface.project_rectangle(&stamp, tangent, half_size);
+            let part = hinge.map(|i| {
+                let (key, matrix, _) = &surfaces.hinges[i];
+                let r = rotation(*matrix);
+                for v in &mut vertices {
+                    v.position =
+                        (r.inverse() * (Vec3::from(v.position) - translation(*matrix))).to_array();
+                    v.normal = (r.transpose() * Vec3::from(v.normal)).to_array();
+                }
+                *key
+            });
+            let mut mark = Mark(
+                vec![Patch {
+                    part,
+                    vertices,
+                    ..Default::default()
+                }],
+                Kind::Ground,
+            );
+            Self::original_texture(&mut mark, image, self.settings.ground);
+            self.retain(mark, usize::from(self.settings.marks));
+            return;
+        }
         self.original.push_back(Billboard {
             gore_source: None,
             graphic: Graphic::Blood {
@@ -18,9 +73,14 @@ impl Blood {
         });
     }
 
-    pub(super) fn retain_missing_retail(&mut self, sample: Option<Sample>) {
+    pub(super) fn retain_missing_retail(
+        &mut self,
+        sample: Option<Sample>,
+        game: &Game,
+        surfaces: &Receivers<'_>,
+    ) {
         if let Some(sample) = sample.filter(|s| s.mode > 0 && !s.stained) {
-            self.retain_spot(sample);
+            self.retain_spot(sample, game, surfaces);
         }
     }
 
@@ -29,15 +89,101 @@ impl Blood {
         old: Option<Sample>,
         next: &mut Sample,
         continuous: bool,
+        game: &Game,
+        surfaces: &Receivers<'_>,
     ) {
         if continuous {
             next.stained = old.is_some_and(|s| s.stained);
         } else {
-            self.retain_missing_retail(old);
+            self.retain_missing_retail(old, game, surfaces);
         }
         if next.mode == 3 && !next.stained {
-            self.retain_spot(old.filter(|s| continuous && s.mode > 0).unwrap_or(*next));
+            self.retain_spot(
+                old.filter(|s| continuous && s.mode > 0).unwrap_or(*next),
+                game,
+                surfaces,
+            );
             next.stained = true;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    #[ignore = "requires TENCHU_DISC; original pixel artwork remains on horizontal and sloped receivers"]
+    fn retained_sprites_conform_without_changing_the_selected_artwork() {
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let game = crate::session::Options::default().load(&assets).unwrap();
+        for slope in [0.0, 0.4] {
+            let corners = [
+                [-1000.0, -1000.0],
+                [1000.0, -1000.0],
+                [-1000.0, 1000.0],
+                [1000.0, 1000.0],
+            ];
+            let vertices: Vec<_> = [0, 1, 2, 1, 3, 2]
+                .map(|i| Vertex {
+                    position: [corners[i][0], corners[i][0] * slope, corners[i][1]],
+                    color: [1.0; 3],
+                    ..Vertex::zeroed()
+                })
+                .into();
+            let surface = Surfaces::new(&vertices);
+            let receivers = Receivers {
+                world: &surface,
+                hinges: vec![],
+            };
+            for style in [BloodStyle::Original, BloodStyle::OriginalHd] {
+                let mut blood = Blood::default();
+                blood.configure(&settings::Blood {
+                    ground: style,
+                    retain_original: true,
+                    conform_retained: true,
+                    ..Default::default()
+                });
+                blood.retain_spot(
+                    Sample {
+                        position: Vec3::ZERO,
+                        mode: 2,
+                        time: 0,
+                        stained: false,
+                        scale: 8192,
+                        rotation: 30 * 4096,
+                        sprite: 1,
+                    },
+                    &game,
+                    &receivers,
+                );
+                assert!(blood.original.is_empty());
+                let page = blood.pages().next().unwrap();
+                assert!(!page.is_empty());
+                let image = game.mission.images[2];
+                for v in page.iter() {
+                    assert!((v.position[1] - v.position[0] * slope).abs() < 0.6);
+                    assert!(v.flags & render_mesh::TEXTURED != 0);
+                    assert_eq!(
+                        render_mesh::original_hd_blood(v.flags),
+                        style == BloodStyle::OriginalHd
+                    );
+                    assert_eq!(v.page, u32::from(image.page));
+                    assert_eq!(v.palette, u32::from(image.palette));
+                    for axis in 0..2 {
+                        assert!(
+                            v.uv[axis] >= f32::from(image.uv[axis])
+                                && v.uv[axis]
+                                    <= f32::from(image.uv[axis]) + f32::from(image.size[axis])
+                        );
+                    }
+                }
+                let saved = postcard::to_allocvec(&blood).unwrap();
+                let restored: Blood = postcard::from_bytes(&saved).unwrap();
+                assert_eq!(postcard::to_allocvec(&restored).unwrap(), saved);
+            }
         }
     }
 }
