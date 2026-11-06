@@ -34,7 +34,7 @@ impl Bounds {
 struct Node {
     bounds: Bounds,
     triangles: Range<usize>,
-    children: Option<[usize; 2]>,
+    subtree_end: usize,
 }
 
 #[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -86,7 +86,7 @@ impl Surfaces {
         out
     }
 
-    fn partition(&mut self, range: Range<usize>) -> usize {
+    fn partition(&mut self, range: Range<usize>) {
         let mut bounds = Bounds {
             min: Vec3::splat(f32::INFINITY),
             max: Vec3::splat(f32::NEG_INFINITY),
@@ -100,7 +100,7 @@ impl Surfaces {
         self.nodes.push(Node {
             bounds,
             triangles: range.clone(),
-            children: None,
+            subtree_end: 0,
         });
         if range.len() > 12 {
             let size = bounds.max - bounds.min;
@@ -117,12 +117,11 @@ impl Surfaces {
                 center(a).total_cmp(&center(b))
             });
             let middle = range.start + middle;
-            self.nodes[index].children = Some([
-                self.partition(range.start..middle),
-                self.partition(middle..range.end),
-            ]);
+            self.nodes[index].triangles = 0..0;
+            self.partition(middle..range.end);
+            self.partition(range.start..middle);
         }
-        index
+        self.nodes[index].subtree_end = self.nodes.len();
     }
 
     fn visit(
@@ -130,22 +129,16 @@ impl Surfaces {
         intersects: impl Fn(Bounds) -> bool,
         mut visit: impl FnMut(&[Vertex; 3]) -> ControlFlow<()>,
     ) -> ControlFlow<()> {
-        if self.nodes.is_empty() {
-            return ControlFlow::Continue(());
-        }
-        let mut stack = vec![0];
-        while let Some(index) = stack.pop() {
-            let node = &self.nodes[index];
+        let mut index = 0;
+        while let Some(node) = self.nodes.get(index) {
             if !intersects(node.bounds) {
+                index = node.subtree_end;
                 continue;
             }
-            if let Some(children) = node.children {
-                stack.extend(children);
-            } else {
-                for triangle in &self.triangles[node.triangles.clone()] {
-                    visit(triangle)?;
-                }
+            for triangle in &self.triangles[node.triangles.clone()] {
+                visit(triangle)?;
             }
+            index += 1;
         }
         ControlFlow::Continue(())
     }

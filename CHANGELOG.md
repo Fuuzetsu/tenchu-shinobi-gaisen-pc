@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU work for rain, snow, footprints and persistent blood surface queries,
+  with unchanged weather coverage and stain placement.
+
 ## 0.16.1 — 2026-11-06
 
 - Reduce rewind recording cost and retain more history within its memory limit

@@ -2937,3 +2937,39 @@ is in `private/optimisation-loop/2026-11-06/resumed/rewind-{pages,control}-*`.
 Strict native/WASM/Android Clippy, ordinary tests, full-versus-cached capture,
 visual-effect restoration, exported timeline continuation and timed reverse
 playback checks pass.
+
+
+### Traverse presentation surfaces without temporary stacks
+
+The presentation geometry index now stores nodes in traversal order with an
+index past each subtree. Rain shelter/landing queries, blood projection and
+footprints can skip a subtree without allocating a temporary stack. Triangle
+visit order is preserved, including equal-distance hits; the index is 48 rather
+than 64 bytes per node on this 64-bit build. Gameplay collision and AI do not use
+this index, and saved states do not contain it.
+
+Steady dense-blood profiling attributes about 3% of sampled CPU time to surface
+casts, including their allocations. Repeated isolated CPU tests use actual HD
+geometry from missions 1, 4, 6 and 9 on the Ryzen 9950X3D. Each cast/occlusion
+batch contains 2048 rays; weather measurements run 1200 ticks with maximum
+particle detail, moving centers and changing wind, excluding 120 warm-up ticks.
+Two reverse-order repeats give these mean CPU times:
+
+| Mission | Ray-cast batch, ms before → after | Rainstorm tick, ms | Blizzard tick, ms |
+| --- | ---: | ---: | ---: |
+| 1 | 1.779 → 1.533 | 0.0747 → 0.0596 | 0.0352 → 0.0312 |
+| 4 | 1.037 → 0.834 | 0.1102 → 0.0904 | 0.0392 → 0.0342 |
+| 6 | 2.505 → 2.205 | 0.1554 → 0.1328 | 0.0746 → 0.0640 |
+| 9 | 2.196 → 1.923 | 0.0834 → 0.0646 | 0.0831 → 0.0700 |
+
+Early-exit shelter checks improve by 22–30%. Batches of projected footprints,
+blood and pools improve by approximately 2–7%; clipping still dominates those
+operations. All 28 scenario output hashes match across builds, covering full
+weather states, hit metadata and complete ordered projected vertices. These
+are small CPU savings, not equivalent percentage gains in displayed FPS.
+The existing exhaustive intersection and weather/projection tests exercise
+empty geometry, parallel rays, excluded water, shelter and wind changes.
+Evidence stays outside Git under
+`private/optimisation-loop/2026-11-06/resumed/surface-traversal/`.
+Native workspace/all-target, WASM and Android strict Clippy pass, as do 147
+ordinary tests and disc-backed persistent-blood/animated-footprint checks.
