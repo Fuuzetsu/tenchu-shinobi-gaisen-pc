@@ -69,6 +69,8 @@
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc"
             cp -R ${(distribution pkgs.buildPackages).notices}/. "$out/share/doc/tenchu-shinobi-gaisen-pc/"
             cp COPYING.md LICENSE "$out/share/doc/tenchu-shinobi-gaisen-pc/"
+            mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec"
+            cp crates/tenchu-assets/data/mdec/{LICENSE-MIT,README.md} "$out/share/doc/tenchu-shinobi-gaisen-pc/mdec/"
             mkdir -p "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} \
               "$out/share/doc/tenchu-shinobi-gaisen-pc/japanese-font/"
@@ -110,6 +112,8 @@
             cp -R ${(distribution pkgs).notices} "$out/licenses"
             chmod u+w "$out/licenses"
             cp COPYING.md LICENSE "$out/licenses/"
+            mkdir -p "$out/licenses/mdec"
+            cp crates/tenchu-assets/data/mdec/{LICENSE-MIT,README.md} "$out/licenses/mdec/"
             mkdir -p "$out/licenses/japanese-font"
             cp crates/tenchu-assets/data/japanese-font/{OFL-1.1.txt,README.md} "$out/licenses/japanese-font/"
             mkdir -p "$out/licenses/image-compat"

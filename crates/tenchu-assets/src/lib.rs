@@ -12,6 +12,7 @@ pub mod hud;
 pub mod misc;
 pub mod model;
 pub mod motion;
+pub mod movie;
 pub mod script;
 pub mod shop;
 pub mod stage;

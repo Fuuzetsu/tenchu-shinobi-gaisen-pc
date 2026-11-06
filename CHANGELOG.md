@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add a portable disc-movie decoder for Android opening/training/ending playback, including captions and XA sound, without an external FFmpeg executable. Desktop decoding remains unchanged.
+
 - Add optional **Quarter-resolution shadow visibility** under F1 → Rendering trials. Wet/snow terrain can share soft local-light shadow samples while materials and characters retain their detail. Includes a comparison demo; requires native/WebGPU, HDR and no MSAA. Fine shadow edges can soften; built-in presets remain unchanged.
 
 - Skip unnecessary terrain weather sampling on faces pointing away from precipitation, reducing snow rendering cost without changing coverage.

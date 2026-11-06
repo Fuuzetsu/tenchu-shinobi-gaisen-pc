@@ -24,7 +24,7 @@ use tenchu_assets::{
 use tenchu_core::frontend::Captions;
 
 struct Decoder {
-    child: Child,
+    child: Option<Child>,
     frames: Option<Receiver<Result<Vec<u8>>>>,
     audio: Receiver<Result<Arc<Clip>>>,
     cancelled: Arc<AtomicBool>,
@@ -33,6 +33,9 @@ struct Decoder {
 
 impl Decoder {
     fn new(path: &Path, movie: Movie) -> Result<Self> {
+        if cfg!(target_os = "android") || std::env::var_os("TENCHU_RUST_MOVIES").is_some() {
+            return Self::portable(path, movie);
+        }
         let disc = open_disc(path)?;
         let entry = disc.find(movie.path())?;
         disc.xa_sector(entry.sector)?;
@@ -104,8 +107,22 @@ impl Decoder {
                 }
             }
         });
-        let active = cancelled.clone();
-        let audio_worker = thread::spawn(move || {
+        let audio_worker = Self::audio_worker(audio_disc, movie, cancelled.clone(), sound);
+        Ok(Self {
+            child: Some(child),
+            frames: Some(frames),
+            audio,
+            cancelled,
+            threads: vec![feeder, reader, audio_worker],
+        })
+    }
+    fn audio_worker(
+        audio_disc: tenchu_assets::disc::Disc<DiscSource>,
+        movie: Movie,
+        active: Arc<AtomicBool>,
+        sound: mpsc::Sender<Result<Arc<Clip>>>,
+    ) -> JoinHandle<()> {
+        thread::spawn(move || {
             let result = (|| {
                 let file = audio_disc.find(movie.path())?;
                 let track = Track {
@@ -130,13 +147,46 @@ impl Decoder {
                 Ok(Arc::new(clip))
             })();
             let _ = sound.send(result);
+        })
+    }
+
+    fn portable(path: &Path, movie: Movie) -> Result<Self> {
+        let disc = open_disc(path)?;
+        let mut stream = tenchu_assets::movie::Stream::open(&disc, movie.path())?;
+        let audio_disc = open_disc(path)?;
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let active = cancelled.clone();
+        let (send, frames) = mpsc::sync_channel(4);
+        let reader = thread::spawn(move || {
+            while !active.load(Ordering::Relaxed) {
+                let frame = match stream.next(&disc) {
+                    Ok(Some(frame)) => frame,
+                    Ok(None) => break,
+                    Err(error) => {
+                        let _ = send.send(Err(error));
+                        break;
+                    }
+                };
+                if frame.number >= movie.last_frame() {
+                    break;
+                }
+                if frame.size != [320, 240] {
+                    let _ = send.send(Err("Unexpected movie dimensions".into()));
+                    break;
+                }
+                if send.send(Ok(frame.rgba)).is_err() {
+                    break;
+                }
+            }
         });
+        let (sound, audio) = mpsc::channel();
+        let audio_worker = Self::audio_worker(audio_disc, movie, cancelled.clone(), sound);
         Ok(Self {
-            child,
+            child: None,
             frames: Some(frames),
             audio,
             cancelled,
-            threads: vec![feeder, reader, audio_worker],
+            threads: vec![reader, audio_worker],
         })
     }
 }
@@ -145,8 +195,10 @@ impl Drop for Decoder {
     fn drop(&mut self) {
         self.cancelled.store(true, Ordering::Relaxed);
         self.frames.take();
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        if let Some(child) = &mut self.child {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
         for thread in self.threads.drain(..) {
             let _ = thread.join();
         }
