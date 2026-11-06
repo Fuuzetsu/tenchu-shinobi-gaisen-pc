@@ -6,7 +6,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 ## Unreleased
 
 - Reduce CPU work for rain, snow, footprints and persistent blood surface queries,
-  with unchanged weather coverage and stain placement.
+  and skip further clipping when a stain cannot reach a triangle. Weather
+  coverage and stain placement are unchanged.
 
 ## 0.16.1 — 2026-11-06
 

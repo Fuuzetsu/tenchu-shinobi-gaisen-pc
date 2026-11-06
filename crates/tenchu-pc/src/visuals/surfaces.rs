@@ -357,6 +357,9 @@ impl StampProjection<'_> {
         let mut polygon = triangle.to_vec();
         for (normal, radius) in self.planes {
             clip(&mut polygon, normal, normal.dot(stamp.center) + radius);
+            if polygon.is_empty() {
+                return;
+            }
         }
         clip(
             &mut polygon,

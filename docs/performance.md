@@ -2973,3 +2973,12 @@ Evidence stays outside Git under
 `private/optimisation-loop/2026-11-06/resumed/surface-traversal/`.
 Native workspace/all-target, WASM and Android strict Clippy pass, as do 147
 ordinary tests and disc-backed persistent-blood/animated-footprint checks.
+
+Projection follow-up: stop clipping a triangle once a stamp plane has removed
+it completely. Later planes cannot add vertices, so this skips unused work
+without changing output or introducing storage. Two alternating repeat pairs
+on the same fixture reduce blood projection by 5–8% and pool projection by
+3–6%; footprint gains are smaller (1–4%). Mission 6's 512-stamp blood batch
+falls from 2.976 to 2.738 ms and its pool batch from 18.055 to 16.972 ms. All
+28 output hashes still match. Reusing two heap clipping buffers was also tested
+but regressed most cases and was discarded. These remain CPU-only measurements.
