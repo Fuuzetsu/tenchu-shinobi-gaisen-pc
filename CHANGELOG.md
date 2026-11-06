@@ -5,6 +5,12 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional Stealth Assassins dismemberment using the USA Rev 1 rules and
+  existing Gaisen models. Head and forearm chances are configurable in F1 →
+  Blood; disabled by default. No additional disc or model pack is required.
+- Mid-mission savestates from older versions are incompatible with the new
+  detached-body-part state. Campaign progress saves are unaffected.
+
 ## 0.16.2 — 2026-11-06
 
 - Reduce rain-haze rendering cost on native and WebGPU by sharing shelter

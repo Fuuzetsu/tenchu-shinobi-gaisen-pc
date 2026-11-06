@@ -53,6 +53,7 @@ pub struct Settings {
     pub walking: Walking,
     pub sheathing: tenchu_core::game::sheathing::Settings,
     pub bleeding: tenchu_core::game::bleeding::Settings,
+    pub dismemberment: tenchu_core::game::dismemberment::Settings,
     pub damage_escalation: tenchu_core::ai::escalation::Settings,
     pub multi_target_attacks: bool,
     pub attack_assist: bool,
@@ -102,6 +103,7 @@ impl Default for Settings {
             walking: Walking::default(),
             sheathing: Default::default(),
             bleeding: Default::default(),
+            dismemberment: Default::default(),
             damage_escalation: Default::default(),
             multi_target_attacks: false,
             attack_assist: false,
@@ -173,6 +175,7 @@ impl Settings {
             },
             |s| s.settings,
         );
+        self.dismemberment = game.combat.dismemberment;
         self.walking = saved.walking;
         self.walking.enabled = game.walking.is_some();
         self.damage_escalation = game.intelligence.damage_escalation;
@@ -184,6 +187,7 @@ impl Settings {
 
     pub(crate) fn validate(&mut self) {
         self.bleeding.validate();
+        self.dismemberment.validate();
         self.walking.validate();
         self.sheathing.validate();
         self.rewind_seconds = self.rewind_seconds.min(30);

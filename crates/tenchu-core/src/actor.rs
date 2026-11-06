@@ -102,6 +102,7 @@ pub struct Actor {
     pub invulnerable: bool,
     pub sheathing: Option<crate::game::sheathing::State>,
     pub bleeding: Option<crate::game::bleeding::State>,
+    pub severed: Option<crate::game::dismemberment::Part>,
     pub(crate) suppress_idle_taunts: bool,
     pub max_health: i16,
     pub attribute: u16,
@@ -219,6 +220,7 @@ impl Actor {
             invulnerable: false,
             sheathing: None,
             bleeding: None,
+            severed: None,
             suppress_idle_taunts: false,
             map,
             pad: Pad::default(),
@@ -269,6 +271,25 @@ impl Actor {
     pub fn initialize_rendered(&mut self, scene: &Scene, math: &Math) {
         self.rendered_mesh_kind = self.mesh_kind;
         self.rendered = self.motion.pose.matrices(math, self.root(math));
+        if self.severed.is_some() {
+            for (i, &part) in self.parts.iter().enumerate() {
+                let model = &scene.models[part];
+                let parent = model
+                    .parent
+                    .and_then(|p| self.parts.iter().position(|&id| id == p));
+                let matrix = parent.map_or_else(
+                    || {
+                        if model.parent == Some(0) {
+                            Matrix::default()
+                        } else {
+                            self.root(math)
+                        }
+                    },
+                    |p| self.rendered[p],
+                );
+                self.rendered[i] = matrix.compose(&model.local);
+            }
+        }
         for weapon in self.weapons.iter_mut().flatten() {
             let model = &scene.models[weapon.model];
             let part = self

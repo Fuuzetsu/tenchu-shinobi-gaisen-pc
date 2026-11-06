@@ -114,6 +114,7 @@ pub const MOT_DAMAGE_GETUP: i16 = 0x100C;
 pub const MOT_DEAD_ALT: i16 = 0x1101;
 pub const MOT_DEAD_DROWN: i16 = 0x1108;
 pub const MOT_DEAD_STEALTH_BACK: i16 = 0x1109;
+pub const MOT_DEAD_STEALTH_BACK_AYAME: i16 = 0x110c;
 pub const MOT_DEAD_STEALTH_SIDE_AYAME: i16 = 0x110E;
 pub const ATTR_PHASE: u16 = 0x0003;
 pub const ATTR_CUSTOMAI: u16 = 0x0004;

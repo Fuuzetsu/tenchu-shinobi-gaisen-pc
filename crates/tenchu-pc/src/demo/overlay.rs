@@ -38,6 +38,7 @@ pub fn show(
             );
         let top = !randomizer_menu
             && (right
+                || clip.feature == super::Feature::Dismemberment
                 || matches!(clip.shot, super::Shot::Cinematic | super::Shot::Player)
                 || clip.artwork.is_some()
                 || matches!(

@@ -1,4 +1,5 @@
 use super::*;
+mod dismemberment;
 use crate::actor::State as ActorState;
 
 impl Actor {
@@ -92,6 +93,7 @@ impl Actor {
         if ctx.scene.models[self.parts[0]].conflict.is_none() && self.motion.loops < 0 {
             return Ok(None);
         }
+        self.advance_severed(ctx, world)?;
         if self.motion.count != 0 || self.motion.loops != 0 {
             if self.motion.count == 0 {
                 self.motion.loops = -1;
@@ -119,6 +121,7 @@ impl Actor {
                     world.intelligence.action_halt = crate::ai::Halt::Running;
                     ctx.camera.snap_pending = true;
                 }
+                self.settle_severed(ctx)?;
                 return Ok(None);
             }
         }
@@ -137,6 +140,8 @@ impl Actor {
             return Ok(Some((MOT_DEAD, true)));
         }
         let mut gore = None;
+        let dismemberment = world.combat.dismemberment;
+        let mut sever = None;
         match self.motion.action {
             MOT_DEAD_DROWN => {
                 if ctx.random.next15() % 20 == 0 {
@@ -198,11 +203,55 @@ impl Actor {
                     }
                     _ => return Err("Unknown death event action".into()),
                 }
+                if dismemberment.enabled
+                    && matches!(
+                        (self.motion.action, self.motion.count),
+                        (MOT_DEAD_STEALTH_BACK, 68) | (MOT_DEAD_STEALTH_BACK_AYAME, 36)
+                    )
+                    && crate::game::dismemberment::Settings::head(
+                        dismemberment.stealth_head,
+                        ctx.random,
+                    )
+                {
+                    sever = Some(2);
+                }
             }
             _ => {
                 if self.kind & 0xf0 != 0xa0 {
+                    if dismemberment.enabled && self.kind == 0x8f && self.motion.count == 1 {
+                        sever = Some(2);
+                    }
                     if self.motion.count == 5 && world.combat.death_sound == Some(self.id) {
                         world.intelligence.voices.push((self.id, 0x38));
+                        if dismemberment.enabled {
+                            let action = if self.id == world.player {
+                                self.motion.action
+                            } else {
+                                world.roster.get(world.player).motion.action
+                            };
+                            if matches!(action, MOT_ATTACK_DIVE | MOT_ATTACK_DIVE_LAND)
+                                && crate::game::dismemberment::Settings::head(
+                                    dismemberment.dive_head,
+                                    ctx.random,
+                                )
+                            {
+                                sever = Some(2);
+                            } else if crate::game::dismemberment::Settings::arm(
+                                dismemberment.arms,
+                                ctx.random,
+                            ) {
+                                sever = Some(
+                                    if crate::game::dismemberment::Settings::arm(
+                                        dismemberment.right_arm,
+                                        ctx.random,
+                                    ) {
+                                        4
+                                    } else {
+                                        6
+                                    },
+                                );
+                            }
+                        }
                         world.combat.death_sound = None;
                     }
                     gore = Some((1, 100, 0));
@@ -226,6 +275,9 @@ impl Actor {
                 ctx.random,
                 ctx.scene,
             )?;
+        }
+        if let Some(part) = sever {
+            self.sever_part(ctx, world, part)?;
         }
         Ok(None)
     }

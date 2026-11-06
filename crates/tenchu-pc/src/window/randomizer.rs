@@ -127,6 +127,7 @@ impl Application {
             self.settings.sheathing,
         )?;
         self.campaign.game.set_bleeding(self.settings.bleeding);
+        self.campaign.game.combat.dismemberment = self.settings.dismemberment;
         self.campaign
             .game
             .set_damage_escalation(self.settings.damage_escalation);

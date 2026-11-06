@@ -40,6 +40,7 @@ pub enum Feature {
     WoundSpurts,
     Bleeding,
     DeathGush,
+    Dismemberment,
     ShopLighting,
     Gunfire,
     WeaponSparks,

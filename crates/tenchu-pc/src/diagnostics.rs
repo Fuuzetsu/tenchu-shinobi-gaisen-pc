@@ -47,6 +47,7 @@ pub fn game(game: &Game) -> Value {
         "combat_profile": game.intelligence.profiles.applies(a, &game.mission, game.player_id, game.intelligence.difficulty).then(|| game.intelligence.profiles.combat(a)),
         "sheathing": a.sheathing,
         "bleeding": a.bleeding,
+        "severed": a.severed,
         "damage_bonus_percent": a.encounters.bonus(game.intelligence.damage_escalation),
         "root_model": a.root_model, "render_mask": a.render_mask, "draw_fog": a.draw_fog,
     })).collect();

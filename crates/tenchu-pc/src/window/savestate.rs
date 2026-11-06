@@ -352,6 +352,11 @@ impl Application {
 impl State<Game> {
     fn validate(&self) -> Result<()> {
         let game = &self.game;
+        let mut dismemberment = game.combat.dismemberment;
+        dismemberment.validate();
+        if dismemberment != game.combat.dismemberment {
+            return Err("Invalid dismemberment settings in savestate".into());
+        }
         if self.options.mission > 10
             || !(0..=1).contains(&self.options.character)
             || self.options.layout > 3
@@ -391,6 +396,14 @@ impl State<Game> {
                     .is_some_and(|c| c >= game.mission.clips.len())
             {
                 return Err("Invalid actor reference in savestate".into());
+            }
+            if let Some(part) = &actor.severed
+                && (!matches!(part.index, 2 | 4 | 6)
+                    || part.index >= actor.parts.len()
+                    || part.parent.is_none_or(|p| p >= game.scene.models.len())
+                    || game.scene.models[actor.parts[part.index]].parent != Some(0))
+            {
+                return Err("Invalid detached body part in savestate".into());
             }
         }
         Ok(())

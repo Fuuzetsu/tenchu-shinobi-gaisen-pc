@@ -112,6 +112,7 @@ impl Game {
         };
         match action {
             ActorCommand::Activate { placement } => {
+                actor.restore_severed(ctx.scene);
                 actor.attribute &= !ATTR_SUSPEND;
                 actor.motion.mask = 0x7fff;
                 if self.cinematic.actors.iter().all(Option::is_some) {

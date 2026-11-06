@@ -11,6 +11,9 @@ impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
             Self::BleedChance => (0, 100, 5, 1),
+            Self::SeverStealth | Self::SeverDive | Self::SeverArms | Self::SeverSide => {
+                (0, 100, 1, 1)
+            }
             Self::BleedSeconds => (0, 120, 1, 1),
             Self::BleedDamage => (0, 20, 1, 1),
             Self::BandageLoadout | Self::Bandages => (0, 99, 1, 1),
@@ -116,6 +119,7 @@ impl Item {
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
             Self::Bleeding => &mut settings.bleeding.enabled,
+            Self::Dismemberment => &mut settings.dismemberment.enabled,
             Self::MedicineBleeding => &mut settings.bleeding.medicine,
             Self::CameraRelative => &mut settings.navigation.camera_relative,
             Self::AlignAim => &mut settings.navigation.align_aim,
@@ -183,6 +187,10 @@ impl Item {
     fn number(self, settings: &mut Settings) -> Option<&mut u16> {
         Some(match self {
             Self::BleedChance => &mut settings.bleeding.chance,
+            Self::SeverStealth => &mut settings.dismemberment.stealth_head,
+            Self::SeverDive => &mut settings.dismemberment.dive_head,
+            Self::SeverArms => &mut settings.dismemberment.arms,
+            Self::SeverSide => &mut settings.dismemberment.right_arm,
             Self::BleedSeconds => &mut settings.bleeding.seconds,
             Self::BleedDamage => &mut settings.bleeding.damage,
             Self::BandageLoadout => &mut settings.bleeding.bandages,

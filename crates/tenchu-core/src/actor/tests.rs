@@ -2,6 +2,7 @@ use crate::actor::State as ActorState;
 use crate::items::Kind;
 mod bleeding;
 mod corpses;
+mod dismemberment;
 mod escalation;
 mod experiments;
 mod guard;

@@ -4,6 +4,11 @@ use tenchu_core::effects::RumbleAction;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
+    Dismemberment,
+    SeverStealth,
+    SeverDive,
+    SeverArms,
+    SeverSide,
     Bleeding,
     BleedChance,
     BleedSeconds,
@@ -1121,6 +1126,36 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             ]
         }
         11 => vec![
+            (
+                Item::Dismemberment,
+                "Stealth Assassins dismemberment",
+                on(s.dismemberment.enabled),
+                "Optional USA Rev 1 rules using Gaisen models: rear stealth kills / dive attacks can remove heads, ordinary deaths can remove a forearm. Excludes players, animals and bosses (except Kataoka's execution). Changes gameplay RNG; off by default.",
+            ),
+            (
+                Item::SeverStealth,
+                "Rear stealth kill: head",
+                format!("{}%", s.dismemberment.stealth_head),
+                "Chance at the original SA animation frame. Default 4%; other stealth-kill directions never sever limbs.",
+            ),
+            (
+                Item::SeverDive,
+                "Dive attack kill: head",
+                format!("{}%", s.dismemberment.dive_head),
+                "Default 4%. A failed head roll can still sever an arm.",
+            ),
+            (
+                Item::SeverArms,
+                "Ordinary kill: forearm",
+                format!("{}%", s.dismemberment.arms),
+                "Default 50%, after any unsuccessful dive-attack head roll. No arm roll during stealth kills.",
+            ),
+            (
+                Item::SeverSide,
+                "Right arm preference",
+                format!("{}%", s.dismemberment.right_arm),
+                "Conditional on severing an arm: default 50% chooses either side equally; 0 always left, 100 always right.",
+            ),
             (
                 Item::BloodHit,
                 "Blood spurts on hit",

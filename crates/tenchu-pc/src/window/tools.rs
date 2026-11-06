@@ -190,6 +190,18 @@ impl Application {
         Ok(())
     }
 
+    pub(super) fn set_dismemberment(
+        &mut self,
+        mut settings: tenchu_core::game::dismemberment::Settings,
+    ) {
+        settings.validate();
+        if self.campaign.game.combat.dismemberment != settings {
+            self.stop_edited_recording();
+        }
+        self.settings.dismemberment = settings;
+        self.campaign.game.combat.dismemberment = settings;
+    }
+
     pub(super) fn set_bleeding(&mut self, mut settings: tenchu_core::game::bleeding::Settings) {
         settings.validate();
         if self
@@ -286,6 +298,9 @@ impl Application {
     }
 
     pub(super) fn apply_settings(&mut self, previous: &Settings) {
+        if self.settings.dismemberment != previous.dismemberment {
+            self.set_dismemberment(self.settings.dismemberment);
+        }
         if self.settings.bleeding != previous.bleeding {
             self.set_bleeding(self.settings.bleeding);
         }
@@ -323,6 +338,7 @@ impl Application {
             let _ = self.set_walking(previous.walking.enabled);
             let _ = self.set_sheathing(previous.sheathing);
             self.set_bleeding(previous.bleeding);
+            self.set_dismemberment(previous.dismemberment);
             self.set_damage_escalation(previous.damage_escalation);
             self.set_multi_target_attacks(previous.multi_target_attacks);
             self.set_attack_assist(previous.attack_assist);
@@ -420,6 +436,7 @@ impl Application {
         self.set_walking(false)?;
         self.set_sheathing(Default::default())?;
         self.set_bleeding(Default::default());
+        self.set_dismemberment(Default::default());
         self.set_damage_escalation(Default::default());
         self.set_multi_target_attacks(false);
         self.set_attack_assist(false);
@@ -810,6 +827,7 @@ impl Application {
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
                 self.set_bleeding(Default::default());
+                self.set_dismemberment(Default::default());
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_attack_assist(false);
@@ -1066,6 +1084,7 @@ impl Application {
                 self.set_walking(false)?;
                 self.set_sheathing(Default::default())?;
                 self.set_bleeding(Default::default());
+                self.set_dismemberment(Default::default());
                 self.set_damage_escalation(Default::default());
                 self.set_multi_target_attacks(false);
                 self.set_attack_assist(false);

@@ -10,6 +10,7 @@ use tenchu_assets::weapon::kind::*;
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Combat {
     pub death_sound: Option<usize>,
+    pub dismemberment: crate::game::dismemberment::Settings,
     pub life_bars: Vec<(usize, i16, i16)>,
     pub armor: bool,
     pub multi_target: bool,

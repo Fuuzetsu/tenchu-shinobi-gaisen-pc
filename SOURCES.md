@@ -1207,3 +1207,14 @@ trace, attack cooldown/combo inputs, evasion and covered reinforcement calls.
 The original transition, sight and collision engines remain authoritative.
 Disabled profiles take the original dispatch path without assignment RNG or AI
 state resets. No code, motion tables or assets from another game are imported.
+
+## Optional Stealth Assassins dismemberment
+
+The user-supplied USA Rev 1 `MAIN.EXE` (SHA-256
+`8ae3cbddd4b110ca5e4b6a4e7d3dd7ed6c649dbea7b92cceb218563662a2708b`),
+ActDEAD at `0x80025d10`–`0x80026a38`, specifies the optional selection and
+severed-part movement in `tenchu-core/src/game/dismemberment.rs` and
+`actor/death/dismemberment.rs`. Inspected locally with Capstone; no executable,
+model or animation data is included. Existing Gaisen models supply the parts.
+See [cross-version research](docs/cross-version-research.md) for regional
+probabilities, timing and asset comparisons.

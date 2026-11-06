@@ -5,6 +5,7 @@ pub mod activation;
 pub mod bleeding;
 pub mod cinematic;
 mod debug;
+pub mod dismemberment;
 pub mod events;
 pub mod moveset;
 pub mod navigation;

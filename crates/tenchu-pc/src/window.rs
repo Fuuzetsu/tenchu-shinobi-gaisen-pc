@@ -387,6 +387,7 @@ impl Application {
             && !self.settings.walking.enabled
             && !self.settings.sheathing.enabled
             && !self.settings.bleeding.enabled
+            && !self.settings.dismemberment.enabled
             && !self.settings.damage_escalation.enabled()
             && !self.settings.attack_assist
             && !self.settings.behavior_profiles.enabled
@@ -436,6 +437,7 @@ impl Application {
                         || self.settings.walking.enabled
                         || self.settings.sheathing.enabled
                         || self.settings.bleeding.enabled
+                        || self.settings.dismemberment.enabled
                         || self.settings.damage_escalation.enabled()
                         || self.settings.attack_assist
                         || self.settings.behavior_profiles.enabled
@@ -1492,6 +1494,7 @@ pub fn run(
     crate::walking::configure(&mut campaign.game, &assets, settings.walking.enabled)?;
     crate::sheathing::configure(&mut campaign.game, &assets, settings.sheathing)?;
     campaign.game.set_bleeding(settings.bleeding);
+    campaign.game.combat.dismemberment = settings.dismemberment;
     campaign
         .game
         .set_damage_escalation(settings.damage_escalation);

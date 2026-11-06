@@ -900,6 +900,17 @@
     "frontend": {"page": "shop", "language": "en"}
   },
   {
+    "id": "dismemberment",
+    "title": "Stealth Assassins dismemberment",
+    "description": "An optional rear stealth-kill decapitation using the original Gaisen model. This demonstration forces a head; the SA USA default is 4%. The head moves, bounces and remains beside the corpse. Disabled by default.",
+    "seconds": 14,
+    "mission": 1,
+    "character": 0,
+    "preset": 4,
+    "feature": "dismemberment",
+    "shot": "guard"
+  },
+  {
     "id": "death-gush",
     "title": "Onikage-inspired death gushes",
     "description": "Optional repeated upward bursts of modern blood. They begin with the original death-blood cue, follow the body, weaken over six seconds and leave retained stains. Original gameplay and cinematic blood are unchanged.",

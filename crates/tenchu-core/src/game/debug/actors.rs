@@ -121,6 +121,7 @@ impl Game {
             camera: &mut self.camera,
             drawing: &mut self.drawing,
         };
+        actor.restore_severed(ctx.scene);
         actor.clear_attack(&mut ctx, 3)?;
         actor.position = position;
         actor.previous = position;

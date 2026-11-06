@@ -410,7 +410,7 @@ impl Player {
                     0
                 }
             }
-            Feature::DeathGush => {
+            Feature::DeathGush | Feature::Dismemberment => {
                 if tick == 30 {
                     SQUARE
                 } else {

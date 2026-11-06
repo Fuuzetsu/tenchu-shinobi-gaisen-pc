@@ -86,6 +86,7 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
                     | Feature::WoundSpurts
                     | Feature::Bleeding
                     | Feature::DeathGush
+                    | Feature::Dismemberment
                     | Feature::BloodSnow
                     | Feature::WeaponSparks
                     | Feature::GuardControls
@@ -118,7 +119,10 @@ pub fn camera(player: &Player, game: &Game, interpolate: bool) -> Option<Camera>
             camera.pitch = -0.1;
             distance = 4000.0;
         }
-        Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks => target.y += 700.0,
+        Feature::GuardControls
+        | Feature::DeathGush
+        | Feature::Dismemberment
+        | Feature::UnarmedAttacks => target.y += 700.0,
         Feature::HeroModels => camera.yaw += p * 1.6,
         Feature::Randomizer if player.clip().shot != Shot::Guard => {
             camera.yaw += (p - 0.5) * 0.25;
@@ -248,6 +252,17 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.effects.spark_density = 150;
             g.lighting.enabled = true;
             g.interpolation = true;
+        }
+        Feature::Dismemberment => {
+            settings.dismemberment = tenchu_core::game::dismemberment::Settings {
+                enabled: true,
+                stealth_head: 100,
+                ..Default::default()
+            };
+            g.lighting.enabled = true;
+            g.interpolation = true;
+            g.sky.enabled = true;
+            g.sky.time = 660;
         }
         Feature::DeathGush => {
             g.blood = crate::settings::Blood::modern();
@@ -895,6 +910,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         } else {
             "Original targeting · the closer guard behind is selected · same positions and inputs"
         }.into()),
+        Feature::Dismemberment => text("SA dismemberment · forced 100% head chance for demonstration · default 4% · disabled by default".into()),
         Feature::DeathGush => text("Optional death gush · 100% · 6 seconds · follows the original blood cue and animated body".into()),
         Feature::Bleeding => text(match player.simulation_ticks {
             0..150 => "Optional gameplay: enemy hits start bleeding · 3 HP/s in this demonstration",

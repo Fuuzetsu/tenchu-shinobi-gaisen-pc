@@ -183,6 +183,7 @@ impl Application {
                     Feature::Blood
                         | Feature::BloodSnow
                         | Feature::DeathGush
+                        | Feature::Dismemberment
                         | Feature::WeaponSparks
                         | Feature::GuardControls
                         | Feature::UnarmedAttacks
@@ -193,7 +194,10 @@ impl Application {
                     let mut guard = position(actor);
                     if matches!(
                         clip.feature,
-                        Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks
+                        Feature::GuardControls
+                            | Feature::DeathGush
+                            | Feature::Dismemberment
+                            | Feature::UnarmedAttacks
                     ) {
                         let facing = game.player().rotation[1];
                         let offset = game.math.velocity(facing, 2800, 0).map(i32::from);
@@ -212,7 +216,10 @@ impl Application {
                                     Feature::WeaponFinishes | Feature::WoundSpurts
                                 ) {
                                     1300
-                                } else if clip.feature == Feature::DeathGush {
+                                } else if matches!(
+                                    clip.feature,
+                                    Feature::DeathGush | Feature::Dismemberment
+                                ) {
                                     -800
                                 } else {
                                     1500
@@ -232,6 +239,7 @@ impl Application {
                                 | Feature::WeaponFinishes
                                 | Feature::WoundSpurts
                                 | Feature::DeathGush
+                                | Feature::Dismemberment
                                 | Feature::GuardControls
                                 | Feature::UnarmedAttacks
                         )
@@ -279,7 +287,7 @@ impl Application {
                             player.max_health = 9999;
                         }
                     }
-                    if clip.feature == Feature::DeathGush {
+                    if matches!(clip.feature, Feature::DeathGush | Feature::Dismemberment) {
                         game.roster.get_mut(actor).setup_think(0)?;
                     }
                     scene.player_start = game.player().position;
@@ -296,7 +304,10 @@ impl Application {
                     scene.pitch = -0.55;
                     if matches!(
                         clip.feature,
-                        Feature::GuardControls | Feature::DeathGush | Feature::UnarmedAttacks
+                        Feature::GuardControls
+                            | Feature::DeathGush
+                            | Feature::Dismemberment
+                            | Feature::UnarmedAttacks
                     ) {
                         scene.distance = 5600.0;
                         scene.pitch = -0.60;
@@ -312,6 +323,7 @@ impl Application {
                             | Feature::GuardControls
                             | Feature::UnarmedAttacks
                             | Feature::DeathGush
+                            | Feature::Dismemberment
                     )
                 {
                     self.settings.keep_enemies_active = true;
@@ -440,6 +452,7 @@ impl Application {
         crate::walking::configure(&mut game, &self.assets, self.settings.walking.enabled)?;
         crate::sheathing::configure(&mut game, &self.assets, self.settings.sheathing)?;
         game.set_bleeding(self.settings.bleeding);
+        game.combat.dismemberment = self.settings.dismemberment;
         game.set_damage_escalation(self.settings.damage_escalation);
         game.combat.multi_target = self.settings.multi_target_attacks;
         game.combat.attack_assist = self.settings.attack_assist;
@@ -561,6 +574,7 @@ impl Application {
             self.campaign.game.intelligence.strict_corpse_sight = self.settings.strict_corpse_sight;
             self.campaign.game.intelligence.guard_controls = self.settings.guard_controls;
             self.campaign.game.set_bleeding(self.settings.bleeding);
+            self.campaign.game.combat.dismemberment = self.settings.dismemberment;
             self.campaign
                 .game
                 .set_damage_escalation(self.settings.damage_escalation);
