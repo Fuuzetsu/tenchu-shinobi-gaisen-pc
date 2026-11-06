@@ -728,6 +728,17 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.blob_shadows = stage == 2 && t < 0.5;
             g.lighting.shadows = stage != 2 || t >= 0.5;
         }
+        Feature::ShadowSampling => {
+            g.samples = 1;
+            g.post.enabled = true;
+            g.lighting.enabled = true;
+            g.lighting.shadows = true;
+            g.lighting.source_size = 100;
+            g.weather.mode = crate::settings::WeatherMode::Rain;
+            g.weather.pooling = 200;
+            g.weather.reflections = 150;
+            g.rendering.quarter_resolution_shadows = section(p, 4) % 2 == 1;
+        }
         Feature::SkyDirection => {
             let (stage, t) = part(p, 4);
             g.lighting.directional.intensity = 100;
@@ -1157,6 +1168,14 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             on(g.blob_shadows),
             on(l.shadows)
         )),
+        Feature::ShadowSampling => text(
+            if g.rendering.quarter_resolution_shadows {
+                "Quarter-resolution terrain shadow visibility · full-resolution materials"
+            } else {
+                "Full-resolution terrain shadow visibility"
+            }
+            .into(),
+        ),
         Feature::SkyDirection => text(format!(
             "Moon {}° / {}° · sky tint {}% · {}",
             l.directional.azimuth,

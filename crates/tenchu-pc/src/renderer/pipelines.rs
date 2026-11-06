@@ -181,8 +181,20 @@ impl Options {
         self.module(device, gl, include_str!("decals/cache_shading.wgsl"))
     }
 
-    pub(super) fn wet_shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
-        self.module(device, gl, include_str!("wet_lighting.wgsl"))
+    pub(super) fn wet_shader(
+        self,
+        device: &wgpu::Device,
+        gl: bool,
+        quarter_shadows: bool,
+    ) -> wgpu::ShaderModule {
+        let source = format!(
+            "const SCREEN_SHADOWS: bool = {}; const SCREEN_SHADOW_STEP: i32 = {};\n{}\n{}",
+            quarter_shadows,
+            super::wet_lighting::SHADOW_STRIDE,
+            include_str!("wet_lighting.wgsl"),
+            include_str!("wet_lighting/shadows.wgsl")
+        );
+        self.module(device, gl, &source)
     }
 
     fn module(self, device: &wgpu::Device, gl: bool, pass: &str) -> wgpu::ShaderModule {

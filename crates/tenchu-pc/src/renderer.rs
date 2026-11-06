@@ -443,6 +443,8 @@ impl Renderer {
         if shader_changed {
             self.shader = options.shader(&self.device, self.gl);
         }
+        let shadow_sampling_changed = graphics.rendering.quarter_resolution_shadows
+            != self.graphics.rendering.quarter_resolution_shadows;
         self.graphics = graphics.clone();
         if pipelines_changed {
             self.pipelines = pipelines::create(
@@ -484,7 +486,7 @@ impl Renderer {
             self.blood_cache = Some(decals::cache::Cache::new(self));
         }
         let wet = wet_lighting::configured(graphics, samples, self.gl);
-        if !wet || pipelines_changed {
+        if !wet || pipelines_changed || shadow_sampling_changed {
             self.wet_lighting = None;
         }
         if wet && self.wet_lighting.is_none() {
@@ -877,6 +879,10 @@ impl Renderer {
                 meshes.terrain,
                 sky.as_ref(),
             );
+            self.wet_lighting
+                .as_ref()
+                .unwrap()
+                .shadows(self, &mut encoder);
         }
         if let Some(timer) = &self.timings {
             timer.mark_scene_boundary(&mut encoder, timing::SceneStage::Visibility);

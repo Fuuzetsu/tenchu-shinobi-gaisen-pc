@@ -3,6 +3,8 @@ use crate::{render_mesh, settings::Graphics};
 use glam::Mat4;
 use std::ops::Range;
 
+pub(super) const SHADOW_STRIDE: u32 = 4;
+
 const FORMATS: [wgpu::TextureFormat; 3] = [
     wgpu::TextureFormat::Rgba16Float,
     wgpu::TextureFormat::Rgba32Uint,
@@ -25,10 +27,14 @@ struct Targets {
     size: [u32; 2],
     views: [wgpu::TextureView; 3],
     bindings: wgpu::BindGroup,
+    sample_bindings: wgpu::BindGroup,
+    shadows: [wgpu::TextureView; 2],
 }
 
 pub(super) struct WetLighting {
     layout: wgpu::BindGroupLayout,
+    sample_layout: wgpu::BindGroupLayout,
+    screen_shadows: Option<wgpu::RenderPipeline>,
     targets: Option<Targets>,
     surface: wgpu::RenderPipeline,
     forward: wgpu::RenderPipeline,
@@ -39,23 +45,40 @@ pub(super) struct WetLighting {
 impl WetLighting {
     pub fn new(renderer: &Renderer) -> Self {
         let device = &renderer.device;
+        let approximate = renderer.graphics.rendering.quarter_resolution_shadows;
+        let texture_entry = |binding: usize| wgpu::BindGroupLayoutEntry {
+            binding: binding as u32,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                sample_type: if binding == 1 {
+                    wgpu::TextureSampleType::Uint
+                } else {
+                    wgpu::TextureSampleType::Float { filterable: false }
+                },
+                view_dimension: wgpu::TextureViewDimension::D2,
+                multisampled: false,
+            },
+            count: None,
+        };
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Prepared wet surfaces"),
-            entries: &std::array::from_fn::<_, 3, _>(|binding| wgpu::BindGroupLayoutEntry {
-                binding: binding as u32,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: if binding == 1 {
-                        wgpu::TextureSampleType::Uint
-                    } else {
-                        wgpu::TextureSampleType::Float { filterable: false }
-                    },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
-                },
-                count: None,
-            }),
+            entries: &std::array::from_fn::<_, 5, _>(texture_entry),
         });
+        let sample_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Shadow source geometry"),
+            entries: &std::array::from_fn::<_, 3, _>(texture_entry),
+        });
+        let sample_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Screen shadow preparation"),
+                bind_group_layouts: &[
+                    &renderer.pipelines.opaque.get_bind_group_layout(0),
+                    &renderer.shadows.layout,
+                    &renderer.materials.layout,
+                    &sample_layout,
+                ],
+                push_constant_ranges: &[],
+            });
         let lighting_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Wet surface lighting"),
             bind_group_layouts: &[
@@ -66,13 +89,17 @@ impl WetLighting {
             ],
             push_constant_ranges: &[],
         });
-        let shader = pipelines::Options::new(&renderer.graphics, renderer.samples)
-            .wet_shader(device, renderer.gl);
+        let shader = pipelines::Options::new(&renderer.graphics, renderer.samples).wet_shader(
+            device,
+            renderer.gl,
+            approximate,
+        );
         let pipeline = |vertex,
                         fragment,
                         layout: &wgpu::PipelineLayout,
                         formats: &[wgpu::TextureFormat],
-                        surface| {
+                        surface,
+                        depth: bool| {
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(fragment),
                 layout: Some(layout),
@@ -87,7 +114,7 @@ impl WetLighting {
                     cull_mode: None,
                     ..Default::default()
                 },
-                depth_stencil: Some(wgpu::DepthStencilState {
+                depth_stencil: depth.then_some(wgpu::DepthStencilState {
                     format: wgpu::TextureFormat::Depth32Float,
                     depth_write_enabled: surface,
                     depth_compare: if surface {
@@ -119,12 +146,31 @@ impl WetLighting {
             })
         };
         Self {
-            sky: pipeline("vertex", "deferred_sky", &renderer.layout, &FORMATS, true),
+            screen_shadows: approximate.then(|| {
+                pipeline(
+                    "deferred_vertex",
+                    "prepare_screen_shadows",
+                    &sample_pipeline_layout,
+                    &[wgpu::TextureFormat::Rgba8Unorm; 2],
+                    false,
+                    false,
+                )
+            }),
+            sample_layout,
+            sky: pipeline(
+                "vertex",
+                "deferred_sky",
+                &renderer.layout,
+                &FORMATS,
+                true,
+                true,
+            ),
             surface: pipeline(
                 "vertex",
                 "deferred_material",
                 &renderer.layout,
                 &FORMATS,
+                true,
                 true,
             ),
             forward: pipeline(
@@ -133,6 +179,7 @@ impl WetLighting {
                 &renderer.layout,
                 &FORMATS,
                 true,
+                true,
             ),
             lighting: pipeline(
                 "deferred_vertex",
@@ -140,6 +187,7 @@ impl WetLighting {
                 &lighting_layout,
                 &[renderer.world_format()],
                 false,
+                true,
             ),
             layout,
             targets: None,
@@ -155,18 +203,40 @@ impl WetLighting {
             return;
         }
         let views = FORMATS.map(|format| Renderer::attachment(device, size, format, 1));
-        let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Prepared wet surfaces"),
-            layout: &self.layout,
+        let shadow_size = if self.screen_shadows.is_some() {
+            size.map(|n| n.div_ceil(SHADOW_STRIDE))
+        } else {
+            [1, 1]
+        };
+        let shadows = std::array::from_fn(|_| {
+            Renderer::attachment(device, shadow_size, wgpu::TextureFormat::Rgba8Unorm, 1)
+        });
+        let sample_bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Shadow source geometry"),
+            layout: &self.sample_layout,
             entries: &std::array::from_fn::<_, 3, _>(|i| wgpu::BindGroupEntry {
                 binding: i as u32,
                 resource: wgpu::BindingResource::TextureView(&views[i]),
+            }),
+        });
+        let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Prepared wet surfaces"),
+            layout: &self.layout,
+            entries: &std::array::from_fn::<_, 5, _>(|i| wgpu::BindGroupEntry {
+                binding: i as u32,
+                resource: wgpu::BindingResource::TextureView(if i < 3 {
+                    &views[i]
+                } else {
+                    &shadows[i - 3]
+                }),
             }),
         });
         self.targets = Some(Targets {
             size,
             views,
             bindings,
+            sample_bindings,
+            shadows,
         });
     }
 
@@ -221,6 +291,36 @@ impl WetLighting {
                 mesh.draw(&mut pass, batch.vertices.clone());
             }
         }
+    }
+
+    pub fn shadows(&self, renderer: &Renderer, encoder: &mut wgpu::CommandEncoder) {
+        let Some(pipeline) = &self.screen_shadows else {
+            return;
+        };
+        let targets = self.targets.as_ref().unwrap();
+        let attachments = targets.shadows.each_ref().map(|view| {
+            Some(wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
+                    store: wgpu::StoreOp::Store,
+                },
+            })
+        });
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Quarter resolution point visibility"),
+            color_attachments: &attachments,
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        pass.set_pipeline(pipeline);
+        pass.set_bind_group(0, &renderer.bindings, &[]);
+        pass.set_bind_group(1, &renderer.shadows.bindings, &[]);
+        pass.set_bind_group(2, &renderer.materials.bindings, &[]);
+        pass.set_bind_group(3, &targets.sample_bindings, &[]);
+        pass.draw(0..3, 0..1);
     }
 
     pub fn light(&self, pass: &mut wgpu::RenderPass<'_>) {

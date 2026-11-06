@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add optional **Quarter-resolution shadow visibility** under F1 → Rendering trials. Wet/snow terrain can share soft local-light shadow samples while materials and characters retain their detail. Includes a comparison demo; requires native/WebGPU, HDR and no MSAA. Fine shadow edges can soften; built-in presets remain unchanged.
+
 - Skip unnecessary terrain weather sampling on faces pointing away from precipitation, reducing snow rendering cost without changing coverage.
 
 - Make narrated briefing calligraphy clearer with **High-definition text**, sharpening strokes from the user's disc while keeping the original lettering, scroll and narration. Works with or without the HD pack and includes a matched comparison demo.

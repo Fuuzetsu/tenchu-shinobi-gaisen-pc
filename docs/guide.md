@@ -90,12 +90,20 @@ custom settings keep both off. Try `demo --clips flame-motion` for a comparison.
 
 **F1 → Rendering trials** offers opt-in rendering alternatives for comparison:
 adaptive local shadows, half-resolution ambient occlusion with depth-aware
-reconstruction, and cached modern terrain blood. The blood cache uses HDR on
+reconstruction, cached modern terrain blood, and quarter-resolution shadow
+visibility. The blood cache uses HDR on
 native/WebGPU, including MSAA in Modern High/Ultra; other configurations retain
 the existing path.
 These trials are off in all built-in presets pending evaluation. Gameplay is
 unchanged. See [measured comparisons](performance.md#november-5-perceptual-rendering-trials)
 for the tested workloads and limitations.
+
+**Quarter-resolution shadow visibility** shares soft local-light shadow samples
+across nearby pixels on the same terrain surface. Textures, reflections, character
+shading and sun shadows retain their resolution; small shadow edges can soften.
+It applies to the shared wet/snow terrain pass on native/WebGPU with HDR, soft
+shadows and edge antialiasing Off. Other paths keep their usual shading. Try
+`demo --clips shadow-sampling` for a comparison.
 
 **Model refinement → Vegetation volume** now includes Botanical and Botanical
 dense. These add folded leaf sprays and round bamboo stalks using existing

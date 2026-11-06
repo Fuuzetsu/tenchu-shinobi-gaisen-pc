@@ -2783,3 +2783,53 @@ not repeat consistently, and the waterfall uses the unchanged forward path;
 its frame-time variation is not a gain from this change. The garden still
 exceeds the 16.67 ms budget at p99. Private evidence is under
 `private/optimisation-loop/2026-11-06/advanced/`.
+
+### Quarter-resolution local-shadow trial
+
+The optional terrain shadow-visibility pass samples soft local shadows at one
+quarter of the display width/height, storing eight light visibilities in two
+RGBA8 targets (about 4 MiB at 4K). Reconstruction accepts neighboring samples
+only on a matching receiver plane and normal; otherwise it runs the existing
+full-resolution filter. Material textures, normals, reflections, sunlight and
+character shading keep their resolution. The shadow maps themselves retain
+their detail. This applies to the shared wet/snow terrain pass on native/WebGPU
+with HDR, soft shadows and no MSAA. Other configurations use the existing path.
+
+An initial half-width/height RGBA16 implementation did not meaningfully improve
+moving scenes and was discarded. The compact quarter-size variant reduces GPU
+time by 0.7–1.3 ms in the fixed 4K report/garden rain/snow scenes, including
+animated characters. Twelve paired uncompressed captures have mean RGB changes
+of roughly 0.001–0.058 out of 255; sparse shadow-edge differences reach 54.
+This is a visual approximation, not pixel-identical shading.
+
+The full native application uses the same reported settings, HD artwork, three
+earlier trials and 25% flame motion/shimmer as the incidence follow-up. Runs use
+1200 frames per route, excluding 60 warm-up frames, with the new option on then
+off in the same binary. No build, capture or encoder runs concurrently.
+
+| Weather / route | Frame mean, ms before → after | Frame p95, ms | Frame p99, ms |
+| --- | ---: | ---: | ---: |
+| Rain / village | 12.82 → 12.81 | 13.85 → 13.80 | 14.16 → 14.20 |
+| Rain / courtyard | 9.97 → 9.40 | 10.77 → 10.09 | 11.10 → 10.64 |
+| Rain / garden | 16.49 → 15.58 | 17.28 → 16.27 | 17.63 → 16.90 |
+| Rain / waterfall | 10.00 → 10.11 | 10.83 → 10.84 | 11.24 → 11.01 |
+| Snow / village | 13.48 → 13.56 | 14.99 → 15.02 | 15.28 → 15.40 |
+| Snow / courtyard | 10.07 → 9.65 | 10.93 → 10.62 | 11.48 → 10.91 |
+| Snow / garden | 16.72 → 15.83 | 17.81 → 16.90 | 18.02 → 17.06 |
+| Snow / waterfall | 9.36 → 9.31 | 10.07 → 10.02 | 10.76 → 10.69 |
+
+The garden reaches 64.2 FPS mean in rain and 63.2 in snow, but p99 still exceeds
+16.67 ms. The village has no useful gain; the waterfall uses the unchanged
+forward path, so its small differences are noise. All built-in presets leave
+the trial off. `demo --clips shadow-sampling` alternates it in a rainy garden.
+Paired 4K60 motion clips and raw evidence stay outside Git under
+`private/optimisation-loop/2026-11-06/screen-shadows/`; export cadence is not a
+measurement of achieved FPS.
+
+The integrated setting matches all 24 prototype before/after captures exactly.
+GPU regression checks cover thin receivers, slopes, moving actors, changing
+light slots, odd window sizes and exact restoration when disabled. Native and
+WASM strict Clippy pass. WebGPU/WebGL2 checks exercise the F1 toggle/reset,
+resizing and resumed movement/combat; only WebGPU uses the extra pass. The
+private comparison page verifies twelve image pairs and three paired motion
+clips; the built-in demonstration also exports 720 consecutive 4K60 frames.

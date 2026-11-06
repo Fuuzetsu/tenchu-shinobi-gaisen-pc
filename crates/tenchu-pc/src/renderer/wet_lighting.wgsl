@@ -41,8 +41,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
     if data.w == FORWARD_SURFACE { return vec4(base.rgb, 1.0); }
     let unlit_color = textureLoad(surface_emission, p, 0);
     let depth = bitcast<f32>(data.w);
-    let ndc = pixel.xy / vec2<f32>(textureDimensions(surface_diffuse)) * vec2(2.0, -2.0) + vec2(-1.0, 1.0);
-    let position = camera.rays[3].xyz + (camera.rays[0].xyz + camera.rays[1].xyz * ndc.x + camera.rays[2].xyz * ndc.y) * depth;
+    let position = surface_position(pixel.xy, depth);
     let normal = oct_unpack(data.x);
     let wet_normal = oct_unpack(data.y);
     let surface = oct_unpack(data.z);
@@ -65,6 +64,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
             }
         }
         let local = daylight_exposure(sun);
+        let filtered = interpolate_shadows(pixel.xy, position, surface);
         var nearby = local_lights(position);
         loop {
             let index = next_light(&nearby);
@@ -80,7 +80,7 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
                 glint = pow(max(0.0, dot(wet_normal, halfway)), power);
             }
             if diffuse == 0.0 && glint < 0.001 { continue; }
-            let visibility = point_visibility(source, position, surface);
+            let visibility = interpolated_visibility(filtered, source, position, surface);
             let falloff = 1.0 - smoothstep(0.0, 1.0, distance / source.position.w);
             if diffuse > 0.0 { light += source.color.rgb * lighting.options.y * falloff * falloff * diffuse * visibility * local; }
             if glint >= 0.001 { reflected += source.color.rgb * lighting.options.y * falloff * falloff * glint * specular * visibility * local; }

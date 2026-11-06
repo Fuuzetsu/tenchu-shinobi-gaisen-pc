@@ -15,6 +15,7 @@ pub enum Item {
     HalfResolutionAo,
     AdaptiveShadows,
     CachedBlood,
+    QuarterResolutionShadows,
     StateSlot,
     SaveState,
     LoadState,
@@ -535,6 +536,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Cached terrain blood",
                 on(s.graphics.rendering.cached_blood),
                 "Cache modern blood coverage on flat terrain; lighting and weather still update every frame. Other blood styles, slopes and unsupported surfaces keep their existing renderer. Requires HDR on native/WebGPU; edge antialiasing is supported.",
+            ),
+            (
+                Item::QuarterResolutionShadows,
+                "Quarter-resolution shadow visibility",
+                on(s.graphics.rendering.quarter_resolution_shadows),
+                "Share soft local-light shadows across matching surfaces, at quarter width/height. Textures and actors stay at full resolution; fine shadow edges can soften. Available for wet/snow terrain with HDR, soft shadows and edge antialiasing Off on native/WebGPU.",
             ),
         ],
         20 => vec![
