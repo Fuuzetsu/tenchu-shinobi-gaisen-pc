@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public final class LauncherActivity extends Activity {
   static {
@@ -20,6 +21,8 @@ public final class LauncherActivity extends Activity {
   }
 
   private static native String validateDisc(String path);
+
+  private static native String[] discFiles(String path) throws IOException;
 
   private static native String prepareArtwork(String root, String path);
 
@@ -133,7 +136,8 @@ public final class LauncherActivity extends Activity {
               try {
                 job.run();
               } catch (Exception e) {
-                error = e.getMessage();
+                android.util.Log.e("TenchuImport", "Import failed", e);
+                error = e.getMessage() == null ? e.toString() : e.getMessage();
               }
               final String message = error;
               runOnUiThread(
@@ -144,7 +148,15 @@ public final class LauncherActivity extends Activity {
                       new AlertDialog.Builder(this)
                           .setTitle("Import failed")
                           .setMessage(message)
-                          .setPositiveButton("OK", (d, w) -> refresh())
+                          .setNeutralButton(
+                              "Copy error",
+                              (d, w) ->
+                                  getSystemService(android.content.ClipboardManager.class)
+                                      .setPrimaryClip(
+                                          android.content.ClipData.newPlainText(
+                                              "Tenchu import error", message)))
+                          .setPositiveButton("OK", null)
+                          .setOnDismissListener(d -> refresh())
                           .show();
                   });
             },
@@ -190,13 +202,15 @@ public final class LauncherActivity extends Activity {
                 children,
                 new String[] {
                   DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                  DocumentsContract.Document.COLUMN_DISPLAY_NAME
+                  DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                  DocumentsContract.Document.COLUMN_MIME_TYPE
                 },
                 null,
                 null,
                 null)) {
       if (cursor == null) throw new IOException("Cannot read this folder");
       while (cursor.moveToNext()) {
+        if (DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2))) continue;
         String name = cursor.getString(1), lower = name.toLowerCase(Locale.ROOT);
         if (name.contains("/") || name.contains("\\") || name.equals("..")) continue;
         if (lower.endsWith(".cue")) {
@@ -205,8 +219,8 @@ public final class LauncherActivity extends Activity {
                 "Choose a folder containing just one CUE file and its BIN files.");
           cue = name;
         }
-        if (lower.endsWith(".cue") || lower.endsWith(".bin"))
-          files.put(name, DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0)));
+        if (files.put(name, DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0)))
+            != null) throw new IOException("This folder contains duplicate filenames: " + name);
       }
     }
     if (cue == null)
@@ -217,13 +231,26 @@ public final class LauncherActivity extends Activity {
     if (!folder.mkdir()) throw new IOException("Cannot create disc directory");
     boolean complete = false;
     try {
-      long total = 0;
-      for (Map.Entry<String, Uri> entry : files.entrySet()) {
+      File disc = new File(folder, cue);
+      long total = copy(files.remove(cue), disc, 1024 * 1024);
+      String[] references = discFiles(disc.getAbsolutePath());
+      Map<String, Uri> tracks = new LinkedHashMap<>();
+      for (String name : references) {
+        if (name.contains("/") || name.contains("\\") || name.equals("..") || name.equals(cue))
+          throw new IOException("CUE track names must be filenames in this folder: " + name);
+        if (files.containsKey(name)) tracks.put(name, files.remove(name));
+      }
+      for (String name : references) {
+        if (tracks.containsKey(name)) continue;
+        String match = matchingFile(name, files.keySet());
+        if (match == null) match = chooseTrack(name, files.keySet());
+        tracks.put(name, files.remove(match));
+      }
+      for (Map.Entry<String, Uri> entry : tracks.entrySet()) {
         String name = entry.getKey();
         runOnUiThread(() -> status.setText("Importing " + name + "…"));
         total += copy(entry.getValue(), new File(folder, name), 1024L * 1024 * 1024 - total);
       }
-      File disc = new File(folder, cue);
       runOnUiThread(() -> status.setText("Checking the disc version and game files…"));
       String error = validateDisc(disc.getAbsolutePath());
       if (error != null) throw new IOException(error);
@@ -244,6 +271,46 @@ public final class LauncherActivity extends Activity {
     } finally {
       if (!complete) remove(folder);
     }
+  }
+
+  private static String matchingFile(String expected, Set<String> names) {
+    // Firefox for Android replaces commas in downloaded filenames with underscores.
+    String key = expected.replace(',', '_');
+    String match = null;
+    for (String name : names) {
+      if (!key.equalsIgnoreCase(name.replace(',', '_'))) continue;
+      if (match != null) return null;
+      match = name;
+    }
+    return match;
+  }
+
+  private String chooseTrack(String expected, Set<String> names) throws Exception {
+    if (names.isEmpty())
+      throw new IOException(
+          "Missing BIN file:\n"
+              + expected
+              + "\n\nKeep the CUE and all its BIN tracks in one folder.");
+    String[] choices = names.toArray(new String[0]);
+    CompletableFuture<String> answer = new CompletableFuture<>();
+    runOnUiThread(
+        () -> {
+          TextView title = new TextView(this);
+          title.setText("Choose the renamed BIN for:\n" + expected);
+          title.setTextSize(18);
+          title.setPadding(dp(24), dp(18), dp(24), dp(12));
+          new AlertDialog.Builder(this)
+              .setCustomTitle(title)
+              .setAdapter(
+                  new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, choices),
+                  (d, index) -> answer.complete(choices[index]))
+              .setNegativeButton("Cancel", (d, w) -> answer.complete(null))
+              .setOnCancelListener(d -> answer.complete(null))
+              .show();
+        });
+    String choice = answer.get();
+    if (choice == null) throw new IOException("Disc import cancelled.");
+    return choice;
   }
 
   private long copy(Uri source, File destination, long limit) throws IOException {

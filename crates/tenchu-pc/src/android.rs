@@ -128,6 +128,46 @@ pub fn poll_file() -> Option<Result<FileResponse>> {
 }
 
 #[unsafe(no_mangle)]
+pub extern "system" fn Java_org_tenchu_port_LauncherActivity_discFiles<'local>(
+    mut env: jni::EnvUnowned<'local>,
+    _class: jni::objects::JClass<'local>,
+    path: jni::objects::JString<'local>,
+) -> jni::objects::JObjectArray<'local, jni::objects::JString<'local>> {
+    env.with_env(|env| -> jni::errors::Result<_> {
+        let read = || -> Result<Vec<String>> {
+            let cue = std::fs::read_to_string(path.to_string()).map_err(|e| e.to_string())?;
+            tenchu_assets::cue::data_track(&cue)?;
+            Ok(tenchu_assets::cue::binary_files(&cue)?
+                .into_iter()
+                .map(str::to_owned)
+                .collect())
+        };
+        let files = match read() {
+            Ok(files) => files,
+            Err(error) => {
+                return env
+                    .throw_new(
+                        jni_str!("java/io/IOException"),
+                        jni::strings::JNIString::from(error),
+                    )
+                    .map(|()| jni::objects::JObjectArray::<jni::objects::JString>::null());
+            }
+        };
+        let array = jni::objects::JObjectArray::<jni::objects::JString>::new(
+            env,
+            files.len(),
+            jni::objects::JString::null(),
+        )?;
+        for (index, file) in files.iter().enumerate() {
+            let name = env.new_string(file)?;
+            array.set_element(env, index, &name)?;
+        }
+        Ok(array)
+    })
+    .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_org_tenchu_port_LauncherActivity_validateDisc<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,

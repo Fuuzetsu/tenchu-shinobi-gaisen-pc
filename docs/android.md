@@ -34,8 +34,10 @@ Cross-target linting uses `nix develop .#android --command cargo clippy
    one folder on the phone, for example `Download/Tenchu`.
 2. Open Tenchu and choose **Import disc folder…**, select that folder, and allow
    access. The app copies the files into its own storage and verifies the game.
-   Keep the CUE's filenames intact. Android restricts selecting the Downloads
-   root itself, so use a subfolder. Import needs roughly 750 MB of free space.
+   Firefox's comma-to-underscore filename changes and case differences are
+   handled automatically. For other renamed tracks, choose the corresponding
+   BIN when prompted. Android restricts selecting the Downloads root itself,
+   so use a subfolder. Import needs roughly 750 MB of free space.
 3. Optionally choose **Import HD artwork (.tar.zst)…** and select the existing
    [HD pack](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3).
    It is validated and unpacked during import. Allow about 450 MB more space.

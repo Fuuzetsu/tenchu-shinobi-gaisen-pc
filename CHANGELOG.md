@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix Android disc imports when Firefox replaces commas in BIN filenames with underscores. Match renamed tracks before copying, offer a file choice for other name changes, and make import errors copyable. Original downloads and previously imported discs remain intact if import fails.
+
 - Add a native Android preview with ARM64 APK packaging through Nix, verified CUE/BIN folder import, optional HD archive import, private persistent saves/preferences and Android document import/export. Opening and ending movies play directly from the disc. Backgrounding releases the rendering surface and suspends gameplay/audio; returning restores the session.
 
 - Add a multitouch controller with movement/action holds, optional camera stick, size/opacity/handedness controls, and always-accessible Settings/Pause/Back buttons. Phone menus support touch scrolling and Android text input; the overlay is also available on touch-capable desktops and the browser without changing desktop defaults.
