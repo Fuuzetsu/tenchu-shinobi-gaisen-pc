@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce rendering cost during lightning flashes by reusing terrain shelter
+  calculations. Storm illumination and weather coverage are unchanged.
+
 - Reduce CPU work for rain, snow, footprints and persistent blood surface queries,
   and skip further clipping when a stain cannot reach a triangle. Weather
   coverage and stain placement are unchanged.

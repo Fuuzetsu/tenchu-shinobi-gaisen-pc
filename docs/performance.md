@@ -2982,3 +2982,36 @@ on the same fixture reduce blood projection by 5–8% and pool projection by
 falls from 2.976 to 2.738 ms and its pool batch from 18.055 to 16.972 ms. All
 28 output hashes still match. Reusing two heap clipping buffers was also tested
 but regressed most cases and was discarded. These remain CPU-only measurements.
+
+### Reuse terrain shelter during storm flashes
+
+Wet/snow terrain already evaluates precipitation shelter. Flash illumination now
+reuses that result instead of sampling the same shelter map again. Surfaces that
+did not need weather coverage still evaluate shelter for the flash. Filter taps,
+coverage, flash timing and brightness are unchanged; no new render pass or cache
+is needed.
+
+Paired 4K Modern High GPU fixtures use HD Mission 1 geometry, animated characters,
+2× MSAA and rain on the GTX 1080 Ti. The reverse-order repeat contains 1200 frames
+per case, excluding 30 warm-up frames. Builds and other GPU tests run separately.
+The flash is held at 30% to isolate its cost, rather than waiting for the storm
+schedule. These are fenced offscreen GPU measurements, not interactive FPS.
+
+| View / weather state | GPU mean, ms before → after | GPU p99, ms |
+| --- | ---: | ---: |
+| Garden / between flashes | 17.71 → 17.51 | 18.29 → 18.09 |
+| Garden / flash | 19.64 → 18.74 | 20.26 → 19.30 |
+| Village / between flashes | 14.15 → 14.10 | 14.81 → 14.72 |
+| Village / flash | 15.32 → 14.76 | 16.02 → 15.38 |
+
+The first order saves 0.75/0.59 ms during flashes; ordinary-frame differences
+are small and vary in direction. Twelve paired captures are byte-identical,
+including rain haze enabled/disabled. Evidence stays outside Git under
+`private/optimisation-loop/2026-11-06/resumed/storm-sharing/`.
+
+Single-sample rain/snow checks also improve flash frames by 0.35–1.22 ms;
+ordinary frames differ by 0.05–0.14 ms and eight more captures match exactly.
+The existing shared-versus-forward lighting regression now includes flashes
+across special materials, sloped terrain, indexed geometry and MSAA counts.
+Shelter/wind GPU checks, 147 ordinary tests, strict native/WASM/Android Clippy
+and WebGPU/WebGL2 gameplay checks pass.

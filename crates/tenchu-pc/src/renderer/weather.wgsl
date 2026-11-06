@@ -165,7 +165,10 @@ fn rain_color() -> vec3<f32> {
 
 fn storm_light(position: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, precomputed: bool) -> vec3<f32> {
     if !WEATHER_ENABLED || lighting.source.z == 0.0 { return vec3(0.0); }
-    let exposed = weather_exposure(surface, position, precomputed, false);
+    return storm_illumination(normal, weather_exposure(surface, position, precomputed, false));
+}
+
+fn storm_illumination(normal: vec3<f32>, exposed: f32) -> vec3<f32> {
     let diffuse = 0.2 + 0.8 * max(0.0, -normal.y);
     return vec3(1.2, 1.4, 1.7) * lighting.source.z * exposed * diffuse;
 }

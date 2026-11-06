@@ -269,6 +269,7 @@ fn wet_lighting_preserves_surfaces_and_actors() {
                         }
                         renderer.update_mesh(&mut actor, &mut moving);
                         renderer.weather.time += 0.3;
+                        renderer.weather.flash = if x == 0.0 { 0.6 } else { 0.0 };
                         renderer.visual_time += 0.3;
                         renderer.daylight = (x > 0.0)
                             .then(|| crate::visuals::sky::Daylight::at(720.0, &graphics.sky));

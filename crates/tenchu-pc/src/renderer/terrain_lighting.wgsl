@@ -24,6 +24,7 @@ fn prepare_terrain(v: Fragment, material: SurfaceMaterial) -> TerrainSurface {
     var wet_normal = normal;
     var power = 1.0;
     var specular = 0.0;
+    var shelter = -1.0;
     if WATER_ENABLED && (v.flags & WATER) != 0u {
         let water = prepare_water(normalize(camera.eye.xyz - v.world), normal);
         let transmission = 1.0 - water.fresnel * camera.water.y * 0.18;
@@ -36,7 +37,6 @@ fn prepare_terrain(v: Fragment, material: SurfaceMaterial) -> TerrainSurface {
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY {
         if lighting.weather.x + lighting.weather.y + lighting.weather.w > 0.0 {
             let incidence = weather_incidence(surface_normal, true);
-            var shelter = 0.0;
             if incidence > 0.0 { shelter = weather_exposure(surface_normal, v.world, true, false); }
             if shelter > 0.0 {
                 if lighting.weather.x + lighting.weather.w > 0.0 {
@@ -70,7 +70,10 @@ fn prepare_terrain(v: Fragment, material: SurfaceMaterial) -> TerrainSurface {
             }
         }
     }
-    unlit_color += diffuse * storm_light(v.world, normal, surface_normal, true);
+    if WEATHER_ENABLED && lighting.source.z != 0.0 {
+        if shelter < 0.0 { shelter = weather_exposure(surface_normal, v.world, true, false); }
+        unlit_color += diffuse * storm_illumination(normal, shelter);
+    }
     return TerrainSurface(diffuse, unlit_color, normal, wet_normal, surface_normal, power, specular);
 }
 
