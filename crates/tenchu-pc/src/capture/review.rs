@@ -195,6 +195,11 @@ mod tests {
                 let mut began = false;
                 for _ in 0..2500 {
                     game.step(0).unwrap();
+                    if !began && game.cinematic.active {
+                        let kataoka = game.roster.get(game.roster.find(0x8f).unwrap());
+                        assert_eq!([kataoka.position.x, kataoka.position.z], [-21000, -3000]);
+                        assert_eq!(kataoka.rotation[1], 1022);
+                    }
                     if let Some(copy) = &mut copy {
                         copy.step(0).unwrap();
                         assert_eq!(game.cinematic.caption, copy.cinematic.caption);

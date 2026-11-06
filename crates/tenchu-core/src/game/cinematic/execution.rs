@@ -18,12 +18,12 @@ pub(super) fn commands(source: &[Command]) -> Vec<Command> {
         if let Command::Wait { until: frame } = command {
             until = frame;
         }
-        if matches!(sequence, 20 | 100)
+        if sequence == 20
             && let Command::Actor {
                 id: 0x8f,
                 action: ActorCommand::Activate { placement },
             } = &mut command
-            && (sequence == 100 || placement.is_some_and(|p| p.position == [-21, 0, -3]))
+            && placement.is_some_and(|p| p.position == [-21, 0, -3])
         {
             *placement = Some(Placement {
                 position: [-25, 0, -3],
