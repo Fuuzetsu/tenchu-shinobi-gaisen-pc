@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.16.0 — 2026-11-06
+
 - Make the accepted rendering improvements automatic: adaptive local shadow detail, half-resolution ambient occlusion, cached modern terrain blood, and shared wet/snow shadow visibility. Remove the Rendering trials toggles and comparison demo; existing settings/presets upgrade automatically, with compatibility fallbacks retained. Original graphics and gameplay stay unchanged.
 
 - Publish a signed Android ARM64 APK alongside desktop/browser downloads for each version and rolling HEAD. APK updates retain imported discs, artwork and saves; downloads include checked build identities and checksums.
