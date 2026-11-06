@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Make the accepted rendering improvements automatic: adaptive local shadow detail, half-resolution ambient occlusion, cached modern terrain blood, and shared wet/snow shadow visibility. Remove the Rendering trials toggles and comparison demo; existing settings/presets upgrade automatically, with compatibility fallbacks retained. Original graphics and gameplay stay unchanged.
+
 - Keep Android responsive while graphics effects compile: prepare shaders away from the input/lifecycle loop, show a progress dialog, and avoid recompiling unchanged window sizes. Returning from graphics changes no longer leaves input waiting behind shader preparation.
 
 - Fix Android disc imports when Firefox replaces commas in BIN filenames with underscores. Match renamed tracks before copying, offer a file choice for other name changes, and make import errors copyable. Original downloads and previously imported discs remain intact if import fails.
@@ -15,8 +17,6 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Add a portable disc-movie decoder for Android opening/training/ending playback, including captions and XA sound, without an external FFmpeg executable. Desktop decoding remains unchanged.
 
-- Add optional **Quarter-resolution shadow visibility** under F1 → Rendering trials. Wet/snow terrain can share soft local-light shadow samples while materials and characters retain their detail. Includes a comparison demo; requires native/WebGPU, HDR and no MSAA. Fine shadow edges can soften; built-in presets remain unchanged.
-
 - Skip unnecessary terrain weather sampling on faces pointing away from precipitation, reducing snow rendering cost without changing coverage.
 
 - Make narrated briefing calligraphy clearer with **High-definition text**, sharpening strokes from the user's disc while keeping the original lettering, scroll and narration. Works with or without the HD pack and includes a matched comparison demo.
@@ -25,7 +25,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Export a selected rewind interval as a portable `.treplay` bug recording, then import it from F1 → General on desktop or in the browser. Keeps complete recorded states, inputs, settings and visual effects without discarding the current buffer. Adds forward timeline playback and a recorded-graphics/camera toggle; recordings contain game data and should be shared privately.
 
-- Support MSAA with **Cached terrain blood** and prevent isolated uncached marks from disabling the whole cache. Dense blood accumulation has substantially lower GPU spikes; cache preparation also reuses immutable receiver metadata. The rendering trial remains optional and keeps conservative fallbacks for unsupported surfaces.
+- Support MSAA with **Cached terrain blood** and prevent isolated uncached marks from disabling the whole cache. Dense blood accumulation has substantially lower GPU spikes; cache preparation also reuses immutable receiver metadata. Conservative fallbacks remain for unsupported surfaces.
 
 - Add optional **Enemy behavior** profiles in F1: cowardly, reckless, cautious, flanking and adaptive guards, with seeded mixing, per-guard overrides, patrol/lookout choices and optional mission progression. Story actors stay protected; original AI remains the default. Includes matched combat demos, saved-state/rewind support and bounded reinforcement calls.
 
@@ -68,15 +68,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Make packaged README and build information writable by their owner, avoiding permission errors when updating an extracted installation.
 
-- Add an optional persistent-blood surface cache under F1 → Rendering trials. Dense modern stains on flat terrain reuse their coverage while lighting and weather remain live; other surfaces and blood styles retain their existing renderer.
-
-- Add an opt-in adaptive shadow renderer: smaller distant light maps, cheaper soft filtering and staggered foliage updates, while keeping lamps lit and character shadows live.
-
-- Add an optional half-resolution ambient-occlusion renderer under F1 → Rendering trials, with depth-aware reconstruction at full display resolution.
-
-
 - Keep shared terrain lighting when rain reflections are disabled, and use it for accumulated snow to reduce rendering cost.
-
 
 ## 0.15.6 — 2026-11-05
 

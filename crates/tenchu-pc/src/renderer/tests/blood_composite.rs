@@ -43,6 +43,7 @@ fn blood_composition_keeps_receiver_boundaries_and_fallbacks() {
         blood: crate::settings::Blood::modern(),
         ..Default::default()
     };
+    options.rendering.cached_blood = false;
     options.post.enabled = true;
     options.lighting.enabled = true;
     options.lighting.shadows = false;

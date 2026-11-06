@@ -31,7 +31,7 @@ impl Options {
             rain: graphics.weather.mode.rain(),
             water: graphics.water.enabled,
             coarse_shadows: super::wet_lighting::configured(graphics, samples, false),
-            adaptive_shadows: graphics.rendering.adaptive_shadows,
+            adaptive_shadows: graphics.rendering().adaptive_shadows,
             flame_motion: graphics.lighting.enabled && graphics.lighting.flame_motion > 0,
         }
     }

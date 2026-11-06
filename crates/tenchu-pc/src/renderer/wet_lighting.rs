@@ -45,7 +45,7 @@ pub(super) struct WetLighting {
 impl WetLighting {
     pub fn new(renderer: &crate::renderer::configuration::Context) -> Self {
         let device = &renderer.device;
-        let approximate = renderer.graphics.rendering.quarter_resolution_shadows;
+        let approximate = renderer.graphics.rendering().quarter_resolution_shadows;
         let texture_entry = |binding: usize| wgpu::BindGroupLayoutEntry {
             binding: binding as u32,
             visibility: wgpu::ShaderStages::FRAGMENT,

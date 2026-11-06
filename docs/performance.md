@@ -2583,6 +2583,14 @@ separate behavioural specification throughout the rendering redesign.
 
 ## November 5: perceptual rendering trials
 
+**November 6 update:** after reviewing the comparisons, all four retained trials
+were adopted as automatic rendering behavior. The old menu switches and
+`shadow-sampling` toggle demo are removed. Reference paths remain in GPU tests;
+capability, material and receiver-boundary fallbacks remain in the runtime. The
+measurements below record the comparison period, when the options were opt-in.
+Modern presets now receive these savings automatically without changing their
+artistic settings. Original still disables the corresponding modern effects.
+
 The first retained change removes the reflection-strength requirement from
 shared weather lighting and admits accumulated snow. It retains the original
 single-pass dry path. At 4K, the same corridor with rain reflections disabled
@@ -2602,7 +2610,7 @@ to all dry scenes also regressed the garden, so that extension was not retained.
 Evidence: `private/optimisation-loop/2026-11-05/perceptual-trials/`.
 
 
-The ambient-occlusion trial is available under F1 → Rendering trials. It shades
+The ambient-occlusion trial originally appeared under F1 → Rendering trials. It shades
 at half width/height, stores AO with linear distance, and reconstructs with
 bilinear weights rejected across depth boundaries. Unsupported edge samples
 fall back to the full-resolution calculation; there is no history to ghost on
@@ -2613,10 +2621,10 @@ mean channel values 0.017–0.038/255; maximum differences are 8–17/255 at edg
 Full-resolution textures, HDR finishing and UI are unchanged. The extended GPU
 regression exercises full/half/full toggles, actual contact occlusion, all
 supported MSAA counts, UI isolation and restoring Original rendering. This
-remains opt-in; Modern presets are unchanged during comparison trials.
+was opt-in; Modern presets were unchanged during these comparison trials.
 
 
-The adaptive-shadow trial is also opt-in on Rendering trials. Nearby lamps keep
+The adaptive-shadow trial was also opt-in during comparison. Nearby lamps keep
 configured map resolution; farther lamps use 1024/512 viewports with hysteresis.
 Soft filtering uses 16 rather than 32 samples. Distant foliage updates at 30 or
 15 Hz, staggered across lamp slots; actors and nearby foliage retain normal
@@ -2700,8 +2708,8 @@ of the measured mean application frame interval, not the monitor refresh rate.
 | Waterfall and spray | 85.4 → 100.0 | 12.47 → 10.79 | 12.91 → 11.10 |
 
 The garden is close to 60 FPS on average but still lacks consistent headroom.
-The trials therefore stay opt-in under **F1 → Rendering trials**, with Original
-and built-in presets unchanged while their visual compromises are reviewed.
+The trials were kept opt-in under **F1 → Rendering trials** while their visual
+compromises were reviewed. They were adopted automatically on November 6.
 The private comparison page contains full-resolution before/after sliders,
 individual timing files and paired 60 FPS motion clips. Clip export advances
 at a fixed cadence and is not evidence of achieved rendering speed.
@@ -2820,8 +2828,8 @@ off in the same binary. No build, capture or encoder runs concurrently.
 
 The garden reaches 64.2 FPS mean in rain and 63.2 in snow, but p99 still exceeds
 16.67 ms. The village has no useful gain; the waterfall uses the unchanged
-forward path, so its small differences are noise. All built-in presets leave
-the trial off. `demo --clips shadow-sampling` alternates it in a rainy garden.
+forward path, so its small differences are noise. During review, built-in presets left
+the trial off and `demo --clips shadow-sampling` alternated it in a rainy garden.
 Paired 4K60 motion clips and raw evidence stay outside Git under
 `private/optimisation-loop/2026-11-06/screen-shadows/`; export cadence is not a
 measurement of achieved FPS.

@@ -699,7 +699,7 @@ impl Renderer {
             .with_weather(self.weather, &self.graphics.weather)
             .with_motion(self.visual_time, &self.graphics.motion);
         lighting.elapsed = self.shadow_elapsed;
-        lighting.adaptive_shadows = self.graphics.rendering.adaptive_shadows;
+        lighting.adaptive_shadows = self.graphics.rendering().adaptive_shadows;
         lighting.weather_bounds =
             self.snow_bounds() && self.decals.iter().any(|decal| decal.ground_blood);
         self.shadows.configure(

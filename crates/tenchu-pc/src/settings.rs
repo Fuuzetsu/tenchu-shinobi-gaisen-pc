@@ -18,7 +18,7 @@ pub use motion::Motion;
 pub mod gameplay;
 pub mod library;
 mod rendering;
-pub use rendering::Rendering;
+pub(crate) use rendering::Rendering;
 mod post;
 pub mod presets;
 pub use post::Post;
@@ -238,7 +238,9 @@ impl Settings {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Graphics {
-    pub rendering: Rendering,
+    #[cfg(test)]
+    #[serde(skip)]
+    pub(crate) rendering: Rendering,
     pub blood: Blood,
     pub weapon_reflections: u16,
     pub shop_lighting: bool,
@@ -273,6 +275,7 @@ pub struct Graphics {
 impl Default for Graphics {
     fn default() -> Self {
         Self {
+            #[cfg(test)]
             rendering: Rendering::default(),
             blood: Blood::default(),
             weapon_reflections: 0,
@@ -308,6 +311,14 @@ impl Default for Graphics {
 }
 
 impl Graphics {
+    pub(crate) fn rendering(&self) -> Rendering {
+        // Tests retain the old paths for image comparisons; saved settings cannot disable these.
+        #[cfg(test)]
+        return self.rendering;
+        #[cfg(not(test))]
+        Rendering::default()
+    }
+
     fn validate(&mut self) {
         self.fog_distance = self.fog_distance.clamp(25, 400);
         self.exposure = self.exposure.clamp(25, 300);
@@ -574,6 +585,14 @@ mod tests {
                 ..Lighting::default()
             }
         );
+        fs::write(&store.path, br#"{"graphics":{"rendering":{"half_resolution_ao":false,"adaptive_shadows":false,"cached_blood":false,"quarter_resolution_shadows":false},"weather":{"mode":"Rain"}}}"#).unwrap();
+        let loaded = store.load().unwrap();
+        assert_eq!(loaded.graphics.rendering(), Rendering::default());
+        assert_eq!(loaded.graphics.weather.mode, WeatherMode::Rain);
+        store.write(&loaded).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&fs::read(&store.path).unwrap()).unwrap();
+        assert!(saved["graphics"].get("rendering").is_none());
         fs::write(&store.path, b"{").unwrap();
         assert!(store.load().is_err());
         fs::remove_dir_all(root).unwrap();

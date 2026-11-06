@@ -32,7 +32,7 @@ impl Post {
         gl: bool,
     ) -> Self {
         let occlusion = graphics.post.occlusion > 0;
-        let half_ao = occlusion && graphics.rendering.half_resolution_ao;
+        let half_ao = occlusion && graphics.rendering().half_resolution_ao;
         let depth_resolve =
             (samples > 1 && occlusion).then(|| DepthPass::resolve(device, size, samples, depth));
         let depth = depth_resolve

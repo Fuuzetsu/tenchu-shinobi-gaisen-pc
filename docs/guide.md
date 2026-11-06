@@ -88,22 +88,15 @@ foreground objects, and the HUD stays clear. Both strengths range from 0 (off) t
 100%. Modern High uses 35% motion / 25% shimmer; Ultra uses 50% / 40%. Existing
 custom settings keep both off. Try `demo --clips flame-motion` for a comparison.
 
-**F1 → Rendering trials** offers opt-in rendering alternatives for comparison:
-adaptive local shadows, half-resolution ambient occlusion with depth-aware
-reconstruction, cached modern terrain blood, and quarter-resolution shadow
-visibility. The blood cache uses HDR on
-native/WebGPU, including MSAA in Modern High/Ultra; other configurations retain
-the existing path.
-These trials are off in all built-in presets pending evaluation. Gameplay is
-unchanged. See [measured comparisons](performance.md#november-5-perceptual-rendering-trials)
-for the tested workloads and limitations.
-
-**Quarter-resolution shadow visibility** shares soft local-light shadow samples
-across nearby pixels on the same terrain surface. Textures, reflections, character
-shading and sun shadows retain their resolution; small shadow edges can soften.
-It applies to the shared wet/snow terrain pass on native/WebGPU with HDR, soft
-shadows and edge antialiasing Off. Other paths keep their usual shading. Try
-`demo --clips shadow-sampling` for a comparison.
+The renderer automatically adapts local shadow detail to distance, reconstructs
+ambient occlusion from half-resolution samples and caches dense modern blood on
+suitable flat surfaces. Wet/snow terrain also shares soft local-shadow visibility
+at quarter resolution when using HDR without MSAA. Textures, characters and the
+interface retain their resolution; depth/material boundaries use conservative
+fallbacks. WebGL2 and unsupported surfaces keep compatible paths. These are
+renderer implementation choices, so the old Rendering trials menu is gone.
+Original still disables the optional modern effects, and gameplay is unchanged.
+See [measured comparisons](performance.md#november-5-perceptual-rendering-trials).
 
 **Model refinement → Vegetation volume** now includes Botanical and Botanical
 dense. These add folded leaf sprays and round bamboo stalks using existing

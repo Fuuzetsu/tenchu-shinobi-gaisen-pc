@@ -28,9 +28,9 @@ impl Key {
             size,
             samples,
             post: graphics.post.enabled,
-            occlusion: graphics.post.occlusion > 0,
-            half_ao: graphics.rendering.half_resolution_ao,
-            heat: post::heat_enabled(graphics),
+            occlusion: graphics.post.enabled && graphics.post.occlusion > 0,
+            half_ao: graphics.rendering().half_resolution_ao,
+            heat: graphics.post.enabled && post::heat_enabled(graphics),
             composite: renderer.composite_supported
                 && samples == 1
                 && graphics.post.enabled
@@ -38,12 +38,13 @@ impl Key {
                     || graphics.sky.enabled
                     || graphics.weather.mode != WeatherMode::Original)
                 && [graphics.blood.ground, graphics.blood.death].contains(&BloodStyle::Modern),
-            cache: graphics.rendering.cached_blood
+            cache: graphics.rendering().cached_blood
                 && renderer.composite_supported
                 && graphics.post.enabled
-                && !renderer.gl,
+                && !renderer.gl
+                && [graphics.blood.ground, graphics.blood.death].contains(&BloodStyle::Modern),
             wet: wet_lighting::configured(graphics, samples, renderer.gl),
-            screen_shadows: graphics.rendering.quarter_resolution_shadows,
+            screen_shadows: graphics.rendering().quarter_resolution_shadows,
         }
     }
 }

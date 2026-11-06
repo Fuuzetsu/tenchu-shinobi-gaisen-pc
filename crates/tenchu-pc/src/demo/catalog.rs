@@ -74,7 +74,6 @@ pub enum Feature {
     LightBudget,
     MovableLight,
     ShadowQuality,
-    ShadowSampling,
     SkyDirection,
     SkyQuality,
     ImageFinish,

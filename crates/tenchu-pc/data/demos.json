@@ -99,21 +99,6 @@
     "shot": "lamp"
   },
   {
-    "id": "shadow-sampling",
-    "title": "Share soft-shadow work across pixels",
-    "description": "Compare full-resolution and quarter-resolution terrain shadow visibility. Materials and characters retain their detail; fine shadow edges may soften. Native/WebGPU with HDR and no MSAA.",
-    "seconds": 12,
-    "mission": 1,
-    "character": 1,
-    "preset": 8,
-    "feature": "shadow-sampling",
-    "shot": "wide",
-    "fog": false,
-    "sharp_text": true,
-    "weather_warmup": 30,
-    "camera": { "eye": [-40000, -1800, -16500], "target": [-31000, -1000, -16500] }
-  },
-  {
     "id": "moon",
     "title": "Moonlight, from zero to full",
     "description": "A directional sky light adds cool outdoor illumination and model shadows. Local lantern light still fills the moon shadow.",

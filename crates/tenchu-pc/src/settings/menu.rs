@@ -12,10 +12,6 @@ pub enum Item {
     Bandages,
     UseBandage,
     MedicineBleeding,
-    HalfResolutionAo,
-    AdaptiveShadows,
-    CachedBlood,
-    QuarterResolutionShadows,
     StateSlot,
     SaveState,
     LoadState,
@@ -351,7 +347,7 @@ fn on(value: bool) -> String {
     if value { "On" } else { "Off" }.into()
 }
 
-pub const PAGES: [&str; 24] = [
+pub const PAGES: [&str; 23] = [
     "General",
     "Graphics",
     "Overlays",
@@ -373,7 +369,6 @@ pub const PAGES: [&str; 24] = [
     "Contact effects",
     "Vibration",
     "Movement",
-    "Rendering trials",
     "Enemy behavior",
     "Bleeding",
 ];
@@ -385,7 +380,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
             preset.map_or("Group enemy activation, sight, cutscene shortcut and practice tools. Graphics and inventory stay unchanged.", |p| p.help))
     };
     let entries = match page {
-        23 => vec![
+        22 => vec![
             (
                 Item::Bleeding,
                 "Player bleeding",
@@ -440,7 +435,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Stops bleeding without healing; consumes one only when bleeding. Available while grounded and free to act. Default keyboard B; rebind in Controls. From here, treatment happens on the next gameplay tick.",
             ),
         ],
-        22 => vec![
+        21 => vec![
             (
                 Item::BehaviorProfiles,
                 "Enemy behavior profiles",
@@ -518,32 +513,6 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Focus selected actor",
                 "Enter".into(),
                 "Move the inspection camera to the selected guard. F2 returns to the game camera.",
-            ),
-        ],
-        21 => vec![
-            (
-                Item::HalfResolutionAo,
-                "Half-resolution ambient occlusion",
-                on(s.graphics.rendering.half_resolution_ao),
-                "Calculate contact shading at half width/height and reconstruct along depth edges. Textures and the final image keep full resolution. Requires HDR and ambient occlusion; compare with off.",
-            ),
-            (
-                Item::AdaptiveShadows,
-                "Adaptive shadow detail",
-                on(s.graphics.rendering.adaptive_shadows),
-                "Keep nearby shadow detail; use smaller maps and fewer filter samples for local lights, with slower distant foliage-shadow updates. Lamps and character motion stay live. Compare edges and camera movement with off.",
-            ),
-            (
-                Item::CachedBlood,
-                "Cached terrain blood",
-                on(s.graphics.rendering.cached_blood),
-                "Cache modern blood coverage on flat terrain; lighting and weather still update every frame. Other blood styles, slopes and unsupported surfaces keep their existing renderer. Requires HDR on native/WebGPU; edge antialiasing is supported.",
-            ),
-            (
-                Item::QuarterResolutionShadows,
-                "Quarter-resolution shadow visibility",
-                on(s.graphics.rendering.quarter_resolution_shadows),
-                "Share soft local-light shadows across matching surfaces, at quarter width/height. Textures and actors stay at full resolution; fine shadow edges can soften. Available for wet/snow terrain with HDR, soft shadows and edge antialiasing Off on native/WebGPU.",
             ),
         ],
         20 => vec![
