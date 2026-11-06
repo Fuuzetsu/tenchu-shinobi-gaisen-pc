@@ -959,7 +959,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 (
                     Item::StormInterval,
                     "Storm lightning interval",
-                    format!("~{} s", weather.lightning_interval),
+                    format!("{} s", weather.lightning_interval),
                     "Average time between storm flashes, with small independent random variation. Thunder follows each flash after a short distance delay.",
                 ),
                 (
