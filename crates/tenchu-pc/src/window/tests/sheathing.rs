@@ -445,3 +445,81 @@ fn guard_stance_does_not_unsheathe_unless_requested() {
         assert_eq!(app.campaign.game.player().motion.action, MOT_ENGAGE_STANCE);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and imported Tatsumaru moves; forward retargeting keeps timing and recovery poses"]
+fn tatsumaru_kicks_sweep_in_front_of_both_heroes() {
+    use tenchu_core::{
+        game::sheathing::UnarmedStyle,
+        math::Matrix,
+        motion::{Pose, sample},
+    };
+    let moves = crate::sheathing::imports::load().unwrap();
+    for character in 0..2 {
+        let mut app = ready(character);
+        for enabled in [false, true, false] {
+            app.set_sheathing(Sheathing {
+                enabled: true,
+                unarmed: true,
+                unarmed_style: UnarmedStyle::Tatsumaru,
+                forward_kicks: enabled,
+                ..Default::default()
+            })
+            .unwrap();
+            let game = &app.campaign.game;
+            for source in &moves.attacks[2..4] {
+                let clip = game
+                    .mission
+                    .clips
+                    .iter()
+                    .rev()
+                    .find(|c| {
+                        c.id == source.clip.id + 0x6000
+                            && (c.bones[0].len() == source.clip.bones[0].len()) != enabled
+                    })
+                    .unwrap();
+                let mut pose = Pose::new(&game.mission.models[&character]).unwrap();
+                let mut total = tenchu_core::math::Position::ZERO;
+                for frame in source.attack.start..=source.attack.end {
+                    for (rotation, track) in pose.rotation.iter_mut().zip(&clip.bones) {
+                        *rotation =
+                            sample(track, frame, clip.duration, &game.math.tables.hermite).unwrap();
+                    }
+                    let foot =
+                        pose.matrices(&game.math, Matrix::default())[source.part].translation;
+                    total = total.wrapping_add(foot);
+                }
+                if enabled {
+                    assert!(
+                        total.z < 0 && total.x.abs() < -total.z / 8,
+                        "hero {character}, kick {}: {total:?}",
+                        source.clip.id
+                    );
+                    assert_eq!(clip.bones[0][0].value, source.clip.bones[0][0].value);
+                    assert_eq!(
+                        clip.bones[0].last().unwrap().value,
+                        source.clip.bones[0].last().unwrap().value
+                    );
+                } else {
+                    assert_eq!(clip.bones, source.clip.bones);
+                    assert_eq!(clip.root, source.clip.root);
+                }
+                assert_eq!(clip.duration, source.clip.duration);
+                assert_eq!(clip.forward_speed, source.clip.forward_speed);
+                let timing = game
+                    .mission
+                    .weapons
+                    .attacks
+                    .iter()
+                    .find(|a| a.clip == clip.id)
+                    .unwrap();
+                let mut expected = source.attack.clone();
+                expected.clip = clip.id;
+                assert_eq!(
+                    postcard::to_allocvec(timing).unwrap(),
+                    postcard::to_allocvec(&expected).unwrap()
+                );
+            }
+        }
+    }
+}

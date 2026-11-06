@@ -1,6 +1,48 @@
 use crate::{random::Random, scene::ModelId};
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HeadRest {
+    Tumble,
+    FaceUp,
+    Left,
+    Right,
+    #[default]
+    Varied,
+}
+
+impl HeadRest {
+    pub const ALL: [Self; 5] = [
+        Self::Tumble,
+        Self::FaceUp,
+        Self::Left,
+        Self::Right,
+        Self::Varied,
+    ];
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Tumble => "Tumbled pose",
+            Self::FaceUp => "Face up",
+            Self::Left => "Left side",
+            Self::Right => "Right side",
+            Self::Varied => "Varied natural poses",
+        }
+    }
+    pub(crate) fn rotation(self, rotation: [i16; 3], root: usize) -> [i16; 3] {
+        let choice = if self == Self::Varied {
+            Self::ALL[1 + root % 3]
+        } else {
+            self
+        };
+        match choice {
+            Self::FaceUp => [-1024, rotation[1], 0],
+            Self::Left => [0, rotation[1], -1024],
+            Self::Right => [0, rotation[1], 1024],
+            _ => rotation,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -14,6 +56,7 @@ pub struct Settings {
     pub player_arms: u16,
     pub player_right_arm: u16,
     pub execution_scene: bool,
+    pub head_rest: HeadRest,
 }
 
 impl Default for Settings {
@@ -29,6 +72,7 @@ impl Default for Settings {
             player_arms: 50,
             player_right_arm: 50,
             execution_scene: false,
+            head_rest: HeadRest::default(),
         }
     }
 }

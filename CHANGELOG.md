@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Remove the final bounce offset that could leave detached heads/arms hovering.
+  F1 → Persistent effects adds face-up, left-side, right-side, varied and tumble
+  resting poses for severed heads; each pose rests on the actual mesh bounds.
+
+- Add “Tatsumaru forward combo kicks” in F1 → Movement, adapting the two combo
+  kicks to face forward on either hero. Disable it to use the raw imported poses.
+
 - Optional R1 guard stance now keeps sheathed weapons sheathed. F1 → Movement
   offers “Guard stance draws weapon” to restore automatic drawing.
 

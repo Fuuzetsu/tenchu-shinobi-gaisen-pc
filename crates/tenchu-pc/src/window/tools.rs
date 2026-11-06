@@ -553,6 +553,17 @@ impl Application {
                     (i32::from(self.settings.graphics.water.detail) + direction).rem_euclid(3)
                         as u16
             }
+            Item::HeadRest => {
+                let choices = tenchu_core::game::dismemberment::HeadRest::ALL;
+                let current = choices
+                    .iter()
+                    .position(|s| *s == self.settings.dismemberment.head_rest)
+                    .unwrap();
+                let mut settings = self.settings.dismemberment;
+                settings.head_rest =
+                    choices[(current as i32 + direction).rem_euclid(choices.len() as i32) as usize];
+                self.set_dismemberment(settings);
+            }
             Item::ThunderStyle => {
                 let styles = tenchu_audio::ThunderStyle::ALL;
                 let index = styles
@@ -1008,12 +1019,18 @@ impl Application {
             Item::StrictCorpseSight => {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
-            Item::Sheathing | Item::SheathedOneHit | Item::UnarmedAttacks | Item::UnarmedStyle => {
+            Item::Sheathing
+            | Item::SheathedOneHit
+            | Item::UnarmedAttacks
+            | Item::UnarmedStyle
+            | Item::ForwardKicks => {
                 let mut settings = self.settings.sheathing;
                 if item == Item::Sheathing {
                     settings.enabled = !settings.enabled;
                 } else if item == Item::UnarmedAttacks {
                     settings.unarmed = !settings.unarmed;
+                } else if item == Item::ForwardKicks {
+                    settings.forward_kicks = !settings.forward_kicks;
                 } else if item == Item::UnarmedStyle {
                     use tenchu_core::game::sheathing::UnarmedStyle;
                     settings.unarmed_style = match settings.unarmed_style {

@@ -197,3 +197,54 @@ fn prepared(character: i16) -> Game {
     });
     game
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; every resting pose must touch the floor after its last bounce"]
+fn head_resting_poses_have_no_final_bounce_gap() {
+    use crate::game::dismemberment::HeadRest;
+    for character in 0..2 {
+        for pose in HeadRest::ALL {
+            let mut game = oracle::game(0, character);
+            let enemy = arena(&mut game, 0x10);
+            for victim in [game.player_id, enemy] {
+                game.combat.dismemberment = Settings {
+                    enabled: true,
+                    player: true,
+                    head_rest: pose,
+                    dive_head: 100,
+                    player_head: 100,
+                    ..Default::default()
+                };
+                game.roster.get_mut(game.player_id).motion.action = MOT_ATTACK_DIVE;
+                game.combat.death_sound = Some(victim);
+                with_actor(&mut game, victim, |actor, ctx, world| {
+                    actor.health = 0;
+                    actor.enter(ctx, MOT_DEAD, true);
+                    actor.play_pose(ctx).unwrap();
+                    actor.motion.count = 5;
+                    actor.dead(ctx, world).unwrap();
+                });
+                let mut landed = false;
+                for _ in 0..120 {
+                    with_actor(&mut game, victim, |actor, ctx, world| {
+                        actor.motion.count = 6;
+                        actor.dead(ctx, world).unwrap()
+                    });
+                    let part = game.roster.get(victim).severed.as_ref().unwrap();
+                    if !part.moving {
+                        assert_eq!(lowest_vertex(&game, victim), -2, "{character} {pose:?}");
+                        if pose != HeadRest::Tumble {
+                            assert!(matches!(
+                                (part.rotation[0], part.rotation[2]),
+                                (-1024, 0) | (0, -1024) | (0, 1024)
+                            ));
+                        }
+                        landed = true;
+                        break;
+                    }
+                }
+                assert!(landed);
+            }
+        }
+    }
+}

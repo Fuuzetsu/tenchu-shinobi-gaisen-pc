@@ -534,6 +534,10 @@ fn widget(
         return response;
     }
     let choices: Vec<String> = match item {
+        Item::HeadRest => tenchu_core::game::dismemberment::HeadRest::ALL
+            .iter()
+            .map(|s| s.name().into())
+            .collect(),
         Item::UnarmedStyle => [
             tenchu_core::game::sheathing::UnarmedStyle::Onikage,
             tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,

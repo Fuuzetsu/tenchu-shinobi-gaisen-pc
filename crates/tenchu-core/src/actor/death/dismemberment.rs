@@ -123,19 +123,34 @@ impl Actor {
             part.velocity[1] = part.velocity[1].wrapping_add(20);
         }
         position = position.wrapping_add(part.velocity.map(i32::from).into());
-        if part.index == 2 {
+        if part.index == 2 && part.moving {
             part.rotation[0] = part.rotation[0].wrapping_add(part.velocity[1].wrapping_abs());
+        }
+        if !part.moving && part.index == 2 {
+            part.rotation = world
+                .combat
+                .dismemberment
+                .head_rest
+                .rotation(part.rotation, self.root_model);
         }
         matrix.translation = position;
         matrix.rotation = ctx.math.rotate_yxz(part.rotation);
         if let Some(floor) = supported_height(ctx, self.mesh_kind, part.index, matrix)? {
-            matrix.translation.y = matrix.translation.y.min(floor);
+            matrix.translation.y = if part.moving {
+                matrix.translation.y.min(floor)
+            } else {
+                floor
+            };
         }
         ctx.scene.update(id, matrix);
         Ok(())
     }
 
-    pub(super) fn settle_severed(&mut self, ctx: &mut Context) -> Result<()> {
+    pub(super) fn settle_severed(
+        &mut self,
+        ctx: &mut Context,
+        head_rest: crate::game::dismemberment::HeadRest,
+    ) -> Result<()> {
         let Some(part) = self.severed.as_mut().filter(|p| p.moving) else {
             return Ok(());
         };
@@ -143,8 +158,10 @@ impl Actor {
         let mut matrix = ctx.scene.models[id].local;
         if part.index != 2 {
             part.rotation[0] = 1024;
-            matrix.rotation = ctx.math.rotate_yxz(part.rotation);
+        } else {
+            part.rotation = head_rest.rotation(part.rotation, self.root_model);
         }
+        matrix.rotation = ctx.math.rotate_yxz(part.rotation);
         if let Some(floor) = supported_height(ctx, self.mesh_kind, part.index, matrix)? {
             matrix.translation.y = floor;
         }

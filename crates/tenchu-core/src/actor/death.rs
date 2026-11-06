@@ -121,7 +121,7 @@ impl Actor {
                     world.intelligence.action_halt = crate::ai::Halt::Running;
                     ctx.camera.snap_pending = true;
                 }
-                self.settle_severed(ctx)?;
+                self.settle_severed(ctx, world.combat.dismemberment.head_rest)?;
                 return Ok(None);
             }
         }

@@ -5,6 +5,7 @@ use tenchu_core::effects::RumbleAction;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
     Dismemberment,
+    HeadRest,
     SaExecutionScene,
     SeverStealth,
     SeverDive,
@@ -38,6 +39,7 @@ pub enum Item {
     Sheathing,
     UnarmedAttacks,
     UnarmedStyle,
+    ForwardKicks,
     SheathedSpeed,
     SheathedVisibility,
     SheathedDamage,
@@ -564,6 +566,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Unarmed style",
                 s.sheathing.unarmed_style.name().into(),
                 "Onikage uses your Gaisen disc. Tatsumaru imports punches and kicks from Tenchu 2 Europe (SLES-02452), with their hit frames and striking limbs adapted to Gaisen combat. Import below first. Both styles work with either hero; Finish an unarmed attack before switching styles.",
+            ),
+            (
+                Item::ForwardKicks,
+                "Tatsumaru forward combo kicks",
+                on(s.sheathing.forward_kicks),
+                "Retarget the third and fourth combo kicks toward the front on the current hero's proportions. Hit frames, power and striking limbs stay unchanged. Off keeps the unadjusted imported motion. Finish an attack before changing.",
             ),
             (
                 Item::SheathedSpeed,
@@ -1210,6 +1218,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Player right arm preference",
                 format!("{}%", s.dismemberment.player_right_arm),
                 "Default 50% chooses either arm equally; 0 always left, 100 always right.",
+            ),
+            (
+                Item::HeadRest,
+                "Severed head resting pose",
+                s.dismemberment.head_rest.name().into(),
+                "After landing: face up, either side, a mixture of those three, or the original tumble orientation. Both player and enemies; leaves severing chances and gameplay RNG alone. Applies to the next landing.",
             ),
             (
                 Item::SaExecutionScene,
