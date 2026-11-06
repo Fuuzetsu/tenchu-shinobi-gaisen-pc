@@ -27,6 +27,8 @@ pub enum Edit {
     SelectRewind([u64; 2]),
     ExportRewind,
     ImportRewind,
+    ImportUnarmed,
+    ExportUnarmed,
     RecordedVisuals(bool),
 }
 
@@ -196,6 +198,18 @@ pub fn show(
                                 .hint_text("Path to an exported or custom model pack"),
                         );
                         ui.weak("Choose a body below. Folder edits apply on Load / reload.");
+                        ui.separator();
+                    }
+                    if menu.page == 20 {
+                        ui.horizontal_wrapped(|ui| {
+                            if ui.button("Import Tatsumaru moves…").clicked() { edits.push(Edit::ImportUnarmed); }
+                            if ui.button("Export imported moves…").clicked() { edits.push(Edit::ExportUnarmed); }
+                        });
+                        ui.weak(if cfg!(any(target_arch = "wasm32", target_os = "android")) {
+                            "Import a .t2moves file exported from the desktop port."
+                        } else {
+                            "Import your Tenchu 2 Europe CUE (with BIN beside it), or a .t2moves file."
+                        });
                         ui.separator();
                     }
                     let rows = menu::rows(menu.page, settings, debug, paused);
@@ -520,6 +534,12 @@ fn widget(
         return response;
     }
     let choices: Vec<String> = match item {
+        Item::UnarmedStyle => [
+            tenchu_core::game::sheathing::UnarmedStyle::Onikage,
+            tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru,
+        ]
+        .map(|s| s.name().into())
+        .into(),
         Item::BehaviorCombat | Item::ActorCombat => (item == Item::ActorCombat)
             .then_some("Follow global")
             .into_iter()

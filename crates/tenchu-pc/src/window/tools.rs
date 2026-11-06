@@ -1007,12 +1007,21 @@ impl Application {
             Item::StrictCorpseSight => {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
-            Item::Sheathing | Item::SheathedOneHit | Item::UnarmedAttacks => {
+            Item::Sheathing | Item::SheathedOneHit | Item::UnarmedAttacks | Item::UnarmedStyle => {
                 let mut settings = self.settings.sheathing;
                 if item == Item::Sheathing {
                     settings.enabled = !settings.enabled;
                 } else if item == Item::UnarmedAttacks {
                     settings.unarmed = !settings.unarmed;
+                } else if item == Item::UnarmedStyle {
+                    use tenchu_core::game::sheathing::UnarmedStyle;
+                    settings.unarmed_style = match settings.unarmed_style {
+                        UnarmedStyle::Onikage => {
+                            crate::sheathing::imports::load()?;
+                            UnarmedStyle::Tatsumaru
+                        }
+                        UnarmedStyle::Tatsumaru => UnarmedStyle::Onikage,
+                    };
                 } else {
                     settings.one_hit = !settings.one_hit;
                 }

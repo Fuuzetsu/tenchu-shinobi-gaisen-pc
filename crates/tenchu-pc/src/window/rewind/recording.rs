@@ -115,19 +115,24 @@ impl Application {
         #[cfg(target_os = "android")]
         return crate::android::import("recording");
         #[cfg(target_arch = "wasm32")]
-        crate::web::recording::start()
+        crate::web::recording::start(crate::web::recording::Kind::Recording)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub(in crate::window) fn poll_recording(&mut self) {
-        let Some(result) = crate::web::recording::poll() else {
+        let Some((kind, result)) = crate::web::recording::poll() else {
             return;
         };
         if let Err(error) = result.and_then(|bytes| {
             if bytes.is_empty() {
                 Ok(())
             } else {
-                self.load_recording(&bytes)
+                match kind {
+                    crate::web::recording::Kind::Recording => self.load_recording(&bytes),
+                    crate::web::recording::Kind::Unarmed => {
+                        self.install_unarmed(crate::sheathing::imports::decode(&bytes)?)
+                    }
+                }
             }
         }) {
             self.state_notice(error);

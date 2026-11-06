@@ -16,6 +16,7 @@ pub mod movie;
 pub mod script;
 pub mod shop;
 pub mod stage;
+pub mod tenchu2;
 pub mod terrain;
 pub mod texture;
 pub mod trial;

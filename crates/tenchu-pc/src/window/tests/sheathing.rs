@@ -206,7 +206,7 @@ fn unarmed_controls_save_and_rewind() {
                 .sheathing
                 .as_ref()
                 .unwrap()
-                .needs_unarmed_motions()
+                .needs_unarmed_motions(Default::default())
         );
         press_sheathe(&mut app);
         app.controls.key(KeyCode::KeyJ, true);
@@ -257,5 +257,164 @@ fn unarmed_controls_save_and_rewind() {
         app.reset_item(Item::UnarmedAttacks).unwrap();
         assert!(!app.settings.sheathing.unarmed);
         assert!(app.settings.sheathing.enabled);
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC and TENCHU_T2_MOVES; real four-part imported combo, collisions, saves and style changes on both heroes"]
+fn tatsumaru_combo_contacts_and_saved_state() {
+    use tenchu_core::game::sheathing::UnarmedStyle;
+    use tenchu_core::{ai::programs::Programs, collision};
+    for character in 0..2 {
+        let mut app = ready(character);
+        app.set_sheathing(Sheathing {
+            unarmed: true,
+            unarmed_style: UnarmedStyle::Tatsumaru,
+            ..app.settings.sheathing
+        })
+        .unwrap();
+        press_sheathe(&mut app);
+        let game = &mut app.campaign.game;
+        game.intelligence.ignore_player = true;
+        let player = game.player();
+        let offset = game.math.velocity(player.rotation[1], 900, 0);
+        let position = player.position.wrapping_add(offset.map(i32::from).into());
+        let yaw = player.rotation[1];
+        let definition = game
+            .mission
+            .characters
+            .iter()
+            .position(|c| c.kind == 0x10)
+            .unwrap();
+        let enemy = game
+            .place_actor(
+                tenchu_assets::stage::imports::Actor {
+                    definition,
+                    model: 0x10,
+                },
+                Programs::default(),
+                position,
+                yaw,
+                true,
+            )
+            .unwrap();
+        let guard = game.roster.get_mut(enemy);
+        guard.health = 9999;
+        guard.max_health = 9999;
+        guard.attribute |= ATTR_WEAPON_DRAWN;
+        let mut actions = std::collections::BTreeSet::new();
+        let mut contacts = std::collections::BTreeSet::new();
+        let mut restored = None;
+        app.game_tick(input::SQUARE);
+        for tick in 0..180 {
+            let player = app.campaign.game.player();
+            let timing = &app.campaign.game.mission.weapons.attacks[player.attack];
+            let buttons = if matches!(
+                player.motion.action,
+                MOT_ATTACK | MOT_ATTACK_SLASH2 | MOT_ATTACK_SLASH3
+            ) && player.motion.count == timing.combo
+            {
+                input::SQUARE
+            } else {
+                0
+            };
+            assert!(app.game_tick(buttons));
+            if let Some(copy) = &mut restored {
+                let copy: &mut Application = copy;
+                assert!(copy.game_tick(buttons));
+                assert!(
+                    postcard::to_allocvec(&app.campaign.game).unwrap()
+                        == postcard::to_allocvec(&copy.campaign.game).unwrap()
+                );
+            }
+            if tick == 7 {
+                let mut copy = application(Options {
+                    character,
+                    ..Default::default()
+                });
+                copy.restore_state(&app.capture_state().unwrap()).unwrap();
+                restored = Some(copy);
+                assert!(
+                    app.set_sheathing(Sheathing {
+                        unarmed_style: UnarmedStyle::Onikage,
+                        ..app.settings.sheathing
+                    })
+                    .is_err()
+                );
+            }
+            let game = &app.campaign.game;
+            let player = game.player();
+            if player.status == tenchu_core::actor::State::Attack {
+                actions.insert(player.motion.action);
+                assert_eq!(player.attribute & ATTR_WEAPON_DRAWN, 0);
+                let id = game.mission.clips[player.motion.clip.unwrap()].id - 0x6000;
+                let expected = match id {
+                    0xb8 => 14,
+                    0xb9 => 13,
+                    0x4bd | 0x4be => 12,
+                    _ => panic!("Unexpected combo clip {id:x}"),
+                };
+                for part in [8, 9, 11, 12, 13, 14] {
+                    if let Some(slot) = game.scene.models[player.parts[part]].conflict
+                        && game.collision.slots[slot].class == collision::HIT
+                    {
+                        assert_eq!(part, expected);
+                        contacts.insert(id);
+                    }
+                }
+                if player.motion.count == game.mission.weapons.attacks[player.attack].start + 1
+                    && let Some(path) = std::env::var_os("TENCHU_T2_REVIEW")
+                {
+                    let directory = std::path::Path::new(&path);
+                    std::fs::create_dir_all(directory).unwrap();
+                    crate::sheathing::tests::capture_pose(
+                        game,
+                        &directory.join(format!("hero-{character}-clip-{id:x}.png")),
+                    );
+                }
+            }
+        }
+        assert_eq!(
+            actions,
+            [
+                MOT_ATTACK,
+                MOT_ATTACK_SLASH2,
+                MOT_ATTACK_SLASH3,
+                MOT_ATTACK_SLASH4
+            ]
+            .into()
+        );
+        assert_eq!(contacts, [0xb8, 0xb9, 0x4bd, 0x4be].into());
+        assert!(
+            app.campaign.game.roster.get(enemy).health < 9999,
+            "Imported punches missed hero {character}'s target"
+        );
+        for part in [8, 9, 11, 12, 13, 14] {
+            assert!(
+                app.campaign.game.scene.models[app.campaign.game.player().parts[part]]
+                    .conflict
+                    .is_none()
+            );
+        }
+        let clips = app.campaign.game.mission.clips.len();
+        let attacks = app.campaign.game.mission.weapons.attacks.len();
+        for style in [
+            UnarmedStyle::Onikage,
+            UnarmedStyle::Tatsumaru,
+            UnarmedStyle::Onikage,
+            UnarmedStyle::Tatsumaru,
+        ] {
+            app.set_sheathing(Sheathing {
+                unarmed_style: style,
+                ..app.settings.sheathing
+            })
+            .unwrap();
+        }
+        assert!(app.campaign.game.mission.clips.len() <= clips + 10);
+        assert_eq!(app.campaign.game.mission.weapons.attacks.len(), attacks);
+        press_sheathe(&mut app);
+        app.game_tick(input::SQUARE);
+        let game = &app.campaign.game;
+        assert!(game.mission.clips[game.player().motion.clip.unwrap()].id < 0x6000);
     }
 }

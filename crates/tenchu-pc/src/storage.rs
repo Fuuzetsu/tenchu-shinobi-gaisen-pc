@@ -19,6 +19,7 @@ pub enum UserFile {
     Controls,
     Randomizer,
     Trials,
+    Tatsumaru,
     #[cfg(not(target_arch = "wasm32"))]
     States,
     #[cfg(not(target_arch = "wasm32"))]
@@ -35,6 +36,7 @@ impl UserFile {
             Self::Controls => "controls.json",
             Self::Randomizer => "randomizer.json",
             Self::Trials => "trials.json",
+            Self::Tatsumaru => "tatsumaru.t2moves",
         }
         .into());
         #[cfg(not(target_arch = "wasm32"))]
@@ -77,6 +79,12 @@ impl UserFile {
             Self::Trials => (
                 "trials.json",
                 "TENCHU_TRIALS",
+                "XDG_DATA_HOME",
+                ".local/share",
+            ),
+            Self::Tatsumaru => (
+                "tatsumaru.t2moves",
+                "TENCHU_T2_MOVES",
                 "XDG_DATA_HOME",
                 ".local/share",
             ),

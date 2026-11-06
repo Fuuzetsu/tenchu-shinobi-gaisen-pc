@@ -550,6 +550,8 @@ impl super::Application {
                 }
                 Edit::ExportRewind => self.export_rewind(),
                 Edit::ImportRewind => self.import_rewind(),
+                Edit::ImportUnarmed => self.import_unarmed(),
+                Edit::ExportUnarmed => self.export_unarmed(),
                 Edit::PlayRewindForward => self.play_rewind_forward(),
                 Edit::RecordedVisuals(enabled) => {
                     self.reverse.recorded_visuals = Some(enabled);

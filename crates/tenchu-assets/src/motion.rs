@@ -17,7 +17,7 @@ pub struct Clip {
     pub bones: Vec<Vec<Key>>,
 }
 
-fn track(data: &[u8], at: usize, duration: i16) -> Result<Vec<Key>> {
+pub(crate) fn track(data: &[u8], at: usize, duration: i16) -> Result<Vec<Key>> {
     let mut keys = Vec::<Key>::new();
     for i in 0..32768 {
         let row = slice(data, at + i * 8, 8)?;

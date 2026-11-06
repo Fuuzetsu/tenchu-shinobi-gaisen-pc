@@ -3,11 +3,28 @@ use crate::{Result, actor::Context, ids::*};
 use serde::{Deserialize, Serialize};
 use tenchu_assets::motion::Clip;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UnarmedStyle {
+    #[default]
+    Onikage,
+    Tatsumaru,
+}
+
+impl UnarmedStyle {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Onikage => "Onikage (Gaisen)",
+            Self::Tatsumaru => "Tatsumaru (Tenchu 2)",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub enabled: bool,
     pub unarmed: bool,
+    pub unarmed_style: UnarmedStyle,
     pub speed: u16,
     pub visibility: u16,
     pub damage: u16,
@@ -19,6 +36,7 @@ impl Default for Settings {
         Self {
             enabled: false,
             unarmed: false,
+            unarmed_style: UnarmedStyle::Onikage,
             speed: 100,
             visibility: 100,
             damage: 100,
@@ -48,30 +66,48 @@ pub struct State {
     pub settings: Settings,
     pub weapon_program: Option<i16>,
     motions: Motions<usize>,
-    attacks: Vec<(i16, usize)>,
+    attacks: Vec<AttackMotion>,
+    loaded_style: UnarmedStyle,
     held: bool,
     pub(crate) requested: bool,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct AttackMotion {
+    action: i16,
+    clip: usize,
+    contact: Option<usize>,
+}
+
 impl State {
-    pub fn needs_unarmed_motions(&self) -> bool {
-        self.attacks.is_empty()
+    pub fn needs_unarmed_motions(&self, style: UnarmedStyle) -> bool {
+        self.attacks.is_empty() || self.loaded_style != style
+    }
+
+    pub(crate) fn contact(&self, clip: Option<usize>) -> Option<usize> {
+        self.attacks
+            .iter()
+            .find(|a| Some(a.clip) == clip)
+            .and_then(|a| a.contact)
     }
 
     pub(crate) fn unarmed_clip(&self, action: i16) -> Option<usize> {
         let action = match action {
             MOT_ATTACK_SLASH2_LEFT | MOT_ATTACK_SLASH2_RIGHT => MOT_ATTACK_SLASH2,
             MOT_ATTACK_RIGHT2_LEFT => MOT_ATTACK_RIGHT2,
+            MOT_ATTACK_LEFT2_RIGHT if self.loaded_style == UnarmedStyle::Tatsumaru => {
+                MOT_ATTACK_LEFT2
+            }
             _ => action,
         };
         self.attacks
             .iter()
-            .find(|(a, _)| *a == action)
-            .map(|(_, c)| *c)
+            .find(|a| a.action == action)
+            .map(|a| a.clip)
     }
 
     pub(crate) fn contains_attack(&self, clip: Option<usize>) -> bool {
-        clip.is_some_and(|c| self.attacks.iter().any(|(_, index)| *index == c))
+        clip.is_some_and(|c| self.attacks.iter().any(|a| a.clip == c))
     }
 
     pub fn input(&mut self, held: bool) {
@@ -148,6 +184,7 @@ impl Game {
                     weapon_program: None,
                     motions,
                     attacks: Vec::new(),
+                    loaded_style: UnarmedStyle::Onikage,
                     held: false,
                     requested: false,
                 });
@@ -223,14 +260,72 @@ impl Game {
         }
         let attacks = attacks
             .iter()
-            .map(|(a, c)| (*a, self.import_clip(c)))
+            .map(|(a, c)| AttackMotion {
+                action: *a,
+                clip: self.import_clip(c),
+                contact: None,
+            })
             .collect();
-        self.roster
+        let state = self
+            .roster
             .get_mut(self.player_id)
             .sheathing
             .as_mut()
-            .unwrap()
-            .attacks = attacks;
+            .unwrap();
+        state.attacks = attacks;
+        state.loaded_style = UnarmedStyle::Onikage;
+        Ok(())
+    }
+
+    pub fn set_player_tatsumaru(&mut self, moves: &tenchu_assets::tenchu2::Moves) -> Result<()> {
+        moves.validate()?;
+        if self.player().sheathing.is_none() {
+            return Err("Enable player sheathing before importing unarmed attacks".into());
+        }
+        if self.player().unarmed_attack() {
+            return Err("Finish the unarmed attack before changing its moveset".into());
+        }
+        let actions = [
+            MOT_ATTACK,
+            MOT_ATTACK_SLASH2,
+            MOT_ATTACK_SLASH3,
+            MOT_ATTACK_SLASH4,
+            MOT_ATTACK_RIGHT1,
+            MOT_ATTACK_RIGHT2,
+            MOT_ATTACK_LEFT1,
+            MOT_ATTACK_LEFT2,
+            MOT_ATTACK_CROUCH,
+            MOT_ATTACK_LUNGE,
+            MOT_ATTACK_BACK,
+            MOT_ATTACK_LUNGE_BACK,
+        ];
+        let mut attacks = Vec::new();
+        for (source, action) in moves.attacks.iter().zip(actions) {
+            let mut clip = source.clip.clone();
+            // Keep imported IDs clear of Gaisen's special attack dispatch.
+            clip.id += 0x6000;
+            let mut timing = source.attack.clone();
+            timing.clip = clip.id;
+            let table = &mut self.mission.weapons.attacks;
+            if let Some(old) = table.iter_mut().find(|a| a.clip == clip.id) {
+                *old = timing;
+            } else {
+                table.push(timing);
+            }
+            attacks.push(AttackMotion {
+                action,
+                clip: self.import_clip(&clip),
+                contact: Some(source.part),
+            });
+        }
+        let state = self
+            .roster
+            .get_mut(self.player_id)
+            .sheathing
+            .as_mut()
+            .unwrap();
+        state.attacks = attacks;
+        state.loaded_style = UnarmedStyle::Tatsumaru;
         Ok(())
     }
 }

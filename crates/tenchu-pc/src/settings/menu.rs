@@ -35,6 +35,7 @@ pub enum Item {
     WalkThreshold,
     Sheathing,
     UnarmedAttacks,
+    UnarmedStyle,
     SheathedSpeed,
     SheathedVisibility,
     SheathedDamage,
@@ -551,7 +552,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::UnarmedAttacks,
                 "Unarmed attacks while sheathed",
                 on(s.sheathing.unarmed),
-                "GAMEPLAY EDIT: with sheathing enabled, use Onikage's grounded kick/combo, side, crouch and lunge attacks from your Gaisen disc. Their original hitboxes, timing and damage apply. Draw explicitly for blades; stealth kills and aerial attacks still draw. Existing armed movesets are retained. Off by default; this is not Tatsumaru's Tenchu 2 style.",
+                "GAMEPLAY EDIT: use the selected grounded unarmed moves while sheathed. Draw explicitly for blades; stealth kills and aerial attacks still draw. Existing armed movesets are retained. Off by default.",
+            ),
+            (
+                Item::UnarmedStyle,
+                "Unarmed style",
+                s.sheathing.unarmed_style.name().into(),
+                "Onikage uses your Gaisen disc. Tatsumaru imports punches and kicks from Tenchu 2 Europe (SLES-02452), with their hit frames and striking limbs adapted to Gaisen combat. Import below first. Both styles work with either hero; Finish an unarmed attack before switching styles.",
             ),
             (
                 Item::SheathedSpeed,

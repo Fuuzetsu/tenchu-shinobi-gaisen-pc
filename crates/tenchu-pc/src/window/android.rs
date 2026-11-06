@@ -14,6 +14,7 @@ impl Application {
             };
             match response.kind.as_str() {
                 "recording" => self.load_recording(&crate::savestate::read(&path)?),
+                "unarmed" => self.install_unarmed(crate::sheathing::imports::from_path(&path)?),
                 "trial" => {
                     if path.metadata().map_err(|e| e.to_string())?.len() > 8192 {
                         return Err("Select one .msn or .mcs mission".into());

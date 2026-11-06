@@ -26,7 +26,7 @@ from `HUMAN/MOTION/STAGE2.AMD`, and Onikage's grounded attacks from
 `HUMAN/MOTION/STAGE4.AMD`. Character registrations and battle/hitbox data come
 from the supported executable. The existing `MOTION.C`-based actor logic supplies
 weapon swaps, animation timing, combo windows and limb hitboxes. No motion data
-is checked in, and no Tenchu 2/Tatsumaru assets are used.
+is checked in. The separate Tatsumaru importer is described below.
 
 ## Asset, scalar and renderer checkpoint (2026-10-20)
 
@@ -1218,3 +1218,27 @@ severed-part movement in `tenchu-core/src/game/dismemberment.rs` and
 model or animation data is included. Existing Gaisen models supply the parts.
 See [cross-version research](docs/cross-version-research.md) for regional
 probabilities, timing and asset comparisons.
+
+## Optional Tatsumaru moves (2026-11-07)
+
+Local analysis of Tenchu 2 Europe SLES-02452, GAME.EXE SHA-256
+`55151e486984c1794ce4f48ab7e91b2d3a5b1abeb7a30ab8d1b326b2606d5422`:
+
+- Resource name hashing at `0x800154c0` and VOLUME directory/file records;
+  `o:\cdimage\game\cab\game\T_00.cab` contains `t_00.mot`.
+- Motion relocation at `0x8001a488..0x8001a578`, lookup at
+  `0x8001a588..0x8001a660`, and root-height scaling at
+  `0x8001af9c..0x8001b024`. Sparse xyz/time keys are compatible with the existing
+  Hermite sampler after remapping T2's interleaved arm/hand/leg bone order.
+- Tatsumaru action/clip registrations in `datamng.bin` at file offset `0x2af4`;
+  twelve grounded strikes map onto Gaisen's combo, directional and crouch actions.
+- `weapon/atktbl.dat` stores 16-byte rows: clip, power, steering, combo, start/end,
+  ribbon timing and the striking-part bitmask. `ActAttack` at
+  `0x80029924..0x8002aef8` starts/ends hits at row bytes 5/6;
+  `0x8001f604..0x8001f794` enables the parts selected by the mask at byte 12.
+
+This is a port-side combat option using the user's imported animation and timing
+resources, not a Tenchu 2 simulation. Gaisen supplies collision/reactions and
+input chaining; its fist sphere is centered on each selected hand or foot.
+PAL's movement-speed 6/5 correction is omitted at the port's nominal 30 Hz.
+No T2 motion, model, texture, audio, executable or extracted pack is checked in.

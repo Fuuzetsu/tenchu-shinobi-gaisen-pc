@@ -1532,8 +1532,25 @@ hitboxes, damage and timing. Weapons remain stowed until you draw explicitly,
 perform a stealth kill, or use an armed aerial attack. Drawing restores your
 chosen armed moveset. Turning the unarmed option off lets a kick finish; turning
 sheathing off entirely cancels it and clears its hitboxes. Try `unarmed-ayame`
-and `unarmed-rikimaru`. This uses Gaisen's kicks, not Tatsumaru's Tenchu 2 punches
-and kicks; those animations would require separate source assets.
+and `unarmed-rikimaru` for the Gaisen style.
+
+**Unarmed style → Tatsumaru (Tenchu 2)** adds a four-hit punch/kick combo plus
+side, crouch, lunge and back attacks for either hero. On desktop, use **Import
+Tatsumaru moves…** on the Movement page and select your **Tenchu 2 Europe
+(SLES-02452)** CUE, with its BIN alongside it. Importing enables sheathing and
+unarmed attacks; stow your weapons to fight barehanded. The import is stored
+locally and remains available after restarting. Finish an attack before changing
+styles. Onikage remains available without another disc.
+
+Use **Export imported moves…** to transfer a small `.t2moves` file to your own
+Android/browser installation, then use the same Import button there. The desktop
+command `tenchu-pc import-t2-moves TENCHU2.cue tatsumaru.t2moves` also exports it.
+This file contains disc animation data and is not part of the port's downloads.
+Only the supplied European edition has been verified. The imported animations,
+strike limbs, damage and hit/combo frames run through Gaisen's combat system;
+this does not replace its AI, collision rules or aerial/stealth attacks with
+Tenchu 2 gameplay. Graphical presets do not select a combat style; the standard
+unarmed demos continue to use Onikage so they need only the Gaisen disc.
 
 **Movement → R1 guard / dash / roll** is an optional control scheme. Hold the R1
 binding to stand and block frontal melee hits; press a direction while holding

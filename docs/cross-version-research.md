@@ -51,11 +51,21 @@ The SA Rikimaru/Kataoka ending uses the same motion data, but its CAD script has
 different actor placement and camera commands. SA camera units also differ by a
 factor of ten. Dismemberment alone does not restore that camera sequence.
 
-The supplied PAL Tenchu 2 disc uses a different container and model/motion format.
-Its VOLUME.DAT contains 4,730 entries in 62 hashed directories. Character CAB
-bundles yielded 72 named hero MOT banks; these cannot be read as Gaisen AMD files
-or assumed to share the same bone mapping. The existing Gaisen-based unarmed
-option uses Onikage's kicks, not Tatsumaru's punches. Actual T2 motions require
-an explicit local-disc importer and validated retargeting and hit timing.
+The optional Tatsumaru importer supports the supplied **Tenchu 2 Europe
+SLES-02452** disc. Its VOLUME.DAT contains 4,730 entries in 62 hashed directories;
+`T_00.cab` supplies the base motion bank and `weapon/atktbl.dat` supplies damage,
+steering/combo frames, active hit frames and a bitmask of striking model parts.
+Both hands and feet are used, unlike Onikage's two-shin hitboxes. Root height is
+normalized to 4096 in both engines. Bone order differs, so the importer remaps
+rotations onto Gaisen's skeleton and keeps the hero's own proportions. Weapon
+ribbons are omitted, contact spheres are centered on the striking hand/foot,
+and Gaisen supplies its normal collision radius, reactions and combo input rules.
+Authored motion speed and frames run at the port's 30 Hz rate; PAL's 6/5 speed
+correction is not applied. No Tenchu 2 character model or audio is imported.
+
+F1 → Movement imports the user's disc locally; `.t2moves` import/export allows
+the same animations to be used on the user's Android and browser installations.
+The port ships only the reader and adaptation code. Onikage remains the default
+unarmed style and does not need an additional disc.
 
 Research binaries, decoded resource files and captures remain outside Git.

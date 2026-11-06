@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an optional Tatsumaru unarmed style for both heroes, imported locally from
+  a Tenchu 2 Europe disc. F1 → Movement selects it or Onikage's existing kicks;
+  export/import transfers the moves to the user's Android/browser installation.
+
 - Remove the artificial diagonal foam bands from flat modern water. Add an
   optional Reflective water mode with stronger grazing-angle sky sheen and
   highlights from nearby lights; disabled by default in every visual preset.

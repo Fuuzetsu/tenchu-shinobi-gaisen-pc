@@ -1,14 +1,14 @@
-export function import_recording() {
+export function import_recording(extension, limit) {
     return new Promise((resolve, reject) => {
         const picker = document.createElement("input");
         picker.type = "file";
-        picker.accept = ".treplay";
+        picker.accept = extension;
         picker.oncancel = () => resolve(new Uint8Array());
         picker.onchange = async () => {
             const file = picker.files[0];
             if (!file) { resolve(new Uint8Array()); return; }
-            if (file.size > 128 * 1024 * 1024) {
-                reject(new Error("Recording exceeds the 128 MiB limit"));
+            if (file.size > limit) {
+                reject(new Error(`File exceeds the ${limit / 1048576} MiB limit`));
                 return;
             }
             try { resolve(new Uint8Array(await file.arrayBuffer())); }

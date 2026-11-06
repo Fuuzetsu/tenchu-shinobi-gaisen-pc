@@ -258,7 +258,7 @@ mod tests {
                 .sheathing
                 .as_ref()
                 .unwrap()
-                .needs_unarmed_motions()
+                .needs_unarmed_motions(Default::default())
         );
         assert!(app.game_tick(0));
         assert!(!app.trial.eligible);

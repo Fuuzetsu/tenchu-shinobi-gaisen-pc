@@ -20,6 +20,7 @@ mod settings_reset;
 mod tests;
 mod tools;
 mod trial;
+mod unarmed;
 #[cfg(not(target_arch = "wasm32"))]
 mod video;
 mod view;
@@ -1451,7 +1452,7 @@ pub fn run(
     let storage = Storage::new()?;
     let settings_store = settings::Store::new()?;
     let presets = settings::library::Manager::new(crate::storage::UserFile::Presets.path()?);
-    let (mut settings, notice) = match settings_store.load() {
+    let (mut settings, mut notice) = match settings_store.load() {
         Ok(settings) => (settings, String::new()),
         Err(error) => {
             eprintln!("Settings: {error}. Using defaults.");
@@ -1461,6 +1462,12 @@ pub fn run(
             )
         }
     };
+    if settings.sheathing.unarmed_style == tenchu_core::game::sheathing::UnarmedStyle::Tatsumaru
+        && let Err(error) = crate::sheathing::imports::load()
+    {
+        settings.sheathing.unarmed_style = Default::default();
+        notice = error;
+    }
     #[cfg(target_arch = "wasm32")]
     {
         settings.fullscreen = false;

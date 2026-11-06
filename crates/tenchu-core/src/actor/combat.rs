@@ -31,26 +31,49 @@ impl Actor {
             .weapons
             .attacks
             .iter()
-            .position(|b| b.clip == -1 || b.clip == clip)
+            .position(|b| b.clip == clip)
+            .or_else(|| {
+                ctx.mission
+                    .weapons
+                    .attacks
+                    .iter()
+                    .position(|b| b.clip == -1)
+            })
             .unwrap()
     }
 
-    fn hands(&self, ctx: &Context) -> Result<[ModelId; 2]> {
+    fn hands(&self, ctx: &Context) -> Result<[Option<ModelId>; 2]> {
+        if let Some(part) = self.unarmed_contact() {
+            return Ok([
+                Some(*self.parts.get(part).ok_or("Missing unarmed contact part")?),
+                None,
+            ]);
+        }
         let indices = match self.attack_weapon_kind(ctx) {
             FIST => [8, 11],
             JAW => [2, 1],
             _ => [13, 14],
         };
         Ok([
-            *self
-                .parts
-                .get(indices[0])
-                .ok_or("Missing primary attack part")?,
-            *self
-                .parts
-                .get(indices[1])
-                .ok_or("Missing secondary attack part")?,
+            Some(
+                *self
+                    .parts
+                    .get(indices[0])
+                    .ok_or("Missing primary attack part")?,
+            ),
+            Some(
+                *self
+                    .parts
+                    .get(indices[1])
+                    .ok_or("Missing secondary attack part")?,
+            ),
         ])
+    }
+
+    fn unarmed_contact(&self) -> Option<usize> {
+        self.unarmed_attack()
+            .then(|| self.sheathing.as_ref()?.contact(self.motion.clip))
+            .flatten()
     }
 
     fn attack_weapon_kind(&self, ctx: &Context) -> i16 {
@@ -77,13 +100,20 @@ impl Actor {
         let kind = ctx.mission.characters[self.definition].weapon;
         if mode & 1 != 0 && kind != 0 {
             let hands = self.hands(ctx)?;
-            ctx.collision.remove(ctx.scene, hands[0]);
-            if kind != JAW {
-                ctx.collision.remove(ctx.scene, hands[1]);
+            if let Some(hand) = hands[0] {
+                ctx.collision.remove(ctx.scene, hand);
+            }
+            if kind != JAW
+                && let Some(hand) = hands[1]
+            {
+                ctx.collision.remove(ctx.scene, hand);
             }
         }
         if mode & 1 != 0 && self.sheathing.is_some() {
-            for &part in [8, 11, 13, 14].iter().filter_map(|&i| self.parts.get(i)) {
+            for &part in [8, 9, 11, 12, 13, 14]
+                .iter()
+                .filter_map(|&i| self.parts.get(i))
+            {
                 ctx.collision.remove(ctx.scene, part);
             }
         }
@@ -529,11 +559,17 @@ impl Actor {
         let hands = self.hands(ctx)?;
         if self.motion.count == battle.start {
             for (hand, &model) in hands.iter().enumerate() {
-                if let Some(index) = self.attack_hitboxes(ctx)[hand] {
+                if let Some(model) = model
+                    && let Some(index) = self.attack_hitboxes(ctx)[hand]
+                {
                     let hitbox = &ctx.mission.weapons.hitboxes[index];
                     let slot = ctx.collision.insert(ctx.scene, model)?;
                     ctx.collision.slots[slot].owner = Some(crate::collision::Owner::Actor(self.id));
-                    ctx.collision.slots[slot].offset = hitbox.center;
+                    ctx.collision.slots[slot].offset = if self.unarmed_contact().is_some() {
+                        [0; 3]
+                    } else {
+                        hitbox.center
+                    };
                     // Copying WeaponDB.confp also overwrites offset.pad.
                     ctx.collision.slots[slot].count = i32::from(hitbox.radius);
                     ctx.collision.slots[slot].size = [hitbox.radius; 3];
@@ -549,7 +585,7 @@ impl Actor {
             self.clear_attack(ctx, 1)?;
         }
         if self.motion.count < battle.end && self.kind & 0xf0 != 0xa0 {
-            for model in hands {
+            for model in hands.into_iter().flatten() {
                 if ctx.scene.models[model].conflict.is_some() {
                     self.weapon_clash(ctx, world, model)?;
                 }
@@ -560,7 +596,9 @@ impl Actor {
         }
         if self.motion.count == battle.trail_start {
             for (hand, &parent) in hands.iter().enumerate() {
-                if let Some(index) = self.attack_hitboxes(ctx)[hand] {
+                if let Some(parent) = parent
+                    && let Some(index) = self.attack_hitboxes(ctx)[hand]
+                {
                     self.trails[hand] = Some(trail::Trail::new(
                         parent,
                         ctx.mission.weapons.hitboxes[index].trail,

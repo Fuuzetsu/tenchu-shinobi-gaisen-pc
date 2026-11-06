@@ -1,8 +1,10 @@
+pub mod imports;
+
 use tenchu_assets::{ReadAt, Result, executable::Executable, game::GameAssets};
 use tenchu_core::{
     game::{
         Game,
-        sheathing::{Motions, Settings},
+        sheathing::{Motions, Settings, UnarmedStyle},
     },
     ids::*,
 };
@@ -56,6 +58,22 @@ pub fn configure(
     assets: &GameAssets<impl ReadAt>,
     settings: Settings,
 ) -> Result<()> {
+    let needs_attacks = settings.enabled
+        && settings.unarmed
+        && game
+            .player()
+            .sheathing
+            .as_ref()
+            .is_none_or(|s| s.needs_unarmed_motions(settings.unarmed_style));
+    if needs_attacks
+        && game.player().status == tenchu_core::actor::State::Attack
+        && game.player().attribute & ATTR_WEAPON_DRAWN == 0
+    {
+        return Err("Finish the unarmed attack before changing its moveset".into());
+    }
+    let imported = (needs_attacks && settings.unarmed_style == UnarmedStyle::Tatsumaru)
+        .then(imports::load)
+        .transpose()?;
     let motions = if settings.enabled && game.player().sheathing.is_none() {
         // Gaisen's NINJAA/KUNOITI use the heroes' skeleton layout.
         let kind = if game.player().kind == 0 { 0x20 } else { 0x22 };
@@ -83,14 +101,7 @@ pub fn configure(
     } else {
         None
     };
-    let attacks = if settings.enabled
-        && settings.unarmed
-        && game
-            .player()
-            .sheathing
-            .as_ref()
-            .is_none_or(|s| s.needs_unarmed_motions())
-    {
+    let attacks = if needs_attacks && settings.unarmed_style == UnarmedStyle::Onikage {
         let characters = Executable::new(&assets.executable)?.characters()?;
         let character = characters
             .iter()
@@ -142,12 +153,56 @@ pub fn configure(
     if let Some(attacks) = attacks {
         game.set_player_unarmed(&attacks)?;
     }
+    if let Some(moves) = imported {
+        game.set_player_tatsumaru(&moves)?;
+    }
     Ok(())
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+
+    pub(crate) fn capture_pose(game: &Game, path: &std::path::Path) {
+        use glam::Vec3;
+        let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+        let models = review.models(&game.mission).unwrap();
+        let stage = review.renderer.upload(&crate::render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
+        let actors = review
+            .renderer
+            .upload(&crate::render_mesh::characters_presented(
+                game,
+                Some(&models),
+                true,
+                None,
+            ));
+        let center =
+            Vec3::from(game.player().position.map(|v| v as f32).to_array()) - Vec3::Y * 900.0;
+        let offset = game
+            .math
+            .velocity(game.player().rotation[1].wrapping_add(800), -3200, 0);
+        let eye = center + Vec3::from(offset.map(f32::from)) - Vec3::Y * 300.0;
+        let delta = center - eye;
+        let camera = crate::debug::camera::Camera {
+            position: eye,
+            yaw: delta.x.atan2(delta.z),
+            pitch: (-delta.y).atan2(delta.x.hypot(delta.z)),
+            fov: 50.0,
+        };
+        review
+            .capture(
+                camera.matrix(1280.0 / 720.0),
+                &[&stage, &actors],
+                None,
+                false,
+                path,
+            )
+            .unwrap();
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; both hero draw/stow transitions must produce audible samples without replacing their voices"]
