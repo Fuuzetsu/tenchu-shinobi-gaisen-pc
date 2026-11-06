@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an independent **SA Kataoka execution scene** option under F1 → Persistent
+  effects. Restore Rikimaru's Mission 5 execution framing and severed head while
+  retaining Gaisen's localized dialogue, sound and timing. Off by default; no
+  additional disc is needed.
+
 - Add an optional Tatsumaru unarmed style for both heroes, imported locally from
   a Tenchu 2 Europe disc. F1 → Movement selects it or Onikage's existing kicks;
   export/import transfers the moves to the user's Android/browser installation.
@@ -31,7 +36,7 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Add optional Stealth Assassins dismemberment using the USA Rev 1 rules and
   existing Gaisen models. Head and forearm chances are configurable in F1 →
-  Blood; disabled by default. No additional disc or model pack is required.
+  Persistent effects; disabled by default. No additional disc or model pack is required.
 - Mid-mission savestates from older versions are incompatible with the new
   detached-body-part state. Campaign progress saves are unaffected.
 

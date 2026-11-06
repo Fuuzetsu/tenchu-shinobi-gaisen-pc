@@ -126,6 +126,7 @@ impl Item {
         Some(match self {
             Self::Bleeding => &mut settings.bleeding.enabled,
             Self::Dismemberment => &mut settings.dismemberment.enabled,
+            Self::SaExecutionScene => &mut settings.dismemberment.execution_scene,
             Self::PlayerDismemberment => &mut settings.dismemberment.player,
             Self::MedicineBleeding => &mut settings.bleeding.medicine,
             Self::CameraRelative => &mut settings.navigation.camera_relative,

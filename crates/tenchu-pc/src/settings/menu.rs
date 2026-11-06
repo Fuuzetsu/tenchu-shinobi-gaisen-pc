@@ -5,6 +5,7 @@ use tenchu_core::effects::RumbleAction;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Item {
     Dismemberment,
+    SaExecutionScene,
     SeverStealth,
     SeverDive,
     SeverArms,
@@ -1199,6 +1200,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Player right arm preference",
                 format!("{}%", s.dismemberment.player_right_arm),
                 "Default 50% chooses either arm equally; 0 always left, 100 always right.",
+            ),
+            (
+                Item::SaExecutionScene,
+                "SA Kataoka execution scene",
+                on(s.dismemberment.execution_scene),
+                "Restore Stealth Assassins' Rikimaru/Kataoka execution camera sequence in Mission 5, including the severed head. Keeps Gaisen's localized dialogue and audio; no additional disc required. Enable before the scene starts; off by default. Independent of random enemy/player severing chances.",
             ),
             (
                 Item::SeveredBlood,

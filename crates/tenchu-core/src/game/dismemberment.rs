@@ -13,6 +13,7 @@ pub struct Settings {
     pub player_head: u16,
     pub player_arms: u16,
     pub player_right_arm: u16,
+    pub execution_scene: bool,
 }
 
 impl Default for Settings {
@@ -27,6 +28,7 @@ impl Default for Settings {
             player_head: 4,
             player_arms: 50,
             player_right_arm: 50,
+            execution_scene: false,
         }
     }
 }
@@ -43,7 +45,7 @@ impl Settings {
     }
 
     pub fn active(self) -> bool {
-        self.enabled || self.player
+        self.enabled || self.player || self.execution_scene
     }
 
     pub(crate) fn head(chance: u16, random: &mut Random) -> bool {

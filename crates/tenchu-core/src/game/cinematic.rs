@@ -1,6 +1,7 @@
 use crate::actor::State as ActorState;
 use crate::math::Position;
 mod camera;
+mod execution;
 #[cfg(test)]
 mod tests;
 mod text;
@@ -37,6 +38,7 @@ pub struct Cinematic {
     pan: Pan,
     wait_until: i16,
     speed: i16,
+    commands: Option<Vec<Command>>,
 }
 
 impl Game {
@@ -44,6 +46,12 @@ impl Game {
         let Some((cursor, music)) = self.mission.scripts.cutscenes.sequence(sequence) else {
             return Ok(false);
         };
+        self.cinematic.commands = (self.combat.dismemberment.execution_scene
+            && self.mission.trial.is_none()
+            && self.mission.stage.id == 10
+            && self.player().kind == 0
+            && matches!(sequence, 20 | 100))
+        .then(|| execution::commands(&self.mission.scripts.cutscenes.commands));
         self.cinematic.sequence = sequence;
         self.cinematic.input = self.input;
         self.cinematic.music_cue = music;
@@ -210,10 +218,10 @@ impl Game {
     fn cinematic_commands(&mut self) -> Result<bool> {
         loop {
             let command = *self
-                .mission
-                .scripts
-                .cutscenes
+                .cinematic
                 .commands
+                .as_ref()
+                .unwrap_or(&self.mission.scripts.cutscenes.commands)
                 .get(self.cinematic.cursor)
                 .ok_or("Cinematic reached the table end without a wait command")?;
             match command {

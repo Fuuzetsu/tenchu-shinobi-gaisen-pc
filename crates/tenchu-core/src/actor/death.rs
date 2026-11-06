@@ -236,7 +236,15 @@ impl Actor {
             }
             _ => {
                 if self.kind & 0xf0 != 0xa0 {
-                    if dismemberment.enabled && self.kind == 0x8f && self.motion.count == 1 {
+                    if (dismemberment.enabled
+                        || (dismemberment.execution_scene
+                            && ctx.mission.trial.is_none()
+                            && ctx.mission.stage.id == 10
+                            && self.scripted
+                            && world.roster.get(world.player).kind == 0))
+                        && self.kind == 0x8f
+                        && self.motion.count == 1
+                    {
                         sever = Some(2);
                     }
                     if self.motion.count == 5 && world.combat.death_sound == Some(self.id) {

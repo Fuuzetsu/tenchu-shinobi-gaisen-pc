@@ -1,7 +1,7 @@
 # Stealth Assassins and Tenchu 2
 
 The optional dismemberment setting follows **Stealth Assassins USA Rev 1**.
-Enable it in F1 → Blood. It is off by default and is a gameplay setting: visual
+Enable it in F1 → Persistent effects. It is off by default and is a gameplay setting: visual
 presets and Retro mode do not change it. It changes RNG consumption when enabled;
 it is unsuitable for replaying an unmodified Shinobi Gaisen input tape.
 
@@ -47,9 +47,13 @@ byte-identical between PAL SA and Gaisen. Of 57 shared HUMAN MAD models, 54 had
 identical decoded geometry after ignoring texture addresses/UVs, including both
 heroes and Kataoka. Detached parts therefore require no SA assets at runtime.
 
-The SA Rikimaru/Kataoka ending uses the same motion data, but its CAD script has
-different actor placement and camera commands. SA camera units also differ by a
-factor of ten. Dismemberment alone does not restore that camera sequence.
+**SA Kataoka execution scene** is a separate, off-by-default option on the same
+page. Enable it before Rikimaru's Mission 5 ending to restore SA's actor placement,
+execution shots and guaranteed head detachment. It needs no SA disc: the motion
+data already exists in Gaisen. The port adapts the SA camera units by a factor of
+ten and retains Gaisen's captions, voice/music schedule and scene duration in all
+four languages. It does not alter Ayame's ending or TRIAL missions. Random enemy
+and player dismemberment can remain disabled.
 
 The optional Tatsumaru importer supports the supplied **Tenchu 2 Europe
 SLES-02452** disc. Its VOLUME.DAT contains 4,730 entries in 62 hashed directories;

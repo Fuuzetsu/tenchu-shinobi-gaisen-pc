@@ -1012,7 +1012,18 @@ toggled independently of the outfit selected at mission load. Internal item
 timers and campaign stock/unlocks are preserved. These edits end input recording;
 a new mission restores ordinary gameplay. Cutscenes retain their scripted behavior.
 
-**F1 → Persistent effects** independently selects **Off / Original / Original HD / Modern**
+**F1 → Persistent effects** also offers optional **Stealth Assassins
+dismemberment**, with USA Rev 1 chances by default. **Player dismemberment** has
+its own toggle and head/forearm/side probabilities; both toggles start off.
+**Severed wound bleeding** and its duration control extra jets from the body and
+drips from detached parts. Ground marks still use your selected ground-blood style.
+**SA Kataoka execution scene** separately restores Rikimaru's Mission 5 execution
+shots and severed head, while keeping the selected language's dialogue and audio.
+Enable it before the scene starts; it is off by default and needs no extra disc.
+See [cross-version details](cross-version-research.md) for the source rules and
+the port's player extension.
+
+The same page independently selects **Off / Original / Original HD / Modern**
 for blood spurts on hit, extra wound drips, death stars/pools, and ground spots.
 **Death pool beneath player** applies the chosen death style to the player too;
 **Stain wounded models** independently enables attached body stains. Original

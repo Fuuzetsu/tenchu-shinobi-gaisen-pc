@@ -1219,6 +1219,16 @@ model or animation data is included. Existing Gaisen models supply the parts.
 See [cross-version research](docs/cross-version-research.md) for regional
 probabilities, timing and asset comparisons.
 
+The optional Rikimaru/Kataoka execution sequence uses locally compared
+`ANIM/STAGE11R.CAD` from USA Rev 1 and PAL SA. Their non-caption commands match;
+sequences 20 and 100 differ from Gaisen in actor placement, execution framing
+and scripted blood. `game/cinematic/execution.rs` applies those differences to
+the user's Gaisen command stream, converting camera coordinates by ten and
+retaining each language's captions, waits and music. No CAD, dialogue or sound
+data is included. Disc-backed validation compares the complete on/off caption
+and music schedules in English, French, Italian and Japanese, and resumes a
+serialized state during the execution.
+
 ## Optional Tatsumaru moves (2026-11-07)
 
 Local analysis of Tenchu 2 Europe SLES-02452, GAME.EXE SHA-256

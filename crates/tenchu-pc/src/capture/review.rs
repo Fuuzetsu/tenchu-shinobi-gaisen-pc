@@ -153,6 +153,104 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "requires TENCHU_DISC; SA execution cameras and head detachment retain all four localized caption/audio schedules"]
+    fn sa_execution_preserves_localized_dialogue() {
+        use tenchu_assets::{
+            executable::Executable,
+            game::GameAssets,
+            script::{Event, Language},
+            stage::MissionAssets,
+        };
+        use tenchu_core::game::Game;
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+        for language in [
+            Language::English,
+            Language::French,
+            Language::Italian,
+            Language::Japanese,
+        ] {
+            let mut reference = None;
+            for enabled in [false, true] {
+                let mut mission =
+                    MissionAssets::load_localized(&assets, 10, 0, 1, language).unwrap();
+                let original = mission.scripts.cutscenes.commands.clone();
+                mission.scripts.events = vec![Event {
+                    id: 0,
+                    sequence: 100,
+                    next: [255; 2],
+                    target: 255,
+                    mode: 0,
+                    value: 0,
+                    bounds: [[0; 2]; 3],
+                }];
+                let mut game =
+                    Game::new(mission, &Executable::new(&assets.executable).unwrap(), 0, 1)
+                        .unwrap();
+                game.combat.dismemberment.execution_scene = enabled;
+                let mut dialogue = Vec::new();
+                let mut last = Vec::new();
+                let mut music = Vec::new();
+                let mut copy: Option<Game> = None;
+                let mut began = false;
+                for _ in 0..2500 {
+                    game.step(0).unwrap();
+                    if let Some(copy) = &mut copy {
+                        copy.step(0).unwrap();
+                        assert_eq!(game.cinematic.caption, copy.cinematic.caption);
+                        assert_eq!(game.camera.position, copy.camera.position);
+                        assert_eq!(game.camera.reference, copy.camera.reference);
+                    }
+                    if game.cinematic.caption != last {
+                        dialogue.push((game.tick, game.cinematic.caption.clone()));
+                        last.clone_from(&game.cinematic.caption);
+                    }
+                    music.extend(game.music.iter().map(|m| (game.tick, *m)));
+                    began |= game.cinematic.active;
+                    let actor = game.roster.get(game.roster.find(0x8f).unwrap());
+                    if actor.severed.is_some() && copy.is_none() {
+                        assert!(enabled);
+                        copy = Some(
+                            postcard::from_bytes(&postcard::to_allocvec(&game).unwrap()).unwrap(),
+                        );
+                    }
+                    if language == Language::English
+                        && [1036, 1042, 1052, 1176].contains(&game.cinematic.elapsed)
+                        && let Some(path) = std::env::var_os("TENCHU_EXECUTION_REVIEW")
+                    {
+                        let dir = Path::new(&path);
+                        std::fs::create_dir_all(dir).unwrap();
+                        crate::capture::frame(
+                            &game,
+                            &dir.join(format!("sa-{enabled}-frame-{}.png", game.cinematic.elapsed)),
+                            &assets,
+                        )
+                        .unwrap();
+                    }
+                    if began && !game.cinematic.active {
+                        break;
+                    }
+                }
+                assert!(began && !game.cinematic.active);
+                assert_eq!(game.mission.scripts.cutscenes.commands, original);
+                assert_eq!(
+                    game.roster
+                        .get(game.roster.find(0x8f).unwrap())
+                        .severed
+                        .is_some(),
+                    enabled
+                );
+                if enabled {
+                    assert!(copy.is_some());
+                    assert_eq!(Some((dialogue, music, game.tick)), reference);
+                } else {
+                    reference = Some((dialogue, music, game.tick));
+                }
+            }
+        }
+    }
+
+    #[test]
     #[ignore = "requires TENCHU_DISC, TENCHU_RETAIL_TAPE, TENCHU_REVIEW_FIELD, TENCHU_REVIEW_IMAGE and a GPU; review one exact replay state without recording a video"]
     fn retail_frame_review() {
         let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
