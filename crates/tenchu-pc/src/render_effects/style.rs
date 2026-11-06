@@ -8,6 +8,7 @@ pub struct Style {
     pub lightning: bool,
     pub gunfire: bool,
     pub sparks: Option<u16>,
+    pub distant_doors: bool,
     pub alpha: f32,
 }
 
@@ -19,6 +20,7 @@ impl Default for Style {
             lightning: false,
             gunfire: false,
             sparks: None,
+            distant_doors: false,
             alpha: 1.0,
         }
     }
@@ -31,6 +33,8 @@ impl From<&Settings> for Style {
             blood: settings.graphics.blood,
             lightning: settings.graphics.effects.lightning,
             gunfire: settings.graphics.effects.gunfire,
+            distant_doors: settings.graphics.distant_doors
+                && (!settings.graphics.fog || settings.graphics.fog_distance > 100),
             sparks: settings
                 .graphics
                 .effects

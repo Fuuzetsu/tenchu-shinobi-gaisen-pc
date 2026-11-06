@@ -156,6 +156,7 @@ pub enum Item {
     Reset,
     Fog,
     FogDistance,
+    DistantDoors,
     Textures,
     Shading,
     Exposure,
@@ -1607,6 +1608,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Fog distance",
                 format!("{}%", s.graphics.fog_distance),
                 "Scale the original camera-depth fog curve.",
+            ),
+            (
+                Item::DistantDoors,
+                "Distant doors without fog",
+                on(s.graphics.distant_doors),
+                "Show doors and trapdoors beyond retail range when fog is disabled or extended. Collision and activation stay unchanged. Off restores retail drawing.",
             ),
             (
                 Item::Textures,

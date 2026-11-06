@@ -173,6 +173,7 @@ impl Item {
             Self::Vsync => &mut settings.vsync,
             Self::Hud => &mut settings.show_hud,
             Self::Fog => &mut settings.graphics.fog,
+            Self::DistantDoors => &mut settings.graphics.distant_doors,
             Self::Textures => &mut settings.graphics.textures,
             Self::Shading => &mut settings.graphics.shading,
             _ => return None,

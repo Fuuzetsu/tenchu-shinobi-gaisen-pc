@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep doors and trapdoors visible at a distance when black fog is disabled or
+  extended. F1 → Graphics → **Distant doors without fog** can restore retail
+  visibility. Door collision, activation and replay behavior are unchanged.
+
 - Reduce rain rendering cost with edge anti-aliasing by sharing lighting and
   reflection shadow samples on terrain. Shadow detail, weather coverage and
   texture quality stay unchanged; compatible native/WebGPU configurations use

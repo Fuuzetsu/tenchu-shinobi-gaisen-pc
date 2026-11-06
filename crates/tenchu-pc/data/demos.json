@@ -244,7 +244,7 @@
   {
     "id": "atmosphere",
     "title": "Reveal the distance",
-    "description": "Move the fog boundary and add colored haze. Free-camera views still use the same scene geometry and original collision map.",
+    "description": "Move the fog boundary and add colored haze. Distant doors remain visible when fog is removed or extended; collision and gameplay activation stay unchanged.",
     "seconds": 14,
     "mission": 2,
     "character": 0,

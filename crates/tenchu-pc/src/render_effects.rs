@@ -539,7 +539,12 @@ pub fn build_presented(
             2,
         );
     }
-    for &(index, matrix) in game.items.models.iter().chain(&game.misc.models) {
+    for &(index, matrix) in game
+        .items
+        .models
+        .iter()
+        .chain(game.misc.models.iter().filter(|_| !style.distant_doors))
+    {
         let matrix = frame.map_or(matrix, |frame| frame.hinged(index, matrix));
         mesh_surfaces(
             &mut surfaces,
@@ -550,6 +555,22 @@ pub fn build_presented(
             true,
             models,
         );
+    }
+    if style.distant_doors {
+        render_mesh::visit_hinged_parts(game, |key, geometry, matrix| {
+            if !matches!(key, crate::visuals::interpolation::Part::Hinge { .. }) {
+                return;
+            }
+            mesh_surfaces(
+                &mut surfaces,
+                geometry,
+                crate::visuals::interpolation::Frame::transform(frame, key, matrix),
+                view,
+                false,
+                true,
+                models,
+            );
+        });
     }
     for &(kind, matrix) in &game.items.weapons {
         mesh_surfaces(
@@ -780,6 +801,81 @@ pub fn build_presented(
 mod tests {
     use super::*;
     use bytemuck::Zeroable;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; distant doors retain live/interpolated poses without changing gameplay or duplicating geometry"]
+    fn distant_doors_preserve_poses_and_retail_state() {
+        let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut hidden = 0;
+        for mission in [1, 4, 6] {
+            let mut game = crate::session::Options {
+                mission,
+                ..Default::default()
+            }
+            .load(&assets)
+            .unwrap();
+            for _ in 0..12 {
+                game.step(0).unwrap();
+            }
+            let mut history = crate::visuals::interpolation::History::default();
+            history.reset(&game);
+            game.step(0).unwrap();
+            history.tick(&game);
+            let interpolated = history.sample(game.tick, 0.4);
+            let before = crate::session::tests::state(&game);
+            let original = game.misc.models.clone();
+            let mut all = Vec::new();
+            render_mesh::visit_hinged_parts(&game, |key, _, matrix| {
+                if let crate::visuals::interpolation::Part::Hinge { mesh, .. } = key {
+                    all.push((mesh, matrix));
+                }
+            });
+            hidden += all.len().saturating_sub(original.len());
+            for frame in [None, interpolated.as_ref()] {
+                let capture = |game: &Game, settings: &crate::settings::Settings| {
+                    build_presented(game, false, None, false, None, frame, Style::from(settings))
+                };
+                let mut settings = crate::settings::Settings::default();
+                let retail = capture(&game, &settings);
+                settings.graphics.fog = false;
+                let actual = capture(&game, &settings);
+                settings.graphics.distant_doors = false;
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&capture(&game, &settings).vertices),
+                    bytemuck::cast_slice::<_, u8>(&retail.vertices)
+                );
+                game.misc.models.clone_from(&all);
+                let expected = capture(&game, &settings);
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&actual.vertices),
+                    bytemuck::cast_slice::<_, u8>(&expected.vertices)
+                );
+                assert!(
+                    actual
+                        .batches
+                        .iter()
+                        .zip(&expected.batches)
+                        .all(|(a, b)| { a.blend == b.blend && a.range == b.range })
+                );
+                assert_eq!(actual.batches.len(), expected.batches.len());
+                game.misc.models.clear();
+                settings.graphics.distant_doors = true;
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&capture(&game, &settings).vertices),
+                    bytemuck::cast_slice::<_, u8>(&actual.vertices)
+                );
+                game.misc.models.clone_from(&original);
+            }
+            assert_eq!(before, crate::session::tests::state(&game));
+        }
+        assert!(
+            hidden > 0,
+            "fixture must include doors outside retail's draw list"
+        );
+    }
 
     #[test]
     fn filtering_preserves_triangle_and_blend_order_for_shared_batch_ranges() {
