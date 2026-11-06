@@ -508,6 +508,38 @@ fn replacement_detail_is_not_reduced_to_the_240_line_canvas() {
 }
 
 #[test]
+#[ignore = "requires a GPU; replacing a loaded pack must invalidate cached frontend textures"]
+fn artwork_reload_and_retro_toggle_update_cached_menu_images() {
+    let original = Image::from_pixels([2, 2], vec![0x7fff; 4]);
+    let id = draw::identity(&draw::pixels(&original));
+    let pack = |color: [u8; 4]| {
+        Arc::new(BTreeMap::from([(
+            id.clone(),
+            Arc::new(crate::visuals::pixels::Image {
+                size: [2, 2],
+                rgba: color.repeat(4),
+            }),
+        )]))
+    };
+    let red = pack([240, 20, 30, 255]);
+    let blue = pack([20, 30, 240, 255]);
+    let mut capture = Capture::new([320, 240]);
+    for (artwork, expected) in [
+        (red.clone(), [240, 20, 30, 255]),
+        (red.clone(), [240, 20, 30, 255]),
+        (blue, [20, 30, 240, 255]),
+        (Arc::default(), [255; 4]),
+        (red, [240, 20, 30, 255]),
+    ] {
+        let mut canvas = Canvas::new(320);
+        canvas.frame = Some(Frame::new(canvas.size, artwork));
+        canvas.sprite(Sprite::new(&original, 0.0, 0.0).scale(20.0, 20.0));
+        let pixels = capture.draw(canvas.frame.take().unwrap());
+        assert_eq!(&pixels[(120 * 320 + 160) * 4..][..4], &expected);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC and a GPU; reviews the original frontend through both presentation paths"]
 fn original_pages_keep_their_layout_and_gameplay_state_with_gpu_presentation() {
     use crate::{

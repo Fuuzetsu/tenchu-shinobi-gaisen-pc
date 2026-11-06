@@ -1,6 +1,59 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU_DISC and the HD pack; profiles steady shop frame preparation"]
+fn shop_frame_preparation_profile() {
+    let path = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(path.as_ref()).unwrap()).unwrap();
+    let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    campaign.inventory();
+    let mut frontend =
+        Frontend::new(&assets, path.as_ref(), &campaign, Default::default()).unwrap();
+    assert!(!frontend.artwork.is_empty(), "Install the HD pack");
+    frontend.prepare(&campaign, &assets, false).unwrap();
+    let ctx = egui::Context::default();
+    crate::fonts::install(&ctx);
+    let mut settings = crate::settings::Settings::default();
+    for (artwork, lighting) in [(false, false), (true, false), (true, true)] {
+        settings.graphics.asset_pack = artwork;
+        settings.graphics.shop_lighting = lighting;
+        let mut times = Vec::new();
+        for i in 0..130 {
+            frontend
+                .advance(
+                    Duration::from_secs_f64(1.0 / 60.0),
+                    false,
+                    &mut campaign,
+                    &assets,
+                )
+                .unwrap();
+            let start = std::time::Instant::now();
+            let _ = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1920.0, 1080.0),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| {
+                    frontend.show(ctx, &campaign, false, true, &settings);
+                },
+            );
+            if i >= 10 {
+                times.push(start.elapsed().as_secs_f64() * 1000.0);
+            }
+        }
+        times.sort_by(f64::total_cmp);
+        eprintln!(
+            "Shop artwork={artwork} lighting={lighting}: p50={:.3}ms p95={:.3}ms p99={:.3}ms",
+            times[60], times[114], times[118]
+        );
+    }
+    assert_eq!(campaign.game.tick, 0);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; verifies retail music transitions and sound-test preview memory"]
 fn options_and_shop_follow_retail_music_transitions() {
     fn music(frontend: &mut Frontend) -> Vec<Option<usize>> {

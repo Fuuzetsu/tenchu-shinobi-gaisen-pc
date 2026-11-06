@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU work in the shop and other HD menus by reusing artwork identities
+  instead of hashing the full replacement images every frame. Lighting and
+  artwork quality remain unchanged; live pack reloads still refresh the images.
+
 - Fix Android touch-stick navigation skipping many quick-launch menu entries
   during one drag. Held touch buttons now stay suppressed across menu transitions,
   and stick direction thresholds resist finger jitter.

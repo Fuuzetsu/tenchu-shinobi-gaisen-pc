@@ -196,6 +196,13 @@ impl egui_wgpu::CallbackTrait for Paint {
         {
             return Vec::new();
         }
+        if renderer
+            .frame
+            .as_ref()
+            .is_some_and(|old| !old.same_artwork(frame))
+        {
+            renderer.images.clear();
+        }
         renderer
             .images
             .retain(|id, _| frame.images.contains_key(id));

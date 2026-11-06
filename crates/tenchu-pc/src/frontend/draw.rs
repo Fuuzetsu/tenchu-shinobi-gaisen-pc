@@ -50,6 +50,11 @@ pub fn identity(image: &Image) -> String {
 }
 
 impl Frame {
+    pub(super) fn same_artwork(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.artwork, &other.artwork)
+            || self.artwork.is_empty() && other.artwork.is_empty()
+    }
+
     pub fn new(size: [usize; 2], artwork: Arc<Artwork>) -> Self {
         Self {
             vertices: Vec::new(),
@@ -68,7 +73,7 @@ impl Frame {
         let replacement = self.artwork.get(&id);
         let image = replacement.cloned().unwrap_or_else(|| Arc::new(original));
         let key = if replacement.is_some() {
-            identity(&image)
+            format!("{id}:hd")
         } else {
             id
         };

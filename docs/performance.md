@@ -3085,3 +3085,26 @@ the volume runs only on WebGPU; WebGL2 retains direct integration.
 Evidence is outside Git under
 `private/optimisation-loop/2026-11-06/resumed/rain-volume/` and
 `resumed/haze-{before,after}-high-rain.json`.
+
+## HD shop menu preparation (2026-11-07)
+
+The shop uses the selected sky, weather and lamp settings in a painted-room
+shader; it does not select a higher gameplay quality preset. Profiling found
+repeated SHA-256 hashing of replacement images for each background section and
+item sprite on every animated frame. Replacement identities now reuse the
+original lookup key, with GPU images invalidated when the loaded pack changes.
+Original pixels, replacement pixels and all shading remain unchanged.
+
+Release-build CPU frame preparation on the Ryzen 9 9950X3D, 120 samples after
+10 warm-up frames, installed artwork-v3, English Mission 1 shop at 1920×1080:
+
+| Configuration | Before p50 / p99 | After p50 / p99 |
+| --- | ---: | ---: |
+| Original artwork | 1.10 / 1.15 ms | 1.15 / 1.19 ms |
+| HD artwork | 6.60 / 6.95 ms | 1.34 / 1.37 ms |
+| HD artwork + room lighting | 6.58 / 6.63 ms | 1.35 / 1.37 ms |
+
+These measure CPU menu preparation, not GPU time or Android FPS. Reproduce with
+`TENCHU_DISC=… ./dev.sh cargo test --release -p tenchu-pc shop_frame_preparation_profile -- --ignored --nocapture`.
+GPU regressions cover pack reloads, retro toggles, 4K replacement detail, and shop
+day/night/weather changes without changing gameplay state.
