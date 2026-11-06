@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.17.0 — 2026-11-06
+
 - Add an independent **SA Kataoka execution scene** option under F1 → Persistent
   effects. Restore Rikimaru's Mission 5 execution framing and severed head while
   retaining Gaisen's localized dialogue, sound and timing. Off by default; no
