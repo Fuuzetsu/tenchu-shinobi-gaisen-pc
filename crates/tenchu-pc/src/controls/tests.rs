@@ -1,6 +1,30 @@
 use super::*;
 
 #[test]
+fn touch_taps_survive_between_ticks_and_focus_changes_release_all_fingers() {
+    let mut controls = Controls::default();
+    controls.key(KeyCode::KeyW, true);
+    controls.touch(crate::touch::Sample {
+        buttons: input::CROSS.into(),
+        sticks: [glam::Vec2::ZERO, glam::Vec2::new(0.3, 0.7)],
+    });
+    assert_eq!(controls.sticks()[1], glam::Vec2::new(0.3, 0.7));
+    controls.touch(Default::default());
+    assert_eq!(controls.poll(true).pressed, input::CROSS);
+    assert_eq!(controls.poll(true).pressed, 0);
+    assert_eq!(controls.buttons(), input::UP | input::CROSS);
+    assert_eq!(controls.buttons(), input::UP);
+    controls.touch(crate::touch::Sample {
+        buttons: input::SQUARE.into(),
+        sticks: [glam::Vec2::Y, glam::Vec2::ZERO],
+    });
+    controls.clear();
+    assert_eq!(controls.poll(true).pressed, 0);
+    assert_eq!(controls.buttons(), 0);
+    assert_eq!(controls.sticks(), [glam::Vec2::ZERO; 2]);
+}
+
+#[test]
 fn analog_input_keeps_precision_and_requires_centering_after_focus_changes() {
     let mut controls = Controls::default();
     controls.pad.axes = [0.37, 0.81, -0.23, 0.62];

@@ -36,6 +36,7 @@ pub use store::Store;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    pub touch: crate::touch::Settings,
     pub show_fps: bool,
     pub show_performance: bool,
     pub pause_on_defocus: bool,
@@ -84,6 +85,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            touch: Default::default(),
             show_fps: false,
             show_performance: false,
             pause_on_defocus: true,

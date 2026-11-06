@@ -414,7 +414,12 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
     if debug.camera.is_some() {
         labels.push(Label(
             Anchor::BottomLeft([10.0, 48.0]),
-            "FREE CAMERA  WASD/QE  Shift: boost".into(),
+            if cfg!(target_os = "android") {
+                "FREE CAMERA  Move / Camera sticks"
+            } else {
+                "FREE CAMERA  WASD/QE  Shift: boost"
+            }
+            .into(),
             [0.7, 0.95, 1.0],
         ));
         labels.push(Label(
@@ -423,6 +428,8 @@ pub fn build(debug: &Debug, game: &Game, aspect: f32) -> Overlay {
                 "Click collision floor to choose an actor placement"
             } else if debug.teleport_armed || debug.click_teleport {
                 "Click collision floor to teleport"
+            } else if cfg!(target_os = "android") {
+                "Rise / Descend / Boost · Tap: actor · Back: return"
             } else {
                 "RMB: look  Click: actor  F2: return"
             }

@@ -182,7 +182,16 @@ pub struct Update {
 }
 
 #[derive(Default)]
+struct TouchInput {
+    sample: crate::touch::Sample,
+    buttons: u32,
+    pending: u32,
+    pressed: u16,
+}
+
+#[derive(Default)]
 pub struct Controls {
+    touch: TouchInput,
     bindings: Bindings,
     pub editor: editor::Editor,
     bindings_path: Option<PathBuf>,
@@ -311,7 +320,17 @@ impl Controls {
         }
     }
 
+    pub fn touch(&mut self, sample: crate::touch::Sample) {
+        let buttons = sample.buttons | u32::from(crate::navigation::directions(sample.sticks[0]));
+        let pressed = buttons & !self.touch.buttons;
+        self.touch.pending |= pressed;
+        self.touch.pressed |= pressed as u16;
+        self.touch.buttons = buttons;
+        self.touch.sample = sample;
+    }
+
     pub fn clear(&mut self) {
+        self.touch = TouchInput::default();
         self.stop_rumble();
         self.keys.clear();
         self.pending_keys = 0;
@@ -319,7 +338,13 @@ impl Controls {
     }
 
     pub fn bandage(&self) -> bool {
-        (self.pad.buttons() | self.pad.pending | self.pending_keys) & bindings::BANDAGE != 0
+        (self.pad.buttons()
+            | self.pad.pending
+            | self.pending_keys
+            | self.touch.buttons
+            | self.touch.pending)
+            & bindings::BANDAGE
+            != 0
             || self
                 .keys
                 .iter()
@@ -340,7 +365,9 @@ impl Controls {
     }
 
     pub fn buttons(&mut self) -> u16 {
-        let buttons = self.pad.buttons()
+        let buttons = self.touch.buttons
+            | mem::take(&mut self.touch.pending)
+            | self.pad.buttons()
             | mem::take(&mut self.pad.pending)
             | mem::take(&mut self.pending_keys);
         self.keys
@@ -350,7 +377,10 @@ impl Controls {
 
     pub fn relative_buttons(&mut self) -> u16 {
         self.pad.pending = 0;
-        let buttons = (self.pad.direct & !self.pad.direct_blocked)
+        let directions = u32::from(input::UP | input::DOWN | input::LEFT | input::RIGHT);
+        let buttons = self.touch.sample.buttons
+            | (mem::take(&mut self.touch.pending) & !directions)
+            | (self.pad.direct & !self.pad.direct_blocked)
             | mem::take(&mut self.pad.direct_pending)
             | mem::take(&mut self.pending_keys);
         self.keys
@@ -359,7 +389,9 @@ impl Controls {
     }
 
     pub fn walking_buttons(&mut self, deadzone: u16) -> (u16, f32) {
-        let pending = (self.pad.buttons() | self.pad.pending) as u16;
+        let pending =
+            (self.pad.buttons() | self.pad.pending | self.touch.buttons | self.touch.pending)
+                as u16;
         let directions = input::UP | input::DOWN | input::LEFT | input::RIGHT;
         let buttons = self.relative_buttons() | (pending & !directions);
         if buttons & directions != 0 {
@@ -372,9 +404,15 @@ impl Controls {
         )
     }
 
+    pub fn touch_buttons(&self) -> u16 {
+        self.touch.sample.buttons as u16
+    }
+
     pub fn sticks(&self) -> [glam::Vec2; 2] {
         std::array::from_fn(|i| {
-            if self.pad.axes_blocked[i] || self.editor.open {
+            if self.touch.sample.sticks[i] != glam::Vec2::ZERO && !self.editor.open {
+                self.touch.sample.sticks[i]
+            } else if self.pad.axes_blocked[i] || self.editor.open {
                 glam::Vec2::ZERO
             } else {
                 glam::Vec2::new(self.pad.axes[i * 2], self.pad.axes[i * 2 + 1])
@@ -387,8 +425,15 @@ impl Controls {
     }
 
     pub fn poll(&mut self, focused: bool) -> Update {
-        let mut update = Update::default();
+        let pressed = mem::take(&mut self.touch.pressed);
+        let mut update = Update {
+            pressed,
+            menu_pressed: pressed,
+            disconnected: false,
+        };
         if !focused {
+            self.touch = TouchInput::default();
+            update = Update::default();
             self.pad.suppress();
             self.stop_rumble();
         }

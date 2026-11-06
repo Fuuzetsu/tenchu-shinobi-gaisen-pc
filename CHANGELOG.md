@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add a native Android preview with ARM64 APK packaging through Nix, verified CUE/BIN folder import, optional HD archive import, private persistent saves/preferences and Android document import/export. Opening and ending movies play directly from the disc. Backgrounding releases the rendering surface and suspends gameplay/audio; returning restores the session.
+
+- Add a multitouch controller with movement/action holds, optional camera stick, size/opacity/handedness controls, and always-accessible Settings/Pause/Back buttons. Phone menus support touch scrolling and Android text input; the overlay is also available on touch-capable desktops and the browser without changing desktop defaults.
+
 - Add a portable disc-movie decoder for Android opening/training/ending playback, including captions and XA sound, without an external FFmpeg executable. Desktop decoding remains unchanged.
 
 - Add optional **Quarter-resolution shadow visibility** under F1 → Rendering trials. Wet/snow terrain can share soft local-light shadow samples while materials and characters retain their detail. Includes a comparison demo; requires native/WebGPU, HDR and no MSAA. Fine shadow edges can soften; built-in presets remain unchanged.

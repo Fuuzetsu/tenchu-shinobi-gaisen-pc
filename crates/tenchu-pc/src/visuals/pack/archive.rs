@@ -69,6 +69,9 @@ fn cache_root() -> Result<PathBuf> {
     if let Some(root) = std::env::var_os("TENCHU_ASSET_CACHE") {
         return Ok(root.into());
     }
+    #[cfg(target_os = "android")]
+    let root = crate::android::data_dir()?.join("cache");
+    #[cfg(not(target_os = "android"))]
     let root = if cfg!(target_os = "windows") {
         std::env::var_os("LOCALAPPDATA").or_else(|| std::env::var_os("APPDATA")).map(PathBuf::from)
     } else if let Some(root) = std::env::var_os("XDG_CACHE_HOME") {

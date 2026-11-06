@@ -97,6 +97,8 @@ impl Editor {
         let mut changed = false;
         egui::Modal::new(egui::Id::new("control-bindings")).show(ctx, |ui| {
             ui.set_width(580.0_f32.min(ctx.screen_rect().width() - 48.0));
+            egui::ScrollArea::vertical().id_salt("bindings-window")
+                .max_height((ctx.screen_rect().height() - 60.0).max(160.0)).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("Controls");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -164,6 +166,7 @@ impl Editor {
             }
             ui.weak("Escape / Enter / F1–F12 keep their menu and tool shortcuts. Backspace keeps cutscene fast-forward. Keyboard bindings use physical key positions.");
             if !self.notice.is_empty() { ui.label(&self.notice); }
+            });
         });
         changed
     }

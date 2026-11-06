@@ -125,6 +125,11 @@ impl Frontend {
             return None;
         }
         let label = self.description(campaign);
+        #[cfg(target_os = "android")]
+        let label = label
+            .replace("Enter", "Confirm")
+            .replace("Esc", "Back")
+            .replace("Space / Start / R / F5", "Start / □");
         painter.text(
             egui::pos2(screen.center().x, screen.bottom() - margin + 17.0),
             Align2::CENTER_CENTER,
@@ -137,7 +142,20 @@ impl Frontend {
             Color32::WHITE,
         );
         let (confirm, back) = crate::controls::menu_labels(settings.circle_confirm);
-        let help = if self.notice.is_empty() && self.page == Page::Shop {
+        let help = if cfg!(target_os = "android") && self.notice.is_empty() {
+            let (confirm, back) = if settings.circle_confirm {
+                ("○", "×")
+            } else {
+                ("×", "○")
+            };
+            if self.page == Page::Shop {
+                format!("Move: item   {confirm}: take   □: return   Start: begin   {back}: cancel")
+            } else {
+                format!(
+                    "Move: select   {confirm}: confirm   {back}: back   Quick: launcher   Settings: options"
+                )
+            }
+        } else if self.notice.is_empty() && self.page == Page::Shop {
             format!(
                 "Arrows: item   Enter / {confirm}: take   R / West: return   Space / Start: begin   Esc / {back}: cancel"
             )
@@ -181,13 +199,34 @@ impl Frontend {
                 .anchor(Align2::CENTER_BOTTOM, EVec2::new(0.0, -5.0))
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
-                        if ui.button("Begin mission [Space / Start]").clicked() {
+                        if ui
+                            .button(if cfg!(target_os = "android") {
+                                "Begin mission"
+                            } else {
+                                "Begin mission [Space / Start]"
+                            })
+                            .clicked()
+                        {
                             action = Some(Action::Start);
                         }
-                        if ui.button("Return item [R / West]").clicked() {
+                        if ui
+                            .button(if cfg!(target_os = "android") {
+                                "Return item"
+                            } else {
+                                "Return item [R / West]"
+                            })
+                            .clicked()
+                        {
                             action = Some(Action::Replay);
                         }
-                        if ui.button(format!("Cancel [Esc / {back}]")).clicked() {
+                        if ui
+                            .button(if cfg!(target_os = "android") {
+                                "Cancel".into()
+                            } else {
+                                format!("Cancel [Esc / {back}]")
+                            })
+                            .clicked()
+                        {
                             action = Some(Action::Back);
                         }
                     });

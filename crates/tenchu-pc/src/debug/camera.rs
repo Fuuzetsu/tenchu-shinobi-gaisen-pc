@@ -62,17 +62,26 @@ impl Camera {
         let axis = |positive, negative| {
             i32::from(controls.held(positive)) - i32::from(controls.held(negative))
         };
+        let [movement_stick, look] = controls.sticks();
+        self.yaw += look.x * elapsed.min(0.1) * 2.0;
+        self.pitch = (self.pitch + look.y * elapsed.min(0.1) * 2.0).clamp(-1.56, 1.56);
+        let buttons = controls.touch_buttons();
+        let rise = f32::from(buttons & tenchu_core::input::CROSS != 0)
+            - f32::from(buttons & tenchu_core::input::L1 != 0);
         let forward = self.forward();
         let right = forward.cross(Vec3::NEG_Y).normalize();
-        let movement = forward * axis(KeyCode::KeyW, KeyCode::KeyS) as f32
-            + right * axis(KeyCode::KeyD, KeyCode::KeyA) as f32
-            + Vec3::NEG_Y * axis(KeyCode::KeyE, KeyCode::KeyQ) as f32;
-        let boost = if controls.held(KeyCode::ShiftLeft) || controls.held(KeyCode::ShiftRight) {
+        let movement = forward * (axis(KeyCode::KeyW, KeyCode::KeyS) as f32 + movement_stick.y)
+            + right * (axis(KeyCode::KeyD, KeyCode::KeyA) as f32 + movement_stick.x)
+            + Vec3::NEG_Y * (axis(KeyCode::KeyE, KeyCode::KeyQ) as f32 + rise);
+        let boost = if controls.held(KeyCode::ShiftLeft)
+            || controls.held(KeyCode::ShiftRight)
+            || buttons & tenchu_core::input::CIRCLE != 0
+        {
             4.0
         } else {
             1.0
         };
-        self.position += movement.normalize_or_zero() * speed * elapsed.min(0.1) * boost;
+        self.position += movement.clamp_length_max(1.0) * speed * elapsed.min(0.1) * boost;
         self.position = self
             .position
             .clamp(Vec3::splat(-320_000.0), Vec3::splat(320_000.0));

@@ -66,8 +66,26 @@ pub fn build(
         );
     } else if paused {
         line(-40, -20, "Paused".into(), GOLD);
-        line(-140, 12, format!("P/Start/{confirm}: resume"), WHITE);
-        line(-140, 32, format!("Esc/{back}: abandon attempt"), DIM);
+        line(
+            -140,
+            12,
+            if cfg!(target_os = "android") {
+                "Pause: resume".into()
+            } else {
+                format!("P/Start/{confirm}: resume")
+            },
+            WHITE,
+        );
+        line(
+            -140,
+            32,
+            if cfg!(target_os = "android") {
+                "Back: abandon attempt".into()
+            } else {
+                format!("Esc/{back}: abandon attempt")
+            },
+            DIM,
+        );
         line(
             -140,
             52,
@@ -84,7 +102,17 @@ pub fn build(
             Screen::Frontend | Screen::Ending(_) | Screen::Inventory(_) => (),
             Screen::Launcher => {
                 line(-140, -102, "TENCHU: SHINOBI GAISEN".into(), GOLD);
-                line(-140, -84, "PC port - development build".into(), DIM);
+                line(
+                    -140,
+                    -84,
+                    if cfg!(target_os = "android") {
+                        "Android preview"
+                    } else {
+                        "PC port - development build"
+                    }
+                    .into(),
+                    DIM,
+                );
                 let options = campaign.options;
                 let labels = [
                     if campaign.saved.is_some() {
@@ -122,11 +150,26 @@ pub fn build(
                         if campaign.cursor == i { GOLD } else { WHITE },
                     );
                 }
-                line(-140, 88, "Arrows/D-pad/stick: choose/change".into(), DIM);
+                line(
+                    -140,
+                    88,
+                    if cfg!(target_os = "android") {
+                        "Move: choose/change"
+                    } else {
+                        "Arrows/D-pad/stick: choose/change"
+                    }
+                    .into(),
+                    DIM,
+                );
                 line(
                     -140,
                     104,
-                    if campaign.frontend {
+                    if cfg!(target_os = "android") {
+                        format!(
+                            "{}: select   Back: title",
+                            if circle_confirm { "○" } else { "×" }
+                        )
+                    } else if campaign.frontend {
                         format!("Enter/{confirm}: select  Esc/{back}: title")
                     } else {
                         format!("Enter/{confirm}: select  Esc/{back}: quit")

@@ -251,7 +251,9 @@ impl Manager {
         if !open {
             return None;
         }
-        egui::Window::new("Visual presets").open(&mut open).default_width(460.0).show(ctx, |ui| {
+        egui::Window::new("Visual presets").open(&mut open).default_width(460.0)
+            .max_width(ctx.screen_rect().width() - 32.0)
+            .max_height(ctx.screen_rect().height() - 32.0).vscroll(true).show(ctx, |ui| {
             ui.label("Presets change graphics and HUD text. Gameplay, controls, audio and window preferences are kept.");
             ui.horizontal(|ui| {
                 for (index, label) in presets::QUALITY.into_iter().zip(["Low", "Medium", "High", "Ultra"]) {

@@ -31,6 +31,7 @@ pub(super) fn application(options: Options) -> Application {
         clock: GameClock::default(),
         last_frame: Instant::now(),
         controls: Controls::default(),
+        touch: Default::default(),
         orbit: Default::default(),
         paused: false,
         faulted: false,

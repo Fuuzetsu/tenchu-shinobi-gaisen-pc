@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+mod android;
 mod audio;
 mod campaign;
 #[cfg(not(target_arch = "wasm32"))]
@@ -26,6 +28,7 @@ mod source;
 #[cfg(not(target_arch = "wasm32"))]
 mod startup;
 mod storage;
+mod touch;
 mod trial;
 mod ui;
 #[cfg(not(target_arch = "wasm32"))]

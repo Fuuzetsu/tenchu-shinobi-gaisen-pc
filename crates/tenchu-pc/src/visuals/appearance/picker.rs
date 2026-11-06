@@ -227,9 +227,11 @@ impl State<'_> {
         let mut scroll = egui::ScrollArea::vertical()
             .id_salt("model-gallery")
             .auto_shrink([false, true])
-            .max_height(
-                (ui.ctx().screen_rect().bottom() - ui.cursor().top() - 100.0).clamp(120.0, 420.0),
-            );
+            .max_height(if menu.model_picker {
+                (ui.ctx().screen_rect().height() - 180.0).clamp(152.0, 420.0)
+            } else {
+                (ui.ctx().screen_rect().bottom() - ui.cursor().top() - 100.0).clamp(120.0, 420.0)
+            });
         if previous_search != self.picker.search {
             scroll = scroll.vertical_scroll_offset(0.0);
         }
@@ -359,6 +361,7 @@ mod tests {
         let before = crate::session::tests::state(&game);
         let bodies = Pack::default();
         for size in [
+            egui::vec2(731.0, 411.0),
             egui::vec2(800.0, 600.0),
             egui::vec2(1280.0, 720.0),
             egui::vec2(3840.0, 2160.0),
@@ -367,6 +370,7 @@ mod tests {
             let mut picker = Picker::default();
             let mut menu = Menu {
                 open: true,
+                model_picker: size.y < 560.0,
                 page: 10,
                 player_models: super::super::choices(&game, &bodies, Some(&library)),
                 ..Default::default()
@@ -409,8 +413,17 @@ mod tests {
                     },
                 );
                 let rect = ctx
-                    .memory(|m| m.area_rect(egui::Id::new("Settings & tools")))
+                    .memory(|m| {
+                        m.area_rect(egui::Id::new(if menu.model_picker {
+                            "player-model-gallery"
+                        } else {
+                            "Settings & tools"
+                        }))
+                    })
                     .unwrap();
+                if menu.model_picker {
+                    assert!(rect.height() < size.y, "gallery exceeds phone height");
+                }
                 if frame == 10 {
                     settled_width = rect.width();
                     assert!(
@@ -427,7 +440,7 @@ mod tests {
                 assert!(picker.previews.len() < menu.player_models.len() / 2);
                 assert!(picker.previews.values().all(Result::is_ok));
                 if (40..60).contains(&frame) {
-                    assert_eq!(picker.previews.len(), 1);
+                    assert_eq!(picker.previews.len(), 1, "size {size:?}, frame {frame}");
                     let preview = picker.previews["disc:135"].as_ref().unwrap();
                     animated |= preview.motion.count > 0;
                 }

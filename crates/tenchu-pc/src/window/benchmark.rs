@@ -292,7 +292,9 @@ impl Benchmarks {
                     cancel = ui.button("Cancel (Esc)").clicked();
                 });
         } else if self.open {
-            egui::Window::new("Benchmarks").open(&mut self.open).default_width(520.0).show(ctx, |ui| {
+            egui::Window::new("Benchmarks").open(&mut self.open).default_width(520.0)
+                .max_width(ctx.screen_rect().width() - 32.0)
+                .max_height(ctx.screen_rect().height() - 64.0).vscroll(true).show(ctx, |ui| {
                 ui.label("Run fixed camera paths through lights, architecture, vegetation and water.");
                 ui.weak("Loading and the first 60 frames of each scene are excluded. Your game and settings are restored afterwards. Keep the window focused and its size unchanged.");
                 if ui.button("Benchmark current graphics").clicked() {

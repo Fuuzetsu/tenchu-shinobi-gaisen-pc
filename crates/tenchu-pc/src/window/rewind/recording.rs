@@ -25,7 +25,7 @@ impl Application {
             range[0],
             range[1]
         );
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         let path = {
             let Some(path) = rfd::FileDialog::new()
                 .set_title("Export rewind recording (contains game data; share privately)")
@@ -43,8 +43,10 @@ impl Application {
             String::from_utf8(self.diagnostic_report()?).map_err(|e| e.to_string())?
         };
         let bytes = self.rewind.export(range, report)?;
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         crate::storage::atomic_write(&path, &bytes)?;
+        #[cfg(target_os = "android")]
+        crate::android::export(&name, &bytes)?;
         #[cfg(target_arch = "wasm32")]
         crate::web::recording::download(&name, &bytes)?;
         self.clock.discard_host_backlog();
@@ -98,7 +100,7 @@ impl Application {
         self.stop_rewind();
         self.debug.pause_view = true;
         self.set_paused(true);
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         {
             let Some(path) = rfd::FileDialog::new()
                 .set_title("Import rewind recording")
@@ -110,6 +112,8 @@ impl Application {
             let bytes = crate::savestate::read(&path)?;
             self.load_recording(&bytes)
         }
+        #[cfg(target_os = "android")]
+        return crate::android::import("recording");
         #[cfg(target_arch = "wasm32")]
         crate::web::recording::start()
     }

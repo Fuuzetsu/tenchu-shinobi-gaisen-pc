@@ -26,10 +26,8 @@ sha2.workspace = true
 web-time = "1.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-egui-winit = { workspace = true, features = ["clipboard"] }
 cpal.workspace = true
 pollster.workspace = true
-rfd = "0.17.2"
 tar = { version = "0.4", default-features = false }
 ruzstd = "0.9"
 
@@ -50,3 +48,12 @@ web-sys = { version = "=0.3.98", features = [
     "AudioContext", "AudioBuffer", "AudioBufferSourceNode", "AudioDestinationNode",
     "GainNode", "AudioParam", "Blob", "Url", "console", "Performance", "Location",
 ] }
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
+egui-winit = { workspace = true, features = ["clipboard"] }
+rfd = "0.17.2"
+
+[target.'cfg(target_os = "android")'.dependencies]
+egui-winit.workspace = true
+winit = { workspace = true, features = ["android-native-activity"] }
+jni = "=0.22.4"

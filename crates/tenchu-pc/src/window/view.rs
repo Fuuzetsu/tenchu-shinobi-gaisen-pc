@@ -70,7 +70,9 @@ pub(super) struct View {
     pub(super) text: Vec<crate::fonts::Text>,
     pub(super) overlay: super::overlay::Overlay,
     pub(super) renderer: Renderer,
-    pub(super) surface: wgpu::Surface<'static>,
+    pub(super) surface: Option<wgpu::Surface<'static>>,
+    #[cfg(target_os = "android")]
+    pub(super) instance: wgpu::Instance,
     pub(super) window: Arc<Window>,
     pub(super) config: wgpu::SurfaceConfiguration,
     pub(super) size: [u32; 2],
@@ -137,6 +139,7 @@ impl View {
             Ok(RawWindowHandle::Wayland(_)) => "Wayland",
             Ok(RawWindowHandle::Win32(_)) => "Win32",
             Ok(RawWindowHandle::AppKit(_)) => "AppKit",
+            Ok(RawWindowHandle::AndroidNdk(_)) => "Android",
             Ok(
                 RawWindowHandle::Web(_)
                 | RawWindowHandle::WebCanvas(_)
@@ -481,7 +484,9 @@ impl View {
             dirty: true,
             overlay,
             window,
-            surface,
+            surface: Some(surface),
+            #[cfg(target_os = "android")]
+            instance,
             config,
             renderer,
             stage,
@@ -649,7 +654,9 @@ impl View {
         }
         self.config.width = width;
         self.config.height = height;
-        self.surface.configure(&self.renderer.device, &self.config);
+        if let Some(surface) = &self.surface {
+            surface.configure(&self.renderer.device, &self.config);
+        }
         self.renderer.resize([width, height]);
     }
 
@@ -833,7 +840,9 @@ impl View {
         };
         if self.config.present_mode != mode {
             self.config.present_mode = mode;
-            self.surface.configure(&self.renderer.device, &self.config);
+            if let Some(surface) = &self.surface {
+                surface.configure(&self.renderer.device, &self.config);
+            }
         }
         Ok(())
     }
@@ -1111,7 +1120,12 @@ impl View {
             if paused && debug.active() {
                 self.labels.push(crate::debug::Label(
                     crate::debug::Anchor::TopLeft([10.0, 132.0]),
-                    "PAUSED  F3: resume  F4: step".into(),
+                    if cfg!(target_os = "android") {
+                        "PAUSED  Pause: resume"
+                    } else {
+                        "PAUSED  F3: resume  F4: step"
+                    }
+                    .into(),
                     [1.0, 0.85, 0.35],
                 ));
             }
@@ -1156,10 +1170,15 @@ impl View {
             return Ok(None);
         }
         let start = Instant::now();
-        let frame = match self.surface.get_current_texture() {
+        let Some(surface) = &self.surface else {
+            return Ok(None);
+        };
+        let frame = match surface.get_current_texture() {
             Ok(frame) => frame,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                self.surface.configure(&self.renderer.device, &self.config);
+                if let Some(surface) = &self.surface {
+                    surface.configure(&self.renderer.device, &self.config);
+                }
                 self.dirty = true;
                 return Ok(None);
             }

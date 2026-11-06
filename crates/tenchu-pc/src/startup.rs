@@ -1,4 +1,5 @@
 use crate::source;
+#[cfg(not(target_os = "android"))]
 use rfd::{FileDialog, MessageDialog, MessageLevel};
 use std::path::{Path, PathBuf};
 use tenchu_assets::{Result, game::GameAssets};
@@ -84,6 +85,7 @@ fn remembered_path(saved: &Path) -> Option<PathBuf> {
     })
 }
 
+#[cfg(not(target_os = "android"))]
 fn choose() -> Result<Option<(PathBuf, Assets)>> {
     eprintln!("{DISC_HELP}\n\nCommand line: tenchu-pc play '/path/to/game.cue'");
     if cfg!(target_os = "linux")
@@ -120,6 +122,7 @@ fn choose() -> Result<Option<(PathBuf, Assets)>> {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn show_error(error: &str) {
     MessageDialog::new()
         .set_title("Tenchu — unable to start")
@@ -130,3 +133,12 @@ pub fn show_error(error: &str) {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(target_os = "android")]
+fn choose() -> Result<Option<(PathBuf, Assets)>> {
+    Err("Import a disc from the Android launcher before starting the game".into())
+}
+#[cfg(target_os = "android")]
+pub fn show_error(error: &str) {
+    crate::android::show_error(error);
+}

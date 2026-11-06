@@ -81,6 +81,13 @@ impl Editor {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn imported(&mut self, run: Run) {
+        self.share = run.export();
+        self.setup = run;
+        self.notice = "Imported seed file".into();
+    }
+
     pub fn started(&mut self, run: &Run) {
         self.current = Some(run.clone());
         self.save();
@@ -109,6 +116,7 @@ impl Editor {
             .min_width(480.0)
             .max_width((screen.width() - 24.0).max(480.0))
             .max_height((screen.height() - 30.0).max(250.0))
+            .vscroll(true)
             .show(ctx, |ui| {
                 ui.label(
                     "A separate seeded run. Normal campaign saves and visual preferences are kept.",
@@ -494,7 +502,23 @@ impl Editor {
                     Err(error) => self.notice = error,
                 }
             }
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(target_os = "android")]
+            {
+                if ui.button("Save file…").clicked()
+                    && let Err(error) = crate::android::export(
+                        "tenchu-randomizer.json",
+                        self.setup.export().as_bytes(),
+                    )
+                {
+                    self.notice = error;
+                }
+                if ui.button("Open file…").clicked()
+                    && let Err(error) = crate::android::import("randomizer")
+                {
+                    self.notice = error;
+                }
+            }
+            #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
             {
                 if ui.button("Save file…").clicked()
                     && let Some(path) = rfd::FileDialog::new()
@@ -520,9 +544,7 @@ impl Editor {
                             Ok(run)
                         }) {
                         Ok(run) => {
-                            self.share = run.export();
-                            self.setup = run;
-                            self.notice = "Imported seed file".into();
+                            self.imported(run);
                         }
                         Err(error) => self.notice = error,
                     }

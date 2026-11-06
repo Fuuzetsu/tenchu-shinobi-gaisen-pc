@@ -1,4 +1,6 @@
 mod actors;
+#[cfg(target_os = "android")]
+mod android;
 mod behavior;
 pub mod benchmark;
 mod demo;
@@ -59,6 +61,7 @@ struct Application {
     clock: GameClock,
     last_frame: Instant,
     controls: Controls,
+    touch: crate::touch::Overlay,
     orbit: crate::navigation::Orbit,
     paused: bool,
     faulted: bool,
@@ -246,8 +249,13 @@ impl Application {
         }
     }
 
+    fn backgrounded(&self) -> bool {
+        cfg!(target_os = "android") && self.view.as_ref().is_some_and(|v| v.surface.is_none())
+    }
+
     fn is_suspended(&self) -> bool {
-        self.paused
+        self.backgrounded()
+            || self.paused
             || self.trial.open
             || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
@@ -256,6 +264,7 @@ impl Application {
     }
 
     fn sync_pause(&mut self) {
+        self.touch.clear();
         let paused = self.is_suspended();
         if paused || !self.campaign.playing() {
             self.release_pointer();
@@ -273,10 +282,12 @@ impl Application {
 
     fn sync_audio_pause(&mut self) {
         let paused = self.is_suspended();
+        let backgrounded = self.backgrounded();
         if let Some(audio) = &mut self.audio {
             audio.pause(
                 paused,
                 self.settings.music_while_paused
+                    && !backgrounded
                     && self.campaign.scene_visible()
                     && !self.faulted
                     && !self.reverse.preview
@@ -531,6 +542,65 @@ impl Application {
     }
 }
 
+impl Application {
+    fn touch_action(&mut self, action: crate::touch::Action, events: &ActiveEventLoop) {
+        if self.benchmarks.run.is_some() {
+            if matches!(
+                action,
+                crate::touch::Action::Back | crate::touch::Action::Settings
+            ) && let Err(error) = self.finish_benchmark(Some("Cancelled by user".into()))
+            {
+                self.pause_error(error);
+            }
+            return;
+        }
+        match action {
+            crate::touch::Action::Settings => {
+                self.controls.close_editor();
+                self.toggle_menu();
+            }
+            crate::touch::Action::Pause => self.command(Command::Pause, events),
+            crate::touch::Action::Back => {
+                if self.menu.open {
+                    self.controls.close_editor();
+                    self.toggle_menu();
+                } else if self.trial.open {
+                    self.trial_action(crate::trial::Event::Close);
+                } else if self.randomizer.open {
+                    self.toggle_randomizer();
+                } else if self.demo.is_some() {
+                    self.demo_action(crate::demo::overlay::Action::Exit);
+                } else if self.debug.camera.is_some() || self.debug.camera_actor.is_some() {
+                    self.debug.return_camera();
+                    self.sync_pause();
+                    self.update_view();
+                } else {
+                    self.command(Command::Menu(Action::Back), events);
+                }
+            }
+            crate::touch::Action::Recenter => {
+                if self.debug.camera.is_some() {
+                    self.debug.selected_actor = self.campaign.game.player_id;
+                    self.debug.focus(&self.campaign.game, false);
+                } else {
+                    self.recenter_orbit();
+                }
+            }
+            crate::touch::Action::QuickMenu => {
+                if !self.campaign.playing() {
+                    self.campaign.quick_launcher = true;
+                    self.campaign.screen = Screen::Launcher;
+                    if let Some(frontend) = &mut self.frontend {
+                        frontend.quick_launcher();
+                    }
+                    self.sync_pause();
+                    self.update_view();
+                }
+            }
+        }
+    }
+}
+
 impl ApplicationHandler for Application {
     fn device_event(&mut self, _: &ActiveEventLoop, _: DeviceId, event: DeviceEvent) {
         if self.focused
@@ -568,6 +638,16 @@ impl ApplicationHandler for Application {
             view.renderer.device.poll(wgpu::Maintain::Wait);
             drop(view);
         }
+    }
+
+    #[cfg(target_os = "android")]
+    fn suspended(&mut self, _: &ActiveEventLoop) {
+        self.focused = false;
+        if let Some(view) = &mut self.view {
+            view.renderer.device.poll(wgpu::Maintain::Wait);
+            view.surface = None;
+        }
+        self.sync_pause();
     }
 
     fn resumed(&mut self, _events: &ActiveEventLoop) {
@@ -621,6 +701,25 @@ impl ApplicationHandler for Application {
                 }
             }
         }
+        #[cfg(target_os = "android")]
+        {
+            self.focused = true;
+            if let Some(view) = &mut self.view
+                && view.surface.is_none()
+            {
+                match view.instance.create_surface(view.window.clone()) {
+                    Ok(surface) => {
+                        view.surface = Some(surface);
+                        view.resize(view.size[0], view.size[1]);
+                    }
+                    Err(error) => {
+                        self.error = Some(error.to_string());
+                        events.exit();
+                    }
+                }
+            }
+            self.sync_pause();
+        }
         self.update_view();
         self.last_frame = Instant::now();
         self.clock.discard_host_backlog();
@@ -667,6 +766,19 @@ impl ApplicationHandler for Application {
                 self.controls.editor_key(code);
             }
             return;
+        }
+        if let WindowEvent::Touch(touch) = &event
+            && let Some(view) = &self.view
+        {
+            let point = view.overlay.touch_point(touch.location);
+            let (handled, action) = self.touch.event(touch.id, touch.phase, point);
+            self.controls.touch(self.touch.sample());
+            if let Some(action) = action {
+                self.touch_action(action, events);
+            }
+            if handled {
+                return;
+            }
         }
         if let Some(view) = &mut self.view {
             view.overlay.event(&view.window, &event);
@@ -720,6 +832,23 @@ impl ApplicationHandler for Application {
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers = modifiers.state(),
             WindowEvent::CursorMoved { position, .. } => {
                 self.pointer = [position.x, position.y];
+            }
+            WindowEvent::Touch(touch) => {
+                self.pointer = [touch.location.x, touch.location.y];
+                if touch.phase == winit::event::TouchPhase::Ended
+                    && !self.menu.open
+                    && !self.trial.open
+                    && !self.randomizer.open
+                    && self.demo.is_none()
+                    && self.focused
+                    && (self.debug.camera.is_some() || self.debug.click_teleport)
+                    && !self
+                        .view
+                        .as_ref()
+                        .is_some_and(|v| v.overlay.pointer_over_ui())
+                {
+                    self.pick_debug_target();
+                }
             }
             WindowEvent::MouseInput {
                 state: ElementState::Released,
@@ -780,9 +909,21 @@ impl ApplicationHandler for Application {
                 if !self.focused || is_synthetic || event.repeat {
                     return;
                 }
-                let PhysicalKey::Code(code) = event.physical_key else {
-                    return;
+                let mut code = match event.physical_key {
+                    PhysicalKey::Code(code) => code,
+                    _ if cfg!(target_os = "android")
+                        && event.logical_key
+                            == winit::keyboard::Key::Named(
+                                winit::keyboard::NamedKey::BrowserBack,
+                            ) =>
+                    {
+                        KeyCode::Escape
+                    }
+                    _ => return,
                 };
+                if code == KeyCode::BrowserBack {
+                    code = KeyCode::Escape;
+                }
                 if self.benchmarks.run.is_some() {
                     if code == KeyCode::Escape
                         && event.state == ElementState::Pressed
@@ -967,6 +1108,13 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::RedrawRequested => {
+                #[cfg(target_os = "android")]
+                {
+                    self.poll_android_files();
+                    if crate::android::take_back() {
+                        self.touch_action(crate::touch::Action::Back, events);
+                    }
+                }
                 #[cfg(target_arch = "wasm32")]
                 self.poll_state();
                 #[cfg(target_arch = "wasm32")]
@@ -1041,7 +1189,9 @@ impl ApplicationHandler for Application {
                     }
                 } else if self.focused
                     && let Some(command) = controls::gamepad_command(
-                        if self.campaign.playing() && !self.paused {
+                        if self.debug.camera.is_some() {
+                            update.menu_pressed & tenchu_core::input::START
+                        } else if self.campaign.playing() && !self.paused {
                             update.pressed
                         } else {
                             update.menu_pressed
@@ -1213,7 +1363,9 @@ impl ApplicationHandler for Application {
             }
             return;
         }
-        if let Some(view) = &self.view {
+        if let Some(view) = &self.view
+            && view.surface.is_some()
+        {
             view.window.request_redraw();
         }
     }
@@ -1221,6 +1373,8 @@ impl ApplicationHandler for Application {
 
 #[derive(Default)]
 pub struct Startup {
+    #[cfg(target_os = "android")]
+    pub android: Option<winit::platform::android::activity::AndroidApp>,
     pub quick_launcher: bool,
     pub difficulty: Option<tenchu_core::ai::Difficulty>,
     pub benchmark: Option<benchmark::Options>,
@@ -1344,6 +1498,7 @@ pub fn run(
         clock: GameClock::default(),
         last_frame: Instant::now(),
         controls: Controls::new(),
+        touch: Default::default(),
         orbit: Default::default(),
         paused: false,
         faulted: false,
@@ -1395,7 +1550,16 @@ pub fn run(
             "Default keyboard: WASD/arrows move, Space jump, Shift crouch, J attack, E item, Q look, Z/C item selection, M/Tab map. P pause, F5 retry, Esc inventory.\nDefault controller: D-pad/left stick move, south jump, west attack, east/R1 crouch, north item, L1 look, L2/R2 items, Select map, Start pause. Menus: south confirm, east back, west retry.\nRemap keyboard/controller inputs in F1 > General > Controls. Saved bindings override these defaults.\nGameplay is still in development; an unsupported action pauses with a diagnostic."
         );
     }
+    #[cfg(not(target_os = "android"))]
     let event_loop = EventLoop::new().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "android")]
+    let event_loop = {
+        use winit::platform::android::EventLoopBuilderExtAndroid;
+        EventLoop::builder()
+            .with_android_app(startup.android.ok_or("Android activity unavailable")?)
+            .build()
+            .map_err(|e| e.to_string())?
+    };
     #[cfg(target_arch = "wasm32")]
     {
         use winit::platform::web::EventLoopExtWebSys;

@@ -104,14 +104,14 @@ impl Editor {
         self.notice = "Mission saved in your local library".into();
         Ok(())
     }
-    pub(super) fn import(&mut self, bytes: &[u8], assets: &GameAssets<DiscSource>) -> Result<()> {
+    pub(crate) fn import(&mut self, bytes: &[u8], assets: &GameAssets<DiscSource>) -> Result<()> {
         self.select(Mission::decode(bytes)?, Origin::Draft, assets)?;
         self.tab = Tab::Missions;
         self.notice = "Imported mission. Use Save to keep a copy in your library.".into();
         Ok(())
     }
     pub(super) fn file_import(&mut self, assets: &GameAssets<DiscSource>) -> Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("Tenchu mission", &["msn", "mcs"])
             .pick_file()
@@ -120,6 +120,11 @@ impl Editor {
                 return Err("Select a single .msn mission or .mcs memory-card block".into());
             }
             self.import(&std::fs::read(path).map_err(|e| e.to_string())?, assets)?;
+        }
+        #[cfg(target_os = "android")]
+        {
+            let _ = assets;
+            crate::android::import("trial")?;
         }
         #[cfg(target_arch = "wasm32")]
         {
@@ -130,7 +135,7 @@ impl Editor {
     }
     pub(super) fn file_export(&self) -> Result<()> {
         let bytes = self.mission.as_ref().unwrap().encode()?;
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("Tenchu mission", &["msn"])
             .set_file_name("mission.msn")
@@ -138,6 +143,8 @@ impl Editor {
         {
             storage::atomic_write(&path, &bytes)?;
         }
+        #[cfg(target_os = "android")]
+        crate::android::export("mission.msn", &bytes)?;
         #[cfg(target_arch = "wasm32")]
         crate::web::export_trial(&js_sys::Uint8Array::from(bytes.as_slice()))
             .map_err(|e| format!("Download: {e:?}"))?;

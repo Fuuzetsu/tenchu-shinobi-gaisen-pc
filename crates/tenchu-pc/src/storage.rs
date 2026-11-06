@@ -91,6 +91,12 @@ impl UserFile {
         if let Some(path) = std::env::var_os(override_env) {
             return Ok(path.into());
         }
+        #[cfg(target_os = "android")]
+        let root = {
+            let _ = (xdg, fallback);
+            crate::android::data_dir()?.to_owned()
+        };
+        #[cfg(not(target_os = "android"))]
         let root = if let Some(path) = std::env::var_os(xdg) {
             PathBuf::from(path)
         } else if cfg!(target_os = "windows") {

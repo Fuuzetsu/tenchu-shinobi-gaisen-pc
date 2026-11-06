@@ -229,6 +229,9 @@ pub fn show(
             .open(&mut open)
             .default_width(590.0)
             .default_height(440.0)
+            .max_width(ctx.screen_rect().width() - 32.0)
+            .max_height(ctx.screen_rect().height() - 64.0)
+            .vscroll(true)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
                 ui.label("Choose a clip to play alone, or check several and play the selection.");
@@ -258,7 +261,7 @@ pub fn show(
                 ui.separator();
                 egui::ScrollArea::vertical()
                     .auto_shrink([false, false])
-                    .max_height(400.0)
+                    .max_height((ctx.screen_rect().height() - 175.0).clamp(120.0, 400.0))
                     .show(ui, |ui| {
                         for (index, clip) in player.catalog.iter().enumerate() {
                             ui.horizontal(|ui| {

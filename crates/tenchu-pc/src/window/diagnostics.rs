@@ -54,6 +54,10 @@ fn platform() -> Value {
         "pointer_bits": usize::BITS, "byte_order": if cfg!(target_endian = "little") { "little" } else { "big" },
         "available_threads": std::thread::available_parallelism().ok().map(|n| n.get()),
     });
+    #[cfg(target_os = "android")]
+    {
+        info["platform"] = json!("Android NativeActivity");
+    }
     #[cfg(target_os = "linux")]
     {
         info["kernel"] = std::fs::read_to_string("/proc/sys/kernel/osrelease")
@@ -218,7 +222,7 @@ impl Application {
             self.campaign.options.mission,
             self.campaign.game.tick
         );
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         {
             let Some(path) = rfd::FileDialog::new()
                 .set_title("Save diagnostic report")
@@ -239,6 +243,11 @@ impl Application {
             )
             .map_err(|e| format!("Diagnostic download failed: {e:?}"))?;
             self.menu.notice = "Diagnostic report sent to browser downloads".into();
+        }
+        #[cfg(target_os = "android")]
+        {
+            crate::android::export(&name, &bytes)?;
+            self.menu.notice = "Choose where to save the report".into();
         }
         self.sync_pause();
         Ok(())

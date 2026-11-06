@@ -5,7 +5,10 @@ pub fn configured_root() -> Option<PathBuf> {
         return (!path.is_empty()).then(|| PathBuf::from(path));
     }
     let executable = std::env::current_exe().ok();
+    #[cfg(not(target_os = "android"))]
     let directory = std::env::current_dir().ok();
+    #[cfg(target_os = "android")]
+    let directory = crate::android::data_dir().ok().map(Path::to_owned);
     discover(executable.as_deref(), directory.as_deref())
 }
 

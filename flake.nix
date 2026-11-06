@@ -207,6 +207,15 @@
           };
         }
         // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+          android = import ./packaging/android.nix {
+            inherit nixpkgs;
+            system = pkgs.stdenv.hostPlatform.system;
+          };
+          android-emulator = import ./packaging/android.nix {
+            inherit nixpkgs;
+            system = pkgs.stdenv.hostPlatform.system;
+            architecture = "x86_64";
+          };
           windows =
             let
               cross = pkgs.pkgsCross.mingwW64;

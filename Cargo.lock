@@ -2638,6 +2638,7 @@ dependencies = [
  "flate2",
  "gilrs",
  "glam",
+ "jni",
  "js-sys",
  "lz4_flex",
  "png 0.17.16",

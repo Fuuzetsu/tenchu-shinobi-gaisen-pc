@@ -8,6 +8,7 @@ use crate::debug::Debug;
 use egui::{Color32, RichText, Ui};
 
 pub enum Edit {
+    Touch(crate::touch::Settings),
     Change(Item, i32),
     Preset(super::library::Choice),
     GameplayPreset(usize),
@@ -58,17 +59,75 @@ pub fn show(
         rewind::overlay(ctx, debug, &mut edits);
         return edits;
     }
+    if menu.model_picker {
+        egui::Modal::new("player-model-gallery".into()).show(ctx, |ui| {
+            ui.set_width((ctx.screen_rect().width() - 48.0).min(640.0));
+            ui.horizontal(|ui| {
+                ui.heading("Player model");
+                if ui.button("Done").clicked() {
+                    menu.model_picker = false;
+                }
+            });
+            if let Some(models) = &mut models {
+                models.show(ui, menu, settings, &mut edits);
+            }
+        });
+        return edits;
+    }
+    if menu.touch_controls {
+        let mut value = settings.touch;
+        egui::Modal::new("touch-settings".into()).show(ctx, |ui| {
+            ui.set_max_width((ctx.screen_rect().width() - 48.0).min(440.0));
+            ui.heading("Touch controls");
+            ui.horizontal_wrapped(|ui| {
+                for (mode, label) in [(crate::touch::Visibility::Auto, "Automatic"), (crate::touch::Visibility::Always, "Always"), (crate::touch::Visibility::Hidden, "Hidden")] {
+                    ui.selectable_value(&mut value.visibility, mode, label);
+                }
+            });
+            ui.add(egui::Slider::new(&mut value.size, 70..=140).text("Size %"));
+            ui.add(egui::Slider::new(&mut value.opacity, 15..=90).text("Opacity %"));
+            ui.checkbox(&mut value.left_handed, "Mirror gameplay controls");
+            ui.label("Hold Move with one finger and actions with others. Enable camera-relative movement for the right camera stick. Settings remains accessible when controls are hidden.");
+            if ui.button("Reset touch controls").clicked() { value = Default::default(); }
+            if ui.button("Done").clicked() { menu.touch_controls = false; }
+        });
+        if value != settings.touch {
+            edits.push(Edit::Touch(value));
+        }
+    }
     let mut open = true;
     let screen = ctx.screen_rect();
-    egui::Window::new("Settings & tools")
+    let compact = screen.height() < 560.0 || screen.width() < 720.0;
+    let body_height = (screen.height() - 205.0).max(100.0);
+    let window = egui::Window::new("Settings & tools")
         .open(&mut open)
-        .default_pos([24.0, 24.0])
+        .default_pos(if cfg!(target_os = "android") {
+            [12.0, 64.0]
+        } else {
+            [24.0, 24.0]
+        })
         .default_width(610.0)
-        .min_width(480.0)
+        .min_width(480.0_f32.min(screen.width() - 32.0))
+        .max_height(
+            screen.height()
+                - if cfg!(target_os = "android") {
+                    80.0
+                } else {
+                    24.0
+                },
+        )
+        .vscroll(true)
         .max_width(screen.width() - 32.0)
         .resizable([true, false])
-        .collapsible(false)
-        .show(ctx, |ui| {
+        .collapsible(false);
+    let window = if cfg!(target_os = "android") {
+        window
+            .fixed_pos([12.0, 64.0])
+            .fixed_size([screen.width() - 40.0, (screen.height() - 112.0).max(120.0)])
+    } else {
+        window
+    };
+    window.show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.weak(if paused || settings.pause_in_menu {
                     "Paused"
@@ -76,7 +135,7 @@ pub fn show(
                     "Game running"
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.weak("F1 / Esc: close · Tab / Shift+Tab: category");
+                    ui.weak(if cfg!(target_os = "android") { "Settings / Back: close · Swipe lists to scroll" } else { "F1 / Esc: close · Tab / Shift+Tab: category" });
                 });
             });
             if settings.retro {
@@ -85,22 +144,31 @@ pub fn show(
             ui.separator();
             ui.horizontal_top(|ui| {
                 ui.vertical(|ui| {
-                    ui.set_width(126.0);
+                    ui.set_width(if compact { 110.0 } else { 126.0 });
+                    egui::ScrollArea::vertical().id_salt("settings-categories").max_height(if compact { body_height } else { (screen.height() - 140.0).max(100.0) }).show(ui, |ui| {
                     for (page, title) in menu::PAGES.iter().enumerate() {
                         if ui.selectable_label(menu.page == page, *title).clicked() {
                             menu.page(page as i32 - menu.page as i32);
                             ctx.memory_mut(|m| m.surrender_focus(ui.id()));
                         }
                     }
+                    });
                 });
                 ui.add_space(10.0);
                 ui.vertical(|ui| {
+                    egui::ScrollArea::vertical()
+                        .id_salt(("settings-page", menu.page))
+                        .scroll([false, compact])
+                        .max_height(if compact { body_height } else { f32::INFINITY })
+                        .auto_shrink([false, true])
+                        .show(ui, |ui| {
                     ui.set_min_width(335.0);
                     if menu.page == 0 {
                         ui.horizontal_wrapped(|ui| {
                             if ui.button("Benchmarks…").clicked() { edits.push(Edit::Benchmark); }
                             if ui.button("Presets / save as…").clicked() { edits.push(Edit::PresetLibrary); }
                             if ui.button("Controls…").clicked() { edits.push(Edit::Controls); }
+                            if ui.button("Touch controls…").clicked() { menu.touch_controls = true; }
                             if ui.button("Randomizer… (F7)").clicked() { edits.push(Edit::Randomizer); }
                             if ui.button("Save diagnostic report…")
                                 .on_hover_text("Save settings, version, hardware, recent inputs/timings and gameplay state as readable JSON. No game assets or raw memory. Personal paths are redacted; review before sharing.")
@@ -118,6 +186,9 @@ pub fn show(
                         ui.separator();
                     }
                     if menu.page == 10 {
+                        if compact && ui.button("Choose player model…").clicked() {
+                            menu.model_picker = true;
+                        }
                         ui.label("Model folder (optional)");
                         ui.add(
                             egui::TextEdit::singleline(&mut menu.model_directory)
@@ -146,7 +217,8 @@ pub fn show(
                     }
                     egui::ScrollArea::vertical()
                         .id_salt(("settings", menu.page))
-                        .max_height((screen.height() - 215.0).clamp(130.0, 360.0))
+                        .scroll([false, !compact])
+                        .max_height(if compact { f32::INFINITY } else { (screen.height() - 215.0).clamp(130.0, 360.0) })
                         .auto_shrink([false, true])
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
@@ -220,12 +292,13 @@ pub fn show(
                         }
                         ui.weak(format!("{:.1} MiB stored", debug.rewind_bytes as f64 / 1048576.0));
                     }
-                    if menu.page == 10 {
+                    if menu.page == 10 && !compact {
                         ui.separator();
                         if let Some(models) = &mut models {
                             models.show(ui, menu, settings, &mut edits);
                         }
                     }
+                    });
                 });
             });
             ui.separator();

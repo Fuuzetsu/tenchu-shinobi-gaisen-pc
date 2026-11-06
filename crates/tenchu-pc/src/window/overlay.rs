@@ -17,6 +17,12 @@ pub(super) struct Overlay {
 }
 
 pub(super) struct Extras<'a> {
+    pub touch: Option<(
+        &'a mut crate::touch::Overlay,
+        crate::touch::Mode,
+        bool,
+        bool,
+    )>,
     pub trial: Option<(
         &'a mut crate::trial::Editor,
         &'a tenchu_assets::game::GameAssets<crate::source::DiscSource>,
@@ -56,7 +62,11 @@ impl Overlay {
         context.style_mut(|s| {
             s.visuals.override_text_color = Some(egui::Color32::from_rgb(222, 229, 238));
             s.spacing.slider_width = 100.0;
-            s.spacing.interact_size.y = 22.0;
+            s.spacing.interact_size.y = if cfg!(target_os = "android") {
+                32.0
+            } else {
+                22.0
+            };
             s.visuals.window_fill = egui::Color32::from_rgb(23, 27, 33);
         });
         let state = egui_winit::State::new(
@@ -90,6 +100,10 @@ impl Overlay {
         let _ = self.state.on_window_event(window, event);
     }
 
+    pub fn touch_point(&self, point: winit::dpi::PhysicalPosition<f64>) -> egui::Pos2 {
+        egui::pos2(point.x as f32, point.y as f32) / self.screen.pixels_per_point
+    }
+
     pub fn editing(&self) -> bool {
         self.context.wants_keyboard_input()
     }
@@ -109,6 +123,14 @@ impl Overlay {
         self.opaque =
             extras.frontend.is_some() || extras.trial.as_ref().is_some_and(|(e, _, _)| e.open);
         let mut input = self.state.take_egui_input(window);
+        #[cfg(target_os = "android")]
+        let edited = if let Some(events) = crate::android::text_events(&self.context) {
+            input.events.extend(events);
+            input.focused = true;
+            true
+        } else {
+            false
+        };
         #[cfg(target_arch = "wasm32")]
         {
             input
@@ -249,6 +271,16 @@ impl Overlay {
                     extras.demo.is_none(),
                 );
             }
+            if let Some((touch, playing, tools, camera)) = &mut extras.touch {
+                touch.layout(
+                    ctx.screen_rect(),
+                    state.settings.touch,
+                    *playing,
+                    *tools,
+                    *camera,
+                );
+                touch.paint(ctx, state.settings.touch);
+            }
             if show_performance != profiling {
                 edits.push(Edit::Change(crate::settings::menu::Item::Performance, 1));
             }
@@ -262,8 +294,22 @@ impl Overlay {
                 }
             }
         }
-        self.state
-            .handle_platform_output(window, output.platform_output);
+        let platform_output = output.platform_output;
+        #[cfg(target_os = "android")]
+        let platform_output = {
+            let mut output = platform_output;
+            if edited {
+                self.context.memory_mut(|m| {
+                    if let Some(id) = m.focused() {
+                        m.surrender_focus(id);
+                    }
+                });
+                output.ime = None;
+            }
+            crate::android::platform_output(&self.context, &mut output);
+            output
+        };
+        self.state.handle_platform_output(window, platform_output);
         let changed = self.shapes != output.shapes
             || self.screen.size_in_pixels != renderer.size()
             || self.screen.pixels_per_point != output.pixels_per_point
@@ -377,6 +423,26 @@ impl super::Application {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                touch: video_time.is_none().then_some((
+                    &mut self.touch,
+                    if self.debug.camera.is_some() {
+                        crate::touch::Mode::FreeCamera
+                    } else if self.campaign.playing() {
+                        if self.paused {
+                            crate::touch::Mode::Paused
+                        } else {
+                            crate::touch::Mode::Gameplay
+                        }
+                    } else {
+                        crate::touch::Mode::Menus
+                    },
+                    was_open
+                        || trial_open
+                        || self.randomizer.open
+                        || self.demo.is_some()
+                        || self.benchmarks.run.is_some(),
+                    self.settings.navigation.camera_relative || self.debug.camera_actor.is_some(),
+                )),
                 trial: Some((&mut self.trial, &self.assets, &self.campaign.game)),
                 labels: &view.labels,
                 text: &view.text,
@@ -499,6 +565,10 @@ impl super::Application {
                 }
                 Edit::PresetLibrary => {
                     self.presets.open = true;
+                    Ok(())
+                }
+                Edit::Touch(value) => {
+                    self.settings.touch = value;
                     Ok(())
                 }
                 Edit::Controls => {

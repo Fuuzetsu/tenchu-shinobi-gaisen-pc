@@ -328,6 +328,8 @@ pub struct Row {
 
 #[derive(Default)]
 pub struct Menu {
+    pub touch_controls: bool,
+    pub model_picker: bool,
     pub open: bool,
     pub row: usize,
     pub hovered: Option<Item>,
@@ -1772,7 +1774,11 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::FreeCamera,
                 "Free camera / F2",
                 on(d.camera.is_some()),
-                "WASD/QE fly, RMB look; no player input.",
+                if cfg!(target_os = "android") {
+                    "Move/Camera sticks fly/look. Rise, Descend and Boost change movement. Back returns to the player."
+                } else {
+                    "WASD/QE fly, RMB look; no player input."
+                },
             ),
             (
                 Item::FlightSpeed,
