@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.18.0 — 2026-11-06
+
 - Mid-mission savestates use a new format for the additional effect state.
   Older mid-mission files cannot be loaded; create new saves. Campaign progress
   saves are unchanged.
