@@ -51,6 +51,8 @@ pub struct Blood {
     pub spurts: u16,
     pub death_gush: u16,
     pub gush_seconds: u16,
+    pub severed: u16,
+    pub severed_seconds: u16,
     pub marks: u16,
 }
 
@@ -74,6 +76,8 @@ impl Default for Blood {
             spurts: 0,
             death_gush: 0,
             gush_seconds: 6,
+            severed: 0,
+            severed_seconds: 3,
             marks: 8192,
         }
     }
@@ -90,6 +94,7 @@ impl Blood {
             model_stains: true,
             weapons: true,
             runoff: true,
+            severed: 100,
             ..Self::default()
         }
     }
@@ -123,6 +128,7 @@ impl Blood {
                 || self.custom_death(false)
                 || self.custom_death(true)
                 || self.gush(false)
+                || self.severed != 0 && self.severed_seconds != 0
                 || self.weapons
                 || self.model_stains
                 || self.drips != Style::Off && self.seconds != 0)
@@ -135,6 +141,8 @@ impl Blood {
         self.spurts = self.spurts.min(200);
         self.death_gush = self.death_gush.min(200);
         self.gush_seconds = self.gush_seconds.min(15);
+        self.severed = self.severed.min(200);
+        self.severed_seconds = self.severed_seconds.min(15);
         self.weapon_coverage = self.weapon_coverage.min(200);
         self.weapon_flow = self.weapon_flow.min(200);
         self.marks = self.marks.max(32);
@@ -163,6 +171,8 @@ struct SavedBlood {
     spurts: Option<u16>,
     death_gush: Option<u16>,
     gush_seconds: Option<u16>,
+    severed: Option<u16>,
+    severed_seconds: Option<u16>,
     marks: Option<u16>,
 }
 
@@ -195,6 +205,8 @@ impl From<SavedBlood> for Blood {
             spurts: saved.spurts.unwrap_or_default(),
             death_gush: saved.death_gush.unwrap_or_default(),
             gush_seconds: saved.gush_seconds.unwrap_or(default.gush_seconds),
+            severed: saved.severed.unwrap_or(default.severed),
+            severed_seconds: saved.severed_seconds.unwrap_or(default.severed_seconds),
             marks: saved.marks.unwrap_or(default.marks),
         }
     }

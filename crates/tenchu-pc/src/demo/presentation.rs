@@ -254,6 +254,7 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
             g.interpolation = true;
         }
         Feature::Dismemberment => {
+            g.blood = crate::settings::Blood::modern();
             settings.dismemberment = tenchu_core::game::dismemberment::Settings {
                 enabled: true,
                 stealth_head: 100,

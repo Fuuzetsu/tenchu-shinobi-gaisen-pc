@@ -9,6 +9,10 @@ pub struct Settings {
     pub dive_head: u16,
     pub arms: u16,
     pub right_arm: u16,
+    pub player: bool,
+    pub player_head: u16,
+    pub player_arms: u16,
+    pub player_right_arm: u16,
 }
 
 impl Default for Settings {
@@ -19,6 +23,10 @@ impl Default for Settings {
             dive_head: 4,
             arms: 50,
             right_arm: 50,
+            player: false,
+            player_head: 4,
+            player_arms: 50,
+            player_right_arm: 50,
         }
     }
 }
@@ -29,6 +37,13 @@ impl Settings {
         self.dive_head = self.dive_head.min(100);
         self.arms = self.arms.min(100);
         self.right_arm = self.right_arm.min(100);
+        self.player_head = self.player_head.min(100);
+        self.player_arms = self.player_arms.min(100);
+        self.player_right_arm = self.player_right_arm.min(100);
+    }
+
+    pub fn active(self) -> bool {
+        self.enabled || self.player
     }
 
     pub(crate) fn head(chance: u16, random: &mut Random) -> bool {

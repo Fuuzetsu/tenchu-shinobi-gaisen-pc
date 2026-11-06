@@ -54,7 +54,7 @@ fn sa_rear_kills_detach_at_authored_frames_and_keep_the_part_after_landing() {
             if enabled {
                 let dead = game.roster.get(victim);
                 assert!(!dead.severed.as_ref().unwrap().moving);
-                assert!((-19..=0).contains(&game.scene.models[dead.parts[2]].local.translation.y));
+                assert!((-30..=0).contains(&lowest_vertex(&game, victim)));
                 with_actor(&mut game, victim, |actor, ctx, _| {
                     let parent = actor.severed.as_ref().unwrap().parent;
                     actor.restore_severed(ctx.scene);
@@ -62,6 +62,80 @@ fn sa_rear_kills_detach_at_authored_frames_and_keep_the_part_after_landing() {
                     actor.play_pose(ctx).unwrap();
                     assert_eq!(ctx.scene.models[actor.parts[2]].parent, parent);
                 });
+            }
+        }
+    }
+}
+
+fn lowest_vertex(game: &Game, actor: usize) -> i32 {
+    let actor = game.roster.get(actor);
+    let part = actor.severed.as_ref().unwrap();
+    let matrix = game.scene.models[actor.parts[part.index]].local;
+    game.mission.models[&actor.mesh_kind][part.index]
+        .geometry
+        .iter()
+        .flat_map(|g| &g.vertices)
+        .map(|&v| matrix.transform(v).y)
+        .max()
+        .unwrap()
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; player chances, both arm choices and mesh-aware landing"]
+fn detached_player_and_enemy_parts_rest_above_the_floor() {
+    for character in 0..2 {
+        for (head, arms, side, expected) in [
+            (100, 100, 100, Some(2)),
+            (0, 100, 100, Some(4)),
+            (0, 100, 0, Some(6)),
+            (0, 0, 100, None),
+        ] {
+            for player in [false, true] {
+                let mut game = oracle::game(0, character);
+                let enemy = arena(&mut game, 0x10);
+                let victim = if player { game.player_id } else { enemy };
+                game.combat.dismemberment = Settings {
+                    enabled: !player,
+                    dive_head: head,
+                    arms,
+                    right_arm: side,
+                    player,
+                    player_head: head,
+                    player_arms: arms,
+                    player_right_arm: side,
+                    ..Default::default()
+                };
+                game.roster.get_mut(game.player_id).motion.action = MOT_ATTACK_DIVE;
+                game.combat.death_sound = Some(victim);
+                with_actor(&mut game, victim, |actor, ctx, world| {
+                    actor.health = 0;
+                    actor.enter(ctx, MOT_DEAD, true);
+                    actor.play_pose(ctx).unwrap();
+                    actor.motion.count = 5;
+                    actor.dead(ctx, world).unwrap();
+                });
+                assert_eq!(
+                    game.roster.get(victim).severed.as_ref().map(|p| p.index),
+                    expected
+                );
+                if expected.is_none() {
+                    continue;
+                }
+                for _ in 0..120 {
+                    with_actor(&mut game, victim, |actor, ctx, world| {
+                        actor.motion.count = 6;
+                        actor.dead(ctx, world).unwrap();
+                    });
+                    assert!(lowest_vertex(&game, victim) <= 0, "part crossed the floor");
+                }
+                assert!(!game.roster.get(victim).severed.as_ref().unwrap().moving);
+                assert!((-30..=0).contains(&lowest_vertex(&game, victim)));
+                with_actor(&mut game, victim, |actor, ctx, _| {
+                    actor.restore_severed(ctx.scene);
+                    actor.enter(ctx, MOT_NORMAL, true);
+                    actor.play_pose(ctx).unwrap();
+                });
+                assert!(game.roster.get(victim).severed.is_none());
             }
         }
     }

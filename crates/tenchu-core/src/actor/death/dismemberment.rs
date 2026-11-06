@@ -19,8 +19,11 @@ impl Actor {
         index: usize,
     ) -> Result<()> {
         if self.severed.is_some()
-            || self.id == world.player
-            || self.kind & 0xf0 == 0x80 && self.kind != 0x8f
+            || if self.id == world.player {
+                !world.combat.dismemberment.player
+            } else {
+                self.kind & 0xf0 == 0x80 && self.kind != 0x8f
+            }
         {
             return Ok(());
         }
@@ -70,13 +73,12 @@ impl Actor {
         };
         let id = self.parts[part.index];
         let mut position = ctx.scene.models[id].local.translation;
-        let level = terrain::level(
-            &ctx.mission.terrain,
-            ctx.cursor,
-            position,
-            terrain::RETURN_DELTA,
-        )?;
-        if level <= 0 || level == terrain::NONE {
+        let mut matrix = Matrix {
+            translation: position,
+            rotation: ctx.math.rotate_yxz(part.rotation),
+        };
+        let floor = supported_height(ctx, self.mesh_kind, part.index, matrix)?;
+        if floor.is_some_and(|floor| position.y >= floor) {
             let probe = terrain::vector(
                 &ctx.mission.terrain,
                 ctx.cursor,
@@ -92,12 +94,12 @@ impl Actor {
                 part.velocity[0] /= 2;
                 part.velocity[2] /= 2;
             }
-            position.y = terrain::level(
-                &ctx.mission.terrain,
-                ctx.cursor,
-                position,
-                terrain::STEP_DOWN,
-            )?;
+            if part.index != 2 {
+                part.rotation[0] = 1024;
+                matrix.rotation = ctx.math.rotate_yxz(part.rotation);
+            }
+            position.y =
+                supported_height(ctx, self.mesh_kind, part.index, matrix)?.unwrap_or(position.y);
             part.velocity[1] = part.velocity[1].wrapping_neg() / 2;
             if part.velocity[1].unsigned_abs() < 20 {
                 part.moving = false;
@@ -124,13 +126,12 @@ impl Actor {
         if part.index == 2 {
             part.rotation[0] = part.rotation[0].wrapping_add(part.velocity[1].wrapping_abs());
         }
-        ctx.scene.update(
-            id,
-            Matrix {
-                translation: position,
-                rotation: ctx.math.rotate_yxz(part.rotation),
-            },
-        );
+        matrix.translation = position;
+        matrix.rotation = ctx.math.rotate_yxz(part.rotation);
+        if let Some(floor) = supported_height(ctx, self.mesh_kind, part.index, matrix)? {
+            matrix.translation.y = matrix.translation.y.min(floor);
+        }
+        ctx.scene.update(id, matrix);
         Ok(())
     }
 
@@ -140,12 +141,42 @@ impl Actor {
         };
         let id = self.parts[part.index];
         let mut matrix = ctx.scene.models[id].local;
-        let mut origin = matrix.translation;
-        origin.y = origin.y.wrapping_sub(100);
-        matrix.translation.y = terrain::level(&ctx.mission.terrain, ctx.cursor, origin, 0)?;
+        if part.index != 2 {
+            part.rotation[0] = 1024;
+            matrix.rotation = ctx.math.rotate_yxz(part.rotation);
+        }
+        if let Some(floor) = supported_height(ctx, self.mesh_kind, part.index, matrix)? {
+            matrix.translation.y = floor;
+        }
         ctx.scene.models[id].attribute &= !2;
         ctx.scene.update(id, matrix);
         part.moving = false;
         Ok(())
     }
+}
+
+fn supported_height(
+    ctx: &mut Context,
+    kind: i16,
+    index: usize,
+    matrix: Matrix,
+) -> Result<Option<i32>> {
+    let Some(part) = ctx
+        .mission
+        .models
+        .get(&kind)
+        .and_then(|model| model.get(index))
+    else {
+        return Ok(None);
+    };
+    let mut height = None;
+    for vertex in part.geometry.iter().flat_map(|mesh| &mesh.vertices) {
+        let point = matrix.transform(*vertex);
+        let floor = terrain::level(&ctx.mission.terrain, ctx.cursor, point, terrain::STEP_DOWN)?;
+        if floor != terrain::NONE {
+            let limit = floor - (point.y - matrix.translation.y) - 2;
+            height = Some(height.map_or(limit, |old: i32| old.min(limit)));
+        }
+    }
+    Ok(height)
 }

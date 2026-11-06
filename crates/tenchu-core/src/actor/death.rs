@@ -142,6 +142,24 @@ impl Actor {
         let mut gore = None;
         let dismemberment = world.combat.dismemberment;
         let mut sever = None;
+        if self.id == world.player
+            && dismemberment.player
+            && self.motion.count == 5
+            && matches!(self.motion.action, MOT_DEAD | MOT_DEAD_ALT)
+        {
+            use crate::game::dismemberment::Settings;
+            if Settings::head(dismemberment.player_head, ctx.random) {
+                sever = Some(2);
+            } else if Settings::arm(dismemberment.player_arms, ctx.random) {
+                sever = Some(
+                    if Settings::arm(dismemberment.player_right_arm, ctx.random) {
+                        4
+                    } else {
+                        6
+                    },
+                );
+            }
+        }
         match self.motion.action {
             MOT_DEAD_DROWN => {
                 if ctx.random.next15() % 20 == 0 {
@@ -223,7 +241,9 @@ impl Actor {
                     }
                     if self.motion.count == 5 && world.combat.death_sound == Some(self.id) {
                         world.intelligence.voices.push((self.id, 0x38));
-                        if dismemberment.enabled {
+                        if dismemberment.enabled
+                            && !(self.id == world.player && dismemberment.player)
+                        {
                             let action = if self.id == world.player {
                                 self.motion.action
                             } else {

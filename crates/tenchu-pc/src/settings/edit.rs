@@ -11,9 +11,13 @@ impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
             Self::BleedChance => (0, 100, 5, 1),
-            Self::SeverStealth | Self::SeverDive | Self::SeverArms | Self::SeverSide => {
-                (0, 100, 1, 1)
-            }
+            Self::SeverStealth
+            | Self::SeverDive
+            | Self::SeverArms
+            | Self::SeverSide
+            | Self::PlayerSeverHead
+            | Self::PlayerSeverArms
+            | Self::PlayerSeverSide => (0, 100, 1, 1),
             Self::BleedSeconds => (0, 120, 1, 1),
             Self::BleedDamage => (0, 20, 1, 1),
             Self::BandageLoadout | Self::Bandages => (0, 99, 1, 1),
@@ -65,6 +69,8 @@ impl Item {
             | Item::WeaponBloodCoverage
             | Item::WeaponBloodFlow
             | Item::WeaponReflections => (0, 200, 10, 1),
+            Item::SeveredBlood => (0, 200, 10, 1),
+            Item::SeveredSeconds => (0, 15, 1, 1),
             Item::BloodDeathSize => (10, 200, 10, 1),
             Item::BloodSeconds => (0, 60, 1, 1),
             Item::GushSeconds => (0, 15, 1, 1),
@@ -120,6 +126,7 @@ impl Item {
         Some(match self {
             Self::Bleeding => &mut settings.bleeding.enabled,
             Self::Dismemberment => &mut settings.dismemberment.enabled,
+            Self::PlayerDismemberment => &mut settings.dismemberment.player,
             Self::MedicineBleeding => &mut settings.bleeding.medicine,
             Self::CameraRelative => &mut settings.navigation.camera_relative,
             Self::AlignAim => &mut settings.navigation.align_aim,
@@ -188,6 +195,11 @@ impl Item {
         Some(match self {
             Self::BleedChance => &mut settings.bleeding.chance,
             Self::SeverStealth => &mut settings.dismemberment.stealth_head,
+            Self::PlayerSeverHead => &mut settings.dismemberment.player_head,
+            Self::PlayerSeverArms => &mut settings.dismemberment.player_arms,
+            Self::PlayerSeverSide => &mut settings.dismemberment.player_right_arm,
+            Self::SeveredBlood => &mut settings.graphics.blood.severed,
+            Self::SeveredSeconds => &mut settings.graphics.blood.severed_seconds,
             Self::SeverDive => &mut settings.dismemberment.dive_head,
             Self::SeverArms => &mut settings.dismemberment.arms,
             Self::SeverSide => &mut settings.dismemberment.right_arm,

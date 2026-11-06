@@ -240,6 +240,7 @@ fn ninja_deaths_keep_gameplay_and_attached_visuals() {
                             &models,
                             &blood,
                             alternate.then_some(frame),
+                            None,
                             &output.join(format!(
                                 "hero-{character}-variant-{variant}-tick-{step}-{}.png",
                                 if alternate { "ninja" } else { "original" }
@@ -349,11 +350,12 @@ fn alternate_corpse_settles_only_on_the_ground() {
     assert!(deaths.death.as_ref().unwrap().settled.is_some());
 }
 
-fn capture(
+pub(in crate::visuals) fn capture(
     game: &Game,
     models: &Models,
     blood: &Blood,
     frame: Option<&Frame>,
+    focus: Option<Vec3>,
     path: &std::path::Path,
 ) {
     let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
@@ -367,7 +369,8 @@ fn capture(
         true,
         frame,
     ));
-    let position = Vec3::from(game.player().position.map(|v| v as f32).to_array());
+    let position =
+        focus.unwrap_or_else(|| Vec3::from(game.player().position.map(|v| v as f32).to_array()));
     let eye = position + Vec3::new(1700.0, -1800.0, 2200.0);
     let delta = position - Vec3::Y * 500.0 - eye;
     let camera = crate::debug::camera::Camera {

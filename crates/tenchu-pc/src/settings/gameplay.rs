@@ -63,7 +63,7 @@ pub fn current(settings: &Settings, debug: &Debug) -> Option<usize> {
             && !settings.walking.enabled
             && !settings.sheathing.enabled
             && !settings.bleeding.enabled
-            && !settings.dismemberment.enabled
+            && !settings.dismemberment.active()
             && !settings.damage_escalation.enabled()
             && !settings.attack_assist
             && !settings.behavior_profiles.enabled

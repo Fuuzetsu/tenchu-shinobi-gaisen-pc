@@ -183,7 +183,23 @@ impl Deaths {
         let root = death.pose;
         motion.loops = 0;
         motion.step(&self.clips, &game.math.tables.hermite)?;
-        let matrices = motion.pose.matrices(&game.math, root);
+        let mut matrices = motion.pose.matrices(&game.math, root);
+        if let Some(severed) = &actor.severed {
+            let mut detached = vec![false; actor.parts.len()];
+            for (index, &model) in actor.parts.iter().enumerate() {
+                if index == severed.index {
+                    detached[index] = true;
+                    matrices[index] = game.scene.models[model].local;
+                } else if let Some(parent) = game.scene.models[model]
+                    .parent
+                    .and_then(|id| actor.parts.iter().position(|&part| part == id))
+                    .filter(|&parent| parent < index && detached[parent])
+                {
+                    detached[index] = true;
+                    matrices[index] = matrices[parent].compose(&game.scene.models[model].local);
+                }
+            }
+        }
         let mut parts = BTreeMap::new();
         for inspection in [false, true] {
             let kind = if inspection {
@@ -241,4 +257,4 @@ fn roll(seed: u32, tick: u64) -> u64 {
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

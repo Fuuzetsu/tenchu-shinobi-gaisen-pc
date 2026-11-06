@@ -19,7 +19,9 @@ sound. It is not a roll on every hit. Animals are excluded; players and bosses
 are excluded after selection, except the execution actor. Side/front stealth
 kills do not roll for dismemberment. Custom sliders keep these selection rules.
 At the default percentages the original modulo/low-bit tests and RNG order are
-preserved, including arm velocity rolls and blood emitted on landing.
+preserved at selection. Arm velocity rolls and blood emitted on landing also
+come from SA, but the port uses mesh-aware ground contact so detached limbs
+remain above the floor rather than burying their joint origin.
 
 The detached head or forearm is an existing model part, moved into world space.
 Its motion and both weapon-anchor tracks stop updating; attached geometry follows
@@ -27,6 +29,14 @@ the severed part. USA gravity is 20 per update, initial upward speed 100; bounce
 halve velocity and settle below 20. Body-animation completion settles a part
 still moving. The setting does not introduce additional enemies or collision
 bodies. Reviving/repositioning an actor restores its model hierarchy.
+
+Player dismemberment is a separate, off-by-default port extension. It rolls on
+an ordinary combat death: 4% head, then 50% forearm if the head stays attached,
+with either arm equally likely. All three chances are configurable. Drowning
+and special death sequences are excluded. Alternate player death poses preserve
+the detached hierarchy. The optional **Severed wound bleeding** visual effect
+adds weakening body jets and small drips from the detached part for three seconds;
+ground stains follow the independently selected ground-blood style.
 
 PAL SA is not merely a different display rate: its stealth roll is `rand % 20`,
 its event frames are converted by `frame * 25 / 30`, and detached-part gravity is

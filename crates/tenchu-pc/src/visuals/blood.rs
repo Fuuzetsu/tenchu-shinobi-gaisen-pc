@@ -20,6 +20,7 @@ use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 mod gush;
 mod retail;
 mod runoff;
+mod severed;
 mod storage;
 mod weapons;
 mod wounds;
@@ -111,6 +112,7 @@ enum DropKind {
     Wound,
     Weapon,
     Gush,
+    Severed,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -148,6 +150,7 @@ pub struct Blood {
     original: VecDeque<tenchu_core::effects::Billboard>,
     wounds: VecDeque<Wound>,
     gushes: BTreeMap<usize, Gush>,
+    severed: BTreeMap<usize, u16>,
     weapons: weapons::Weapons,
     drops: Vec<Drop>,
     runoff: Vec<Runoff>,
@@ -171,6 +174,7 @@ impl Blood {
             original,
             wounds,
             gushes,
+            severed,
             weapons,
             drops,
             runoff,
@@ -187,6 +191,7 @@ impl Blood {
         out.value(original)?;
         out.value(wounds)?;
         out.value(gushes)?;
+        out.value(severed)?;
         out.value(weapons)?;
         out.value(drops)?;
         out.value(runoff)?;
@@ -312,6 +317,10 @@ impl Blood {
             self.gushes.clear();
             self.drops.retain(|d| d.kind != DropKind::Gush);
         }
+        if settings.severed == 0 || settings.severed_seconds == 0 {
+            self.severed.values_mut().for_each(|age| *age = u16::MAX);
+            self.drops.retain(|d| d.kind != DropKind::Severed);
+        }
         if !settings.runoff || ground_changed || !settings.retained_ground() {
             self.runoff.clear();
         }
@@ -324,6 +333,7 @@ impl Blood {
         self.original.clear();
         self.wounds.clear();
         self.gushes.values_mut().for_each(|g| *g = Gush::Finished);
+        self.severed.values_mut().for_each(|age| *age = u16::MAX);
         self.pending_wounds.clear();
         self.weapons.clear();
         self.drops.clear();
@@ -797,6 +807,7 @@ impl Blood {
         });
         self.emit_wounds(game.tick, settings, &transforms);
         self.emit_gushes(settings, &transforms);
+        self.emit_severed(game, models, settings, frame);
         let mut drops = std::mem::take(&mut self.drops);
         drops.retain_mut(|drop| {
             drop.previous = drop.position;
@@ -1119,7 +1130,7 @@ impl Blood {
                 let projected = drop.velocity - camera.z_axis * drop.velocity.dot(camera.z_axis);
                 let modern =
                     drop.kind != DropKind::Wound || self.settings.drips == BloodStyle::Modern;
-                let scale = if drop.kind == DropKind::Gush {
+                let scale = if matches!(drop.kind, DropKind::Gush | DropKind::Severed) {
                     2.5
                 } else {
                     1.0

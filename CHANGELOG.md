@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep severed heads and arms above terrain using their mesh bounds, and let
+  arms settle flat. Add separately configurable player dismemberment, plus
+  optional short-lived wound jets and bleeding from detached parts. Modern
+  visual presets enable the extra bleeding; dismemberment remains off by default.
+
 - Retain Original / Original HD ground blood with its actual retail sprite,
   size, rotation and placement, instead of replacing it with smaller projected
   marks. Hit-spurt style stays independent; only Original HD smooths the sprite.
