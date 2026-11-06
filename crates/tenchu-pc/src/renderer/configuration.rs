@@ -110,6 +110,7 @@ impl Context {
                 &self.layout,
                 &self.shader,
                 self.samples,
+                key.options.forward_weather(self.gl),
             )
         });
         let attachments_changed =

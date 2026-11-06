@@ -11,12 +11,19 @@ pub(super) struct Options {
     rain: bool,
     water: bool,
     coarse_shadows: bool,
+    forward_weather: bool,
     adaptive_shadows: bool,
     flame_motion: bool,
 }
 
 impl Options {
     pub(super) fn new(graphics: &crate::settings::Graphics, samples: u32) -> Self {
+        let forward_weather = samples > 1
+            && graphics.post.enabled
+            && graphics.weather.mode.rain()
+            && (graphics.lighting.enabled || graphics.sky.enabled);
+        #[cfg(test)]
+        let forward_weather = forward_weather && graphics.rendering.shared_forward_lighting;
         Self {
             filtering: if graphics.mipmaps {
                 2
@@ -31,6 +38,7 @@ impl Options {
             rain: graphics.weather.mode.rain(),
             water: graphics.water.enabled,
             coarse_shadows: super::wet_lighting::configured(graphics, samples, false),
+            forward_weather,
             adaptive_shadows: graphics.rendering().adaptive_shadows,
             flame_motion: graphics.lighting.enabled && graphics.lighting.flame_motion > 0,
         }
@@ -38,6 +46,7 @@ impl Options {
 }
 
 pub(super) struct Pipelines {
+    pub forward_weather: Option<wgpu::RenderPipeline>,
     pub opaque: wgpu::RenderPipeline,
     pub scenery: wgpu::RenderPipeline,
     pub effects: [wgpu::RenderPipeline; 6],
@@ -52,6 +61,7 @@ pub(super) fn create(
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     samples: u32,
+    forward_weather: bool,
 ) -> Pipelines {
     let make_pipeline = |blend: Option<wgpu::BlendState>,
                          fragment: &str,
@@ -150,6 +160,15 @@ pub(super) fn create(
     });
     // Leave one depth unit for the color pass's strict test, preserving coplanar face order.
     Pipelines {
+        forward_weather: forward_weather.then(|| {
+            make_pipeline(
+                None,
+                "scenery_weather",
+                0,
+                true,
+                wgpu::CompareFunction::Less,
+            )
+        }),
         opaque: pipeline,
         scenery: make_pipeline(None, "scenery", 0, true, wgpu::CompareFunction::Less),
         effects,
@@ -172,6 +191,10 @@ pub(super) fn create(
 }
 
 impl Options {
+    pub(super) fn forward_weather(self, gl: bool) -> bool {
+        self.forward_weather && !gl
+    }
+
     pub(super) fn shader(self, device: &wgpu::Device, gl: bool) -> wgpu::ShaderModule {
         // Distinct modules also avoid wgpu 24 GL's cache ignoring pipeline overrides.
         self.module(device, gl, include_str!("blood_composite.wgsl"))
@@ -232,7 +255,11 @@ impl Options {
             ),
             include_str!("palette.wgsl"),
             include_str!("lighting.wgsl"),
-            include_str!("weather.wgsl"),
+            concat!(
+                include_str!("weather.wgsl"),
+                "\n",
+                include_str!("terrain_lighting.wgsl")
+            ),
             materials::shader(device),
             include_str!("relief.wgsl"),
             include_str!("water.wgsl"),

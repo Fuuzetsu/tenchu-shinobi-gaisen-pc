@@ -6,12 +6,6 @@ struct ScreenShadows {
     @location(1) b: vec4<f32>,
 }
 
-struct InterpolatedShadows {
-    a: vec4<f32>,
-    b: vec4<f32>,
-    valid: bool,
-}
-
 fn surface_position(pixel: vec2<f32>, depth: f32) -> vec3<f32> {
     let ndc = pixel / vec2<f32>(textureDimensions(surface_diffuse)) * vec2(2.0, -2.0) + vec2(-1.0, 1.0);
     return camera.rays[3].xyz + (camera.rays[0].xyz + camera.rays[1].xyz * ndc.x + camera.rays[2].xyz * ndc.y) * depth;
@@ -70,13 +64,4 @@ fn interpolate_shadows(pixel: vec2<f32>, position: vec3<f32>, surface: vec3<f32>
         result.valid = true;
     }
     return result;
-}
-
-fn interpolated_visibility(values: InterpolatedShadows, light: Light, position: vec3<f32>, surface: vec3<f32>) -> f32 {
-    if !SCREEN_SHADOWS || !values.valid { return point_visibility(light, position, surface); }
-    if light.color.w == 0.0 { return 1.0; }
-    let slot = u32(floor(light.color.w) - 1.0);
-    if slot < 4u { return values.a[slot]; }
-    if slot < 8u { return values.b[slot - 4u]; }
-    return point_visibility(light, position, surface);
 }

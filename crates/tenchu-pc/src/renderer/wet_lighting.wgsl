@@ -42,51 +42,9 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
     let unlit_color = textureLoad(surface_emission, p, 0);
     let depth = bitcast<f32>(data.w);
     let position = surface_position(pixel.xy, depth);
-    let normal = oct_unpack(data.x);
-    let wet_normal = oct_unpack(data.y);
-    let surface = oct_unpack(data.z);
-    var light = vec3(1.0);
-    var reflected = vec3(0.0);
-    if LIGHTING_ENABLED && lighting.options.w != 0.0 {
-        light = lighting.options.x * mix(vec3(1.0), vec3(0.6, 0.75, 1.0), lighting.lamps.z);
-        let sun_diffuse = max(0.0, dot(normal, lighting.sun_direction.xyz));
-        var sun = 1.0;
-        let view = normalize(camera.eye.xyz - position);
-        let power = abs(base.w);
-        let specular = abs(unlit_color.w);
-        if lighting.sun_direction.w > 0.0 {
-            if sun_diffuse > 0.0 || lighting.source.y != 0.0 || specular > 0.0 { sun = sun_visibility(position, surface); }
-            if sun_diffuse > 0.0 { light += lighting.sun_color.rgb * lighting.sun_direction.w * sun_diffuse * sun; }
-            if specular > 0.0 {
-                let halfway = normalize(view + lighting.sun_direction.xyz);
-                reflected += lighting.sun_color.rgb * lighting.sun_direction.w * specular
-                    * pow(max(0.0, dot(wet_normal, halfway)), power) * sun;
-            }
-        }
-        let local = daylight_exposure(sun);
-        let filtered = interpolate_shadows(pixel.xy, position, surface);
-        var nearby = local_lights(position);
-        loop {
-            let index = next_light(&nearby);
-            if index == 0u { break; }
-            let source = lighting.lights[index - 1u];
-            let delta = position - source.position.xyz;
-            let distance = length(delta);
-            if distance >= source.position.w || distance < 1.0 { continue; }
-            let diffuse = max(0.0, dot(normal, -delta / distance));
-            var glint = 0.0;
-            if unlit_color.w > 0.0 && dot(wet_normal, -delta) > 0.0 {
-                let halfway = normalize(view + -delta / distance);
-                glint = pow(max(0.0, dot(wet_normal, halfway)), power);
-            }
-            if diffuse == 0.0 && glint < 0.001 { continue; }
-            let visibility = interpolated_visibility(filtered, source, position, surface);
-            let falloff = 1.0 - smoothstep(0.0, 1.0, distance / source.position.w);
-            if diffuse > 0.0 { light += source.color.rgb * lighting.options.y * falloff * falloff * diffuse * visibility * local; }
-            if glint >= 0.001 { reflected += source.color.rgb * lighting.options.y * falloff * falloff * glint * specular * visibility * local; }
-        }
-    }
-    var color = base.rgb * light + unlit_color.rgb + reflected;
+    let material = TerrainSurface(base.rgb, unlit_color.rgb, oct_unpack(data.x), oct_unpack(data.y), oct_unpack(data.z), abs(base.w), unlit_color.w);
+    let filtered = interpolate_shadows(pixel.xy, position, material.surface);
+    var color = light_terrain(material, position, filtered);
     if base.w < 0.0 {
         let fog = clamp(camera.fog.x / max(depth, 1.0) + camera.fog.y, 0.0, 1.0);
         let haze = select(0.0, 1.0 - exp(-max(depth, 0.0) * camera.fog_color.w / 50000.0), HDR_ENABLED);
@@ -108,67 +66,11 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
 @fragment fn deferred_material(input: Fragment, @builtin(front_facing) front_facing: bool) -> PreparedSurface {
     var v = input;
     v.flags = (v.flags & (TEXTURED | TRANSLUCENT | DOUBLE_SIDED | FOG | EMITTER | WATER | WATERFALL | FOLIAGE)) | SCENERY;
-    let material = prepare_material(v, front_facing, false, false);
-    let color = material.color;
-    let emission = material.emission;
-    let normal = material.normal;
-    let surface_normal = material.surface_normal;
+    let material = prepare_terrain(v, prepare_material(v, front_facing, false, false));
     var result: PreparedSurface;
-    var diffuse = color * material.cavity * (1.0 - emission.a);
-    var unlit_color = emission.rgb * emission.a;
-    var wet_normal = normal;
-    var power = 1.0;
-    var specular = 0.0;
-    if WATER_ENABLED && (v.flags & WATER) != 0u {
-        let water = prepare_water(normalize(camera.eye.xyz - v.world), normal);
-        let transmission = 1.0 - water.fresnel * camera.water.y * 0.18;
-        let reflection = water_reflection(v);
-        diffuse = diffuse * transmission + vec3(water_foam(v));
-        unlit_color = unlit_color * transmission + water.sky * reflection;
-        power = 110.0;
-        specular = -0.8 * reflection;
-    }
-    if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY {
-        if lighting.weather.x + lighting.weather.y + lighting.weather.w > 0.0 {
-            let incidence = weather_incidence(surface_normal, true);
-            var shelter = 0.0;
-            if incidence > 0.0 { shelter = weather_exposure(surface_normal, v.world, true, false); }
-            if shelter > 0.0 {
-                if lighting.weather.x + lighting.weather.w > 0.0 {
-                    let wet_surface = prepare_wet_surface(normal, surface_normal, v.world, material.footprint, shelter, incidence, true);
-                    let puddle = wet_surface.puddle;
-                    let wet = wet_surface.wet;
-                    let dark = 1.0 - wet * 0.32 - puddle * 0.08;
-                    diffuse *= dark;
-                    unlit_color *= dark;
-                    if wet > 0.0 && lighting.rain.x > 0.0 {
-                        wet_normal = wet_surface.normal;
-                        let view = normalize(camera.eye.xyz - v.world);
-                        let fresnel = 0.025 + 0.975 * pow(1.0 - max(0.0, dot(wet_normal, view)), 5.0);
-                        let sky = rain_color() * mix(0.02 + 0.22 * fresnel, 0.06 + 0.7 * fresnel, puddle)
-                            * (0.3 + 0.7 * max(0.0, -surface_normal.y));
-                        unlit_color += sky * lighting.rain.x * wet;
-                        power = mix(48.0, 180.0, puddle);
-                        specular = (0.22 + fresnel * 1.8) * lighting.rain.x * wet;
-                    }
-                }
-                if lighting.weather.y > 0.0 {
-                    let snow = snow_coverage(surface_normal, shelter, snow_variation(v.world), true);
-                    let grain_fade = smoothstep(8.0, 30.0, material.footprint);
-                    var grain = 0.5;
-                    if grain_fade < 1.0 { grain = mix(weather_noise(v.world / 18.0), 0.5, grain_fade); }
-                    let white = pow(vec3(0.68, 0.74, 0.8) * (0.9 + grain * 0.1), vec3(2.2));
-                    diffuse = mix(diffuse, white, snow);
-                    unlit_color *= 1.0 - snow;
-                    specular *= 1.0 - snow;
-                }
-            }
-        }
-    }
-    unlit_color += diffuse * storm_light(v.world, normal, surface_normal, true);
-    result.diffuse = vec4(diffuse, select(power, -power, (v.flags & FOG) != 0u));
-    result.geometry = vec4(oct_pack(normal), oct_pack(wet_normal), oct_pack(surface_normal), bitcast<u32>(v.depth));
-    result.emission = vec4(unlit_color, specular);
+    result.diffuse = vec4(material.diffuse, select(material.power, -material.power, (v.flags & FOG) != 0u));
+    result.geometry = vec4(oct_pack(material.normal), oct_pack(material.wet_normal), oct_pack(material.surface), bitcast<u32>(v.depth));
+    result.emission = vec4(material.emission, material.specular);
     return result;
 }
 

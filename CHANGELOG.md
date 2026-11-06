@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce rain rendering cost with edge anti-aliasing by sharing lighting and
+  reflection shadow samples on terrain. Shadow detail, weather coverage and
+  texture quality stay unchanged; compatible native/WebGPU configurations use
+  the faster path automatically.
+
 ## 0.16.0 — 2026-11-06
 
 - Make the accepted rendering improvements automatic: adaptive local shadow detail, half-resolution ambient occlusion, cached modern terrain blood, and shared wet/snow shadow visibility. Remove the Rendering trials toggles and comparison demo; existing settings/presets upgrade automatically, with compatibility fallbacks retained. Original graphics and gameplay stay unchanged.

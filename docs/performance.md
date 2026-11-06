@@ -2841,3 +2841,36 @@ WASM strict Clippy pass. WebGPU/WebGL2 checks exercise the F1 toggle/reset,
 resizing and resumed movement/combat; only WebGPU uses the extra pass. The
 private comparison page verifies twelve image pairs and three paired motion
 clips; the built-in demonstration also exports 720 consecutive 4K60 frames.
+
+### Rain lighting with MSAA
+
+Rainy terrain with MSAA previously evaluated diffuse light and wet reflections
+separately, repeating local and sun shadow lookups. The forward renderer now
+shares that work using the existing terrain material/light calculations. Existing
+material batches select the shader without changing triangle order; water and
+special materials retain their usual path. This adds no render targets or passes
+and keeps texture, weather and shadow detail. It applies automatically to HDR
+rain/rainstorm scenes with MSAA on native/WebGPU. Snow did not benefit, so it
+retains the previous path, as do WebGL2 and non-HDR configurations.
+
+Matched native 4K Modern High routes use HD artwork, 2× MSAA, six local shadow
+lights and soft shadows on the GTX 1080 Ti / Ryzen 9950X3D. Each route contains
+1200 frames, excluding 60 warm-up frames. Builds and image capture run separately
+from timings. Final comparison against v0.16.0:
+
+| Rain route | Mean frame, ms before → after | Frame p95, ms | Frame p99, ms |
+| --- | ---: | ---: | ---: |
+| Village lights | 15.21 → 13.08 | 16.71 → 14.14 | 17.00 → 14.46 |
+| Snow courtyard | 11.50 → 10.15 | 12.28 → 11.18 | 12.88 → 11.78 |
+| Garden and water | 19.55 → 16.34 | 20.96 → 17.64 | 21.24 → 17.91 |
+| Waterfall and spray | 9.86 → 9.84 | 10.70 → 10.72 | 11.14 → 11.10 |
+
+A preceding run measured 16.38 ms mean / 18.92 ms p99 in the garden. Average
+performance improves from about 51 to 61 FPS, but p99 remains over the 16.67 ms
+budget. The waterfall uses the unchanged path; its small differences are noise.
+Eight representative rain/snow day/night captures differ by at most 1/255 in
+sparse channels. GPU checks cover palette transparency, cutouts, coplanar order,
+indexed geometry, moving actors and MSAA. Native, Android and WASM Clippy pass;
+WebGPU/WebGL2 gameplay checks exercise lighting changes, camera movement and
+pause/resume without GPU errors. Evidence stays outside Git under
+`private/optimisation-loop/2026-11-06/resumed/`.

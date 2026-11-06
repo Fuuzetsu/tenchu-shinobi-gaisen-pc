@@ -4,6 +4,8 @@ pub(crate) struct Rendering {
     pub adaptive_shadows: bool,
     pub cached_blood: bool,
     pub quarter_resolution_shadows: bool,
+    #[cfg(test)]
+    pub shared_forward_lighting: bool,
 }
 
 impl Default for Rendering {
@@ -13,6 +15,8 @@ impl Default for Rendering {
             adaptive_shadows: true,
             cached_blood: true,
             quarter_resolution_shadows: true,
+            #[cfg(test)]
+            shared_forward_lighting: true,
         }
     }
 }

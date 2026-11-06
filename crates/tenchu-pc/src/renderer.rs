@@ -270,7 +270,7 @@ impl Renderer {
             bind_group_layouts: &[&binding_layout, &shadows.layout, &materials.layout],
             push_constant_ranges: &[],
         });
-        let pipelines = pipelines::create(&device, format, &layout, &shader, 1);
+        let pipelines = pipelines::create(&device, format, &layout, &shader, 1, false);
         let overlay_effects = pipelines.effects.clone();
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Scene textures and camera"),
@@ -859,13 +859,26 @@ impl Renderer {
                     if wet && terrain && scenery {
                         continue;
                     }
-                    pass.set_pipeline(if scenery {
-                        &self.pipelines.scenery
-                    } else {
-                        &self.pipelines.opaque
-                    });
                     mesh.bind(&mut pass);
-                    mesh.draw(&mut pass, 0..mesh.count);
+                    if scenery && let Some(pipeline) = &self.pipelines.forward_weather {
+                        for batch in &mesh.material_batches {
+                            pass.set_pipeline(
+                                if batch.material == wet_lighting::Material::Surface {
+                                    pipeline
+                                } else {
+                                    &self.pipelines.scenery
+                                },
+                            );
+                            mesh.draw(&mut pass, batch.vertices.clone());
+                        }
+                    } else {
+                        pass.set_pipeline(if scenery {
+                            &self.pipelines.scenery
+                        } else {
+                            &self.pipelines.opaque
+                        });
+                        mesh.draw(&mut pass, 0..mesh.count);
+                    }
                 }
                 mark(&mut pass, stage);
             }

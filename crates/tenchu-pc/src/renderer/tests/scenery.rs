@@ -126,10 +126,28 @@ fn scenery_shader_preserves_materials_and_surface_flags() {
                 let expected = capture(&mut renderer, &terrain);
                 assert!(expected.chunks_exact(4).any(|p| p[..3] != [0; 3]));
                 terrain.scenery = true;
-                assert_eq!(
-                    capture(&mut renderer, &terrain),
-                    expected,
-                    "samples {samples}, weather {mode:?}, time {time}"
+                graphics.rendering.shared_forward_lighting = false;
+                renderer.configure(&graphics);
+                assert!(capture(&mut renderer, &terrain) == expected);
+                graphics.rendering.shared_forward_lighting = true;
+                renderer.configure(&graphics);
+                let actual = capture(&mut renderer, &terrain);
+                let differences: Vec<_> = actual
+                    .iter()
+                    .zip(&expected)
+                    .map(|(&a, &b)| a.abs_diff(b))
+                    .collect();
+                let maximum = *differences.iter().max().unwrap();
+                let mean = differences.iter().map(|&d| f32::from(d)).sum::<f32>()
+                    / differences.len() as f32;
+                let combined = !renderer.gl && samples > 1 && hdr && mode.rain();
+                assert!(
+                    if combined {
+                        maximum <= 2 && mean < 0.01
+                    } else {
+                        maximum == 0
+                    },
+                    "samples {samples}, weather {mode:?}, time {time}: max {maximum}, mean {mean}"
                 );
             }
         }
