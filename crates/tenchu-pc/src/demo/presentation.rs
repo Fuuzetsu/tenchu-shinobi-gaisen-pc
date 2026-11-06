@@ -457,7 +457,8 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                         crate::settings::WeatherMode::Snowstorm
                     };
                     g.weather.lightning_interval = 8;
-                    g.weather.thunder_style = tenchu_audio::ThunderStyle::Rolling;
+                    g.weather.thunder_style = tenchu_audio::ThunderStyle::Natural;
+                    g.weather.storm_bolts = true;
                     g.weather.lightning = 70;
                     g.weather.wind = 65;
                     g.sky.time = 1200;
@@ -932,7 +933,7 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
         }),
         Feature::Blizzard => meter("Blizzard wind", g.weather.wind, 100),
         Feature::Rainstorm | Feature::Snowstorm => text(
-            "Denser precipitation · rain ambience · sheltered flashes · delayed thunder".into(),
+            "Branching sky bolts · sheltered flashes · delayed natural thunder · denser precipitation".into(),
         ),
         Feature::GrenadeLight | Feature::KaenLight => text(format!(
             "Fire / explosion lights {} · original item behavior",

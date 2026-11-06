@@ -7,10 +7,11 @@ pub enum ThunderStyle {
     Simple,
     Rolling,
     Retro,
+    Natural,
 }
 
 impl ThunderStyle {
-    pub const ALL: [Self; 3] = [Self::Simple, Self::Rolling, Self::Retro];
+    pub const ALL: [Self; 4] = [Self::Simple, Self::Rolling, Self::Retro, Self::Natural];
 }
 
 pub(super) enum Thunder {
@@ -22,7 +23,7 @@ impl Thunder {
     pub fn new(cue: ThunderCue, rate: u32) -> Self {
         match cue.style {
             ThunderStyle::Simple => Self::Simple(Simple::new(cue, rate)),
-            ThunderStyle::Rolling | ThunderStyle::Retro => {
+            ThunderStyle::Rolling | ThunderStyle::Retro | ThunderStyle::Natural => {
                 Self::Rolling(Box::new(rolling::Rolling::new(cue, rate)))
             }
         }
@@ -107,7 +108,11 @@ mod tests {
     #[test]
     fn rolling_thunder_keeps_stereo_tails_and_retro_sample_hold() {
         for rate in [22050, 48000] {
-            for style in [ThunderStyle::Rolling, ThunderStyle::Retro] {
+            for style in [
+                ThunderStyle::Rolling,
+                ThunderStyle::Retro,
+                ThunderStyle::Natural,
+            ] {
                 let cue = ThunderCue {
                     seed: 42,
                     strength: 1.0,

@@ -143,6 +143,7 @@ impl Item {
             Self::HeroModels => &mut settings.graphics.models.heroes,
             Self::ContactSparks => &mut settings.graphics.effects.sparks,
             Self::Lightning => &mut settings.graphics.effects.lightning,
+            Self::StormBolts => &mut settings.graphics.weather.storm_bolts,
             Self::Gunfire => &mut settings.graphics.effects.gunfire,
             Self::ContactSplashes => &mut settings.graphics.effects.splashes,
             Self::ContactScatter => &mut settings.graphics.effects.scatter,

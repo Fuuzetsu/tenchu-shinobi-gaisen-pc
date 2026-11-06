@@ -104,6 +104,7 @@ pub enum Item {
     Footprints,
     BakedSnowFootprints,
     StormLightning,
+    StormBolts,
     StormInterval,
     StormThunder,
     ThunderStyle,
@@ -947,7 +948,13 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::StormLightning,
                     "Storm lightning strength",
                     format!("{}%", weather.lightning),
-                    "Soft cloud flashes in Rainstorm/Snowstorm. Shelter blocks their light; 0 disables flashes without muting thunder.",
+                    "Cloud flashes and optional visible bolts in Rainstorm/Snowstorm. Shelter blocks their light; 0 disables both without muting thunder.",
+                ),
+                (
+                    Item::StormBolts,
+                    "Visible storm bolts",
+                    on(weather.storm_bolts),
+                    "Distant branching bolts in the sky, occluded by roofs and terrain. Off keeps cloud flashes only; no gameplay damage or effects RNG changes.",
                 ),
                 (
                     Item::StormInterval,
@@ -974,9 +981,10 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                         tenchu_audio::ThunderStyle::Simple => "Existing",
                         tenchu_audio::ThunderStyle::Rolling => "Rolling",
                         tenchu_audio::ThunderStyle::Retro => "Retro rolling",
+                        tenchu_audio::ThunderStyle::Natural => "Natural",
                     }
                     .into(),
-                    "Existing keeps the earlier synthesized sound. Rolling adds layered rumbles and diffuse stereo echoes; Retro rolling adds 8-bit/11 kHz coloration. Timing and volume stay separate.",
+                    "Natural adds irregular cracks that recede into low rolling echoes. Existing and Rolling preserve earlier sounds; Retro rolling adds 8-bit/11 kHz coloration. Timing and volume stay separate.",
                 ),
                 (
                     Item::StormThunder,

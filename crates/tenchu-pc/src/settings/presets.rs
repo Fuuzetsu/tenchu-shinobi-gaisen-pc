@@ -226,7 +226,7 @@ fn modern(ultra: bool) -> Graphics {
     g.weather.quality = if ultra { 2 } else { 1 };
     g.weather.baked_snow = true;
     g.weather.rain_volume = 70;
-    g.weather.thunder_style = tenchu_audio::ThunderStyle::Rolling;
+    g.weather.thunder_style = tenchu_audio::ThunderStyle::Natural;
     g.sky.enabled = true;
     g.sky.time = 1320;
     g.sky.moon = 35;

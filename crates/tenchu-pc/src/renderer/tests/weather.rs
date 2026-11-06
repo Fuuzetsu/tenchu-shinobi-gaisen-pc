@@ -3,6 +3,67 @@ use bytemuck::Zeroable;
 use glam::Vec3;
 
 #[test]
+#[ignore = "requires a GPU; sky bolts draw in open sky but never through solid geometry"]
+fn storm_bolts_are_occluded_by_the_world() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    let view = target.create_view(&Default::default());
+    let mut graphics = crate::settings::Graphics {
+        fog: false,
+        ..Default::default()
+    };
+    graphics.weather.mode = crate::settings::WeatherMode::Rainstorm;
+    graphics.weather.amount = 0;
+    graphics.weather.lightning = 100;
+    graphics.weather.lightning_interval = 8;
+    let mut weather = crate::visuals::weather::Weather::default();
+    let surfaces = crate::visuals::surfaces::Surfaces::new(&[]);
+    for tick in 0..300 {
+        weather.tick(tick, Vec3::ZERO, &surfaces, &graphics.weather);
+        if weather.sample(&graphics.weather, 0.0).flash > 0.5 {
+            break;
+        }
+    }
+    let geometry = weather.geometry(Mat4::IDENTITY, 0.0, &graphics.weather);
+    assert!(!geometry.vertices.is_empty());
+    let center = geometry
+        .vertices
+        .iter()
+        .map(|v| Vec3::from(v.position))
+        .sum::<Vec3>()
+        / geometry.vertices.len() as f32;
+    let camera = Mat4::perspective_rh(0.8, 1.0, 50.0, 250000.0)
+        * Mat4::look_at_rh(Vec3::ZERO, center, Vec3::NEG_Y);
+    let effects = renderer.upload_effects(weather.geometry(camera, 0.0, &graphics.weather));
+    renderer.configure(&graphics);
+    renderer.draw(&view, camera, &[], None).unwrap();
+    let dark = read_pixels(&renderer, &target);
+    renderer.draw(&view, camera, &[], Some(&effects)).unwrap();
+    assert_ne!(dark, read_pixels(&renderer, &target));
+    let normal = center.normalize();
+    let right = normal.cross(Vec3::NEG_Y).normalize() * 100000.0;
+    let up = right.normalize().cross(normal) * 100000.0;
+    let middle = center * 0.5;
+    let points = [
+        middle - right - up,
+        middle + right - up,
+        middle - right + up,
+        middle + right + up,
+    ];
+    let wall = renderer.upload(&[0, 1, 2, 1, 3, 2].map(|i| Vertex {
+        position: points[i].to_array(),
+        color: [0.2; 3],
+        flags: render_mesh::DOUBLE_SIDED | render_mesh::UNLIT,
+        ..Vertex::zeroed()
+    }));
+    renderer.draw(&view, camera, &[&wall], None).unwrap();
+    let covered = read_pixels(&renderer, &target);
+    renderer
+        .draw(&view, camera, &[&wall], Some(&effects))
+        .unwrap();
+    assert_eq!(covered, read_pixels(&renderer, &target));
+}
+
+#[test]
 #[ignore = "requires a GPU; existing snow masks tracks to snow texels without enabling simulated weather"]
 fn baked_snow_tracks_preserve_bare_texels() {
     let mut vram = Vram::default();

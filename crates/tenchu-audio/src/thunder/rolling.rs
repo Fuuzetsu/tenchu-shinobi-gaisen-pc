@@ -18,6 +18,7 @@ pub(crate) struct Rolling {
     damping: f32,
     volume: [f32; 2],
     retro: bool,
+    cracks: Option<[[f32; 3]; 6]>,
     sample_clock: u32,
     held: [f32; 2],
 }
@@ -47,6 +48,19 @@ impl Rolling {
         });
         let strength = cue.strength.clamp(0.0, 1.0);
         let pan = cue.pan.clamp(-1.0, 1.0);
+        let cracks = (cue.style == ThunderStyle::Natural).then(|| {
+            std::array::from_fn(|i| {
+                [
+                    if i == 0 {
+                        0.0
+                    } else {
+                        i as f32 * 0.21 + noise(&mut seed) * 0.10
+                    },
+                    0.10 + (noise(&mut seed) + 1.0) * 0.11,
+                    (0.55 + noise(&mut seed) * 0.25) / (1.0 + i as f32 * 0.28),
+                ]
+            })
+        });
         Self {
             seed,
             age: 0,
@@ -66,6 +80,7 @@ impl Rolling {
                 strength * (1.0 + pan.min(0.0)),
             ],
             retro: cue.style == ThunderStyle::Retro,
+            cracks,
             sample_clock: 0,
             held: [0.0; 2],
         }
@@ -94,7 +109,22 @@ impl Rolling {
             .sum();
         let [bass, body, grit, crack] = std::array::from_fn(|i| self.filters[i] * self.gains[i]);
         let attack = (time / 0.006).min(1.0) * (1.0 - time / 0.23).max(0.0);
-        let dry = (bass * 0.19 + body * 0.12 + grit * 0.025) * envelope + crack * 0.15 * attack;
+        let dry = if let Some(cracks) = &self.cracks {
+            let fracture: f32 = cracks
+                .iter()
+                .map(|[start, duration, gain]| {
+                    let age = time - start;
+                    let rise = (age / 0.002).clamp(0.0, 1.0);
+                    let fall = (1.0 - age / duration).clamp(0.0, 1.0);
+                    gain * rise * fall * fall
+                })
+                .sum();
+            let distance = (time / 3.0).clamp(0.0, 1.0);
+            (bass * 0.22 + body * (0.16 - distance * 0.10) + grit * 0.018) * envelope
+                + ((crack - grit) * 0.22 + grit * 0.12 + body * 0.10) * fracture
+        } else {
+            (bass * 0.19 + body * 0.12 + grit * 0.025) * envelope + crack * 0.15 * attack
+        };
         let taps: [f32; 4] = std::array::from_fn(|i| {
             let echo = &mut self.echoes[i];
             echo.filtered += (echo.line[echo.index] - echo.filtered) * self.damping;

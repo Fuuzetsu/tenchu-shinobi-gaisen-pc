@@ -116,7 +116,7 @@ impl Weather {
             *self = Self::default();
         }
         self.tick = Some(tick);
-        self.storm.tick(settings);
+        self.storm.tick(settings, center);
         if self.mode != settings.mode
             || self
                 .center
@@ -378,6 +378,7 @@ impl Weather {
                 );
             }
         }
+        self.storm.append(&mut vertices, forward, settings, alpha);
         let count = vertices.len() as u32;
         Geometry {
             vertices,

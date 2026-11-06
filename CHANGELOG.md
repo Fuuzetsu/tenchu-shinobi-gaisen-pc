@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Rainstorm and Snowstorm add optional branching sky bolts and a Natural thunder
+  sound with irregular cracks and receding rumbles. F1 → Weather keeps bolt
+  visibility, flash strength, interval, sound style and volume adjustable;
+  Modern High/Ultra and the storm demos select Natural thunder.
+
 - High-detail heroes and replacement player models can retain body blood stains;
   dense meshes no longer lose entire stains to the ground-decal size limit.
 
