@@ -2,7 +2,10 @@ use super::{Mesh, Renderer, culling::Frustum};
 use crate::render_mesh::Vertex;
 use crate::visuals::surfaces::SourceRange;
 use glam::{Mat4, Vec3};
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    sync::Arc,
+};
 use wgpu::util::DeviceExt;
 
 pub(super) mod cache;
@@ -83,7 +86,7 @@ impl Renderer {
                 });
                 if self.composite_supported && decal.ground_blood && decal.source_ids.is_none() {
                     let mut ids = vec![0_u32; page.len()];
-                    for source in sources {
+                    for source in &mut decal.sources {
                         let next = self.decal_sources.len() + 1;
                         if next >= (1 << 22) {
                             break;
@@ -94,10 +97,13 @@ impl Renderer {
                         if target.is_empty() {
                             continue;
                         }
-                        let id = *self
-                            .decal_sources
-                            .entry(source.source.clone())
-                            .or_insert(next as u32);
+                        let id = match self.decal_sources.entry(source.source.clone()) {
+                            Entry::Occupied(entry) => {
+                                source.source = entry.key().clone();
+                                *entry.get()
+                            }
+                            Entry::Vacant(entry) => *entry.insert(next as u32),
+                        };
                         target.fill(id);
                         decal
                             .source_bounds

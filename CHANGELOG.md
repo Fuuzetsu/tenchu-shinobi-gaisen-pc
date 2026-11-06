@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce CPU frame-time spikes while blood accumulates by sharing identical
+  receiver data in the renderer. Blood appearance, retention and rewind data
+  are unchanged.
+
 - Keep doors and trapdoors visible at a distance when black fog is disabled or
   extended. F1 → Graphics → **Distant doors without fog** can restore retail
   visibility. Door collision, activation and replay behavior are unchanged.

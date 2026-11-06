@@ -2874,3 +2874,30 @@ indexed geometry, moving actors and MSAA. Native, Android and WASM Clippy pass;
 WebGPU/WebGL2 gameplay checks exercise lighting changes, camera movement and
 pause/resume without GPU errors. Evidence stays outside Git under
 `private/optimisation-loop/2026-11-06/resumed/`.
+
+### Share identical blood receivers
+
+Blood cache preparation now reuses the existing renderer identity table's `Arc`
+for equal receivers. Subsequent grouping can use pointer equality instead of
+repeatedly comparing full triangle attributes. The initial identity lookup still
+compares all attributes; separate UVs, normals and surface heights stay distinct.
+This adds no cache or saved-state fields and changes no blood geometry or shading.
+
+The same 4K Modern High accumulation fixture adds sixteen stains per logic tick,
+up to 8192 retained marks, with moving actors. Runs contain 1200 frames and
+exclude 60 warm-up frames. The reverse-order repeat on the GTX 1080 Ti /
+Ryzen 9950X3D measures:
+
+| Workload | Frame mean, ms before → after | Frame p95, ms | Frame p99, ms | CPU submission p99, ms |
+| --- | ---: | ---: | ---: | ---: |
+| Accumulating blood | 18.11 → 17.80 | 22.72 → 21.39 | 23.97 → 22.51 | 4.18 → 2.67 |
+| With rewind recording | 19.06 → 18.74 | 24.60 → 23.69 | 25.80 → 24.89 | 4.10 → 2.79 |
+
+The first order also improves whole-frame p99 by 0.87/1.05 ms. Settled marks
+with moving actors remain approximately 16 ms; their cache does not need this
+repeated grouping. Paired final captures are byte-identical. These offscreen
+runs wait for the GPU, so frame intervals compare workloads rather than predict
+interactive FPS. Stress hooks and raw evidence remain outside Git under
+`private/optimisation-loop/2026-11-06/resumed/canonical-*`.
+The receiver/fallback GPU regression passes across all supported MSAA counts;
+147 ordinary tests and strict native, WASM and Android Clippy also pass.
