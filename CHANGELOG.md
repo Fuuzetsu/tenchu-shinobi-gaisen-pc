@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Skip puddle noise calculations on surfaces where puddles cannot collect,
+  reducing rain shading work without changing its appearance.
+
 - Reduce rendering cost during lightning flashes by reusing terrain shelter
   calculations. Storm illumination and weather coverage are unchanged.
 

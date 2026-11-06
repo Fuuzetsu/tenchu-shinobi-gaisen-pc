@@ -3015,3 +3015,25 @@ The existing shared-versus-forward lighting regression now includes flashes
 across special materials, sloped terrain, indexed geometry and MSAA counts.
 Shelter/wind GPU checks, 147 ordinary tests, strict native/WASM/Android Clippy
 and WebGPU/WebGL2 gameplay checks pass.
+
+### Skip unused puddle basin noise
+
+Puddle coverage is zero on steep surfaces and when its accumulated amount is
+zero. Wet shading now skips the second noise evaluation in those cases, retaining
+the original calculation and multiplication order where puddles can form. No
+filter, sample count or weather setting changes.
+
+On the same 4K GTX 1080 Ti fixtures, two orderings reduce rainy garden GPU time
+by 0.13–0.26 ms and the village view by 0.08–0.13 ms. The 1200-frame reverse
+repeat gives garden GPU mean/p99 of 17.61/18.22 → 17.35/17.92 ms; six paired
+captures match exactly. A short moving-camera comparison is mixed, so it is
+not evidence of a general FPS increase. The longer reverse native comparison
+(1200 frames per route, 60 warm-up frames excluded) improves garden frame
+mean/p95/p99 from 18.30/19.82/20.17 → 17.89/19.46/19.88 ms and village mean
+from 13.73 → 13.53 ms. This is a small saving, still short of the garden's
+16.67 ms target.
+
+Rain/snow native routes, wet-material/shelter GPU regressions, 147 ordinary
+tests, strict native/WASM/Android Clippy and WebGPU/WebGL2 gameplay checks pass.
+Evidence is under `private/optimisation-loop/2026-11-06/resumed/weather-cost/`
+and `resumed/puddle-*.json`, outside Git.

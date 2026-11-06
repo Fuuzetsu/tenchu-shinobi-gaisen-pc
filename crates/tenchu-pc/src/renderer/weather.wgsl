@@ -242,10 +242,13 @@ struct WetSurface {
 fn prepare_wet_surface(normal: vec3<f32>, surface: vec3<f32>, position: vec3<f32>, footprint: f32, shelter: f32, incidence: f32, rain_enabled: bool) -> WetSurface {
     let slope = clamp(-surface.y, 0.0, 1.0);
     let variation = weather_noise(position / 450.0);
-    let basin = weather_noise(position / 1400.0) * 0.8 + variation * 0.2;
-    let level = lighting.weather.w * 0.6;
-    let puddle = (1.0 - smoothstep(level - 0.07, level + 0.07, basin)) * smoothstep(0.0, 0.12, lighting.weather.w)
-        * smoothstep(0.96, 0.998, slope) * shelter * incidence;
+    var puddle = 0.0;
+    if slope > 0.96 && lighting.weather.w > 0.0 {
+        let basin = weather_noise(position / 1400.0) * 0.8 + variation * 0.2;
+        let level = lighting.weather.w * 0.6;
+        puddle = (1.0 - smoothstep(level - 0.07, level + 0.07, basin)) * smoothstep(0.0, 0.12, lighting.weather.w)
+            * smoothstep(0.96, 0.998, slope) * shelter * incidence;
+    }
     let wet = max(lighting.weather.x * shelter * incidence * (0.75 + variation * 0.25), puddle);
     var smooth_normal = normal;
     if wet > 0.0 && lighting.rain.x > 0.0 {
