@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Optional R1 guard stance now keeps sheathed weapons sheathed. F1 → Movement
+  offers “Guard stance draws weapon” to restore automatic drawing.
+
 - Burning bodies now use positional sound as in retail, independently of the
   global lightning-item sound. F1 → General adds local playback, volume and
   hearing-range controls, defaulting to quieter crackles near the body.

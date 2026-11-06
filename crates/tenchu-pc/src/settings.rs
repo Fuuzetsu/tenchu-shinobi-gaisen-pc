@@ -50,6 +50,7 @@ pub struct Settings {
     pub quick_shuriken_dodge: bool,
     pub strict_corpse_sight: bool,
     pub guard_controls: bool,
+    pub guard_draw: bool,
     pub walking: Walking,
     pub sheathing: tenchu_core::game::sheathing::Settings,
     pub bleeding: tenchu_core::game::bleeding::Settings,
@@ -101,6 +102,7 @@ impl Default for Settings {
             quick_shuriken_dodge: false,
             strict_corpse_sight: false,
             guard_controls: false,
+            guard_draw: false,
             walking: Walking::default(),
             sheathing: Default::default(),
             bleeding: Default::default(),
@@ -163,6 +165,7 @@ impl Settings {
         self.quick_shuriken_dodge = game.intelligence.quick_shuriken_dodge;
         self.strict_corpse_sight = game.intelligence.strict_corpse_sight;
         self.guard_controls = game.intelligence.guard_controls;
+        self.guard_draw = game.intelligence.guard_draw;
         self.sheathing = game.player().sheathing.as_ref().map_or_else(
             || tenchu_core::game::sheathing::Settings {
                 enabled: false,

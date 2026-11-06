@@ -13,7 +13,12 @@ impl Actor {
             && self.free_stance()
     }
 
-    pub(super) fn guard_motion(&mut self, ctx: &Context, held: u16) -> Option<(i16, bool)> {
+    pub(super) fn guard_motion(
+        &mut self,
+        ctx: &Context,
+        held: u16,
+        draw: bool,
+    ) -> Option<(i16, bool)> {
         self.velocity[0] = 0;
         self.velocity[2] = 0;
         let crouching = held & CIRCLE != 0;
@@ -54,7 +59,7 @@ impl Actor {
             MOT_SQUAT
         } else if armed {
             MOT_ENGAGE_STANCE
-        } else if self.registered(ctx, MOT_STATE_DRAW) {
+        } else if draw && self.registered(ctx, MOT_STATE_DRAW) {
             MOT_STATE_DRAW
         } else {
             MOT_NORMAL

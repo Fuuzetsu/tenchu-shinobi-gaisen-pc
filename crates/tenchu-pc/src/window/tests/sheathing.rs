@@ -418,3 +418,30 @@ fn tatsumaru_combo_contacts_and_saved_state() {
         assert!(game.mission.clips[game.player().motion.clip.unwrap()].id < 0x6000);
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; guard input respects both stowed weapons and the explicit auto-draw option"]
+fn guard_stance_does_not_unsheathe_unless_requested() {
+    for character in 0..2 {
+        let mut app = ready(character);
+        press_sheathe(&mut app);
+        app.set_guard_controls(true);
+        for _ in 0..60 {
+            app.game_tick(input::R1);
+        }
+        assert_eq!(app.campaign.game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+        assert_eq!(app.campaign.game.player().motion.action, MOT_NORMAL);
+        app.game_tick(input::R1 | input::CIRCLE | input::LEFT);
+        assert_eq!(app.campaign.game.player().motion.action, MOT_SQUAT_ROLL_L);
+        for _ in 0..90 {
+            app.game_tick(0);
+        }
+        app.apply_item(crate::settings::menu::Item::GuardDraw, 1)
+            .unwrap();
+        for _ in 0..60 {
+            app.game_tick(input::R1);
+        }
+        assert_ne!(app.campaign.game.player().attribute & ATTR_WEAPON_DRAWN, 0);
+        assert_eq!(app.campaign.game.player().motion.action, MOT_ENGAGE_STANCE);
+    }
+}

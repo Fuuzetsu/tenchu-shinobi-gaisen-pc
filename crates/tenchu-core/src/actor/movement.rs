@@ -60,7 +60,7 @@ impl Actor {
         let next = if let Some(next) = self.sheath_input(world) {
             Some(next)
         } else if self.guard_input(world) {
-            self.guard_motion(ctx, held)
+            self.guard_motion(ctx, held, world.intelligence.guard_draw)
         } else {
             match self.status {
                 ActorState::Normal => self.normal(ctx, world, held, command, center)?,

@@ -145,6 +145,11 @@ impl Application {
                 self.set_sheathing(settings)?;
             }
             Item::AnalogWalking => self.set_walking(s.walking.enabled)?,
+            Item::GuardDraw => {
+                self.stop_edited_recording();
+                self.settings.guard_draw = s.guard_draw;
+                self.campaign.game.intelligence.guard_draw = s.guard_draw;
+            }
             Item::GuardControls => self.set_guard_controls(s.guard_controls),
             Item::DetectionDamage => {
                 self.set_damage_escalation(tenchu_core::ai::escalation::Settings {

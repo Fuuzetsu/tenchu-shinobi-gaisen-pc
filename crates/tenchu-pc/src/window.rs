@@ -1498,6 +1498,7 @@ pub fn run(
     campaign.game.intelligence.quick_shuriken_dodge = settings.quick_shuriken_dodge;
     campaign.game.intelligence.strict_corpse_sight = settings.strict_corpse_sight;
     campaign.game.intelligence.guard_controls = settings.guard_controls;
+    campaign.game.intelligence.guard_draw = settings.guard_draw;
     crate::walking::configure(&mut campaign.game, &assets, settings.walking.enabled)?;
     crate::sheathing::configure(&mut campaign.game, &assets, settings.sheathing)?;
     campaign.game.set_bleeding(settings.bleeding);

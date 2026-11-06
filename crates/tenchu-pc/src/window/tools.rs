@@ -164,6 +164,7 @@ impl Application {
         }
         self.settings.guard_controls = enabled;
         self.campaign.game.intelligence.guard_controls = enabled;
+        self.campaign.game.intelligence.guard_draw = self.settings.guard_draw;
     }
 
     pub(super) fn set_sheathing(
@@ -1040,6 +1041,11 @@ impl Application {
                 self.set_sheathing(settings)?;
             }
             Item::AnalogWalking => self.set_walking(!self.settings.walking.enabled)?,
+            Item::GuardDraw => {
+                self.stop_edited_recording();
+                self.settings.guard_draw = !self.settings.guard_draw;
+                self.campaign.game.intelligence.guard_draw = self.settings.guard_draw;
+            }
             Item::GuardControls => {
                 self.set_guard_controls(!self.settings.guard_controls);
             }

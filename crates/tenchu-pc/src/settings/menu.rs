@@ -32,6 +32,7 @@ pub enum Item {
     Rewind,
     CameraRelative,
     GuardControls,
+    GuardDraw,
     AnalogWalking,
     WalkThreshold,
     Sheathing,
@@ -593,6 +594,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "R1 guard / dash / roll",
                 on(s.guard_controls),
                 "GAMEPLAY EDIT: hold the R1 binding to stand and block frontal melee attacks. Press a direction once to dash; hold crouch for a roll. Directions are relative to the character, including with camera-relative movement. Release and press again to repeat; cannot interrupt attacks, recoil or injuries. Circle still crouches. Rebind R1 under General > Controls (default controller RB, new keyboard bindings K). Off by default; disables input recording and TRIAL records.",
+            ),
+            (
+                Item::GuardDraw,
+                "Guard stance draws weapon",
+                on(s.guard_draw),
+                "With optional R1 guard controls, automatically draw a sheathed weapon. Off keeps it sheathed; blocking still requires a drawn weapon. Dashes and crouching rolls remain available.",
             ),
             (
                 Item::CameraRelative,
