@@ -42,8 +42,8 @@ impl Marks {
         } in pages
         {
             out.value(entries)?;
-            out.shared_arc(vertices, entries.len() == PAGE_MARKS)?;
-            out.shared_arc(sources, entries.len() == PAGE_MARKS)?;
+            out.shared_arc(vertices, true)?;
+            out.shared_arc(sources, true)?;
         }
         out.value(&attached.len())?;
         for (id, mark) in attached {
@@ -284,11 +284,14 @@ mod tests {
             let snapshot = history.recorder.finish().unwrap();
             history.push(u64::from(tick), 30, snapshot, None).unwrap();
         }
+        let recording = history.export([0, 19], String::new()).unwrap();
+        let (mut imported, _) = History::import(&recording).unwrap();
         for (tick, expected) in expected.into_iter().enumerate().rev() {
             let snapshot = history.snapshot(tick).unwrap();
             assert_eq!(snapshot.bytes().unwrap(), expected);
             let restored: Marks = snapshot.decode().unwrap();
             assert_eq!(postcard::to_allocvec(&restored).unwrap(), expected);
+            assert_eq!(imported.snapshot(tick).unwrap().bytes().unwrap(), expected);
         }
     }
 

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce rewind recording cost and retain more history within its memory limit
+  during heavy blood accumulation. Existing saves and exported recordings remain
+  compatible.
+
 - Reduce CPU frame-time spikes while blood accumulates by sharing identical
   receiver data in the renderer. Blood appearance, retention and rewind data
   are unchanged.

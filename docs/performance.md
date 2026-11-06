@@ -2901,3 +2901,39 @@ interactive FPS. Stress hooks and raw evidence remain outside Git under
 `private/optimisation-loop/2026-11-06/resumed/canonical-*`.
 The receiver/fallback GPU regression passes across all supported MSAA counts;
 147 ordinary tests and strict native, WASM and Android Clippy also pass.
+
+### Keep partial blood pages out of rewind frame deltas
+
+Growing and trimmed blood pages now use the same immutable resource storage as
+full pages. Previously their variable-length geometry and receiver metadata were
+inserted into the main XOR delta, shifting later data whenever a mark arrived or
+expired. Compressing those pages separately reduces both recording work and
+history storage. Serialized game states, the recording format and the 96 MiB
+memory limit remain unchanged.
+
+A steady-play `perf` capture excludes loading and shutdown; LZ4 compression
+accounts for about 10.6% of sampled CPU cycles in the dense-blood/rewind fixture.
+Reusing the compression output buffer did not help and was discarded. Separating
+partial pages gives these repeated 4K Modern High accumulation results:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Mean rewind work per presented frame | 0.713 ms | 0.641 ms |
+| Rewind p95 / p99 | 1.830 / 2.194 ms | 1.577 / 1.871 ms |
+| Whole-frame mean / p99 | 18.646 / 24.853 ms | 18.560 / 24.384 ms |
+| Retained history at the end of the stress run | 167 ticks (5.5 s span) | 300 ticks (10.0 s span) |
+
+An earlier pair measures rewind means of 0.711 → 0.637 ms and p99 of
+2.265 → 1.869 ms. Settled marks with moving actors show little difference
+(0.444 → 0.433 ms mean rewind work); their whole-frame tails vary in both
+directions. This is a CPU/history improvement, not a GPU-speed claim.
+
+Both complete retained intervals export/import successfully. Seeks to their
+first, middle and final states reproduce the original bytes; both builds end
+with the same complete-state hash. Captures are byte-identical. The existing
+blood expiry/style-change regression also checks exported recordings. The same
+1200-frame offscreen methodology and hardware as above apply. Private evidence
+is in `private/optimisation-loop/2026-11-06/resumed/rewind-{pages,control}-*`.
+Strict native/WASM/Android Clippy, ordinary tests, full-versus-cached capture,
+visual-effect restoration, exported timeline continuation and timed reverse
+playback checks pass.
