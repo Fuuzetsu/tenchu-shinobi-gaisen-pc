@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore draw and sheathe sounds for both heroes when optional weapon sheathing
+  is enabled, using their matching ninja weapon samples from the user's disc.
+
 - Fix the missing wave dash in Kiku's Japanese Grand Master dialogue and include
   Windows-compatible Shift-JIS characters in the embedded HD font.
 

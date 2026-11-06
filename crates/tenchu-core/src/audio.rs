@@ -92,7 +92,18 @@ impl Game {
                 if sound > 5 && (self.cinematic.frame || actor.attribute & ATTR_SUSPEND != 0) {
                     continue;
                 }
-                let program = if let Some(program) = actor.voice_program {
+                let weapon_program = actor
+                    .sheathing
+                    .as_ref()
+                    .and_then(|s| s.weapon_program)
+                    .filter(|_| {
+                        sound <= 1
+                            && matches!(
+                                actor.motion.action,
+                                crate::ids::MOT_STATE_DRAW | crate::ids::MOT_STATE_SHEATHE
+                            )
+                    });
+                let program = if let Some(program) = weapon_program.or(actor.voice_program) {
                     program
                 } else if (actor.kind as u16) < 2 {
                     5

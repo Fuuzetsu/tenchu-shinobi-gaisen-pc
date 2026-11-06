@@ -171,7 +171,13 @@ impl Application {
         mut settings: tenchu_core::game::sheathing::Settings,
     ) -> Result<()> {
         settings.validate();
+        let voices = self.campaign.game.mission.imported_voices.len();
         crate::sheathing::configure(&mut self.campaign.game, &self.assets, settings)?;
+        if self.campaign.game.mission.imported_voices.len() != voices
+            && let Some(audio) = &mut self.audio
+        {
+            audio.refresh_actor_bank(&self.assets, &self.campaign.game)?;
+        }
         if self.settings.sheathing != settings {
             self.stop_edited_recording();
             self.controls.clear();

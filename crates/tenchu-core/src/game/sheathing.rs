@@ -46,6 +46,7 @@ pub struct Motions<T> {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct State {
     pub settings: Settings,
+    pub weapon_program: Option<i16>,
     motions: Motions<usize>,
     attacks: Vec<(i16, usize)>,
     held: bool,
@@ -144,6 +145,7 @@ impl Game {
                 };
                 self.roster.get_mut(self.player_id).sheathing = Some(State {
                     settings,
+                    weapon_program: None,
                     motions,
                     attacks: Vec::new(),
                     held: false,
