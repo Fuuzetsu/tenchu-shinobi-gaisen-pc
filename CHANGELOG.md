@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.16.2 — 2026-11-06
+
 - Reduce rain-haze rendering cost on native and WebGPU by sharing shelter
   calculations in a small view volume. Roof shelter, wind and lighting remain
   responsive; WebGL2 retains its existing rendering path.
