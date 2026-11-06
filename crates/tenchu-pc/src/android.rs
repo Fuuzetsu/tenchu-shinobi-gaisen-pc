@@ -48,6 +48,20 @@ pub fn show_error(error: &str) {
     }
 }
 
+pub fn preparing_graphics(preparing: bool) {
+    if let Err(error) = activity(|env, activity| {
+        env.call_method(
+            activity,
+            jni_str!("preparingGraphics"),
+            jni_sig!("(Z)V"),
+            &[JValue::Bool(preparing)],
+        )?;
+        Ok(())
+    }) {
+        eprintln!("Android graphics dialog: {error}");
+    }
+}
+
 #[unsafe(no_mangle)]
 fn android_main(app: AndroidApp) {
     let _ = APP.set(app.clone());

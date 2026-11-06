@@ -43,7 +43,7 @@ pub(super) struct WetLighting {
 }
 
 impl WetLighting {
-    pub fn new(renderer: &Renderer) -> Self {
+    pub fn new(renderer: &crate::renderer::configuration::Context) -> Self {
         let device = &renderer.device;
         let approximate = renderer.graphics.rendering.quarter_resolution_shadows;
         let texture_entry = |binding: usize| wgpu::BindGroupLayoutEntry {
@@ -72,9 +72,9 @@ impl WetLighting {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Screen shadow preparation"),
                 bind_group_layouts: &[
-                    &renderer.pipelines.opaque.get_bind_group_layout(0),
-                    &renderer.shadows.layout,
-                    &renderer.materials.layout,
+                    &renderer.scene_layout,
+                    &renderer.shadow_layout,
+                    &renderer.material_layout,
                     &sample_layout,
                 ],
                 push_constant_ranges: &[],
@@ -82,9 +82,9 @@ impl WetLighting {
         let lighting_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Wet surface lighting"),
             bind_group_layouts: &[
-                &renderer.pipelines.opaque.get_bind_group_layout(0),
-                &renderer.shadows.layout,
-                &renderer.materials.layout,
+                &renderer.scene_layout,
+                &renderer.shadow_layout,
+                &renderer.material_layout,
                 &layout,
             ],
             push_constant_ranges: &[],

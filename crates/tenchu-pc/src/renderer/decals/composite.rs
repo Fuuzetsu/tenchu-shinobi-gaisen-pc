@@ -16,7 +16,7 @@ pub(in crate::renderer) struct Targets {
 }
 
 impl Composite {
-    pub fn new(renderer: &Renderer) -> Self {
+    pub fn new(renderer: &crate::renderer::configuration::Context) -> Self {
         let device = &renderer.device;
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Blood composition"),
@@ -38,9 +38,9 @@ impl Composite {
         let full = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Blood composition pipeline"),
             bind_group_layouts: &[
-                &renderer.pipelines.opaque.get_bind_group_layout(0),
-                &renderer.shadows.layout,
-                &renderer.materials.layout,
+                &renderer.scene_layout,
+                &renderer.shadow_layout,
+                &renderer.material_layout,
                 &layout,
             ],
             push_constant_ranges: &[],

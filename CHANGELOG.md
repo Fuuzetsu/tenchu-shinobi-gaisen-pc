@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Keep Android responsive while graphics effects compile: prepare shaders away from the input/lifecycle loop, show a progress dialog, and avoid recompiling unchanged window sizes. Returning from graphics changes no longer leaves input waiting behind shader preparation.
+
 - Fix Android disc imports when Firefox replaces commas in BIN filenames with underscores. Match renamed tracks before copying, offer a file choice for other name changes, and make import errors copyable. Original downloads and previously imported discs remain intact if import fails.
 
 - Add a native Android preview with ARM64 APK packaging through Nix, verified CUE/BIN folder import, optional HD archive import, private persistent saves/preferences and Android document import/export. Opening and ending movies play directly from the disc. Backgrounding releases the rendering surface and suspends gameplay/audio; returning restores the session.

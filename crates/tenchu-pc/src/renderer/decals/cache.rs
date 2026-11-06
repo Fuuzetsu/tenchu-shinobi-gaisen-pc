@@ -1,4 +1,4 @@
-use super::{Decal, Renderer, bounds};
+use super::{Decal, bounds};
 #[cfg(test)]
 use super::{Frustum, Mat4};
 use crate::{
@@ -46,7 +46,7 @@ pub(in crate::renderer) struct Cache {
 }
 
 impl Cache {
-    pub fn new(renderer: &Renderer) -> Self {
+    pub fn new(renderer: &crate::renderer::configuration::Context) -> Self {
         let device = &renderer.device;
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Retained blood coverage"),
@@ -108,9 +108,9 @@ impl Cache {
         let full = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Cached blood shading"),
             bind_group_layouts: &[
-                &renderer.pipelines.opaque.get_bind_group_layout(0),
-                &renderer.shadows.layout,
-                &renderer.materials.layout,
+                &renderer.scene_layout,
+                &renderer.shadow_layout,
+                &renderer.material_layout,
                 &layout,
             ],
             push_constant_ranges: &[],

@@ -26,6 +26,26 @@ public final class GameActivity extends NativeActivity {
   private static native void back();
 
   private String requestKind, exportPath;
+  private AlertDialog graphicsDialog;
+
+  public void preparingGraphics(boolean preparing) {
+    runOnUiThread(
+        () -> {
+          if (preparing && graphicsDialog == null && !isFinishing()) {
+            graphicsDialog =
+                new AlertDialog.Builder(this)
+                    .setTitle("Preparing graphics")
+                    .setMessage("Compiling effects for your GPU. This may take a moment.")
+                    .setView(new android.widget.ProgressBar(this))
+                    .setCancelable(false)
+                    .create();
+            graphicsDialog.show();
+          } else if (!preparing && graphicsDialog != null) {
+            graphicsDialog.dismiss();
+            graphicsDialog = null;
+          }
+        });
+  }
 
   public void editText(String value) {
     runOnUiThread(

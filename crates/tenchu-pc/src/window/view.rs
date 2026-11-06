@@ -646,18 +646,38 @@ impl View {
         }
     }
 
-    pub(super) fn resize(&mut self, width: u32, height: u32) {
+    pub(super) fn preparing(&self) -> bool {
+        #[cfg(target_os = "android")]
+        return self.renderer.preparing();
+        #[cfg(not(target_os = "android"))]
+        false
+    }
+
+    pub(super) fn resize(&mut self, width: u32, height: u32) -> Result<()> {
         self.dirty = true;
         self.size = [width, height];
         if width == 0 || height == 0 {
-            return;
+            return Ok(());
         }
         self.config.width = width;
         self.config.height = height;
+        #[cfg(target_os = "android")]
+        {
+            let preparing = self.preparing();
+            self.renderer.prepare_resize([width, height])?;
+            if self.preparing() {
+                if !preparing {
+                    crate::android::preparing_graphics(true);
+                }
+                return Ok(());
+            }
+        }
         if let Some(surface) = &self.surface {
             surface.configure(&self.renderer.device, &self.config);
         }
+        #[cfg(not(target_os = "android"))]
         self.renderer.resize([width, height]);
+        Ok(())
     }
 
     pub(super) fn reload(&mut self, game: &Game, settings: &Settings) -> Result<()> {
@@ -828,7 +848,17 @@ impl View {
         {
             self.footprints.clear();
         }
+        #[cfg(not(target_os = "android"))]
         self.renderer.configure(&settings.graphics);
+        #[cfg(target_os = "android")]
+        {
+            let preparing = self.preparing();
+            self.renderer
+                .prepare(&settings.graphics, self.size.map(|n| n.max(1)))?;
+            if !preparing && self.preparing() {
+                crate::android::preparing_graphics(true);
+            }
+        }
         if self.window.fullscreen().is_some() != settings.fullscreen {
             self.window
                 .set_fullscreen(settings.fullscreen.then_some(Fullscreen::Borderless(None)));
@@ -840,7 +870,9 @@ impl View {
         };
         if self.config.present_mode != mode {
             self.config.present_mode = mode;
-            if let Some(surface) = &self.surface {
+            if !self.preparing()
+                && let Some(surface) = &self.surface
+            {
                 surface.configure(&self.renderer.device, &self.config);
             }
         }

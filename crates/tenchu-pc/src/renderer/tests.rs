@@ -316,7 +316,7 @@ fn streamed_effects_preserve_batches_and_overlays() {
     }
 }
 
-fn rectangle(
+pub(super) fn rectangle(
     z: i16,
     color: u8,
     texture: Option<Texture>,
@@ -364,7 +364,7 @@ fn rectangle(
     vertices
 }
 
-fn read_pixels(renderer: &Renderer, target: &wgpu::Texture) -> Vec<u8> {
+pub(super) fn read_pixels(renderer: &Renderer, target: &wgpu::Texture) -> Vec<u8> {
     let buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Renderer regression readback"),
         size: 256 * 64,

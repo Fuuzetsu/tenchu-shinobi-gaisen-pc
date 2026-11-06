@@ -347,6 +347,9 @@ impl Overlay {
 
 impl super::Application {
     pub(super) fn update_overlay(&mut self) {
+        if self.view.as_ref().is_some_and(super::View::preparing) {
+            return;
+        }
         let was_open = self.menu.open;
         let randomizer_was_open = self.randomizer.open;
         let library_was_open = self.demo.as_ref().is_some_and(|d| d.library);

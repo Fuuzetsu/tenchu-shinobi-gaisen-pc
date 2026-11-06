@@ -401,7 +401,7 @@ impl Application {
             let _ = view
                 .window
                 .request_inner_size(winit::dpi::PhysicalSize::new(size[0], size[1]));
-            view.resize(size[0], size[1]);
+            view.resize(size[0], size[1])?;
         }
         let report = Report {
             schema: 3,

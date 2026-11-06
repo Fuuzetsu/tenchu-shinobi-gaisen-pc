@@ -129,6 +129,9 @@ impl Application {
     }
 
     fn update_view(&mut self) {
+        if self.view.as_ref().is_some_and(View::preparing) {
+            return;
+        }
         self.debug.rewind = self
             .rewind
             .entries
@@ -255,6 +258,7 @@ impl Application {
 
     fn is_suspended(&self) -> bool {
         self.backgrounded()
+            || self.view.as_ref().is_some_and(View::preparing)
             || self.paused
             || self.trial.open
             || (self.randomizer.open && self.demo.is_none())
@@ -635,7 +639,9 @@ impl ApplicationHandler for Application {
         // EGL/Wayland resources must die before winit closes its display connection.
         if let Some(view) = self.view.take() {
             #[cfg(not(target_arch = "wasm32"))]
-            view.renderer.device.poll(wgpu::Maintain::Wait);
+            if !view.preparing() {
+                view.renderer.device.poll(wgpu::Maintain::Wait);
+            }
             drop(view);
         }
     }
@@ -644,7 +650,9 @@ impl ApplicationHandler for Application {
     fn suspended(&mut self, _: &ActiveEventLoop) {
         self.focused = false;
         if let Some(view) = &mut self.view {
-            view.renderer.device.poll(wgpu::Maintain::Wait);
+            if !view.preparing() {
+                view.renderer.device.poll(wgpu::Maintain::Wait);
+            }
             view.surface = None;
         }
         self.sync_pause();
@@ -673,7 +681,13 @@ impl ApplicationHandler for Application {
                     self.view = Some(view);
                     if self.exporting_video() {
                         let view = self.view.as_mut().unwrap();
-                        view.resize(crate::video::SIZE[0], crate::video::SIZE[1]);
+                        if let Err(error) =
+                            view.resize(crate::video::SIZE[0], crate::video::SIZE[1])
+                        {
+                            self.error = Some(error);
+                            events.exit();
+                            return;
+                        }
                         match crate::video::Export::new(
                             self.demo.as_ref().unwrap(),
                             &view.renderer,
@@ -710,7 +724,10 @@ impl ApplicationHandler for Application {
                 match view.instance.create_surface(view.window.clone()) {
                     Ok(surface) => {
                         view.surface = Some(surface);
-                        view.resize(view.size[0], view.size[1]);
+                        if let Err(error) = view.resize(view.size[0], view.size[1]) {
+                            self.error = Some(error);
+                            events.exit();
+                        }
                     }
                     Err(error) => {
                         self.error = Some(error.to_string());
@@ -801,7 +818,10 @@ impl ApplicationHandler for Application {
                     {
                         self.settings.fullscreen = view.window.fullscreen().is_some();
                     }
-                    view.resize(size.width, size.height);
+                    if let Err(error) = view.resize(size.width, size.height) {
+                        self.error = Some(error);
+                        events.exit();
+                    }
                 }
             }
             WindowEvent::Focused(focused) => {
@@ -1110,6 +1130,9 @@ impl ApplicationHandler for Application {
             WindowEvent::RedrawRequested => {
                 #[cfg(target_os = "android")]
                 {
+                    if self.view.as_ref().is_some_and(View::preparing) {
+                        return;
+                    }
                     self.poll_android_files();
                     if crate::android::take_back() {
                         self.touch_action(crate::touch::Action::Back, events);
@@ -1287,6 +1310,10 @@ impl ApplicationHandler for Application {
                 timing.prepare = phase.elapsed().as_secs_f32() * 1000.0;
                 let phase = Instant::now();
                 self.update_overlay();
+                #[cfg(target_os = "android")]
+                if self.view.as_ref().is_some_and(View::preparing) {
+                    return;
+                }
                 self.frontend_events(events);
                 if self.demo_exit
                     || self
@@ -1349,6 +1376,37 @@ impl ApplicationHandler for Application {
     fn about_to_wait(&mut self, _events: &ActiveEventLoop) {
         #[cfg(not(target_arch = "wasm32"))]
         let events = _events;
+        #[cfg(target_os = "android")]
+        {
+            if let Some(view) = &mut self.view
+                && view.preparing()
+            {
+                if let Err(error) = view.renderer.poll_preparation() {
+                    crate::android::preparing_graphics(false);
+                    self.error = Some(error);
+                    events.exit();
+                    return;
+                }
+                if view.preparing() {
+                    self.sync_audio_pause();
+                    self.last_frame = Instant::now();
+                    self.clock.discard_host_backlog();
+                    events.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
+                        Instant::now() + std::time::Duration::from_millis(16),
+                    ));
+                    return;
+                }
+                crate::android::preparing_graphics(false);
+                if let Err(error) = view.resize(view.size[0], view.size[1]) {
+                    self.error = Some(error);
+                    events.exit();
+                    return;
+                }
+                self.sync_pause();
+                self.update_view();
+            }
+            events.set_control_flow(winit::event_loop::ControlFlow::Wait);
+        }
         #[cfg(not(target_arch = "wasm32"))]
         if self.exporting_video() {
             if self.video.is_some() {

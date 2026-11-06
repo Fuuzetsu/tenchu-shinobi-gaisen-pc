@@ -4,6 +4,7 @@ use tenchu_assets::{Result, texture::Vram};
 use tenchu_core::projection::{DEPTH_CUE, DISTANCE};
 use wgpu::util::DeviceExt;
 
+mod configuration;
 mod culling;
 pub(crate) use culling::Frustum;
 mod decals;
@@ -114,6 +115,8 @@ impl<'a> SceneMeshes<'a> {
 }
 
 pub struct Renderer {
+    #[cfg(any(target_os = "android", all(test, not(target_arch = "wasm32"))))]
+    preparation: Option<configuration::Preparation>,
     wet_lighting: Option<wet_lighting::WetLighting>,
     #[cfg(test)]
     skip_wet_lighting: bool,
@@ -288,6 +291,8 @@ impl Renderer {
         let depth = Self::attachment(&device, size, wgpu::TextureFormat::Depth32Float, 1);
         let timings = timing::Timer::new(&device, &queue);
         let mut renderer = Self {
+            #[cfg(any(target_os = "android", all(test, not(target_arch = "wasm32"))))]
+            preparation: None,
             wet_lighting: None,
             #[cfg(test)]
             skip_wet_lighting: false,
@@ -362,42 +367,9 @@ impl Renderer {
         self.size
     }
 
+    #[cfg(any(not(target_os = "android"), test))]
     pub fn resize(&mut self, size: [u32; 2]) {
-        if let Some(composite) = &mut self.composite {
-            composite.targets = None;
-        }
-        self.size = size;
-        self.depth = Self::attachment(
-            &self.device,
-            size,
-            wgpu::TextureFormat::Depth32Float,
-            self.samples,
-        );
-        self.multisample = (self.samples > 1)
-            .then(|| Self::attachment(&self.device, size, self.world_format(), self.samples));
-        self.configure_post();
-    }
-
-    fn configure_post(&mut self) {
-        self.post = self.graphics.post.enabled.then(|| {
-            post::Post::new(
-                &self.device,
-                self.format,
-                self.size,
-                self.samples,
-                &self.depth,
-                &self.graphics,
-                self.gl,
-            )
-        });
-    }
-
-    fn world_format(&self) -> wgpu::TextureFormat {
-        if self.graphics.post.enabled {
-            post::FORMAT
-        } else {
-            self.format
-        }
+        self.configure_at(self.graphics.clone(), size);
     }
 
     pub fn set_asset_pack(&mut self, pack: &crate::visuals::pack::Pack) {
@@ -426,72 +398,7 @@ impl Renderer {
     }
 
     pub fn configure(&mut self, graphics: &crate::settings::Graphics) {
-        self.materials.configure(graphics);
-        let samples = if self.sample_counts.contains(&graphics.samples) {
-            graphics.samples
-        } else {
-            1
-        };
-        let attachments_changed =
-            samples != self.samples || graphics.post.enabled != self.graphics.post.enabled;
-        let post_changed = (graphics.post.occlusion > 0) != (self.graphics.post.occlusion > 0)
-            || graphics.rendering.half_resolution_ao != self.graphics.rendering.half_resolution_ao
-            || post::heat_enabled(graphics) != post::heat_enabled(&self.graphics);
-        let options = pipelines::Options::new(graphics, samples);
-        let shader_changed = options != pipelines::Options::new(&self.graphics, self.samples);
-        let pipelines_changed = attachments_changed || shader_changed;
-        if shader_changed {
-            self.shader = options.shader(&self.device, self.gl);
-        }
-        let shadow_sampling_changed = graphics.rendering.quarter_resolution_shadows
-            != self.graphics.rendering.quarter_resolution_shadows;
-        self.graphics = graphics.clone();
-        if pipelines_changed {
-            self.pipelines = pipelines::create(
-                &self.device,
-                self.world_format(),
-                &self.layout,
-                &self.shader,
-                samples,
-            );
-        }
-        if attachments_changed {
-            self.samples = samples;
-            self.resize(self.size);
-        } else if self.graphics.post.enabled && post_changed {
-            self.configure_post();
-        }
-        let compose_blood = self.composite_supported
-            && samples == 1
-            && graphics.post.enabled
-            && (graphics.lighting.enabled
-                || graphics.sky.enabled
-                || graphics.weather.mode != crate::settings::WeatherMode::Original)
-            && [graphics.blood.ground, graphics.blood.death]
-                .contains(&crate::settings::BloodStyle::Modern);
-        if !compose_blood || pipelines_changed {
-            self.composite = None;
-        }
-        if compose_blood && self.composite.is_none() {
-            self.composite = Some(decals::composite::Composite::new(self));
-        }
-        let cache_blood = graphics.rendering.cached_blood
-            && self.composite_supported
-            && graphics.post.enabled
-            && !self.gl;
-        if !cache_blood || pipelines_changed {
-            self.blood_cache = None;
-        }
-        if cache_blood && self.blood_cache.is_none() {
-            self.blood_cache = Some(decals::cache::Cache::new(self));
-        }
-        let wet = wet_lighting::configured(graphics, samples, self.gl);
-        if !wet || pipelines_changed || shadow_sampling_changed {
-            self.wet_lighting = None;
-        }
-        if wet && self.wet_lighting.is_none() {
-            self.wet_lighting = Some(wet_lighting::WetLighting::new(self));
-        }
+        self.configure_at(graphics.clone(), self.size);
     }
 
     pub fn update_vram(&mut self, vram: &Vram) {

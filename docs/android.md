@@ -70,6 +70,10 @@ Save dialog so you can put those files outside app storage.
   move/look; Rise, Descend and Boost control flight, Center finds the player and
   Back returns to gameplay. Tapping the world supports selection/teleport tools.
 
+Graphics changes that need new GPU shaders show **Preparing graphics**. The game
+pauses while those shaders compile; Android input, Home and background/resume
+remain responsive. Repeating an unchanged size does not rebuild the effects.
+
 Start with **Modern Low** or Original, then increase graphics as your phone allows.
 HD artwork does not require the expensive lighting/weather presets. Desktop,
 browser and Android preferences are separate; installing the APK does not alter
