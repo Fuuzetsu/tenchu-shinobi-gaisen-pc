@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Burning bodies now use positional sound as in retail, independently of the
+  global lightning-item sound. F1 → General adds local playback, volume and
+  hearing-range controls, defaulting to quieter crackles near the body.
+
 ## 0.17.0 — 2026-11-06
 
 - Add an independent **SA Kataoka execution scene** option under F1 → Persistent

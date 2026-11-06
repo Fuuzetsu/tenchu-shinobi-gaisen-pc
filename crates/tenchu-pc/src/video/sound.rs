@@ -72,10 +72,12 @@ impl Sound {
         assets: &GameAssets<DiscSource>,
         game: &Game,
         frame: Option<&crate::visuals::interpolation::Frame>,
+        burning: tenchu_core::audio::BurningSound,
     ) -> Result<()> {
-        for sound in
-            game.sounds_with_effects(crate::visuals::death::blood::sounds(&game.effects, frame))?
-        {
+        for sound in game.sounds_with_burning(
+            crate::visuals::death::blood::sounds(&game.effects, frame),
+            Some(burning),
+        )? {
             self.mixer.play(sound.id, sound.volume, sound.pan);
         }
         for cue in &game.music {

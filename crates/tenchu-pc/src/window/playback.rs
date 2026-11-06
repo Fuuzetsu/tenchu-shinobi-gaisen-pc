@@ -96,7 +96,8 @@ impl Application {
             .and_then(View::death_frame)
             .filter(|_| !self.settings.retro);
         if let Some(audio) = &mut self.audio {
-            if let Err(error) = audio.tick(&self.campaign.game, death) {
+            if let Err(error) = audio.tick(&self.campaign.game, death, self.settings.burning_sound)
+            {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
@@ -104,7 +105,12 @@ impl Application {
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(sound) = self.video.as_mut().and_then(|v| v.sound.as_mut()) {
-            if let Err(error) = sound.tick(&self.assets, &self.campaign.game, death) {
+            if let Err(error) = sound.tick(
+                &self.assets,
+                &self.campaign.game,
+                death,
+                self.settings.burning_sound,
+            ) {
                 self.pause_error(error);
                 return false;
             }

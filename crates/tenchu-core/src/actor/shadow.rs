@@ -100,7 +100,7 @@ impl Actor {
             },
             ctx.random,
         );
-        ctx.effects.sounds.push((self.position, 0x39));
+        ctx.effects.burning_sounds.push(self.position);
         Ok(())
     }
 }

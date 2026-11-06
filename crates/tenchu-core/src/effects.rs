@@ -294,6 +294,7 @@ pub struct Effects {
     pub lines: Vec<Line>,
     pub blood_pools: Vec<Shadow>,
     pub sounds: Vec<(Position, i16)>,
+    pub burning_sounds: Vec<Position>,
     pub rumble: Vec<Rumble>,
     pub fades: Vec<(i32, [u8; 3])>,
     pub texture_moves: Vec<TextureMove>,
@@ -318,6 +319,7 @@ impl Default for Effects {
             lines: Vec::new(),
             blood_pools: Vec::new(),
             sounds: Vec::new(),
+            burning_sounds: Vec::new(),
             rumble: Vec::new(),
             fades: Vec::new(),
             texture_moves: Vec::new(),
@@ -554,6 +556,7 @@ impl Effects {
         self.lines.clear();
         self.blood_pools.clear();
         self.sounds.clear();
+        self.burning_sounds.clear();
         self.gore_sounds.clear();
         self.rumble.clear();
         self.fades.clear();

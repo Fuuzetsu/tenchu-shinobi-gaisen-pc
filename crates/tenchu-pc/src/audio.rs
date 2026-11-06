@@ -234,11 +234,13 @@ impl Audio {
         &mut self,
         game: &Game,
         frame: Option<&crate::visuals::interpolation::Frame>,
+        burning: tenchu_core::audio::BurningSound,
     ) -> Result<()> {
         if !self.fast_forward {
-            for sound in game
-                .sounds_with_effects(crate::visuals::death::blood::sounds(&game.effects, frame))?
-            {
+            for sound in game.sounds_with_burning(
+                crate::visuals::death::blood::sounds(&game.effects, frame),
+                Some(burning),
+            )? {
                 self.output.send(output::Command::Effect(sound));
             }
         }

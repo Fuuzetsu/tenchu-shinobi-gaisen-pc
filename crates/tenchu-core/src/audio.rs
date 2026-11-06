@@ -8,6 +8,54 @@ pub struct Sound {
     pub pan: u8,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct BurningSound {
+    pub spatial: bool,
+    pub volume: u16,
+    pub range: u16,
+}
+
+impl Default for BurningSound {
+    fn default() -> Self {
+        Self {
+            spatial: true,
+            volume: 35,
+            range: 6000,
+        }
+    }
+}
+
+impl BurningSound {
+    pub fn sound(
+        self,
+        listener: Listener,
+        math: &Math,
+        position: Position,
+    ) -> Result<Option<Sound>> {
+        if self.volume == 0 {
+            return Ok(None);
+        }
+        let mut sound = Sound::local(0x39);
+        if self.spatial {
+            let delta = position.wrapping_sub(listener.position);
+            let distance = math.length(delta);
+            let range = i32::from(self.range.max(1));
+            if distance >= range {
+                return Ok(None);
+            }
+            // Preserve retail panning; attenuate in three dimensions, including near the source.
+            sound.pan = listener
+                .sound(math, Some(position), 0x39)?
+                .map_or(64, |s| s.pan);
+            let gain = f64::from(range - distance) / f64::from(range);
+            sound.volume = (126.0 * gain * gain) as u8;
+        }
+        sound.volume = (u32::from(sound.volume) * u32::from(self.volume.min(100)) / 100) as u8;
+        Ok((sound.volume > 0).then_some(sound))
+    }
+}
+
 impl Sound {
     pub fn local(id: i16) -> Self {
         Self {
@@ -78,6 +126,14 @@ impl Game {
         &self,
         effects: impl IntoIterator<Item = (Position, i16)>,
     ) -> Result<Vec<Sound>> {
+        self.sounds_with_burning(effects, None)
+    }
+
+    pub fn sounds_with_burning(
+        &self,
+        effects: impl IntoIterator<Item = (Position, i16)>,
+        burning: Option<BurningSound>,
+    ) -> Result<Vec<Sound>> {
         let listener = Listener {
             position: self.player().position,
             yaw: self.player().rotation[1],
@@ -128,6 +184,16 @@ impl Game {
             let position =
                 (!matches!(sound, 0x0b | 0x0e | 0x27 | 0x39 | 0x41 | 0x43)).then_some(position);
             if let Some(sound) = listener.sound(&self.math, position, sound)? {
+                sounds.push(sound);
+            }
+        }
+        for &position in &self.effects.burning_sounds {
+            let sound = if let Some(settings) = burning {
+                settings.sound(listener, &self.math, position)?
+            } else {
+                listener.sound(&self.math, Some(position), 0x39)?
+            };
+            if let Some(sound) = sound {
                 sounds.push(sound);
             }
         }

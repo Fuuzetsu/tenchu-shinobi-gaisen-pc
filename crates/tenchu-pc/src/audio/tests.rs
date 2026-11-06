@@ -26,25 +26,25 @@ fn death_observation_preserves_audio_until_confirmation() {
             playhead_updated: Instant::now(),
         };
         game.step(0).unwrap();
-        audio.tick(&game, None).unwrap();
+        audio.tick(&game, None, Default::default()).unwrap();
         if boss {
             game.teleport_player(Position::new(1000, 0, 5000), false)
                 .unwrap();
             game.step(0).unwrap();
-            audio.tick(&game, None).unwrap();
+            audio.tick(&game, None, Default::default()).unwrap();
             assert!(game.cinematic.active);
             for _ in 0..5000 {
                 if !game.cinematic.active {
                     break;
                 }
                 game.step(0).unwrap();
-                audio.tick(&game, None).unwrap();
+                audio.tick(&game, None, Default::default()).unwrap();
             }
             assert!(!game.cinematic.active);
         }
         for _ in 0..30 {
             game.step(0).unwrap();
-            audio.tick(&game, None).unwrap();
+            audio.tick(&game, None, Default::default()).unwrap();
         }
         let music = audio.current_track.clone().unwrap();
         assert!(music.repeat);
@@ -59,7 +59,7 @@ fn death_observation_preserves_audio_until_confirmation() {
         );
         for _ in 0..5000 {
             game.step(0).unwrap();
-            audio.tick(&game, None).unwrap();
+            audio.tick(&game, None, Default::default()).unwrap();
             if game.death_wait_ticks() == Some(1) {
                 break;
             }
@@ -80,7 +80,7 @@ fn death_observation_preserves_audio_until_confirmation() {
         assert_eq!(audio.current_track, Some(music.clone()));
         for _ in 0..600 {
             game.observe_death().unwrap();
-            audio.tick(&game, None).unwrap();
+            audio.tick(&game, None, Default::default()).unwrap();
             audio.screen(&hold);
             assert!(commands.try_iter().all(|c| matches!(c, Command::Effect(_))));
         }

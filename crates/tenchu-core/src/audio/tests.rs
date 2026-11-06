@@ -101,3 +101,73 @@ SoundEx(a[6]?&pp:&pos,a[7]);printf("%d %d\n",volume,pan);
     }
     assert_eq!(oracle::run(&harness, &input), expected);
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC; burning-body position must not inherit the lightning item's global playback"]
+fn burning_bodies_are_local_without_muting_the_lightning_item() {
+    let mut game = oracle::game(0, 0);
+    game.intelligence.voices.clear();
+    game.effects.sounds.clear();
+    let origin = game.player().position;
+    let listener = Listener {
+        position: origin,
+        yaw: 0,
+        direction: None,
+    };
+    let settings = BurningSound::default();
+    let volumes: Vec<_> = [0, 2000, 4000, 6000, 24000]
+        .map(|distance| {
+            settings
+                .sound(
+                    listener,
+                    &game.math,
+                    origin.wrapping_add(Position::new(distance, 0, 0)),
+                )
+                .unwrap()
+                .map_or(0, |s| s.volume)
+        })
+        .into();
+    assert!(volumes[0] > volumes[1] && volumes[1] > volumes[2]);
+    assert_eq!(&volumes[3..], &[0, 0]);
+    assert!(
+        settings
+            .sound(
+                listener,
+                &game.math,
+                origin.wrapping_add(Position::new(0, 6000, 0))
+            )
+            .unwrap()
+            .is_none()
+    );
+    game.effects
+        .burning_sounds
+        .push(origin.wrapping_add(Position::new(24000, 0, 0)));
+    game.effects.sounds.push((Position::ZERO, 0x39));
+    let sounds = game
+        .sounds_with_burning(game.effects.sounds.iter().copied(), Some(settings))
+        .unwrap();
+    assert_eq!(sounds, [Sound::local(0x39)]);
+    let previous = BurningSound {
+        spatial: false,
+        volume: 100,
+        ..settings
+    };
+    assert_eq!(
+        game.sounds_with_burning([], Some(previous)).unwrap(),
+        [Sound::local(0x39)]
+    );
+    assert!(
+        game.sounds_with_burning(
+            [],
+            Some(BurningSound {
+                volume: 0,
+                ..previous
+            })
+        )
+        .unwrap()
+        .is_empty()
+    );
+    assert!(game.sounds_with_effects([]).unwrap().is_empty());
+    game.effects.begin_tick();
+    assert!(game.effects.burning_sounds.is_empty());
+}

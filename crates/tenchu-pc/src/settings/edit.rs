@@ -10,6 +10,8 @@ pub struct Slider {
 impl Item {
     pub fn slider(self) -> Option<Slider> {
         let (min, max, step, scale) = match self {
+            Self::BurningVolume => (0, 100, 5, 1),
+            Self::BurningRange => (500, 30000, 500, 1),
             Self::BleedChance => (0, 100, 5, 1),
             Self::SeverStealth
             | Self::SeverDive
@@ -124,6 +126,7 @@ impl Item {
 
     fn boolean(self, settings: &mut Settings) -> Option<&mut bool> {
         Some(match self {
+            Self::BurningSpatial => &mut settings.burning_sound.spatial,
             Self::Bleeding => &mut settings.bleeding.enabled,
             Self::Dismemberment => &mut settings.dismemberment.enabled,
             Self::SaExecutionScene => &mut settings.dismemberment.execution_scene,
@@ -279,6 +282,8 @@ impl Item {
             Self::Haze => &mut settings.graphics.post.haze,
             Self::SurfaceStrength => &mut settings.graphics.surface_strength,
             Self::Volume => &mut settings.volume,
+            Self::BurningVolume => &mut settings.burning_sound.volume,
+            Self::BurningRange => &mut settings.burning_sound.range,
             Self::FogDistance => &mut settings.graphics.fog_distance,
             Self::Exposure => &mut settings.graphics.exposure,
             Self::SkyTint => &mut settings.graphics.lighting.sky_tint,

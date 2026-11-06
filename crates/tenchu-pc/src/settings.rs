@@ -68,6 +68,7 @@ pub struct Settings {
     pub sharp_text: bool,
     pub english_shuriken: bool,
     pub volume: u16,
+    pub burning_sound: tenchu_core::audio::BurningSound,
     pub vibration: Vibration,
     pub navigation: Navigation,
     pub graphics: Graphics,
@@ -118,6 +119,7 @@ impl Default for Settings {
             sharp_text: false,
             english_shuriken: false,
             volume: 100,
+            burning_sound: Default::default(),
             vibration: Vibration::default(),
             navigation: Navigation::default(),
             graphics: Graphics::default(),
@@ -194,6 +196,8 @@ impl Settings {
         self.rewind_speed = self.rewind_speed.clamp(25, 800);
         self.alternate_death_chance = self.alternate_death_chance.min(100);
         self.volume = self.volume.min(100);
+        self.burning_sound.volume = self.burning_sound.volume.min(100);
+        self.burning_sound.range = self.burning_sound.range.clamp(500, 30000);
         self.vibration.validate();
         self.navigation.validate();
         self.sight_percent = self.sight_percent.min(400);
