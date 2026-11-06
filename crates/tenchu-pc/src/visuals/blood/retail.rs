@@ -111,6 +111,111 @@ impl Blood {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; v0.17.0 floating-blood report locations and real effect lifetime"]
+    fn retained_blood_rests_on_the_reported_mission_one_floors() {
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let assets =
+            tenchu_assets::game::GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap())
+                .unwrap();
+        let mut game = crate::session::Options::default().load(&assets).unwrap();
+        game.events = Default::default();
+        let models =
+            Models::build(&game.mission, &Default::default(), &Default::default()).unwrap();
+        let terrain = render_mesh::stage(&game.mission, &game.math, Some(&models));
+        let surface = Surfaces::new(&terrain);
+        let output = std::env::var_os("TENCHU_RETAINED_REVIEW").map(std::path::PathBuf::from);
+        if let Some(output) = &output {
+            std::fs::create_dir_all(output).unwrap();
+        }
+        for position in [
+            [19280, 0, -38744],
+            [-49196, 0, -16784],
+            [-15877, 0, -36744],
+            [-13141, 0, -37568],
+        ] {
+            for conform_retained in [false, true] {
+                let settings = settings::Blood {
+                    hit: BloodStyle::Modern,
+                    ground: BloodStyle::OriginalHd,
+                    retain_original: true,
+                    conform_retained,
+                    runoff: true,
+                    amount: 200,
+                    marks: 65535,
+                    ..Default::default()
+                };
+                let mut blood = Blood::default();
+                game.effects = Default::default();
+                blood.tick(&game, &models, &surface, &settings, None);
+                game.effects.slots[0] = Some(Effect::Blood(tenchu_core::effects::Blood {
+                    hint: None,
+                    position: position.into(),
+                    velocity: [0; 3],
+                    scale: 18000,
+                    rotation: 57 * 4096,
+                    time: 2,
+                    brightness: 128,
+                    sprite: 1,
+                    mode: 2,
+                    gore: false,
+                }));
+                for _ in 0..100 {
+                    game.step(0).unwrap();
+                    blood.tick(&game, &models, &surface, &settings, None);
+                }
+                assert_eq!(blood.original.is_empty(), conform_retained);
+                if conform_retained {
+                    let vertices: Vec<_> = blood.pages().flat_map(|p| p.iter()).collect();
+                    assert!(!vertices.is_empty(), "no stain at {position:?}");
+                    for v in vertices {
+                        let p = Vec3::from(v.position);
+                        let ground = surface.cast(p - Vec3::Y, p + Vec3::Y).unwrap();
+                        assert!(p.distance(ground.position) < 0.6, "hover at {p:?}");
+                        assert!(render_mesh::original_hd_blood(v.flags));
+                    }
+                }
+                if position[0] == 19280
+                    && let Some(output) = &output
+                {
+                    let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+                    review.configure(settings::Graphics {
+                        fog: false,
+                        blood: settings,
+                        ..Default::default()
+                    });
+                    let stage = review.renderer.upload(&terrain);
+                    let focus = Vec3::from(position.map(|v| v as f32));
+                    let eye = focus + Vec3::new(1200.0, -500.0, 1800.0);
+                    let delta = focus - eye;
+                    let camera = crate::debug::camera::Camera {
+                        position: eye,
+                        yaw: delta.x.atan2(delta.z),
+                        pitch: (-delta.y).atan2(delta.x.hypot(delta.z)),
+                        fov: 50.0,
+                    };
+                    let effects = review.renderer.upload_effects(blood.geometry(
+                        &game,
+                        &models,
+                        None,
+                        Some(camera.source_view()),
+                        1.0,
+                    ));
+                    review
+                        .capture(
+                            camera.matrix(1280.0 / 720.0),
+                            &[&stage],
+                            Some(&effects),
+                            false,
+                            &output.join(format!("conform-{conform_retained}.png")),
+                        )
+                        .unwrap();
+                }
+            }
+        }
+    }
+
     #[test]
     #[ignore = "requires TENCHU_DISC; original pixel artwork remains on horizontal and sloped receivers"]
     fn retained_sprites_conform_without_changing_the_selected_artwork() {
