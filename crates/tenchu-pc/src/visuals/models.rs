@@ -73,18 +73,23 @@ impl Models {
     }
 
     pub fn build(mission: &MissionAssets, pack: &Pack, graphics: &Graphics) -> Result<Self> {
-        let world = Meshes::build(
-            &mission.vram,
-            pack,
-            graphics,
-            catalog::models(mission),
-            false,
-        )?;
+        let sources = || {
+            let mut sources = catalog::models(mission);
+            sources.extend(mission.weapons.grips.iter().map(|(&kind, geometry)| {
+                catalog::ModelSource {
+                    id: format!("weapons/{kind:04x}"),
+                    label: mission.weapons.names[&kind].clone(),
+                    geometry,
+                }
+            }));
+            sources
+        };
+        let world = Meshes::build(&mission.vram, pack, graphics, sources(), false)?;
         let weapons = Meshes::build(
             &mission.vram,
             pack,
             graphics,
-            catalog::models(mission)
+            sources()
                 .into_iter()
                 .filter(|s| s.id.starts_with("weapons/"))
                 .collect(),

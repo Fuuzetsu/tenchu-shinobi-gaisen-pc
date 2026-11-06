@@ -238,6 +238,23 @@ fn visit_actor(
             weapon.rendered,
         );
     }
+    for slot in 2..4 {
+        if let Some((part, mount)) = crate::sheathing::stowed_mount(actor, slot) {
+            let weapon = actor.weapons[slot].as_ref().unwrap();
+            if let Some(grip) = game.mission.weapons.grips.get(&weapon.kind) {
+                visit(
+                    Part::Actor {
+                        root: actor.root_model,
+                        model: weapon.model,
+                        kind: weapon.kind,
+                        inspection,
+                    },
+                    grip,
+                    actor.rendered[part].compose(&mount),
+                );
+            }
+        }
+    }
 }
 
 pub fn visit_character_parts(

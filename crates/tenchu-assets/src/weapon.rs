@@ -70,6 +70,7 @@ pub struct Attack {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Weapons {
     pub models: Arc<BTreeMap<i16, Vec<Geometry>>>,
+    pub grips: Arc<BTreeMap<i16, Vec<Geometry>>>,
     pub names: BTreeMap<i16, String>,
     pub hitboxes: Vec<Hitbox>,
     pub attacks: Vec<Attack>,
@@ -83,12 +84,14 @@ impl Weapons {
     ) -> std::result::Result<(), C::Error> {
         let Self {
             models,
+            grips,
             names,
             hitboxes,
             attacks,
             bow_timing,
         } = self;
         out.shared_arc(models, true)?;
+        out.shared_arc(grips, true)?;
         out.value(names)?;
         out.value(hitboxes)?;
         out.value(attacks)?;
@@ -171,6 +174,7 @@ impl Weapons {
             if clip == -1 {
                 return Ok(Self {
                     names,
+                    grips: grips(&models).into(),
                     models: models.into(),
                     hitboxes,
                     attacks,
@@ -189,4 +193,32 @@ impl Weapons {
         }
         Err("Unterminated attack table".into())
     }
+}
+
+fn grips(models: &BTreeMap<i16, Vec<Geometry>>) -> BTreeMap<i16, Vec<Geometry>> {
+    [kind::NINJA, kind::KODATI]
+        .into_iter()
+        .filter_map(|kind| {
+            let source = models.get(&kind)?;
+            let span = std::array::from_fn::<_, 3, _>(|axis| {
+                source
+                    .iter()
+                    .flat_map(|g| &g.vertices)
+                    .map(|v| i32::from(v[axis]).abs())
+                    .max()
+                    .unwrap_or(0)
+            });
+            let axis = (0..3).max_by_key(|&axis| span[axis]).unwrap();
+            let mut grip = source.clone();
+            for geometry in &mut grip {
+                geometry.faces.retain(|face| {
+                    face.corners.iter().all(|c| {
+                        i32::from(geometry.vertices[usize::from(c.vertex)][axis]).abs()
+                            <= span[axis] / 2
+                    })
+                });
+            }
+            Some((kind, grip))
+        })
+        .collect()
 }

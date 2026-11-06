@@ -7,6 +7,50 @@ use tenchu_core::{
     ids::*,
 };
 
+pub(crate) fn stowed_mount(
+    actor: &tenchu_core::actor::Actor,
+    slot: usize,
+) -> Option<(usize, tenchu_core::math::Matrix)> {
+    if actor.attribute & ATTR_WEAPON_DRAWN != 0 || !(2..4).contains(&slot) {
+        return None;
+    }
+    let weapon = actor.weapons[slot].as_ref()?;
+    if !matches!(
+        weapon.kind,
+        tenchu_assets::weapon::kind::NINJA | tenchu_assets::weapon::kind::KODATI
+    ) {
+        return None;
+    }
+    actor.sheathing.as_ref()?;
+    // Bind to the mouths of the heroes' built-in scabbards, not the ninja
+    // animation's hand positions (its swords are carried in different places).
+    let (part, rotation, translation) = match (actor.kind, slot) {
+        (0, 2) => (
+            1,
+            [[3439, 20, -2225], [-2225, 30, -3439], [0, 4096, 36]],
+            [-198, -535, 134],
+        ),
+        (1, 2) => (
+            0,
+            [[-1167, 300, -3915], [-3926, -89, 1163], [0, 4084, 312]],
+            [269, -134, 60],
+        ),
+        (1, 3) => (
+            0,
+            [[-977, -583, 3935], [3978, -143, 966], [0, 4052, 601]],
+            [-269, -119, 40],
+        ),
+        _ => return None,
+    };
+    Some((
+        part,
+        tenchu_core::math::Matrix {
+            rotation,
+            translation: translation.into(),
+        },
+    ))
+}
+
 pub fn configure(
     game: &mut Game,
     assets: &GameAssets<impl ReadAt>,
@@ -174,11 +218,78 @@ mod tests {
                     }
                     assert_eq!(heard, 1);
                     assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN != 0, drawing);
+                    if mission == 1
+                        && !drawing
+                        && let Some(path) = std::env::var_os("TENCHU_SHEATH_REVIEW")
+                    {
+                        capture_grips(&mut game, std::path::Path::new(&path));
+                    }
                 }
                 configure(&mut game, &assets, Settings::default()).unwrap();
                 configure(&mut game, &assets, settings).unwrap();
                 assert_eq!(game.mission.imported_voices.len(), voices);
                 assert!(game.player().voice_program.is_none());
+            }
+        }
+    }
+
+    fn capture_grips(game: &mut Game, directory: &std::path::Path) {
+        use crate::{render_mesh, visuals::models::Models};
+        use glam::Vec3;
+        std::fs::create_dir_all(directory).unwrap();
+        let models =
+            Models::build(&game.mission, &Default::default(), &Default::default()).unwrap();
+        let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+        let center =
+            Vec3::from(game.player().position.map(|v| v as f32).to_array()) - Vec3::Y * 1000.0;
+        let stage = review.renderer.upload(&render_mesh::stage(
+            &game.mission,
+            &game.math,
+            Some(&models),
+        ));
+        for before in [false, true] {
+            let state = before.then(|| {
+                game.roster
+                    .get_mut(game.player_id)
+                    .sheathing
+                    .take()
+                    .unwrap()
+            });
+            let actor = review.renderer.upload(&render_mesh::characters_presented(
+                game,
+                Some(&models),
+                true,
+                None,
+            ));
+            if let Some(state) = state {
+                game.roster.get_mut(game.player_id).sheathing = Some(state);
+            }
+            for turn in 0..4 {
+                let offset = game.math.velocity(
+                    game.player().rotation[1].wrapping_add(turn * 1024),
+                    -2400,
+                    0,
+                );
+                let eye = center + Vec3::from(offset.map(f32::from)) - Vec3::Y * 300.0;
+                let delta = center - eye;
+                let camera = crate::debug::camera::Camera {
+                    position: eye,
+                    yaw: delta.x.atan2(delta.z),
+                    pitch: (-delta.y).atan2(delta.x.hypot(delta.z)),
+                    fov: 50.0,
+                };
+                review
+                    .capture(
+                        camera.matrix(1280.0 / 720.0),
+                        &[&stage, &actor],
+                        None,
+                        false,
+                        &directory.join(format!(
+                            "hero-{}-side-{turn}-before-{before}.png",
+                            game.player().kind
+                        )),
+                    )
+                    .unwrap();
             }
         }
     }

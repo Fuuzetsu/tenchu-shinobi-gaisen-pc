@@ -218,7 +218,24 @@ impl Deaths {
                     matrix,
                 );
             }
-            for weapon in actor.weapons.iter().flatten() {
+            for (slot, weapon) in actor
+                .weapons
+                .iter()
+                .enumerate()
+                .filter_map(|(slot, w)| w.as_ref().map(|w| (slot, w)))
+            {
+                if let Some((part, mount)) = crate::sheathing::stowed_mount(actor, slot) {
+                    parts.insert(
+                        Part::Actor {
+                            root: actor.root_model,
+                            model: weapon.model,
+                            kind: weapon.kind,
+                            inspection,
+                        },
+                        matrices[part].compose(&mount),
+                    );
+                    continue;
+                }
                 let mut id = weapon.model;
                 let mut local = game.scene.models[id].local;
                 while let Some(parent) = game.scene.models[id].parent {
