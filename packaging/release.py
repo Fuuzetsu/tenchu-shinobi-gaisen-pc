@@ -18,6 +18,7 @@ ARCHIVES = (
     "tenchu-linux-aarch64.tar.gz",
     "tenchu-windows-x86_64.zip",
     "tenchu-wasm32.tar.gz",
+    "tenchu-android-arm64.apk",
     "tenchu-dependency-sources.tar.gz",
 )
 VERSION = r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:alpha|beta|rc)\.[1-9][0-9]*)?"
@@ -58,9 +59,10 @@ def release_notes(root, ref):
     label = f"[{tag}](https://github.com/{repository}/releases/tag/{tag})" if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) else tag
     body += (
         "\n\nSupply your own Shinobi Gaisen SLPS-019.01 CUE and BIN files; original disc assets are not included. "
-        "FFmpeg is needed separately for native movies/video export. "
+        "FFmpeg is needed separately for desktop movies/video export; Android decodes disc movies directly. "
         "The browser archive needs assets prepared with the matching native build.\n\n"
         "Download the archive for your platform and extract it completely. "
+        "On Android 9+ ARM64, install `tenchu-android-arm64.apk`, then use Import disc folder and optionally Import HD artwork in the launcher. "
         "SHA256SUMS verifies the downloads. Dependency sources are an optional separate download.\n"
         f"\nOptional HD artwork: download `tenchu-hd.tar.zst` from the separate {label} release "
         "and place it beside the executable/launcher. Reuse it across game updates; "
@@ -70,7 +72,7 @@ def release_notes(root, ref):
 
 
 def metadata(archive, filename):
-    if archive.suffix == ".zip":
+    if archive.suffix in (".zip", ".apk"):
         with zipfile.ZipFile(archive) as bundle:
             paths = [n for n in bundle.namelist() if n.count("/") == 1 and n.endswith(f"/{filename}")]
             if len(paths) != 1:

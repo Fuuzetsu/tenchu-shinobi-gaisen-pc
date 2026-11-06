@@ -1,8 +1,9 @@
 # Releasing
 
-The workflow builds Linux x86-64, Linux ARM64, Windows x86-64 and WASM. Releases
-contain those four archives, a dependency-source archive and `SHA256SUMS`.
-Every archive has `build-info.json` identifying its version, commit and Nixpkgs
+The workflow builds Linux x86-64, Linux ARM64, Windows x86-64, WASM and Android
+ARM64. Releases contain four platform archives, `tenchu-android-arm64.apk`, a
+dependency-source archive and `SHA256SUMS`.
+Every archive has `build-info.json` (under `assets/` in the APK) identifying its version, commit and Nixpkgs
 revision; native `tenchu-pc --version` also identifies its build.
 
 ## Development downloads
@@ -38,6 +39,30 @@ GitHub applies that setting to future releases. The publisher refuses to replace
 an immutable HEAD or overwrite any published versioned release, including prereleases.
 See [GitHub's release immutability documentation](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes).
 
+## Android signing
+
+The Android job uses the pinned `.#android` Nix shell and the same build script as
+local builds. Tags and `master` use the repository secrets
+`ANDROID_SIGNING_KEYSTORE` (base64 PKCS#12 keystore) and
+`ANDROID_SIGNING_PASSWORD`. Pull requests build with a disposable development
+key and never receive the release signing key. The published APK is not debuggable.
+The public certificate hash in `android/signing-certificate.sha256` is verified
+before upload; checksums and embedded build identity are verified with other targets.
+
+Back up the signing key securely: losing it prevents in-place APK updates.
+The initial release preserves the certificate used by the private Android preview,
+so its imported disc, artwork and saves survive installing the release over it.
+Do not commit a keystore or password. Maintainer copies are outside tracked source
+under `private/android/`; CI decodes the key only into its temporary directory and
+removes that copy after signing. Rotate the password by updating both secrets;
+changing the signing certificate requires an Android signing-key migration.
+
+Android version codes encode the base Cargo version as
+`major * 1,000,000 + minor * 1,000 + patch + 1`. HEAD/prereleases for the same
+base version share that code and can replace one another; their visible version
+name includes the commit. Version tags use the plain release version. This is
+APK distribution, not a Google Play publishing workflow.
+
 ## Versioned releases
 
 Keep user-facing changes under `Unreleased` in `CHANGELOG.md` as work lands.
@@ -54,8 +79,8 @@ once using `./dev.sh gh auth login` if needed.
 The command promotes the Unreleased notes to a section dated in UTC, updates the
 Cargo version and lockfile, runs `nix flake check` and evaluates all supported systems.
 It then commits the preparation, creates an annotated tag and pushes `master`
-and the tag together. GitHub builds the Linux x86-64/ARM64, Windows, WASM and
-dependency-source archives and performs the portable startup checks. The script
+and the tag together. GitHub builds Linux x86-64/ARM64, Windows, WASM, the signed Android APK and
+dependency-source archive and performs the portable startup checks. The script
 waits for both the tagged and HEAD workflows, downloads the release, and verifies
 its checksums, GitHub digests, build identities and library/source inventories.
 It checks the referenced HD pack is already published with the expected hash;

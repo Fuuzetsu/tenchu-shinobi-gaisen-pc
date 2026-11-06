@@ -262,6 +262,7 @@
                 shellcheck ${./packaging/tenchu-linux.sh}
                 shellcheck ${./packaging/publish.sh}
                 shellcheck ${./release.sh}
+                shellcheck ${./tools/build-android.sh}
                 cp -R ${./packaging} packaging
                 python3 -m unittest discover -s packaging -p 'test_*.py'
                 shellcheck ${./tools/package-artwork.sh}

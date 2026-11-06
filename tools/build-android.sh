@@ -46,30 +46,63 @@ for directory in crates/tenchu-assets/data/{japanese-font,mdec} crates/tenchu-pc
         if [[ -f "$notice" ]]; then cp "$notice" "$work/apk/assets/licenses/$name/"; fi
     done
 done
-python3 - "$work/AndroidManifest.xml" <<'PYTHON'
-import os, sys, xml.etree.ElementTree as xml
+python3 - "$work" "$abi" <<'PYTHON'
+import json, os, pathlib, subprocess, sys, tomllib, xml.etree.ElementTree as xml
+work = pathlib.Path(sys.argv[1])
+version = tomllib.loads(pathlib.Path("Cargo.toml").read_text())["workspace"]["package"]["version"]
+major, minor, patch = map(int, version.split("-")[0].split("."))
+code = major * 1_000_000 + minor * 1_000 + patch + 1
+if minor >= 1000 or patch >= 1000 or not 1 <= code <= 2_100_000_000:
+    raise SystemExit("Version is outside the Android versionCode range")
+revision = os.environ.get("TENCHU_BUILD_REVISION")
+if not revision:
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    if subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], text=True).strip():
+        revision += "-dirty"
+name = version if os.environ.get("GITHUB_REF") == f"refs/tags/v{version}" else f"{version}-dev+{revision[:8]}"
+locked = json.loads(pathlib.Path("flake.lock").read_text())
+(work / "apk/assets/build-info.json").write_text(json.dumps({
+    "version": version, "revision": revision,
+    "nixpkgsRevision": locked["nodes"]["nixpkgs"]["locked"]["rev"],
+    "target": "tenchu-android-" + {"arm64-v8a": "arm64", "x86_64": "x86_64"}[sys.argv[2]],
+    "versionCode": code, "versionName": name,
+}) + "\n")
 xml.register_namespace("android", "http://schemas.android.com/apk/res/android")
 manifest = xml.parse("android/AndroidManifest.xml")
 if not os.environ.get("TENCHU_ANDROID_KEYSTORE"):
     manifest.getroot().find("application").set("{http://schemas.android.com/apk/res/android}debuggable", "true")
-manifest.write(sys.argv[1], encoding="utf-8", xml_declaration=True)
+manifest.getroot().set("{http://schemas.android.com/apk/res/android}versionCode", str(code))
+manifest.getroot().set("{http://schemas.android.com/apk/res/android}versionName", name)
+manifest.write(work / "AndroidManifest.xml", encoding="utf-8", xml_declaration=True)
 PYTHON
 "$sdk_tools/aapt2" link -I "$android_jar" --manifest "$work/AndroidManifest.xml" \
-    --version-name "$version-dev" --version-code 1 -o "$work/unsigned.apk"
+    -o "$work/unsigned.apk"
 (cd "$work/apk" && zip -q -r ../unsigned.apk lib classes.dex assets)
 "$sdk_tools/zipalign" -f -P 16 4 "$work/unsigned.apk" "$work/aligned.apk"
 keystore=${TENCHU_ANDROID_KEYSTORE:-private/android/debug.keystore}
 if [[ ! -f "$keystore" ]]; then
     if [[ -n ${TENCHU_ANDROID_KEYSTORE:-} ]]; then printf 'Signing keystore does not exist: %s\n' "$keystore" >&2; exit 1; fi
     mkdir -p "$(dirname -- "$keystore")"
-    keytool -genkeypair -keystore "$keystore" -alias androiddebugkey -storepass android -keypass android \
-        -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Tenchu local development'
+    (umask 077; keytool -genkeypair -keystore "$keystore" -alias androiddebugkey -storepass android -keypass android \
+        -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Tenchu local development')
 fi
 apk="$work/tenchu-$version-$abi.apk"
 if [[ -n ${TENCHU_ANDROID_KEYSTORE:-} ]]; then
-    "$sdk_tools/apksigner" sign --ks "$keystore" --out "$apk" "$work/aligned.apk"
+    passwords=()
+    if [[ -n ${TENCHU_ANDROID_KEYSTORE_PASSWORD:-} ]]; then
+        passwords=(--ks-pass env:TENCHU_ANDROID_KEYSTORE_PASSWORD --key-pass env:TENCHU_ANDROID_KEYSTORE_PASSWORD)
+    fi
+    "$sdk_tools/apksigner" sign --ks "$keystore" "${passwords[@]}" --out "$apk" "$work/aligned.apk"
 else
     "$sdk_tools/apksigner" sign --ks "$keystore" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --out "$apk" "$work/aligned.apk"
 fi
-"$sdk_tools/apksigner" verify "$apk"
+"$sdk_tools/apksigner" verify --print-certs "$apk" > "$work/signature.txt"
+"$sdk_tools/zipalign" -c -P 16 4 "$apk"
+if [[ ${TENCHU_ANDROID_RELEASE_KEY:-} == 1 ]]; then
+    expected=$(cat android/signing-certificate.sha256)
+    if ! rg -q -F "Signer #1 certificate SHA-256 digest: $expected" "$work/signature.txt"; then
+        printf 'APK was not signed by the release key\n' >&2
+        exit 1
+    fi
+fi
 printf '\nAPK: %s\nInstall: adb install -r %q\n' "$apk" "$apk"

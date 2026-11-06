@@ -26,6 +26,7 @@ HEAD on `master`; release downloads do not have the Actions artifact expiry.
 | Windows x64 | `tenchu-windows-x86_64.zip` | Double-click `tenchu-pc.exe` and choose your CUE. |
 | Linux Intel/AMD | `tenchu-linux-x86_64.tar.gz` | Run `./tenchu-pc`; keep the whole extracted directory together. |
 | Linux ARM64 | `tenchu-linux-aarch64.tar.gz` | Same as Linux above. |
+| Android ARM64 (9+) | `tenchu-android-arm64.apk` | Install the APK, then import your disc folder and optional HD pack. [Android guide](docs/android.md). |
 | Browser | `tenchu-wasm32.tar.gz` | Prepare your disc assets and serve the folder; see below. |
 | Apple Silicon Mac | Build from source below | A real Mac runtime test is still needed. |
 

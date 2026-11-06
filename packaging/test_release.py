@@ -54,9 +54,9 @@ class ReleaseTests(unittest.TestCase):
             directory.mkdir(parents=True)
             path = directory / name
             info = json.dumps({"revision": "commit", "version": "0.1.0", "nixpkgsRevision": "pinned"}).encode()
-            if name.endswith(".zip"):
+            if name.endswith((".zip", ".apk")):
                 with zipfile.ZipFile(path, "w") as archive:
-                    archive.writestr("bundle/build-info.json", info)
+                    archive.writestr("assets/build-info.json" if name.endswith(".apk") else "bundle/build-info.json", info)
             else:
                 with tarfile.open(path, "w:gz") as archive:
                     def add(name, data):

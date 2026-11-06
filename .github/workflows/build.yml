@@ -106,6 +106,65 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+  android:
+    name: android-arm64
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # 31.11.3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            max-jobs = 1
+      - name: Cache Nix build outputs
+        uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
+        with:
+          version: v3.1.0
+          upstream-cache-filter: true
+      - name: Build Android APK
+        env:
+          TENCHU_BUILD_REVISION: ${{ github.sha }}
+        run: |
+          nix develop .#android --command cargo clippy --locked --lib -p tenchu-pc -- -D warnings
+          ./tools/build-android.sh
+      - name: Sign published APK
+        if: >-
+          github.event_name != 'pull_request' &&
+          (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master')
+        env:
+          SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+          TENCHU_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+          TENCHU_BUILD_REVISION: ${{ github.sha }}
+        run: |
+          umask 077
+          key="$RUNNER_TEMP/tenchu-signing.p12"
+          trap 'rm -f "$key"' EXIT
+          test -n "$SIGNING_KEYSTORE"
+          test -n "$TENCHU_ANDROID_KEYSTORE_PASSWORD"
+          printf '%s' "$SIGNING_KEYSTORE" | base64 --decode > "$key"
+          export TENCHU_ANDROID_KEYSTORE="$key" TENCHU_ANDROID_RELEASE_KEY=1
+          ./tools/build-android.sh
+      - name: Package APK and checksum
+        run: |
+          mkdir dist
+          cp target/android/arm64-v8a/tenchu-*-arm64-v8a.apk dist/tenchu-android-arm64.apk
+          cd dist
+          sha256sum tenchu-android-arm64.apk > SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tenchu-android-arm64-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
   windows-smoke:
     name: Windows executable startup
     needs: build
@@ -127,7 +186,7 @@ jobs:
 
   publish:
     name: Publish complete downloads
-    needs: [build, windows-smoke]
+    needs: [build, android, windows-smoke]
     if: >-
       github.event_name != 'pull_request' &&
       (startsWith(github.ref, 'refs/tags/v') ||

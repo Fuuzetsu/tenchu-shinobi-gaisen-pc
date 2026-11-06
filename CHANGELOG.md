@@ -7,6 +7,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Make the accepted rendering improvements automatic: adaptive local shadow detail, half-resolution ambient occlusion, cached modern terrain blood, and shared wet/snow shadow visibility. Remove the Rendering trials toggles and comparison demo; existing settings/presets upgrade automatically, with compatibility fallbacks retained. Original graphics and gameplay stay unchanged.
 
+- Publish a signed Android ARM64 APK alongside desktop/browser downloads for each version and rolling HEAD. APK updates retain imported discs, artwork and saves; downloads include checked build identities and checksums.
+
 - Keep Android responsive while graphics effects compile: prepare shaders away from the input/lifecycle loop, show a progress dialog, and avoid recompiling unchanged window sizes. Returning from graphics changes no longer leaves input waiting behind shader preparation.
 
 - Fix Android disc imports when Firefox replaces commas in BIN filenames with underscores. Match renamed tracks before copying, offer a file choice for other name changes, and make import errors copyable. Original downloads and previously imported discs remain intact if import fails.

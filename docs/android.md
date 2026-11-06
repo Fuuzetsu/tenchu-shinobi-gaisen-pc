@@ -2,9 +2,18 @@
 
 The native port targets **64-bit ARM phones/tablets running Android 9 or newer**.
 It uses the same Rust game logic and renderer as desktop, with a touch controller
-and Android file pickers. This is a development APK, not a Google Play release.
+and Android file pickers. APKs are published alongside the desktop downloads; this is not a Google Play release.
 
-## Build and install
+## Download and install
+
+Download **`tenchu-android-arm64.apk`** from the game's
+[Releases](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases), open it
+on your phone and allow installation from that source when Android asks. Update
+by installing the newer APK over the old one; keep the app installed to retain
+its imported disc, artwork and saves. The HEAD download follows `master`.
+The launcher then imports your disc as described below.
+
+## Build and install from source
 
 On x86-64 Linux with Nix:
 
@@ -21,7 +30,8 @@ SDK license acceptance is scoped to the Android development shells.
 Local builds use a development signing key in `private/android/debug.keystore`.
 Keep that key to install updates over your own builds. It is never committed.
 `TENCHU_ANDROID_KEYSTORE=/path/to/keystore` selects a separate signing key and
-asks for its password. APKs contain the program and license notices, not game
+asks for its password; automation can supply `TENCHU_ANDROID_KEYSTORE_PASSWORD`.
+Local builds signed with a different key cannot replace the official APK in place. APKs contain the program and license notices, not game
 assets. Native libraries are aligned for 16 KiB memory pages.
 
 For an x86-64 Android emulator, use `./tools/build-android.sh --emulator`.
