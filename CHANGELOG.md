@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix Android touch-stick navigation skipping many quick-launch menu entries
+  during one drag. Held touch buttons now stay suppressed across menu transitions,
+  and stick direction thresholds resist finger jitter.
+
 - Add independent Off / Original / Original HD / Modern styles for death gushes
   and severed-part bleeding in F1 → Persistent effects. Ordinary wound jets keep
   following Wound drips; all ground stains retain their separately selected style.

@@ -73,6 +73,62 @@ pub(super) fn application(options: Options) -> Application {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; a real quick-launch action must not retrigger a held touch stick"]
+fn quick_launcher_touch_drag_moves_one_row_until_recentered() {
+    use winit::event::TouchPhase;
+    let mut app = application(Default::default());
+    app.settings.frontend.auto_save = false;
+    app.campaign.screen = Screen::Launcher;
+    app.campaign.cursor = 0;
+    app.touch.layout(
+        egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(960.0, 540.0)),
+        crate::touch::Settings {
+            visibility: crate::touch::Visibility::Always,
+            ..Default::default()
+        },
+        crate::touch::Mode::Menus,
+        false,
+        false,
+    );
+    for (i, y) in std::iter::once(490.0)
+        .chain((0..150).map(|i| 490.0 + (i % 3) as f32))
+        .enumerate()
+    {
+        app.touch.event(
+            1,
+            if i == 0 {
+                TouchPhase::Started
+            } else {
+                TouchPhase::Moved
+            },
+            egui::pos2(95.0, y),
+        );
+        app.controls.touch(app.touch.sample());
+        let update = app.controls.poll(true);
+        if let Some(Command::Menu(action)) =
+            controls::gamepad_command(update.menu_pressed, false, false, false)
+        {
+            app.action(action);
+        }
+        assert_eq!(app.campaign.cursor, 1, "drag event {i}");
+    }
+    app.touch
+        .event(1, TouchPhase::Moved, egui::pos2(95.0, 440.0));
+    app.controls.touch(app.touch.sample());
+    app.touch
+        .event(1, TouchPhase::Moved, egui::pos2(95.0, 390.0));
+    app.controls.touch(app.touch.sample());
+    let update = app.controls.poll(true);
+    let Some(Command::Menu(action)) =
+        controls::gamepad_command(update.menu_pressed, false, false, false)
+    else {
+        panic!("recentered stick must select again")
+    };
+    app.action(action);
+    assert_eq!(app.campaign.cursor, 0);
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; results keyboard/controller retry must preserve the mission and awarded progress"]
 fn results_start_retries_while_confirm_advances() {
     use tenchu_core::input;

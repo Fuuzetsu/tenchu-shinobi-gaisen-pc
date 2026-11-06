@@ -25,6 +25,60 @@ fn touch_taps_survive_between_ticks_and_focus_changes_release_all_fingers() {
 }
 
 #[test]
+fn held_touch_stick_does_not_retrigger_after_menu_actions_or_threshold_jitter() {
+    let mut controls = Controls::default();
+    let drag = |y| crate::touch::Sample {
+        sticks: [glam::Vec2::new(0.0, y), glam::Vec2::ZERO],
+        ..Default::default()
+    };
+    controls.touch(drag(-0.8));
+    assert_eq!(controls.poll(true).menu_pressed, input::DOWN);
+    controls.clear(); // Quick-launch menu actions clear gameplay input.
+    for y in [-0.81, -0.79, -1.0, 0.7, 0.6] {
+        controls.touch(drag(y));
+        assert_eq!(controls.poll(true).menu_pressed, 0);
+        assert_eq!(controls.buttons(), 0);
+        assert_eq!(controls.sticks()[0], glam::Vec2::ZERO);
+    }
+    controls.touch(drag(0.0));
+    controls.touch(drag(0.8));
+    assert_eq!(controls.poll(true).menu_pressed, input::UP);
+    for y in [0.56, 0.53, 0.58, 0.51, 0.42] {
+        controls.touch(drag(y));
+        assert_eq!(controls.poll(true).menu_pressed, 0);
+        assert_eq!(controls.buttons(), input::UP);
+    }
+    controls.touch(drag(0.0));
+    controls.touch(drag(-0.8));
+    assert_eq!(controls.poll(true).menu_pressed, input::DOWN);
+    controls.poll(false);
+    controls.touch(drag(-0.9));
+    assert_eq!(controls.poll(true).menu_pressed, 0);
+}
+
+#[test]
+fn touch_confirm_must_be_released_before_entering_another_screen() {
+    let mut controls = Controls::default();
+    let held = crate::touch::Sample {
+        buttons: input::CROSS.into(),
+        ..Default::default()
+    };
+    controls.touch(held);
+    assert_eq!(controls.poll(true).menu_pressed, input::CROSS);
+    controls.clear();
+    for _ in 0..10 {
+        controls.touch(held);
+        assert_eq!(controls.poll(true).menu_pressed, 0);
+        assert_eq!(controls.relative_buttons(), 0);
+        assert_eq!(controls.touch_buttons(), 0);
+    }
+    controls.touch(Default::default());
+    controls.touch(held);
+    assert_eq!(controls.poll(true).menu_pressed, input::CROSS);
+    assert_eq!(controls.buttons(), input::CROSS);
+}
+
+#[test]
 fn analog_input_keeps_precision_and_requires_centering_after_focus_changes() {
     let mut controls = Controls::default();
     controls.pad.axes = [0.37, 0.81, -0.23, 0.62];

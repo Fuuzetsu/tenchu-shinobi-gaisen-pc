@@ -184,9 +184,25 @@ pub struct Update {
 #[derive(Default)]
 struct TouchInput {
     sample: crate::touch::Sample,
+    directions: [i8; 2],
+    raw: u32,
+    blocked: u32,
+    axes_blocked: [bool; 2],
     buttons: u32,
     pending: u32,
     pressed: u16,
+}
+
+impl TouchInput {
+    fn suppress(&mut self) {
+        self.blocked |= self.raw;
+        self.buttons = 0;
+        self.pending = 0;
+        self.pressed = 0;
+        for (blocked, stick) in self.axes_blocked.iter_mut().zip(self.sample.sticks) {
+            *blocked |= stick.length_squared() > 0.0025;
+        }
+    }
 }
 
 #[derive(Default)]
@@ -321,7 +337,19 @@ impl Controls {
     }
 
     pub fn touch(&mut self, sample: crate::touch::Sample) {
-        let buttons = sample.buttons | u32::from(crate::navigation::directions(sample.sticks[0]));
+        for (blocked, stick) in self.touch.axes_blocked.iter_mut().zip(sample.sticks) {
+            *blocked &= stick.length_squared() > 0.0025;
+        }
+        self.touch.directions =
+            std::array::from_fn(|i| direction(sample.sticks[0][i], self.touch.directions[i]));
+        let stick = if self.touch.axes_blocked[0] {
+            glam::Vec2::ZERO
+        } else {
+            glam::Vec2::from_array(self.touch.directions.map(f32::from))
+        };
+        self.touch.raw = sample.buttons | u32::from(crate::navigation::directions(stick));
+        self.touch.blocked &= self.touch.raw;
+        let buttons = self.touch.raw & !self.touch.blocked;
         let pressed = buttons & !self.touch.buttons;
         self.touch.pending |= pressed;
         self.touch.pressed |= pressed as u16;
@@ -330,7 +358,7 @@ impl Controls {
     }
 
     pub fn clear(&mut self) {
-        self.touch = TouchInput::default();
+        self.touch.suppress();
         self.stop_rumble();
         self.keys.clear();
         self.pending_keys = 0;
@@ -378,7 +406,7 @@ impl Controls {
     pub fn relative_buttons(&mut self) -> u16 {
         self.pad.pending = 0;
         let directions = u32::from(input::UP | input::DOWN | input::LEFT | input::RIGHT);
-        let buttons = self.touch.sample.buttons
+        let buttons = (self.touch.sample.buttons & !self.touch.blocked)
             | (mem::take(&mut self.touch.pending) & !directions)
             | (self.pad.direct & !self.pad.direct_blocked)
             | mem::take(&mut self.pad.direct_pending)
@@ -405,12 +433,15 @@ impl Controls {
     }
 
     pub fn touch_buttons(&self) -> u16 {
-        self.touch.sample.buttons as u16
+        (self.touch.sample.buttons & !self.touch.blocked) as u16
     }
 
     pub fn sticks(&self) -> [glam::Vec2; 2] {
         std::array::from_fn(|i| {
-            if self.touch.sample.sticks[i] != glam::Vec2::ZERO && !self.editor.open {
+            if !self.touch.axes_blocked[i]
+                && self.touch.sample.sticks[i] != glam::Vec2::ZERO
+                && !self.editor.open
+            {
                 self.touch.sample.sticks[i]
             } else if self.pad.axes_blocked[i] || self.editor.open {
                 glam::Vec2::ZERO
@@ -432,7 +463,7 @@ impl Controls {
             disconnected: false,
         };
         if !focused {
-            self.touch = TouchInput::default();
+            self.touch.suppress();
             update = Update::default();
             self.pad.suppress();
             self.stop_rumble();
