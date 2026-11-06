@@ -5,6 +5,7 @@ use glam::{Mat4, Vec3};
 
 mod bounds;
 mod culling;
+mod rain_haze;
 mod weather_bounds;
 
 pub const FACES: usize = MAX_SHADOW_LIGHTS * 6 + 1;
@@ -54,6 +55,7 @@ pub struct Shadows {
     selection: crate::lighting::shadows::Selection,
     grid: super::light_grid::Grid,
     readable: ReadableDepth,
+    haze: rain_haze::Volume,
     gl: bool,
     cached: [Option<FaceState>; FACES + 2],
     culling: [culling::Culling; FACES + 2],
@@ -84,97 +86,120 @@ impl Shadows {
             },
             count: None,
         };
+        let mut entries = vec![
+            uniform,
+            wgpu::BindGroupLayoutEntry {
+                binding: 9,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 8,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 4,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 5,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 6,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 7,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Uint,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+        ];
+        if !gl {
+            // Drop GL's readable depth copies to stay within WebGPU's texture limit.
+            entries.retain(|entry| entry.binding != 5 && entry.binding != 6);
+        }
+        entries.extend([
+            wgpu::BindGroupLayoutEntry {
+                binding: 10,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D3,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 11,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ]);
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Point lights and shadow maps"),
-            entries: &[
-                uniform,
-                wgpu::BindGroupLayoutEntry {
-                    binding: 9,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 8,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Depth,
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Depth,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 4,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Depth,
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 5,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 6,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 7,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Uint,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-            ],
+            entries: &entries,
         });
         let data = buffer(
             device,
@@ -190,6 +215,7 @@ impl Shadows {
         });
         let sun = super::sun::target(device, 1);
         let (weather, weather_layers) = weather_targets(device, 1);
+        let haze = rain_haze::Volume::new(device, gl);
         let (bindings, views, readable, weather_bounds, bounds) = maps(
             device,
             &layout,
@@ -199,6 +225,7 @@ impl Shadows {
             1,
             MapTargets {
                 views: [&sun, &weather],
+                haze: &haze,
                 grid: &grid.view,
                 sizes: [1, 1],
                 gl,
@@ -358,6 +385,7 @@ impl Shadows {
             sun,
             sun_resolution: 1,
             weather,
+            haze,
             weather_layers,
             weather_resolution: 1,
             weather_bounds,
@@ -438,6 +466,7 @@ impl Shadows {
                 layers,
                 MapTargets {
                     views: [&self.sun, &self.weather],
+                    haze: &self.haze,
                     grid: &self.grid.view,
                     sizes: [self.sun_resolution, self.weather_resolution],
                     gl: self.gl,
@@ -704,6 +733,42 @@ impl Shadows {
         receivers.intersects(&super::culling::Volume::new(matrix))
     }
 
+    pub fn draw_haze(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        rays: [f32; 16],
+        eye: Vec3,
+        amount: f32,
+    ) {
+        let matrices = std::array::from_fn::<_, 2, _>(|layer| {
+            self.cached[FACES + layer].as_ref().unwrap().matrix
+        });
+        let spans = matrices.map(|matrix| {
+            let inverse = matrix.inverse();
+            [
+                inverse.x_axis.truncate().length() * 2.0,
+                inverse.y_axis.truncate().length() * 2.0,
+                0.0,
+                0.0,
+            ]
+        });
+        self.haze.draw(
+            device,
+            queue,
+            encoder,
+            &self.weather,
+            &self.sampler,
+            &rain_haze::Uniform {
+                rays,
+                matrices: matrices.map(|m| m.to_cols_array()),
+                spans,
+                eye: [eye.x, eye.y, eye.z, amount],
+            },
+        );
+    }
+
     #[cfg(test)]
     pub(super) fn bounds_enabled(&self) -> bool {
         self.bounds.enabled()
@@ -937,6 +1002,7 @@ fn buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {
 }
 
 struct MapTargets<'a> {
+    haze: &'a rain_haze::Volume,
     views: [&'a wgpu::TextureView; 2],
     grid: &'a wgpu::TextureView,
     sizes: [u32; 2],
@@ -1052,56 +1118,65 @@ fn maps(
         ..Default::default()
     });
     let bounds = bounds::Bounds::new(device, &point, resolution, layers, sky.bounds);
+    let mut entries = vec![
+        wgpu::BindGroupEntry {
+            binding: 9,
+            resource: wgpu::BindingResource::TextureView(&bounds.view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 8,
+            resource: wgpu::BindingResource::TextureView(&weather_bounds.view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 0,
+            resource: data.as_entire_binding(),
+        },
+        wgpu::BindGroupEntry {
+            binding: 1,
+            resource: wgpu::BindingResource::TextureView(&point),
+        },
+        wgpu::BindGroupEntry {
+            binding: 2,
+            resource: wgpu::BindingResource::Sampler(sampler),
+        },
+        wgpu::BindGroupEntry {
+            binding: 3,
+            resource: wgpu::BindingResource::TextureView(sky.views[0]),
+        },
+        wgpu::BindGroupEntry {
+            binding: 4,
+            resource: wgpu::BindingResource::TextureView(sky.views[1]),
+        },
+        wgpu::BindGroupEntry {
+            binding: 5,
+            resource: wgpu::BindingResource::TextureView(&readable.point.0),
+        },
+        wgpu::BindGroupEntry {
+            binding: 6,
+            resource: wgpu::BindingResource::TextureView(&readable.weather.0),
+        },
+        wgpu::BindGroupEntry {
+            binding: 7,
+            resource: wgpu::BindingResource::TextureView(sky.grid),
+        },
+    ];
+    if !sky.gl {
+        entries.retain(|entry| entry.binding != 5 && entry.binding != 6);
+    }
+    entries.extend([
+        wgpu::BindGroupEntry {
+            binding: 10,
+            resource: wgpu::BindingResource::TextureView(&sky.haze.view),
+        },
+        wgpu::BindGroupEntry {
+            binding: 11,
+            resource: wgpu::BindingResource::Sampler(&sky.haze.sampler),
+        },
+    ]);
     let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Lighting textures"),
         layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 9,
-                resource: wgpu::BindingResource::TextureView(&bounds.view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 8,
-                resource: wgpu::BindingResource::TextureView(&weather_bounds.view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: data.as_entire_binding(),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::TextureView(&texture.create_view(
-                    &wgpu::TextureViewDescriptor {
-                        dimension: Some(wgpu::TextureViewDimension::D2Array),
-                        ..Default::default()
-                    },
-                )),
-            },
-            wgpu::BindGroupEntry {
-                binding: 2,
-                resource: wgpu::BindingResource::Sampler(sampler),
-            },
-            wgpu::BindGroupEntry {
-                binding: 3,
-                resource: wgpu::BindingResource::TextureView(sky.views[0]),
-            },
-            wgpu::BindGroupEntry {
-                binding: 4,
-                resource: wgpu::BindingResource::TextureView(sky.views[1]),
-            },
-            wgpu::BindGroupEntry {
-                binding: 5,
-                resource: wgpu::BindingResource::TextureView(&readable.point.0),
-            },
-            wgpu::BindGroupEntry {
-                binding: 6,
-                resource: wgpu::BindingResource::TextureView(&readable.weather.0),
-            },
-            wgpu::BindGroupEntry {
-                binding: 7,
-                resource: wgpu::BindingResource::TextureView(sky.grid),
-            },
-        ],
+        entries: &entries,
     });
     let views = (0..layers)
         .map(|face| {

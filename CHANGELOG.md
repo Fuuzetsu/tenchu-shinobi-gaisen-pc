@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Reduce rain-haze rendering cost on native and WebGPU by sharing shelter
+  calculations in a small view volume. Roof shelter, wind and lighting remain
+  responsive; WebGL2 retains its existing rendering path.
+
 - Skip puddle noise calculations on surfaces where puddles cannot collect,
   reducing rain shading work without changing its appearance.
 

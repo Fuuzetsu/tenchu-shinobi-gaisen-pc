@@ -1,3 +1,5 @@
+@group(1) @binding(10) var rain_haze: texture_3d<f32>;
+@group(1) @binding(11) var rain_sampler: sampler;
 @group(1) @binding(8) var weather_bounds: texture_2d_array<f32>;
 
 fn weather_bound_exposure(uv: vec2<f32>, center: f32, span: vec2<f32>, radius: f32, normal: vec3<f32>, layer: i32) -> f32 {
@@ -294,43 +296,28 @@ fn weather_surface(input: vec3<f32>, normal: vec3<f32>, surface: vec3<f32>, posi
 
 fn rain_atmosphere(input: vec3<f32>, position: vec3<f32>, linear: bool, precomputed: bool, rain_enabled: bool) -> vec3<f32> {
     if !rain_enabled || !WEATHER_ENABLED || lighting.rain.y == 0.0 { return input; }
-    let delta = position - camera.eye.xyz;
-    let distance = length(delta);
-    let radius = 80.0 + min(distance / 30.0, 420.0);
-    // Shelter projections are affine, so interpolate the ray in map space.
-    let start0 = (lighting.weather_matrix[0] * vec4(camera.eye.xyz, 1.0)).xyz;
-    let start1 = (lighting.weather_matrix[1] * vec4(camera.eye.xyz, 1.0)).xyz;
-    let delta0 = (lighting.weather_matrix[0] * vec4(delta, 0.0)).xyz;
-    let delta1 = (lighting.weather_matrix[1] * vec4(delta, 0.0)).xyz;
-    var shelter = 0.0;
-    for (var step = 0; step < 6; step++) {
-        let spread = vec2(radius, select(-radius, radius, step % 2 == 0));
-        let t = (f32(step) + 0.5) / 6.0;
-        shelter += rain_air_exposure(start0 + delta0 * t, start1 + delta1 * t, spread, precomputed);
+    var haze = -1.0;
+    if CACHED_RAIN && camera.motion.z != 0.0 {
+        let clip = camera.matrix * vec4(position, 1.0);
+        if clip.w > 0.0 && clip.w < RAIN_VOLUME_FAR {
+            let uv = clip.xy / clip.w * vec2(0.5, -0.5) + vec2(0.5);
+            let layers = f32(textureDimensions(rain_haze).z);
+            let depth = (rain_view_coordinate(clip.w) * (layers - 1.0) + 0.5) / layers;
+            haze = textureSampleLevel(rain_haze, rain_sampler, vec3(uv, depth), 0.0).r;
+        }
     }
-    shelter /= 6.0;
-    let haze = min(0.94, 1.0 - exp(-distance * lighting.rain.y * shelter / 18000.0));
+    if haze < 0.0 {
+        let delta = position - camera.eye.xyz;
+        let distance = length(delta);
+        let radius = 80.0 + min(distance / 30.0, 420.0);
+        let start0 = (lighting.weather_matrix[0] * vec4(camera.eye.xyz, 1.0)).xyz;
+        let start1 = (lighting.weather_matrix[1] * vec4(camera.eye.xyz, 1.0)).xyz;
+        let delta0 = (lighting.weather_matrix[0] * vec4(delta, 0.0)).xyz;
+        let delta1 = (lighting.weather_matrix[1] * vec4(delta, 0.0)).xyz;
+        let shelter = rain_view_exposure(start0, start1, delta0, delta1, radius, weather_scale(0, precomputed), weather_scale(1, precomputed));
+        haze = min(0.94, 1.0 - exp(-distance * lighting.rain.y * shelter / 18000.0));
+    }
     var color = rain_color();
     if !linear { color = pow(color, vec3(1.0 / 2.2)); }
     return mix(input, color, haze);
 }
-
-fn rain_air_exposure(p0: vec3<f32>, p1: vec3<f32>, spread: vec2<f32>, precomputed: bool) -> f32 {
-    var exposure = 0.0;
-    var remaining = 1.0;
-    for (var layer = 0; layer < 2; layer++) {
-        if remaining < 0.001 { break; }
-        let p = select(p0, p1, layer == 1);
-        let uv = p.xy * vec2(0.5, -0.5) + vec2(0.5);
-        if any(uv < vec2(0.0)) || any(uv > vec2(1.0)) { continue; }
-        let span = weather_scale(layer, precomputed);
-        let offset = spread / span;
-        let exposed = (textureSampleCompareLevel(weather_map, shadow_sampler, uv - offset, layer, p.z)
-            + textureSampleCompareLevel(weather_map, shadow_sampler, uv + offset, layer, p.z)) * 0.5;
-        let weight = select(1.0 - smoothstep(0.75, 0.95, max(abs(p.x), abs(p.y))), remaining, layer == 1);
-        exposure += exposed * weight;
-        remaining -= weight;
-    }
-    return exposure;
-}
-

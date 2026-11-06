@@ -3037,3 +3037,51 @@ Rain/snow native routes, wet-material/shelter GPU regressions, 147 ordinary
 tests, strict native/WASM/Android Clippy and WebGPU/WebGL2 gameplay checks pass.
 Evidence is under `private/optimisation-loop/2026-11-06/resumed/weather-cost/`
 and `resumed/puddle-*.json`, outside Git.
+
+### Share rain haze through a view volume
+
+Rain haze previously integrated six samples along the camera-to-surface ray
+for every shaded fragment, including overlapping materials and MSAA samples.
+Native/WebGPU now evaluate that same shelter integral in a 128×72×64 RGBA16F
+view volume (4.5 MiB), with logarithmic depth spacing and trilinear lookup.
+The volume is rebuilt each active frame, so camera motion, changing shelter,
+wind and settings need no history rejection. Lightning still colors the haze
+in the surface shader. WebGL2, orthographic views and points beyond the volume
+retain the ray calculation; no precipitation or gameplay state changes.
+
+The first paired 4K fixed views improve GPU mean from 17.36→16.04 ms in the
+rainy garden and 14.05→13.13 ms in the village. Lightning views improve
+18.48→17.10 and 14.79→13.90 ms. The full native comparison runs the candidate
+first, then the preceding build, using Modern High, HD artwork, 2× MSAA and
+1200 frames per route with 60 warm-up frames excluded:
+
+| Rain route | Frame mean, ms before → after | Frame p95, ms | Frame p99, ms |
+| --- | ---: | ---: | ---: |
+| Village lights | 13.42 → 12.90 | 14.84 → 14.03 | 15.27 → 14.56 |
+| Snow courtyard | 10.46 → 9.80 | 11.70 → 10.85 | 12.19 → 11.30 |
+| Garden and water | 17.81 → 15.62 | 19.28 → 16.93 | 19.74 → 17.60 |
+| Waterfall and spray | 10.27 → 9.58 | 11.23 → 10.65 | 11.83 → 11.25 |
+
+The rainy garden averages approximately 64 FPS, but p99 still exceeds the
+16.67 ms budget. Fixed-view checks at 720p/1080p also improve mean GPU time
+by 0.10–0.30/0.29–0.59 ms. Short 720p runs contain tail outliers, so they do
+not establish a p99 improvement. Measurements include volume preparation;
+no build, capture or second GPU workload runs alongside native timing.
+
+This is a presentation approximation. Ordinary paired captures differ by
+mean RGB channel values 0.05–0.14/255, with maxima of 6–7. Strong 100% haze
+with 75% wind, daytime and lightning differs by mean 0.30–1.30/255; at least
+99% of pixels differ by no more than 8 in any RGB channel. Sparse differences
+reach 59 at fine distant geometry. Texture detail and lighting are unchanged;
+the interpolated haze softens some of the original integral's transitions.
+
+A GPU regression compares moving views against direct integration while changing
+roof coverage, wind direction and weather quality, including an exactly clear
+enclosed room. Existing rain/snow shelter, windward walls and shared-lighting
+regressions pass, along with 147 ordinary tests and native/WASM/Android strict
+Clippy. Fresh WebGPU/WebGL2 builds pass rainstorm play, camera movement,
+lighting changes and pause/resume without GPU errors. Instrumentation confirms
+the volume runs only on WebGPU; WebGL2 retains direct integration.
+Evidence is outside Git under
+`private/optimisation-loop/2026-11-06/resumed/rain-volume/` and
+`resumed/haze-{before,after}-high-rain.json`.

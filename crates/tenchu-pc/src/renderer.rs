@@ -120,6 +120,8 @@ pub struct Renderer {
     wet_lighting: Option<wet_lighting::WetLighting>,
     #[cfg(test)]
     skip_wet_lighting: bool,
+    #[cfg(test)]
+    skip_rain_haze: bool,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pipelines: pipelines::Pipelines,
@@ -296,6 +298,8 @@ impl Renderer {
             wet_lighting: None,
             #[cfg(test)]
             skip_wet_lighting: false,
+            #[cfg(test)]
+            skip_rain_haze: false,
             timings,
             profiling: false,
             device,
@@ -661,16 +665,22 @@ impl Renderer {
             f32::from(water.flow) / 100.0,
             f32::from(water.foam) / 100.0,
         ]);
+        let cache_rain = !self.gl
+            && self.graphics.weather.mode.rain()
+            && self.graphics.weather.amount > 0
+            && self.graphics.weather.haze > 0;
+        let rays = (self.wet_lighting.is_some() || cache_rain)
+            .then(|| wet_lighting::camera_rays(matrix))
+            .flatten();
+        let cache_rain = cache_rain && rays.is_some();
+        #[cfg(test)]
+        let cache_rain = cache_rain && !self.skip_rain_haze;
         camera.extend([
             f32::from(self.graphics.motion.wind) / 100.0,
             f32::from(self.graphics.weapon_reflections) / 100.0,
-            0.0,
+            u8::from(cache_rain) as f32,
             0.0,
         ]);
-        let rays = self
-            .wet_lighting
-            .as_ref()
-            .and_then(|_| wet_lighting::camera_rays(matrix));
         camera.extend(rays.unwrap_or([0.0; 16]));
         self.queue
             .write_buffer(&self.camera, 0, bytemuck::cast_slice(&camera));
@@ -720,6 +730,16 @@ impl Renderer {
                 materials: &self.materials.bindings,
             },
         );
+        if cache_rain {
+            self.shadows.draw_haze(
+                &self.device,
+                &self.queue,
+                &mut encoder,
+                rays.unwrap(),
+                eye,
+                lighting.rain[1],
+            );
+        }
         if let Some(timer) = &self.timings {
             timer.mark(&mut encoder, 1);
         }

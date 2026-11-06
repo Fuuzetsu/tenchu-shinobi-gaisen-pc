@@ -222,7 +222,8 @@ impl Options {
 
     fn module(self, device: &wgpu::Device, gl: bool, pass: &str) -> wgpu::ShaderModule {
         let common = format!(
-            "const FLAME_MOTION: bool = {}; const ADAPTIVE_SHADOWS: bool = {}; const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_TAPS: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "const CACHED_RAIN: bool = {}; const FLAME_MOTION: bool = {}; const ADAPTIVE_SHADOWS: bool = {}; const FILTER_MATERIALS: bool = {}; const LIGHTING_ENABLED: bool = {}; const SURFACE_DETAIL: bool = {}; const PARALLAX_ENABLED: bool = {}; const HDR_ENABLED: bool = {}; const WEATHER_ENABLED: bool = {}; const RAIN_ENABLED: bool = {}; const WATER_ENABLED: bool = {};\nconst MAX_SCENE_LIGHTS: u32 = {}u; const MAX_LIGHTS: u32 = {}u; const SHADOW_FACES: u32 = {}u; const SHADOW_FILTER_SAMPLES: u32 = {}u; const SHADOW_FILTER_TAPS: u32 = {}u; const SHADOW_FILTER_GROUP: u32 = {}u; const MAX_MIPS: u32 = {}u; const SHADOW_NEAR: f32 = {}; const RELIEF_GRADIENT_RANGE: f32 = {}; const MATERIAL_MAGNIFICATION: f32 = {}.0; const MATERIAL_FILTERING: f32 = {}.0;\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            !gl,
             self.flame_motion,
             self.adaptive_shadows,
             self.filtering != 0 || self.magnification != 0,
@@ -257,6 +258,8 @@ impl Options {
             include_str!("lighting.wgsl"),
             concat!(
                 include_str!("weather.wgsl"),
+                "\n",
+                include_str!("rain_ray.wgsl"),
                 "\n",
                 include_str!("terrain_lighting.wgsl")
             ),

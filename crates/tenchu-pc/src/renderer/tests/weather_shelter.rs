@@ -178,6 +178,81 @@ fn rain_haze_crosses_shelter_without_bands() {
 }
 
 #[test]
+#[ignore = "requires a GPU; view-volume rain haze must track moving views, shelter and wind without leaking into enclosed rooms"]
+fn rain_haze_volume_tracks_shelter_and_camera() {
+    let (mut renderer, target) = fixture(&Vram::default());
+    if renderer.gl {
+        return;
+    }
+    let view = target.create_view(&Default::default());
+    let ground = horizontal(&mut renderer, 0.0, [-80000.0, 80000.0], [-80000.0, 80000.0]);
+    let roof = horizontal(&mut renderer, -3000.0, [-80000.0, 0.0], [-80000.0, 80000.0]);
+    let ceiling = horizontal(
+        &mut renderer,
+        -3000.0,
+        [-80000.0, 80000.0],
+        [-80000.0, 80000.0],
+    );
+    let mut graphics = crate::settings::Graphics::default();
+    graphics.weather.mode = crate::settings::WeatherMode::Rain;
+    graphics.weather.amount = 100;
+    graphics.weather.haze = 100;
+    let capture = |renderer: &mut Renderer, camera, cover: &Mesh, reference| {
+        renderer.skip_rain_haze = reference;
+        renderer
+            .draw_lit(
+                &view,
+                camera,
+                SceneMeshes::new(&[&ground], &[]),
+                None,
+                &[],
+                &[&ground, cover],
+            )
+            .unwrap();
+        read_pixels(renderer, &target)
+    };
+    for step in 0..12 {
+        graphics.weather.quality = step % 3;
+        graphics.weather.wind = if step < 6 { 0 } else { 75 };
+        graphics.weather.heading = step * 30;
+        renderer.configure(&graphics);
+        let distance = if step % 2 == 0 { 9000.0 } else { 55000.0 };
+        let camera = Mat4::perspective_rh(1.0, 0.7 + f32::from(step) * 0.1, 10.0, 150000.0)
+            * Mat4::look_at_rh(
+                Vec3::new(-1200.0 + f32::from(step) * 250.0, -1500.0, -1000.0),
+                Vec3::new(2000.0, 0.0, distance),
+                Vec3::NEG_Y,
+            );
+        let cover = if step % 3 == 0 { &ceiling } else { &roof };
+        let expected = capture(&mut renderer, camera, cover, true);
+        let cached = capture(&mut renderer, camera, cover, false);
+        let mut errors: Vec<_> = cached
+            .chunks_exact(4)
+            .zip(expected.chunks_exact(4))
+            .map(|(a, b)| {
+                a[..3]
+                    .iter()
+                    .zip(&b[..3])
+                    .map(|(a, b)| a.abs_diff(*b))
+                    .max()
+                    .unwrap()
+            })
+            .collect();
+        errors.sort_unstable();
+        let mean = errors.iter().map(|v| f32::from(*v)).sum::<f32>() / errors.len() as f32;
+        let p99 = errors[errors.len() * 99 / 100];
+        assert!(
+            mean < 1.0 && p99 <= 8,
+            "step {step}: mean {mean}, p99 {p99}, max {}",
+            errors.last().unwrap()
+        );
+        if step == 0 {
+            assert_eq!(cached, expected, "An enclosed view must stay clear");
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires a GPU; rain wetness/puddles feather beneath eaves without soaking deep shelter"]
 fn rain_surface_softens_eaves_without_soaking_interiors() {
     let (mut renderer, target) = fixture(&Vram::default());
