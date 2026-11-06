@@ -131,8 +131,9 @@ fn oct_unpack(bits: u32) -> vec3<f32> {
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY {
         if lighting.weather.x + lighting.weather.y + lighting.weather.w > 0.0 {
             let incidence = weather_incidence(surface_normal, true);
-            let shelter = weather_exposure(surface_normal, v.world, true, false);
-            if incidence > 0.0 && shelter > 0.0 {
+            var shelter = 0.0;
+            if incidence > 0.0 { shelter = weather_exposure(surface_normal, v.world, true, false); }
+            if shelter > 0.0 {
                 if lighting.weather.x + lighting.weather.w > 0.0 {
                     let wet_surface = prepare_wet_surface(normal, surface_normal, v.world, material.footprint, shelter, incidence, true);
                     let puddle = wet_surface.puddle;

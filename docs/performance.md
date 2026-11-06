@@ -2758,3 +2758,28 @@ The native blood-heavy snapshot also loads in WebGPU and WebGL2; the F1 cache
 toggle and resumed combat produce no runtime/GPU errors. WebGPU uses 4× MSAA
 for this check; WebGL2 keeps its existing fallback. Saved-state continuation
 and cached rewind serialization checks pass without format changes.
+
+### Weather incidence follow-up
+
+The shared terrain material pass now skips shelter-map sampling when a surface
+faces away from precipitation, as the forward renderer already did. Eight paired
+4K captures across rain/snow, two Mission 1 views and daytime/nighttime are
+pixel-identical. No weather coverage, filter or sample count changes.
+
+The GTX 1080 Ti repeat uses the reported graphics, HD artwork, all three rendering
+trials and 25% flame motion/heat shimmer. Each 4K native route has 1200 frames,
+with 60 warm-up frames; compilation and capture run separately. The repeated
+comparison reverses execution order. Snow results from that repeat:
+
+| Route | Mean GPU, ms before → after | Frame p95, ms | Frame p99, ms |
+| --- | ---: | ---: | ---: |
+| Village lights | 11.54 → 11.27 | 15.07 → 14.91 | 15.40 → 15.18 |
+| Snow courtyard | 8.97 → 8.91 | 10.94 → 10.90 | 11.39 → 11.34 |
+| Garden and water | 15.13 → 14.69 | 18.01 → 17.64 | 18.51 → 17.91 |
+| Waterfall and spray | 6.81 → 6.81 | 9.94 → 9.94 | 10.56 → 10.31 |
+
+The first order also improved garden snow GPU time by 0.56 ms. Rain gains did
+not repeat consistently, and the waterfall uses the unchanged forward path;
+its frame-time variation is not a gain from this change. The garden still
+exceeds the 16.67 ms budget at p99. Private evidence is under
+`private/optimisation-loop/2026-11-06/advanced/`.
