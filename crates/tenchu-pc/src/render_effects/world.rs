@@ -157,10 +157,25 @@ pub(super) fn sprites(
     style: Style,
     frame: Option<&crate::visuals::interpolation::Frame>,
 ) {
+    billboards(
+        surfaces,
+        game,
+        view,
+        style,
+        crate::visuals::death::blood::billboards(&game.effects, frame)
+            .filter(|sprite| !style.replaces(&sprite.graphic, sprite.color)),
+    );
+}
+
+pub(super) fn billboards<'a>(
+    surfaces: &mut Vec<Surface>,
+    game: &Game,
+    view: Matrix,
+    style: Style,
+    sprites: impl Iterator<Item = &'a tenchu_core::effects::Billboard>,
+) {
     let camera = rotation(view).transpose();
-    for sprite in crate::visuals::death::blood::billboards(&game.effects, frame)
-        .filter(|sprite| !style.replaces(&sprite.graphic, sprite.color))
-    {
+    for sprite in sprites {
         let (image, blend, bottom_origin) = material(&sprite.graphic);
         let image = image.map(|i| game.mission.images[i]);
         let size = if let Some(image) = image {

@@ -57,7 +57,6 @@ impl Marks {
 }
 
 impl Marks {
-    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.count
     }

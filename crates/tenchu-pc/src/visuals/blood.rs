@@ -18,6 +18,7 @@ use std::{
 use tenchu_core::{effects::Effect, game::Game, math::Matrix};
 
 mod gush;
+mod retail;
 mod runoff;
 mod storage;
 mod weapons;
@@ -127,6 +128,9 @@ struct Sample {
     mode: u8,
     time: i16,
     stained: bool,
+    scale: i32,
+    rotation: i32,
+    sprite: u8,
 }
 
 struct Contact {
@@ -141,6 +145,7 @@ pub struct Blood {
     pending_wounds: BTreeSet<usize>,
     samples: Vec<Option<Sample>>,
     marks: Marks,
+    original: VecDeque<tenchu_core::effects::Billboard>,
     wounds: VecDeque<Wound>,
     gushes: BTreeMap<usize, Gush>,
     weapons: weapons::Weapons,
@@ -163,6 +168,7 @@ impl Blood {
             pending_wounds,
             samples,
             marks,
+            original,
             wounds,
             gushes,
             weapons,
@@ -178,6 +184,7 @@ impl Blood {
         out.value(pending_wounds)?;
         out.value(samples)?;
         marks.capture(out)?;
+        out.value(original)?;
         out.value(wounds)?;
         out.value(gushes)?;
         out.value(weapons)?;
@@ -274,6 +281,12 @@ impl Blood {
             || previous.death_size != settings.death_size
             || previous.retain_original != settings.retain_original;
         let player_changed = previous.player_death != settings.player_death;
+        if ground_changed {
+            self.original.clear();
+            for sample in self.samples.iter_mut().flatten() {
+                sample.stained = false;
+            }
+        }
         self.marks.retain_kind(|kind| match kind {
             Kind::Ground => !ground_changed,
             Kind::Body => settings.model_stains,
@@ -308,6 +321,7 @@ impl Blood {
 
     pub fn clear(&mut self) {
         self.marks = Marks::default();
+        self.original.clear();
         self.wounds.clear();
         self.gushes.values_mut().for_each(|g| *g = Gush::Finished);
         self.pending_wounds.clear();
@@ -330,6 +344,9 @@ impl Blood {
     }
 
     fn trim(&mut self, limit: usize) {
+        while self.marks.len() + self.original.len() > limit && !self.original.is_empty() {
+            self.original.pop_front();
+        }
         self.marks.trim(limit);
     }
 
@@ -642,8 +659,8 @@ impl Blood {
         let mut impacts = 0;
         for (index, slot) in super::death::blood::slots(&game.effects, frame).enumerate() {
             let mut current = sample(slot, false);
+            let old = self.samples.get(index).copied().flatten();
             if let Some(next) = &mut current {
-                let old = self.samples.get(index).copied().flatten();
                 let continuous = old.filter(|old| {
                     (old.mode != next.mode || next.time <= old.time + 1)
                         && (old.mode == next.mode || old.mode + 1 == next.mode)
@@ -655,9 +672,21 @@ impl Blood {
                         source: super::death::blood::gore_source(&game.effects, frame, index),
                     });
                 }
+                if settings.retain_original
+                    && settings.ground.uses_original()
+                    && settings.amount != 0
+                {
+                    self.retain_retail(old, next, continuous.is_some());
+                }
                 if let Some(old) = continuous {
-                    next.stained = old.stained;
-                    if !old.stained && impacts < 12 && settings.retained_ground() {
+                    if settings.ground == BloodStyle::Modern {
+                        next.stained = old.stained;
+                    }
+                    if !old.stained
+                        && impacts < 12
+                        && settings.ground == BloodStyle::Modern
+                        && settings.retained_ground()
+                    {
                         let (start, end) = if old.mode == 0 && next.mode == 1 {
                             (
                                 next.position - Vec3::Y * 250.0,
@@ -671,6 +700,9 @@ impl Blood {
                         impacts += usize::from(next.stained);
                     }
                 }
+            }
+            if current.is_none() && settings.retain_original && settings.ground.uses_original() {
+                self.retain_missing_retail(old);
             }
             samples.push(current);
         }
@@ -1138,13 +1170,38 @@ impl Blood {
             }
         }
         let count = vertices.len() as u32;
-        Geometry {
+        let mut geometry = Geometry {
             vertices,
             batches: vec![Batch {
                 blend: 5,
                 range: 0..count,
             }],
+        };
+        if !self.original.is_empty() {
+            geometry.append(crate::render_effects::retained_blood(
+                game,
+                camera.unwrap_or(game.rendered_view),
+                self.settings,
+                self.original.iter().filter(|sprite| {
+                    frustum.as_ref().is_none_or(|frustum| {
+                        let image =
+                            game.mission.images[[0, 2, 4, 56][usize::from(match sprite.graphic {
+                                tenchu_core::effects::Graphic::Blood { sprite, .. } => sprite,
+                                _ => unreachable!(),
+                            })]];
+                        let radius = f32::from(image.size[0].max(image.size[1]))
+                            * sprite.scale[0].abs() as f32
+                            / 1024.0;
+                        let center = Vec3::from(sprite.position.map(|v| v as f32).to_array());
+                        frustum.contains(
+                            [center - Vec3::splat(radius), center + Vec3::splat(radius)],
+                            0.0,
+                        )
+                    })
+                }),
+            ));
         }
+        geometry
     }
 }
 
@@ -1155,6 +1212,9 @@ fn sample(effect: Option<&Effect>, stained: bool) -> Option<Sample> {
             mode: blood.mode,
             time: blood.time,
             stained,
+            scale: blood.scale,
+            rotation: blood.rotation,
+            sprite: blood.sprite,
         }),
         _ => None,
     }

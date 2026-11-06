@@ -1,6 +1,115 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU_DISC; retain the actual retail splat through its fade, independently of airborne style"]
+fn retained_retail_splats_keep_their_sprite_size_and_rotation() {
+    let assets = tenchu_assets::game::GameAssets::open(
+        crate::source::open_disc(std::path::Path::new(&std::env::var("TENCHU_DISC").unwrap()))
+            .unwrap(),
+    )
+    .unwrap();
+    let mut game = crate::session::Options::default().load(&assets).unwrap();
+    game.events = Default::default();
+    let models = Models::build(&game.mission, &Default::default(), &Default::default()).unwrap();
+    let surfaces = Surfaces::new(&render_mesh::stage(
+        &game.mission,
+        &game.math,
+        Some(&models),
+    ));
+    for ground in [BloodStyle::Original, BloodStyle::OriginalHd] {
+        for hit in BloodStyle::ALL {
+            let mut blood = Blood::default();
+            let settings = settings::Blood {
+                ground,
+                hit,
+                retain_original: true,
+                ..Default::default()
+            };
+            game.effects = Default::default();
+            blood.tick(&game, &models, &surfaces, &settings, None);
+            game.effects.slots[0] = Some(Effect::Blood(tenchu_core::effects::Blood {
+                hint: None,
+                position: game.player().position,
+                velocity: [0; 3],
+                scale: 18000,
+                rotation: 57 * 4096,
+                time: 2,
+                brightness: 128,
+                sprite: 1,
+                mode: 2,
+                gore: false,
+            }));
+            let mut last = None;
+            for _ in 0..100 {
+                game.step(0).unwrap();
+                blood.tick(&game, &models, &surfaces, &settings, None);
+                if blood.original.is_empty() {
+                    last = game
+                        .effects
+                        .billboards
+                        .iter()
+                        .find(|b| {
+                            matches!(
+                                b.graphic,
+                                tenchu_core::effects::Graphic::Blood {
+                                    airborne: false,
+                                    stain: false,
+                                    ..
+                                }
+                            )
+                        })
+                        .cloned()
+                        .or(last);
+                }
+            }
+            assert_eq!(blood.original.len(), 1);
+            assert!(
+                blood.marks.is_empty(),
+                "Retention must not replace retail blood with projected stamps"
+            );
+            let retained = &blood.original[0];
+            let original = last.as_ref().unwrap();
+            assert_eq!(retained.position, original.position);
+            assert_eq!(retained.scale, original.scale);
+            assert_eq!(retained.rotation, original.rotation);
+            assert_eq!(retained.color, original.color);
+            let view = Matrix {
+                translation: original
+                    .position
+                    .map(|v| -v)
+                    .wrapping_add(tenchu_core::math::Position::new(0, 0, 3000)),
+                ..Matrix::default()
+            };
+            let geometry =
+                crate::render_effects::retained_blood(&game, view, settings, blood.original.iter());
+            let reference = crate::render_effects::retained_blood(
+                &game,
+                view,
+                settings,
+                std::iter::once(original),
+            );
+            assert_eq!(geometry.vertices.len(), 6);
+            assert_eq!(
+                bytemuck::cast_slice::<_, u8>(&geometry.vertices),
+                bytemuck::cast_slice::<_, u8>(&reference.vertices)
+            );
+            assert!(
+                geometry
+                    .vertices
+                    .iter()
+                    .all(|v| render_mesh::original_hd_blood(v.flags)
+                        == (ground == BloodStyle::OriginalHd))
+            );
+            let saved = postcard::to_allocvec(&blood).unwrap();
+            let restored: Blood = postcard::from_bytes(&saved).unwrap();
+            assert_eq!(restored.original[0].position, original.position);
+            blood.clear();
+            assert!(blood.original.is_empty());
+        }
+    }
+}
+
+#[test]
 fn attached_bounds_keep_transformed_deformed_and_wind_shifted_vertices() {
     let patch = Patch {
         vertices: [-45.0, 0.0, 45.0]

@@ -1196,7 +1196,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BloodRetain,
                 "Retain original blood",
                 on(s.graphics.blood.retain_original),
-                "Keep Original or Original HD ground splats and death stars after their normal lifetime, using the same bounded storage as Modern blood.",
+                "Extend the lifetime of Original / Original HD ground splats without changing their sprite, size, rotation or camera-facing placement. Also retains original death stars. Ground style is independent of hit spurts; the shared blood limit still applies.",
             ),
             (
                 Item::BloodModels,

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Retain Original / Original HD ground blood with its actual retail sprite,
+  size, rotation and placement, instead of replacing it with smaller projected
+  marks. Hit-spurt style stays independent; only Original HD smooths the sprite.
+
 - Add optional Stealth Assassins dismemberment using the USA Rev 1 rules and
   existing Gaisen models. Head and forearm chances are configurable in F1 →
   Blood; disabled by default. No additional disc or model pack is required.

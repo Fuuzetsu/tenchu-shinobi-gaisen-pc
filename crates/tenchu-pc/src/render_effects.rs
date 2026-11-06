@@ -771,6 +771,30 @@ pub fn build_presented(
             });
         }
     }
+    surface_geometry(surfaces)
+}
+
+pub(crate) fn retained_blood<'a>(
+    game: &Game,
+    view: Matrix,
+    blood: crate::settings::Blood,
+    sprites: impl Iterator<Item = &'a tenchu_core::effects::Billboard>,
+) -> Geometry {
+    let mut surfaces = Vec::new();
+    world::billboards(
+        &mut surfaces,
+        game,
+        view,
+        Style {
+            blood,
+            ..Default::default()
+        },
+        sprites,
+    );
+    surface_geometry(surfaces)
+}
+
+fn surface_geometry(mut surfaces: Vec<Surface>) -> Geometry {
     surfaces.sort_by(|a, b| b.depth.total_cmp(&a.depth));
     let mut out = Geometry {
         vertices: Vec::new(),

@@ -96,9 +96,10 @@ impl Style {
                         graphic,
                         Graphic::Blood {
                             airborne: false,
+                            fading,
                             ..
                         }
-                    ) && self.blood.retained_ground()
+                    if self.blood.retained_ground() && *fading)
             })
     }
 }
