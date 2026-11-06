@@ -338,7 +338,7 @@ impl Controls {
 
     pub fn touch(&mut self, sample: crate::touch::Sample) {
         for (blocked, stick) in self.touch.axes_blocked.iter_mut().zip(sample.sticks) {
-            *blocked &= stick.length_squared() > 0.0025;
+            *blocked &= stick.length_squared() > 0.4 * 0.4;
         }
         self.touch.directions =
             std::array::from_fn(|i| direction(sample.sticks[0][i], self.touch.directions[i]));

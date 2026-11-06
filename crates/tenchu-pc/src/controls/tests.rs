@@ -40,7 +40,8 @@ fn held_touch_stick_does_not_retrigger_after_menu_actions_or_threshold_jitter() 
         assert_eq!(controls.buttons(), 0);
         assert_eq!(controls.sticks()[0], glam::Vec2::ZERO);
     }
-    controls.touch(drag(0.0));
+    controls.touch(drag(0.2));
+    assert_eq!(controls.poll(true).menu_pressed, 0);
     controls.touch(drag(0.8));
     assert_eq!(controls.poll(true).menu_pressed, input::UP);
     for y in [0.56, 0.53, 0.58, 0.51, 0.42] {
