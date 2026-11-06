@@ -58,6 +58,7 @@ pub fn export(disc: &Path, destination: &Path, artwork_only: bool) -> Result<()>
     let trace = Arc::new(Mutex::new(BTreeSet::new()));
     let assets = GameAssets::open(source::open_disc_recording(disc, Some(trace.clone()))?)?;
     let campaign = Campaign::new(&assets, Options::default(), None)?;
+    crate::sheathing::preload(&assets)?;
     crate::visuals::death::Deaths::load(&assets)?;
     let mut frontend = Frontend::new(&assets, disc, &campaign, Preferences::default())?;
     let mut interface = BTreeSet::new();

@@ -118,6 +118,7 @@ pub(super) fn update(disc: &Path, destination: &Path) -> Result<()> {
     let trace = Arc::new(Mutex::new(BTreeSet::new()));
     let assets = GameAssets::open(source::open_disc_recording(disc, Some(trace.clone()))?)?;
     let campaign = Campaign::new(&assets, Options::default(), None)?;
+    crate::sheathing::preload(&assets)?;
     let mut frontend = Frontend::new(&assets, disc, &campaign, Preferences::default())?;
     let mut interface = BTreeSet::new();
     for language in LANGUAGES {
@@ -171,7 +172,7 @@ fn refresh_boot(
         manifest.boot.push(path);
     }
     if !missing.is_empty() {
-        println!("Added {} menu pages to the browser boot set", missing.len());
+        println!("Added {} pages to the browser boot set", missing.len());
     }
     Ok(())
 }

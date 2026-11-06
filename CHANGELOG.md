@@ -5,6 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Mid-mission savestates use a new format for the additional effect state.
+  Older mid-mission files cannot be loaded; create new saves. Campaign progress
+  saves are unchanged.
+
+- Fix browser startup with saved sheathing/unarmed controls: prepare their
+  motion data before opening the menu, including when refreshing an older export.
+
 - Rainstorm and Snowstorm add optional branching sky bolts and a Natural thunder
   sound with irregular cracks and receding rumbles. F1 → Weather keeps bolt
   visibility, flash strength, interval, sound style and volume adjustable;

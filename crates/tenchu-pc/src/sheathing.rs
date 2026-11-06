@@ -9,6 +9,17 @@ use tenchu_core::{
     ids::*,
 };
 
+const NINJA_MOTIONS: &str = "HUMAN/MOTION/STAGE2.AMD";
+const ONIKAGE_MOTIONS: &str = "HUMAN/MOTION/STAGE4.AMD";
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn preload(assets: &GameAssets<impl ReadAt>) -> Result<()> {
+    for path in [NINJA_MOTIONS, ONIKAGE_MOTIONS] {
+        assets.asset(path)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn stowed_mount(
     actor: &tenchu_core::actor::Actor,
     slot: usize,
@@ -82,7 +93,7 @@ pub fn configure(
             .iter()
             .find(|c| c.kind == kind)
             .ok_or("Missing ninja character")?;
-        let clips = tenchu_assets::motion::parse(&assets.asset("HUMAN/MOTION/STAGE2.AMD")?)?;
+        let clips = tenchu_assets::motion::parse(&assets.asset(NINJA_MOTIONS)?)?;
         let find = |action| {
             character
                 .motions
@@ -107,7 +118,7 @@ pub fn configure(
             .iter()
             .find(|c| c.kind == 0x87)
             .ok_or("Missing Onikage character")?;
-        let clips = tenchu_assets::motion::parse(&assets.asset("HUMAN/MOTION/STAGE4.AMD")?)?;
+        let clips = tenchu_assets::motion::parse(&assets.asset(ONIKAGE_MOTIONS)?)?;
         Some(character.motions.iter().filter(|m| matches!(m.action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_LUNGE_BACK))
             .map(|m| clips.iter().find(|c| c.id == m.clip).cloned().map(|c| (m.action, c)).ok_or("Missing Onikage attack motion".to_string()))
             .collect::<Result<Vec<_>>>()?)
@@ -162,6 +173,60 @@ pub fn configure(
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires TENCHU_DISC; saved unarmed controls must start from the browser boot cache without background pages"]
+    fn cached_boot_can_configure_both_heroes_before_background_downloads() {
+        use std::{
+            collections::BTreeSet,
+            sync::{Arc, Mutex},
+        };
+        use tenchu_assets::{cache::Cache, disc::Disc};
+        let disc = std::env::var_os("TENCHU_DISC").unwrap();
+        let trace = Arc::new(Mutex::new(BTreeSet::new()));
+        let assets = GameAssets::open(
+            crate::source::open_disc_recording(disc.as_ref(), Some(trace.clone())).unwrap(),
+        )
+        .unwrap();
+        let mut games: Vec<_> = (0..2)
+            .map(|character| {
+                crate::session::Options {
+                    character,
+                    ..Default::default()
+                }
+                .load(&assets)
+                .unwrap()
+            })
+            .collect();
+        let ordinary = trace.lock().unwrap().clone();
+        preload(&assets).unwrap();
+        let prepared = trace.lock().unwrap().clone();
+        assert!(prepared.len() > ordinary.len());
+        let source = assets.disc.source();
+        let settings = Settings {
+            enabled: true,
+            unarmed: true,
+            ..Default::default()
+        };
+        for (pages, available) in [(ordinary, false), (prepared, true)] {
+            let mut cache = Cache::new(source.byte_len()).unwrap();
+            cache
+                .insert(&Cache::bundle(source, pages).unwrap())
+                .unwrap();
+            let cached = GameAssets::open(
+                Disc::open(cache, assets.disc.format(), assets.disc.start_sector()).unwrap(),
+            )
+            .unwrap();
+            for game in &mut games {
+                let result = configure(game, &cached, settings);
+                if available {
+                    result.unwrap();
+                } else {
+                    assert!(result.unwrap_err().contains("not ready"));
+                }
+            }
+        }
+    }
 
     pub(crate) fn capture_pose(game: &Game, path: &std::path::Path) {
         use glam::Vec3;
