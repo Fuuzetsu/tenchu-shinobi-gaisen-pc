@@ -77,6 +77,7 @@ pub struct ActionContext<'a> {
     pub combat: &'a mut Combat,
     pub player: usize,
     pub selected_item: Option<crate::items::Kind>,
+    pub selected_bandage: bool,
     pub clock: i32,
 }
 

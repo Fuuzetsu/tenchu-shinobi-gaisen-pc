@@ -45,6 +45,7 @@ pub(super) fn with_actor<T>(
         items: &mut game.items,
         player: game.player_id,
         selected_item: game.hud.selected,
+        selected_bandage: game.hud.bandage_selected(),
         clock: game.tick as i32,
     };
     let result = f(&mut actor, &mut ctx, &mut world);

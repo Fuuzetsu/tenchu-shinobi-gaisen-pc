@@ -97,6 +97,18 @@ pub fn caption_sprites(game: &Game) -> usize {
 pub fn game_text(game: &Game, show_hud: bool) -> Vec<Text> {
     let mut text = Vec::new();
     if show_hud {
+        if game.hud.bandage_selected()
+            && let Some([x, y]) = game.hud.bandage_position(game.player())
+        {
+            text.push(Text {
+                position: Pos2::new(f32::from(x).clamp(-120.0, 120.0), f32::from(y) - 24.0),
+                text: "Bandage".into(),
+                color: Color32::WHITE,
+                size: 9.0,
+                width: 60.0,
+                centered: true,
+            });
+        }
         for sprite in &game.hud.sprites {
             let Some(digit) = digit(game, sprite) else {
                 continue;

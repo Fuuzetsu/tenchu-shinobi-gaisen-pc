@@ -65,6 +65,15 @@ impl Actor {
         world: &mut ActionContext,
         pending: Option<(i16, bool)>,
     ) -> Result<Option<(i16, bool)>> {
+        if self.id == world.player && world.selected_bandage {
+            let treated = !world.intelligence.cinematic
+                && world.intelligence.action_halt == crate::ai::Halt::Running
+                && self.use_bandage();
+            ctx.effects
+                .sounds
+                .push((self.position, if treated { 0x0a } else { 0x0c }));
+            return Ok(pending);
+        }
         let action = match world.selected_item {
             Some(Kind::Grapple) => MOT_KAGI,
             Some(Kind::Shuriken) => MOT_SYURI,

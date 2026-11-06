@@ -1417,9 +1417,11 @@ and damage are adjustable. Blocked hits, falls, fire, explosions and god-mode
 hits do not start it. Scripted scenes pause the timer; god mode prevents health
 loss. Its separate seeded RNG does not advance the original game's generator.
 
-Bandages are a separate quick-use supply: three per mission by default, adjustable
-from 0–99. Press **B** (rebind **Use bandage** in Controls), or choose **Use bandage**
-on the Bleeding page. Treatment is instant while grounded and free to act; it
+Bandages appear in the carried-item row while this mechanic is enabled: three
+per mission by default, adjustable from 0–99. Select them with the usual item
+cycling controls (**L2/R2**, including the touch overlay), then press **Triangle**
+to use one. **B** (rebind **Use bandage** in Controls) and **Use bandage** on the
+Bleeding page remain quick-use shortcuts. Treatment is instant while grounded and free to act; it
 consumes one bandage only when bleeding and does not heal. It cannot interrupt
 an attack, injury, climb, swim or cutscene. Holding the action does not consume
 another bandage. The HUD shows status, remaining time, stock and the current

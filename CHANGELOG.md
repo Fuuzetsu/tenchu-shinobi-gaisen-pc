@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Bandages can be selected and used in the normal carried-item row, including
+  Android touch controls. Their icon, count and selection survive saved states
+  and rewind; the quick-use binding and configurable starting supply remain.
+
 - Reduce CPU work in the shop and other HD menus by reusing artwork identities
   instead of hashing the full replacement images every frame. Lighting and
   artwork quality remain unchanged; live pack reloads still refresh the images.

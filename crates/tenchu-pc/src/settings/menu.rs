@@ -439,7 +439,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::BandageLoadout,
                 "Bandages per mission",
                 s.bleeding.bandages.to_string(),
-                "0–99 separate quick-use bandages on mission start. Does not replace any disc item or change campaign stock; does not refill the current mission.",
+                "0–99 carried bandages on mission start, selectable with normal item controls. Does not replace any disc item or change campaign stock; does not refill the current mission.",
             ),
             (
                 Item::MedicineBleeding,
@@ -458,7 +458,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::UseBandage,
                 "Use bandage",
                 "Treat".into(),
-                "Stops bleeding without healing; consumes one only when bleeding. Available while grounded and free to act. Default keyboard B; rebind in Controls. From here, treatment happens on the next gameplay tick.",
+                "Stops bleeding without healing; consumes one only when bleeding. Select Bandage with L2/R2 and use Triangle, or quick-use with B (rebind in Controls). Must be grounded and free to act. From here, treatment happens on the next gameplay tick.",
             ),
         ],
         21 => vec![

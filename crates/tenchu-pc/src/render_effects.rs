@@ -1,3 +1,4 @@
+mod bandage;
 mod combat;
 mod style;
 mod world;
@@ -673,6 +674,9 @@ pub fn build_presented(
     }
     combat::draw(&mut surfaces, game, view, style, frame);
     let ui_start = surfaces.len();
+    if show_hud {
+        bandage::draw(&mut surfaces, game);
+    }
     if let Some(shade) = game.hud.map.dim.filter(|_| !inspection) {
         let mut vertices = screen_band(-120.0, 120.0, [f32::from(shade) / 255.0; 3], 3);
         for vertex in &mut vertices {

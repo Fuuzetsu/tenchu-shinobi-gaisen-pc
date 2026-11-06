@@ -23,11 +23,6 @@ pub(super) fn advance(game: &mut Game, tick: u64) {
     if tick == 150 {
         game.intelligence.ignore_player = true;
     }
-    if tick == 240
-        && let Some(state) = &mut game.roster.get_mut(game.player_id).bleeding
-    {
-        state.request_bandage();
-    }
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

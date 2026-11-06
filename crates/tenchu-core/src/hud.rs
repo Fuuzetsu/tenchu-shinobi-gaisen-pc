@@ -67,6 +67,24 @@ pub struct Hud {
 }
 
 impl Hud {
+    const BANDAGE: usize = 26;
+
+    pub fn bandage_selected(&self) -> bool {
+        self.cursor == Self::BANDAGE
+    }
+
+    pub fn bandage_position(&self, player: &Actor) -> Option<[i16; 2]> {
+        player
+            .bleeding
+            .as_ref()
+            .filter(|state| state.bandages > 0)?;
+        let items = Kind::ALL
+            .into_iter()
+            .filter(|k| player.inventory[k.index()] != 0)
+            .count();
+        Some([140 - 20 * items as i16, 92])
+    }
+
     pub fn new(exe: &Executable) -> Result<Self> {
         Ok(Self {
             map: map::Map::default(),
@@ -193,9 +211,11 @@ impl Hud {
         } = ctx;
         let images = &mission.images;
         self.sprites.clear();
+        let slots = if player.bleeding.is_some() { 27 } else { 26 };
+        self.cursor %= slots;
         if player.pad.held & TRIANGLE == 0 {
             let step = if player.pad.trigger & R2 != 0 {
-                25
+                slots - 1
             } else if player.pad.trigger & L2 != 0 {
                 1
             } else {
@@ -204,12 +224,12 @@ impl Hud {
             if step != 0 {
                 let previous = self.cursor;
                 loop {
-                    self.cursor = (self.cursor + step) % 26;
+                    self.cursor = (self.cursor + step) % slots;
                     // Retail lets the aiming flag occupy an invisible selection slot.
-                    let available = if self.cursor == 25 {
-                        player.aiming
-                    } else {
-                        player.inventory[self.cursor] != 0
+                    let available = match self.cursor {
+                        Self::BANDAGE => player.bleeding.as_ref().is_some_and(|s| s.bandages > 0),
+                        25 => player.aiming,
+                        item => player.inventory[item] != 0,
                     };
                     if available || self.cursor == previous {
                         break;
@@ -231,18 +251,21 @@ impl Hud {
             }
             let mut icon = Sprite::new(images[if index < 20 { 20 + index } else { 15 }], [x, 92]);
             if self.cursor == index {
-                let mut cursor = Sprite::new(images[50], [x, 92]);
-                self.cursor_rotation = self.cursor_rotation.wrapping_sub(6 * 4096);
-                cursor.rotation = self.cursor_rotation;
-                cursor.blend = 2;
-                cursor.depth = 1;
-                self.sprites.push(cursor);
+                self.item_cursor(images[50], [x, 92]);
                 self.selected = Some(kind);
             } else {
                 icon.scale = [4096 * 2 / 3; 2];
             }
             self.sprites.push(icon);
             x -= 20;
+        }
+        if let Some(state) = &player.bleeding
+            && state.bandages > 0
+        {
+            self.number(images[51], [x + 22, 100], i32::from(state.bandages));
+            if self.bandage_selected() {
+                self.item_cursor(images[50], [x, 92]);
+            }
         }
         self.life(
             images,
@@ -268,6 +291,15 @@ impl Hud {
         }
         self.strain(strain, clock, images, math, effects);
         drawing.bytes += self.sprites.iter().map(Sprite::bytes).sum::<u32>();
+    }
+
+    fn item_cursor(&mut self, image: Image, xy: [i16; 2]) {
+        let mut cursor = Sprite::new(image, xy);
+        self.cursor_rotation = self.cursor_rotation.wrapping_sub(6 * 4096);
+        cursor.rotation = self.cursor_rotation;
+        cursor.blend = 2;
+        cursor.depth = 1;
+        self.sprites.push(cursor);
     }
 }
 

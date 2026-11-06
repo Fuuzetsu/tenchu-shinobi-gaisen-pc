@@ -349,6 +349,7 @@ impl Game {
                                     player: self.player_id,
                                     walking: self.walking,
                                     selected_item: self.hud.selected,
+                                    selected_bandage: self.hud.bandage_selected(),
                                     clock: self.clock,
                                 },
                             )?;
@@ -368,6 +369,7 @@ impl Game {
                             player: self.player_id,
                             walking: self.walking,
                             selected_item: self.hud.selected,
+                            selected_bandage: self.hud.bandage_selected(),
                             clock: self.clock,
                         },
                     )? {

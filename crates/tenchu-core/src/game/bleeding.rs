@@ -84,6 +84,15 @@ impl State {
         self.requested
     }
 
+    fn use_bandage(&mut self) -> bool {
+        if !self.active || self.bandages == 0 {
+            return false;
+        }
+        self.bandages -= 1;
+        self.clear();
+        true
+    }
+
     pub fn clear(&mut self) {
         self.active = false;
         self.remaining = 0;
@@ -105,9 +114,20 @@ impl State {
 }
 
 impl Actor {
+    fn can_bandage(&self) -> bool {
+        self.health > 0
+            && self.free_stance()
+            && self.map.height <= 0
+            && !self.scripted
+            && !self.aiming
+    }
+
+    pub(crate) fn use_bandage(&mut self) -> bool {
+        self.can_bandage() && self.bleeding.as_mut().is_some_and(State::use_bandage)
+    }
+
     pub(crate) fn bleeding_tick(&mut self, paused: bool) {
-        let can_treat =
-            self.free_stance() && self.map.height <= 0 && !self.scripted && !self.aiming;
+        let can_treat = self.can_bandage();
         let Some(state) = &mut self.bleeding else {
             return;
         };
@@ -119,9 +139,8 @@ impl Actor {
         if paused || self.scripted {
             return;
         }
-        if requested && can_treat && state.active && state.bandages > 0 {
-            state.bandages -= 1;
-            state.clear();
+        if requested && can_treat {
+            state.use_bandage();
         }
         if !state.active {
             return;

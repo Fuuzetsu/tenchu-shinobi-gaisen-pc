@@ -10,6 +10,69 @@ fn enabled() -> Settings {
 }
 
 #[test]
+#[ignore = "requires TENCHU_DISC; both heroes select and consume bandages through ordinary item buttons"]
+fn bandages_work_as_carried_items_without_replacing_retail_slots() {
+    use crate::input::{L2, R2, TRIANGLE};
+    for character in 0..2 {
+        let mut game = oracle::game(0, character);
+        game.set_bleeding(Settings {
+            damage: 0,
+            ..enabled()
+        });
+        let player = game.roster.get_mut(game.player_id);
+        player.inventory.fill(0);
+        player.inventory[0] = 255;
+        for _ in 0..10 {
+            game.step(0).unwrap();
+        }
+        game.step(R2).unwrap();
+        assert!(game.hud.bandage_selected());
+        assert_eq!(game.hud.selected, None);
+        assert_eq!(game.hud.bandage_position(game.player()), Some([120, 92]));
+        game.step(0).unwrap();
+        game.step(TRIANGLE).unwrap();
+        assert_eq!(
+            game.player().bleeding.as_ref().unwrap().bandages,
+            3,
+            "healthy use must not waste supplies"
+        );
+        game.step(0).unwrap();
+        let player = game.roster.get_mut(game.player_id);
+        player.health = 80;
+        player.bleeding.as_mut().unwrap().hit();
+        game.step(TRIANGLE).unwrap();
+        assert!(!game.player().bleeding.as_ref().unwrap().active);
+        assert_eq!(game.player().bleeding.as_ref().unwrap().bandages, 2);
+        assert_eq!(game.player().health, 80);
+        assert_eq!(game.player().inventory[0], 255);
+        game.roster
+            .get_mut(game.player_id)
+            .bleeding
+            .as_mut()
+            .unwrap()
+            .hit();
+        for _ in 0..10 {
+            game.step(TRIANGLE).unwrap();
+        }
+        assert!(
+            game.player().bleeding.as_ref().unwrap().active,
+            "holding use must not treat a new wound"
+        );
+        assert_eq!(game.player().bleeding.as_ref().unwrap().bandages, 2);
+        game.step(0).unwrap();
+        game.step(L2).unwrap();
+        assert_eq!(game.hud.selected, Some(Kind::Grapple));
+        game.step(0).unwrap();
+        game.step(R2).unwrap();
+        assert!(game.hud.bandage_selected());
+        game.set_bleeding(Settings::default());
+        game.step(0).unwrap();
+        assert_eq!(game.hud.selected, Some(Kind::Grapple));
+        assert_eq!(game.hud.bandage_position(game.player()), None);
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU_DISC; real melee wounds must not alter attack timing or consume gameplay RNG"]
 fn bleeding_melee_has_independent_rng_and_bounded_damage() {
     let run = |character, chance, invulnerable| {

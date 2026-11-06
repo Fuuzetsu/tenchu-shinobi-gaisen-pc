@@ -42,6 +42,30 @@ fn bleeding_options_input_and_saved_continuation() {
     for _ in 0..17 {
         assert!(app.game_tick(0));
     }
+    assert!(app.game_tick(input::R2));
+    assert!(app.campaign.game.hud.bandage_selected());
+    if let Some(path) = std::env::var_os("TENCHU_BANDAGE_REVIEW") {
+        let game = &app.campaign.game;
+        let mut review = crate::capture::review::Review::new(&game.mission).unwrap();
+        let background = review.backdrop(0.3);
+        let mut geometry = crate::render_effects::build(game);
+        for vertex in &mut geometry.vertices {
+            if vertex.flags & crate::render_mesh::UI == 0 {
+                vertex.flags |= crate::render_mesh::FOG;
+            }
+        }
+        geometry.remove_flag(crate::render_mesh::FOG);
+        let effects = review.renderer.upload_effects(geometry);
+        review
+            .capture(
+                glam::Mat4::IDENTITY,
+                &[&background],
+                Some(&effects),
+                true,
+                path.as_ref(),
+            )
+            .unwrap();
+    }
     let saved = app.capture_state().unwrap();
     if let Some(path) = std::env::var_os("TENCHU_BLEED_REVIEW") {
         std::fs::write(path, &saved).unwrap();
