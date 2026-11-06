@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix the missing wave dash in Kiku's Japanese Grand Master dialogue and include
+  Windows-compatible Shift-JIS characters in the embedded HD font.
+
 - Keep severed heads and arms above terrain using their mesh bounds, and let
   arms settle flat. Add separately configurable player dismemberment, plus
   optional short-lived wound jets and bleeding from detached parts. Modern

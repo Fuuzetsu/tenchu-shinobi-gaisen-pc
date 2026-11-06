@@ -2,8 +2,8 @@
 
 `TenchuUISans-Regular.ttf` is a static, renamed subset of Noto Sans JP,
 distributed under the SIL Open Font License 1.1 in `OFL-1.1.txt`.
-It contains 7,193 Unicode mappings: the original Shift-JIS repertoire, half-width
-katakana, Latin characters and punctuation needed by the supported languages.
+It contains 7,646 Unicode mappings: Shift-JIS and Windows-compatible CP932,
+half-width katakana, Latin characters and punctuation for the supported languages.
 The original game bitmap font remains available; this font is presentation only.
 
 Upstream: [Google Fonts, pinned revision](https://github.com/google/fonts/tree/66a36c8c94b1a5d992ee4e7f392fccfe4945767c/ofl/notosansjp).

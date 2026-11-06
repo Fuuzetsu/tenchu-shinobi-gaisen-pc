@@ -12,11 +12,13 @@ fn outline_font_contains_localized_letters_and_keeps_layout_within_the_view() {
                 ..Default::default()
             },
             |ctx| {
+                let wave_dash = tenchu_assets::script::Language::Japanese.decode(&[0x81, 0x60]);
                 let samples = [
                     "MISSION EQUIPMENT 0123456789",
                     "任務開始　忍術指南　各種設定",
                     "Difficulté, français : À É È Ç Œ œ",
                     "Missione completata, città, più, è",
+                    &wave_dash,
                 ];
                 ctx.fonts(|fonts| {
                     for sample in samples {
@@ -48,6 +50,64 @@ fn outline_font_contains_localized_letters_and_keeps_layout_within_the_view() {
             assert!(rect.contains_rect(shape.shape.visual_bounding_rect()));
         }
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; all Japanese disc captions must be covered by the embedded outline font"]
+fn disc_captions_have_complete_outline_font_coverage() {
+    use tenchu_assets::{
+        game::GameAssets,
+        script::{Command, Cutscenes, Language},
+    };
+    let disc = std::env::var_os("TENCHU_DISC").expect("TENCHU_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
+    let mut codepoints = std::collections::BTreeSet::new();
+    let mut captions = 0;
+    for path in assets
+        .archive
+        .files
+        .keys()
+        .filter(|p| p.contains("/ANIM/") && p.ends_with(".CAD"))
+    {
+        let relative = path.split_once("/ANIM/").unwrap().1;
+        if relative.contains('/') {
+            continue;
+        }
+        let language = Language::Japanese;
+        let script = Cutscenes::parse(assets.asset(&format!("ANIM/{relative}")).unwrap()).unwrap();
+        for command in &script.commands {
+            if let Command::Caption {
+                offset: Some(offset),
+            } = *command
+            {
+                captions += 1;
+                codepoints.extend(
+                    language
+                        .decode(script.text(offset).unwrap())
+                        .chars()
+                        .filter(|c| !c.is_control()),
+                );
+            }
+        }
+    }
+    assert!(captions > 100);
+    let ctx = egui::Context::default();
+    install(&ctx);
+    let _ = ctx.run(Default::default(), |ctx| {
+        ctx.fonts(|fonts| {
+            for character in &codepoints {
+                // egui's has_glyph reports false for its own '?' replacement glyph.
+                if *character == '?' {
+                    continue;
+                }
+                assert!(
+                    fonts.has_glyph(&id(14.0), *character),
+                    "Missing caption character {character:?} (U+{:04X})",
+                    *character as u32
+                );
+            }
+        })
+    });
 }
 
 #[test]

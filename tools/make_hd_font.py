@@ -18,13 +18,15 @@ def main():
     if digest != "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f":
         parser.error("source does not match the pinned Noto Sans JP font")
     codepoints = set(range(0x20, 0x250)) | set(range(0x2000, 0x2070))
-    for code in range(0x8140, 0xF000):
-        try:
-            text = code.to_bytes(2, "big").decode("shift_jis")
-        except UnicodeDecodeError:
-            continue
-        if len(text) == 1:
-            codepoints.add(ord(text))
+    # encoding_rs uses the Windows-compatible Shift-JIS mappings (e.g. 0x8160).
+    for encoding in ("shift_jis", "cp932"):
+        for code in range(0x8140, 0xF000):
+            try:
+                text = code.to_bytes(2, "big").decode(encoding)
+            except UnicodeDecodeError:
+                continue
+            if len(text) == 1:
+                codepoints.add(ord(text))
     codepoints.update(range(0xFF61, 0xFFA0))
     font = TTFont(args.source, recalcTimestamp=False)
     font = instantiateVariableFont(font, {"wght": 400}, inplace=True)
