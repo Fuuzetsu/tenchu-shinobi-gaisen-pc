@@ -203,14 +203,16 @@ fn wet_lighting_preserves_surfaces_and_actors() {
             graphics.weather.mode = weather;
             graphics.weather.reflections = reflections;
             renderer.weather.snow = f32::from(u8::from(weather.snow()));
-            for (special, water) in [
-                (0, false),
-                (render_mesh::WATER, false),
-                (render_mesh::WATER, true),
-                (render_mesh::WATER | render_mesh::WATERFALL, true),
-                (render_mesh::UNLIT, false),
+            for (special, water, reflective) in [
+                (0, false, false),
+                (render_mesh::WATER, false, false),
+                (render_mesh::WATER, true, false),
+                (render_mesh::WATER, true, true),
+                (render_mesh::WATER | render_mesh::WATERFALL, true, false),
+                (render_mesh::UNLIT, false, false),
             ] {
                 graphics.water.enabled = water;
+                graphics.water.reflective = reflective;
                 graphics.sky.enabled = true;
                 renderer.configure(&graphics);
                 let mut vertices = rectangle(

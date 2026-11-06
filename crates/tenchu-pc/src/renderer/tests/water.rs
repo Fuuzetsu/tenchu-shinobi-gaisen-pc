@@ -25,28 +25,28 @@ fn water_ripples_are_visual_scoped_and_optional() {
     let mesh = renderer.upload(&vertices);
     let camera = Mat4::perspective_rh(60.0_f32.to_radians(), 1.0, 10.0, 10000.0)
         * Mat4::look_at_rh(Vec3::new(0.0, -700.0, -2500.0), Vec3::ZERO, Vec3::NEG_Y);
-    let capture = |renderer: &mut Renderer| {
+    let capture = |renderer: &mut Renderer, lights: &[crate::lighting::Light]| {
         renderer
             .draw_lit(
                 &view,
                 camera,
                 crate::renderer::SceneMeshes::new(&[&mesh], &[]),
                 None,
-                &[],
+                lights,
                 &[],
             )
             .unwrap();
         read_pixels(renderer, &target)
     };
-    let original = capture(&mut renderer);
+    let original = capture(&mut renderer, &[]);
     let mut graphics = crate::settings::Graphics::default();
     graphics.water.enabled = true;
     graphics.water.ripples = 100;
     graphics.water.reflections = 100;
     renderer.configure(&graphics);
-    let first = capture(&mut renderer);
+    let first = capture(&mut renderer, &[]);
     renderer.visual_time = 1.0;
-    let second = capture(&mut renderer);
+    let second = capture(&mut renderer, &[]);
     assert!(
         first
             .iter()
@@ -61,8 +61,52 @@ fn water_ripples_are_visual_scoped_and_optional() {
             assert_eq!(&original[i..i + 4], &second[i..i + 4]);
         }
     }
+    graphics.water.foam = 0;
+    renderer.configure(&graphics);
+    assert_eq!(
+        second,
+        capture(&mut renderer, &[]),
+        "no foam bands on flat water"
+    );
+    graphics.water.reflective = true;
+    renderer.configure(&graphics);
+    let reflective = capture(&mut renderer, &[]);
+    assert_ne!(second, reflective);
+    for y in 0..64 {
+        for x in 33..64 {
+            let i = (y * 64 + x) * 4;
+            assert_eq!(&second[i..i + 4], &reflective[i..i + 4]);
+        }
+    }
+    graphics.lighting.enabled = true;
+    let light = crate::lighting::Light {
+        position: Vec3::new(-600.0, -700.0, 1800.0),
+        color: [1.0, 0.5, 0.1],
+        radius: 9000.0,
+        flame: false,
+        emission_radius: 0.0,
+    };
+    graphics.water.reflections = 0;
+    renderer.configure(&graphics);
+    let unreflective_lit = capture(&mut renderer, &[light]);
+    let unreflective_dark = capture(&mut renderer, &[]);
+    graphics.water.reflections = 100;
+    renderer.configure(&graphics);
+    let reflective_lit = capture(&mut renderer, &[light]);
+    let reflective_dark = capture(&mut renderer, &[]);
+    let glints = (0..64)
+        .flat_map(|y| (0..32).map(move |x| (y * 64 + x) * 4))
+        .filter(|&i| {
+            i32::from(reflective_lit[i]) - i32::from(reflective_dark[i])
+                > i32::from(unreflective_lit[i]) - i32::from(unreflective_dark[i]) + 2
+        })
+        .count();
+    assert!(
+        glints > 4,
+        "local lamp must produce water highlights: {glints}"
+    );
     renderer.configure(&crate::settings::Graphics::default());
-    assert_eq!(original, capture(&mut renderer));
+    assert_eq!(original, capture(&mut renderer, &[]));
 }
 
 #[test]
@@ -93,12 +137,14 @@ fn water_and_waterfalls_on_actual_geometry() {
             ("shading", true, 0),
             ("curved", true, 1),
             ("fine", true, 2),
+            ("reflective", true, 2),
         ] {
             let mut graphics = crate::settings::Graphics::default();
             graphics.set_preset(3);
             graphics.fog = false;
             graphics.water.enabled = enabled;
             graphics.water.detail = detail;
+            graphics.water.reflective = label == "reflective";
             if mission == 1 {
                 graphics.sky.enabled = true;
                 review.renderer.daylight =

@@ -27,12 +27,11 @@ fn prepare_terrain(v: Fragment, material: SurfaceMaterial) -> TerrainSurface {
     var shelter = -1.0;
     if WATER_ENABLED && (v.flags & WATER) != 0u {
         let water = prepare_water(normalize(camera.eye.xyz - v.world), normal);
-        let transmission = 1.0 - water.fresnel * camera.water.y * 0.18;
         let reflection = water_reflection(v);
-        diffuse = diffuse * transmission + vec3(water_foam(v));
-        unlit_color = unlit_color * transmission + water.sky * reflection;
-        power = 110.0;
-        specular = -0.8 * reflection;
+        diffuse = diffuse * water.transmission + vec3(water_foam(v));
+        unlit_color = unlit_color * water.transmission + water.sky * reflection;
+        power = water.power;
+        specular = water.specular * reflection;
     }
     if WEATHER_ENABLED && (v.flags & (SCENERY | TRANSLUCENT | WATER)) == SCENERY {
         if lighting.weather.x + lighting.weather.y + lighting.weather.w > 0.0 {

@@ -385,6 +385,13 @@ pub fn animate(player: &Player, settings: &mut Settings, debug: &mut Debug) {
                 g.water.reflections = 85;
             }
         }
+        Feature::WaterReflective => {
+            g.water.enabled = true;
+            g.water.reflective = section(p, 4) % 2 == 1;
+            g.water.reflections = 100;
+            g.sky.enabled = true;
+            g.sky.time = 570;
+        }
         Feature::Rain
         | Feature::RainReflections
         | Feature::RainHaze
@@ -997,6 +1004,11 @@ pub fn readout(player: &Player, s: &Settings, d: &Debug) -> Readout {
             "Water upgrade · ripples, sky reflections, curved falls and spray".into()
         } else {
             "Original water geometry and shading".into()
+        }),
+        Feature::WaterReflective => text(if g.water.reflective {
+            "Reflective water · grazing-angle sky sheen and local-light highlights".into()
+        } else {
+            "Standard modern water · original material with subtle sky sheen".into()
         }),
         Feature::Moon => meter("Moon strength (%)", l.directional.intensity, 100),
         Feature::DayCycle => {

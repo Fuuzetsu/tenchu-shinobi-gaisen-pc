@@ -30,6 +30,7 @@ pub enum Feature {
     Experiment,
     Snow,
     Water,
+    WaterReflective,
     Waterfalls,
     Vegetation,
     CharacterRefinement,

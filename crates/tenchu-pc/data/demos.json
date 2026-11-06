@@ -568,6 +568,31 @@
     }
   },
   {
+    "id": "water-reflective",
+    "title": "Reflective water",
+    "description": "An optional stronger sky reflection with local-light highlights. Surface tint gives way to reflection at grazing angles; geometry and gameplay are unchanged.",
+    "seconds": 16,
+    "mission": 1,
+    "character": 0,
+    "preset": 3,
+    "feature": "water-reflective",
+    "shot": "wide",
+    "fog": false,
+    "camera": {
+      "eye": [
+        -40000,
+        -1800,
+        -16500
+      ],
+      "target": [
+        -31000,
+        0,
+        -16500
+      ],
+      "fov": 55
+    }
+  },
+  {
     "id": "waterfalls",
     "title": "A softer waterfall",
     "description": "Curved render geometry rounds the waterfall lip while preserving its attachment edges. Fine mist follows the falling water; collision remains original.",

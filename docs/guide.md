@@ -1201,6 +1201,14 @@ of displacement. Collision, swimming and original texture animation are unchange
 Fine curves cost more triangles; generated waterfall geometry and spray are capped.
 `demo --clips water,waterfalls` compares the Mission 1 pond and Mission 4 falls.
 
+**Reflective water** is a separate, off-by-default switch. It reduces the visible
+surface tint at grazing angles, varies the sky sheen with reflection direction,
+and adds highlights from nearby lights with their shadows. Reflection strength
+controls both sky and lights. It does not mirror scenery or add screen refraction.
+The `water-reflective` demo compares it with the standard modern-water shading;
+all built-in presets leave this extra mode off. Flat water no longer receives
+the old repeating diagonal foam stripes.
+
 Water classification uses reviewed original texture fingerprints in
 `crates/tenchu-pc/data/water.json`, not a guess based on animation or color. Mixed
 snow/rock/bank tiles and lava are deliberately excluded. An asset pack can override

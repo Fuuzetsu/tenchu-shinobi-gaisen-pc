@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct Water {
     pub enabled: bool,
+    pub reflective: bool,
     pub ripples: u16,
     pub reflections: u16,
     pub flow: u16,
@@ -16,6 +17,7 @@ impl Default for Water {
     fn default() -> Self {
         Self {
             enabled: false,
+            reflective: false,
             ripples: 60,
             reflections: 50,
             flow: 100,

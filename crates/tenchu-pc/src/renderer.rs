@@ -679,7 +679,7 @@ impl Renderer {
             f32::from(self.graphics.motion.wind) / 100.0,
             f32::from(self.graphics.weapon_reflections) / 100.0,
             u8::from(cache_rain) as f32,
-            0.0,
+            u8::from(water.reflective) as f32,
         ]);
         camera.extend(rays.unwrap_or([0.0; 16]));
         self.queue

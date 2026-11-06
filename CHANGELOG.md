@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Remove the artificial diagonal foam bands from flat modern water. Add an
+  optional Reflective water mode with stronger grazing-angle sky sheen and
+  highlights from nearby lights; disabled by default in every visual preset.
+
 - Restore draw and sheathe sounds for both heroes when optional weapon sheathing
   is enabled, using their matching ninja weapon samples from the user's disc.
   Sheathed swords now retain their handles, attached to the heroes' scabbards.

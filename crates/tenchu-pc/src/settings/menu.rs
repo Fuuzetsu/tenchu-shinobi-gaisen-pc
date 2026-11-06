@@ -74,6 +74,7 @@ pub enum Item {
     LeafDensity,
     VegetationVariation,
     Water,
+    WaterReflective,
     WaterRipples,
     WaterReflections,
     WaterFlow,
@@ -843,6 +844,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     "Optional water shading, waterfall curves and spray. Material tags keep terrain, lava and water separate.",
                 ),
                 (
+                    Item::WaterReflective,
+                    "Reflective water",
+                    on(water.reflective),
+                    "Stronger angle-dependent sky sheen and reflections of local lights. Requires Modern water; does not mirror scene objects. Optional, off in all presets.",
+                ),
+                (
                     Item::WaterRipples,
                     "Ripple strength",
                     format!("{}%", water.ripples),
@@ -850,9 +857,9 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 ),
                 (
                     Item::WaterReflections,
-                    "Sky reflections",
+                    "Reflection strength",
                     format!("{}%", water.reflections),
-                    "View-dependent sky sheen and sun/moon highlights; does not mirror scene objects.",
+                    "Sky sheen and sun/moon highlights, plus local lights in Reflective water mode; does not mirror scene objects.",
                 ),
                 (
                     Item::WaterFlow,
@@ -864,7 +871,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                     Item::WaterFoam,
                     "Foam",
                     format!("{}%", water.foam),
-                    "Subtle crest foam and moving aerated waterfall streaks.",
+                    "Moving aerated waterfall streaks and spray; flat water has no artificial foam bands.",
                 ),
                 (
                     Item::WaterSpray,
