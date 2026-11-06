@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.16.1 — 2026-11-06
+
 - Reduce rewind recording cost and retain more history within its memory limit
   during heavy blood accumulation. Existing saves and exported recordings remain
   compatible.
