@@ -45,6 +45,8 @@ pub struct Move {
 pub struct Moves {
     pub format: String,
     pub attacks: Vec<Move>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rest_yaw: Option<i16>,
 }
 
 impl Moves {
@@ -170,6 +172,15 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
     let moves = Moves {
         format: "tenchu2-tatsumaru-v1".into(),
         attacks,
+        rest_yaw: Some({
+            let idle = offsets
+                .iter()
+                .copied()
+                .find(|&at| i16_le(motion, at).ok() == Some(0xa2))
+                .ok_or("Missing Tatsumaru idle motion")?;
+            let root = u32_le(motion, idle + 16)? as usize;
+            i16_le(motion, root + 2)?
+        }),
     };
     moves.validate()?;
     Ok(moves)

@@ -277,6 +277,7 @@ fn tatsumaru_contacts_follow_each_imported_attack() {
             with_actor(&mut game, player, |a, ctx, _| {
                 assert!(a.enter(ctx, action, true));
             });
+            let yaw = game.player().rotation[1];
             let mut contacts = std::collections::BTreeSet::new();
             for _ in 0..90 {
                 game.step(0).unwrap();
@@ -288,6 +289,15 @@ fn tatsumaru_contacts_follow_each_imported_attack() {
                     }
                 }
             }
+            let rest = moves
+                .rest_yaw
+                .unwrap_or(moves.attacks[0].clip.bones[0][0].value[1]);
+            let turn = source.clip.bones[0].last().unwrap().value[1].wrapping_sub(rest);
+            assert_eq!(
+                (game.player().rotation[1] - yaw) & 4095,
+                turn & 4095,
+                "hero {character}, clip {id:x}: attack completion uses its source stance, including intentional turns"
+            );
             assert_eq!(contacts, expected, "hero {character}, clip {id:x}");
             for part in &expected {
                 assert!(

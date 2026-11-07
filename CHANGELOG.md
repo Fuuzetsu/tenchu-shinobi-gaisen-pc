@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix the unwanted right turn after Tatsumaru's imported attacks. Attack recovery
+  now uses his source resting hip angle, while retaining intentional turning
+  strikes; older personal moveset exports receive the fix too.
 - Add repeatable `play --tenchu2 DISC` arguments and a shared F6 quick launcher
   with mouse/touch controls for Gaisen missions and connected Tenchu 2 editions.
   Europe and Japan stay available together; select the game, area and patrol

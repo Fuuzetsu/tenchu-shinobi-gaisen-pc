@@ -1383,3 +1383,12 @@ clock. Gaisen's Clip already stores a signed starting clock. The importer now
 converts that sign; copying positive values had skipped the frame-one attack
 setup and early hit frames for non-combo attacks. The adapter also normalizes
 positive blend durations from earlier personal `.t2moves` exports.
+
+Tatsumaru's attack recovery uses the resting hip yaw from his source idle clip
+`0xa2`, rather than the borrowed Gaisen stance. Both supported discs store 450
+there; the Gaisen Ninja B/Kunoichi stance stores -266. Comparing attack endpoints
+with that unrelated stance added 716 angle units of rotation. The adapter keeps
+the source endpoint-minus-rest delta (including intentional turning strikes),
+then resets the pose to the destination stance. Legacy moveset exports recover
+the same resting angle from the first attack's initial hip key. Disc-backed
+checks cover all twelve attacks, both player skeletons and both disc editions.

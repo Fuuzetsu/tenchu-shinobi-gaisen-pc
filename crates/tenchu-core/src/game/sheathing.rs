@@ -70,6 +70,7 @@ pub struct State {
     motions: Motions<usize>,
     attacks: Vec<AttackMotion>,
     loaded_style: UnarmedStyle,
+    pub(crate) attack_rest_yaw: Option<i16>,
     held: bool,
     pub(crate) requested: bool,
 }
@@ -197,6 +198,7 @@ impl Game {
                     motions,
                     attacks: Vec::new(),
                     loaded_style: UnarmedStyle::Onikage,
+                    attack_rest_yaw: None,
                     held: false,
                     requested: false,
                 });
@@ -286,6 +288,7 @@ impl Game {
             .unwrap();
         state.attacks = attacks;
         state.loaded_style = UnarmedStyle::Onikage;
+        state.attack_rest_yaw = None;
         Ok(())
     }
 
@@ -342,6 +345,12 @@ impl Game {
             .unwrap();
         state.attacks = attacks;
         state.loaded_style = UnarmedStyle::Tatsumaru;
+        // Old exports predate the idle reference. The first punch starts in that pose.
+        state.attack_rest_yaw = Some(
+            moves
+                .rest_yaw
+                .unwrap_or(moves.attacks[0].clip.bones[0][0].value[1]),
+        );
         Ok(())
     }
 }

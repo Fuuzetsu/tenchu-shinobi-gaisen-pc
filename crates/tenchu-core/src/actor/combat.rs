@@ -551,6 +551,10 @@ impl Actor {
         }
         if self.motion.count == 0 && self.motion.loops == 1 {
             self.clear_attack(ctx, 3)?;
+            let attack_rest_yaw = self
+                .unarmed_attack()
+                .then(|| self.sheathing.as_ref().and_then(|s| s.attack_rest_yaw))
+                .flatten();
             let stance = if self.unarmed_attack() {
                 self.return_normal(ctx, world.player)?
             } else {
@@ -558,8 +562,9 @@ impl Actor {
             };
             self.enter_unless_scripted(ctx, stance, true);
             let base = ctx.mission.clips[self.motion.clip.unwrap()].bones[0][0].value[1];
-            self.rotation[1] =
-                self.rotation[1].wrapping_add(self.motion.pose.rotation[0][1].wrapping_sub(base));
+            self.rotation[1] = self.rotation[1].wrapping_add(
+                self.motion.pose.rotation[0][1].wrapping_sub(attack_rest_yaw.unwrap_or(base)),
+            );
             self.motion.pose.rotation[0][1] = base;
             if self.id == world.player {
                 ctx.camera.normal(self, ctx.math)?;
