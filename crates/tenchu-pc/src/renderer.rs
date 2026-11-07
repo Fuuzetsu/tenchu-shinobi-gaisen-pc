@@ -205,7 +205,10 @@ impl Renderer {
             })
             .collect();
         let required_limits = if adapter.get_info().backend == wgpu::Backend::Gl {
-            wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
+            wgpu::Limits {
+                max_color_attachments: 4,
+                ..wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
+            }
         } else {
             wgpu::Limits::default()
         };

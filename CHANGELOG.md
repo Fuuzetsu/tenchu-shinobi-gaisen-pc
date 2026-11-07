@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix OpenGL ES startup rejecting GPUs with four color attachments, including
+  the reported Mali-G76, by requesting only the attachments the renderer needs.
 - Android startup reports include detailed renderer checkpoints and, on Android
   12+, the available native crash trace to help diagnose failures before the
   settings menu opens.
