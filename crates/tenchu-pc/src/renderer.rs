@@ -202,16 +202,37 @@ impl Renderer {
                             .contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_RESOLVE))
             })
             .collect();
+        let required_limits = if adapter.get_info().backend == wgpu::Backend::Gl {
+            wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
+        } else {
+            wgpu::Limits::default()
+        };
+        #[cfg(target_os = "android")]
+        let required_limits = if adapter.get_info().backend == wgpu::Backend::Gl {
+            required_limits
+        } else {
+            let available = adapter.limits();
+            wgpu::Limits {
+                max_color_attachments: 4,
+                max_compute_invocations_per_workgroup: 128,
+                max_compute_workgroup_size_x: 128,
+                max_compute_workgroup_size_y: 8,
+                max_compute_workgroup_size_z: 1,
+                max_compute_workgroup_storage_size: 512,
+                max_storage_buffer_binding_size: available
+                    .max_storage_buffer_binding_size
+                    .min(128 << 20),
+                ..wgpu::Limits::downlevel_defaults()
+                    .using_resolution(available.clone())
+                    .using_alignment(available)
+            }
+        };
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: Some("Tenchu renderer"),
                     required_features: features,
-                    required_limits: if adapter.get_info().backend == wgpu::Backend::Gl {
-                        wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())
-                    } else {
-                        wgpu::Limits::default()
-                    },
+                    required_limits,
                     ..Default::default()
                 },
                 None,

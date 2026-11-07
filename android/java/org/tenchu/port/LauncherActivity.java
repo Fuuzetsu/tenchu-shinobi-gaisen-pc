@@ -16,8 +16,16 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public final class LauncherActivity extends Activity {
+  private static final String LIBRARY_ERROR;
+
   static {
-    System.loadLibrary("tenchu_pc");
+    String error = null;
+    try {
+      System.loadLibrary("tenchu_pc");
+    } catch (LinkageError e) {
+      error = e.toString();
+    }
+    LIBRARY_ERROR = error;
   }
 
   private static native String validateDisc(String path);
@@ -50,6 +58,10 @@ public final class LauncherActivity extends Activity {
     button(
         "Play",
         () -> {
+          if (LIBRARY_ERROR != null) {
+            status.setText("Cannot load the game: " + LIBRARY_ERROR);
+            return;
+          }
           if (!new File(getFilesDir(), "disc-path.txt").isFile()) {
             status.setText("Import your disc folder first.");
             return;
@@ -75,6 +87,8 @@ public final class LauncherActivity extends Activity {
                     .setType("*/*")
                     .addCategory(Intent.CATEGORY_OPENABLE),
                 ARTWORK));
+    button("Graphics compatibility…", this::graphicsBackend);
+    button("Copy startup/crash report", () -> StartupReport.copy(this, LIBRARY_ERROR));
     label(
         "Touch: hold Move and tap actions with another finger. Settings opens the F1 menu. Pause"
             + " and Back are always on screen. Camera-relative controls add a right camera stick."
@@ -90,6 +104,10 @@ public final class LauncherActivity extends Activity {
   }
 
   private void refresh() {
+    if (LIBRARY_ERROR != null) {
+      status.setText("Cannot load the game: " + LIBRARY_ERROR);
+      return;
+    }
     File path = new File(getFilesDir(), "disc-path.txt");
     status.setText(
         path.isFile()
@@ -98,6 +116,37 @@ public final class LauncherActivity extends Activity {
                     ? "HD artwork installed."
                     : "Original artwork; HD pack is optional.")
             : "No disc imported yet.");
+  }
+
+  private void graphicsBackend() {
+    File path = new File(getFilesDir(), "graphics-backend.txt");
+    String[] values = {"auto", "vulkan", "opengl"};
+    String selected = "auto";
+    try {
+      if (path.isFile())
+        selected = new String(Files.readAllBytes(path.toPath()), StandardCharsets.UTF_8).trim();
+    } catch (IOException e) {
+      status.setText(e.toString());
+    }
+    int initial = Math.max(0, Arrays.asList(values).indexOf(selected));
+    new AlertDialog.Builder(this)
+        .setTitle("Graphics backend — next game start")
+        .setSingleChoiceItems(
+            new String[] {"Automatic (default)", "Vulkan", "OpenGL ES (compatibility)"},
+            initial,
+            (dialog, index) -> {
+              try {
+                Files.write(path.toPath(), values[index].getBytes(StandardCharsets.UTF_8));
+                status.setText(
+                    "Backend saved. Close and reopen the game to apply. OpenGL ES can help with"
+                        + " older Vulkan drivers; some advanced effects are limited.");
+              } catch (IOException e) {
+                status.setText(e.toString());
+              }
+              dialog.dismiss();
+            })
+        .setNegativeButton("Cancel", null)
+        .show();
   }
 
   private int dp(int n) {
@@ -128,6 +177,10 @@ public final class LauncherActivity extends Activity {
   }
 
   private void work(Job job) {
+    if (LIBRARY_ERROR != null) {
+      status.setText("Cannot load the game: " + LIBRARY_ERROR);
+      return;
+    }
     busy = true;
     status.setText("Importing… Keep this screen open. Large files can take a little while.");
     new Thread(

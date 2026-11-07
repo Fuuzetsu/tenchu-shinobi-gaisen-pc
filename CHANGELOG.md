@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an Android launcher graphics-backend selector with an OpenGL ES
+  compatibility path, and a copyable startup/crash report that works even
+  when the game cannot reach F1. Vulkan now requests the mobile GPU limits
+  actually needed by the renderer rather than desktop defaults.
 - Add an experimental native Tenchu 2 scenery sandbox, reading the user's
   Europe disc alongside Gaisen. `play-t2` explores all 23 nonempty maps with
   either Gaisen hero; optional Gaisen guards use imported placements and patrol

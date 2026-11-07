@@ -9,6 +9,38 @@ use winit::platform::android::activity::AndroidApp;
 static DATA: OnceLock<PathBuf> = OnceLock::new();
 static APP: OnceLock<AndroidApp> = OnceLock::new();
 
+pub fn graphics_backend() -> wgpu::Backends {
+    match data_dir()
+        .ok()
+        .and_then(|root| std::fs::read_to_string(root.join("graphics-backend.txt")).ok())
+        .as_deref()
+        .map(str::trim)
+    {
+        Some("opengl") => wgpu::Backends::GL,
+        Some("vulkan") => wgpu::Backends::VULKAN,
+        _ => wgpu::Backends::VULKAN | wgpu::Backends::GL,
+    }
+}
+
+pub fn startup_log(message: &str) {
+    use std::io::Write;
+    if let Ok(root) = data_dir()
+        && let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(root.join("startup-log.txt"))
+    {
+        let _ = writeln!(file, "{message}");
+    }
+}
+
+pub fn first_frame() {
+    static PRESENTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if !PRESENTED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        startup_log("First frame presented successfully");
+    }
+}
+
 pub fn data_dir() -> Result<&'static Path> {
     DATA.get()
         .map(PathBuf::as_path)
@@ -33,6 +65,7 @@ fn activity(
 }
 
 pub fn show_error(error: &str) {
+    startup_log(&format!("Error: {error}"));
     eprintln!("Tenchu: {error}");
     if let Err(error) = activity(|env, activity| {
         let text = env.new_string(error)?;
@@ -70,11 +103,23 @@ fn android_main(app: AndroidApp) {
             .internal_data_path()
             .ok_or("Android data directory unavailable")?;
         let _ = DATA.set(root.clone());
+        let _ = std::fs::write(root.join("startup-log.txt"), "");
+        startup_log(&crate::diagnostics::build().to_string());
+        let previous_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            startup_log(&format!(
+                "Panic: {info}\n{}",
+                std::backtrace::Backtrace::force_capture()
+            ));
+            previous_hook(info);
+        }));
         std::env::set_current_dir(&root).map_err(|e| e.to_string())?;
         let disc = std::fs::read_to_string(root.join("disc-path.txt"))
             .map_err(|e| format!("Import your disc in the launcher: {e}"))?;
         let path = PathBuf::from(disc.trim());
+        startup_log("Opening Gaisen disc");
         let assets = crate::startup::open(&path)?;
+        startup_log("Disc verified; starting window and graphics");
         crate::window::run(
             assets,
             Default::default(),

@@ -352,6 +352,13 @@ impl View {
         let rendered = settings.rendering();
         let settings = &*rendered;
         let descriptor = wgpu::InstanceDescriptor::default();
+        #[cfg(target_os = "android")]
+        let descriptor = wgpu::InstanceDescriptor {
+            backends: crate::android::graphics_backend(),
+            ..descriptor
+        };
+        #[cfg(target_os = "android")]
+        crate::android::startup_log(&format!("Graphics backends: {:?}", descriptor.backends));
         #[cfg(target_arch = "wasm32")]
         let descriptor = wgpu::InstanceDescriptor {
             backends: match crate::web::graphics_preference().as_str() {
@@ -372,6 +379,13 @@ impl View {
             })
             .await
             .ok_or("No graphics adapter available. Enable hardware acceleration in your browser or graphics driver.")?;
+        #[cfg(target_os = "android")]
+        crate::android::startup_log(&format!(
+            "Adapter: {:?}\nLimits: {:?}\nFeatures: {:?}",
+            adapter.get_info(),
+            adapter.limits(),
+            adapter.features()
+        ));
         #[cfg(target_arch = "wasm32")]
         crate::web::graphics_backend(
             if adapter.get_info().backend == wgpu::Backend::Gl {
@@ -1227,6 +1241,8 @@ impl View {
             self.window.pre_present_notify();
         }
         frame.present();
+        #[cfg(target_os = "android")]
+        crate::android::first_frame();
         self.dirty = false;
         self.overlay.dirty = false;
         Ok(Some(super::performance::DrawTimes {

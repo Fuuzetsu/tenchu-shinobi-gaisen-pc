@@ -89,6 +89,15 @@ HD artwork does not require the expensive lighting/weather presets. Desktop,
 browser and Android preferences are separate; installing the APK does not alter
 settings on the computer.
 
+If the game closes during startup, try **Graphics compatibility → OpenGL ES**
+in the Android launcher, then close and reopen the game. This uses the existing
+GLES renderer instead of the phone's Vulkan driver; some advanced effects and
+multisample antialiasing are unavailable. Automatic remains the default.
+**Copy startup/crash report** collects the build, device/Android version, last
+startup stage, GPU details when available, and Android's recent process-exit
+reasons (Android 11+). Paste that text with a bug report. It does not include
+the disc, game resources or saves, and sends nothing automatically.
+
 ## Verification and current limits
 
 Tested in an Android 15 x86-64 emulator at phone-sized UI scaling: disc and HD
