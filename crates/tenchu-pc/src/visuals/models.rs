@@ -307,6 +307,7 @@ struct Mesh {
     flags: u32,
     skin: Option<Vec<skin::Influence>>,
     bind_root: Vec3,
+    skin_joint: Option<usize>,
 }
 
 impl Mesh {
@@ -318,6 +319,7 @@ impl Mesh {
             flags: 0,
             skin: skin.map(|_| Vec::new()),
             bind_root: Vec3::ZERO,
+            skin_joint: None,
         };
         // Sharing corners must preserve UV seams, normals and material boundaries.
         let mut indices = HashMap::new();
@@ -363,6 +365,7 @@ impl Meshes {
         for (i, part) in parts.iter().enumerate() {
             if let Some(mesh) = self.meshes.get_mut(&(part.geometry.as_ptr() as usize)) {
                 mesh.bind_root = pose.roots[i];
+                mesh.skin_joint = Some(i);
             }
         }
         self.skin = Some(pose);
@@ -372,9 +375,9 @@ impl Meshes {
         self.skin.is_some()
     }
 
-    pub fn pose_skin(&self, matrices: &[Matrix]) {
+    pub fn pose_skin(&self, matrices: &[Matrix], severed: Option<(usize, Matrix)>) {
         if let Some(skin) = &self.skin {
-            skin.set(matrices);
+            skin.set(matrices, severed);
         }
     }
 
@@ -852,7 +855,11 @@ impl Meshes {
         let normal = Mat3A::from(rotation.inverse().transpose());
         let rotation = Mat3A::from(rotation);
         let translation = Vec3A::from(matrix.translation.map(|n| n as f32).to_array());
-        let skin_pose = self.skin.as_ref().map(skin::Pose::transforms);
+        let skin_pose = self
+            .skin
+            .as_ref()
+            .filter(|pose| mesh.skin_joint.is_none_or(|joint| !pose.detached(joint)))
+            .map(skin::Pose::transforms);
         for (index, vertex) in transformed.iter_mut().enumerate() {
             if let Some(variant) = &variant {
                 variant.vertex(vertex);
@@ -925,6 +932,7 @@ mod tests {
         let mut expanded = Mesh {
             pose_source: OnceLock::new(),
             skin: None,
+            skin_joint: None,
             bind_root: Vec3::ZERO,
             flags: indexed.flags,
             triangles: (0..vertices.len() as u32)

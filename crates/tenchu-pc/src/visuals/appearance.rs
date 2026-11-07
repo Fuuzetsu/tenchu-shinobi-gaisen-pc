@@ -138,6 +138,25 @@ fn rendered_matrices(
         .collect()
 }
 
+fn attached_severed_pose(
+    game: &Game,
+    actor: &tenchu_core::actor::Actor,
+    parts: &[model::Part],
+    matrices: &[Matrix],
+) -> Option<(usize, Matrix)> {
+    let index = actor.severed.as_ref()?.index;
+    let parent = parents(parts)[index]?;
+    let original = &game.mission.models[&actor.rendered_mesh_kind][index];
+    let local = Matrix {
+        rotation: game.math.rotate_yxz(actor.motion.pose.rotation[index]),
+        translation: tenchu_core::math::Position::from_fn(|i| {
+            actor.motion.pose.translation[index][i] + i32::from(parts[index].position[i])
+                - i32::from(original.position[i])
+        }),
+    };
+    Some((index, matrices[parent].compose(&local)))
+}
+
 impl Appearance {
     pub fn build(
         game: &Game,
@@ -248,6 +267,10 @@ impl Appearance {
                 if offsets.contains_key(&player.parts[i]) {
                     continue;
                 }
+                if player.severed.as_ref().is_some_and(|part| part.index == i) {
+                    offsets.insert(player.parts[i], Vec3::ZERO);
+                    continue;
+                }
                 let (base, orientation) = if let Some(p) = parent {
                     let Some(&offset) = offsets.get(&player.parts[p]) else {
                         continue;
@@ -301,6 +324,13 @@ impl Appearance {
         for _ in 0..self.parts.len() {
             for (i, part) in self.parts.iter().enumerate() {
                 if result[i].is_some() {
+                    continue;
+                }
+                if player.severed.as_ref().is_some_and(|part| part.index == i) {
+                    result[i] = Some((
+                        rotation(matrices[i]),
+                        Vec3::from(matrices[i].translation.to_array().map(|n| n as f32)),
+                    ));
                     continue;
                 }
                 let (parent_rotation, position) = if let Some(parent) = self.parents[i] {
@@ -375,7 +405,10 @@ pub(super) fn visit_parts_filtered(
         .map(|_| rendered_player(game, inspection));
     if let Some(appearance) = appearance.filter(|a| a.meshes.has_skin()) {
         if let Some(matrices) = &transforms {
-            appearance.meshes.pose_skin(matrices);
+            appearance.meshes.pose_skin(
+                matrices,
+                attached_severed_pose(game, game.player(), &appearance.parts, matrices),
+            );
         } else {
             let player = rendered_player(game, inspection);
             let mut matrices = rendered_matrices(&player, inspection, frame);
@@ -386,7 +419,10 @@ pub(super) fn visit_parts_filtered(
                     }
                 }
             }
-            appearance.meshes.pose_skin(&matrices);
+            appearance.meshes.pose_skin(
+                &matrices,
+                attached_severed_pose(game, &player, &appearance.parts, &matrices),
+            );
         }
     }
     let mut posed_actor = None;
@@ -467,7 +503,16 @@ pub(super) fn visit_parts_filtered(
             } else {
                 actor
             };
-            meshes.pose_skin(&rendered_matrices(actor, inspection, frame));
+            let matrices = rendered_matrices(actor, inspection, frame);
+            meshes.pose_skin(
+                &matrices,
+                attached_severed_pose(
+                    game,
+                    actor,
+                    &game.mission.models[&actor.rendered_mesh_kind],
+                    &matrices,
+                ),
+            );
             posed_actor = Some(root);
         }
         visit(key, geometry, matrix);

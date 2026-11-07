@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix stretched severed arms on imported Tenchu 2 characters. Detached parts
+  stop sharing animated vertices with the corpse, including their attached
+  weapons; heads and player model overrides use the same separation.
+
 - Imported Tenchu 2 female enemies now use female Gaisen combat voices instead
   of inheriting the selected guard's male voice. Imported Ayame and Rikimaru
   use their corresponding Gaisen voice banks.

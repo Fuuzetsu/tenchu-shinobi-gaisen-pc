@@ -52,6 +52,8 @@ impl Transform {
 
 pub struct Pose {
     pub roots: [Vec3; 15],
+    parents: Vec<Option<usize>>,
+    detached: Cell<u16>,
     // Refreshed before each body, shadow or gallery traversal; never simulation state.
     transforms: Cell<[Transform; 15]>,
 }
@@ -70,14 +72,41 @@ impl Pose {
         });
         Self {
             roots,
+            parents: super::parents(parts),
+            detached: Cell::new(0),
             transforms: Cell::new([Transform::IDENTITY; 15]),
         }
     }
 
-    pub fn set(&self, matrices: &[Matrix]) {
+    pub fn set(&self, matrices: &[Matrix], severed: Option<(usize, Matrix)>) {
+        let detached = severed.map_or(0, |(cut, _)| {
+            (0..15).fold(0, |mask, joint| {
+                let mut ancestor = Some(joint);
+                while let Some(index) = ancestor {
+                    if index == cut {
+                        return mask | (1 << joint);
+                    }
+                    ancestor = self.parents[index];
+                }
+                mask
+            })
+        });
+        self.detached.set(detached);
+        let affine = |matrix: Matrix| {
+            Affine3A::from_mat3_translation(
+                rotation(matrix),
+                Vec3::from(matrix.translation.to_array().map(|n| n as f32)),
+            )
+        };
+        let attached =
+            severed.map(|(joint, matrix)| affine(matrix) * affine(matrices[joint]).inverse());
         self.transforms.set(std::array::from_fn(|i| {
-            let rotation = rotation(matrices[i]);
-            let position = Vec3::from(matrices[i].translation.to_array().map(|n| n as f32));
+            let mut matrix = affine(matrices[i]);
+            if detached & (1 << i) != 0 {
+                matrix = attached.unwrap() * matrix;
+            }
+            let rotation = Mat3::from(matrix.matrix3);
+            let position = Vec3::from(matrix.translation);
             Transform {
                 point: Affine3A::from_mat3_translation(
                     rotation,
@@ -90,6 +119,10 @@ impl Pose {
 
     pub fn transforms(&self) -> [Transform; 15] {
         self.transforms.get()
+    }
+
+    pub fn detached(&self, joint: usize) -> bool {
+        self.detached.get() & (1 << joint) != 0
     }
 }
 
@@ -129,7 +162,7 @@ mod tests {
         let mut matrices = [Matrix::default(); 15];
         matrices[1].translation = [10, 0, 0].into();
         matrices[1].rotation = [[0, -4096, 0], [4096, 0, 0], [0, 0, 4096]];
-        pose.set(&matrices);
+        pose.set(&matrices, None);
         let weights = Influence {
             joints: [0, 1, 0, 0],
             weights: [0.5, 0.5, 0.0, 0.0],
@@ -151,7 +184,7 @@ mod tests {
         assert_eq!(a.normal, b.normal);
         assert!((Vec3::from(a.normal).length() - 1.0).abs() < 1e-6);
         matrices[1].rotation = Matrix::default().rotation;
-        pose.set(&matrices);
+        pose.set(&matrices, None);
         let mut restored = original;
         vertex(&mut restored, weights, pose.roots[0], &pose.transforms());
         assert_eq!(restored.position, original.position);

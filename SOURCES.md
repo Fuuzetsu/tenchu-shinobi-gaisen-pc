@@ -1310,6 +1310,13 @@ ancestor. Source idle tracks are read from the character-specific motion CABs;
 Gaisen gameplay and weapons remain in use outside the separate Tatsumaru import.
 No source models, textures, animations or executable bytes are distributed.
 
+For dismemberment, vertices on detached meshes follow the detached part rigidly;
+vertices belonging to the corpse keep the missing joint's attached animation
+transform. This separates the two sides of source joint seams without changing
+Gaisen's severing decisions, animation, or detached-part physics. Disc-backed
+regressions move heads and both arms away from eight imported bodies and verify
+that neither side stretches across the gap or mutates gameplay state.
+
 Sandbox voice selection is a presentation adaptation: imported female bodies
 use Gaisen's KUNOITI combat bank, and imported Ayame/Rikimaru use their Gaisen
 hero banks. Donor programs are resolved from Gaisen's appearance tables rather
