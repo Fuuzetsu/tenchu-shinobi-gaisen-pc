@@ -267,6 +267,7 @@
                 python3 -m unittest discover -s packaging -p 'test_*.py'
                 shellcheck ${./tools/package-artwork.sh}
                 python3 packaging/check-artwork.py --metadata-only ${./artwork}
+                python3 packaging/check-artwork.py --metadata-only ${./artwork/tenchu2}
                 touch "$out"
               '';
           clippy = (native pkgs).overrideAttrs (old: {

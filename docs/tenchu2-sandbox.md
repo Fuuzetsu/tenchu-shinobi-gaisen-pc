@@ -53,7 +53,8 @@ supported body joint, so their independent source animation is not reproduced.
 
 ## Optional artwork
 
-Tenchu 2 uses a separate HD pack. Put **tenchu2-hd.tar.zst** beside the game
+From v0.20.1, download the separate
+[Tenchu 2 HD pack](../artwork/tenchu2/README.md). Put **tenchu2-hd.tar.zst** beside the game
 executable/launcher, or unpack it into **assets/hd-tenchu2/**. An explicit
 **TENCHU2_ASSET_PACK** environment variable can point to either the archive or
 an unpacked folder. On Android, use **Import Tenchu 2 HD artwork** in the launcher,

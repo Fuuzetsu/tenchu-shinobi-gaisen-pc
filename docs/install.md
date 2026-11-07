@@ -65,6 +65,10 @@ If loading fails, include the status message in a diagnostic report from
 
 ## Update
 
+For the optional Tenchu 2 sandbox, use its separate
+[disc and artwork setup](tenchu2-sandbox.md). Its `tenchu2-hd.tar.zst` can be
+installed alongside the Gaisen pack and reused across game updates too.
+
 1. Close the game and extract the new platform archive into a **new folder**.
    Use all its files, including Linux's shared libraries.
 2. Copy your `tenchu-hd.tar.zst` beside the new executable/launcher. It does not

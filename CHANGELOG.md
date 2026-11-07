@@ -9,6 +9,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   areas and character models. It can be installed alongside the Gaisen pack;
   Android has a separate import button. Replacement artwork toggles both packs,
   with original disc textures retained as the fallback.
+- Publish the optional Tenchu 2 artwork pack independently: replacement paintings
+  cover the sandbox's 23 areas, static props and 81 character bodies/costumes.
+  Original cutout masks are reconstructed from the user's Tenchu 2 disc.
 
 ## 0.20.0 — 2026-11-07
 
