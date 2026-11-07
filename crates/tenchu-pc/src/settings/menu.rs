@@ -44,6 +44,7 @@ pub enum Item {
     SheathedVisibility,
     SheathedDamage,
     SheathedOneHit,
+    StaySheathed,
     AlignAim,
     MouseSensitivity,
     StickSensitivity,
@@ -557,7 +558,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::Sheathing,
                 "Draw / sheathe weapons",
                 on(s.sheathing.enabled),
-                "GAMEPLAY EDIT: press the rebindable Draw / sheathe action (H by default; assign a controller button under General > Controls). Uses NinjaA/Kunoichi animations; cannot interrupt attacks, injuries or jumps. Grounded attacks draw first; stealth kills and air attacks equip automatically. Off by default; disables input recording and TRIAL records.",
+                "GAMEPLAY EDIT: press the rebindable Draw / sheathe action (H by default; assign a controller button under General > Controls). Uses NinjaB/Kunoichi animations; cannot interrupt attacks, injuries or jumps. Grounded attacks draw first; stealth kills and air attacks equip automatically. Off by default; disables input recording and TRIAL records.",
             ),
             (
                 Item::UnarmedAttacks,
@@ -594,6 +595,12 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 "Sheathed one-hit death",
                 on(s.sheathing.one_hit),
                 "Optional challenge: any damaging melee or item/projectile hit is fatal while sheathed. Replaces the damage multiplier; god mode still protects you. Off by default.",
+            ),
+            (
+                Item::StaySheathed,
+                "Stay sheathed after damage",
+                on(s.sheathing.stay_sheathed),
+                "Keep a stowed weapon sheathed after recovering from a hit or knockdown. Injury animations and damage still apply. Already-drawn weapons stay drawn. Off restores automatic drawing after recovery.",
             ),
             (
                 Item::GuardControls,

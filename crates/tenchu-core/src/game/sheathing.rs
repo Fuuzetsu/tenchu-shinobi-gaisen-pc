@@ -29,6 +29,7 @@ pub struct Settings {
     pub visibility: u16,
     pub damage: u16,
     pub one_hit: bool,
+    pub stay_sheathed: bool,
 }
 
 impl Default for Settings {
@@ -41,6 +42,7 @@ impl Default for Settings {
             visibility: 100,
             damage: 100,
             one_hit: false,
+            stay_sheathed: false,
         }
     }
 }

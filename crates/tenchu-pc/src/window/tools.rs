@@ -1019,10 +1019,16 @@ impl Application {
             Item::StrictCorpseSight => {
                 self.set_strict_corpse_sight(!self.settings.strict_corpse_sight);
             }
-            Item::Sheathing | Item::SheathedOneHit | Item::UnarmedAttacks | Item::UnarmedStyle => {
+            Item::Sheathing
+            | Item::SheathedOneHit
+            | Item::StaySheathed
+            | Item::UnarmedAttacks
+            | Item::UnarmedStyle => {
                 let mut settings = self.settings.sheathing;
                 if item == Item::Sheathing {
                     settings.enabled = !settings.enabled;
+                } else if item == Item::StaySheathed {
+                    settings.stay_sheathed = !settings.stay_sheathed;
                 } else if item == Item::UnarmedAttacks {
                     settings.unarmed = !settings.unarmed;
                 } else if item == Item::UnarmedStyle {

@@ -86,8 +86,8 @@ pub fn configure(
         .then(imports::load)
         .transpose()?;
     let motions = if settings.enabled && game.player().sheathing.is_none() {
-        // Gaisen's NINJAA/KUNOITI use the heroes' skeleton layout.
-        let kind = if game.player().kind == 0 { 0x20 } else { 0x22 };
+        // NINJAB carries a sword; NINJAA's motions are for claws.
+        let kind = if game.player().kind == 0 { 0x21 } else { 0x22 };
         let characters = Executable::new(&assets.executable)?.characters()?;
         let character = characters
             .iter()
@@ -132,7 +132,7 @@ pub fn configure(
         .as_ref()
         .is_some_and(|s| s.weapon_program.is_none())
     {
-        let kind = if game.player().kind == 0 { 0x20 } else { 0x22 };
+        let kind = if game.player().kind == 0 { 0x21 } else { 0x22 };
         let program = Executable::new(&assets.executable)?
             .appearance(1)?
             .iter()

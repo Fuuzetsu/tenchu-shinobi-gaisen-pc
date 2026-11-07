@@ -136,6 +136,7 @@ impl Application {
             | Item::SheathedSpeed
             | Item::SheathedVisibility
             | Item::SheathedDamage
+            | Item::StaySheathed
             | Item::SheathedOneHit => {
                 let mut settings = self.settings.sheathing;
                 match item {
@@ -145,6 +146,7 @@ impl Application {
                     Item::SheathedSpeed => settings.speed = s.sheathing.speed,
                     Item::SheathedVisibility => settings.visibility = s.sheathing.visibility,
                     Item::SheathedDamage => settings.damage = s.sheathing.damage,
+                    Item::StaySheathed => settings.stay_sheathed = s.sheathing.stay_sheathed,
                     _ => settings.one_hit = s.sheathing.one_hit,
                 }
                 self.set_sheathing(settings)?;

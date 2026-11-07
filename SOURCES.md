@@ -1335,3 +1335,14 @@ sandbox themes therefore do not represent the entire game's soundtrack. The
 disc-backed playback test decodes every choice and checks distinct non-silent
 audio, pause/save/retry and return to Gaisen. Decoding and playback use the user's
 disc at runtime. No XA data, decoded audio or extracted tables are distributed.
+
+### Sword sheathing correction (2026-11-07)
+
+Gaisen's NINJAA (`0x20`) uses weapon 10 (claws), while NINJAB (`0x21`)
+uses weapon 28 (ninja sword), also identified by the original `game_types.h`
+in `tenchu-decomp`. Rikimaru's optional imported transitions now use NINJAB's
+draw clip 258 and sheath clip 265 from `HUMAN/MOTION/STAGE2.AMD`, with that
+actor's sound bank. Ayame continues to use KUNOITI (`0x22`). The optional
+stay-sheathed injury recovery is a port feature; its default retains the source
+automatic draw. Disc-backed tests exercise incoming damage, recovery and
+subsequent movement for both heroes and both weapon states.

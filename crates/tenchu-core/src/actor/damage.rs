@@ -694,6 +694,11 @@ impl Actor {
                 if self.attribute & ATTR_WEAPON_DRAWN != 0 {
                     self.attribute = (self.attribute & !ATTR_PHASE) | 2;
                     MOT_ENGAGE_STANCE
+                } else if self.id == world.player
+                    && self.sheathed_settings().is_some_and(|s| s.stay_sheathed)
+                {
+                    self.attribute &= !ATTR_PHASE;
+                    MOT_NORMAL
                 } else {
                     MOT_STATE_DRAW
                 },

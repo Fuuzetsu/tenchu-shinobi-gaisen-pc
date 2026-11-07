@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Correct Rikimaru's optional sheathing animations and sounds to use Ninja B's
+  sword, rather than Ninja A's claws. Add **Stay sheathed after damage** under
+  F1 → Movement; disabled by default.
+- Mid-mission savestates use a new format for the sheathing option. Recreate
+  older mid-mission saves; campaign progress is unchanged.
 - Add selectable Tenchu 2 background music to the scenery sandbox: eight named
   menu, battle and mission-editor themes read from the user's disc, including
   songs repeated by game logic rather than the audio driver's loop flag.

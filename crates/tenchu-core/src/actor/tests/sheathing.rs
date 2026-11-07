@@ -10,7 +10,7 @@ pub(super) fn ready(character: i16, settings: Settings) -> (Game, usize) {
         .mission
         .characters
         .iter()
-        .find(|c| c.kind == if character == 0 { 0x20 } else { 0x22 })
+        .find(|c| c.kind == if character == 0 { 0x21 } else { 0x22 })
         .unwrap();
     let clip = |action| {
         let id = ninja
@@ -131,6 +131,59 @@ fn sheathing_damage_tradeoffs_apply_only_while_stowed() {
             run(character, 400, true, true, false),
             run(character, 100, false, true, false)
         );
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU_DISC; injury recovery preserves the chosen weapon state for both heroes"]
+fn sheathing_injury_recovery_can_leave_weapons_stowed() {
+    for character in 0..2 {
+        for stay_sheathed in [false, true] {
+            for armed in [false, true] {
+                let (mut game, enemy) = ready(
+                    character,
+                    Settings {
+                        stay_sheathed,
+                        ..Default::default()
+                    },
+                );
+                let player = game.player_id;
+                if armed {
+                    with_actor(&mut game, player, |a, ctx, _| {
+                        a.equip(ctx, true);
+                        a.enter(ctx, MOT_ENGAGE_STANCE, true);
+                    });
+                }
+                game.roster.get_mut(enemy).setup_think(0x4444).unwrap();
+                let initial = game.player().health;
+                for _ in 0..600 {
+                    game.step(0).unwrap();
+                    if game.player().health < initial {
+                        break;
+                    }
+                }
+                assert!(game.player().health > 0 && game.player().health < initial);
+                with_actor(&mut game, enemy, |a, ctx, _| {
+                    a.setup_think(0).unwrap();
+                    a.position.z += 20000;
+                    ctx.scene.update(a.root_model, a.root(ctx.math));
+                });
+                for _ in 0..180 {
+                    game.step(0).unwrap();
+                }
+                let drawn = armed || !stay_sheathed;
+                assert_eq!(game.player().attribute & ATTR_WEAPON_DRAWN != 0, drawn);
+                assert_eq!(
+                    game.player().motion.action,
+                    if drawn { MOT_ENGAGE_STANCE } else { MOT_NORMAL }
+                );
+                let position = game.player().position;
+                for _ in 0..20 {
+                    game.step(UP).unwrap();
+                }
+                assert_ne!(game.player().position, position);
+            }
+        }
     }
 }
 
