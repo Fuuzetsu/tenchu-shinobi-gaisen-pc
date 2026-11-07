@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.20.0 — 2026-11-07
+
 - Add Tenchu 2's 81 character models and alternate costumes to the searchable
   player-model browser when its disc is connected, with animated idle previews.
   Sandbox guards can wear the source level's character models while retaining
