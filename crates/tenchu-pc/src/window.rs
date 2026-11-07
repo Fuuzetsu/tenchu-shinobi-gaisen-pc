@@ -16,6 +16,7 @@ pub mod retail;
 mod rewind;
 mod savestate;
 mod settings_reset;
+mod tenchu2;
 #[cfg(test)]
 mod tests;
 mod tools;
@@ -85,6 +86,7 @@ struct Application {
     presets: settings::library::Manager,
     randomizer: crate::randomizer::Editor,
     trial: crate::trial::Editor,
+    tenchu2: crate::tenchu2::menu::Menu,
     trial_previous: Option<(Box<Game>, Options)>,
     fps_elapsed: f32,
     fps_frames: u32,
@@ -262,6 +264,7 @@ impl Application {
             || self.view.as_ref().is_some_and(View::preparing)
             || self.paused
             || self.trial.open
+            || self.tenchu2.open
             || (self.randomizer.open && self.demo.is_none())
             || self.demo.as_ref().is_some_and(|d| d.library || d.finished)
             || (self.menu.open && self.settings.pause_in_menu)
@@ -348,6 +351,9 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
+        if self.tenchu2.open {
+            return;
+        }
         let action = self.campaign.screen.menu_action(action);
         if matches!(action, Action::Replay) {
             self.clear_rewind();
@@ -502,6 +508,12 @@ impl Application {
     }
 
     fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        if self.tenchu2.open {
+            if matches!(command, Command::Menu(Action::Back)) {
+                self.tenchu2_action(crate::tenchu2::menu::Event::Close);
+            }
+            return;
+        }
         if self.trial.open {
             if let Command::Menu(action) = command
                 && let Some(event) = self.trial.controller(action, &self.assets)
@@ -563,6 +575,7 @@ impl Application {
         }
         match action {
             crate::touch::Action::Settings => {
+                self.tenchu2.open = false;
                 self.controls.close_editor();
                 self.toggle_menu();
             }
@@ -573,6 +586,8 @@ impl Application {
                     self.toggle_menu();
                 } else if self.trial.open {
                     self.trial_action(crate::trial::Event::Close);
+                } else if self.tenchu2.open {
+                    self.tenchu2_action(crate::tenchu2::menu::Event::Close);
                 } else if self.randomizer.open {
                     self.toggle_randomizer();
                 } else if self.demo.is_some() {
@@ -959,6 +974,12 @@ impl ApplicationHandler for Application {
                 if self.trial.open {
                     if event.state == ElementState::Pressed && code == KeyCode::Escape {
                         self.trial_action(crate::trial::Event::Close);
+                    }
+                    return;
+                }
+                if self.tenchu2.open {
+                    if event.state == ElementState::Pressed && code == KeyCode::Escape {
+                        self.tenchu2_action(crate::tenchu2::menu::Event::Close);
                     }
                     return;
                 }
@@ -1603,6 +1624,7 @@ pub fn run(
         presets,
         randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),
         trial: crate::trial::Editor::new(crate::storage::UserFile::Trials.path()?),
+        tenchu2: Default::default(),
         trial_previous: None,
         fps_elapsed: 0.0,
         fps_frames: 0,

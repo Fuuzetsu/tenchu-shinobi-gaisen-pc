@@ -28,7 +28,7 @@ public final class LauncherActivity extends Activity {
     LIBRARY_ERROR = error;
   }
 
-  private static native String validateDisc(String path);
+  private static native String validateDisc(String path, boolean tenchu2);
 
   private static native String[] discFiles(String path) throws IOException;
 
@@ -37,7 +37,7 @@ public final class LauncherActivity extends Activity {
   private LinearLayout content;
   private TextView status;
   private boolean busy;
-  private static final int DISC = 10, ARTWORK = 11;
+  private static final int DISC = 10, ARTWORK = 11, TENCHU2 = 12;
 
   @Override
   public void onCreate(Bundle state) {
@@ -89,12 +89,18 @@ public final class LauncherActivity extends Activity {
                 ARTWORK));
     button("Graphics compatibility…", this::graphicsBackend);
     button("Copy startup/crash report", () -> StartupReport.copy(this, LIBRARY_ERROR));
+    button(
+        "Import Tenchu 2 disc folder…",
+        () -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), TENCHU2));
     label(
         "Touch: hold Move and tap actions with another finger. Settings opens the F1 menu. Pause"
             + " and Back are always on screen. Camera-relative controls add a right camera stick."
             + " Importing copies files into this app; your originals are unchanged.",
         16);
     refresh();
+    if (state == null && getIntent().getBooleanExtra("import-tenchu2", false)) {
+      startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), TENCHU2);
+    }
   }
 
   @Override
@@ -196,8 +202,13 @@ public final class LauncherActivity extends Activity {
               runOnUiThread(
                   () -> {
                     busy = false;
-                    if (message == null) refresh();
-                    else
+                    if (message == null) {
+                      refresh();
+                      if (getIntent().getBooleanExtra("import-tenchu2", false)) {
+                        setResult(RESULT_OK);
+                        finish();
+                      }
+                    } else
                       new AlertDialog.Builder(this)
                           .setTitle("Import failed")
                           .setMessage(message)
@@ -220,9 +231,12 @@ public final class LauncherActivity extends Activity {
   @Override
   public void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
-    if (result != RESULT_OK || data == null || data.getData() == null) return;
+    if (result != RESULT_OK || data == null || data.getData() == null) {
+      if (request == TENCHU2 && getIntent().getBooleanExtra("import-tenchu2", false)) finish();
+      return;
+    }
     Uri uri = data.getData();
-    if (request == DISC) work(() -> importDisc(uri));
+    if (request == DISC || request == TENCHU2) work(() -> importDisc(uri, request == TENCHU2));
     if (request == ARTWORK)
       work(
           () -> {
@@ -243,7 +257,7 @@ public final class LauncherActivity extends Activity {
           });
   }
 
-  private void importDisc(Uri tree) throws Exception {
+  private void importDisc(Uri tree, boolean tenchu2) throws Exception {
     Uri children =
         DocumentsContract.buildChildDocumentsUriUsingTree(
             tree, DocumentsContract.getTreeDocumentId(tree));
@@ -280,7 +294,8 @@ public final class LauncherActivity extends Activity {
       throw new IOException(
           "No .cue found. Place the CUE and BIN files together in a folder, then select that"
               + " folder.");
-    File folder = new File(getFilesDir(), "disc-" + System.currentTimeMillis());
+    String prefix = tenchu2 ? "tenchu2-disc-" : "disc-";
+    File folder = new File(getFilesDir(), prefix + System.currentTimeMillis());
     if (!folder.mkdir()) throw new IOException("Cannot create disc directory");
     boolean complete = false;
     try {
@@ -305,21 +320,22 @@ public final class LauncherActivity extends Activity {
         total += copy(entry.getValue(), new File(folder, name), 1024L * 1024 * 1024 - total);
       }
       runOnUiThread(() -> status.setText("Checking the disc version and game files…"));
-      String error = validateDisc(disc.getAbsolutePath());
+      String error = validateDisc(disc.getAbsolutePath(), tenchu2);
       if (error != null) throw new IOException(error);
-      File saved = new File(getFilesDir(), "disc-path.txt");
+      String preference = tenchu2 ? "tenchu2-path" : "disc-path";
+      File saved = new File(getFilesDir(), preference + ".txt");
       String previous =
           saved.isFile()
               ? new String(Files.readAllBytes(saved.toPath()), StandardCharsets.UTF_8)
               : "";
-      File temporary = new File(getFilesDir(), "disc-path.tmp");
+      File temporary = new File(getFilesDir(), preference + ".tmp");
       Files.write(temporary.toPath(), disc.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
       Files.move(temporary.toPath(), saved.toPath(), StandardCopyOption.REPLACE_EXISTING);
       complete = true;
       File old = new File(previous).getParentFile();
       if (old != null
           && old.getParentFile().equals(getFilesDir())
-          && old.getName().startsWith("disc-")
+          && old.getName().startsWith(prefix)
           && !old.equals(folder)) remove(old);
     } finally {
       if (!complete) remove(folder);

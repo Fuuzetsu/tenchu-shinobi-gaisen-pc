@@ -1,4 +1,5 @@
 use crate::{session::Options, source::DiscSource};
+pub mod menu;
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{
     Result,

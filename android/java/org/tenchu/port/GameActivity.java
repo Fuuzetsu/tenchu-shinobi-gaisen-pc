@@ -126,6 +126,11 @@ public final class GameActivity extends NativeActivity {
           if (requestKind != null) return;
           requestKind = kind;
           exportPath = exporting ? path : null;
+          if (kind.equals("tenchu2")) {
+            startActivityForResult(
+                new Intent(this, LauncherActivity.class).putExtra("import-tenchu2", true), 21);
+            return;
+          }
           Intent intent =
               new Intent(exporting ? Intent.ACTION_CREATE_DOCUMENT : Intent.ACTION_OPEN_DOCUMENT)
                   .setType("application/octet-stream")
@@ -139,7 +144,7 @@ public final class GameActivity extends NativeActivity {
   @Override
   public void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
-    if (request != 20 || requestKind == null) return;
+    if ((request != 20 && request != 21) || requestKind == null) return;
     String kind = requestKind, source = exportPath;
     requestKind = null;
     exportPath = null;
@@ -149,7 +154,15 @@ public final class GameActivity extends NativeActivity {
               JSONObject response = new JSONObject();
               try {
                 response.put("kind", kind);
-                if (uri != null) {
+                if (request == 21 && result == RESULT_OK) {
+                  response.put(
+                      "path",
+                      new String(
+                              Files.readAllBytes(
+                                  new File(getFilesDir(), "tenchu2-path.txt").toPath()),
+                              StandardCharsets.UTF_8)
+                          .trim());
+                } else if (uri != null) {
                   File file =
                       source != null ? new File(source) : new File(getFilesDir(), "import-" + kind);
                   try (InputStream input =

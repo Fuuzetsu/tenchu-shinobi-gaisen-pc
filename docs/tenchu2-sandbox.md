@@ -5,7 +5,14 @@ user's **Tenchu 2 Europe (SLES-02452)** disc and uses **Gaisen gameplay**. It is
 not a port of Tenchu 2's missions. Both discs remain necessary; no retail assets
 are bundled or downloaded.
 
-Build and explore a map:
+On desktop, use **Tenchu 2…** at the top left of the title or quick-launch
+menu. Select the CUE, then choose an area, placement/patrol layout, player and
+optional Gaisen guards. The disc path is remembered for the next launch.
+On Android, **Browse…** imports a folder containing the CUE and all its BINs;
+the Android launcher also has **Import Tenchu 2 disc folder…**. Keep both games
+in separate folders so the importer can identify the CUE unambiguously.
+
+Alternatively, build and explore a map from the command line:
 
 ```sh
 ./dev.sh cargo build --release -p tenchu-pc
@@ -37,8 +44,8 @@ route actions, character identities and behavior are not reproduced.
 Imported terrain, ordinary static props, textures, floor heights, slopes and
 holes are supported. Gaisen's player/HUD textures are kept separate from the
 Tenchu 2 texture pages. Original T2 textures are used: the Gaisen HD pack does not
-provide replacements for them. This prototype has native command-line entry
-points; no Android or browser level-import interface has been added.
+provide replacements for them. Native desktop and Android have disc/map menus;
+browser level import is not yet available.
 
 Unported elements include doors and other scripted/moving objects, procedural
 lights/effects, sky/background setup, animated water, water/material/hazard

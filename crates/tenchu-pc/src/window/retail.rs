@@ -214,6 +214,7 @@ impl Recorder {
                 samples: &view.renderer.sample_counts,
             },
             Extras {
+                tenchu2: None,
                 touch: None,
                 trial: None,
                 randomizer: None,

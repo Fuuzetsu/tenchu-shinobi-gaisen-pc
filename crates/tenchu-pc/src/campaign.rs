@@ -123,6 +123,7 @@ impl Campaign {
         }
         self.game = game;
         self.screen = Screen::Playing;
+        self.randomized = None;
         self.sandbox = Some(sandbox);
         self.save_request = None;
         Ok(())

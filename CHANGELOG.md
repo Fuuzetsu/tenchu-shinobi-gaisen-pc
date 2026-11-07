@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Choose a Tenchu 2 disc, area and patrol layout from the title/quick-launch
+  menu. The disc path is remembered; Android can import its CUE/BIN folder
+  from the launcher or the in-game picker. Sandbox play preserves Gaisen
+  campaign progress.
 - Correct Tatsumaru's imported attack mapping: his normal combo now uses all
   five forward strikes, while left/right second-strike variants stay separate.
   Restore the correct crouching strike and remove the artificial kick-rotation

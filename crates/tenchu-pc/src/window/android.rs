@@ -13,6 +13,11 @@ impl Application {
                 return Ok(());
             };
             match response.kind.as_str() {
+                "tenchu2" => {
+                    self.tenchu2.path = path.to_string_lossy().into();
+                    self.tenchu2_action(crate::tenchu2::menu::Event::Connect);
+                    Ok(())
+                }
                 "recording" => self.load_recording(&crate::savestate::read(&path)?),
                 "unarmed" => self.install_unarmed(crate::sheathing::imports::from_path(&path)?),
                 "trial" => {

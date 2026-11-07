@@ -24,6 +24,8 @@ pub enum UserFile {
     States,
     #[cfg(not(target_arch = "wasm32"))]
     LastDisc,
+    #[cfg(not(target_arch = "wasm32"))]
+    Tenchu2,
 }
 
 impl UserFile {
@@ -92,6 +94,12 @@ impl UserFile {
             Self::LastDisc => (
                 "last-disc.json",
                 "TENCHU_LAST_DISC",
+                "XDG_CONFIG_HOME",
+                ".config",
+            ),
+            Self::Tenchu2 => (
+                "tenchu2-disc.json",
+                "TENCHU_T2_CONFIG",
                 "XDG_CONFIG_HOME",
                 ".config",
             ),

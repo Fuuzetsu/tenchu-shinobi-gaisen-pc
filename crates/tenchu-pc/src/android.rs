@@ -231,9 +231,21 @@ pub extern "system" fn Java_org_tenchu_port_LauncherActivity_validateDisc<'local
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,
     path: jni::objects::JString<'local>,
+    tenchu2: jni::sys::jboolean,
 ) -> jni::objects::JString<'local> {
     env.with_env(|env| -> jni::errors::Result<_> {
-        match crate::startup::open(Path::new(&path.to_string())) {
+        let check = || -> Result<()> {
+            let path = path.to_string();
+            if tenchu2 {
+                let disc = crate::source::open_disc(Path::new(&path))?;
+                tenchu_assets::tenchu2::level::Level::available(&disc)?;
+                tenchu_assets::tenchu2::layout::Layout::available(&disc)?;
+            } else {
+                crate::startup::open(Path::new(&path))?;
+            }
+            Ok(())
+        };
+        match check() {
             Ok(_) => Ok(jni::objects::JString::null()),
             Err(error) => env.new_string(error),
         }

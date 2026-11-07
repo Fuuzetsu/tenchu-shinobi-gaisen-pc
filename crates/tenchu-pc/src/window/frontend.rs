@@ -48,7 +48,7 @@ impl Application {
     }
 
     pub(super) fn frontend_action(&mut self, action: Action) {
-        if self.demo.is_some() {
+        if self.demo.is_some() || self.tenchu2.open {
             return;
         }
         #[cfg(target_arch = "wasm32")]
