@@ -36,6 +36,7 @@ pub(super) struct Extras<'a> {
     pub controls: Option<&'a mut crate::controls::Controls>,
     pub randomizer: Option<crate::randomizer::MenuState<'a>>,
     pub tenchu2: Option<&'a mut crate::tenchu2::menu::Menu>,
+    pub launcher: Option<&'a crate::campaign::Campaign>,
     pub models: Option<crate::visuals::appearance::picker::State<'a>>,
     pub demo: Option<&'a mut crate::demo::Player>,
     pub video_time: Option<f64>,
@@ -110,6 +111,14 @@ impl Overlay {
         self.context.wants_keyboard_input()
     }
 
+    pub fn close_popup(&mut self) -> bool {
+        self.context.memory_mut(|memory| {
+            let open = memory.any_popup_open();
+            memory.close_popup();
+            open
+        })
+    }
+
     pub fn pointer_over_ui(&self) -> bool {
         self.context.is_pointer_over_area()
     }
@@ -122,8 +131,9 @@ impl Overlay {
         state: crate::settings::overlay::State<'_>,
         mut extras: Extras<'_>,
     ) -> Updates {
-        self.opaque =
-            extras.frontend.is_some() || extras.trial.as_ref().is_some_and(|(e, _, _)| e.open);
+        self.opaque = extras.frontend.is_some()
+            || extras.launcher.is_some()
+            || extras.trial.as_ref().is_some_and(|(e, _, _)| e.open);
         let mut input = self.state.take_egui_input(window);
         #[cfg(target_os = "android")]
         let edited = if let Some(events) = crate::android::text_events(&self.context) {
@@ -269,8 +279,10 @@ impl Overlay {
                             {
                                 edits.push(Edit::Randomizer);
                             }
-                            if extras.tenchu2.is_some() && ui.button("Tenchu 2…").clicked() {
-                                tenchu2_action = Some(crate::tenchu2::menu::Event::Open);
+                            if extras.launcher.is_none()
+                                && ui.button("Quick launcher…  F6").clicked()
+                            {
+                                tenchu2_action = Some(crate::tenchu2::menu::Event::Quick);
                             }
                         });
                 }
@@ -282,6 +294,15 @@ impl Overlay {
                 );
             }
             if let Some(tenchu2) = &mut extras.tenchu2 {
+                if !menu.open
+                    && !tenchu2.open
+                    && !extras.randomizer.as_ref().is_some_and(|r| r.editor.open)
+                    && let Some(campaign) = extras.launcher
+                {
+                    tenchu2_action = tenchu2
+                        .show_launcher(ctx, campaign)
+                        .or(tenchu2_action.take());
+                }
                 tenchu2_action = tenchu2.show(ctx).or(tenchu2_action.take());
             }
             if let Some((touch, playing, tools, camera)) = &mut extras.touch {
@@ -462,8 +483,11 @@ impl super::Application {
                     self.settings.navigation.camera_relative || self.debug.camera_actor.is_some(),
                 )),
                 trial: Some((&mut self.trial, &self.assets, &self.campaign.game)),
-                tenchu2: (!cfg!(target_arch = "wasm32") && self.demo.is_none())
-                    .then_some(&mut self.tenchu2),
+                tenchu2: self.demo.is_none().then_some(&mut self.tenchu2),
+                launcher: (matches!(self.campaign.screen, crate::campaign::Screen::Launcher)
+                    && !trial_open
+                    && self.demo.is_none())
+                .then_some(&self.campaign),
                 labels: &view.labels,
                 text: &view.text,
                 performance: &mut self.performance,

@@ -215,6 +215,7 @@ impl Recorder {
             },
             Extras {
                 tenchu2: None,
+                launcher: None,
                 touch: None,
                 trial: None,
                 randomizer: None,

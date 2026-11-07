@@ -55,7 +55,20 @@ pub fn disc_path() -> Option<PathBuf> {
 }
 
 pub fn known_discs() -> Vec<(Edition, PathBuf)> {
-    Discs::read().entries
+    let mut entries = Discs::read().entries;
+    entries.sort_by_key(|(edition, _)| *edition == Edition::Japan);
+    entries
+}
+
+pub fn connect(path: &Path) -> Result<PathBuf> {
+    let path = std::fs::canonicalize(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let disc = crate::source::open_disc(&path)?;
+    tenchu_assets::tenchu2::layout::Layout::available(&disc)?;
+    if tenchu_assets::tenchu2::level::Level::available(&disc)?.is_empty() {
+        return Err("No Tenchu 2 areas found".into());
+    }
+    remember(&path)?;
+    Ok(path)
 }
 
 pub fn remember(path: &Path) -> Result<()> {

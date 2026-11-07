@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add repeatable `play --tenchu2 DISC` arguments and a shared F6 quick launcher
+  with mouse/touch controls for Gaisen missions and connected Tenchu 2 editions.
+  Europe and Japan stay available together; select the game, area and patrol
+  layout without opening a separate sandbox menu.
 - Support the Japanese Tenchu 2 disc (SLPS-03040), including its character
   textures, 23 scenery areas, 56 patrol layouts and sandbox music. Both supported
   editions now include the two previously omitted masked Tatsumaru variants,

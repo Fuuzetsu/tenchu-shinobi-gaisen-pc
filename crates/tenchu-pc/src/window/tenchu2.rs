@@ -13,6 +13,41 @@ impl Application {
 
     fn apply_tenchu2(&mut self, event: Event) -> Result<()> {
         match event {
+            Event::Quick => {
+                self.campaign.screen = Screen::Launcher;
+                self.campaign.quick_launcher = true;
+                self.campaign.cursor = 1;
+                self.tenchu2.open = false;
+                self.randomizer.open = false;
+                self.menu.open = false;
+                self.paused = false;
+                if let Some(audio) = &mut self.audio {
+                    audio.screen(&self.campaign.screen);
+                }
+            }
+            Event::Options(options) => self.campaign.options = options,
+            Event::Gaisen(continue_save) => {
+                self.campaign.cursor = usize::from(!continue_save);
+                self.campaign_action(Action::Confirm);
+            }
+            Event::Select(edition) => {
+                if let Some(edition) = edition {
+                    let path = self
+                        .tenchu2
+                        .discs
+                        .iter()
+                        .find(|(e, _)| *e == edition)
+                        .ok_or("Connect this edition's disc first")?
+                        .1
+                        .clone();
+                    self.tenchu2.path = path;
+                    self.apply_tenchu2(Event::Connect)?;
+                } else {
+                    self.tenchu2.selected = None;
+                    self.tenchu2.notice.clear();
+                }
+                self.campaign.cursor = 7;
+            }
             Event::Close => self.tenchu2.open = false,
             Event::Open => {
                 if self.campaign.playing() || self.demo.is_some() {
@@ -22,13 +57,11 @@ impl Application {
                 self.randomizer.open = false;
                 self.menu.open = false;
                 #[cfg(not(target_arch = "wasm32"))]
-                if self.tenchu2.path.is_empty() {
-                    self.tenchu2.guard = Some(0x10);
-                    self.tenchu2.source_models = true;
-                    if let Some(path) = crate::tenchu2::menu::disc_path() {
-                        self.tenchu2.path = path.to_string_lossy().into();
-                        return self.apply_tenchu2(Event::Connect);
-                    }
+                if self.tenchu2.path.is_empty()
+                    && let Some(path) = crate::tenchu2::menu::disc_path()
+                {
+                    self.tenchu2.path = path.to_string_lossy().into();
+                    return self.apply_tenchu2(Event::Connect);
                 }
             }
             Event::Browse => {
@@ -58,12 +91,8 @@ impl Application {
                         return Err("No Tenchu 2 maps found".into());
                     }
                     crate::tenchu2::menu::remember(&path)?;
-                    self.tenchu2.discs = crate::tenchu2::menu::known_discs()
-                        .into_iter()
-                        .map(|(edition, path)| {
-                            (edition.name().into(), path.to_string_lossy().into())
-                        })
-                        .collect();
+                    self.tenchu2.refresh_discs();
+                    self.tenchu2.selected = Some(tenchu_assets::tenchu2::Edition::detect(&disc)?);
                     self.tenchu2.path = path.to_string_lossy().into();
                     self.tenchu2.connected.clone_from(&self.tenchu2.path);
                     self.tenchu2.maps = maps;
@@ -149,6 +178,39 @@ mod tests {
         app.tenchu2.path = europe.to_string_lossy().into();
         app.apply_tenchu2(Event::Connect).unwrap();
         assert_eq!(app.tenchu2.discs.len(), 2);
+        let mission = app.campaign.options.mission;
+        app.apply_tenchu2(Event::Close).unwrap();
+        for edition in [
+            tenchu_assets::tenchu2::Edition::Japan,
+            tenchu_assets::tenchu2::Edition::Europe,
+        ] {
+            app.apply_tenchu2(Event::Select(Some(edition))).unwrap();
+            assert_eq!(app.tenchu2.selected, Some(edition));
+            app.action(Action::Down);
+            assert_eq!(app.campaign.cursor, 4);
+            app.action(Action::Right);
+            assert_eq!(app.campaign.options.mission, mission);
+            assert!(
+                app.tenchu2
+                    .layouts
+                    .iter()
+                    .any(|l| l.map == app.tenchu2.map && Some(l.sequence) == app.tenchu2.sequence)
+            );
+        }
+        app.apply_tenchu2(Event::Select(None)).unwrap();
+        for edition in [
+            Some(tenchu_assets::tenchu2::Edition::Europe),
+            Some(tenchu_assets::tenchu2::Edition::Japan),
+            None,
+        ] {
+            app.action(Action::Right);
+            assert_eq!(app.tenchu2.selected, edition);
+        }
+        app.action(Action::Down);
+        app.action(Action::Right);
+        assert_eq!(app.campaign.options.mission, (mission + 1) % 11);
+        app.apply_tenchu2(Event::Gaisen(false)).unwrap();
+        assert!(matches!(app.campaign.screen, Screen::Inventory(_)));
         let library = crate::visuals::appearance::library::Library::load(&app.assets).unwrap();
         for name in [
             "rikimaru", "ayame", "tatumaru", "ayamea", "tatua_m", "tatu2_m",

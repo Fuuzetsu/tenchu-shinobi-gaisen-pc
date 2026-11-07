@@ -307,7 +307,7 @@ fn run() -> Result<()> {
     }
     if args[0] == "play" && args.get(1).is_some_and(|s| s == "--help") {
         println!(
-            "tenchu-pc play [DISC.cue] [--quick] [--record DIRECTORY]\nWithout DISC, reuses the last verified disc if available; otherwise opens a file picker. Keep the referenced BIN files with the CUE. Requires original Shinobi Gaisen SLPS-019.01; the executable and base artwork are checked with SHA-256. F1: settings and benchmarks. F6: quick launcher."
+            "tenchu-pc play [DISC] [--quick] [--tenchu2 DISC]... [--record DIRECTORY]\nDISC can be a CUE, disc folder, ZIP or compressed TAR. Repeat --tenchu2 to connect both Europe and Japan; their paths are remembered. F6 selects Gaisen missions or either imported edition's areas.\nWithout the Gaisen DISC, reuses the last verified disc if available; otherwise opens a file picker. Keep the referenced BIN files with the CUE. Requires Shinobi Gaisen SLPS-019.01; executables and base artwork are checked with SHA-256. F1: settings and benchmarks."
         );
         return Ok(());
     }
@@ -317,6 +317,7 @@ fn run() -> Result<()> {
             .filter(|p| !p.to_string_lossy().starts_with("--"));
         let mut launch = Vec::new();
         let mut recordings = None;
+        let mut imported_discs = Vec::new();
         let mut startup = window::Startup::default();
         let mut arguments = args[if disc.is_some() { 2 } else { 1 }..].iter();
         while let Some(key) = arguments.next() {
@@ -325,7 +326,9 @@ fn run() -> Result<()> {
                 continue;
             }
             let value = arguments.next().ok_or("Launch options require a value")?;
-            if key == "--record" {
+            if key == "--tenchu2" {
+                imported_discs.push(std::path::PathBuf::from(value));
+            } else if key == "--record" {
                 if recordings.is_some() {
                     return Err("Play accepts one --record DIRECTORY".into());
                 }
@@ -335,6 +338,9 @@ fn run() -> Result<()> {
             }
         }
         let options = session::Options::parse(&launch)?;
+        for path in imported_discs {
+            crate::tenchu2::menu::connect(&path)?;
+        }
         startup.difficulty = launch
             .chunks(2)
             .any(|p| p[0] == "--difficulty")

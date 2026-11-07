@@ -351,6 +351,24 @@ impl Application {
     }
 
     fn action(&mut self, action: Action) {
+        if matches!(self.campaign.screen, Screen::Launcher)
+            && !self.tenchu2.open
+            && !self.randomizer.open
+        {
+            let (handled, event) = self.tenchu2.navigate(action, &mut self.campaign);
+            if let Some(event) = event {
+                self.tenchu2_action(event);
+            } else if handled {
+                self.update_view();
+            }
+            if handled {
+                return;
+            }
+        }
+        self.campaign_action(action);
+    }
+
+    fn campaign_action(&mut self, action: Action) {
         if self.tenchu2.open {
             return;
         }
@@ -508,6 +526,12 @@ impl Application {
     }
 
     fn command(&mut self, command: Command, events: &ActiveEventLoop) {
+        if matches!(command, Command::Menu(Action::Back))
+            && self.view.as_mut().is_some_and(|v| v.overlay.close_popup())
+        {
+            self.update_view();
+            return;
+        }
         if self.tenchu2.open {
             if matches!(command, Command::Menu(Action::Back)) {
                 self.tenchu2_action(crate::tenchu2::menu::Event::Close);

@@ -5,10 +5,10 @@ user's **Tenchu 2 Europe (SLES-02452)** or **Japan (SLPS-03040)** disc and uses 
 not a port of Tenchu 2's missions. Both discs remain necessary; no retail assets
 are bundled or downloaded.
 
-On desktop, use **Tenchu 2…** at the top left of the title or quick-launch
-menu. Select the CUE, disc folder or archive, then choose an area, placement/patrol layout, player,
-music and optional Gaisen guards. Both editions' paths are remembered; use their
-buttons to switch the area list. On Android, **Browse…** or the launcher's
+Use **F6 → Connect another disc…** (or **Quick launcher…** on the title screen).
+Select the CUE, disc folder or archive, then choose the game, area, patrol layout,
+player, music and optional Gaisen guards in F6. Both editions stay connected;
+the **Game** selector switches their area lists. On Android, **Browse…** or the launcher's
 **Import Tenchu 2 disc…** offers a CUE/BIN folder or an archive. Each folder or
 archive should contain one disc. ZIP, TAR, TAR.GZ/TGZ, TAR.XZ/TXZ and
 TAR.ZST/TZST are supported. Archives are extracted once into a local cache;
@@ -20,8 +20,12 @@ Alternatively, build and explore a map from the command line:
 
 ```sh
 ./dev.sh cargo build --release -p tenchu-pc
+./dev.sh target/release/tenchu-pc play '/path/Gaisen.cue' --quick --tenchu2 '/path/Tenchu 2 Europe.zip' --tenchu2 '/path/Tenchu 2 Japan.zip'
 ./dev.sh target/release/tenchu-pc play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --map 0 --character ayame
 ```
+
+Repeat `--tenchu2` for each edition. The paths are remembered, so subsequent
+launches only need `play --quick` (and can reuse the last verified Gaisen disc).
 
 Normal keyboard/controller bindings, F1 settings, free camera and camera-relative
 controls work. F5 restarts this sandbox; Esc returns to the ordinary launcher.

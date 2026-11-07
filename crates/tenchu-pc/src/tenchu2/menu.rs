@@ -1,6 +1,8 @@
 #[cfg(not(target_arch = "wasm32"))]
-pub use super::discs::{disc_path, known_discs, remember};
-use tenchu_assets::tenchu2::{layout::Layout, music::THEMES};
+pub use super::discs::{connect, disc_path, known_discs, remember};
+use tenchu_assets::tenchu2::{Edition, layout::Layout};
+
+mod launcher;
 
 pub struct Menu {
     pub open: bool,
@@ -15,8 +17,11 @@ pub struct Menu {
     pub music_tracks: usize,
     pub maps: Vec<usize>,
     pub layouts: Vec<Layout>,
+    #[cfg(not(target_arch = "wasm32"))]
     pub connected: String,
-    pub discs: Vec<(String, String)>,
+    pub discs: Vec<(Edition, String)>,
+    pub selected: Option<Edition>,
+    initialized: bool,
 }
 
 impl Default for Menu {
@@ -28,14 +33,17 @@ impl Default for Menu {
             character: 0,
             map: 0,
             sequence: None,
-            guard: None,
-            source_models: false,
+            guard: Some(0x10),
+            source_models: true,
             music: Some(0),
             music_tracks: 0,
             maps: Vec::new(),
             layouts: Vec::new(),
+            #[cfg(not(target_arch = "wasm32"))]
             connected: String::new(),
             discs: Vec::new(),
+            selected: None,
+            initialized: false,
         }
     }
 }
@@ -46,6 +54,10 @@ pub enum Event {
     Browse,
     Connect,
     Play,
+    Select(Option<Edition>),
+    Options(crate::session::Options),
+    Gaisen(bool),
+    Quick,
 }
 
 impl Menu {
@@ -56,7 +68,7 @@ impl Menu {
         let mut event = None;
         let mut open = true;
         let width = (ctx.screen_rect().width() - 32.0).clamp(240.0, 540.0);
-        egui::Window::new("Tenchu 2 — scenery sandbox")
+        egui::Window::new("Connect Tenchu 2 discs")
             .open(&mut open)
             .collapsible(false)
             .resizable(false)
@@ -68,11 +80,10 @@ impl Menu {
                 egui::ScrollArea::vertical()
                     .max_height((ctx.screen_rect().height() - 100.0).max(160.0))
                     .show(ui, |ui| {
-                        ui.label("Explore Tenchu 2 areas with Gaisen movement and combat. Story missions, objectives and Tenchu 2 AI are not included.");
-                        ui.label("Requires your Tenchu 2 Europe (SLES-02452) or Japan (SLPS-03040) disc, in addition to Shinobi Gaisen.");
+                        ui.label("Connect your Tenchu 2 Europe or Japan disc. Both editions stay available in F6 and in the F1 model gallery.");
                         ui.horizontal_wrapped(|ui| {
                             for (name, path) in &self.discs {
-                                if ui.selectable_label(self.path == *path, name).clicked() {
+                                if ui.selectable_label(self.path == *path, name.name()).clicked() {
                                     self.path.clone_from(path);
                                     event = Some(Event::Connect);
                                 }
@@ -83,64 +94,10 @@ impl Menu {
                                 .desired_width((width - 150.0).max(100.0))
                                 .hint_text("CUE, disc folder or archive path"));
                             if ui.button("Browse…").clicked() { event = Some(Event::Browse); }
-                            if ui.button("Load maps").clicked() { event = Some(Event::Connect); }
+                            if ui.button("Connect").clicked() { event = Some(Event::Connect); }
                         });
                         if !self.notice.is_empty() { ui.label(&self.notice); }
-                        if self.maps.is_empty() || self.path != self.connected { return; }
-                        ui.separator();
-                        ui.horizontal(|ui| {
-                            ui.label("Area");
-                            egui::ComboBox::from_id_salt("t2-map")
-                                .selected_text(format!("Map {}", self.map))
-                                .show_ui(ui, |ui| {
-                                    for &map in &self.maps {
-                                        if ui.selectable_value(&mut self.map, map, format!("Map {map}")).changed() {
-                                            self.sequence = self.layouts.iter().find(|l| l.map == map).map(|l| l.sequence);
-                                        }
-                                    }
-                                });
-                        });
-                        let layouts: Vec<_> = self.layouts.iter().filter(|l| l.map == self.map).collect();
-                        if !layouts.is_empty() {
-                            ui.horizontal(|ui| {
-                                ui.label("Placement / patrol layout");
-                                egui::ComboBox::from_id_salt("t2-layout")
-                                    .selected_text(self.sequence.map_or_else(|| "Default".into(), |s| format!("Sequence {s}")))
-                                    .show_ui(ui, |ui| {
-                                        for layout in &layouts {
-                                            ui.selectable_value(&mut self.sequence, Some(layout.sequence), format!("Sequence {} · {} actors", layout.sequence, layout.actors.len()));
-                                        }
-                                    });
-                            });
-                        }
-                        ui.horizontal(|ui| {
-                            ui.label("Player controls");
-                            ui.selectable_value(&mut self.character, 0, "Rikimaru");
-                            ui.selectable_value(&mut self.character, 1, "Ayame");
-                        });
-                        ui.horizontal(|ui| {
-                            ui.label("Music");
-                            egui::ComboBox::from_id_salt("t2-music")
-                                .selected_text(self.music.and_then(|index| THEMES.get(index)).map_or("Off", |&(_, name)| name))
-                                .show_ui(ui, |ui| {
-                                    for (index, &(_, name)) in THEMES.iter().take(self.music_tracks).enumerate() {
-                                        ui.selectable_value(&mut self.music, Some(index), name);
-                                    }
-                                    ui.selectable_value(&mut self.music, None, "Off");
-                                });
-                        });
-                        ui.small("Repeats the selected theme; original story music cues are not simulated.");
-                        ui.add_enabled_ui(!layouts.is_empty(), |ui| {
-                            ui.horizontal_wrapped(|ui| {
-                                ui.label("Guards (Gaisen AI)");
-                                for (kind, label) in [(None, "None"), (Some(0x10), "Sword"), (Some(0x12), "Spear"), (Some(0x11), "Archer")] {
-                                    ui.selectable_value(&mut self.guard, kind, label);
-                                }
-                            });
-                            ui.checkbox(&mut self.source_models, "Use Tenchu 2 character models for guards");
-                        });
-                        ui.label("F1: settings and player model · F5: restart · Back: leave sandbox. Campaign progress is preserved.");
-                        if ui.button("Start exploring").clicked() { event = Some(Event::Play); }
+
                     });
             });
         if !open {
