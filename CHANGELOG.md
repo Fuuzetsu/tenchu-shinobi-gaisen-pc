@@ -5,6 +5,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+## 0.21.0 — 2026-11-07
+
 - Fix stretched severed arms on imported Tenchu 2 characters. Detached parts
   stop sharing animated vertices with the corpse, including their attached
   weapons; heads and player model overrides use the same separation.
