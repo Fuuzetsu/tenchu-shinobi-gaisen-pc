@@ -168,6 +168,8 @@ impl Renderer {
         size: [u32; 2],
         vram: &Vram,
     ) -> Result<Self> {
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Querying render texture formats");
         let mut features =
             adapter.features() & wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
         if adapter.features().contains(timing::FEATURES) {
@@ -227,6 +229,10 @@ impl Renderer {
                     .using_alignment(available)
             }
         };
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage(&format!(
+            "Requesting GPU device: {features:?}\nRequired limits: {required_limits:?}"
+        ));
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
@@ -239,9 +245,13 @@ impl Renderer {
             )
             .await
             .map_err(|e| e.to_string())?;
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("GPU device created; creating scene shader");
         let graphics = crate::settings::Graphics::default();
         let gl = adapter.get_info().backend == wgpu::Backend::Gl;
         let shader = pipelines::Options::new(&graphics, 1).shader(&device, gl);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating scene bindings and texture memory");
         let binding_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Scene bindings"),
             entries: &[
@@ -286,7 +296,11 @@ impl Renderer {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating material textures");
         let materials = materials::Materials::new(&device, &queue, vram);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating shadow resources and pipelines");
         let shadows = shadows::Shadows::new(&device, &texture, &materials.layout, gl);
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Scene and effects"),
@@ -312,6 +326,8 @@ impl Renderer {
             ],
         });
         let depth = Self::attachment(&device, size, wgpu::TextureFormat::Depth32Float, 1);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating GPU timing queries");
         let timings = timing::Timer::new(&device, &queue);
         let mut renderer = Self {
             #[cfg(any(target_os = "android", all(test, not(target_arch = "wasm32"))))]

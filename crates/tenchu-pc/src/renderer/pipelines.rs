@@ -68,6 +68,8 @@ pub(super) fn create(
                          bias: i32,
                          depth_write_enabled: bool,
                          depth_compare: wgpu::CompareFunction| {
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage(&format!("Compiling scene pipeline: {fragment}"));
         let targets = [Some(wgpu::ColorTargetState {
             format,
             blend,

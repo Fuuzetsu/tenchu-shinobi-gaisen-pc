@@ -1,13 +1,17 @@
 use jni::{JValue, JavaVM, jni_sig, jni_str, objects::JObject};
 use std::{
     path::{Path, PathBuf},
-    sync::OnceLock,
+    sync::{
+        OnceLock,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 use tenchu_assets::Result;
 use winit::platform::android::activity::AndroidApp;
 
 static DATA: OnceLock<PathBuf> = OnceLock::new();
 static APP: OnceLock<AndroidApp> = OnceLock::new();
+static PRESENTED: AtomicBool = AtomicBool::new(false);
 
 pub fn graphics_backend() -> wgpu::Backends {
     match data_dir()
@@ -34,9 +38,14 @@ pub fn startup_log(message: &str) {
     }
 }
 
+pub fn graphics_stage(message: &str) {
+    if !PRESENTED.load(Ordering::Relaxed) {
+        startup_log(message);
+    }
+}
+
 pub fn first_frame() {
-    static PRESENTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-    if !PRESENTED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+    if !PRESENTED.swap(true, Ordering::Relaxed) {
         startup_log("First frame presented successfully");
     }
 }
@@ -105,6 +114,13 @@ fn android_main(app: AndroidApp) {
         let _ = DATA.set(root.clone());
         let _ = std::fs::write(root.join("startup-log.txt"), "");
         startup_log(&crate::diagnostics::build().to_string());
+        startup_log(&format!(
+            "Startup Unix ms: {}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        ));
         let previous_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
             startup_log(&format!(

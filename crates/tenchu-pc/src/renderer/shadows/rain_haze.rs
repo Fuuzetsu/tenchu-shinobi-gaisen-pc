@@ -52,6 +52,8 @@ impl Volume {
             mapped_at_creation: false,
         });
         let pipeline = (!gl).then(|| {
+            #[cfg(target_os = "android")]
+            crate::android::graphics_stage("Compiling rain haze compute pipeline");
             let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("Rain haze volume"),
                 source: wgpu::ShaderSource::Wgsl(

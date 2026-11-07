@@ -215,7 +215,11 @@ impl Shadows {
         });
         let sun = super::sun::target(device, 1);
         let (weather, weather_layers) = weather_targets(device, 1);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating rain haze resources");
         let haze = rain_haze::Volume::new(device, gl);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating shadow maps and filtering resources");
         let (bindings, views, readable, weather_bounds, bounds) = maps(
             device,
             &layout,
@@ -270,6 +274,8 @@ impl Shadows {
                 (data, binding)
             })
             .collect();
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating shadow shader");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Paletted cutout shadows"),
             source: wgpu::ShaderSource::Wgsl(
@@ -290,6 +296,8 @@ impl Shadows {
             push_constant_ranges: &[],
         });
         let pipeline = |label, bias| {
+            #[cfg(target_os = "android")]
+            crate::android::graphics_stage(&format!("Compiling shadow pipeline: {label}"));
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(label),
                 layout: Some(&pipeline_layout),
@@ -330,6 +338,8 @@ impl Shadows {
             })
         };
         let weather_pipeline = pipeline("Precipitation shelter", wgpu::DepthBiasState::default());
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Compiling shadow clear pipeline");
         let clear_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Clear changed shadow region"),
             layout: Some(&pipeline_layout),

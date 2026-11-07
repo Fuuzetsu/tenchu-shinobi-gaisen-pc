@@ -95,8 +95,18 @@ GLES renderer instead of the phone's Vulkan driver; some advanced effects and
 multisample antialiasing are unavailable. Automatic remains the default.
 **Copy startup/crash report** collects the build, device/Android version, last
 startup stage, GPU details when available, and Android's recent process-exit
-reasons (Android 11+). Paste that text with a bug report. It does not include
-the disc, game resources or saves, and sends nothing automatically.
+reasons (Android 11+). Android 12+ also includes the newest game-process native
+crash trace when the system still has it. Renderer checkpoints identify device
+creation, shader compilation, texture uploads and presentation before the first
+frame. Paste that text with a bug report. It does not attach disc files or saves,
+and sends nothing automatically.
+
+The optional `exits[].native_trace.data` is Android's tombstone protobuf,
+compressed with gzip and encoded as base64 so the JSON can be read on any
+platform. Decode base64, decompress gzip, then use the
+[Android tombstone schema](https://android.googlesource.com/platform/system/core/+/refs/heads/main/debuggerd/proto/tombstone.proto)
+to inspect native thread stacks. An unavailable/oversized trace is reported
+without discarding the rest of the report.
 
 ## Verification and current limits
 

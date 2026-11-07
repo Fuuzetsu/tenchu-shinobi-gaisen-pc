@@ -395,6 +395,8 @@ impl View {
             },
             &adapter.get_info().name,
         );
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Querying presentation surface");
         let size = window.inner_size();
         let mut config = surface
             .get_default_config(&adapter, size.width.max(1), size.height.max(1))
@@ -408,6 +410,8 @@ impl View {
             config.format = format;
         }
         config.present_mode = wgpu::PresentMode::AutoVsync;
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage(&format!("Presentation configuration: {config:?}"));
         let mut renderer = Renderer::new(
             &adapter,
             config.format,
@@ -415,6 +419,8 @@ impl View {
             &game.mission.vram,
         )
         .await?;
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Renderer created; loading artwork and models");
         let mut pack_error = None;
         let mut pack = Pack::from_env(&game.mission).unwrap_or_else(|error| {
             eprintln!("Asset pack: {error}; using original assets");
@@ -449,8 +455,14 @@ impl View {
         renderer.set_asset_pack(&pack);
         let emitters = Emitters::build(game, &pack, settings.graphics.asset_pack);
         renderer.set_emitters(&emitters);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Uploading model textures");
         renderer.bind_models(&mut models);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Configuring presentation surface");
         surface.configure(&renderer.device, &config);
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Uploading terrain, actors and effects");
         let stage = renderer.upload(&render_mesh::stage(
             &game.mission,
             &game.math,
@@ -490,6 +502,8 @@ impl View {
             adapter.get_info().name,
             adapter.get_info().backend
         );
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Creating settings overlay");
         let overlay = super::overlay::Overlay::new(&window, &renderer, config.format);
         let mut contact = crate::visuals::contact::Contact::default();
         contact.canopies = models.canopies(game);
@@ -543,7 +557,11 @@ impl View {
             interpolation_enabled: false,
             frame: None,
         };
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Applying saved graphics settings");
         view.settings(configured, game)?;
+        #[cfg(target_os = "android")]
+        crate::android::graphics_stage("Graphics startup complete; waiting for first frame");
         Ok(view)
     }
 

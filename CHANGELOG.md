@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Android startup reports include detailed renderer checkpoints and, on Android
+  12+, the available native crash trace to help diagnose failures before the
+  settings menu opens.
+
 ## 0.20.1 — 2026-11-07
 
 - Support a separate `tenchu2-hd.tar.zst` artwork pack for imported Tenchu 2
