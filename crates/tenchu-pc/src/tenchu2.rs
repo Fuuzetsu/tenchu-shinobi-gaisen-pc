@@ -18,6 +18,8 @@ use tenchu_core::{
 };
 
 #[cfg(test)]
+mod collision_tests;
+#[cfg(test)]
 mod tests;
 
 pub struct Sandbox {

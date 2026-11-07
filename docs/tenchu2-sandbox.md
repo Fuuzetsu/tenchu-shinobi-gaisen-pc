@@ -119,9 +119,9 @@ browser level import is not yet available.
 Unported elements include TRIAL/editor-built stages, doors and other scripted/moving objects, procedural
 lights/effects, sky/background setup, animated water, water/material/hazard
 semantics, scripted music/voices, objectives and cutscenes.
-The sandbox treats collision surfaces as ordinary
-solid terrain. Water surfaces and invisible bottom planes can consequently act
-as floors. Some routes can lead into unimplemented obstacles. F1 free camera
+Collision preserves the source's blocked wall regions, masked holes and ordered
+floor layers. Water surfaces still act as floors until water behavior is ported.
+Some routes can lead into unimplemented scripted obstacles. F1 free camera
 helps explore those areas; this is not yet a completable Tenchu 2 campaign.
 
 Validation covers decoding all 23 maps, source-formula collision samples in both

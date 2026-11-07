@@ -17,15 +17,18 @@ impl Collision {
                 nodes
                     .into_iter()
                     .map(|mut node| {
-                        // MCD has exclusive bounds and different slope tags. Other surface
-                        // flags describe T2 mechanics and are not Gaisen material flags.
+                        // Preserve MCD's ordered blockers, including flat masked holes.
                         node.bounds[2] -= 1;
                         node.bounds[3] -= 1;
-                        node.attributes = 1 | match node.attributes & 0xc000 {
-                            0x8000 => 0x4000,
-                            0xc000 => 0x8000,
-                            _ => 0,
-                        };
+                        let blocked = node.attributes & 0xf00 == 0x100;
+                        node.attributes = 1
+                            | if blocked { 2 } else { 0 }
+                            | match node.attributes & 0xc000 {
+                                0 => 0x2000,
+                                0x8000 => 0x4000,
+                                0xc000 => 0x8000,
+                                _ => 0,
+                            };
                         node
                     })
                     .collect()

@@ -51,7 +51,7 @@ impl Grid {
 }
 
 impl AreaMap {
-    pub fn from_grid(grid: Grid, mut cells: Vec<Vec<Node>>) -> Result<Self> {
+    pub fn from_grid(grid: Grid, cells: Vec<Vec<Node>>) -> Result<Self> {
         if grid.cell_size <= 0
             || grid.dimensions.contains(&0)
             || grid.dimensions.iter().any(|&n| n > 64)
@@ -59,11 +59,10 @@ impl AreaMap {
         {
             return Err("Invalid terrain cell grid".into());
         }
-        for nodes in &mut cells {
+        for nodes in &cells {
             if nodes.len() > i16::MAX as usize {
                 return Err("Excessive terrain cell".into());
             }
-            nodes.sort_by_key(|n| n.bounds[1]);
         }
         let mut map = Self::from_nodes(
             cells

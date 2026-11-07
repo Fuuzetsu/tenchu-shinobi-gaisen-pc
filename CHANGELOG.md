@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Fix walking and seeing through blocked terrain in imported Tenchu 2 maps.
+  Wall interiors and masked voids now stop collision/sight queries instead of
+  exposing the floor underneath; stacked surfaces keep their source ordering.
+
 - Restore Tenchu 2's map-specific background sound banks and ambient scheduling,
   verified against retail BizHawk recordings. F6 defaults to **Stage ambience
   (retail)** instead of repeating character-selection music. Ambient sounds use

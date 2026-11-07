@@ -2,6 +2,8 @@ use crate::Result;
 use crate::math::Position;
 use tenchu_assets::terrain::{AreaMap, Node};
 
+mod grid;
+
 pub const NONE: i32 = i32::MIN;
 pub const STEP_DOWN: u16 = 1;
 pub const RETURN_DELTA: u16 = 2;
@@ -110,6 +112,9 @@ pub fn node_level(node: Node, x: i32, z: i32) -> Result<i32> {
 }
 
 pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) -> Result<i32> {
+    if map.grid.is_some() {
+        return grid::level(map, cursor, position, mode);
+    }
     let Position {
         x: wx,
         y: wy,
@@ -119,31 +124,22 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) 
     let y = (wy / 10).wrapping_sub(if mode & STEP_DOWN != 0 { 150 } else { 0 });
     cursor.attribute = 0x81;
     let mut height = NONE;
-    if map.grid.is_none() && mode & REUSE_CACHED != 0 && y == cursor.last_y {
+    if mode & REUSE_CACHED != 0 && y == cursor.last_y {
         let node = map.node(cursor.area)?;
         if node.contains(x, z) {
             height = node_level(node, x, z)?;
         }
     }
     cursor.last_y = y;
-    let mut row = if let Some(grid) = &map.grid {
-        let Some(row) = grid.cell(x, z) else {
-            return Ok(NONE);
-        };
-        row
-    } else {
-        cursor.row
-    };
+    let mut row = cursor.row;
     if row > map.rows.len() {
         return Err("Invalid terrain row cursor".into());
     }
-    if map.grid.is_none() {
-        while row > 0 && map.rows.get(row).is_some_and(|r| y < i32::from(r.height)) {
-            row -= 1;
-        }
-        while map.rows.get(row).is_some_and(|r| i32::from(r.height) < y) {
-            row += 1;
-        }
+    while row > 0 && map.rows.get(row).is_some_and(|r| y < i32::from(r.height)) {
+        row -= 1;
+    }
+    while map.rows.get(row).is_some_and(|r| i32::from(r.height) < y) {
+        row += 1;
     }
     while height == NONE {
         let Some(bounds) = map.rows.get(row) else {
@@ -160,10 +156,8 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) 
                 if !node.contains(x, z) {
                     continue;
                 }
-                if map.grid.is_none() || mode & FIRST_HIT != 0 {
-                    cursor.row = row;
-                    cursor.area = at;
-                }
+                cursor.row = row;
+                cursor.area = at;
                 if mode & FIRST_HIT != 0 {
                     height = if node.division == u16::MAX {
                         i32::from(node.y)
@@ -176,19 +170,12 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) 
                 let current = node_level(node, x, z)?;
                 if (height == NONE || current < height) && y <= current {
                     height = current;
-                    if map.grid.is_some() {
-                        cursor.row = row;
-                        cursor.area = at;
-                    }
                     cursor.attribute = node.attributes;
                     if cursor.attribute & 0x2000 != 0 {
                         break;
                     }
                 }
             }
-        }
-        if map.grid.is_some() {
-            break;
         }
         row += 1;
     }

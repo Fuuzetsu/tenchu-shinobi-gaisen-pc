@@ -1275,9 +1275,13 @@ no executable tables, extracted models, textures or captures are included.
   `0x80018f98` onward supplies corner intensity indices and blend-mode handling.
   Opaque texture regions clear the blend flag when no texel uses PS1 STP.
 - MCD cell loading at `0x8002cc94`; floor query at `0x8002cd88..0x8002d2e0`.
-  The adapter keeps exclusive bounds, division masks and the two slope formulas,
-  while translating them to the existing scalar Gaisen collision query. Other
-  surface flags are intentionally ordinary solid floors in this sandbox.
+  The adapter keeps exclusive bounds, division masks and the two slope formulas.
+  The grid query also preserves source list order, the `0x100` blocked material
+  (`attribute & 0xf00`), and the terminating masked holes on flat `0xc000 == 0`
+  entries. Gaisen's own ACM query remains separate. Verified 57,500 queries over
+  all 23 populated maps against this executable routine running in Unicorn,
+  including 20,949 blocked results. This tests the floor routine, not the whole
+  Tenchu 2 movement/AI simulation. Other material flags remain sandbox limitations.
 - OSD placement at `0x8004ef08..0x8004ef28` supplies pitch/yaw. Type-zero objects
   dispatch procedural effects (`0x8004e9c0`, including indices 16/17), rather than
   indexing mapOBJ.arc; these and scripted effects are counted but not imported.
