@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Imported Tenchu 2 female enemies now use female Gaisen combat voices instead
+  of inheriting the selected guard's male voice. Imported Ayame and Rikimaru
+  use their corresponding Gaisen voice banks.
+
 - Extra wound, severed-limb and weapon blood now makes positional splatter
   sounds on contact, using the effects-volume setting. A shared rate limit
   prevents dense blood sprays from overwhelming combat audio.

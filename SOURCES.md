@@ -1310,6 +1310,12 @@ ancestor. Source idle tracks are read from the character-specific motion CABs;
 Gaisen gameplay and weapons remain in use outside the separate Tatsumaru import.
 No source models, textures, animations or executable bytes are distributed.
 
+Sandbox voice selection is a presentation adaptation: imported female bodies
+use Gaisen's KUNOITI combat bank, and imported Ayame/Rikimaru use their Gaisen
+hero banks. Donor programs are resolved from Gaisen's appearance tables rather
+than assuming a fixed mission slot. This does not import Tenchu 2 voice events
+or change the selected Gaisen guard AI.
+
 ### Tenchu 2 sandbox music (2026-11-07)
 
 The hash-checked Europe GAME.EXE supplies the music archive name at `0x8001323c`

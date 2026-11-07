@@ -2,6 +2,7 @@ use crate::{session::Options, source::DiscSource};
 #[cfg(not(target_arch = "wasm32"))]
 mod discs;
 pub mod menu;
+pub(crate) mod voices;
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{
     Result,
@@ -237,7 +238,7 @@ impl Sandbox {
                 let Some(body) = body else {
                     continue;
                 };
-                let source = if let Some(&source) = imported.get(&body.name) {
+                let (source, voice) = if let Some(&source) = imported.get(&body.name) {
                     source
                 } else {
                     let actor = game.roster.get(id);
@@ -259,10 +260,23 @@ impl Sandbox {
                         .get_mut(&source.model)
                         .unwrap()
                         .source_id = Some(format!("tenchu2/actors/{}", body.name));
-                    imported.insert(body.name.clone(), source);
-                    source
+                    let voice = voices::donor(&executable, &body.name)?.map(|voice| {
+                        let index = game
+                            .mission
+                            .imported_voices
+                            .iter()
+                            .position(|v| *v == voice)
+                            .unwrap_or_else(|| {
+                                game.mission.imported_voices.push(voice);
+                                game.mission.imported_voices.len() - 1
+                            });
+                        128 + index as i16
+                    });
+                    imported.insert(body.name.clone(), (source, voice));
+                    (source, voice)
                 };
                 game.replace_actor(id, source, 0x3453)?;
+                game.roster.get_mut(id).voice_program = voice;
             }
         }
         game.camera.snap_pending = true;

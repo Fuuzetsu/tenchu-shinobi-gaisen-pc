@@ -78,7 +78,10 @@ with that Gaisen guard type, omitting placements without a nearby collision floo
 The guards follow the source X/Z patrol points using Gaisen's AI; Tenchu 2 waits,
 route actions and behavior are not reproduced. **Use Tenchu 2 character models
 for guards** gives them their source bodies; all still use the selected Gaisen
-guard's weapon, voice, moves and AI, including source civilian/animal slots.
+guard's weapon, moves and AI, including source civilian/animal slots. Female
+bodies use female Gaisen combat voices, and imported Ayame/Rikimaru use their
+Gaisen voice banks. Other bodies retain the selected guard's voice; original
+Tenchu 2 voice events are not implemented.
 
 Connecting a disc adds its **Tenchu 2 (EU)** or **Tenchu 2 (JP)** tab to
 **F1 → Player model** in any Gaisen mission or sandbox. Both can coexist with

@@ -63,7 +63,10 @@ impl Library {
                 clips: Arc::new(clips),
                 idle,
                 think: behavior.think,
-                voice: behavior.voice,
+                voice: crate::tenchu2::voices::donor_kind(&model.name)
+                    .and_then(|kind| self.get(&format!("disc:{kind}")))
+                    .and_then(|body| body.voice)
+                    .or(behavior.voice),
             };
             self.aliases.insert(id, self.bodies.len());
             self.bodies.push(body);
