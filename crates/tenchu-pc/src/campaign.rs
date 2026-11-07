@@ -65,6 +65,7 @@ pub struct Campaign {
     pub frontend: bool,
     pub quick_launcher: bool,
     pub randomized: Option<Randomized>,
+    pub sandbox: Option<crate::tenchu2::Sandbox>,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
@@ -98,6 +99,7 @@ impl Campaign {
             frontend: false,
             quick_launcher: true,
             randomized: None,
+            sandbox: None,
         })
     }
 
@@ -107,6 +109,23 @@ impl Campaign {
 
     pub fn scene_visible(&self) -> bool {
         matches!(self.screen, Screen::Playing | Screen::DeathHold { .. })
+    }
+
+    pub fn start_sandbox(
+        &mut self,
+        sandbox: crate::tenchu2::Sandbox,
+        assets: &GameAssets<DiscSource>,
+    ) -> Result<()> {
+        let game = sandbox.load(assets, self.options)?;
+        if let Some(save) = &self.saved {
+            self.progress = save.progress.clone();
+            self.seed = save.seed;
+        }
+        self.game = game;
+        self.screen = Screen::Playing;
+        self.sandbox = Some(sandbox);
+        self.save_request = None;
+        Ok(())
     }
 
     fn selection(&self, options: Options) -> Selection {
@@ -129,7 +148,10 @@ impl Campaign {
     }
 
     pub fn checkpoint(&mut self, options: Options) {
-        if self.randomized.is_some() || self.game.trial.is_some() {
+        if self.randomized.is_some()
+            || self.game.trial.is_some()
+            || self.game.mission.world_vram.is_some()
+        {
             return;
         }
         self.save_request = Some(Save {
@@ -226,6 +248,7 @@ impl Campaign {
             });
         self.options = plan.options(language);
         self.game = game;
+        self.sandbox = None;
         self.randomized = Some(Randomized {
             run,
             plan,
@@ -254,6 +277,25 @@ impl Campaign {
 
     pub fn action(&mut self, action: Action, assets: &GameAssets<DiscSource>) -> Result<bool> {
         let action = self.screen.menu_action(action);
+        if self.game.mission.world_vram.is_some()
+            && let Some(sandbox) = &self.sandbox
+        {
+            if matches!(action, Action::Replay)
+                || (matches!(action, Action::Confirm)
+                    && matches!(self.screen, Screen::GameOver | Screen::DeathHold { .. }))
+            {
+                self.game = sandbox.load(assets, self.options)?;
+                self.screen = Screen::Playing;
+                return Ok(true);
+            }
+            if matches!(action, Action::Back) {
+                self.sandbox = None;
+                self.game = self.options.load(assets)?;
+                self.screen = Screen::Launcher;
+                self.cursor = 1;
+                return Ok(true);
+            }
+        }
         match &mut self.screen {
             Screen::Frontend | Screen::Ending(_) => (),
             Screen::Launcher => match action {

@@ -29,9 +29,71 @@ pub struct Row {
 pub struct AreaMap {
     data: Vec<u8>,
     pub rows: Vec<Row>,
+    pub grid: Option<Grid>,
+}
+
+#[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Grid {
+    pub origin: [i16; 2],
+    pub dimensions: [usize; 2],
+    pub cell_size: i16,
+}
+
+impl Grid {
+    pub fn cell(&self, x: i32, z: i32) -> Option<usize> {
+        let [x, z] = [x - i32::from(self.origin[0]), z - i32::from(self.origin[1])];
+        if x < 0 || z < 0 || self.cell_size <= 0 {
+            return None;
+        }
+        let [x, z] = [x, z].map(|v| (v / i32::from(self.cell_size)) as usize);
+        (x < self.dimensions[0] && z < self.dimensions[1]).then_some(z * self.dimensions[0] + x)
+    }
 }
 
 impl AreaMap {
+    pub fn from_grid(grid: Grid, mut cells: Vec<Vec<Node>>) -> Result<Self> {
+        if grid.cell_size <= 0
+            || grid.dimensions.contains(&0)
+            || grid.dimensions.iter().any(|&n| n > 64)
+            || grid.dimensions[0] * grid.dimensions[1] != cells.len()
+        {
+            return Err("Invalid terrain cell grid".into());
+        }
+        for nodes in &mut cells {
+            if nodes.len() > i16::MAX as usize {
+                return Err("Excessive terrain cell".into());
+            }
+            nodes.sort_by_key(|n| n.bounds[1]);
+        }
+        let mut map = Self::from_nodes(
+            cells
+                .into_iter()
+                .map(|nodes| (i16::MAX - 2, nodes))
+                .collect(),
+        )?;
+        for (i, row) in map.rows.iter_mut().enumerate() {
+            let x = i32::from(grid.origin[0])
+                + (i % grid.dimensions[0]) as i32 * i32::from(grid.cell_size);
+            let z = i32::from(grid.origin[1])
+                + (i / grid.dimensions[0]) as i32 * i32::from(grid.cell_size);
+            for (i, bound) in [
+                x,
+                z,
+                x + i32::from(grid.cell_size) - 1,
+                z + i32::from(grid.cell_size) - 1,
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                row.bounds[i] = bound
+                    .try_into()
+                    .map_err(|_| "Terrain grid exceeds coordinate range")?;
+            }
+        }
+        map.grid = Some(grid);
+        Ok(map)
+    }
+
     pub fn from_nodes(levels: Vec<(i16, Vec<Node>)>) -> Result<Self> {
         let mut data = vec![0; (levels.len() + 1) * 16];
         for (index, (height, nodes)) in levels.into_iter().enumerate() {
@@ -75,7 +137,11 @@ impl AreaMap {
             let record = slice(&data, at, 16)?;
             let offset = u32_le(record, 4)? as usize;
             if offset == 0 {
-                return Ok(Self { data, rows });
+                return Ok(Self {
+                    data,
+                    rows,
+                    grid: None,
+                });
             }
             let count = i16_le(record, 2)?;
             let lookup = (count < 0).then_some(offset);
@@ -147,6 +213,7 @@ mod tests {
     #[test]
     fn unaligned_nodes_preserve_signed_fields_and_surface_edits() {
         let mut map = AreaMap {
+            grid: None,
             data: vec![
                 0xaa, 0x00, 0x80, 0xff, 0x7f, 0xff, 0xff, 0x00, 0x00, 0xd2, 0x04, 0x00, 0xf8, 0x23,
                 0x81, 0xdc, 0xfe,

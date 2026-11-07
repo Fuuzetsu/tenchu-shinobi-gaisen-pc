@@ -1252,3 +1252,32 @@ resources, not a Tenchu 2 simulation. Gaisen supplies collision/reactions and
 input chaining; its fist sphere is centered on each selected hand or foot.
 PAL's movement-speed 6/5 correction is omitted at the port's nominal 30 Hz.
 No T2 motion, model, texture, audio, executable or extracted pack is checked in.
+
+## Experimental Tenchu 2 scenery (2026-11-07)
+
+The same user-supplied Europe GAME.EXE identified above was inspected locally
+with Capstone. `tenchu-assets/src/tenchu2/` reads the user's VOLUME resources;
+no executable tables, extracted models, textures or captures are included.
+
+- MSD cell coordinates and map-4 vertical spacing: `0x80046800..0x800468cc`,
+  loading at `0x800472f8..0x800473b4`. Cells use X/Z/Y ordering; MCD uses Z/X.
+- MDL relocation and global vertex identities: `0x800180f4..0x8001830c`.
+  Scenery has one root, eight-byte vertices and 28-byte indexed textured faces.
+  `0x80018f98` onward supplies corner intensity indices and blend-mode handling.
+  Opaque texture regions clear the blend flag when no texel uses PS1 STP.
+- MCD cell loading at `0x8002cc94`; floor query at `0x8002cd88..0x8002d2e0`.
+  The adapter keeps exclusive bounds, division masks and the two slope formulas,
+  while translating them to the existing scalar Gaisen collision query. Other
+  surface flags are intentionally ordinary solid floors in this sandbox.
+- OSD placement at `0x8004ef08..0x8004ef28` supplies pitch/yaw. Type-zero objects
+  dispatch procedural effects (`0x8004e9c0`, including indices 16/17), rather than
+  indexing mapOBJ.arc; these and scripted effects are counted but not imported.
+- LAY actor positions and patrol points: `0x8002ea84..0x8002eeac`. Sequence
+  descriptors at `0x80082bec`, read by `0x80060c04..0x80060c60`, map each layout
+  to its scenery. GAME.EXE is hash-checked before reading this table.
+
+`tenchu-pc::tenchu2` is a new, explicitly approximate gameplay adapter: Gaisen
+heroes and optional guards explore imported scenery, with separate texture
+storage. It does not reproduce T2 AI, scripts, water, hazards or mission outcomes.
+Source-formula collision tests and native play checks are not emulator parity.
+See [usage and boundaries](docs/tenchu2-sandbox.md).

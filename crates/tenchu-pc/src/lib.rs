@@ -28,6 +28,7 @@ mod source;
 #[cfg(not(target_arch = "wasm32"))]
 mod startup;
 mod storage;
+mod tenchu2;
 mod touch;
 mod trial;
 mod ui;

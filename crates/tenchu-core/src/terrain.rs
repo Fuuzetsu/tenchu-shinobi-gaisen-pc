@@ -26,7 +26,7 @@ pub fn passage(
         }
         let node = map.node(cursor.area)?;
         let [x1, z1, x2, z2] = node.bounds.map(|v| i32::from(v) * 10);
-        let ceiling = if cursor.row == 0 {
+        let ceiling = if cursor.row == 0 || map.grid.is_some() {
             -1000000
         } else {
             i32::from(
@@ -119,22 +119,31 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) 
     let y = (wy / 10).wrapping_sub(if mode & STEP_DOWN != 0 { 150 } else { 0 });
     cursor.attribute = 0x81;
     let mut height = NONE;
-    if mode & REUSE_CACHED != 0 && y == cursor.last_y {
+    if map.grid.is_none() && mode & REUSE_CACHED != 0 && y == cursor.last_y {
         let node = map.node(cursor.area)?;
         if node.contains(x, z) {
             height = node_level(node, x, z)?;
         }
     }
     cursor.last_y = y;
-    let mut row = cursor.row;
+    let mut row = if let Some(grid) = &map.grid {
+        let Some(row) = grid.cell(x, z) else {
+            return Ok(NONE);
+        };
+        row
+    } else {
+        cursor.row
+    };
     if row > map.rows.len() {
         return Err("Invalid terrain row cursor".into());
     }
-    while row > 0 && map.rows.get(row).is_some_and(|r| y < i32::from(r.height)) {
-        row -= 1;
-    }
-    while map.rows.get(row).is_some_and(|r| i32::from(r.height) < y) {
-        row += 1;
+    if map.grid.is_none() {
+        while row > 0 && map.rows.get(row).is_some_and(|r| y < i32::from(r.height)) {
+            row -= 1;
+        }
+        while map.rows.get(row).is_some_and(|r| i32::from(r.height) < y) {
+            row += 1;
+        }
     }
     while height == NONE {
         let Some(bounds) = map.rows.get(row) else {
@@ -151,8 +160,10 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) 
                 if !node.contains(x, z) {
                     continue;
                 }
-                cursor.row = row;
-                cursor.area = at;
+                if map.grid.is_none() || mode & FIRST_HIT != 0 {
+                    cursor.row = row;
+                    cursor.area = at;
+                }
                 if mode & FIRST_HIT != 0 {
                     height = if node.division == u16::MAX {
                         i32::from(node.y)
@@ -165,12 +176,19 @@ pub fn level(map: &AreaMap, cursor: &mut Cursor, position: Position, mode: u16) 
                 let current = node_level(node, x, z)?;
                 if (height == NONE || current < height) && y <= current {
                     height = current;
+                    if map.grid.is_some() {
+                        cursor.row = row;
+                        cursor.area = at;
+                    }
                     cursor.attribute = node.attributes;
                     if cursor.attribute & 0x2000 != 0 {
                         break;
                     }
                 }
             }
+        }
+        if map.grid.is_some() {
+            break;
         }
         row += 1;
     }
@@ -308,6 +326,50 @@ mod tests {
     use super::*;
     mod passage;
     mod vector;
+
+    #[test]
+    fn spatial_grid_queries_keep_the_nearest_surface_and_change_cells() {
+        let node = Node {
+            y: 0,
+            dy: 0,
+            bounds: [-100, -100, 99, 99],
+            attributes: 1,
+            division: u16::MAX,
+        };
+        let map = AreaMap::from_grid(
+            tenchu_assets::terrain::Grid {
+                origin: [-100, -100],
+                dimensions: [2, 1],
+                cell_size: 200,
+            },
+            vec![
+                vec![node, Node { y: 100, ..node }],
+                vec![Node {
+                    y: 50,
+                    bounds: [100, -100, 299, 99],
+                    ..node
+                }],
+            ],
+        )
+        .unwrap();
+        let mut cursor = Cursor::new(&map);
+        for (point, expected) in [
+            ([0, -10, 0], 0),
+            ([1000, -10, 0], 500),
+            ([0, 10, 0], 1000),
+            ([0, -10, 0], 0),
+        ] {
+            assert_eq!(
+                level(&map, &mut cursor, point.into(), REUSE_CACHED).unwrap(),
+                expected
+            );
+            assert_eq!(i32::from(map.node(cursor.area).unwrap().y) * 10, expected);
+        }
+        assert_eq!(
+            level(&map, &mut cursor, [3000, -10, 0].into(), 0).unwrap(),
+            NONE
+        );
+    }
 
     fn flat_map() -> AreaMap {
         let mut bytes = vec![0u8; 48];

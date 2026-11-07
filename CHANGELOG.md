@@ -5,6 +5,15 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add an experimental native Tenchu 2 scenery sandbox, reading the user's
+  Europe disc alongside Gaisen. `play-t2` explores all 23 nonempty maps with
+  either Gaisen hero; optional Gaisen guards use imported placements and patrol
+  points. `inspect-t2` lists maps/layouts and `render-t2` saves a preview.
+  Tenchu 2 missions, story, AI, scripted objects and water mechanics are not
+  implemented. See [the sandbox guide](docs/tenchu2-sandbox.md).
+- Mid-mission savestates use a new format for imported terrain and textures.
+  Recreate older mid-mission saves; campaign progress is unchanged.
+
 ## 0.19.0 — 2026-11-06
 
 - Bandages can be selected and used in the normal carried-item row, including

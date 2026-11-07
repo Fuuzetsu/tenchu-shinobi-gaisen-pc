@@ -1439,6 +1439,7 @@ pub struct Startup {
     pub quick_launcher: bool,
     pub difficulty: Option<tenchu_core::ai::Difficulty>,
     pub benchmark: Option<benchmark::Options>,
+    pub sandbox: Option<crate::tenchu2::Sandbox>,
 }
 
 pub fn run(
@@ -1479,6 +1480,7 @@ pub fn run(
     if demo.as_ref().is_some_and(|d| d.muted) {
         settings.volume = 0;
     }
+    let sandbox = startup.sandbox.is_some();
     let saved = if demo.is_some() {
         None
     } else {
@@ -1492,6 +1494,13 @@ pub fn run(
         options.difficulty = difficulty;
     }
     let mut campaign = Campaign::new(&assets, options, saved)?;
+    if let Some(import) = startup.sandbox {
+        campaign.start_sandbox(import, &assets)?;
+        notice = format!(
+            "{}: Tenchu 1 gameplay; F5 restarts, Esc leaves",
+            campaign.game.mission.stage.name
+        );
+    }
     settings.apply_activation(&mut campaign.game.roster);
     campaign.game.intelligence.sight_percent = settings.sight_percent;
     campaign.game.intelligence.independent_attacks = settings.independent_attacks;
@@ -1511,7 +1520,7 @@ pub fn run(
     campaign
         .game
         .set_behavior_profiles(settings.behavior_profiles);
-    let frontend = if demo.is_none() && startup.benchmark.is_none() {
+    let frontend = if demo.is_none() && startup.benchmark.is_none() && !sandbox {
         campaign.frontend = true;
         campaign.quick_launcher = false;
         if let Some(save) = &campaign.saved {

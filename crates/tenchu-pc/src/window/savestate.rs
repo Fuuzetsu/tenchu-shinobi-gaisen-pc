@@ -121,6 +121,14 @@ impl Application {
     fn restore_snapshot(&mut self, mut state: State<Game>, rewind: bool) -> Result<()> {
         self.state_tools_available()?;
         state.validate()?;
+        if state.game.mission.world_vram.is_some()
+            && (self.campaign.sandbox.is_none()
+                || state.game.mission.stage.directory != self.campaign.game.mission.stage.directory)
+        {
+            return Err(
+                "Open the same Tenchu 2 sandbox map and sequence before loading this state".into(),
+            );
+        }
         let recorded_graphics = rewind && self.reverse.recorded_visuals == Some(true);
         if recorded_graphics {
             state.preferences.validate();
@@ -201,6 +209,9 @@ impl Application {
         self.campaign.progress = state.progress;
         self.campaign.seed = state.seed;
         self.campaign.randomized = state.randomized;
+        if self.campaign.game.mission.world_vram.is_none() {
+            self.campaign.sandbox = None;
+        }
         self.campaign.frontend = state.frontend;
         self.campaign.quick_launcher = state.quick_launcher;
         self.campaign.screen =
@@ -368,6 +379,11 @@ impl State<Game> {
                 .is_none_or(Option::is_none)
             || game.collision.len > game.collision.slots.len()
             || game.mission.vram.words.len() != 1024 * 512
+            || game
+                .mission
+                .world_vram
+                .as_ref()
+                .is_some_and(|v| v.words.len() != 1024 * 512)
         {
             return Err("Invalid mission or player in savestate".into());
         }
@@ -427,6 +443,7 @@ fn same_scene(next: &Game, previous: &Game) -> bool {
         || a.common_models != b.common_models
         || a.weapons.models != b.weapons.models
         || a.imported_models != b.imported_models
+        || a.world_vram != b.world_vram
         || a.imported_voices != b.imported_voices
     {
         return false;
@@ -442,6 +459,7 @@ fn reuse_scene(next: &mut Game, previous: &mut Game) {
     std::mem::swap(&mut a.models, &mut b.models);
     std::mem::swap(&mut a.common_models, &mut b.common_models);
     std::mem::swap(&mut a.weapons.models, &mut b.weapons.models);
+    std::mem::swap(&mut a.world_vram, &mut b.world_vram);
 }
 
 #[cfg(test)]

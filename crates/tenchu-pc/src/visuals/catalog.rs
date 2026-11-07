@@ -162,6 +162,16 @@ pub struct ModelSource<'a> {
 }
 
 pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
+    let mut out = if mission.world_vram.is_none() {
+        world_models(mission)
+    } else {
+        Vec::new()
+    };
+    out.extend(actor_models(mission));
+    out
+}
+
+pub fn world_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
     let mut out = Vec::new();
     for (index, part) in mission.map.iter().enumerate() {
         out.push(ModelSource {
@@ -181,6 +191,11 @@ pub fn models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
             geometry: &part.geometry,
         });
     }
+    out
+}
+
+fn actor_models(mission: &MissionAssets) -> Vec<ModelSource<'_>> {
+    let mut out = Vec::new();
     for (&kind, parts) in mission.models.iter() {
         if mission.imported_models.contains_key(&kind) {
             continue;

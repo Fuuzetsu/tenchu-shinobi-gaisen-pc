@@ -38,9 +38,9 @@ impl Models {
         let mut out = Vec::new();
         render_mesh::visit_stage(&game.mission, &game.math, |geometry, matrix| {
             let key = geometry.as_ptr() as usize;
-            if let Some(canopies) = self.world.canopies.get(&key) {
-                let variant = self
-                    .world
+            let source = self.source(geometry);
+            if let Some(canopies) = source.canopies.get(&key) {
+                let variant = source
                     .variants
                     .get(&key)
                     .map(|s| s.variant(matrix.translation.to_array()));
@@ -65,10 +65,9 @@ impl Models {
     }
 
     pub fn has_water(&self) -> bool {
-        self.world
-            .meshes
-            .values()
-            .flat_map(|mesh| &mesh.vertices)
+        std::iter::once(&self.world)
+            .chain(&self.imported)
+            .flat_map(|meshes| meshes.meshes.values().flat_map(|mesh| &mesh.vertices))
             .any(|v| v.flags & render_mesh::WATER != 0)
     }
 
@@ -97,6 +96,15 @@ impl Models {
         )?;
         let mut imported = Vec::new();
         let mut imported_geometry = BTreeMap::new();
+        if let Some(vram) = &mission.world_vram {
+            let sources = catalog::world_models(mission);
+            let mut meshes = Meshes::build(vram, &Pack::default(), graphics, sources, true)?;
+            meshes.detach_textures();
+            for part in mission.map.iter().chain(mission.objects.iter()) {
+                imported_geometry.insert(part.geometry.as_ptr() as usize, imported.len());
+            }
+            imported.push(meshes);
+        }
         for (&kind, source) in mission.imported_models.iter() {
             let parts = &mission.models[&kind];
             let sources: Vec<_> = parts

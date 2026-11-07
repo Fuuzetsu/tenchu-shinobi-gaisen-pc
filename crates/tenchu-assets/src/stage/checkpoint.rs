@@ -18,6 +18,7 @@ impl MissionAssets {
             terrain,
             balma_terrain,
             vram,
+            world_vram,
             images,
             characters,
             models,
@@ -56,6 +57,10 @@ impl MissionAssets {
         out.shared(terrain)?;
         out.shared(balma_terrain)?;
         vram.capture(out)?;
+        out.value(&world_vram.is_some())?;
+        if let Some(vram) = world_vram {
+            out.shared_arc(vram, true)?;
+        }
         out.value(images)?;
         out.value(characters)?;
         out.shared_arc(models, true)?;

@@ -1,6 +1,12 @@
-//! Read optional Tatsumaru attacks from the user's Tenchu 2 disc.
+//! Optional resources from the user's Tenchu 2 disc. See docs/cross-version-research.md.
+pub mod collision;
+pub mod layout;
+pub mod level;
+mod model;
+mod volume;
 use crate::{ReadAt, Result, disc::Disc, i16_le, motion, slice, u32_le, weapon};
 use serde::{Deserialize, Serialize};
+use volume::{Volume, hash};
 
 // Gaisen's waist/torso/head, arms, legs and weapon anchors in T2 bone order.
 const BONES: [usize; 15] = [0, 1, 2, 3, 4, 9, 10, 6, 7, 8, 12, 13, 14, 5, 11];
@@ -60,39 +66,10 @@ impl Moves {
 }
 
 pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
-    let system = disc.find("SYSTEM.CNF")?;
-    let system = disc.file(&system).read(0, system.size.min(4096) as usize)?;
-    if !String::from_utf8_lossy(&system).contains("SLES_024.52") {
-        return Err("Tatsumaru import currently supports Tenchu 2 Europe (SLES-02452)".into());
-    }
-    let entry = disc.find("TENCHU2/VOLUME.DAT")?;
-    let volume = disc.file(&entry);
-    let header = volume.read(0, 16)?;
-    let files = u32_le(&header, 8)? as usize;
-    let directories = u32_le(&header, 12)? as usize;
-    if u32_le(&header, 0)? != 0xa0704707 || files > 16384 || directories > 1024 {
-        return Err("Invalid Tenchu 2 volume header".into());
-    }
-    let table = volume.read(
-        (16 + directories * 8).next_multiple_of(2048) as u64,
-        files * 16,
-    )?;
-    let read = |directory: &str, name: &str| -> Result<Vec<u8>> {
-        let row = table
-            .chunks_exact(16)
-            .find(|r| {
-                u32_le(r, 8).ok() == Some(hash(directory)) && u32_le(r, 12).ok() == Some(hash(name))
-            })
-            .ok_or_else(|| format!("Missing Tenchu 2 resource {name}"))?;
-        let size = u32_le(row, 4)? as usize;
-        if size > 64 * 1024 * 1024 {
-            return Err("Excessive Tenchu 2 resource size".into());
-        }
-        volume.read(u64::from(u32_le(row, 0)?) * 2048, size)
-    };
-    let cab = read(r"o:\cdimage\game\cab\game", "T_00.cab")?;
+    let volume = Volume::open(disc)?;
+    let cab = volume.read(r"o:\cdimage\game\cab\game", "T_00.cab")?;
     let motion = cab_member(&cab, r"o:\graphic\motion\bin\mot", "t_00.mot")?;
-    let table = read(r"o:\cdimage\game\weapon", "atktbl.dat")?;
+    let table = volume.read(r"o:\cdimage\game\weapon", "atktbl.dat")?;
     let mut offsets = Vec::new();
     for i in 0..1024 {
         let at = u32_le(motion, i * 4)? as usize;
@@ -169,17 +146,6 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
     };
     moves.validate()?;
     Ok(moves)
-}
-
-fn hash(name: &str) -> u32 {
-    let mut hash = 0u32;
-    for (i, c) in name.bytes().enumerate() {
-        for bit in 0..8 {
-            hash = hash
-                .wrapping_add(u32::from((c.to_ascii_uppercase() >> bit) & 1) << (bit * 4 + i % 4));
-        }
-    }
-    hash
 }
 
 fn cab_member<'a>(data: &'a [u8], directory: &str, name: &str) -> Result<&'a [u8]> {

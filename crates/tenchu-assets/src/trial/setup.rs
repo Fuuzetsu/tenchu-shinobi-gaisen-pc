@@ -149,6 +149,7 @@ impl MissionAssets {
             terrain: generated.collision,
             balma_terrain: None,
             vram,
+            world_vram: None,
             images,
             characters: tables.characters.clone(),
             models: models.into(),

@@ -8,6 +8,44 @@ fn exact(game: &Game) -> Vec<u8> {
     postcard::to_allocvec(game).unwrap()
 }
 
+#[test]
+#[ignore = "requires both discs; sandbox saves/rewind retain imported terrain and retry context"]
+fn tenchu2_saves_require_the_matching_sandbox_and_preserve_retry() {
+    let disc = std::env::var_os("TENCHU2_DISC").expect("Set TENCHU2_DISC");
+    let disc = crate::source::open_disc(disc.as_ref()).unwrap();
+    let mut app = application(Options::default());
+    let normal = app.capture_state().unwrap();
+    let sandbox = crate::tenchu2::Sandbox::open(&disc, Some(0), None, None).unwrap();
+    app.campaign.game = sandbox.load(&app.assets, app.campaign.options).unwrap();
+    app.campaign.sandbox = Some(sandbox);
+    app.debug = crate::debug::Debug::new(&app.campaign.game).unwrap();
+    for _ in 0..15 {
+        app.campaign.game.step(input::UP).unwrap();
+    }
+    let imported = app.capture_state().unwrap();
+    let rewind = app.capture_rewind().unwrap();
+    let expected = exact(&app.campaign.game);
+    for _ in 0..15 {
+        app.campaign.game.step(input::UP).unwrap();
+    }
+    app.restore_state(&imported).unwrap();
+    assert_eq!(exact(&app.campaign.game), expected);
+    for _ in 0..15 {
+        app.campaign.game.step(input::UP).unwrap();
+    }
+    app.restore_rewind(&rewind).unwrap();
+    assert_eq!(exact(&app.campaign.game), expected);
+    app.campaign.action(Action::Replay, &app.assets).unwrap();
+    assert!(app.campaign.game.mission.world_vram.is_some());
+    app.restore_state(&normal).unwrap();
+    assert!(app.campaign.sandbox.is_none());
+    assert!(
+        app.restore_state(&imported)
+            .unwrap_err()
+            .contains("same Tenchu 2")
+    );
+}
+
 fn continue_identically(original: &mut Application, restored: &mut Application, ticks: usize) {
     for tick in 0..ticks {
         let buttons = match tick % 80 {
