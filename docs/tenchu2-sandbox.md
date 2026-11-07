@@ -51,10 +51,26 @@ movesets are not selectable here. The separate Tatsumaru unarmed importer remain
 available in Movement. Extra hair/accessory joints are attached to their nearest
 supported body joint, so their independent source animation is not reproduced.
 
+## Optional artwork
+
+Tenchu 2 uses a separate HD pack. Put **tenchu2-hd.tar.zst** beside the game
+executable/launcher, or unpack it into **assets/hd-tenchu2/**. An explicit
+**TENCHU2_ASSET_PACK** environment variable can point to either the archive or
+an unpacked folder. On Android, use **Import Tenchu 2 HD artwork** in the launcher,
+then restart the game. The Gaisen pack remains independent; either or both may
+be installed.
+
+**F1 → Visual assets → Replacement artwork** toggles both installed packs.
+Missing replacements fall back to the appropriate disc. Packs use the same
+`pack.json` format described in [the guide](guide.md); texture
+identities come from the original pixels, so matching materials are shared
+across maps. Retail cutout masks are reconstructed from the user's disc at load
+time. The download contains replacement paintings and recipes, not disc exports.
+
 Imported terrain, ordinary static props, textures, floor heights, slopes and
 holes are supported. Gaisen's player/HUD textures are kept separate from the
-Tenchu 2 texture pages. Original T2 textures are used: the Gaisen HD pack does not
-provide replacements for them. Native desktop and Android have disc/map menus;
+Tenchu 2 texture pages. The Gaisen HD pack does not provide T2 replacements.
+Native desktop and Android have disc/map menus;
 browser level import is not yet available.
 
 Unported elements include doors and other scripted/moving objects, procedural

@@ -130,3 +130,8 @@ Browse…** in the title/quick-launch menu. Select a folder containing the Europ
 (SLES-02452) CUE and BIN. This is imported separately from Gaisen. The map menu
 and F1 player-model search then read its resources locally; see the
 [Tenchu 2 sandbox guide](tenchu2-sandbox.md) for the current limits.
+
+Its optional artwork is a separate **tenchu2-hd.tar.zst** download. Use
+**Import Tenchu 2 HD artwork (.tar.zst)…** in the launcher, then restart the
+game. This leaves the Gaisen pack installed. The Replacement artwork setting
+toggles both packs; the Tenchu 2 disc is still required.

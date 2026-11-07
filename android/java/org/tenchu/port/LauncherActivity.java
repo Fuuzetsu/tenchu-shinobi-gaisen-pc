@@ -37,7 +37,7 @@ public final class LauncherActivity extends Activity {
   private LinearLayout content;
   private TextView status;
   private boolean busy;
-  private static final int DISC = 10, ARTWORK = 11, TENCHU2 = 12;
+  private static final int DISC = 10, ARTWORK = 11, TENCHU2 = 12, TENCHU2_ARTWORK = 13;
 
   @Override
   public void onCreate(Bundle state) {
@@ -92,6 +92,11 @@ public final class LauncherActivity extends Activity {
     button(
         "Import Tenchu 2 disc folder…",
         () -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), TENCHU2));
+    button(
+        "Import Tenchu 2 HD artwork (.tar.zst)…",
+        () -> startActivityForResult(
+            new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
+                .addCategory(Intent.CATEGORY_OPENABLE), TENCHU2_ARTWORK));
     label(
         "Touch: hold Move and tap actions with another finger. Settings opens the F1 menu. Pause"
             + " and Back are always on screen. Camera-relative controls add a right camera stick."
@@ -121,6 +126,8 @@ public final class LauncherActivity extends Activity {
                 + (new File(getFilesDir(), "tenchu-hd.tar.zst").isFile()
                     ? "HD artwork installed."
                     : "Original artwork; HD pack is optional.")
+                + (new File(getFilesDir(), "tenchu2-hd.tar.zst").isFile()
+                    ? " Tenchu 2 HD artwork installed." : "")
             : "No disc imported yet.");
   }
 
@@ -237,7 +244,7 @@ public final class LauncherActivity extends Activity {
     }
     Uri uri = data.getData();
     if (request == DISC || request == TENCHU2) work(() -> importDisc(uri, request == TENCHU2));
-    if (request == ARTWORK)
+    if (request == ARTWORK || request == TENCHU2_ARTWORK)
       work(
           () -> {
             File temporary = new File(getFilesDir(), "artwork-import.tar.zst");
@@ -249,7 +256,8 @@ public final class LauncherActivity extends Activity {
               if (error != null) throw new IOException(error);
               Files.move(
                   temporary.toPath(),
-                  new File(getFilesDir(), "tenchu-hd.tar.zst").toPath(),
+                  new File(getFilesDir(), request == TENCHU2_ARTWORK
+                      ? "tenchu2-hd.tar.zst" : "tenchu-hd.tar.zst").toPath(),
                   StandardCopyOption.REPLACE_EXISTING);
             } finally {
               temporary.delete();

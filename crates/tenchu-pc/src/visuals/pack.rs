@@ -14,7 +14,7 @@ mod archive;
 #[cfg(not(target_arch = "wasm32"))]
 mod location;
 #[cfg(not(target_arch = "wasm32"))]
-pub use location::configured_root;
+pub use location::{configured_root, configured_tenchu2_root};
 
 const MAX_PIXELS: usize = 16 * 1024 * 1024;
 const MAX_INTERFACE_PIXELS: usize = 32 * 1024 * 1024;
@@ -147,13 +147,24 @@ impl Pack {
                 )
             })
             .collect::<BTreeMap<_, _>>();
-        Self::configured(Selection {
+        let selection = Selection {
             max_pixels: MAX_PIXELS,
             textures: originals.keys().cloned().collect(),
             originals,
             models: models.iter().map(|m| m.id.clone()).collect(),
             player_models: false,
-        })
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        if models
+            .iter()
+            .any(|m| m.id.starts_with("tenchu2/") || m.id.starts_with("stages/tenchu2/"))
+        {
+            return match configured_tenchu2_root() {
+                Some(path) => Self::load_selected(&path, Some(selection)),
+                None => Ok(Self::default()),
+            };
+        }
+        Self::configured(selection)
     }
 
     #[cfg(not(target_arch = "wasm32"))]

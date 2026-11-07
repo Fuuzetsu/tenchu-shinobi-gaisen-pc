@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Support a separate `tenchu2-hd.tar.zst` artwork pack for imported Tenchu 2
+  areas and character models. It can be installed alongside the Gaisen pack;
+  Android has a separate import button. Replacement artwork toggles both packs,
+  with original disc textures retained as the fallback.
+
 ## 0.20.0 — 2026-11-07
 
 - Add Tenchu 2's 81 character models and alternate costumes to the searchable

@@ -98,8 +98,16 @@ impl Models {
         let mut imported_geometry = BTreeMap::new();
         if let Some(vram) = &mission.world_vram {
             let sources = catalog::world_models(mission);
-            let mut meshes = Meshes::build(vram, &Pack::default(), graphics, sources, true)?;
+            let pack = if graphics.asset_pack {
+                Pack::for_models(vram, &sources)?
+            } else {
+                Pack::default()
+            };
+            let mut meshes = Meshes::build(vram, &pack, graphics, sources, true)?;
             meshes.detach_textures();
+            if graphics.asset_pack {
+                meshes.replace_textures(&pack);
+            }
             for part in mission.map.iter().chain(mission.objects.iter()) {
                 imported_geometry.insert(part.geometry.as_ptr() as usize, imported.len());
             }

@@ -1,6 +1,59 @@
 use super::*;
 
 #[test]
+#[ignore = "requires both discs and TENCHU2_ASSET_PACK; verifies separate scenery/character artwork and original fallback"]
+fn separate_artwork_keeps_source_atlases_and_original_fallback() {
+    use crate::visuals::{catalog, models::Models, pack::Pack};
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let sandbox = Sandbox::open(&disc, Some(0), None, Some(0x10)).unwrap();
+    let game = sandbox.load(&assets, Options::default()).unwrap();
+    let snapshot = postcard::to_allocvec(&game).unwrap();
+    let sources = catalog::world_models(&game.mission);
+    let pack = Pack::for_models(game.mission.world_vram.as_ref().unwrap(), &sources).unwrap();
+    assert!(
+        !pack.textures.is_empty(),
+        "Tenchu 2 pack is missing or lacks map 0"
+    );
+    let originals: BTreeMap<_, _> =
+        catalog::model_regions(game.mission.world_vram.as_ref().unwrap(), &sources)
+            .into_iter()
+            .map(|(region, id)| (id, region))
+            .collect();
+    let mut changed = 0;
+    for enabled in [false, true] {
+        let graphics = crate::settings::Graphics {
+            asset_pack: enabled,
+            ..Default::default()
+        };
+        let mut models = Models::build(&game.mission, &Pack::default(), &graphics).unwrap();
+        let mut next = 0;
+        models.bind(|material| {
+            next += 1;
+            if let Some(replacement) = pack.textures.get(&material.id) {
+                if enabled {
+                    assert_eq!(material.image.rgba, replacement.rgba);
+                    changed += 1;
+                } else {
+                    let region = originals[&material.id];
+                    assert_eq!(
+                        material.image.rgba,
+                        region.original_pixels(game.mission.world_vram.as_ref().unwrap())
+                    );
+                }
+            }
+            next
+        });
+    }
+    assert!(changed > 0);
+    assert_eq!(snapshot, postcard::to_allocvec(&game).unwrap());
+}
+
+#[test]
 #[ignore = "requires both discs; imported patrols, ordinary combat, retry and campaign isolation"]
 fn imported_routes_and_guard_combat_work_without_campaign_progress() {
     use crate::campaign::{Action, Campaign, Screen};
