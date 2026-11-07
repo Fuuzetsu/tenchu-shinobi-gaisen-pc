@@ -4,6 +4,7 @@ use tenchu_assets::model::{Corner, Face};
 
 fn quad() -> Geometry {
     Geometry {
+        joints: Vec::new(),
         vertices: vec![
             [-100, -100, 0],
             [100, -100, 0],

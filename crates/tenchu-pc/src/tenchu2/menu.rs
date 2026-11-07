@@ -9,6 +9,7 @@ pub struct Menu {
     pub map: usize,
     pub sequence: Option<usize>,
     pub guard: Option<i16>,
+    pub source_models: bool,
     pub maps: Vec<usize>,
     pub layouts: Vec<Layout>,
     pub connected: String,
@@ -91,6 +92,7 @@ impl Menu {
                                     ui.selectable_value(&mut self.guard, kind, label);
                                 }
                             });
+                            ui.checkbox(&mut self.source_models, "Use Tenchu 2 character models for guards");
                         });
                         ui.label("F1: settings and player model · F5: restart · Back: leave sandbox. Campaign progress is preserved.");
                         if ui.button("Start exploring").clicked() { event = Some(Event::Play); }

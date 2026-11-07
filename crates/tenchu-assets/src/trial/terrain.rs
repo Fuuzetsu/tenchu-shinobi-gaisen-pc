@@ -30,6 +30,7 @@ impl Mesh {
     fn new() -> Self {
         Self {
             geometry: Geometry {
+                joints: Vec::new(),
                 vertices: vec![],
                 normals: vec![],
                 faces: vec![],

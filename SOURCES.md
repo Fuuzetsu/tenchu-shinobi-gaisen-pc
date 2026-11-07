@@ -1290,3 +1290,18 @@ heroes and optional guards explore imported scenery, with separate texture
 storage. It does not reproduce T2 AI, scripts, water, hazards or mission outcomes.
 Source-formula collision tests and native play checks are not emulator parity.
 See [usage and boundaries](docs/tenchu2-sandbox.md).
+
+### Tenchu 2 character models (2026-11-07)
+
+The optional importer reads the user's SLES-02452 disc. Its `datamng.bin`
+(SHA-256 `089bdad062d085d8692399c9379bfb62633d81ac17c75c49543aae3ec5ff5773`)
+is loaded at `0x800ce598`; the character descriptors at file offset `0x6958`
+have 24-byte rows containing kind, model-name and motion-registry pointers.
+These supply 78 distinct models; the executable's actor resource names also
+identify `rikia`, `ayamea` and `tatua` alternate costumes. The importer reads
+MDL/ARC pairs under `o:\cdimage\game\actor`, retaining global vertex identities
+and each vertex's source joint across faces. It maps the fifteen body joints to
+Gaisen's order, attaching additional accessory joints to their nearest supported
+ancestor. Source idle tracks are read from the character-specific motion CABs;
+Gaisen gameplay and weapons remain in use outside the separate Tatsumaru import.
+No source models, textures, animations or executable bytes are distributed.

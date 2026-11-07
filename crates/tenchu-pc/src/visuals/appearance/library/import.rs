@@ -55,6 +55,12 @@ pub fn import_actor(
         &behavior.clips,
         body.vram.clone(),
     )?;
+    if body.id.starts_with("tenchu2:") {
+        Arc::make_mut(&mut mission.imported_models)
+            .get_mut(&actor.model)
+            .unwrap()
+            .source_id = Some(body.resource.clone());
+    }
     let voice = behavior.voice.map(|voice| {
         let program = 128 + mission.imported_voices.len() as i16;
         mission.imported_voices.push(voice);

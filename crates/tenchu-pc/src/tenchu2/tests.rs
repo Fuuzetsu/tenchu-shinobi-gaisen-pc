@@ -16,6 +16,14 @@ fn imported_routes_and_guard_combat_work_without_campaign_progress() {
         assert_eq!(sandbox.level.id, 1);
         let mut game = sandbox.load(&assets, Options::default()).unwrap();
         assert!(!game.mission.enemies.is_empty());
+        let choices = crate::visuals::appearance::choices(&game, &Default::default(), None);
+        assert!(choices.iter().any(|(id, _)| id == "disc:0"));
+        assert!(
+            game.mission
+                .imported_models
+                .keys()
+                .all(|kind| { !choices.iter().any(|(id, _)| id == &format!("disc:{kind}")) })
+        );
         let starts: Vec<_> = game
             .roster
             .actors
@@ -35,6 +43,42 @@ fn imported_routes_and_guard_combat_work_without_campaign_progress() {
                 .iter()
                 .any(|&(id, start)| game.roster.get(id).position != start)
         );
+        let models = crate::visuals::models::Models::build(
+            &game.mission,
+            &Default::default(),
+            &Default::default(),
+        )
+        .unwrap();
+        let mut rendered = std::collections::BTreeSet::new();
+        crate::visuals::appearance::visit_parts(
+            &game,
+            true,
+            Some(&models),
+            None,
+            |key, geometry, matrix| {
+                if let crate::visuals::interpolation::Part::Actor { root, kind, .. } = key
+                    && game.mission.imported_models.contains_key(&kind)
+                {
+                    let actor = game
+                        .roster
+                        .actors
+                        .iter()
+                        .flatten()
+                        .find(|a| a.root_model == root)
+                        .unwrap();
+                    let center = glam::Vec3::from(actor.position.to_array().map(|n| n as f32));
+                    models.visit_part(key, geometry, matrix, false, 0, |triangle| {
+                        assert!(
+                            triangle
+                                .iter()
+                                .all(|v| glam::Vec3::from(v.position).distance(center) < 20000.0)
+                        );
+                        rendered.insert(root);
+                    });
+                }
+            },
+        );
+        assert_eq!(rendered.len(), game.mission.enemies.len());
         for character in 0..2 {
             let options = Options {
                 character,
@@ -198,6 +242,205 @@ fn imported_maps_run_gaisen_gameplay_without_replacing_player_textures() {
                 start,
                 game.player().position
             );
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; decodes every source character and costume, textures and idle motion"]
+fn all_source_models_have_valid_rigs_and_textures() {
+    let path = std::env::var_os("TENCHU2_DISC").unwrap();
+    let disc = crate::source::open_disc(path.as_ref()).unwrap();
+    let models = tenchu_assets::tenchu2::characters::load(&disc, None).unwrap();
+    assert!(models.len() >= 78);
+    for body in &models {
+        assert_eq!(body.parts.len(), 15, "{}", body.name);
+        assert!(
+            body.parts
+                .iter()
+                .flat_map(|p| &p.geometry)
+                .any(|g| !g.faces.is_empty())
+        );
+        for geometry in body.parts.iter().flat_map(|p| &p.geometry) {
+            assert_eq!(geometry.joints.len(), geometry.vertices.len());
+            assert!(geometry.joints.iter().all(|&j| j < 15));
+            assert!(geometry.faces.iter().all(|f| {
+                f.corners
+                    .iter()
+                    .all(|c| usize::from(c.vertex) < geometry.vertices.len())
+            }));
+        }
+        assert!(body.vram.words.iter().any(|&v| v != 0));
+        if let Some(idle) = &body.idle {
+            assert_eq!(idle.bones.len(), 15);
+        }
+    }
+    for name in ["rikimaru", "ayame", "tatumaru", "busi", "cat"] {
+        assert!(
+            models
+                .iter()
+                .find(|m| m.name == name)
+                .unwrap()
+                .idle
+                .is_some(),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires both discs; animates every imported body on both heroes without changing gameplay, optional TENCHU_T2_MODEL_REVIEW GPU captures"]
+fn imported_character_models_animate_with_isolated_textures() {
+    use crate::settings::Graphics;
+    use crate::visuals::{appearance, appearance::library::Library, models::Models, pack::Pack};
+    use glam::{Mat4, Vec3};
+    let assets = GameAssets::open(
+        crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+    )
+    .unwrap();
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut library = Library::load(&assets).unwrap();
+    library.load_tenchu2(&disc).unwrap();
+    let bodies: Vec<_> = library
+        .bodies
+        .iter()
+        .filter(|b| b.id.starts_with("tenchu2:"))
+        .collect();
+    eprintln!("{} Tenchu 2 models", bodies.len());
+    assert!(bodies.len() >= 78);
+    let graphics = Graphics {
+        fog: false,
+        asset_pack: false,
+        smooth_models: true,
+        ..Default::default()
+    };
+    for character in 0..2 {
+        let mut game = Options {
+            character,
+            ..Default::default()
+        }
+        .load(&assets)
+        .unwrap();
+        game.events = Default::default();
+        for _ in 0..30 {
+            game.step(0).unwrap();
+        }
+        let copy = |game: &Game| {
+            postcard::from_bytes::<Game>(&postcard::to_allocvec(game).unwrap()).unwrap()
+        };
+        let mut poses = vec![copy(&game)];
+        for _ in 0..12 {
+            game.step(tenchu_core::input::UP).unwrap();
+        }
+        poses.push(copy(&game));
+        for tick in 0..10 {
+            game.step(if tick == 0 {
+                tenchu_core::input::SQUARE
+            } else {
+                0
+            })
+            .unwrap();
+        }
+        poses.push(game);
+        let output = std::env::var_os("TENCHU_T2_MODEL_REVIEW");
+        let mut review = output
+            .as_ref()
+            .map(|_| crate::capture::review::Review::new(&poses[0].mission).unwrap());
+        if let Some(review) = &mut review {
+            review.configure(graphics.clone());
+        }
+        for body in &bodies {
+            assert!(!body.has_moveset());
+            let mut models = Models::default()
+                .with_player(
+                    &poses[0],
+                    &body.id,
+                    &Pack::default(),
+                    &Pack::default(),
+                    &graphics,
+                    Some(&library),
+                )
+                .unwrap();
+            if let Some(review) = &mut review {
+                review.renderer.bind_models(&mut models);
+            }
+            let mut previous = Vec::new();
+            let mut changed = false;
+            for (pose, game) in poses.iter().enumerate() {
+                let before = crate::session::tests::state(game);
+                let mut vertices = Vec::new();
+                appearance::visit_parts(
+                    game,
+                    true,
+                    Some(&models),
+                    None,
+                    |key, geometry, matrix| {
+                        if let crate::visuals::interpolation::Part::Actor { root, .. } = key
+                            && root == game.player().root_model
+                            && !models.visit_part(key, geometry, matrix, false, 0, |tri| {
+                                vertices.extend(tri.into_iter().copied())
+                            })
+                        {
+                            crate::render_mesh::append_geometry(
+                                &mut vertices,
+                                geometry,
+                                matrix,
+                                None,
+                            );
+                        }
+                    },
+                );
+                assert!(!vertices.is_empty(), "{}", body.name);
+                let position = Vec3::from(game.player().position.to_array().map(|v| v as f32));
+                assert!(
+                    vertices.iter().all(|v| Vec3::from(v.position).is_finite()
+                        && Vec3::from(v.position).distance(position) < 20000.0),
+                    "{}",
+                    body.name
+                );
+                let points: Vec<_> = vertices.iter().map(|v| v.position).collect();
+                if !previous.is_empty() {
+                    changed |= previous != points;
+                }
+                previous = points;
+                assert_eq!(before, crate::session::tests::state(game));
+                if [
+                    "tenchu2:rikimaru",
+                    "tenchu2:ayame",
+                    "tenchu2:tatumaru",
+                    "tenchu2:kagami",
+                    "tenchu2:cat",
+                ]
+                .contains(&body.id.as_str())
+                    && let (Some(output), Some(review)) = (&output, &mut review)
+                {
+                    let path = std::path::Path::new(output);
+                    std::fs::create_dir_all(path).unwrap();
+                    let center = position + Vec3::new(0.0, -900.0, 0.0);
+                    let camera =
+                        Mat4::perspective_rh(42f32.to_radians(), 16.0 / 9.0, 10.0, 20000.0)
+                            * Mat4::look_at_rh(
+                                center + Vec3::new(1800.0, -250.0, -3300.0),
+                                center,
+                                Vec3::NEG_Y,
+                            );
+                    let mesh = review.renderer.upload(&vertices);
+                    review
+                        .capture(
+                            camera,
+                            &[&mesh],
+                            None,
+                            false,
+                            &path.join(format!(
+                                "hero-{character}-{}-pose-{pose}.png",
+                                body.id.trim_start_matches("tenchu2:")
+                            )),
+                        )
+                        .unwrap();
+                }
+            }
+            assert!(changed, "{}", body.name);
         }
     }
 }

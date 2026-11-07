@@ -1,6 +1,6 @@
 use crate::{
     Result, i16_le,
-    model::{Corner, Face, Geometry, Texture},
+    model::{Corner, Face, Geometry, Part, Texture},
     short3, slice, u16_le, u32_le,
 };
 
@@ -42,33 +42,53 @@ pub(super) fn resolve_transparency<'a>(
     }
 }
 
-pub(super) fn scenery(data: &[u8]) -> Result<Geometry> {
-    if u32_le(data, 0)? >> 24 != 0xa0 || u16_le(data, 4)? != 0 {
+struct Mesh {
+    parents: Vec<i16>,
+    positions: Vec<[i16; 3]>,
+    vertices: Vec<[i16; 3]>,
+    joints: Vec<usize>,
+    faces: Vec<Face>,
+}
+
+fn parse(data: &[u8]) -> Result<Mesh> {
+    if !matches!(u32_le(data, 0)? >> 24, 0x99 | 0xa0) || u16_le(data, 4)? != 0 {
         return Err("Expected an unrelocated Tenchu 2 MDL".into());
     }
-    if u16_le(data, 6)? != 1 || i16_le(data, 22)? != -1 {
-        return Err("Tenchu 2 scenery must have one root part".into());
+    let joints = usize::from(u16_le(data, 6)?);
+    if !(1..=64).contains(&joints) {
+        return Err("Invalid Tenchu 2 joint count".into());
     }
     let count = usize::from(u16_le(data, 8)?);
-    if count == 0 || u32_le(data, 24)? as usize != count {
+    if count == 0 {
         return Err("Invalid Tenchu 2 scenery vertex count".into());
     }
     let mut vertices = vec![[0; 3]; count];
-    let mut seen = vec![false; count];
-    let translation = short3(data, 16)?;
-    let vertex_at = u32_le(data, 28)? as usize;
-    for row in slice(data, vertex_at, count * 8)?.chunks_exact(8) {
-        let index = usize::from(u16_le(row, 6)?);
-        if index >= count || seen[index] {
-            return Err("Invalid Tenchu 2 vertex identity".into());
+    let mut owners = vec![usize::MAX; count];
+    let mut parents = Vec::new();
+    let mut positions = Vec::new();
+    for (joint, header) in slice(data, 16, joints * 16)?.chunks_exact(16).enumerate() {
+        let parent = i16_le(header, 6)?;
+        if parent < -1 || parent >= joint as i16 || (joint != 0 && parent == -1) {
+            return Err("Invalid Tenchu 2 joint parent".into());
         }
-        seen[index] = true;
-        let point = short3(row, 0)?;
-        for axis in 0..3 {
-            vertices[index][axis] = point[axis]
-                .checked_add(translation[axis])
-                .ok_or("Tenchu 2 scenery vertex overflow")?;
+        parents.push(parent);
+        positions.push(short3(header, 0)?);
+        let n = u32_le(header, 8)? as usize;
+        if n > count {
+            return Err("Invalid Tenchu 2 joint vertex count".into());
         }
+        let at = u32_le(header, 12)? as usize;
+        for row in slice(data, at, n * 8)?.chunks_exact(8) {
+            let index = usize::from(u16_le(row, 6)?);
+            if index >= count || owners[index] != usize::MAX {
+                return Err("Invalid Tenchu 2 vertex identity".into());
+            }
+            owners[index] = joint;
+            vertices[index] = short3(row, 0)?;
+        }
+    }
+    if owners.contains(&usize::MAX) {
+        return Err("Missing Tenchu 2 vertex".into());
     }
     let count = usize::from(u16_le(data, 10)?);
     let face_at = u32_le(data, 12)? as usize;
@@ -100,11 +120,116 @@ pub(super) fn scenery(data: &[u8]) -> Result<Geometry> {
         }
         faces.push(face);
     }
-    Ok(Geometry {
+    Ok(Mesh {
+        parents,
+        positions,
         vertices,
-        normals: Vec::new(),
+        joints: owners,
         faces,
     })
+}
+
+pub(super) fn scenery(data: &[u8]) -> Result<Geometry> {
+    let mesh = parse(data)?;
+    if mesh.parents != [-1] {
+        return Err("Tenchu 2 scenery must have one root part".into());
+    }
+    let vertices = mesh
+        .vertices
+        .into_iter()
+        .map(|point| {
+            let mut vertex = [0; 3];
+            for axis in 0..3 {
+                vertex[axis] = point[axis]
+                    .checked_add(mesh.positions[0][axis])
+                    .ok_or("Tenchu 2 scenery vertex overflow")?;
+            }
+            Ok(vertex)
+        })
+        .collect::<Result<_>>()?;
+    Ok(Geometry {
+        vertices,
+        joints: Vec::new(),
+        normals: Vec::new(),
+        faces: mesh.faces,
+    })
+}
+
+pub(super) fn character(data: &[u8]) -> Result<Vec<Part>> {
+    let mesh = parse(data)?;
+    let mut roots = Vec::<[i32; 3]>::new();
+    let mut mapped = Vec::new();
+    for (joint, &parent) in mesh.parents.iter().enumerate() {
+        let origin = if parent < 0 {
+            [0; 3]
+        } else {
+            roots[parent as usize]
+        };
+        roots.push(std::array::from_fn(|i| {
+            origin[i] + i32::from(mesh.positions[joint][i])
+        }));
+        mapped.push(
+            super::BONES
+                .iter()
+                .position(|&b| b == joint)
+                .unwrap_or_else(|| mapped[parent as usize]),
+        );
+    }
+    let mut parts: Vec<_> = super::BONES
+        .iter()
+        .enumerate()
+        .map(|(index, &joint)| {
+            let parent = mesh.parents.get(joint).copied().unwrap_or(0);
+            Part {
+                parent: if parent < 0 {
+                    -1
+                } else {
+                    mapped[parent as usize] as i16
+                },
+                child: index as i16,
+                position: mesh.positions.get(joint).copied().unwrap_or([0; 3]),
+                geometry: vec![Geometry {
+                    vertices: Vec::new(),
+                    joints: Vec::new(),
+                    normals: Vec::new(),
+                    faces: Vec::new(),
+                }],
+            }
+        })
+        .collect();
+    let mut indices = vec![std::collections::BTreeMap::new(); parts.len()];
+    for mut face in mesh.faces {
+        let mut counts = [0; 15];
+        for corner in &face.corners {
+            counts[mapped[mesh.joints[usize::from(corner.vertex)]]] += 1;
+        }
+        let owner = (0..15).max_by_key(|&i| counts[i]).unwrap();
+        let root = roots[super::BONES[owner]];
+        let geometry = &mut parts[owner].geometry[0];
+        for corner in &mut face.corners {
+            let source = usize::from(corner.vertex);
+            if let Some(&index) = indices[owner].get(&source) {
+                corner.vertex = index;
+                continue;
+            }
+            let joint = mesh.joints[source];
+            let mut point = [0; 3];
+            for axis in 0..3 {
+                point[axis] = (i32::from(mesh.vertices[source][axis]) + roots[joint][axis]
+                    - root[axis])
+                    .try_into()
+                    .map_err(|_| "Tenchu 2 character vertex overflow")?;
+            }
+            let index =
+                u16::try_from(geometry.vertices.len()).map_err(|_| "Too many Tenchu 2 vertices")?;
+            geometry.vertices.push(point);
+            geometry.joints.push(mapped[joint] as u8);
+            indices[owner].insert(source, index);
+            corner.vertex = index;
+        }
+        geometry.faces.push(face);
+    }
+    Ok(parts)
 }
 
 #[cfg(test)]

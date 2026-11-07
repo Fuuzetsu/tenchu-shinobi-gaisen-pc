@@ -1,4 +1,6 @@
 mod import;
+#[cfg(not(target_arch = "wasm32"))]
+mod tenchu2;
 pub use import::{Imported, import_actor};
 
 use crate::visuals::catalog;
@@ -39,7 +41,7 @@ impl Library {
         let Some(id) = settings.moveset_id() else {
             return Ok(None);
         };
-        let body = self.get(id).filter(|body| body.character.is_some());
+        let body = self.get(id).filter(|body| body.has_moveset());
         if body.is_none() && !settings.moveset_model.is_empty() {
             return Err(format!("Moveset unavailable: {id}"));
         }
@@ -236,6 +238,13 @@ impl Library {
                 }
             }
         }
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(path) = crate::tenchu2::menu::disc_path().filter(|p| p.is_file()) {
+            match crate::source::open_disc(&path).and_then(|disc| library.load_tenchu2(&disc)) {
+                Ok(()) => {}
+                Err(error) => eprintln!("Tenchu 2 model library: {error}"),
+            }
+        }
         Ok(library)
     }
 }
@@ -290,15 +299,23 @@ fn label(name: &str) -> String {
 }
 
 impl Body {
+    pub fn has_moveset(&self) -> bool {
+        self.character.is_some() && !self.id.starts_with("tenchu2:")
+    }
+
     pub fn sources(&self) -> Vec<catalog::ModelSource<'_>> {
         self.parts
             .iter()
             .enumerate()
             .map(|(i, part)| catalog::ModelSource {
-                id: self.character.as_ref().map_or_else(
-                    || format!("{}/{i}", self.resource),
-                    |c| format!("actors/{:04x}/{i}", c.kind),
-                ),
+                id: self
+                    .character
+                    .as_ref()
+                    .filter(|_| !self.id.starts_with("tenchu2:"))
+                    .map_or_else(
+                        || format!("{}/{i}", self.resource),
+                        |c| format!("actors/{:04x}/{i}", c.kind),
+                    ),
                 label: self.name.clone(),
                 geometry: &part.geometry,
             })
@@ -352,7 +369,11 @@ mod tests {
             start.elapsed()
         );
         assert_eq!(
-            library.bodies.len(),
+            library
+                .bodies
+                .iter()
+                .filter(|b| !b.id.starts_with("tenchu2:"))
+                .count(),
             assets
                 .archive
                 .files

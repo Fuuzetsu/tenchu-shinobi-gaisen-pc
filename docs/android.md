@@ -122,3 +122,11 @@ app, so an unsaved mid-mission session is not guaranteed to survive that.
 The touch controller follows the familiar independent-stick/button approach used
 by mobile game ports, including [Dragon-Burst](https://github.com/dfdx047/Dragon-Burst),
 which was reviewed as a design reference. No code or artwork was copied from it.
+
+## Tenchu 2 disc
+
+Use **Import Tenchu 2 disc folder…** in the Android launcher, or **Tenchu 2… →
+Browse…** in the title/quick-launch menu. Select a folder containing the Europe
+(SLES-02452) CUE and BIN. This is imported separately from Gaisen. The map menu
+and F1 player-model search then read its resources locally; see the
+[Tenchu 2 sandbox guide](tenchu2-sandbox.md) for the current limits.

@@ -11,6 +11,8 @@ pub struct Part {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Geometry {
     pub vertices: Vec<[i16; 3]>,
+    /// Optional rigid joint for each vertex, allowing faces to span body parts.
+    pub joints: Vec<u8>,
     pub normals: Vec<[i16; 3]>,
     pub faces: Vec<Face>,
 }
@@ -197,6 +199,7 @@ pub fn tmd_model(data: &[u8]) -> Result<Vec<Geometry>> {
         }
         objects.push(Geometry {
             vertices,
+            joints: Vec::new(),
             normals,
             faces,
         });

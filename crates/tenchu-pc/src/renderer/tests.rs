@@ -344,6 +344,7 @@ pub(super) fn rectangle(
         translucent: blend,
     };
     let geometry = Geometry {
+        joints: Vec::new(),
         vertices: vec![
             [-600, -600, z],
             [600, -600, z],

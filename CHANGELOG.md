@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add Tenchu 2's 81 character models and alternate costumes to the searchable
+  player-model browser when its disc is connected, with animated idle previews.
+  Sandbox guards can wear the source level's character models while retaining
+  the selected Gaisen guard AI and combat. Imported bodies use their own textures
+  and keep polygons attached across animated joints.
 - Choose a Tenchu 2 disc, area and patrol layout from the title/quick-launch
   menu. The disc path is remembered; Android can import its CUE/BIN folder
   from the launcher or the in-game picker. Sandbox play preserves Gaisen

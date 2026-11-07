@@ -1,6 +1,6 @@
 # Tenchu 2 scenery sandbox
 
-Experimental work on the `tenchu2-import` branch, after v0.19.0. This loads the
+Available from v0.20.0. This experimental sandbox loads the
 user's **Tenchu 2 Europe (SLES-02452)** disc and uses **Gaisen gameplay**. It is
 not a port of Tenchu 2's missions. Both discs remain necessary; no retail assets
 are bundled or downloaded.
@@ -39,7 +39,17 @@ has no layout and starts on a visible open floor. An explicit mismatched map and
 sequence is rejected. `--guards sword|spear|archer` replaces imported actor slots
 with that Gaisen guard type, omitting placements without a nearby collision floor.
 The guards follow the source X/Z patrol points using Gaisen's AI; Tenchu 2 waits,
-route actions, character identities and behavior are not reproduced.
+route actions and behavior are not reproduced. **Use Tenchu 2 character models
+for guards** gives them their source bodies; all still use the selected Gaisen
+guard's weapon, voice, moves and AI, including source civilian/animal slots.
+
+Connecting the disc adds **… · Tenchu 2** entries to **F1 → Player model** in any
+Gaisen mission or sandbox. Search by name to find the heroes, bosses, guards,
+animals and alternate costumes. The visible preview tiles play source idle
+motions. Swapping a body keeps the current Gaisen moveset and weapons; Tenchu 2
+movesets are not selectable here. The separate Tatsumaru unarmed importer remains
+available in Movement. Extra hair/accessory joints are attached to their nearest
+supported body joint, so their independent source animation is not reproduced.
 
 Imported terrain, ordinary static props, textures, floor heights, slopes and
 holes are supported. Gaisen's player/HUD textures are kept separate from the
@@ -49,7 +59,7 @@ browser level import is not yet available.
 
 Unported elements include doors and other scripted/moving objects, procedural
 lights/effects, sky/background setup, animated water, water/material/hazard
-semantics, music/voices, objectives, cutscenes and Tenchu 2 character models.
+semantics, music/voices, objectives and cutscenes.
 The sandbox uses Gaisen's audio assets and treats collision surfaces as ordinary
 solid terrain. Water surfaces and invisible bottom planes can consequently act
 as floors. Some routes can lead into unimplemented obstacles. F1 free camera

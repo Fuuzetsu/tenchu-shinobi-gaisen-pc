@@ -21,6 +21,8 @@ pub struct Sandbox {
     pub level: Level,
     pub layout: Option<Layout>,
     pub guard: Option<i16>,
+    pub source_models: bool,
+    characters: Vec<tenchu_assets::tenchu2::characters::Character>,
 }
 
 impl Sandbox {
@@ -46,9 +48,19 @@ impl Sandbox {
             return Err("This map has no Tenchu 2 actor layout to replace with guards".into());
         }
         Ok(Self {
+            characters: tenchu_assets::tenchu2::characters::load(
+                disc,
+                Some(
+                    &layout
+                        .iter()
+                        .flat_map(|l| l.actors.iter().map(|a| a.kind))
+                        .collect(),
+                ),
+            )?,
             level: Level::load(disc, map)?,
             layout,
             guard,
+            source_models: true,
         })
     }
 
@@ -123,6 +135,7 @@ impl Sandbox {
         mission.scripts.events.clear();
         mission.scripts.cutscenes = tenchu_assets::script::Cutscenes::parse(vec![255; 2])?;
         let mut cursor = Cursor::new(&mission.terrain);
+        let mut source_models = Vec::new();
         if let Some(layout) = &self.layout {
             let mut start = layout.start;
             let floor = terrain::level(
@@ -156,6 +169,11 @@ impl Sandbox {
                         continue;
                     }
                     position[1] = floor;
+                    source_models.push(
+                        self.characters
+                            .iter()
+                            .find(|c| c.kinds.contains(&actor.kind)),
+                    );
                     mission.enemies.push(Enemy {
                         slot: mission.enemies.len(),
                         kind,
@@ -175,6 +193,47 @@ impl Sandbox {
             mission.stage.facing = 0;
         }
         let mut game = Game::new(mission, &executable, options.character, 1)?;
+        if self.source_models {
+            let actors: Vec<_> = game
+                .roster
+                .order
+                .iter()
+                .copied()
+                .filter(|&id| id != game.player_id)
+                .collect();
+            let mut imported = BTreeMap::new();
+            for (id, body) in actors.into_iter().zip(source_models) {
+                let Some(body) = body else {
+                    continue;
+                };
+                let source = if let Some(&source) = imported.get(&body.name) {
+                    source
+                } else {
+                    let actor = game.roster.get(id);
+                    let character = game.mission.characters[actor.definition].clone();
+                    let clips: Vec<_> = game
+                        .mission
+                        .clips
+                        .iter()
+                        .filter(|clip| character.motions.iter().any(|m| m.clip == clip.id))
+                        .cloned()
+                        .collect();
+                    let source = game.mission.import_actor(
+                        character,
+                        body.parts.clone(),
+                        &clips,
+                        Arc::new(body.vram.clone()),
+                    )?;
+                    Arc::make_mut(&mut game.mission.imported_models)
+                        .get_mut(&source.model)
+                        .unwrap()
+                        .source_id = Some(format!("tenchu2/actors/{}", body.name));
+                    imported.insert(body.name.clone(), source);
+                    source
+                };
+                game.replace_actor(id, source, 0x3453)?;
+            }
+        }
         game.camera.snap_pending = true;
         game.intelligence.difficulty = options.difficulty;
         game.roster.get_mut(game.player_id).inventory[..4].copy_from_slice(&[255, 10, 5, 2]);
@@ -287,6 +346,9 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let options = Options::parse(&options)?;
     let disc = crate::source::open_disc(args[2].as_ref())?;
     let sandbox = Sandbox::open(&disc, map, sequence, guard)?;
+    if !render {
+        menu::remember(&std::fs::canonicalize(&args[2]).map_err(|e| e.to_string())?)?;
+    }
     let map = sandbox.level.id;
     eprintln!(
         "Tenchu 2 map {map}: {} terrain chunks, {} static props; {} procedural effects not imported",

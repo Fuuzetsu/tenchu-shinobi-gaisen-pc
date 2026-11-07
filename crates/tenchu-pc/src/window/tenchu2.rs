@@ -24,6 +24,7 @@ impl Application {
                 #[cfg(not(target_arch = "wasm32"))]
                 if self.tenchu2.path.is_empty() {
                     self.tenchu2.guard = Some(0x10);
+                    self.tenchu2.source_models = true;
                     if let Some(path) = crate::tenchu2::menu::disc_path() {
                         self.tenchu2.path = path.to_string_lossy().into();
                         return self.apply_tenchu2(Event::Connect);
@@ -73,6 +74,11 @@ impl Application {
                         "{} areas available. Disc path remembered.",
                         self.tenchu2.maps.len()
                     );
+                    if let Some(view) = &mut self.view {
+                        view.model_library = None;
+                        view.model_picker.clear();
+                        self.menu.moveset_models.clear();
+                    }
                 }
             }
             Event::Play => {
@@ -83,12 +89,13 @@ impl Application {
                     }
                     let disc = crate::source::open_disc(self.tenchu2.path.as_ref())?;
                     let guard = self.tenchu2.sequence.and(self.tenchu2.guard);
-                    let sandbox = crate::tenchu2::Sandbox::open(
+                    let mut sandbox = crate::tenchu2::Sandbox::open(
                         &disc,
                         Some(self.tenchu2.map),
                         self.tenchu2.sequence,
                         guard,
                     )?;
+                    sandbox.source_models = self.tenchu2.source_models;
                     let previous = self.campaign.options;
                     self.campaign.options.character = self.tenchu2.character;
                     if let Err(error) = self.campaign.start_sandbox(sandbox, &self.assets) {

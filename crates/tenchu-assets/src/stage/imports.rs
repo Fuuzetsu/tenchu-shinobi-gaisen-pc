@@ -4,6 +4,7 @@ use std::sync::Arc;
 #[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub source_kind: i16,
+    pub source_id: Option<String>,
     pub vram: Arc<Vram>,
     pub clip_ids: BTreeMap<i16, i16>,
 }
@@ -62,6 +63,7 @@ impl MissionAssets {
             model,
             Model {
                 source_kind: character.kind,
+                source_id: None,
                 vram,
                 clip_ids: remap
                     .into_iter()

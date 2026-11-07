@@ -111,7 +111,10 @@ impl Models {
                 .iter()
                 .enumerate()
                 .map(|(i, part)| catalog::ModelSource {
-                    id: format!("actors/{:04x}/{i}", source.source_kind),
+                    id: source.source_id.as_ref().map_or_else(
+                        || format!("actors/{:04x}/{i}", source.source_kind),
+                        |id| format!("{id}/{i}"),
+                    ),
                     label: format!("Imported actor {}", source.source_kind),
                     geometry: &part.geometry,
                 })
@@ -122,6 +125,7 @@ impl Models {
                 Pack::default()
             };
             let mut meshes = Meshes::build(&source.vram, &pack, graphics, sources, true)?;
+            meshes.skin(parts);
             meshes.detach_textures();
             if graphics.asset_pack {
                 meshes.replace_textures(&pack);
@@ -220,6 +224,11 @@ impl Models {
         } else {
             &self.world
         }
+    }
+
+    pub(super) fn jointed_source(&self, geometry: &[Geometry]) -> Option<&Meshes> {
+        let source = self.source(geometry);
+        source.has_skin().then_some(source)
     }
 
     pub fn append_indexed_part(
@@ -442,6 +451,8 @@ impl Meshes {
                 continue;
             }
             let mut vertices = Vec::new();
+            let jointed = source.geometry.iter().any(|g| !g.joints.is_empty());
+            let mut native_skin = Vec::new();
             if let Some(model) = replacement {
                 out.replacements += 1;
                 for triangle in model {
@@ -498,6 +509,12 @@ impl Meshes {
                 }
             } else {
                 for geometry in source.geometry {
+                    if jointed
+                        && (geometry.joints.len() != geometry.vertices.len()
+                            || geometry.joints.iter().any(|&j| j >= 15))
+                    {
+                        return Err(format!("{}: invalid vertex joints", source.id));
+                    }
                     for face in render_mesh::draw_tmd_faces(geometry) {
                         let start = vertices.len();
                         render_mesh::append_face(
@@ -507,6 +524,19 @@ impl Meshes {
                             Matrix::default(),
                             true,
                         );
+                        if jointed && vertices.len() != start {
+                            native_skin.extend(render_mesh::face_order(face).iter().map(|&i| {
+                                skin::Influence {
+                                    joints: [
+                                        geometry.joints[usize::from(face.corners[i].vertex)],
+                                        0,
+                                        0,
+                                        0,
+                                    ],
+                                    weights: [1.0, 0.0, 0.0, 0.0],
+                                }
+                            }));
+                        }
                         if let Some(region) = catalog::face_region(vram, face) {
                             let id = &region_ids[&region];
                             let material = *textures
@@ -640,14 +670,16 @@ impl Meshes {
                     super::vegetation::botanical::Shape::new(&vertices),
                 );
             }
-            let skin = replacement.and_then(|model| {
-                pack.skins.get(&source.id).map(|weights| {
-                    model
-                        .iter()
-                        .flat_map(|t| t.corners.map(|c| weights[c.index]))
-                        .collect::<Vec<_>>()
+            let skin = replacement
+                .and_then(|model| {
+                    pack.skins.get(&source.id).map(|weights| {
+                        model
+                            .iter()
+                            .flat_map(|t| t.corners.map(|c| weights[c.index]))
+                            .collect::<Vec<_>>()
+                    })
                 })
-            });
+                .or_else(|| (!native_skin.is_empty()).then_some(native_skin));
             if skin.as_ref().is_some_and(|s| s.len() != vertices.len()) {
                 return Err(format!(
                     "{}: skin does not match prepared geometry",
@@ -850,6 +882,7 @@ mod tests {
     fn indexed_poses_preserve_vertices_and_filtered_triangle_order() {
         use bytemuck::Zeroable;
         let geometry = vec![Geometry {
+            joints: Vec::new(),
             vertices: Vec::new(),
             normals: Vec::new(),
             faces: Vec::new(),

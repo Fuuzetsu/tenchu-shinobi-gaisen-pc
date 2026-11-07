@@ -422,7 +422,7 @@ impl super::Application {
                 library
                     .bodies
                     .iter()
-                    .filter(|body| body.character.is_some())
+                    .filter(|body| body.has_moveset())
                     .map(|body| (body.id.clone(), body.name.clone())),
             );
         }

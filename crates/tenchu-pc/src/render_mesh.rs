@@ -97,6 +97,14 @@ pub(crate) fn draw_tmd_faces(geometry: &Geometry) -> impl Iterator<Item = &Face>
     geometry.faces.iter().take_while(|face| face.flags & 1 != 0)
 }
 
+pub(crate) fn face_order(face: &Face) -> &'static [usize] {
+    if face.corners.len() == 4 {
+        &[0, 1, 2, 1, 3, 2]
+    } else {
+        &[0, 1, 2]
+    }
+}
+
 pub(crate) fn append_geometry(
     vertices: &mut Vec<Vertex>,
     geometries: &[Geometry],
@@ -144,12 +152,7 @@ pub(crate) fn append_face(
     if (b - a).cross(c - a).length_squared() == 0.0 {
         return;
     }
-    let order = if face.corners.len() == 4 {
-        &[0, 1, 2, 1, 3, 2][..]
-    } else {
-        &[0, 1, 2][..]
-    };
-    for &i in order {
+    for &i in face_order(face) {
         let corner = face.corners[i];
         vertices.push(Vertex {
             material: 0,

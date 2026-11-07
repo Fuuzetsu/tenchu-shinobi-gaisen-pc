@@ -83,13 +83,10 @@ pub fn choices(
         );
     } else {
         for &kind in game.mission.models.keys() {
-            let name = &game
-                .mission
-                .characters
-                .iter()
-                .find(|c| c.kind == kind)
-                .unwrap()
-                .model;
+            let Some(character) = game.mission.characters.iter().find(|c| c.kind == kind) else {
+                continue;
+            };
+            let name = &character.model;
             choices.push((format!("disc:{kind}"), format!("{name} ({kind:04x})")));
         }
     }
@@ -192,6 +189,7 @@ impl Appearance {
                     child: i as i16,
                     position: p.position,
                     geometry: vec![model::Geometry {
+                        joints: Vec::new(),
                         vertices: Vec::new(),
                         normals: Vec::new(),
                         faces: Vec::new(),
@@ -221,9 +219,7 @@ impl Appearance {
             options.asset_pack = true;
         }
         let mut meshes = Meshes::build(vram, pack, &options, sources, true)?;
-        if custom {
-            meshes.skin(&parts);
-        }
+        meshes.skin(&parts);
         if body.is_some() {
             meshes.detach_textures();
             if graphics.asset_pack {
@@ -393,6 +389,7 @@ pub(super) fn visit_parts_filtered(
             appearance.meshes.pose_skin(&matrices);
         }
     }
+    let mut posed_actor = None;
     render_mesh::visit_character_parts(game, inspection, |key, geometry, matrix| {
         if !include(key) {
             return;
@@ -451,6 +448,27 @@ pub(super) fn visit_parts_filtered(
                     parent = game.scene.models[id].parent;
                 }
             }
+        }
+        if let Part::Actor { root, .. } = key
+            && posed_actor != Some(root)
+            && let Some(meshes) = models.and_then(|m| m.jointed_source(geometry))
+            && let Some(actor) = game
+                .roster
+                .actors
+                .iter()
+                .flatten()
+                .find(|a| a.root_model == root)
+        {
+            let mut owned;
+            let actor = if inspection || game.drawing.step != tenchu_core::drawing::Step::Normal {
+                owned = actor.clone();
+                owned.initialize_rendered(&game.scene, &game.math);
+                &owned
+            } else {
+                actor
+            };
+            meshes.pose_skin(&rendered_matrices(actor, inspection, frame));
+            posed_actor = Some(root);
         }
         visit(key, geometry, matrix);
     });
