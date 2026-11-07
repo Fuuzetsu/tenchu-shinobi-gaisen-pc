@@ -24,12 +24,28 @@ controls work. F5 restarts this sandbox; Esc returns to the ordinary launcher.
 Sandbox play does not award campaign progress. Savestates and rewind work within
 the sandbox; reopen the same map and sequence before loading its file save.
 
-The music selector offers three looping themes from the Tenchu 2 disc, or **Off**.
-Theme 1 plays by default; the CLI equivalent is `--music off|1|2|3`.
+The music selector offers eight themes from the Tenchu 2 disc, or **Off**.
+It repeats your selected theme; it does not cycle through the catalogue.
+Character-selection music plays by default. Use `--music off` or `--music N`:
+
+| N | Theme |
+|---|---|
+| 1 | Character selection |
+| 2 | Options |
+| 3 | Editor menu |
+| 4 | Boss battle |
+| 5 | Final battle |
+| 6 | Editor — landscape |
+| 7 | Editor — settlement |
+| 8 | Editor — cave / ship |
+
 This is a sandbox soundtrack choice, not the original game's per-scene music
-schedule. Music decodes in the background and uses the normal music volume and
-pause settings. No audio files are bundled; voices and sound effects still use
-Gaisen's resources.
+schedule. These are the eight long tracks in its music archive; shorter cues,
+voices and the separate event/movie soundtracks are not background selections.
+Only the first three set the XA driver's repeat flag; the editor's gameplay loop
+restarts its themes separately. Music decodes in the background and uses the
+normal music volume and pause settings. No audio files are bundled; voices and
+sound effects still use Gaisen's resources.
 
 List all maps and source layouts, choose another starting point, or add guards:
 

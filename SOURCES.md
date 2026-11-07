@@ -1312,9 +1312,26 @@ The hash-checked Europe GAME.EXE supplies the music archive name at `0x8001323c`
 and the eight-byte cue table at `0x8007f354`. XA setup (`0x80016ae0`), cue lookup
 (`0x80016bac`) and the loop callback (`0x80016ec0..0x80016ed0`) establish the
 row format: cue ID, repeat flag, XA channel, BCD start and end times. Times use
-150 sectors per second; XA file number is 1. The importer reads only repeating
-entries, leaving the short event cues alone, and reuses the existing XA decoder.
-The menu offers these three themes as an optional sandbox soundtrack; it does
-not claim an original per-map assignment or reproduce T2's scripted audio.
-Decoding and playback use the user's disc at runtime. No XA data, decoded audio
-or extracted executable tables are distributed.
+150 sectors per second; XA file number is 1. There are 19 entries, mixing songs,
+short cues and character voices. Eight full-length themes use IDs 1–3 and 9–13;
+their decoded lengths range from 55.79 to 93.65 seconds. The selector names their
+menu, battle and editor roles, keeping short cues and voices out of the repeating
+sandbox playlist. The existing XA decoder reads their timing/channel from the
+user's executable, not a bundled audio catalogue.
+
+**The repeat flag does not identify all background music.** MENU.EXE's sound-test
+lookup at `0x8010ba8c..0x8010baa4` exposes nine cues, including IDs 9 and 11–13
+whose repeat flags are zero. TRIAL.EXE initially selects the editor's scenery
+theme at `0x80050ea0..0x80050ebc`. Its update at `0x80052170..0x800521cc` checks
+for completed XA playback and starts the same song again: the theme index at
+`0x8008972e` indexes a halfword table at `0x8008024c`, selecting IDs 11, 12 or 13.
+The initial three-song importer incorrectly discarded these higher-level loops.
+
+The optional sandbox selector repeats one chosen track; it neither cycles the
+whole catalogue nor claims retail story/boss cue scheduling. Event narration
+uses separate archives (GAME.EXE `0x80061870..0x80061888`; event.bin loaded at
+`0x800ce598`, file offsets `0xb24..0xb34`), and movies have their own audio. Eight
+sandbox themes therefore do not represent the entire game's soundtrack. The
+disc-backed playback test decodes every choice and checks distinct non-silent
+audio, pause/save/retry and return to Gaisen. Decoding and playback use the user's
+disc at runtime. No XA data, decoded audio or extracted tables are distributed.

@@ -5,9 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
-- Add selectable Tenchu 2 background music to the scenery sandbox: three looping
-  themes read from the user's disc, with Theme 1 enabled by default and an Off
-  choice. Playback uses the existing volume/pause controls and saved playhead.
+- Add selectable Tenchu 2 background music to the scenery sandbox: eight named
+  menu, battle and mission-editor themes read from the user's disc, including
+  songs repeated by game logic rather than the audio driver's loop flag.
+  Character-selection music plays by default, with an Off choice. Playback uses
+  the existing volume/pause controls and saved playhead.
 - Fix OpenGL ES startup rejecting GPUs with four color attachments, including
   the reported Mali-G76, by requesting only the attachments the renderer needs.
 - Android startup reports include detailed renderer checkpoints and, on Android

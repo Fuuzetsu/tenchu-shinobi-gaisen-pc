@@ -130,7 +130,7 @@ mod tests {
         assert!(app.is_suspended());
         app.apply_tenchu2(Event::Connect).unwrap();
         assert_eq!(app.tenchu2.maps.len(), 23);
-        assert_eq!(app.tenchu2.music_tracks, 3);
+        assert_eq!(app.tenchu2.music_tracks, 8);
         assert_eq!(
             crate::tenchu2::menu::disc_path().unwrap(),
             std::fs::canonicalize(&disc).unwrap()
@@ -141,7 +141,7 @@ mod tests {
             app.tenchu2.map = map;
             app.tenchu2.character = character;
             app.tenchu2.guard = guard;
-            app.tenchu2.music = (map == 1).then_some(2);
+            app.tenchu2.music = (map == 1).then_some(7);
             app.tenchu2.sequence = app
                 .tenchu2
                 .layouts

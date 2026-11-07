@@ -305,9 +305,12 @@ fn spawn(mission: &MissionAssets, math: &Math) -> Result<[i32; 3]> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
-    let help = "tenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map 0..23] [--sequence 0..299] [--guards sword|spear|archer] [--character rikimaru|ayame] [--music off|1|2|3]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\nExperimental scenery sandbox using Tenchu 1 gameplay. Map 7 is empty. Uses the map's first T2 starting position by default; --sequence selects another layout and its map. T2 story, enemies, scripted objects and water behavior are not ported. F1 settings/free camera work, F5 restarts, Esc returns to the normal launcher.";
+    let help = "tenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map 0..23] [--sequence 0..299] [--guards sword|spear|archer] [--character rikimaru|ayame] [--music off|1..8]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\nExperimental scenery sandbox using Tenchu 1 gameplay. Map 7 is empty. Uses the map's first T2 starting position by default; --sequence selects another layout and its map. T2 story, enemies, scripted objects and water behavior are not ported. F1 settings/free camera work, F5 restarts, Esc returns to the normal launcher.";
     if args.len() < 2 || args[1] == "--help" {
-        println!("{help}");
+        println!("{help}\nSandbox music (repeats the selected theme):");
+        for (index, (_, name)) in tenchu_assets::tenchu2::music::THEMES.iter().enumerate() {
+            println!("  {}: {name}", index + 1);
+        }
         return Ok(());
     }
     if args[0] == "inspect-t2" && args.len() == 2 {
@@ -361,10 +364,19 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 })
             }
             Some("--music") => {
-                music = match value {
-                    "off" => None,
-                    "1" | "2" | "3" => Some(value.parse::<usize>().unwrap() - 1),
-                    _ => return Err("--music needs off, 1, 2 or 3".into()),
+                music = if value == "off" {
+                    None
+                } else {
+                    Some(
+                        value
+                            .parse::<usize>()
+                            .ok()
+                            .filter(|&n| {
+                                (1..=tenchu_assets::tenchu2::music::THEMES.len()).contains(&n)
+                            })
+                            .ok_or("--music needs off or a theme number from 1 to 8")?
+                            - 1,
+                    )
                 };
             }
             Some("--character" | "--difficulty" | "--language") => options.extend_from_slice(pair),

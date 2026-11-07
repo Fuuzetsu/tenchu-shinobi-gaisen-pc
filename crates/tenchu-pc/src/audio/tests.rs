@@ -139,7 +139,15 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
     let assets = GameAssets::open(crate::source::open_disc(gaisen.as_ref()).unwrap()).unwrap();
     let disc = crate::source::open_disc(t2.as_ref()).unwrap();
     let sandbox = Sandbox::open(t2.as_ref(), Some(0), None, None).unwrap();
-    assert_eq!(sandbox.music.tracks.len(), 3);
+    assert_eq!(
+        sandbox
+            .music
+            .tracks
+            .iter()
+            .map(|t| t.channel)
+            .collect::<Vec<_>>(),
+        [0, 2, 1, 3, 5, 6, 4, 7]
+    );
     let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
     campaign.start_sandbox(sandbox, &assets).unwrap();
     let (mut audio, commands) = recording(gaisen.as_ref(), &assets);
@@ -158,7 +166,7 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
         }
     };
     let mut signatures = std::collections::BTreeSet::new();
-    for selected in 0..3 {
+    for selected in 0..8 {
         campaign.sandbox.as_mut().unwrap().music.selected = Some(selected);
         audio.reload(&assets, &campaign).unwrap();
         audio.screen(&campaign.screen);
@@ -169,7 +177,7 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
         assert_eq!(clip.rate, expected.rate);
         let duration = clip.frames.len() as f64 / f64::from(clip.rate);
         assert!(
-            (80.0..100.0).contains(&duration),
+            (50.0..100.0).contains(&duration),
             "Unexpected duration {duration}"
         );
         let peak = clip

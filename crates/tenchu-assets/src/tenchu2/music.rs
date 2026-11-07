@@ -1,5 +1,16 @@
 use crate::{ReadAt, Result, audio::stream::Track, disc::Disc, executable::Executable, u16_le};
 
+pub const THEMES: [(u16, &str); 8] = [
+    (1, "Character selection"),
+    (2, "Options"),
+    (3, "Editor menu"),
+    (9, "Boss battle"),
+    (10, "Final battle"),
+    (11, "Editor — landscape"),
+    (12, "Editor — settlement"),
+    (13, "Editor — cave / ship"),
+];
+
 pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
     let bytes = super::executable(disc)?;
     let exe = Executable::new(&bytes)?;
@@ -11,21 +22,26 @@ pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
         .unwrap()
         .replace('\\', "/");
     let file = disc.find(&path)?;
-    let mut tracks = Vec::new();
+    let mut tracks = vec![None; THEMES.len()];
     for index in 0..64 {
         let row = exe.bytes(0x8007f354 + index * 8, 8)?;
         if u16_le(row, 6)? == 0 {
-            return Ok(tracks);
+            return tracks
+                .into_iter()
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| "Missing Tenchu 2 music cue".into());
         }
-        if row[2] == 0 {
+        let id = u16_le(row, 0)?;
+        // Retail restarts some songs outside the XA callback, despite repeat = 0.
+        let Some(selected) = THEMES.iter().position(|&(cue, _)| cue == id) else {
             continue;
-        }
+        };
         let start = time(&row[4..6])?;
         let end = time(&row[6..8])?;
         if row[3] > 31 || start >= end || end > file.size.div_ceil(2048) {
             return Err("Invalid Tenchu 2 music cue".into());
         }
-        tracks.push(Track {
+        tracks[selected] = Some(Track {
             path: path.clone(),
             channel: row[3],
             start,

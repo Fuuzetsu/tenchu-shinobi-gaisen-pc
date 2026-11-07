@@ -1,4 +1,4 @@
-use tenchu_assets::tenchu2::layout::Layout;
+use tenchu_assets::tenchu2::{layout::Layout, music::THEMES};
 
 pub struct Menu {
     pub open: bool,
@@ -109,14 +109,15 @@ impl Menu {
                         ui.horizontal(|ui| {
                             ui.label("Music");
                             egui::ComboBox::from_id_salt("t2-music")
-                                .selected_text(self.music.map_or_else(|| "Off".into(), |index| format!("Theme {}", index + 1)))
+                                .selected_text(self.music.and_then(|index| THEMES.get(index)).map_or("Off", |&(_, name)| name))
                                 .show_ui(ui, |ui| {
-                                    for index in 0..self.music_tracks {
-                                        ui.selectable_value(&mut self.music, Some(index), format!("Theme {}", index + 1));
+                                    for (index, &(_, name)) in THEMES.iter().take(self.music_tracks).enumerate() {
+                                        ui.selectable_value(&mut self.music, Some(index), name);
                                     }
                                     ui.selectable_value(&mut self.music, None, "Off");
                                 });
                         });
+                        ui.small("Repeats the selected theme; original story music cues are not simulated.");
                         ui.add_enabled_ui(!layouts.is_empty(), |ui| {
                             ui.horizontal_wrapped(|ui| {
                                 ui.label("Guards (Gaisen AI)");
