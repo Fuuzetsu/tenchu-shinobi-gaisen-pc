@@ -1,6 +1,67 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; checks every map's source background samples and schedules"]
+fn stage_ambience_uses_distinct_map_banks_and_retail_scheduling() {
+    use tenchu_assets::tenchu2::{Edition, music};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let edition = Edition::detect(&disc).unwrap();
+    let mut signatures = std::collections::BTreeSet::new();
+    for map in 0..24 {
+        let source = music::ambience(&disc, map).unwrap();
+        assert_eq!(
+            source.ticks_per_second,
+            if edition == Edition::Japan { 30 } else { 25 }
+        );
+        let program = source.bank.programs[0].as_ref().unwrap();
+        for id in [10, 11, 12, 15] {
+            let sample = &source.bank.samples[program.tones[id].sample];
+            if !sample.frames.is_empty() {
+                signatures.insert(
+                    sample
+                        .frames
+                        .iter()
+                        .step_by(17)
+                        .copied()
+                        .collect::<Vec<_>>(),
+                );
+            }
+        }
+        if map == 0 {
+            assert_eq!(
+                source.interval,
+                if edition == Edition::Japan { 142 } else { 118 }
+            );
+        }
+        if map == 9 {
+            assert_eq!(
+                source.interval,
+                if edition == Edition::Japan { -1 } else { 0 }
+            );
+        }
+        if matches!(map, 0 | 2 | 9 | 14 | 21 | 23) {
+            let interval = source.interval;
+            let mut mixer = tenchu_audio::Mixer::new(44100);
+            mixer.tenchu2_ambience(source);
+            let mut peak = 0.0f32;
+            for _ in 0..44100 * 20 {
+                for sample in mixer.frame() {
+                    peak = peak.max(sample.abs());
+                }
+            }
+            assert_eq!(peak == 0.0, interval == 0, "map {map}: peak {peak}");
+            eprintln!("{edition:?} map {map}: interval {interval}, output peak {peak:.3}");
+        }
+    }
+    assert!(
+        signatures.len() >= 25,
+        "Expected map-specific ambient samples"
+    );
+    assert!(music::ambience(&disc, 24).is_err());
+}
+
+#[test]
 #[ignore = "requires Europe TENCHU2_DISC and TENCHU2_ASSET_PACK; checks the published pack's maps/81 models and reconstructed cutouts"]
 fn artwork_covers_published_catalog_and_preserves_cutouts() {
     use crate::visuals::{catalog, pack::Pack};

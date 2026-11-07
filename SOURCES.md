@@ -1336,6 +1336,40 @@ disc-backed playback test decodes every choice and checks distinct non-silent
 audio, pause/save/retry and return to Gaisen. Decoding and playback use the user's
 disc at runtime. No XA data, decoded audio or extracted tables are distributed.
 
+### Tenchu 2 retail stage ambience (2026-11-07)
+
+A further audit and actual SLPS-03040 play in BizHawk/Nymashock found the missing
+background layer. GAME.EXE schedules per-map VAB samples independently of XA:
+Europe `0x800648f8..0x80064b50`, Japan `0x80066008..0x80066240`. The interval
+tables are at `0x80083d24` and `0x80085c78`. Positive intervals repeat tone 10,
+negative intervals try it with probability 1/10 once per second, and zero skips
+the layer. Other updates have a 1/(10 × nominal tick rate) chance of tones 11/12,
+with a random 0–3 semitone reduction. Japan's ship maps 21/23 instead have a
+one-third chance of tone 15 and otherwise unshifted tones 11/12. PAL converts
+the table by integer `value * 5 / 6`, including truncating negative entries to
+zero; Japan also changes map 14's interval. The importer retains these edition
+differences rather than silently giving them the same soundscape.
+
+The bank loader (Europe `0x800167ec`, Japan `0x80016834`) reads
+`o:\cdimage\game\sound/{hero}_E_{map:02}.vab` in **both** editions. Ambient sounds
+are program 2, tones 10–12/15. Their samples and tone metadata match across the
+three heroes' banks in every map of each supported edition. Reserved SPU voices
+0/1 alternate the main sample; 2/3 alternate variations. The port reads that
+program from the user's R bank and keeps four independent ambient voices, so
+Gaisen effects neither overwrite it nor inherit Tenchu 2 sound IDs. The existing
+ADPCM/envelope/pitch code is shared. Scheduling uses a presentation-only RNG;
+this is source-derived background audio, not full T2 gameplay/RNG parity.
+
+Verification used recorded controller input from boot, with no RAM writes or
+injected state: one-minute stationary captures in Japanese training (map 0),
+bandit mission (map 2) and Tengu mission (map 9), plus ordinary movement. XA is
+idle in those quiet captures. Sample correlation identifies each map's VAB
+background cues and the pitch-shifted Tengu variations. Moving into alert starts
+the short XA cue 6. Private input/RAM/audio evidence is kept outside Git. These
+captures do not prove every mission's event/boss music schedule. The source
+mission loop still selects boss cues 9/10 and alert stingers separately; those
+and event/cutscene audio remain distinct from a sandbox music override.
+
 ### Sword sheathing correction (2026-11-07)
 
 Gaisen's NINJAA (`0x20`) uses weapon 10 (claws), while NINJAB (`0x21`)

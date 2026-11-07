@@ -35,7 +35,7 @@ impl Default for Menu {
             sequence: None,
             guard: Some(0x10),
             source_models: true,
-            music: Some(0),
+            music: None,
             music_tracks: 0,
             maps: Vec::new(),
             layouts: Vec::new(),

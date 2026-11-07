@@ -4,18 +4,11 @@ mod thunder;
 pub use ambience::Ambience;
 pub use thunder::{ThunderCue, ThunderStyle};
 
-use envelope::Envelope;
+mod tenchu2;
+mod voice;
 use std::sync::Arc;
 use tenchu_assets::audio::{bank::Bank, stream::Clip};
-
-struct Voice {
-    sample: usize,
-    position: f64,
-    step: f64,
-    volume: [f32; 2],
-    envelope: Envelope,
-    during_pause: bool,
-}
+use voice::Voice;
 
 struct Music {
     clip: Arc<Clip>,
@@ -31,6 +24,7 @@ pub struct Mixer {
     music: Option<Music>,
     thunder: [Option<thunder::Thunder>; 2],
     ambience: Option<ambience::Bed>,
+    soundscape: Option<tenchu2::Soundscape>,
     rate: u32,
     envelope_clock: u64,
     pause_envelope_clock: u64,
@@ -52,6 +46,7 @@ impl Mixer {
             music: None,
             thunder: [None, None],
             ambience: None,
+            soundscape: None,
             rate,
             envelope_clock: 0,
             pause_envelope_clock: 0,
@@ -73,6 +68,11 @@ impl Mixer {
         self.voices = std::array::from_fn(|_| None);
         self.thunder = [None, None];
         self.ambience = None;
+        self.soundscape = None;
+    }
+
+    pub fn tenchu2_ambience(&mut self, ambience: tenchu_assets::tenchu2::music::Ambience) {
+        self.soundscape = Some(tenchu2::Soundscape::new(ambience, self.rate));
     }
 
     pub fn ambience(&mut self, ambience: Ambience) {
@@ -110,40 +110,13 @@ impl Mixer {
 
     fn play_note_inner(&mut self, id: i16, volume: u8, pan: u8, note: u8, during_pause: bool) {
         self.next_voice = (self.next_voice + 1) % self.voices.len();
-        let Some(bank) = &self.bank else {
-            return;
-        };
-        let Some(Some(program)) = bank.programs.get((id as u16 >> 4) as usize) else {
-            return;
-        };
-        let Some(tone) = program.tones.get((id & 15) as usize) else {
-            return;
-        };
-        let Some(sample) = bank.samples.get(tone.sample) else {
-            return;
-        };
-        if sample.frames.is_empty() {
-            return;
+        if let Some(voice) = self
+            .bank
+            .as_ref()
+            .and_then(|bank| Voice::new(bank, id, volume, pan, note, self.rate, during_pause))
+        {
+            self.voices[self.next_voice] = Some(voice);
         }
-        let volume = f32::from(volume) / 127.0 * f32::from(bank.volume) / 127.0
-            * f32::from(program.volume)
-            / 127.0
-            * f32::from(tone.volume)
-            / 127.0;
-        let pan = f32::from(pan.min(127));
-        let pitch =
-            (f64::from(note) - f64::from(tone.center) - f64::from(tone.fine) / 128.0) / 12.0;
-        self.voices[self.next_voice] = Some(Voice {
-            sample: tone.sample,
-            position: 0.0,
-            step: 44100.0 * pitch.exp2() / f64::from(self.rate),
-            volume: [
-                volume * ((127.0 - pan) / 63.0).min(1.0),
-                volume * (pan / 64.0).min(1.0),
-            ],
-            envelope: Envelope::new(tone.adsr),
-            during_pause,
-        });
     }
 
     pub fn music(&mut self, clip: Option<Arc<Clip>>, repeat: bool) {
@@ -182,38 +155,13 @@ impl Mixer {
                 if self.paused && !voice.during_pause {
                     continue;
                 }
-                let sample = &bank.samples[voice.sample];
-                let length = sample.frames.len();
-                if voice.position >= length as f64 {
-                    if let Some(start) = sample.loop_start.filter(|&start| start < length) {
-                        voice.position = start as f64
-                            + (voice.position - length as f64) % (length - start) as f64;
-                    } else {
-                        *slot = None;
-                        continue;
+                if let Some(frame) = voice.frame(bank, ticks) {
+                    for (out, sample) in output.iter_mut().zip(frame) {
+                        *out += sample;
                     }
-                }
-                for _ in 0..ticks {
-                    voice.envelope.tick();
-                }
-                if voice.envelope.finished() {
-                    *slot = None;
-                    continue;
-                }
-                let index = voice.position as usize;
-                let next = if index + 1 < length {
-                    index + 1
                 } else {
-                    sample.loop_start.unwrap_or(index).min(length - 1)
-                };
-                let fraction = voice.position.fract() as f32;
-                let a = f32::from(sample.frames[index]);
-                let b = f32::from(sample.frames[next]);
-                let value = (a + (b - a) * fraction) * voice.envelope.volume() / 32768.0;
-                for (out, volume) in output.iter_mut().zip(voice.volume) {
-                    *out += value * volume;
+                    *slot = None;
                 }
-                voice.position += voice.step;
             }
         }
         if !self.paused {
@@ -238,6 +186,13 @@ impl Mixer {
                 for (out, sample) in output.iter_mut().zip(rain.frame()) {
                     *out += sample;
                 }
+            }
+        }
+        if !self.paused
+            && let Some(soundscape) = &mut self.soundscape
+        {
+            for (out, sample) in output.iter_mut().zip(soundscape.frame(ticks)) {
+                *out += sample;
             }
         }
         output = output.map(|v| v * self.effects_volume);

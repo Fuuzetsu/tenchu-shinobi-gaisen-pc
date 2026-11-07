@@ -32,9 +32,15 @@ controls work. F5 restarts this sandbox; Esc returns to the ordinary launcher.
 Sandbox play does not award campaign progress. Savestates and rewind work within
 the sandbox; reopen the same map and sequence before loading its file save.
 
-The music selector offers eight themes from the Tenchu 2 disc, or **Off**.
-It repeats your selected theme; it does not cycle through the catalogue.
-Character-selection music plays by default. Use `--music off` or `--music N`:
+**Stage ambience (retail)** is the default. Each map loads its own background
+samples and repeat/random-variation timing from the Tenchu 2 disc. These are
+separate from the XA songs and use the effects volume control. Pausing freezes
+this layer; loading a save restarts its samples. Ambient variation uses a separate
+presentation RNG, so it does not alter Gaisen gameplay.
+
+The music selector also offers eight optional themes. It repeats your chosen
+theme over the stage ambience; it does not cycle through the catalogue.
+Use `--music retail` (or `--music off`) for ambience alone, or `--music N`:
 
 | N | Theme |
 |---|---|
@@ -52,8 +58,8 @@ schedule. These are the eight long tracks in its music archive; shorter cues,
 voices and the separate event/movie soundtracks are not background selections.
 Only the first three set the XA driver's repeat flag; the editor's gameplay loop
 restarts its themes separately. Music decodes in the background and uses the
-normal music volume and pause settings. No audio files are bundled; voices and
-sound effects still use Gaisen's resources.
+normal music volume and pause settings. No audio files are bundled. Character voices and combat effects still use
+Gaisen's resources; environmental ambience uses the selected Tenchu 2 map bank.
 
 List all maps and source layouts, choose another starting point, or add guards:
 

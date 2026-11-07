@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore Tenchu 2's map-specific background sound banks and ambient scheduling,
+  verified against retail BizHawk recordings. F6 defaults to **Stage ambience
+  (retail)** instead of repeating character-selection music. Ambient sounds use
+  effects volume, pause with the game, and stay separate from Gaisen combat audio.
+
 - Fix the unwanted right turn after Tatsumaru's imported attacks. Attack recovery
   now uses his source resting hip angle, while retaining intentional turning
   strikes; older personal moveset exports receive the fix too.
@@ -37,8 +42,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Add selectable Tenchu 2 background music to the scenery sandbox: eight named
   menu, battle and mission-editor themes read from the user's disc, including
   songs repeated by game logic rather than the audio driver's loop flag.
-  Character-selection music plays by default, with an Off choice. Playback uses
-  the existing volume/pause controls and saved playhead.
+  Stage ambience is the default; the themes are optional overrides. Playback uses
+  the existing volume/pause controls and saved music playhead.
 - Fix OpenGL ES startup rejecting GPUs with four color attachments, including
   the reported Mali-G76, by requesting only the attachments the renderer needs.
 - Android startup reports include detailed renderer checkpoints and, on Android

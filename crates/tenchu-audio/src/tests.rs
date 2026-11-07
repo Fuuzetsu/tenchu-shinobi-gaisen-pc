@@ -29,6 +29,57 @@ fn bank(loop_start: Option<usize>) -> Arc<Bank> {
 }
 
 #[test]
+fn stage_ambience_keeps_reserved_voices_and_follows_pause_and_effect_volume() {
+    let mut source = bank(Some(0));
+    let bank = Arc::get_mut(&mut source).unwrap();
+    let program = bank.programs[0].as_mut().unwrap();
+    program.tones.resize(16, program.tones[0].clone());
+    let source = tenchu_assets::tenchu2::music::Ambience {
+        bank: source,
+        interval: 142,
+        ticks_per_second: 30,
+        ship_variants: false,
+    };
+    for rate in [44100, 48000] {
+        let setup = || {
+            let mut mixer = Mixer::new(rate);
+            mixer.set_bank(source.bank.clone());
+            mixer.tenchu2_ambience(source.clone());
+            mixer
+        };
+        let mut expected = vec![[0.0; 2]; rate as usize * 6];
+        setup().render(&mut expected);
+        assert!(expected.iter().flatten().any(|v| v.abs() > 0.01));
+        let mut actual = setup();
+        let mut offset = 0;
+        while offset < expected.len() {
+            let count = 347.min(expected.len() - offset);
+            let mut frames = vec![[0.0; 2]; count];
+            actual.paused = true;
+            actual.render(&mut frames);
+            assert!(frames.iter().all(|&s| s == [0.0; 2]));
+            actual.paused = false;
+            actual.render(&mut frames);
+            assert_eq!(frames, expected[offset..offset + count]);
+            // Exhausting effect voices cannot overwrite the stage's reserved voices.
+            for _ in 0..48 {
+                actual.play(0, 0, 64);
+            }
+            offset += count;
+        }
+        actual.effects_volume = 0.0;
+        assert_eq!(actual.frame(), [0.0; 2]);
+        actual.effects_volume = 1.0;
+        actual.clear_effects();
+        assert_eq!(actual.frame(), [0.0; 2]);
+        actual.tenchu2_ambience(source.clone());
+        let mut frames = vec![[0.0; 2]; 100];
+        actual.render(&mut frames);
+        assert!(frames.iter().flatten().any(|v| v.abs() > 0.01));
+    }
+}
+
+#[test]
 fn seeking_restores_stream_position_across_resampling_pause_and_looping() {
     for rate in [44100, 48000] {
         for repeat in [false, true] {

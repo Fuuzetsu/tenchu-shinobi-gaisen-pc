@@ -35,6 +35,7 @@ pub struct Music {
     pub disc: std::path::PathBuf,
     pub tracks: Vec<Track>,
     pub selected: Option<usize>,
+    pub ambience: tenchu_assets::tenchu2::music::Ambience,
 }
 
 impl Music {
@@ -86,7 +87,8 @@ impl Sandbox {
             music: Music {
                 disc: path.to_owned(),
                 tracks: tenchu_assets::tenchu2::music::tracks(disc)?,
-                selected: Some(0),
+                selected: None,
+                ambience: tenchu_assets::tenchu2::music::ambience(disc, map)?,
             },
         })
     }
@@ -345,7 +347,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut map = None;
     let mut sequence = None;
     let mut guard = None;
-    let mut music = Some(0);
+    let mut music = None;
     let mut options = Vec::new();
     for pair in args[first..].chunks(2) {
         if pair.len() != 2 {
@@ -366,7 +368,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 })
             }
             Some("--music") => {
-                music = if value == "off" {
+                music = if matches!(value, "off" | "retail") {
                     None
                 } else {
                     Some(

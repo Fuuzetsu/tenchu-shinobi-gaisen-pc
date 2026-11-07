@@ -84,6 +84,7 @@ impl Audio {
         } else {
             0.0
         };
+        self.start_ambience();
     }
 
     fn music_position(&self) -> f64 {
@@ -174,6 +175,7 @@ impl Audio {
     ) -> Result<()> {
         self.output
             .send(Command::Bank(Arc::new(game_bank(assets, game)?)));
+        self.start_ambience();
         Ok(())
     }
 
@@ -303,6 +305,7 @@ impl Audio {
         {
             self.mission_track = music.track();
             self.track(self.mission_track.clone());
+            self.start_ambience();
             return;
         }
         let cue = match screen {
@@ -327,6 +330,17 @@ impl Audio {
                 paused,
                 music_while_paused,
             });
+        }
+    }
+
+    fn start_ambience(&self) {
+        if !self.fast_forward
+            && (self.screen == Some(discriminant(&Screen::Playing))
+                || self.screen == Some(discriminant(&Screen::DeathHold { retry_seed: 0 })))
+            && let Some(music) = &self.sandbox_music
+        {
+            self.output
+                .send(Command::Tenchu2Ambience(music.ambience.clone()));
         }
     }
 
@@ -355,6 +369,7 @@ impl Audio {
         } else {
             let music = self.current_track.clone().filter(|track| track.repeat);
             self.track(music);
+            self.start_ambience();
         }
         self.volume(self.volume);
     }

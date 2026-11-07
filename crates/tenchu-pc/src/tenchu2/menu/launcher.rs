@@ -183,9 +183,9 @@ impl Menu {
                     if self.selected.is_some() {
                         ui.horizontal(|ui| {
                             ui.label(selected(6, "Music"));
-                            egui::ComboBox::from_id_salt("quick-music").selected_text(self.music.and_then(|i| THEMES.get(i)).map_or("Off", |&(_, name)| name)).show_ui(ui, |ui| {
+                            egui::ComboBox::from_id_salt("quick-music").selected_text(self.music.and_then(|i| THEMES.get(i)).map_or("Stage ambience (retail)", |&(_, name)| name)).show_ui(ui, |ui| {
                                 for (i, &(_, name)) in THEMES.iter().take(self.music_tracks).enumerate() { ui.selectable_value(&mut self.music, Some(i), name); }
-                                ui.selectable_value(&mut self.music, None, "Off");
+                                ui.selectable_value(&mut self.music, None, "Stage ambience (retail)");
                             });
                         });
                         ui.horizontal_wrapped(|ui| {

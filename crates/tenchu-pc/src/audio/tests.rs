@@ -151,6 +151,17 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
     let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
     campaign.start_sandbox(sandbox, &assets).unwrap();
     let (mut audio, commands) = recording(gaisen.as_ref(), &assets);
+    audio.reload(&assets, &campaign).unwrap();
+    audio.screen(&campaign.screen);
+    assert!(
+        audio.current_track.is_none(),
+        "Default must not repeat a menu song"
+    );
+    assert!(
+        commands
+            .try_iter()
+            .any(|c| matches!(c, Command::Tenchu2Ambience(_)))
+    );
     let wait = |audio: &mut Audio| {
         let deadline = Instant::now() + std::time::Duration::from_secs(15);
         loop {
@@ -235,10 +246,32 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
     audio.screen(&campaign.screen);
     assert!(audio.current_track.is_none());
     assert!(audio.mission_track.is_none());
+    let sent: Vec<_> = commands.try_iter().collect();
+    assert!(
+        sent.iter()
+            .all(|c| !matches!(c, Command::Music(Some(_), _)))
+    );
+    assert!(
+        sent.iter()
+            .any(|c| matches!(c, Command::Tenchu2Ambience(_)))
+    );
+    audio.restore_playback(&campaign, None);
     assert!(
         commands
             .try_iter()
-            .all(|c| !matches!(c, Command::Music(Some(_), _)))
+            .any(|c| matches!(c, Command::Tenchu2Ambience(_)))
+    );
+    audio.fast_forward(true);
+    assert!(
+        commands
+            .try_iter()
+            .all(|c| !matches!(c, Command::Tenchu2Ambience(_)))
+    );
+    audio.fast_forward(false);
+    assert!(
+        commands
+            .try_iter()
+            .any(|c| matches!(c, Command::Tenchu2Ambience(_)))
     );
     campaign.action(Action::Back, &assets).unwrap();
     audio.reload(&assets, &campaign).unwrap();

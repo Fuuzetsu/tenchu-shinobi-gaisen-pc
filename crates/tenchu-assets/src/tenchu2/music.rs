@@ -1,4 +1,57 @@
-use crate::{ReadAt, Result, audio::stream::Track, disc::Disc, executable::Executable, u16_le};
+use super::{Edition, volume::Volume};
+use crate::{
+    ReadAt, Result,
+    audio::{bank::Bank, stream::Track},
+    disc::Disc,
+    executable::Executable,
+    i16_le, u16_le,
+};
+use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct Ambience {
+    pub bank: Arc<Bank>,
+    pub interval: i16,
+    pub ticks_per_second: u32,
+    pub ship_variants: bool,
+}
+
+pub fn ambience(disc: &Disc<impl ReadAt>, map: usize) -> Result<Ambience> {
+    if map >= 24 {
+        return Err("Invalid Tenchu 2 ambience map".into());
+    }
+    let (edition, bytes) = super::executable(disc)?;
+    let exe = Executable::new(&bytes)?;
+    let mut interval = i16_le(
+        exe.bytes(edition.addresses().ambience_intervals + map as u32 * 2, 2)?,
+        0,
+    )?;
+    let ticks_per_second = match edition {
+        Edition::Europe => {
+            // GAME.EXE converts the whole table, including negative entries.
+            interval = interval * 5 / 6;
+            25
+        }
+        Edition::Japan => 30,
+    };
+    let volume = Volume::open(disc)?;
+    // The environment tones are identical in all three heroes' banks.
+    let source =
+        Bank::parse(&volume.read("o:\\cdimage\\game\\sound", &format!("R_E_{map:02}.vab"))?)?;
+    let mut bank = Bank {
+        volume: source.volume,
+        pan: source.pan,
+        programs: Vec::new(),
+        samples: Vec::new(),
+    };
+    bank.import_program(&source, 2)?;
+    Ok(Ambience {
+        bank: Arc::new(bank),
+        interval,
+        ticks_per_second,
+        ship_variants: edition == Edition::Japan && matches!(map, 21 | 23),
+    })
+}
 
 pub const THEMES: [(u16, &str); 8] = [
     (1, "Character selection"),

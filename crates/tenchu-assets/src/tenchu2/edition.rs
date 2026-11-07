@@ -16,6 +16,7 @@ pub(super) struct Addresses {
     pub sequences: u32,
     pub music_path: u32,
     pub music_cues: u32,
+    pub ambience_intervals: u32,
 }
 
 impl Edition {
@@ -57,6 +58,7 @@ impl Edition {
                 sequences: 0x80082bec,
                 music_path: 0x8001323c,
                 music_cues: 0x8007f354,
+                ambience_intervals: 0x80083d24,
             },
             Self::Japan => Addresses {
                 volume_tag: 0xa0a28433,
@@ -67,6 +69,7 @@ impl Edition {
                 sequences: 0x80084b2c,
                 music_path: 0x80013260,
                 music_cues: 0x80081244,
+                ambience_intervals: 0x80085c78,
             },
         }
     }
