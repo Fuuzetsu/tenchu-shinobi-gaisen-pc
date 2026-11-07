@@ -1552,7 +1552,7 @@ chosen armed moveset. Turning the unarmed option off lets a kick finish; turning
 sheathing off entirely cancels it and clears its hitboxes. Try `unarmed-ayame`
 and `unarmed-rikimaru` for the Gaisen style.
 
-**Unarmed style → Tatsumaru (Tenchu 2)** adds a four-hit punch/kick combo plus
+**Unarmed style → Tatsumaru (Tenchu 2)** adds a five-hit punch/kick combo plus
 side, crouch, lunge and back attacks for either hero. On desktop, use **Import
 Tatsumaru moves…** on the Movement page and select your **Tenchu 2 Europe
 (SLES-02452)** CUE, with its BIN alongside it. Importing enables sheathing and

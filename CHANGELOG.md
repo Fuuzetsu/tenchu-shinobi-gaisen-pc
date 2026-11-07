@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Correct Tatsumaru's imported attack mapping: his normal combo now uses all
+  five forward strikes, while left/right second-strike variants stay separate.
+  Restore the correct crouching strike and remove the artificial kick-rotation
+  workaround. Existing imported movesets work without importing the disc again.
 - Add an Android launcher graphics-backend selector with an OpenGL ES
   compatibility path, and a copyable startup/crash report that works even
   when the game cannot reach F1. Vulkan now requests the mobile GPU limits

@@ -133,7 +133,6 @@ impl Application {
             Item::Sheathing
             | Item::UnarmedAttacks
             | Item::UnarmedStyle
-            | Item::ForwardKicks
             | Item::SheathedSpeed
             | Item::SheathedVisibility
             | Item::SheathedDamage
@@ -142,7 +141,6 @@ impl Application {
                 match item {
                     Item::Sheathing => settings.enabled = s.sheathing.enabled,
                     Item::UnarmedAttacks => settings.unarmed = s.sheathing.unarmed,
-                    Item::ForwardKicks => settings.forward_kicks = s.sheathing.forward_kicks,
                     Item::UnarmedStyle => settings.unarmed_style = s.sheathing.unarmed_style,
                     Item::SheathedSpeed => settings.speed = s.sheathing.speed,
                     Item::SheathedVisibility => settings.visibility = s.sheathing.visibility,

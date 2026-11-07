@@ -1240,8 +1240,17 @@ Local analysis of Tenchu 2 Europe SLES-02452, GAME.EXE SHA-256
   `0x8001a588..0x8001a660`, and root-height scaling at
   `0x8001af9c..0x8001b024`. Sparse xyz/time keys are compatible with the existing
   Hermite sampler after remapping T2's interleaved arm/hand/leg bone order.
-- Tatsumaru action/clip registrations in `datamng.bin` at file offset `0x2af4`;
-  twelve grounded strikes map onto Gaisen's combo, directional and crouch actions.
+- Tatsumaru action/clip registrations in `datamng.bin` at file offset `0x2af4`.
+  The normal combo is `0x900 → 0x901 → 0x904 → 0x905 → 0x906`, using clips
+  `0xb8, 0xb9, 0xba, 0xbb, 0x4bf`; the transitions are at
+  `0x8002a148..0x8002a16c` and `0x8002a358..0x8002a384`. Actions `0x902/0x903`
+  (clips `0x4bd/0x4be`) are the directional second-strike variants, not the
+  third/fourth attacks. Both variants continue into `0x904`. Root tracks remain
+  unchanged. The extra final strike uses a port-only action ID.
+- Grounded attack selection at `0x80022e8c..0x80022ef8` supplies the right/left
+  strikes (`0x907/0x90a`), dash lunge (`0x910`), back strike (`0x913`) and
+  crouched strike (`0x914`). Gaisen's backward lunge uses the back strike;
+  unsupported Gaisen side-combo continuations are disabled for this moveset.
 - `weapon/atktbl.dat` stores 16-byte rows: clip, power, steering, combo, start/end,
   ribbon timing and the striking-part bitmask. `ActAttack` at
   `0x80029924..0x8002aef8` starts/ends hits at row bytes 5/6;

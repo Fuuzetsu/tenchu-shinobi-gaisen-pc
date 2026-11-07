@@ -617,7 +617,7 @@ impl Actor {
 
     fn unarmed_action(&self, action: i16) -> bool {
         self.attribute & ATTR_WEAPON_DRAWN == 0
-            && matches!(action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_TAUNT)
+            && matches!(action, MOT_ATTACK..=MOT_ATTACK_LUNGE | MOT_ATTACK_BACK..=MOT_ATTACK_TAUNT | MOT_UNARMED_FINISH)
             && self
                 .sheathing
                 .as_ref()

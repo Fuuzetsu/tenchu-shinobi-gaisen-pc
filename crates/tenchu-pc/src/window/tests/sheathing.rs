@@ -261,7 +261,7 @@ fn unarmed_controls_save_and_rewind() {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC and TENCHU_T2_MOVES; real four-part imported combo, collisions, saves and style changes on both heroes"]
+#[ignore = "requires TENCHU_DISC and TENCHU_T2_MOVES; real five-part imported combo, collisions, saves and style changes on both heroes"]
 fn tatsumaru_combo_contacts_and_saved_state() {
     use tenchu_core::game::sheathing::UnarmedStyle;
     use tenchu_core::{ai::programs::Programs, collision};
@@ -311,7 +311,7 @@ fn tatsumaru_combo_contacts_and_saved_state() {
             let timing = &app.campaign.game.mission.weapons.attacks[player.attack];
             let buttons = if matches!(
                 player.motion.action,
-                MOT_ATTACK | MOT_ATTACK_SLASH2 | MOT_ATTACK_SLASH3
+                MOT_ATTACK | MOT_ATTACK_SLASH2 | MOT_ATTACK_SLASH3 | MOT_ATTACK_SLASH4
             ) && player.motion.count == timing.combo
             {
                 input::SQUARE
@@ -351,7 +351,8 @@ fn tatsumaru_combo_contacts_and_saved_state() {
                 let expected = match id {
                     0xb8 => 14,
                     0xb9 => 13,
-                    0x4bd | 0x4be => 12,
+                    0xba | 0x4bf => 9,
+                    0xbb => 13,
                     _ => panic!("Unexpected combo clip {id:x}"),
                 };
                 for part in [8, 9, 11, 12, 13, 14] {
@@ -380,11 +381,12 @@ fn tatsumaru_combo_contacts_and_saved_state() {
                 MOT_ATTACK,
                 MOT_ATTACK_SLASH2,
                 MOT_ATTACK_SLASH3,
-                MOT_ATTACK_SLASH4
+                MOT_ATTACK_SLASH4,
+                MOT_UNARMED_FINISH
             ]
             .into()
         );
-        assert_eq!(contacts, [0xb8, 0xb9, 0x4bd, 0x4be].into());
+        assert_eq!(contacts, [0xb8, 0xb9, 0xba, 0xbb, 0x4bf].into());
         assert!(
             app.campaign.game.roster.get(enemy).health < 9999,
             "Imported punches missed hero {character}'s target"
@@ -447,79 +449,78 @@ fn guard_stance_does_not_unsheathe_unless_requested() {
 }
 
 #[test]
-#[ignore = "requires TENCHU_DISC and imported Tatsumaru moves; forward retargeting keeps timing and recovery poses"]
-fn tatsumaru_kicks_sweep_in_front_of_both_heroes() {
-    use tenchu_core::{
-        game::sheathing::UnarmedStyle,
-        math::Matrix,
-        motion::{Pose, sample},
-    };
+#[ignore = "requires TENCHU_DISC and imported Tatsumaru moves; source second-strike variants must continue into the front combo"]
+fn tatsumaru_directional_second_strikes_keep_source_motion() {
+    use tenchu_core::game::sheathing::UnarmedStyle;
     let moves = crate::sheathing::imports::load().unwrap();
     for character in 0..2 {
-        let mut app = ready(character);
-        for enabled in [false, true, false] {
+        for (direction, variant, clip) in [
+            (0, MOT_ATTACK_SLASH2, 0xb9),
+            (input::RIGHT, MOT_ATTACK_SLASH2_RIGHT, 0x4bd),
+            (input::LEFT, MOT_ATTACK_SLASH2_LEFT, 0x4be),
+        ] {
+            let mut app = ready(character);
             app.set_sheathing(Sheathing {
-                enabled: true,
                 unarmed: true,
                 unarmed_style: UnarmedStyle::Tatsumaru,
-                forward_kicks: enabled,
-                ..Default::default()
+                ..app.settings.sheathing
             })
             .unwrap();
-            let game = &app.campaign.game;
-            for source in &moves.attacks[2..4] {
-                let clip = game
-                    .mission
-                    .clips
-                    .iter()
-                    .rev()
-                    .find(|c| {
-                        c.id == source.clip.id + 0x6000
-                            && (c.bones[0].len() == source.clip.bones[0].len()) != enabled
-                    })
-                    .unwrap();
-                let mut pose = Pose::new(&game.mission.models[&character]).unwrap();
-                let mut total = tenchu_core::math::Position::ZERO;
-                for frame in source.attack.start..=source.attack.end {
-                    for (rotation, track) in pose.rotation.iter_mut().zip(&clip.bones) {
-                        *rotation =
-                            sample(track, frame, clip.duration, &game.math.tables.hermite).unwrap();
-                    }
-                    let foot =
-                        pose.matrices(&game.math, Matrix::default())[source.part].translation;
-                    total = total.wrapping_add(foot);
+            press_sheathe(&mut app);
+            app.game_tick(input::SQUARE);
+            let mut visited = Vec::new();
+            for _ in 0..210 {
+                let game = &app.campaign.game;
+                let player = game.player();
+                if player.status == tenchu_core::actor::State::Attack
+                    && visited.last() != Some(&player.motion.action)
+                {
+                    visited.push(player.motion.action);
+                    let actual = &game.mission.clips[player.motion.clip.unwrap()];
+                    let expected = match player.motion.action {
+                        MOT_ATTACK => 0xb8,
+                        a if a == variant => clip,
+                        MOT_ATTACK_SLASH3 => 0xba,
+                        MOT_ATTACK_SLASH4 => 0xbb,
+                        MOT_UNARMED_FINISH => 0x4bf,
+                        a => panic!("Unexpected Tatsumaru action {a:x}"),
+                    };
+                    assert_eq!(actual.id, expected + 0x6000);
+                    let source = &moves
+                        .attacks
+                        .iter()
+                        .find(|m| m.clip.id == expected)
+                        .unwrap()
+                        .clip;
+                    assert_eq!(actual.root, source.root);
+                    assert_eq!(actual.bones, source.bones);
                 }
-                if enabled {
-                    assert!(
-                        total.z < 0 && total.x.abs() < -total.z / 8,
-                        "hero {character}, kick {}: {total:?}",
-                        source.clip.id
-                    );
-                    assert_eq!(clip.bones[0][0].value, source.clip.bones[0][0].value);
-                    assert_eq!(
-                        clip.bones[0].last().unwrap().value,
-                        source.clip.bones[0].last().unwrap().value
-                    );
+                let timing = &game.mission.weapons.attacks[player.attack];
+                let chain = player.status == tenchu_core::actor::State::Attack
+                    && player.motion.action != MOT_UNARMED_FINISH
+                    && player.motion.count == timing.combo;
+                let buttons = if chain {
+                    input::SQUARE
+                        | if player.motion.action == MOT_ATTACK {
+                            direction
+                        } else {
+                            0
+                        }
                 } else {
-                    assert_eq!(clip.bones, source.clip.bones);
-                    assert_eq!(clip.root, source.clip.root);
-                }
-                assert_eq!(clip.duration, source.clip.duration);
-                assert_eq!(clip.forward_speed, source.clip.forward_speed);
-                let timing = game
-                    .mission
-                    .weapons
-                    .attacks
-                    .iter()
-                    .find(|a| a.clip == clip.id)
-                    .unwrap();
-                let mut expected = source.attack.clone();
-                expected.clip = clip.id;
-                assert_eq!(
-                    postcard::to_allocvec(timing).unwrap(),
-                    postcard::to_allocvec(&expected).unwrap()
-                );
+                    0
+                };
+                app.game_tick(buttons);
             }
+            assert_eq!(
+                visited,
+                [
+                    MOT_ATTACK,
+                    variant,
+                    MOT_ATTACK_SLASH3,
+                    MOT_ATTACK_SLASH4,
+                    MOT_UNARMED_FINISH
+                ]
+            );
         }
     }
 }

@@ -67,6 +67,12 @@ and Gaisen supplies its normal collision radius, reactions and combo input rules
 Authored motion speed and frames run at the port's 30 Hz rate; PAL's 6/5 speed
 correction is not applied. No Tenchu 2 character model or audio is imported.
 
+The normal combo has five strikes. Its two directional second-strike variants
+occupy the next two registrations in the source table; treating that table as
+a linear combo made the third/fourth attacks turn sideways or backward. The
+import now follows the source action transitions and preserves the authored
+root motion, without a rotation correction.
+
 F1 → Movement imports the user's disc locally; `.t2moves` import/export allows
 the same animations to be used on the user's Android and browser installations.
 The port ships only the reader and adaptation code. Onikage remains the default

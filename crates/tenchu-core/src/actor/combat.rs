@@ -489,6 +489,8 @@ impl Actor {
             }
             _ => (),
         }
+        let tatsumaru =
+            self.unarmed_attack() && self.sheathing.as_ref().is_some_and(|s| s.tatsumaru());
         let combo = match action {
             MOT_ATTACK => Some(if held & RIGHT != 0 {
                 MOT_ATTACK_SLASH2_RIGHT
@@ -498,17 +500,25 @@ impl Actor {
                 MOT_ATTACK_SLASH2
             }),
             MOT_ATTACK_SLASH2 => Some(MOT_ATTACK_SLASH3),
+            MOT_ATTACK_SLASH2_RIGHT | MOT_ATTACK_SLASH2_LEFT if tatsumaru => {
+                Some(MOT_ATTACK_SLASH3)
+            }
             MOT_ATTACK_SLASH3 => Some(MOT_ATTACK_SLASH4),
-            MOT_ATTACK_RIGHT1 if held & (LEFT | RIGHT) != 0 => Some(if held & LEFT != 0 {
-                MOT_ATTACK_RIGHT2_LEFT
-            } else {
-                MOT_ATTACK_RIGHT2
-            }),
-            MOT_ATTACK_LEFT1 if held & (LEFT | RIGHT) != 0 => Some(if held & RIGHT != 0 {
-                MOT_ATTACK_LEFT2_RIGHT
-            } else {
-                MOT_ATTACK_LEFT2
-            }),
+            MOT_ATTACK_SLASH4 if tatsumaru => Some(MOT_UNARMED_FINISH),
+            MOT_ATTACK_RIGHT1 if !tatsumaru && held & (LEFT | RIGHT) != 0 => {
+                Some(if held & LEFT != 0 {
+                    MOT_ATTACK_RIGHT2_LEFT
+                } else {
+                    MOT_ATTACK_RIGHT2
+                })
+            }
+            MOT_ATTACK_LEFT1 if !tatsumaru && held & (LEFT | RIGHT) != 0 => {
+                Some(if held & RIGHT != 0 {
+                    MOT_ATTACK_LEFT2_RIGHT
+                } else {
+                    MOT_ATTACK_LEFT2
+                })
+            }
             _ => None,
         };
         if let Some(next) = combo

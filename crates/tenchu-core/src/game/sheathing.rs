@@ -25,7 +25,6 @@ pub struct Settings {
     pub enabled: bool,
     pub unarmed: bool,
     pub unarmed_style: UnarmedStyle,
-    pub forward_kicks: bool,
     pub speed: u16,
     pub visibility: u16,
     pub damage: u16,
@@ -38,7 +37,6 @@ impl Default for Settings {
             enabled: false,
             unarmed: false,
             unarmed_style: UnarmedStyle::Onikage,
-            forward_kicks: true,
             speed: 100,
             visibility: 100,
             damage: 100,
@@ -94,18 +92,28 @@ impl State {
     }
 
     pub(crate) fn unarmed_clip(&self, action: i16) -> Option<usize> {
-        let action = match action {
-            MOT_ATTACK_SLASH2_LEFT | MOT_ATTACK_SLASH2_RIGHT => MOT_ATTACK_SLASH2,
-            MOT_ATTACK_RIGHT2_LEFT => MOT_ATTACK_RIGHT2,
-            MOT_ATTACK_LEFT2_RIGHT if self.loaded_style == UnarmedStyle::Tatsumaru => {
-                MOT_ATTACK_LEFT2
+        let action = if self.loaded_style == UnarmedStyle::Tatsumaru {
+            match action {
+                MOT_ATTACK_RIGHT2 | MOT_ATTACK_RIGHT2_LEFT => MOT_ATTACK_RIGHT1,
+                MOT_ATTACK_LEFT2 | MOT_ATTACK_LEFT2_RIGHT => MOT_ATTACK_LEFT1,
+                MOT_ATTACK_LUNGE_BACK => MOT_ATTACK_BACK,
+                _ => action,
             }
-            _ => action,
+        } else {
+            match action {
+                MOT_ATTACK_SLASH2_LEFT | MOT_ATTACK_SLASH2_RIGHT => MOT_ATTACK_SLASH2,
+                MOT_ATTACK_RIGHT2_LEFT => MOT_ATTACK_RIGHT2,
+                _ => action,
+            }
         };
         self.attacks
             .iter()
             .find(|a| a.action == action)
             .map(|a| a.clip)
+    }
+
+    pub(crate) fn tatsumaru(&self) -> bool {
+        self.loaded_style == UnarmedStyle::Tatsumaru
     }
 
     pub(crate) fn contains_attack(&self, clip: Option<usize>) -> bool {
@@ -279,59 +287,6 @@ impl Game {
         Ok(())
     }
 
-    fn align_unarmed_kick(
-        &self,
-        clip: &mut Clip,
-        source: &tenchu_assets::tenchu2::Move,
-    ) -> Result<()> {
-        use crate::{
-            math::{Matrix, Position},
-            motion::{Pose, sample},
-        };
-        use tenchu_assets::motion::Key;
-        let mut pose = Pose::new(&self.mission.models[&self.player().mesh_kind])?;
-        let mut direction = Position::ZERO;
-        for frame in source.attack.start..=source.attack.end {
-            for (rotation, track) in pose.rotation.iter_mut().zip(&clip.bones) {
-                *rotation = sample(track, frame, clip.duration, &self.math.tables.hermite)?;
-            }
-            let foot = pose.matrices(&self.math, Matrix::default())[source.part].translation;
-            direction.x += foot.x;
-            direction.z += foot.z;
-        }
-        let angle = self.math.atan2(direction.x, -direction.z)?;
-        let track = &clip.bones[0];
-        let mut rotations = Vec::new();
-        let mut positions = Vec::new();
-        for frame in 0..=clip.duration {
-            let blend = if frame < source.attack.start {
-                f64::from(frame) / f64::from(source.attack.start.max(1))
-            } else if frame > source.attack.end {
-                f64::from(clip.duration - frame)
-                    / f64::from((clip.duration - source.attack.end).max(1))
-            } else {
-                1.0
-            };
-            let correction =
-                (f64::from(angle) * blend * blend * (3.0 - 2.0 * blend)).round() as i16;
-            let mut value = sample(track, frame, clip.duration, &self.math.tables.hermite)?;
-            value[1] = value[1].wrapping_add(correction);
-            rotations.push(Key { value, time: frame });
-            let root = sample(&clip.root, frame, clip.duration, &self.math.tables.hermite)?;
-            let value = Matrix {
-                rotation: self.math.rotate_yxz([0, correction, 0]),
-                ..Default::default()
-            }
-            .transform(root)
-            .map(|n| n as i16)
-            .to_array();
-            positions.push(Key { value, time: frame });
-        }
-        clip.bones[0] = rotations;
-        clip.root = positions;
-        Ok(())
-    }
-
     pub fn set_player_tatsumaru(&mut self, moves: &tenchu_assets::tenchu2::Moves) -> Result<()> {
         moves.validate()?;
         if self.player().sheathing.is_none() {
@@ -343,31 +298,20 @@ impl Game {
         let actions = [
             MOT_ATTACK,
             MOT_ATTACK_SLASH2,
+            MOT_ATTACK_SLASH2_RIGHT,
+            MOT_ATTACK_SLASH2_LEFT,
             MOT_ATTACK_SLASH3,
             MOT_ATTACK_SLASH4,
+            MOT_UNARMED_FINISH,
             MOT_ATTACK_RIGHT1,
-            MOT_ATTACK_RIGHT2,
             MOT_ATTACK_LEFT1,
-            MOT_ATTACK_LEFT2,
-            MOT_ATTACK_CROUCH,
             MOT_ATTACK_LUNGE,
             MOT_ATTACK_BACK,
-            MOT_ATTACK_LUNGE_BACK,
+            MOT_ATTACK_CROUCH,
         ];
         let mut attacks = Vec::new();
         for (source, action) in moves.attacks.iter().zip(actions) {
             let mut clip = source.clip.clone();
-            if self
-                .player()
-                .sheathing
-                .as_ref()
-                .unwrap()
-                .settings
-                .forward_kicks
-                && matches!(action, MOT_ATTACK_SLASH3 | MOT_ATTACK_SLASH4)
-            {
-                self.align_unarmed_kick(&mut clip, source)?;
-            }
             // Keep imported IDs clear of Gaisen's special attack dispatch.
             clip.id += 0x6000;
             let mut timing = source.attack.clone();

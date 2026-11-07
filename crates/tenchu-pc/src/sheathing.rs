@@ -71,11 +71,11 @@ pub fn configure(
 ) -> Result<()> {
     let needs_attacks = settings.enabled
         && settings.unarmed
-        && game.player().sheathing.as_ref().is_none_or(|s| {
-            s.needs_unarmed_motions(settings.unarmed_style)
-                || settings.unarmed_style == UnarmedStyle::Tatsumaru
-                    && s.settings.forward_kicks != settings.forward_kicks
-        });
+        && game
+            .player()
+            .sheathing
+            .as_ref()
+            .is_none_or(|s| s.needs_unarmed_motions(settings.unarmed_style));
     if needs_attacks
         && game.player().status == tenchu_core::actor::State::Attack
         && game.player().attribute & ATTR_WEAPON_DRAWN == 0
