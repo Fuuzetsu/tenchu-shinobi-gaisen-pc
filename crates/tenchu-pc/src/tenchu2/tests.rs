@@ -1,6 +1,56 @@
 use super::*;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and the complete TENCHU2_ASSET_PACK; checks all maps/models and reconstructed cutouts"]
+fn artwork_covers_source_catalog_and_preserves_cutouts() {
+    use crate::visuals::{catalog, pack::Pack};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let check =
+        |name: &str, parts: &[tenchu_assets::model::Part], vram: &tenchu_assets::texture::Vram| {
+            let sources: Vec<_> = parts
+                .iter()
+                .enumerate()
+                .map(|(index, part)| catalog::ModelSource {
+                    id: format!("tenchu2/{name}/{index}"),
+                    label: name.into(),
+                    geometry: &part.geometry,
+                })
+                .collect();
+            let regions = catalog::model_regions(vram, &sources);
+            let pack = Pack::for_models(vram, &sources).unwrap();
+            for (region, id) in regions {
+                let image = pack
+                    .textures
+                    .get(&id)
+                    .unwrap_or_else(|| panic!("{name}: missing {id}"));
+                let width = usize::from(region.rect[2]);
+                let height = usize::from(region.rect[3]);
+                assert_eq!(image.size[0] as usize, width * 4, "{name}: {id}");
+                assert_eq!(image.size[1] as usize, height * 4, "{name}: {id}");
+                let original = region.original_pixels(vram);
+                for y in 0..height * 4 {
+                    for x in 0..width * 4 {
+                        assert_eq!(
+                            image.rgba[(y * width * 4 + x) * 4 + 3],
+                            original[((y / 4) * width + x / 4) * 4 + 3],
+                            "{name}: {id} cutout at {x},{y}"
+                        );
+                    }
+                }
+            }
+        };
+    for id in Level::available(&disc).unwrap() {
+        let level = Level::load(&disc, id).unwrap();
+        check(&format!("map{id}/terrain"), &level.map, &level.vram);
+        check(&format!("map{id}/props"), &level.objects, &level.vram);
+    }
+    for body in tenchu_assets::tenchu2::characters::load(&disc, None).unwrap() {
+        check(&format!("actors/{}", body.name), &body.parts, &body.vram);
+    }
+}
+
+#[test]
 #[ignore = "requires both discs and TENCHU2_ASSET_PACK; verifies separate scenery/character artwork and original fallback"]
 fn separate_artwork_keeps_source_atlases_and_original_fallback() {
     use crate::visuals::{catalog, models::Models, pack::Pack};
@@ -34,15 +84,23 @@ fn separate_artwork_keeps_source_atlases_and_original_fallback() {
         let mut next = 0;
         models.bind(|material| {
             next += 1;
-            if let Some(replacement) = pack.textures.get(&material.id) {
+            if material.region.is_none()
+                && let Some(replacement) = pack.textures.get(&material.id)
+            {
                 if enabled {
-                    assert_eq!(material.image.rgba, replacement.rgba);
+                    assert!(
+                        material.image.rgba == replacement.rgba,
+                        "{}: imported artwork differs",
+                        material.id
+                    );
                     changed += 1;
                 } else {
                     let region = originals[&material.id];
-                    assert_eq!(
-                        material.image.rgba,
-                        region.original_pixels(game.mission.world_vram.as_ref().unwrap())
+                    assert!(
+                        material.image.rgba
+                            == region.original_pixels(game.mission.world_vram.as_ref().unwrap()),
+                        "{}: imported original differs",
+                        material.id
                     );
                 }
             }
@@ -364,7 +422,7 @@ fn imported_character_models_animate_with_isolated_textures() {
     assert!(bodies.len() >= 78);
     let graphics = Graphics {
         fog: false,
-        asset_pack: false,
+        asset_pack: std::env::var_os("TENCHU2_ASSET_PACK").is_some_and(|path| !path.is_empty()),
         smooth_models: true,
         ..Default::default()
     };
@@ -471,26 +529,30 @@ fn imported_character_models_animate_with_isolated_textures() {
                     let path = std::path::Path::new(output);
                     std::fs::create_dir_all(path).unwrap();
                     let center = position + Vec3::new(0.0, -900.0, 0.0);
-                    let camera =
-                        Mat4::perspective_rh(42f32.to_radians(), 16.0 / 9.0, 10.0, 20000.0)
-                            * Mat4::look_at_rh(
-                                center + Vec3::new(1800.0, -250.0, -3300.0),
-                                center,
-                                Vec3::NEG_Y,
-                            );
                     let mesh = review.renderer.upload(&vertices);
-                    review
-                        .capture(
-                            camera,
-                            &[&mesh],
-                            None,
-                            false,
-                            &path.join(format!(
-                                "hero-{character}-{}-pose-{pose}.png",
-                                body.id.trim_start_matches("tenchu2:")
-                            )),
-                        )
-                        .unwrap();
+                    for (suffix, offset) in [
+                        ("", Vec3::new(1800.0, -250.0, -3300.0)),
+                        ("-front", Vec3::new(3300.0, -250.0, 1800.0)),
+                    ] {
+                        if !suffix.is_empty() && pose != 0 {
+                            continue;
+                        }
+                        let camera =
+                            Mat4::perspective_rh(42f32.to_radians(), 16.0 / 9.0, 10.0, 20000.0)
+                                * Mat4::look_at_rh(center + offset, center, Vec3::NEG_Y);
+                        review
+                            .capture(
+                                camera,
+                                &[&mesh],
+                                None,
+                                false,
+                                &path.join(format!(
+                                    "hero-{character}-{}-pose-{pose}{suffix}.png",
+                                    body.id.trim_start_matches("tenchu2:")
+                                )),
+                            )
+                            .unwrap();
+                    }
                 }
             }
             assert!(changed, "{}", body.name);
