@@ -146,6 +146,29 @@ class LocalReleaseTests(unittest.TestCase):
                 setattr(self, failure, False)
         self.execute(prepare_only=True)
 
+    def test_both_artwork_releases_must_be_published_and_match(self):
+        directory = self.root / "artwork/tenchu2"
+        directory.mkdir()
+        (directory / "release.json").write_text(json.dumps({
+            "tag": "tenchu2-artwork-v1", "archive": "tenchu2-hd.tar.zst",
+            "bytes": 20, "sha256": "t2-hash",
+        }))
+        published = [
+            {"draft": False, "assets": [{"name": "tenchu-hd.tar.zst", "size": 10, "digest": "sha256:artwork-hash"}]},
+            {"draft": False, "assets": [{"name": "tenchu2-hd.tar.zst", "size": 20, "digest": "sha256:t2-hash"}]},
+        ]
+        with mock.patch.object(release_local, "github", side_effect=published) as github:
+            release_local.check_artwork(self.root)
+            self.assertEqual(github.call_args.args[-1], "repos/test/project/releases/tags/tenchu2-artwork-v1")
+        for broken in (
+            {"draft": True, "assets": published[1]["assets"]},
+            {"draft": False, "assets": []},
+            {"draft": False, "assets": [{"name": "tenchu2-hd.tar.zst", "size": 20, "digest": "sha256:wrong"}]},
+        ):
+            with mock.patch.object(release_local, "github", side_effect=[published[0], broken]):
+                with self.assertRaisesRegex(ValueError, "tenchu2-artwork-v1"):
+                    release_local.check_artwork(self.root)
+
     def test_preparation_and_validation_share_utc_date_across_midnight(self):
         original = {name: (self.root / name).read_bytes() for name in release_local.VERSION_FILES}
         for hour, offset in [(15, 9), (2, -8)]:

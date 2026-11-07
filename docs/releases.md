@@ -83,7 +83,7 @@ and the tag together. GitHub builds Linux x86-64/ARM64, Windows, WASM, the signe
 dependency-source archive and performs the portable startup checks. The script
 waits for both the tagged and HEAD workflows, downloads the release, and verifies
 its checksums, GitHub digests, build identities and library/source inventories.
-It checks the referenced HD pack is already published with the expected hash;
+It checks each referenced HD pack is already published with the expected hash;
 unchanged artwork is reused, not uploaded again.
 
 To prepare and review locally before publishing:
@@ -122,6 +122,11 @@ code releases. The compatible tag, archive name, size and checksum are recorded
 in `artwork/release.json`; game release notes link that tag. `artwork-v1` does
 not match the `v*` workflow trigger and does not become a game release. Keep
 `master` as the default branch.
+
+The separate Tenchu 2 pack uses `artwork/tenchu2/` for its metadata,
+`tenchu2-artwork-vN` release tags and `tenchu2-hd.tar.zst` archives. Pass that
+archive name as the packaging script's optional third argument. Publish and
+verify each pack independently; neither requires downloading the other.
 
 1. Keep the editable pack outside tracked source. Update the reviewed
    `artwork/pack.json` and `artwork/provenance.json` when its inputs change.

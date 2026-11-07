@@ -91,13 +91,13 @@ def check_tag(tag, revision):
 
 
 def check_artwork(root):
-    artwork = json.loads((root / "artwork/release.json").read_text())
-    published = github("api", f"repos/{os.environ['GH_REPO']}/releases/tags/{artwork['tag']}")
-    assets = [a for a in published["assets"] if a["name"] == artwork["archive"]]
-    if published["draft"] or len(assets) != 1:
-        raise ValueError("Publish the referenced HD artwork release before releasing the game")
-    if assets[0]["size"] != artwork["bytes"] or assets[0]["digest"] != "sha256:" + artwork["sha256"]:
-        raise ValueError("Published HD artwork does not match artwork/release.json")
+    for artwork in release.artwork_releases(root):
+        published = github("api", f"repos/{os.environ['GH_REPO']}/releases/tags/{artwork['tag']}")
+        assets = [a for a in published["assets"] if a["name"] == artwork["archive"]]
+        if published["draft"] or len(assets) != 1:
+            raise ValueError(f"Publish {artwork['tag']} before releasing the game")
+        if assets[0]["size"] != artwork["bytes"] or assets[0]["digest"] != "sha256:" + artwork["sha256"]:
+            raise ValueError(f"Published {artwork['tag']} does not match its artwork/release.json")
 
 
 def wait_for_build(branch, revision):
@@ -146,7 +146,7 @@ def verify_published(root, tag, revision, version):
     destination = root / "private/releases" / tag
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "verified.json").write_text(json.dumps(report, indent=2) + "\n")
-    print(f"Published and verified {published['html_url']}\nThe existing HD artwork pack is unchanged.")
+    print(f"Published and verified {published['html_url']}\nLinked artwork packs were verified separately.")
 
 
 def execute(root, version, prepare_only=False):

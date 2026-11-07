@@ -48,6 +48,19 @@ class ReleaseTests(unittest.TestCase):
     def test_head_after_tag_can_have_empty_unreleased(self):
         self.assertIn("No user-facing changes", self.notes("## Unreleased\n", "refs/heads/master"))
 
+    def test_separate_tenchu2_pack_is_linked_and_validated(self):
+        directory = self.root / "artwork/tenchu2"
+        directory.mkdir()
+        metadata = directory / "release.json"
+        metadata.write_text('{"tag":"tenchu2-artwork-v1"}')
+        notes = self.notes("## Unreleased\n", "refs/heads/master")
+        self.assertIn("tenchu2-hd.tar.zst", notes)
+        self.assertIn("artwork-v1", notes)
+        self.assertIn("Europe disc is still required", notes)
+        metadata.write_text('{"tag":"artwork-v1"}')
+        with self.assertRaises(ValueError):
+            self.notes("## Unreleased\n", "refs/heads/master")
+
     def archives(self, omit_source=False, unshipped_source=False):
         for i, name in enumerate(release.ARCHIVES):
             directory = self.root / "artifacts" / str(i)

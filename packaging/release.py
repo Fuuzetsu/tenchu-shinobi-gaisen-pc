@@ -24,6 +24,17 @@ ARCHIVES = (
 VERSION = r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:alpha|beta|rc)\.[1-9][0-9]*)?"
 
 
+def artwork_releases(root):
+    releases = [json.loads((root / "artwork/release.json").read_text())]
+    tenchu2 = root / "artwork/tenchu2/release.json"
+    if tenchu2.is_file():
+        releases.append(json.loads(tenchu2.read_text()))
+    for artwork, prefix in zip(releases, ("", "tenchu2-")):
+        if not re.fullmatch(prefix + r"artwork-v[1-9][0-9]*", artwork["tag"]):
+            raise ValueError("Invalid artwork release tag")
+    return releases
+
+
 def release_notes(root, ref):
     version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
     sections = re.split(r"^## (.+)$", (root / "CHANGELOG.md").read_text(), flags=re.M)
@@ -51,12 +62,13 @@ def release_notes(root, ref):
     else:
         body = "Development build of the default branch. It may contain unfinished changes.\n\n"
         body += changes["Unreleased"].strip() or "No user-facing changes recorded since the last tagged release."
-    artwork = json.loads((root / "artwork/release.json").read_text())
-    tag = artwork["tag"]
-    if not re.fullmatch(r"artwork-v[1-9][0-9]*", tag):
-        raise ValueError("Invalid artwork release tag")
+    artwork = artwork_releases(root)
     repository = os.environ.get("GH_REPO", os.environ.get("GITHUB_REPOSITORY", ""))
-    label = f"[{tag}](https://github.com/{repository}/releases/tag/{tag})" if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) else tag
+
+    def label(pack):
+        tag = pack["tag"]
+        return f"[{tag}](https://github.com/{repository}/releases/tag/{tag})" if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) else tag
+
     body += (
         "\n\nSupply your own Shinobi Gaisen SLPS-019.01 CUE and BIN files; original disc assets are not included. "
         "FFmpeg is needed separately for desktop movies/video export; Android decodes disc movies directly. "
@@ -64,10 +76,16 @@ def release_notes(root, ref):
         "Download the archive for your platform and extract it completely. "
         "On Android 9+ ARM64, install `tenchu-android-arm64.apk`, then use Import disc folder and optionally Import HD artwork in the launcher. "
         "SHA256SUMS verifies the downloads. Dependency sources are an optional separate download.\n"
-        f"\nOptional HD artwork: download `tenchu-hd.tar.zst` from the separate {label} release "
+        f"\nOptional HD artwork: download `tenchu-hd.tar.zst` from the separate {label(artwork[0])} release "
         "and place it beside the executable/launcher. Reuse it across game updates; "
         "unpacked custom packs are supported too.\n"
     )
+    if len(artwork) == 2:
+        body += (
+            f"\nOptional Tenchu 2 artwork: `tenchu2-hd.tar.zst` from {label(artwork[1])} "
+            "installs alongside the Gaisen pack. Android has a separate Tenchu 2 artwork import button. "
+            "The Tenchu 2 Europe disc is still required for its experimental sandbox and character models.\n"
+        )
     return body
 
 
