@@ -172,11 +172,18 @@ mod tests {
                 );
                 let mut detached_drops = 0;
                 let mut jets = 0;
+                let mut splashes = 0;
                 for tick in 0..210 {
                     game.step(0).unwrap();
                     deaths.tick(&game, 100).unwrap();
                     let before = crate::session::tests::state(&game);
                     blood.tick(&game, &models, &surfaces, &settings, deaths.frame.as_ref());
+                    let sounds: Vec<_> = blood.sounds(game.tick).collect();
+                    assert!(sounds.len() <= 1);
+                    assert!(sounds.is_empty() || game.tick.is_multiple_of(4));
+                    assert!(sounds.iter().all(|(_, id)| *id == 0x37));
+                    assert_eq!(blood.sounds(game.tick + 1).count(), 0);
+                    splashes += sounds.len();
                     assert_eq!(before, crate::session::tests::state(&game));
                     if let Some(severed) = &game.player().severed {
                         let actor = game.player();
@@ -215,6 +222,7 @@ mod tests {
                         let saved = postcard::to_allocvec(&blood).unwrap();
                         let restored: Blood = postcard::from_bytes(&saved).unwrap();
                         assert_eq!(restored.severed, blood.severed);
+                        assert_eq!(restored.sounds(game.tick).count(), 0);
                     }
                     if [20, 140].contains(&tick)
                         && let Some(path) = std::env::var_os("TENCHU_SEVERED_REVIEW")
@@ -237,6 +245,7 @@ mod tests {
                 }
                 assert!(game.player().severed.is_some());
                 assert!(jets > 0 && detached_drops > 0);
+                assert!(splashes > 0);
                 assert!(!blood.marks.is_empty());
                 assert!(blood.drops.iter().all(|d| d.kind != DropKind::Severed));
                 blood.clear();

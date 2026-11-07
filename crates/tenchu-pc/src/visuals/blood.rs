@@ -143,6 +143,8 @@ struct Contact {
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Blood {
     tick: Option<u64>,
+    #[serde(skip)]
+    sounds: Vec<(tenchu_core::math::Position, i16)>,
     health: BTreeMap<usize, i16>,
     pending_wounds: BTreeSet<usize>,
     samples: Vec<Option<Sample>>,
@@ -167,6 +169,7 @@ impl Blood {
     ) -> std::result::Result<(), C::Error> {
         let Self {
             tick,
+            sounds: _,
             health,
             pending_wounds,
             samples,
@@ -268,6 +271,16 @@ impl<'a> Receivers<'a> {
 }
 
 impl Blood {
+    pub fn sounds(
+        &self,
+        tick: u64,
+    ) -> impl Iterator<Item = (tenchu_core::math::Position, i16)> + '_ {
+        self.sounds
+            .iter()
+            .copied()
+            .filter(move |_| self.tick == Some(tick))
+    }
+
     pub fn configure(&mut self, settings: &settings::Blood) {
         if self.settings == *settings {
             return;
@@ -649,6 +662,7 @@ impl Blood {
         if self.tick == Some(game.tick) {
             return;
         }
+        self.sounds.clear();
         if self.tick.is_none_or(|tick| tick + 1 != game.tick) {
             *self = Self {
                 tick: Some(game.tick),
@@ -815,15 +829,22 @@ impl Blood {
             drop.velocity.y += 7.0;
             drop.position += drop.velocity;
             drop.life = drop.life.saturating_sub(1);
-            drop.life != 0
-                && !self.stain(
-                    game,
-                    &receivers,
-                    drop.previous,
-                    drop.position,
-                    40.0 + amount * 25.0,
-                    limit,
-                )
+            if drop.life == 0 {
+                return false;
+            }
+            let hit = self.stain(
+                game,
+                &receivers,
+                drop.previous,
+                drop.position,
+                40.0 + amount * 25.0,
+                limit,
+            );
+            if hit && self.sounds.is_empty() && game.tick.is_multiple_of(4) {
+                self.sounds
+                    .push((drop.position.to_array().map(|n| n as i32).into(), 0x37));
+            }
+            !hit
         });
         self.drops = drops;
         if !self.runoff.is_empty() {

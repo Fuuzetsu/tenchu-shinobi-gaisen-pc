@@ -95,9 +95,19 @@ impl Application {
             .as_ref()
             .and_then(View::death_frame)
             .filter(|_| !self.settings.retro);
+        let blood_sounds = || {
+            self.view
+                .as_ref()
+                .into_iter()
+                .flat_map(|view| view.blood.sounds(self.campaign.game.tick))
+        };
         if let Some(audio) = &mut self.audio {
-            if let Err(error) = audio.tick(&self.campaign.game, death, self.settings.burning_sound)
-            {
+            if let Err(error) = audio.tick(
+                &self.campaign.game,
+                death,
+                self.settings.burning_sound,
+                blood_sounds(),
+            ) {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);
@@ -110,6 +120,7 @@ impl Application {
                 &self.campaign.game,
                 death,
                 self.settings.burning_sound,
+                blood_sounds(),
             ) {
                 self.pause_error(error);
                 return false;

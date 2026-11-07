@@ -10,25 +10,25 @@ fn death_observation_preserves_audio_until_confirmation() {
         let (mut audio, commands) = recording(disc.as_ref(), &assets);
         let mut game = crate::session::Options::default().load(&assets).unwrap();
         game.step(0).unwrap();
-        audio.tick(&game, None, Default::default()).unwrap();
+        audio.tick(&game, None, Default::default(), []).unwrap();
         if boss {
             game.teleport_player(Position::new(1000, 0, 5000), false)
                 .unwrap();
             game.step(0).unwrap();
-            audio.tick(&game, None, Default::default()).unwrap();
+            audio.tick(&game, None, Default::default(), []).unwrap();
             assert!(game.cinematic.active);
             for _ in 0..5000 {
                 if !game.cinematic.active {
                     break;
                 }
                 game.step(0).unwrap();
-                audio.tick(&game, None, Default::default()).unwrap();
+                audio.tick(&game, None, Default::default(), []).unwrap();
             }
             assert!(!game.cinematic.active);
         }
         for _ in 0..30 {
             game.step(0).unwrap();
-            audio.tick(&game, None, Default::default()).unwrap();
+            audio.tick(&game, None, Default::default(), []).unwrap();
         }
         let music = audio.current_track.clone().unwrap();
         assert!(music.repeat);
@@ -43,7 +43,7 @@ fn death_observation_preserves_audio_until_confirmation() {
         );
         for _ in 0..5000 {
             game.step(0).unwrap();
-            audio.tick(&game, None, Default::default()).unwrap();
+            audio.tick(&game, None, Default::default(), []).unwrap();
             if game.death_wait_ticks() == Some(1) {
                 break;
             }
@@ -64,7 +64,7 @@ fn death_observation_preserves_audio_until_confirmation() {
         assert_eq!(audio.current_track, Some(music.clone()));
         for _ in 0..600 {
             game.observe_death().unwrap();
-            audio.tick(&game, None, Default::default()).unwrap();
+            audio.tick(&game, None, Default::default(), []).unwrap();
             audio.screen(&hold);
             assert!(commands.try_iter().all(|c| matches!(c, Command::Effect(_))));
         }
@@ -216,7 +216,7 @@ fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
         for _ in 0..60 {
             campaign.game.step(tenchu_core::input::UP).unwrap();
             audio
-                .tick(&campaign.game, None, Default::default())
+                .tick(&campaign.game, None, Default::default(), [])
                 .unwrap();
             audio.screen(&campaign.screen);
         }

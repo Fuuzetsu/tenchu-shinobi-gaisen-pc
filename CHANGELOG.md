@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Extra wound, severed-limb and weapon blood now makes positional splatter
+  sounds on contact, using the effects-volume setting. A shared rate limit
+  prevents dense blood sprays from overwhelming combat audio.
+
 - Fix walking and seeing through blocked terrain in imported Tenchu 2 maps.
   Wall interiors and masked voids now stop collision/sight queries instead of
   exposing the floor underneath; stacked surfaces keep their source ordering.

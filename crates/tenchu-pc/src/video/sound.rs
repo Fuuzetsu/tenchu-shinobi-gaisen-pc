@@ -73,9 +73,10 @@ impl Sound {
         game: &Game,
         frame: Option<&crate::visuals::interpolation::Frame>,
         burning: tenchu_core::audio::BurningSound,
+        extra: impl IntoIterator<Item = (tenchu_core::math::Position, i16)>,
     ) -> Result<()> {
         for sound in game.sounds_with_burning(
-            crate::visuals::death::blood::sounds(&game.effects, frame),
+            crate::visuals::death::blood::sounds(&game.effects, frame).chain(extra),
             Some(burning),
         )? {
             self.mixer.play(sound.id, sound.volume, sound.pan);
