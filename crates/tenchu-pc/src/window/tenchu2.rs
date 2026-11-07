@@ -34,8 +34,8 @@ impl Application {
             Event::Browse => {
                 #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
                 if let Some(path) = rfd::FileDialog::new()
-                    .set_title("Select your Tenchu 2 Europe disc")
-                    .add_filter("Tenchu 2 disc", &["cue", "bin", "iso"])
+                    .set_title("Select your Tenchu 2 disc")
+                    .add_filter("Tenchu 2 disc or archive", crate::source::DISC_EXTENSIONS)
                     .pick_file()
                 {
                     self.tenchu2.path = path.to_string_lossy().into();
@@ -58,6 +58,12 @@ impl Application {
                         return Err("No Tenchu 2 maps found".into());
                     }
                     crate::tenchu2::menu::remember(&path)?;
+                    self.tenchu2.discs = crate::tenchu2::menu::known_discs()
+                        .into_iter()
+                        .map(|(edition, path)| {
+                            (edition.name().into(), path.to_string_lossy().into())
+                        })
+                        .collect();
                     self.tenchu2.path = path.to_string_lossy().into();
                     self.tenchu2.connected.clone_from(&self.tenchu2.path);
                     self.tenchu2.maps = maps;
@@ -73,7 +79,8 @@ impl Application {
                         .find(|l| l.map == self.tenchu2.map)
                         .map(|l| l.sequence);
                     self.tenchu2.notice = format!(
-                        "{} areas available. Disc path remembered.",
+                        "{}: {} areas available. Disc path remembered.",
+                        tenchu_assets::tenchu2::Edition::detect(&disc)?.name(),
                         self.tenchu2.maps.len()
                     );
                     if let Some(view) = &mut self.view {
@@ -117,6 +124,46 @@ impl Application {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
+
+    #[test]
+    #[ignore = "requires Gaisen, TENCHU2_DISC, TENCHU2_JP_DISC and isolated TENCHU_T2_CONFIG; both editions persist and remain independently selectable"]
+    fn both_editions_remain_connected_after_switching_and_restarting() {
+        let config = std::env::var_os("TENCHU_T2_CONFIG").expect("Isolate disc preferences");
+        let europe = std::fs::canonicalize(std::env::var_os("TENCHU2_DISC").unwrap()).unwrap();
+        let japan = std::fs::canonicalize(std::env::var_os("TENCHU2_JP_DISC").unwrap()).unwrap();
+        std::fs::create_dir_all(Path::new(&config).parent().unwrap()).unwrap();
+        // Upgrade the previously saved single-disc format.
+        std::fs::write(&config, serde_json::to_vec(&europe).unwrap()).unwrap();
+        let mut app = super::super::tests::application(Options::default());
+        app.campaign.screen = Screen::Launcher;
+        app.apply_tenchu2(Event::Open).unwrap();
+        assert_eq!(app.tenchu2.discs.len(), 1);
+        app.tenchu2.path = japan.to_string_lossy().into();
+        app.apply_tenchu2(Event::Connect).unwrap();
+        assert_eq!(app.tenchu2.maps.len(), 23);
+        assert_eq!(app.tenchu2.discs.len(), 2);
+        app.tenchu2 = Default::default();
+        app.apply_tenchu2(Event::Open).unwrap();
+        assert_eq!(Path::new(&app.tenchu2.connected), japan);
+        app.tenchu2.path = europe.to_string_lossy().into();
+        app.apply_tenchu2(Event::Connect).unwrap();
+        assert_eq!(app.tenchu2.discs.len(), 2);
+        let library = crate::visuals::appearance::library::Library::load(&app.assets).unwrap();
+        for name in [
+            "rikimaru", "ayame", "tatumaru", "ayamea", "tatua_m", "tatu2_m",
+        ] {
+            let eu = library.get(&format!("tenchu2:{name}")).unwrap();
+            let jp = library.get(&format!("tenchu2-jp:{name}")).unwrap();
+            assert!(!std::ptr::eq(eu, jp));
+            assert!(!eu.has_moveset() && !jp.has_moveset());
+        }
+        assert!(
+            library.get("tenchu2:rikimaru").unwrap().vram
+                != library.get("tenchu2-jp:rikimaru").unwrap().vram
+        );
+        std::fs::remove_file(config).unwrap();
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC, TENCHU2_DISC and isolated TENCHU_T2_CONFIG; actual menu selection, retry and campaign isolation"]

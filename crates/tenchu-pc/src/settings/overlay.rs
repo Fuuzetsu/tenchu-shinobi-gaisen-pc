@@ -120,7 +120,7 @@ pub fn show(
         )
         .vscroll(true)
         .max_width(screen.width() - 32.0)
-        .resizable([true, false])
+        .resizable(true)
         .collapsible(false);
     let window = if cfg!(target_os = "android") {
         window
@@ -188,7 +188,7 @@ pub fn show(
                         ui.separator();
                     }
                     if menu.page == 10 {
-                        if compact && ui.button("Choose player model…").clicked() {
+                        if ui.button("Choose player model…").clicked() {
                             menu.model_picker = true;
                         }
                         ui.label("Model folder (optional)");
@@ -208,7 +208,7 @@ pub fn show(
                         ui.weak(if cfg!(any(target_arch = "wasm32", target_os = "android")) {
                             "Import a .t2moves file exported from the desktop port."
                         } else {
-                            "Import your Tenchu 2 Europe CUE (with BIN beside it), or a .t2moves file."
+                            "Import your Tenchu 2 Europe/Japan disc (CUE, folder or archive), or a .t2moves file."
                         });
                         ui.separator();
                     }

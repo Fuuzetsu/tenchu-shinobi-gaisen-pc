@@ -239,7 +239,10 @@ impl Library {
             }
         }
         #[cfg(not(target_arch = "wasm32"))]
-        if let Some(path) = crate::tenchu2::menu::disc_path().filter(|p| p.is_file()) {
+        for (_, path) in crate::tenchu2::menu::known_discs()
+            .into_iter()
+            .filter(|(_, p)| p.exists())
+        {
             match crate::source::open_disc(&path).and_then(|disc| library.load_tenchu2(&disc)) {
                 Ok(()) => {}
                 Err(error) => eprintln!("Tenchu 2 model library: {error}"),
@@ -299,8 +302,12 @@ fn label(name: &str) -> String {
 }
 
 impl Body {
+    pub fn is_tenchu2(&self) -> bool {
+        self.resource.starts_with("tenchu2/")
+    }
+
     pub fn has_moveset(&self) -> bool {
-        self.character.is_some() && !self.id.starts_with("tenchu2:")
+        self.character.is_some() && !self.is_tenchu2()
     }
 
     pub fn sources(&self) -> Vec<catalog::ModelSource<'_>> {
@@ -311,7 +318,7 @@ impl Body {
                 id: self
                     .character
                     .as_ref()
-                    .filter(|_| !self.id.starts_with("tenchu2:"))
+                    .filter(|_| !self.is_tenchu2())
                     .map_or_else(
                         || format!("{}/{i}", self.resource),
                         |c| format!("actors/{:04x}/{i}", c.kind),
@@ -369,11 +376,7 @@ mod tests {
             start.elapsed()
         );
         assert_eq!(
-            library
-                .bodies
-                .iter()
-                .filter(|b| !b.id.starts_with("tenchu2:"))
-                .count(),
+            library.bodies.iter().filter(|b| !b.is_tenchu2()).count(),
             assets
                 .archive
                 .files

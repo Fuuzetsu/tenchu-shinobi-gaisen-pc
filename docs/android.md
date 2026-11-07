@@ -42,7 +42,7 @@ Cross-target linting uses `nix develop .#android --command cargo clippy
 
 1. Copy your supported **Shinobi Gaisen (SLPS-019.01)** CUE and its BIN tracks into
    one folder on the phone, for example `Download/Tenchu`.
-2. Open Tenchu and choose **Import disc folder…**, select that folder, and allow
+2. Open Tenchu and choose **Import game disc… → CUE/BIN folder**, select that folder, and allow
    access. The app copies the files into its own storage and verifies the game.
    Firefox's comma-to-underscore filename changes and case differences are
    handled automatically. For other renamed tracks, choose the corresponding
@@ -52,6 +52,12 @@ Cross-target linting uses `nix develop .#android --command cargo clippy
    [HD pack](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/artwork-v3).
    It is validated and unpacked during import. Allow about 450 MB more space.
 4. Tap **Play**. Subsequent launches reuse the imported disc and artwork.
+
+Alternatively, import a **ZIP or TAR archive** from the same menu. TAR.GZ/TGZ,
+TAR.XZ/TXZ and TAR.ZST/TZST are supported too. Keep one disc per archive, with
+its CUE and BIN filenames intact. Import runs in the background and needs room
+for both the compressed input and unpacked disc temporarily; the copied archive
+is removed afterwards. Subsequent launches use the unpacked copy.
 
 Original files remain untouched. Preferences, campaign progress, custom presets,
 TRIAL missions and imports live in Android's app storage; uninstalling the app
@@ -135,9 +141,10 @@ which was reviewed as a design reference. No code or artwork was copied from it.
 
 ## Tenchu 2 disc
 
-Use **Import Tenchu 2 disc folder…** in the Android launcher, or **Tenchu 2… →
-Browse…** in the title/quick-launch menu. Select a folder containing the Europe
-(SLES-02452) CUE and BIN. This is imported separately from Gaisen. The map menu
+Use **Import Tenchu 2 disc…** in the Android launcher, or **Tenchu 2… →
+Browse…** in the title/quick-launch menu. Select a CUE/BIN folder or archive containing the Europe (SLES-02452) or Japan
+(SLPS-03040) disc. Both editions can remain imported together, separately from
+Gaisen; the map selector and player-model gallery distinguish them. The map menu
 and F1 player-model search then read its resources locally; see the
 [Tenchu 2 sandbox guide](tenchu2-sandbox.md) for the current limits.
 

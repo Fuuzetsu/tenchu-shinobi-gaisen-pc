@@ -78,7 +78,7 @@ pub struct State {
 struct AttackMotion {
     action: i16,
     clip: usize,
-    contact: Option<usize>,
+    contacts: [Option<usize>; 2],
 }
 
 impl State {
@@ -86,11 +86,11 @@ impl State {
         self.attacks.is_empty() || self.loaded_style != style
     }
 
-    pub(crate) fn contact(&self, clip: Option<usize>) -> Option<usize> {
+    pub(crate) fn contact(&self, clip: Option<usize>) -> Option<[Option<usize>; 2]> {
         self.attacks
             .iter()
             .find(|a| Some(a.clip) == clip)
-            .and_then(|a| a.contact)
+            .and_then(|a| a.contacts[0].map(|_| a.contacts))
     }
 
     pub(crate) fn unarmed_clip(&self, action: i16) -> Option<usize> {
@@ -275,7 +275,7 @@ impl Game {
             .map(|(a, c)| AttackMotion {
                 action: *a,
                 clip: self.import_clip(c),
-                contact: None,
+                contacts: [None; 2],
             })
             .collect();
         let state = self
@@ -314,6 +314,10 @@ impl Game {
         let mut attacks = Vec::new();
         for (source, action) in moves.attacks.iter().zip(actions) {
             let mut clip = source.clip.clone();
+            // Older .t2moves exports kept T2's positive blend duration verbatim.
+            if clip.sweep > 0 {
+                clip.sweep = -clip.sweep;
+            }
             // Keep imported IDs clear of Gaisen's special attack dispatch.
             clip.id += 0x6000;
             let mut timing = source.attack.clone();
@@ -327,7 +331,7 @@ impl Game {
             attacks.push(AttackMotion {
                 action,
                 clip: self.import_clip(&clip),
-                contact: Some(source.part),
+                contacts: [Some(source.part), source.secondary_part],
             });
         }
         let state = self

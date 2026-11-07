@@ -6,7 +6,7 @@ use tenchu_assets::{Result, game::GameAssets};
 
 type Assets = GameAssets<source::DiscSource>;
 
-const DISC_HELP: &str = "This port needs your original Tenchu: Shinobi Gaisen disc (SLPS-019.01, Japan, with English/Japanese/French/Italian).\n\nSelect its .cue file and keep the referenced .bin files beside it. Game assets are not included. Other Tenchu releases are not supported.";
+const DISC_HELP: &str = "This port needs your original Tenchu: Shinobi Gaisen disc (SLPS-019.01, Japan, with English/Japanese/French/Italian).\n\nSelect its .cue file with the referenced .bin files nearby, or a ZIP/TAR/TAR.GZ/TAR.XZ/TAR.ZST containing them. Command-line disc folders are also accepted. Archives are unpacked once into your local cache. Game assets are not included. Tenchu 2 is an optional import after Gaisen starts.";
 
 pub fn open(path: &Path) -> Result<Assets> {
     let load = || {
@@ -74,7 +74,7 @@ fn remembered_path(saved: &Path) -> Option<PathBuf> {
             Err(error) => return Err(error.to_string()),
         };
         let path: PathBuf = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
-        Ok((path.is_absolute() && path.is_file()).then_some(path))
+        Ok((path.is_absolute() && path.exists()).then_some(path))
     };
     load().unwrap_or_else(|error: String| {
         eprintln!(
@@ -98,15 +98,11 @@ fn choose() -> Result<Option<(PathBuf, Assets)>> {
         .set_title("Tenchu — game disc required")
         .set_description(DISC_HELP)
         .show();
-    let mut title = "Tenchu — select the Shinobi Gaisen .cue file (keep its .bin files nearby)";
+    let mut title = "Tenchu — select your Shinobi Gaisen disc or archive";
     loop {
         let Some(path) = FileDialog::new()
             .set_title(title)
-            .add_filter("Shinobi Gaisen SLPS-019.01 CUE", &["cue", "CUE"])
-            .add_filter(
-                "Raw disc image (CUE recommended)",
-                &["bin", "BIN", "iso", "ISO"],
-            )
+            .add_filter("Shinobi Gaisen disc or archive", source::DISC_EXTENSIONS)
             .pick_file()
         else {
             return Ok(None);

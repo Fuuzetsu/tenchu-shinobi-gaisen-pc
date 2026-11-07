@@ -26,11 +26,10 @@ pub fn load() -> Result<Moves> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn from_path(path: &std::path::Path) -> Result<Moves> {
-    if !path.extension().is_some_and(|e| {
-        ["cue", "bin", "iso"]
-            .iter()
-            .any(|ext| e.eq_ignore_ascii_case(ext))
-    }) {
+    if path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("t2moves"))
+    {
         use std::io::Read;
         let mut bytes = Vec::new();
         std::fs::File::open(path)

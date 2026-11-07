@@ -6,6 +6,7 @@ use crate::{
 use std::collections::BTreeMap;
 
 pub(super) struct Volume<'a, S> {
+    pub edition: super::Edition,
     disc: &'a Disc<S>,
     entry: Entry,
     files: BTreeMap<(u32, u32), (u32, u32)>,
@@ -13,17 +14,16 @@ pub(super) struct Volume<'a, S> {
 
 impl<'a, S: ReadAt> Volume<'a, S> {
     pub fn open(disc: &'a Disc<S>) -> Result<Self> {
-        let system = disc.find("SYSTEM.CNF")?;
-        let system = disc.file(&system).read(0, system.size.min(4096) as usize)?;
-        if !String::from_utf8_lossy(&system).contains("SLES_024.52") {
-            return Err("Tenchu 2 import currently supports Europe (SLES-02452)".into());
-        }
+        let edition = super::Edition::detect(disc)?;
         let entry = disc.find("TENCHU2/VOLUME.DAT")?;
         let volume = disc.file(&entry);
         let header = volume.read(0, 16)?;
         let files = u32_le(&header, 8)? as usize;
         let directories = u32_le(&header, 12)? as usize;
-        if u32_le(&header, 0)? != 0xa0704707 || files > 16384 || directories > 1024 {
+        if u32_le(&header, 0)? != edition.addresses().volume_tag
+            || files > 16384
+            || directories > 1024
+        {
             return Err("Invalid Tenchu 2 volume header".into());
         }
         let table = volume.read(
@@ -40,7 +40,12 @@ impl<'a, S: ReadAt> Volume<'a, S> {
                 return Err("Duplicate Tenchu 2 resource identity".into());
             }
         }
-        Ok(Self { disc, entry, files })
+        Ok(Self {
+            edition,
+            disc,
+            entry,
+            files,
+        })
     }
 
     pub fn optional(&self, directory: &str, name: &str) -> Result<Option<Vec<u8>>> {

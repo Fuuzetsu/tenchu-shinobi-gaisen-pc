@@ -1346,3 +1346,40 @@ actor's sound bank. Ayame continues to use KUNOITI (`0x22`). The optional
 stay-sheathed injury recovery is a port feature; its default retains the source
 automatic draw. Disc-backed tests exercise incoming damage, recovery and
 subsequent movement for both heroes and both weapon states.
+
+### Japanese Tenchu 2 import (2026-11-07)
+
+The user's SLPS-03040 disc has the same container/geometry/layout structures as
+SLES-02452, with different identifiers and relocated tables. The importer checks
+the edition and executable/module hashes before using addresses:
+
+| Resource | Europe | Japan |
+|---|---|---|
+| VOLUME.DAT identifier | `a0704707` | `a0a28433` |
+| GAME.EXE SHA-256 | `55151e486984c1794ce4f48ab7e91b2d3a5b1abeb7a30ab8d1b326b2606d5422` | `3bbc636c1d18dba2827b61dab84ae247218d7073eab7482ce382d15402dd829b` |
+| datamng.bin SHA-256 | `089bdad062d085d8692399c9379bfb62633d81ac17c75c49543aae3ec5ff5773` | `e4c5075b7757c1649077c159bcae06f8c22935a23720c967a273511a021e281b` |
+| Data module base / character table offset | `800ce598` / `6958` | `800d0610` / `6ed4` |
+| Gameplay sequence descriptors | `80082bec` | `80084b2c` |
+| Music path / cue table | `8001323c` / `8007f354` | `80013260` / `80081244` |
+
+JP has 23 nonempty ordinary map resources and 56 gameplay layouts, all read
+through the shared sandbox adapter. Its music table points to MUSIC_J.XA. Its
+78 character descriptors plus five named alternate/masked resource variants
+supply 83 selectable bodies. `tatua_m` and `tatu2_m`, named alongside the other
+costumes in GAME.EXE, were missing from the initial Europe catalogue too.
+Editor-built stages use separate TRIAL resources and are not ordinary MSD/LAY
+maps; these and the campaign scripts remain outside the scenery sandbox.
+
+The Japanese `atktbl.dat` differs from Europe in several timings, and clip
+`0xbd` uses two contact bits (`0x820`, both hands) rather than Europe's `0x20`.
+The optional Tatsumaru importer reads both contacts and the edition's original
+hit windows. Existing one-contact `.t2moves` files remain readable. These are
+Gaisen combat adaptations, not a Tenchu 2 AI/combat port. All retail data remains
+on the user's disc or in their local extraction cache.
+
+Motion selection at Europe GAME.EXE `0x8001a8b4..0x8001a8c0` negates the
+16-bit blend duration at MOT header offset 6 before storing the animation
+clock. Gaisen's Clip already stores a signed starting clock. The importer now
+converts that sign; copying positive values had skipped the frame-one attack
+setup and early hit frames for non-combo attacks. The adapter also normalizes
+positive blend durations from earlier personal `.t2moves` exports.

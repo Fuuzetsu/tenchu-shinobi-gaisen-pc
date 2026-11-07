@@ -33,26 +33,32 @@ impl Layout {
         }
         let bytes = Volume::open(disc)?
             .read(r"o:\cdimage\game\layout", &format!("seq{sequence:03}.lay"))?;
-        Self::parse(&bytes, sequence, &executable(disc)?)
+        let (edition, executable) = executable(disc)?;
+        Self::parse(&bytes, sequence, &executable, edition.addresses().sequences)
     }
 
     pub fn available(disc: &Disc<impl ReadAt>) -> Result<Vec<Self>> {
         let volume = Volume::open(disc)?;
-        let executable = executable(disc)?;
+        let (edition, executable) = executable(disc)?;
         let mut out = Vec::new();
         for sequence in 0..300 {
             if let Some(bytes) =
                 volume.optional(r"o:\cdimage\game\layout", &format!("seq{sequence:03}.lay"))?
             {
-                out.push(Self::parse(&bytes, sequence, &executable)?);
+                out.push(Self::parse(
+                    &bytes,
+                    sequence,
+                    &executable,
+                    edition.addresses().sequences,
+                )?);
             }
         }
         Ok(out)
     }
 
-    fn parse(data: &[u8], sequence: usize, executable: &[u8]) -> Result<Self> {
+    fn parse(data: &[u8], sequence: usize, executable: &[u8], sequences: u32) -> Result<Self> {
         let executable = Executable::new(executable)?;
-        let descriptor = executable.bytes(0x80082bec + sequence as u32 * 16, 16)?;
+        let descriptor = executable.bytes(sequences + sequence as u32 * 16, 16)?;
         let map = usize::from(u16_le(descriptor, 2)?);
         if u16_le(descriptor, 0)? & 0xf0 != 0x30 || map >= 24 {
             return Err("Unexpected Tenchu 2 gameplay sequence".into());

@@ -12,10 +12,11 @@ pub const THEMES: [(u16, &str); 8] = [
 ];
 
 pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
-    let bytes = super::executable(disc)?;
+    let (edition, bytes) = super::executable(disc)?;
+    let addresses = edition.addresses();
     let exe = Executable::new(&bytes)?;
     let path = exe
-        .string(0x8001323c)?
+        .string(addresses.music_path)?
         .trim_start_matches('\\')
         .split(';')
         .next()
@@ -24,7 +25,7 @@ pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
     let file = disc.find(&path)?;
     let mut tracks = vec![None; THEMES.len()];
     for index in 0..64 {
-        let row = exe.bytes(0x8007f354 + index * 8, 8)?;
+        let row = exe.bytes(addresses.music_cues + index * 8, 8)?;
         if u16_le(row, 6)? == 0 {
             return tracks
                 .into_iter()

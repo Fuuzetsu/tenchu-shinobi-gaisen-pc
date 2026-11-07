@@ -2,16 +2,17 @@ use super::*;
 
 impl Library {
     pub fn load_tenchu2(&mut self, disc: &tenchu_assets::disc::Disc<impl ReadAt>) -> Result<()> {
+        let edition = tenchu_assets::tenchu2::Edition::detect(disc)?;
         let models = tenchu_assets::tenchu2::characters::load(disc, None)?;
         for model in models {
-            let id = format!("tenchu2:{}", model.name);
+            let id = format!("{}{}", edition.model_prefix(), model.name);
             if self.aliases.contains_key(&id) {
                 continue;
             }
             let family = match model.name.as_str() {
                 "rikimaru" | "rikia" => "RIKIMARU",
                 "ayame" | "ayamea" => "AYAME",
-                "tatumaru" | "tatu2" | "tatua" => "NINJA",
+                "tatumaru" | "tatu2" | "tatua" | "tatua_m" | "tatu2_m" => "NINJA",
                 "cat" => "CAT",
                 "inu" => "DOG",
                 "wolf" | "ninken" => "WOLF",
@@ -39,6 +40,9 @@ impl Library {
                 "rikia" => "Rikimaru (alternate)",
                 "ayamea" => "Ayame (alternate)",
                 "tatua" => "Tatsumaru (alternate)",
+                "tatua_m" => "Tatsumaru (alternate, masked)",
+                "tatu2_m" => "Tatsumaru (Suzaku, masked)",
+                "tatu2" => "Tatsumaru (Suzaku)",
                 "siun" => "Shiunsai",
                 "matushin" => "Matsunoshin",
                 "seki" => "Sekiya",
@@ -51,7 +55,7 @@ impl Library {
             };
             let body = Body {
                 id: id.clone(),
-                name: format!("{label} · Tenchu 2"),
+                name: format!("{label} · {}", edition.name()),
                 resource: format!("tenchu2/actors/{}", model.name),
                 parts: model.parts,
                 vram: Arc::new(model.vram),

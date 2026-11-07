@@ -5,6 +5,23 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Support the Japanese Tenchu 2 disc (SLPS-03040), including its character
+  textures, 23 scenery areas, 56 patrol layouts and sandbox music. Both supported
+  editions now include the two previously omitted masked Tatsumaru variants,
+  for 83 selectable bodies each. This remains a Gaisen gameplay sandbox, not a
+  port of Tenchu 2's campaign or mission editor.
+- Separate the F1 model gallery into Shinobi Gaisen, Tenchu 2 Europe, Tenchu 2
+  Japan and Custom folder tabs. Both imported editions can stay connected at
+  once, with separate remembered paths and model choices.
+- Allow resizing the desktop F1 window vertically as well as horizontally, and
+  open the model gallery in its own panel with **Choose player model…**.
+- Read disc folders and ZIP, TAR, TAR.GZ/TGZ, TAR.XZ/TXZ and TAR.ZST/TZST
+  archives on desktop and Android. Archives are unpacked once into a local
+  cache; the Android launcher offers folder/archive import for either game.
+- Read Japanese Tatsumaru attack timings and both striking hands for his
+  two-handed lunge. Correct the imported animation blend sign so lunges and
+  directional/crouched strikes activate their hitboxes; existing moveset exports
+  receive the correction automatically.
 - Correct Rikimaru's optional sheathing animations and sounds to use Ninja B's
   sword, rather than Ninja A's claws. Add **Stay sheathed after damage** under
   F1 → Movement; disabled by default.

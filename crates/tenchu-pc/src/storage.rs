@@ -8,6 +8,30 @@ use std::{
 use tenchu_assets::Result;
 use tenchu_core::progress::save::Save;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn cache_directory() -> Result<PathBuf> {
+    #[cfg(target_os = "android")]
+    let root = crate::android::data_dir()?.join("cache");
+    #[cfg(not(target_os = "android"))]
+    let root = if cfg!(target_os = "windows") {
+        std::env::var_os("LOCALAPPDATA")
+            .or_else(|| std::env::var_os("APPDATA"))
+            .map(PathBuf::from)
+    } else if let Some(root) = std::env::var_os("XDG_CACHE_HOME") {
+        Some(root.into())
+    } else {
+        std::env::var_os("HOME").map(|root| {
+            PathBuf::from(root).join(if cfg!(target_os = "macos") {
+                "Library/Caches"
+            } else {
+                ".cache"
+            })
+        })
+    }
+    .ok_or("Cannot find the cache directory; use an unpacked disc/artwork folder")?;
+    Ok(root.join("tenchu-shinobi-gaisen-pc"))
+}
+
 pub struct Storage {
     path: PathBuf,
 }

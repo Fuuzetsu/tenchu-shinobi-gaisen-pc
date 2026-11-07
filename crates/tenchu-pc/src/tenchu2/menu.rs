@@ -1,3 +1,5 @@
+#[cfg(not(target_arch = "wasm32"))]
+pub use super::discs::{disc_path, known_discs, remember};
 use tenchu_assets::tenchu2::{layout::Layout, music::THEMES};
 
 pub struct Menu {
@@ -14,6 +16,7 @@ pub struct Menu {
     pub maps: Vec<usize>,
     pub layouts: Vec<Layout>,
     pub connected: String,
+    pub discs: Vec<(String, String)>,
 }
 
 impl Default for Menu {
@@ -32,6 +35,7 @@ impl Default for Menu {
             maps: Vec::new(),
             layouts: Vec::new(),
             connected: String::new(),
+            discs: Vec::new(),
         }
     }
 }
@@ -65,11 +69,19 @@ impl Menu {
                     .max_height((ctx.screen_rect().height() - 100.0).max(160.0))
                     .show(ui, |ui| {
                         ui.label("Explore Tenchu 2 areas with Gaisen movement and combat. Story missions, objectives and Tenchu 2 AI are not included.");
-                        ui.label("Requires your Tenchu 2 Europe disc (SLES-02452), in addition to Shinobi Gaisen.");
+                        ui.label("Requires your Tenchu 2 Europe (SLES-02452) or Japan (SLPS-03040) disc, in addition to Shinobi Gaisen.");
+                        ui.horizontal_wrapped(|ui| {
+                            for (name, path) in &self.discs {
+                                if ui.selectable_label(self.path == *path, name).clicked() {
+                                    self.path.clone_from(path);
+                                    event = Some(Event::Connect);
+                                }
+                            }
+                        });
                         ui.horizontal(|ui| {
                             ui.add(egui::TextEdit::singleline(&mut self.path)
                                 .desired_width((width - 150.0).max(100.0))
-                                .hint_text("Tenchu 2 CUE path"));
+                                .hint_text("CUE, disc folder or archive path"));
                             if ui.button("Browse…").clicked() { event = Some(Event::Browse); }
                             if ui.button("Load maps").clicked() { event = Some(Event::Connect); }
                         });
@@ -136,25 +148,4 @@ impl Menu {
         }
         event
     }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn disc_path() -> Option<std::path::PathBuf> {
-    #[cfg(target_os = "android")]
-    if let Some(path) = crate::android::data_dir()
-        .ok()
-        .and_then(|root| std::fs::read_to_string(root.join("tenchu2-path.txt")).ok())
-    {
-        return Some(path.trim().into());
-    }
-    let path = crate::storage::UserFile::Tenchu2.path().ok()?;
-    serde_json::from_slice(&crate::storage::read(&path).ok()?).ok()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn remember(path: &std::path::Path) -> tenchu_assets::Result<()> {
-    crate::storage::atomic_write(
-        &crate::storage::UserFile::Tenchu2.path()?,
-        &serde_json::to_vec(path).map_err(|e| e.to_string())?,
-    )
 }

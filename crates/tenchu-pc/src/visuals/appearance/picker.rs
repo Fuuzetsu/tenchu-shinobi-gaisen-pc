@@ -23,7 +23,41 @@ use tenchu_core::{game::Game, math::Matrix, motion::Motion};
 #[derive(Default)]
 pub struct Picker {
     search: String,
+    source: Source,
+    selection: Option<String>,
     previews: BTreeMap<String, Result<Preview>>,
+}
+
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum Source {
+    #[default]
+    Gaisen,
+    Europe,
+    Japan,
+    Folder,
+}
+
+impl Source {
+    fn of(id: &str) -> Self {
+        if id.starts_with("tenchu2:") {
+            Self::Europe
+        } else if id.starts_with("tenchu2-jp:") {
+            Self::Japan
+        } else if id.starts_with("pack:") {
+            Self::Folder
+        } else {
+            Self::Gaisen
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Gaisen => "Shinobi Gaisen",
+            Self::Europe => "Tenchu 2 (EU)",
+            Self::Japan => "Tenchu 2 (JP)",
+            Self::Folder => "Custom folder",
+        }
+    }
 }
 
 pub struct State<'a> {
@@ -184,6 +218,29 @@ impl State<'_> {
         settings: &Settings,
         edits: &mut Vec<Edit>,
     ) {
+        if self.picker.selection.as_ref() != Some(&settings.player_model) {
+            self.picker.source = Source::of(&settings.player_model);
+            self.picker.selection = Some(settings.player_model.clone());
+        }
+        let previous_source = self.picker.source;
+        ui.horizontal_wrapped(|ui| {
+            for source in [
+                Source::Gaisen,
+                Source::Europe,
+                Source::Japan,
+                Source::Folder,
+            ] {
+                if source == Source::Gaisen
+                    || (source == Source::Folder && !settings.model_directory.is_empty())
+                    || menu
+                        .player_models
+                        .iter()
+                        .any(|(id, _)| Source::of(id) == source)
+                {
+                    ui.selectable_value(&mut self.picker.source, source, source.name());
+                }
+            }
+        });
         let previous_search = self.picker.search.clone();
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -202,9 +259,10 @@ impl State<'_> {
             .player_models
             .iter()
             .filter(|(id, name)| {
-                query.split_whitespace().all(|word| {
-                    name.to_lowercase().contains(word) || id.to_lowercase().contains(word)
-                })
+                Source::of(id) == self.picker.source
+                    && query.split_whitespace().all(|word| {
+                        name.to_lowercase().contains(word) || id.to_lowercase().contains(word)
+                    })
             })
             .cloned()
             .collect();
@@ -228,11 +286,11 @@ impl State<'_> {
             .id_salt("model-gallery")
             .auto_shrink([false, true])
             .max_height(if menu.model_picker {
-                (ui.ctx().screen_rect().height() - 180.0).clamp(152.0, 420.0)
+                (ui.ctx().screen_rect().height() - 208.0).clamp(120.0, 420.0)
             } else {
                 (ui.ctx().screen_rect().bottom() - ui.cursor().top() - 100.0).clamp(120.0, 420.0)
             });
-        if previous_search != self.picker.search {
+        if previous_search != self.picker.search || previous_source != self.picker.source {
             scroll = scroll.vertical_scroll_offset(0.0);
         }
         let result = scroll.show_rows(ui, 152.0, choices.len().div_ceil(columns), |ui, rows| {
@@ -349,6 +407,68 @@ impl State<'_> {
 mod tests {
     use super::*;
     use tenchu_assets::game::GameAssets;
+
+    #[test]
+    #[ignore = "requires Gaisen and both T2 discs; same-named models stay in separate animated, clipped source tabs"]
+    fn source_tabs_filter_same_named_models_and_keep_custom_folder_available() {
+        let assets = GameAssets::open(
+            crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
+        )
+        .unwrap();
+        let mut library = Library::load(&assets).unwrap();
+        for source in ["TENCHU2_DISC", "TENCHU2_JP_DISC"] {
+            let disc =
+                crate::source::open_disc(std::env::var_os(source).unwrap().as_ref()).unwrap();
+            library.load_tenchu2(&disc).unwrap();
+        }
+        let game = crate::session::Options::default().load(&assets).unwrap();
+        let bodies = Pack::default();
+        let mut menu = Menu {
+            player_models: super::super::choices(&game, &bodies, Some(&library)),
+            ..Default::default()
+        };
+        let ctx = egui::Context::default();
+        let mut picker = Picker {
+            search: "ayame".into(),
+            ..Default::default()
+        };
+        for (source, id) in [
+            (Source::Europe, "tenchu2:ayame"),
+            (Source::Japan, "tenchu2-jp:ayame"),
+            (Source::Gaisen, "disc:1"),
+            (Source::Folder, "pack:custom"),
+        ] {
+            let settings = Settings {
+                player_model: id.into(),
+                model_directory: "models".into(),
+                ..Default::default()
+            };
+            let _ = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(600.0, 500.0),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        State {
+                            picker: &mut picker,
+                            library: Some(&library),
+                            bodies: &bodies,
+                            game: &game,
+                        }
+                        .show(ui, &mut menu, &settings, &mut Vec::new());
+                    });
+                },
+            );
+            assert!(picker.source == source);
+            assert!(picker.previews.keys().all(|id| Source::of(id) == source));
+            assert!(picker.previews.values().all(Result::is_ok));
+            assert_eq!(picker.previews.is_empty(), source == Source::Folder);
+        }
+    }
 
     #[test]
     #[ignore = "requires TENCHU_DISC; checks repeated gallery layout, filtering, clipping and paused previews"]

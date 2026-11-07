@@ -570,7 +570,7 @@ pub fn rows(page: usize, s: &Settings, d: &Debug, paused: bool) -> Vec<Row> {
                 Item::UnarmedStyle,
                 "Unarmed style",
                 s.sheathing.unarmed_style.name().into(),
-                "Onikage uses your Gaisen disc. Tatsumaru imports punches and kicks from Tenchu 2 Europe (SLES-02452), with their hit frames and striking limbs adapted to Gaisen combat. Import below first. Both styles work with either hero; Finish an unarmed attack before switching styles.",
+                "Onikage uses your Gaisen disc. Tatsumaru imports punches and kicks from Tenchu 2 Europe or Japan, with that edition's hit frames and striking limbs adapted to Gaisen combat. Import below first. Both styles work with either hero; finish an unarmed attack before switching styles.",
             ),
             (
                 Item::SheathedSpeed,

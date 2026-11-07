@@ -21,11 +21,9 @@ impl Application {
         #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
         {
             let Some(path) = rfd::FileDialog::new()
-                .set_title("Import Tatsumaru moves from your Tenchu 2 Europe disc")
-                .add_filter(
-                    "Tenchu 2 disc or exported moves",
-                    &["cue", "bin", "iso", "t2moves"],
-                )
+                .set_title("Import Tatsumaru moves from your Tenchu 2 disc")
+                .add_filter("Tenchu 2 disc or archive", crate::source::DISC_EXTENSIONS)
+                .add_filter("Exported moves", &["t2moves"])
                 .pick_file()
             else {
                 return Ok(());

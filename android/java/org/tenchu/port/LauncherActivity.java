@@ -28,7 +28,7 @@ public final class LauncherActivity extends Activity {
     LIBRARY_ERROR = error;
   }
 
-  private static native String validateDisc(String path, boolean tenchu2);
+  private static native String[] prepareDisc(String root, String path, boolean tenchu2) throws IOException;
 
   private static native String[] discFiles(String path) throws IOException;
 
@@ -38,6 +38,7 @@ public final class LauncherActivity extends Activity {
   private TextView status;
   private boolean busy;
   private static final int DISC = 10, ARTWORK = 11, TENCHU2 = 12, TENCHU2_ARTWORK = 13;
+  private static final int DISC_ARCHIVE = 14, TENCHU2_ARCHIVE = 15;
 
   @Override
   public void onCreate(Bundle state) {
@@ -72,13 +73,7 @@ public final class LauncherActivity extends Activity {
                       Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP));
         });
     button(
-        "Import disc folder…",
-        () -> {
-          status.setText(
-              "Choose a folder containing one .cue and its .bin files. On Android, put these in a"
-                  + " subfolder of Downloads, not the Downloads root.");
-          startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), DISC);
-        });
+        "Import game disc…", () -> chooseDisc(false));
     button(
         "Import HD artwork (.tar.zst)…",
         () ->
@@ -90,8 +85,7 @@ public final class LauncherActivity extends Activity {
     button("Graphics compatibility…", this::graphicsBackend);
     button("Copy startup/crash report", () -> StartupReport.copy(this, LIBRARY_ERROR));
     button(
-        "Import Tenchu 2 disc folder…",
-        () -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), TENCHU2));
+        "Import Tenchu 2 disc…", () -> chooseDisc(true));
     button(
         "Import Tenchu 2 HD artwork (.tar.zst)…",
         () -> startActivityForResult(
@@ -104,8 +98,26 @@ public final class LauncherActivity extends Activity {
         16);
     refresh();
     if (state == null && getIntent().getBooleanExtra("import-tenchu2", false)) {
-      startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), TENCHU2);
+      chooseDisc(true);
     }
+  }
+
+  private void chooseDisc(boolean tenchu2) {
+    new AlertDialog.Builder(this)
+        .setTitle(tenchu2 ? "Import Tenchu 2 (Europe or Japan)" : "Import Shinobi Gaisen")
+        .setItems(new String[] {"CUE/BIN folder", "ZIP or TAR archive (gz/xz/zst supported)"},
+            (dialog, index) -> {
+              if (index == 0) {
+                status.setText("Choose a subfolder containing one CUE and its BIN files.");
+                startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), tenchu2 ? TENCHU2 : DISC);
+              } else {
+                startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
+                    .addCategory(Intent.CATEGORY_OPENABLE), tenchu2 ? TENCHU2_ARCHIVE : DISC_ARCHIVE);
+              }
+            })
+        .setOnCancelListener(dialog -> {
+          if (getIntent().getBooleanExtra("import-tenchu2", false)) finish();
+        }).show();
   }
 
   @Override
@@ -239,11 +251,13 @@ public final class LauncherActivity extends Activity {
   public void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
     if (result != RESULT_OK || data == null || data.getData() == null) {
-      if (request == TENCHU2 && getIntent().getBooleanExtra("import-tenchu2", false)) finish();
+      if ((request == TENCHU2 || request == TENCHU2_ARCHIVE) && getIntent().getBooleanExtra("import-tenchu2", false)) finish();
       return;
     }
     Uri uri = data.getData();
     if (request == DISC || request == TENCHU2) work(() -> importDisc(uri, request == TENCHU2));
+    if (request == DISC_ARCHIVE || request == TENCHU2_ARCHIVE)
+      work(() -> importDiscArchive(uri, request == TENCHU2_ARCHIVE));
     if (request == ARTWORK || request == TENCHU2_ARTWORK)
       work(
           () -> {
@@ -328,26 +342,58 @@ public final class LauncherActivity extends Activity {
         total += copy(entry.getValue(), new File(folder, name), 1024L * 1024 * 1024 - total);
       }
       runOnUiThread(() -> status.setText("Checking the disc version and game files…"));
-      String error = validateDisc(disc.getAbsolutePath(), tenchu2);
-      if (error != null) throw new IOException(error);
-      String preference = tenchu2 ? "tenchu2-path" : "disc-path";
-      File saved = new File(getFilesDir(), preference + ".txt");
-      String previous =
-          saved.isFile()
-              ? new String(Files.readAllBytes(saved.toPath()), StandardCharsets.UTF_8)
-              : "";
-      File temporary = new File(getFilesDir(), preference + ".tmp");
-      Files.write(temporary.toPath(), disc.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
-      Files.move(temporary.toPath(), saved.toPath(), StandardCopyOption.REPLACE_EXISTING);
+      installDisc(disc, tenchu2);
       complete = true;
-      File old = new File(previous).getParentFile();
-      if (old != null
-          && old.getParentFile().equals(getFilesDir())
-          && old.getName().startsWith(prefix)
-          && !old.equals(folder)) remove(old);
     } finally {
       if (!complete) remove(folder);
     }
+  }
+
+  private void importDiscArchive(Uri uri, boolean tenchu2) throws Exception {
+    String name = null;
+    try (Cursor cursor = getContentResolver().query(uri,
+        new String[] {android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) name = cursor.getString(0);
+    }
+    if (name == null || name.contains("/") || name.contains("\\") || name.equals(".."))
+      throw new IOException("Cannot read the archive filename");
+    String lower = name.toLowerCase(Locale.ROOT);
+    if (!(lower.endsWith(".zip") || lower.endsWith(".tar") || lower.endsWith(".tar.gz")
+        || lower.endsWith(".tgz") || lower.endsWith(".tar.xz") || lower.endsWith(".txz")
+        || lower.endsWith(".tar.zst") || lower.endsWith(".tzst")))
+      throw new IOException("Choose a ZIP, TAR, TAR.GZ, TAR.XZ or TAR.ZST archive");
+    File folder = new File(getFilesDir(), "disc-import-" + System.currentTimeMillis());
+    if (!folder.mkdir()) throw new IOException("Cannot create import directory");
+    try {
+      File archive = new File(folder, name);
+      copy(uri, archive, 2L * 1024 * 1024 * 1024);
+      runOnUiThread(() -> status.setText("Unpacking and checking disc…"));
+      installDisc(archive, tenchu2);
+    } finally {
+      remove(folder);
+    }
+  }
+
+  private void installDisc(File input, boolean tenchu2) throws Exception {
+    String[] prepared = prepareDisc(getFilesDir().getAbsolutePath(), input.getAbsolutePath(), tenchu2);
+    File disc = new File(prepared[0]);
+    String preference = prepared[1];
+    File saved = new File(getFilesDir(), preference + ".txt");
+    String previous = saved.isFile()
+        ? new String(Files.readAllBytes(saved.toPath()), StandardCharsets.UTF_8) : "";
+    saveDiscPath(preference, prepared[0]);
+    if (tenchu2) saveDiscPath("tenchu2-path", prepared[0]);
+    File old = new File(previous).getParentFile();
+    if (old != null && getFilesDir().equals(old.getParentFile())
+        && old.getName().startsWith(tenchu2 ? "tenchu2-disc-" : "disc-")
+        && !old.equals(disc.getParentFile())) remove(old);
+  }
+
+  private void saveDiscPath(String preference, String path) throws IOException {
+    File temporary = new File(getFilesDir(), preference + ".tmp");
+    Files.write(temporary.toPath(), path.getBytes(StandardCharsets.UTF_8));
+    Files.move(temporary.toPath(), new File(getFilesDir(), preference + ".txt").toPath(),
+        StandardCopyOption.REPLACE_EXISTING);
   }
 
   private static String matchingFile(String expected, Set<String> names) {

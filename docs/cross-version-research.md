@@ -55,8 +55,8 @@ ten and retains Gaisen's captions, voice/music schedule and scene duration in al
 four languages. It does not alter Ayame's ending or TRIAL missions. Random enemy
 and player dismemberment can remain disabled.
 
-The optional Tatsumaru importer supports the supplied **Tenchu 2 Europe
-SLES-02452** disc. Its VOLUME.DAT contains 4,730 entries in 62 hashed directories;
+The optional Tatsumaru importer supports **Tenchu 2 Europe SLES-02452** and
+**Japan SLPS-03040**. Their VOLUME.DAT archives contain 4,730 and 4,764 entries;
 `T_00.cab` supplies the base motion bank and `weapon/atktbl.dat` supplies damage,
 steering/combo frames, active hit frames and a bitmask of striking model parts.
 Both hands and feet are used, unlike Onikage's two-shin hitboxes. Root height is
@@ -65,7 +65,11 @@ rotations onto Gaisen's skeleton and keeps the hero's own proportions. Weapon
 ribbons are omitted, contact spheres are centered on the striking hand/foot,
 and Gaisen supplies its normal collision radius, reactions and combo input rules.
 Authored motion speed and frames run at the port's 30 Hz rate; PAL's 6/5 speed
-correction is not applied. No Tenchu 2 character model or audio is imported.
+correction is not applied. The Japanese lunge uses both hands, as specified by
+its attack table. Tenchu 2's positive animation blend lengths become Gaisen's
+negative initial animation clocks, so strikes initialize before their hit frames.
+Models, scenery and music are also available through the separate
+[Tenchu 2 sandbox](tenchu2-sandbox.md).
 
 The normal combo has five strikes. Its two directional second-strike variants
 occupy the next two registrations in the source table; treating that table as

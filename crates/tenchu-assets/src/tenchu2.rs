@@ -1,6 +1,8 @@
 //! Optional resources from the user's Tenchu 2 disc. See docs/cross-version-research.md.
 pub mod characters;
 pub mod collision;
+mod edition;
+pub use edition::Edition;
 pub mod layout;
 pub mod level;
 mod model;
@@ -10,19 +12,18 @@ use crate::{ReadAt, Result, disc::Disc, i16_le, motion, slice, u32_le, weapon};
 use serde::{Deserialize, Serialize};
 use volume::{Volume, hash};
 
-fn executable(disc: &Disc<impl ReadAt>) -> Result<Vec<u8>> {
+fn executable(disc: &Disc<impl ReadAt>) -> Result<(Edition, Vec<u8>)> {
     use sha2::{Digest, Sha256};
+    let edition = Edition::detect(disc)?;
     let entry = disc.find("TENCHU2/GAME.EXE")?;
     if entry.size > 2 * 1024 * 1024 {
         return Err("Excessive Tenchu 2 executable size".into());
     }
     let bytes = disc.file(&entry).read(0, entry.size as usize)?;
-    if format!("{:x}", Sha256::digest(&bytes))
-        != "55151e486984c1794ce4f48ab7e91b2d3a5b1abeb7a30ab8d1b326b2606d5422"
-    {
-        return Err("Tenchu 2 import requires the supported Europe GAME.EXE".into());
+    if format!("{:x}", Sha256::digest(&bytes)) != edition.addresses().game_hash {
+        return Err(format!("Unsupported {} GAME.EXE revision", edition.name()));
     }
-    Ok(bytes)
+    Ok((edition, bytes))
 }
 
 // Gaisen's waist/torso/head, arms, legs and weapon anchors in T2 bone order.
@@ -36,6 +37,8 @@ pub struct Move {
     pub clip: motion::Clip,
     pub attack: weapon::Attack,
     pub part: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secondary_part: Option<usize>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -50,12 +53,18 @@ impl Moves {
             return Err("Not a supported Tatsumaru moveset".into());
         }
         for (&id, entry) in CLIPS.iter().zip(&self.attacks) {
-            let Move { clip, attack, part } = entry;
+            let Move {
+                clip,
+                attack,
+                part,
+                secondary_part,
+            } = entry;
             if clip.id != id
                 || attack.clip != id
                 || !(1..=120).contains(&clip.duration)
                 || clip.bones.len() != BONES.len()
                 || !matches!(part, 9 | 12 | 13 | 14)
+                || secondary_part.is_some_and(|p| !matches!(p, 9 | 12 | 13 | 14) || p == *part)
                 || !(1..=100).contains(&attack.power)
                 || !(1..attack.end).contains(&attack.start)
                 || attack.end > clip.duration
@@ -119,7 +128,7 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
         let clip = motion::Clip {
             id,
             duration,
-            sweep: speed(6)?,
+            sweep: sweep(motion, at)?,
             forward_speed: speed(8)?,
             side_speed: speed(10)?,
             root: track(at + 12)?,
@@ -133,14 +142,14 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
             .find(|r| i16_le(r, 0).ok() == Some(id))
             .ok_or_else(|| format!("Missing Tatsumaru hit timing {id:#x}"))?;
         let mask = u32_le(row, 12)?;
-        let part = if mask.count_ones() == 1 {
-            BONES
-                .iter()
-                .position(|&bone| bone == mask.trailing_zeros() as usize)
-        } else {
-            None
+        let parts: Vec<_> = BONES
+            .iter()
+            .enumerate()
+            .filter_map(|(part, &bone)| (mask & (1 << bone) != 0).then_some(part))
+            .collect();
+        if !(1..=2).contains(&parts.len()) || parts.len() != mask.count_ones() as usize {
+            return Err("Unsupported Tatsumaru striking limbs".into());
         }
-        .ok_or("Unsupported Tatsumaru striking limb")?;
         attacks.push(Move {
             clip,
             attack: weapon::Attack {
@@ -154,7 +163,8 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
                 trail_start: 0,
                 trail_end: 0,
             },
-            part,
+            part: parts[0],
+            secondary_part: parts.get(1).copied(),
         });
     }
     let moves = Moves {
@@ -163,6 +173,13 @@ pub fn import(disc: &Disc<impl ReadAt>) -> Result<Moves> {
     };
     moves.validate()?;
     Ok(moves)
+}
+
+fn sweep(data: &[u8], at: usize) -> Result<i8> {
+    // T2 negates the stored blend length when selecting a motion.
+    (-i32::from(i16_le(data, at + 6)?))
+        .try_into()
+        .map_err(|_| "Tenchu 2 motion blend exceeds Gaisen range".into())
 }
 
 fn cab_member<'a>(data: &'a [u8], directory: &str, name: &str) -> Result<&'a [u8]> {

@@ -243,28 +243,54 @@ pub extern "system" fn Java_org_tenchu_port_LauncherActivity_discFiles<'local>(
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_tenchu_port_LauncherActivity_validateDisc<'local>(
+pub extern "system" fn Java_org_tenchu_port_LauncherActivity_prepareDisc<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: jni::objects::JClass<'local>,
+    root: jni::objects::JString<'local>,
     path: jni::objects::JString<'local>,
     tenchu2: jni::sys::jboolean,
-) -> jni::objects::JString<'local> {
+) -> jni::objects::JObjectArray<'local, jni::objects::JString<'local>> {
     env.with_env(|env| -> jni::errors::Result<_> {
-        let check = || -> Result<()> {
-            let path = path.to_string();
-            if tenchu2 {
-                let disc = crate::source::open_disc(Path::new(&path))?;
+        let _ = DATA.set(PathBuf::from(root.to_string()));
+        let check = || -> Result<(PathBuf, &'static str)> {
+            let path = crate::source::resolve_disc(Path::new(&path.to_string()))?;
+            let preference = if tenchu2 {
+                let disc = crate::source::open_disc(&path)?;
                 tenchu_assets::tenchu2::level::Level::available(&disc)?;
                 tenchu_assets::tenchu2::layout::Layout::available(&disc)?;
+                let edition = tenchu_assets::tenchu2::Edition::detect(&disc)?;
+                crate::tenchu2::menu::remember(&path)?;
+                match edition {
+                    tenchu_assets::tenchu2::Edition::Europe => "tenchu2-europe-path",
+                    tenchu_assets::tenchu2::Edition::Japan => "tenchu2-japan-path",
+                }
             } else {
-                crate::startup::open(Path::new(&path))?;
-            }
-            Ok(())
+                crate::startup::open(&path)?;
+                "disc-path"
+            };
+            Ok((path, preference))
         };
-        match check() {
-            Ok(_) => Ok(jni::objects::JString::null()),
-            Err(error) => env.new_string(error),
-        }
+        let (path, preference) = match check() {
+            Ok(result) => result,
+            Err(error) => {
+                return env
+                    .throw_new(
+                        jni_str!("java/io/IOException"),
+                        jni::strings::JNIString::from(error),
+                    )
+                    .map(|()| jni::objects::JObjectArray::<jni::objects::JString>::null());
+            }
+        };
+        let array = jni::objects::JObjectArray::<jni::objects::JString>::new(
+            env,
+            2,
+            jni::objects::JString::null(),
+        )?;
+        let path = env.new_string(path.to_string_lossy())?;
+        let preference = env.new_string(preference)?;
+        array.set_element(env, 0, &path)?;
+        array.set_element(env, 1, &preference)?;
+        Ok(array)
     })
     .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }

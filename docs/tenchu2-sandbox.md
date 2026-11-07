@@ -1,16 +1,20 @@
 # Tenchu 2 scenery sandbox
 
 Available from v0.20.0. This experimental sandbox loads the
-user's **Tenchu 2 Europe (SLES-02452)** disc and uses **Gaisen gameplay**. It is
+user's **Tenchu 2 Europe (SLES-02452)** or **Japan (SLPS-03040)** disc and uses **Gaisen gameplay**. It is
 not a port of Tenchu 2's missions. Both discs remain necessary; no retail assets
 are bundled or downloaded.
 
 On desktop, use **Tenchu 2…** at the top left of the title or quick-launch
-menu. Select the CUE, then choose an area, placement/patrol layout, player,
-music and optional Gaisen guards. The disc path is remembered for the next launch.
-On Android, **Browse…** imports a folder containing the CUE and all its BINs;
-the Android launcher also has **Import Tenchu 2 disc folder…**. Keep both games
-in separate folders so the importer can identify the CUE unambiguously.
+menu. Select the CUE, disc folder or archive, then choose an area, placement/patrol layout, player,
+music and optional Gaisen guards. Both editions' paths are remembered; use their
+buttons to switch the area list. On Android, **Browse…** or the launcher's
+**Import Tenchu 2 disc…** offers a CUE/BIN folder or an archive. Each folder or
+archive should contain one disc. ZIP, TAR, TAR.GZ/TGZ, TAR.XZ/TXZ and
+TAR.ZST/TZST are supported. Archives are extracted once into a local cache;
+keep the original archive on desktop. Android copies and prepares it for you.
+No external unpacking tools are needed. `TENCHU_DISC_CACHE` can override the
+native extraction directory.
 
 Alternatively, build and explore a map from the command line:
 
@@ -66,8 +70,10 @@ route actions and behavior are not reproduced. **Use Tenchu 2 character models
 for guards** gives them their source bodies; all still use the selected Gaisen
 guard's weapon, voice, moves and AI, including source civilian/animal slots.
 
-Connecting the disc adds **… · Tenchu 2** entries to **F1 → Player model** in any
-Gaisen mission or sandbox. Search by name to find the heroes, bosses, guards,
+Connecting a disc adds its **Tenchu 2 (EU)** or **Tenchu 2 (JP)** tab to
+**F1 → Player model** in any Gaisen mission or sandbox. Both can coexist with
+**Shinobi Gaisen** and **Custom folder** (when a model directory is configured).
+Each imported edition has 83 bodies, including alternate and masked costumes. Search by name to find the heroes, bosses, guards,
 animals and alternate costumes. The visible preview tiles play source idle
 motions. Swapping a body keeps the current Gaisen moveset and weapons; Tenchu 2
 movesets are not selectable here. The separate Tatsumaru unarmed importer remains
@@ -85,7 +91,10 @@ then restart the game. The Gaisen pack remains independent; either or both may
 be installed.
 
 **F1 → Visual assets → Replacement artwork** toggles both installed packs.
-Missing replacements fall back to the appropriate disc. Packs use the same
+Missing replacements fall back to the appropriate disc. The current pack was
+painted for Europe's 81 previously supported bodies; Japanese-only textures and
+the newly added masked costumes retain their originals where no matching
+replacement exists. Packs use the same
 `pack.json` format described in [the guide](guide.md); texture
 identities come from the original pixels, so matching materials are shared
 across maps. Retail cutout masks are reconstructed from the user's disc at load
@@ -97,7 +106,7 @@ Tenchu 2 texture pages. The Gaisen HD pack does not provide T2 replacements.
 Native desktop and Android have disc/map menus;
 browser level import is not yet available.
 
-Unported elements include doors and other scripted/moving objects, procedural
+Unported elements include TRIAL/editor-built stages, doors and other scripted/moving objects, procedural
 lights/effects, sky/background setup, animated water, water/material/hazard
 semantics, scripted music/voices, objectives and cutscenes.
 The sandbox treats collision surfaces as ordinary

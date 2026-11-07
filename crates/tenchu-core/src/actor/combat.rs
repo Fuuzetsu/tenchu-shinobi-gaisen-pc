@@ -43,11 +43,18 @@ impl Actor {
     }
 
     fn hands(&self, ctx: &Context) -> Result<[Option<ModelId>; 2]> {
-        if let Some(part) = self.unarmed_contact() {
-            return Ok([
-                Some(*self.parts.get(part).ok_or("Missing unarmed contact part")?),
-                None,
-            ]);
+        if let Some(parts) = self.unarmed_contact() {
+            let part = |index: Option<usize>| {
+                index
+                    .map(|p| {
+                        self.parts
+                            .get(p)
+                            .copied()
+                            .ok_or("Missing unarmed contact part")
+                    })
+                    .transpose()
+            };
+            return Ok([part(parts[0])?, part(parts[1])?]);
         }
         let indices = match self.attack_weapon_kind(ctx) {
             FIST => [8, 11],
@@ -70,7 +77,7 @@ impl Actor {
         ])
     }
 
-    fn unarmed_contact(&self) -> Option<usize> {
+    fn unarmed_contact(&self) -> Option<[Option<usize>; 2]> {
         self.unarmed_attack()
             .then(|| self.sheathing.as_ref()?.contact(self.motion.clip))
             .flatten()

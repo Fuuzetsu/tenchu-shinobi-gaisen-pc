@@ -55,7 +55,7 @@ pub fn import_actor(
         &behavior.clips,
         body.vram.clone(),
     )?;
-    if body.id.starts_with("tenchu2:") {
+    if body.is_tenchu2() {
         Arc::make_mut(&mut mission.imported_models)
             .get_mut(&actor.model)
             .unwrap()

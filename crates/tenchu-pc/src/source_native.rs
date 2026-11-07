@@ -7,6 +7,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tenchu_assets::{ReadAt, Result, cache::PAGE_SIZE, check_span, cue, disc::Disc};
+#[path = "source_archive.rs"]
+mod archive;
+pub use archive::resolve_disc;
+pub const DISC_EXTENSIONS: &[&str] = &[
+    "cue", "bin", "iso", "zip", "tar", "gz", "tgz", "zst", "tzst", "xz", "txz",
+];
 
 pub struct DiscSource {
     file: RefCell<File>,
@@ -55,6 +61,8 @@ pub fn open_disc_recording(
     path: &Path,
     trace: Option<Arc<Mutex<BTreeSet<u32>>>>,
 ) -> Result<Disc<DiscSource>> {
+    let resolved = resolve_disc(path)?;
+    let path = resolved.as_path();
     let source = |path: &Path| -> Result<DiscSource> {
         let mut source = DiscSource::open(path)?;
         source.trace = trace.clone();

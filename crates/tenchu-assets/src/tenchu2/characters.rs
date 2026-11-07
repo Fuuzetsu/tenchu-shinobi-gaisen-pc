@@ -28,19 +28,21 @@ struct Definition {
 
 fn definitions(volume: &Volume<'_, impl ReadAt>) -> Result<Vec<Definition>> {
     let data = volume.read(r"o:\cdimage\game\module", "datamng.bin")?;
-    if format!("{:x}", Sha256::digest(&data))
-        != "089bdad062d085d8692399c9379bfb62633d81ac17c75c49543aae3ec5ff5773"
-    {
-        return Err("Tenchu 2 characters require the supported Europe data module".into());
+    let addresses = volume.edition.addresses();
+    if format!("{:x}", Sha256::digest(&data)) != addresses.module_hash {
+        return Err(format!(
+            "Unsupported {} character module revision",
+            volume.edition.name()
+        ));
     }
     let pointer = |at| -> Result<usize> {
         u32_le(&data, at)?
-            .checked_sub(0x800ce598)
+            .checked_sub(addresses.module_base)
             .map(|v| v as usize)
             .ok_or_else(|| "Invalid Tenchu 2 character pointer".into())
     };
     let mut out = BTreeMap::<String, Definition>::new();
-    for at in (0x6958..data.len()).step_by(24) {
+    for at in (addresses.characters..data.len()).step_by(24) {
         let kind = i16_le(&data, at)?;
         if kind < 0 {
             break;
@@ -85,6 +87,8 @@ fn definitions(volume: &Volume<'_, impl ReadAt>) -> Result<Vec<Definition>> {
         ("rikia", "rikimaru"),
         ("ayamea", "ayame"),
         ("tatua", "tatumaru"),
+        ("tatua_m", "tatumaru"),
+        ("tatu2_m", "tatu2"),
     ] {
         if volume
             .optional(r"o:\cdimage\game\actor", &format!("{name}.mdl"))?

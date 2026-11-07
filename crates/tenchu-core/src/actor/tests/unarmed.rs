@@ -235,3 +235,67 @@ fn unarmed_mode_draws_for_stealth_and_explicit_weapon_changes() {
         );
     }
 }
+
+#[test]
+#[ignore = "requires TENCHU_DISC and TENCHU_T2_MOVES; every imported attack activates and retires its source striking limbs"]
+fn tatsumaru_contacts_follow_each_imported_attack() {
+    let moves: tenchu_assets::tenchu2::Moves = serde_json::from_slice(
+        &std::fs::read(std::env::var_os("TENCHU_T2_MOVES").unwrap()).unwrap(),
+    )
+    .unwrap();
+    for (id, action) in [
+        (0xb8, MOT_ATTACK),
+        (0xb9, MOT_ATTACK_SLASH2),
+        (0x4bd, MOT_ATTACK_SLASH2_RIGHT),
+        (0x4be, MOT_ATTACK_SLASH2_LEFT),
+        (0xba, MOT_ATTACK_SLASH3),
+        (0xbb, MOT_ATTACK_SLASH4),
+        (0x4bf, MOT_UNARMED_FINISH),
+        (0x4c0, MOT_ATTACK_RIGHT1),
+        (0xbc, MOT_ATTACK_LEFT1),
+        (0xbd, MOT_ATTACK_LUNGE),
+        (0x4c1, MOT_ATTACK_BACK),
+        (0xbe, MOT_ATTACK_CROUCH),
+    ] {
+        let source = moves.attacks.iter().find(|m| m.clip.id == id).unwrap();
+        let expected: std::collections::BTreeSet<_> = std::iter::once(source.part)
+            .chain(source.secondary_part)
+            .collect();
+        for character in 0..2 {
+            let (mut game, _) = super::sheathing::ready(
+                character,
+                Settings {
+                    unarmed: true,
+                    ..Default::default()
+                },
+            );
+            game.set_player_tatsumaru(&moves).unwrap();
+            for _ in 0..10 {
+                game.step(0).unwrap();
+            }
+            let player = game.player_id;
+            with_actor(&mut game, player, |a, ctx, _| {
+                assert!(a.enter(ctx, action, true));
+            });
+            let mut contacts = std::collections::BTreeSet::new();
+            for _ in 0..90 {
+                game.step(0).unwrap();
+                for (part, &model) in game.player().parts.iter().enumerate() {
+                    if let Some(slot) = game.scene.models[model].conflict
+                        && game.collision.slots[slot].class == crate::collision::HIT
+                    {
+                        contacts.insert(part);
+                    }
+                }
+            }
+            assert_eq!(contacts, expected, "hero {character}, clip {id:x}");
+            for part in &expected {
+                assert!(
+                    game.scene.models[game.player().parts[*part]]
+                        .conflict
+                        .is_none()
+                );
+            }
+        }
+    }
+}

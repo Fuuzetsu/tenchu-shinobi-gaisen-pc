@@ -30,6 +30,8 @@ cpal.workspace = true
 pollster.workspace = true
 tar = { version = "0.4", default-features = false }
 ruzstd = "0.9"
+zip = { version = "9.4.1", default-features = false, features = ["deflate-flate2"] }
+lzma-rust2 = { version = "0.25", default-features = false, features = ["std", "xz"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 pulseaudio = "=0.3.2"
