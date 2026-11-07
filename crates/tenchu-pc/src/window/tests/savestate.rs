@@ -12,10 +12,9 @@ fn exact(game: &Game) -> Vec<u8> {
 #[ignore = "requires both discs; sandbox saves/rewind retain imported terrain and retry context"]
 fn tenchu2_saves_require_the_matching_sandbox_and_preserve_retry() {
     let disc = std::env::var_os("TENCHU2_DISC").expect("Set TENCHU2_DISC");
-    let disc = crate::source::open_disc(disc.as_ref()).unwrap();
     let mut app = application(Options::default());
     let normal = app.capture_state().unwrap();
-    let sandbox = crate::tenchu2::Sandbox::open(&disc, Some(0), None, None).unwrap();
+    let sandbox = crate::tenchu2::Sandbox::open(disc.as_ref(), Some(0), None, None).unwrap();
     app.campaign.game = sandbox.load(&app.assets, app.campaign.options).unwrap();
     app.campaign.sandbox = Some(sandbox);
     app.debug = crate::debug::Debug::new(&app.campaign.game).unwrap();

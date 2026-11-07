@@ -576,7 +576,7 @@ impl Application {
             view.settings(&self.settings, &self.campaign.game)?;
         }
         if let Some(audio) = &mut self.audio {
-            audio.reload(&self.assets, &self.campaign.game)?;
+            audio.reload(&self.assets, &self.campaign)?;
             audio.screen(&self.campaign.screen);
             audio.volume(self.settings.volume);
         }

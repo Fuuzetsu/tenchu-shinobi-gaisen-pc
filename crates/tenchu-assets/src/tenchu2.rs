@@ -4,10 +4,26 @@ pub mod collision;
 pub mod layout;
 pub mod level;
 mod model;
+pub mod music;
 mod volume;
 use crate::{ReadAt, Result, disc::Disc, i16_le, motion, slice, u32_le, weapon};
 use serde::{Deserialize, Serialize};
 use volume::{Volume, hash};
+
+fn executable(disc: &Disc<impl ReadAt>) -> Result<Vec<u8>> {
+    use sha2::{Digest, Sha256};
+    let entry = disc.find("TENCHU2/GAME.EXE")?;
+    if entry.size > 2 * 1024 * 1024 {
+        return Err("Excessive Tenchu 2 executable size".into());
+    }
+    let bytes = disc.file(&entry).read(0, entry.size as usize)?;
+    if format!("{:x}", Sha256::digest(&bytes))
+        != "55151e486984c1794ce4f48ab7e91b2d3a5b1abeb7a30ab8d1b326b2606d5422"
+    {
+        return Err("Tenchu 2 import requires the supported Europe GAME.EXE".into());
+    }
+    Ok(bytes)
+}
 
 // Gaisen's waist/torso/head, arms, legs and weapon anchors in T2 bone order.
 const BONES: [usize; 15] = [0, 1, 2, 3, 4, 9, 10, 6, 7, 8, 12, 13, 14, 5, 11];

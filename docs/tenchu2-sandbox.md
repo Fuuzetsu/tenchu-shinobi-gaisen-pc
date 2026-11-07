@@ -6,8 +6,8 @@ not a port of Tenchu 2's missions. Both discs remain necessary; no retail assets
 are bundled or downloaded.
 
 On desktop, use **Tenchu 2…** at the top left of the title or quick-launch
-menu. Select the CUE, then choose an area, placement/patrol layout, player and
-optional Gaisen guards. The disc path is remembered for the next launch.
+menu. Select the CUE, then choose an area, placement/patrol layout, player,
+music and optional Gaisen guards. The disc path is remembered for the next launch.
 On Android, **Browse…** imports a folder containing the CUE and all its BINs;
 the Android launcher also has **Import Tenchu 2 disc folder…**. Keep both games
 in separate folders so the importer can identify the CUE unambiguously.
@@ -23,6 +23,13 @@ Normal keyboard/controller bindings, F1 settings, free camera and camera-relativ
 controls work. F5 restarts this sandbox; Esc returns to the ordinary launcher.
 Sandbox play does not award campaign progress. Savestates and rewind work within
 the sandbox; reopen the same map and sequence before loading its file save.
+
+The music selector offers three looping themes from the Tenchu 2 disc, or **Off**.
+Theme 1 plays by default; the CLI equivalent is `--music off|1|2|3`.
+This is a sandbox soundtrack choice, not the original game's per-scene music
+schedule. Music decodes in the background and uses the normal music volume and
+pause settings. No audio files are bundled; voices and sound effects still use
+Gaisen's resources.
 
 List all maps and source layouts, choose another starting point, or add guards:
 
@@ -76,8 +83,8 @@ browser level import is not yet available.
 
 Unported elements include doors and other scripted/moving objects, procedural
 lights/effects, sky/background setup, animated water, water/material/hazard
-semantics, music/voices, objectives and cutscenes.
-The sandbox uses Gaisen's audio assets and treats collision surfaces as ordinary
+semantics, scripted music/voices, objectives and cutscenes.
+The sandbox treats collision surfaces as ordinary
 solid terrain. Water surfaces and invisible bottom planes can consequently act
 as floors. Some routes can lead into unimplemented obstacles. F1 free camera
 helps explore those areas; this is not yet a completable Tenchu 2 campaign.

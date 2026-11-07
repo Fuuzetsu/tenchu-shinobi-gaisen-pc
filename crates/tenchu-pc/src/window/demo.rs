@@ -487,7 +487,7 @@ impl Application {
             run.artwork = view.artwork_status();
         }
         if let Some(audio) = &mut self.audio {
-            audio.reload(&self.assets, &self.campaign.game)?;
+            audio.reload(&self.assets, &self.campaign)?;
             audio.volume(self.settings.volume);
             audio.screen(&self.campaign.screen);
             if let Some(cue) = clip.music {

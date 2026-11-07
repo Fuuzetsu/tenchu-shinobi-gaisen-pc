@@ -1,6 +1,5 @@
-use super::volume::Volume;
+use super::{executable, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, executable::Executable, i16_le, slice, u16_le, u32_le};
-use sha2::{Digest, Sha256};
 
 #[derive(Clone)]
 pub struct Layout {
@@ -111,18 +110,4 @@ impl Layout {
             actors,
         })
     }
-}
-
-fn executable(disc: &Disc<impl ReadAt>) -> Result<Vec<u8>> {
-    let entry = disc.find("TENCHU2/GAME.EXE")?;
-    if entry.size > 2 * 1024 * 1024 {
-        return Err("Excessive Tenchu 2 executable size".into());
-    }
-    let bytes = disc.file(&entry).read(0, entry.size as usize)?;
-    if format!("{:x}", Sha256::digest(&bytes))
-        != "55151e486984c1794ce4f48ab7e91b2d3a5b1abeb7a30ab8d1b326b2606d5422"
-    {
-        return Err("Tenchu 2 layouts require the supported Europe GAME.EXE".into());
-    }
-    Ok(bytes)
 }

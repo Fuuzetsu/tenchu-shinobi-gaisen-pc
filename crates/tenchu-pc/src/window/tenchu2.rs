@@ -53,6 +53,7 @@ impl Application {
                     let disc = crate::source::open_disc(&path)?;
                     let maps = tenchu_assets::tenchu2::level::Level::available(&disc)?;
                     let layouts = tenchu_assets::tenchu2::layout::Layout::available(&disc)?;
+                    let music = tenchu_assets::tenchu2::music::tracks(&disc)?;
                     if maps.is_empty() {
                         return Err("No Tenchu 2 maps found".into());
                     }
@@ -61,6 +62,7 @@ impl Application {
                     self.tenchu2.connected.clone_from(&self.tenchu2.path);
                     self.tenchu2.maps = maps;
                     self.tenchu2.layouts = layouts;
+                    self.tenchu2.music_tracks = music.len();
                     if !self.tenchu2.maps.contains(&self.tenchu2.map) {
                         self.tenchu2.map = self.tenchu2.maps[0];
                     }
@@ -87,15 +89,15 @@ impl Application {
                     if self.tenchu2.path != self.tenchu2.connected {
                         return Err("Load the selected disc first".into());
                     }
-                    let disc = crate::source::open_disc(self.tenchu2.path.as_ref())?;
                     let guard = self.tenchu2.sequence.and(self.tenchu2.guard);
                     let mut sandbox = crate::tenchu2::Sandbox::open(
-                        &disc,
+                        self.tenchu2.path.as_ref(),
                         Some(self.tenchu2.map),
                         self.tenchu2.sequence,
                         guard,
                     )?;
                     sandbox.source_models = self.tenchu2.source_models;
+                    sandbox.music.selected = self.tenchu2.music;
                     let previous = self.campaign.options;
                     self.campaign.options.character = self.tenchu2.character;
                     if let Err(error) = self.campaign.start_sandbox(sandbox, &self.assets) {
@@ -128,6 +130,7 @@ mod tests {
         assert!(app.is_suspended());
         app.apply_tenchu2(Event::Connect).unwrap();
         assert_eq!(app.tenchu2.maps.len(), 23);
+        assert_eq!(app.tenchu2.music_tracks, 3);
         assert_eq!(
             crate::tenchu2::menu::disc_path().unwrap(),
             std::fs::canonicalize(&disc).unwrap()
@@ -138,6 +141,7 @@ mod tests {
             app.tenchu2.map = map;
             app.tenchu2.character = character;
             app.tenchu2.guard = guard;
+            app.tenchu2.music = (map == 1).then_some(2);
             app.tenchu2.sequence = app
                 .tenchu2
                 .layouts
@@ -149,6 +153,10 @@ mod tests {
             assert!(!app.is_suspended());
             assert_eq!(app.campaign.game.player().kind, character);
             assert!(app.campaign.game.mission.world_vram.is_some());
+            assert_eq!(
+                app.campaign.sandbox.as_ref().unwrap().music.selected,
+                app.tenchu2.music
+            );
             app.campaign.checkpoint(app.campaign.options);
             assert!(app.campaign.save_request.is_none());
             for _ in 0..60 {

@@ -1305,3 +1305,16 @@ Gaisen's order, attaching additional accessory joints to their nearest supported
 ancestor. Source idle tracks are read from the character-specific motion CABs;
 Gaisen gameplay and weapons remain in use outside the separate Tatsumaru import.
 No source models, textures, animations or executable bytes are distributed.
+
+### Tenchu 2 sandbox music (2026-11-07)
+
+The hash-checked Europe GAME.EXE supplies the music archive name at `0x8001323c`
+and the eight-byte cue table at `0x8007f354`. XA setup (`0x80016ae0`), cue lookup
+(`0x80016bac`) and the loop callback (`0x80016ec0..0x80016ed0`) establish the
+row format: cue ID, repeat flag, XA channel, BCD start and end times. Times use
+150 sectors per second; XA file number is 1. The importer reads only repeating
+entries, leaving the short event cues alone, and reuses the existing XA decoder.
+The menu offers these three themes as an optional sandbox soundtrack; it does
+not claim an original per-map assignment or reproduce T2's scripted audio.
+Decoding and playback use the user's disc at runtime. No XA data, decoded audio
+or extracted executable tables are distributed.

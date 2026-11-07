@@ -27,6 +27,7 @@ pub struct Audio {
     output: output::Output,
     loader: loader::Loader,
     catalog: Catalog,
+    sandbox_music: Option<crate::tenchu2::Music>,
     screen: Option<Discriminant<Screen>>,
     paused: bool,
     music_while_paused: bool,
@@ -70,6 +71,7 @@ impl Audio {
     }
 
     pub fn restore_playback(&mut self, campaign: &Campaign, state: Option<State>) {
+        self.sandbox_music = campaign.sandbox.as_ref().map(|s| s.music.clone());
         self.output.send(Command::Clear);
         self.screen = Some(discriminant(&campaign.screen));
         self.fast_forward = false;
@@ -147,6 +149,7 @@ impl Audio {
             output: output::Output::new()?,
             loader: loader::Loader::new(path)?,
             catalog: Catalog::load(&assets.executable, campaign.game.mission.scripts.language)?,
+            sandbox_music: None,
             screen: None,
             paused: false,
             music_while_paused: false,
@@ -159,7 +162,7 @@ impl Audio {
             playhead: 0.0,
             playhead_updated: Instant::now(),
         };
-        audio.reload(assets, &campaign.game)?;
+        audio.reload(assets, campaign)?;
         audio.screen(&campaign.screen);
         Ok(audio)
     }
@@ -174,9 +177,11 @@ impl Audio {
         Ok(())
     }
 
-    pub fn reload(&mut self, assets: &GameAssets<DiscSource>, game: &Game) -> Result<()> {
+    pub fn reload(&mut self, assets: &GameAssets<DiscSource>, campaign: &Campaign) -> Result<()> {
+        let game = &campaign.game;
         let bank = game_bank(assets, game)?;
         self.catalog = Catalog::load(&assets.executable, game.mission.scripts.language)?;
+        self.sandbox_music = campaign.sandbox.as_ref().map(|s| s.music.clone());
         self.mission_track = None;
         self.track(None);
         self.output.send(output::Command::Bank(Arc::new(bank)));
@@ -200,6 +205,20 @@ impl Audio {
             eprintln!("Audio request: {track:?}");
         }
         self.output.send(output::Command::Music(None, false));
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let disc = self
+                .sandbox_music
+                .as_ref()
+                .filter(|music| {
+                    track
+                        .as_ref()
+                        .is_some_and(|track| music.tracks.contains(track))
+                })
+                .map(|music| music.disc.as_path());
+            self.loader.request_from(track, disc);
+        }
+        #[cfg(target_arch = "wasm32")]
         self.loader.request(track);
     }
 
@@ -279,6 +298,13 @@ impl Audio {
             return;
         }
         self.output.send(output::Command::Clear);
+        if matches!(screen, Screen::Playing)
+            && let Some(music) = &self.sandbox_music
+        {
+            self.mission_track = music.track();
+            self.track(self.mission_track.clone());
+            return;
+        }
         let cue = match screen {
             Screen::Launcher => Some(15),
             Screen::Results(_) | Screen::Complete => Some(12),

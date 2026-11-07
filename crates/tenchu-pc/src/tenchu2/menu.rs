@@ -1,6 +1,5 @@
 use tenchu_assets::tenchu2::layout::Layout;
 
-#[derive(Default)]
 pub struct Menu {
     pub open: bool,
     pub path: String,
@@ -10,9 +9,31 @@ pub struct Menu {
     pub sequence: Option<usize>,
     pub guard: Option<i16>,
     pub source_models: bool,
+    pub music: Option<usize>,
+    pub music_tracks: usize,
     pub maps: Vec<usize>,
     pub layouts: Vec<Layout>,
     pub connected: String,
+}
+
+impl Default for Menu {
+    fn default() -> Self {
+        Self {
+            open: false,
+            path: String::new(),
+            notice: String::new(),
+            character: 0,
+            map: 0,
+            sequence: None,
+            guard: None,
+            source_models: false,
+            music: Some(0),
+            music_tracks: 0,
+            maps: Vec::new(),
+            layouts: Vec::new(),
+            connected: String::new(),
+        }
+    }
 }
 
 pub enum Event {
@@ -84,6 +105,17 @@ impl Menu {
                             ui.label("Player controls");
                             ui.selectable_value(&mut self.character, 0, "Rikimaru");
                             ui.selectable_value(&mut self.character, 1, "Ayame");
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("Music");
+                            egui::ComboBox::from_id_salt("t2-music")
+                                .selected_text(self.music.map_or_else(|| "Off".into(), |index| format!("Theme {}", index + 1)))
+                                .show_ui(ui, |ui| {
+                                    for index in 0..self.music_tracks {
+                                        ui.selectable_value(&mut self.music, Some(index), format!("Theme {}", index + 1));
+                                    }
+                                    ui.selectable_value(&mut self.music, None, "Off");
+                                });
                         });
                         ui.add_enabled_ui(!layouts.is_empty(), |ui| {
                             ui.horizontal_wrapped(|ui| {

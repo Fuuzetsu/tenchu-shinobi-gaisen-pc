@@ -7,24 +7,8 @@ fn death_observation_preserves_audio_until_confirmation() {
     let disc = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
     let assets = GameAssets::open(crate::source::open_disc(disc.as_ref()).unwrap()).unwrap();
     for boss in [false, true] {
-        let (output, commands) = output::Output::recording();
+        let (mut audio, commands) = recording(disc.as_ref(), &assets);
         let mut game = crate::session::Options::default().load(&assets).unwrap();
-        let mut audio = Audio {
-            output,
-            loader: loader::Loader::new(disc.as_ref()).unwrap(),
-            catalog: Catalog::load(&assets.executable, Default::default()).unwrap(),
-            screen: Some(discriminant(&Screen::Playing)),
-            paused: false,
-            music_while_paused: false,
-            trace: false,
-            fast_forward: false,
-            volume: 100,
-            mission_track: None,
-            current_track: None,
-            ready_track: None,
-            playhead: 0.0,
-            playhead_updated: Instant::now(),
-        };
         game.step(0).unwrap();
         audio.tick(&game, None, Default::default()).unwrap();
         if boss {
@@ -112,7 +96,146 @@ fn death_observation_preserves_audio_until_confirmation() {
             Command::Music(None, false)
         ));
         assert_eq!(audio.current_track, audio.catalog.music(11).cloned());
-        audio.reload(&assets, &game).unwrap();
+        let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+        campaign.game = game;
+        audio.reload(&assets, &campaign).unwrap();
         assert!(audio.mission_track.is_none());
     }
+}
+
+fn recording(
+    disc: &Path,
+    assets: &GameAssets<DiscSource>,
+) -> (Audio, std::sync::mpsc::Receiver<Command>) {
+    let (output, commands) = output::Output::recording();
+    let audio = Audio {
+        output,
+        loader: loader::Loader::new(disc).unwrap(),
+        catalog: Catalog::load(&assets.executable, Default::default()).unwrap(),
+        sandbox_music: None,
+        screen: Some(discriminant(&Screen::Playing)),
+        paused: false,
+        music_while_paused: false,
+        trace: false,
+        fast_forward: false,
+        volume: 100,
+        mission_track: None,
+        current_track: None,
+        ready_track: None,
+        playhead: 0.0,
+        playhead_updated: Instant::now(),
+    };
+    (audio, commands)
+}
+
+#[test]
+#[cfg(not(target_arch = "wasm32"))]
+#[ignore = "requires TENCHU_DISC and TENCHU2_DISC; real XA decoding, sandbox playback, pause, save, retry and Gaisen transitions"]
+fn tenchu2_music_uses_its_disc_and_survives_playback_transitions() {
+    use crate::{campaign::Action, tenchu2::Sandbox};
+    use tenchu_assets::audio::stream::Clip;
+    let gaisen = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
+    let t2 = std::env::var_os("TENCHU2_DISC").expect("Set TENCHU2_DISC");
+    let assets = GameAssets::open(crate::source::open_disc(gaisen.as_ref()).unwrap()).unwrap();
+    let disc = crate::source::open_disc(t2.as_ref()).unwrap();
+    let sandbox = Sandbox::open(t2.as_ref(), Some(0), None, None).unwrap();
+    assert_eq!(sandbox.music.tracks.len(), 3);
+    let mut campaign = Campaign::new(&assets, Default::default(), None).unwrap();
+    campaign.start_sandbox(sandbox, &assets).unwrap();
+    let (mut audio, commands) = recording(gaisen.as_ref(), &assets);
+    let wait = |audio: &mut Audio| {
+        let deadline = Instant::now() + std::time::Duration::from_secs(15);
+        loop {
+            audio.poll();
+            for command in commands.try_iter() {
+                if let Command::Music(Some(clip), repeat) = command {
+                    assert!(repeat);
+                    return clip;
+                }
+            }
+            assert!(Instant::now() < deadline, "Music failed to load");
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+    };
+    let mut signatures = std::collections::BTreeSet::new();
+    for selected in 0..3 {
+        campaign.sandbox.as_mut().unwrap().music.selected = Some(selected);
+        audio.reload(&assets, &campaign).unwrap();
+        audio.screen(&campaign.screen);
+        let track = audio.current_track.clone().unwrap();
+        let expected = Clip::load(&disc, &track).unwrap();
+        let clip = wait(&mut audio);
+        assert_eq!(clip.frames, expected.frames);
+        assert_eq!(clip.rate, expected.rate);
+        let duration = clip.frames.len() as f64 / f64::from(clip.rate);
+        assert!(
+            (80.0..100.0).contains(&duration),
+            "Unexpected duration {duration}"
+        );
+        let peak = clip
+            .frames
+            .iter()
+            .flatten()
+            .map(|n| n.unsigned_abs())
+            .max()
+            .unwrap();
+        assert!(peak > 1000, "Silent theme");
+        let signature: i64 = clip
+            .frames
+            .iter()
+            .flatten()
+            .step_by(137)
+            .map(|n| i64::from(*n))
+            .sum();
+        assert!(signatures.insert(signature), "Duplicate theme");
+        eprintln!(
+            "T2 theme {}: {:.2}s, {} Hz, peak {peak}",
+            selected + 1,
+            duration,
+            clip.rate
+        );
+        for _ in 0..60 {
+            campaign.game.step(tenchu_core::input::UP).unwrap();
+            audio
+                .tick(&campaign.game, None, Default::default())
+                .unwrap();
+            audio.screen(&campaign.screen);
+        }
+        assert_eq!(audio.current_track.as_ref(), Some(&track));
+        audio.pause(true, false);
+        let state = audio.capture_state();
+        assert_eq!(state.playhead, audio.capture_state().playhead);
+        let mut state = state;
+        state.playhead = 15.0;
+        let bytes = postcard::to_allocvec(&state).unwrap();
+        audio.restore_playback(&campaign, Some(postcard::from_bytes(&bytes).unwrap()));
+        wait(&mut audio);
+        assert_eq!(audio.capture_state().playhead, 15.0);
+        audio.pause(false, false);
+        audio.fast_forward(true);
+        audio.fast_forward(false);
+        assert_eq!(audio.current_track.as_ref(), Some(&track));
+        wait(&mut audio);
+        campaign.action(Action::Replay, &assets).unwrap();
+        audio.reload(&assets, &campaign).unwrap();
+        audio.screen(&campaign.screen);
+        wait(&mut audio);
+        assert_eq!(audio.current_track.as_ref(), Some(&track));
+    }
+    campaign.sandbox.as_mut().unwrap().music.selected = None;
+    audio.reload(&assets, &campaign).unwrap();
+    audio.screen(&campaign.screen);
+    assert!(audio.current_track.is_none());
+    assert!(audio.mission_track.is_none());
+    assert!(
+        commands
+            .try_iter()
+            .all(|c| !matches!(c, Command::Music(Some(_), _)))
+    );
+    campaign.action(Action::Back, &assets).unwrap();
+    audio.reload(&assets, &campaign).unwrap();
+    audio.screen(&campaign.screen);
+    assert!(audio.sandbox_music.is_none());
+    assert_eq!(audio.current_track, audio.catalog.music(15).cloned());
+    wait(&mut audio);
 }

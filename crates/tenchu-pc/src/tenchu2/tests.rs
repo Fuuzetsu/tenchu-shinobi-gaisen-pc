@@ -58,9 +58,8 @@ fn separate_artwork_keeps_source_atlases_and_original_fallback() {
         crate::source::open_disc(std::env::var_os("TENCHU_DISC").unwrap().as_ref()).unwrap(),
     )
     .unwrap();
-    let disc =
-        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let sandbox = Sandbox::open(&disc, Some(0), None, Some(0x10)).unwrap();
+    let path = std::env::var_os("TENCHU2_DISC").unwrap();
+    let sandbox = Sandbox::open(path.as_ref(), Some(0), None, Some(0x10)).unwrap();
     let game = sandbox.load(&assets, Options::default()).unwrap();
     let snapshot = postcard::to_allocvec(&game).unwrap();
     let sources = catalog::world_models(&game.mission);
@@ -119,11 +118,10 @@ fn imported_routes_and_guard_combat_work_without_campaign_progress() {
     let gaisen = std::env::var_os("TENCHU_DISC").expect("Set TENCHU_DISC");
     let t2 = std::env::var_os("TENCHU2_DISC").expect("Set TENCHU2_DISC");
     let assets = GameAssets::open(crate::source::open_disc(gaisen.as_ref()).unwrap()).unwrap();
-    let disc = crate::source::open_disc(t2.as_ref()).unwrap();
-    assert!(Sandbox::open(&disc, Some(4), Some(1), None).is_err());
-    assert!(Sandbox::open(&disc, Some(7), None, None).is_err());
+    assert!(Sandbox::open(t2.as_ref(), Some(4), Some(1), None).is_err());
+    assert!(Sandbox::open(t2.as_ref(), Some(7), None, None).is_err());
     for kind in [0x10, 0x11, 0x12] {
-        let sandbox = Sandbox::open(&disc, None, Some(4), Some(kind)).unwrap();
+        let sandbox = Sandbox::open(t2.as_ref(), None, Some(4), Some(kind)).unwrap();
         assert_eq!(sandbox.level.id, 1);
         let mut game = sandbox.load(&assets, Options::default()).unwrap();
         assert!(!game.mission.enemies.is_empty());
@@ -195,7 +193,7 @@ fn imported_routes_and_guard_combat_work_without_campaign_progress() {
                 character,
                 ..Default::default()
             };
-            let mut duel = Sandbox::open(&disc, Some(0), None, None).unwrap();
+            let mut duel = Sandbox::open(t2.as_ref(), Some(0), None, None).unwrap();
             let layout = duel.layout.as_mut().unwrap();
             layout.actors.truncate(1);
             let actor = &mut layout.actors[0];
@@ -281,7 +279,7 @@ fn imported_maps_run_gaisen_gameplay_without_replacing_player_textures() {
     tenchu_assets::tenchu2::import(&disc).unwrap();
     assert_eq!(layouts.len(), 56);
     for id in Level::available(&disc).unwrap() {
-        let sandbox = Sandbox::open(&disc, Some(id), None, None).unwrap();
+        let sandbox = Sandbox::open(t2.as_ref(), Some(id), None, None).unwrap();
         for character in 0..2 {
             let options = Options {
                 character,

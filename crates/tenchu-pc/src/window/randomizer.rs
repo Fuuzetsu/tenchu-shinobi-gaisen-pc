@@ -139,7 +139,7 @@ impl Application {
             .set_behavior_profiles(self.settings.behavior_profiles);
         self.debug.reload(&self.campaign.game)?;
         if let Some(audio) = &mut self.audio {
-            if let Err(error) = audio.reload(&self.assets, &self.campaign.game) {
+            if let Err(error) = audio.reload(&self.assets, &self.campaign) {
                 eprintln!("Audio: {error}");
             }
             audio.screen(&self.campaign.screen);

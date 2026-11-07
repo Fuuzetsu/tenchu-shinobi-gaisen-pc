@@ -3,6 +3,7 @@ pub mod menu;
 use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{
     Result,
+    audio::stream::Track,
     executable::Executable,
     game::GameAssets,
     stage::{Enemy, MissionAssets, Placement},
@@ -22,17 +23,36 @@ pub struct Sandbox {
     pub layout: Option<Layout>,
     pub guard: Option<i16>,
     pub source_models: bool,
+    pub music: Music,
     characters: Vec<tenchu_assets::tenchu2::characters::Character>,
+}
+
+#[derive(Clone)]
+pub struct Music {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub disc: std::path::PathBuf,
+    pub tracks: Vec<Track>,
+    pub selected: Option<usize>,
+}
+
+impl Music {
+    pub fn track(&self) -> Option<Track> {
+        self.selected
+            .and_then(|index| self.tracks.get(index))
+            .cloned()
+    }
 }
 
 impl Sandbox {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn open(
-        disc: &tenchu_assets::disc::Disc<impl tenchu_assets::ReadAt>,
+        path: &std::path::Path,
         map: Option<usize>,
         sequence: Option<usize>,
         guard: Option<i16>,
     ) -> Result<Self> {
+        let disc = crate::source::open_disc(path)?;
+        let disc = &disc;
         let layout = if let Some(sequence) = sequence {
             Some(Layout::load(disc, sequence)?)
         } else {
@@ -61,6 +81,11 @@ impl Sandbox {
             layout,
             guard,
             source_models: true,
+            music: Music {
+                disc: path.to_owned(),
+                tracks: tenchu_assets::tenchu2::music::tracks(disc)?,
+                selected: Some(0),
+            },
         })
     }
 
@@ -280,7 +305,7 @@ fn spawn(mission: &MissionAssets, math: &Math) -> Result<[i32; 3]> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
-    let help = "tenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map 0..23] [--sequence 0..299] [--guards sword|spear|archer] [--character rikimaru|ayame]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\nExperimental scenery sandbox using Tenchu 1 gameplay. Map 7 is empty. Uses the map's first T2 starting position by default; --sequence selects another layout and its map. T2 story, enemies, scripted objects and water behavior are not ported. F1 settings/free camera work, F5 restarts, Esc returns to the normal launcher.";
+    let help = "tenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map 0..23] [--sequence 0..299] [--guards sword|spear|archer] [--character rikimaru|ayame] [--music off|1|2|3]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\nExperimental scenery sandbox using Tenchu 1 gameplay. Map 7 is empty. Uses the map's first T2 starting position by default; --sequence selects another layout and its map. T2 story, enemies, scripted objects and water behavior are not ported. F1 settings/free camera work, F5 restarts, Esc returns to the normal launcher.";
     if args.len() < 2 || args[1] == "--help" {
         println!("{help}");
         return Ok(());
@@ -315,6 +340,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut map = None;
     let mut sequence = None;
     let mut guard = None;
+    let mut music = Some(0);
     let mut options = Vec::new();
     for pair in args[first..].chunks(2) {
         if pair.len() != 2 {
@@ -334,6 +360,13 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                     _ => return Err("--guards needs sword, spear or archer".into()),
                 })
             }
+            Some("--music") => {
+                music = match value {
+                    "off" => None,
+                    "1" | "2" | "3" => Some(value.parse::<usize>().unwrap() - 1),
+                    _ => return Err("--music needs off, 1, 2 or 3".into()),
+                };
+            }
             Some("--character" | "--difficulty" | "--language") => options.extend_from_slice(pair),
             _ => {
                 return Err(format!(
@@ -344,8 +377,8 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         }
     }
     let options = Options::parse(&options)?;
-    let disc = crate::source::open_disc(args[2].as_ref())?;
-    let sandbox = Sandbox::open(&disc, map, sequence, guard)?;
+    let mut sandbox = Sandbox::open(args[2].as_ref(), map, sequence, guard)?;
+    sandbox.music.selected = music;
     if !render {
         menu::remember(&std::fs::canonicalize(&args[2]).map_err(|e| e.to_string())?)?;
     }
