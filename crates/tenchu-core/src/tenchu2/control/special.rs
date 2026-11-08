@@ -49,7 +49,7 @@ impl Actor {
         rules: &Rules,
         resources: &Resources,
         random: &mut Random,
-        mut cue: impl FnMut(&mut Actor, &mut Request, SpecialCue) -> Result<()>,
+        mut cue: impl FnMut(&mut Actor, &mut Request, &mut Random, SpecialCue) -> Result<()>,
     ) -> Result<()> {
         let europe = resources.registry.edition == Edition::Europe;
         match self.motion.action {
@@ -65,6 +65,7 @@ impl Actor {
                         cue(
                             self,
                             request,
+                            random,
                             SpecialCue::Weapon(if drawing {
                                 WeaponMode::Draw
                             } else {
@@ -82,7 +83,7 @@ impl Actor {
                             .next()
                             .is_some_and(|part| part.model.is_some())
                         {
-                            cue(self, request, SpecialCue::Voice(u8::from(!drawing)))?;
+                            cue(self, request, random, SpecialCue::Voice(u8::from(!drawing)))?;
                         }
                     }
                 }
@@ -96,7 +97,7 @@ impl Actor {
                 self.velocity.z = self.velocity.z.wrapping_sub(self.velocity.z >> 3);
                 if self.flags & LANDED == 0 && i32::from(self.height) < self.terrain.height {
                     if input.held & ATTACK != 0 {
-                        cue(self, request, SpecialCue::Attack)?;
+                        cue(self, request, random, SpecialCue::Attack)?;
                     }
                     return Ok(());
                 }
@@ -110,7 +111,7 @@ impl Actor {
                 if self.health != 0 && (!hard || self.last_vertical_velocity < 400) {
                     return Ok(());
                 }
-                cue(self, request, SpecialCue::AlignToFloor)?;
+                cue(self, request, random, SpecialCue::AlignToFloor)?;
                 if self.health != 0 && (self.last_vertical_velocity < 100 || input.difficulty == 3)
                 {
                     return Ok(());
@@ -118,7 +119,7 @@ impl Actor {
                 if !europe && input.difficulty == 1 {
                     self.health = self.health.wrapping_sub(10).max(0);
                     if !input.player {
-                        cue(self, request, SpecialCue::ShowHealth)?;
+                        cue(self, request, random, SpecialCue::ShowHealth)?;
                     }
                 }
                 request.action = if self.health == 0 && self.kind & 0xf0 == 0x70 {
@@ -153,17 +154,17 @@ impl Actor {
                     self.motion.mask = u32::MAX;
                     self.rotation.x = 0;
                     self.rotation.z = 0;
-                    cue(self, request, SpecialCue::Landing)?;
+                    cue(self, request, random, SpecialCue::Landing)?;
                     if input.water.is_none() {
                         if self.motion.frame == 1 {
-                            cue(self, request, SpecialCue::Dust)?;
-                            cue(self, request, SpecialCue::Voice(23))?;
+                            cue(self, request, random, SpecialCue::Dust)?;
+                            cue(self, request, random, SpecialCue::Voice(23))?;
                         }
                     } else {
-                        cue(self, request, SpecialCue::Splash)?;
+                        cue(self, request, random, SpecialCue::Splash)?;
                     }
                 } else if self.motion.loops > 0 {
-                    cue(self, request, SpecialCue::Recover)?;
+                    cue(self, request, random, SpecialCue::Recover)?;
                     if input.camera_actor && input.camera == 19 {
                         input.camera = 0;
                     }
@@ -192,6 +193,7 @@ impl Actor {
                     cue(
                         self,
                         request,
+                        random,
                         SpecialCue::Throw {
                             bone: part.bone,
                             center: Position::from(part.center.map(i32::from)),
@@ -213,14 +215,14 @@ impl Actor {
                         _ => None,
                     };
                     if let Some(voice) = voice {
-                        cue(self, request, SpecialCue::Voice(voice))?;
+                        cue(self, request, random, SpecialCue::Voice(voice))?;
                     }
                 } else if self.motion.loops > 0 {
                     if request.action == 0x709 {
                         request.action = 0x700;
                         request.velocity = Velocity::Motion;
                     } else {
-                        cue(self, request, SpecialCue::Recover)?;
+                        cue(self, request, random, SpecialCue::Recover)?;
                     }
                 }
             }
@@ -228,7 +230,7 @@ impl Actor {
                 if self.motion.frame == 1 {
                     self.update_velocity(Velocity::Stop, resources)?;
                 } else if self.motion.loops > 0 {
-                    cue(self, request, SpecialCue::Recover)?;
+                    cue(self, request, random, SpecialCue::Recover)?;
                 }
             }
             0x70c => {

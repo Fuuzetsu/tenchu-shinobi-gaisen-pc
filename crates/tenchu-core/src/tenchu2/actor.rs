@@ -81,6 +81,7 @@ pub struct Actor {
     pub state: State,
     pub flags: u32,
     pub health: i16,
+    pub breath: u8,
     pub width: i16,
     pub height: i16,
     pub turn: i16,
@@ -119,6 +120,7 @@ impl Actor {
                 definition.health
             },
             width,
+            breath: 100,
             height,
             turn: definition.turn,
             skill: definition.skill,

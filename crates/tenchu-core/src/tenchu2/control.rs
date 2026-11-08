@@ -10,6 +10,7 @@ mod ledge;
 mod sequence;
 mod special;
 mod standing;
+mod swimming;
 mod wall;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use crouch::{CrouchCue, CrouchInput};
@@ -19,6 +20,7 @@ pub use ledge::{LedgeCue, LedgeInput};
 pub use sequence::{AttackCue, Projectile};
 pub use special::{SpecialCue, SpecialInput};
 pub use standing::{StandingCue, StandingInput};
+pub use swimming::{GrappleStatus, SwimCue, SwimInput};
 pub use wall::{WallCue, WallInput};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

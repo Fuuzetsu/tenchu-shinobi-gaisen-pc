@@ -140,7 +140,7 @@ fn native_weapon_transitions_falls_landings_and_taunts_match_source() {
                     &rules,
                     &resources,
                     &mut random,
-                    |actor, request, cue| {
+                    |actor, request, _random, cue| {
                         match cue {
                             SpecialCue::Weapon(mode) => {
                                 let drawing = mode == WeaponMode::Draw;

@@ -1742,3 +1742,15 @@ weapon transitions, 823/862 floor alignments and 60 JP-only damage changes.
 The oracle executes PAL timing conversion, terrain, selection and RNG while
 supplying published joint positions and recording weapon, attack, projectile
 and audio callbacks. Those callbacks still require native-world integration.
+
+Swimming follows EU `80025c64` / JP `800265e4`: wading, surface/underwater
+steering, stroke history, diving, shore exits, breathing tubes, air refills and
+waterborne grapple input. Native terrain and original controller execution match
+23,000 updates per edition (`TENCHU2_SWIMMING_ORACLE`), including 204 EU / 202 JP
+grapple launches, 1,072/1,065 shore-climb requests and 87/84 air refills. The
+oracle supplies audio, projectile state, weapon changes and published root/bounds
+queries, and emulates the SDK square-root leading-bit operation. Splash effects
+receive the shared RNG so their later implementation can retain source call
+order. The swim-corner tables at EU `8008162c` / JP `8008355c` are identical to
+the existing probe corners. Initial breath follows EU `8001b4fc`; air refills
+follow EU `80058834` / JP `80055a7c`. Full native-world integration remains open.
