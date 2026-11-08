@@ -7,17 +7,19 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 - Play JP cutscene cameras, cast animations, facial expressions, original name
   cards/pictures, Japanese captions, fades and disc dialogue in the internal
-  `play-t2-jp` preview. Pause/resume also pauses dialogue. Timed 3D effects and
-  campaign transitions remain in progress.
+  `play-t2-jp` preview. Pause/resume also pauses dialogue. Cutscenes hand off to
+  gameplay or results, including original skipping and final-frame transitions.
+  Timed 3D effects remain in progress.
 
 - Add native JP campaign scoring, records, supply rewards and unlock rules,
   with health, inventory, RNG and score totals carried across areas. Calculate
-  rewards at the results sequence, after intervening story scenes. Live campaign
-  handoffs and the original results presentation remain in progress.
+  rewards at the results sequence, after intervening story scenes. The internal
+  preview can continue between areas, enter boss encounters, show results and
+  retry after failure. Introduction/FMV screens and the original results
+  presentation remain in progress.
 
 - Connect native JP mission objectives and end transitions in the internal
   preview, including unseen objectives, boss targets, input lock and fade timing.
-  The following story screens are still being connected.
 
 - Connect resurrection leaves in the internal JP preview: lethal-hit recovery,
   return to coloured-rice markers or the starting point, substitute log and smoke,

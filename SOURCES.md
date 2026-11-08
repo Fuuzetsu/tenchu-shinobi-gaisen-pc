@@ -2549,3 +2549,16 @@ is executed at the original call site. A disc-backed native test carries state
 through Rikimaru's first mission, event 4, its boss area, results and retry; it
 also checks snapshot continuation and prevents duplicate rewards. This verifies
 the state handoff, not a completed ordinary campaign or the equipment screen.
+
+Live JP campaign dispatch now shares that carry-over through gameplay, story,
+results and retry. Story exits follow the actual `EVENT.BIN` outer loop at
+`800d12cc`, including its inclusive final frame, held-frame camera/face updates,
+skip modes, letterbox withdrawal and area-dependent results fade. An instruction
+oracle executes the outer loop and original presentation function `800d4c20`,
+with GPU/CD/camera/face helpers intercepted: 576 displayed states across 48
+natural/skip/fade/next-kind combinations agree. Native integration tests cover
+mission-to-boss carry, boss victory/failure, results, next-area reset and retry.
+Live windows were checked for story-to-gameplay and results/retry presentation.
+Introductions, movies, original HUD/equipment/results artwork and the normal
+launcher are not connected yet. A thrown taunt prop was observed as an unhandled
+event; this check does not establish complete campaign or combat parity.

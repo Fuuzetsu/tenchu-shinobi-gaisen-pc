@@ -20,6 +20,8 @@ use tenchu_core::{
     },
 };
 
+#[cfg(not(target_arch = "wasm32"))]
+mod campaign;
 mod render;
 mod story;
 #[cfg(test)]
@@ -284,31 +286,27 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         .sequences
         .get(sequence)
         .ok_or("Missing Tenchu 2 sequence")?;
-    if descriptor.kind == tenchu_assets::tenchu2::campaign::Kind::Event {
-        if capture {
-            return render::capture_story(
-                &disc,
-                sequence,
-                descriptor.resource,
-                ticks,
-                seed,
-                &settings.graphics,
-                Path::new(&args[2]),
-            );
+    if !capture {
+        let mut items = [0; 21];
+        items[0] = 255;
+        for (item, count) in loadout {
+            items[item] = count;
         }
-        let story = Box::new(story::Story::load(
+        return window::run(
+            campaign::Playback::load(disc, sequence, seed, items)?,
+            settings.graphics,
+        );
+    }
+    if descriptor.kind == tenchu_assets::tenchu2::campaign::Kind::Event {
+        return render::capture_story(
             &disc,
             sequence,
             descriptor.resource,
+            ticks,
             seed,
-        )?);
-        let audio = story
-            .resources
-            .audio
-            .as_ref()
-            .map(|track| tenchu_assets::audio::stream::Clip::load(&disc, track).map(Arc::new))
-            .transpose()?;
-        return window::run(window::Content::Story { story, audio }, settings.graphics);
+            &settings.graphics,
+            Path::new(&args[2]),
+        );
     }
     let mut session = Session::load(&disc, sequence, seed)?;
     for (item, count) in loadout {
@@ -319,15 +317,8 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
             inventory.counts[item] = count;
         }
     }
-    if capture {
-        for _ in 0..ticks {
-            session.step(buttons)?;
-        }
-        render::capture(&session, &settings.graphics, Path::new(&args[2]))
-    } else {
-        window::run(
-            window::Content::Gameplay(Box::new(session)),
-            settings.graphics,
-        )
+    for _ in 0..ticks {
+        session.step(buttons)?;
     }
+    render::capture(&session, &settings.graphics, Path::new(&args[2]))
 }

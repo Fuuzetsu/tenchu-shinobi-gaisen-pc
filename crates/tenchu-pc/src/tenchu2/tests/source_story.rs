@@ -8,6 +8,94 @@ use tenchu_assets::tenchu2::{
 use tenchu_core::tenchu2::story::Motion;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_EXIT_ORACLE; original cutscene final-frame/skip/letterbox/fade transitions"]
+fn native_story_exit_matches_original_outer_loop() {
+    use tenchu_assets::tenchu2::{
+        campaign::{Objective, Region, Sequence},
+        story::Resources,
+    };
+    use tenchu_core::tenchu2::story::{Fade, Playback};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut resources = Resources::load(&disc, 4).unwrap();
+    resources.script.duration = 5;
+    resources.script.commands.clear();
+    resources.script.expressions.clear();
+    let basis = motions::spline_basis(&disc).unwrap();
+    let math = tenchu_core::math::Math {
+        tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+    };
+    let reach = Kind::Gameplay(Objective::Reach {
+        region: Region {
+            center: [0; 3],
+            radius: 0,
+        },
+        unseen: false,
+    });
+    let mut checked = 0;
+    for (case, row) in
+        super::source_control::cases::<serde_json::Value>("TENCHU2_STORY_EXIT_ORACLE").enumerate()
+    {
+        let mut state = Playback::new(&resources, 17);
+        state.presentation.fade = row["fade"].as_bool().unwrap().then_some(Fade {
+            white: true,
+            outward: true,
+            duration: 100,
+            age: 0,
+        });
+        let button = row["button"].as_u64().unwrap() as u16;
+        let kind = match row["next_kind"].as_i64().unwrap() {
+            -1 => None,
+            0 => Some(Kind::Introduction),
+            0x10 => Some(if button == 0x4000 { reach } else { Kind::Event }),
+            0x20 => Some(Kind::Movie),
+            0x31 => Some(reach),
+            0x33 => Some(Kind::Gameplay(Objective::Weaken { targets: [0; 3] })),
+            0x34 => Some(Kind::Gameplay(Objective::Defeat { targets: [0; 3] })),
+            0x40 => Some(Kind::Results),
+            _ => unreachable!(),
+        };
+        let next = kind.map(|kind| Sequence {
+            kind,
+            resource: 2,
+            next: Some(2),
+            failure: None,
+        });
+        let states = row["states"].as_array().unwrap();
+        for (tick, expected) in states.iter().enumerate() {
+            assert!(
+                !state.ending.is_some_and(|e| e.complete),
+                "ended early: {case}:{tick}"
+            );
+            state.step(&resources.script, &basis, &math, true).unwrap();
+            if state.ending.is_none()
+                && (state.finished(&resources.script) || (button != 0 && tick == 2))
+            {
+                state.begin_exit(next, button == 0x4000, resources.results_fade);
+            }
+            assert_eq!(
+                serde_json::json!({
+                    "frame": state.frame,
+                    "exit_age": state.ending.map_or(0, |e| e.age),
+                    "fade": state.presentation.fade,
+                    "offset": state.overlay.letterbox_offset,
+                    "overlays": state.overlay.overlays.iter().map(|o| o.rgb[0]).collect::<Vec<_>>(),
+                }),
+                *expected,
+                "exit case {case}, tick {tick}"
+            );
+            if tick == 8 {
+                state = serde_json::from_value(serde_json::to_value(state).unwrap()).unwrap();
+            }
+            checked += 1;
+        }
+        assert!(state.ending.unwrap().complete, "did not finish: {case}");
+    }
+    assert!(checked > 500);
+    eprintln!("{checked} original JP cutscene exit draws");
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_FACES_ORACLE; original expression/blink/lip timing and RNG"]
 fn native_story_faces_match_original_expression_and_draw_updates() {
     use tenchu_assets::tenchu2::story::Resources;

@@ -5,7 +5,7 @@ use tenchu_assets::tenchu2::story::{Animation, Key};
 mod faces;
 pub use faces::{Face, Faces, TextureChange};
 mod presentation;
-pub use presentation::{Overlay, Presentation, PresentationFrame};
+pub use presentation::{Fade, Overlay, Presentation, PresentationFrame};
 mod playback;
 pub use playback::Playback;
 

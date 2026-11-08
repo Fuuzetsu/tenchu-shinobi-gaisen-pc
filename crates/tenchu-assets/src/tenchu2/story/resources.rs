@@ -17,6 +17,7 @@ pub struct Model {
 
 pub struct Resources {
     pub area: usize,
+    pub results_fade: i16,
     pub script: Script,
     pub models: BTreeMap<i16, Model>,
     pub effects: BTreeMap<i16, String>,
@@ -293,6 +294,7 @@ impl Resources {
         }
         Ok(Self {
             area,
+            results_fade: i16_le(&module, 0x68e4 + area * 2)?,
             script,
             models,
             effects,

@@ -82,6 +82,7 @@ pub struct PresentationFrame {
     pub picture: Option<(usize, i16)>,
     pub caption: Option<usize>,
     pub effects: Vec<usize>,
+    pub letterbox_offset: i16,
 }
 
 impl Presentation {

@@ -71,7 +71,8 @@ pub(super) fn append(
             48.0,
         );
     }
-    for y in [-104.0, 104.0] {
+    let edge = 104.0 + f32::from(frame.letterbox_offset);
+    for y in [-edge, edge] {
         rectangle(output, [0.0, y], [320.0, 32.0], 0.0, [0.0; 3], 0, true);
     }
     // The source ordering table prepends primitives within each layer.

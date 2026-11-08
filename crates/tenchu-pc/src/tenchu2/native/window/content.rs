@@ -1,56 +1,79 @@
 use super::*;
-
-pub enum Content {
-    Gameplay(Box<Session>),
-    Story {
-        story: Box<Story>,
-        audio: Option<Arc<Clip>>,
-    },
-}
+use tenchu_core::tenchu2::campaign::Run;
 
 impl Content {
-    pub fn story_finished(&self) -> bool {
-        matches!(self, Self::Story { story, .. } if story.state.finished(&story.resources.script))
-    }
-
-    pub fn vram(&self) -> &Vram {
-        match self {
-            Self::Gameplay(session) => &session.assets.sprites.vram,
-            Self::Story { story, .. } => &story.level.vram,
-        }
-    }
-
     pub fn tick(&self) -> i64 {
         match self {
             Self::Gameplay(session) => session.world.tick as i64,
             Self::Story { story, .. } => i64::from(story.state.frame),
-        }
-    }
-
-    pub fn step(&mut self, buttons: u16) -> Result<Vec<Sound>> {
-        match self {
-            Self::Gameplay(session) => session.step(buttons),
-            Self::Story { story, .. } => {
-                story.step(true)?;
-                Ok(Vec::new())
-            }
+            _ => 0,
         }
     }
 
     pub fn start_audio(&self, output: &Output) {
+        output.send(Command::Clear);
         match self {
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
             Self::Story { audio, .. } => output.send(Command::Music(audio.clone(), false)),
+            _ => output.send(Command::Music(None, false)),
         }
     }
 
     pub fn inspect(
         &self,
         ctx: &egui::Context,
+        run: &Run,
         open: &mut bool,
         paused: &mut bool,
         error: Option<&str>,
-    ) {
+    ) -> Option<Action> {
+        let mut action = None;
+        if matches!(self, Self::Results | Self::Failed | Self::Complete) {
+            egui::Window::new(match self {
+                Self::Results => "Mission complete",
+                Self::Failed => "Mission failed",
+                _ => "Campaign complete",
+            })
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                if let Self::Results = self
+                    && let Some(results) = &run.results
+                {
+                    ui.heading(format!(
+                        "Score {} · rank {} / 6",
+                        results.record.score, results.record.rank
+                    ));
+                    ui.label(format!(
+                        "Time {:.1}s",
+                        f64::from(results.record.time_tenths) / 10.0
+                    ));
+                    for (name, value) in [
+                        ("Stealth kills", results.summary.kills.stealth_kills),
+                        ("Combat kills", results.summary.kills.combat_kills),
+                        ("Detections", results.summary.detections),
+                        ("Innocents killed", results.summary.kills.innocents),
+                    ] {
+                        ui.label(format!("{name}: {value}"));
+                    }
+                    if results.new_best {
+                        ui.label("New personal best");
+                    }
+                    if let Some(item) = results.unlocked_item {
+                        ui.label(format!("Unlocked item {item}"));
+                    }
+                    ui.separator();
+                    if ui.button("Continue · Enter").clicked() {
+                        action = Some(Action::Continue);
+                    }
+                }
+                if ui.button("Retry mission").clicked() {
+                    action = Some(Action::Retry);
+                }
+                ui.label("Esc: leave preview");
+            });
+        }
         if matches!(self, Self::Gameplay(_)) || *open || *paused || error.is_some() {
             egui::Area::new("native-status".into())
                 .fixed_pos(egui::pos2(12.0, 12.0))
@@ -83,7 +106,6 @@ impl Content {
                                 } = session.world.mission.phase
                                 {
                                     ui.label(format!("Mission ended: {outcome:?}."));
-                                    ui.label("The next story screen is not connected yet.");
                                 }
                             }
                             Self::Story { story, .. } => {
@@ -94,6 +116,9 @@ impl Content {
                                     story.state.frame,
                                     story.resources.script.duration
                                 ));
+                            }
+                            _ => {
+                                ui.label(format!("JP sequence {}", run.sequence));
                             }
                         }
                         ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
@@ -107,7 +132,7 @@ impl Content {
                 });
         }
         egui::Window::new("Native JP integration").open(open).default_size([550.0, 480.0]).vscroll(true).show(ctx, |ui| {
-            ui.label("The original HUD, campaign transitions and some effects are still being connected.");
+            ui.label("The original HUD, introduction/FMV screens and some effects are still being connected.");
             ui.checkbox(paused, "Pause simulation");
             match self {
                 Self::Gameplay(session) => {
@@ -122,17 +147,20 @@ impl Content {
                 }
                 Self::Story { story, audio } => {
                     ui.label(format!("{} actor tracks · disc dialogue {}", story.state.actors.len(), if audio.is_some() { "loaded" } else { "absent" }));
-                    ui.label("Timed 3D effects, distortion and the following sequence are not connected yet.");
+                    ui.label("Timed 3D effects and distortion are not connected yet.");
                     if story.state.finished(&story.resources.script) { ui.label("Scene complete."); }
                 }
+                _ => { ui.label(format!("Mission {} · sequence {}", run.mission, run.sequence)); }
             }
         });
+        action
     }
 }
 
 pub(super) enum ContentDrawing {
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
+    Empty,
 }
 
 impl ContentDrawing {
@@ -144,6 +172,7 @@ impl ContentDrawing {
             Content::Story { story, .. } => Ok(Self::Story(Box::new(StoryDrawing::new(
                 story, graphics, renderer,
             )?))),
+            _ => Ok(Self::Empty),
         }
     }
 
@@ -153,6 +182,7 @@ impl ContentDrawing {
                 drawing.update(session, renderer)
             }
             (Self::Story(drawing), Content::Story { story, .. }) => drawing.update(story, renderer),
+            (Self::Empty, Content::Results | Content::Failed | Content::Complete) => Ok(()),
             _ => Err("Mismatched native JP scene renderer".into()),
         }
     }
@@ -169,6 +199,25 @@ impl ContentDrawing {
             }
             (Self::Story(drawing), Content::Story { story, .. }) => {
                 drawing.draw(story.state.view, target, renderer)
+            }
+            (Self::Empty, Content::Results | Content::Failed | Content::Complete) => {
+                let mut encoder = renderer.device.create_command_encoder(&Default::default());
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("JP campaign screen"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: target,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                renderer.queue.submit([encoder.finish()]);
+                Ok(())
             }
             _ => Err("Mismatched native JP scene renderer".into()),
         }

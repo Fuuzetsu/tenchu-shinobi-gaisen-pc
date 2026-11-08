@@ -1,23 +1,21 @@
 use super::{
-    Session,
+    campaign::{Action, Content, Playback},
     render::{Drawing, StoryDrawing},
-    story::Story,
 };
 use crate::{
     audio::output::{Command, Output},
     controls::Controls,
     renderer::Renderer,
     settings::Graphics,
+    source::DiscSource,
 };
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tenchu_assets::{Result, audio::stream::Clip, texture::Vram};
-use tenchu_core::tenchu2::audio::Sound;
+use tenchu_assets::Result;
 
 mod content;
-pub use content::Content;
 use content::ContentDrawing;
 use tenchu_core::clock::GameClock;
 use winit::{
@@ -34,6 +32,7 @@ struct View {
     config: wgpu::SurfaceConfiguration,
     renderer: Renderer,
     drawing: ContentDrawing,
+    generation: u64,
     context: egui::Context,
     state: egui_winit::State,
     overlay: egui_wgpu::Renderer,
@@ -41,7 +40,11 @@ struct View {
 }
 
 impl View {
-    async fn new(window: Arc<Window>, session: &Content, graphics: &Graphics) -> Result<Self> {
+    async fn new(
+        window: Arc<Window>,
+        session: &Playback<DiscSource>,
+        graphics: &Graphics,
+    ) -> Result<Self> {
         let instance = wgpu::Instance::new(&Default::default());
         let surface = instance
             .create_surface(window.clone())
@@ -74,7 +77,7 @@ impl View {
         )
         .await?;
         renderer.configure(graphics);
-        let drawing = ContentDrawing::new(session, graphics, &mut renderer)?;
+        let drawing = ContentDrawing::new(&session.content, graphics, &mut renderer)?;
         surface.configure(&renderer.device, &config);
         let context = egui::Context::default();
         crate::fonts::install(&context);
@@ -93,6 +96,7 @@ impl View {
             config,
             renderer,
             drawing,
+            generation: session.generation,
             context,
             state,
             overlay,
@@ -102,7 +106,7 @@ impl View {
 
     fn draw(
         &mut self,
-        session: &Content,
+        session: &mut Playback<DiscSource>,
         open: &mut bool,
         paused: &mut bool,
         error: Option<&str>,
@@ -117,14 +121,18 @@ impl View {
             Err(error) => return Err(error.to_string()),
         };
         let target = frame.texture.create_view(&Default::default());
-        self.drawing.draw(session, &target, &mut self.renderer)?;
+        self.drawing
+            .draw(&session.content, &target, &mut self.renderer)?;
         let output = self
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
                 if let ContentDrawing::Story(drawing) = &self.drawing {
                     crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
                 }
-                session.inspect(ctx, open, paused, error);
+                session.action = session
+                    .content
+                    .inspect(ctx, &session.run, open, paused, error)
+                    .or(session.action);
             });
         self.state
             .handle_platform_output(&self.window, output.platform_output);
@@ -152,7 +160,7 @@ impl View {
 }
 
 struct Application {
-    session: Content,
+    session: Playback<DiscSource>,
     graphics: Graphics,
     view: Option<View>,
     controls: Controls,
@@ -167,18 +175,30 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
-        let story_finished = self.session.story_finished();
-        let sounds = self.session.step(self.controls.buttons().swap_bytes())?;
+        let update = self.session.step(self.controls.buttons().swap_bytes())?;
         if let Some(audio) = &self.audio {
-            if !story_finished && self.session.story_finished() {
+            if update.stop_music {
                 audio.send(Command::Music(None, false));
             }
-            for sound in sounds {
+            for sound in update.sounds {
                 audio.send(Command::Tenchu2Effect(sound));
             }
         }
         if let Some(view) = &mut self.view {
-            view.drawing.update(&self.session, &mut view.renderer)?;
+            if view.generation != self.session.generation {
+                view.renderer.reset_vram(self.session.vram());
+                view.drawing =
+                    ContentDrawing::new(&self.session.content, &self.graphics, &mut view.renderer)?;
+                view.generation = self.session.generation;
+                if let Some(audio) = &self.audio {
+                    self.session.content.start_audio(audio);
+                }
+                self.clock.discard_host_backlog();
+                self.last = Instant::now();
+            } else {
+                view.drawing
+                    .update(&self.session.content, &mut view.renderer)?;
+            }
         }
         Ok(())
     }
@@ -204,7 +224,7 @@ impl Application {
         }
         if let Some(view) = &mut self.view {
             view.draw(
-                &self.session,
+                &mut self.session,
                 &mut self.open,
                 &mut self.paused,
                 self.error.as_deref(),
@@ -214,7 +234,11 @@ impl Application {
     }
 
     fn fail(&mut self, error: String) {
-        eprintln!("Native JP tick {}: {error}", self.session.tick());
+        eprintln!(
+            "Native JP sequence {}, tick {}: {error}",
+            self.session.run.sequence,
+            self.session.content.tick()
+        );
         self.error = Some(error);
         self.paused = true;
     }
@@ -238,7 +262,7 @@ impl ApplicationHandler for Application {
         match result {
             Ok(view) => {
                 if let Some(audio) = &self.audio {
-                    self.session.start_audio(audio);
+                    self.session.content.start_audio(audio);
                 }
                 self.view = Some(view);
                 self.last = Instant::now();
@@ -282,6 +306,13 @@ impl ApplicationHandler for Application {
                                     self.fail(error);
                                 }
                             }
+                            KeyCode::Enter => {
+                                self.session.action = match self.session.content {
+                                    Content::Results => Some(Action::Continue),
+                                    Content::Failed | Content::Complete => Some(Action::Retry),
+                                    _ => None,
+                                }
+                            }
                             _ => {}
                         }
                     }
@@ -306,8 +337,7 @@ impl ApplicationHandler for Application {
     }
 }
 
-pub fn run(mut session: Content, graphics: Graphics) -> Result<()> {
-    session.step(0)?;
+pub fn run(session: Playback<DiscSource>, graphics: Graphics) -> Result<()> {
     let audio = Output::new()
         .map_err(|error| eprintln!("Audio unavailable: {error}"))
         .ok();
