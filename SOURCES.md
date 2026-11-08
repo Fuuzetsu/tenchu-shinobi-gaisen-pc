@@ -1580,3 +1580,12 @@ from each executable (EU `8008164c`, JP `8008357c`). Probes preserve the previou
 surface category, water exclusions, step checks and asymmetric height masks.
 The terrain oracle additionally checks 17,250 four-corner probes per edition
 across all maps, including retained cache state and both query options.
+
+Native object/body/weapon overlap tracking follows EU `8002dc88`–`8002e294` /
+JP `8002e8f8`–`8002ef04`. It preserves deferred removal, tail compaction,
+same-owner exclusions, disabled slots' retained contacts, signed contact deltas
+and the 64-tick nearby-cover query. Private instruction execution matches 6,000
+collision updates and 107,806 contact-iteration/cover checks in each edition
+(`TENCHU2_CONTACT_ORACLE`), including explicit contact lookup, rotated local
+offsets, full capacity and arithmetic edges. That oracle supplies world matrices
+and SDK transformation at their boundary; collision and cover run original code.
