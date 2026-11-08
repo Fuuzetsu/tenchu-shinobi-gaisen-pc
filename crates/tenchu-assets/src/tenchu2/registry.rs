@@ -17,6 +17,8 @@ pub struct Actor {
     pub health: i16,
     pub weapon: i16,
     pub turn: i16,
+    pub sight_penalty: i16,
+    pub skill: i16,
     pub motions: Vec<Registration>,
 }
 
@@ -25,6 +27,7 @@ pub struct Registry {
     pub edition: Edition,
     pub actors: Vec<Actor>,
     pub common: Vec<Registration>,
+    cast: Vec<[Vec<i16>; 3]>,
 }
 
 impl Registry {
@@ -52,16 +55,38 @@ impl Registry {
                 .ok_or_else(|| "Invalid Tenchu 2 character pointer".into())
         };
         let common = motions(data, addresses.common_motions)?;
+        let mut cast = Vec::new();
+        for map in 0..24 {
+            let mut heroes = [Vec::new(), Vec::new(), Vec::new()];
+            for (hero, actors) in heroes.iter_mut().enumerate() {
+                let at = addresses.cast + map * 96 + hero * 32;
+                for kind in slice(data, at, 32)?.chunks_exact(2) {
+                    let kind = i16_le(kind, 0)?;
+                    if kind == -1 {
+                        break;
+                    }
+                    actors.push(kind);
+                }
+                if actors.len() == 16 {
+                    return Err("Unterminated Tenchu 2 map cast".into());
+                }
+            }
+            cast.push(heroes);
+        }
         let mut actors = Vec::new();
         let mut kinds = BTreeSet::new();
         for index in 0..512 {
             let at = addresses.characters + index * 24;
             let kind = i16_le(data, at)?;
             if kind == -1 {
+                if cast.iter().flatten().flatten().any(|k| !kinds.contains(k)) {
+                    return Err("Unknown actor in Tenchu 2 map cast".into());
+                }
                 return Ok(Self {
                     edition,
                     actors,
                     common,
+                    cast,
                 });
             }
             if !(0..=255).contains(&kind) || !kinds.insert(kind) {
@@ -82,6 +107,8 @@ impl Registry {
                 health: i16_le(data, at + 2)?,
                 weapon: i16_le(data, at + 12)?,
                 turn: i16_le(data, at + 14)?,
+                sight_penalty: i16_le(data, at + 16)?,
+                skill: i16_le(data, at + 18)?,
                 motions: motions(data, pointer(at + 8)?)?,
             });
         }
@@ -90,6 +117,10 @@ impl Registry {
 
     pub fn actor(&self, kind: i16) -> Option<&Actor> {
         self.actors.iter().find(|actor| actor.kind == kind)
+    }
+
+    pub fn cast(&self, hero: usize, map: usize) -> Option<&[i16]> {
+        Some(self.cast.get(map)?.get(hero)?.as_slice())
     }
 
     pub fn clip(&self, kind: i16, action: i16) -> Option<i16> {

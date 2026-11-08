@@ -12,7 +12,9 @@ pub struct Layout {
 
 #[derive(Clone)]
 pub struct Actor {
+    pub slot: usize,
     pub kind: i16,
+    pub behavior: u16,
     pub position: [i32; 3],
     pub facing: i16,
     pub route: Vec<Waypoint>,
@@ -72,7 +74,7 @@ impl Layout {
             ])
         };
         let mut actors = Vec::new();
-        for row in slice(data, 16, 40 * 24)?.chunks_exact(24) {
+        for (slot, row) in slice(data, 16, 40 * 24)?.chunks_exact(24).enumerate() {
             let kind = i16_le(row, 0)?;
             if kind == -1 {
                 continue;
@@ -98,7 +100,9 @@ impl Layout {
                 }
             }
             actors.push(Actor {
+                slot,
                 kind,
+                behavior: u16_le(row, 4)?,
                 position: [
                     u32_le(row, 8)? as i32,
                     u32_le(row, 12)? as i32,

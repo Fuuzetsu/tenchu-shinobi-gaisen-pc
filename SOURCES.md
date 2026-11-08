@@ -1509,3 +1509,14 @@ each executable. Its seven-entry history expires on the eighth repeated/released
 update; AI command injection goes through that same history. Private MIPS traces
 check 77,545 transitions per edition, including command consumption, injection,
 release and signed timer wrap (`TENCHU2_INPUT_ORACLE`).
+
+Actor definitions also retain sight penalties and combat skill. DATAMNG's
+per-map/per-hero cast lists (EU `800d5cb8`, JP `800d82ac`) determine which layout
+slots the source spawns; layouts preserve those slots and their packed AI
+assignments. Typed AI assignments follow EU `8002eeb0` / JP `8002fb20`, including
+the map/difficulty-dependent sleeping-sentry RNG call. Independent execution of
+both original routines matches 31,104 assignments per edition, preserving RNG
+state and the untouched non-idle programs when assigning a controller directly
+(`TENCHU2_AI_ORACLE`). All campaign layouts' selected actors resolve to native
+definitions and supported assignments. This is configuration, not the completed
+Tenchu 2 AI update loop.
