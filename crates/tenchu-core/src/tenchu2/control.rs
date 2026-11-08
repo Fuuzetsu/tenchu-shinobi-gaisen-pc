@@ -8,6 +8,7 @@ mod item;
 mod jump;
 mod ledge;
 mod sequence;
+mod special;
 mod standing;
 mod wall;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
@@ -16,6 +17,7 @@ pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
 pub use item::{ItemInput, ItemSound};
 pub use ledge::{LedgeCue, LedgeInput};
 pub use sequence::{AttackCue, Projectile};
+pub use special::{SpecialCue, SpecialInput};
 pub use standing::{StandingCue, StandingInput};
 pub use wall::{WallCue, WallInput};
 

@@ -28,6 +28,7 @@ pub struct Registry {
     pub actors: Vec<Actor>,
     pub common: Vec<Registration>,
     cast: Vec<[Vec<i16>; 3]>,
+    weapon_frames: Vec<(i16, i16)>,
 }
 
 impl Registry {
@@ -55,6 +56,22 @@ impl Registry {
                 .ok_or_else(|| "Invalid Tenchu 2 character pointer".into())
         };
         let common = motions(data, addresses.common_motions)?;
+        let mut weapon_frames = Vec::new();
+        for index in 0..64 {
+            let at = addresses.characters - 0x60 + index * 4;
+            let clip = i16_le(data, at)?;
+            if clip == -1 {
+                break;
+            }
+            let frame = i16_le(data, at + 2)?;
+            if clip < 0 || frame < 0 || weapon_frames.iter().any(|&(id, _)| id == clip) {
+                return Err("Invalid Tenchu 2 weapon animation timing".into());
+            }
+            weapon_frames.push((clip, frame));
+        }
+        if weapon_frames.len() == 64 {
+            return Err("Unterminated Tenchu 2 weapon animation timing".into());
+        }
         let mut cast = Vec::new();
         for map in 0..24 {
             let mut heroes = [Vec::new(), Vec::new(), Vec::new()];
@@ -87,6 +104,7 @@ impl Registry {
                     actors,
                     common,
                     cast,
+                    weapon_frames,
                 });
             }
             if !(0..=255).contains(&kind) || !kinds.insert(kind) {
@@ -130,6 +148,16 @@ impl Registry {
             .chain(&self.common)
             .find(|entry| entry.action == action)
             .map(|entry| entry.clip)
+    }
+
+    pub fn weapon_frame(&self, clip: i16, duration: i16) -> i16 {
+        self.weapon_frames
+            .iter()
+            .find(|&&(id, _)| id == clip)
+            .map_or(duration / 3, |&(_, frame)| match self.edition {
+                Edition::Europe => (i32::from(frame) * 5 / 6) as i16,
+                Edition::Japan => frame,
+            })
     }
 }
 

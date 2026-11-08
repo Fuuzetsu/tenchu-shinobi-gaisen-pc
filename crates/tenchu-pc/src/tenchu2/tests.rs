@@ -18,6 +18,7 @@ mod source_physics;
 mod source_scene;
 mod source_sequence;
 mod source_sight;
+mod source_special;
 mod source_standing;
 mod source_terrain;
 mod source_wall;

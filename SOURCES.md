@@ -1732,3 +1732,13 @@ motion-key changes and 300/383 throws. Terrain, inventory, commands and motion
 selection execute original instructions; animation tangent setup, audio, root
 publication and projectile creation are controlled boundaries. World integration
 and projectile simulation remain separate work.
+
+Weapon draw/sheath, falling, landing and taunt controllers follow EU `80027d54`
+/ JP `80028704`; terrain pitch alignment follows EU `8002c7e0` / JP
+`8002d354`. Draw/sheath frames are read from each disc's character module and
+PAL-scaled as in `800cf848`. Original execution matches 23,000 updates per
+edition across all 23 maps (`TENCHU2_SPECIAL_ORACLE`), including 191 EU / 201 JP
+weapon transitions, 823/862 floor alignments and 60 JP-only damage changes.
+The oracle executes PAL timing conversion, terrain, selection and RNG while
+supplying published joint positions and recording weapon, attack, projectile
+and audio callbacks. Those callbacks still require native-world integration.
