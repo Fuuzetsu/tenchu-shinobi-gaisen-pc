@@ -5,6 +5,7 @@ use super::{
 };
 use crate::{
     Result,
+    math::Position,
     random::Random,
     tenchu2::{
         actor::{Actor, Resources, State},
@@ -15,12 +16,17 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::{Edition, combat::Rules};
 
+mod blade;
+pub use blade::Blade;
+
 pub struct Context<'a> {
     pub actor: &'a mut Actor,
     pub target: &'a Actor,
     pub sight: &'a mut Sight,
     pub visibility: &'a mut Visibility,
     pub steering: SteeringInput,
+    pub observed_flags: u32,
+    pub player_held: u16,
     pub facing: i32,
     pub difficulty: usize,
     pub rules: &'a Rules,
@@ -32,6 +38,21 @@ pub struct Context<'a> {
 pub struct ItemChoices {
     pub defensive: bool,
     pub offensive: bool,
+}
+
+impl ItemChoices {
+    const DEFENSIVE: Self = Self {
+        defensive: true,
+        offensive: false,
+    };
+    const OFFENSIVE: Self = Self {
+        defensive: false,
+        offensive: true,
+    };
+    const BOTH: Self = Self {
+        defensive: true,
+        offensive: true,
+    };
 }
 
 impl Context<'_> {
@@ -114,9 +135,13 @@ impl Context<'_> {
     }
 
     fn steer(&self) -> Result<Decision> {
+        self.steer_to(0, 0)
+    }
+
+    fn steer_to(&self, x: i32, z: i32) -> Result<Decision> {
         steer(
-            0,
-            0,
+            x,
+            z,
             &SteeringInput {
                 yaw: self.actor.rotation.y,
                 turn: self.actor.turn,
@@ -125,6 +150,99 @@ impl Context<'_> {
             },
             &self.resources.math,
         )
+    }
+
+    pub fn approach(&mut self, offset: &mut Position, reach: i32) -> Result<Decision> {
+        if self.actor.target.is_none() {
+            return Ok(Decision::default());
+        }
+        let x = self
+            .target
+            .position
+            .x
+            .wrapping_add(offset.x)
+            .wrapping_sub(self.actor.position.x);
+        let z = self
+            .target
+            .position
+            .z
+            .wrapping_add(offset.z)
+            .wrapping_sub(self.actor.position.z);
+        if (x.wrapping_abs() < 500 && z.wrapping_abs() < 500) || self.sight.distance < reach {
+            return Ok(Decision::default());
+        }
+        if offset.x == 0 && offset.z == 0 {
+            let angle = (self.random.next15() & 2047) as i16;
+            let [s, c] = self.resources.math.pair(angle);
+            let forward = (s.wrapping_mul(reach).wrapping_mul(16) >> 16) as i16;
+            let side = (c.wrapping_mul(reach) >> 12) as i16;
+            let [s, c] = self.resources.math.pair(self.actor.rotation.y).map(|v| -v);
+            *offset = Position::new(
+                s.wrapping_mul(i32::from(forward))
+                    .wrapping_sub(c.wrapping_mul(i32::from(side)))
+                    >> 12,
+                0,
+                c.wrapping_mul(i32::from(forward))
+                    .wrapping_add(s.wrapping_mul(i32::from(side)))
+                    >> 12,
+            );
+        }
+        let mut decision = self.steer_to(x, z)?;
+        if (self.observed_flags & 0x8000 != 0 && decision.held & (input::LEFT | input::RIGHT) != 0)
+            || self.facing < 300
+        {
+            decision.held |= input::UP;
+        }
+        Ok(decision)
+    }
+
+    fn command(&mut self, action: i16) -> u16 {
+        let commands = if action == 0x910 {
+            &self.resources.commands.jumping
+        } else {
+            &self.resources.commands.standing
+        };
+        self.actor.pad.issue(commands, action)
+    }
+
+    fn low_health(&self) -> bool {
+        i32::from(self.actor.health) < (i32::from(self.actor.max_health) >> 1)
+    }
+
+    fn likely(&mut self) -> Result<bool> {
+        Ok(self.random.next15() & 255 < self.probability()?)
+    }
+
+    fn guard(&mut self, held: u16) -> Result<u16> {
+        Ok(if self.likely()? {
+            held | input::DOWN
+        } else {
+            held
+        })
+    }
+
+    fn attack(&mut self) -> u16 {
+        if self.random.next15() & 3 == 0 {
+            input::ATTACK | input::UP | input::DOWN
+        } else {
+            input::ATTACK
+        }
+    }
+
+    fn turn(&self) -> u16 {
+        if self.sight.angle > 200 {
+            input::RIGHT
+        } else if self.sight.angle < -200 {
+            input::LEFT
+        } else {
+            0
+        }
+    }
+
+    fn face_target(&mut self) {
+        self.facing = 0;
+        self.actor.rotation.y = self.actor.rotation.y.wrapping_add(self.sight.angle);
+        self.sight.angle = 0;
     }
 
     fn probability(&self) -> Result<i32> {

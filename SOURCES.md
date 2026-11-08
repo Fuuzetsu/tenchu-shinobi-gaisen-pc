@@ -1833,3 +1833,12 @@ steering, command selection and attack tables execute directly. JP retains its
 extra item-15 healing check and reduced firing odds against swimming targets.
 Melee programs, enclosing perception/dispatch and native-world integration remain
 unfinished; this does not enable a native T2 gameplay mode yet.
+
+Blade-fighter decisions follow EU `80034dbc` / JP `80035c28`, with target-offset
+approach from `80031460` / `80032068`. Each edition matches 40,000 source decisions
+(`TENCHU2_BLADE_ORACLE`), including 617/674 item selections, 4,770/4,621 attack
+inputs and 40/41 taunts. RNG, steering, command-pad history and offset arithmetic
+execute original instructions; taunt selection is recorded at the previously
+verified motion-controller boundary. JP's different counterattack condition is
+preserved. Ranged/combo/item regression checks still pass for both editions.
+Native world dispatch and the remaining AI programs are not connected yet.
