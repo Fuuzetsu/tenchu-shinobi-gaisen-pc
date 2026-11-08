@@ -18,6 +18,8 @@ mod tests;
 
 pub enum Content {
     Gameplay(Box<Session>),
+    Introduction(Box<super::film::Introduction>),
+    Movie(Box<super::film::Movie>),
     Story {
         story: Box<Story>,
         audio: Option<Arc<Clip>>,
@@ -37,6 +39,8 @@ pub enum Action {
 pub struct Update {
     pub sounds: Vec<Sound>,
     pub stop_music: bool,
+    pub music: Option<Arc<Clip>>,
+    pub quit: bool,
 }
 
 pub struct Playback<S> {
@@ -115,12 +119,14 @@ impl<S: ReadAt> Playback<S> {
                 self.run.enter_results(&self.campaign)?;
                 Content::Results
             }
-            Kind::Introduction | Kind::Movie => {
-                return Err(format!(
-                    "JP sequence {}: {:?} playback is not connected yet",
-                    self.run.sequence, descriptor.kind
-                ));
-            }
+            Kind::Introduction => Content::Introduction(Box::new(super::film::Introduction::load(
+                &self.disc,
+                descriptor.resource,
+            )?)),
+            Kind::Movie => Content::Movie(Box::new(super::film::Movie::load(
+                &self.disc,
+                descriptor.resource,
+            )?)),
         };
         self.generation += 1;
         Ok(())
@@ -148,6 +154,35 @@ impl<S: ReadAt> Playback<S> {
         let retry_on_confirm = matches!(self.content, Content::Failed | Content::Complete);
         let mut update = Update::default();
         let destination = match &mut self.content {
+            Content::Introduction(intro) => {
+                use tenchu_core::tenchu2::introduction::{Outcome, Phase};
+                if intro.state.phase == Phase::Finished {
+                    if intro.state.outcome == Outcome::Quit {
+                        update.quit = true;
+                        None
+                    } else {
+                        Some(self.run.advance(&self.campaign, false)?)
+                    }
+                } else {
+                    if intro.step(buttons) {
+                        update.music = intro.audio.clone();
+                    }
+                    None
+                }
+            }
+            Content::Movie(movie) => {
+                if movie.finished {
+                    if movie.quit {
+                        update.quit = true;
+                        None
+                    } else {
+                        Some(self.run.advance(&self.campaign, false)?)
+                    }
+                } else {
+                    movie.step(&self.disc, buttons)?;
+                    None
+                }
+            }
             Content::Gameplay(session) => {
                 if matches!(session.world.mission.phase, Phase::Finished { .. }) {
                     Some(self.run.finish_area(&session.world, &self.campaign)?)

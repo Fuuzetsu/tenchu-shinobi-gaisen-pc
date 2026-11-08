@@ -2562,3 +2562,22 @@ Live windows were checked for story-to-gameplay and results/retry presentation.
 Introductions, movies, original HUD/equipment/results artwork and the normal
 launcher are not connected yet. A thrown taunt prop was observed as an unhandled
 event; this check does not establish complete campaign or combat parity.
+
+JP narrated introductions follow `GAME.EXE` `80062b90`, its image resources and
+XA cue table at `800812e4`. The chapter sheet crops/pivots, 60 Hz title fade,
+15 Hz narration, staggered right-to-left text columns and input/fade transitions
+are kept separate from gameplay updates. `TENCHU2_INTRO_ORACLE` compares 36,516
+draw states from 49 original-instruction traces, with snapshot continuation.
+Resource/GPU/CD helpers are intercepted; the original 32-byte column reset is
+performed at its memset call, and XA completion is supplied as an input. The
+disc-backed check loads all seven chapter resources and six narration clips.
+
+Movies use `8006320c` and its final-frame table at `80085ba0`, through the existing
+portable STR/MDEC and XA decoders. All ten referenced movies load with matching
+15 fps duration/audio and valid initial frames. A native flow check decodes
+movie 1 through its original end cutoff, enters results, and checks the skip
+route; another carries results through a complete narrated introduction into
+the following story. Live artwork/scrolling text and movie-to-results playback
+were visually checked; a dedicated audio capture verified the movie output.
+This does not verify every movie frame against hardware or complete the native
+HUD, equipment/results artwork, story effects or regular launcher integration.

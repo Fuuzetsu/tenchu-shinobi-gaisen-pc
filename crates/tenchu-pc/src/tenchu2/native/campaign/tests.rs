@@ -138,3 +138,53 @@ fn native_playback_follows_boss_success_and_failure_branches() {
         session.world.actors[0].actor.max_health
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; chapter narration and streamed movie completion/skip dispatch"]
+fn native_playback_advances_through_introductions_and_movies() {
+    use tenchu_core::tenchu2::introduction::Phase;
+    let mut playback = start(13);
+    playback.action = Some(Action::Continue);
+    playback.step(0).unwrap();
+    assert_eq!(playback.run.sequence, 15);
+    let Content::Introduction(intro) = &playback.content else {
+        panic!("not introduction")
+    };
+    assert_eq!(intro.state.phase, Phase::Title);
+    let generation = playback.generation;
+    let mut narration = 0;
+    for _ in 0..6000 {
+        let update = playback.step(0).unwrap();
+        narration += usize::from(update.music.is_some());
+        if playback.generation != generation {
+            break;
+        }
+    }
+    assert_eq!(narration, 1);
+    assert!(matches!(playback.content, Content::Story { .. }));
+    assert_eq!(playback.run.sequence, 16);
+
+    let mut playback = start(34);
+    let Content::Movie(movie) = &playback.content else {
+        panic!("not movie")
+    };
+    let first = movie.frame.as_ref().unwrap().number;
+    playback.step(0).unwrap();
+    let Content::Movie(movie) = &playback.content else {
+        panic!("not movie")
+    };
+    assert_eq!(movie.frame.as_ref().unwrap().number, first);
+    playback.step(0).unwrap();
+    let Content::Movie(movie) = &playback.content else {
+        panic!("not movie")
+    };
+    assert_eq!(movie.frame.as_ref().unwrap().number, first + 1);
+    next(&mut playback);
+    assert_eq!(playback.run.sequence, 35);
+    assert!(matches!(playback.content, Content::Results));
+
+    let mut playback = start(34);
+    playback.step(0x2000).unwrap();
+    next(&mut playback);
+    assert_eq!(playback.run.sequence, 35);
+}

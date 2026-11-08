@@ -16,6 +16,7 @@ use std::{
 use tenchu_assets::Result;
 
 mod content;
+mod film;
 use content::ContentDrawing;
 use tenchu_core::clock::GameClock;
 use winit::{
@@ -89,7 +90,8 @@ impl View {
             window.theme(),
             None,
         );
-        let overlay = egui_wgpu::Renderer::new(&renderer.device, config.format, None, 1, false);
+        let mut overlay = egui_wgpu::Renderer::new(&renderer.device, config.format, None, 1, false);
+        crate::frontend::gpu::register(&mut overlay, config.format);
         Ok(Self {
             window,
             surface,
@@ -126,9 +128,7 @@ impl View {
         let output = self
             .context
             .run(self.state.take_egui_input(&self.window), |ctx| {
-                if let ContentDrawing::Story(drawing) = &self.drawing {
-                    crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
-                }
+                self.drawing.paint(&session.content, ctx);
                 session.action = session
                     .content
                     .inspect(ctx, &session.run, open, paused, error)
@@ -171,14 +171,19 @@ struct Application {
     focused: bool,
     open: bool,
     error: Option<String>,
+    quit: bool,
 }
 
 impl Application {
     fn step(&mut self) -> Result<()> {
         let update = self.session.step(self.controls.buttons().swap_bytes())?;
+        self.quit |= update.quit;
         if let Some(audio) = &self.audio {
             if update.stop_music {
                 audio.send(Command::Music(None, false));
+            }
+            if let Some(music) = update.music {
+                audio.send(Command::Music(Some(music), false));
             }
             for sound in update.sounds {
                 audio.send(Command::Tenchu2Effect(sound));
@@ -325,6 +330,9 @@ impl ApplicationHandler for Application {
                 if let Err(error) = self.redraw() {
                     self.fail(error);
                 }
+                if self.quit {
+                    events.exit();
+                }
             }
             _ => {}
         }
@@ -353,6 +361,7 @@ pub fn run(session: Playback<DiscSource>, graphics: Graphics) -> Result<()> {
         focused: true,
         open: false,
         error: None,
+        quit: false,
     };
     let events = EventLoop::new().map_err(|e| e.to_string())?;
     events

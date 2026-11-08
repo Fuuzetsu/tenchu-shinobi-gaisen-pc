@@ -6,6 +6,8 @@ impl Content {
         match self {
             Self::Gameplay(session) => session.world.tick as i64,
             Self::Story { story, .. } => i64::from(story.state.frame),
+            Self::Introduction(intro) => i64::from(intro.state.tick),
+            Self::Movie(movie) => movie.frame.as_ref().map_or(0, |f| i64::from(f.number)),
             _ => 0,
         }
     }
@@ -15,6 +17,7 @@ impl Content {
         match self {
             Self::Gameplay(session) => output.send(Command::Bank(session.bank.clone())),
             Self::Story { audio, .. } => output.send(Command::Music(audio.clone(), false)),
+            Self::Movie(movie) => output.send(Command::Music(movie.audio.clone(), false)),
             _ => output.send(Command::Music(None, false)),
         }
     }
@@ -132,7 +135,7 @@ impl Content {
                 });
         }
         egui::Window::new("Native JP integration").open(open).default_size([550.0, 480.0]).vscroll(true).show(ctx, |ui| {
-            ui.label("The original HUD, introduction/FMV screens and some effects are still being connected.");
+            ui.label("The original HUD, equipment/results artwork and some effects are still being connected.");
             ui.checkbox(paused, "Pause simulation");
             match self {
                 Self::Gameplay(session) => {
@@ -150,6 +153,14 @@ impl Content {
                     ui.label("Timed 3D effects and distortion are not connected yet.");
                     if story.state.finished(&story.resources.script) { ui.label("Scene complete."); }
                 }
+                Self::Introduction(intro) => {
+                    ui.label(format!("Chapter introduction · {:?} · narration tick {}", intro.state.phase, intro.state.tick));
+                    ui.label("Start / Circle: skip · Start + Select: leave preview");
+                }
+                Self::Movie(movie) => {
+                    ui.label(format!("Movie frame {} · disc audio {}", movie.frame.as_ref().map_or(0, |f| f.number), if movie.audio.is_some() { "loaded" } else { "absent" }));
+                    ui.label("Start / Circle: skip · Start + Select: leave preview");
+                }
                 _ => { ui.label(format!("Mission {} · sequence {}", run.mission, run.sequence)); }
             }
         });
@@ -160,6 +171,11 @@ impl Content {
 pub(super) enum ContentDrawing {
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
+    Introduction(Arc<crate::frontend::draw::Frame>),
+    Movie {
+        texture: Option<egui::TextureHandle>,
+        frame: Option<u32>,
+    },
     Empty,
 }
 
@@ -172,6 +188,13 @@ impl ContentDrawing {
             Content::Story { story, .. } => Ok(Self::Story(Box::new(StoryDrawing::new(
                 story, graphics, renderer,
             )?))),
+            Content::Introduction(intro) => {
+                Ok(Self::Introduction(super::film::introduction(intro)))
+            }
+            Content::Movie(_) => Ok(Self::Movie {
+                texture: None,
+                frame: None,
+            }),
             _ => Ok(Self::Empty),
         }
     }
@@ -182,6 +205,11 @@ impl ContentDrawing {
                 drawing.update(session, renderer)
             }
             (Self::Story(drawing), Content::Story { story, .. }) => drawing.update(story, renderer),
+            (Self::Introduction(frame), Content::Introduction(intro)) => {
+                *frame = super::film::introduction(intro);
+                Ok(())
+            }
+            (Self::Movie { .. }, Content::Movie(_)) => Ok(()),
             (Self::Empty, Content::Results | Content::Failed | Content::Complete) => Ok(()),
             _ => Err("Mismatched native JP scene renderer".into()),
         }
@@ -200,7 +228,9 @@ impl ContentDrawing {
             (Self::Story(drawing), Content::Story { story, .. }) => {
                 drawing.draw(story.state.view, target, renderer)
             }
-            (Self::Empty, Content::Results | Content::Failed | Content::Complete) => {
+            (Self::Empty, Content::Results | Content::Failed | Content::Complete)
+            | (Self::Introduction(_), Content::Introduction(_))
+            | (Self::Movie { .. }, Content::Movie(_)) => {
                 let mut encoder = renderer.device.create_command_encoder(&Default::default());
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("JP campaign screen"),
@@ -220,6 +250,49 @@ impl ContentDrawing {
                 Ok(())
             }
             _ => Err("Mismatched native JP scene renderer".into()),
+        }
+    }
+
+    pub fn paint(&mut self, content: &Content, ctx: &egui::Context) {
+        match (self, content) {
+            (Self::Story(drawing), _) => {
+                crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts)
+            }
+            (Self::Introduction(frame), _) => {
+                ctx.layer_painter(egui::LayerId::background()).add(
+                    egui_wgpu::Callback::new_paint_callback(
+                        super::film::rect(ctx),
+                        crate::frontend::gpu::Paint::Frontend(frame.clone()),
+                    ),
+                );
+            }
+            (Self::Movie { texture, frame }, Content::Movie(movie)) => {
+                if let Some(current) = &movie.frame {
+                    if *frame != Some(current.number) {
+                        let image =
+                            egui::ColorImage::from_rgba_unmultiplied(current.size, &current.rgba);
+                        if let Some(texture) = texture {
+                            texture.set(image, egui::TextureOptions::LINEAR);
+                        } else {
+                            *texture = Some(ctx.load_texture(
+                                "JP movie",
+                                image,
+                                egui::TextureOptions::LINEAR,
+                            ));
+                        }
+                        *frame = Some(current.number);
+                    }
+                    if let Some(texture) = texture {
+                        ctx.layer_painter(egui::LayerId::background()).image(
+                            texture.id(),
+                            super::film::rect(ctx),
+                            egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)),
+                            egui::Color32::WHITE,
+                        );
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }

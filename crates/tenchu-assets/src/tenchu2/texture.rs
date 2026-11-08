@@ -4,6 +4,23 @@ use crate::{
     u16_le, u32_le,
 };
 
+pub(super) fn image(data: &[u8]) -> Result<crate::frontend::Image> {
+    let mut image = crate::frontend::Image::parse(data)?;
+    let count = if u32_le(data, 4)? & 1 != 0 { 256 } else { 16 };
+    if image.palette_color(0).is_some()
+        && !(0..count)
+            .filter_map(|i| image.palette_color(i))
+            .any(|v| v & 0x8000 != 0 && v & 0x7fff != 0)
+    {
+        for pixel in &mut image.pixels {
+            if *pixel != 0 {
+                *pixel |= 0x8000;
+            }
+        }
+    }
+    Ok(image)
+}
+
 pub(super) fn upload(vram: &mut Vram, data: &[u8]) -> Result<Image> {
     let image = vram.upload_tim(data)?;
     let flags = u32_le(data, 4)?;

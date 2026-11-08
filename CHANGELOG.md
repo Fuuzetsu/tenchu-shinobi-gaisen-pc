@@ -5,6 +5,11 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect the Japanese campaign's chapter titles, narrated introductions and
+  movies in the internal preview, using artwork, XA audio and streamed STR video
+  from the user's disc. Keep original text scrolling, fade and skip timing;
+  playback continues into the following story, mission or results screen.
+
 - Play JP cutscene cameras, cast animations, facial expressions, original name
   cards/pictures, Japanese captions, fades and disc dialogue in the internal
   `play-t2-jp` preview. Pause/resume also pauses dialogue. Cutscenes hand off to
@@ -15,8 +20,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
   with health, inventory, RNG and score totals carried across areas. Calculate
   rewards at the results sequence, after intervening story scenes. The internal
   preview can continue between areas, enter boss encounters, show results and
-  retry after failure. Introduction/FMV screens and the original results
-  presentation remain in progress.
+  retry after failure. The original equipment/results presentation remains in
+  progress.
 
 - Connect native JP mission objectives and end transitions in the internal
   preview, including unseen objectives, boss targets, input lock and fade timing.

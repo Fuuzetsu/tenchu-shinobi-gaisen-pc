@@ -22,6 +22,8 @@ use tenchu_core::{
 
 #[cfg(not(target_arch = "wasm32"))]
 mod campaign;
+#[cfg(not(target_arch = "wasm32"))]
+mod film;
 mod render;
 mod story;
 #[cfg(test)]

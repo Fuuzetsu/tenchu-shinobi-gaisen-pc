@@ -8,6 +8,7 @@ pub mod combat;
 pub mod commands;
 mod edition;
 pub mod effects;
+pub mod frontend;
 pub use edition::Edition;
 pub mod items;
 pub mod layout;

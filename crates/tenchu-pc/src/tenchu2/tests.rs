@@ -28,6 +28,7 @@ mod source_explosives;
 mod source_hurt;
 mod source_idle;
 mod source_input;
+mod source_introduction;
 mod source_item;
 mod source_item_control;
 mod source_item_geometry;
