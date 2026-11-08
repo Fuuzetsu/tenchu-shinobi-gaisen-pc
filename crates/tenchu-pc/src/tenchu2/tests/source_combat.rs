@@ -7,10 +7,10 @@ use tenchu_assets::tenchu2::combat::Rules;
 use tenchu_core::{
     random::Random,
     tenchu2::{
-        actor::State,
+        actor::{Actor, State},
         ai::{
             Decision, Probe, SteeringInput,
-            combat::{Context, Dog, ItemChoices, Melee, Ranged},
+            combat::{Context, Dog, Fighter, Flank, GuardHome, ItemChoices, Melee, Ranged},
             sight::{Sight, Visibility},
         },
         inventory::Item,
@@ -58,6 +58,25 @@ fn native_dog_combat_matches_source() {
     verify("TENCHU2_DOG_ORACLE");
 }
 
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_TACTICS_ORACLE from original combat strategies"]
+fn native_combat_strategies_match_source() {
+    verify("TENCHU2_TACTICS_ORACLE");
+}
+
+fn fighter_state(fighter: &Fighter) -> (u8, u8, tenchu_core::math::Position) {
+    match fighter {
+        Fighter::Unarmed(m) | Fighter::Blade(m) | Fighter::Heavy(m) => {
+            (m.attack_delay, u8::from(m.engaged), m.offset)
+        }
+        Fighter::Ranged(r) => (r.attack_delay, u8::from(r.thrown_item), Default::default()),
+        Fighter::Dog {
+            state,
+            attack_delay,
+        } => (*attack_delay, state.waiting, Default::default()),
+    }
+}
+
 fn verify(variable: &str) {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
@@ -86,6 +105,7 @@ fn verify(variable: &str) {
         actor.turn = int("turn") as i16;
         actor.rotation.y = int("yaw") as i16;
         actor.motion.frame = int("frame") as i16;
+        actor.motion.loops = row["loops"].as_i64().unwrap_or(0) as i16;
         actor.attack.index = Some(int("attack") as usize);
         actor.pad.held = int("held") as u16;
         actor.inventory.selected = Some(Item::try_from(int("selected") as u8).unwrap());
@@ -94,7 +114,7 @@ fn verify(variable: &str) {
         target.state = State::from_action((int("target_state") as i16) << 8).unwrap();
         target.flags = int("target_flags") as u32;
         let mut melee = Melee::default();
-        if matches!(mode, "blade" | "heavy" | "unarmed" | "dog") {
+        if !matches!(mode, "combo" | "items" | "archer") {
             actor.motion.action = int("action") as i16;
             actor.position = vector(&row["position"]);
             actor.target = Some(1);
@@ -110,6 +130,34 @@ fn verify(variable: &str) {
         }
         let mut dog = Dog {
             waiting: row["waiting"].as_u64().unwrap_or(0) as u8,
+        };
+        let mut fighter = if matches!(mode, "fighter" | "home" | "flank") {
+            let mut fighter = Fighter::new(actor.kind, &resources).unwrap();
+            match &mut fighter {
+                Fighter::Unarmed(m) | Fighter::Blade(m) | Fighter::Heavy(m) => *m = melee.clone(),
+                Fighter::Ranged(r) => {
+                    r.attack_delay = melee.attack_delay;
+                    r.thrown_item = melee.engaged;
+                }
+                Fighter::Dog {
+                    state,
+                    attack_delay,
+                } => {
+                    state.waiting = int("phase") as u8;
+                    *attack_delay = melee.attack_delay;
+                }
+            }
+            Some(fighter)
+        } else {
+            None
+        };
+        let mut roaming = row["roaming"].as_bool().unwrap_or(false);
+        let mut return_delay = row["return_delay"].as_u64().unwrap_or(0) as u8;
+        let mut rotation_phase = row["rotation_phase"].as_i64().unwrap_or(0) as i16;
+        let mut actions = Vec::new();
+        let mut apply = |_: &mut Actor, action: i16| -> tenchu_core::Result<()> {
+            actions.push(action);
+            Ok(())
         };
         let mut ranged = Ranged {
             attack_delay: int("delay") as u8,
@@ -137,7 +185,7 @@ fn verify(variable: &str) {
                 forced: int("forced") != 0,
                 ahead: (int("height") != i32::MIN).then_some(Probe {
                     height: int("height"),
-                    material: 0,
+                    material: row["material"].as_u64().unwrap_or(0) as u16,
                 }),
                 left: boolean("left"),
                 right: boolean("right"),
@@ -190,16 +238,75 @@ fn verify(variable: &str) {
                 counts[3] += 1;
                 dog.update(&context).unwrap()
             }
+            "fighter" => {
+                counts[3] += 1;
+                fighter
+                    .as_mut()
+                    .unwrap()
+                    .update(&mut context, int("tick"), &mut rotation_phase, &mut apply)
+                    .unwrap()
+            }
+            "home" => {
+                counts[3] += 1;
+                let mut home = GuardHome {
+                    roaming,
+                    return_delay,
+                    fighter: fighter.take().unwrap(),
+                };
+                let result = home
+                    .update(
+                        &mut context,
+                        vector(&row["home"]),
+                        int("tick"),
+                        &mut rotation_phase,
+                        &mut apply,
+                    )
+                    .unwrap();
+                roaming = home.roaming;
+                return_delay = home.return_delay;
+                fighter = Some(home.fighter);
+                result
+            }
+            "flank" => {
+                counts[3] += 1;
+                let mut flank = Flank {
+                    engaged: roaming,
+                    fighter: fighter.take().unwrap(),
+                };
+                let result = flank.update(&mut context, &mut apply).unwrap();
+                roaming = flank.engaged;
+                fighter = Some(flank.fighter);
+                result
+            }
+            "approach" => {
+                counts[3] += 1;
+                melee.approach_combat(&mut context, &mut apply).unwrap()
+            }
             _ => panic!("Unknown combat routine"),
         };
         let facing = context.facing;
+        actions.extend(result.action);
+        let (delay, phase, offset) = if let Some(fighter) = &fighter {
+            fighter_state(fighter)
+        } else if mode == "dog" {
+            (melee.attack_delay, dog.waiting, melee.offset)
+        } else if matches!(mode, "archer" | "items" | "combo") {
+            (
+                ranged.attack_delay,
+                u8::from(ranged.thrown_item),
+                Default::default(),
+            )
+        } else {
+            (melee.attack_delay, u8::from(melee.engaged), melee.offset)
+        };
         let actual = json!({
             "held": result.held,
             "selected": actor.inventory.selected.map(u8::from),
-            "delay": if mode != "archer" && mode != "items" && mode != "combo" {melee.attack_delay} else {ranged.attack_delay},
+            "delay": delay,
             "used": ranged.thrown_item,
-            "engaged": if mode == "dog" {dog.waiting != 0} else {melee.engaged}, "waiting": dog.waiting, "offset": melee.offset.to_array(),
-            "facing": facing, "actions": result.action.into_iter().collect::<Vec<_>>(),
+            "engaged": phase != 0, "phase": phase, "waiting": dog.waiting, "offset": offset.to_array(),
+            "roaming": roaming, "return_delay": return_delay, "rotation_phase": rotation_phase,
+            "facing": facing, "actions": actions,
             "pad": [actor.pad.held, actor.pad.previous, actor.pad.time as u16],
             "history": actor.pad.history,
             "visibility": match visible {

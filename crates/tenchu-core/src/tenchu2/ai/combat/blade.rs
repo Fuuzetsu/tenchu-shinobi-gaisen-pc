@@ -81,7 +81,12 @@ impl Melee {
         }
     }
 
-    fn close(&self, c: &mut Context<'_>, decision: &mut Decision, held: u16) -> Result<u16> {
+    pub(super) fn close(
+        &self,
+        c: &mut Context<'_>,
+        decision: &mut Decision,
+        held: u16,
+    ) -> Result<u16> {
         let bearing = i32::from(c.sight.player_angle).abs();
         if c.facing < 200 {
             if (usize::from(self.attack_delay) > c.difficulty * 10

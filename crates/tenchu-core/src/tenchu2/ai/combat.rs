@@ -18,7 +18,10 @@ use tenchu_assets::tenchu2::{Edition, combat::Rules};
 
 mod blade;
 mod heavy;
+mod tactics;
 mod unarmed;
+pub use tactics::{Fighter, Flank, GuardHome};
+mod approach;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Melee {
@@ -69,6 +72,31 @@ impl ItemChoices {
 }
 
 impl Context<'_> {
+    fn keep_visible(&mut self, range: i32) {
+        if self.sight.distance < range && *self.visibility != Visibility::Hidden {
+            *self.visibility = Visibility::Unchanged;
+        }
+    }
+    fn category(&self) -> Result<usize> {
+        self.resources
+            .registry
+            .actor(self.actor.kind)
+            .map(|actor| (actor.weapon as u16 >> 12) as usize)
+            .filter(|&category| category < 6)
+            .ok_or("Unknown Tenchu 2 combat category".into())
+    }
+
+    fn apply(
+        &mut self,
+        decision: &mut Decision,
+        apply: &mut impl FnMut(&mut Actor, i16) -> Result<()>,
+    ) -> Result<()> {
+        if let Some(action) = decision.action.take() {
+            apply(self.actor, action)?;
+        }
+        Ok(())
+    }
+
     pub fn combo(&mut self, reach: i32, cone: i16) -> Result<u16> {
         let attack = self
             .actor

@@ -1853,3 +1853,15 @@ spacing, counterattacks, boss-specific moves, command-pad changes and wrapped
 counters retain source order. Shared melee helpers also pass the existing blade
 comparisons. Motion-change requests remain recorded boundaries; enclosing AI and
 native-world integration still need implementation.
+
+Combat dispatch, cautious approach, home defense and flanking follow EU
+`80033a98`, `80033bcc`, `80034354`, `80034740` and JP `80034840`, `80034974`,
+`800350fc`, `800354e8`. Each edition matches 120,000 source decisions
+(`TENCHU2_TACTICS_ORACLE`), including 1,222/1,367 item selections and 6,825/6,620
+attack inputs. Weapon-specific strategies run through typed fighter state;
+attack cooldowns, repeated-button suppression, home-return counters, approach
+positions and the global rotation phase are preserved. RNG, SDK square root,
+steering, command input and nested combat programs execute original instructions.
+Motion changes are synchronous callbacks, recorded separately in these comparisons
+so the already verified selection controller can be applied at the correct point.
+Outer perception, search transitions and native-world wiring remain unfinished.
