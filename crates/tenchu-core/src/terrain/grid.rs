@@ -59,7 +59,16 @@ pub(super) fn level(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tenchu_assets::tenchu2::collision::Collision;
+    use tenchu_assets::tenchu2::collision::{Cell, Collision};
+
+    fn cell(nodes: Vec<Node>) -> Cell {
+        Cell {
+            minimum: i16::MIN,
+            maximum: i16::MAX,
+            starts: [0; 4],
+            nodes,
+        }
+    }
 
     #[test]
     fn walls_and_masked_voids_hide_the_floor_from_movement_and_sight() {
@@ -81,7 +90,7 @@ mod tests {
                 origin: [0, 0],
                 dimensions: [1, 1],
                 cell_size: 1000,
-                cells: vec![vec![wall, floor]],
+                cells: vec![cell(vec![wall, floor])],
             }
             .into_terrain()
             .unwrap();
@@ -111,13 +120,13 @@ mod tests {
             origin: [0, 0],
             dimensions: [1, 1],
             cell_size: 1000,
-            cells: vec![vec![
+            cells: vec![cell(vec![
                 Node {
                     division: 0,
                     ..floor
                 },
                 Node { y: 100, ..floor },
-            ]],
+            ])],
         }
         .into_terrain()
         .unwrap();

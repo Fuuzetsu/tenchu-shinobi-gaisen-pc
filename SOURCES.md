@@ -1554,3 +1554,12 @@ JP `8003113c`. The native port preserves the original signed-counter packing
 and the JP-only random idle action. Independent instruction traces match
 60,000 wandering, steering and override cases per edition
 (`TENCHU2_IDLE_ORACLE`), including negative turn rates and counter wrap.
+
+Native terrain retains the MCD materials, height indices and source surface
+cache. Queries follow EU `8002cd88` / JP `8002d960`; passage checks follow EU
+`8002da30` / JP `8002e654`. JP bypasses cached surfaces for ray steps smaller
+than 128 in both horizontal axes, unlike EU. Private original-instruction
+checks cover 46,000 floor queries and 11,500 passage checks in each edition,
+across all 23 maps (`TENCHU2_TERRAIN_ORACLE`), comparing returned positions,
+surface identity, material and cache state. The only supplied instructions are
+the SDK's COP2 arithmetic. Gaisen's sandbox conversion remains separate.

@@ -1,11 +1,19 @@
 use crate::{Result, i16_le, slice, terrain::Node, u16_le, u32_le};
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Collision {
     pub origin: [i16; 2],
     pub dimensions: [usize; 2],
     pub cell_size: i16,
-    pub cells: Vec<Vec<Node>>,
+    pub cells: Vec<Cell>,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct Cell {
+    pub minimum: i16,
+    pub maximum: i16,
+    pub starts: [usize; 4],
+    pub nodes: Vec<Node>,
 }
 
 impl Collision {
@@ -13,9 +21,12 @@ impl Collision {
         let cells = self
             .cells
             .into_iter()
-            .map(|nodes| {
-                nodes
+            .map(|cell| {
+                cell.nodes
                     .into_iter()
+                    .filter(|node| {
+                        node.bounds[0] < node.bounds[2] && node.bounds[1] < node.bounds[3]
+                    })
                     .map(|mut node| {
                         // Preserve MCD's ordered blockers, including flat masked holes.
                         node.bounds[2] -= 1;
@@ -77,9 +88,6 @@ impl Collision {
                 if bounds[0] > bounds[2] || bounds[1] > bounds[3] {
                     return Err("Reversed Tenchu 2 collision surface".into());
                 }
-                if bounds[0] == bounds[2] || bounds[1] == bounds[3] {
-                    continue;
-                }
                 nodes.push(Node {
                     y: i16_le(node, 0)?,
                     dy: i16_le(node, 2)?,
@@ -88,7 +96,21 @@ impl Collision {
                     division: u16_le(node, 14)?,
                 });
             }
-            cells.push(nodes);
+            let starts = [
+                0,
+                usize::from(u16_le(row, 6)?),
+                usize::from(u16_le(row, 8)?),
+                usize::from(u16_le(row, 10)?),
+            ];
+            if starts.iter().any(|&start| start > count) {
+                return Err("Invalid Tenchu 2 collision height index".into());
+            }
+            cells.push(Cell {
+                minimum: i16_le(row, 0)?,
+                maximum: i16_le(row, 2)?,
+                starts,
+                nodes,
+            });
         }
         Ok(Self {
             origin,

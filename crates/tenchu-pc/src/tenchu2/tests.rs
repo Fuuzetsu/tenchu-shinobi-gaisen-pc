@@ -6,6 +6,7 @@ mod source_idle;
 mod source_input;
 mod source_math;
 mod source_motion;
+mod source_terrain;
 
 #[test]
 #[ignore = "requires TENCHU2_DISC; checks every map's source background samples and schedules"]

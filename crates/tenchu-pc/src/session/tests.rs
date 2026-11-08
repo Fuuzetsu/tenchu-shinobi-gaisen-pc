@@ -28,7 +28,7 @@ fn tenchu2_maps_decode_and_collision_keeps_slopes() {
                 for dz in [1, 200, 799, 1200, 1599] {
                     let (x, z) = (x + dx, z + dz);
                     let mut heights = Vec::new();
-                    for node in nodes {
+                    for node in &nodes.nodes {
                         let [x1, z1, x2, z2] = node.bounds.map(i32::from);
                         if x < x1 || z < z1 || x >= x2 || z >= z2 {
                             continue;
