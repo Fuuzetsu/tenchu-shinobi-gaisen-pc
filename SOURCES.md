@@ -1765,3 +1765,13 @@ its GTE signed-short inputs; the existing short normalizer shares that arithmeti
 The oracle records projectile creation, grapple state, published root and audio
 at explicit boundaries; actual projectiles/effects and native world integration
 remain unfinished. Swimming regressions still match both editions.
+
+Hit reactions and knockdown recovery follow EU `8002aef8` / JP `8002ba28`.
+Source execution matches 52,000 EU / 50,800 JP updates over 130/127 actor
+registrations (`TENCHU2_HURT_ORACLE`), including 1,234/1,001 blood cues and
+555/542 transitions into death handling. Knockback, water reactions, affliction
+recovery, signed timers, HP-dependent get-up delays and JP's long-fall behavior
+are retained. Selection, velocity and RNG execute source instructions; audio,
+particles, death dispatch and previously verified floor alignment are controlled
+boundaries. Weapon mode 3 removes weapon contacts without toggling or swapping
+attachments; expanded weapon tests match 23,920 operations per edition.

@@ -46,6 +46,7 @@ pub enum WeaponMode {
     Draw,
     Sheathe,
     Refresh,
+    Remove,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -108,7 +109,7 @@ impl Actor {
             .actor(self.kind)
             .ok_or("Missing Tenchu 2 actor definition")?
             .weapon;
-        if mode != WeaponMode::Refresh {
+        if matches!(mode, WeaponMode::Draw | WeaponMode::Sheathe) {
             self.flags ^= 0x40;
             if kind & 0xf00 == 0x200 {
                 self.swap_attachments(rig, 1, 4, Grip::Swap)?;
@@ -117,7 +118,7 @@ impl Actor {
                 self.swap_attachments(rig, 0, 3, Grip::Swap)?;
             }
         }
-        if mode == WeaponMode::Sheathe {
+        if matches!(mode, WeaponMode::Sheathe | WeaponMode::Remove) {
             for &joint in &rig.joints {
                 if collision
                     .get_mut(joint)

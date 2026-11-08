@@ -7,6 +7,7 @@ mod source_body;
 mod source_control;
 mod source_crouch;
 mod source_entry;
+mod source_hurt;
 mod source_idle;
 mod source_input;
 mod source_item;
