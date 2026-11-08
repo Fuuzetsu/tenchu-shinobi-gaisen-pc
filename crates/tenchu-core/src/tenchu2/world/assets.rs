@@ -17,6 +17,7 @@ use tenchu_assets::{
 };
 
 pub struct Assets {
+    pub items: tenchu_assets::tenchu2::items::Items,
     pub sprites: tenchu_assets::tenchu2::effects::Sprites,
     pub effect_rules: tenchu_assets::tenchu2::effects::Rules,
     pub camera: tenchu_assets::tenchu2::camera::Tables,
@@ -85,6 +86,7 @@ impl Assets {
             }
         }
         Ok(Self {
+            items: tenchu_assets::tenchu2::items::Items::load(disc)?,
             sprites: tenchu_assets::tenchu2::effects::Sprites::load(disc)?,
             effect_rules: tenchu_assets::tenchu2::effects::Rules::load(disc)?,
             camera: tenchu_assets::tenchu2::camera::Tables::load(disc)?,

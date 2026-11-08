@@ -284,9 +284,6 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
         }
     }
     impl Events for Recorded {
-        fn grapple(&self) -> Result<(tenchu_core::tenchu2::control::GrappleStatus, Position)> {
-            Err("This input sequence does not use the grappling hook".into())
-        }
         fn emit(&mut self, source: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
             self.0.push((
                 source.index,
@@ -359,6 +356,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
                 .control_actor(0, assets, events)
                 .unwrap_or_else(|e| panic!("hero {hero} tick {}: {e}", world.tick));
             world.animate_actor(0, assets).unwrap();
+            world.update_items(assets, events).unwrap();
             world.update_effects().unwrap();
             world.finish_tick().unwrap();
         };

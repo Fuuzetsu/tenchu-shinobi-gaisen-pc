@@ -11,7 +11,6 @@ use tenchu_core::{
     random::Random,
     tenchu2::{
         actor::{State, Velocity},
-        control::GrappleStatus,
         effects::{Effect, sprites::Motion},
         input::{ATTACK, ITEM},
         inventory::{Inventory, Item},
@@ -40,9 +39,6 @@ impl Events for Recorded {
     fn emit(&mut self, _: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
         self.0.push(event);
         Ok(())
-    }
-    fn grapple(&self) -> Result<(GrappleStatus, Position)> {
-        Err("No grapple in this fixture".into())
     }
 }
 
@@ -132,6 +128,72 @@ fn fixture() -> (World, Assets, usize) {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; exercises native hook controls through attachment, pulling and release"]
+fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.flags |= 8;
+    for &joint in &world.instances[guard].rig.joints {
+        world.collision.remove(joint);
+    }
+    let ground = world.terrain.cells[0].nodes[0];
+    let mut roof = ground;
+    roof.y = -300;
+    roof.bounds[3] = -500;
+    world.terrain.cells[0].nodes = vec![roof, ground];
+    world.cursor = Default::default();
+    world.camera.mode = 20;
+    world.items.aim = tenchu_core::tenchu2::items::aim::Aim {
+        direction: Position::new(0, -2000, -5500),
+        target: Position::new(0, -2970, -5500),
+        reach: Some(5500),
+        distance: 5850,
+        phase: 1,
+    };
+    let player = &mut world.actors[0].actor;
+    player
+        .change_motion(0x803, Velocity::Stop, &assets.resources)
+        .unwrap();
+    player.motion.frame = 4;
+    player.inventory.active = Item::GRAPPLE;
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    assert!(world.items.grapple.is_some());
+    assert_eq!(world.camera.mode, 19);
+    let mut attached = false;
+    let mut pulled = false;
+    let mut restored = None;
+    let (_, mut restored_assets, _) = fixture();
+    let step = |world: &mut World, assets: &mut Assets| {
+        let mut events = Recorded::default();
+        world.move_actor(0, assets, &mut events).unwrap();
+        world.control_actor(0, assets, &mut events).unwrap();
+        world.animate_actor(0, assets).unwrap();
+        world.update_items(assets, &mut events).unwrap();
+        world.update_effects().unwrap();
+        world.finish_tick().unwrap();
+    };
+    for tick in 0..120 {
+        if tick == 5 {
+            restored = Some(
+                postcard::from_bytes::<World>(&postcard::to_allocvec(&world).unwrap()).unwrap(),
+            );
+        }
+        step(&mut world, &mut assets);
+        if let Some(restored) = &mut restored {
+            step(restored, &mut restored_assets);
+        }
+        attached |= world.actors[0].actor.motion.action == 0x804;
+        pulled |= world.actors[0].actor.position.z < -3000;
+    }
+    assert!(attached && pulled);
+    assert!(world.items.grapple.is_none());
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored.unwrap()).unwrap()
+    );
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; verifies paired kills reach a searchable physical corpse"]
 fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
     let (mut world, mut assets, guard) = fixture();
@@ -162,6 +224,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .entries
             .iter()
             .any(|e| matches!(e, Effect::Blood(_)));
+        world.update_items(&assets, &mut events).unwrap();
         world.update_effects().unwrap();
         world.finish_tick().unwrap();
     }
@@ -262,6 +325,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
             .entries
             .iter()
             .any(|e| matches!(e, Effect::Sprites(s) if matches!(s.motion, Motion::Healing)));
+        world.update_items(&assets, &mut events).unwrap();
         world.update_effects().unwrap();
         world.finish_tick().unwrap();
     }
@@ -336,6 +400,7 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                     .unwrap_or_else(|error| {
                         panic!("sequence {} tick {tick}: {error}", layout.sequence)
                     });
+                world.update_items(&assets, &mut events).unwrap();
                 world.update_effects().unwrap();
                 world.finish_tick().unwrap();
                 world

@@ -2170,10 +2170,30 @@ also pass. These checks do not establish playable native mission/campaign parity
 Native JP actor/environment cues now create the owned effects at the source
 call site, preserving RNG ordering: `8002d63c` splash kinds, dust/trails,
 `8002ba28` underwater bubbles, block flashes, attached fire and healing. Death
-pools use joint 1's world position minus 1024 (`800223d8`); scenery explosions
+pools use joint 1's world position minus 1024 (`8004192c`); scenery explosions
 and burning contacts share this same effect state. The renderer does not own or
 advance these effects. Four connected-world checks cover all 56 casts, paired
 kills, blocks, healing, drowning and scenery contacts; all three heroes retain
 exact world/effect/event continuation after a snapshot. Strict Clippy and wasm
 core pass. Items, weapon trails/clashes, audio delivery, native presentation and
 the complete campaign still require integration; this is not playable parity.
+
+Cross-build comparison with `../tenchu-decomp` is recorded in
+[`docs/tenchu2-reuse.md`](docs/tenchu2-reuse.md). The shared ancestry provides
+function names and algorithm references, but checked movement, angle, animation
+and combo routines have observable T2 differences. Only verified-equivalent
+operations should share the Gaisen implementation.
+
+Native JP item aiming, flight and grapple follow `80052628`, `800529f4`,
+`80054404`–`80054ea8`, `8005ad28`, `8005b054` and `8005bed0`. They retain the
+source terrain traversal, short-vector narrowing, water contacts, hook phases,
+rope subdivision and pull/release timing. Item models and texture archives are
+read from the user's disc according to `80052084`; no item artwork is embedded.
+
+Private original-instruction checks compare 1,000 aims, 1,941 flight updates and
+400 complete grapple trajectories (15,445 updates). The flight generator excludes
+59 cases where the source dereferences a missing terrain node. Projection and
+final rope pixels are not compared. A connected-world check exercises launching,
+pulling and releasing across a saved-state round trip, and all three heroes pass
+the movement/combat snapshot continuation. Other projectiles, native presentation
+and campaign integration remain unfinished.

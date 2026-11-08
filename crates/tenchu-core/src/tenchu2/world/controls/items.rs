@@ -16,7 +16,7 @@ impl<E: Events> Driver<'_, E> {
             camera: input.camera,
             previous_camera: c.controls.previous_camera,
             camera_yaw: c.camera.direction[1],
-            aim: c.controls.aim,
+            aim: c.items.aim.direction,
             target_position: actor
                 .target
                 .and_then(|id| c.others.get(id, actor))
@@ -43,17 +43,24 @@ impl<E: Events> Driver<'_, E> {
                     Ok(())
                 }
                 ItemCue::HeldModel(id) => c.emit(actor, Event::HeldItem(id), random),
-                ItemCue::LaunchGrapple(direction) => {
-                    c.emit(actor, Event::LaunchGrapple(direction), random)
-                }
+                ItemCue::LaunchGrapple(direction) => c.launch_grapple(actor, direction, random),
                 ItemCue::UpdateGrapple => {
-                    c.emit(actor, Event::UpdateGrapple, random)?;
-                    input.grapple = c.events.grapple()?.0;
+                    input.grapple = c.grapple_status();
                     Ok(())
                 }
-                ItemCue::ReleaseGrapple => c.emit(actor, Event::ReleaseGrapple, random),
+                ItemCue::ReleaseGrapple => {
+                    if let Some(grapple) = &mut c.items.grapple {
+                        grapple.release();
+                    }
+                    Ok(())
+                }
                 ItemCue::GrapplePosition => {
-                    input.grapple_position = c.events.grapple()?.1;
+                    input.grapple_position = c
+                        .items
+                        .grapple
+                        .as_ref()
+                        .ok_or("Missing Tenchu 2 grapple")?
+                        .origin;
                     Ok(())
                 }
                 ItemCue::Use { item, direction } => {
@@ -66,7 +73,7 @@ impl<E: Events> Driver<'_, E> {
         input.camera = item.camera;
         c.controls.previous_camera = item.previous_camera;
         c.camera.direction[1] = item.camera_yaw;
-        c.controls.aim = item.aim;
+        c.items.aim.direction = item.aim;
         c.controls.story_triggered = item.story_triggered;
         Ok(())
     }
@@ -85,7 +92,7 @@ impl<E: Events> Driver<'_, E> {
             camera_actor: input.camera_actor,
             camera: input.camera,
             previous_camera: c.controls.previous_camera,
-            aim: c.controls.aim,
+            aim: c.items.aim.direction,
             grapple: GrappleStatus::Failed,
             model_height: input.model_height,
         };
@@ -116,10 +123,9 @@ impl<E: Events> Driver<'_, E> {
                 SwimCue::Weapon(mode) => c.weapon(actor, mode, resources),
                 SwimCue::Grip { slot, spare, grip } => c.grip(actor, slot, spare, grip, random),
                 SwimCue::EmptyItem => c.emit(actor, Event::Sound(6), random),
-                SwimCue::LaunchGrapple => c.emit(actor, Event::LaunchGrapple(input.aim), random),
+                SwimCue::LaunchGrapple => c.launch_grapple(actor, input.aim, random),
                 SwimCue::UpdateGrapple => {
-                    c.emit(actor, Event::UpdateGrapple, random)?;
-                    input.grapple = c.events.grapple()?.0;
+                    input.grapple = c.grapple_status();
                     Ok(())
                 }
                 SwimCue::BreathingTube(show) => {
@@ -130,7 +136,44 @@ impl<E: Events> Driver<'_, E> {
         )?;
         input.camera = swimming.camera;
         c.controls.previous_camera = swimming.previous_camera;
-        c.controls.aim = swimming.aim;
+        c.items.aim.direction = swimming.aim;
+        Ok(())
+    }
+}
+
+impl<E: Events> Context<'_, E> {
+    fn grapple_status(&self) -> GrappleStatus {
+        self.items
+            .grapple
+            .as_ref()
+            .map_or(GrappleStatus::Failed, |grapple| grapple.status())
+    }
+
+    fn launch_grapple(
+        &mut self,
+        actor: &Actor,
+        direction: Position,
+        random: &mut Random,
+    ) -> Result<()> {
+        if self.items.grapple.is_some() {
+            return Ok(());
+        }
+        let joint = *self.instances[self.index]
+            .rig
+            .joints
+            .get(1)
+            .ok_or("Missing Tenchu 2 grapple joint")?;
+        let position = self.scene.world(joint)?.translation;
+        self.items.grapple = crate::tenchu2::items::grapple::Grapple::launch(
+            self.index,
+            position,
+            direction,
+            &mut self.items.aim,
+            &self.math,
+        );
+        if self.items.grapple.is_none() {
+            self.emit(actor, Event::SoundPosition { id: 6, position }, random)?;
+        }
         Ok(())
     }
 }

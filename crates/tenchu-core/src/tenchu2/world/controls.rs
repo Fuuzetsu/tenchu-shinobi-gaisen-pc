@@ -38,7 +38,6 @@ pub struct Controls {
     pub drain_attack: bool,
     pub drain_uses: u8,
     pub death_music: bool,
-    pub aim: Position,
 }
 
 impl Default for Controls {
@@ -57,7 +56,6 @@ impl Default for Controls {
             drain_attack: false,
             drain_uses: 0,
             death_music: true,
-            aim: Position::default(),
         }
     }
 }
@@ -122,9 +120,10 @@ pub enum Event {
         direction: Option<Position>,
     },
     Medicine(u8),
-    LaunchGrapple(Position),
-    UpdateGrapple,
-    ReleaseGrapple,
+    SoundPosition {
+        id: u8,
+        position: Position,
+    },
     SoundAt {
         id: u8,
         positional: bool,
@@ -140,7 +139,6 @@ pub struct EventSource<'a> {
 
 pub trait Events {
     fn emit(&mut self, source: EventSource<'_>, event: Event, random: &mut Random) -> Result<()>;
-    fn grapple(&self) -> Result<(GrappleStatus, Position)>;
 }
 
 impl World {
@@ -168,6 +166,7 @@ impl World {
         };
         let mut driver = Driver {
             context: Context {
+                items: &mut self.items,
                 effects: &mut self.effects,
                 effect_rules: &assets.effect_rules,
                 math: assets.resources.math.clone(),
@@ -219,6 +218,7 @@ impl World {
 }
 
 struct Context<'a, E> {
+    items: &'a mut crate::tenchu2::items::Items,
     effects: &'a mut crate::tenchu2::effects::Effects,
     effect_rules: &'a tenchu_assets::tenchu2::effects::Rules,
     math: std::sync::Arc<crate::math::Math>,
@@ -255,6 +255,10 @@ struct Driver<'a, E> {
 
 impl<E: Events> Context<'_, E> {
     fn emit(&mut self, actor: &Actor, event: Event, random: &mut Random) -> Result<()> {
+        if let Event::HeldItem(model) = event {
+            self.items.held = model;
+            return Ok(());
+        }
         if self.particle(actor, event, random)? {
             return Ok(());
         }

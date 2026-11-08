@@ -7,6 +7,7 @@ pub mod commands;
 mod edition;
 pub mod effects;
 pub use edition::Edition;
+pub mod items;
 pub mod layout;
 pub mod level;
 pub mod loot;
