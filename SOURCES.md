@@ -1800,3 +1800,15 @@ The passive resurrection count at actor offset `0x164` also becomes the searched
 marker on corpses; the earlier boolean representation is now a byte. Both
 20,700-case corpse-search regressions still pass. Actual effect/projectile and
 world integration remain separate work.
+
+Paired stealth setup follows the remainder of EU `80022950` / JP `80023010`;
+attacker interruption/completion follows the first branch of `80029924` /
+`8002a450`. Victims use the attacking hero's registered paired clip, not their own
+ordinary death clip. Raw PAL victim speed, conditional first-voice omission,
+penalty correction, JP story damage, cancellation position and final root-yaw
+recovery are preserved. Original execution matches 5,180 EU / 5,176 JP complete
+starts and 12,600 attacker updates per edition (`TENCHU2_STEALTH_ORACLE`,
+`TENCHU2_STEALTH_UPDATE_ORACLE`), including 10,282/10,287 interruptions and
+7,187/7,177 completions. Selection, normal recovery and velocity execute source
+instructions; published roots, weapons, contacts, audio, score and screen tint
+remain controlled boundaries. These controllers still need native-world wiring.

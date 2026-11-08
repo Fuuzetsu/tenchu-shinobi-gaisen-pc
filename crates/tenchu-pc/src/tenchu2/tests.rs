@@ -24,6 +24,7 @@ mod source_sequence;
 mod source_sight;
 mod source_special;
 mod source_standing;
+mod source_stealth;
 mod source_swimming;
 mod source_terrain;
 mod source_wall;

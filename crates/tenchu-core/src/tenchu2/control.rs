@@ -13,6 +13,7 @@ mod ledge;
 mod sequence;
 mod special;
 mod standing;
+mod stealth;
 mod swimming;
 mod wall;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
@@ -26,6 +27,7 @@ pub use ledge::{LedgeCue, LedgeInput};
 pub use sequence::{AttackCue, Projectile};
 pub use special::{SpecialCue, SpecialInput};
 pub use standing::{StandingCue, StandingInput};
+pub use stealth::{StealthCue, StealthInput, StealthSession};
 pub use swimming::{SwimCue, SwimInput};
 pub use wall::{WallCue, WallInput};
 
