@@ -2,9 +2,11 @@ use super::{Edition, cab_member, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, i16_le, short3, slice, u16_le, u32_le};
 
 mod resources;
-pub use resources::{Attachment, Model, Resources};
+pub use resources::{Attachment, Model, Picture, Resources};
 mod faces;
 pub use faces::Patch;
+mod commands;
+pub use commands::{Command, TimedCommand};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Key {
@@ -42,6 +44,10 @@ pub struct Script {
     pub actors: Vec<Animation>,
     pub weapons: Vec<Weapon>,
     pub expressions: Vec<Expression>,
+    pub commands: Vec<TimedCommand>,
+    pub portraits: Vec<i16>,
+    pub pictures: Vec<i16>,
+    pub audio: [u8; 8],
 }
 
 #[derive(Clone, Copy)]
@@ -89,6 +95,28 @@ impl Script {
         let actors = (1..count)
             .map(|slot| Animation::parse(data, offset(slot)?))
             .collect::<Result<_>>()?;
+        let mut portraits = Vec::new();
+        let mut at = u32_le(data, 64)? as usize;
+        loop {
+            let model = i16_le(data, at)?;
+            if model < 0 {
+                break;
+            }
+            if portraits.len() == 7 || model >= 106 {
+                return Err("Invalid Tenchu 2 story portrait".into());
+            }
+            portraits.push(model);
+            at += 2;
+        }
+        let mut pictures = Vec::new();
+        for i in 0..8 {
+            let picture = i16_le(data, 48 + i * 2)?;
+            if picture < 0 {
+                break;
+            }
+            pictures.push(picture);
+        }
+        let commands = commands::parse(data)?;
         let mut weapons = Vec::new();
         let mut at = u32_le(data, 72)? as usize;
         loop {
@@ -134,6 +162,10 @@ impl Script {
             actors,
             weapons,
             expressions,
+            commands,
+            portraits,
+            pictures,
+            audio: slice(data, 16, 8)?.try_into().unwrap(),
         })
     }
 }

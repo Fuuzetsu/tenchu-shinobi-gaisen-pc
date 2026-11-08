@@ -23,6 +23,36 @@ pub struct Resources {
     pub weapons: BTreeMap<String, Model>,
     pub attachments: Vec<Attachment>,
     pub faces: BTreeMap<i16, Vec<Patch>>,
+    pub audio: Option<crate::audio::stream::Track>,
+    pub portraits: Vec<Picture>,
+    pub pictures: Vec<Picture>,
+}
+
+pub struct Picture {
+    pub size: [u16; 2],
+    pub rgba: Vec<u8>,
+}
+
+impl Picture {
+    fn parse(bytes: &[u8]) -> Result<Self> {
+        let mut vram = Vram::default();
+        let image = super::super::texture::upload(&mut vram, bytes)?;
+        let mut rgba =
+            Vec::with_capacity(usize::from(image.size[0]) * usize::from(image.size[1]) * 4);
+        for y in 0..image.size[1] {
+            for x in 0..image.size[0] {
+                rgba.extend(crate::texture::rgba8(vram.texel(
+                    image.page,
+                    image.palette,
+                    [u16::from(image.uv[0]) + x, u16::from(image.uv[1]) + y],
+                )));
+            }
+        }
+        Ok(Self {
+            size: image.size,
+            rgba,
+        })
+    }
 }
 
 pub struct Attachment {
@@ -72,6 +102,29 @@ impl Resources {
             &format!("E{event}.EVT"),
         )?)?;
         let module = volume.read(r"o:\cdimage\game\module", "event.bin")?;
+        let audio = if u16_le(&script.audio, 6)? == 0 {
+            None
+        } else {
+            let path = module_string(&module, 0x94c)?
+                .trim_start_matches('\\')
+                .split(';')
+                .next()
+                .unwrap()
+                .replace('\\', "/");
+            let file = disc.find(&path)?;
+            let start = super::super::music::time(&script.audio[4..6])?;
+            let end = super::super::music::time(&script.audio[6..8])?;
+            if script.audio[3] > 31 || start >= end || end > file.size.div_ceil(2048) {
+                return Err("Invalid Tenchu 2 story audio cue".into());
+            }
+            Some(crate::audio::stream::Track {
+                path,
+                start,
+                end,
+                channel: script.audio[3],
+                repeat: script.audio[2] != 0,
+            })
+        };
         let area = match script.area {
             Some(area) => area,
             None => crate::slice(&module, 0x6f98, 142 * 4)?
@@ -116,6 +169,21 @@ impl Resources {
             }
         }
         let files = Files { volume, cab };
+        let portraits = script
+            .portraits
+            .iter()
+            .map(|&id| {
+                Picture::parse(&files.read(
+                    r"o:\cdimage\game\event",
+                    &format!("{}.tim", model_name(&module, id)?),
+                )?)
+            })
+            .collect::<Result<_>>()?;
+        let pictures = script
+            .pictures
+            .iter()
+            .map(|id| Picture::parse(&files.read(r"o:\cdimage\game\event", &format!("P{id}.tim"))?))
+            .collect::<Result<_>>()?;
         let mut models = BTreeMap::new();
         let mut effects = BTreeMap::new();
         let mut faces = BTreeMap::new();
@@ -231,6 +299,9 @@ impl Resources {
             weapons,
             attachments,
             faces,
+            audio,
+            portraits,
+            pictures,
         })
     }
 }
@@ -257,17 +328,20 @@ fn model_name(module: &[u8], id: i16) -> Result<String> {
     let offset = address
         .checked_sub(0x800d0610)
         .ok_or("Invalid Tenchu 2 story model name")? as usize;
-    let bytes = module
-        .get(offset..)
-        .ok_or("Tenchu 2 story model name outside module")?;
-    let length = bytes
-        .iter()
-        .position(|&c| c == 0)
-        .ok_or("Unterminated Tenchu 2 story model name")?;
-    let name =
-        std::str::from_utf8(&bytes[..length]).map_err(|_| "Invalid Tenchu 2 story model name")?;
+    let name = module_string(module, offset)?;
     if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
         return Err("Invalid Tenchu 2 story model name".into());
     }
     Ok(name.to_ascii_lowercase())
+}
+
+fn module_string(module: &[u8], offset: usize) -> Result<&str> {
+    let bytes = module
+        .get(offset..)
+        .ok_or("Tenchu 2 story string outside module")?;
+    let length = bytes
+        .iter()
+        .position(|&c| c == 0)
+        .ok_or("Unterminated Tenchu 2 story string")?;
+    std::str::from_utf8(&bytes[..length]).map_err(|_| "Invalid Tenchu 2 story string".into())
 }

@@ -15,6 +15,24 @@ pub struct Motion {
 }
 
 impl Motion {
+    pub fn camera_view(&self, roll: i32, math: &crate::math::Math) -> Result<crate::math::Matrix> {
+        let rotation = *self
+            .rotation
+            .first()
+            .ok_or("Missing Tenchu 2 story camera rotation")?;
+        let direction = crate::math::Matrix {
+            rotation: math.rotate_yxz(rotation),
+            ..Default::default()
+        }
+        .transform([0, 0, 4096]);
+        crate::camera::view_matrix(
+            self.position,
+            self.position.wrapping_add(direction),
+            roll,
+            math,
+        )
+    }
+
     pub fn new(animation: &Animation) -> Self {
         Self {
             position: animation.origin.into(),

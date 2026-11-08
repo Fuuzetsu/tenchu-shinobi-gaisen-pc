@@ -2504,3 +2504,15 @@ channel state, final RNG and snapshot continuation. Texture uploads and the
 ignition constructor are intercepted in that oracle; GPU drawing is not tested
 by these comparisons. Patches are loaded from the active event bundle and
 applied in each model's canonical atlas coordinates.
+
+JP story commands, captions, portraits, pictures and XA cues are loaded from the
+EVT header and `EVENT.BIN` `800d1c78`, `800d42b4`, `800d6570`, `800d6908` and
+`800d6984`. The resource check decodes all 1,339 captions and opens actual XA
+sectors for all 141 reachable events. Portrait commands may address empty slots
+in retail scripts (events 44 and 102); those are valid, bounded references.
+The internal `render-t2-jp` tool can inspect event camera, cast, expressions and
+weapons. Root translation replaces the first joint's bind offset, as in
+`800d3554`; camera construction follows `800d2c7c`. Private scene captures were
+visually checked for the training introduction and event 4. This capture does
+not yet present timed effects, dialogue, fades or sound, and is not a complete
+cutscene player or campaign integration.

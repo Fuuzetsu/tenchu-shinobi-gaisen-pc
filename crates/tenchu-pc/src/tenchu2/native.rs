@@ -259,6 +259,29 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         }
     }
     let disc = crate::source::open_disc(args[1].as_ref())?;
+    let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
+        crate::settings::Store::new()?.load()?
+    } else {
+        crate::settings::Settings::default()
+    };
+    if capture {
+        let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc)?;
+        let descriptor = campaign
+            .sequences
+            .get(sequence)
+            .ok_or("Missing Tenchu 2 sequence")?;
+        if descriptor.kind == tenchu_assets::tenchu2::campaign::Kind::Event {
+            return render::capture_story(
+                &disc,
+                sequence,
+                descriptor.resource,
+                ticks,
+                seed,
+                &settings.graphics,
+                Path::new(&args[2]),
+            );
+        }
+    }
     let mut session = Session::load(&disc, sequence, seed)?;
     for (item, count) in loadout {
         let inventory = &mut session.world.actors[session.world.player].actor.inventory;
@@ -268,11 +291,6 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
             inventory.counts[item] = count;
         }
     }
-    let settings = if std::env::var_os("TENCHU_SETTINGS").is_some() {
-        crate::settings::Store::new()?.load()?
-    } else {
-        crate::settings::Settings::default()
-    };
     if capture {
         for _ in 0..ticks {
             session.step(buttons)?;

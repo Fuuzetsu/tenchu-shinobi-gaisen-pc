@@ -19,8 +19,15 @@ use tenchu_core::{
     },
 };
 
+mod story;
+pub(super) use story::capture as capture_story;
+
 pub struct Drawing {
     models: Models,
+    scene: SceneDrawing,
+}
+
+struct SceneDrawing {
     terrain: crate::renderer::Mesh,
     actors: crate::renderer::Mesh,
     effects: crate::renderer::EffectMesh,
@@ -37,21 +44,42 @@ impl Drawing {
         let geometry = models.geometry(&session.world, &session.assets, &session.frame)?;
         Ok(Self {
             models,
-            terrain: renderer.upload(&geometry.terrain),
-            actors: renderer.upload(&geometry.actors),
-            effects: renderer.upload_effects(geometry.effects),
+            scene: SceneDrawing::new(geometry, renderer),
         })
     }
 
     pub fn update(&mut self, session: &super::Session, renderer: &mut Renderer) -> Result<()> {
-        let mut geometry = self
+        let geometry = self
             .models
             .geometry(&session.world, &session.assets, &session.frame)?;
+        self.scene.update(geometry, renderer);
+        renderer.visual_time = session.world.tick as f32 / 30.0;
+        Ok(())
+    }
+
+    pub fn draw(
+        &self,
+        view: Matrix,
+        target: &wgpu::TextureView,
+        renderer: &mut Renderer,
+    ) -> Result<()> {
+        self.scene.draw(view, target, renderer)
+    }
+}
+
+impl SceneDrawing {
+    fn new(geometry: Geometry, renderer: &mut Renderer) -> Self {
+        Self {
+            terrain: renderer.upload(&geometry.terrain),
+            actors: renderer.upload(&geometry.actors),
+            effects: renderer.upload_effects(geometry.effects),
+        }
+    }
+
+    fn update(&mut self, mut geometry: Geometry, renderer: &mut Renderer) {
         renderer.update_mesh(&mut self.terrain, &mut geometry.terrain);
         renderer.update_mesh(&mut self.actors, &mut geometry.actors);
         renderer.update_effects(&mut self.effects, geometry.effects);
-        renderer.visual_time = session.world.tick as f32 / 30.0;
-        Ok(())
     }
 
     pub fn draw(
@@ -83,18 +111,34 @@ pub fn capture(
     graphics: &Graphics,
     path: &std::path::Path,
 ) -> Result<()> {
+    capture_frame(&session.assets.sprites.vram, graphics, path, |renderer| {
+        let drawing = Drawing::new(session, graphics, renderer)?;
+        Ok((drawing.scene, session.world.camera.view))
+    })?;
+    eprintln!(
+        "Native JP tick {}: position {:?}; {} actors; radar {:?}; pending {:?}",
+        session.world.tick,
+        session.world.actors[session.world.player].actor.position,
+        session.world.actors.len(),
+        session.world.ai.global.radar,
+        session.pending
+    );
+    Ok(())
+}
+
+fn capture_frame(
+    vram: &Vram,
+    graphics: &Graphics,
+    path: &std::path::Path,
+    build: impl FnOnce(&mut Renderer) -> Result<(SceneDrawing, Matrix)>,
+) -> Result<()> {
     let instance = wgpu::Instance::new(&Default::default());
     let adapter = pollster::block_on(instance.request_adapter(&Default::default()))
         .ok_or("No graphics adapter")?;
     let format = wgpu::TextureFormat::Rgba8Unorm;
-    let mut renderer = pollster::block_on(Renderer::new(
-        &adapter,
-        format,
-        [1280, 720],
-        &session.assets.sprites.vram,
-    ))?;
+    let mut renderer = pollster::block_on(Renderer::new(&adapter, format, [1280, 720], vram))?;
     renderer.configure(graphics);
-    let drawing = Drawing::new(session, graphics, &mut renderer)?;
+    let (drawing, view) = build(&mut renderer)?;
     let texture = renderer.device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Native JP capture"),
         size: wgpu::Extent3d {
@@ -110,18 +154,10 @@ pub fn capture(
         view_formats: &[],
     });
     drawing.draw(
-        session.world.camera.view,
+        view,
         &texture.create_view(&Default::default()),
         &mut renderer,
     )?;
-    eprintln!(
-        "Native JP tick {}: position {:?}; {} actors; radar {:?}; pending {:?}",
-        session.world.tick,
-        session.world.actors[session.world.player].actor.position,
-        session.world.actors.len(),
-        session.world.ai.global.radar,
-        session.pending
-    );
     crate::capture::read_texture(&renderer, &texture, path)
 }
 

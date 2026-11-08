@@ -105,6 +105,8 @@ fn native_story_models_load_from_their_event_bundles() {
     assert_eq!(events.len(), 141);
     let mut models = 0;
     let mut weapons = 0;
+    let mut captions = 0;
+    let mut voices = 0;
     for event in events {
         let resources =
             Resources::load(&disc, event).unwrap_or_else(|e| panic!("event {event}: {e}"));
@@ -125,11 +127,44 @@ fn native_story_models_load_from_their_event_bundles() {
         for model in resources.weapons.values() {
             tenchu_core::motion::Pose::new(&model.parts).unwrap();
         }
+        if let Some(track) = &resources.audio {
+            let mut stream = tenchu_assets::audio::stream::Stream::open(&disc, track).unwrap();
+            assert!(
+                stream.next(&disc).unwrap().is_some(),
+                "event {event}: empty XA cue"
+            );
+            voices += 1;
+        }
+        captions += resources
+            .script
+            .commands
+            .iter()
+            .filter(|command| {
+                matches!(
+                    command.command,
+                    tenchu_assets::tenchu2::story::Command::Caption { .. }
+                )
+            })
+            .count();
+        for picture in resources.portraits.iter().chain(&resources.pictures) {
+            assert_eq!(
+                picture.rgba.len(),
+                usize::from(picture.size[0]) * usize::from(picture.size[1]) * 4
+            );
+            assert!(
+                picture.rgba.chunks_exact(4).any(|p| p[3] != 0),
+                "event {event}: empty image"
+            );
+        }
         weapons += resources.attachments.len();
     }
     assert!(models > 500);
     assert!(weapons > 100);
-    eprintln!("{models} native JP story model placements and {weapons} weapon attachments loaded");
+    assert!(captions > 1000);
+    assert!(voices > 100);
+    eprintln!(
+        "{models} native JP story model placements, {weapons} weapon attachments, {captions} captions and {voices} playable XA cues loaded"
+    );
 }
 
 #[test]

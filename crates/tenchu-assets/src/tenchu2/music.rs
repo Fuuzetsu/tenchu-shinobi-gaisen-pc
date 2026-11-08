@@ -103,7 +103,7 @@ pub fn tracks(disc: &Disc<impl ReadAt>) -> Result<Vec<Track>> {
     Err("Unterminated Tenchu 2 music table".into())
 }
 
-fn time(bytes: &[u8]) -> Result<u32> {
+pub(super) fn time(bytes: &[u8]) -> Result<u32> {
     let bcd = |n: u8| -> Result<u32> {
         if n & 15 > 9 || n >> 4 > 9 {
             return Err("Invalid Tenchu 2 music time".into());

@@ -53,14 +53,19 @@ impl Level {
         layout: &super::layout::Layout,
         hidden: bool,
     ) -> Result<Self> {
+        Self::japanese_scene(disc, layout.map, layout.sequence, hidden)
+    }
+
+    pub fn japanese_scene(
+        disc: &Disc<impl ReadAt>,
+        map: usize,
+        sequence: usize,
+        hidden: bool,
+    ) -> Result<Self> {
         if super::Edition::detect(disc)? != super::Edition::Japan {
             return Err("Japanese Tenchu 2 scene selection requires the Japanese disc".into());
         }
-        Self::load_variant(
-            disc,
-            layout.map,
-            Variant::japanese(layout.map, layout.sequence, hidden),
-        )
+        Self::load_variant(disc, map, Variant::japanese(map, sequence, hidden))
     }
 
     fn load_variant(disc: &Disc<impl ReadAt>, id: usize, variant: Variant) -> Result<Self> {
