@@ -11,6 +11,7 @@ pub mod combat;
 pub mod navigation;
 pub mod search;
 pub mod sight;
+pub mod status;
 mod steering;
 pub use steering::{ForcedInput, Probe, SteeringInput, direction, steer};
 mod wander;

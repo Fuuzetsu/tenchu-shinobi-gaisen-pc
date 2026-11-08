@@ -8,6 +8,8 @@ pub struct Rules {
     pub reach: [i16; 6],
     pub close: [i16; 6],
     pub item_odds: [i16; 3],
+    pub alert_duration: [i16; 3],
+    pub alert_reset_duration: [i16; 3],
 }
 
 impl Rules {
@@ -17,11 +19,14 @@ impl Rules {
         let addresses = edition.addresses();
         let table = executable.bytes(addresses.combat_rules, 40)?;
         let odds = executable.bytes(addresses.item_odds, 6)?;
+        let alerts = executable.bytes(addresses.alert_rules, 22)?;
         let mut rules = Self {
             probability: [0; 4],
             reach: [0; 6],
             close: [0; 6],
             item_odds: [0; 3],
+            alert_duration: [0; 3],
+            alert_reset_duration: [0; 3],
         };
         for (index, value) in rules.probability.iter_mut().enumerate() {
             *value = u32_le(table, index * 4)? as i32;
@@ -35,6 +40,10 @@ impl Rules {
             if *value <= 0 {
                 return Err("Invalid Tenchu 2 item probability".into());
             }
+        }
+        for index in 0..3 {
+            rules.alert_duration[index] = i16_le(alerts, index * 2)?;
+            rules.alert_reset_duration[index] = i16_le(alerts, 16 + index * 2)?;
         }
         Ok(rules)
     }

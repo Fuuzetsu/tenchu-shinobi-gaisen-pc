@@ -1900,3 +1900,13 @@ samples and 23,000 movement decisions per edition over all 23 maps
 side probes, forced-turn expiration, ledge movement, step jumping and water/drop
 avoidance retain source arithmetic and RNG order. Terrain, trigonometry and RNG
 execute original instructions; entry registers supply the preceding AI decision.
+
+Shared alerts, radar conversion and guards' post-victory reactions follow EU
+`80030a34`, `80030a7c`, `800315fc`, `80031cac` and JP `80031574`, `800315bc`,
+`80032204`, `8003292c`. Alert durations load from each executable. The timer and
+script/alert visibility branches of the enclosing AI are also preserved,
+including retaining the shared position when a positive timer reaches zero.
+Each edition matches 60,000 source executions (`TENCHU2_STATUS_ORACLE`), covering
+timer boundaries, all difficulty levels, radar thresholds and victory phases.
+Motion requests are recorded at the selection boundary; native-world dispatch
+remains unfinished.

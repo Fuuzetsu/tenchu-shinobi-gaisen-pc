@@ -2,6 +2,7 @@ use super::*;
 
 mod source_actor;
 mod source_ai;
+mod source_ai_status;
 mod source_alert;
 mod source_attack;
 mod source_awareness;
