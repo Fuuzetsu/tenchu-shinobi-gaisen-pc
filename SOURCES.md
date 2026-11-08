@@ -1589,3 +1589,12 @@ collision updates and 107,806 contact-iteration/cover checks in each edition
 (`TENCHU2_CONTACT_ORACLE`), including explicit contact lookup, rotated local
 offsets, full capacity and arithmetic edges. That oracle supplies world matrices
 and SDK transformation at their boundary; collision and cover run original code.
+
+Terrain movement follows the first part of EU `8001cfb0` / JP `8001d1d8`:
+safe-position recovery, source gravity, water depth, ceiling/step response,
+wall turning and root-motion suppression. JP retains its additional long-fall
+death check. Private original execution matches 17,250 updates per edition
+across all maps (`TENCHU2_PHYSICS_ORACLE`), including probe/cache state, velocity,
+turning, water and death outcomes. The oracle runs native terrain queries and
+speed calculations, supplies posed-root positions and surface-effect lookup,
+and suppresses object contacts/audio/scoring to isolate terrain movement.

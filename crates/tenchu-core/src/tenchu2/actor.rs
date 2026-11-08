@@ -1,4 +1,4 @@
-use super::{input::Pad, motion::Motion};
+use super::{input::Pad, motion::Motion, terrain::Probe};
 use crate::{
     Result,
     math::{Math, Matrix, Position, Vector3},
@@ -79,13 +79,18 @@ pub struct Attack {
 pub struct Actor {
     pub kind: i16,
     pub state: State,
+    pub flags: u32,
     pub health: i16,
     pub width: i16,
     pub height: i16,
-    pub ground_clearance: i32,
+    pub turn: i16,
+    pub terrain: Probe,
     pub position: Position,
+    pub previous: Position,
     pub rotation: Vector3<i16>,
     pub velocity: Vector3<i16>,
+    pub last_vertical_velocity: i16,
+    pub hit: Option<usize>,
     pub motion: Motion,
     pub pad: Pad,
     pub weapon_drawn: bool,
@@ -106,6 +111,7 @@ impl Actor {
         Ok(Self {
             kind,
             state: State::Normal,
+            flags: 0,
             health: if kind == 0x68 {
                 i16::MAX
             } else {
@@ -113,10 +119,14 @@ impl Actor {
             },
             width,
             height,
-            ground_clearance: 0,
+            turn: definition.turn,
+            terrain: Probe::default(),
             position: Position::default(),
+            previous: Position::default(),
             rotation: Vector3::default(),
             velocity: Vector3::default(),
+            last_vertical_velocity: 0,
+            hit: None,
             motion,
             pad: Pad::default(),
             weapon_drawn: false,
@@ -229,7 +239,7 @@ impl Actor {
         let action = if self.health == 0 {
             0xb00
         } else if self.pad.held & super::input::CROUCH != 0
-            && self.ground_clearance <= i32::from(self.height)
+            && self.terrain.height <= i32::from(self.height)
         {
             0x200
         } else if self.weapon_drawn {

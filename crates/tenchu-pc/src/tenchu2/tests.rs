@@ -6,6 +6,7 @@ mod source_idle;
 mod source_input;
 mod source_math;
 mod source_motion;
+mod source_physics;
 mod source_sight;
 mod source_terrain;
 
