@@ -532,6 +532,17 @@ impl Models {
                 2,
             );
         }
+        if let Some(fade) = frame.transition_fade {
+            output.screen_sprite(
+                [0.0, 0.0, 1.0],
+                [320.0, 240.0],
+                [1.0; 2],
+                0,
+                [f32::from(fade) / 255.0; 3],
+                None,
+                3,
+            );
+        }
         Ok(Geometry {
             terrain: output.terrain,
             actors: output.actors,

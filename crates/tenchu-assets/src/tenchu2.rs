@@ -1,6 +1,7 @@
 //! Optional resources from the user's Tenchu 2 disc. See docs/cross-version-research.md.
 pub mod audio;
 pub mod camera;
+pub mod campaign;
 pub mod characters;
 pub mod collision;
 pub mod combat;

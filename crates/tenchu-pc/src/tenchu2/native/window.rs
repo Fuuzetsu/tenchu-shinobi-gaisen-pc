@@ -118,13 +118,17 @@ impl View {
                     ui.label(format!("Health {} / {} · {:?} · Ki {:?}",player.health,player.max_health,player.state,session.world.ai.global.radar));
                     if let Some(item) = player.inventory.selected { ui.label(format!("Item {} × {}",item.index(),player.inventory.count(item))); }
                     ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
+                    if let tenchu_core::tenchu2::mission::Phase::Finished { outcome, .. } = session.world.mission.phase {
+                        ui.label(format!("Mission ended: {outcome:?}. The next story screen is not connected yet."));
+                    }
                     if *paused { ui.label("PAUSED"); }
                     if let Some(error) = error { ui.colored_label(egui::Color32::LIGHT_RED,error); }
                 });
             });
             egui::Window::new("Native JP integration").open(open).default_size([550.0,480.0]).vscroll(true).show(ctx, |ui| {
-                ui.label("This is the native Japanese actor/terrain runtime. Story progression, projectiles, the original HUD and some effects are still being connected.");
+                ui.label("This is the native Japanese actor/terrain runtime. Story progression, the original HUD and some effects are still being connected.");
                 ui.checkbox(paused,"Pause simulation");
+                ui.label(format!("Objective: {:?}; {:?}",session.world.mission.objective,session.world.mission.phase));
                 ui.label(format!("Player position: {:?}; water: {:?}",player.position,session.world.water));
                 ui.label(format!("Unconnected events observed: {:?}",session.pending));
                 ui.separator();

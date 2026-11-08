@@ -9,6 +9,7 @@ pub mod environment;
 pub mod input;
 pub mod inventory;
 pub mod items;
+pub mod mission;
 pub mod motion;
 pub mod physics;
 pub mod rig;

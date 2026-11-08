@@ -34,6 +34,10 @@ This preview uses JP actors, controls, AI, collision, water interaction, camera,
 scenery, grapple, shuriken/kunai, caltrops, bows, fire arrows, firearms, grenades, mines,
 smoke/sleeping bombs, poison darts, confusion powder, invisibility, teleport, fire breath, coloured-rice markers, resurrection, poisoned rice with guard luring,
 weapon/projectile trails and particles.
+Mission objectives now use the JP sequence descriptors, including exit regions,
+unseen requirements, boss-health thresholds and elimination quotas. The preview
+stops at the end of the original transition and identifies the outcome; it does
+not yet run the following story or results screen. F1 shows objective state.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the

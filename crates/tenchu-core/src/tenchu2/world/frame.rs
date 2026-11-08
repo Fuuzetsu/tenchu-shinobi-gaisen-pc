@@ -16,6 +16,7 @@ pub struct Frame {
     pub effects: crate::tenchu2::effects::Frame,
     pub reticle: Option<crate::tenchu2::items::aim::Reticle>,
     pub fade: Option<u8>,
+    pub transition_fade: Option<u8>,
     pub ambience: Option<crate::tenchu2::audio::Sound>,
 }
 
@@ -40,11 +41,20 @@ impl World {
             &mut self.random,
             &assets.resources.math,
         );
+        let controllers = if self.mission.input_allowed() {
+            controllers
+        } else {
+            [0; 2]
+        };
         self.update_camera(assets, false)?;
         self.update_actors(controllers, assets, events)?;
         self.sample_weapon_ribbons(assets)?;
         let scenery = self.update_environment(assets, events)?;
-        let mut items = self.update_items(assets, events)?;
+        let mut items = if self.mission.items_running() {
+            self.update_items(assets, events)?
+        } else {
+            Default::default()
+        };
         let mut effects = self.update_effects(assets)?;
         items.quads.append(&mut effects.quads);
         effects.quads = items.quads;
@@ -54,6 +64,7 @@ impl World {
             effects,
             reticle: items.reticle,
             fade: items.fade,
+            transition_fade: self.mission.fade,
             ambience,
         })
     }

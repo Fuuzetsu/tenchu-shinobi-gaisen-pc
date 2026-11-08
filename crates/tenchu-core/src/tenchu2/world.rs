@@ -24,6 +24,7 @@ pub mod controls;
 mod effects;
 mod frame;
 mod items;
+mod mission;
 mod ribbons;
 mod update;
 pub use assets::Assets;
@@ -101,6 +102,7 @@ pub struct World {
     pub effort: u16,
     pub controls: controls::Controls,
     pub statistics: Statistics,
+    pub mission: super::mission::Mission,
 }
 
 impl World {
@@ -119,6 +121,11 @@ impl World {
             .registry
             .cast(options.hero, layout.map)
             .ok_or("Missing Tenchu 2 cast")?;
+        let sequence = *assets
+            .campaign
+            .sequences
+            .get(layout.sequence)
+            .ok_or("Missing Tenchu 2 mission descriptor")?;
         let mut world = Self {
             audio: super::audio::Audio::default(),
             items: super::items::Items::default(),
@@ -149,6 +156,11 @@ impl World {
             effort: 0,
             controls: controls::Controls::default(),
             statistics: Statistics::default(),
+            mission: super::mission::Mission::new(
+                sequence,
+                sequence.next.map(|id| assets.campaign.sequences[id].kind),
+                0,
+            )?,
         };
         world.create_actor(
             options.hero as i16,
@@ -225,6 +237,7 @@ impl World {
         )?;
         world.update_camera(assets, true)?;
         world.initialize_activation(assets)?;
+        world.mission.initialize(&world.actors, options.hero);
         Ok(world)
     }
 

@@ -2442,3 +2442,17 @@ health, effects, fade, snapshot continuation and resumed movement. The standalon
 preview has no scene loader; `Controls::transition_ready` remains true there.
 Campaign loading and XA streaming must supply the original readiness condition
 when connected (boss objectives bypass that wait).
+
+Native JP campaign descriptors and mission starts come from `80084b2c` and
+`80085b5c` in the user's verified executable. Objective evaluation, target and
+population initialization, input suppression, attack-completion wait and exit
+countdowns follow the gameplay loop `80064a34`. This includes source ordering
+when an unseen objective is both completed and failed in the same update, signed
+coordinate truncation, the 99-minute limit, the shorter fade into results, and
+last-20-update item suppression. `TENCHU2_MISSION_ORACLE` compares 1,800 initial
+conditions and 18,144 countdown updates against original instructions;
+`TENCHU2_POPULATION_ORACLE` covers 240 target/population cases. Music scheduling
+and camera internals are excluded from these block comparisons. A connected
+native-frame test reaches a real exit, blocks input and restores mid-fade.
+The regular launcher still uses the Gaisen sandbox; native story/results
+dispatch and campaign carry-over remain integration work.

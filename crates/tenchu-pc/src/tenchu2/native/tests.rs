@@ -142,3 +142,70 @@ fn native_swimming_uses_the_imported_water_surface() {
         session.world.actors[0].actor.position, session.world.actors[0].actor.state
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; reaches a real exit and restores during the native end transition"]
+fn native_mission_exit_stops_input_and_survives_restoring_mid_fade() {
+    use tenchu_assets::tenchu2::campaign::Objective;
+    use tenchu_core::tenchu2::mission::{Outcome, Phase};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = Session::load(&disc, 1, 1).unwrap();
+    let Objective::Reach { region, .. } = session.world.mission.objective else {
+        panic!("not an exit mission")
+    };
+    let actor = &mut session.world.actors[0].actor;
+    actor.position = region.center.map(|v| i32::from(v) * 1000).into();
+    actor.previous = actor.position;
+    actor.velocity = Default::default();
+    session.world.publish(0, &session.assets);
+    session.world.update_camera(&session.assets, true).unwrap();
+    for _ in 0..60 {
+        session.step(0).unwrap();
+        if matches!(session.world.mission.phase, Phase::Ending { .. }) {
+            break;
+        }
+    }
+    assert!(
+        matches!(
+            session.world.mission.phase,
+            Phase::Ending {
+                outcome: Outcome::Arrived,
+                remaining: 100,
+                ..
+            }
+        ),
+        "{:?}",
+        session.world.mission.phase
+    );
+    for _ in 0..50 {
+        session.step(UP | JUMP).unwrap();
+    }
+    assert_eq!(session.world.actors[0].actor.pad.held, 0);
+    assert!(session.frame.transition_fade.is_some());
+    let mut restored = Session::load(&disc, 1, 1).unwrap();
+    restored.world = serde_json::from_slice(&serde_json::to_vec(&session.world).unwrap()).unwrap();
+    restored
+        .assets
+        .resources
+        .clips
+        .clone_from(&session.assets.resources.clips);
+    for _ in 0..60 {
+        assert_eq!(session.step(UP).unwrap(), restored.step(UP).unwrap());
+        assert_eq!(session.world.mission.phase, restored.world.mission.phase);
+    }
+    assert!(matches!(
+        session.world.mission.phase,
+        Phase::Finished {
+            outcome: Outcome::Arrived,
+            ..
+        }
+    ));
+    assert_eq!(
+        serde_json::to_value(&session.world).unwrap(),
+        serde_json::to_value(&restored.world).unwrap()
+    );
+    let tick = session.world.tick;
+    session.step(ATTACK).unwrap();
+    assert_eq!(session.world.tick, tick);
+}

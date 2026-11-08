@@ -68,6 +68,12 @@ impl Session {
     }
 
     pub fn step(&mut self, buttons: u16) -> Result<Vec<Sound>> {
+        if matches!(
+            self.world.mission.phase,
+            tenchu_core::tenchu2::mission::Phase::Finished { .. }
+        ) {
+            return Ok(Vec::new());
+        }
         let mut events = Output {
             listener: self.world.listener(),
             requests: Vec::new(),
@@ -101,6 +107,8 @@ impl Session {
                 sounds.push(sound);
             }
         }
+        sounds.extend(self.world.advance_mission(&self.assets)?);
+        self.frame.transition_fade = self.world.mission.fade;
         Ok(sounds)
     }
 }
@@ -191,7 +199,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nInternal native JP integration preview. Projectiles, story, HUD and campaign progression are still being connected; F1 shows the current boundaries. Existing play-t2 remains the Gaisen sandbox."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nInternal native JP integration preview. Story, HUD and campaign progression are still being connected; F1 shows the current boundaries. Existing play-t2 remains the Gaisen sandbox."
         );
         return Ok(());
     }

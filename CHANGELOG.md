@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect native JP mission objectives and end transitions in the internal
+  preview, including unseen objectives, boss targets, input lock and fade timing.
+  The following story/results screens are still being connected.
+
 - Connect resurrection leaves in the internal JP preview: lethal-hit recovery,
   return to coloured-rice markers or the starting point, substitute log and smoke,
   and the original camera/white-fade transition.
