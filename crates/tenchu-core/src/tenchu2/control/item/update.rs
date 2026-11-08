@@ -10,7 +10,6 @@ use crate::{
         inventory::Item,
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct ItemControlInput {
     pub held: u16,
@@ -65,7 +64,6 @@ impl Actor {
             ItemCue,
         ) -> Result<()>,
     ) -> Result<()> {
-        let europe = resources.registry.edition == Edition::Europe;
         let duration = resources
             .clips
             .get(&self.motion.clip.ok_or("No Tenchu 2 item motion")?)
@@ -89,7 +87,7 @@ impl Actor {
                 }
             }
             0x803 => {
-                let release = if europe { 3 } else { 4 };
+                let release = 4;
                 if self.motion.loops != 0 || self.motion.frame > release {
                     if self.inventory.active == Item::GRAPPLE {
                         if self.motion.loops > 0 {
@@ -244,8 +242,7 @@ impl Actor {
                             direction: None,
                         },
                     )?;
-                    if !europe
-                        && item == 11
+                    if item == 11
                         && !input.story_triggered
                         && input.map == 18
                         && self.position.x / 1000 == 31
@@ -287,26 +284,16 @@ impl Actor {
                 }
             }
             0x809 => {
-                if input.player {
-                    if self.motion.frame == 1 {
-                        cue(
-                            self,
-                            request,
-                            input,
-                            random,
-                            ItemCue::HeldModel(Some(u8::from(self.inventory.active))),
-                        )?;
-                    } else if europe && self.motion.loops > 0 {
-                        cue(self, request, input, random, ItemCue::HeldModel(None))?;
-                    }
+                if input.player && self.motion.frame == 1 {
+                    cue(
+                        self,
+                        request,
+                        input,
+                        random,
+                        ItemCue::HeldModel(Some(u8::from(self.inventory.active))),
+                    )?;
                 }
-                if i32::from(self.motion.frame)
-                    == if europe {
-                        i32::from(duration) / 2
-                    } else {
-                        i32::from(duration) * 2 / 3
-                    }
-                {
+                if i32::from(self.motion.frame) == i32::from(duration) * 2 / 3 {
                     cue(
                         self,
                         request,
@@ -317,7 +304,7 @@ impl Actor {
                             positional: true,
                         },
                     )?;
-                    if !europe && input.player {
+                    if input.player {
                         cue(self, request, input, random, ItemCue::HeldModel(None))?;
                     }
                     let effect = match u8::from(self.inventory.active) {
@@ -330,7 +317,7 @@ impl Actor {
                             self.flags &= !0x100;
                             Some(1)
                         }
-                        15 if !europe => {
+                        15 => {
                             self.health = self.health.wrapping_add(20).min(self.max_health);
                             Some(0)
                         }
@@ -339,7 +326,7 @@ impl Actor {
                     if let Some(effect) = effect {
                         cue(self, request, input, random, ItemCue::Medicine(effect))?;
                     }
-                    if !europe && !input.player {
+                    if !input.player {
                         cue(self, request, input, random, ItemCue::ShowHealth)?;
                     }
                 }
@@ -371,13 +358,7 @@ impl Actor {
                             cue(self, request, input, random, ItemCue::HeldModel(None))?;
                         }
                     }
-                    let hold = if item == 8 {
-                        if europe { 11 } else { 14 }
-                    } else if europe {
-                        14
-                    } else {
-                        17
-                    };
+                    let hold = if item == 8 { 14 } else { 17 };
                     if self.motion.frame == hold && input.held & ITEM != 0 {
                         if self.motion.loops == 0 {
                             self.motion.frame = self.motion.frame.wrapping_add(1);
@@ -417,10 +398,7 @@ impl Actor {
                             cue(self, request, input, random, ItemCue::Voice(38))?;
                         }
                     }
-                } else if self.motion.action == 0x80b
-                    && item == 14
-                    && self.motion.frame == if europe { 12 } else { 15 }
-                {
+                } else if self.motion.action == 0x80b && item == 14 && self.motion.frame == 15 {
                     cue(
                         self,
                         request,
@@ -448,12 +426,10 @@ impl Actor {
                             },
                         )?;
                         cue(self, request, input, random, ItemCue::Voice(37))?;
-                    } else if self.motion.frame > if europe { 90 } else { 109 } {
+                    } else if self.motion.frame > 109 {
                         cue(self, request, input, random, ItemCue::Recover)?;
                     }
-                } else if u8::from(self.inventory.active) == 17
-                    && self.motion.frame == if europe { 25 } else { 30 }
-                {
+                } else if u8::from(self.inventory.active) == 17 && self.motion.frame == 30 {
                     cue(
                         self,
                         request,

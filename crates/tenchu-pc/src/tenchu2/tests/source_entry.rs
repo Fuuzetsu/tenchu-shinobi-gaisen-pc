@@ -166,7 +166,6 @@ fn verify(jump: bool) {
                     request,
                     case.input,
                     if case.player { target.as_ref() } else { None },
-                    resources.registry.edition,
                     case.map,
                     &resources.math,
                 )
@@ -229,7 +228,7 @@ fn verify(jump: bool) {
 
 #[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_JUMP_ENTRY_ORACLE from the original jump controller"]
-fn native_jump_entry_preserves_regional_speeds_and_motion_fallbacks() {
+fn native_jump_entry_preserves_speeds_and_motion_fallbacks() {
     verify(true);
 }
 

@@ -10,7 +10,6 @@ use crate::{
         collision::{BODY, Collision, OBJECT, WEAPON},
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct ContactActor {
     pub position: Position,
@@ -49,8 +48,7 @@ impl Actor {
                 }
                 self.push_away(contact.distance, resources)?;
                 let other = actor(slot.owner.ok_or("Missing Tenchu 2 contact owner")?)?;
-                if resources.registry.edition == Edition::Japan
-                    && matches!(self.state, State::Normal | State::Ready)
+                if matches!(self.state, State::Normal | State::Ready)
                     && matches!(other.action, 0xa21 | 0xa22)
                 {
                     voices.push((random.next15() & 1) as u8 + 13);

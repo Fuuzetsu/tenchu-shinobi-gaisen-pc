@@ -9,7 +9,6 @@ use crate::{
         physics::Terrain,
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct WallInput {
     pub held: u16,
@@ -264,11 +263,7 @@ impl Actor {
         if held & UP == 0 {
             return Ok(());
         }
-        let speed = if resources.registry.edition == Edition::Europe {
-            60
-        } else {
-            50
-        };
+        let speed = 50;
         let action = match (old, input.camera) {
             (0x301, 12) => {
                 self.motion.pose.rotation[0][1] =

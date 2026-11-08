@@ -5,7 +5,7 @@ use crate::{
     tenchu2::actor::{Actor, Resources, State, Velocity},
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, registry::StealthEffect};
+use tenchu_assets::tenchu2::registry::StealthEffect;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StealthSession {
@@ -96,7 +96,7 @@ impl Actor {
         };
         if matches!(input.style, StealthAttack::Drawing | StealthAttack::Falling)
             && input.penalties != 0
-            && (resources.registry.edition == Edition::Europe || self.flags & 2 != 0)
+            && self.flags & 2 != 0
         {
             input.penalties -= 1;
         }
@@ -110,11 +110,9 @@ impl Actor {
             action,
             velocity: Velocity::Motion,
         };
-        if resources.registry.edition == Edition::Japan {
-            input.story_damage = input
-                .story_damage
-                .wrapping_add((i32::from(health) + 100) * 10);
-        }
+        input.story_damage = input
+            .story_damage
+            .wrapping_add((i32::from(health) + 100) * 10);
         cue(self, victim, StealthCue::VictimWeapons)?;
         cue(self, victim, StealthCue::VictimCollision)?;
         victim.motion.clip = Some(clip);

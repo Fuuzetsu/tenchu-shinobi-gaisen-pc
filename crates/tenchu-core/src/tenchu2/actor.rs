@@ -103,6 +103,9 @@ pub struct Actor {
 
 impl Actor {
     pub fn new(kind: i16, parts: &[Part], resources: &Resources) -> Result<Self> {
+        if resources.registry.edition != Edition::Japan {
+            return Err("Native Tenchu 2 gameplay requires Japanese actor definitions".into());
+        }
         let definition = resources
             .registry
             .actor(kind)
@@ -210,18 +213,7 @@ impl Actor {
                     .clips
                     .get(&self.motion.clip.ok_or("No Tenchu 2 motion")?)
                     .ok_or("Missing Tenchu 2 motion")?;
-                let speed = |v: i16| {
-                    if resources.registry.edition == Edition::Europe {
-                        (i32::from(v) * 6 / 5) as i16
-                    } else {
-                        v
-                    }
-                };
-                self.set_horizontal_velocity(
-                    speed(clip.forward_speed),
-                    speed(clip.side_speed),
-                    &resources.math,
-                );
+                self.set_horizontal_velocity(clip.forward_speed, clip.side_speed, &resources.math);
             }
         }
         Ok(())

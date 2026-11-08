@@ -98,7 +98,6 @@ fn paired_stealth_setup_interruption_and_recovery_match_source() {
                 request,
                 0,
                 Some(&victim),
-                resources.registry.edition,
                 row["map"].as_i64().unwrap() as i16,
                 &resources.math,
             )

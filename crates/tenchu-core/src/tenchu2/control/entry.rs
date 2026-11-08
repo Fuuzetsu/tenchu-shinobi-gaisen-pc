@@ -9,7 +9,6 @@ use crate::{
         physics::{FALLING, IN_WATER},
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct JumpEffects {
@@ -32,15 +31,7 @@ impl Actor {
         self.commit_root(root_position(self)?);
         let (action, forward, side) =
             if self.pad.consume(&resources.commands.jumping) == Some(0x607) {
-                (
-                    0x607,
-                    if resources.registry.edition == Edition::Europe {
-                        90
-                    } else {
-                        120
-                    },
-                    0,
-                )
+                (0x607, 120, 0)
             } else if previous == 0x111 {
                 (0x606, 150, 0)
             } else if input & UP != 0 {
@@ -73,22 +64,13 @@ impl Actor {
         if request.action == 0x600 {
             self.update_velocity(Velocity::Stop, resources)?;
         } else {
-            let scale = |v: i16| {
-                if resources.registry.edition == Edition::Europe {
-                    (i32::from(v) * 6 / 5) as i16
-                } else {
-                    v
-                }
-            };
-            let [x, _, z] = resources
-                .math
-                .velocity(self.rotation.y, scale(forward), scale(side));
+            let [x, _, z] = resources.math.velocity(self.rotation.y, forward, side);
             self.velocity.x = x;
             self.velocity.z = z;
         }
         if request.action == 0x606 {
             effects.voices.push(0x15);
-            if is_player && resources.registry.edition == Edition::Japan {
+            if is_player {
                 effects.voices.push(0xc);
             }
         }
@@ -130,7 +112,6 @@ impl Actor {
         request: Request,
         input: u16,
         target: Option<&Actor>,
-        edition: Edition,
         map: i16,
         math: &Math,
     ) -> Result<AttackInput> {
@@ -162,7 +143,7 @@ impl Actor {
                     (0x914, Velocity::Motion)
                 } else if request.action == 0x111 {
                     (0x910, Velocity::Motion)
-                } else if edition == Edition::Japan && request.action == 0x112 {
+                } else if request.action == 0x112 {
                     (0x913, Velocity::Motion)
                 } else if input & UP != 0 {
                     (
@@ -173,8 +154,6 @@ impl Actor {
                     (0x907, Velocity::Motion)
                 } else if input & LEFT != 0 {
                     (0x90a, Velocity::Motion)
-                } else if edition == Edition::Europe && input & DOWN != 0 {
-                    (0x913, Velocity::Motion)
                 } else {
                     (0x900, Velocity::Motion)
                 };

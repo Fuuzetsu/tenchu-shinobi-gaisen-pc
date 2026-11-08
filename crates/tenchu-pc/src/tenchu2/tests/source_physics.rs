@@ -43,7 +43,7 @@ pub(super) fn probe_values(probe: &Probe) -> [i32; 6] {
 
 #[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_PHYSICS_ORACLE from original movement/collision code"]
-fn native_terrain_movement_matches_both_editions() {
+fn native_terrain_movement_matches_japanese_source() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let registry = Registry::load(&disc).unwrap();

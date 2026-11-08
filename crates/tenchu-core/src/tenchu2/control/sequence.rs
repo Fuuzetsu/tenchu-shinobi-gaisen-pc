@@ -9,7 +9,6 @@ use crate::{
     },
 };
 use std::ops::ControlFlow;
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Projectile {
@@ -43,13 +42,6 @@ impl Actor {
     ) -> Result<ControlFlow<()>> {
         let clip = self.motion.clip.ok_or("No Tenchu 2 attack motion")?;
         let frame = self.motion.frame;
-        let timing = |eu, jp| {
-            if resources.registry.edition == Edition::Europe {
-                eu
-            } else {
-                jp
-            }
-        };
         let combo_at = resources
             .weapons
             .attacks
@@ -61,8 +53,8 @@ impl Actor {
         match self.motion.action {
             0x900 => {
                 let shot = match clip {
-                    0x205 => Some((timing(7, 9), timing(40, 49))),
-                    700 => Some((timing(5, 6), timing(33, 40))),
+                    0x205 => Some((9, 49)),
+                    700 => Some((6, 40)),
                     _ => None,
                 };
                 if let Some((nock, fire)) = shot {
@@ -75,12 +67,12 @@ impl Actor {
                         return Ok(ControlFlow::Continue(()));
                     }
                 }
-                if clip == 0x418 && frame == timing(18, 22) {
+                if clip == 0x418 && frame == 22 {
                     cue(self, request, AttackCue::Fire(Projectile::Gunshot))?;
                     return Ok(ControlFlow::Continue(()));
                 }
                 if clip == 0x10c {
-                    self.attack_grip(request, frame, timing(7, 9), timing(22, 27), 0, &mut cue)?;
+                    self.attack_grip(request, frame, 9, 27, 0, &mut cue)?;
                 }
                 if combo {
                     next = Some(if input & RIGHT != 0 {
@@ -94,7 +86,7 @@ impl Actor {
             }
             0x901..=0x903 => {
                 if self.motion.action == 0x901 && clip == 0x4e1 {
-                    self.attack_grip(request, frame, timing(3, 4), timing(5, 7), 0, &mut cue)?;
+                    self.attack_grip(request, frame, 4, 7, 0, &mut cue)?;
                 }
                 if combo {
                     next = Some(0x904);
@@ -107,15 +99,9 @@ impl Actor {
             }
             0x907 => {
                 match clip {
-                    0x4e2 => {
-                        self.attack_grip(request, frame, timing(7, 9), timing(10, 12), 0, &mut cue)?
-                    }
-                    0x10d => {
-                        self.attack_grip(request, frame, timing(4, 5), timing(28, 34), 0, &mut cue)?
-                    }
-                    0x510 if frame == timing(12, 15) => {
-                        cue(self, request, AttackCue::Fire(Projectile::Ice))?
-                    }
+                    0x4e2 => self.attack_grip(request, frame, 9, 12, 0, &mut cue)?,
+                    0x10d => self.attack_grip(request, frame, 5, 34, 0, &mut cue)?,
+                    0x510 if frame == 15 => cue(self, request, AttackCue::Fire(Projectile::Ice))?,
                     _ => {}
                 }
                 if combo {
@@ -130,28 +116,10 @@ impl Actor {
             }
             0x90a => {
                 match clip {
-                    0x10e => self.attack_grip(
-                        request,
-                        frame,
-                        timing(10, 12),
-                        timing(30, 37),
-                        0,
-                        &mut cue,
-                    )?,
-                    0xbc => {
-                        self.attack_grip(request, frame, timing(4, 5), timing(25, 31), 0, &mut cue)?
-                    }
-                    0x4e3 => self.attack_grip(
-                        request,
-                        frame,
-                        timing(8, 10),
-                        timing(11, 14),
-                        0,
-                        &mut cue,
-                    )?,
-                    0x176 if frame == timing(12, 15) => {
-                        cue(self, request, AttackCue::Fire(Projectile::Ice))?
-                    }
+                    0x10e => self.attack_grip(request, frame, 12, 37, 0, &mut cue)?,
+                    0xbc => self.attack_grip(request, frame, 5, 31, 0, &mut cue)?,
+                    0x4e3 => self.attack_grip(request, frame, 10, 14, 0, &mut cue)?,
+                    0x176 if frame == 15 => cue(self, request, AttackCue::Fire(Projectile::Ice))?,
                     _ => {}
                 }
                 if combo {
@@ -165,15 +133,9 @@ impl Actor {
                 }
             }
             0x910 => match clip {
-                0x10f => {
-                    self.attack_grip(request, frame, timing(8, 10), timing(41, 50), 0, &mut cue)?
-                }
-                0xbd => {
-                    self.attack_grip(request, frame, timing(1, 2), timing(25, 30), 0, &mut cue)?
-                }
-                0x4e4 => {
-                    self.attack_grip(request, frame, timing(9, 11), timing(13, 16), 0, &mut cue)?
-                }
+                0x10f => self.attack_grip(request, frame, 10, 50, 0, &mut cue)?,
+                0xbd => self.attack_grip(request, frame, 2, 30, 0, &mut cue)?,
+                0x4e4 => self.attack_grip(request, frame, 11, 16, 0, &mut cue)?,
                 _ => {}
             },
             0x911 => {
@@ -205,7 +167,7 @@ impl Actor {
             0x912 => {
                 if frame == 1 {
                     cue(self, request, AttackCue::Land)?;
-                } else if clip == 0x4c3 && frame == timing(15, 18) {
+                } else if clip == 0x4c3 && frame == 18 {
                     cue(
                         self,
                         request,
@@ -224,24 +186,13 @@ impl Actor {
                 }
             }
             0x915 => match clip {
-                0x177 if frame == timing(13, 16) => {
-                    cue(self, request, AttackCue::Fire(Projectile::IceFan))?
-                }
-                0x110 => {
-                    self.attack_grip(request, frame, timing(10, 12), timing(39, 47), 0, &mut cue)?
-                }
+                0x177 if frame == 16 => cue(self, request, AttackCue::Fire(Projectile::IceFan))?,
+                0x110 => self.attack_grip(request, frame, 12, 47, 0, &mut cue)?,
                 0x48f => {
-                    if frame == timing(19, 23) {
+                    if frame == 23 {
                         cue(self, request, AttackCue::Fire(Projectile::ForwardGunshot))?;
                     } else {
-                        self.attack_grip(
-                            request,
-                            frame,
-                            timing(8, 10),
-                            timing(33, 40),
-                            1,
-                            &mut cue,
-                        )?;
+                        self.attack_grip(request, frame, 10, 40, 1, &mut cue)?;
                     }
                 }
                 _ => {}

@@ -8,7 +8,6 @@ use crate::{
         terrain::{Query, level},
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 impl Actor {
     pub fn update_jump(
@@ -25,34 +24,15 @@ impl Actor {
             .get(&self.motion.clip.ok_or("No Tenchu 2 jump motion")?)
             .ok_or("Missing Tenchu 2 jump motion")?;
         let active = self.motion.loops < 1 && (self.motion.frame < 2 || self.flags & LANDED == 0);
-        let pal = resources.registry.edition == Edition::Europe;
         if active && self.flags & CEILING == 0 {
             if self.motion.frame < 0 {
                 self.position.x = self.position.x.wrapping_sub(i32::from(self.velocity.x));
                 self.position.z = self.position.z.wrapping_sub(i32::from(self.velocity.z));
             } else {
                 let acceleration = match request.action {
-                    0x606 => {
-                        if pal {
-                            15
-                        } else {
-                            10
-                        }
-                    }
-                    0x607 => {
-                        if pal {
-                            30
-                        } else {
-                            20
-                        }
-                    }
-                    _ => {
-                        if pal {
-                            20
-                        } else {
-                            15
-                        }
-                    }
+                    0x606 => 10,
+                    0x607 => 20,
+                    _ => 15,
                 };
                 self.velocity.y = ((i32::from(self.motion.frame) - i32::from(clip.duration >> 1))
                     * acceleration) as i16;
@@ -74,7 +54,7 @@ impl Actor {
                 {
                     request.action = 0x605;
                     request.velocity = Velocity::Keep;
-                    effects.voices.push(if pal { 0xb } else { 0xa });
+                    effects.voices.push(0xa);
                     effects.wall_jump = true;
                     let direction = terrain
                         .rules
@@ -83,11 +63,7 @@ impl Actor {
                         .ok_or("Invalid Tenchu 2 wall direction")?;
                     if let Some(angle) = direction {
                         self.rotation.y = angle.wrapping_add(2048);
-                        let [x, _, z] = resources.math.velocity(
-                            self.rotation.y,
-                            if pal { -144 } else { -120 },
-                            0,
-                        );
+                        let [x, _, z] = resources.math.velocity(self.rotation.y, -120, 0);
                         self.velocity.x = x;
                         self.velocity.z = z;
                     } else {
@@ -98,7 +74,7 @@ impl Actor {
             } else if input & ATTACK != 0 && self.velocity.y > 0 && request.action != 0x607 {
                 attack(self, request)?;
             } else if input & (UP | DOWN | LEFT | RIGHT) != 0 {
-                let speed = if pal { 12 } else { 10 };
+                let speed = 10;
                 let forward = if input & DOWN != 0 {
                     -speed
                 } else if input & UP != 0 {
@@ -116,7 +92,7 @@ impl Actor {
                 let [dx, _, dz] = resources.math.velocity(self.rotation.y, forward, side);
                 let x = self.velocity.x.wrapping_add(dx);
                 let z = self.velocity.z.wrapping_add(dz);
-                let limit = if pal { 120 } else { 100 };
+                let limit = 100;
                 if i32::from(x).abs() <= limit && i32::from(z).abs() <= limit {
                     self.velocity.x = x;
                     self.velocity.z = z;

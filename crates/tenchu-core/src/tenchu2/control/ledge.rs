@@ -9,7 +9,6 @@ use crate::{
         terrain::{Query, Surface, level},
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct LedgeInput {
     pub held: u16,
@@ -161,8 +160,7 @@ impl Actor {
             self.change_motion(request.action, request.velocity, resources)?;
             cue(self, request, input.held, LedgeCue::Voice(20))?;
             cue(self, request, input.held, LedgeCue::Grabbed)?;
-            if resources.registry.edition == Edition::Japan
-                && !input.story_triggered
+            if !input.story_triggered
                 && input.map == 23
                 && self.position.x / 1000 == 0
                 && self.position.z / 1000 == -112
@@ -205,7 +203,6 @@ impl Actor {
                 input.held &= !RIGHT;
             }
         }
-        let pal = resources.registry.edition == Edition::Europe;
         let mut next = None;
         match self.motion.action {
             0x400 if self.motion.loops > 0 => {
@@ -216,13 +213,7 @@ impl Actor {
                 }
             }
             0x401 => {
-                let interval = if input.check == 2 {
-                    5
-                } else if pal {
-                    25
-                } else {
-                    30
-                };
+                let interval = if input.check == 2 { 5 } else { 30 };
                 if input.tick % interval == 0 {
                     input.check =
                         i16::from(self.enter_ledge(request, input, terrain, resources, &mut cue)?);
@@ -273,14 +264,10 @@ impl Actor {
                 } else if self.motion.frame < 0 {
                     self.update_velocity(Velocity::Stop, resources)?;
                 } else {
-                    let speed = if self.motion.frame > if pal { 32 } else { 39 } {
-                        if pal { 144 } else { 120 }
-                    } else {
-                        0
-                    };
+                    let speed = if self.motion.frame > 39 { 120 } else { 0 };
                     self.velocity = resources.math.velocity(self.rotation.y, speed, 0).into();
                     if self.terrain.height > i32::from(self.height) {
-                        self.velocity.y = if pal { -42 } else { -35 };
+                        self.velocity.y = -35;
                     } else {
                         self.velocity.x /= 2;
                         self.velocity.z /= 2;

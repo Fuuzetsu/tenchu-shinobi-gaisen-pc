@@ -11,7 +11,6 @@ use crate::{
         terrain::{Query, level},
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct CrouchInput<'a> {
     pub held: u16,
@@ -69,10 +68,7 @@ impl Actor {
                     {
                         let mut found = false;
                         for (item, count) in body.inventory.counts.iter_mut().enumerate() {
-                            if *count == 0
-                                || !(input.unlocked[item]
-                                    || (resources.registry.edition == Edition::Japan && item == 15))
-                            {
+                            if *count == 0 || !(input.unlocked[item] || item == 15) {
                                 continue;
                             }
                             *count >>= 1;

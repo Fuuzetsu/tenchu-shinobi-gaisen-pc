@@ -7,7 +7,6 @@ use crate::{
         inventory::{Item, Unavailable},
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 mod update;
 pub use update::{ItemControlInput, ItemCue};
@@ -83,8 +82,7 @@ impl Actor {
             9 => 0x80c,
             11 => 0x807,
             13 => 0x80a,
-            15 if resources.registry.edition == Edition::Japan => 0x809,
-            15 => 0x808,
+            15 => 0x809,
             16 => 0x80d,
             17 => 0x80e,
             _ => {

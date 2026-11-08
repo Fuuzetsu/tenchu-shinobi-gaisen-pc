@@ -11,7 +11,7 @@ use crate::{
         terrain::{self, Query},
     },
 };
-use tenchu_assets::tenchu2::{Edition, collision::Rules};
+use tenchu_assets::tenchu2::collision::Rules;
 
 pub struct SpecialInput {
     pub held: u16,
@@ -51,7 +51,6 @@ impl Actor {
         random: &mut Random,
         mut cue: impl FnMut(&mut Actor, &mut Request, &mut Random, SpecialCue) -> Result<()>,
     ) -> Result<()> {
-        let europe = resources.registry.edition == Edition::Europe;
         match self.motion.action {
             0x700 | 0x701 => {
                 let drawing = self.motion.action == 0x700;
@@ -116,7 +115,7 @@ impl Actor {
                 {
                     return Ok(());
                 }
-                if !europe && input.difficulty == 1 {
+                if input.difficulty == 1 {
                     self.health = self.health.wrapping_sub(10).max(0);
                     if !input.player {
                         cue(self, request, random, SpecialCue::ShowHealth)?;
@@ -136,7 +135,7 @@ impl Actor {
             0x703 => {
                 if self.terrain.blocked != 0 {
                     let escape = rules.escape[usize::from(self.terrain.blocked)];
-                    let distance = if europe { 120 } else { 100 };
+                    let distance = 100;
                     self.position.x = self
                         .position
                         .x
@@ -204,7 +203,7 @@ impl Actor {
                 if self.motion.frame == 1 {
                     let voice = match request.action {
                         0x707 => Some(6),
-                        0x709 => Some(if europe { 14 } else { 8 }),
+                        0x709 => Some(8),
                         0x70d => Some(if !input.player_dead {
                             12
                         } else if random.next15() & 1 != 0 {

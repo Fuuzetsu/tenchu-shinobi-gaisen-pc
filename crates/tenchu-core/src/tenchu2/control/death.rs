@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{Edition, registry::StealthEffect};
+use tenchu_assets::tenchu2::registry::StealthEffect;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct StealthPlayback {
@@ -160,14 +160,7 @@ impl Actor {
             return Ok(());
         }
         match self.motion.action {
-            0xb06
-                if self.motion.frame
-                    == if resources.registry.edition == Edition::Europe {
-                        56
-                    } else {
-                        68
-                    } =>
-            {
+            0xb06 if self.motion.frame == 68 => {
                 cue(
                     self,
                     request,

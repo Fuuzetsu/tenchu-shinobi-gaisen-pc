@@ -1962,3 +1962,12 @@ motions and other asset imports remain supported separately. After the change,
 JP comparisons still pass 48,000 complete actor-AI calls, 48,000 persistent
 behavior steps, sight checks and terrain queries across all 23 maps. Formatting,
 strict workspace Clippy and the portable wasm core build pass.
+
+Native actor control and physics now likewise use only JP behavior: PAL speed/
+frame conversions and European damage/item branches have been removed from the
+core. Actor construction requires Japanese definitions, while shared EU motion,
+model and map decoders remain intact for resource imports. The JP movement,
+controller, damage, paired-stealth and attack-timeline comparisons all pass after
+this simplification (19 focused tests), along with strict Clippy, formatting and
+wasm core compilation. This remains internal integration work, not a playable
+native T2 campaign.

@@ -9,7 +9,6 @@ use crate::{
         physics::LANDED,
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct HurtInput {
     pub held: u16,
@@ -52,7 +51,6 @@ impl Actor {
         random: &mut Random,
         mut cue: impl FnMut(&mut Actor, &mut Request, &mut Random, HurtCue) -> Result<()>,
     ) -> Result<()> {
-        let europe = resources.registry.edition == Edition::Europe;
         if self.motion.frame == 1 && input.player {
             cue(self, request, random, HurtCue::HideHeldItem)?;
         }
@@ -148,7 +146,7 @@ impl Actor {
             }
             0xa21 | 0xa22 => {
                 if self.motion.frame == 1 {
-                    let speed = if europe { 120 } else { 100 };
+                    let speed = 100;
                     self.set_horizontal_velocity(
                         if request.action == 0xa21 {
                             -speed
@@ -160,7 +158,7 @@ impl Actor {
                     );
                 }
                 if self.motion.loops > 0 {
-                    if europe || self.terrain.height < 20001 {
+                    if self.terrain.height < 20001 {
                         self.motion.loops = -1;
                     } else {
                         request.action = 0x702;
@@ -175,7 +173,7 @@ impl Actor {
                         .motion
                         .frame
                         .wrapping_sub(clip.duration >> 1)
-                        .wrapping_mul(if europe { 12 } else { 10 });
+                        .wrapping_mul(10);
                 }
                 if self.flags & LANDED != 0 || self.terrain.height < i32::from(self.height) {
                     request.action = if request.action == 0xa21 {
@@ -186,10 +184,7 @@ impl Actor {
                     request.velocity = Velocity::Motion;
                     self.change_motion(request.action, request.velocity, resources)?;
                 }
-                if (europe || input.map != 12)
-                    && self.motion.frame % 5 == 0
-                    && random.next15() % 5 == 0
-                {
+                if input.map != 12 && self.motion.frame % 5 == 0 && random.next15() % 5 == 0 {
                     cue(
                         self,
                         request,
@@ -242,7 +237,7 @@ impl Actor {
                 let delay = if self.kind as u8 & 0xf0 >= 0xe0 {
                     0
                 } else if self.flags & 0x800 != 0 {
-                    if europe { -50 } else { -60 }
+                    -60
                 } else {
                     (-(i32::from(self.max_health) - i32::from(self.health)) / 2) as i16
                 };

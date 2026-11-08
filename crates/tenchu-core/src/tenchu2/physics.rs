@@ -4,10 +4,7 @@ use super::{
 };
 use crate::{Result, math::Position};
 use serde::{Deserialize, Serialize};
-use tenchu_assets::tenchu2::{
-    Edition,
-    collision::{Collision, Rules},
-};
+use tenchu_assets::tenchu2::collision::{Collision, Rules};
 
 pub const FALLING: u32 = 0x1000;
 pub const IN_WATER: u32 = 0x2000;
@@ -105,8 +102,7 @@ impl Actor {
             self.width,
             terrain.options,
         )?;
-        let death = if resources.registry.edition == Edition::Japan
-            && self.health != 0
+        let death = if self.health != 0
             && self.motion.action == 0x702
             && self.terrain.height / 1000 == 25
             && self.velocity.y >= 380

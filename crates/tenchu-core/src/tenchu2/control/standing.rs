@@ -8,7 +8,6 @@ use crate::{
         physics::BLOCKED,
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 pub struct StandingInput {
     pub held: u16,
@@ -87,7 +86,6 @@ impl Actor {
                     request.velocity = Velocity::Stop;
                 }
                 if !ready
-                    && resources.registry.edition == Edition::Japan
                     && !input.story_triggered
                     && input.map == 8
                     && self.position.x / 1000 == 34
@@ -216,8 +214,7 @@ impl Actor {
                 if held & GUARD != 0 && input.carried_action == Some(0xb09) {
                     return Ok(());
                 }
-                if resources.registry.edition == Edition::Japan
-                    && !input.story_triggered
+                if !input.story_triggered
                     && input.map == 12
                     && self.position.x / 1000 == -16
                     && self.position.z / 1000 == 78
@@ -239,7 +236,7 @@ impl Actor {
             && (self.motion.frame == 0 || self.motion.frame == duration / 2)
         {
             let mut material = self.terrain.material & 0xf00;
-            if resources.registry.edition == Edition::Japan && matches!(input.map, 6 | 8) {
+            if matches!(input.map, 6 | 8) {
                 if random.next15() & 3 == 0 {
                     material = 0x200;
                 } else {

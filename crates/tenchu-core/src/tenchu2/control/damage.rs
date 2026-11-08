@@ -11,7 +11,6 @@ use crate::{
         terrain::segment,
     },
 };
-use tenchu_assets::tenchu2::Edition;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DamageTarget {
@@ -151,10 +150,6 @@ impl Damage<'_, '_> {
         (self.cue)(self.actor, self.request, self.input, self.random, cue)
     }
 
-    fn pal(&self) -> bool {
-        self.resources.registry.edition == Edition::Europe
-    }
-
     fn request(&mut self, action: i16, velocity: Velocity) {
         *self.request = Request { action, velocity };
     }
@@ -207,7 +202,7 @@ impl Damage<'_, '_> {
 
     fn apply(&mut self) -> Result<()> {
         if (0xa23..=0xa25).contains(&self.request.action)
-            || self.request.action == 0xa26 && (self.pal() || self.input.player)
+            || self.request.action == 0xa26 && self.input.player
             || self.actor.health <= 0
             || self.actor.health == i16::MAX
         {
@@ -227,11 +222,7 @@ impl Damage<'_, '_> {
                         .ok_or("Missing Tenchu 2 damage motion")?
                         .duration,
                 );
-                let used_at = if self.pal() {
-                    duration / 2
-                } else {
-                    duration * 2 / 3
-                };
+                let used_at = duration * 2 / 3;
                 if i32::from(self.actor.motion.frame) < used_at {
                     self.emit(DamageCue::DropHeldItem)?;
                 }
@@ -310,32 +301,30 @@ impl Damage<'_, '_> {
         if attacker.attacking {
             attacker.recoil = !(power / 3);
         }
-        let mut parried = matches!(self.request.action, 0x916 | 0x104)
-            || !self.pal() && self.request.action == 0x501;
+        let mut parried = matches!(self.request.action, 0x916 | 0x104 | 0x501);
         if !parried
             && self.actor.weapon_drawn()
             && (self.request.action == 0x110
                 || !self.input.player && self.input.held & DOWN != 0
-                || self.actor.skill > 4
-                    && self.random.next15() % if self.pal() { 3 } else { 5 } == 0)
+                || self.actor.skill > 4 && self.random.next15() % 5 == 0)
         {
             parried = true;
         }
         if !self.input.player && self.random.next15() & 3 == 0 {
             parried = false;
         }
-        let cost = if self.pal() { 2 } else { 5 };
+        let cost = 5;
         let attacker = self.input.attacker.as_mut().unwrap();
         if attacker.player && attacker.health > cost && self.input.drain_attack {
             parried = false;
             attacker.health -= cost;
-            power = if cost == 2 { 100 } else { 1000 };
+            power = 1000;
             self.input.drain_uses = self.input.drain_uses.wrapping_add(1);
         }
         let body = Position::new(self.input.body.x, self.input.contact.y, self.input.body.z);
         if parried
             && i32::from(angle).abs() < if self.input.player { 1280 } else { 768 }
-            && self.parry(power, angle, body, self.pal())?
+            && self.parry(power, angle, body)?
         {
             self.rumble(self.player_or_attacker(), 2, 2)?;
             return Ok(None);
@@ -366,13 +355,7 @@ impl Damage<'_, '_> {
         }))
     }
 
-    fn parry(
-        &mut self,
-        power: i16,
-        angle: i16,
-        position: Position,
-        pal_speed: bool,
-    ) -> Result<bool> {
+    fn parry(&mut self, power: i16, angle: i16, position: Position) -> Result<bool> {
         self.request(0x916, Velocity::Keep);
         if !self.change()? {
             return Ok(false);
@@ -380,10 +363,7 @@ impl Damage<'_, '_> {
         self.emit(DamageCue::AdvanceMotion)?;
         self.actor.motion.loops = power.wrapping_add(8).wrapping_neg();
         self.actor.rotation.y = self.actor.rotation.y.wrapping_add(angle);
-        let mut speed = -(i32::from(power) * 5 / 2 + 80);
-        if pal_speed {
-            speed = speed * 6 / 5;
-        }
+        let speed = -(i32::from(power) * 5 / 2 + 80);
         self.actor
             .set_horizontal_velocity(speed as i16, 0, &self.resources.math);
         self.emit(DamageCue::Sparks {
@@ -421,7 +401,6 @@ impl Damage<'_, '_> {
                 knockdown = true;
                 self.emit(DamageCue::Burn)?;
                 if kind == 7
-                    && !self.pal()
                     && self.input.map == 19
                     && self.actor.position.x / 1000 == -24
                     && self.actor.position.z / 1000 == -29
@@ -523,9 +502,7 @@ impl Damage<'_, '_> {
             .rotation
             .y
             .wrapping_add(self.actor.motion.pose.rotation[0][1]);
-        if !self.pal() {
-            self.actor.flags &= !0x200;
-        }
+        self.actor.flags &= !0x200;
         if power > 0 && self.actor.skill != 0 {
             power /= 2;
         }
@@ -535,7 +512,6 @@ impl Damage<'_, '_> {
             && i32::from(angle).abs() < 768
             && self.actor.flags & 0x1000 == 0;
         if !parried
-            && !self.pal()
             && self.actor.state == State::Ready
             && (matches!(self.actor.kind, 0xf2 | 0xf5 | 0xf6 | 0xe7)
                 || self.input.player && self.input.armor)
@@ -547,7 +523,7 @@ impl Damage<'_, '_> {
                 knockdown = false;
             }
         }
-        if parried && self.parry(power, angle, self.input.contact, false)? {
+        if parried && self.parry(power, angle, self.input.contact)? {
             return Ok(None);
         }
         Ok(Some(Impact {
@@ -623,7 +599,7 @@ impl Damage<'_, '_> {
                     if self.actor.health != 0 { 14 } else { 15 },
                 )?;
             }
-            let speed = if self.pal() { 84 } else { 100 };
+            let speed = 100;
             let speed = if i32::from(angle).abs() < 1024 {
                 self.request(0xa21, Velocity::Keep);
                 -speed
@@ -669,11 +645,7 @@ impl Damage<'_, '_> {
             if self.input.hit == Hit::Weapon {
                 self.rumble(DamageTarget::Victim, 4, 1)?;
                 self.request.velocity = Velocity::Keep;
-                let mut speed = i32::from(power) * 5 / 2 + 80;
-                if self.pal() {
-                    speed = speed * 6 / 5;
-                }
-                let speed = speed as i16;
+                let speed = (i32::from(power) * 5 / 2 + 80) as i16;
                 let (forward, side) = match self.request.action {
                     0xa00 => (speed.wrapping_neg(), 0),
                     0xa01 => (speed, 0),
@@ -689,13 +661,11 @@ impl Damage<'_, '_> {
         }
         if !self.input.player {
             self.emit(DamageCue::ShowHealth)?;
-            if !self.pal() {
-                self.input.story_damage = self.input.story_damage.wrapping_add(if power < 1 {
-                    1000
-                } else {
-                    i32::from(power) * 10
-                });
-            }
+            self.input.story_damage = self.input.story_damage.wrapping_add(if power < 1 {
+                1000
+            } else {
+                i32::from(power) * 10
+            });
         }
         if self.actor.state == State::Swimming
             && self.actor.motion.action > 0x50f

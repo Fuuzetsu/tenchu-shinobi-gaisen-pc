@@ -13,7 +13,7 @@ use crate::{
         terrain::{self, Query},
     },
 };
-use tenchu_assets::tenchu2::{Edition, collision::Rules};
+use tenchu_assets::tenchu2::collision::Rules;
 
 pub struct SwimInput {
     pub held: u16,
@@ -65,7 +65,6 @@ impl Actor {
             SwimCue,
         ) -> Result<()>,
     ) -> Result<()> {
-        let europe = resources.registry.edition == Edition::Europe;
         let mut border = if terrain.water.depth == Some(Depth::Swimming) {
             self.swim_border(terrain, 0, false)?
         } else {
@@ -143,7 +142,7 @@ impl Actor {
                 } else {
                     self.swim_turn(held, self.turn, resources)?;
                 }
-                self.escape_water(border, if europe { 60 } else { 50 }, terrain.rules);
+                self.escape_water(border, 50, terrain.rules);
                 if self.motion.frame == 0 {
                     cue(self, request, input, random, SwimCue::Splash(2))?;
                 }
@@ -170,7 +169,7 @@ impl Actor {
                     self.swim_turn(held, self.turn, resources)?;
                 }
                 if border != 0 {
-                    self.escape_water(border, if europe { 60 } else { 50 }, terrain.rules);
+                    self.escape_water(border, 50, terrain.rules);
                     input.held = 0;
                 }
                 self.set_horizontal_velocity(
@@ -203,13 +202,7 @@ impl Actor {
                     self.motion.frame = 5;
                     self.set_horizontal_velocity(150, 0, &resources.math);
                     cue(self, request, input, random, SwimCue::Voice(21))?;
-                    cue(
-                        self,
-                        request,
-                        input,
-                        random,
-                        SwimCue::Voice(if europe { 10 } else { 11 }),
-                    )?;
+                    cue(self, request, input, random, SwimCue::Voice(11))?;
                 }
             }
             0x514 => {
@@ -278,19 +271,19 @@ impl Actor {
                 } else if self.motion.loops > 0 {
                     cue(self, request, input, random, SwimCue::Recover)?;
                 }
-                if self.motion.frame >= if europe { 33 } else { 40 } {
+                if self.motion.frame >= 40 {
                     let forward = if terrain.water.depth.is_none() {
-                        if europe { 24 } else { 20 }
+                        20
                     } else {
-                        self.velocity.y = if europe { -18 } else { -15 };
-                        if europe { 54 } else { 45 }
+                        self.velocity.y = -15;
+                        45
                     };
                     self.set_horizontal_velocity(forward, 0, &resources.math);
                 }
             }
             0x521 => {
                 border = self.swim_border(terrain, border, true)?;
-                self.escape_water(border, if europe { 120 } else { 100 }, terrain.rules);
+                self.escape_water(border, 100, terrain.rules);
                 if terrain.water.depth == Some(Depth::Swimming) {
                     let splash = if self.motion.frame == 1 {
                         Some(2)
@@ -305,7 +298,7 @@ impl Actor {
                         cue(self, request, input, random, SwimCue::Splash(splash))?;
                     }
                 }
-                self.position.y = self.position.y.wrapping_add(if europe { 180 } else { 150 });
+                self.position.y = self.position.y.wrapping_add(150);
                 if depth <= 1000 {
                     request.action = 0x512;
                     request.velocity = Velocity::Motion;
@@ -351,7 +344,7 @@ impl Actor {
                     cue(self, request, input, random, SwimCue::Splash(3))?;
                 }
                 border = self.swim_border(terrain, border, true)?;
-                self.escape_water(border, if europe { 120 } else { 100 }, terrain.rules);
+                self.escape_water(border, 100, terrain.rules);
             }
             0x530 | 0x531 => {
                 if self.motion.action == 0x530 {
@@ -495,8 +488,7 @@ impl Actor {
             _ => {}
         }
         if terrain.water.depth != Some(Depth::Submerged)
-            && (self.motion.loops >= 0 && self.motion.frame == 0
-                || input.tick % resources.registry.edition.ticks_per_second() as i32 == 0)
+            && (self.motion.loops >= 0 && self.motion.frame == 0 || input.tick % 30 == 0)
         {
             cue(self, request, input, random, SwimCue::Splash(3))?;
         }

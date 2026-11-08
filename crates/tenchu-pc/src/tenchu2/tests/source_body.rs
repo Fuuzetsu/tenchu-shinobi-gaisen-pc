@@ -28,7 +28,7 @@ fn vector<T: serde::de::DeserializeOwned>(value: &Value) -> Vector3<T> {
 
 #[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_BODY_ORACLE from original body response code"]
-fn native_body_response_preserves_regional_knockback_and_contact_order() {
+fn native_body_response_preserves_knockback_and_contact_order() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let registry = Registry::load(&disc).unwrap();
