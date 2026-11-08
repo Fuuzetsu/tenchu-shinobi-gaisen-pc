@@ -4,7 +4,8 @@ use crate::{
     tenchu2::{
         ai::{Program, direction},
         audio::Sound,
-        mission::{Input, Vitals},
+        mission::{Input, Phase, Vitals},
+        progress::{Completion, Summary},
     },
 };
 
@@ -49,6 +50,49 @@ impl World {
             for agent in &mut self.actors {
                 agent.actor.flags &= !0x10;
             }
+        }
+        if self.results.is_none()
+            && let Phase::Finished {
+                outcome,
+                finished_at,
+            } = self.mission.phase
+            && outcome.success()
+            && self.mission.results_next
+        {
+            let sequence = self
+                .mission
+                .next
+                .ok_or("Missing Tenchu 2 results sequence")?;
+            let mission = assets
+                .campaign
+                .result_mission(assets.hero, sequence)
+                .ok_or("Missing Tenchu 2 results mission")?;
+            let inventory = &self.actors[self.player].actor.inventory;
+            let remaining = std::array::from_fn(|i| {
+                if i == 20 {
+                    inventory.resurrections
+                } else {
+                    inventory.counts[i]
+                }
+            });
+            self.results = Some(self.progress.complete(
+                Completion {
+                    hero: assets.hero,
+                    mission,
+                    sequence,
+                    summary: Summary {
+                        population: self.mission.population,
+                        kills: self.statistics.clone(),
+                        detections: self.ai.detections,
+                        effort: self.effort as i16,
+                        time_tenths: ((finished_at as i32) / 30) * 10
+                            + ((finished_at as i32) % 30) / 3,
+                    },
+                    remaining,
+                },
+                &assets.campaign.rewards,
+                &mut self.random,
+            )?);
         }
         if update.detection_sound && self.random.next15() % 3 == 0 {
             let note = 36 - (self.random.next15() % 4) as u8;

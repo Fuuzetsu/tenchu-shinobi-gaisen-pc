@@ -37,9 +37,34 @@ pub struct Sequence {
 pub struct Campaign {
     pub sequences: Vec<Sequence>,
     pub starts: [[Option<usize>; 11]; 3],
+    pub rewards: [Reward; 7],
+}
+
+#[derive(Clone, Copy)]
+pub struct Reward {
+    pub grand_masters: u8,
+    pub item: usize,
 }
 
 impl Campaign {
+    pub fn result_mission(&self, hero: usize, result: usize) -> Option<usize> {
+        for (mission, &start) in self.starts.get(hero)?.iter().enumerate() {
+            let Some(mut index) = start else { continue };
+            for _ in 0..self.sequences.len() {
+                let sequence = self.sequences.get(index)?;
+                if sequence.kind == Kind::Results {
+                    if index == result {
+                        return Some(mission);
+                    }
+                    break;
+                }
+                let Some(next) = sequence.next else { break };
+                index = next;
+            }
+        }
+        None
+    }
+
     pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
         let (edition, bytes) = executable(disc)?;
         if edition != Edition::Japan {
@@ -98,6 +123,24 @@ impl Campaign {
                 );
             }
         }
-        Ok(Self { sequences, starts })
+        let bytes = exe.bytes(0x80085bd4, 14)?;
+        let mut rewards = [Reward {
+            grand_masters: 0,
+            item: 0,
+        }; 7];
+        for (reward, row) in rewards.iter_mut().zip(bytes.chunks_exact(2)) {
+            if !(1..=20).contains(&row[1]) {
+                return Err("Invalid Tenchu 2 reward item".into());
+            }
+            *reward = Reward {
+                grand_masters: row[0],
+                item: usize::from(row[1]),
+            };
+        }
+        Ok(Self {
+            sequences,
+            starts,
+            rewards,
+        })
     }
 }

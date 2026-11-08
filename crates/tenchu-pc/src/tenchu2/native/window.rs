@@ -119,7 +119,14 @@ impl View {
                     if let Some(item) = player.inventory.selected { ui.label(format!("Item {} × {}",item.index(),player.inventory.count(item))); }
                     ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
                     if let tenchu_core::tenchu2::mission::Phase::Finished { outcome, .. } = session.world.mission.phase {
-                        ui.label(format!("Mission ended: {outcome:?}. The next story screen is not connected yet."));
+                        ui.label(format!("Mission ended: {outcome:?}."));
+                        if let Some(results) = &session.world.results {
+                            ui.label(format!("Score {} · rank {} / 6 · time {:.1}s",results.record.score,results.record.rank,results.record.time_tenths as f64 / 10.0));
+                            ui.label(format!("Stealth kills {} · combat kills {} · detections {} · innocents {}",results.summary.kills.stealth_kills,results.summary.kills.combat_kills,results.summary.detections,results.summary.kills.innocents));
+                            if let Some(item) = results.unlocked_item { ui.label(format!("Unlocked item {item}")); }
+                        } else {
+                            ui.label("The next story screen is not connected yet.");
+                        }
                     }
                     if *paused { ui.label("PAUSED"); }
                     if let Some(error) = error { ui.colored_label(egui::Color32::LIGHT_RED,error); }

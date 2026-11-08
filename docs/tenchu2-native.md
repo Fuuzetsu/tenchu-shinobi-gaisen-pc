@@ -36,13 +36,15 @@ smoke/sleeping bombs, poison darts, confusion powder, invisibility, teleport, fi
 weapon/projectile trails and particles.
 Mission objectives now use the JP sequence descriptors, including exit regions,
 unseen requirements, boss-health thresholds and elimination quotas. The preview
-stops at the end of the original transition and identifies the outcome; it does
-not yet run the following story or results screen. F1 shows objective state.
+stops at the end of the original transition and identifies the outcome. Areas
+leading directly to results calculate JP scores, ranks, best records, supply
+rewards and unlocks; F1 shows the result. Story transitions, statistics across
+areas and the original results screen are still being connected.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
 port's visual enhancements. Other projectiles/items, some procedural effects, story scripts,
-the original HUD, menus, results and progression remain integration work.
+the original HUD, menus and campaign progression remain integration work.
 Component comparisons and snapshot continuation do not establish full campaign
 parity. F6 and `play-t2` retain the existing Gaisen sandbox until that boundary
 is complete. EU assets remain supported without an EU-native AI runtime.

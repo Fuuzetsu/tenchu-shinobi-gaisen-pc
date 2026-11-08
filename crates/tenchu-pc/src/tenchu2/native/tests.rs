@@ -209,3 +209,42 @@ fn native_mission_exit_stops_input_and_survives_restoring_mid_fade() {
     session.step(ATTACK).unwrap();
     assert_eq!(session.world.tick, tick);
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; completes a JP exit that directly enters results"]
+fn native_results_follow_the_mission_and_preserve_campaign_rewards() {
+    use tenchu_assets::tenchu2::campaign::Objective;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = Session::load(&disc, 134, 1).unwrap();
+    let Objective::Reach { region, .. } = session.world.mission.objective else {
+        panic!("not an exit mission")
+    };
+    let actor = &mut session.world.actors[0].actor;
+    actor.position = region.center.map(|v| i32::from(v) * 1000).into();
+    actor.previous = actor.position;
+    actor.velocity = Default::default();
+    session.world.publish(0, &session.assets);
+    session.world.update_camera(&session.assets, true).unwrap();
+    for _ in 0..160 {
+        session.step(0).unwrap();
+        if session.world.results.is_some() {
+            break;
+        }
+    }
+    let result = session
+        .world
+        .results
+        .as_ref()
+        .expect("exit did not enter results");
+    assert_eq!(result.record.score, 400);
+    assert_eq!(result.record.rank, 4);
+    assert!(result.new_best);
+    let mission = session.assets.campaign.result_mission(1, 135).unwrap();
+    assert_eq!(session.world.progress.records[1][mission], result.record);
+    assert_eq!(session.world.progress.stock[1].items[4], Some(11));
+    let before = serde_json::to_value(&session.world).unwrap();
+    session.world = serde_json::from_value(before.clone()).unwrap();
+    session.step(ATTACK).unwrap();
+    assert_eq!(serde_json::to_value(&session.world).unwrap(), before);
+}

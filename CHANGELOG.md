@@ -5,9 +5,13 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Add native JP scoring, mission records, supply rewards and unlock rules.
+  The internal preview shows these for areas that lead directly to results;
+  story transitions and the original results presentation remain in progress.
+
 - Connect native JP mission objectives and end transitions in the internal
   preview, including unseen objectives, boss targets, input lock and fade timing.
-  The following story/results screens are still being connected.
+  The following story screens are still being connected.
 
 - Connect resurrection leaves in the internal JP preview: lethal-hit recovery,
   return to coloured-rice markers or the starting point, substitute log and smoke,

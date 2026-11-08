@@ -12,6 +12,7 @@ pub mod items;
 pub mod mission;
 pub mod motion;
 pub mod physics;
+pub mod progress;
 pub mod rig;
 pub mod terrain;
 pub mod visibility;

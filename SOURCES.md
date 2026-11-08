@@ -2454,5 +2454,16 @@ conditions and 18,144 countdown updates against original instructions;
 `TENCHU2_POPULATION_ORACLE` covers 240 target/population cases. Music scheduling
 and camera internals are excluded from these block comparisons. A connected
 native-frame test reaches a real exit, blocks input and restores mid-fade.
-The regular launcher still uses the Gaisen sandbox; native story/results
-dispatch and campaign carry-over remain integration work.
+The regular launcher still uses the Gaisen sandbox; native story dispatch and
+campaign carry-over remain integration work.
+
+Native JP result calculation follows `8006343c`: score narrowing, seven ranks,
+special results 207/211, best-record ordering, supply awards and returns, and
+grand-master/Tatsumaru unlocks. Reward thresholds and item IDs are read from
+`80085bd4`; starting stock and record sentinels follow boot `80014374` in
+`SLPS_030.40`. `TENCHU2_RESULTS_ORACLE` compares 600 original-instruction cases,
+including complete stock/record tables and final RNG. UI drawing is excluded.
+`TENCHU2_PROGRESS_INITIAL` checks initialization against the original boot code.
+A native-frame check completes sequence 134, computes its result once and
+restores the awarded progress from a snapshot. These checks do not establish
+cross-area statistics, story progression or the original results presentation.
