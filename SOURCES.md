@@ -2007,3 +2007,15 @@ Native mission startup also reads stage view distances from the executable's
 `game/weapon/weapon.arc`. JP `80064a34` selects late-story Rikimaru's weapon and
 Tatsumaru's map-dependent models; native assets now follow those selections.
 All 56 gameplay layouts initialize with these sequence-specific resources.
+
+The native world controller now connects JP locomotion, weapon drawing, attack
+contacts and paired stealth entry to its live rigs and other actors. World calls
+reuse the verified state routines, with synchronous geometry/contact changes and
+explicit event callbacks for effects still to be integrated. Item cycling follows
+`800518cc` / `800517c8`, including the passive resurrection slot. Model bounds
+follow `8002f11c` and are retained at initialization rather than recomputed every
+tick. Continuous movement/draw/attack input sequences pass for all three heroes,
+including exact snapshot continuation of world state and emitted events; effect
+callbacks are recorded boundaries in that check. Actor, wall, attack, dispatch,
+world-setup and wasm checks also pass. Swimming, item, injury/death drivers and
+concrete effects/campaign integration remain unfinished.

@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::layout::Layout;
 
 mod assets;
+pub mod controls;
 mod update;
 pub use assets::Assets;
 pub use update::Movement;
@@ -33,6 +34,7 @@ pub struct Options {
 pub struct Instance {
     pub rig: Rig,
     pub voice: u8,
+    pub model_height: i16,
     pub feet: [Foot; 2],
     pub motion_changes: u16,
 }
@@ -72,6 +74,7 @@ pub struct World {
     pub tracking: Option<usize>,
     pub travel: i32,
     pub effort: u16,
+    pub controls: controls::Controls,
 }
 
 impl World {
@@ -109,6 +112,7 @@ impl World {
             tracking: None,
             travel: 0,
             effort: 0,
+            controls: controls::Controls::default(),
         };
         world.create_actor(
             options.hero as i16,
@@ -260,6 +264,7 @@ impl World {
         self.instances.push(Instance {
             rig,
             voice,
+            model_height: super::actor::model_bounds(&model.parts)?[1],
             feet: [Foot::default(); 2],
             motion_changes: 0,
         });

@@ -262,7 +262,7 @@ impl Actor {
     }
 }
 
-pub fn dimensions(kind: i16, parts: &[Part]) -> Result<(i16, i16)> {
+pub fn model_bounds(parts: &[Part]) -> Result<[i16; 3]> {
     let mut bounds = [0i16; 3];
     for part in parts {
         let mut point = part.position;
@@ -281,6 +281,11 @@ pub fn dimensions(kind: i16, parts: &[Part]) -> Result<(i16, i16)> {
             bounds[1] = point[1].wrapping_neg();
         }
     }
+    Ok(bounds)
+}
+
+pub fn dimensions(kind: i16, parts: &[Part]) -> Result<(i16, i16)> {
+    let mut bounds = model_bounds(parts)?;
     let diameter = |bounds: [i16; 3]| bounds[0].wrapping_add(bounds[2]).wrapping_mul(2);
     Ok(match kind {
         0x71 => {

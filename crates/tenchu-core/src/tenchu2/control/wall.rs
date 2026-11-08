@@ -33,7 +33,7 @@ impl Actor {
         input: &mut WallInput,
         terrain: &mut Terrain<'_>,
         resources: &mut Resources,
-        mut cue: impl FnMut(&mut Actor, &mut Request, u16, WallCue) -> Result<()>,
+        mut cue: impl FnMut(&mut Actor, &mut Request, u16, &Resources, WallCue) -> Result<()>,
     ) -> Result<()> {
         let held = input.held;
         match self.motion.action {
@@ -87,7 +87,7 @@ impl Actor {
                             self.velocity.z = 0;
                             self.motion.mask = u32::MAX - 1;
                             self.motion.pose.rotation[0][0] = -105;
-                            cue(self, request, held, WallCue::PublishRoot)?;
+                            cue(self, request, held, resources, WallCue::PublishRoot)?;
                         }
                     } else if held & !self.pad.previous & ITEM != 0 {
                         let facing = (self.motion.pose.rotation[0][1] as u16 >> 10) & 3;
@@ -111,6 +111,7 @@ impl Actor {
                                         self,
                                         request,
                                         held,
+                                        resources,
                                         WallCue::Sound(ItemSound::EmptyInventory),
                                     )?;
                                     self.inventory.refund();
@@ -121,6 +122,7 @@ impl Actor {
                                     self,
                                     request,
                                     held,
+                                    resources,
                                     WallCue::Sound(ItemSound::EmptyInventory),
                                 )?;
                             }
@@ -205,7 +207,7 @@ impl Actor {
                             self.velocity.x = 0;
                             self.velocity.z = 0;
                             if self.motion.frame == 1 {
-                                cue(self, request, input.held, WallCue::Voice(17))?;
+                                cue(self, request, input.held, resources, WallCue::Voice(17))?;
                             }
                         }
                     }
@@ -230,6 +232,7 @@ impl Actor {
                         self,
                         request,
                         held,
+                        resources,
                         WallCue::Throw {
                             item: self.inventory.active,
                             direction: Position::new(-sin, 0, -cos),
@@ -257,7 +260,7 @@ impl Actor {
         }
         let old = self.motion.action;
         self.update_velocity(Velocity::Stop, resources)?;
-        cue(self, request, held, WallCue::Recover)?;
+        cue(self, request, held, resources, WallCue::Recover)?;
         self.motion.mask = u32::MAX;
         self.motion.frame = -5;
         if held & UP == 0 {

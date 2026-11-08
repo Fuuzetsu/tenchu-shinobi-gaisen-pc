@@ -106,7 +106,7 @@ impl Actor {
         input: u16,
         resources: &Resources,
         context: &mut AttackContext<'_>,
-        mut cue: impl FnMut(CombatCue, &mut Random) -> Result<()>,
+        mut cue: impl FnMut(&Actor, &mut AttackContext<'_>, CombatCue) -> Result<()>,
     ) -> Result<()> {
         if self.motion.loops != 0 && request.action != 0x911 {
             self.motion.loops = self.motion.loops.wrapping_add(1);
@@ -163,11 +163,12 @@ impl Actor {
         if frame == i16::from(attack.start) {
             self.set_attack_contacts(context.rig, context.collision, resources, Contacts::Start)?;
             cue(
+                self,
+                context,
                 CombatCue::Rumble {
                     kind: 1,
                     strength: 2,
                 },
-                context.random,
             )?;
             if request.action != 0x912 {
                 let voice = if self.flags & 0x400 == 0 {
@@ -177,7 +178,7 @@ impl Actor {
                 } else {
                     14
                 };
-                cue(CombatCue::Voice(voice), context.random)?;
+                cue(self, context, CombatCue::Voice(voice))?;
             }
         } else if frame == i16::from(attack.end) && self.motion.action != 0x911 {
             self.set_attack_contacts(context.rig, context.collision, resources, Contacts::Stop)?;
@@ -204,21 +205,22 @@ impl Actor {
                         return Err("Too many Tenchu 2 weapon trails".into());
                     }
                     if self.attack.trails & (1 << slot) != 0 {
-                        cue(CombatCue::EndTrail(slot), context.random)?;
+                        cue(self, context, CombatCue::EndTrail(slot))?;
                     }
-                    cue(CombatCue::Trail { slot, part }, context.random)?;
+                    cue(self, context, CombatCue::Trail { slot, part })?;
                     self.attack.trails |= 1 << slot;
                     slot += 1;
                 }
             }
             if context.random.next15() & 1 != 0 {
                 cue(
+                    self,
+                    context,
                     CombatCue::Voice(if attack.power < 20 { 10 } else { 11 }),
-                    context.random,
                 )?;
             }
         } else if frame == i16::from(attack.trail_end) && request.action != 0x911 {
-            self.end_attack_trails(context.random, &mut cue)?;
+            self.end_attack_trails(context, &mut cue)?;
         }
         Ok(())
     }
@@ -227,22 +229,22 @@ impl Actor {
         &mut self,
         resources: &Resources,
         context: &mut AttackContext<'_>,
-        cue: &mut impl FnMut(CombatCue, &mut Random) -> Result<()>,
+        cue: &mut impl FnMut(&Actor, &mut AttackContext<'_>, CombatCue) -> Result<()>,
     ) -> Result<()> {
         if self.weapon_drawn() {
-            self.end_attack_trails(context.random, cue)?;
+            self.end_attack_trails(context, cue)?;
         }
         self.set_attack_contacts(context.rig, context.collision, resources, Contacts::Finish)
     }
 
     fn end_attack_trails(
         &mut self,
-        random: &mut Random,
-        cue: &mut impl FnMut(CombatCue, &mut Random) -> Result<()>,
+        context: &mut AttackContext<'_>,
+        cue: &mut impl FnMut(&Actor, &mut AttackContext<'_>, CombatCue) -> Result<()>,
     ) -> Result<()> {
         for slot in 0..4 {
             if self.attack.trails & (1 << slot) != 0 {
-                cue(CombatCue::EndTrail(slot), random)?;
+                cue(self, context, CombatCue::EndTrail(slot))?;
                 self.attack.trails &= !(1 << slot);
             }
         }
@@ -252,9 +254,10 @@ impl Actor {
     fn clash_weapons(
         &mut self,
         context: &mut AttackContext<'_>,
-        cue: &mut impl FnMut(CombatCue, &mut Random) -> Result<()>,
+        cue: &mut impl FnMut(&Actor, &mut AttackContext<'_>, CombatCue) -> Result<()>,
     ) -> Result<()> {
-        for &joint in &context.rig.joints {
+        let rig = context.rig;
+        for &joint in &rig.joints {
             let Some(slot) = context
                 .collision
                 .index(joint)
@@ -292,13 +295,14 @@ impl Actor {
                     .slot_mut(other_index)
                     .ok_or("Missing Tenchu 2 opposing weapon")?
                     .flags |= DISABLED;
-                cue(CombatCue::Voice(31), context.random)?;
+                cue(self, context, CombatCue::Voice(31))?;
                 cue(
+                    self,
+                    context,
                     CombatCue::Clash {
                         opponent,
                         position: midpoint,
                     },
-                    context.random,
                 )?;
                 self.motion.loops = -5;
             }

@@ -48,7 +48,7 @@ impl Actor {
         }
         if matches!(request.action, 3 | 0x103)
             && let Some(item) = self.inventory.selected
-            && self.inventory.counts[item.index()] != 0
+            && self.inventory.count(item) != 0
             && let Some(action) = match u8::from(item) {
                 4 => Some(0x803),
                 5 => Some(0x806),

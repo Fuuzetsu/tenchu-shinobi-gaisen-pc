@@ -125,7 +125,7 @@ fn native_wall_alignment_movement_peeking_and_item_throws_match_source() {
                 &mut input,
                 &mut terrain,
                 &mut resources,
-                |actor, request, held, cue| {
+                |actor, request, held, _, cue| {
                     match cue {
                         WallCue::PublishRoot => calls.push(json!(["publish"])),
                         WallCue::Recover => {

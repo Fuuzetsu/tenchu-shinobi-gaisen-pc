@@ -250,3 +250,122 @@ fn native_layouts_create_the_source_cast_and_live_weapon_rigs() {
     }
     assert_eq!(worlds, 56);
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; exercises connected JP player controls and snapshot continuation"]
+fn native_player_controls_continue_through_movement_drawing_and_combat() {
+    use tenchu_core::{
+        Result,
+        tenchu2::{
+            input::{ATTACK, CROUCH, JUMP, RIGHT, UP},
+            world::controls::{Event, EventSource, Events},
+        },
+    };
+    #[derive(Default)]
+    struct Recorded(Vec<(usize, i16, i16, Event)>);
+    impl Events for Recorded {
+        fn emit(&mut self, source: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
+            self.0.push((
+                source.index,
+                source.actor.motion.action,
+                source.actor.motion.frame,
+                event,
+            ));
+            Ok(())
+        }
+    }
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let layouts = Layout::available(&disc).unwrap();
+    let inputs: Vec<_> = [
+        (UP, 10),
+        (0, 20),
+        (CROUCH, 10),
+        (CROUCH | UP, 10),
+        (0, 20),
+        (RIGHT, 10),
+        (JUMP, 1),
+        (0, 90),
+        (ATTACK, 1),
+        (0, 90),
+        (ATTACK, 1),
+        (0, 90),
+        (ATTACK, 1),
+        (0, 90),
+    ]
+    .into_iter()
+    .flat_map(|(held, count)| std::iter::repeat_n(held, count))
+    .collect();
+    let mut states = std::collections::BTreeSet::new();
+    for hero in 0..3 {
+        let layout = layouts
+            .iter()
+            .find(|l| match hero {
+                0 => l.sequence < 100,
+                1 => (100..185).contains(&l.sequence),
+                _ => l.sequence >= 185,
+            })
+            .unwrap();
+        let mut assets = Assets::load(&disc, hero, layout).unwrap();
+        let mut world = World::new(
+            layout,
+            Options {
+                hero,
+                difficulty: 2,
+                seed: 1,
+                inventory: Inventory::default(),
+            },
+            &assets,
+        )
+        .unwrap();
+        for instance in world.instances.iter().skip(1) {
+            for &joint in &instance.rig.joints {
+                world.collision.remove(joint);
+            }
+        }
+        world.actors.truncate(1);
+        world.instances.truncate(1);
+        world.finish_tick().unwrap();
+        let start = world.actors[0].actor.position;
+        let mut events = Recorded::default();
+        let step = |world: &mut World, assets: &mut Assets, events: &mut Recorded, held| {
+            world.move_actor(0, assets, |_| 0).unwrap();
+            world.actors[0].actor.pad.update(held);
+            world
+                .control_actor(0, assets, events)
+                .unwrap_or_else(|e| panic!("hero {hero} tick {}: {e}", world.tick));
+            world.animate_actor(0, true, assets).unwrap();
+            world.finish_tick().unwrap();
+        };
+        for &held in &inputs[..180] {
+            step(&mut world, &mut assets, &mut events, held);
+            states.insert(world.actors[0].actor.motion.action >> 8);
+        }
+        assert_ne!(world.actors[0].actor.position, start);
+        let saved = serde_json::to_vec(&world).unwrap();
+        let mut resumed: World = serde_json::from_slice(&saved).unwrap();
+        let mut resumed_assets = Assets::load(&disc, hero, layout).unwrap();
+        let mut resumed_events = Recorded::default();
+        events.0.clear();
+        for &held in &inputs[180..] {
+            step(&mut world, &mut assets, &mut events, held);
+            step(&mut resumed, &mut resumed_assets, &mut resumed_events, held);
+            states.insert(world.actors[0].actor.motion.action >> 8);
+        }
+        assert_eq!(
+            serde_json::to_value(&world).unwrap(),
+            serde_json::to_value(&resumed).unwrap()
+        );
+        assert_eq!(events.0, resumed_events.0);
+        assert!(world.actors[0].actor.weapon_drawn());
+        assert!(
+            events
+                .0
+                .iter()
+                .any(|(_, _, _, event)| matches!(event, Event::Combat(_)))
+        );
+    }
+    for state in [0, 1, 2, 6, 7, 9] {
+        assert!(states.contains(&state), "unvisited state {state}");
+    }
+}

@@ -16,7 +16,7 @@ impl TryFrom<u8> for Item {
     type Error = &'static str;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value < 20 {
+        if value <= 20 {
             Ok(Self(value))
         } else {
             Err("Invalid Tenchu 2 inventory item")
@@ -79,9 +79,36 @@ impl Inventory {
         inventory
     }
 
+    pub fn count(&self, item: Item) -> u8 {
+        if item.index() == 20 {
+            self.resurrections
+        } else {
+            self.counts[item.index()]
+        }
+    }
+
+    fn count_mut(&mut self, item: Item) -> &mut u8 {
+        if item.index() == 20 {
+            &mut self.resurrections
+        } else {
+            &mut self.counts[item.index()]
+        }
+    }
+
+    pub fn select(&mut self, previous: bool) {
+        let Some(selected) = self.selected else {
+            return;
+        };
+        self.selected = (1..=21).find_map(|step| {
+            let index = (selected.index() + if previous { 21 - step } else { step }) % 21;
+            let item = Item(index as u8);
+            (self.count(item) != 0).then_some(item)
+        });
+    }
+
     pub fn take(&mut self) -> Result<Item, Unavailable> {
         let item = self.selected.ok_or(Unavailable::Unselected)?;
-        let count = &mut self.counts[item.index()];
+        let count = self.count_mut(item);
         if *count == 0 {
             return Err(Unavailable::Empty);
         }
@@ -93,7 +120,7 @@ impl Inventory {
     }
 
     pub fn refund(&mut self) {
-        let count = &mut self.counts[self.active.index()];
+        let count = self.count_mut(self.active);
         *count = count.wrapping_add(1);
     }
 }

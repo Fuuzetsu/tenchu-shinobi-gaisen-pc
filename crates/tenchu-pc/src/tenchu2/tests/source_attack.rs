@@ -156,7 +156,7 @@ fn native_attack_contacts_parries_steering_and_recovery_match_source() {
                         collision: &mut collision,
                         random: &mut random,
                     },
-                    |cue, _| {
+                    |_, _, cue| {
                         calls.push(match cue {
                             CombatCue::Voice(id) => json!(["voice", id]),
                             CombatCue::Rumble { kind, strength } => {

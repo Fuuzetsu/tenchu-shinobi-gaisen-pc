@@ -231,17 +231,17 @@ pub struct Frame<'a, E> {
     pub events: &'a mut E,
 }
 
-struct Others<'a> {
-    before: &'a mut [Agent],
-    after: &'a mut [Agent],
+pub(crate) struct Others<'a> {
+    pub before: &'a mut [Agent],
+    pub after: &'a mut [Agent],
 }
 
 impl Others<'_> {
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.before.len() + 1 + self.after.len()
     }
 
-    fn get<'a>(&'a self, index: usize, current: &'a Actor) -> Option<&'a Actor> {
+    pub fn get<'a>(&'a self, index: usize, current: &'a Actor) -> Option<&'a Actor> {
         if index == self.before.len() {
             Some(current)
         } else {
@@ -254,7 +254,7 @@ impl Others<'_> {
         }
     }
 
-    fn get_mut(&mut self, index: usize) -> Result<&mut Agent> {
+    pub fn get_mut(&mut self, index: usize) -> Result<&mut Agent> {
         let agent = if index < self.before.len() {
             self.before.get_mut(index)
         } else if index > self.before.len() {
