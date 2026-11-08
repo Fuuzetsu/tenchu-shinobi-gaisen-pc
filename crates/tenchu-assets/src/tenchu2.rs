@@ -5,6 +5,7 @@ pub mod collision;
 pub mod combat;
 pub mod commands;
 mod edition;
+pub mod effects;
 pub use edition::Edition;
 pub mod layout;
 pub mod level;

@@ -12,6 +12,7 @@ pub struct Level {
     pub map: Vec<Part>,
     pub objects: Vec<Part>,
     pub object_sizes: Vec<i32>,
+    pub stumps: std::collections::BTreeMap<usize, Part>,
     pub scene: Objects,
     pub vram: Vram,
     pub collision: super::collision::Collision,
@@ -129,12 +130,28 @@ impl Level {
         }
         model::resolve_transparency(map.iter_mut().chain(&mut objects), &vram);
         let scene = Objects::parse(&read(layout)?, variant, objects.len())?;
+        let mut stumps = std::collections::BTreeMap::new();
+        for object in scene.dynamic.iter().filter(|o| o.kind == 14) {
+            if let std::collections::btree_map::Entry::Vacant(entry) = stumps.entry(object.model) {
+                entry.insert(Part {
+                    parent: -1,
+                    child: -1,
+                    position: [0; 3],
+                    geometry: vec![model::stump(crate::model::arc_entry(
+                        &archive,
+                        object.model,
+                    )?)?],
+                });
+            }
+        }
+        model::resolve_transparency(stumps.values_mut(), &vram);
         Ok(Self {
             id,
             grid,
             map,
             objects,
             object_sizes,
+            stumps,
             scene,
             vram,
             collision: super::collision::Collision::parse(&read("map.mcd")?)?,

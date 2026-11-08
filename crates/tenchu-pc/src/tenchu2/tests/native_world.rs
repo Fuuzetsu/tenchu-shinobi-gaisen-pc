@@ -344,6 +344,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
     let (mut world, mut assets, _) = fixture();
     let coordinate = world.scene.add(None, Matrix::default());
     world.environment = Environment {
+        static_phases: vec![0; assets.level.scene.statics.len()],
         objects: vec![Object {
             cell: assets
                 .level
@@ -361,6 +362,7 @@ fn native_objects_share_actor_contacts_and_snapshot_the_changed_floor() {
             link: 0,
             clock: 0,
             actor: None,
+            fall_yaw: None,
         }],
         triggers: vec![Trigger {
             position: Position::default(),

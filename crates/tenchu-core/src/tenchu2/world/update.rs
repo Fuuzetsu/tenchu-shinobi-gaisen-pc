@@ -283,6 +283,7 @@ impl World {
     pub fn finish_tick(&mut self) -> Result<()> {
         self.collision.compute(|model| self.scene.world(model))?;
         self.scene.finish_tick();
+        self.environment.flame_frame = (self.tick & 3) as u8;
         self.tick = self.tick.wrapping_add(1);
         Ok(())
     }

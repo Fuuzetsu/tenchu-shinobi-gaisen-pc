@@ -9,9 +9,9 @@ use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::{collision, level::objects};
 
 mod contacts;
+pub mod scenery;
 mod triggers;
 mod visibility;
-pub use visibility::Visible;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Object {
@@ -25,6 +25,7 @@ pub struct Object {
     pub link: i16,
     pub clock: i16,
     pub actor: Option<usize>,
+    pub fall_yaw: Option<i16>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -42,6 +43,9 @@ pub struct Environment {
     pub triggers: Vec<Trigger>,
     pub static_phases: Vec<i16>,
     pub background_only: bool,
+    pub fire: scenery::Fire,
+    pub last_sound_vblank: u16,
+    pub flame_frame: u8,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -90,6 +94,11 @@ pub enum Event {
     Alert {
         position: Position,
         kind: u8,
+    },
+    Burn {
+        actor: usize,
+        interval: i16,
+        duration: i16,
     },
 }
 
@@ -178,6 +187,7 @@ impl Environment {
                     link: s.trigger.map_or(0, |n| n as i16),
                     clock: 0,
                     actor: None,
+                    fall_yaw: None,
                 })
             })
             .collect::<Result<_>>()?;
@@ -196,6 +206,9 @@ impl Environment {
                 })
                 .collect(),
             background_only: false,
+            fire: scenery::Fire::default(),
+            last_sound_vblank: 0,
+            flame_frame: 3,
         })
     }
 

@@ -2114,3 +2114,21 @@ campaign casts run the native camera, actor, scenery/contact and activation loop
 The existing actor-tail, object contacts/triggers and snapshot-continuation
 checks pass. Rendering the selected scenery, falling props, concrete items and
 effects, and the complete native campaign remain integration work.
+
+Native procedural scenery now follows JP `8004f27c`, `8004f57c`, `8004f750`,
+`8004fa90` and `80051410`: smoke/ripples/flames, shared fire collision, ambient
+cues, and their phase/RNG order. Effect textures come from the user’s
+`effect.arc` / `objectef.arc`; the four-frame flame UV cycle follows `8003b134`.
+Falling props follow `800503b0` / `800509bc`, retaining the shortened stump
+geometry, attacking actor’s direction and authored falling transform. If a prop
+first becomes visible after its initial falling tick, native code captures its
+direction safely instead of interpreting an actor pointer as a cloned model.
+
+Private original-instruction comparisons cover 4,000 procedural scenery cases
+and 1,000 falling-prop transforms (`TENCHU2_SCENERY_EFFECTS_ORACLE`,
+`TENCHU2_FALLING_PROP_ORACLE`). Projection and model allocation/drawing are fixture
+boundaries; the checks establish phases, RNG, sprites, sounds, collider creation,
+transforms and removal, not final pixel output or the stump geometry itself.
+All 56 campaign casts, prior visibility checks, strict Clippy and wasm core pass.
+Actor-attached burning remains an event boundary until the concrete effect
+system is connected; native rendering, items and campaign progression remain.

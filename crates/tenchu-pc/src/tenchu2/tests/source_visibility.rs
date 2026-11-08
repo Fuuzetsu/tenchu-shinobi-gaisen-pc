@@ -95,6 +95,7 @@ fn native_scenery_activation_and_camera_culling_match_source() {
                 yaw: object["yaw"].as_i64().unwrap() as i16,
                 roll: 0,
                 actor: None,
+                fall_yaw: None,
             });
             level
                 .grid
@@ -115,9 +116,27 @@ fn native_scenery_activation_and_camera_culling_match_source() {
                 },
             })
             .collect();
-        let visible = environment
-            .activate(&level, &view, &mut collision, &math)
-            .unwrap();
+        let actual_statics: Vec<_> = level
+            .scene
+            .statics
+            .iter()
+            .enumerate()
+            .filter_map(|(i, object)| {
+                let position = object.position.into();
+                let visible = match object.kind {
+                    StaticKind::Model(model) => view.object(position, level.object_sizes[model]),
+                    StaticKind::Effect(kind) => view.effect(position, kind, &math),
+                };
+                visible.then_some(i)
+            })
+            .collect();
+        let actual_dynamic: Vec<_> = (0..environment.objects.len())
+            .filter(|&i| {
+                environment
+                    .activate_object(i, &level, &view, &mut collision, &math)
+                    .unwrap()
+            })
+            .collect();
         let expected = &row["expected"];
         let statics: Vec<_> = expected["statics"]
             .as_array()
@@ -136,7 +155,7 @@ fn native_scenery_activation_and_camera_culling_match_source() {
                 }
             })
             .collect();
-        assert_eq!(visible.statics, statics, "case {count}: {row}");
+        assert_eq!(actual_statics, statics, "case {count}: {row}");
         let dynamic: Vec<_> = expected["dynamic"]
             .as_array()
             .unwrap()
@@ -144,7 +163,7 @@ fn native_scenery_activation_and_camera_culling_match_source() {
             .filter(|event| event[0] == "draw" || event[0] == "fall")
             .map(|event| event[1].as_u64().unwrap() as usize)
             .collect();
-        assert_eq!(visible.dynamic, dynamic, "case {count}: {row}");
+        assert_eq!(actual_dynamic, dynamic, "case {count}: {row}");
         for event in expected["dynamic"].as_array().unwrap() {
             if event[0] == "enable" || event[0] == "remove" {
                 let object = &environment.objects[event[1].as_u64().unwrap() as usize];

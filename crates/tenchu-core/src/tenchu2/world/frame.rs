@@ -87,7 +87,7 @@ impl World {
         &mut self,
         assets: &Assets,
         events: &mut impl crate::tenchu2::environment::Events,
-    ) -> Result<crate::tenchu2::environment::Visible> {
+    ) -> Result<crate::tenchu2::environment::scenery::Frame> {
         use crate::tenchu2::ai::status::{Alert, AlertCause};
         use crate::tenchu2::environment::{Context, Event};
         struct Sink<'a, E> {
@@ -112,15 +112,8 @@ impl World {
                 }
             }
         }
-        let visible = self.environment.activate(
-            &assets.level,
-            &self.view(),
-            &mut self.collision,
-            &assets.resources.math,
-        )?;
-        if self.environment.background_only {
-            return Ok(visible);
-        }
+        let mut view = self.view();
+        view.distance = assets.draw_distance;
         let mut sink = Sink {
             alert: &mut self.ai.global.perception.alert,
             difficulty: self.difficulty,
@@ -136,6 +129,20 @@ impl World {
             random: &mut self.random,
             events: &mut sink,
         };
+        let frame = self.environment.update_scenery(
+            &crate::tenchu2::environment::scenery::Input {
+                level: &assets.level,
+                sprites: &assets.sprites,
+                view,
+                sequence: self.sequence,
+                vblank: self.tick.wrapping_mul(2) as u16,
+                actors: &self.actors,
+            },
+            &mut context,
+        )?;
+        if self.environment.background_only {
+            return Ok(frame);
+        }
         self.environment.update_contacts(
             &assets.level.scene.bounds,
             (self.player, self.actors[self.player].actor.position),
@@ -143,6 +150,6 @@ impl World {
             &mut context,
         )?;
         self.environment.update_triggers(&mut context)?;
-        Ok(visible)
+        Ok(frame)
     }
 }

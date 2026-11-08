@@ -130,7 +130,39 @@ fn parse(data: &[u8]) -> Result<Mesh> {
 }
 
 pub(super) fn scenery(data: &[u8]) -> Result<Geometry> {
-    let mesh = parse(data)?;
+    scenery_mesh(parse(data)?)
+}
+
+pub(super) fn stump(data: &[u8]) -> Result<Geometry> {
+    let mut mesh = parse(data)?;
+    mesh.faces = mesh
+        .faces
+        .into_iter()
+        .filter(|face| {
+            face.corners
+                .iter()
+                .take(3)
+                .any(|corner| mesh.vertices[usize::from(corner.vertex)][1] == 0)
+        })
+        .take(3)
+        .map(|mut face| {
+            for corner in &mut face.corners {
+                if mesh.vertices[usize::from(corner.vertex)][1] != 0 {
+                    corner.uv[1] = corner.uv[1].wrapping_add(17);
+                }
+            }
+            face
+        })
+        .collect();
+    for vertex in &mut mesh.vertices {
+        if vertex[1] == -2000 {
+            vertex[1] = -1000;
+        }
+    }
+    scenery_mesh(mesh)
+}
+
+fn scenery_mesh(mesh: Mesh) -> Result<Geometry> {
     if mesh.parents != [-1] {
         return Err("Tenchu 2 scenery must have one root part".into());
     }

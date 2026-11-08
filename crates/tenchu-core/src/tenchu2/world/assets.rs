@@ -17,6 +17,7 @@ use tenchu_assets::{
 };
 
 pub struct Assets {
+    pub sprites: tenchu_assets::tenchu2::effects::Sprites,
     pub camera: tenchu_assets::tenchu2::camera::Tables,
     pub hero: usize,
     pub sequence: usize,
@@ -83,6 +84,7 @@ impl Assets {
             }
         }
         Ok(Self {
+            sprites: tenchu_assets::tenchu2::effects::Sprites::load(disc)?,
             camera: tenchu_assets::tenchu2::camera::Tables::load(disc)?,
             hero,
             sequence: layout.sequence,

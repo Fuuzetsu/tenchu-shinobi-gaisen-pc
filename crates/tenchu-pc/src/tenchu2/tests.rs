@@ -770,3 +770,5 @@ mod source_objects;
 
 mod source_camera;
 mod source_visibility;
+
+mod source_scenery;

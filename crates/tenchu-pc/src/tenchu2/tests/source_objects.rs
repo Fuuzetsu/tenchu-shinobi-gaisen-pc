@@ -55,6 +55,11 @@ impl environment::Events for Events {
                 d.gravity
             ]),
             Event::Alert { position, kind } => json!(["alert", position.to_array(), kind]),
+            Event::Burn {
+                actor,
+                interval,
+                duration,
+            } => json!(["burn", actor, interval, duration]),
         });
         Ok(())
     }
@@ -99,6 +104,7 @@ fn native_surface_traps_and_object_motion_match_source() {
                     link: int("link") as i16,
                     clock: int("clock") as i16,
                     actor: Some(0),
+                    fall_yaw: None,
                 }
             })
             .collect();
@@ -236,6 +242,7 @@ fn native_doors_breakables_and_hazards_match_source_contacts() {
                 link: int("link") as i16,
                 clock: int("clock") as i16,
                 actor: None,
+                fall_yaw: None,
             });
             let owner = if i == 0 {
                 None
