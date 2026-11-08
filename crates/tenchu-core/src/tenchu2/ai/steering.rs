@@ -44,6 +44,7 @@ pub struct Probe {
     pub material: u16,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct SteeringInput {
     pub yaw: i16,
     pub turn: i16,

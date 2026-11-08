@@ -1823,3 +1823,13 @@ Discovery returns the witness; alert/audio, observer-state reset and corpse mark
 belong to the unfinished world dispatcher. Shared short-vector ray stepping also
 passes both editions' existing sight and damage comparisons. These checks do not
 yet demonstrate a playable native T2 mission.
+
+Combat-combo continuation, combat-item selection and ranged decisions follow EU
+`80034998`, `80034acc`, `80037040` and JP `80035740`, `80035874`, `80037e70`.
+Difficulty probabilities and spacing tables are read from the selected disc.
+Each edition matches 36,000 original-code decisions (`TENCHU2_COMBAT_ORACLE`),
+including 968/1,519 item selections and 3,986/3,985 attack inputs. Source RNG,
+steering, command selection and attack tables execute directly. JP retains its
+extra item-15 healing check and reduced firing odds against swimming targets.
+Melee programs, enclosing perception/dispatch and native-world integration remain
+unfinished; this does not enable a native T2 gameplay mode yet.

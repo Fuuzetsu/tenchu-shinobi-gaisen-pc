@@ -6,6 +6,7 @@ mod sleep;
 pub use sleep::{Sleep, SleepInput, SleepOutput};
 mod corpses;
 pub use corpses::{CorpseContext, CorpseSearch};
+pub mod combat;
 pub mod sight;
 mod steering;
 pub use steering::{ForcedInput, Probe, SteeringInput, direction, steer};

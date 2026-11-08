@@ -1,6 +1,7 @@
 //! Optional resources from the user's Tenchu 2 disc. See docs/cross-version-research.md.
 pub mod characters;
 pub mod collision;
+pub mod combat;
 pub mod commands;
 mod edition;
 pub use edition::Edition;

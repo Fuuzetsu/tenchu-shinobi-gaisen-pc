@@ -5,6 +5,7 @@ mod source_ai;
 mod source_attack;
 mod source_awareness;
 mod source_body;
+mod source_combat;
 mod source_control;
 mod source_crouch;
 mod source_damage;
