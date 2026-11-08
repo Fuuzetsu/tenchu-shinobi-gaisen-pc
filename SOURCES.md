@@ -1617,3 +1617,13 @@ matches 23,530 operations per edition across all 130 actor definitions
 weapon helpers with source weapon/attack tables, supplying SDK transforms and
 audio/effect destruction at their boundaries. Per-actor rig/weapon-joint validity
 is checked independently against actual model assets as described above.
+
+Native status interrupts follow EU `8001f914` / JP `8001fd24`; target selection
+follows EU `8001c364` / JP `8001c4c8`. Both preserve source actor filtering,
+target order, signed distance arithmetic, poison damage and RNG consumption,
+and animal/boss reaction overrides. Original instruction checks match 18,000
+status updates and 6,000 target queries per edition (`TENCHU2_STATUS_ORACLE`,
+`TENCHU2_TARGET_ORACLE`). Scoring, audio, health-bar and vibration calls are
+captured at their boundaries; the SDK square-root instructions run with supplied
+COP2 leading-bit arithmetic. These components do not constitute a complete
+native combat controller or campaign.

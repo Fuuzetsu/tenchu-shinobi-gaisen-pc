@@ -3,6 +3,7 @@ use super::*;
 mod source_actor;
 mod source_ai;
 mod source_body;
+mod source_control;
 mod source_idle;
 mod source_input;
 mod source_math;
