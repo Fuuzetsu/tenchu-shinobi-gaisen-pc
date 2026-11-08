@@ -210,16 +210,20 @@ impl Actor {
                         v
                     }
                 };
-                let [x, _, z] = resources.math.velocity(
-                    self.rotation.y,
+                self.set_horizontal_velocity(
                     speed(clip.forward_speed),
                     speed(clip.side_speed),
+                    &resources.math,
                 );
-                self.velocity.x = x;
-                self.velocity.z = z;
             }
         }
         Ok(())
+    }
+
+    pub(crate) fn set_horizontal_velocity(&mut self, forward: i16, side: i16, math: &Math) {
+        let [x, _, z] = math.velocity(self.rotation.y, forward, side);
+        self.velocity.x = x;
+        self.velocity.z = z;
     }
 
     pub fn commit_root(&mut self, point: Position) {

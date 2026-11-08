@@ -1722,3 +1722,13 @@ definitions (`TENCHU2_ITEM_ENTRY_ORACLE`). The unavailable JP animal clips are
 excluded as above. Consumption, selection, overlays and velocity execute source
 instructions; tangent initialization and audio remain isolated. Projectile and
 item-effect simulation are separate unfinished work.
+
+Wall alignment, sideways movement, peeking and item throws follow EU `80024ac0`
+/ JP `80025440`. Shared animation-key adjustments are retained, as are camera
+dependent exits, item consumption/refunds and the horizontal-velocity helper's
+preservation of vertical speed. Original execution matches 18,400 updates per
+edition over all 23 maps (`TENCHU2_WALL_ORACLE`), including 2,488 EU / 1,912 JP
+motion-key changes and 300/383 throws. Terrain, inventory, commands and motion
+selection execute original instructions; animation tangent setup, audio, root
+publication and projectile creation are controlled boundaries. World integration
+and projectile simulation remain separate work.

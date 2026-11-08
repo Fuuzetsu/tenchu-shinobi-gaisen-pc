@@ -20,6 +20,7 @@ mod source_sequence;
 mod source_sight;
 mod source_standing;
 mod source_terrain;
+mod source_wall;
 mod source_weapons;
 
 #[test]

@@ -9,6 +9,7 @@ mod jump;
 mod ledge;
 mod sequence;
 mod standing;
+mod wall;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use crouch::{CrouchCue, CrouchInput};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
@@ -16,6 +17,7 @@ pub use item::{ItemInput, ItemSound};
 pub use ledge::{LedgeCue, LedgeInput};
 pub use sequence::{AttackCue, Projectile};
 pub use standing::{StandingCue, StandingInput};
+pub use wall::{WallCue, WallInput};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Request {
