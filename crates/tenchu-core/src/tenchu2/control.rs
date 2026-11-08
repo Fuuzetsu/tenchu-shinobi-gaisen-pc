@@ -2,11 +2,13 @@ use super::actor::{Actor, State, Velocity};
 use crate::{math::Math, random::Random};
 
 mod attack;
+mod crouch;
 mod entry;
 mod jump;
 mod sequence;
 mod standing;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
+pub use crouch::{CrouchCue, CrouchInput};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
 pub use sequence::{AttackCue, Projectile};
 pub use standing::{StandingCue, StandingInput};

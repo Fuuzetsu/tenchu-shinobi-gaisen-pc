@@ -75,6 +75,12 @@ pub struct Attack {
     pub trails: u32,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Inventory {
+    pub counts: [u8; 20],
+    pub searched: bool,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Actor {
     pub kind: i16,
@@ -95,6 +101,7 @@ pub struct Actor {
     pub motion: Motion,
     pub pad: Pad,
     pub attack: Attack,
+    pub inventory: Inventory,
 }
 
 impl Actor {
@@ -131,6 +138,7 @@ impl Actor {
             motion,
             pad: Pad::default(),
             attack: Attack::default(),
+            inventory: Inventory::default(),
         })
     }
 

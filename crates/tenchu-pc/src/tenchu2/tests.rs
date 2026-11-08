@@ -5,6 +5,7 @@ mod source_ai;
 mod source_attack;
 mod source_body;
 mod source_control;
+mod source_crouch;
 mod source_entry;
 mod source_idle;
 mod source_input;

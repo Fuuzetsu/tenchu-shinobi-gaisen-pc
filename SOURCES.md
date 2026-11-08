@@ -1688,3 +1688,14 @@ ledge/attack/jump/item dispatch and audio/effects, while status, commands, turni
 velocity and recovery execute original code; nested jump dispatch deliberately
 changes motion state to check subsequent control flow. Native terrain entry,
 loot/carry targeting and world event integration remain separate boundaries.
+
+Crouching, rolls, corpse searches, body-carry eligibility and wall entry follow
+EU `800241c8`, `8001fd40`, `80022108` / JP `80024b40`, `80020150`,
+`800227d8`. Loot retains the source byte arithmetic and unlock checks; JP alone
+exempts item 15 from the unlock check. Carrying requires a settled corpse with
+its joints attached and no blocked/uneven/water contact. Original execution
+matches 20,700 checks per edition across all 23 maps (`TENCHU2_CROUCH_ORACLE`),
+including inventory transfers, terrain/cache state, command history and filtered
+input. The oracle supplies nearest-body/root queries and attack/item entry while
+recording sound, pickup and vibration calls. World target links, HUD pickup
+notifications and item use remain integration work.
