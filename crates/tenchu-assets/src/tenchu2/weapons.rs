@@ -33,6 +33,14 @@ pub struct Weapons {
     pub attacks: Vec<Attack>,
 }
 
+pub fn model(disc: &Disc<impl ReadAt>, name: &str) -> Result<Vec<crate::model::Part>> {
+    if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+        return Err("Invalid Tenchu 2 weapon model name".into());
+    }
+    let bytes = Volume::open(disc)?.read(r"o:\cdimage\game\weapon", &format!("{name}.mdl"))?;
+    super::model::rig(&bytes)
+}
+
 impl Weapons {
     pub fn at_gameplay_rate(mut self) -> Self {
         if self.edition == Edition::Europe {

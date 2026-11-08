@@ -1982,3 +1982,12 @@ as synchronous boundaries; their integration into a complete actor tick remains.
 Fmt, strict workspace Clippy and wasm core checks pass. EU resource compatibility
 also passes: every model's rig/textures/idle decodes, and both Gaisen heroes can
 move through all 23 imported maps, including snapshot/restore comparisons.
+
+Native JP world creation follows `8001b5ac` (actors/weapon attachments),
+`8002f6f4` (hero/cast filtering), `80039358` (layout actor initialization), and
+`8001bcd4` (NPC inventories). Loot parameters and item slots come from the user's
+JP executable/module; no table bytes or models are distributed. Inventory/RNG
+results match 13,000 original-code calls over all 130 actor kinds
+(`TENCHU2_LOOT_ORACLE`). All 56 gameplay layouts create their source cast with
+native skeletons, body/weapon collision and serializable world state. These are
+initialization checks; continuous controller/effect/campaign integration remains.

@@ -56,6 +56,29 @@ pub enum Unavailable {
 }
 
 impl Inventory {
+    pub fn for_actor(
+        kind: i16,
+        loot: &tenchu_assets::tenchu2::loot::Loot,
+        random: &mut crate::random::Random,
+    ) -> Self {
+        let mut inventory = Self::default();
+        if matches!(kind & 0xf0, 0x20 | 0x30) {
+            inventory.counts[15] = (random.next15() % 3) as u8;
+        }
+        if let Some((_, amounts)) = loot.actors.iter().find(|(id, _)| *id == kind) {
+            for (&item, &amount) in loot.items.iter().zip(amounts) {
+                if amount != 0 {
+                    inventory.counts[item] = if amount & 0x80 != 0 {
+                        amount.wrapping_neg()
+                    } else {
+                        (random.next15() % (i32::from(amount) * 2 + 1)) as u8
+                    };
+                }
+            }
+        }
+        inventory
+    }
+
     pub fn take(&mut self) -> Result<Item, Unavailable> {
         let item = self.selected.ok_or(Unavailable::Unselected)?;
         let count = &mut self.counts[item.index()];

@@ -40,6 +40,7 @@ mod source_swimming;
 mod source_terrain;
 mod source_wall;
 mod source_weapons;
+mod source_world;
 
 #[test]
 #[ignore = "requires TENCHU2_DISC; checks every map's source background samples and schedules"]

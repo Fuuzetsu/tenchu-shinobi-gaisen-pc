@@ -7,6 +7,7 @@ mod edition;
 pub use edition::Edition;
 pub mod layout;
 pub mod level;
+pub mod loot;
 mod math;
 pub use math::math_tables;
 mod model;

@@ -8,3 +8,4 @@ pub mod motion;
 pub mod physics;
 pub mod rig;
 pub mod terrain;
+pub mod world;
