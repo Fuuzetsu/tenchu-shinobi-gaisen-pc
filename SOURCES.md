@@ -1971,3 +1971,14 @@ controller, damage, paired-stealth and attack-timeline comparisons all pass afte
 this simplification (19 focused tests), along with strict Clippy, formatting and
 wasm core compilation. This remains internal integration work, not a playable
 native T2 campaign.
+
+The JP outer controller follows `8001ee58`, with falling entry at `80021de8`
+and water entry at `80022998`. It preserves damage/fall/water precedence, early
+water transitions, breathing/drowning, camera input suppression, item selection
+and final motion requests. It matches 24,000 source calls
+(`TENCHU2_DISPATCH_ORACLE`), including 16,277 action transitions and 135 drowning
+ticks. The comparison records state-controller, motion-selection and effect calls
+as synchronous boundaries; their integration into a complete actor tick remains.
+Fmt, strict workspace Clippy and wasm core checks pass. EU resource compatibility
+also passes: every model's rig/textures/idle decodes, and both Gaisen heroes can
+move through all 23 imported maps, including snapshot/restore comparisons.
