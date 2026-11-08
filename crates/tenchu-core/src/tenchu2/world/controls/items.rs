@@ -163,6 +163,12 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            8 => State::Dart(items::dart::Dart::launch(
+                self.index,
+                self.item_origin(11)?,
+                direction.ok_or("Missing Tenchu 2 dart direction")?,
+                &self.math,
+            )),
             11 => {
                 let hand = self.item_origin(if actor.motion.action == 0x310 { 5 } else { 11 })?;
                 State::Rice(items::rice::Rice::launch(
@@ -267,7 +273,13 @@ impl<E: Events> Context<'_, E> {
             }
             _ => return self.emit(actor, Event::UseItem { item, direction }, random),
         };
-        self.items.insert(state, self.scene, self.collision)
+        let trail = matches!(state, State::Dart(_));
+        let model = self.items.insert(state, self.scene, self.collision)?;
+        if trail {
+            self.effects
+                .start_ribbon(crate::tenchu2::effects::ribbon::Source::Projectile(model))?;
+        }
+        Ok(())
     }
 
     pub(super) fn fire(
@@ -469,19 +481,13 @@ impl<E: Events> Context<'_, E> {
             } else {
                 direction
             };
-            self.items.insert(
+            let model = self.items.insert(
                 State::Projectile(Shot::launch(
                     kind, self.index, origin, direction, &self.math,
                 )),
                 self.scene,
                 self.collision,
             )?;
-            let model = self
-                .items
-                .entries
-                .last()
-                .ok_or("Missing newly thrown Tenchu 2 blade")?
-                .model;
             self.effects
                 .start_ribbon(crate::tenchu2::effects::ribbon::Source::Projectile(model))?;
         }

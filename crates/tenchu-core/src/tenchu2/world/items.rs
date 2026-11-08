@@ -23,6 +23,7 @@ impl World {
         assets: &Assets,
         events: &mut impl Events,
     ) -> Result<()> {
+        let view = self.view();
         let mut index = 0;
         while index < self.items.entries.len() {
             let entry = &mut self.items.entries[index];
@@ -43,6 +44,15 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::Dart(dart) => {
+                    let alive = dart.advance(model, view, &mut context, |event| {
+                        sink.emit(event, &mut self.random)
+                    })?;
+                    if !alive || !dart.trail {
+                        sink.effects.sample_ribbon(Source::Projectile(model), None);
+                    }
+                    (alive, false)
+                }
                 State::Rice(rice) => (
                     rice.advance(model, &mut context, |event| {
                         sink.emit(event, &mut self.random)

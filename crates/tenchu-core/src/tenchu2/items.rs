@@ -1,6 +1,7 @@
 pub mod aim;
 pub mod arrow;
 pub mod caltrop;
+pub mod dart;
 pub mod flight;
 pub mod grapple;
 pub mod grenade;
@@ -47,6 +48,7 @@ pub enum State {
     Smoke(smoke::Smoke),
     Caltrop(caltrop::Caltrop),
     Rice(rice::Rice),
+    Dart(dart::Dart),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -106,7 +108,7 @@ impl Items {
         mut state: State,
         scene: &mut Scene,
         collision: &mut Collision,
-    ) -> Result<()> {
+    ) -> Result<ModelId> {
         if self.entries.len() == 30 {
             self.remove(0, collision);
         }
@@ -119,6 +121,17 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Dart(dart) => {
+                dart.flight.floor = floor;
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: dart.flight.position,
+                        ..Default::default()
+                    },
+                );
+                dart.register(model, collision)?;
+            }
             State::Rice(rice) => {
                 if !rice.floor_initialized {
                     rice.flight.floor = floor;
@@ -182,7 +195,7 @@ impl Items {
             unused_floor: floor,
             slot,
         });
-        Ok(())
+        Ok(model)
     }
 
     pub fn remove(&mut self, index: usize, collision: &mut Collision) {
@@ -196,6 +209,7 @@ impl Items {
             State::Smoke(smoke) => smoke.flight.floor,
             State::Caltrop(caltrop) => caltrop.flight.floor,
             State::Rice(rice) => rice.flight.floor,
+            State::Dart(dart) => dart.flight.floor,
             State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));

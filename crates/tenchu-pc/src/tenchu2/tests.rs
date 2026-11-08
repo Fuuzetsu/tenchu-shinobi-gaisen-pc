@@ -18,6 +18,7 @@ mod source_combat;
 mod source_control;
 mod source_crouch;
 mod source_damage;
+mod source_darts;
 mod source_death;
 mod source_dispatch;
 mod source_effects;

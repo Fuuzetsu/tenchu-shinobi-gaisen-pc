@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect poison darts in the internal JP preview, including blowgun controls,
+  flight trails, terrain/range limits and the original poison damage rules.
+
 - Restore native JP weapon swings, shuriken/kunai trails and weapon-clash flashes
   in the internal preview. Trails fade on impact or attack interruption and
   survive restoring an in-flight snapshot.

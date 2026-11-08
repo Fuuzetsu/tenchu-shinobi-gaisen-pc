@@ -704,6 +704,94 @@ fn native_weapon_trails_follow_attacks_and_snapshot_continuation() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; actual blowgun controls, poison damage and in-flight snapshot continuation"]
+fn native_poison_dart_hits_unaware_and_armed_guards() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    for armed in [false, true] {
+        let (mut world, mut assets, guard) = fixture();
+        world.actors[guard].actor.position = Position::new(10000, 0, -10000);
+        world.actors[guard].actor.previous = world.actors[guard].actor.position;
+        world.publish(guard, &assets);
+        world.finish_tick(&assets, 6).unwrap();
+        if armed {
+            world.actors[guard]
+                .actor
+                .set_weapon(
+                    &mut world.instances[guard].rig,
+                    guard,
+                    &mut world.collision,
+                    &assets.resources,
+                    WeaponMode::Draw,
+                )
+                .unwrap();
+        }
+        let health = world.actors[guard].actor.health;
+        world.actors[0].actor.inventory.counts[8] = 2;
+        world.actors[0].actor.inventory.selected = Some(Item::try_from(8).unwrap());
+        world.actors[0].actor.pad.update(ITEM);
+        let mut events = Recorded::default();
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        let mut restored: Option<World> = None;
+        let (_, mut restored_assets, _) = fixture();
+        let mut hit = false;
+        let mut drawn = false;
+        let step = |world: &mut World, assets: &mut Assets, events: &mut Recorded| {
+            for index in [0, guard] {
+                world.move_actor(index, assets, events).unwrap();
+                world.actors[index].actor.pad.update(0);
+                world.control_actor(index, assets, events).unwrap();
+                world.animate_actor(index, assets).unwrap();
+            }
+            world.update_items(assets, events).unwrap();
+            let frame = world.update_effects().unwrap();
+            world.finish_tick(assets, 6).unwrap();
+            frame
+        };
+        for _ in 0..100 {
+            let frame = step(&mut world, &mut assets, &mut events);
+            if let Some(copy) = &mut restored {
+                let repeated = step(copy, &mut restored_assets, &mut Recorded::default());
+                assert_eq!(frame.ribbons, repeated.ribbons);
+            } else if let Some(ItemState::Dart(dart)) =
+                world.items.entries.first().map(|e| &e.state)
+            {
+                let target = dart
+                    .flight
+                    .position
+                    .wrapping_add(dart.flight.velocity.map(|v| v * 8));
+                let actor = &mut world.actors[guard].actor;
+                actor.position.x = target.x;
+                actor.position.z = target.z;
+                actor.previous = actor.position;
+                world.publish(guard, &assets);
+                restored =
+                    Some(postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap());
+            }
+            drawn |= !frame.ribbons.is_empty();
+            hit |= world.actors[guard].actor.flags & 0x100 != 0;
+        }
+        assert!(
+            hit && drawn,
+            "dart armed={armed}, hit={hit}, drawn={drawn}, pending={:?}",
+            events.0
+        );
+        assert_eq!(world.actors[0].actor.inventory.counts[8], 1);
+        let remaining = world.actors[guard].actor.health;
+        assert!(if armed {
+            remaining > 0 && remaining < health
+        } else {
+            remaining == 0
+        });
+        assert!(world.items.entries.is_empty());
+        assert_eq!(
+            postcard::to_allocvec(&world).unwrap(),
+            postcard::to_allocvec(&restored.unwrap()).unwrap()
+        );
+        assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; native AI must nock, fire and injure the player through the full world loop"]
 fn native_archers_and_gunners_land_their_attacks() {
     use tenchu_core::tenchu2::items::{State as ItemState, arrow::Phase};

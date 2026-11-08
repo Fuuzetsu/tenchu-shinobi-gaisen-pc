@@ -2344,3 +2344,14 @@ including ring wraparound, fading, narrowing, colors and removal. Drawing is
 captured at the primitive submission boundary, not compared as pixels. Existing
 blade-flight fixtures isolate projection; connected-world checks additionally
 exercise actual melee/throw controls, rendered trail output and snapshots.
+
+Native JP poison darts follow `800566ec` / `80056898`: hand origin, normalized
+700-unit ballistic velocity, distance accumulation, terrain and owner/contact
+checks, source range limit and ribbon width. They use the existing item-8 damage
+decoder in `800202bc`, including the unaware/armed distinction. The item model is
+not drawn; the blowgun is held by the actor and the flying dart uses its ribbon.
+`TENCHU2_DART_ORACLE` checks 1,524 original constructor/update cases across real
+JP terrain; 76 original null-terrain reads are excluded. Projection and contact
+lists are controlled boundaries. Connected checks fire through ordinary item
+controls at both unaware and armed guards, assert inventory/poison/damage and
+compare an in-flight snapshot's continuation. No mission-level parity is implied.
