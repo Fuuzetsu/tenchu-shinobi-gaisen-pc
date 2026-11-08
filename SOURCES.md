@@ -1502,3 +1502,10 @@ this conversion when running native EU gameplay at 25 Hz. JP retains its source
 velocity helper applies its separate 6/5 speed adjustment. Private execution of
 the actual conversion routine matches all 1,208 EU clips and 231 attack windows
 (`TENCHU2_PAL_ORACLE`).
+
+Native command input follows EU `80016348`, `80016410`, `800164ec` / JP
+`80016390`, `80016458`, `80016534`, with command tables read independently from
+each executable. Its seven-entry history expires on the eighth repeated/released
+update; AI command injection goes through that same history. Private MIPS traces
+check 77,545 transitions per edition, including command consumption, injection,
+release and signed timer wrap (`TENCHU2_INPUT_ORACLE`).

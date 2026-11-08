@@ -1,5 +1,6 @@
 use super::*;
 
+mod source_input;
 mod source_motion;
 
 #[test]
