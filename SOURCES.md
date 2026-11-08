@@ -1699,3 +1699,15 @@ including inventory transfers, terrain/cache state, command history and filtered
 input. The oracle supplies nearest-body/root queries and attack/item entry while
 recording sound, pickup and vibration calls. World target links, HUD pickup
 notifications and item use remain integration work.
+
+Ledge entry, hanging, sideways movement, dropping and climbing follow EU
+`80021924`, `80025780` / JP `80021f5c`, `80026100`. The port retains the
+source's three-point ledge probes, diagonal fallback, slope restrictions and
+source-specific PAL/JP climb timing. JP's map-23 secret remains an explicit
+world-event cue. Original execution matches 32,200 cases per edition over all
+23 maps (`TENCHU2_LEDGE_ORACLE`), including 73 successful entry checks and
+33 EU / 42 JP new grabs. Terrain, movement, input filtering and motion selection
+run the original instructions; animation tangent setup, audio/rumble and root
+publication are isolated at their previously checked boundaries. The ledge
+material table at EU `80081600` / JP `80083530` is identical to each edition's
+body-probe transition table, so both use the same parsed rules.

@@ -5,11 +5,13 @@ mod attack;
 mod crouch;
 mod entry;
 mod jump;
+mod ledge;
 mod sequence;
 mod standing;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use crouch::{CrouchCue, CrouchInput};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
+pub use ledge::{LedgeCue, LedgeInput};
 pub use sequence::{AttackCue, Projectile};
 pub use standing::{StandingCue, StandingInput};
 
