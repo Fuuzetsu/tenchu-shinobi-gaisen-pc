@@ -21,6 +21,7 @@ mod source_jump;
 mod source_ledge;
 mod source_math;
 mod source_motion;
+mod source_navigation;
 mod source_physics;
 mod source_scene;
 mod source_search;

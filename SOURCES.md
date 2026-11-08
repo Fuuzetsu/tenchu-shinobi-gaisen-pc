@@ -1891,3 +1891,12 @@ original RNG, terrain, SDK math and steering execute directly in the comparisons
 Motion requests are recorded boundaries. JP's shorter pursuit timeout, immediate
 facing changes, forced movement, cached perception flags and terrain-cursor state
 are preserved. These components still require enclosing AI/world integration.
+
+Guard navigation follows the terrain samples at EU `8002f994..8002fb04` / JP
+`8003a2ac` and movement constraints at EU `800305e8..800309d4` / JP
+`80031124..80031518`. Original instruction execution matches 13,800 terrain
+samples and 23,000 movement decisions per edition over all 23 maps
+(`TENCHU2_NAVIGATION_ORACLE`), including 508/500 jump inputs. Alternating forward/
+side probes, forced-turn expiration, ledge movement, step jumping and water/drop
+avoidance retain source arithmetic and RNG order. Terrain, trigonometry and RNG
+execute original instructions; entry registers supply the preceding AI decision.
