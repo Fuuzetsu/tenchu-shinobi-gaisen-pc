@@ -25,7 +25,6 @@ pub use update::Movement;
 pub struct Options {
     pub hero: usize,
     pub difficulty: u8,
-    pub sight_distance: i32,
     pub seed: u32,
     pub inventory: Inventory,
 }
@@ -80,8 +79,11 @@ impl World {
         if options.hero > 2 || !(1..=3).contains(&options.difficulty) {
             return Err("Invalid Tenchu 2 hero or difficulty".into());
         }
-        if layout.map != assets.level.id {
-            return Err("Tenchu 2 layout does not match its terrain".into());
+        if layout.map != assets.level.id
+            || layout.sequence != assets.sequence
+            || options.hero != assets.hero
+        {
+            return Err("Tenchu 2 layout or hero does not match its resources".into());
         }
         let cast = assets
             .resources
@@ -93,7 +95,7 @@ impl World {
             instances: Vec::new(),
             scene: Scene::default(),
             collision: Collision::default(),
-            ai: System::new(options.sight_distance.wrapping_mul(16)),
+            ai: System::new((assets.draw_distance >> 4) * 16),
             random: Random::new(options.seed),
             map: layout.map,
             sequence: layout.sequence as u16,
@@ -242,7 +244,7 @@ impl World {
                 WeaponMode::Draw,
             )?;
         }
-        let sight_range = (options.sight_distance as i16)
+        let sight_range = ((assets.draw_distance >> 4) as i16)
             .wrapping_sub(definition.sight_penalty.wrapping_mul(125))
             .wrapping_mul(16);
         let mut agent = Agent::new(actor, 0, sight_range, &[]);

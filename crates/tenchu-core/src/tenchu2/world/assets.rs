@@ -7,6 +7,7 @@ use tenchu_assets::{
     tenchu2::{
         characters, collision, combat,
         commands::Commands,
+        layout::Layout,
         level::Level,
         loot::Loot,
         math_tables, motions,
@@ -16,10 +17,14 @@ use tenchu_assets::{
 };
 
 pub struct Assets {
+    pub hero: usize,
+    pub sequence: usize,
+    pub draw_distance: i32,
     pub resources: Resources,
     pub level: Level,
     pub models: BTreeMap<String, characters::Rig>,
     pub weapons: BTreeMap<String, Vec<Part>>,
+    pub weapon_vram: tenchu_assets::texture::Vram,
     pub loot: Loot,
     pub terrain_rules: collision::Rules,
     pub combat_rules: combat::Rules,
@@ -27,9 +32,26 @@ pub struct Assets {
 }
 
 impl Assets {
-    pub fn load(disc: &Disc<impl ReadAt>, hero: usize, map: usize) -> Result<Self> {
+    pub fn load(disc: &Disc<impl ReadAt>, hero: usize, layout: &Layout) -> Result<Self> {
+        let map = layout.map;
         let combat_rules = combat::Rules::load(disc)?;
         let mut registry = Registry::load(disc)?;
+        if hero == 0 && layout.sequence > 93 {
+            registry
+                .actors
+                .iter_mut()
+                .find(|actor| actor.kind == 0)
+                .ok_or("Missing Tenchu 2 Rikimaru definition")?
+                .weapon = 0x1000;
+        }
+        if hero == 2 && map >= 12 {
+            registry
+                .actors
+                .iter_mut()
+                .find(|actor| actor.kind == 2)
+                .ok_or("Missing Tenchu 2 Tatsumaru definition")?
+                .model = if map < 14 { "tatu2_m" } else { "tatu2" }.into();
+        }
         if map == 12 {
             registry
                 .actors
@@ -60,6 +82,9 @@ impl Assets {
             }
         }
         Ok(Self {
+            hero,
+            sequence: layout.sequence,
+            draw_distance: Level::draw_distance(disc, map)?,
             resources: Resources {
                 registry,
                 clips: motions::for_map(disc, hero, map)?,
@@ -72,6 +97,7 @@ impl Assets {
             level: Level::load(disc, map)?,
             models,
             weapons: weapon_models,
+            weapon_vram: weapons::textures(disc)?,
             loot: Loot::load(disc)?,
             terrain_rules: collision::Rules::load(disc)?,
             combat_rules,

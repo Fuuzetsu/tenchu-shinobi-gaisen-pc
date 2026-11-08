@@ -2001,3 +2001,9 @@ queries are explicit fixture boundaries in this particular comparison. The
 existing 24,000 outer-control comparisons still pass after allowing state
 controllers to edit shared wall-hug motion keys. This does not yet establish
 complete native mission playback.
+
+Native mission startup also reads stage view distances from the executable's
+24-entry stage table (JP `80083950`, EU resource table `80081a20`) and loads
+`game/weapon/weapon.arc`. JP `80064a34` selects late-story Rikimaru's weapon and
+Tatsumaru's map-dependent models; native assets now follow those selections.
+All 56 gameplay layouts initialize with these sequence-specific resources.

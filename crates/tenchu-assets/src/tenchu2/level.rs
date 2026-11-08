@@ -22,6 +22,20 @@ pub struct Object {
 }
 
 impl Level {
+    pub fn draw_distance(disc: &Disc<impl ReadAt>, id: usize) -> Result<i32> {
+        if id >= 24 {
+            return Err("Tenchu 2 map index must be 0–23".into());
+        }
+        let (edition, bytes) = super::executable(disc)?;
+        let executable = crate::executable::Executable::new(&bytes)?;
+        let bytes = executable.bytes(edition.addresses().stages + id as u32 * 20, 4)?;
+        let distance = u32_le(bytes, 0)? as i32;
+        if !(1..=32767).contains(&distance) {
+            return Err("Invalid Tenchu 2 draw distance".into());
+        }
+        Ok(distance)
+    }
+
     pub fn available(disc: &Disc<impl ReadAt>) -> Result<Vec<usize>> {
         let volume = Volume::open(disc)?;
         (0..24)

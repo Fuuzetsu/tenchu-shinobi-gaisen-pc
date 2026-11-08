@@ -21,13 +21,12 @@ fn native_actor_visibility_feet_head_tracking_and_effort_match_source() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let layout = Layout::available(&disc).unwrap().remove(0);
-    let mut assets = Assets::load(&disc, 0, layout.map).unwrap();
+    let mut assets = Assets::load(&disc, 0, &layout).unwrap();
     let mut template = World::new(
         &layout,
         Options {
             hero: 0,
             difficulty: 2,
-            sight_distance: 1500,
             seed: 1,
             inventory: Inventory::default(),
         },
@@ -191,15 +190,14 @@ fn native_layouts_create_the_source_cast_and_live_weapon_rigs() {
             if selected.is_empty() {
                 continue;
             }
-            let assets = Assets::load(&disc, hero, map)
-                .unwrap_or_else(|error| panic!("hero {hero} map {map}: {error}"));
             for layout in selected {
+                let assets = Assets::load(&disc, hero, layout)
+                    .unwrap_or_else(|error| panic!("hero {hero} map {map}: {error}"));
                 let mut world = World::new(
                     layout,
                     Options {
                         hero,
                         difficulty: 2,
-                        sight_distance: 1500,
                         seed: 1234,
                         inventory: Inventory::default(),
                     },

@@ -41,6 +41,19 @@ pub fn model(disc: &Disc<impl ReadAt>, name: &str) -> Result<Vec<crate::model::P
     super::model::rig(&bytes)
 }
 
+pub fn textures(disc: &Disc<impl ReadAt>) -> Result<crate::texture::Vram> {
+    let bytes = Volume::open(disc)?.read(r"o:\cdimage\game\weapon", "weapon.arc")?;
+    let count = usize::from(crate::u16_le(&bytes, 0)?);
+    if count > 256 {
+        return Err("Excessive Tenchu 2 weapon textures".into());
+    }
+    let mut vram = crate::texture::Vram::default();
+    for index in 0..count {
+        vram.upload_tim(crate::model::arc_entry(&bytes, index)?)?;
+    }
+    Ok(vram)
+}
+
 impl Weapons {
     pub fn at_gameplay_rate(mut self) -> Self {
         if self.edition == Edition::Europe {
