@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
+mod stealth;
+pub use stealth::{StealthEffect, StealthEvent};
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Registration {
     pub action: i16,
@@ -29,6 +32,7 @@ pub struct Registry {
     pub common: Vec<Registration>,
     cast: Vec<[Vec<i16>; 3]>,
     weapon_frames: Vec<(i16, i16)>,
+    stealth: stealth::Events,
 }
 
 impl Registry {
@@ -105,6 +109,7 @@ impl Registry {
                     common,
                     cast,
                     weapon_frames,
+                    stealth: stealth::read(data, edition)?,
                 });
             }
             if !(0..=255).contains(&kind) || !kinds.insert(kind) {
@@ -148,6 +153,10 @@ impl Registry {
             .chain(&self.common)
             .find(|entry| entry.action == action)
             .map(|entry| entry.clip)
+    }
+
+    pub fn stealth_events(&self, hero: usize, style: usize) -> Option<&[StealthEvent]> {
+        Some(self.stealth.get(hero)?.get(style)?.as_slice())
     }
 
     pub fn weapon_frame(&self, clip: i16, duration: i16) -> i16 {

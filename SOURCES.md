@@ -1775,3 +1775,14 @@ are retained. Selection, velocity and RNG execute source instructions; audio,
 particles, death dispatch and previously verified floor alignment are controlled
 boundaries. Weapon mode 3 removes weapon contacts without toggling or swapping
 attachments; expanded weapon tests match 23,920 operations per edition.
+
+Death, body carrying and stealth-event playback follow EU `8002b820` / JP
+`8002c394`. The character module supplies all three heroes' seven event sequences;
+PAL frame conversion follows `800cf848`, including shared Tatsumaru tables.
+Source execution matches 27,600 updates per edition over all 23 maps
+(`TENCHU2_DEATH_ORACLE`): 1,385/1,396 carrying updates, 2,702/2,683 stealth events
+and 4,022/4,023 corpse completions. Original terrain, motion selection, velocity
+and RNG execute; joint positions, collision mutations, floor alignment, particles
+and audio are recorded boundaries. Dropping, water movement, corpse dimensions,
+weapon events and interrupted kills retain source ordering. Paired-stealth setup,
+actual effects and native-world integration remain unfinished.

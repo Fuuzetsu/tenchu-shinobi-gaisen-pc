@@ -530,7 +530,7 @@ impl Actor {
         }
     }
 
-    fn escape_water(&mut self, border: u16, speed: i16, rules: &Rules) {
+    pub(super) fn escape_water(&mut self, border: u16, speed: i16, rules: &Rules) {
         if border != 0 {
             let [x, z] = rules.escape[usize::from(border)].map(|v| v.wrapping_mul(speed));
             self.position.x = self.position.x.wrapping_add(i32::from(x));
@@ -538,7 +538,12 @@ impl Actor {
         }
     }
 
-    fn swim_border(&self, terrain: &mut Terrain<'_>, mut border: u16, diving: bool) -> Result<u16> {
+    pub(super) fn swim_border(
+        &self,
+        terrain: &mut Terrain<'_>,
+        mut border: u16,
+        diving: bool,
+    ) -> Result<u16> {
         let (radius, height, threshold) = if diving {
             (1000, 100, terrain.water.surface)
         } else {
