@@ -14,6 +14,10 @@ pub struct Items {
 }
 
 impl Items {
+    pub fn apply_shading(&mut self, shading: &super::level::Shading) {
+        shading.apply(self.models.values_mut().flatten());
+    }
+
     pub fn models(&self) -> impl Iterator<Item = (u8, &[Part])> {
         self.models
             .iter()

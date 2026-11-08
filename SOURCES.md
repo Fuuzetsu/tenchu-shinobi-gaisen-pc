@@ -2717,3 +2717,14 @@ selects a drawing path and does not itself make a face semitransparent.
 Parser regressions cover these cases. Disc checks load all JP/EU base-area
 backgrounds and five JP evening variants; GPU captures check background coverage
 and foreground depth, and the original/HD water-scroll regression still passes.
+
+MDL corner bytes index the active color table rather than directly supplying
+grayscale RGB. `80017e38` initializes that table from the first 256 RGB pixels
+at `mapfog.tim+20`, falling back to grayscale only without that file;
+`80018e6c` uses it when submitting faces. Native mission/story models resolve
+those indices before mesh refinement, without changing texture identities or
+simulation. A private controller-only BizHawk training capture supplies the
+runtime table for a regression checking all 5,750 character corners in that
+scene. The capture also confirms shallow pond entry and foot splashes. A native
+controller-only walk enters the same pond with water flags and ripples; this
+is an interaction check, not a claim of a synchronized full replay.

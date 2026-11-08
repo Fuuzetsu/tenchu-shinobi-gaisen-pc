@@ -2,6 +2,40 @@ use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, CROUCH, JUMP, RIGHT, UP};
 
 #[test]
+#[ignore = "requires Japanese TENCHU2_DISC and TENCHU2_SHADING_RAM captured during retail training"]
+fn native_character_shading_matches_the_retail_color_table() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let ram = std::fs::read(std::env::var_os("TENCHU2_SHADING_RAM").unwrap()).unwrap();
+    assert_eq!(ram.len(), 0x200000);
+    assert_eq!(
+        u16::from_le_bytes(ram[0x8e938..0x8e93a].try_into().unwrap()),
+        0
+    );
+    let session = Session::load(&disc, 1, 1).unwrap();
+    let mut corners = 0;
+    let mut tinted = 0;
+    for (name, shaded) in &session.assets.models {
+        let original = tenchu_assets::tenchu2::characters::rig(&disc, name).unwrap();
+        for (part, shaded) in original.parts.iter().zip(&shaded.parts) {
+            for (geometry, shaded) in part.geometry.iter().zip(&shaded.geometry) {
+                for (face, shaded) in geometry.faces.iter().zip(&shaded.faces) {
+                    for (corner, shaded) in face.corners.iter().zip(&shaded.corners) {
+                        let at = 0x81544 + usize::from(corner.color[0]) * 4;
+                        assert_eq!(shaded.color, ram[at..at + 3], "{name}");
+                        assert_eq!(shaded.uv, corner.uv);
+                        tinted += usize::from(shaded.color[0] != shaded.color[2]);
+                        corners += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(tinted > 100);
+    eprintln!("{corners} native corners checked against the retail palette; {tinted} tinted");
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; live story state and facial textures continue after a snapshot, with complete XA decoding"]
 fn native_story_session_restores_faces_camera_and_captions() {
     use super::story::Story;
@@ -108,6 +142,45 @@ fn native_frame_controls_and_audio_continue_after_restoring_a_world() {
             "JP hero {hero} sequence {sequence}: 300 native ticks, {sounds} sounds, pending {:?}",
             session.pending
         );
+    }
+}
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; walks off the starting bank into the training pond without editing state"]
+fn native_training_pond_can_be_entered_from_the_bank() {
+    use tenchu_core::tenchu2::{effects::Effect, physics::IN_WATER};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut session = Session::load(&disc, 1, 1).unwrap();
+    let mut wet = 0;
+    let mut ripples = false;
+    for (buttons, ticks) in [(0, 30), (RIGHT, 19), (UP, 70)] {
+        for _ in 0..ticks {
+            session.step(buttons).unwrap();
+            wet += usize::from(session.world.actors[0].actor.flags & IN_WATER != 0);
+            ripples |= session
+                .world
+                .effects
+                .entries
+                .iter()
+                .any(|e| matches!(e, Effect::Ripple(_)));
+        }
+    }
+    let player = &session.world.actors[0].actor;
+    eprintln!(
+        "Training pond: {:?}, flags {:x}, {wet} wet ticks, ripples {ripples}",
+        player.position, player.flags
+    );
+    assert!(wet > 30 && ripples);
+    assert_eq!(player.position.y, 4000);
+    assert_ne!(player.flags & IN_WATER, 0);
+    if let Some(directory) = std::env::var_os("TENCHU_MODEL_REVIEW") {
+        let path = std::path::PathBuf::from(directory).join("jp-native-pond-entry.png");
+        let graphics = crate::settings::Graphics {
+            asset_pack: false,
+            ..Default::default()
+        };
+        render::capture(&session, &graphics, &path).unwrap();
     }
 }
 

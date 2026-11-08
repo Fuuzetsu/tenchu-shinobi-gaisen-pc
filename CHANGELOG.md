@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Use Tenchu 2's stage-specific shading colors for scenery, characters and
+  equipment, restoring the original warm interiors and blue night lighting.
+
 - Restore Japanese Tenchu 2 sky layers and distant scenery in gameplay and
   story scenes, including the alternate evening palettes. Correct overlapping
   and wrapped texture palettes so these backgrounds load without corrupt colors.

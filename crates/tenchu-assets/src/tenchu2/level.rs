@@ -4,7 +4,9 @@ use crate::{ReadAt, Result, disc::Disc, model::Part, texture::Vram, u32_le};
 pub mod background;
 pub mod grid;
 pub mod objects;
+mod shading;
 use objects::{Objects, Variant};
+pub use shading::Shading;
 
 #[derive(Clone)]
 pub struct Level {
@@ -18,6 +20,7 @@ pub struct Level {
     pub vram: Vram,
     pub collision: super::collision::Collision,
     pub background: background::Background,
+    pub shading: Shading,
 }
 
 impl Level {
@@ -88,6 +91,7 @@ impl Level {
         let (_, flags) = Self::parameters(disc, id)?;
         let volume = Volume::open(disc)?;
         let directory = directory(id);
+        let shading = Shading::load(&volume, &directory)?;
         let read = |name: &str| volume.read(&directory, name);
         let msd = read("map.msd")?;
         let grid = grid::Grid::parse(&msd, id)?;
@@ -116,7 +120,7 @@ impl Level {
         }
         let mut vram = Vram::default();
         upload_textures(&read("mapTEX.arc")?, &mut vram)?;
-        let background = background::Background::load(&volume, id, sequence, flags, &mut vram)?;
+        let mut background = background::Background::load(&volume, id, sequence, flags, &mut vram)?;
         initialize_water(id, &mut vram)?;
         let (layout, archive) = variant.files();
         let archive = read(archive)?;
@@ -159,6 +163,13 @@ impl Level {
             }
         }
         model::resolve_transparency(stumps.values_mut(), &vram);
+        shading.apply(
+            map.iter_mut()
+                .chain(&mut objects)
+                .chain(stumps.values_mut())
+                .chain(background.sky.iter_mut().map(|sky| &mut sky.model))
+                .chain(background.landscape.iter_mut()),
+        );
         let collision = match sequence {
             Some(179 | 216) => "map2.mcd",
             Some(245) => "map3.mcd",
@@ -175,6 +186,7 @@ impl Level {
             vram,
             collision: super::collision::Collision::parse(&read(collision)?)?,
             background,
+            shading,
         })
     }
 }
