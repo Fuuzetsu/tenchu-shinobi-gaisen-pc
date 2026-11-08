@@ -15,7 +15,7 @@ use crate::{
         effects::{
             Effects,
             ribbon::{Sample, Source},
-            surface::{Blend, Quad},
+            surface::{Blend, Image, Quad},
         },
         items::{Context, Event as ItemEvent, State, grapple, projectile::Phase},
     },
@@ -49,6 +49,21 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::Teleport(teleport) => {
+                    let target = teleport.target.map(|i| {
+                        let actor = &self.actors[i].actor;
+                        (actor.position, actor.rotation.y)
+                    });
+                    (
+                        teleport.advance(
+                            &mut self.actors[teleport.owner].actor,
+                            target,
+                            &mut self.camera.mode,
+                            &mut context,
+                        )?,
+                        false,
+                    )
+                }
                 State::FireBreath(breath) => (
                     breath.advance(
                         self.actors[breath.owner].actor.rotation.y,
@@ -97,7 +112,7 @@ impl World {
                             }),
                         );
                         quads.push(Quad {
-                            image: 0,
+                            image: Image::Effect(0),
                             position,
                             parent: None,
                             corners,

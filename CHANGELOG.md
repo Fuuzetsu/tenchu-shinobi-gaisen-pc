@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect teleport scrolls in the internal JP preview, including original target
+  selection, delayed placement, cancellation and success/failure paper effects.
+
 - Connect fire-breath scrolls in the internal JP preview, with directional bursts,
   expanding blast damage, source flames and positional sound.
 

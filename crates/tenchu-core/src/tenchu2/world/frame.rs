@@ -44,7 +44,7 @@ impl World {
         self.sample_weapon_ribbons(assets)?;
         let scenery = self.update_environment(assets, events)?;
         let mut items = self.update_items(assets, events)?;
-        let mut effects = self.update_effects()?;
+        let mut effects = self.update_effects(assets)?;
         items.quads.append(&mut effects.quads);
         effects.quads = items.quads;
         self.finish_tick(assets, 6)?;
@@ -95,10 +95,15 @@ impl World {
         Ok(frame)
     }
 
-    pub fn update_effects(&mut self) -> Result<crate::tenchu2::effects::Frame> {
+    pub fn update_effects(&mut self, assets: &Assets) -> Result<crate::tenchu2::effects::Frame> {
         let view = self.view();
-        self.effects
-            .update(&mut self.scene, view, &self.terrain, &mut self.cursor)
+        self.effects.update(
+            &mut self.scene,
+            view,
+            &self.terrain,
+            &mut self.cursor,
+            &assets.resources.math,
+        )
     }
 
     pub fn update_actors(

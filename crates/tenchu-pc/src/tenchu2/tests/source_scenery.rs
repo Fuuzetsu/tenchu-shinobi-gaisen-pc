@@ -46,6 +46,7 @@ fn sprites() -> Sprites {
         size: [32, 64],
     };
     Sprites {
+        items: Vec::new(),
         vram: Vram::default(),
         effects: vec![image(0); 36],
         scenery: [8, 2, 4, 1, 3, 7, 6, 5].map(image).to_vec(),

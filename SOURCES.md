@@ -2400,3 +2400,17 @@ expansion window. Original-executable comparisons cover 600 launch/update cases
 and 120 blast collision/expiry boundaries (`TENCHU2_FIRE_BREATH_ORACLE`,
 `TENCHU2_FIRE_BLAST_ORACLE`). Connected item-use checks cover guard damage, owner
 safety, inventory, particles, positional sound and expiry.
+
+Native JP teleport follows `800594dc`, `800595f0` and `800597c4`: source visibility
+flag eligibility and list-order ties, full-word squared distance, the 96-update delay,
+cancellation and unsnapped placement behind the target's current pose. The shared
+paper effects follow `80043fe8`, `80043dc0` and the four motion callbacks
+`800443e8`, `800444c0`, `800445f8`, `80044740`, preserving their RNG calls, pool
+priority, delayed appearance and motion transitions. Their disc image is
+`item.arc` entry 64, configured by `80052084`; rotations use `RotMatrixYXZ`.
+Original-instruction comparisons cover 1,600 target sets, 600 placement and expiry
+cases, and 240 particle sequences including pool eviction
+(`TENCHU2_TELEPORT_TARGET_ORACLE`, `TENCHU2_TELEPORT_UPDATE_ORACLE`,
+`TENCHU2_PAPER_ORACLE`). Projection is excluded from the particle oracle. A
+connected item-use check covers delayed teleportation to a moving target and
+snapshot continuation. Full campaign parity remains unverified.

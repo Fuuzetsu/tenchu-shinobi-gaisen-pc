@@ -197,7 +197,7 @@ fn surface_geometry_and_fading_match_source() {
             _ => panic!("Unexpected effect"),
         }
         .unwrap();
-        let draws: Vec<_> = frame.quads.iter().map(|q| json!({"image":q.image,"position":q.position,"corners":q.corners.map(|p|p.to_array()),"color":q.color,"blend":format!("{:?}",q.blend)})).collect();
+        let draws: Vec<_> = frame.quads.iter().map(|q| json!({"image":match q.image { surface::Image::Effect(id) => id, _ => panic!("Unexpected item texture") },"position":q.position,"corners":q.corners.map(|p|p.to_array()),"color":q.color,"blend":format!("{:?}",q.blend)})).collect();
         compare(
             &Value::Array(draws),
             &row["draws"],

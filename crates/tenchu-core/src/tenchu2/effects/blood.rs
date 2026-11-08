@@ -2,7 +2,7 @@ use super::{
     Effect, Effects, Frame,
     points::Points,
     sprites,
-    surface::{Blend, Plane, Quad},
+    surface::{Blend, Image, Plane, Quad},
 };
 use crate::{
     Result,
@@ -82,7 +82,7 @@ impl Pool {
             self.plane
         };
         Quad {
-            image: 4,
+            image: Image::Effect(4),
             position: self.position,
             parent: self.parent,
             corners: plane.corners(radius)?,
@@ -143,7 +143,7 @@ impl Blood {
                         (radius, 0)
                     };
                     Quad {
-                        image: 3,
+                        image: Image::Effect(3),
                         position: drop.position,
                         parent: self.parent,
                         corners: [
@@ -165,7 +165,7 @@ impl Blood {
                     }
                     if !water || fade < 128 {
                         Quad {
-                            image: 2,
+                            image: Image::Effect(2),
                             position: drop.position,
                             parent: self.parent,
                             corners,

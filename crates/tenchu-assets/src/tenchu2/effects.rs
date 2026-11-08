@@ -11,6 +11,7 @@ pub struct Sprites {
     pub vram: Vram,
     pub effects: Vec<Image>,
     pub scenery: Vec<Image>,
+    pub items: Vec<Image>,
 }
 
 impl Sprites {
@@ -29,13 +30,15 @@ impl Sprites {
         };
         let effects = load(r"o:\cdimage\game\effect", "effect.arc")?;
         let scenery = load(r"o:\cdimage\game\stage", "objectef.arc")?;
-        if effects.len() < 36 || scenery.len() < 8 {
+        let items = load(r"o:\cdimage\game\item", "item.arc")?;
+        if effects.len() < 36 || scenery.len() < 8 || items.len() < 65 {
             return Err("Missing Tenchu 2 effect textures".into());
         }
         Ok(Self {
             vram,
             effects,
             scenery,
+            items,
         })
     }
 }

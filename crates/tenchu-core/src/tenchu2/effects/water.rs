@@ -2,7 +2,7 @@ use super::{
     Effect, Effects,
     points::{Particle, Points},
     sprites::{Motion, Sprites},
-    surface::{Blend, Plane, Quad},
+    surface::{Blend, Image, Plane, Quad},
 };
 use crate::{
     Result,
@@ -35,7 +35,7 @@ impl Ripple {
                 let x = radius.wrapping_mul(x);
                 let z = radius.wrapping_mul(z);
                 drawings.push(Quad {
-                    image: 17,
+                    image: Image::Effect(17),
                     position: self.position,
                     parent: self.parent,
                     corners: [

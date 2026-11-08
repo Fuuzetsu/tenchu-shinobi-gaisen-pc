@@ -14,6 +14,7 @@ pub mod projectile;
 pub mod rice;
 pub mod sleep_bomb;
 pub mod smoke;
+pub mod teleport;
 
 use crate::{
     Result,
@@ -58,6 +59,7 @@ pub enum State {
     Invisibility(invisibility::Invisibility),
     FireBreath(fire::Breath),
     FireBlast(fire::Blast),
+    Teleport(teleport::Teleport),
 }
 
 #[derive(Default)]
@@ -235,7 +237,10 @@ impl Items {
                 scene.update(model, smoke.transform);
                 smoke.register(model, collision)?;
             }
-            State::Grapple(_) | State::Invisibility(_) | State::FireBreath(_) => {}
+            State::Grapple(_)
+            | State::Invisibility(_)
+            | State::FireBreath(_)
+            | State::Teleport(_) => {}
         }
         self.entries.push(Entry {
             model,
@@ -264,7 +269,8 @@ impl Items {
             State::Grapple(_)
             | State::Gunshot(_)
             | State::Invisibility(_)
-            | State::FireBlast(_) => entry.unused_floor,
+            | State::FireBlast(_)
+            | State::Teleport(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));
     }

@@ -176,7 +176,7 @@ fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
         world.control_actor(0, assets, &mut events).unwrap();
         world.animate_actor(0, assets).unwrap();
         world.update_items(assets, &mut events).unwrap();
-        world.update_effects().unwrap();
+        world.update_effects(assets).unwrap();
         world.finish_tick(assets, 6).unwrap();
     };
     for tick in 0..120 {
@@ -232,7 +232,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .iter()
             .any(|e| matches!(e, Effect::Blood(_)));
         world.update_items(&assets, &mut events).unwrap();
-        world.update_effects().unwrap();
+        world.update_effects(&assets).unwrap();
         world.finish_tick(&assets, 6).unwrap();
     }
     assert!(matches!(
@@ -333,7 +333,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
             .iter()
             .any(|e| matches!(e, Effect::Sprites(s) if matches!(s.motion, Motion::Healing)));
         world.update_items(&assets, &mut events).unwrap();
-        world.update_effects().unwrap();
+        world.update_effects(&assets).unwrap();
         world.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(
@@ -570,7 +570,7 @@ fn native_shuriken_hits_and_returns_to_inventory() {
             launched = true;
         }
         world.update_items(&assets, &mut events).unwrap();
-        ribbon |= !world.update_effects().unwrap().ribbons.is_empty();
+        ribbon |= !world.update_effects(&assets).unwrap().ribbons.is_empty();
         world.finish_tick(&assets, 6).unwrap();
         hit |= world.actors[guard].actor.health < health;
     }
@@ -743,7 +743,7 @@ fn native_poison_dart_hits_unaware_and_armed_guards() {
                 world.animate_actor(index, assets).unwrap();
             }
             world.update_items(assets, events).unwrap();
-            let frame = world.update_effects().unwrap();
+            let frame = world.update_effects(assets).unwrap();
             world.finish_tick(assets, 6).unwrap();
             frame
         };
@@ -952,7 +952,7 @@ fn native_player_fire_arrow_uses_inventory_and_burns_a_guard() {
                 explosion |= matches!(arrow.phase, Phase::Exploding(_));
             }
         }
-        world.update_effects().unwrap();
+        world.update_effects(&assets).unwrap();
         world.finish_tick(&assets, 6).unwrap();
     }
     assert_eq!(world.actors[0].actor.inventory.counts[9], 1);
@@ -1022,7 +1022,7 @@ fn native_explosives_damage_and_smoke_blinds_through_item_controls() {
                 )
             });
             blinded |= world.actors[guard].actor.flags & 0x200 != 0;
-            world.update_effects().unwrap();
+            world.update_effects(&assets).unwrap();
             world.finish_tick(&assets, 6).unwrap();
         }
         assert!(created, "item {item} never appeared");
@@ -1078,7 +1078,7 @@ fn native_invisibility_changes_guard_perception_and_expires_after_a_snapshot() {
         world.control_actor(0, assets, &mut events).unwrap();
         world.animate_actor(0, assets).unwrap();
         let items = world.update_items(assets, &mut events).unwrap();
-        let effects = world.update_effects().unwrap();
+        let effects = world.update_effects(assets).unwrap();
         world.finish_tick(assets, 6).unwrap();
         (items, effects)
     };
@@ -1170,7 +1170,7 @@ fn native_fire_breath_hurts_a_guard_and_expires_without_harming_its_owner() {
             .iter()
             .filter(|e| matches!(e.state, ItemState::FireBlast(_)))
             .count();
-        particles |= !world.update_effects().unwrap().sprites.is_empty();
+        particles |= !world.update_effects(&assets).unwrap().sprites.is_empty();
         world.finish_tick(&assets, 6).unwrap();
     }
     assert!(casts > 0 && blasts > 0 && particles);
@@ -1219,7 +1219,7 @@ fn native_confusion_powder_affects_nearby_guards_without_health_damage() {
             .any(|entry| matches!(entry.state, ItemState::Powder(_)));
         confused |= world.actors[guard].actor.flags & 0x400 != 0;
         world.update_items(&assets, &mut events).unwrap();
-        let frame = world.update_effects().unwrap();
+        let frame = world.update_effects(&assets).unwrap();
         particles |= frame.sprites.iter().any(|sprite| sprite.image == 22)
             && world
                 .effects
@@ -1265,7 +1265,7 @@ fn native_sleeping_bomb_puts_guards_to_sleep_without_health_damage() {
             world.animate_actor(index, assets).unwrap();
         }
         world.update_items(assets, events).unwrap();
-        let frame = world.update_effects().unwrap();
+        let frame = world.update_effects(assets).unwrap();
         world.finish_tick(assets, 6).unwrap();
         frame
     };
@@ -1594,4 +1594,82 @@ fn native_rice_lures_a_guard_and_preserves_poison_and_pickup_rules() {
     assert!(restored.actors[guard].behavior.bait.is_none());
     assert_eq!(restored.actors[guard].actor.target, Some(0));
     assert_eq!(restored.ai.detections, 1);
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; actual teleport use, moving target, paper effect and snapshot continuation"]
+fn native_teleport_moves_behind_its_target_after_the_delay() {
+    use tenchu_core::tenchu2::{effects::surface::Image, items::State as ItemState};
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.position.z = -8000;
+    world.actors[guard].actor.rotation.y = 1024;
+    world.actors[guard].actor.flags |= 0x100000;
+    world.publish(guard, &assets);
+    world.actors[0].actor.inventory.counts[16] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(16).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut restored: Option<World> = None;
+    let (_, mut restored_assets, _) = fixture();
+    let mut paper = false;
+    let mut teleported = false;
+    let step = |world: &mut World, assets: &mut Assets| {
+        let mut events = Recorded::default();
+        world.move_actor(0, assets, &mut events).unwrap();
+        world.actors[0].actor.pad.update(0);
+        world.control_actor(0, assets, &mut events).unwrap();
+        world.animate_actor(0, assets).unwrap();
+        world.update_items(assets, &mut events).unwrap();
+        let frame = world.update_effects(assets).unwrap();
+        world.finish_tick(assets, 6).unwrap();
+        assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+        frame
+    };
+    for _ in 0..240 {
+        let due = world
+            .items
+            .entries
+            .iter()
+            .any(|e| matches!(&e.state, ItemState::Teleport(t) if t.age == 95));
+        let frame = step(&mut world, &mut assets);
+        paper |= frame.quads.iter().any(|q| q.image == Image::Item(64));
+        if due {
+            assert_eq!(
+                world.actors[0].actor.position,
+                Position::new(1024, 0, -6000)
+            );
+            assert_eq!(world.actors[0].actor.rotation.y, 1024);
+            assert_eq!(world.camera.mode, 21);
+            teleported = true;
+        } else if !teleported {
+            assert!(
+                world.actors[0].actor.position.z > -2000,
+                "teleported before the delay"
+            );
+        }
+        if let Some(copy) = &mut restored {
+            let other = step(copy, &mut restored_assets);
+            assert_eq!(frame.quads.len(), other.quads.len());
+        } else if world
+            .items
+            .entries
+            .iter()
+            .any(|e| matches!(&e.state, ItemState::Teleport(t) if t.age == 40))
+        {
+            world.actors[guard].actor.position.z = -6000;
+            world.publish(guard, &assets);
+            restored = Some(postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap());
+        }
+    }
+    assert!(
+        teleported && paper,
+        "teleported={teleported}, paper={paper}"
+    );
+    assert_eq!(world.actors[0].actor.inventory.counts[16], 1);
+    assert!(world.items.entries.is_empty());
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored.unwrap()).unwrap()
+    );
 }

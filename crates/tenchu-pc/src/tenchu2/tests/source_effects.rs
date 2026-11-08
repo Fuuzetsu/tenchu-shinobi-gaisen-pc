@@ -89,7 +89,7 @@ fn native_water_and_blood_contacts_match_source() {
         for _ in 0..row["ticks"].as_u64().unwrap() {
             sounds.extend(
                 effects
-                    .update(&mut scene, view, map, &mut cursor)
+                    .update(&mut scene, view, map, &mut cursor, &math)
                     .unwrap()
                     .blood_sounds,
             );

@@ -14,7 +14,7 @@ use tenchu_assets::{
 use tenchu_core::{
     math::{Matrix, Position},
     tenchu2::{
-        effects::surface::Blend,
+        effects::surface::{Blend, Image as SurfaceImage},
         world::{Assets, Frame, World},
     },
 };
@@ -478,7 +478,15 @@ impl Models {
             });
         }
         for quad in &frame.effects.quads {
-            let image = assets.sprites.effects[usize::from(quad.image)];
+            let (image, blend) = match quad.image {
+                SurfaceImage::Effect(id) => (
+                    assets.sprites.effects[usize::from(id)],
+                    blend(quad.blend, id),
+                ),
+                SurfaceImage::Item(id) => {
+                    (assets.sprites.items[usize::from(id)], blend(quad.blend, 0))
+                }
+            };
             let mut transform = Matrix {
                 translation: quad.position,
                 ..Default::default()
@@ -492,7 +500,6 @@ impl Models {
                     .map(|v| v as f32)
                     .to_array()
             });
-            let blend = blend(quad.blend, quad.image);
             let mut vertices = render_effects::quad(
                 points,
                 [quad.color.map(|v| f32::from(v) / 128.0); 4],

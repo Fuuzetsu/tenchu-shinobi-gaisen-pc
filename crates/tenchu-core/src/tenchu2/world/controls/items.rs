@@ -163,6 +163,39 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            16 => {
+                use crate::tenchu2::effects::paper::Motion;
+                let target = items::teleport::nearest(
+                    self.index,
+                    actor,
+                    (0..self.others.len())
+                        .filter_map(|i| self.others.get(i, actor).map(|a| (i, a))),
+                    self.player,
+                    16000,
+                    &self.math,
+                );
+                let joint = *self.instances[self.player]
+                    .rig
+                    .joints
+                    .get(2)
+                    .ok_or("Missing Tenchu 2 teleport joint")?;
+                let position = self.scene.world(joint)?.translation;
+                self.effects.paper(
+                    position,
+                    if target.is_some() {
+                        Motion::Burst
+                    } else {
+                        Motion::Scatter
+                    },
+                    &self.math,
+                    random,
+                )?;
+                State::Teleport(items::teleport::Teleport {
+                    owner: self.index,
+                    target,
+                    age: 0,
+                })
+            }
             17 => State::FireBreath(items::fire::Breath::begin(
                 self.index,
                 self.item_origin(1)?,

@@ -12,6 +12,21 @@ use crate::{
 use tenchu_assets::tenchu2::effects::Rules;
 
 impl Effects {
+    pub fn paper(
+        &mut self,
+        position: Position,
+        motion: super::paper::Motion,
+        math: &Math,
+        random: &mut Random,
+    ) -> Result<()> {
+        for _ in 0..16 {
+            self.insert(Effect::Paper(super::paper::Paper::new(
+                position, motion, math, random,
+            )))?;
+        }
+        Ok(())
+    }
+
     pub fn confusion_powder(
         &mut self,
         position: Position,

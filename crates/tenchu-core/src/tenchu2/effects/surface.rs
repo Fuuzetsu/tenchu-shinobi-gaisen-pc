@@ -66,12 +66,18 @@ impl Plane {
 
 #[derive(Clone, Debug)]
 pub struct Quad {
-    pub image: u8,
+    pub image: Image,
     pub position: Position,
     pub parent: Option<ModelId>,
     pub corners: [Vector3<i16>; 4],
     pub color: [u8; 3],
     pub blend: Blend,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Image {
+    Effect(u8),
+    Item(u8),
 }
 
 impl Quad {

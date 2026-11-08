@@ -357,7 +357,7 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
                 .unwrap_or_else(|e| panic!("hero {hero} tick {}: {e}", world.tick));
             world.animate_actor(0, assets).unwrap();
             world.update_items(assets, events).unwrap();
-            world.update_effects().unwrap();
+            world.update_effects(assets).unwrap();
             world.finish_tick(assets, 6).unwrap();
         };
         for &held in &inputs[..180] {

@@ -1,6 +1,6 @@
 use crate::{
     Result,
-    math::Position,
+    math::{Math, Position},
     scene::Scene,
     tenchu2::{terrain::Cursor, visibility::View},
 };
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::collision::Collision;
 
 pub mod blood;
+pub mod paper;
 pub mod points;
 pub mod ribbon;
 mod spawn;
@@ -23,6 +24,7 @@ pub enum Effect {
     Pool(blood::Pool),
     Ripple(water::Ripple),
     Ribbon(ribbon::Ribbon),
+    Paper(paper::Paper),
 }
 
 impl Effect {
@@ -34,6 +36,7 @@ impl Effect {
             Self::Blood(_) => 8,
             Self::Pool(_) => 9,
             Self::Ripple(_) => 12,
+            Self::Paper(_) => 11,
         }
     }
 }
@@ -74,11 +77,13 @@ impl Effects {
         view: View,
         terrain: &Collision,
         cursor: &mut Cursor,
+        math: &Math,
     ) -> Result<Frame> {
         let mut frame = Frame::default();
         let mut index = 0;
         while index < self.entries.len() {
             let alive = match &mut self.entries[index] {
+                Effect::Paper(paper) => paper.update(math, &mut frame.quads),
                 Effect::Ribbon(ribbon) => ribbon.update(&mut frame.ribbons),
                 Effect::Sprites(sprites) => {
                     sprites.update(scene, view, &mut self.sprite_rotations, &mut frame.sprites)?
