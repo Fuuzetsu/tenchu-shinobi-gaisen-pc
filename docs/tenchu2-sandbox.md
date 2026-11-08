@@ -5,6 +5,10 @@ user's **Tenchu 2 Europe (SLES-02452)** or **Japan (SLPS-03040)** disc and uses 
 not a port of Tenchu 2's missions. Both discs remain necessary; no retail assets
 are bundled or downloaded.
 
+Development builds now default Japanese selections to the
+[native JP runtime](tenchu2-native.md). Enable **Use Gaisen scenery sandbox** in
+F6, or add `--mode sandbox` below, to use the mode described on this page.
+
 Use **F6 → Connect another disc…** (or **Quick launcher…** on the title screen).
 Select the CUE, disc folder or archive, then choose the game, area, patrol layout,
 player, music and optional Gaisen guards in F6. Both editions stay connected;
@@ -21,7 +25,7 @@ Alternatively, build and explore a map from the command line:
 ```sh
 ./dev.sh cargo build --release -p tenchu-pc
 ./dev.sh target/release/tenchu-pc play '/path/Gaisen.cue' --quick --tenchu2 '/path/Tenchu 2 Europe.zip' --tenchu2 '/path/Tenchu 2 Japan.zip'
-./dev.sh target/release/tenchu-pc play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --map 0 --character ayame
+./dev.sh target/release/tenchu-pc play-t2 '/path/Gaisen.cue' '/path/Tenchu 2.cue' --mode sandbox --map 0 --character ayame
 ```
 
 Repeat `--tenchu2` for each edition. The paths are remembered, so subsequent

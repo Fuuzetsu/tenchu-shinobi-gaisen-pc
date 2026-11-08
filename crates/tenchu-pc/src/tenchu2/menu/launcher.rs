@@ -19,7 +19,11 @@ impl Menu {
         if !self.initialized {
             self.refresh_discs();
         }
-        let rows: &[usize] = if self.selected.is_some() {
+        let rows: &[usize] = if self.native() {
+            &[7, 4, 5, 3, 11, 1, 8]
+        } else if self.selected == Some(Edition::Japan) {
+            &[7, 4, 5, 2, 3, 6, 9, 10, 11, 1, 8]
+        } else if self.selected.is_some() {
             &[7, 4, 5, 2, 3, 6, 9, 10, 1, 8]
         } else if cfg!(target_arch = "wasm32") {
             &[4, 5, 2, 3, 6, 1, 0]
@@ -88,6 +92,7 @@ impl Menu {
                         )
                     }
                     10 => self.source_models = !self.source_models,
+                    11 => self.sandbox = !self.sandbox,
                     _ => return (false, None),
                 }
             }
@@ -137,8 +142,16 @@ impl Menu {
                     }
                     ui.separator();
                     if self.selected.is_some() {
-                        ui.label("Scenery sandbox · Gaisen gameplay and AI");
-                        ui.small("Story events, cutscenes and mission objectives are not simulated here.");
+                        if self.selected == Some(Edition::Japan) {
+                            ui.checkbox(&mut self.sandbox, selected(11, "Use Gaisen scenery sandbox"));
+                        }
+                        if self.native() {
+                            ui.label("Japanese gameplay, actors, voices and campaign progression");
+                            ui.small("The selected sequence determines the original player character. HUD and equipment presentation are still in development.");
+                        } else {
+                            ui.label("Scenery sandbox · Gaisen gameplay and AI");
+                            ui.small("Story events, cutscenes and mission objectives are not simulated here.");
+                        }
                         ui.horizontal(|ui| {
                             ui.label(selected(4, "Area"));
                             let old = self.map;
@@ -169,18 +182,18 @@ impl Menu {
                             });
                         });
                     }
-                    ui.horizontal(|ui| {
+                    if !self.native() { ui.horizontal(|ui| {
                         ui.label(selected(2, "Character"));
                         ui.selectable_value(&mut options.character, 0, "Rikimaru");
                         ui.selectable_value(&mut options.character, 1, "Ayame");
-                    });
+                    }); }
                     ui.horizontal(|ui| {
                         ui.label(selected(3, "Difficulty"));
                         for difficulty in [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard] {
                             ui.selectable_value(&mut options.difficulty, difficulty, format!("{difficulty:?}"));
                         }
                     });
-                    if self.selected.is_some() {
+                    if self.selected.is_some() && !self.native() {
                         ui.horizontal(|ui| {
                             ui.label(selected(6, "Music"));
                             egui::ComboBox::from_id_salt("quick-music").selected_text(self.music.and_then(|i| THEMES.get(i)).map_or("Stage ambience (retail)", |&(_, name)| name)).show_ui(ui, |ui| {
@@ -195,7 +208,7 @@ impl Menu {
                             }
                         });
                         ui.checkbox(&mut self.source_models, selected(10, "Use Tenchu 2 guard models"));
-                    } else {
+                    } else if self.selected.is_none() {
                         ui.horizontal(|ui| {
                             ui.label(selected(6, "Language"));
                             let mut language = options.language.unwrap_or_default();
@@ -209,7 +222,7 @@ impl Menu {
                     }
                     ui.separator();
                     ui.horizontal_wrapped(|ui| {
-                        if ui.button(selected(1, if self.selected.is_some() { "Explore area" } else { "Start mission" })).clicked() {
+                        if ui.button(selected(1, if self.selected.is_some() && !self.native() { "Explore area" } else { "Start mission" })).clicked() {
                             self.character = options.character;
                             event = Some(if self.selected.is_some() { Event::Play } else { Event::Gaisen(false) });
                         }

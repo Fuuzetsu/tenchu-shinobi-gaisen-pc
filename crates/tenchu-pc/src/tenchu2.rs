@@ -340,7 +340,7 @@ fn spawn(mission: &MissionAssets, math: &Math) -> Result<[i32; 3]> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
-    let help = "tenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map 0..23] [--sequence 0..299] [--guards sword|spear|archer] [--character rikimaru|ayame] [--music off|1..8]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\nExperimental scenery sandbox using Tenchu 1 gameplay. Map 7 is empty. Uses the map's first T2 starting position by default; --sequence selects another layout and its map. T2 story, enemies, scripted objects and water behavior are not ported. F1 settings/free camera work, F5 restarts, Esc returns to the normal launcher.";
+    let help = "tenchu-pc inspect-t2 TENCHU2.cue\ntenchu-pc play-t2 GAISEN.cue TENCHU2.cue [--map ID] [--sequence ID] [--mode native|sandbox] [--difficulty easy|normal|hard]\ntenchu-pc render-t2 GAISEN.cue TENCHU2.cue OUTPUT.png [OPTIONS]\nJapan play defaults to native JP actors, AI, voices, swimming and campaign progression. The selected sequence determines the original character. F1 opens settings; F6 returns to the launcher. Original HUD/equipment presentation and some effects are still in development.\nEurope and render-t2 use the Gaisen scenery sandbox. Japan can opt in with --mode sandbox. Sandbox options: --guards sword|spear|archer, --character rikimaru|ayame, --music off|1..8. Map 7 is empty.";
     if args.len() < 2 || args[1] == "--help" {
         println!("{help}\nSandbox music (repeats the selected theme):");
         for (index, (_, name)) in tenchu_assets::tenchu2::music::THEMES.iter().enumerate() {
@@ -379,6 +379,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let mut sequence = None;
     let mut guard = None;
     let mut music = None;
+    let mut native = None;
     let mut options = Vec::new();
     for pair in args[first..].chunks(2) {
         if pair.len() != 2 {
@@ -386,6 +387,13 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         }
         let value = pair[1].to_str().ok_or("Invalid sandbox option")?;
         match pair[0].to_str() {
+            Some("--mode") => {
+                native = Some(match value {
+                    "native" => true,
+                    "sandbox" => false,
+                    _ => return Err("--mode needs native or sandbox".into()),
+                })
+            }
             Some("--map") => map = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
             Some("--sequence") => {
                 sequence = Some(value.parse::<usize>().map_err(|e| e.to_string())?)
@@ -422,6 +430,41 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 ));
             }
         }
+    }
+    let disc = crate::source::open_disc(args[2].as_ref())?;
+    let edition = tenchu_assets::tenchu2::Edition::detect(&disc)?;
+    if native.unwrap_or(!render && edition == tenchu_assets::tenchu2::Edition::Japan) {
+        if render || edition != tenchu_assets::tenchu2::Edition::Japan {
+            return Err("Native mode requires play-t2 and a Japanese disc".into());
+        }
+        if guard.is_some()
+            || music.is_some()
+            || options.iter().any(|option| option == "--character")
+        {
+            return Err("Guard, character and theme overrides require --mode sandbox; native JP uses the selected sequence's cast and audio".into());
+        }
+        let layouts = Layout::available(&disc)?;
+        let sequence = sequence
+            .or_else(|| {
+                layouts
+                    .iter()
+                    .find(|layout| map.is_none_or(|map| layout.map == map))
+                    .map(|layout| layout.sequence)
+            })
+            .ok_or("No Japanese mission in that area; select a different --map or --sequence")?;
+        let options = Options::parse(&options)?;
+        return crate::window::run(
+            crate::startup::open(args[1].as_ref())?,
+            options,
+            args[1].as_ref(),
+            None,
+            None,
+            crate::window::Startup {
+                native_tenchu2: Some((args[2].clone().into(), sequence)),
+                difficulty: Some(options.difficulty),
+                ..Default::default()
+            },
+        );
     }
     let options = Options::parse(&options)?;
     let mut sandbox = Sandbox::open(args[2].as_ref(), map, sequence, guard)?;

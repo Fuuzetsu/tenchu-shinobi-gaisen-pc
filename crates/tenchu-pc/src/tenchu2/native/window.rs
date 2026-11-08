@@ -1,6 +1,6 @@
 use super::{
     campaign::{Action, Content, Playback},
-    render::{Drawing, StoryDrawing},
+    presentation::ContentDrawing,
 };
 use crate::{
     audio::output::{Command, Output},
@@ -15,9 +15,6 @@ use std::{
 };
 use tenchu_assets::Result;
 
-mod content;
-mod film;
-use content::ContentDrawing;
 use tenchu_core::clock::GameClock;
 use winit::{
     application::ApplicationHandler,
@@ -179,15 +176,7 @@ impl Application {
         let update = self.session.step(self.controls.buttons().swap_bytes())?;
         self.quit |= update.quit;
         if let Some(audio) = &self.audio {
-            if update.stop_music {
-                audio.send(Command::Music(None, false));
-            }
-            if let Some(music) = update.music {
-                audio.send(Command::Music(Some(music), false));
-            }
-            for sound in update.sounds {
-                audio.send(Command::Tenchu2Effect(sound));
-            }
+            update.play_audio(audio);
         }
         if let Some(view) = &mut self.view {
             if view.generation != self.session.generation {

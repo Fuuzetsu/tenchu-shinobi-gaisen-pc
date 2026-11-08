@@ -56,12 +56,18 @@ pub struct Playback<S> {
 }
 
 impl<S: ReadAt> Playback<S> {
-    pub fn load(disc: Disc<S>, sequence: usize, seed: u32, loadout: [u8; 21]) -> Result<Self> {
+    pub fn load(
+        disc: Disc<S>,
+        sequence: usize,
+        difficulty: u8,
+        seed: u32,
+        loadout: [u8; 21],
+    ) -> Result<Self> {
         let campaign = Campaign::load(&disc)?;
         let hero = (0..3)
             .find(|&hero| campaign.mission(hero, sequence).is_some())
             .ok_or("Sequence is not part of a Japanese Tenchu 2 campaign")?;
-        let run = Run::new(&campaign, hero, sequence, 2, seed)?;
+        let run = Run::new(&campaign, hero, sequence, difficulty, seed)?;
         let mut playback = Self {
             disc,
             campaign,

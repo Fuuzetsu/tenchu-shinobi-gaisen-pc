@@ -1,6 +1,11 @@
 use super::*;
 use crate::tenchu2::menu::Event;
 
+#[cfg(not(target_arch = "wasm32"))]
+mod native;
+#[cfg(not(target_arch = "wasm32"))]
+pub(super) use native::Native;
+
 impl Application {
     pub(super) fn tenchu2_action(&mut self, event: Event) {
         if let Err(error) = self.apply_tenchu2(event) {
@@ -11,7 +16,7 @@ impl Application {
         self.update_view();
     }
 
-    fn apply_tenchu2(&mut self, event: Event) -> Result<()> {
+    pub(super) fn apply_tenchu2(&mut self, event: Event) -> Result<()> {
         match event {
             Event::Quick => {
                 self.campaign.screen = Screen::Launcher;
@@ -124,6 +129,9 @@ impl Application {
                 {
                     if self.tenchu2.path != self.tenchu2.connected {
                         return Err("Load the selected disc first".into());
+                    }
+                    if self.tenchu2.native() {
+                        return self.start_native_tenchu2();
                     }
                     let guard = self.tenchu2.sequence.and(self.tenchu2.guard);
                     let mut sandbox = crate::tenchu2::Sandbox::open(

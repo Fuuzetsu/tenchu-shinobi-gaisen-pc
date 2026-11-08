@@ -21,14 +21,16 @@ use tenchu_core::{
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-mod campaign;
+pub(crate) mod campaign;
 #[cfg(not(target_arch = "wasm32"))]
 mod film;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod presentation;
 mod render;
 mod story;
 #[cfg(test)]
 mod tests;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 mod window;
 
 pub struct Session {
@@ -218,7 +220,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     let first = if capture { 3 } else { 2 };
     if args.len() < first || args[1] == "--help" {
         println!(
-            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nInternal native JP integration preview. Story, HUD and campaign progression are still being connected; F1 shows the current boundaries. Existing play-t2 remains the Gaisen sandbox."
+            "tenchu-pc play-t2-jp TENCHU2.cue [--sequence ID] [--seed N] [--loadout 4:20]\ntenchu-pc render-t2-jp TENCHU2.cue OUTPUT.png [--sequence ID] [--ticks N] [--buttons HEX]\nStandalone native JP integration preview. Original HUD, equipment/results artwork and some effects are still being connected; F1 shows the current boundaries. Normal play-t2 and F6 also use native JP by default for Japanese discs."
         );
         return Ok(());
     }
@@ -289,15 +291,20 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         .get(sequence)
         .ok_or("Missing Tenchu 2 sequence")?;
     if !capture {
-        let mut items = [0; 21];
-        items[0] = 255;
-        for (item, count) in loadout {
-            items[item] = count;
+        #[cfg(target_os = "android")]
+        return Err("Use the Android launcher's F6 quick menu to start Japanese Tenchu 2".into());
+        #[cfg(not(target_os = "android"))]
+        {
+            let mut items = [0; 21];
+            items[0] = 255;
+            for (item, count) in loadout {
+                items[item] = count;
+            }
+            return window::run(
+                campaign::Playback::load(disc, sequence, 2, seed, items)?,
+                settings.graphics,
+            );
         }
-        return window::run(
-            campaign::Playback::load(disc, sequence, seed, items)?,
-            settings.graphics,
-        );
     }
     if descriptor.kind == tenchu_assets::tenchu2::campaign::Kind::Event {
         return render::capture_story(

@@ -2581,3 +2581,13 @@ the following story. Live artwork/scrolling text and movie-to-results playback
 were visually checked; a dedicated audio capture verified the movie output.
 This does not verify every movie frame against hardware or complete the native
 HUD, equipment/results artwork, story effects or regular launcher integration.
+
+The main launcher now selects this same native JP runtime for Japanese discs,
+sharing the main window, input bindings, touch overlay and audio output. It does
+not translate JP guards into Gaisen actors. An integration check exercises JP
+Hard difficulty, input, menu suspension, returning to F6 and explicit Gaisen
+sandbox fallback without advancing or saving Gaisen's campaign. Ordinary native
+walking, visible/shallow water and launcher/settings transitions were checked
+through the main window; deep swimming remains covered by the source-map session
+check. Original HUD/equipment/results presentation, some story effects, modern
+lighting and persistent JP progress remain separate integration work.

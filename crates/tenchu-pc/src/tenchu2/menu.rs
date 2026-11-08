@@ -21,6 +21,7 @@ pub struct Menu {
     pub connected: String,
     pub discs: Vec<(Edition, String)>,
     pub selected: Option<Edition>,
+    pub sandbox: bool,
     initialized: bool,
 }
 
@@ -43,6 +44,7 @@ impl Default for Menu {
             connected: String::new(),
             discs: Vec::new(),
             selected: None,
+            sandbox: false,
             initialized: false,
         }
     }
@@ -61,6 +63,10 @@ pub enum Event {
 }
 
 impl Menu {
+    pub fn native(&self) -> bool {
+        self.selected == Some(Edition::Japan) && !self.sandbox
+    }
+
     pub fn show(&mut self, ctx: &egui::Context) -> Option<Event> {
         if !self.open {
             return None;

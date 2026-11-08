@@ -20,6 +20,8 @@ pub(super) fn application(options: Options) -> Application {
     let debug = crate::debug::Debug::new(&campaign.game).unwrap();
     Application {
         tenchu2: Default::default(),
+        #[cfg(not(target_arch = "wasm32"))]
+        native_tenchu2: None,
         frontend: None,
         trial: crate::trial::Editor::new(
             std::env::temp_dir().join(format!("tenchu-trial-test-{}.json", std::process::id())),

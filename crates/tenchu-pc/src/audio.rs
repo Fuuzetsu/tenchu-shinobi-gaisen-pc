@@ -49,6 +49,19 @@ pub struct State {
 }
 
 impl Audio {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn begin_tenchu2(&mut self) {
+        self.fast_forward(false);
+        self.track(None);
+        self.output.send(Command::Clear);
+        self.screen = None;
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn output(&self) -> &output::Output {
+        &self.output
+    }
+
     pub fn capture_state(&self) -> State {
         State {
             current: self.current_track.clone(),

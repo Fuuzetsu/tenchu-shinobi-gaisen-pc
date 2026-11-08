@@ -5,6 +5,14 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Route Japanese Tenchu 2 selections in F6 and `play-t2` into the native JP
+  runtime: original actors, AI, voices, swimming, scenes and campaign transitions.
+  Reuse the main window, saved controls and Android touch overlay, with F1 for
+  supported settings and F6 to return. Gaisen saves stay separate. The Gaisen
+  scenery sandbox remains an explicit JP option and the default for EU imports.
+  Original JP HUD/equipment artwork, some effects and modern lighting remain
+  integration work.
+
 - Connect the Japanese campaign's chapter titles, narrated introductions and
   movies in the internal preview, using artwork, XA audio and streamed STR video
   from the user's disc. Keep original text scrolling, fade and skip timing;
@@ -84,7 +92,8 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 - Add an internal `play-t2-jp` / `render-t2-jp` preview for the native Japanese
   Tenchu 2 actor, terrain, camera and particle runtime, with its own cast voices
   and stage ambience. Projectiles, story, the original HUD and campaign
-  progression remain unfinished; F6 and `play-t2` still use the Gaisen sandbox.
+  progression were initially unfinished; subsequent entries above describe the
+  connected systems and remaining boundaries.
 - F1 now reports both Shinobi Gaisen and Tenchu 2 artwork pack paths, with the correct separate download name when either is missing.
 - Japanese Tenchu 2 imports now select each mission’s alternate scenery and prop layout where the original uses one.
 

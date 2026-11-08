@@ -1,5 +1,31 @@
-use super::*;
+use super::{
+    campaign::{Action, Content, Update},
+    render::{Drawing, StoryDrawing},
+};
+use crate::{
+    audio::output::{Command, Output},
+    renderer::Renderer,
+    settings::Graphics,
+};
+use std::sync::Arc;
+use tenchu_assets::Result;
 use tenchu_core::tenchu2::campaign::Run;
+
+mod film;
+
+impl Update {
+    pub fn play_audio(&self, output: &Output) {
+        if self.stop_music {
+            output.send(Command::Music(None, false));
+        }
+        if let Some(music) = &self.music {
+            output.send(Command::Music(Some(music.clone()), false));
+        }
+        for &sound in &self.sounds {
+            output.send(Command::Tenchu2Effect(sound));
+        }
+    }
+}
 
 impl Content {
     pub fn tick(&self) -> i64 {
@@ -168,7 +194,7 @@ impl Content {
     }
 }
 
-pub(super) enum ContentDrawing {
+pub(crate) enum ContentDrawing {
     Gameplay(Box<Drawing>),
     Story(Box<StoryDrawing>),
     Introduction(Arc<crate::frontend::draw::Frame>),
@@ -188,9 +214,7 @@ impl ContentDrawing {
             Content::Story { story, .. } => Ok(Self::Story(Box::new(StoryDrawing::new(
                 story, graphics, renderer,
             )?))),
-            Content::Introduction(intro) => {
-                Ok(Self::Introduction(super::film::introduction(intro)))
-            }
+            Content::Introduction(intro) => Ok(Self::Introduction(film::introduction(intro))),
             Content::Movie(_) => Ok(Self::Movie {
                 texture: None,
                 frame: None,
@@ -206,7 +230,7 @@ impl ContentDrawing {
             }
             (Self::Story(drawing), Content::Story { story, .. }) => drawing.update(story, renderer),
             (Self::Introduction(frame), Content::Introduction(intro)) => {
-                *frame = super::film::introduction(intro);
+                *frame = film::introduction(intro);
                 Ok(())
             }
             (Self::Movie { .. }, Content::Movie(_)) => Ok(()),
@@ -261,7 +285,7 @@ impl ContentDrawing {
             (Self::Introduction(frame), _) => {
                 ctx.layer_painter(egui::LayerId::background()).add(
                     egui_wgpu::Callback::new_paint_callback(
-                        super::film::rect(ctx),
+                        film::rect(ctx),
                         crate::frontend::gpu::Paint::Frontend(frame.clone()),
                     ),
                 );
@@ -285,7 +309,7 @@ impl ContentDrawing {
                     if let Some(texture) = texture {
                         ctx.layer_painter(egui::LayerId::background()).image(
                             texture.id(),
-                            super::film::rect(ctx),
+                            film::rect(ctx),
                             egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)),
                             egui::Color32::WHITE,
                         );

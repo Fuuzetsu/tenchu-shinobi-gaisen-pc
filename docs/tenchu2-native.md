@@ -1,7 +1,23 @@
 # Japanese Tenchu 2 integration preview
 
-The native JP runtime can be exercised separately while its remaining systems
-are connected:
+Connect your Japanese disc through **F6 → Connect another disc…**, select
+**Tenchu 2 Japan**, an area and a sequence, then **Start mission**. JP selections
+now use the native JP runtime. The sequence determines the original player and
+cast. EU selections still use the Gaisen scenery sandbox; JP can also opt into
+that mode with **Use Gaisen scenery sandbox**.
+
+The same route is available from the command line:
+
+```sh
+./dev.sh target/debug/tenchu-pc play-t2 /path/to/gaisen.cue /path/to/tenchu2-japan.cue --sequence 9
+```
+
+Saved controller/keyboard bindings and Android touch controls apply. F1 opens
+the currently supported JP settings, F3 pauses, F4 advances one logic tick, and
+F6 returns to the quick launcher. JP play does not write Gaisen campaign saves.
+Graphics changes in this F1 menu are shared with the main game.
+
+For development, the standalone preview is also available:
 
 ```sh
 ./dev.sh cargo run -p tenchu-pc --bin tenchu-pc -- play-t2-jp /path/to/tenchu2-japan.cue --sequence 9
@@ -36,15 +52,14 @@ smoke/sleeping bombs, poison darts, confusion powder, invisibility, teleport, fi
 weapon/projectile trails and particles.
 Mission objectives now use the JP sequence descriptors, including exit regions,
 unseen requirements, boss-health thresholds and elimination quotas. The preview
-stops at the end of the original transition and identifies the outcome. Areas
-leading directly to results calculate JP scores, ranks, best records, supply
-rewards and unlocks; F1 shows the result. Story transitions, statistics across
-areas and the original results screen are still being connected.
+continues through story, area, boss, results and retry sequences. Health,
+inventory, RNG and score totals carry across areas. Results calculate JP scores,
+ranks, best records, supply rewards and unlocks. Chapter titles, narrated text,
+movies, story camera/actors/faces and dialogue load from the user's disc.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
-port's visual enhancements. Other projectiles/items, some procedural effects, story scripts,
-the original HUD, menus and campaign progression remain integration work.
+port's visual enhancements. Timed 3D story effects, original HUD, equipment,
+results artwork and persistent JP campaign saves remain integration work.
 Component comparisons and snapshot continuation do not establish full campaign
-parity. F6 and `play-t2` retain the existing Gaisen sandbox until that boundary
-is complete. EU assets remain supported without an EU-native AI runtime.
+parity. EU assets remain supported without an EU-native AI runtime.

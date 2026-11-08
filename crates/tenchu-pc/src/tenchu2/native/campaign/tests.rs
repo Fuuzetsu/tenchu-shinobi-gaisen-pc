@@ -8,7 +8,7 @@ fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let mut loadout = [0; 21];
     loadout[0] = 255;
     loadout[4] = 5;
-    Playback::load(disc, sequence, 17, loadout).unwrap()
+    Playback::load(disc, sequence, 2, 17, loadout).unwrap()
 }
 
 fn reach_exit(playback: &mut Playback<crate::source::DiscSource>) {

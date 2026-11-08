@@ -10,7 +10,7 @@ mod overlay;
 #[cfg(test)]
 mod tests;
 
-pub(in crate::tenchu2::native) struct Drawing {
+pub(crate) struct Drawing {
     models: models::Models,
     scene: SceneDrawing,
     pub texts: Vec<fonts::Text>,

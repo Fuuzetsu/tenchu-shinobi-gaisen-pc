@@ -344,24 +344,10 @@ impl Overlay {
             output
         };
         self.state.handle_platform_output(window, platform_output);
-        let changed = self.shapes != output.shapes
-            || self.screen.size_in_pixels != renderer.size()
-            || self.screen.pixels_per_point != output.pixels_per_point
-            || !output.textures_delta.is_empty();
-        self.dirty |= changed;
-        if changed {
-            self.shapes = output.shapes;
-            self.jobs = self
-                .context
-                .tessellate(self.shapes.clone(), output.pixels_per_point);
-        }
-        self.screen = egui_wgpu::ScreenDescriptor {
-            size_in_pixels: renderer.size(),
-            pixels_per_point: output.pixels_per_point,
-        };
-        renderer.update_overlay_textures(
-            &mut self.renderer,
-            &mut self.free_textures,
+        self.finish_output(
+            renderer,
+            output.shapes,
+            output.pixels_per_point,
             output.textures_delta,
         );
         Updates {
@@ -375,6 +361,55 @@ impl Overlay {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn custom(&mut self, window: &Window, renderer: &Renderer, ui: impl FnMut(&egui::Context)) {
+        let mut input = self.state.take_egui_input(window);
+        let [width, height] = renderer.size();
+        let scale = window.scale_factor() as f32 * self.context.zoom_factor();
+        input.screen_rect = Some(egui::Rect::from_min_size(
+            egui::Pos2::ZERO,
+            egui::vec2(width as f32, height as f32) / scale,
+        ));
+        let output = self.context.run(input, ui);
+        self.state
+            .handle_platform_output(window, output.platform_output);
+        self.finish_output(
+            renderer,
+            output.shapes,
+            output.pixels_per_point,
+            output.textures_delta,
+        );
+    }
+
+    fn finish_output(
+        &mut self,
+        renderer: &Renderer,
+        shapes: Vec<egui::epaint::ClippedShape>,
+        pixels_per_point: f32,
+        textures_delta: egui::TexturesDelta,
+    ) {
+        let changed = self.shapes != shapes
+            || self.screen.size_in_pixels != renderer.size()
+            || self.screen.pixels_per_point != pixels_per_point
+            || !textures_delta.is_empty();
+        self.dirty |= changed;
+        if changed {
+            self.shapes = shapes;
+            self.jobs = self
+                .context
+                .tessellate(self.shapes.clone(), pixels_per_point);
+        }
+        self.screen = egui_wgpu::ScreenDescriptor {
+            size_in_pixels: renderer.size(),
+            pixels_per_point,
+        };
+        renderer.update_overlay_textures(
+            &mut self.renderer,
+            &mut self.free_textures,
+            textures_delta,
+        );
+    }
+
     pub fn draw(&mut self, renderer: &Renderer, target: &wgpu::TextureView) {
         renderer.draw_overlay(target, &mut self.renderer, &self.jobs, &self.screen);
     }
@@ -382,6 +417,10 @@ impl Overlay {
 
 impl super::Application {
     pub(super) fn update_overlay(&mut self) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.native_tenchu2.is_some() {
+            return;
+        }
         if self.view.as_ref().is_some_and(super::View::preparing) {
             return;
         }

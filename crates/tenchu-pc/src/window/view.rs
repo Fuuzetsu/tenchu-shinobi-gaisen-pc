@@ -1238,6 +1238,13 @@ impl View {
         game: &Game,
         debug: &crate::debug::Debug,
     ) -> Result<Option<super::performance::DrawTimes>> {
+        self.present(|view, target| view.render(target, game, debug))
+    }
+
+    pub(super) fn present(
+        &mut self,
+        render: impl FnOnce(&mut Self, &wgpu::TextureView) -> Result<()>,
+    ) -> Result<Option<super::performance::DrawTimes>> {
         // Native presentation also supplies the event loop's vsync pacing.
         if self.size.contains(&0)
             || cfg!(target_arch = "wasm32") && !self.dirty && !self.overlay.dirty
@@ -1262,7 +1269,7 @@ impl View {
         };
         let acquire = start.elapsed();
         let start = Instant::now();
-        self.render(&frame.texture.create_view(&Default::default()), game, debug)?;
+        render(self, &frame.texture.create_view(&Default::default()))?;
         let submit = start.elapsed();
         let start = Instant::now();
         // Wayland callbacks also throttle unlocked rendering; retain them for hidden windows.

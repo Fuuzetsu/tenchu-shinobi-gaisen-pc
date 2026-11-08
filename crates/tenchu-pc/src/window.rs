@@ -87,6 +87,8 @@ struct Application {
     randomizer: crate::randomizer::Editor,
     trial: crate::trial::Editor,
     tenchu2: crate::tenchu2::menu::Menu,
+    #[cfg(not(target_arch = "wasm32"))]
+    native_tenchu2: Option<tenchu2::Native>,
     trial_previous: Option<(Box<Game>, Options)>,
     fps_elapsed: f32,
     fps_frames: u32,
@@ -132,6 +134,10 @@ impl Application {
     }
 
     fn update_view(&mut self) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.native_tenchu2.is_some() {
+            return;
+        }
         if self.view.as_ref().is_some_and(View::preparing) {
             return;
         }
@@ -260,6 +266,15 @@ impl Application {
     }
 
     fn is_suspended(&self) -> bool {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(native) = &self.native_tenchu2 {
+            return self.backgrounded()
+                || self.view.as_ref().is_some_and(View::preparing)
+                || self.paused
+                || native.error.is_some()
+                || native.open && self.settings.pause_in_menu
+                || !self.focused && self.settings.pause_on_defocus;
+        }
         self.backgrounded()
             || self.view.as_ref().is_some_and(View::preparing)
             || self.paused
@@ -291,12 +306,15 @@ impl Application {
     fn sync_audio_pause(&mut self) {
         let paused = self.is_suspended();
         let backgrounded = self.backgrounded();
+        let scene_visible = self.campaign.scene_visible();
+        #[cfg(not(target_arch = "wasm32"))]
+        let scene_visible = scene_visible || self.native_tenchu2.is_some();
         if let Some(audio) = &mut self.audio {
             audio.pause(
                 paused,
                 self.settings.music_while_paused
                     && !backgrounded
-                    && self.campaign.scene_visible()
+                    && scene_visible
                     && !self.faulted
                     && !self.reverse.preview
                     && !self.reverse.active,
@@ -676,6 +694,8 @@ impl ApplicationHandler for Application {
         self.controls.clear();
         self.audio.take();
         #[cfg(not(target_arch = "wasm32"))]
+        self.native_tenchu2.take();
+        #[cfg(not(target_arch = "wasm32"))]
         self.video.take();
         self.frontend.take();
         // EGL/Wayland resources must die before winit closes its display connection.
@@ -785,6 +805,11 @@ impl ApplicationHandler for Application {
     }
 
     fn window_event(&mut self, events: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if self.native_tenchu2.is_some() {
+            self.native_tenchu2_event(events, event);
+            return;
+        }
         #[cfg(target_arch = "wasm32")]
         let event = {
             let mut event = event;
@@ -1358,6 +1383,10 @@ impl ApplicationHandler for Application {
                 timing.prepare = phase.elapsed().as_secs_f32() * 1000.0;
                 let phase = Instant::now();
                 self.update_overlay();
+                #[cfg(not(target_arch = "wasm32"))]
+                if self.native_tenchu2.is_some() {
+                    return;
+                }
                 #[cfg(target_os = "android")]
                 if self.view.as_ref().is_some_and(View::preparing) {
                     return;
@@ -1485,6 +1514,8 @@ pub struct Startup {
     pub difficulty: Option<tenchu_core::ai::Difficulty>,
     pub benchmark: Option<benchmark::Options>,
     pub sandbox: Option<crate::tenchu2::Sandbox>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub native_tenchu2: Option<(PathBuf, usize)>,
 }
 
 pub fn run(
@@ -1526,6 +1557,10 @@ pub fn run(
         settings.volume = 0;
     }
     let sandbox = startup.sandbox.is_some();
+    #[cfg(not(target_arch = "wasm32"))]
+    let native_tenchu2 = startup.native_tenchu2.is_some();
+    #[cfg(target_arch = "wasm32")]
+    let native_tenchu2 = false;
     let saved = if demo.is_some() {
         None
     } else {
@@ -1565,7 +1600,7 @@ pub fn run(
     campaign
         .game
         .set_behavior_profiles(settings.behavior_profiles);
-    let frontend = if demo.is_none() && startup.benchmark.is_none() && !sandbox {
+    let frontend = if demo.is_none() && startup.benchmark.is_none() && !sandbox && !native_tenchu2 {
         campaign.frontend = true;
         campaign.quick_launcher = false;
         if let Some(save) = &campaign.saved {
@@ -1649,6 +1684,8 @@ pub fn run(
         randomizer: crate::randomizer::Editor::new(crate::storage::UserFile::Randomizer.path()?),
         trial: crate::trial::Editor::new(crate::storage::UserFile::Trials.path()?),
         tenchu2: Default::default(),
+        #[cfg(not(target_arch = "wasm32"))]
+        native_tenchu2: None,
         trial_previous: None,
         fps_elapsed: 0.0,
         fps_frames: 0,
@@ -1661,6 +1698,19 @@ pub fn run(
         modifiers: ModifiersState::empty(),
         frontend,
     };
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some((path, sequence)) = startup.native_tenchu2 {
+        application.tenchu2.path = path.to_string_lossy().into_owned();
+        application.apply_tenchu2(crate::tenchu2::menu::Event::Connect)?;
+        application.tenchu2.sequence = Some(sequence);
+        application.tenchu2.map = application
+            .tenchu2
+            .layouts
+            .iter()
+            .find(|layout| layout.sequence == sequence)
+            .map_or(0, |layout| layout.map);
+        application.start_native_tenchu2()?;
+    }
     if application.exporting_video() {
         println!(
             "Offline 4K/60 export. Every frame is rendered; host speed only affects completion time. Esc cancels."
