@@ -2,6 +2,53 @@ use super::*;
 use tenchu_core::tenchu2::input::{ATTACK, CROUCH, JUMP, RIGHT, UP};
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; live story state and facial textures continue after a snapshot, with complete XA decoding"]
+fn native_story_session_restores_faces_camera_and_captions() {
+    use super::story::Story;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for (sequence, event) in [(0, 201), (10, 4), (197, 111)] {
+        let mut story = Story::load(&disc, sequence, event, 17).unwrap();
+        for _ in 0..340 {
+            story.step(true).unwrap();
+        }
+        let mut restored = Story::load(&disc, sequence, event, 17).unwrap();
+        restored
+            .restore(serde_json::from_value(serde_json::to_value(&story.state).unwrap()).unwrap());
+        for (&id, model) in &story.resources.models {
+            assert_eq!(
+                model.vram.words, restored.resources.models[&id].vram.words,
+                "event {event}, model {id}: restored expression"
+            );
+        }
+        for frame in 0..180 {
+            let draw = frame % 7 != 3;
+            story.step(draw).unwrap();
+            restored.step(draw).unwrap();
+            assert_eq!(
+                serde_json::to_value(&story.state).unwrap(),
+                serde_json::to_value(&restored.state).unwrap()
+            );
+        }
+        let clip = tenchu_assets::audio::stream::Clip::load(
+            &disc,
+            story.resources.audio.as_ref().unwrap(),
+        )
+        .unwrap();
+        assert!(
+            clip.frames
+                .iter()
+                .any(|f| f[0].unsigned_abs() > 256 || f[1].unsigned_abs() > 256)
+        );
+        eprintln!(
+            "JP event {event}: snapshot continuation and {:.2}s XA audio for {:.2}s scene",
+            clip.frames.len() as f64 / f64::from(clip.rate),
+            f64::from(story.resources.script.duration) / 30.0
+        );
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; runs the native frame and all three campaign heroes"]
 fn native_frame_controls_and_audio_continue_after_restoring_a_world() {
     let disc =

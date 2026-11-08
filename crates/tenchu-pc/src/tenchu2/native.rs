@@ -20,6 +20,7 @@ use tenchu_core::{
 };
 
 mod render;
+mod story;
 #[cfg(test)]
 mod tests;
 #[cfg(not(target_arch = "wasm32"))]
@@ -264,13 +265,13 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
     } else {
         crate::settings::Settings::default()
     };
-    if capture {
-        let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc)?;
-        let descriptor = campaign
-            .sequences
-            .get(sequence)
-            .ok_or("Missing Tenchu 2 sequence")?;
-        if descriptor.kind == tenchu_assets::tenchu2::campaign::Kind::Event {
+    let campaign = tenchu_assets::tenchu2::campaign::Campaign::load(&disc)?;
+    let descriptor = campaign
+        .sequences
+        .get(sequence)
+        .ok_or("Missing Tenchu 2 sequence")?;
+    if descriptor.kind == tenchu_assets::tenchu2::campaign::Kind::Event {
+        if capture {
             return render::capture_story(
                 &disc,
                 sequence,
@@ -281,6 +282,19 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 Path::new(&args[2]),
             );
         }
+        let story = Box::new(story::Story::load(
+            &disc,
+            sequence,
+            descriptor.resource,
+            seed,
+        )?);
+        let audio = story
+            .resources
+            .audio
+            .as_ref()
+            .map(|track| tenchu_assets::audio::stream::Clip::load(&disc, track).map(Arc::new))
+            .transpose()?;
+        return window::run(window::Content::Story { story, audio }, settings.graphics);
     }
     let mut session = Session::load(&disc, sequence, seed)?;
     for (item, count) in loadout {
@@ -297,6 +311,9 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
         }
         render::capture(&session, &settings.graphics, Path::new(&args[2]))
     } else {
-        window::run(session, settings.graphics)
+        window::run(
+            window::Content::Gameplay(Box::new(session)),
+            settings.graphics,
+        )
     }
 }

@@ -2526,3 +2526,15 @@ the original picture/name-card assets, letterboxing and Japanese captions. All
 1,339 captions are covered by the bundled outline font. A GPU regression checks
 standalone picture materials and background dimming with and without HD artwork.
 Timed 3D effects, distortion, sound and ordinary campaign playback remain pending.
+
+The native JP preview now shares its story state and renderer between live
+playback and still captures. Meshes persist across frames; facial patches update
+only overlapping materials, with distinct bindings for each actor/region.
+Unchanged replacement-art pixels are retained. Disc-backed checks restore camera,
+captions, expressions and actual facial atlas contents in events 201, 4 and 111,
+including subsequent draw skips. Complete XA cues decode for these scenes.
+A GPU comparison checks streamed versus freshly prepared frames for events 201
+and 4. An ordinary live event-4 session displayed the cast and Japanese dialogue;
+captured audio became silent while paused and resumed afterward. This does not
+establish full story parity: timed 3D effects, distortion, weather and campaign
+handoffs remain unfinished, and the normal launcher still uses the Gaisen sandbox.

@@ -5,9 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
-- Add JP cutscene camera/cast inspection, original name cards and pictures,
-  Japanese captions and fade timing to the internal preview. Live story playback
-  and campaign transitions remain in progress.
+- Play JP cutscene cameras, cast animations, facial expressions, original name
+  cards/pictures, Japanese captions, fades and disc dialogue in the internal
+  `play-t2-jp` preview. Pause/resume also pauses dialogue. Timed 3D effects and
+  campaign transitions remain in progress.
 
 - Add native JP scoring, mission records, supply rewards and unlock rules.
   The internal preview shows these for areas that lead directly to results;

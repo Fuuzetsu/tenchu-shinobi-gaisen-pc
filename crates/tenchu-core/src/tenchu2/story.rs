@@ -6,6 +6,8 @@ mod faces;
 pub use faces::{Face, Faces, TextureChange};
 mod presentation;
 pub use presentation::{Overlay, Presentation, PresentationFrame};
+mod playback;
+pub use playback::Playback;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Motion {

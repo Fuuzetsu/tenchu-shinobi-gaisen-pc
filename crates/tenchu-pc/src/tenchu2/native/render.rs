@@ -20,6 +20,7 @@ use tenchu_core::{
 };
 
 mod story;
+pub(super) use story::Drawing as StoryDrawing;
 pub(super) use story::capture as capture_story;
 
 pub struct Drawing {
@@ -195,6 +196,16 @@ fn build(
     sources: Vec<catalog::ModelSource<'_>>,
     graphics: &Graphics,
 ) -> Result<Meshes> {
+    let mut meshes = prepare(vram, sources, graphics)?;
+    meshes.detach_textures();
+    Ok(meshes)
+}
+
+fn prepare(
+    vram: &Vram,
+    sources: Vec<catalog::ModelSource<'_>>,
+    graphics: &Graphics,
+) -> Result<Meshes> {
     let pack = if graphics.asset_pack {
         Pack::for_models(vram, &sources)?
     } else {
@@ -205,7 +216,6 @@ fn build(
         meshes.replace_textures(&pack);
     }
     meshes.inherit_palette_blending(vram);
-    meshes.detach_textures();
     Ok(meshes)
 }
 

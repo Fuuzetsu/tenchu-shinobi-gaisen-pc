@@ -1,4 +1,8 @@
-use super::{Session, render::Drawing};
+use super::{
+    Session,
+    render::{Drawing, StoryDrawing},
+    story::Story,
+};
 use crate::{
     audio::output::{Command, Output},
     controls::Controls,
@@ -9,7 +13,12 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tenchu_assets::Result;
+use tenchu_assets::{Result, audio::stream::Clip, texture::Vram};
+use tenchu_core::tenchu2::audio::Sound;
+
+mod content;
+pub use content::Content;
+use content::ContentDrawing;
 use tenchu_core::clock::GameClock;
 use winit::{
     application::ApplicationHandler,
@@ -24,7 +33,7 @@ struct View {
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     renderer: Renderer,
-    drawing: Drawing,
+    drawing: ContentDrawing,
     context: egui::Context,
     state: egui_winit::State,
     overlay: egui_wgpu::Renderer,
@@ -32,7 +41,7 @@ struct View {
 }
 
 impl View {
-    async fn new(window: Arc<Window>, session: &Session, graphics: &Graphics) -> Result<Self> {
+    async fn new(window: Arc<Window>, session: &Content, graphics: &Graphics) -> Result<Self> {
         let instance = wgpu::Instance::new(&Default::default());
         let surface = instance
             .create_surface(window.clone())
@@ -61,11 +70,11 @@ impl View {
             &adapter,
             config.format,
             [config.width, config.height],
-            &session.assets.sprites.vram,
+            session.vram(),
         )
         .await?;
         renderer.configure(graphics);
-        let drawing = Drawing::new(session, graphics, &mut renderer)?;
+        let drawing = ContentDrawing::new(session, graphics, &mut renderer)?;
         surface.configure(&renderer.device, &config);
         let context = egui::Context::default();
         crate::fonts::install(&context);
@@ -93,7 +102,7 @@ impl View {
 
     fn draw(
         &mut self,
-        session: &Session,
+        session: &Content,
         open: &mut bool,
         paused: &mut bool,
         error: Option<&str>,
@@ -108,42 +117,15 @@ impl View {
             Err(error) => return Err(error.to_string()),
         };
         let target = frame.texture.create_view(&Default::default());
-        self.drawing
-            .draw(session.world.camera.view, &target, &mut self.renderer)?;
-        let output = self.context.run(self.state.take_egui_input(&self.window), |ctx| {
-            let player = &session.world.actors[session.world.player].actor;
-            egui::Area::new("native-status".into()).fixed_pos(egui::pos2(12.0,12.0)).show(ctx, |ui| {
-                egui::Frame::dark_canvas(ui.style()).show(ui, |ui| {
-                    ui.label(format!("JP native preview · area {} · sequence {} · tick {}",session.world.map,session.world.sequence,session.world.tick));
-                    ui.label(format!("Health {} / {} · {:?} · Ki {:?}",player.health,player.max_health,player.state,session.world.ai.global.radar));
-                    if let Some(item) = player.inventory.selected { ui.label(format!("Item {} × {}",item.index(),player.inventory.count(item))); }
-                    ui.label("F1: diagnostics · F3: pause · F4: step · Esc: exit");
-                    if let tenchu_core::tenchu2::mission::Phase::Finished { outcome, .. } = session.world.mission.phase {
-                        ui.label(format!("Mission ended: {outcome:?}."));
-                        if let Some(results) = &session.world.results {
-                            ui.label(format!("Score {} · rank {} / 6 · time {:.1}s",results.record.score,results.record.rank,results.record.time_tenths as f64 / 10.0));
-                            ui.label(format!("Stealth kills {} · combat kills {} · detections {} · innocents {}",results.summary.kills.stealth_kills,results.summary.kills.combat_kills,results.summary.detections,results.summary.kills.innocents));
-                            if let Some(item) = results.unlocked_item { ui.label(format!("Unlocked item {item}")); }
-                        } else {
-                            ui.label("The next story screen is not connected yet.");
-                        }
-                    }
-                    if *paused { ui.label("PAUSED"); }
-                    if let Some(error) = error { ui.colored_label(egui::Color32::LIGHT_RED,error); }
-                });
-            });
-            egui::Window::new("Native JP integration").open(open).default_size([550.0,480.0]).vscroll(true).show(ctx, |ui| {
-                ui.label("This is the native Japanese actor/terrain runtime. Story progression, the original HUD and some effects are still being connected.");
-                ui.checkbox(paused,"Pause simulation");
-                ui.label(format!("Objective: {:?}; {:?}",session.world.mission.objective,session.world.mission.phase));
-                ui.label(format!("Player position: {:?}; water: {:?}",player.position,session.world.water));
-                ui.label(format!("Unconnected events observed: {:?}",session.pending));
-                ui.separator();
-                for (index, agent) in session.world.actors.iter().enumerate() {
-                    ui.label(format!("{index}: kind {:02x} · {:?} · HP {} · action {:03x} · voice {} · active {}",agent.actor.kind,agent.actor.state,agent.actor.health,agent.actor.motion.action,session.world.instances[index].voice,agent.actor.flags & 8 == 0));
+        self.drawing.draw(session, &target, &mut self.renderer)?;
+        let output = self
+            .context
+            .run(self.state.take_egui_input(&self.window), |ctx| {
+                if let ContentDrawing::Story(drawing) = &self.drawing {
+                    crate::fonts::paint(ctx, ctx.screen_rect(), &drawing.texts);
                 }
+                session.inspect(ctx, open, paused, error);
             });
-        });
         self.state
             .handle_platform_output(&self.window, output.platform_output);
         let jobs = self
@@ -170,7 +152,7 @@ impl View {
 }
 
 struct Application {
-    session: Session,
+    session: Content,
     graphics: Graphics,
     view: Option<View>,
     controls: Controls,
@@ -185,8 +167,12 @@ struct Application {
 
 impl Application {
     fn step(&mut self) -> Result<()> {
+        let story_finished = self.session.story_finished();
         let sounds = self.session.step(self.controls.buttons().swap_bytes())?;
         if let Some(audio) = &self.audio {
+            if !story_finished && self.session.story_finished() {
+                audio.send(Command::Music(None, false));
+            }
             for sound in sounds {
                 audio.send(Command::Tenchu2Effect(sound));
             }
@@ -228,7 +214,7 @@ impl Application {
     }
 
     fn fail(&mut self, error: String) {
-        eprintln!("Native JP tick {}: {error}", self.session.world.tick);
+        eprintln!("Native JP tick {}: {error}", self.session.tick());
         self.error = Some(error);
         self.paused = true;
     }
@@ -251,6 +237,9 @@ impl ApplicationHandler for Application {
             });
         match result {
             Ok(view) => {
+                if let Some(audio) = &self.audio {
+                    self.session.start_audio(audio);
+                }
                 self.view = Some(view);
                 self.last = Instant::now();
             }
@@ -317,14 +306,11 @@ impl ApplicationHandler for Application {
     }
 }
 
-pub fn run(mut session: Session, graphics: Graphics) -> Result<()> {
+pub fn run(mut session: Content, graphics: Graphics) -> Result<()> {
     session.step(0)?;
     let audio = Output::new()
         .map_err(|error| eprintln!("Audio unavailable: {error}"))
         .ok();
-    if let Some(audio) = &audio {
-        audio.send(Command::Bank(session.bank.clone()));
-    }
     let mut application = Application {
         session,
         graphics,

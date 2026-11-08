@@ -75,7 +75,7 @@ pub struct Overlay {
     pub layer: u8,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PresentationFrame {
     pub overlays: Vec<Overlay>,
     pub portraits: Vec<(usize, Portrait, u8)>,

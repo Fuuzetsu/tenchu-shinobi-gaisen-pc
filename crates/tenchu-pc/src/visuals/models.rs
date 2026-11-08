@@ -12,6 +12,7 @@ use std::{
 use tenchu_assets::{Result, model::Geometry, stage::MissionAssets};
 use tenchu_core::math::Matrix;
 
+#[derive(Clone)]
 pub struct Material {
     pub id: String,
     pub region: Option<catalog::Region>,
