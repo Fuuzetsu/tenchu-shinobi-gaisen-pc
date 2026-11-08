@@ -17,6 +17,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::layout::Layout;
 
+mod activation;
 mod assets;
 pub mod controls;
 mod update;
@@ -71,6 +72,7 @@ pub struct World {
     pub ai: System,
     pub random: Random,
     pub map: usize,
+    pub view_distance: i32,
     pub sequence: u16,
     pub player: usize,
     pub difficulty: u8,
@@ -111,6 +113,7 @@ impl World {
             ai: System::new((assets.draw_distance >> 4) * 16),
             random: Random::new(options.seed),
             map: layout.map,
+            view_distance: (assets.draw_distance >> 4) * 16,
             sequence: layout.sequence as u16,
             player: 0,
             difficulty: options.difficulty,
@@ -193,6 +196,7 @@ impl World {
             actor.inventory = Inventory::for_actor(actor.kind, &assets.loot, &mut world.random);
             world.publish(index, assets);
         }
+        world.initialize_activation(assets)?;
         Ok(world)
     }
 

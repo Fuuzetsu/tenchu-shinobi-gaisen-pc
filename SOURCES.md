@@ -2032,3 +2032,13 @@ weapon damage, medicine consumption/healing, and drowning. Source checks still
 pass 27,600 death updates, 41,400 damage updates and 24,000 outer controls, plus
 world setup/continuation, strict Clippy, formatting and wasm core compilation.
 These checks do not establish full campaign or ordinary-play parity.
+
+Native JP actor activation follows `GAME.EXE` `8001e318`, including its two-ended
+live/dead partition, initial active-count accounting, camera annulus, offscreen
+budget retirement, home/patrol resets and collision/weapon restoration. Initial
+sleeping follows `80064a34`; horizontal distance follows `8002f428`. A caller
+supplies the 4–8 actor budget as a simulation input; native render time never
+substitutes for the original hardware-cost measurement. A private original-code
+oracle checks 1,000 twelve-actor cases, including vertical and distance boundaries,
+visibility, dead actors, exemptions and non-update ticks. This still does not
+expose native T2 campaign play.

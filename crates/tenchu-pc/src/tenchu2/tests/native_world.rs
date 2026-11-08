@@ -85,6 +85,15 @@ fn fixture() -> (World, Assets, usize) {
                 world.collision.remove(joint);
             }
         } else {
+            actor.flags &= !8;
+            actor
+                .set_body_collision(
+                    world.instances[i].rig.joints[0],
+                    i,
+                    &mut world.collision,
+                    true,
+                )
+                .unwrap();
             actor.position = Position::new(0, 0, if i == 0 { 0 } else { -1000 });
             actor.previous = actor.position;
             actor.rotation = Vector3::default();

@@ -223,8 +223,11 @@ fn native_layouts_create_the_source_cast_and_live_weapon_rigs() {
                         instance.rig.joints.len(),
                         agent.actor.motion.pose.rotation.len()
                     );
-                    let body = world.collision.get_mut(instance.rig.joints[0]).unwrap();
-                    assert_eq!(body.size.x, agent.actor.width / 2);
+                    let body = world.collision.get_mut(instance.rig.joints[0]);
+                    assert_eq!(body.is_some(), agent.actor.flags & 8 == 0);
+                    if let Some(body) = body {
+                        assert_eq!(body.size.x, agent.actor.width / 2);
+                    }
                     for root in instance.rig.weapons.iter().flatten() {
                         world.scene.world(*root).unwrap();
                     }
@@ -371,4 +374,99 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
     for state in [0, 1, 2, 6, 7, 9] {
         assert!(states.contains(&state), "unvisited state {state}");
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_ACTIVATION_ORACLE from JP 8001e318"]
+fn native_activation_matches_source_actor_order_and_camera_boundaries() {
+    use serde_json::{Value, json};
+    use tenchu_core::tenchu2::actor::Velocity;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let layout = Layout::available(&disc)
+        .unwrap()
+        .into_iter()
+        .find(|layout| layout.sequence == 9)
+        .unwrap();
+    let assets = Assets::load(&disc, 0, &layout).unwrap();
+    let mut template = World::new(
+        &layout,
+        Options {
+            hero: 0,
+            difficulty: 2,
+            seed: 1,
+            inventory: Inventory::default(),
+        },
+        &assets,
+    )
+    .unwrap();
+    assert!(template.actors.len() >= 12);
+    template.actors.truncate(12);
+    template.instances.truncate(12);
+    let mut count = 0;
+    for row in super::source_control::cases::<Value>("TENCHU2_ACTIVATION_ORACLE") {
+        let mut world = template.clone();
+        world.collision = Default::default();
+        world.view_distance = row["view"].as_i64().unwrap() as i32;
+        world.controls.camera_actor = row["focus"].as_u64().unwrap() as usize;
+        world.tick = row["tick"].as_u64().unwrap() as u32;
+        for (index, input) in row["actors"].as_array().unwrap().iter().enumerate() {
+            let agent = &mut world.actors[index];
+            let actor = &mut agent.actor;
+            actor.kind = 0;
+            actor
+                .change_motion(
+                    input["action"].as_i64().unwrap() as i16,
+                    Velocity::Stop,
+                    &assets.resources,
+                )
+                .unwrap();
+            actor.kind = input["kind"].as_i64().unwrap() as i16;
+            actor.flags = input["flags"].as_u64().unwrap() as u32;
+            actor.health = input["health"].as_i64().unwrap() as i16;
+            actor.position = super::source_physics::vector(&input["position"]);
+            actor.previous = actor.position;
+            actor.motion.loops = input["loops"].as_i64().unwrap() as i16;
+            agent.behavior.home = super::source_physics::vector(&input["home"]);
+            agent.behavior.patrol.turning = input["turn"].as_i64().unwrap() as u8;
+            agent.behavior.patrol.next = input["next"].as_i64().unwrap() as usize;
+            actor
+                .set_body_collision(
+                    world.instances[index].rig.joints[0],
+                    index,
+                    &mut world.collision,
+                    actor.flags & 8 == 0,
+                )
+                .unwrap();
+        }
+        world
+            .update_activation(
+                super::source_physics::vector(&row["eye"]),
+                super::source_physics::vector(&row["look"]),
+                row["budget"].as_u64().unwrap() as u8,
+                &assets,
+            )
+            .unwrap();
+        for (index, expected) in row["expected"].as_array().unwrap().iter().enumerate() {
+            let agent = &world.actors[index];
+            let actor = &agent.actor;
+            let mut actual = json!({
+                "flags": actor.flags, "position": actor.position.to_array(),
+                "previous": actor.previous.to_array(), "home": agent.behavior.home.to_array(),
+                "action": actor.motion.action, "turn": agent.behavior.patrol.turning,
+                "next": agent.behavior.patrol.next, "body": null,
+            });
+            if !expected["body"].is_null() {
+                actual["body"] = json!(u8::from(
+                    world
+                        .collision
+                        .index(world.instances[index].rig.joints[0])
+                        .is_some()
+                ));
+            }
+            assert_eq!(actual, *expected, "case {count}, actor {index}");
+        }
+        count += 1;
+    }
+    assert_eq!(count, 1000);
 }
