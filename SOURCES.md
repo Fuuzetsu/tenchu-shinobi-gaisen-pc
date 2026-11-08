@@ -1520,3 +1520,21 @@ state and the untouched non-idle programs when assigning a controller directly
 (`TENCHU2_AI_ORACLE`). All campaign layouts' selected actors resolve to native
 definitions and supported assignments. This is configuration, not the completed
 Tenchu 2 AI update loop.
+
+Native actor motion transitions follow EU `8001ee98`, `8001effc`, `8001f0f8`,
+`8001f1c8`, `8001f218` / JP `8001f304`, `8001f468`, `8001f564`, `8001f5d8`,
+`8001f628`. These retain unsupported-action fallback, attack-contact cleanup,
+early motion overlays, root-motion recovery and the independent vertical
+velocity. Source execution matches 12,288 EU and 12,132 JP transition/overlay
+cases (`TENCHU2_ACTOR_ORACLE`); animation tangent initialization and effect
+destruction are stubbed in this controller-level oracle and covered separately
+by the pose checks and contact-cleanup assertions.
+
+Actor sizes use native joint positions and source type-specific rules, not the
+Gaisen hero skeleton. The original bound routine and size-selection instructions
+from the actor constructor match all 130 definitions in both editions
+(`TENCHU2_DIMENSIONS_ORACLE`); only collision-slot allocation is stubbed.
+Native math reads each edition's PsyQ tables: 75,549 original-instruction
+trigonometry, angle and square-root cases per edition match the shared scalar
+math implementation (`TENCHU2_MATH_ORACLE`). The actor control foundation remains
+separate from the still-incomplete native AI, collision update and campaign loop.

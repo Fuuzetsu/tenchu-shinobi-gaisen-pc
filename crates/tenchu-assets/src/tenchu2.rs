@@ -6,6 +6,8 @@ mod edition;
 pub use edition::Edition;
 pub mod layout;
 pub mod level;
+mod math;
+pub use math::math_tables;
 mod model;
 pub mod motions;
 pub mod music;
