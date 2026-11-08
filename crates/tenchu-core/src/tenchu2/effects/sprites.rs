@@ -56,6 +56,7 @@ pub struct Drawing {
     pub color: [u8; 3],
     pub rotation: i32,
     pub depth: i16,
+    pub blend: super::surface::Blend,
 }
 
 impl Sprites {
@@ -210,6 +211,7 @@ impl Sprites {
                         * 4096
                 },
                 depth: depth as i16,
+                blend: super::surface::Blend::Texture,
             });
             if !matches!(self.motion, Motion::Dust(_)) {
                 let clock = particle.clock;

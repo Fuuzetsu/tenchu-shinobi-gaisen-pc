@@ -2150,3 +2150,19 @@ boundary in this fixture, and point drawing is excluded; the native projection
 has its separate source checks. These particle components still need the world
 event adapter and native renderer. Terrain-dependent blood/water, item effects
 and campaign integration remain unfinished.
+
+Native JP water and blood use `8003cbc4`, `8003ce44`, `80040150`–`80042130`,
+`80044828`, `80044f98` and `8004518c`: weighted point bursts, impact sparks,
+splashes, delayed ripples, airborne blood, wall runoff, sloped stains, water
+spread and corpse pools. Point weights/shifts are loaded from the user's
+executable. Blood alternation, particle activation, original contact-sound
+positions and effect replacement share the native RNG/effect state.
+
+`TENCHU2_SURFACE_EFFECTS_ORACLE` compares 1,200 private original-executable
+sequences on JP map collision data, including spawning, RNG, terrain contacts,
+sound positions and expiry. The generator excludes 99 candidate sequences where
+the original dereferences a null surface pointer; native code expires that drop
+instead. `TENCHU2_SURFACE_DRAWING_ORACLE` checks 1,000 original sloped quad,
+wall-drip, ripple and fade outputs. Projection is isolated in these checks;
+surface visibility belongs to the native renderer. The prior 600 sprite cases
+also pass. These checks do not establish playable native mission/campaign parity.

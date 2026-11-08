@@ -17,6 +17,7 @@ mod source_crouch;
 mod source_damage;
 mod source_death;
 mod source_dispatch;
+mod source_effects;
 mod source_entry;
 mod source_hurt;
 mod source_idle;

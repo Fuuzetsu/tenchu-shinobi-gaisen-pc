@@ -44,6 +44,8 @@ impl Sprites {
 pub struct Rules {
     pub burn_bones: [u8; 14],
     pub healing_bones: [u8; 6],
+    pub point_weights: [[i32; 4]; 12],
+    pub point_shifts: [u32; 12],
 }
 
 impl Rules {
@@ -53,9 +55,15 @@ impl Rules {
             return Err("Native Tenchu 2 effects require the Japanese disc".into());
         }
         let executable = crate::executable::Executable::new(&bytes)?;
+        let weights = executable.bytes(0x80083770, 12 * 16)?;
+        let shifts = executable.bytes(0x80083830, 12 * 4)?;
         Ok(Self {
             burn_bones: executable.bytes(0x80012a08, 14)?.try_into().unwrap(),
             healing_bones: executable.bytes(0x8008e928, 6)?.try_into().unwrap(),
+            point_weights: std::array::from_fn(|i| {
+                std::array::from_fn(|j| u32_le(weights, i * 16 + j * 4).unwrap() as i32)
+            }),
+            point_shifts: std::array::from_fn(|i| u32_le(shifts, i * 4).unwrap()),
         })
     }
 }

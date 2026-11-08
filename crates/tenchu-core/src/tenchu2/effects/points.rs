@@ -35,6 +35,41 @@ pub struct Drawing {
 }
 
 impl Points {
+    pub fn burst(
+        position: Position,
+        controls: [Vector3<i16>; 4],
+        gravity: i16,
+        rules: &tenchu_assets::tenchu2::effects::Rules,
+    ) -> Self {
+        let particles = std::array::from_fn(|i| {
+            let velocity = Vector3::from(std::array::from_fn(|axis| {
+                (controls
+                    .iter()
+                    .zip(rules.point_weights[i])
+                    .fold(0i32, |sum, (v, weight)| {
+                        sum.wrapping_add(i32::from(v[axis]).wrapping_mul(weight))
+                    })
+                    >> 4) as i16
+            }));
+            Particle {
+                position: velocity.map(|v| i32::from(v).wrapping_shl(rules.point_shifts[i]) as i16),
+                velocity,
+            }
+        });
+        Self {
+            position,
+            parent: None,
+            particles,
+            color: [128; 3],
+            color_step: Vector3::default(),
+            age: 0,
+            lifetime: 24,
+            gravity,
+            blend: 0,
+            size: None,
+        }
+    }
+
     pub fn update(
         &mut self,
         scene: &mut Scene,

@@ -1,14 +1,26 @@
-use crate::{Result, scene::Scene, tenchu2::visibility::View};
+use crate::{
+    Result,
+    math::Position,
+    scene::Scene,
+    tenchu2::{terrain::Cursor, visibility::View},
+};
 use serde::{Deserialize, Serialize};
+use tenchu_assets::tenchu2::collision::Collision;
 
+pub mod blood;
 pub mod points;
 mod spawn;
 pub mod sprites;
+pub mod surface;
+pub mod water;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Effect {
     Sprites(sprites::Sprites),
     Points(points::Points),
+    Blood(blood::Blood),
+    Pool(blood::Pool),
+    Ripple(water::Ripple),
 }
 
 impl Effect {
@@ -16,6 +28,9 @@ impl Effect {
         match self {
             Self::Sprites(_) => 6,
             Self::Points(_) => 5,
+            Self::Blood(_) => 8,
+            Self::Pool(_) => 9,
+            Self::Ripple(_) => 12,
         }
     }
 }
@@ -23,12 +38,15 @@ impl Effect {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Effects {
     pub entries: Vec<Effect>,
+    pub blood_phase: bool,
 }
 
 #[derive(Default)]
 pub struct Frame {
     pub sprites: Vec<sprites::Drawing>,
     pub points: Vec<points::Drawing>,
+    pub quads: Vec<surface::Quad>,
+    pub blood_sounds: Vec<Position>,
 }
 
 impl Effects {
@@ -45,13 +63,22 @@ impl Effects {
         Ok(())
     }
 
-    pub fn update(&mut self, scene: &mut Scene, view: View) -> Result<Frame> {
+    pub fn update(
+        &mut self,
+        scene: &mut Scene,
+        view: View,
+        terrain: &Collision,
+        cursor: &mut Cursor,
+    ) -> Result<Frame> {
         let mut frame = Frame::default();
         let mut index = 0;
         while index < self.entries.len() {
             let alive = match &mut self.entries[index] {
                 Effect::Sprites(sprites) => sprites.update(scene, view, &mut frame.sprites)?,
                 Effect::Points(points) => points.update(scene, view, &mut frame.points)?,
+                Effect::Blood(blood) => blood.update(scene, view, terrain, cursor, &mut frame)?,
+                Effect::Pool(pool) => pool.update(&mut frame.quads)?,
+                Effect::Ripple(ripple) => ripple.update(&mut frame.quads)?,
             };
             if alive {
                 index += 1;

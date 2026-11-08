@@ -26,6 +26,8 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
     let rules = tenchu_assets::tenchu2::effects::Rules {
         burn_bones: serde_json::from_value(tables["burn_bones"].clone()).unwrap(),
         healing_bones: serde_json::from_value(tables["healing_bones"].clone()).unwrap(),
+        point_weights: serde_json::from_value(tables["point_weights"].clone()).unwrap(),
+        point_shifts: serde_json::from_value(tables["point_shifts"].clone()).unwrap(),
     };
     let file = std::fs::File::open(std::env::var_os("TENCHU2_SPRITE_ORACLE").unwrap()).unwrap();
     let mut count = 0;
@@ -104,6 +106,7 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                     Effect::Points(effect) => {
                         effect.update(&mut scene, view, &mut Vec::new()).unwrap()
                     }
+                    _ => panic!("Unexpected surface effect"),
                 };
                 if alive {
                     index += 1;
@@ -144,4 +147,51 @@ fn compare(actual: &Value, expected: &Value, path: &str) {
         }
         _ => assert_eq!(actual, expected, "{path}"),
     }
+}
+
+#[test]
+#[ignore = "requires TENCHU2_SURFACE_DRAWING_ORACLE from original sloped water/blood primitives"]
+fn surface_geometry_and_fading_match_source() {
+    let file =
+        std::fs::File::open(std::env::var_os("TENCHU2_SURFACE_DRAWING_ORACLE").unwrap()).unwrap();
+    let mut count = 0;
+    let map = tenchu_assets::tenchu2::collision::Collision {
+        origin: [0; 2],
+        dimensions: [1; 2],
+        cell_size: 1000,
+        cells: Vec::new(),
+    };
+    let view = View {
+        eye: Position::ZERO,
+        look: Position::ZERO,
+        focus: Position::ZERO,
+        matrix: Matrix::default(),
+        distance: 16000,
+    };
+    for (case, line) in std::io::BufReader::new(file).lines().enumerate() {
+        let row: Value = serde_json::from_str(&line.unwrap()).unwrap();
+        let mut effect: Effect = serde_json::from_value(row["before"].clone()).unwrap();
+        let mut frame = Frame::default();
+        match &mut effect {
+            Effect::Ripple(ripple) => ripple.update(&mut frame.quads),
+            Effect::Pool(pool) => pool.update(&mut frame.quads),
+            Effect::Blood(blood) => blood.update(
+                &mut Scene::default(),
+                view,
+                &map,
+                &mut Cursor::default(),
+                &mut frame,
+            ),
+            _ => panic!("Unexpected effect"),
+        }
+        .unwrap();
+        let draws: Vec<_> = frame.quads.iter().map(|q| json!({"image":q.image,"position":q.position,"corners":q.corners.map(|p|p.to_array()),"color":q.color,"blend":format!("{:?}",q.blend)})).collect();
+        compare(
+            &Value::Array(draws),
+            &row["draws"],
+            &format!("geometry {case}"),
+        );
+        count += 1;
+    }
+    assert_eq!(count, 1000);
 }

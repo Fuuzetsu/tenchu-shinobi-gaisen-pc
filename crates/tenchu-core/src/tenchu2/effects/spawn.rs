@@ -12,6 +12,29 @@ use crate::{
 use tenchu_assets::tenchu2::effects::Rules;
 
 impl Effects {
+    pub fn impact(
+        &mut self,
+        position: Position,
+        direction: Position,
+        math: &Math,
+        rules: &Rules,
+        random: &mut Random,
+    ) -> Result<()> {
+        let direction = math.normalize_vector(direction).map(|v| v as i16);
+        let controls = std::array::from_fn(|i| {
+            let side = if i & 1 == 0 { 2 } else { -2 };
+            Vector3::new(
+                ((i32::from(direction.x) + side * i32::from(direction.z)) >> 8) as i16,
+                (if i < 2 { -40 } else { -20 }) - (random.next15() % 20) as i16,
+                ((i32::from(direction.z) + side * i32::from(direction.x)) >> 8) as i16,
+            )
+        });
+        let mut points = Points::burst(position, controls, 6, rules);
+        points.color = [128, 128, 64];
+        points.blend = 1;
+        self.insert(Effect::Points(points))
+    }
+
     pub fn trail(
         &mut self,
         position: Position,
