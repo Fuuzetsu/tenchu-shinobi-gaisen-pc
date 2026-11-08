@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Load the original alternate collision maps for three JP Tenchu 2 boss arenas,
+  instead of using the surrounding stage's walls and floors.
+
 - Show Japanese Tenchu 2 results with the disc's original score panel, numbers
   and seven rank images over a dimmed final-scene backdrop. Restore the printed
   Circle/Start/Cross actions, confirmation sound and delay; mouse and touch

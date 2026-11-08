@@ -2691,3 +2691,8 @@ Disc/GPU checks render all seven ranks, negative scores and a frozen scene,
 including rebuilding renderer resources while results are visible. Campaign
 checks exercise held inputs, each result exit and the confirmation delay, plus
 save/restart and story/movie/boss transitions. Review images remain private.
+
+JP collision selection follows `GAME.EXE` `8002d86c`: sequences 179 and 216 use
+`map2.mcd`, and 245 uses `map3.mcd`, independently of the scenery variant and
+hidden-item flag. Disc checks verify both flag values load the arena's 166, 340
+and 159 collision records rather than the surrounding map's thousands of nodes.

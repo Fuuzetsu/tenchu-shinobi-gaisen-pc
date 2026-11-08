@@ -45,7 +45,7 @@ impl Level {
     }
 
     pub fn load(disc: &Disc<impl ReadAt>, id: usize) -> Result<Self> {
-        Self::load_variant(disc, id, Variant::Base)
+        Self::load_variant(disc, id, Variant::Base, "map.mcd")
     }
 
     pub fn japanese_sequence(
@@ -65,10 +65,25 @@ impl Level {
         if super::Edition::detect(disc)? != super::Edition::Japan {
             return Err("Japanese Tenchu 2 scene selection requires the Japanese disc".into());
         }
-        Self::load_variant(disc, map, Variant::japanese(map, sequence, hidden))
+        let collision = match sequence {
+            179 | 216 => "map2.mcd",
+            245 => "map3.mcd",
+            _ => "map.mcd",
+        };
+        Self::load_variant(
+            disc,
+            map,
+            Variant::japanese(map, sequence, hidden),
+            collision,
+        )
     }
 
-    fn load_variant(disc: &Disc<impl ReadAt>, id: usize, variant: Variant) -> Result<Self> {
+    fn load_variant(
+        disc: &Disc<impl ReadAt>,
+        id: usize,
+        variant: Variant,
+        collision: &str,
+    ) -> Result<Self> {
         if id >= 24 {
             return Err("Tenchu 2 map index must be 0–23".into());
         }
@@ -160,7 +175,7 @@ impl Level {
             stumps,
             scene,
             vram,
-            collision: super::collision::Collision::parse(&read("map.mcd")?)?,
+            collision: super::collision::Collision::parse(&read(collision)?)?,
         })
     }
 }

@@ -541,3 +541,36 @@ fn japanese_scene_variants_keep_all_object_records() {
         visited.len()
     );
 }
+
+#[test]
+#[ignore = "requires Japanese TENCHU2_DISC; checks the alternate boss-arena collision resources"]
+fn japanese_boss_arenas_use_their_sequence_collision() {
+    use tenchu_assets::tenchu2::level::Level;
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for (sequence, count) in [(179, 166), (216, 340), (245, 159)] {
+        let layout = Layout::load(&disc, sequence).unwrap();
+        for hidden in [false, true] {
+            let level = Level::japanese_sequence(&disc, &layout, hidden).unwrap();
+            assert_eq!(
+                level
+                    .collision
+                    .cells
+                    .iter()
+                    .map(|c| c.nodes.len())
+                    .sum::<usize>(),
+                count,
+                "sequence {sequence}, hidden {hidden}"
+            );
+        }
+        let base = Level::load(&disc, layout.map).unwrap();
+        assert!(
+            base.collision
+                .cells
+                .iter()
+                .map(|c| c.nodes.len())
+                .sum::<usize>()
+                > 2800
+        );
+    }
+}
