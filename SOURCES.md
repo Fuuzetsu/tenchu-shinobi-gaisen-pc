@@ -1711,3 +1711,14 @@ run the original instructions; animation tangent setup, audio/rumble and root
 publication are isolated at their previously checked boundaries. The ledge
 material table at EU `80081600` / JP `80083530` is identical to each edition's
 body-probe transition table, so both use the same parsed rules.
+
+Native inventory consumption and item-use entry follow EU `80054a88`,
+`80022f40` / JP `80051aec`, `8002364c`. Inventory IDs are bounded disc-resource
+indices, separate from action states. Grapple use preserves its count; other
+uses consume stock before motion selection, including source refunds and the
+moving shuriken/caltrop overlay. JP item 15 uses a different action from EU.
+Original execution matches 26,000 EU / 25,400 JP calls over 130/127 actor
+definitions (`TENCHU2_ITEM_ENTRY_ORACLE`). The unavailable JP animal clips are
+excluded as above. Consumption, selection, overlays and velocity execute source
+instructions; tangent initialization and audio remain isolated. Projectile and
+item-effect simulation are separate unfinished work.

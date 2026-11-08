@@ -1,4 +1,4 @@
-use super::{input::Pad, motion::Motion, terrain::Probe};
+use super::{input::Pad, inventory::Inventory, motion::Motion, terrain::Probe};
 use crate::{
     Result,
     math::{Math, Position, Vector3},
@@ -73,12 +73,6 @@ pub struct Attack {
     pub index: Option<usize>,
     pub contacts: u32,
     pub trails: u32,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct Inventory {
-    pub counts: [u8; 20],
-    pub searched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
