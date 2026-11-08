@@ -1607,3 +1607,13 @@ ordered contact-response sequences per edition (`TENCHU2_BODY_ORACLE`), includin
 1,323 JP knockbacks, RNG, damage, motion requests and velocity changes. Terrain
 and contact enumeration execute original code; the oracle supplies an ordered
 contact set and stubs motion selection/audio, checked independently above.
+
+Native weapon and body registration follows EU `8001e774`, `8001f358`,
+`8001f604`, `8001f798` / JP `8001eb44`, `8001f768`, `8001fa14`, `8001fba8`.
+Full-joint bindings retain attachment-slot swaps, the separate held/drawn flags,
+attack bone masks, deferred collider removal and trail cleanup. Source execution
+matches 23,530 operations per edition across all 130 actor definitions
+(`TENCHU2_WEAPON_ORACLE`). The oracle runs the original allocator/compactor and
+weapon helpers with source weapon/attack tables, supplying SDK transforms and
+audio/effect destruction at their boundaries. Per-actor rig/weapon-joint validity
+is checked independently against actual model assets as described above.

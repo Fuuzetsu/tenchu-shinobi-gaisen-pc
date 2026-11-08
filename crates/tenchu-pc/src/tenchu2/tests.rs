@@ -10,6 +10,7 @@ mod source_motion;
 mod source_physics;
 mod source_sight;
 mod source_terrain;
+mod source_weapons;
 
 #[test]
 #[ignore = "requires TENCHU2_DISC; checks every map's source background samples and schedules"]

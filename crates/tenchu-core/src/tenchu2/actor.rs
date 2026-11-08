@@ -93,7 +93,6 @@ pub struct Actor {
     pub hit: Option<usize>,
     pub motion: Motion,
     pub pad: Pad,
-    pub weapon_drawn: bool,
     pub attack: Attack,
 }
 
@@ -129,7 +128,6 @@ impl Actor {
             hit: None,
             motion,
             pad: Pad::default(),
-            weapon_drawn: false,
             attack: Attack::default(),
         })
     }
@@ -142,7 +140,7 @@ impl Actor {
     ) -> Result<Option<Change>> {
         let changed = self.motion.action != action;
         if changed {
-            if self.state == State::Attack && self.motion.loops < 1 && self.weapon_drawn {
+            if self.state == State::Attack && self.motion.loops < 1 && self.weapon_drawn() {
                 self.attack.contacts = 0;
                 self.attack.trails = 0;
             }
@@ -154,11 +152,11 @@ impl Actor {
                 if action != 0x110 {
                     return Ok(None);
                 }
-                action = if self.weapon_drawn { 0x100 } else { 0 };
+                action = if self.weapon_drawn() { 0x100 } else { 0 };
                 let selected =
                     self.motion
                         .select(action, self.kind, &resources.registry, &resources.clips)?;
-                if selected.is_none() && !self.weapon_drawn {
+                if selected.is_none() && !self.weapon_drawn() {
                     return Ok(None);
                 }
             }
@@ -242,7 +240,7 @@ impl Actor {
             && self.terrain.height <= i32::from(self.height)
         {
             0x200
-        } else if self.weapon_drawn {
+        } else if self.weapon_drawn() {
             0x100
         } else {
             0
@@ -251,6 +249,10 @@ impl Actor {
         self.rotation.x = 0;
         self.rotation.z = 0;
         action
+    }
+
+    pub fn weapon_drawn(&self) -> bool {
+        self.flags & 0x40 != 0
     }
 }
 

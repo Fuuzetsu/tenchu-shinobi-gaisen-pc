@@ -122,7 +122,7 @@ fn native_actor_motion_transitions_match_source() {
         actor.motion.loops = case.loops;
         actor.rotation.y = case.angle;
         actor.velocity = case.velocity.into();
-        actor.weapon_drawn = case.drawn;
+        actor.flags = if case.drawn { 0x40 } else { 0 };
         actor.attack.contacts = 0x1234;
         actor.attack.trails = 0x12;
         let mode = match case.mode {
