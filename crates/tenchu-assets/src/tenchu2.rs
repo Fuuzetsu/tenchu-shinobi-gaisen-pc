@@ -19,6 +19,7 @@ mod model;
 pub mod motions;
 pub mod music;
 pub mod registry;
+pub mod story;
 mod texture;
 mod volume;
 pub mod weapons;

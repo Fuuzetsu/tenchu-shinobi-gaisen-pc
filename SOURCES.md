@@ -2467,3 +2467,16 @@ including complete stock/record tables and final RNG. UI drawing is excluded.
 A native-frame check completes sequence 134, computes its result once and
 restores the awarded progress from a snapshot. These checks do not establish
 cross-area statistics, story progression or the original results presentation.
+
+JP story animation reads the user's `cab/event/E*.CAB` and `event/E*.EVT`
+resources using the layout in `EVENT.BIN` routine `800d1c78`. This is a separate
+format from Gaisen's CAD scripts. Root movement and joint sampling follow
+`800d3554`, `800d38d0`, `800d3be8`, `800d3f5c` and `800d4104`, including relative
+translation, packed scale/linear flags, interval boundaries and stopped tracks.
+Spline evaluation reuses the port's Gaisen `eval_spline_gte_` implementation;
+the JP call is `8002f628`. All 142 campaign event resources parse, and
+`TENCHU2_STORY_MOTION_ORACLE` compares 6,009 original instruction states across
+145 available event files, including restoration between samples. The oracle
+executes the animation code and emulates its spline COP2 operations; matrix
+publication is excluded. Story rendering, dialogue, effects and campaign
+dispatch remain unconnected at this boundary.
