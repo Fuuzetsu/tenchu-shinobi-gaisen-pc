@@ -2644,3 +2644,25 @@ at SP+0x1c. Native traps use direct aim (zero adjustment) instead of inventing
 PS1 stack contents. Exact parity for that undefined field remains unverified;
 source actor-fired arrows retain their defined distance/RNG behavior. Connected
 world checks cover all four trap types, triggering once and damaging the player.
+
+The second Tenchu 2 artwork pack adds 892 generated paintings identified by a
+native JP resource audit: all base maps and props, stumps, sequence variants,
+character rigs/costumes, registry weapons and item models. The resulting 4,487
+recipes retain the previous Europe paintings and cover all 3,816 unique JP
+mission texture identities in the audit. The manifest/provenance record every
+new atlas/prompt hash, crop cell, source usage and shipped image hash. Original
+sheets remain private references; only generated RGB is distributed, with source
+alpha reconstructed from the user's disc. This count excludes story-exclusive
+artwork and menu sprites.
+
+Disc-backed pack checks load every audited resource through the actual Rust
+recipe path, require four-times dimensions and compare every cutout alpha pixel
+to the original nearest-neighbour mask. Both Europe and Japan checks pass.
+Private original/replacement captures cover areas 0/1, Ayame's start, all three
+heroes, Boron and Tatsumaru's alternate/masked costume; these are selected visual
+checks, not an assertion that every texture join has been individually reviewed.
+The native GPU regression also freezes the world and points the camera at actual
+scrolling water geometry, checks that consecutive phases differ, and that both
+source textures return to identical pixels after their full cycle. It passes
+with original textures and with the compressed v2 pack loaded through Rust.
+The area 0 starting ponds are not those scrolling waterfall materials.

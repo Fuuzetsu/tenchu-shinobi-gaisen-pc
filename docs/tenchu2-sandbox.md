@@ -108,10 +108,9 @@ then restart the game. The Gaisen pack remains independent; either or both may
 be installed.
 
 **F1 → Visual assets → Replacement artwork** toggles both installed packs.
-Missing replacements fall back to the appropriate disc. The current pack was
-painted for Europe's 81 previously supported bodies; Japanese-only textures and
-the newly added masked costumes retain their originals where no matching
-replacement exists. Packs use the same
+Missing replacements fall back to the appropriate disc. Pack v2 retains the
+Europe paintings and adds the Japanese mission terrain, props, bodies/costumes,
+weapons and items, including area 0 and the masked costumes. Packs use the same
 `pack.json` format described in [the guide](guide.md); texture
 identities come from the original pixels, so matching materials are shared
 across maps. Retail cutout masks are reconstructed from the user's disc at load
@@ -137,9 +136,10 @@ patrols and combat, save/rewind, and leaving/restarting without campaign changes
 These checks do not establish Tenchu 2 emulator parity.
 
 Native Tenchu 2 gameplay is being developed against the Japanese version only.
-It is not yet connected to this sandbox. European stages, models and other
-resource imports remain supported; a separate European AI implementation is
-outside the scope of that work.
+The normal JP launcher now selects that runtime; this sandbox is an explicit
+alternative. See [native JP support and remaining work](tenchu2-native.md).
+European resource imports remain supported; a separate European AI
+implementation is outside the scope of that work.
 
 See [source provenance](../SOURCES.md#experimental-tenchu-2-scenery-2026-11-07)
 for the locally examined executable and resource readers.

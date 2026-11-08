@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Expand the separate Tenchu 2 artwork pack to cover JP mission terrain, props,
+  costumes, weapons and items, including the missing area 0 textures. Preserve
+  Europe coverage and reconstruct all cutout masks from the selected disc.
+
 - Restore native JP floor-triggered spear and arrow traps, including their
   projectile models, contact damage, sounds and spear retraction.
 

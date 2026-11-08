@@ -1,17 +1,23 @@
 # Tenchu 2 replacement artwork
 
 Download `tenchu2-hd.tar.zst` from
-[tenchu2-artwork-v1](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v1).
+[tenchu2-artwork-v2](https://github.com/Fuuzetsu/tenchu-shinobi-gaisen-pc/releases/tag/tenchu2-artwork-v2).
 Use game v0.20.1 or newer. Put the archive beside the executable or Linux
 launcher, or import it with **Import Tenchu 2 HD artwork** in the Android launcher.
 Enable **F1 → Visual assets → Replacement artwork**. The Gaisen artwork pack is
 independent; either or both can be installed.
 
-The pack covers all 3,595 unique texture identities used by the sandbox's 23
-nonempty areas, static props and 81 imported character bodies/alternate costumes.
-It preserves the source meshes, UV layouts and cutout shapes. This is an artwork
-pack, not a port of Tenchu 2's missions or scripts. Both the Gaisen disc and the
-supported Tenchu 2 Europe disc remain required; see [sandbox scope](../../docs/tenchu2-sandbox.md).
+Version 2 contains 4,487 replacements. It retains version 1's Europe coverage
+and adds all 892 missing identities from the Japanese mission-resource audit:
+terrain, props, sequence-specific layouts, character bodies/costumes, weapons
+and items. All 3,816 unique identities in that JP audit are covered. This does
+not promise HD replacements for story-exclusive artwork or menu sprites.
+
+It preserves the source meshes, UV layouts and cutout shapes. The Gaisen disc
+and the appropriate Tenchu 2 disc remain required. See the
+[JP gameplay integration](../../docs/tenchu2-native.md) and
+[Gaisen scenery sandbox](../../docs/tenchu2-sandbox.md) for gameplay support;
+installing artwork does not change which simulation runs.
 
 Related textures were painted together in material/character atlases with the
 built-in OpenAI image tool, then cut into individual replacements. Output images

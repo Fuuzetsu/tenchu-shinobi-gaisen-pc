@@ -120,57 +120,118 @@ fn stage_ambience_uses_distinct_map_banks_and_retail_scheduling() {
     assert!(music::ambience(&disc, 24).is_err());
 }
 
+fn check_artwork(
+    name: &str,
+    parts: &[tenchu_assets::model::Part],
+    vram: &tenchu_assets::texture::Vram,
+) {
+    use crate::visuals::{catalog, pack::Pack};
+    let sources: Vec<_> = parts
+        .iter()
+        .enumerate()
+        .map(|(index, part)| catalog::ModelSource {
+            id: format!("tenchu2/{name}/{index}"),
+            label: name.into(),
+            geometry: &part.geometry,
+        })
+        .collect();
+    let regions = catalog::model_regions(vram, &sources);
+    let pack = Pack::for_models(vram, &sources).unwrap();
+    for (region, id) in regions {
+        let image = pack
+            .textures
+            .get(&id)
+            .unwrap_or_else(|| panic!("{name}: missing {id}"));
+        let width = usize::from(region.rect[2]);
+        let height = usize::from(region.rect[3]);
+        assert_eq!(image.size[0] as usize, width * 4, "{name}: {id}");
+        assert_eq!(image.size[1] as usize, height * 4, "{name}: {id}");
+        let original = region.original_pixels(vram);
+        for y in 0..height * 4 {
+            for x in 0..width * 4 {
+                assert_eq!(
+                    image.rgba[(y * width * 4 + x) * 4 + 3],
+                    original[((y / 4) * width + x / 4) * 4 + 3],
+                    "{name}: {id} cutout at {x},{y}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 #[ignore = "requires Europe TENCHU2_DISC and TENCHU2_ASSET_PACK; checks the published pack's maps/81 models and reconstructed cutouts"]
 fn artwork_covers_published_catalog_and_preserves_cutouts() {
-    use crate::visuals::{catalog, pack::Pack};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
-    let check =
-        |name: &str, parts: &[tenchu_assets::model::Part], vram: &tenchu_assets::texture::Vram| {
-            let sources: Vec<_> = parts
-                .iter()
-                .enumerate()
-                .map(|(index, part)| catalog::ModelSource {
-                    id: format!("tenchu2/{name}/{index}"),
-                    label: name.into(),
-                    geometry: &part.geometry,
-                })
-                .collect();
-            let regions = catalog::model_regions(vram, &sources);
-            let pack = Pack::for_models(vram, &sources).unwrap();
-            for (region, id) in regions {
-                let image = pack
-                    .textures
-                    .get(&id)
-                    .unwrap_or_else(|| panic!("{name}: missing {id}"));
-                let width = usize::from(region.rect[2]);
-                let height = usize::from(region.rect[3]);
-                assert_eq!(image.size[0] as usize, width * 4, "{name}: {id}");
-                assert_eq!(image.size[1] as usize, height * 4, "{name}: {id}");
-                let original = region.original_pixels(vram);
-                for y in 0..height * 4 {
-                    for x in 0..width * 4 {
-                        assert_eq!(
-                            image.rgba[(y * width * 4 + x) * 4 + 3],
-                            original[((y / 4) * width + x / 4) * 4 + 3],
-                            "{name}: {id} cutout at {x},{y}"
-                        );
-                    }
-                }
-            }
-        };
     for id in Level::available(&disc).unwrap() {
         let level = Level::load(&disc, id).unwrap();
-        check(&format!("map{id}/terrain"), &level.map, &level.vram);
-        check(&format!("map{id}/props"), &level.objects, &level.vram);
+        check_artwork(&format!("map{id}/terrain"), &level.map, &level.vram);
+        check_artwork(&format!("map{id}/props"), &level.objects, &level.vram);
     }
     for body in tenchu_assets::tenchu2::characters::load(&disc, None).unwrap() {
         // These newly supported costumes use original textures until the pack adds them.
         if matches!(body.name.as_str(), "tatua_m" | "tatu2_m") {
             continue;
         }
-        check(&format!("actors/{}", body.name), &body.parts, &body.vram);
+        check_artwork(&format!("actors/{}", body.name), &body.parts, &body.vram);
+    }
+}
+
+#[test]
+#[ignore = "requires Japan TENCHU2_DISC and the expanded TENCHU2_ASSET_PACK; checks native map variants, bodies, weapons, items and reconstructed cutouts"]
+fn artwork_covers_native_japanese_mission_resources() {
+    use tenchu_assets::tenchu2::{characters, items::Items, registry::Registry, weapons};
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    for id in Level::available(&disc).unwrap() {
+        let level = Level::load(&disc, id).unwrap();
+        check_artwork(&format!("map{id}/terrain"), &level.map, &level.vram);
+        check_artwork(&format!("map{id}/props"), &level.objects, &level.vram);
+        for (id, part) in &level.stumps {
+            check_artwork(
+                &format!("map{}/stump{id}", level.id),
+                std::slice::from_ref(part),
+                &level.vram,
+            );
+        }
+    }
+    for layout in Layout::available(&disc).unwrap() {
+        let level = Level::japanese_sequence(&disc, &layout, false).unwrap();
+        check_artwork(
+            &format!("sequence{}/terrain", layout.sequence),
+            &level.map,
+            &level.vram,
+        );
+        check_artwork(
+            &format!("sequence{}/props", layout.sequence),
+            &level.objects,
+            &level.vram,
+        );
+    }
+    for character in characters::load(&disc, None).unwrap() {
+        let rig = characters::rig(&disc, &character.name).unwrap();
+        check_artwork(&format!("actors/{}", character.name), &rig.parts, &rig.vram);
+    }
+    let registry = Registry::load(&disc).unwrap();
+    let weapons = weapons::Weapons::load(&disc).unwrap();
+    let names: std::collections::BTreeSet<_> = registry
+        .actors
+        .iter()
+        .flat_map(|actor| weapons.parts(actor.weapon))
+        .filter_map(|part| part.model.clone())
+        .collect();
+    let vram = weapons::textures(&disc).unwrap();
+    for name in names {
+        check_artwork(
+            &format!("weapons/{name}"),
+            &weapons::model(&disc, &name).unwrap(),
+            &vram,
+        );
+    }
+    let items = Items::load(&disc).unwrap();
+    for (id, parts) in items.models() {
+        check_artwork(&format!("items/{id}"), parts, &items.vram);
     }
 }
 

@@ -48,6 +48,11 @@ For a repeatable capture:
 Tenchu 2 pad mask for the requested ticks. `TENCHU_SETTINGS` selects a settings
 file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normally.
 
+For JP HD mission textures, install [Tenchu 2 artwork v2](../artwork/tenchu2/README.md).
+It covers the native terrain, props, character costumes, weapons and items.
+The Gaisen `tenchu-hd.tar.zst` pack remains separate; installing that pack alone
+does not replace T2 textures. F1 shows the T2 pack path independently.
+
 This preview uses JP actors, controls, AI, collision, water interaction, camera,
 scenery, grapple, shuriken/kunai, caltrops, bows, fire arrows, firearms, grenades, mines,
 smoke/sleeping bombs, poison darts, confusion powder, invisibility, teleport, fire breath, coloured-rice markers, resurrection, poisoned rice with guard luring,
