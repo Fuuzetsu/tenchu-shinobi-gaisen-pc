@@ -9,6 +9,7 @@ pub use sleep::{Sleep, SleepInput, SleepOutput};
 mod corpses;
 pub use corpses::{CorpseContext, CorpseSearch};
 pub mod alert;
+pub mod bait;
 pub mod behavior;
 pub mod combat;
 pub mod entry;

@@ -2308,3 +2308,23 @@ original-executable scatters and terrain/contact updates. A connected-world test
 uses the actual item animation/inventory, waits for landing, then steps both a
 guard and the player onto separate traps. Contact lists are controlled in the
 source fixture; this is not a whole-mission comparison.
+
+
+Native JP poisoned rice follows `80057b00` / `80057fe4`, and target selection
+follows `80057e3c`. Flight, settling, owner clearing, consumption restrictions,
+recovery and map 12's blindness exception are retained. Its separate lure AI
+uses `80032aa0`, `80032ad4` and `80033928`: planar sight distances, its own eye
+height and terrain ray, 32-tick checks, alert interruption and layout-program
+restoration. Recognition checks the actor's current target after the idle
+callback, as `8002fce4` does, so spotting while leaving a lure still counts.
+
+`TENCHU2_RICE_ORACLE` checks 1,500 original throws and terrain updates;
+`TENCHU2_RICE_TARGET_ORACLE` checks 1,000 searches through real JP map terrain;
+`TENCHU2_BAIT_AI_ORACLE` checks 3,000 original lure decisions. Drawing, contact
+lists, steering and fallback sentry calls are isolated where appropriate; the
+existing steering/sentry checks cover those routines separately. Connected
+checks exercise actual item controls, bait attraction, eating, owner recovery,
+alert/recognition interruption and snapshot continuation. Rice's 16-tick scan
+phase retains stable source pool slots and a replayable pool-address phase.
+The native preview starts that phase at zero; recovering the original heap
+phase during complete mission initialization remains a full-frame parity task.

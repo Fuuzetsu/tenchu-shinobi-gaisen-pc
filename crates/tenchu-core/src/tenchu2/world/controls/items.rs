@@ -163,6 +163,23 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            11 => {
+                let hand = self.item_origin(if actor.motion.action == 0x310 { 5 } else { 11 })?;
+                State::Rice(items::rice::Rice::launch(
+                    self.index,
+                    hand,
+                    actor,
+                    self.camera.look.wrapping_sub(self.camera.eye),
+                    &mut items::Context {
+                        map: terrain.map,
+                        cursor: terrain.cursor,
+                        math: &self.math,
+                        scene: self.scene,
+                        collision: self.collision,
+                        player: self.player,
+                    },
+                )?)
+            }
             5 => {
                 let hand = self.item_origin(if actor.motion.action == 0x310 { 5 } else { 11 })?;
                 for caltrop in items::caltrop::Caltrop::scatter(

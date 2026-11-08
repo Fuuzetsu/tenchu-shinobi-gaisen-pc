@@ -345,6 +345,7 @@ impl Models {
                 State::Grenade(g) if g.visible => (6, g.transform, [0; 3]),
                 State::Mine(m) => (7, m.transform, [0; 3]),
                 State::Smoke(s) => (10, s.transform, [0; 3]),
+                State::Rice(r) => (11, r.transform, [0; 3]),
                 State::Caltrop(c) => (
                     5,
                     Matrix {

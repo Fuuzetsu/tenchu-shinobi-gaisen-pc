@@ -35,6 +35,12 @@ impl tenchu_core::tenchu2::environment::Events for Recorded {
         Ok(())
     }
 }
+impl tenchu_core::tenchu2::ai::behavior::Events for Recorded {
+    fn voice(&mut self, _: &tenchu_core::tenchu2::actor::Actor, id: u8) -> Result<()> {
+        self.0.push(Event::Voice(id));
+        Ok(())
+    }
+}
 impl Events for Recorded {
     fn emit(&mut self, _: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
         self.0.push(event);
@@ -1072,4 +1078,145 @@ fn native_caltrops_arm_on_landing_and_hit_both_sides() {
     }
     assert!(world.items.entries.len() <= remaining - 2);
     assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; actual rice use, guard lure/poison, owner recovery and mid-lure snapshot continuation"]
+fn native_rice_lures_a_guard_and_preserves_poison_and_pickup_rules() {
+    use tenchu_core::tenchu2::{ai::Program, items::State as ItemState};
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.position = Position::new(5000, 0, -4000);
+    world.actors[guard].actor.rotation.y = 0;
+    world.actors[guard]
+        .behavior
+        .assign(0x1115, 1, 2, &mut world.random)
+        .unwrap();
+    world.publish(guard, &assets);
+    world.actors[0].actor.inventory.counts[11] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(11).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut attracted = false;
+    for _ in 0..100 {
+        world.actors[0].actor.pad.update(0);
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        world.animate_actor(0, &assets).unwrap();
+        world.update_items(&assets, &mut events).unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+        attracted |= world.actors[guard].behavior.bait.is_some();
+    }
+    assert!(attracted);
+    assert_eq!(
+        world.actors[guard].actor.target,
+        None,
+        "rice {:?}; guard {:?} flags {:x}; player {:?}",
+        world.items.entries,
+        world.actors[guard].actor.position,
+        world.actors[guard].actor.flags,
+        world.actors[0].actor.position
+    );
+    assert_eq!(world.actors[0].actor.inventory.counts[11], 1);
+    assert_eq!(world.items.entries.len(), 1);
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+    let bytes = postcard::to_allocvec(&world).unwrap();
+    let mut restored: World = postcard::from_bytes(&bytes).unwrap();
+    for world in [&mut world, &mut restored] {
+        let held = world
+            .decide_actor(guard, [0; 2], &assets, &mut events)
+            .unwrap();
+        assert_ne!(held, 0, "guard should approach the rice behind him");
+        for _ in 0..10 {
+            world.update_items(&assets, &mut events).unwrap();
+            world.finish_tick(&assets, 6).unwrap();
+        }
+    }
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored).unwrap()
+    );
+    let position = match &world.items.entries[0].state {
+        ItemState::Rice(rice) => rice.flight.position,
+        _ => panic!("missing rice"),
+    };
+    // The owner recovers it; an enemy eats it, with the source's map-12 exception.
+    for (who, map) in [(0, 1), (guard, 1), (guard, 12)] {
+        let mut world = restored.clone();
+        world.map = map;
+        world.actors[who].actor.position = position;
+        world.actors[who].actor.previous = position;
+        world.publish(who, &assets);
+        world.finish_tick(&assets, 6).unwrap();
+        world.update_items(&assets, &mut events).unwrap();
+        assert!(world.items.entries.is_empty(), "rice not consumed by {who}");
+        assert!(world.actors[guard].behavior.bait.is_none());
+        assert_eq!(world.actors[guard].actor.target, Some(0));
+        assert_eq!(
+            world.actors[guard].behavior.programs.idle,
+            Program::Stationary
+        );
+        if who == 0 {
+            assert_eq!(world.actors[0].actor.inventory.counts[11], 2);
+            assert_eq!(world.actors[0].actor.flags & 0x300, 0);
+        } else {
+            assert_eq!(
+                world.actors[guard].actor.flags & 0x300,
+                if map == 12 { 0x200 } else { 0x100 }
+            );
+        }
+    }
+    let mut shared = restored.clone();
+    let second = shared
+        .actors
+        .iter()
+        .enumerate()
+        .find(|(i, a)| *i != guard && matches!(a.actor.kind & 0xf0, 0x20..=0x50))
+        .unwrap()
+        .0;
+    for who in [guard, second] {
+        let actor = &mut shared.actors[who].actor;
+        actor.flags &= !8;
+        actor.position = position;
+        actor.previous = position;
+        actor
+            .change_motion(0, Velocity::Stop, &assets.resources)
+            .unwrap();
+        actor
+            .set_body_collision(
+                shared.instances[who].rig.joints[0],
+                who,
+                &mut shared.collision,
+                true,
+            )
+            .unwrap();
+        shared.publish(who, &assets);
+    }
+    shared.finish_tick(&assets, 6).unwrap();
+    shared.update_items(&assets, &mut events).unwrap();
+    assert!(shared.items.entries.is_empty());
+    for who in [guard, second] {
+        assert_ne!(
+            shared.actors[who].actor.flags & 0x100,
+            0,
+            "simultaneous rice contact {who}"
+        );
+    }
+    let mut alert = restored.clone();
+    alert.ai.global.perception.alert.remaining = 40;
+    alert
+        .decide_actor(guard, [0; 2], &assets, &mut events)
+        .unwrap();
+    assert!(alert.actors[guard].behavior.bait.is_none());
+    assert_eq!(alert.actors[guard].actor.target, Some(0));
+    // Looking back at the player while distracted still counts as a detection.
+    let position = restored.actors[0].actor.position;
+    restored.actors[guard].actor.position = position.wrapping_add(Position::new(0, 0, 1500));
+    restored.actors[guard].actor.rotation.y = 0;
+    restored.tick = (32i32 - i32::from(restored.actors[guard].slot)) as u32 & 31;
+    restored
+        .decide_actor(guard, [0; 2], &assets, &mut events)
+        .unwrap();
+    assert!(restored.actors[guard].behavior.bait.is_none());
+    assert_eq!(restored.actors[guard].actor.target, Some(0));
+    assert_eq!(restored.ai.detections, 1);
 }

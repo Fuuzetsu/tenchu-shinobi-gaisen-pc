@@ -165,7 +165,7 @@ impl System {
             player_distance,
             notice_distance: callbacks.ranges.standing.notice,
             player_action: player_body.action,
-            target_is_player: c.actor.target == Some(frame.player),
+            player: frame.player,
             recovering_confusion: callbacks.behavior.recovering_confusion,
             surroundings: callbacks.surroundings,
         };
@@ -181,6 +181,13 @@ impl System {
                 controllers: frame.controllers,
                 rotation_phase: &mut self.global.rotation_phase,
                 events: callbacks.events,
+                observation: super::bait::Observation {
+                    player: frame.player,
+                    body: player_body,
+                    slot: agent.slot,
+                    range: agent.sight_range,
+                    ranges: callbacks.ranges,
+                },
             },
         )?;
         let held = Navigation {
@@ -331,8 +338,7 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
 
     fn idle(&mut self, c: &mut Context<'_>, global: &mut entry::Global) -> Result<u16> {
         self.behavior
-            .decide(
-                self.behavior.programs.idle,
+            .idle(
                 c,
                 &mut global.perception,
                 &mut behavior::Frame {
@@ -343,6 +349,13 @@ impl<E: Events> entry::Reactions for Reactions<'_, '_, E> {
                     controllers: self.controllers,
                     rotation_phase: &mut global.rotation_phase,
                     events: self.events,
+                    observation: super::bait::Observation {
+                        player: self.scene.player,
+                        body: self.player_body,
+                        slot: self.scene.slot,
+                        range: self.sight_range,
+                        ranges: self.ranges,
+                    },
                 },
             )
             .map(|decision| decision.held)

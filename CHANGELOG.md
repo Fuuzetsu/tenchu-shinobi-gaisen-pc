@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect poisoned rice in the internal JP preview: original throws, guard luring,
+  eating/poison reactions and owner recovery. Distracted guards can still spot
+  the player, and resume their original patrol when interrupted.
+
 - Connect native JP caltrops: four-piece scattering, wall-cover throws, landing
   sounds and armed traps that can hurt guards or their owner. Available in the
   internal JP preview.

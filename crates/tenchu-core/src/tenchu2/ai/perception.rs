@@ -59,7 +59,7 @@ pub struct Scene<'a> {
     pub player_distance: i32,
     pub notice_distance: i32,
     pub player_action: i16,
-    pub target_is_player: bool,
+    pub player: usize,
     pub recovering_confusion: bool,
     pub surroundings: &'a Surroundings,
 }
@@ -199,7 +199,7 @@ pub fn update(
         }
         Awareness::Fighting => {
             if !local_alert_only(c.actor.kind) {
-                if scene.target_is_player {
+                if c.actor.target == Some(scene.player) {
                     global.nearest_distance = 0;
                 } else if global.nearest_distance > 0 {
                     global.nearest_distance = -32768;
@@ -217,7 +217,7 @@ pub fn update(
                 c.observed_flags |= 0x80;
                 if scene.player_action == 0xa25
                     || (c.actor.target.is_some()
-                        && !scene.target_is_player
+                        && c.actor.target != Some(scene.player)
                         && c.target()?.state == State::Dead)
                 {
                     decision.held &= 0xf0;
@@ -270,7 +270,7 @@ fn recognize(
     }
     Ok(
         !matches!(c.actor.kind & 0xf0, 0 | 0x10 | 0x70 | 0xe0 | 0xf0)
-            && scene.target_is_player
+            && c.actor.target == Some(scene.player)
             && scene.script == 0
             && scene.sequence != 200,
     )

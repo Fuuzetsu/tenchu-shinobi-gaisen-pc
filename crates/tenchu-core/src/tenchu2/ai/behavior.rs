@@ -37,6 +37,7 @@ pub struct Frame<'a, E> {
     pub controllers: [u16; 2],
     pub rotation_phase: &'a mut i16,
     pub events: &'a mut E,
+    pub observation: super::bait::Observation<'a>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -123,7 +124,9 @@ impl Active {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Behavior {
+    pub bait: Option<super::bait::Bait>,
     pub programs: Programs,
+    layout_idle: Program,
     pub home: Position,
     pub patrol: Patrol,
     pub forced: Option<ForcedInput>,
@@ -137,7 +140,9 @@ pub struct Behavior {
 impl Behavior {
     pub fn new(home: Position, route: &[Waypoint]) -> Self {
         Self {
+            bait: None,
             programs: Programs::default(),
+            layout_idle: Program::Disabled,
             home,
             patrol: Patrol::new(route, home),
             forced: None,
@@ -157,8 +162,15 @@ impl Behavior {
         random: &mut Random,
     ) -> Result<bool> {
         let enabled = self.programs.assign(code, map, difficulty, random)?;
+        self.layout_idle = Program::from_code(code & 15)?;
         self.has_suspicious_program |= enabled;
         Ok(enabled)
+    }
+
+    pub fn release_bait(&mut self, actor: &mut Actor, player: usize) {
+        self.bait = None;
+        self.programs.idle = self.layout_idle;
+        actor.target = Some(player);
     }
 
     pub fn reset(&mut self, forget: bool) {
@@ -366,6 +378,30 @@ impl Behavior {
         Ok(decision)
     }
 
+    pub fn idle(
+        &mut self,
+        c: &mut Context<'_>,
+        global: &mut Global,
+        frame: &mut Frame<'_, impl Events>,
+    ) -> Result<Decision> {
+        if let Some(bait) = self.bait {
+            let decision = match super::bait::update(bait.position, c, global, frame)? {
+                super::bait::Outcome::Continue(decision) => decision,
+                super::bait::Outcome::ResumePatrol => {
+                    self.release_bait(c.actor, frame.observation.player);
+                    self.reset(false);
+                    Decision::default()
+                }
+                super::bait::Outcome::LookAround => {
+                    return self.decide(Program::LookAround, c, global, frame);
+                }
+            };
+            self.accept(c, &decision);
+            return Ok(decision);
+        }
+        self.decide(self.programs.idle, c, global, frame)
+    }
+
     pub fn confusion(&mut self, c: &mut Context<'_>) -> Result<Decision> {
         if c.actor.state == State::Attack {
             return Confusion::default().update(c);
@@ -440,7 +476,7 @@ impl<E: Events> perception::Reactions for Reactions<'_, '_, E> {
         global: &mut Global,
     ) -> Result<Decision> {
         let program = match routine {
-            Routine::Idle => self.behavior.programs.idle,
+            Routine::Idle => return self.behavior.idle(c, global, self.frame),
             Routine::Suspicious => self.behavior.programs.suspicious,
             Routine::Combat => self.behavior.programs.combat,
             Routine::Search => self.behavior.programs.searching,

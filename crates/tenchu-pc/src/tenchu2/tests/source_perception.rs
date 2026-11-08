@@ -168,7 +168,7 @@ fn native_guard_perception_transitions_match_source() {
             player_distance: int("distance"),
             notice_distance: int("notice"),
             player_action: int("player_action") as i16,
-            target_is_player: boolean("target_is_player"),
+            player: if boolean("target_is_player") { 1 } else { 2 },
             recovering_confusion: boolean("recover"),
             surroundings: &surroundings,
         };

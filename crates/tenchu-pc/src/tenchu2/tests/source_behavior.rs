@@ -165,7 +165,7 @@ fn native_behavior_sequences_match_source() {
             player_distance: int("distance"),
             notice_distance: 10000,
             player_action: target.motion.action,
-            target_is_player: true,
+            player: 1,
             recovering_confusion: behavior.recovering_confusion,
             surroundings: &surroundings,
         };
@@ -182,6 +182,13 @@ fn native_behavior_sequences_match_source() {
                     controllers: [0; 2],
                     rotation_phase: &mut phase,
                     events: &mut effects,
+                    observation: tenchu_core::tenchu2::ai::bait::Observation {
+                        player: 1,
+                        body: (&target).into(),
+                        slot: 0,
+                        range: 10000,
+                        ranges: &mut tenchu_core::tenchu2::ai::sight::Ranges::new(14000),
+                    },
                 },
             )
             .unwrap();

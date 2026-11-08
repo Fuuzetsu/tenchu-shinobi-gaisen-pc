@@ -7,6 +7,7 @@ pub mod grenade;
 pub mod gun;
 pub mod mine;
 pub mod projectile;
+pub mod rice;
 pub mod smoke;
 
 use crate::{
@@ -22,7 +23,9 @@ pub struct Items {
     pub aim: aim::Aim,
     pub held: Option<u8>,
     pub entries: Vec<Entry>,
-    free_models: Vec<(ModelId, i32)>,
+    free_models: Vec<(ModelId, i32, u8)>,
+    /// Low four word-address bits of the original item pool, for recorded replays.
+    pub pool_phase: u8,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -30,6 +33,7 @@ pub struct Entry {
     pub model: ModelId,
     pub state: State,
     unused_floor: i32,
+    pub slot: u8,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -42,6 +46,7 @@ pub enum State {
     Mine(mine::Mine),
     Smoke(smoke::Smoke),
     Caltrop(caltrop::Caltrop),
+    Rice(rice::Rice),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -101,12 +106,22 @@ impl Items {
         if self.entries.len() == 30 {
             self.remove(0, collision);
         }
-        let (model, floor) = self
-            .free_models
-            .pop()
-            .unwrap_or_else(|| (scene.add(None, Matrix::default()), 0));
+        let (model, floor, slot) = self.free_models.pop().unwrap_or_else(|| {
+            (
+                scene.add(None, Matrix::default()),
+                0,
+                self.entries.len() as u8,
+            )
+        });
         scene.models[model].parent = None;
         match &mut state {
+            State::Rice(rice) => {
+                if !rice.floor_initialized {
+                    rice.flight.floor = floor;
+                }
+                scene.update(model, rice.transform);
+                rice.register(model, collision)?;
+            }
             State::Projectile(projectile) => {
                 // The source allocator leaves the previous item's floor outside its cleared range.
                 projectile.flight.floor = floor;
@@ -161,6 +176,7 @@ impl Items {
             model,
             state,
             unused_floor: floor,
+            slot,
         });
         Ok(())
     }
@@ -175,9 +191,10 @@ impl Items {
             State::Mine(mine) => mine.floor,
             State::Smoke(smoke) => smoke.flight.floor,
             State::Caltrop(caltrop) => caltrop.flight.floor,
+            State::Rice(rice) => rice.flight.floor,
             State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
-        self.free_models.push((entry.model, floor));
+        self.free_models.push((entry.model, floor, entry.slot));
     }
 }
 

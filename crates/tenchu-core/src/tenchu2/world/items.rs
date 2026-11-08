@@ -2,6 +2,8 @@ use super::{
     Assets, World,
     controls::{Event, Events},
 };
+
+mod rice;
 use crate::{
     Result,
     math::Position,
@@ -41,6 +43,12 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::Rice(rice) => (
+                    rice.advance(model, &mut context, |event| {
+                        sink.emit(event, &mut self.random)
+                    })?,
+                    false,
+                ),
                 State::Grapple(grapple) => {
                     if grapple.state == grapple::State::Released {
                         (false, false)
@@ -118,12 +126,20 @@ impl World {
             for (position, id) in sink.sounds {
                 self.emit(self.player, Event::SoundPosition { position, id }, events)?;
             }
+            if alive && matches!(self.items.entries[index].state, State::Rice(_)) {
+                alive = self.update_rice(index, assets, events)?;
+            }
             if alive && pickup {
                 alive = !self.pick_up_item(index, assets, events)?;
             }
             if alive {
                 index += 1;
             } else {
+                for agent in &mut self.actors {
+                    if agent.behavior.bait.is_some_and(|bait| bait.model == model) {
+                        agent.behavior.release_bait(&mut agent.actor, self.player);
+                    }
+                }
                 self.items.remove(index, &mut self.collision);
             }
         }
