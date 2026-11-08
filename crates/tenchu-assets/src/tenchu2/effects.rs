@@ -39,3 +39,23 @@ impl Sprites {
         })
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct Rules {
+    pub burn_bones: [u8; 14],
+    pub healing_bones: [u8; 6],
+}
+
+impl Rules {
+    pub fn load(disc: &Disc<impl ReadAt>) -> Result<Self> {
+        let (edition, bytes) = super::executable(disc)?;
+        if edition != super::Edition::Japan {
+            return Err("Native Tenchu 2 effects require the Japanese disc".into());
+        }
+        let executable = crate::executable::Executable::new(&bytes)?;
+        Ok(Self {
+            burn_bones: executable.bytes(0x80012a08, 14)?.try_into().unwrap(),
+            healing_bones: executable.bytes(0x8008e928, 6)?.try_into().unwrap(),
+        })
+    }
+}

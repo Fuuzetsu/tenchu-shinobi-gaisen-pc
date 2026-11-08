@@ -2132,3 +2132,21 @@ transforms and removal, not final pixel output or the stump geometry itself.
 All 56 campaign casts, prior visibility checks, strict Clippy and wasm core pass.
 Actor-attached burning remains an event boundary until the concrete effect
 system is connected; native rendering, items and campaign progression remain.
+
+Native JP particles follow `8003b2bc` / `8003b354` / `8003b390`, `8003d708`,
+`8003e260`, `8003e480`, `8003e7c8`, `8003f7dc` and the dust, smoke, flame,
+healing, flash and explosion constructors at `8003db48`–`8003f580`. Ordinary
+owned sprite groups retain particle phases, authored offsets, attached bones,
+visibility-dependent image advancement and source RNG order. The source allocates
+64 records but its free-pointer threshold replaces an old priority >=4 effect
+at 62 active records; native eviction retains that threshold and insertion order.
+Healing point particles use `8003d344`; body attachment tables are read from the
+user’s executable, not embedded resources.
+
+`TENCHU2_SPRITE_ORACLE` / `TENCHU2_EFFECT_TABLES` check 600 private mixed original
+executable sequences, including all these constructors, overflow replacement,
+RNG, expiry, sprite output and point-particle state. Projection is a controlled
+boundary in this fixture, and point drawing is excluded; the native projection
+has its separate source checks. These particle components still need the world
+event adapter and native renderer. Terrain-dependent blood/water, item effects
+and campaign integration remain unfinished.

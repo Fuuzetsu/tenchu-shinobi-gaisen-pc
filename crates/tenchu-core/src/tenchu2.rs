@@ -3,6 +3,7 @@ pub mod ai;
 pub mod camera;
 pub mod collision;
 pub mod control;
+pub mod effects;
 pub mod environment;
 pub mod input;
 pub mod inventory;
