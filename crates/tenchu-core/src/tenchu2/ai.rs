@@ -1,10 +1,21 @@
 mod patrol;
-pub use patrol::{Decision, ForcedInput, Patrol, PatrolInput, Probe, direction};
+pub use patrol::{Patrol, PatrolInput};
 mod sentry;
 pub use sentry::{Sentry, SentryInput};
+mod steering;
+pub use steering::{ForcedInput, Probe, SteeringInput, direction, steer};
+mod wander;
+pub use wander::{Wander, WanderInput};
 
 use crate::{Result, random::Random};
 use serde::{Deserialize, Serialize};
+
+#[derive(Default)]
+pub struct Decision {
+    pub held: u16,
+    pub action: Option<i16>,
+    pub forced: Option<ForcedInput>,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Program {

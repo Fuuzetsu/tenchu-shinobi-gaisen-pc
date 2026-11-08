@@ -1,3 +1,4 @@
+use super::{Decision, ForcedInput, Probe, direction};
 use crate::{
     Result,
     math::{Math, Position},
@@ -21,37 +22,6 @@ struct Waypoint {
     z: i32,
     turn: Turn,
     pause: i16,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ForcedInput {
-    pub held: u16,
-    pub remaining: i16,
-}
-
-impl ForcedInput {
-    fn turn(held: u16, angle: i32, speed: i16) -> Result<Self> {
-        let ticks = angle
-            .checked_div(i32::from(speed))
-            .ok_or("Tenchu 2 patrol cannot turn at zero speed")?;
-        let packed = (u32::from(held) << 16) | ticks as u32;
-        Ok(Self {
-            held: (packed >> 16) as u16,
-            remaining: packed as i16,
-        })
-    }
-}
-
-#[derive(Default)]
-pub struct Decision {
-    pub held: u16,
-    pub action: Option<i16>,
-    pub forced: Option<ForcedInput>,
-}
-
-pub struct Probe {
-    pub height: i32,
-    pub material: u16,
 }
 
 pub struct PatrolInput {
@@ -171,7 +141,7 @@ impl Patrol {
                 } else {
                     input::RIGHT
                 };
-                decision.forced = Some(ForcedInput::turn(held, 600, actor.turn)?);
+                decision.forced = Some(ForcedInput::turn(held, 600, actor.turn, 0)?);
                 decision.held = 0;
             }
             if decision.held & input::UP != 0
@@ -193,6 +163,7 @@ impl Patrol {
                     decision.held & (input::LEFT | input::RIGHT),
                     1100,
                     actor.turn,
+                    0,
                 )?);
             }
             return Ok(decision);
@@ -224,15 +195,4 @@ impl Patrol {
         }
         Ok(decision)
     }
-}
-
-pub fn direction(math: &Math, x: i32, z: i32, yaw: i16) -> Result<i16> {
-    let angle = math.atan2(x, z)?.wrapping_add(2048).wrapping_sub(yaw);
-    Ok(if angle > 2048 {
-        angle.wrapping_sub(4096)
-    } else if angle <= -2048 {
-        angle.wrapping_add(4096)
-    } else {
-        angle
-    })
 }

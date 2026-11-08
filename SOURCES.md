@@ -1547,3 +1547,10 @@ Source execution matches 320,000 sentry updates and 100,000 patrol updates per
 edition (`TENCHU2_SENTRY_ORACLE`, `TENCHU2_PATROL_ORACLE`), including obstacle
 responses, terrain probes, route timers and RNG state. Only the motion-request
 helper is stubbed in these checks; actor transition semantics are checked above.
+
+Wandering follows EU `80032014` / JP `80032cfc`, steering EU `8003126c` /
+JP `80031e74`, and timed input overrides the block at EU `80030600` /
+JP `8003113c`. The native port preserves the original signed-counter packing
+and the JP-only random idle action. Independent instruction traces match
+60,000 wandering, steering and override cases per edition
+(`TENCHU2_IDLE_ORACLE`), including negative turn rates and counter wrap.
