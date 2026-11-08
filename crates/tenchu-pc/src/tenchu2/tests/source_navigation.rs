@@ -69,6 +69,7 @@ fn native_guard_navigation_matches_source() {
                     .sample(
                         &actor,
                         int("tick") as u32,
+                        row["probe_distance"].as_i64().unwrap_or(1500) as i16,
                         map.as_ref().unwrap(),
                         &mut cursor,
                         &resources.math,

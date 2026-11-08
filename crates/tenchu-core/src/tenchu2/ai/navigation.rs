@@ -54,14 +54,15 @@ impl Surroundings {
         &mut self,
         actor: &Actor,
         tick: u32,
+        distance: i16,
         map: &Collision,
         cursor: &mut Cursor,
         math: &Math,
     ) -> Result<()> {
         let (forward, side, positive, negative) = if tick & 1 == 0 {
-            (1500, 0, &mut self.ahead, &mut self.behind)
+            (distance, 0, &mut self.ahead, &mut self.behind)
         } else {
-            (0, 1500, &mut self.left, &mut self.right)
+            (0, distance, &mut self.left, &mut self.right)
         };
         let delta = Position::from(
             math.velocity(actor.rotation.y, forward, side)

@@ -1920,3 +1920,13 @@ suppression. EU/JP recognition differs in voice RNG and missing-animation
 handling. Program results and motion/voice calls are controlled boundaries;
 source alert timers, steering, command input and RNG execute directly. This
 verifies transition policy, not yet a complete native AI tick or mission.
+
+Outer AI entry follows EU `8002f074..8002f8cc` and JP `8002fce4..80030524`,
+including the early-return paths through pad updates. Each edition matches
+50,000 original-code cases (`TENCHU2_ENTRY_ORACLE`): 10,909 EU / 9,678 JP reach
+normal perception. Ally target changes, hurt/corpse handling, recovery from
+confusion, medicine selection, direct input, radar reset and alert expiry retain
+source ordering. Nested behavior, target lookup, sight and motion calls are
+recorded boundaries. JP's additional 1000-unit direct-input terrain samples also
+match original code over all 23 maps, alongside the 1500-unit guard samples and
+movement-constraint comparisons. Native behavior-state/world wiring remains.

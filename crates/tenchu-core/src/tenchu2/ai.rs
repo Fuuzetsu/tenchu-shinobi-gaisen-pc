@@ -8,6 +8,7 @@ mod corpses;
 pub use corpses::{CorpseContext, CorpseSearch};
 pub mod alert;
 pub mod combat;
+pub mod entry;
 pub mod navigation;
 pub mod perception;
 pub mod search;
