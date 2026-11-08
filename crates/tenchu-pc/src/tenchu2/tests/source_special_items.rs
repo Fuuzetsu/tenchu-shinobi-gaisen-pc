@@ -7,6 +7,99 @@ use tenchu_core::{
 };
 
 #[test]
+#[ignore = "requires TENCHU2_DISC, TENCHU2_FIRE_BREATH_ORACLE and TENCHU2_FIRE_BLAST_ORACLE; original fire-breath placement, bursts and hit-volume lifetime"]
+fn native_fire_breath_matches_original_bursts_and_damage_volumes() {
+    use tenchu_core::tenchu2::items::{
+        Event,
+        fire::{Blast, Breath},
+    };
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let math = Math {
+        tables: tenchu_assets::tenchu2::math_tables(&disc).unwrap(),
+    };
+    let mut maps = std::collections::BTreeMap::new();
+    let mut count = 0;
+    for (case, row) in
+        super::source_control::cases::<Value>("TENCHU2_FIRE_BREATH_ORACLE").enumerate()
+    {
+        let id = row["map"].as_u64().unwrap() as usize;
+        let map = maps
+            .entry(id)
+            .or_insert_with(|| Level::load(&disc, id).unwrap().collision);
+        let origin = serde_json::from_value::<[i32; 3]>(row["origin"].clone()).unwrap();
+        let launch = Breath::begin(
+            0,
+            origin.into(),
+            row["yaw"].as_i64().unwrap() as i16,
+            map,
+            &mut Cursor::default(),
+            &math,
+        )
+        .unwrap();
+        assert_eq!(json!(launch), row["launch"], "launch {case}");
+        let mut breath: Breath = serde_json::from_value(row["before"].clone()).unwrap();
+        let mut cues = Vec::new();
+        let alive = breath
+            .advance(row["after_yaw"].as_i64().unwrap() as i16, &math, |cue| {
+                cues.push(match cue {
+                    Event::FireBlast { owner, position } => {
+                        assert_eq!(owner, 0);
+                        json!(["blast", position.to_array()])
+                    }
+                    Event::Sound { position, id } => json!(["sound", position.to_array(), id]),
+                    _ => panic!("unexpected fire cue"),
+                });
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(json!(alive), row["alive"], "expiry {case}");
+        assert_eq!(json!(breath), row["after"], "update {case}");
+        assert_eq!(json!(cues), row["cues"], "bursts {case}");
+        count += 1;
+    }
+    assert_eq!(count, 600);
+    count = 0;
+    for (case, row) in
+        super::source_control::cases::<Value>("TENCHU2_FIRE_BLAST_ORACLE").enumerate()
+    {
+        let initial = &row["initial"];
+        let position = serde_json::from_value::<[i32; 3]>(initial["position"].clone())
+            .unwrap()
+            .into();
+        let mut blast = Blast {
+            owner: 0,
+            position,
+            age: 0,
+        };
+        let mut collision = Collision::default();
+        blast.register(0, &mut collision).unwrap();
+        let slot = collision.slot(collision.index(0).unwrap()).unwrap();
+        assert_eq!(
+            json!(slot.size.to_array()),
+            initial["size"],
+            "initial size {case}"
+        );
+        assert_eq!(json!(slot.flags), initial["flags"], "flags {case}");
+        assert_eq!(slot.owner, Some(0));
+        blast.age = row["age"].as_i64().unwrap() as i32;
+        assert_eq!(
+            json!(blast.advance(0, &mut collision).unwrap()),
+            row["alive"],
+            "expiry {case}"
+        );
+        assert_eq!(json!(blast.age), row["after_age"], "age {case}");
+        assert_eq!(
+            json!(collision.get_mut(0).unwrap().size.to_array()),
+            row["size"],
+            "size {case}"
+        );
+        count += 1;
+    }
+    assert_eq!(count, 120);
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_POWDER_ORACLE; original confusion-powder placement and expiry"]
 fn native_confusion_powder_matches_original_terrain_placement_and_duration() {
     let disc =

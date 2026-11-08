@@ -163,6 +163,14 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            17 => State::FireBreath(items::fire::Breath::begin(
+                self.index,
+                self.item_origin(1)?,
+                actor.rotation.y,
+                terrain.map,
+                terrain.cursor,
+                &self.math,
+            )?),
             13 => {
                 let Some(invisibility) =
                     items::invisibility::Invisibility::begin(self.index, self.script)

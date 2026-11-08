@@ -2391,3 +2391,12 @@ inherit loader-enabled blend classes. Verification includes 1,200 independent
 original-executable activation/cancellation cases (`TENCHU2_INVISIBILITY_ORACLE`)
 and actual item use, detection suppression, inventory restrictions, expiry and
 snapshot continuation. This does not establish full mission/frame parity.
+
+Native JP fire-breath scrolls follow `80059934` / `80059a34`: floor-relative
+placement from joint 1, four triplets following the owner's current yaw, and
+source burst heights/timing. The generated blast colliders follow `800564f4` /
+`80056638`, with owner exclusion, the original grenade damage kind and a four-update
+expansion window. Original-executable comparisons cover 600 launch/update cases
+and 120 blast collision/expiry boundaries (`TENCHU2_FIRE_BREATH_ORACLE`,
+`TENCHU2_FIRE_BLAST_ORACLE`). Connected item-use checks cover guard damage, owner
+safety, inventory, particles, positional sound and expiry.

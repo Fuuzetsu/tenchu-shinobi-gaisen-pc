@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect fire-breath scrolls in the internal JP preview, with directional bursts,
+  expanding blast damage, source flames and positional sound.
+
 - Connect invisibility in the internal JP preview: activation and expiry, guard
   detection and item-use restrictions, transformation trails and translucent
   character rendering. Keep HD texture identities and blending compatible.

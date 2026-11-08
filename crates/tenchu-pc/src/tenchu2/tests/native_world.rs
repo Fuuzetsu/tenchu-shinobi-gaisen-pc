@@ -1132,6 +1132,64 @@ fn native_invisibility_changes_guard_perception_and_expires_after_a_snapshot() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; actual fire-breath input, expanding blasts, guard damage and expiry"]
+fn native_fire_breath_hurts_a_guard_and_expires_without_harming_its_owner() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.position.z = -2400;
+    world.actors[guard].actor.previous = world.actors[guard].actor.position;
+    world.publish(guard, &assets);
+    let health = world.actors[guard].actor.health;
+    world.actors[0].actor.inventory.counts[17] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(17).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut casts = 0;
+    let mut blasts = 0;
+    let mut particles = false;
+    for _ in 0..150 {
+        for index in [0, guard] {
+            world.move_actor(index, &assets, &mut events).unwrap();
+            world.actors[index].actor.pad.update(0);
+            world
+                .control_actor(index, &mut assets, &mut events)
+                .unwrap();
+            world.animate_actor(index, &assets).unwrap();
+        }
+        world.update_items(&assets, &mut events).unwrap();
+        casts += world
+            .items
+            .entries
+            .iter()
+            .filter(|e| matches!(e.state, ItemState::FireBreath(_)))
+            .count();
+        blasts += world
+            .items
+            .entries
+            .iter()
+            .filter(|e| matches!(e.state, ItemState::FireBlast(_)))
+            .count();
+        particles |= !world.update_effects().unwrap().sprites.is_empty();
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    assert!(casts > 0 && blasts > 0 && particles);
+    assert!(world.actors[guard].actor.health < health);
+    assert_eq!(world.actors[0].actor.health, 100);
+    assert_eq!(world.actors[0].actor.inventory.counts[17], 1);
+    assert!(world.items.entries.is_empty());
+    assert_eq!(
+        events
+            .0
+            .iter()
+            .filter(|e| matches!(e, Event::SoundPosition { id: 51, .. }))
+            .count(),
+        1
+    );
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; actual powder use, guard confusion and inventory consumption"]
 fn native_confusion_powder_affects_nearby_guards_without_health_damage() {
     use tenchu_core::tenchu2::items::State as ItemState;

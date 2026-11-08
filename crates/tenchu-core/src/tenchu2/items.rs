@@ -2,6 +2,7 @@ pub mod aim;
 pub mod arrow;
 pub mod caltrop;
 pub mod dart;
+pub mod fire;
 pub mod flight;
 pub mod grapple;
 pub mod grenade;
@@ -55,6 +56,8 @@ pub enum State {
     SleepBomb(sleep_bomb::SleepBomb),
     Powder(powder::Powder),
     Invisibility(invisibility::Invisibility),
+    FireBreath(fire::Breath),
+    FireBlast(fire::Blast),
 }
 
 #[derive(Default)]
@@ -65,6 +68,10 @@ pub struct Frame {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Event {
+    FireBlast {
+        owner: usize,
+        position: Position,
+    },
     Splash(Position),
     Impact {
         position: Position,
@@ -137,6 +144,16 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::FireBlast(blast) => {
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: blast.position,
+                        ..Default::default()
+                    },
+                );
+                blast.register(model, collision)?;
+            }
             State::Powder(powder) => {
                 scene.update(
                     model,
@@ -218,7 +235,7 @@ impl Items {
                 scene.update(model, smoke.transform);
                 smoke.register(model, collision)?;
             }
-            State::Grapple(_) | State::Invisibility(_) => {}
+            State::Grapple(_) | State::Invisibility(_) | State::FireBreath(_) => {}
         }
         self.entries.push(Entry {
             model,
@@ -243,10 +260,29 @@ impl Items {
             State::Dart(dart) => dart.flight.floor,
             State::SleepBomb(bomb) => bomb.flight.floor,
             State::Powder(powder) => powder.floor,
-            State::Grapple(_) | State::Gunshot(_) | State::Invisibility(_) => entry.unused_floor,
+            State::FireBreath(breath) => breath.floor,
+            State::Grapple(_)
+            | State::Gunshot(_)
+            | State::Invisibility(_)
+            | State::FireBlast(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));
     }
+}
+
+fn surface_ahead(
+    mut origin: Position,
+    yaw: i16,
+    map: &tenchu_assets::tenchu2::collision::Collision,
+    cursor: &mut Cursor,
+    math: &Math,
+) -> Result<Position> {
+    use crate::tenchu2::terrain::{self, Query};
+    origin.y = terrain::level(map, cursor, origin, Query::Surface)?.unwrap_or(i32::MIN);
+    let [sin, cos] = math.pair(yaw);
+    origin.x = origin.x.wrapping_add(-sin >> 3);
+    origin.z = origin.z.wrapping_add(-cos >> 3);
+    Ok(origin)
 }
 
 pub fn wall_throw(

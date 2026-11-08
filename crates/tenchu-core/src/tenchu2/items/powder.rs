@@ -2,10 +2,7 @@ use crate::{
     Result,
     math::{Math, Position},
     scene::ModelId,
-    tenchu2::{
-        collision::Collision,
-        terrain::{self, Cursor, Query},
-    },
+    tenchu2::{collision::Collision, terrain::Cursor},
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,21 +17,17 @@ pub struct Powder {
 impl Powder {
     pub fn blow(
         owner: usize,
-        mut origin: Position,
+        origin: Position,
         yaw: i16,
         map: &tenchu_assets::tenchu2::collision::Collision,
         cursor: &mut Cursor,
         math: &Math,
     ) -> Result<Self> {
-        let floor = terrain::level(map, cursor, origin, Query::Surface)?.unwrap_or(i32::MIN);
-        let [sin, cos] = math.pair(yaw);
-        origin.y = floor;
-        origin.x = origin.x.wrapping_add(-sin >> 3);
-        origin.z = origin.z.wrapping_add(-cos >> 3);
+        let position = super::surface_ahead(origin, yaw, map, cursor, math)?;
         Ok(Self {
             owner,
-            position: origin,
-            floor,
+            position,
+            floor: position.y,
             age: 0,
         })
     }

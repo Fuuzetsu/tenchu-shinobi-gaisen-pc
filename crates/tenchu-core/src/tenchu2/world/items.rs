@@ -49,6 +49,15 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::FireBreath(breath) => (
+                    breath.advance(
+                        self.actors[breath.owner].actor.rotation.y,
+                        &assets.resources.math,
+                        |event| sink.emit(event, &mut self.random),
+                    )?,
+                    false,
+                ),
+                State::FireBlast(blast) => (blast.advance(model, context.collision)?, false),
                 State::Invisibility(invisibility) => {
                     let owner = invisibility.owner;
                     let trail = invisibility.trail;
@@ -198,6 +207,7 @@ impl World {
                     false,
                 ),
             };
+            let blasts = sink.blasts;
             for (position, id) in sink.sounds {
                 self.emit(self.player, Event::SoundPosition { position, id }, events)?;
             }
@@ -216,6 +226,16 @@ impl World {
                     }
                 }
                 self.items.remove(index, &mut self.collision);
+            }
+            for blast in blasts {
+                if self.items.entries.len() == 30 {
+                    index = index.saturating_sub(1);
+                }
+                self.items.insert(
+                    State::FireBlast(blast),
+                    &mut self.scene,
+                    &mut self.collision,
+                )?;
             }
         }
         Ok(())
@@ -321,6 +341,7 @@ struct ItemEffects<'a> {
     difficulty: u8,
     hidden: bool,
     sounds: Vec<(Position, u8)>,
+    blasts: Vec<crate::tenchu2::items::fire::Blast>,
 }
 
 impl<'a> ItemEffects<'a> {
@@ -338,12 +359,28 @@ impl<'a> ItemEffects<'a> {
             difficulty,
             hidden,
             sounds: Vec::new(),
+            blasts: Vec::new(),
         }
     }
 
     fn emit(&mut self, cue: ItemEvent, random: &mut Random) -> Result<()> {
         let math = &self.assets.resources.math;
         match cue {
+            ItemEvent::FireBlast { owner, position } => {
+                self.blasts.push(crate::tenchu2::items::fire::Blast {
+                    owner,
+                    position,
+                    age: 0,
+                });
+                self.emit(
+                    ItemEvent::Explosion {
+                        position,
+                        kind: 2,
+                        contact: true,
+                    },
+                    random,
+                )?;
+            }
             ItemEvent::SleepGas { position, phase } => {
                 self.effects.sleep_gas(position, phase, math)?
             }
