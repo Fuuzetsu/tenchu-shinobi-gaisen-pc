@@ -53,6 +53,10 @@ impl Collision {
         self.slots.get(index)
     }
 
+    pub(crate) fn slot_mut(&mut self, index: usize) -> Option<&mut Slot> {
+        self.slots.get_mut(index)
+    }
+
     pub fn index(&self, model: ModelId) -> Option<usize> {
         self.slots()
             .iter()

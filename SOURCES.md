@@ -1667,3 +1667,13 @@ than the raw pad. Original SDK `GsGetLw`, matrix composition and recovery code
 match 7,000 mixed coordinate/cache/recovery operations per edition
 (`TENCHU2_SCENE_ORACLE`). Only COP2 arithmetic is supplied in that oracle.
 Jump/attack-entry comparisons also verify when root queries occur.
+
+The enclosing ordinary-attack paths in EU `80029924` / JP `8002a450` now
+retain status interruption, attack-table selection, target steering, contact
+windows, weapon parries, trail lifetime and root/yaw recovery. Source execution
+matches 30,000 EU and 29,400 JP updates across all 100/98 definitions with
+registered attack clips, including 271/250 parries (`TENCHU2_ATTACK_ORACLE`).
+This oracle bypasses the independently checked per-clip sequence switch, supplies
+target/root queries, and records audio/effect calls; selection, motion changes,
+collision iteration and RNG execute original instructions. Paired stealth kills,
+damage, projectile simulation and world orchestration remain separate work.

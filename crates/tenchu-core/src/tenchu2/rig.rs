@@ -186,7 +186,7 @@ impl Actor {
         Ok(())
     }
 
-    fn refresh_contact_mask(&mut self, rig: &Rig, collision: &Collision) {
+    pub(crate) fn refresh_contact_mask(&mut self, rig: &Rig, collision: &Collision) {
         self.attack.contacts = rig
             .joints
             .iter()

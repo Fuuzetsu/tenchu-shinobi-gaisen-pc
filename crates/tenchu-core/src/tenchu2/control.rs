@@ -1,9 +1,11 @@
 use super::actor::{Actor, State, Velocity};
 use crate::{math::Math, random::Random};
 
+mod attack;
 mod entry;
 mod jump;
 mod sequence;
+pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
 pub use sequence::{AttackCue, Projectile};
 
