@@ -56,7 +56,8 @@ fn native_terrain_movement_matches_japanese_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let rules = Rules::load(&disc).unwrap();
     let mut map_id = usize::MAX;

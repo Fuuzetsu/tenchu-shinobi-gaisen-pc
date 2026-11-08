@@ -42,7 +42,8 @@ fn native_item_aiming_releases_medicine_and_grapple_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut uses = 0;

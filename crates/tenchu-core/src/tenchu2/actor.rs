@@ -4,7 +4,7 @@ use crate::{
     math::{Math, Position, Vector3},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 use tenchu_assets::{
     model::Part,
     tenchu2::{Edition, commands::Commands, motions::Clip, registry::Registry, weapons::Weapons},
@@ -16,7 +16,7 @@ pub struct Resources {
     pub clips: BTreeMap<i16, Clip>,
     pub weapons: Weapons,
     pub commands: Commands,
-    pub math: Math,
+    pub math: Arc<Math>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

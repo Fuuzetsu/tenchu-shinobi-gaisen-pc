@@ -23,6 +23,13 @@ impl World {
         assets: &Assets,
         events: &mut impl crate::tenchu2::environment::Events,
     ) -> Result<Movement> {
+        let mut events = super::effects::EnvironmentEvents {
+            effects: &mut self.effects,
+            math: &assets.resources.math,
+            rules: &assets.effect_rules,
+            instances: &self.instances,
+            events,
+        };
         let (before, tail) = self.actors.split_at_mut(index);
         let (agent, after) = tail.split_first_mut().ok_or("Missing Tenchu 2 actor")?;
         let actor = &mut agent.actor;
@@ -67,7 +74,7 @@ impl World {
                         cursor: terrain.cursor,
                         math: &assets.resources.math,
                         random: &mut self.random,
-                        events,
+                        events: &mut events,
                     },
                 )?;
                 if kind == 19 && focused && actor.health < 1 {

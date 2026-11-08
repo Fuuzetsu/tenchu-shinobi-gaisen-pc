@@ -381,7 +381,20 @@ impl<E: Events> Context<'_, E> {
                 }
                 DeathCue::HideHeldItem => self.emit(actor, Event::HeldItem(None), random),
                 DeathCue::RemoveWeapons => self.weapon(actor, WeaponMode::Remove, resources),
-                DeathCue::GroundPool => self.emit(actor, Event::GroundPool, random),
+                DeathCue::GroundPool => {
+                    let bone = *self.instances[self.index]
+                        .rig
+                        .joints
+                        .get(1)
+                        .ok_or("Missing Tenchu 2 corpse joint")?;
+                    let position = self
+                        .scene
+                        .world(bone)?
+                        .translation
+                        .wrapping_sub(Position::new(0, 1024, 0));
+                    self.effects
+                        .death_pool(position, terrain.map, terrain.cursor)
+                }
                 DeathCue::RemoveJoint(joint) => {
                     if let Some(&joint) = self.instances[self.index].rig.joints.get(joint) {
                         self.collision.remove(joint);

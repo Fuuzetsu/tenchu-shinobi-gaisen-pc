@@ -31,7 +31,8 @@ fn native_air_control_wall_jumps_and_landings_match_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let rules = Rules::load(&disc).unwrap();

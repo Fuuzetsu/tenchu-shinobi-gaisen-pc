@@ -18,6 +18,7 @@ use tenchu_assets::{
 
 pub struct Assets {
     pub sprites: tenchu_assets::tenchu2::effects::Sprites,
+    pub effect_rules: tenchu_assets::tenchu2::effects::Rules,
     pub camera: tenchu_assets::tenchu2::camera::Tables,
     pub hero: usize,
     pub sequence: usize,
@@ -85,6 +86,7 @@ impl Assets {
         }
         Ok(Self {
             sprites: tenchu_assets::tenchu2::effects::Sprites::load(disc)?,
+            effect_rules: tenchu_assets::tenchu2::effects::Rules::load(disc)?,
             camera: tenchu_assets::tenchu2::camera::Tables::load(disc)?,
             hero,
             sequence: layout.sequence,
@@ -96,7 +98,8 @@ impl Assets {
                 commands: Commands::load(disc)?,
                 math: Math {
                     tables: math_tables(disc)?,
-                },
+                }
+                .into(),
             },
             level: Level::japanese_sequence(disc, layout, false)?,
             models,

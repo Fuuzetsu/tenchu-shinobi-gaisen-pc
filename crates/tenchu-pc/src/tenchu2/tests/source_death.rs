@@ -45,7 +45,8 @@ fn native_death_carrying_and_stealth_events_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let rules = Rules::load(&disc).unwrap();
     let template = template(&resources);

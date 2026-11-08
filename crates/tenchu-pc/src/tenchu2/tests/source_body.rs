@@ -41,7 +41,8 @@ fn native_body_response_preserves_knockback_and_contact_order() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let rules = Rules::load(&disc).unwrap();
     let mut map = Map {

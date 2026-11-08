@@ -54,7 +54,8 @@ fn native_sleep_waking_and_idle_transitions_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut sleeping = 0;

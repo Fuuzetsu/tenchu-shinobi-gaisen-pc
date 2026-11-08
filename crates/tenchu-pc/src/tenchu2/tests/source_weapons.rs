@@ -25,7 +25,8 @@ fn native_weapon_contacts_and_attachments_match_every_actor_definition() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let parts: Vec<_> = (0..64)
         .map(|i| Part {

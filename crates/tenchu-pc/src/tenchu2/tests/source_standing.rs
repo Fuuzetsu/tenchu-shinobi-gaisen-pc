@@ -38,7 +38,8 @@ fn native_standing_ready_dodges_and_carrying_match_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut seen = std::collections::BTreeSet::new();

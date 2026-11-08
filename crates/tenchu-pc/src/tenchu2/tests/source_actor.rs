@@ -99,7 +99,8 @@ fn native_actor_motion_transitions_match_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let parts: Vec<_> = (0..20)
         .map(|i| Part {

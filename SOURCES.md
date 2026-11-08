@@ -2166,3 +2166,14 @@ instead. `TENCHU2_SURFACE_DRAWING_ORACLE` checks 1,000 original sloped quad,
 wall-drip, ripple and fade outputs. Projection is isolated in these checks;
 surface visibility belongs to the native renderer. The prior 600 sprite cases
 also pass. These checks do not establish playable native mission/campaign parity.
+
+Native JP actor/environment cues now create the owned effects at the source
+call site, preserving RNG ordering: `8002d63c` splash kinds, dust/trails,
+`8002ba28` underwater bubbles, block flashes, attached fire and healing. Death
+pools use joint 1's world position minus 1024 (`800223d8`); scenery explosions
+and burning contacts share this same effect state. The renderer does not own or
+advance these effects. Four connected-world checks cover all 56 casts, paired
+kills, blocks, healing, drowning and scenery contacts; all three heroes retain
+exact world/effect/event continuation after a snapshot. Strict Clippy and wasm
+core pass. Items, weapon trails/clashes, audio delivery, native presentation and
+the complete campaign still require integration; this is not playable parity.

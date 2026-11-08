@@ -17,6 +17,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 mod combat;
+mod effects;
 mod injury;
 mod items;
 pub(super) use injury::credit;
@@ -68,6 +69,7 @@ pub enum Event {
     ItemSound(ItemSound),
     Splash(u8),
     Dust,
+    DustTrail,
     Footstep {
         check_surface: bool,
     },
@@ -103,7 +105,6 @@ pub enum Event {
         angle: i16,
     },
     Bubbles,
-    GroundPool,
     HeldItem(Option<u8>),
     DropHeldItem,
     Sparks {
@@ -167,6 +168,11 @@ impl World {
         };
         let mut driver = Driver {
             context: Context {
+                effects: &mut self.effects,
+                effect_rules: &assets.effect_rules,
+                math: assets.resources.math.clone(),
+                hidden: self.hidden_scene,
+                water: self.water.clone(),
                 index,
                 player: self.player,
                 hero: assets.hero,
@@ -213,6 +219,11 @@ impl World {
 }
 
 struct Context<'a, E> {
+    effects: &'a mut crate::tenchu2::effects::Effects,
+    effect_rules: &'a tenchu_assets::tenchu2::effects::Rules,
+    math: std::sync::Arc<crate::math::Math>,
+    hidden: bool,
+    water: crate::tenchu2::physics::Water,
     index: usize,
     player: usize,
     hero: usize,
@@ -244,6 +255,9 @@ struct Driver<'a, E> {
 
 impl<E: Events> Context<'_, E> {
     fn emit(&mut self, actor: &Actor, event: Event, random: &mut Random) -> Result<()> {
+        if self.particle(actor, event, random)? {
+            return Ok(());
+        }
         self.events.emit(
             EventSource {
                 index: self.index,

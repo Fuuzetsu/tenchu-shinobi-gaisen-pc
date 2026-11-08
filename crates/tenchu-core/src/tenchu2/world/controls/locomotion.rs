@@ -33,7 +33,7 @@ impl<E: Events> Driver<'_, E> {
                     StandingCue::Status(status) => c.status(actor, status, random)?,
                     StandingCue::Voice(id) => c.emit(actor, Event::Voice(id), random)?,
                     StandingCue::Splash(id) => c.emit(actor, Event::Splash(id), random)?,
-                    StandingCue::Dust => c.emit(actor, Event::Dust, random)?,
+                    StandingCue::Dust => c.emit(actor, Event::DustTrail, random)?,
                     StandingCue::Footstep { check_surface } => {
                         c.emit(actor, Event::Footstep { check_surface }, random)?
                     }

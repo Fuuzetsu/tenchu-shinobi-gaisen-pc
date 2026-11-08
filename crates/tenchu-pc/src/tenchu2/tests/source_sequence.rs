@@ -28,7 +28,8 @@ fn native_attack_sequences_preserve_combos_grips_projectiles_and_landings() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut checked = 0;

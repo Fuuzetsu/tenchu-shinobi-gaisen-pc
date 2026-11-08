@@ -75,7 +75,8 @@ fn paired_stealth_setup_interruption_and_recovery_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     for (id, row) in starts.iter().enumerate() {

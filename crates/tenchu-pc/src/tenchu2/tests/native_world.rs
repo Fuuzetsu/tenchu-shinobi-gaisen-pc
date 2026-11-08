@@ -12,6 +12,7 @@ use tenchu_core::{
     tenchu2::{
         actor::{State, Velocity},
         control::GrappleStatus,
+        effects::{Effect, sprites::Motion},
         input::{ATTACK, ITEM},
         inventory::{Inventory, Item},
         physics::{Depth, HIT, Water},
@@ -146,6 +147,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .index(world.instances[guard].rig.joints[0])
             .is_none()
     );
+    let mut blood = false;
     for _ in 0..240 {
         for i in [0, guard] {
             world.move_actor(i, &assets, &mut events).unwrap();
@@ -155,6 +157,12 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
                 .unwrap_or_else(|e| panic!("actor {i} tick {}: {e}", world.tick));
             world.animate_actor(i, &assets).unwrap();
         }
+        blood |= world
+            .effects
+            .entries
+            .iter()
+            .any(|e| matches!(e, Effect::Blood(_)));
+        world.update_effects().unwrap();
         world.finish_tick().unwrap();
     }
     assert!(matches!(
@@ -168,7 +176,7 @@ fn native_stealth_kill_completes_both_actors_and_restores_corpse_collision() {
             .index(world.instances[guard].rig.joints[0])
             .is_some()
     );
-    assert!(events.0.iter().any(|e| matches!(e, Event::Blood { .. })));
+    assert!(blood, "stealth kill did not create native blood");
     assert_eq!(world.statistics.killed, 1);
 }
 
@@ -227,7 +235,13 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
         world.actors[0].actor.motion.loops < 0,
         "attacker hit pause was not propagated"
     );
-    assert!(events.0.iter().any(|e| matches!(e, Event::Sparks { .. })));
+    assert!(
+        world
+            .effects
+            .entries
+            .iter()
+            .any(|e| matches!(e, Effect::Sprites(s) if matches!(s.frames[0].image, 16 | 18)))
+    );
 
     let player = &mut world.actors[0].actor;
     player
@@ -238,10 +252,17 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
     player.inventory.counts[1] = 1;
     player.pad.update(ITEM);
     world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut healing = false;
     for _ in 0..180 {
         world.actors[0].actor.pad.update(0);
         world.control_actor(0, &mut assets, &mut events).unwrap();
         world.animate_actor(0, &assets).unwrap();
+        healing |= world
+            .effects
+            .entries
+            .iter()
+            .any(|e| matches!(e, Effect::Sprites(s) if matches!(s.motion, Motion::Healing)));
+        world.update_effects().unwrap();
         world.finish_tick().unwrap();
     }
     assert_eq!(
@@ -249,7 +270,7 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
         world.actors[0].actor.max_health
     );
     assert_eq!(world.actors[0].actor.inventory.counts[1], 0);
-    assert!(events.0.contains(&Event::Medicine(0)));
+    assert!(healing, "medicine did not create native healing particles");
 
     let player = &mut world.actors[0].actor;
     player.health = 2;
@@ -315,6 +336,7 @@ fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
                     .unwrap_or_else(|error| {
                         panic!("sequence {} tick {tick}: {error}", layout.sequence)
                     });
+                world.update_effects().unwrap();
                 world.finish_tick().unwrap();
                 world
                     .update_activation(world.camera.eye, world.camera.look, 6, &assets)

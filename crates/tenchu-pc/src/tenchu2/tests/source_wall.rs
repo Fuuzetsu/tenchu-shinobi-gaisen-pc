@@ -51,7 +51,8 @@ fn native_wall_alignment_movement_peeking_and_item_throws_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let keys: std::collections::BTreeMap<_, _> = resources
         .clips

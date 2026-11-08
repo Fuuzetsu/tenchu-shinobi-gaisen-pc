@@ -46,7 +46,8 @@ fn native_attack_contacts_parries_steering_and_recovery_match_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut seen = std::collections::BTreeSet::new();

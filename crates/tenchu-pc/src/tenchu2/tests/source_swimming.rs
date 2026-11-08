@@ -47,7 +47,8 @@ fn native_swimming_diving_shore_climbing_and_grapple_inputs_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let rules = Rules::load(&disc).unwrap();
     let template = template(&resources);

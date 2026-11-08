@@ -41,7 +41,8 @@ fn native_hit_reactions_knockdowns_and_recovery_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut blood = 0;

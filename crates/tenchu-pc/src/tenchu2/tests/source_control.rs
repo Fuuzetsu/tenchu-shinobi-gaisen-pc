@@ -24,7 +24,8 @@ pub(super) fn resources() -> Resources {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     }
 }
 

@@ -40,7 +40,8 @@ fn native_inventory_consumption_and_item_entry_match_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let mut kinds = std::collections::BTreeSet::new();

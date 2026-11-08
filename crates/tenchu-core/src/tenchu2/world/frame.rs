@@ -18,6 +18,12 @@ impl behavior::Events for Voices {
 }
 
 impl World {
+    pub fn update_effects(&mut self) -> Result<crate::tenchu2::effects::Frame> {
+        let view = self.view();
+        self.effects
+            .update(&mut self.scene, view, &self.terrain, &mut self.cursor)
+    }
+
     pub fn update_actors(
         &mut self,
         controllers: [u16; 2],
@@ -114,11 +120,18 @@ impl World {
         }
         let mut view = self.view();
         view.distance = assets.draw_distance;
+        let mut events = super::effects::EnvironmentEvents {
+            effects: &mut self.effects,
+            math: &assets.resources.math,
+            rules: &assets.effect_rules,
+            instances: &self.instances,
+            events,
+        };
         let mut sink = Sink {
             alert: &mut self.ai.global.perception.alert,
             difficulty: self.difficulty,
             rules: &assets.combat_rules,
-            events,
+            events: &mut events,
         };
         let mut context = Context {
             map: &mut self.terrain,

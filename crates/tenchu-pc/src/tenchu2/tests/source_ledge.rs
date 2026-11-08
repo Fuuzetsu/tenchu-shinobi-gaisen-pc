@@ -45,7 +45,8 @@ fn native_ledge_grabs_sideways_hanging_and_climbing_match_source() {
         commands: Commands::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let template = template(&resources);
     let rules = Rules::load(&disc).unwrap();

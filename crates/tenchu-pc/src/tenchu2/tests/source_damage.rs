@@ -48,7 +48,8 @@ fn native_weapon_projectile_damage_and_resurrection_match_source() {
         weapons: Weapons::load(&disc).unwrap(),
         math: Math {
             tables: math_tables(&disc).unwrap(),
-        },
+        }
+        .into(),
     };
     let rules = Rules::load(&disc).unwrap();
     let template = template(&resources);
