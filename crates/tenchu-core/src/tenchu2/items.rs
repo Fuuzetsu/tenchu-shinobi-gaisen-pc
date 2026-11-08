@@ -1,6 +1,7 @@
 pub mod aim;
 pub mod arrow;
 pub mod caltrop;
+pub mod cloud;
 pub mod dart;
 pub mod fire;
 pub mod flight;
@@ -66,6 +67,7 @@ pub enum State {
     Teleport(teleport::Teleport),
     Marker(marker::Marker),
     Resurrection(resurrection::Resurrection),
+    Cloud(cloud::Cloud),
 }
 
 #[derive(Default)]
@@ -98,6 +100,11 @@ pub enum Event {
     },
     Smoke {
         position: Position,
+        kind: u8,
+    },
+    DispersingSmoke {
+        position: Position,
+        direction: Position,
         kind: u8,
     },
     Fuse(Position),
@@ -153,6 +160,16 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Cloud(cloud) => {
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: cloud.position,
+                        ..Default::default()
+                    },
+                );
+                cloud.register(model, collision)?;
+            }
             State::Resurrection(resurrection) => scene.update(model, resurrection.transform),
             State::Marker(marker) => {
                 scene.update(
@@ -290,6 +307,7 @@ impl Items {
             | State::Gunshot(_)
             | State::Invisibility(_)
             | State::FireBlast(_)
+            | State::Cloud(_)
             | State::Teleport(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));

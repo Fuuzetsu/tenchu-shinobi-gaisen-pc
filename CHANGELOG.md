@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect JP enemy status clouds and floor smoke traps to native particles and
+  collision, including their original expansion, sleep/blindness and expiry.
+
 - Route Japanese Tenchu 2 selections in F6 and `play-t2` into the native JP
   runtime: original actors, AI, voices, swimming, scenes and campaign transitions.
   Reuse the main window, saved controls and Android touch overlay, with F1 for

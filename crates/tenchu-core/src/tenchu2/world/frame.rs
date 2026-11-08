@@ -239,6 +239,7 @@ impl World {
             rules: &assets.effect_rules,
             instances: &self.instances,
             events,
+            spawned: Vec::new(),
         };
         let mut sink = Sink {
             alert: &mut self.ai.global.perception.alert,
@@ -266,16 +267,16 @@ impl World {
             },
             &mut context,
         )?;
-        if self.environment.background_only {
-            return Ok(frame);
+        if !self.environment.background_only {
+            self.environment.update_contacts(
+                &assets.level.scene.bounds,
+                (self.player, self.actors[self.player].actor.position),
+                |object| assets.level.grid.contains(object.cell),
+                &mut context,
+            )?;
+            self.environment.update_triggers(&mut context)?;
         }
-        self.environment.update_contacts(
-            &assets.level.scene.bounds,
-            (self.player, self.actors[self.player].actor.position),
-            |object| assets.level.grid.contains(object.cell),
-            &mut context,
-        )?;
-        self.environment.update_triggers(&mut context)?;
+        events.publish_items(&mut self.items, &mut self.scene, &mut self.collision)?;
         Ok(frame)
     }
 }

@@ -7,6 +7,85 @@ use tenchu_core::{
 };
 
 #[test]
+#[ignore = "requires TENCHU2_CLOUD_ORACLE; JP executable cloud collision growth, emission and expiry"]
+fn native_status_cloud_matches_original_timing_and_collisions() {
+    use tenchu_core::tenchu2::items::{Event, Items, State, cloud::Cloud};
+    let mut checked = 0;
+    for (case, row) in super::source_control::cases::<Value>("TENCHU2_CLOUD_ORACLE").enumerate() {
+        let position = super::source_physics::vector(&row["position"]);
+        let direction = super::source_physics::vector(&row["direction"]);
+        let owner = (!row["trap"].as_bool().unwrap()).then_some(3);
+        let mut items = Items::default();
+        let mut scene = Scene::default();
+        let mut collision = Collision::default();
+        let model = items
+            .insert(
+                State::Cloud(Cloud {
+                    owner,
+                    position,
+                    direction,
+                    age: 0,
+                }),
+                &mut scene,
+                &mut collision,
+            )
+            .unwrap();
+        assert_eq!(scene.world(model).unwrap().translation, position);
+        let slot = collision.get_mut(model).unwrap();
+        assert_eq!(json!(slot.flags), row["initial"]["flags"], "flags {case}");
+        assert_eq!(
+            json!(slot.size.to_array()),
+            row["initial"]["size"],
+            "size {case}"
+        );
+        assert_eq!(slot.owner, owner);
+        for (tick, expected) in row["states"].as_array().unwrap().iter().enumerate() {
+            if let Some(flags) = expected["flags"].as_u64() {
+                collision.get_mut(model).unwrap().flags = flags as u16;
+            }
+            let State::Cloud(cloud) = &mut items.entries[0].state else {
+                panic!("cloud lost")
+            };
+            let mut cues = Vec::new();
+            let alive = cloud
+                .advance(model, &mut collision, |cue| {
+                    if let Event::DispersingSmoke {
+                        position,
+                        direction,
+                        kind,
+                    } = cue
+                    {
+                        cues.push(json!([position.to_array(), direction.to_array(), kind]));
+                        Ok(())
+                    } else {
+                        panic!("Unexpected cloud event {cue:?}")
+                    }
+                })
+                .unwrap();
+            assert_eq!(json!(alive), expected["alive"], "expiry {case}/{tick}");
+            assert_eq!(json!(cloud.age), expected["age"], "age {case}/{tick}");
+            assert_eq!(json!(cues), expected["cues"], "emission {case}/{tick}");
+            assert_eq!(
+                json!(collision.get_mut(model).unwrap().size.to_array()),
+                expected["size"],
+                "bounds {case}/{tick}"
+            );
+            if !alive {
+                items.remove(0, &mut collision);
+                assert!(collision.index(model).is_none());
+            }
+            if tick == 32 {
+                items = serde_json::from_slice(&serde_json::to_vec(&items).unwrap()).unwrap();
+                collision =
+                    serde_json::from_slice(&serde_json::to_vec(&collision).unwrap()).unwrap();
+            }
+            checked += 1;
+        }
+    }
+    eprintln!("{checked} original JP cloud updates");
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC, TENCHU2_FIRE_BREATH_ORACLE and TENCHU2_FIRE_BLAST_ORACLE; original fire-breath placement, bursts and hit-volume lifetime"]
 fn native_fire_breath_matches_original_bursts_and_damage_volumes() {
     use tenchu_core::tenchu2::items::{

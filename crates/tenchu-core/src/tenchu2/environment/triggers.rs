@@ -102,7 +102,7 @@ impl Environment {
                         (Shot::Arrow, target.wrapping_sub(position))
                     }
                     _ => (
-                        Shot::Flame,
+                        Shot::Smoke,
                         Position::new(((sin >> 7) * 5) >> 4, 0, ((cos >> 7) * 5) >> 4),
                     ),
                 };

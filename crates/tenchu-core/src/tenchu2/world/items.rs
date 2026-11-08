@@ -51,6 +51,12 @@ impl World {
             };
             let mut resurrection_voice = None;
             let (mut alive, pickup) = match &mut entry.state {
+                State::Cloud(cloud) => (
+                    cloud.advance(model, context.collision, |event| {
+                        sink.emit(event, &mut self.random)
+                    })?,
+                    false,
+                ),
                 State::Resurrection(resurrection) => {
                     let owner = resurrection.owner;
                     let update = resurrection.advance(
@@ -485,6 +491,13 @@ impl<'a> ItemEffects<'a> {
                 self.effects
                     .smoke(position, kind, self.hidden, math, random)?
             }
+            ItemEvent::DispersingSmoke {
+                position,
+                direction,
+                kind,
+            } => self
+                .effects
+                .dispersing_smoke(position, direction, kind, random)?,
             ItemEvent::Fuse(position) => {
                 self.effects
                     .fuse(position, &self.assets.effect_rules, random)?

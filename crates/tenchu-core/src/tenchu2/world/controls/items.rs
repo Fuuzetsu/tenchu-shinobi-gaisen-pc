@@ -544,6 +544,32 @@ impl<E: Events> Context<'_, E> {
             projectile::{Kind, Projectile as Shot},
         };
         let (kind, direction, fan) = match event {
+            Event::Throw {
+                bone,
+                center,
+                direction,
+            } => {
+                let joint = *self.instances[self.index]
+                    .rig
+                    .joints
+                    .get(bone)
+                    .ok_or("Missing Tenchu 2 status-cloud joint")?;
+                let position = self
+                    .scene
+                    .world(joint)?
+                    .transform(center.to_array().map(|v| v as i16));
+                self.items.insert(
+                    State::Cloud(crate::tenchu2::items::cloud::Cloud {
+                        owner: Some(self.index),
+                        position,
+                        direction,
+                        age: 0,
+                    }),
+                    self.scene,
+                    self.collision,
+                )?;
+                return Ok(true);
+            }
             Event::NockArrow => {
                 let rig = &mut self.instances[self.index].rig;
                 rig.weapons[2] = rig.weapons[4];

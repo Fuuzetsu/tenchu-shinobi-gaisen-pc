@@ -29,6 +29,7 @@ impl World {
             rules: &assets.effect_rules,
             instances: &self.instances,
             events,
+            spawned: Vec::new(),
         };
         let (before, tail) = self.actors.split_at_mut(index);
         let (agent, after) = tail.split_first_mut().ok_or("Missing Tenchu 2 actor")?;
@@ -84,6 +85,7 @@ impl World {
             },
         )?;
         self.terrain_options = terrain.options;
+        events.publish_items(&mut self.items, &mut self.scene, &mut self.collision)?;
         let voices = actor.resolve_contacts(
             &self.collision,
             rig.joints[0],

@@ -2612,3 +2612,18 @@ inputs/outputs remain private. Native sprites use the source VRAM and palette
 masks, with complete mission fades after the HUD and post-processing. Ordinary
 item selection, aiming, shuriken release/retrieval and Ki display were inspected
 in the native window. This does not establish complete campaign parity.
+
+JP status clouds follow `GAME.EXE` `8005cf1c` / `8005d070`, with the trap
+constructor `8005ce94`. The special move at `80028704` transforms the first
+weapon attachment at clip `0x121` frame 20, then creates the cloud owned by that
+actor. It emits dispersing smoke through the already ported `80046630`, expands
+its contact volume on updates 33–64, and expires on update 81. Contact flags
+select the original status reaction, not an approximation using grenade damage.
+The private cloud oracle executes the original constructor and updater, with
+allocation/list/collision registration and particle submission intercepted.
+The source comparison checks 1,944 updates including alternate hit flags and
+snapshot continuation. Native world checks exercise special-move creation,
+particle emission and delayed status contact. Surface kinds 14/15 use smoke,
+not flame; trap clouds have no actor owner. The source surface/trigger oracle
+was regenerated with the corrected event name. Other projectile trap handlers
+remain integration work; this change does not claim those are complete.

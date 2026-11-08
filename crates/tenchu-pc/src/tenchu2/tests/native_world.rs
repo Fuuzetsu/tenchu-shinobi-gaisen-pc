@@ -135,6 +135,105 @@ fn fixture() -> (World, Assets, usize) {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; special-move cloud emits once and affects nearby actors after expanding"]
+fn native_special_cloud_reaches_damage_and_particles() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let (mut world, mut assets, guard) = fixture();
+    let actor = &mut world.actors[guard].actor;
+    actor.state = State::Special;
+    actor.motion.action = 0x70d;
+    actor.motion.clip = Some(0x121);
+    actor.motion.frame = 20;
+    actor.motion.loops = 0;
+    let mut events = Recorded::default();
+    world
+        .control_actor(guard, &mut assets, &mut events)
+        .unwrap();
+    assert!(!events.0.iter().any(|e| matches!(e, Event::Throw { .. })));
+    let cloud = world
+        .items
+        .entries
+        .iter()
+        .find_map(|entry| match &entry.state {
+            ItemState::Cloud(cloud) => Some(cloud),
+            _ => None,
+        })
+        .expect("special move did not create its cloud");
+    assert_eq!(cloud.owner, Some(guard));
+    let actor = &mut world.actors[0].actor;
+    actor.position = Position::new(cloud.position.x + 1500, 0, cloud.position.z);
+    actor.previous = actor.position;
+    let health = actor.health;
+    world.publish(0, &assets);
+    let mut affected = false;
+    for tick in 0..81 {
+        world.update_items(&assets, &mut events).unwrap();
+        if tick == 0 {
+            assert!(world.effects.entries.iter().any(|effect| matches!(effect, Effect::Sprites(s) if matches!(s.motion, Motion::Dispersing))));
+        }
+        world.finish_tick(&assets, 6).unwrap();
+        world.move_actor(0, &assets, &mut events).unwrap();
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        if world.actors[0].actor.flags & 0x800 != 0 {
+            assert!(tick >= 32, "cloud affected player before expanding");
+            affected = true;
+        }
+        world.update_effects(&assets).unwrap();
+    }
+    assert!(affected, "expanded cloud never affected the player");
+    assert_eq!(world.actors[0].actor.health, health);
+    assert!(
+        !world
+            .items
+            .entries
+            .iter()
+            .any(|entry| matches!(entry.state, ItemState::Cloud(_)))
+    );
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; stepping on a smoke trap creates its blinding cloud once"]
+fn native_surface_smoke_trap_blinds_the_player() {
+    use tenchu_core::tenchu2::{environment::Trigger, items::State as ItemState};
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.flags |= 8;
+    for &joint in &world.instances[guard].rig.joints {
+        world.collision.remove(joint);
+    }
+    world.terrain.cells[0].nodes[0].attributes = 0x400;
+    world.environment.triggers = vec![Trigger {
+        position: Position::new(0, -600, -1500),
+        angle: 0,
+        kind: 14,
+        target: 0,
+        clock: 0,
+    }];
+    let mut events = Recorded::default();
+    world.move_actor(0, &assets, &mut events).unwrap();
+    assert!(events.1.is_empty(), "trap event escaped the runtime");
+    assert_eq!(world.items.entries.len(), 1);
+    let entry = &world.items.entries[0];
+    let ItemState::Cloud(cloud) = &entry.state else {
+        panic!("trap did not create a cloud")
+    };
+    assert_eq!(cloud.owner, None);
+    assert_eq!(cloud.direction, Position::new(0, 0, 10));
+    assert_eq!(world.collision.get_mut(entry.model).unwrap().flags, 0x500a);
+    let mut blinded = false;
+    for _ in 0..81 {
+        world.update_items(&assets, &mut events).unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+        world.move_actor(0, &assets, &mut events).unwrap();
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        blinded |= world.actors[0].actor.flags & 0x200 != 0;
+        world.update_effects(&assets).unwrap();
+        assert!(world.items.entries.len() <= 1, "trap fired repeatedly");
+    }
+    assert!(blinded);
+    assert!(world.items.entries.is_empty());
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; exercises native hook controls through attachment, pulling and release"]
 fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
     let (mut world, mut assets, guard) = fixture();
