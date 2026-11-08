@@ -472,7 +472,7 @@ impl<E: Events> Context<'_, E> {
     }
 }
 
-pub(super) fn credit(
+pub(in crate::tenchu2::world) fn credit(
     stats: &mut super::super::Statistics,
     script: &mut u16,
     actor: &Actor,

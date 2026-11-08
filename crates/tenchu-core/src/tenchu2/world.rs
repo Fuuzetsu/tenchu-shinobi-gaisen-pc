@@ -19,6 +19,8 @@ use tenchu_assets::tenchu2::layout::Layout;
 
 mod activation;
 mod assets;
+mod frame;
+pub use frame::ActorEvents;
 pub mod controls;
 mod update;
 pub use assets::Assets;

@@ -2042,3 +2042,11 @@ substitutes for the original hardware-cost measurement. A private original-code
 oracle checks 1,000 twelve-actor cases, including vertical and distance boundaries,
 visibility, dead actors, exemptions and non-update ticks. This still does not
 expose native T2 campaign play.
+
+The native JP actor loop now joins `8001c8f0` / `8001cbb8`: active actors run
+movement/contact resolution, fall-death credit and cues, AI, state controls, then
+animation/visibility/foot/head updates in source order. Water avoidance is cleared
+between movement and AI. Effects and visibility are explicit caller boundaries;
+AI voices are delivered before controls. A disc-backed integration check runs all
+56 campaign casts for 180 updates each with movement, attacks and jumps. This
+checks the joined actor logic, not complete items, camera, effects or campaigns.

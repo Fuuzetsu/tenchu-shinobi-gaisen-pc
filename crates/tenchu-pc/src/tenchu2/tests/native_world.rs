@@ -260,3 +260,71 @@ fn native_damage_medicine_and_drowning_use_the_shared_world() {
     assert_eq!(world.actors[0].actor.health, 0);
     assert_eq!(world.actors[0].actor.state, State::Dead);
 }
+
+impl tenchu_core::tenchu2::world::ActorEvents for Recorded {
+    fn surface(&mut self, _: usize, _: &tenchu_core::tenchu2::terrain::Probe) -> i16 {
+        -1
+    }
+    fn visible(&mut self, _: EventSource<'_>) -> Result<bool> {
+        Ok(true)
+    }
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; continuous native actors with recorded effect boundaries"]
+fn native_campaign_casts_run_physics_ai_controllers_and_animation_together() {
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let layouts = Layout::available(&disc).unwrap();
+    let mut checked = 0;
+    for hero in 0..3 {
+        for layout in layouts.iter().filter(|l| match hero {
+            0 => l.sequence < 101,
+            1 => (101..185).contains(&l.sequence),
+            _ => l.sequence >= 185,
+        }) {
+            let mut assets = Assets::load(&disc, hero, layout).unwrap();
+            let mut world = World::new(
+                layout,
+                Options {
+                    hero,
+                    difficulty: 2,
+                    seed: 4,
+                    inventory: Inventory::default(),
+                },
+                &assets,
+            )
+            .unwrap();
+            let mut events = Recorded::default();
+            for tick in 0..180 {
+                let buttons = match tick % 90 {
+                    0..=29 => tenchu_core::tenchu2::input::UP,
+                    30..=39 => ATTACK,
+                    60..=69 => tenchu_core::tenchu2::input::JUMP,
+                    _ => 0,
+                };
+                world
+                    .update_actors([buttons, 0], &mut assets, &mut events)
+                    .unwrap_or_else(|error| {
+                        panic!("sequence {} tick {tick}: {error}", layout.sequence)
+                    });
+                world.finish_tick().unwrap();
+                let eye = world.actors[world.player].actor.position;
+                world
+                    .update_activation(
+                        eye,
+                        eye.wrapping_add(Position::new(0, 0, -1000)),
+                        6,
+                        &assets,
+                    )
+                    .unwrap();
+            }
+            eprintln!(
+                "JP hero {hero} sequence {}: 180 continuous actor ticks",
+                layout.sequence
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 56);
+}

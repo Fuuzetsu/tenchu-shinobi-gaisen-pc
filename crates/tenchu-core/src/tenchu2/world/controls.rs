@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 mod combat;
 mod injury;
 mod items;
-use injury::credit;
+pub(super) use injury::credit;
 mod locomotion;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
