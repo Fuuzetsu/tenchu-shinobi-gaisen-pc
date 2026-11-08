@@ -8,6 +8,7 @@ pub mod grapple;
 pub mod grenade;
 pub mod gun;
 pub mod invisibility;
+pub mod marker;
 pub mod mine;
 pub mod powder;
 pub mod projectile;
@@ -29,6 +30,7 @@ pub struct Items {
     pub aim: aim::Aim,
     pub held: Option<u8>,
     pub entries: Vec<Entry>,
+    pub markers: [Option<ModelId>; 5],
     free_models: Vec<(ModelId, i32, u8)>,
     /// Low four word-address bits of the original item pool, for recorded replays.
     pub pool_phase: u8,
@@ -60,6 +62,7 @@ pub enum State {
     FireBreath(fire::Breath),
     FireBlast(fire::Blast),
     Teleport(teleport::Teleport),
+    Marker(marker::Marker),
 }
 
 #[derive(Default)]
@@ -146,6 +149,16 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Marker(marker) => {
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: marker.position,
+                        ..Default::default()
+                    },
+                );
+                marker.register(model, collision)?;
+            }
             State::FireBlast(blast) => {
                 scene.update(
                     model,
@@ -255,6 +268,7 @@ impl Items {
         let entry = self.entries.remove(index);
         collision.remove(entry.model);
         let floor = match entry.state {
+            State::Marker(marker) => marker.floor.unwrap_or(entry.unused_floor),
             State::Projectile(projectile) => projectile.flight.floor,
             State::Arrow(arrow) => arrow.flight.floor,
             State::Grenade(grenade) => grenade.flight.floor,

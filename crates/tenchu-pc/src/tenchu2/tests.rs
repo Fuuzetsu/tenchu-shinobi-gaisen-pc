@@ -783,6 +783,7 @@ mod source_visibility;
 
 mod source_scenery;
 
+mod source_markers;
 mod source_special_items;
 mod source_teleport;
 mod source_textures;

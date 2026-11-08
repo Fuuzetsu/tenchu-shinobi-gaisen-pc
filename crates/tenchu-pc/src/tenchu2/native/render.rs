@@ -362,6 +362,14 @@ impl Models {
                 State::Smoke(s) => (10, s.transform, [0; 3]),
                 State::SleepBomb(bomb) => (18, bomb.transform, [0; 3]),
                 State::Rice(r) => (11, r.transform, [0; 3]),
+                State::Marker(marker) => (
+                    32 + marker.color,
+                    Matrix {
+                        translation: marker.position,
+                        ..Default::default()
+                    },
+                    [0; 3],
+                ),
                 State::Caltrop(c) => (
                     5,
                     Matrix {

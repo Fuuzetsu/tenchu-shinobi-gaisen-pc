@@ -163,6 +163,39 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            12 => {
+                let Some(color) = self.items.markers.iter().position(Option::is_none) else {
+                    return Ok(());
+                };
+                let marker = items::marker::Marker::place(
+                    self.index,
+                    color as u8,
+                    self.item_origin(11)?,
+                    actor.rotation.y,
+                    &mut items::Context {
+                        map: terrain.map,
+                        cursor: terrain.cursor,
+                        math: &self.math,
+                        scene: self.scene,
+                        collision: self.collision,
+                        player: self.player,
+                    },
+                )?;
+                let position = marker.position;
+                let valid = marker.floor.is_some();
+                let model = self
+                    .items
+                    .insert(State::Marker(marker), self.scene, self.collision)?;
+                if valid {
+                    self.items.markers[color] = Some(model);
+                } else {
+                    self.items
+                        .remove(self.items.entries.len() - 1, self.collision);
+                    actor.inventory.counts[12] = actor.inventory.counts[12].wrapping_add(1);
+                    self.emit(actor, Event::SoundPosition { position, id: 6 }, random)?;
+                }
+                return Ok(());
+            }
             16 => {
                 use crate::tenchu2::effects::paper::Motion;
                 let target = items::teleport::nearest(

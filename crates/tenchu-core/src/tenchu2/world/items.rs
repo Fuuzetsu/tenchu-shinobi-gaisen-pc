@@ -3,6 +3,7 @@ use super::{
     controls::{Event, Events},
 };
 
+mod markers;
 mod rice;
 use crate::{
     Result,
@@ -49,6 +50,7 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::Marker(marker) => (marker.advance(model, &mut context)?, false),
                 State::Teleport(teleport) => {
                     let target = teleport.target.map(|i| {
                         let actor = &self.actors[i].actor;
@@ -229,6 +231,9 @@ impl World {
             if alive && matches!(self.items.entries[index].state, State::Rice(_)) {
                 alive = self.update_rice(index, assets, events)?;
             }
+            if matches!(self.items.entries[index].state, State::Marker(_)) {
+                alive &= !self.pick_up_marker(index, assets, events)?;
+            }
             if alive && pickup {
                 alive = !self.pick_up_item(index, assets, events)?;
             }
@@ -340,7 +345,7 @@ impl World {
             }
             actor.inventory.select(available);
             if taker == self.player {
-                self.controls.unlocked_items[item] = true;
+                self.emit(taker, Event::Pickup(item), events)?;
                 self.emit(taker, Event::SoundPosition { position, id: 7 }, events)?;
             }
             return Ok(true);

@@ -115,7 +115,6 @@ impl World {
                     actor.inventory.select(false);
                 }
                 actor.inventory.select(available);
-                self.controls.unlocked_items[11] = true;
                 recovered.push(taker);
             } else {
                 actor.flags |= if self.map == 12 { 0x200 } else { 0x100 };
@@ -123,6 +122,7 @@ impl World {
             alive = false;
         }
         for taker in recovered {
+            self.emit(taker, Event::Pickup(11), events)?;
             self.emit(taker, Event::SoundPosition { position, id: 7 }, events)?;
         }
         Ok(alive)

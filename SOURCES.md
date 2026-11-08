@@ -2414,3 +2414,15 @@ cases, and 240 particle sequences including pool eviction
 `TENCHU2_PAPER_ORACLE`). Projection is excluded from the particle oracle. A
 connected item-use check covers delayed teleportation to a moving target and
 snapshot continuation. Full campaign parity remains unverified.
+
+Native JP coloured-rice markers follow `80055528` / `8005577c`: five return-point
+slots, the hand-relative offset, uncached terrain queries, water rejection and
+inventory refund, the source collision box, owner-only retrieval and pickup
+restrictions. The source clears a touched marker's return-point slot before
+checking afflictions; removal by water/eviction does not clear it. Slots reference
+reusable scene models to retain that distinction. Models 32–36 come from the
+user's item archive. 1,200 original-instruction terrain cases cover 773 accepted
+and 427 rejected placements (`TENCHU2_MARKER_ORACLE`); a connected use/restore
+check covers other-actor contacts, afflicted-owner contacts and retrieval.
+`80051bb0` queues a pickup notice; it does not unlock campaign equipment. Native
+projectile, poisoned-rice and marker pickups now emit that notice accordingly.

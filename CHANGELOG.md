@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect coloured-rice markers in the internal JP preview, including their five
+  colours, terrain placement, owner-only retrieval and return-point slots.
+
 - Connect teleport scrolls in the internal JP preview, including original target
   selection, delayed placement, cancellation and success/failure paper effects.
 

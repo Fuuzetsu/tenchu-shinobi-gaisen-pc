@@ -1673,3 +1673,98 @@ fn native_teleport_moves_behind_its_target_after_the_delay() {
         postcard::to_allocvec(&restored.unwrap()).unwrap()
     );
 }
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; actual coloured-rice use, owner-only pickup, affliction boundary and snapshot continuation"]
+fn native_marker_pickup_preserves_owner_and_return_point_rules() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.position = Position::new(-10000, 0, -10000);
+    world.publish(guard, &assets);
+    world.actors[0].actor.inventory.counts[12] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(12).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut marker = None;
+    for _ in 0..150 {
+        world.move_actor(0, &assets, &mut events).unwrap();
+        world.actors[0].actor.pad.update(0);
+        world.control_actor(0, &mut assets, &mut events).unwrap();
+        world.animate_actor(0, &assets).unwrap();
+        if marker.is_none()
+            && let Some(entry) = world
+                .items
+                .entries
+                .iter()
+                .find(|e| matches!(e.state, ItemState::Marker(_)))
+        {
+            let ItemState::Marker(value) = &entry.state else {
+                unreachable!()
+            };
+            assert_eq!(value.color, 0);
+            marker = Some((entry.model, value.position));
+            world.actors[0].actor.position = Position::new(10000, 0, 10000);
+            world.actors[0].actor.previous = world.actors[0].actor.position;
+            world.publish(0, &assets);
+        }
+        world.update_items(&assets, &mut events).unwrap();
+        world.update_effects(&assets).unwrap();
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    let (model, position) = marker.expect("marker never appeared");
+    assert_eq!(world.items.markers[0], Some(model));
+    assert_eq!(world.actors[0].actor.inventory.counts[12], 1);
+    assert!(world.items.entries.iter().any(|e| e.model == model));
+    world.actors[guard].actor.position = position;
+    world.publish(guard, &assets);
+    world.finish_tick(&assets, 6).unwrap();
+    world.update_items(&assets, &mut events).unwrap();
+    assert!(
+        world.items.entries.iter().any(|e| e.model == model),
+        "another actor took the marker"
+    );
+    world.actors[guard].actor.position = Position::new(-10000, 0, -10000);
+    world.publish(guard, &assets);
+    world.actors[0].actor.position = position;
+    world.actors[0].actor.flags |= 0x100;
+    world.publish(0, &assets);
+    world.finish_tick(&assets, 6).unwrap();
+    world.update_items(&assets, &mut events).unwrap();
+    assert!(world.items.entries.iter().any(|e| e.model == model));
+    assert_eq!(
+        world.items.markers[0], None,
+        "afflicted owner must still clear the source return point"
+    );
+    world.actors[0].actor.flags &= !0x100;
+    let mut restored: World =
+        postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap();
+    let mut restored_events = Recorded::default();
+    events.0.clear();
+    world.update_items(&assets, &mut events).unwrap();
+    restored
+        .update_items(&assets, &mut restored_events)
+        .unwrap();
+    assert_eq!(world.actors[0].actor.inventory.counts[12], 2);
+    assert!(world.items.entries.is_empty());
+    assert!(
+        !world.controls.unlocked_items[12],
+        "pickup notice must not unlock campaign equipment"
+    );
+    assert!(events.0.iter().any(|e| matches!(e, Event::Pickup(12))));
+    assert!(
+        events
+            .0
+            .iter()
+            .any(|e| matches!(e, Event::SoundPosition { id: 7, .. }))
+    );
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored).unwrap()
+    );
+    assert_eq!(
+        format!("{:?}", events.0),
+        format!("{:?}", restored_events.0)
+    );
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
