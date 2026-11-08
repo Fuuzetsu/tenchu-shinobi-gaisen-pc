@@ -8,6 +8,9 @@ use tenchu_assets::{
     terrain::Node,
 };
 
+mod probe;
+pub use probe::{Options, Probe};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Surface {
     pub cell: usize,

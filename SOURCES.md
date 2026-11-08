@@ -1573,3 +1573,10 @@ range changes and remembered target positions. Original execution matches
 executes the actual terrain rays and supplies only SDK COP2 arithmetic and a
 controlled return from the nearby-object query; object-query scheduling and the
 outer alert/AI loop are not covered by this component check.
+
+Native body terrain probes follow EU `8002d2f8` / JP `8002ded0`. Surface
+transition rules, corner ordering, wall angles and escape directions are read
+from each executable (EU `8008164c`, JP `8008357c`). Probes preserve the previous
+surface category, water exclusions, step checks and asymmetric height masks.
+The terrain oracle additionally checks 17,250 four-corner probes per edition
+across all maps, including retained cache state and both query options.

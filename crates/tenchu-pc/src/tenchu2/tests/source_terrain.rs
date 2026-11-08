@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use tenchu_core::{
     math::Math,
-    tenchu2::terrain::{self, Cursor, Query, Surface},
+    tenchu2::terrain::{self, Cursor, Options, Probe, Query, Surface},
 };
 
 #[derive(Deserialize)]
@@ -29,24 +29,32 @@ enum Sample {
         count: i16,
         hit: Option<[i32; 3]>,
     },
+    Probe {
+        width: i16,
+        avoid: bool,
+        ignore: bool,
+        previous: [i32; 6],
+        probe: [i32; 6],
+    },
 }
 
 #[test]
 #[ignore = "requires TENCHU2_DISC and TENCHU2_TERRAIN_ORACLE from the original MCD queries"]
 fn native_terrain_and_sight_rays_match_source_in_every_map() {
     use std::io::BufRead;
-    use tenchu_assets::tenchu2::{Edition, level::Level, math_tables};
+    use tenchu_assets::tenchu2::{Edition, collision::Rules, level::Level, math_tables};
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let edition = Edition::detect(&disc).unwrap();
     let math = Math {
         tables: math_tables(&disc).unwrap(),
     };
+    let rules = Rules::load(&disc).unwrap();
     let mut map = None;
     let mut cursor = Cursor::default();
     let mut map_id = usize::MAX;
     let mut seen = std::collections::BTreeSet::new();
-    let mut counts = [0; 2];
+    let mut counts = [0; 3];
     let input = std::io::BufReader::new(
         std::fs::File::open(std::env::var_os("TENCHU2_TERRAIN_ORACLE").unwrap()).unwrap(),
     );
@@ -101,6 +109,48 @@ fn native_terrain_and_sight_rays_match_source_in_every_map() {
                 );
                 counts[1] += 1;
             }
+            Sample::Probe {
+                width,
+                avoid,
+                ignore,
+                previous,
+                probe,
+            } => {
+                let mut contact = Probe {
+                    floor: (previous[0] != i32::MIN).then_some(previous[0]),
+                    height: previous[1],
+                    material: previous[2] as u16,
+                    blocked: previous[3] as u16,
+                    lower: previous[4] as u16,
+                    higher: previous[5] as u16,
+                };
+                contact
+                    .sample(
+                        map.as_ref().unwrap(),
+                        &mut cursor,
+                        &rules,
+                        row.position.into(),
+                        width,
+                        Options {
+                            avoid_water: avoid,
+                            ignore_steps: ignore,
+                        },
+                    )
+                    .unwrap();
+                assert_eq!(
+                    [
+                        contact.floor.unwrap_or(i32::MIN),
+                        contact.height,
+                        i32::from(contact.material),
+                        i32::from(contact.blocked),
+                        i32::from(contact.lower),
+                        i32::from(contact.higher),
+                    ],
+                    probe,
+                    "row {index} map {map_id}"
+                );
+                counts[2] += 1;
+            }
         }
         let surface = |id: Option<Surface>| id.map(|id| [id.cell, id.node]);
         assert_eq!(
@@ -113,5 +163,5 @@ fn native_terrain_and_sight_rays_match_source_in_every_map() {
         assert_eq!(cursor.index, row.index, "row {index} map {map_id}");
     }
     assert_eq!(seen.len(), Level::available(&disc).unwrap().len());
-    assert!(counts[0] > 45000 && counts[1] > 11000);
+    assert!(counts[0] > 45000 && counts[1] > 11000 && counts[2] > 17000);
 }

@@ -1,6 +1,33 @@
 use crate::{Result, i16_le, slice, terrain::Node, u16_le, u32_le};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct Rules {
+    pub wall_angles: [Option<i16>; 16],
+    pub escape: [[i16; 2]; 16],
+    pub corners: [[i16; 2]; 4],
+    pub blocked: [[bool; 4]; 4],
+}
+
+impl Rules {
+    pub fn load(disc: &crate::disc::Disc<impl crate::ReadAt>) -> Result<Self> {
+        let (edition, data) = super::executable(disc)?;
+        let executable = crate::executable::Executable::new(&data)?;
+        let bytes = executable.bytes(edition.addresses().collision_rules, 128)?;
+        let short = |at| i16::from_le_bytes([bytes[at], bytes[at + 1]]);
+        let pair = |at| [short(at), short(at + 2)];
+        Ok(Self {
+            wall_angles: std::array::from_fn(|i| {
+                let value = short(i * 2);
+                (value != -1).then_some(value)
+            }),
+            escape: std::array::from_fn(|i| pair(32 + i * 4)),
+            corners: std::array::from_fn(|i| pair(96 + i * 4)),
+            blocked: std::array::from_fn(|i| std::array::from_fn(|j| bytes[112 + i * 4 + j] != 0)),
+        })
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Collision {
     pub origin: [i16; 2],
     pub dimensions: [usize; 2],
