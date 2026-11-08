@@ -68,7 +68,7 @@ fn parse(data: &[u8]) -> Result<Mesh> {
     let mut positions = Vec::new();
     for (joint, header) in slice(data, 16, joints * 16)?.chunks_exact(16).enumerate() {
         let parent = i16_le(header, 6)?;
-        if parent < -1 || parent >= joint as i16 || (joint != 0 && parent == -1) {
+        if parent < -1 || parent >= joints as i16 || parent == joint as i16 {
             return Err("Invalid Tenchu 2 joint parent".into());
         }
         parents.push(parent);
@@ -198,24 +198,35 @@ pub(super) fn rig(data: &[u8]) -> Result<Vec<Part>> {
 }
 
 fn parts(mesh: Mesh, bones: &[usize]) -> Result<Vec<Part>> {
-    let mut roots = Vec::<[i32; 3]>::new();
-    let mut mapped = Vec::new();
-    for (joint, &parent) in mesh.parents.iter().enumerate() {
-        let origin = if parent < 0 {
-            [0; 3]
-        } else {
-            roots[parent as usize]
-        };
-        roots.push(std::array::from_fn(|i| {
-            origin[i] + i32::from(mesh.positions[joint][i])
-        }));
-        mapped.push(
-            bones
-                .iter()
-                .position(|&b| b == joint)
-                .unwrap_or_else(|| mapped[parent as usize]),
-        );
+    let mut roots = vec![[0; 3]; mesh.parents.len()];
+    let mut mapped = vec![None; mesh.parents.len()];
+    // Detached costume pieces can have several roots and forward parent links.
+    while mapped.iter().any(Option::is_none) {
+        let mut changed = false;
+        for (joint, &parent) in mesh.parents.iter().enumerate() {
+            if mapped[joint].is_some() || (parent >= 0 && mapped[parent as usize].is_none()) {
+                continue;
+            }
+            let origin = if parent < 0 {
+                [0; 3]
+            } else {
+                roots[parent as usize]
+            };
+            roots[joint] = std::array::from_fn(|i| origin[i] + i32::from(mesh.positions[joint][i]));
+            mapped[joint] = Some(
+                bones
+                    .iter()
+                    .position(|&b| b == joint)
+                    .or_else(|| (parent >= 0).then(|| mapped[parent as usize]).flatten())
+                    .ok_or("Unmapped Tenchu 2 root joint")?,
+            );
+            changed = true;
+        }
+        if !changed {
+            return Err("Cyclic Tenchu 2 joint hierarchy".into());
+        }
     }
+    let mapped: Vec<_> = mapped.into_iter().map(Option::unwrap).collect();
     let mut parts: Vec<_> = bones
         .iter()
         .enumerate()

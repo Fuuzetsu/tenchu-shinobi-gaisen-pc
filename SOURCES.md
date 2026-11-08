@@ -2480,3 +2480,16 @@ the JP call is `8002f628`. All 142 campaign event resources parse, and
 executes the animation code and emulates its spline COP2 operations; matrix
 publication is excluded. Story rendering, dialogue, effects and campaign
 dispatch remain unconnected at this boundary.
+
+JP story model resources follow `EVENT.BIN` `800d1c78`, `800d5874`, `800d5ad4`,
+`800d5e80`, `800d63a8` and `800d63e4`. Names and area associations are read from
+the disc's overlay tables at `800d6fac`, `800d7154` and `800d75a8`; weapon
+attachments use the executable's existing weapon registry. Active CAB members
+override volume resources. Each model keeps its canonical texture coordinates
+and a separate atlas instead of reproducing PS1 VRAM relocation. Detached
+costume meshes require multiple skeleton roots and forward parent references;
+cyclic or missing parents are rejected. The disc-backed resource check loads
+843 model placements and 581 weapon attachments across all 141 reachable story
+events. Sequence 152/event 88 is unreachable and its E88.ARC is absent from the
+JP disc; it is not silently substituted. Facial texture animation and actual
+story presentation remain separate integration work.

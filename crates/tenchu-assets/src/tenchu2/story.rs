@@ -1,6 +1,9 @@
 use super::{Edition, cab_member, volume::Volume};
 use crate::{ReadAt, Result, disc::Disc, i16_le, short3, slice, u16_le, u32_le};
 
+mod resources;
+pub use resources::{Attachment, Model, Resources};
+
 #[derive(Clone, Copy, Debug)]
 pub struct Key {
     pub value: [i16; 3],
@@ -23,6 +26,7 @@ impl Key {
 
 pub struct Animation {
     pub model: i16,
+    pub texture_model: i16,
     pub origin: [i32; 3],
     pub duration: i16,
     pub root: Vec<Key>,
@@ -34,6 +38,12 @@ pub struct Script {
     pub area: Option<usize>,
     pub camera: Animation,
     pub actors: Vec<Animation>,
+    pub weapons: Vec<Weapon>,
+}
+
+pub struct Weapon {
+    pub actor: usize,
+    pub part: usize,
 }
 
 impl Script {
@@ -69,11 +79,29 @@ impl Script {
         let actors = (1..count)
             .map(|slot| Animation::parse(data, offset(slot)?))
             .collect::<Result<_>>()?;
+        let mut weapons = Vec::new();
+        let mut at = u32_le(data, 72)? as usize;
+        loop {
+            let actor = i16_le(data, at)?;
+            let part = i16_le(data, at + 2)?;
+            if actor < 0 || part < 0 {
+                break;
+            }
+            if !(1..count).contains(&(actor as usize)) {
+                return Err("Invalid Tenchu 2 story weapon owner".into());
+            }
+            weapons.push(Weapon {
+                actor: actor as usize - 1,
+                part: part as usize,
+            });
+            at += 4;
+        }
         Ok(Self {
             duration,
             area,
             camera,
             actors,
+            weapons,
         })
     }
 }
@@ -89,6 +117,7 @@ impl Animation {
         let track = |slot| track(data, u32_le(data, 28 + slot * 4)? as usize, duration);
         Ok(Self {
             model: i16_le(data, 16)?,
+            texture_model: i16_le(data, 22)?,
             origin: [
                 u32_le(data, 4)? as i32,
                 u32_le(data, 8)? as i32,
