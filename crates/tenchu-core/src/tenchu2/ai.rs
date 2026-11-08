@@ -2,6 +2,7 @@ mod patrol;
 pub use patrol::{Patrol, PatrolInput};
 mod sentry;
 pub use sentry::{Sentry, SentryInput};
+pub mod sight;
 mod steering;
 pub use steering::{ForcedInput, Probe, SteeringInput, direction, steer};
 mod wander;

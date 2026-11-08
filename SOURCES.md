@@ -1563,3 +1563,13 @@ checks cover 46,000 floor queries and 11,500 passage checks in each edition,
 across all 23 maps (`TENCHU2_TERRAIN_ORACLE`), comparing returned positions,
 surface identity, material and cache state. The only supplied instructions are
 the SDK's COP2 arithmetic. Gaisen's sandbox conversion remains separate.
+
+Native target perception follows EU `80030c08` / JP `80031748`. JP uses narrower
+standing/crouched cones, higher eye rays, skips checks while the observer hangs
+from a ledge, and gives archers separate vertical and recognition-distance
+rules. Both retain staggered 32-tick checks, target-state exclusions, cover
+range changes and remembered target positions. Original execution matches
+34,500 cases per edition across all maps (`TENCHU2_SIGHT_ORACLE`). That oracle
+executes the actual terrain rays and supplies only SDK COP2 arithmetic and a
+controlled return from the nearby-object query; object-query scheduling and the
+outer alert/AI loop are not covered by this component check.
