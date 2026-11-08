@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     Result,
-    math::{Math, Matrix, Vector3},
+    math::{Math, Matrix, Position, Vector3},
     scene::{ModelId, Scene},
 };
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,14 @@ pub struct Rig {
 }
 
 impl Rig {
+    pub fn root_position(&self, actor: &Actor, scene: &mut Scene) -> Result<Position> {
+        let joint = *self.joints.first().ok_or("Missing Tenchu 2 root joint")?;
+        scene.set_translation(self.root, actor.position);
+        scene.set_translation(joint, actor.motion.pose.translation[0]);
+        // Source translations alias the actor and pose; writes don't invalidate cached matrices.
+        Ok(scene.world(joint)?.translation)
+    }
+
     pub fn bind(actor: &Actor, scene: &mut Scene, math: &Math) -> Self {
         let root = scene.add(
             Some(0),

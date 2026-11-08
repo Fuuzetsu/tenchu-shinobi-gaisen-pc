@@ -1,7 +1,7 @@
 use super::{input::Pad, motion::Motion, terrain::Probe};
 use crate::{
     Result,
-    math::{Math, Matrix, Position, Vector3},
+    math::{Math, Position, Vector3},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -220,26 +220,22 @@ impl Actor {
         Ok(())
     }
 
-    pub fn commit_root(&mut self, math: &Math) {
-        let root = Matrix {
-            rotation: math.rotate_yxz(self.rotation.to_array()),
-            translation: self.position,
-        };
-        let point = root
-            .apply_large(self.motion.pose.translation[0])
-            .wrapping_add(self.position);
+    pub fn commit_root(&mut self, point: Position) {
         self.position.x = point.x;
         self.position.z = point.z;
     }
 
-    pub fn normal_motion(&mut self, math: &Math) -> i16 {
+    pub fn normal_motion(
+        &mut self,
+        input: u16,
+        mut root_position: impl FnMut(&Actor) -> Result<Position>,
+    ) -> Result<i16> {
         if matches!(self.state, State::Normal | State::Ready | State::Attack) {
-            self.commit_root(math);
+            self.commit_root(root_position(self)?);
         }
         let action = if self.health == 0 {
             0xb00
-        } else if self.pad.held & super::input::CROUCH != 0
-            && self.terrain.height <= i32::from(self.height)
+        } else if input & super::input::CROUCH != 0 && self.terrain.height <= i32::from(self.height)
         {
             0x200
         } else if self.weapon_drawn() {
@@ -250,7 +246,7 @@ impl Actor {
         self.motion.mask = u32::MAX;
         self.rotation.x = 0;
         self.rotation.z = 0;
-        action
+        Ok(action)
     }
 
     pub fn weapon_drawn(&self) -> bool {

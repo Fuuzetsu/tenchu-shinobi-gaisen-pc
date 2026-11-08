@@ -13,7 +13,7 @@ use tenchu_core::{
     },
 };
 
-fn resources() -> Resources {
+pub(super) fn resources() -> Resources {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
     let registry = Registry::load(&disc).unwrap();

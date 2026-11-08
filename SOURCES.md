@@ -1658,3 +1658,12 @@ The oracle captures ordered calls and attachment visibility while supplying
 projectile creation, sound, dust/splash, steering and death-dispatch boundaries.
 Projectile simulation, contact resolution and the enclosing attack controller
 are not established by this timing check.
+
+Native root recovery follows EU `8001f1c8`, `8001f218` / JP `8001f5d8`,
+`8001f628`, querying published joint coordinates instead of recomputing their
+rotations. It shares the source-compatible scene cache: translation writes do
+not invalidate matrices, and recovery reads filtered controller input rather
+than the raw pad. Original SDK `GsGetLw`, matrix composition and recovery code
+match 7,000 mixed coordinate/cache/recovery operations per edition
+(`TENCHU2_SCENE_ORACLE`). Only COP2 arithmetic is supplied in that oracle.
+Jump/attack-entry comparisons also verify when root queries occur.

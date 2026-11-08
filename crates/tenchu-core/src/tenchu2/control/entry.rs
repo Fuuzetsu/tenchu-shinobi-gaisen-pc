@@ -1,7 +1,7 @@
 use super::Request;
 use crate::{
     Result,
-    math::Math,
+    math::{Math, Position},
     tenchu2::{
         actor::{Actor, Resources, State, Velocity},
         ai::direction,
@@ -25,10 +25,11 @@ impl Actor {
         input: u16,
         resources: &Resources,
         is_player: bool,
+        mut root_position: impl FnMut(&Actor) -> Result<Position>,
     ) -> Result<JumpEffects> {
         let mut effects = JumpEffects::default();
         let previous = request.action;
-        self.commit_root(&resources.math);
+        self.commit_root(root_position(self)?);
         let (action, forward, side) =
             if self.pad.consume(&resources.commands.jumping) == Some(0x607) {
                 (
@@ -251,12 +252,13 @@ impl Actor {
         start: AttackStart,
         request: &mut Request,
         resources: &Resources,
+        mut root_position: impl FnMut(&Actor) -> Result<Position>,
     ) -> Result<()> {
         match start {
             AttackStart::Strike { action, velocity } => {
                 let old = self.motion.action;
                 if self.change_motion(action, velocity, resources)?.is_some() {
-                    self.commit_root(&resources.math);
+                    self.commit_root(root_position(self)?);
                     request.action = action;
                 } else {
                     request.action = old;

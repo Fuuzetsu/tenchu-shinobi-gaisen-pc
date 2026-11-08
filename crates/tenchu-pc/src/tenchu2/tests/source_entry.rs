@@ -38,6 +38,7 @@ struct Expected {
     voices: Vec<u8>,
     splash: bool,
     stealth: Option<usize>,
+    roots: usize,
 }
 
 #[derive(Deserialize)]
@@ -132,9 +133,20 @@ fn verify(jump: bool) {
             velocity: velocity(case.mode),
         };
         let expected = &case.expected;
+        let mut roots = 0;
+        let root_position = |actor: &tenchu_core::tenchu2::actor::Actor| {
+            roots += 1;
+            Ok(actor.position)
+        };
         if jump {
             let effects = actor
-                .jump_input(&mut request, case.input, &resources, case.player)
+                .jump_input(
+                    &mut request,
+                    case.input,
+                    &resources,
+                    case.player,
+                    root_position,
+                )
                 .unwrap();
             assert_eq!(effects.voices, expected.voices, "case {index}");
             assert_eq!(effects.splash, expected.splash, "case {index}");
@@ -175,10 +187,11 @@ fn verify(jump: bool) {
                     "case {index}"
                 );
                 actor
-                    .start_strike(input.start, &mut request, &resources)
+                    .start_strike(input.start, &mut request, &resources, root_position)
                     .unwrap();
             }
         }
+        assert_eq!(roots, expected.roots, "case {index}");
         assert_eq!(
             (request.action, request.velocity),
             (expected.action, velocity(expected.mode)),
