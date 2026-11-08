@@ -10,6 +10,7 @@ mod source_entry;
 mod source_idle;
 mod source_input;
 mod source_item;
+mod source_item_control;
 mod source_jump;
 mod source_ledge;
 mod source_math;

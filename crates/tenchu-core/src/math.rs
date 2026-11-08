@@ -64,6 +64,16 @@ impl Math {
     }
 
     pub fn normalize_short(&self, vector: [i16; 3]) -> [i16; 3] {
+        self.normalized_components(vector).map(|v| v as i16)
+    }
+
+    /// VectorNormal accepts words, but the GTE multiplies their signed low halves.
+    pub fn normalize_vector(&self, vector: Position) -> Position {
+        self.normalized_components(vector.map(|v| v as i16).to_array())
+            .into()
+    }
+
+    fn normalized_components(&self, vector: [i16; 3]) -> [i32; 3] {
         let sum = vector.into_iter().fold(0i32, |sum, value| {
             let value = i32::from(value);
             sum.wrapping_add(value * value)
@@ -81,7 +91,7 @@ impl Math {
             sum >> (24 - even)
         };
         let factor = i32::from(self.tables.normal[(mantissa + 256) as usize]);
-        vector.map(|v| (i32::from(v) * factor).wrapping_shr(exponent as u32) as i16)
+        vector.map(|v| (i32::from(v) * factor).wrapping_shr(exponent as u32))
     }
 
     pub fn atan2(&self, y: i32, x: i32) -> Result<i16> {

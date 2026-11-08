@@ -1754,3 +1754,14 @@ receive the shared RNG so their later implementation can retain source call
 order. The swim-corner tables at EU `8008162c` / JP `8008355c` are identical to
 the existing probe corners. Initial breath follows EU `8001b4fc`; air refills
 follow EU `80058834` / JP `80055a7c`. Full native-world integration remains open.
+
+Native item aiming and release controllers follow EU `800286b4` / JP
+`800290d4`. These preserve throwable release frames, aiming/cancel refunds,
+grapple flight/attachment/release transitions, health item effects, held models,
+NPC target normalization and JP's map-18 reward. Original instructions match
+52,000 EU / 50,800 JP updates (`TENCHU2_ITEM_CONTROL_ORACLE`), including
+2,318/6,115 uses and 83/4,036 healing effects. SDK VectorNormal executes with
+its GTE signed-short inputs; the existing short normalizer shares that arithmetic.
+The oracle records projectile creation, grapple state, published root and audio
+at explicit boundaries; actual projectiles/effects and native world integration
+remain unfinished. Swimming regressions still match both editions.

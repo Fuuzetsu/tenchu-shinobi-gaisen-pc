@@ -81,6 +81,7 @@ pub struct Actor {
     pub state: State,
     pub flags: u32,
     pub health: i16,
+    pub max_health: i16,
     pub breath: u8,
     pub width: i16,
     pub height: i16,
@@ -110,15 +111,17 @@ impl Actor {
             .select(0, kind, &resources.registry, &resources.clips)?
             .ok_or("Missing Tenchu 2 idle motion")?;
         let (width, height) = dimensions(kind, parts)?;
+        let health = if kind == 0x68 {
+            i16::MAX
+        } else {
+            definition.health
+        };
         Ok(Self {
             kind,
             state: State::Normal,
             flags: 0,
-            health: if kind == 0x68 {
-                i16::MAX
-            } else {
-                definition.health
-            },
+            health,
+            max_health: health,
             width,
             breath: 100,
             height,

@@ -15,12 +15,12 @@ mod wall;
 pub use attack::{AttackContext, AttackPreparation, CombatCue};
 pub use crouch::{CrouchCue, CrouchInput};
 pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
-pub use item::{ItemInput, ItemSound};
+pub use item::{GrappleStatus, ItemControlInput, ItemCue, ItemInput, ItemSound};
 pub use ledge::{LedgeCue, LedgeInput};
 pub use sequence::{AttackCue, Projectile};
 pub use special::{SpecialCue, SpecialInput};
 pub use standing::{StandingCue, StandingInput};
-pub use swimming::{GrappleStatus, SwimCue, SwimInput};
+pub use swimming::{SwimCue, SwimInput};
 pub use wall::{WallCue, WallInput};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

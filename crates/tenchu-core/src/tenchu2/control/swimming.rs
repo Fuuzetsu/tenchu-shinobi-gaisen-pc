@@ -1,4 +1,4 @@
-use super::Request;
+use super::{GrappleStatus, Request};
 use crate::{
     Result,
     math::Position,
@@ -14,14 +14,6 @@ use crate::{
     },
 };
 use tenchu_assets::tenchu2::{Edition, collision::Rules};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum GrappleStatus {
-    Failed,
-    Flying,
-    Attached,
-    Released,
-}
 
 pub struct SwimInput {
     pub held: u16,
@@ -264,18 +256,7 @@ impl Actor {
                     match input.grapple {
                         GrappleStatus::Flying => return Ok(()),
                         GrappleStatus::Attached => {
-                            let length =
-                                resources
-                                    .math
-                                    .length(Position::new(input.aim.x, 0, input.aim.z));
-                            self.rotation.y =
-                                direction(&resources.math, input.aim.x, input.aim.z, 0)?;
-                            self.motion.pose.rotation[0] = [
-                                resources.math.atan2(length, input.aim.y.wrapping_neg())?,
-                                0,
-                                0,
-                            ];
-                            self.motion.pose.translation[0] = Position::default();
+                            self.orient_grapple(input.aim, &resources.math)?;
                             cue(self, request, input, random, SwimCue::PublishRoot)?;
                             request.action = 0x804;
                             request.velocity = Velocity::Motion;

@@ -9,6 +9,17 @@ use crate::{
 };
 use tenchu_assets::tenchu2::Edition;
 
+mod update;
+pub use update::{ItemControlInput, ItemCue};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GrappleStatus {
+    Failed,
+    Flying,
+    Attached,
+    Released,
+}
+
 pub struct ItemInput {
     pub held: u16,
     pub player: bool,
