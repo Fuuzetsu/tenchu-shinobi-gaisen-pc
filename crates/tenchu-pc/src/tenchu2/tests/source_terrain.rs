@@ -25,6 +25,8 @@ enum Sample {
         result: Option<i32>,
     },
     Ray {
+        #[serde(default)]
+        traversal: bool,
         step: [i16; 3],
         count: i16,
         hit: Option<[i32; 3]>,
@@ -91,9 +93,19 @@ fn native_terrain_and_sight_rays_match_source_in_every_map() {
                 );
                 counts[0] += 1;
             }
-            Sample::Ray { step, count, hit } => {
+            Sample::Ray {
+                traversal,
+                step,
+                count,
+                hit,
+            } => {
+                let ray = if traversal {
+                    terrain::traverse
+                } else {
+                    terrain::passage
+                };
                 assert_eq!(
-                    terrain::passage(
+                    ray(
                         map.as_ref().unwrap(),
                         &mut cursor,
                         row.position.into(),

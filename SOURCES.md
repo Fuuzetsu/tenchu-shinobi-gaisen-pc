@@ -1875,3 +1875,10 @@ motion selection, alert propagation and voice playback are recorded synchronous
 boundaries. The shared watch/throw phase, forced turns and corpse-home updates
 retain source ordering. Lost-target searches, enclosing perception and native-world
 integration remain unfinished.
+
+Lost-target traversal follows EU `8002d5fc` / JP `8002e1d4`, distinct from ordinary
+sight-ray stepping. It retains cell-boundary skips, material transitions, cursor
+invalidation and JP's small-step cache bypass. Source execution matches 11,500
+traversals per edition across all 23 maps, alongside 46,000 floor queries, 11,500
+ordinary rays and 17,250 movement probes (`TENCHU2_TERRAIN_ORACLE`). Normalization
+and square-root SDK instructions execute with the original GTE arithmetic.

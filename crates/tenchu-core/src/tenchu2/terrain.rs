@@ -167,43 +167,21 @@ pub fn passage(
     cursor: &mut Cursor,
     mut position: Position,
     step: Vector3<i16>,
-    mut count: i16,
+    count: i16,
     edition: Edition,
     math: &Math,
 ) -> Result<Option<Position>> {
-    let step = if count < 1 {
-        let squared = step
-            .into_iter()
-            .fold(0i32, |sum, v| sum.wrapping_add(i32::from(v).pow(2)));
-        let length = math.square_root(squared);
-        if length == 0 {
-            return Ok(None);
-        }
-        let normalized = math.normalize_short(step.to_array()).map(|v| v >> 4);
-        count = if count == 0 { (length >> 8) as i16 } else { 62 };
-        Vector3::from(normalized)
-    } else {
-        step
+    let Some((step, mut count)) = ray_step(step, count, math) else {
+        return Ok(None);
     };
     if level(map, cursor, position, Query::Surface)?.is_none() {
         return Ok(Some(position));
     }
     let material = cursor.material;
-    let query = if edition == Edition::Japan
-        && i32::from(step.x).abs() < 128
-        && i32::from(step.z).abs() < 128
-    {
-        Query::Uncached
-    } else {
-        Query::Surface
-    };
+    let query = ray_query(step, edition);
     loop {
         if level(map, cursor, position, query)?.is_none()
-            || if material & 0xf00 == 0x300 {
-                cursor.material & 0x200 == 0
-            } else {
-                cursor.material & 0xf00 == 0x300
-            }
+            || material_changed(material, cursor.material)
         {
             return Ok(Some(position.wrapping_sub(step.map(i32::from))));
         }
@@ -213,5 +191,103 @@ pub fn passage(
         if old_count <= 0 {
             return Ok(None);
         }
+    }
+}
+
+pub fn traverse(
+    map: &Collision,
+    cursor: &mut Cursor,
+    mut position: Position,
+    step: Vector3<i16>,
+    count: i16,
+    edition: Edition,
+    math: &Math,
+) -> Result<Option<Position>> {
+    let Some((step, mut count)) = ray_step(step, count, math) else {
+        return Ok(None);
+    };
+    if step.x == 0 && step.z == 0 {
+        return Ok(None);
+    }
+    if level(map, cursor, position, Query::Surface)?.is_none() {
+        return Ok(Some(position));
+    }
+    let material = cursor.material;
+    let query = ray_query(step, edition);
+    loop {
+        let height = level(map, cursor, position, query)?;
+        if height.is_none() || material_changed(material, cursor.material) {
+            return Ok(Some(if cursor.current.is_some() {
+                position.wrapping_sub(step.map(i32::from))
+            } else {
+                position
+            }));
+        }
+        let id = cursor.current.ok_or("Missing Tenchu 2 traversal surface")?;
+        let node = &map.cells[id.cell].nodes[id.node];
+        let skip = node.division == 0;
+        let steps = if skip {
+            let boundary = |coordinate: i32, delta: i16, near: i16, far: i16| -> Result<i32> {
+                if delta == 0 {
+                    return Ok(32767);
+                }
+                (i32::from(if delta < 0 { near } else { far }) * 10)
+                    .wrapping_sub(coordinate)
+                    .checked_div(i32::from(delta))
+                    .ok_or_else(|| "Tenchu 2 traversal division overflow".into())
+            };
+            boundary(position.x, step.x, node.bounds[0], node.bounds[2])?
+                .min(boundary(
+                    position.z,
+                    step.z,
+                    node.bounds[1],
+                    node.bounds[3],
+                )?)
+                .wrapping_add(1)
+                .max(1)
+        } else {
+            1
+        };
+        count = count.wrapping_sub(steps as i16);
+        position = position.wrapping_add(step.map(|v| i32::from(v).wrapping_mul(steps)));
+        if skip && position.y.wrapping_sub(height.unwrap()).wrapping_abs() > 499 {
+            cursor.current = None;
+        }
+        if count <= 0 {
+            return Ok(None);
+        }
+    }
+}
+
+fn ray_step(step: Vector3<i16>, count: i16, math: &Math) -> Option<(Vector3<i16>, i16)> {
+    if count > 0 {
+        return Some((step, count));
+    }
+    let squared = step
+        .into_iter()
+        .fold(0i32, |sum, v| sum.wrapping_add(i32::from(v).pow(2)));
+    let length = math.square_root(squared);
+    if length == 0 {
+        return None;
+    }
+    Some((
+        math.normalize_short(step.to_array()).map(|v| v >> 4).into(),
+        if count == 0 { (length >> 8) as i16 } else { 62 },
+    ))
+}
+
+fn ray_query(step: Vector3<i16>, edition: Edition) -> Query {
+    if edition == Edition::Japan && i32::from(step.x).abs() < 128 && i32::from(step.z).abs() < 128 {
+        Query::Uncached
+    } else {
+        Query::Surface
+    }
+}
+
+fn material_changed(previous: u16, current: u16) -> bool {
+    if previous & 0xf00 == 0x300 {
+        current & 0x200 == 0
+    } else {
+        current & 0xf00 == 0x300
     }
 }
