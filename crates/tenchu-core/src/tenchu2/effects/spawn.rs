@@ -12,6 +12,43 @@ use crate::{
 use tenchu_assets::tenchu2::effects::Rules;
 
 impl Effects {
+    pub fn confusion_powder(
+        &mut self,
+        position: Position,
+        yaw: i16,
+        math: &Math,
+        rules: &Rules,
+    ) -> Result<()> {
+        let mut smoke = Sprites::new(22, position, 1, 32);
+        smoke.size = [[256; 2], [1536, 512]];
+        smoke.color = [32, 16, 0];
+        smoke.color_step = [-1, -1, 0].into();
+        smoke.particles[0].age = -2;
+        let [sin, cos] = math.pair(yaw);
+        smoke.particles[0].offset = [(-sin >> 6) as i16, 0, (-cos >> 6) as i16].into();
+        self.insert(Effect::Sprites(smoke))?;
+        for (i, &color) in rules.powder_colors.iter().enumerate() {
+            let [sin, cos] = math.pair(yaw.wrapping_add(-192 + i as i16 * 96));
+            let x = -sin >> 5;
+            let z = -cos >> 5;
+            let controls = std::array::from_fn(|j| {
+                let side = if j & 1 == 0 { 1 } else { -1 };
+                Vector3::new(
+                    (x + side * ((8 * z) >> 4)) as i16,
+                    if j < 2 { 8 } else { -8 },
+                    (z - side * ((8 * x) >> 4)) as i16,
+                )
+            });
+            let mut points = Points::burst(position, controls, 1, rules);
+            points.age = -(i as i16) * 2;
+            points.lifetime = 12;
+            points.blend = 5;
+            points.color = color;
+            self.insert(Effect::Points(points))?;
+        }
+        Ok(())
+    }
+
     pub fn fuse(&mut self, position: Position, rules: &Rules, random: &mut Random) -> Result<()> {
         let controls = std::array::from_fn(|i| {
             Vector3::new(

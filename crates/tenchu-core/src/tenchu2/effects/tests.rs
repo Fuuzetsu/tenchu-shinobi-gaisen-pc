@@ -28,6 +28,7 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
         healing_bones: serde_json::from_value(tables["healing_bones"].clone()).unwrap(),
         point_weights: serde_json::from_value(tables["point_weights"].clone()).unwrap(),
         point_shifts: serde_json::from_value(tables["point_shifts"].clone()).unwrap(),
+        powder_colors: serde_json::from_value(tables["powder_colors"].clone()).unwrap(),
     };
     let file = std::fs::File::open(std::env::var_os("TENCHU2_SPRITE_ORACLE").unwrap()).unwrap();
     let mut count = 0;
@@ -65,6 +66,12 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                 "sleep_gas" => {
                     effects.sleep_gas(position(), command["phase"].as_i64().unwrap() as i16, &math)
                 }
+                "powder" => effects.confusion_powder(
+                    position(),
+                    command["yaw"].as_i64().unwrap() as i16,
+                    &math,
+                    &rules,
+                ),
                 "burn" => effects.burn(
                     &rig,
                     command["interval"].as_i64().unwrap() as i16,

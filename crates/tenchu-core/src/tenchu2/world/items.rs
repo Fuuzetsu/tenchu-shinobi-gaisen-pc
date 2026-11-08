@@ -44,6 +44,7 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::Powder(powder) => (powder.advance(), false),
                 State::SleepBomb(bomb) => (
                     bomb.advance(model, &mut context, |event| {
                         sink.emit(event, &mut self.random)

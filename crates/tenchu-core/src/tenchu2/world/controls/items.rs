@@ -163,6 +163,24 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            14 => {
+                let origin = self.item_origin(2)?;
+                let powder = items::powder::Powder::blow(
+                    self.index,
+                    origin,
+                    actor.rotation.y,
+                    terrain.map,
+                    terrain.cursor,
+                    &self.math,
+                )?;
+                self.effects.confusion_powder(
+                    origin,
+                    actor.rotation.y,
+                    &self.math,
+                    self.effect_rules,
+                )?;
+                State::Powder(powder)
+            }
             8 => State::Dart(items::dart::Dart::launch(
                 self.index,
                 self.item_origin(11)?,

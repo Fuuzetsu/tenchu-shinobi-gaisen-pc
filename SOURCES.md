@@ -2371,3 +2371,11 @@ writes within the sequence. Projection remains isolated. A connected actual-use
 test throws the item, puts a guard to sleep without health damage, checks gas and
 inventory consumption, and resumes the landed bomb from a serialized snapshot.
 These checks establish the component connections, not full campaign parity.
+
+Native JP confusion powder follows `80058918` / `80058a90`: head-origin placement,
+surface query, forward contact offset, owner exclusion and the original 32-update
+lifetime. Its particles follow `8004547c` / `8003cd78`; the five colors are read
+from `GAME.EXE` at `80012a18`. Original execution matches 1,000 placement/expiry
+cases (`TENCHU2_POWDER_ORACLE`) and 600 mixed particle sequences containing powder,
+sleeping gas and prior effects. The connected actual-use check verifies guard
+confusion without health damage, particles, item consumption and effect expiry.

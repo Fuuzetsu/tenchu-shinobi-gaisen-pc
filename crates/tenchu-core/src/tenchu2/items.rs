@@ -7,6 +7,7 @@ pub mod grapple;
 pub mod grenade;
 pub mod gun;
 pub mod mine;
+pub mod powder;
 pub mod projectile;
 pub mod rice;
 pub mod sleep_bomb;
@@ -51,6 +52,7 @@ pub enum State {
     Rice(rice::Rice),
     Dart(dart::Dart),
     SleepBomb(sleep_bomb::SleepBomb),
+    Powder(powder::Powder),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -127,6 +129,16 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Powder(powder) => {
+                scene.update(
+                    model,
+                    Matrix {
+                        translation: powder.position,
+                        ..Default::default()
+                    },
+                );
+                powder.register(model, collision)?;
+            }
             State::SleepBomb(bomb) => {
                 bomb.flight.floor = floor;
                 scene.update(model, bomb.transform);
@@ -222,6 +234,7 @@ impl Items {
             State::Rice(rice) => rice.flight.floor,
             State::Dart(dart) => dart.flight.floor,
             State::SleepBomb(bomb) => bomb.flight.floor,
+            State::Powder(powder) => powder.floor,
             State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));

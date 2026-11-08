@@ -46,6 +46,7 @@ pub struct Rules {
     pub healing_bones: [u8; 6],
     pub point_weights: [[i32; 4]; 12],
     pub point_shifts: [u32; 12],
+    pub powder_colors: [[u8; 3]; 5],
 }
 
 impl Rules {
@@ -57,6 +58,7 @@ impl Rules {
         let executable = crate::executable::Executable::new(&bytes)?;
         let weights = executable.bytes(0x80083770, 12 * 16)?;
         let shifts = executable.bytes(0x80083830, 12 * 4)?;
+        let colors = executable.bytes(0x80012a18, 5 * 4)?;
         Ok(Self {
             burn_bones: executable.bytes(0x80012a08, 14)?.try_into().unwrap(),
             healing_bones: executable.bytes(0x8008e928, 6)?.try_into().unwrap(),
@@ -64,6 +66,7 @@ impl Rules {
                 std::array::from_fn(|j| u32_le(weights, i * 16 + j * 4).unwrap() as i32)
             }),
             point_shifts: std::array::from_fn(|i| u32_le(shifts, i * 4).unwrap()),
+            powder_colors: std::array::from_fn(|i| colors[i * 4..i * 4 + 3].try_into().unwrap()),
         })
     }
 }

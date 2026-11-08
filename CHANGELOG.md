@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect confusion powder in the internal JP preview, including its short-range
+  contact effect, original particles and confused guard reactions.
+
 - Connect sleeping bombs in the internal JP preview: throwing and bouncing,
   expanding gas, guard sleep reactions and underwater quenching.
 

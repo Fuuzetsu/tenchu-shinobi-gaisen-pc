@@ -1056,6 +1056,55 @@ fn native_explosives_damage_and_smoke_blinds_through_item_controls() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; actual powder use, guard confusion and inventory consumption"]
+fn native_confusion_powder_affects_nearby_guards_without_health_damage() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let (mut world, mut assets, guard) = fixture();
+    let health = world.actors[guard].actor.health;
+    world.actors[0].actor.inventory.counts[14] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(14).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut created = false;
+    let mut confused = false;
+    let mut particles = false;
+    for _ in 0..90 {
+        for index in [0, guard] {
+            world.move_actor(index, &assets, &mut events).unwrap();
+            world.actors[index].actor.pad.update(0);
+            world
+                .control_actor(index, &mut assets, &mut events)
+                .unwrap();
+            world.animate_actor(index, &assets).unwrap();
+        }
+        created |= world
+            .items
+            .entries
+            .iter()
+            .any(|entry| matches!(entry.state, ItemState::Powder(_)));
+        confused |= world.actors[guard].actor.flags & 0x400 != 0;
+        world.update_items(&assets, &mut events).unwrap();
+        let frame = world.update_effects().unwrap();
+        particles |= frame.sprites.iter().any(|sprite| sprite.image == 22)
+            && world
+                .effects
+                .entries
+                .iter()
+                .any(|effect| matches!(effect, Effect::Points(points) if points.blend == 5));
+        world.finish_tick(&assets, 6).unwrap();
+    }
+    assert!(
+        created && confused && particles,
+        "created={created}, confused={confused}, particles={particles}"
+    );
+    assert_eq!(world.actors[guard].actor.health, health);
+    assert_eq!(world.actors[0].actor.inventory.counts[14], 1);
+    assert!(world.items.entries.is_empty());
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; actual sleeping-bomb use, gas contact and snapshot continuation"]
 fn native_sleeping_bomb_puts_guards_to_sleep_without_health_damage() {
     use tenchu_core::tenchu2::items::State as ItemState;
