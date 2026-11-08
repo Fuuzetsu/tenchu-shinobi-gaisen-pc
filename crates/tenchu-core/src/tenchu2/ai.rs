@@ -6,6 +6,7 @@ mod sleep;
 pub use sleep::{Sleep, SleepInput, SleepOutput};
 mod corpses;
 pub use corpses::{CorpseContext, CorpseSearch};
+pub mod alert;
 pub mod combat;
 pub mod sight;
 mod steering;
@@ -15,6 +16,10 @@ pub use wander::{Wander, WanderInput};
 
 use crate::{Result, random::Random};
 use serde::{Deserialize, Serialize};
+
+fn local_alert_only(kind: i16) -> bool {
+    matches!(kind, 0x6a..=0x6e) || kind & 0xf0 == 0x10
+}
 
 #[derive(Default)]
 pub struct Decision {

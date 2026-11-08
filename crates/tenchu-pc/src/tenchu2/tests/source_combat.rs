@@ -17,7 +17,7 @@ use tenchu_core::{
     },
 };
 
-fn visibility(value: i32) -> Visibility {
+pub(super) fn visibility(value: i32) -> Visibility {
     match value {
         -2 => Visibility::Hidden,
         -1 => Visibility::Unnoticed,

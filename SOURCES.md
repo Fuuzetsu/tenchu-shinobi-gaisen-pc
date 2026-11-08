@@ -1865,3 +1865,13 @@ steering, command input and nested combat programs execute original instructions
 Motion changes are synchronous callbacks, recorded separately in these comparisons
 so the already verified selection controller can be applied at the correct point.
 Outer perception, search transitions and native-world wiring remain unfinished.
+
+Watching, investigating, fleeing, confused attacks and corpse investigation follow
+EU `80033230`, `800333f4`, `800337e8`, `80033948`, `800334f0` and JP `80033fd8`,
+`8003419c`, `80034590`, `800346f0`, `80034298`. Each edition matches 100,000 source
+decisions (`TENCHU2_ALERT_ORACLE`), including 2,896 corpse reports and 4,191 item
+inputs. Source RNG, steering, sentry and combat-combo routines execute directly;
+motion selection, alert propagation and voice playback are recorded synchronous
+boundaries. The shared watch/throw phase, forced turns and corpse-home updates
+retain source ordering. Lost-target searches, enclosing perception and native-world
+integration remain unfinished.

@@ -72,12 +72,12 @@ impl ItemChoices {
 }
 
 impl Context<'_> {
-    fn keep_visible(&mut self, range: i32) {
+    pub(super) fn keep_visible(&mut self, range: i32) {
         if self.sight.distance < range && *self.visibility != Visibility::Hidden {
             *self.visibility = Visibility::Unchanged;
         }
     }
-    fn category(&self) -> Result<usize> {
+    pub(super) fn category(&self) -> Result<usize> {
         self.resources
             .registry
             .actor(self.actor.kind)
@@ -121,7 +121,7 @@ impl Context<'_> {
         Ok(held & !(self.actor.pad.held & input::ATTACK))
     }
 
-    fn select_item(&mut self, id: u8) -> Result<u16> {
+    pub(super) fn select_item(&mut self, id: u8) -> Result<u16> {
         self.actor.inventory.selected = Some(Item::try_from(id)?);
         Ok(input::ITEM)
     }
@@ -175,11 +175,11 @@ impl Context<'_> {
         Ok(0)
     }
 
-    fn steer(&self) -> Result<Decision> {
+    pub(super) fn steer(&self) -> Result<Decision> {
         self.steer_to(0, 0)
     }
 
-    fn steer_to(&self, x: i32, z: i32) -> Result<Decision> {
+    pub(super) fn steer_to(&self, x: i32, z: i32) -> Result<Decision> {
         steer(
             x,
             z,

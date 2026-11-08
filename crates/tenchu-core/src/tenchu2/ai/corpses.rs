@@ -1,4 +1,4 @@
-use super::direction;
+use super::{direction, local_alert_only};
 use crate::{
     Result,
     math::Math,
@@ -25,10 +25,6 @@ pub struct CorpseContext<'a> {
     pub math: &'a Math,
 }
 
-fn excluded_kind(kind: i16) -> bool {
-    matches!(kind, 0x6a..=0x6e) || kind & 0xf0 == 0x10
-}
-
 impl CorpseSearch {
     pub fn observe(
         &mut self,
@@ -37,7 +33,7 @@ impl CorpseSearch {
         world: &mut CorpseContext<'_>,
     ) -> Result<Option<usize>> {
         let body = actors.get(corpse).ok_or("Missing Tenchu 2 corpse")?;
-        if body.motion.loops != i16::MIN || excluded_kind(body.kind) || body.flags & 0x80 != 0 {
+        if body.motion.loops != i16::MIN || local_alert_only(body.kind) || body.flags & 0x80 != 0 {
             return Ok(None);
         }
         self.observer = (self.observer + 1) % actors.len();
@@ -47,7 +43,7 @@ impl CorpseSearch {
             || observer.motion.action == 0x70c
             || self.observer == corpse
             || self.observer == world.player
-            || excluded_kind(observer.kind)
+            || local_alert_only(observer.kind)
             || world.difficulty == 3
         {
             return Ok(None);
