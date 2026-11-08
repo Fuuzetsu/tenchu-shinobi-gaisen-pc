@@ -30,7 +30,7 @@ impl<E: Events> Driver<'_, E> {
             self.random,
             |actor, request, random, cue| {
                 match cue {
-                    StandingCue::Status(status) => c.emit(actor, Event::Status(status), random)?,
+                    StandingCue::Status(status) => c.status(actor, status, random)?,
                     StandingCue::Voice(id) => c.emit(actor, Event::Voice(id), random)?,
                     StandingCue::Splash(id) => c.emit(actor, Event::Splash(id), random)?,
                     StandingCue::Dust => c.emit(actor, Event::Dust, random)?,
@@ -38,9 +38,7 @@ impl<E: Events> Driver<'_, E> {
                         c.emit(actor, Event::Footstep { check_surface }, random)?
                     }
                     StandingCue::Jump => c.jump(actor, request, input.held, resources, random)?,
-                    StandingCue::Attack => {
-                        c.start_attack(actor, request, input.held, resources, random)?
-                    }
+                    StandingCue::Attack => c.start_attack(actor, request, input.held, resources)?,
                     StandingCue::Item => c.item(
                         actor,
                         request,
@@ -112,9 +110,7 @@ impl<E: Events> Driver<'_, E> {
                 match cue {
                     CrouchCue::Root => actor.commit_root(c.root(actor)?),
                     CrouchCue::Recover => c.recover(actor, request, held)?,
-                    CrouchCue::Attack => {
-                        c.start_attack(actor, request, held, resources, self.random)?
-                    }
+                    CrouchCue::Attack => c.start_attack(actor, request, held, resources)?,
                     CrouchCue::Carry => c.carry(actor, request, resources, self.random)?,
                     CrouchCue::Item => c.item(
                         actor,
@@ -222,7 +218,7 @@ impl<E: Events> Driver<'_, E> {
             input.held,
             &mut self.terrain,
             resources,
-            |actor, request| c.start_attack(actor, request, input.held, resources, self.random),
+            |actor, request| c.start_attack(actor, request, input.held, resources),
         )?;
         c.jump_effects(actor, effects, self.random)
     }
@@ -254,9 +250,7 @@ impl<E: Events> Driver<'_, E> {
                 match cue {
                     SpecialCue::Weapon(mode) => c.weapon(actor, mode, resources)?,
                     SpecialCue::Voice(id) => c.emit(actor, Event::Voice(id), random)?,
-                    SpecialCue::Attack => {
-                        c.start_attack(actor, request, input.held, resources, random)?
-                    }
+                    SpecialCue::Attack => c.start_attack(actor, request, input.held, resources)?,
                     SpecialCue::Recover => c.recover(actor, request, input.held)?,
                     SpecialCue::AlignToFloor => {
                         actor.align_to_floor(&mut self.terrain, &resources.math, |actor| {
@@ -290,7 +284,7 @@ impl<E: Events> Driver<'_, E> {
 }
 
 impl<E: Events> Context<'_, E> {
-    fn jump(
+    pub(super) fn jump(
         &mut self,
         actor: &mut Actor,
         request: &mut Request,

@@ -13,7 +13,7 @@ pub struct Probe {
     pub higher: u16,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 pub struct Options {
     pub avoid_water: bool,
     pub ignore_steps: bool,

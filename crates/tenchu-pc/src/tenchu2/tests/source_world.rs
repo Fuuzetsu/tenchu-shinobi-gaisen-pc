@@ -264,6 +264,9 @@ fn native_player_controls_continue_through_movement_drawing_and_combat() {
     #[derive(Default)]
     struct Recorded(Vec<(usize, i16, i16, Event)>);
     impl Events for Recorded {
+        fn grapple(&self) -> Result<(tenchu_core::tenchu2::control::GrappleStatus, Position)> {
+            Err("This input sequence does not use the grappling hook".into())
+        }
         fn emit(&mut self, source: EventSource<'_>, event: Event, _: &mut Random) -> Result<()> {
             self.0.push((
                 source.index,

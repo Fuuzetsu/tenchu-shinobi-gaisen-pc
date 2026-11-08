@@ -32,23 +32,25 @@ impl World {
             && !matches!(self.map, 0 | 9 | 16 | 18)
             && actor.motion.action != 0x606
             && actor.terrain.material & 0xf00 == 0;
-        let death = actor.move_on_terrain(
-            &mut Terrain {
-                map: &assets.level.collision,
-                rules: &assets.terrain_rules,
-                cursor: &mut self.cursor,
-                scratch: &mut self.probe,
-                water: &mut self.water,
-                options: Options {
-                    avoid_water,
-                    ignore_steps: false,
-                },
+        let mut terrain = Terrain {
+            map: &assets.level.collision,
+            rules: &assets.terrain_rules,
+            cursor: &mut self.cursor,
+            scratch: &mut self.probe,
+            water: &mut self.water,
+            options: Options {
+                avoid_water,
+                ignore_steps: false,
             },
+        };
+        let death = actor.move_on_terrain(
+            &mut terrain,
             &assets.resources,
             index == self.player,
             |actor| rig.root_position(actor, &mut self.scene),
             surface_effect,
         )?;
+        self.terrain_options = terrain.options;
         let voices = actor.resolve_contacts(
             &self.collision,
             rig.joints[0],

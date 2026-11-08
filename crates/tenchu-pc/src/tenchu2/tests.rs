@@ -1,5 +1,6 @@
 use super::*;
 
+mod native_world;
 mod source_actor;
 mod source_ai;
 mod source_ai_entry;

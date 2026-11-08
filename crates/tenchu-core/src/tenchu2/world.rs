@@ -54,6 +54,14 @@ impl Default for Foot {
     }
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Statistics {
+    pub killed: u8,
+    pub stealth_kills: u8,
+    pub combat_kills: u8,
+    pub innocents: u8,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct World {
     pub actors: Vec<Agent>,
@@ -71,10 +79,12 @@ pub struct World {
     pub cursor: Cursor,
     pub probe: Probe,
     pub water: Water,
+    pub terrain_options: super::terrain::Options,
     pub tracking: Option<usize>,
     pub travel: i32,
     pub effort: u16,
     pub controls: controls::Controls,
+    pub statistics: Statistics,
 }
 
 impl World {
@@ -109,10 +119,12 @@ impl World {
             cursor: Cursor::default(),
             probe: Probe::default(),
             water: Water::default(),
+            terrain_options: super::terrain::Options::default(),
             tracking: None,
             travel: 0,
             effort: 0,
             controls: controls::Controls::default(),
+            statistics: Statistics::default(),
         };
         world.create_actor(
             options.hero as i16,

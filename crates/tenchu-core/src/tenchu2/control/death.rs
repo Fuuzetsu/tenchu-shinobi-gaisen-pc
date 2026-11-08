@@ -75,11 +75,12 @@ impl Actor {
             &mut Request,
             &mut DeathInput,
             &mut Random,
+            &mut Terrain<'_>,
             DeathCue,
         ) -> Result<()>,
     ) -> Result<()> {
         if request.action == 0xb09 {
-            cue(self, request, input, random, DeathCue::CarryPoint)?;
+            cue(self, request, input, random, terrain, DeathCue::CarryPoint)?;
             let step = resources
                 .math
                 .velocity(input.player.yaw, -(self.width / 2), 0);
@@ -128,7 +129,14 @@ impl Actor {
             self.change_motion(request.action, request.velocity, resources)?;
             self.motion.frame = -10;
             self.update_velocity(Velocity::Stop, resources)?;
-            cue(self, request, input, random, DeathCue::AlignToFloor)?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::AlignToFloor,
+            )?;
             self.motion.pose.rotation[0] = resources
                 .clips
                 .get(&self.motion.clip.ok_or("No Tenchu 2 corpse motion")?)
@@ -136,7 +144,14 @@ impl Actor {
                 .and_then(|keys| keys.first())
                 .ok_or("Missing Tenchu 2 corpse pose")?
                 .value;
-            cue(self, request, input, random, DeathCue::BodyDisabled(false))?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::BodyDisabled(false),
+            )?;
             self.flags &= !0x80;
             return Ok(());
         }
@@ -146,7 +161,7 @@ impl Actor {
                     self.position.y = self.position.y.wrapping_sub(10);
                     self.velocity.y = 0;
                 } else if input.tick % 10 == 0 && random.next15() % 3 == 0 {
-                    cue(self, request, input, random, DeathCue::Splash(3))?;
+                    cue(self, request, input, random, terrain, DeathCue::Splash(3))?;
                 }
             } else if input.player.action == 0x120 && input.player.target == Some(input.actor) {
                 request.action = 0xb09;
@@ -155,7 +170,14 @@ impl Actor {
                 self.rotation.y = input.player.yaw;
                 self.change_motion(request.action, request.velocity, resources)?;
                 self.motion.frame = 0;
-                cue(self, request, input, random, DeathCue::BodyDisabled(true))?;
+                cue(
+                    self,
+                    request,
+                    input,
+                    random,
+                    terrain,
+                    DeathCue::BodyDisabled(true),
+                )?;
             }
             return Ok(());
         }
@@ -166,6 +188,7 @@ impl Actor {
                     request,
                     input,
                     random,
+                    terrain,
                     DeathCue::Voice {
                         player: false,
                         id: 24,
@@ -179,6 +202,7 @@ impl Actor {
                     request,
                     input,
                     random,
+                    terrain,
                     DeathCue::Blood {
                         joint: 2,
                         angle: Some(self.rotation.y),
@@ -206,12 +230,13 @@ impl Actor {
                             request,
                             input,
                             random,
+                            terrain,
                             DeathCue::Voice {
                                 player: false,
                                 id: 27,
                             },
                         )?;
-                        cue(self, request, input, random, DeathCue::Bubbles)?;
+                        cue(self, request, input, random, terrain, DeathCue::Bubbles)?;
                     }
                 } else if self.motion.frame % 3 == 0 && random.next15() & 1 != 0 {
                     let position = Position::new(
@@ -224,13 +249,14 @@ impl Actor {
                         request,
                         input,
                         random,
+                        terrain,
                         DeathCue::WaterRipple {
                             position,
                             size: 512,
                         },
                     )?;
                     if random.next15() & 1 != 0 {
-                        cue(self, request, input, random, DeathCue::Splash(2))?;
+                        cue(self, request, input, random, terrain, DeathCue::Splash(2))?;
                     }
                 }
             }
@@ -249,6 +275,7 @@ impl Actor {
                         request,
                         input,
                         random,
+                        terrain,
                         DeathCue::Voice { player: false, id },
                     )?;
                     cue(
@@ -256,6 +283,7 @@ impl Actor {
                         request,
                         input,
                         random,
+                        terrain,
                         DeathCue::Rumble {
                             kind: 4,
                             strength: 2,
@@ -264,7 +292,14 @@ impl Actor {
                     return Ok(());
                 }
                 if self.motion.loops > 0 {
-                    cue(self, request, input, random, DeathCue::BodyCollision)?;
+                    cue(
+                        self,
+                        request,
+                        input,
+                        random,
+                        terrain,
+                        DeathCue::BodyCollision,
+                    )?;
                     self.update_velocity(Velocity::Stop, resources)?;
                     input.focus = None;
                     self.motion.loops = i16::MIN;
@@ -289,6 +324,7 @@ impl Actor {
                             request,
                             input,
                             random,
+                            terrain,
                             DeathCue::Voice { player: false, id },
                         )?,
                         StealthEffect::Blood { joint, turn } => {
@@ -297,6 +333,7 @@ impl Actor {
                                 request,
                                 input,
                                 random,
+                                terrain,
                                 DeathCue::Voice {
                                     player: false,
                                     id: 30,
@@ -307,6 +344,7 @@ impl Actor {
                                 request,
                                 input,
                                 random,
+                                terrain,
                                 DeathCue::Blood {
                                     joint,
                                     angle: Some(self.rotation.y.wrapping_add(turn)),
@@ -318,10 +356,11 @@ impl Actor {
                             request,
                             input,
                             random,
+                            terrain,
                             DeathCue::Voice { player: true, id },
                         )?,
                         StealthEffect::AttackerCue(id) => {
-                            cue(self, request, input, random, DeathCue::Sound(id))?;
+                            cue(self, request, input, random, terrain, DeathCue::Sound(id))?;
                             let rumble = match id {
                                 12 | 14 => Some((4, 1)),
                                 13 => Some((3, 2)),
@@ -334,6 +373,7 @@ impl Actor {
                                     request,
                                     input,
                                     random,
+                                    terrain,
                                     DeathCue::Rumble { kind, strength },
                                 )?;
                             }
@@ -343,6 +383,7 @@ impl Actor {
                             request,
                             input,
                             random,
+                            terrain,
                             DeathCue::PlayerGrip(Grip::Hold),
                         )?,
                         StealthEffect::ReleaseWeapon => cue(
@@ -350,6 +391,7 @@ impl Actor {
                             request,
                             input,
                             random,
+                            terrain,
                             DeathCue::PlayerGrip(Grip::Release),
                         )?,
                         StealthEffect::FreezeRoot => {
@@ -378,6 +420,7 @@ impl Actor {
                         request,
                         input,
                         random,
+                        terrain,
                         DeathCue::Blood {
                             joint: 0,
                             angle: None,
@@ -392,21 +435,63 @@ impl Actor {
         }
         if self.motion.frame == 1 {
             if input.is_player {
-                cue(self, request, input, random, DeathCue::HideHeldItem)?;
+                cue(
+                    self,
+                    request,
+                    input,
+                    random,
+                    terrain,
+                    DeathCue::HideHeldItem,
+                )?;
             }
-            cue(self, request, input, random, DeathCue::RemoveWeapons)?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::RemoveWeapons,
+            )?;
         } else if self.motion.loops > 0 {
             if (0xb01..0xb06).contains(&request.action) && !matches!(input.map, 0 | 12) {
-                cue(self, request, input, random, DeathCue::GroundPool)?;
+                cue(self, request, input, random, terrain, DeathCue::GroundPool)?;
             }
-            cue(self, request, input, random, DeathCue::RemoveJoint(1))?;
-            cue(self, request, input, random, DeathCue::BodyCollision)?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::RemoveJoint(1),
+            )?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::BodyCollision,
+            )?;
             self.height /= 8;
             self.width /= 2;
-            cue(self, request, input, random, DeathCue::ResizeBody)?;
-            cue(self, request, input, random, DeathCue::FinishContacts)?;
+            cue(self, request, input, random, terrain, DeathCue::ResizeBody)?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::FinishContacts,
+            )?;
             self.update_velocity(Velocity::Stop, resources)?;
-            cue(self, request, input, random, DeathCue::AlignToFloor)?;
+            cue(
+                self,
+                request,
+                input,
+                random,
+                terrain,
+                DeathCue::AlignToFloor,
+            )?;
             input.focus = None;
             self.motion.loops = i16::MIN;
         }

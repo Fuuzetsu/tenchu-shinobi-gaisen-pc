@@ -2019,3 +2019,16 @@ including exact snapshot continuation of world state and emitted events; effect
 callbacks are recorded boundaries in that check. Actor, wall, attack, dispatch,
 world-setup and wasm checks also pass. Swimming, item, injury/death drivers and
 concrete effects/campaign integration remain unfinished.
+
+The remaining JP state controllers now connect to world state: swimming, items,
+damage, hurt and death. Contact owners receive hit pause/health updates;
+paired deaths restore body collision and advance their source effect sequence;
+corpse carrying uses the player's actual rig. Kill counters and script-reset
+rules follow `8002d4f8`; alert reset/raise follows `80031574` / `800315bc`.
+Terrain-query policy survives movement into the controller pass. Concrete effect
+and projectile spawning remains an explicit synchronous callback boundary.
+World integration checks exercise a complete paired kill/corpse transition,
+weapon damage, medicine consumption/healing, and drowning. Source checks still
+pass 27,600 death updates, 41,400 damage updates and 24,000 outer controls, plus
+world setup/continuation, strict Clippy, formatting and wasm core compilation.
+These checks do not establish full campaign or ordinary-play parity.

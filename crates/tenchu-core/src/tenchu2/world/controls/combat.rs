@@ -7,7 +7,6 @@ impl<E: Events> Context<'_, E> {
         request: &mut Request,
         held: u16,
         resources: &Resources,
-        random: &mut Random,
     ) -> Result<()> {
         let victim = (self.index == self.player)
             .then(|| self.nearest(actor, i32::from(actor.height), false, resources))
@@ -50,16 +49,14 @@ impl<E: Events> Context<'_, E> {
                         StealthCue::VictimCollision => {
                             victim.set_body_collision(rig.joints[0], id, self.collision, false)?
                         }
-                        StealthCue::KillCredit => self.events.emit(
-                            EventSource {
-                                index: id,
-                                actor: victim,
-                                rig,
-                                scene: self.scene,
-                            },
-                            Event::KillCredit,
-                            random,
-                        )?,
+                        StealthCue::KillCredit => credit(
+                            self.stats,
+                            self.script,
+                            victim,
+                            id == self.player,
+                            Some(self.index) == Some(self.player),
+                            self.hero == 2 && self.map >= 12,
+                        ),
                         _ => return Err("Unexpected Tenchu 2 stealth-entry event".into()),
                     }
                     Ok(())
@@ -147,7 +144,7 @@ impl<E: Events> Driver<'_, E> {
         let preparation =
             actor.prepare_attack(request, resources, self.random, input.player, c.enabled)?;
         if preparation.status != StatusResult::default() {
-            c.emit(actor, Event::Status(preparation.status), self.random)?;
+            c.status(actor, preparation.status, self.random)?;
         }
         if preparation.interrupted {
             return Ok(());
@@ -193,7 +190,11 @@ impl<E: Events> Driver<'_, E> {
                             )?;
                             c.emit(actor, Event::Voice(28), self.random)?;
                             if input.player {
-                                c.emit(actor, Event::Alert, self.random)?;
+                                c.alert.raise(
+                                    crate::tenchu2::ai::status::AlertCause::Suspicion,
+                                    c.difficulty,
+                                    c.rules,
+                                )?;
                             }
                         } else {
                             c.emit(actor, Event::Dust, self.random)?;

@@ -138,7 +138,7 @@ fn native_death_carrying_and_stealth_events_match_source() {
                 &mut terrain,
                 &resources,
                 &mut random,
-                |actor, _request, input, random, cue| {
+                |actor, _request, input, random, _, cue| {
                     match cue {
                         DeathCue::CarryPoint => {
                             calls.push(json!(["point", "player", 5]));

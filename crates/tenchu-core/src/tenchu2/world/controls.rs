@@ -12,12 +12,14 @@ use crate::{
         inventory::Item,
         physics::Terrain,
         rig::{Contacts, Grip, Rig, WeaponMode},
-        terrain::Options,
     },
 };
 use serde::{Deserialize, Serialize};
 
 mod combat;
+mod injury;
+mod items;
+use injury::credit;
 mod locomotion;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -31,6 +33,13 @@ pub struct Controls {
     pub story_damage: i32,
     pub unlocked_items: [bool; 20],
     pub stealth: Option<StealthSession>,
+    pub focus: Option<usize>,
+    pub armor: bool,
+    pub drain_attack: bool,
+    pub drain_uses: u8,
+    pub death_music: bool,
+    pub aim: Position,
+    pub camera_pitch: i16,
 }
 
 impl Default for Controls {
@@ -45,6 +54,13 @@ impl Default for Controls {
             story_damage: 0,
             unlocked_items: [false; 20],
             stealth: None,
+            focus: None,
+            armor: false,
+            drain_attack: false,
+            drain_uses: 0,
+            death_music: true,
+            aim: Position::default(),
+            camera_pitch: 0,
         }
     }
 }
@@ -66,7 +82,6 @@ pub enum Event {
     Landing,
     WallJump,
     ShowHealth,
-    Status(StatusResult),
     Pickup(usize),
     HiddenMission,
     HiddenCarry,
@@ -82,13 +97,41 @@ pub enum Event {
     NockArrow,
     Fire(Projectile),
     Combat(CombatCue),
-    KillCredit,
     StealthTint,
     WaterRipple {
         position: Position,
         size: i16,
     },
-    Alert,
+    Blood {
+        position: Position,
+        angle: i16,
+    },
+    Bubbles,
+    GroundPool,
+    HeldItem(Option<u8>),
+    DropHeldItem,
+    Sparks {
+        position: Position,
+        parried: bool,
+    },
+    Burn,
+    Heal,
+    Resurrection {
+        attacker: Option<usize>,
+    },
+    DeathMusic,
+    UseItem {
+        item: Item,
+        direction: Option<Position>,
+    },
+    Medicine(u8),
+    LaunchGrapple(Position),
+    UpdateGrapple,
+    ReleaseGrapple,
+    SoundAt {
+        id: u8,
+        positional: bool,
+    },
 }
 
 pub struct EventSource<'a> {
@@ -100,6 +143,7 @@ pub struct EventSource<'a> {
 
 pub trait Events {
     fn emit(&mut self, source: EventSource<'_>, event: Event, random: &mut Random) -> Result<()>;
+    fn grapple(&self) -> Result<(GrappleStatus, Position)>;
 }
 
 impl World {
@@ -141,6 +185,11 @@ impl World {
                 controls: &mut self.controls,
                 detections: &mut self.ai.detections,
                 tracking: &mut self.tracking,
+                spline: &assets.spline,
+                stats: &mut self.statistics,
+                alert: &mut self.ai.global.perception.alert,
+                rules: &assets.combat_rules,
+                script: &mut self.script,
                 events,
             },
             terrain: Terrain {
@@ -149,7 +198,7 @@ impl World {
                 cursor: &mut self.cursor,
                 scratch: &mut self.probe,
                 water: &mut self.water,
-                options: Options::default(),
+                options: self.terrain_options,
             },
             random: &mut self.random,
         };
@@ -159,6 +208,7 @@ impl World {
             &mut assets.resources,
             &mut driver,
         )?;
+        self.terrain_options = driver.terrain.options;
         driver.context.controls.camera = input.camera;
         driver.context.sync_contacts(&agent.actor);
         Ok(())
@@ -180,6 +230,11 @@ struct Context<'a, E> {
     controls: &'a mut Controls,
     detections: &'a mut u8,
     tracking: &'a mut Option<usize>,
+    spline: &'a [[i16; 4]; 33],
+    stats: &'a mut super::Statistics,
+    alert: &'a mut crate::tenchu2::ai::status::Alert,
+    rules: &'a tenchu_assets::tenchu2::combat::Rules,
+    script: &'a mut u16,
     events: &'a mut E,
 }
 
@@ -348,7 +403,7 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
             ControlCue::Ledge => self
                 .ledge(actor, request, input, resources, true)
                 .map(|_| ()),
-            ControlCue::Damage => Err("Native Tenchu 2 damage driver is not connected".into()),
+            ControlCue::Damage => self.damage(actor, request, input, resources),
         }
     }
 
@@ -369,9 +424,17 @@ impl<E: Events> ControlDriver for Driver<'_, E> {
             State::Jumping => self.jumping(actor, request, input, resources),
             State::Special => self.special(actor, request, input, resources),
             State::Attack => self.attack(actor, request, input, resources),
-            state => Err(format!(
-                "Native Tenchu 2 {state:?} controller is not connected"
-            )),
+            State::Hurt => self.hurt(actor, request, input, resources),
+            State::Dead => self.context.dead(
+                actor,
+                request,
+                input,
+                &mut self.terrain,
+                resources,
+                self.random,
+            ),
+            State::Swimming => self.swimming(actor, request, input, resources),
+            State::Item => self.item_control(actor, request, input, resources),
         }
     }
 }
