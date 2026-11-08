@@ -90,7 +90,7 @@ impl Environment {
                         c.events
                             .emit(Event::Sound { position, id: 0x3f }, c.random)?;
                         (
-                            Shot::Dart,
+                            Shot::Spear,
                             Position::new(((-sin >> 7) * 1000) >> 5, 0, ((-cos >> 7) * 1000) >> 5),
                         )
                     }

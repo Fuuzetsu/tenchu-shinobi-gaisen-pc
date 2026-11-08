@@ -8,7 +8,7 @@ use crate::{
         collision::Collision,
         effects::Effects,
         environment::{Event, Events, Shot},
-        items::{Items, State, cloud::Cloud},
+        items::{Items, State, arrow::Arrow, cloud::Cloud, trap::Spear},
     },
 };
 
@@ -39,16 +39,23 @@ impl<E: Events> Events for EnvironmentEvents<'_, E> {
     fn emit(&mut self, event: Event, random: &mut Random) -> Result<()> {
         match event {
             Event::Shoot {
-                kind: Shot::Smoke,
+                kind,
                 position,
                 velocity,
             } => {
-                self.spawned.push(State::Cloud(Cloud {
-                    owner: None,
-                    position,
-                    direction: velocity,
-                    age: 0,
-                }));
+                self.spawned.push(match kind {
+                    Shot::Smoke => State::Cloud(Cloud {
+                        owner: None,
+                        position,
+                        direction: velocity,
+                        age: 0,
+                    }),
+                    Shot::Spear => State::Spear(Spear::launch(position, velocity, self.math)),
+                    Shot::Arrow => {
+                        // The source trap leaves VECTOR.pad (aim distance) uninitialised; use direct aim.
+                        State::Arrow(Arrow::launch(position, velocity, 0, self.math, random))
+                    }
+                });
                 Ok(())
             }
             Event::Explosion { position, small } => {

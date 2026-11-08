@@ -50,7 +50,7 @@ pub struct Environment {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Shot {
-    Dart,
+    Spear,
     Arrow,
     Smoke,
 }

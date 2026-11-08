@@ -412,6 +412,7 @@ impl Models {
                 State::Smoke(s) => (10, s.transform, [0; 3]),
                 State::SleepBomb(bomb) => (18, bomb.transform, [0; 3]),
                 State::Rice(r) => (11, r.transform, [0; 3]),
+                State::Spear(spear) => (24, spear.transform, [0; 3]),
                 State::Resurrection(r) => (20, r.transform, [0; 3]),
                 State::Marker(marker) => (
                     32 + marker.color,

@@ -794,3 +794,4 @@ mod source_resurrection;
 mod source_special_items;
 mod source_teleport;
 mod source_textures;
+mod source_traps;

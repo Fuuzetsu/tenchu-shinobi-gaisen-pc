@@ -51,6 +51,12 @@ impl World {
             };
             let mut resurrection_voice = None;
             let (mut alive, pickup) = match &mut entry.state {
+                State::Spear(spear) => (
+                    spear.advance(model, &mut context, |event| {
+                        sink.emit(event, &mut self.random)
+                    })?,
+                    false,
+                ),
                 State::Cloud(cloud) => (
                     cloud.advance(model, context.collision, |event| {
                         sink.emit(event, &mut self.random)

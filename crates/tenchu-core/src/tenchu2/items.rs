@@ -18,6 +18,7 @@ pub mod rice;
 pub mod sleep_bomb;
 pub mod smoke;
 pub mod teleport;
+pub mod trap;
 
 use crate::{
     Result,
@@ -68,6 +69,7 @@ pub enum State {
     Marker(marker::Marker),
     Resurrection(resurrection::Resurrection),
     Cloud(cloud::Cloud),
+    Spear(trap::Spear),
 }
 
 #[derive(Default)]
@@ -160,6 +162,11 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::Spear(spear) => {
+                spear.flight.floor = floor;
+                scene.update(model, spear.transform);
+                spear.register(model, collision)?;
+            }
             State::Cloud(cloud) => {
                 scene.update(
                     model,
@@ -290,6 +297,7 @@ impl Items {
         let entry = self.entries.remove(index);
         collision.remove(entry.model);
         let floor = match entry.state {
+            State::Spear(spear) => spear.flight.floor,
             State::Marker(marker) => marker.floor.unwrap_or(entry.unused_floor),
             State::Resurrection(resurrection) => resurrection.floor,
             State::Projectile(projectile) => projectile.flight.floor,

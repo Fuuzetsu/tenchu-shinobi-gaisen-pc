@@ -372,7 +372,7 @@ fn launch_velocity(
     velocity
 }
 
-fn orientation(backward: Position, velocity: Position, math: &Math) -> [[i16; 3]; 3] {
+pub(super) fn orientation(backward: Position, velocity: Position, math: &Math) -> [[i16; 3]; 3] {
     let up = if velocity.x == 0 && velocity.z == 0 {
         Position::new(0, 0, velocity.y.wrapping_neg())
     } else {

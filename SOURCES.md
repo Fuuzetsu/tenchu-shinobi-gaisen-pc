@@ -2627,3 +2627,20 @@ particle emission and delayed status contact. Surface kinds 14/15 use smoke,
 not flame; trap clouds have no actor owner. The source surface/trigger oracle
 was regenerated with the corrected event name. Other projectile trap handlers
 remain integration work; this change does not claim those are complete.
+
+JP floor traps 10/11 create the retracting spear (`yari.mdl`, item24), not the
+poison blowgun dart. Its constructor/updater follow `8005caf0` / `8005cd40`:
+five forward updates, hold, reversal on update35, four retracting updates and
+removal on update40. It uses the source flight/terrain routine, hit flags0x5016,
+body-contact sound50 and collider removal. A private original-instruction oracle
+checks 300 launches/updates with map terrain and body/non-body contacts; no
+undefined terrain reads were excluded. Geometry submission is intercepted, while
+constructor, updater, SDK vector operations and terrain lookup execute.
+
+Floor traps12/13 use the already checked arrow constructor (`8005c304`) and
+projectile update path. The surface caller `8005e1b8` writes three vector words
+but leaves `VECTOR.pad` (the constructor's aim-distance adjustment) uninitialised
+at SP+0x1c. Native traps use direct aim (zero adjustment) instead of inventing
+PS1 stack contents. Exact parity for that undefined field remains unverified;
+source actor-fired arrows retain their defined distance/RNG behavior. Connected
+world checks cover all four trap types, triggering once and damaging the player.

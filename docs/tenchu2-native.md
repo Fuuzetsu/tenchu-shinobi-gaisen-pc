@@ -51,7 +51,7 @@ file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normall
 This preview uses JP actors, controls, AI, collision, water interaction, camera,
 scenery, grapple, shuriken/kunai, caltrops, bows, fire arrows, firearms, grenades, mines,
 smoke/sleeping bombs, poison darts, confusion powder, invisibility, teleport, fire breath, coloured-rice markers, resurrection, poisoned rice with guard luring,
-weapon/projectile trails, enemy status clouds, floor smoke traps and particles.
+weapon/projectile trails, enemy status clouds, floor smoke/spear/arrow traps and particles.
 Mission objectives now use the JP sequence descriptors, including exit regions,
 unseen requirements, boss-health thresholds and elimination quotas. The preview
 continues through story, area, boss, results and retry sequences. Health,

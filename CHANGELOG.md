@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Restore native JP floor-triggered spear and arrow traps, including their
+  projectile models, contact damage, sounds and spear retraction.
+
 - Connect JP enemy status clouds and floor smoke traps to native particles and
   collision, including their original expansion, sleep/blindness and expiry.
 

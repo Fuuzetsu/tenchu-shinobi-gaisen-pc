@@ -234,6 +234,60 @@ fn native_surface_smoke_trap_blinds_the_player() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; source floor triggers create spear/arrow traps that hurt the player"]
+fn native_surface_projectile_traps_reach_the_player() {
+    use tenchu_core::tenchu2::{
+        environment::{Event as SceneryEvent, Trigger},
+        items::State as ItemState,
+    };
+    for kind in 10..=13 {
+        let (mut world, mut assets, guard) = fixture();
+        world.actors[guard].actor.flags |= 8;
+        for &joint in &world.instances[guard].rig.joints {
+            world.collision.remove(joint);
+        }
+        world.terrain.cells[0].nodes[0].attributes = 0x400;
+        world.environment.triggers = vec![Trigger {
+            position: Position::new(-1800, -900, 0),
+            angle: 192,
+            kind,
+            target: 0,
+            clock: 0,
+        }];
+        let mut events = Recorded::default();
+        world.move_actor(0, &assets, &mut events).unwrap();
+        assert!(
+            !events
+                .1
+                .iter()
+                .any(|e| matches!(e, SceneryEvent::Shoot { .. })),
+            "unhandled trap {kind}"
+        );
+        assert_eq!(world.items.entries.len(), 1);
+        assert!(matches!(
+            (kind, &world.items.entries[0].state),
+            (10 | 11, ItemState::Spear(_)) | (12 | 13, ItemState::Arrow(_))
+        ));
+        let health = world.actors[0].actor.health;
+        for _ in 0..41 {
+            world.update_items(&assets, &mut events).unwrap();
+            world.finish_tick(&assets, 6).unwrap();
+            world.move_actor(0, &assets, &mut events).unwrap();
+            world.control_actor(0, &mut assets, &mut events).unwrap();
+            world.update_effects(&assets).unwrap();
+            assert!(world.items.entries.len() <= 1);
+        }
+        assert!(
+            world.actors[0].actor.health < health,
+            "trap {kind} caused no damage"
+        );
+        if kind < 12 {
+            assert!(world.items.entries.is_empty());
+        }
+    }
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; exercises native hook controls through attachment, pulling and release"]
 fn native_world_grapple_pulls_the_player_and_survives_a_snapshot() {
     let (mut world, mut assets, guard) = fixture();
