@@ -280,7 +280,7 @@ impl Context<'_> {
         }
     }
 
-    fn face_target(&mut self) {
+    pub(super) fn face_target(&mut self) {
         self.facing = 0;
         self.actor.rotation.y = self.actor.rotation.y.wrapping_add(self.sight.angle);
         self.sight.angle = 0;

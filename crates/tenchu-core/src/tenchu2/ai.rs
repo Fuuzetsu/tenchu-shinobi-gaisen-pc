@@ -8,6 +8,7 @@ mod corpses;
 pub use corpses::{CorpseContext, CorpseSearch};
 pub mod alert;
 pub mod combat;
+pub mod search;
 pub mod sight;
 mod steering;
 pub use steering::{ForcedInput, Probe, SteeringInput, direction, steer};

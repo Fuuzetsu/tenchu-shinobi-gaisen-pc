@@ -1882,3 +1882,12 @@ invalidation and JP's small-step cache bypass. Source execution matches 11,500
 traversals per edition across all 23 maps, alongside 46,000 floor queries, 11,500
 ordinary rays and 17,250 movement probes (`TENCHU2_TERRAIN_ORACLE`). Normalization
 and square-root SDK instructions execute with the original GTE arithmetic.
+
+Lost-target waiting and pursuit follow EU `80037598` / `800379e0` and JP
+`800383fc` / `80038844`. Each edition matches 41,400 original-code decisions
+across all 23 maps (`TENCHU2_SEARCH_ORACLE`), including 367/369 detours and
+2,291/2,304 completed searches. Following, looking and waiting use typed states;
+original RNG, terrain, SDK math and steering execute directly in the comparisons.
+Motion requests are recorded boundaries. JP's shorter pursuit timeout, immediate
+facing changes, forced movement, cached perception flags and terrain-cursor state
+are preserved. These components still require enclosing AI/world integration.
