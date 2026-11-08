@@ -8,7 +8,7 @@ fn start(sequence: usize) -> Playback<crate::source::DiscSource> {
     let mut loadout = [0; 21];
     loadout[0] = 255;
     loadout[4] = 5;
-    Playback::load(disc, sequence, 2, 17, loadout).unwrap()
+    Playback::load(disc, sequence, 2, 17, loadout, None).unwrap()
 }
 
 fn reach_exit(playback: &mut Playback<crate::source::DiscSource>) {
@@ -35,6 +35,51 @@ fn next(playback: &mut Playback<crate::source::DiscSource>) {
         }
     }
     panic!("sequence {} did not finish", playback.run.sequence);
+}
+
+#[test]
+#[ignore = "requires TENCHU2_DISC; results persist once and reopen with the same records, supplies and unlocked inventory"]
+fn native_results_survive_restarting_the_campaign() {
+    use super::super::save::SaveFile;
+    let path = std::env::temp_dir().join(format!(
+        "tenchu-jp-results-{}-{}.json",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let mut playback = start(134);
+    playback.save = Some(SaveFile::at(path.clone()));
+    playback.run.progress.stock[1].items[7] = Some(12);
+    playback.run.progress.tatsumaru_unlocked = true;
+    reach_exit(&mut playback);
+    next(&mut playback);
+    assert!(matches!(playback.content, Content::Results));
+    let expected = serde_json::to_value(&playback.run.progress).unwrap();
+    let saved = std::fs::read(&path).unwrap();
+    for _ in 0..90 {
+        playback.step(0).unwrap();
+    }
+    assert_eq!(std::fs::read(&path).unwrap(), saved);
+    drop(playback);
+
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut loadout = [0; 21];
+    loadout[0] = 255;
+    let reopened =
+        Playback::load(disc, 134, 2, 17, loadout, Some(SaveFile::at(path.clone()))).unwrap();
+    assert_eq!(
+        serde_json::to_value(&reopened.run.progress).unwrap(),
+        expected
+    );
+    let Content::Gameplay(session) = &reopened.content else {
+        panic!("not gameplay")
+    };
+    assert!(session.world.controls.unlocked_items[7]);
+    assert_eq!(std::fs::read(&path).unwrap(), saved);
+    std::fs::remove_file(path).unwrap();
 }
 
 #[test]

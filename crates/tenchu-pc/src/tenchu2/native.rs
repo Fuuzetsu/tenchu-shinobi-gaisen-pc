@@ -27,6 +27,8 @@ mod film;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod presentation;
 mod render;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod save;
 mod story;
 #[cfg(test)]
 mod tests;
@@ -302,7 +304,7 @@ pub fn command(args: &[std::ffi::OsString]) -> Result<()> {
                 items[item] = count;
             }
             return window::run(
-                campaign::Playback::load(disc, sequence, 2, seed, items)?,
+                campaign::Playback::load(disc, sequence, 2, seed, items, None)?,
                 settings.graphics,
             );
         }

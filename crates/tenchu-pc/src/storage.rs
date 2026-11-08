@@ -50,6 +50,8 @@ pub enum UserFile {
     LastDisc,
     #[cfg(not(target_arch = "wasm32"))]
     Tenchu2,
+    #[cfg(not(target_arch = "wasm32"))]
+    Tenchu2Progress,
 }
 
 impl UserFile {
@@ -126,6 +128,12 @@ impl UserFile {
                 "TENCHU_T2_CONFIG",
                 "XDG_CONFIG_HOME",
                 ".config",
+            ),
+            Self::Tenchu2Progress => (
+                "tenchu2-jp-progress.json",
+                "TENCHU_T2_SAVE",
+                "XDG_DATA_HOME",
+                ".local/share",
             ),
         };
         if let Some(path) = std::env::var_os(override_env) {

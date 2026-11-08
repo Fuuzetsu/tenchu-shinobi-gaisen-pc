@@ -53,6 +53,7 @@ pub struct Playback<S> {
     loadout: [u8; 21],
     previous_buttons: u16,
     blank: Vram,
+    save: Option<super::save::SaveFile>,
 }
 
 impl<S: ReadAt> Playback<S> {
@@ -62,12 +63,16 @@ impl<S: ReadAt> Playback<S> {
         difficulty: u8,
         seed: u32,
         loadout: [u8; 21],
+        save: Option<super::save::SaveFile>,
     ) -> Result<Self> {
         let campaign = Campaign::load(&disc)?;
         let hero = (0..3)
             .find(|&hero| campaign.mission(hero, sequence).is_some())
             .ok_or("Sequence is not part of a Japanese Tenchu 2 campaign")?;
-        let run = Run::new(&campaign, hero, sequence, difficulty, seed)?;
+        let mut run = Run::new(&campaign, hero, sequence, difficulty, seed)?;
+        if let Some(save) = &save {
+            run.progress = save.load()?;
+        }
         let mut playback = Self {
             disc,
             campaign,
@@ -78,6 +83,7 @@ impl<S: ReadAt> Playback<S> {
             loadout,
             previous_buttons: 0,
             blank: Vram::default(),
+            save,
         };
         playback.load_current()?;
         Ok(playback)
@@ -135,6 +141,11 @@ impl<S: ReadAt> Playback<S> {
             )?)),
         };
         self.generation += 1;
+        if matches!(self.content, Content::Results)
+            && let Some(save) = &self.save
+        {
+            save.write(&self.run.progress)?;
+        }
         Ok(())
     }
 

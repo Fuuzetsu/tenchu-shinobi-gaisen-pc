@@ -15,6 +15,11 @@ The same route is available from the command line:
 Saved controller/keyboard bindings and Android touch controls apply. F1 opens
 the currently supported JP settings, F3 pauses, F4 advances one logic tick, and
 F6 returns to the quick launcher. JP play does not write Gaisen campaign saves.
+Mission results automatically save JP ranks, supplies and unlocks to
+`tenchu2-jp-progress.json` in the game's user-data directory. This is a portable
+JSON file on desktop and Android. `TENCHU_T2_SAVE` can select another path on
+desktop. A damaged or newer-format file reports an error instead of being reset.
+The standalone developer preview below does not load or write this progress.
 Graphics changes in this F1 menu are shared with the main game.
 The JP game uses Triangle for items and Circle for guarding (E and `/` with
 default keyboard bindings); Z/C cycle inventory. These follow Tenchu 2's controls.
@@ -67,7 +72,7 @@ Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc
 for voices and ambience. Its minimal renderer does not yet expose all of the
 port's visual enhancements. The original HUD now shows health/enemy bars, Ki,
-breath, the aiming reticle, item selection and pickup notices. Timed 3D story effects, equipment,
-results artwork and persistent JP campaign saves remain integration work.
+breath, the aiming reticle, item selection and pickup notices. Timed 3D story
+effects and original equipment/results artwork remain integration work.
 Component comparisons and snapshot continuation do not establish full campaign
 parity. EU assets remain supported without an EU-native AI runtime.

@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Save native Japanese Tenchu 2 ranks, supply rewards and unlocks at results,
+  and restore them on the next launch. JP progress uses its own portable save
+  file; Gaisen campaign progress is unchanged.
+
 - Expand the separate Tenchu 2 artwork pack to cover JP mission terrain, props,
   costumes, weapons and items, including the missing area 0 textures. Preserve
   Europe coverage and reconstruct all cutout masks from the selected disc.

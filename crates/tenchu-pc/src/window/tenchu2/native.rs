@@ -28,7 +28,14 @@ impl Application {
             tenchu_core::ai::Difficulty::Normal => 2,
             tenchu_core::ai::Difficulty::Hard => 3,
         };
-        let playback = Playback::load(disc, sequence, difficulty, self.campaign.seed, loadout)?;
+        let playback = Playback::load(
+            disc,
+            sequence,
+            difficulty,
+            self.campaign.seed,
+            loadout,
+            Some(crate::tenchu2::native::save::SaveFile::new()?),
+        )?;
         self.finish_recording();
         self.release_pointer();
         if let Some(frontend) = &mut self.frontend {
@@ -405,10 +412,11 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires TENCHU_DISC, TENCHU2_JP_DISC and isolated TENCHU_T2_CONFIG; main launcher must execute the JP runtime without touching Gaisen progress"]
+    #[ignore = "requires TENCHU_DISC, TENCHU2_JP_DISC and isolated TENCHU_T2_CONFIG/TENCHU_T2_SAVE; main launcher must execute the JP runtime without touching Gaisen progress"]
     fn quick_launcher_runs_native_jp_and_restores_gaisen() {
         use crate::tenchu2::menu::Event;
         let config = std::env::var_os("TENCHU_T2_CONFIG").expect("Isolate disc preferences");
+        std::env::var_os("TENCHU_T2_SAVE").expect("Isolate Japanese campaign progress");
         let disc = std::env::var_os("TENCHU2_JP_DISC").unwrap();
         let mut app = crate::window::tests::application(Options::default());
         app.campaign.screen = Screen::Launcher;

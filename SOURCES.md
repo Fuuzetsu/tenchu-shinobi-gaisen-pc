@@ -2666,3 +2666,11 @@ scrolling water geometry, checks that consecutive phases differ, and that both
 source textures return to identical pixels after their full cycle. It passes
 with original textures and with the compressed v2 pack loaded through Rust.
 The area 0 starting ponds are not those scrolling waterfall materials.
+
+Native JP progress persistence is a port-owned, versioned JSON container around
+these source-derived records and supplies. Normal F6 launches load it before
+area setup and save once on entry to results. It is independent of Gaisen's save
+and the standalone developer preview. Filesystem access and atomic replacement
+remain in the platform layer; no host path enters the serialized core state.
+Tests cover corruption/version rejection, the on-disk round trip, actual native
+results through restart, and main-launcher isolation from Gaisen progress.
