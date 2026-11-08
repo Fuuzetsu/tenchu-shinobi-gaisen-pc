@@ -15,6 +15,12 @@ pub const CEILING: u32 = 0x4000;
 pub const BLOCKED: u32 = 0x8000;
 pub const LANDED: u32 = 0x10000;
 pub const UNEVEN: u32 = 0x20000;
+pub const TOUCHING: u32 = 0x40000;
+pub const HIT: u32 = 0x80000;
+pub const TOUCHING_PLAYER: u32 = 0x400000;
+
+mod contacts;
+pub use contacts::ContactActor;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Depth {

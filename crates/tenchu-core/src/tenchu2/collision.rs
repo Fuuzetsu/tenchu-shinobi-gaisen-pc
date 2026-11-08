@@ -49,6 +49,10 @@ impl Collision {
         &self.slots[..self.len]
     }
 
+    pub fn slot(&self, index: usize) -> Option<&Slot> {
+        self.slots.get(index)
+    }
+
     pub fn index(&self, model: ModelId) -> Option<usize> {
         self.slots()
             .iter()

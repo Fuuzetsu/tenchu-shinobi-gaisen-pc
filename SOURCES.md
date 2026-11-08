@@ -1598,3 +1598,12 @@ across all maps (`TENCHU2_PHYSICS_ORACLE`), including probe/cache state, velocit
 turning, water and death outcomes. The oracle runs native terrain queries and
 speed calculations, supplies posed-root positions and surface-effect lookup,
 and suppresses object contacts/audio/scoring to isolate terrain movement.
+
+The remainder of those movement routines supplies actor/prop contact response,
+weapon-hit selection and prop standing. JP additionally propagates certain
+knockback reactions between actors; its reuse of the prop-response flag for a
+knockback angle is retained. Private original-code comparisons match 20,000
+ordered contact-response sequences per edition (`TENCHU2_BODY_ORACLE`), including
+1,323 JP knockbacks, RNG, damage, motion requests and velocity changes. Terrain
+and contact enumeration execute original code; the oracle supplies an ordered
+contact set and stubs motion selection/audio, checked independently above.
