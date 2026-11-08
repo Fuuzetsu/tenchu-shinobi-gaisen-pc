@@ -5,6 +5,10 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect invisibility in the internal JP preview: activation and expiry, guard
+  detection and item-use restrictions, transformation trails and translucent
+  character rendering. Keep HD texture identities and blending compatible.
+
 - Connect confusion powder in the internal JP preview, including its short-range
   contact effect, original particles and confused guard reactions.
 

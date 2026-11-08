@@ -15,6 +15,7 @@ pub enum Source {
         part: usize,
     },
     Projectile(ModelId),
+    Transformation(ModelId),
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

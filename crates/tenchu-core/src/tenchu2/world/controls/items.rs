@@ -163,6 +163,22 @@ impl<E: Events> Context<'_, E> {
         };
         let wall = matches!(actor.motion.action, 0x310 | 0x311);
         let state = match item.index() {
+            13 => {
+                let Some(invisibility) =
+                    items::invisibility::Invisibility::begin(self.index, self.script)
+                else {
+                    return Ok(());
+                };
+                let model = self.items.insert(
+                    State::Invisibility(invisibility),
+                    self.scene,
+                    self.collision,
+                )?;
+                self.effects.start_ribbon(
+                    crate::tenchu2::effects::ribbon::Source::Transformation(model),
+                )?;
+                return Ok(());
+            }
             14 => {
                 let origin = self.item_origin(2)?;
                 let powder = items::powder::Powder::blow(

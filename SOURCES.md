@@ -2379,3 +2379,15 @@ from `GAME.EXE` at `80012a18`. Original execution matches 1,000 placement/expiry
 cases (`TENCHU2_POWDER_ORACLE`) and 600 mixed particle sequences containing powder,
 sleeping gas and prior effects. The connected actual-use check verifies guard
 confusion without health damage, particles, item consumption and effect expiry.
+
+Native JP invisibility follows `800583f4` / `800584b0`: the shared `8008e974`
+concealment state, 60-update activation, 70-update trail cutoff, 900-update
+previous-age expiry and cancellation (including the source's continued update
+after removal). Transformation corners use joints 11/5/14/8 and additive effect
+image 0. Body faces enable quarter-add blending; held weapons remain separate.
+Character TIM loading now applies `80017600` as called by `8001bed4`. Authored
+palette colors remain available for stable HD identities, and replacements
+inherit loader-enabled blend classes. Verification includes 1,200 independent
+original-executable activation/cancellation cases (`TENCHU2_INVISIBILITY_ORACLE`)
+and actual item use, detection suppression, inventory restrictions, expiry and
+snapshot continuation. This does not establish full mission/frame parity.

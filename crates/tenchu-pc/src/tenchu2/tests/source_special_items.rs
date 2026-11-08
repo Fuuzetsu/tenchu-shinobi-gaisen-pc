@@ -50,3 +50,31 @@ fn native_confusion_powder_matches_original_terrain_placement_and_duration() {
     }
     assert!(count >= 1000);
 }
+
+#[test]
+#[ignore = "requires TENCHU2_INVISIBILITY_ORACLE; original activation, cancellation and expiry"]
+fn native_invisibility_matches_original_activation_and_cancellation_boundaries() {
+    use tenchu_core::tenchu2::items::invisibility::Invisibility;
+    let mut count = 0;
+    for (case, row) in
+        super::source_control::cases::<Value>("TENCHU2_INVISIBILITY_ORACLE").enumerate()
+    {
+        let mut mode = row["initial"].as_u64().unwrap() as u16;
+        let invisibility = Invisibility::begin(0, &mut mode);
+        assert_eq!(json!(invisibility), row["launch"], "launch {case}");
+        assert_eq!(json!(mode), row["beginmode"], "launch mode {case}");
+        let mut invisibility: Invisibility = serde_json::from_value(row["before"].clone()).unwrap();
+        mode = row["mode"].as_u64().unwrap() as u16;
+        let mut translucent = row["translucent"].as_bool().unwrap();
+        assert_eq!(
+            json!(invisibility.advance(&mut mode, &mut translucent)),
+            row["alive"],
+            "expiry {case}"
+        );
+        assert_eq!(json!(mode), row["after_mode"], "mode {case}");
+        assert_eq!(json!(translucent), row["after_translucent"], "blend {case}");
+        assert_eq!(json!(invisibility), row["after"], "update {case}");
+        count += 1;
+    }
+    assert!(count >= 1200);
+}

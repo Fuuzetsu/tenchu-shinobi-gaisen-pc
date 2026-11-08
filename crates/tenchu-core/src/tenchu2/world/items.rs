@@ -12,7 +12,11 @@ use crate::{
         actor::{State as ActorState, Velocity},
         ai::status::{Alert, AlertCause},
         collision::{BODY, WEAPON},
-        effects::{Effects, ribbon::Source},
+        effects::{
+            Effects,
+            ribbon::{Sample, Source},
+            surface::{Blend, Quad},
+        },
         items::{Context, Event as ItemEvent, State, grapple, projectile::Phase},
     },
 };
@@ -22,6 +26,7 @@ impl World {
         &mut self,
         assets: &Assets,
         events: &mut impl Events,
+        quads: &mut Vec<Quad>,
     ) -> Result<()> {
         let view = self.view();
         let mut index = 0;
@@ -44,6 +49,55 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::Invisibility(invisibility) => {
+                    let owner = invisibility.owner;
+                    let trail = invisibility.trail;
+                    let alive = invisibility
+                        .advance(&mut self.script, &mut self.instances[owner].translucent);
+                    let source = Source::Transformation(model);
+                    if trail && (!alive || !invisibility.trail) {
+                        sink.effects.sample_ribbon(source, None);
+                    }
+                    if invisibility.age < 70 {
+                        let position = self.actors[owner].actor.position;
+                        let mut corners = [crate::math::Vector3::default(); 4];
+                        for (corner, bone) in corners.iter_mut().zip([11, 5, 14, 8]) {
+                            let joint = *self.instances[owner]
+                                .rig
+                                .joints
+                                .get(bone)
+                                .ok_or("Missing Tenchu 2 invisibility joint")?;
+                            *corner = context
+                                .scene
+                                .world(joint)?
+                                .translation
+                                .wrapping_sub(position)
+                                .map(|v| v as i16);
+                        }
+                        let matrix = view.matrix.compose(&crate::math::Matrix {
+                            translation: position,
+                            ..Default::default()
+                        });
+                        let a = crate::visibility::project(&matrix, corners[0].to_array());
+                        let b = crate::visibility::project(&matrix, corners[1].to_array());
+                        sink.effects.sample_ribbon(
+                            source,
+                            Some(Sample {
+                                edges: [a.0, b.0],
+                                depth: i32::from(a.1 >> 4),
+                            }),
+                        );
+                        quads.push(Quad {
+                            image: 0,
+                            position,
+                            parent: None,
+                            corners,
+                            color: [128; 3],
+                            blend: Blend::Add,
+                        });
+                    }
+                    (alive, false)
+                }
                 State::Powder(powder) => (powder.advance(), false),
                 State::SleepBomb(bomb) => (
                     bomb.advance(model, &mut context, |event| {

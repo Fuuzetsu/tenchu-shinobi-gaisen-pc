@@ -43,13 +43,15 @@ impl World {
         self.update_actors(controllers, assets, events)?;
         self.sample_weapon_ribbons(assets)?;
         let scenery = self.update_environment(assets, events)?;
-        let reticle = self.update_items(assets, events)?;
-        let effects = self.update_effects()?;
+        let mut items = self.update_items(assets, events)?;
+        let mut effects = self.update_effects()?;
+        items.quads.append(&mut effects.quads);
+        effects.quads = items.quads;
         self.finish_tick(assets, 6)?;
         Ok(Frame {
             scenery,
             effects,
-            reticle,
+            reticle: items.reticle,
             ambience,
         })
     }
@@ -68,15 +70,16 @@ impl World {
         &mut self,
         assets: &Assets,
         events: &mut impl controls::Events,
-    ) -> Result<Option<crate::tenchu2::items::aim::Reticle>> {
+    ) -> Result<crate::tenchu2::items::Frame> {
         use crate::tenchu2::items::aim::Input;
         let math = &assets.resources.math;
-        self.advance_items(assets, events)?;
+        let mut frame = crate::tenchu2::items::Frame::default();
+        self.advance_items(assets, events, &mut frame.quads)?;
         let root = self
             .scene
             .world(self.instances[self.player].rig.joints[0])?
             .translation;
-        self.items.aim.update(
+        frame.reticle = self.items.aim.update(
             Input {
                 eye: self.camera.eye,
                 look: self.camera.look,
@@ -88,7 +91,8 @@ impl World {
             &self.terrain,
             &mut self.cursor,
             math,
-        )
+        )?;
+        Ok(frame)
     }
 
     pub fn update_effects(&mut self) -> Result<crate::tenchu2::effects::Frame> {

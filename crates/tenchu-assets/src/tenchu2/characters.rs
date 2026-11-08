@@ -40,7 +40,12 @@ fn read_model(volume: &Volume<'_, impl ReadAt>, name: &str, native: bool) -> Res
         return Err("Excessive Tenchu 2 character textures".into());
     }
     for i in 0..count {
-        vram.upload_tim(crate::model::arc_entry(&textures, i)?)?;
+        let tim = crate::model::arc_entry(&textures, i)?;
+        if native {
+            super::texture::upload(&mut vram, tim)?;
+        } else {
+            vram.upload_tim(tim)?;
+        }
     }
     model::resolve_transparency(parts.iter_mut(), &vram);
     Ok(Rig { parts, vram })

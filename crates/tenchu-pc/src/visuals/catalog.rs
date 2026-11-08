@@ -49,7 +49,7 @@ impl Region {
     }
 
     pub fn original_pixels(self, vram: &Vram) -> Vec<u8> {
-        let pixels = self.pixels(vram);
+        let pixels = self.read_pixels(vram, true);
         let Some([dx, dy]) = self.scroll_offset(vram) else {
             return pixels;
         };
@@ -122,11 +122,19 @@ impl Region {
     }
 
     pub fn pixels(self, vram: &Vram) -> Vec<u8> {
+        self.read_pixels(vram, false)
+    }
+
+    fn read_pixels(self, vram: &Vram, authored: bool) -> Vec<u8> {
         let [x, y, width, height] = self.rect;
         let mut pixels = Vec::with_capacity(usize::from(width) * usize::from(height) * 4);
         for v in y..y + height {
             for u in x..x + width {
-                let word = vram.texel(self.page, self.palette, [u, v]);
+                let word = if authored {
+                    vram.authored_texel(self.page, self.palette, [u, v])
+                } else {
+                    vram.texel(self.page, self.palette, [u, v])
+                };
                 pixels.extend(tenchu_assets::texture::rgba8(word));
             }
         }

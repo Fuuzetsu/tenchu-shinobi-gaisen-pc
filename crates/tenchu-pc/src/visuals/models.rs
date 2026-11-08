@@ -743,6 +743,30 @@ impl Meshes {
         }
     }
 
+    pub fn inherit_palette_blending(&mut self, vram: &tenchu_assets::texture::Vram) {
+        if vram.authored_colors.is_empty() {
+            return;
+        }
+        for material in &mut self.materials {
+            let Some(region) = material.region else {
+                continue;
+            };
+            let source = region.pixels(vram);
+            if source.chunks_exact(4).all(|p| p[3] <= 128)
+                && region
+                    .original_pixels(vram)
+                    .chunks_exact(4)
+                    .any(|p| p[3] == 255)
+            {
+                // The loader enabled STP for this palette; HD artwork must retain
+                // that blend class when an item changes the model's blend mode.
+                for pixel in Arc::make_mut(&mut material.image).rgba.chunks_exact_mut(4) {
+                    pixel[3] = pixel[3].min(128);
+                }
+            }
+        }
+    }
+
     pub fn bind(&mut self, mut bind: impl FnMut(&Material) -> u32) {
         let handles: Vec<_> = self.materials.iter().map(&mut bind).collect();
         for rule in self.motion.values_mut().flatten() {
@@ -905,6 +929,55 @@ pub fn rotation(matrix: Matrix) -> Mat3 {
 mod tests {
     use super::*;
     use tenchu_assets::game::GameAssets;
+
+    #[test]
+    fn palette_blending_keeps_hd_identity_and_replacement_blend_classes() {
+        let mut vram = tenchu_assets::texture::Vram::default();
+        vram.words[0] = 0x10;
+        vram.words[1025] = 31;
+        let region = catalog::Region {
+            page: 0,
+            palette: 64,
+            rect: [0, 0, 2, 1],
+        };
+        let original = region.original_pixels(&vram);
+        let id = catalog::image_id([2, 1], &original);
+        vram.authored_colors.insert(1025, 31);
+        vram.words[1025] |= 0x8000;
+        assert_eq!(
+            catalog::image_id([2, 1], &region.original_pixels(&vram)),
+            id
+        );
+        assert_ne!(region.pixels(&vram), original);
+        let replacement = Arc::new(Image {
+            size: [4, 1],
+            rgba: [0, 128, 255, 255]
+                .into_iter()
+                .flat_map(|a| [127, 31, 63, a])
+                .collect(),
+        });
+        let mut meshes = Meshes {
+            materials: vec![Material {
+                id: id.clone(),
+                region: Some(region),
+                image: replacement.clone(),
+                animation: None,
+            }],
+            ..Default::default()
+        };
+        meshes.inherit_palette_blending(&vram);
+        assert_eq!(meshes.materials[0].id, id);
+        assert_eq!(
+            meshes.materials[0]
+                .image
+                .rgba
+                .chunks_exact(4)
+                .map(|p| p[3])
+                .collect::<Vec<_>>(),
+            [0, 128, 128, 128]
+        );
+        assert_eq!(replacement.rgba[11], 255);
+    }
 
     #[test]
     fn indexed_poses_preserve_vertices_and_filtered_triangle_order() {

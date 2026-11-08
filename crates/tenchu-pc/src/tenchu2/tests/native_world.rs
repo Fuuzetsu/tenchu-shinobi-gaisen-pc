@@ -1056,6 +1056,82 @@ fn native_explosives_damage_and_smoke_blinds_through_item_controls() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; invisibility use, guard perception, item restriction and expiry after a snapshot"]
+fn native_invisibility_changes_guard_perception_and_expires_after_a_snapshot() {
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.rotation.y = 2048;
+    world.publish(guard, &assets);
+    world.actors[0].actor.inventory.counts[13] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(13).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut restored: Option<World> = None;
+    let (_, mut restored_assets, _) = fixture();
+    let mut translucent = false;
+    let mut veil = false;
+    let mut ribbon = false;
+    let step = |world: &mut World, assets: &mut Assets| {
+        let mut events = Recorded::default();
+        world.move_actor(0, assets, &mut events).unwrap();
+        world.actors[0].actor.pad.update(0);
+        world.control_actor(0, assets, &mut events).unwrap();
+        world.animate_actor(0, assets).unwrap();
+        let items = world.update_items(assets, &mut events).unwrap();
+        let effects = world.update_effects().unwrap();
+        world.finish_tick(assets, 6).unwrap();
+        (items, effects)
+    };
+    for tick in 0..950 {
+        let (items, effects) = step(&mut world, &mut assets);
+        if let Some(copy) = &mut restored {
+            let (other_items, other_effects) = step(copy, &mut restored_assets);
+            assert_eq!(items.quads.len(), other_items.quads.len());
+            assert_eq!(effects.ribbons, other_effects.ribbons);
+        } else if world.script == 2 && world.actors[0].actor.state == State::Normal {
+            let mut observed = world.clone();
+            observed.actors[guard].slot = -(observed.tick as i16) & 31;
+            observed
+                .decide_actor(guard, [0; 2], &assets, &mut Recorded::default())
+                .unwrap();
+            assert_eq!(
+                observed.ai.visibility,
+                tenchu_core::tenchu2::ai::sight::Visibility::Hidden
+            );
+            observed.actors[0].actor.inventory.selected = Some(Item::try_from(6).unwrap());
+            observed.actors[0].actor.inventory.counts[6] = 2;
+            observed.actors[0].actor.pad.update(ITEM);
+            let mut blocked = Recorded::default();
+            observed
+                .control_actor(0, &mut assets, &mut blocked)
+                .unwrap();
+            assert_eq!(observed.actors[0].actor.inventory.counts[6], 2);
+            assert!(blocked.0.iter().any(|event| matches!(
+                event,
+                Event::ItemSound(tenchu_core::tenchu2::control::ItemSound::Unavailable)
+            )));
+            restored = Some(postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap());
+        }
+        translucent |= world.instances[0].translucent;
+        veil |= !items.quads.is_empty();
+        ribbon |= !effects.ribbons.is_empty();
+        if tick == 900 {
+            assert_eq!(world.script, 2);
+        }
+    }
+    assert!(translucent && veil && ribbon);
+    assert_eq!(world.script, 0);
+    assert!(!world.instances[0].translucent);
+    assert_eq!(world.actors[0].actor.inventory.counts[13], 1);
+    assert!(world.items.entries.is_empty());
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored.unwrap()).unwrap()
+    );
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; actual powder use, guard confusion and inventory consumption"]
 fn native_confusion_powder_affects_nearby_guards_without_health_damage() {
     use tenchu_core::tenchu2::items::State as ItemState;

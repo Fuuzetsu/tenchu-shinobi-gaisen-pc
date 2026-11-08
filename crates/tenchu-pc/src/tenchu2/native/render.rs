@@ -162,10 +162,11 @@ fn build(
         Pack::default()
     };
     let mut meshes = Meshes::build(vram, &pack, graphics, sources, true)?;
-    meshes.detach_textures();
     if graphics.asset_pack {
         meshes.replace_textures(&pack);
     }
+    meshes.inherit_palette_blending(vram);
+    meshes.detach_textures();
     Ok(meshes)
 }
 
@@ -258,7 +259,7 @@ impl Models {
                     translation: part.position.map(|v| i32::from(v) * 10).into(),
                     ..Default::default()
                 },
-                true,
+                ModelStyle::Terrain,
             );
         }
         for model in &frame.scenery.models {
@@ -275,7 +276,7 @@ impl Models {
                     translation: model.position,
                     rotation: math.rotate_yxz(model.rotation),
                 },
-                true,
+                ModelStyle::Terrain,
             );
         }
         // Presentation must not refresh the simulation's cached coordinate matrices.
@@ -300,7 +301,16 @@ impl Models {
                 .collect::<Result<Vec<_>>>()?;
             meshes.pose_skin(&matrices, None);
             for (part, &matrix) in body.parts.iter().zip(&matrices) {
-                output.model(meshes, part, matrix, false);
+                output.model(
+                    meshes,
+                    part,
+                    matrix,
+                    if instance.translucent {
+                        ModelStyle::Concealed
+                    } else {
+                        ModelStyle::Actor
+                    },
+                );
             }
             for root in instance.rig.weapons.iter().take(3).flatten() {
                 let name = self
@@ -309,7 +319,12 @@ impl Models {
                     .ok_or("Missing native weapon instance")?;
                 let parts = &assets.weapons[name];
                 for (index, part) in parts.iter().enumerate() {
-                    output.model(&self.weapons, part, scene.world(root + 1 + index)?, false);
+                    output.model(
+                        &self.weapons,
+                        part,
+                        scene.world(root + 1 + index)?,
+                        ModelStyle::Actor,
+                    );
                 }
             }
         }
@@ -520,6 +535,13 @@ struct Builder {
     actors: Vec<Vertex>,
 }
 
+#[derive(Clone, Copy)]
+enum ModelStyle {
+    Terrain,
+    Actor,
+    Concealed,
+}
+
 impl Builder {
     fn project(&self, point: Position) -> [f32; 3] {
         let point = point.map(|v| v as f32).to_array();
@@ -550,9 +572,16 @@ impl Builder {
         });
     }
 
-    fn model(&mut self, meshes: &Meshes, part: &Part, matrix: Matrix, terrain: bool) {
+    fn model(&mut self, meshes: &Meshes, part: &Part, matrix: Matrix, style: ModelStyle) {
+        let terrain = matches!(style, ModelStyle::Terrain);
         meshes.visit(&part.geometry, matrix, true, 0, None, |triangle| {
             let mut triangle = triangle.map(|v| *v);
+            if matches!(style, ModelStyle::Concealed) {
+                for vertex in &mut triangle {
+                    vertex.flags |= render_mesh::TRANSLUCENT;
+                    vertex.page |= 0x60;
+                }
+            }
             if terrain {
                 for v in &mut triangle {
                     v.flags |= render_mesh::SCENERY;
@@ -582,7 +611,7 @@ impl Builder {
         let root = scene.add(None, matrix);
         let joints = tenchu_core::motion::Pose::new(parts)?.bind(&mut scene, root, math);
         for (part, joint) in parts.iter().zip(joints) {
-            self.model(meshes, part, scene.world(joint)?, false);
+            self.model(meshes, part, scene.world(joint)?, ModelStyle::Actor);
         }
         Ok(())
     }

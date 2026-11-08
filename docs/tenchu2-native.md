@@ -16,8 +16,8 @@ or change saved graphics settings.
 
 Add `--loadout 4:20` for twenty shuriken. The normal item-selection and item-use
 bindings apply; the preview overlay shows the selected item ID and quantity.
-Use `--loadout 4:20,5:5,6:10,7:5,8:10,9:10,10:5,11:5,14:5,18:5` to add caltrops (5), grenades (6), mines (7), poison darts (8), fire
-arrows (9), smoke bombs (10), poisoned rice (11), confusion powder (14) and sleeping bombs (18). Other inventory entries accept comma-separated
+Use `--loadout 4:20,5:5,6:10,7:5,8:10,9:10,10:5,11:5,13:5,14:5,18:5` to add caltrops (5), grenades (6), mines (7), poison darts (8), fire
+arrows (9), smoke bombs (10), poisoned rice (11), invisibility (13), confusion powder (14) and sleeping bombs (18). Other inventory entries accept comma-separated
 `ID:COUNT` pairs, but their effects are still being connected.
 
 For a repeatable capture:
@@ -32,7 +32,7 @@ file for rendering; the separate `tenchu2-hd.tar.zst` pack is discovered normall
 
 This preview uses JP actors, controls, AI, collision, water interaction, camera,
 scenery, grapple, shuriken/kunai, caltrops, bows, fire arrows, firearms, grenades, mines,
-smoke/sleeping bombs, poison darts, confusion powder, poisoned rice with guard luring,
+smoke/sleeping bombs, poison darts, confusion powder, invisibility, poisoned rice with guard luring,
 weapon/projectile trails and particles.
 Missed shuriken can be retrieved; projectile impacts use the native damage,
 deflection and alert rules. It loads the hero/area VAB from the supplied disc

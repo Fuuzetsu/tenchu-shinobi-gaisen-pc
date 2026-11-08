@@ -6,6 +6,7 @@ pub mod flight;
 pub mod grapple;
 pub mod grenade;
 pub mod gun;
+pub mod invisibility;
 pub mod mine;
 pub mod powder;
 pub mod projectile;
@@ -53,6 +54,13 @@ pub enum State {
     Dart(dart::Dart),
     SleepBomb(sleep_bomb::SleepBomb),
     Powder(powder::Powder),
+    Invisibility(invisibility::Invisibility),
+}
+
+#[derive(Default)]
+pub struct Frame {
+    pub reticle: Option<aim::Reticle>,
+    pub quads: Vec<super::effects::surface::Quad>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -210,7 +218,7 @@ impl Items {
                 scene.update(model, smoke.transform);
                 smoke.register(model, collision)?;
             }
-            State::Grapple(_) => {}
+            State::Grapple(_) | State::Invisibility(_) => {}
         }
         self.entries.push(Entry {
             model,
@@ -235,7 +243,7 @@ impl Items {
             State::Dart(dart) => dart.flight.floor,
             State::SleepBomb(bomb) => bomb.flight.floor,
             State::Powder(powder) => powder.floor,
-            State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
+            State::Grapple(_) | State::Gunshot(_) | State::Invisibility(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));
     }

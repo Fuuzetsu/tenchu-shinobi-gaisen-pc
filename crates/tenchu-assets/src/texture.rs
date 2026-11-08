@@ -68,6 +68,8 @@ pub struct Vram {
     pub scrolling: Vec<ScrollingImage>,
     #[serde(default)]
     pub animations: Vec<TextureScroll>,
+    #[serde(default)]
+    pub authored_colors: std::collections::BTreeMap<usize, u16>,
 }
 
 impl Default for Vram {
@@ -78,6 +80,7 @@ impl Default for Vram {
             images: Vec::new(),
             scrolling: Vec::new(),
             animations: Vec::new(),
+            authored_colors: Default::default(),
         }
     }
 }
@@ -93,15 +96,30 @@ impl Vram {
             images,
             scrolling,
             animations,
+            authored_colors,
         } = self;
         out.words(words)?;
         out.value(revision)?;
         out.shared(images)?;
         out.value(scrolling)?;
-        out.shared(animations)
+        out.shared(animations)?;
+        out.shared(authored_colors)
     }
 
     pub fn texel(&self, page: u16, palette: u16, uv: [u16; 2]) -> u16 {
+        self.words[self.texel_address(page, palette, uv)]
+    }
+
+    pub fn authored_texel(&self, page: u16, palette: u16, uv: [u16; 2]) -> u16 {
+        let address = self.texel_address(page, palette, uv);
+        self.authored_colors
+            .get(&address)
+            .copied()
+            .unwrap_or(self.words[address])
+    }
+
+    fn texel_address(&self, page: u16, palette: u16, uv: [u16; 2]) -> usize {
+        let address = |x: usize, y: usize| (y & 511) * 1024 + (x & 1023);
         let word = |x: usize, y: usize| self.words[(y & 511) * 1024 + (x & 1023)];
         let [u, v] = uv.map(|n| usize::from(n & 255));
         let x = usize::from(page & 15) * 64;
@@ -109,19 +127,19 @@ impl Vram {
         match (page >> 7) & 3 {
             0 => {
                 let index = (word(x + u / 4, y + v) >> ((u & 3) * 4)) & 15;
-                word(
+                address(
                     usize::from((palette & 63) * 16 + index),
                     usize::from(palette >> 6),
                 )
             }
             1 => {
                 let index = (word(x + u / 2, y + v) >> ((u & 1) * 8)) & 255;
-                word(
+                address(
                     usize::from((palette & 63) * 16 + index),
                     usize::from(palette >> 6),
                 )
             }
-            _ => word(x + u, y + v),
+            _ => address(x + u, y + v),
         }
     }
 
@@ -182,6 +200,11 @@ impl Vram {
             }
             let pixels = slice(block, 12, w * h * 2)?;
             for row in 0..h {
+                if !self.authored_colors.is_empty() {
+                    let start = (y + row) * 1024 + x;
+                    self.authored_colors
+                        .retain(|&address, _| !(start..start + w).contains(&address));
+                }
                 for col in 0..w {
                     self.words[(y + row) * 1024 + x + col] = u16_le(pixels, (row * w + col) * 2)?;
                 }

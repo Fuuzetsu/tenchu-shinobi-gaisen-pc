@@ -21,8 +21,9 @@ pub(super) fn upload(vram: &mut Vram, data: &[u8]) -> Result<Image> {
             .ok_or("Tenchu 2 texture palette outside VRAM")?;
         // 80017600 enables blending for palettes without an explicit mixed mask.
         if !colors.iter().any(|&v| v & 0x8000 != 0 && v & 0x7fff != 0) {
-            for v in colors {
-                if *v != 0 {
+            for (index, v) in colors.iter_mut().enumerate() {
+                if *v != 0 && *v & 0x8000 == 0 {
+                    vram.authored_colors.insert(start + index, *v);
                     *v |= 0x8000;
                 }
             }
@@ -56,12 +57,20 @@ mod tests {
                     data.extend(value.to_le_bytes());
                 }
                 data.extend(14u32.to_le_bytes());
-                for value in [384u16, 0, 1, 1, 0x123] {
+                for value in [384u16, 0, 1, 1, if mode == 0 { 0x123 } else { 0x302 }] {
                     data.extend(value.to_le_bytes());
                 }
                 let mut vram = Vram::default();
-                upload(&mut vram, &data).unwrap();
+                let image = upload(&mut vram, &data).unwrap();
                 assert_eq!(&vram.words[480 * 1024 + 32..480 * 1024 + 36], &expected);
+                let uv = if mode == 0 { [0, 0] } else { [1, 0] };
+                assert_eq!(
+                    vram.authored_texel(image.page, image.palette, uv),
+                    colors[3]
+                );
+                assert_eq!(vram.texel(image.page, image.palette, uv), expected[3]);
+                vram.upload_tim(&data).unwrap();
+                assert!(vram.authored_colors.is_empty());
             }
         }
     }

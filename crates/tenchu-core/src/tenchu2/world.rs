@@ -44,6 +44,7 @@ pub struct Instance {
     pub model_height: i16,
     pub feet: [Foot; 2],
     pub motion_changes: u16,
+    pub translucent: bool,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -310,6 +311,7 @@ impl World {
             model_height: super::actor::model_bounds(&model.parts)?[1],
             feet: [Foot::default(); 2],
             motion_changes: 0,
+            translucent: false,
         });
         Ok(owner)
     }
