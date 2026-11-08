@@ -1627,3 +1627,15 @@ status updates and 6,000 target queries per edition (`TENCHU2_STATUS_ORACLE`,
 captured at their boundaries; the SDK square-root instructions run with supplied
 COP2 leading-bit arithmetic. These components do not constitute a complete
 native combat controller or campaign.
+
+Jump entry follows EU `800226f0` / JP `80022de4`; attack entry follows EU
+`80022950` / JP `80023010`. These retain motion fallback, directional/airborne
+selection, stealth-kill angle and victim restrictions, JP's backward-dodge
+attack rule, and edition-specific jump speeds/voices. Original instruction
+execution matches 15,600 jump / 31,200 attack cases in EU and 15,240 / 30,480
+in JP (`TENCHU2_JUMP_ENTRY_ORACLE`, `TENCHU2_ATTACK_ENTRY_ORACLE`). The JP
+comparison excludes the three animal definitions with unavailable campaign
+clips. Motion selection, input consumption and velocity run original code;
+root publication, candidate lookup and audio are isolated, and the stealth
+path stops before victim/world mutation. The full attack timeline, damage and
+campaign integration remain separate work.

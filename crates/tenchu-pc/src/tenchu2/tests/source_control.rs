@@ -28,7 +28,7 @@ fn resources() -> Resources {
     }
 }
 
-fn template(resources: &Resources) -> Actor {
+pub(super) fn template(resources: &Resources) -> Actor {
     let parts: Vec<_> = (0..20)
         .map(|child| Part {
             parent: if child == 0 { -1 } else { 0 },
@@ -40,13 +40,13 @@ fn template(resources: &Resources) -> Actor {
     Actor::new(0, &parts, resources).unwrap()
 }
 
-fn cases<T: serde::de::DeserializeOwned>(variable: &str) -> impl Iterator<Item = T> {
+pub(super) fn cases<T: serde::de::DeserializeOwned>(variable: &str) -> impl Iterator<Item = T> {
     std::io::BufReader::new(std::fs::File::open(std::env::var_os(variable).unwrap()).unwrap())
         .lines()
         .map(|line| serde_json::from_str(&line.unwrap()).unwrap())
 }
 
-fn velocity(value: i16) -> Velocity {
+pub(super) fn velocity(value: i16) -> Velocity {
     match value {
         -1 => Velocity::Stop,
         0 => Velocity::Keep,

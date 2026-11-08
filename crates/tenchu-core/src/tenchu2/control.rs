@@ -1,6 +1,9 @@
 use super::actor::{Actor, State, Velocity};
 use crate::{math::Math, random::Random};
 
+mod entry;
+pub use entry::{AttackInput, AttackStart, JumpEffects, StealthAttack};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Request {
     pub action: i16,
