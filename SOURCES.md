@@ -2355,3 +2355,19 @@ JP terrain; 76 original null-terrain reads are excluded. Projection and contact
 lists are controlled boundaries. Connected checks fire through ordinary item
 controls at both unaware and armed guards, assert inventory/poison/damage and
 compare an in-flight snapshot's continuation. No mission-level parity is implied.
+
+Native JP sleeping bombs follow `80059c3c` / `80059f40`, with gas sprites from
+`80045694` / `80045800`. The port preserves reduced throwing gravity, bouncing,
+dry-ground arming, the expanding contact volume, emission cadence, underwater
+quenching and expiry. The gas uses the shared smoke image's last rotation,
+matching the original callback's omission of a rotation write. Sprite rotations
+are owned by the effect runtime and survive snapshots.
+
+1,600 original-executable constructor/terrain/contact cases pass alongside the
+2,937 grenade/mine/smoke cases (`TENCHU2_EXPLOSIVE_ORACLE`); 600 mixed original
+particle sequences now include sleeping gas (`TENCHU2_SPRITE_ORACLE`). Each
+particle sequence resets its sprite descriptors, while preserving shared-image
+writes within the sequence. Projection remains isolated. A connected actual-use
+test throws the item, puts a guard to sleep without health damage, checks gas and
+inventory consumption, and resumes the landed bomb from a serialized snapshot.
+These checks establish the component connections, not full campaign parity.

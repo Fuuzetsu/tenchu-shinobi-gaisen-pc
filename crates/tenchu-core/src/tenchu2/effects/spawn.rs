@@ -192,6 +192,20 @@ impl Effects {
         self.insert(Effect::Sprites(effect))
     }
 
+    pub fn sleep_gas(&mut self, position: Position, phase: i16, math: &Math) -> Result<()> {
+        let mut effect = Sprites::new(22, position.wrapping_sub(Position::new(0, 128, 0)), 8, 64);
+        effect.motion = Motion::SleepGas;
+        effect.size = [[512; 2], [4608; 2]];
+        effect.color = [64; 3];
+        effect.color_step = [-1; 3].into();
+        for (i, particle) in effect.particles.iter_mut().enumerate() {
+            let [s, c] = math.pair(phase.wrapping_add(i as i16).wrapping_mul(576));
+            particle.offset = [(-s >> 4) as i16, 0, (-c >> 4) as i16].into();
+            particle.age = -(i as i16) * 2;
+        }
+        self.insert(Effect::Sprites(effect))
+    }
+
     pub fn explosion(
         &mut self,
         position: Position,

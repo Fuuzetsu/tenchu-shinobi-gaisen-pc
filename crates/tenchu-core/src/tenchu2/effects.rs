@@ -42,6 +42,7 @@ impl Effect {
 pub struct Effects {
     pub entries: Vec<Effect>,
     pub blood_phase: bool,
+    sprite_rotations: Vec<i32>,
 }
 
 #[derive(Default)]
@@ -79,7 +80,9 @@ impl Effects {
         while index < self.entries.len() {
             let alive = match &mut self.entries[index] {
                 Effect::Ribbon(ribbon) => ribbon.update(&mut frame.ribbons),
-                Effect::Sprites(sprites) => sprites.update(scene, view, &mut frame.sprites)?,
+                Effect::Sprites(sprites) => {
+                    sprites.update(scene, view, &mut self.sprite_rotations, &mut frame.sprites)?
+                }
                 Effect::Points(points) => points.update(scene, view, &mut frame.points)?,
                 Effect::Blood(blood) => blood.update(scene, view, terrain, cursor, &mut frame)?,
                 Effect::Pool(pool) => pool.update(&mut frame.quads)?,

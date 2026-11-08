@@ -1056,6 +1056,74 @@ fn native_explosives_damage_and_smoke_blinds_through_item_controls() {
 }
 
 #[test]
+#[ignore = "requires TENCHU2_DISC; actual sleeping-bomb use, gas contact and snapshot continuation"]
+fn native_sleeping_bomb_puts_guards_to_sleep_without_health_damage() {
+    use tenchu_core::tenchu2::items::State as ItemState;
+    let (mut world, mut assets, guard) = fixture();
+    world.actors[guard].actor.position = Position::new(10000, 0, -10000);
+    world.actors[guard].actor.previous = world.actors[guard].actor.position;
+    world.publish(guard, &assets);
+    world.finish_tick(&assets, 6).unwrap();
+    let health = world.actors[guard].actor.health;
+    world.actors[0].actor.inventory.counts[18] = 2;
+    world.actors[0].actor.inventory.selected = Some(Item::try_from(18).unwrap());
+    world.actors[0].actor.pad.update(ITEM);
+    let mut events = Recorded::default();
+    world.control_actor(0, &mut assets, &mut events).unwrap();
+    let mut restored: Option<World> = None;
+    let (_, mut restored_assets, _) = fixture();
+    let mut asleep = false;
+    let mut gas = false;
+    let step = |world: &mut World, assets: &mut Assets, events: &mut Recorded| {
+        for index in [0, guard] {
+            world.move_actor(index, assets, events).unwrap();
+            world.actors[index].actor.pad.update(0);
+            world.control_actor(index, assets, events).unwrap();
+            world.animate_actor(index, assets).unwrap();
+        }
+        world.update_items(assets, events).unwrap();
+        let frame = world.update_effects().unwrap();
+        world.finish_tick(assets, 6).unwrap();
+        frame
+    };
+    for _ in 0..240 {
+        let frame = step(&mut world, &mut assets, &mut events);
+        if let Some(copy) = &mut restored {
+            let repeated = step(copy, &mut restored_assets, &mut Recorded::default());
+            assert_eq!(frame.sprites, repeated.sprites);
+        } else if let Some(position) = world.items.entries.iter().find_map(|entry| {
+            if let ItemState::SleepBomb(bomb) = &entry.state
+                && bomb.age > 0
+            {
+                Some(bomb.flight.position)
+            } else {
+                None
+            }
+        }) {
+            world.actors[guard].actor.position = position;
+            world.actors[guard].actor.previous = position;
+            world.publish(guard, &assets);
+            restored = Some(postcard::from_bytes(&postcard::to_allocvec(&world).unwrap()).unwrap());
+        }
+        gas |= frame.sprites.iter().any(|sprite| sprite.image == 22);
+        asleep |= world.actors[guard].actor.motion.action == 0xa13;
+    }
+    assert!(
+        asleep && gas,
+        "asleep={asleep}, gas={gas}, events={:?}",
+        events.0
+    );
+    assert_eq!(world.actors[guard].actor.health, health);
+    assert_eq!(world.actors[0].actor.inventory.counts[18], 1);
+    assert!(world.items.entries.is_empty());
+    assert_eq!(
+        postcard::to_allocvec(&world).unwrap(),
+        postcard::to_allocvec(&restored.unwrap()).unwrap()
+    );
+    assert!(!events.0.iter().any(|e| matches!(e, Event::UseItem { .. })));
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; water quenches grenades into recoverable items, surviving snapshot restore"]
 fn native_grenade_dud_can_be_retrieved_after_a_snapshot() {
     use tenchu_core::tenchu2::items::{

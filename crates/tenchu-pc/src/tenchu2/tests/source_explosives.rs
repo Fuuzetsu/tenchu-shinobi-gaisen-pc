@@ -8,14 +8,15 @@ use tenchu_core::{
         collision::Collision,
         effects::Effects,
         items::{
-            self, Context, Event, State, flight::Flight, grenade::Grenade, mine::Mine, smoke::Smoke,
+            self, Context, Event, State, flight::Flight, grenade::Grenade, mine::Mine,
+            sleep_bomb::SleepBomb, smoke::Smoke,
         },
         terrain::Cursor,
     },
 };
 
 #[test]
-#[ignore = "requires TENCHU2_DISC and TENCHU2_EXPLOSIVE_ORACLE; original JP grenade, mine and smoke routines"]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_EXPLOSIVE_ORACLE; original JP grenade, mine, smoke and sleeping-bomb routines"]
 fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
     let disc =
         crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
@@ -24,7 +25,7 @@ fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
     };
     let rules = Rules::load(&disc).unwrap();
     let mut maps = std::collections::BTreeMap::new();
-    let mut count = [0; 3];
+    let mut count = [0; 4];
     for (case, row) in super::source_control::cases::<Value>("TENCHU2_EXPLOSIVE_ORACLE").enumerate()
     {
         let id = row["map"].as_u64().unwrap() as usize;
@@ -73,10 +74,10 @@ fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
                 &math,
             )
             .unwrap();
-            if kind == "Grenade" {
-                json!(Grenade::launch(0, flight))
-            } else {
-                json!(Smoke::thrown(0, flight))
+            match kind {
+                "Grenade" => json!(Grenade::launch(0, flight)),
+                "SleepBomb" => json!(SleepBomb::thrown(0, flight)),
+                _ => json!(Smoke::thrown(0, flight)),
             }
         };
         assert_eq!(launched, row["launch"], "launch {case} {kind}");
@@ -88,7 +89,9 @@ fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
         count[match kind {
             "Grenade" => 0,
             "Mine" => 1,
-            _ => 2,
+            "Smoke" => 2,
+            "SleepBomb" => 3,
+            _ => unreachable!(),
         }] += 1;
         if launched.is_null() {
             continue;
@@ -130,6 +133,7 @@ fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
             State::Grenade(g) => g.register(model, &mut collision),
             State::Mine(m) => m.register(model, &mut collision),
             State::Smoke(s) => s.register(model, &mut collision),
+            State::SleepBomb(b) => b.register(model, &mut collision),
             _ => unreachable!(),
         }
         .unwrap();
@@ -145,6 +149,9 @@ fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
                 }
                 Event::Smoke { position, kind } => {
                     cues.push(json!(["smoke", position.to_array(), kind]))
+                }
+                Event::SleepGas { position, phase } => {
+                    cues.push(json!(["gas", position.to_array(), phase]))
                 }
                 Event::Explosion {
                     position,
@@ -178,6 +185,7 @@ fn native_explosives_match_original_launch_bounces_fuses_and_contacts() {
             State::Grenade(g) => g.advance(model, &mut context, &mut random, &mut emit),
             State::Mine(m) => m.advance(model, &mut context, |cue| emit(cue, &mut random)),
             State::Smoke(s) => s.advance(model, &mut context, |cue| emit(cue, &mut random)),
+            State::SleepBomb(b) => b.advance(model, &mut context, |cue| emit(cue, &mut random)),
             _ => unreachable!(),
         }
         .unwrap_or_else(|e| panic!("case {case} {kind}: {e}"));

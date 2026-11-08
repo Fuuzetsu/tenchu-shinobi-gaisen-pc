@@ -62,6 +62,9 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                     &mut random,
                 ),
                 "smoke" => effects.smoke(position(), kind(), hidden, &math, &mut random),
+                "sleep_gas" => {
+                    effects.sleep_gas(position(), command["phase"].as_i64().unwrap() as i16, &math)
+                }
                 "burn" => effects.burn(
                     &rig,
                     command["interval"].as_i64().unwrap() as i16,
@@ -101,6 +104,7 @@ fn particles_match_source_spawning_eviction_animation_and_expiry() {
                     Effect::Sprites(effect) => effect
                         .advance(
                             |p| (p, row["depth"].as_i64().unwrap() as i32),
+                            &mut effects.sprite_rotations,
                             &mut drawings,
                         )
                         .unwrap(),

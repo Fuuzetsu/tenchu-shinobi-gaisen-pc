@@ -201,7 +201,7 @@ impl<E: Events> Context<'_, E> {
                 }
                 return Ok(());
             }
-            6 | 10 if item.index() == 6 || wall => {
+            6 | 10 | 18 if item.index() != 10 || wall => {
                 let (origin, direction) = if wall {
                     let origin =
                         self.item_origin(if actor.motion.action == 0x310 { 5 } else { 11 })?;
@@ -226,10 +226,12 @@ impl<E: Events> Context<'_, E> {
                     terrain.cursor,
                     &self.math,
                 )?;
-                if item.index() == 6 {
-                    State::Grenade(Grenade::launch(self.index, flight))
-                } else {
-                    State::Smoke(Smoke::thrown(self.index, flight))
+                match item.index() {
+                    6 => State::Grenade(Grenade::launch(self.index, flight)),
+                    18 => {
+                        State::SleepBomb(items::sleep_bomb::SleepBomb::thrown(self.index, flight))
+                    }
+                    _ => State::Smoke(Smoke::thrown(self.index, flight)),
                 }
             }
             7 => {

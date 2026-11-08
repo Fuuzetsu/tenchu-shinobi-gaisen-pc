@@ -25,10 +25,8 @@ fn native_water_and_blood_contacts_match_source() {
         let map = maps
             .entry(map)
             .or_insert_with(|| Level::load(&disc, map as usize).unwrap().collision);
-        let mut effects = Effects {
-            blood_phase: row["phase"].as_bool().unwrap(),
-            ..Effects::default()
-        };
+        let mut effects = Effects::default();
+        effects.blood_phase = row["phase"].as_bool().unwrap();
         let mut random = Random::new(row["seed"].as_u64().unwrap() as u32);
         let mut cursor = Cursor::default();
         for command in row["commands"].as_array().unwrap() {

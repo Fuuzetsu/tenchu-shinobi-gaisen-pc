@@ -9,6 +9,7 @@ pub mod gun;
 pub mod mine;
 pub mod projectile;
 pub mod rice;
+pub mod sleep_bomb;
 pub mod smoke;
 
 use crate::{
@@ -49,6 +50,7 @@ pub enum State {
     Caltrop(caltrop::Caltrop),
     Rice(rice::Rice),
     Dart(dart::Dart),
+    SleepBomb(sleep_bomb::SleepBomb),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,6 +75,10 @@ pub enum Event {
         kind: u8,
     },
     Fuse(Position),
+    SleepGas {
+        position: Position,
+        phase: i16,
+    },
     Ribbon {
         model: ModelId,
         sample: Option<super::effects::ribbon::Sample>,
@@ -121,6 +127,11 @@ impl Items {
         });
         scene.models[model].parent = None;
         match &mut state {
+            State::SleepBomb(bomb) => {
+                bomb.flight.floor = floor;
+                scene.update(model, bomb.transform);
+                bomb.register(model, collision)?;
+            }
             State::Dart(dart) => {
                 dart.flight.floor = floor;
                 scene.update(
@@ -210,6 +221,7 @@ impl Items {
             State::Caltrop(caltrop) => caltrop.flight.floor,
             State::Rice(rice) => rice.flight.floor,
             State::Dart(dart) => dart.flight.floor,
+            State::SleepBomb(bomb) => bomb.flight.floor,
             State::Grapple(_) | State::Gunshot(_) => entry.unused_floor,
         };
         self.free_models.push((entry.model, floor, entry.slot));

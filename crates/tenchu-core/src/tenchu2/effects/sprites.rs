@@ -28,6 +28,7 @@ pub enum Motion {
     Smoke,
     Embers,
     Healing,
+    SleepGas,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -82,6 +83,7 @@ impl Sprites {
         &mut self,
         scene: &mut Scene,
         view: View,
+        rotations: &mut Vec<i32>,
         drawings: &mut Vec<Drawing>,
     ) -> Result<bool> {
         let parent = self.parent.map(|id| scene.world(id)).transpose()?;
@@ -99,6 +101,7 @@ impl Sprites {
                     i32::from(view.actor(&matrix).unwrap_or(0)),
                 )
             },
+            rotations,
             drawings,
         )
     }
@@ -106,6 +109,7 @@ impl Sprites {
     pub(crate) fn advance(
         &mut self,
         mut project: impl FnMut(Position) -> (Position, i32),
+        rotations: &mut Vec<i32>,
         drawings: &mut Vec<Drawing>,
     ) -> Result<bool> {
         let linear = matches!(self.motion, Motion::Linear);
@@ -138,6 +142,16 @@ impl Sprites {
             let mut depth_offset = self.depth_offset;
             match &self.motion {
                 Motion::Linear => {}
+                Motion::SleepGas => {
+                    offset.x = (offset.x * age) >> 2;
+                    offset.z = (offset.z * age) >> 2;
+                    let value = i32::from(self.color[0]) + i32::from(self.color_step.x) * age;
+                    color = [
+                        value.clamp(0, 255) as u8,
+                        (value - 8).clamp(0, 255) as u8,
+                        (value - 8).clamp(0, 255) as u8,
+                    ];
+                }
                 Motion::Dust(sizes) => {
                     offset.x += (offset.x * age) >> 3;
                     offset.z += (offset.z * age) >> 3;
@@ -193,13 +207,12 @@ impl Sprites {
                 .get(particle.frame)
                 .ok_or("Missing Tenchu 2 particle frame")?;
             let scale = (4800 / depth.wrapping_mul(4)) as i16;
-            drawings.push(Drawing {
-                image: frame.image,
-                position,
-                size,
-                scale: size.map(|s| s.wrapping_mul(scale)),
-                color,
-                rotation: if matches!(self.motion, Motion::Dust(_) | Motion::Healing) {
+            let image = usize::from(frame.image);
+            if rotations.len() <= image {
+                rotations.resize(image + 1, 0);
+            }
+            if !matches!(self.motion, Motion::SleepGas) {
+                rotations[image] = if matches!(self.motion, Motion::Dust(_) | Motion::Healing) {
                     0
                 } else {
                     ((i32::from(if matches!(self.motion, Motion::Smoke | Motion::Embers) {
@@ -209,11 +222,19 @@ impl Sprites {
                     }) * age)
                         % 360)
                         * 4096
-                },
+                };
+            }
+            drawings.push(Drawing {
+                image: frame.image,
+                position,
+                size,
+                scale: size.map(|s| s.wrapping_mul(scale)),
+                color,
+                rotation: rotations[image],
                 depth: depth as i16,
                 blend: super::surface::Blend::Texture,
             });
-            if !matches!(self.motion, Motion::Dust(_)) {
+            if !matches!(self.motion, Motion::Dust(_) | Motion::SleepGas) {
                 let clock = particle.clock;
                 particle.clock = clock.wrapping_add(1);
                 if clock >= frame.duration {

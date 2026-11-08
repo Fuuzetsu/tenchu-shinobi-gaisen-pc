@@ -44,6 +44,12 @@ impl World {
                 player: self.player,
             };
             let (mut alive, pickup) = match &mut entry.state {
+                State::SleepBomb(bomb) => (
+                    bomb.advance(model, &mut context, |event| {
+                        sink.emit(event, &mut self.random)
+                    })?,
+                    false,
+                ),
                 State::Dart(dart) => {
                     let alive = dart.advance(model, view, &mut context, |event| {
                         sink.emit(event, &mut self.random)
@@ -283,6 +289,9 @@ impl<'a> ItemEffects<'a> {
     fn emit(&mut self, cue: ItemEvent, random: &mut Random) -> Result<()> {
         let math = &self.assets.resources.math;
         match cue {
+            ItemEvent::SleepGas { position, phase } => {
+                self.effects.sleep_gas(position, phase, math)?
+            }
             ItemEvent::Explosion {
                 position,
                 kind,

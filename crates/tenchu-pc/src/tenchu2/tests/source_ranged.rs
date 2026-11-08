@@ -163,6 +163,7 @@ fn native_ranged_weapons_match_original_flight_embedding_and_damage_windows() {
                 }
                 Event::Fuse(_) => panic!("Unexpected fuse"),
                 Event::Ribbon { .. } => panic!("Unexpected ribbon"),
+                Event::SleepGas { .. } => panic!("Unexpected sleeping gas"),
             }
             Ok(())
         };

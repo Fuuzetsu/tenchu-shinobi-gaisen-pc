@@ -5,6 +5,9 @@ tagged. Internal refactors, formatting and test-only changes are omitted.
 
 ## Unreleased
 
+- Connect sleeping bombs in the internal JP preview: throwing and bouncing,
+  expanding gas, guard sleep reactions and underwater quenching.
+
 - Connect poison darts in the internal JP preview, including blowgun controls,
   flight trails, terrain/range limits and the original poison damage rules.
 
