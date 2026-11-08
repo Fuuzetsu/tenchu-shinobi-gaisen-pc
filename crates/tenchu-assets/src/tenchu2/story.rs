@@ -3,6 +3,8 @@ use crate::{ReadAt, Result, disc::Disc, i16_le, short3, slice, u16_le, u32_le};
 
 mod resources;
 pub use resources::{Attachment, Model, Resources};
+mod faces;
+pub use faces::Patch;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Key {
@@ -39,6 +41,14 @@ pub struct Script {
     pub camera: Animation,
     pub actors: Vec<Animation>,
     pub weapons: Vec<Weapon>,
+    pub expressions: Vec<Expression>,
+}
+
+#[derive(Clone, Copy)]
+pub struct Expression {
+    pub frame: i16,
+    pub model: i16,
+    pub channels: [u8; 2],
 }
 
 pub struct Weapon {
@@ -96,12 +106,34 @@ impl Script {
             });
             at += 4;
         }
+        let mut expressions: Vec<Expression> = Vec::new();
+        let mut at = u32_le(data, 76)? as usize;
+        loop {
+            let frame = i16_le(data, at)?;
+            if frame == 30000 {
+                break;
+            }
+            let channels: [u8; 2] = slice(data, at + 4, 2)?.try_into().unwrap();
+            if frame < 0
+                || expressions.last().is_some_and(|e| e.frame > frame)
+                || channels.iter().any(|&v| v > 14 && v != 255)
+            {
+                return Err("Invalid Tenchu 2 facial animation".into());
+            }
+            expressions.push(Expression {
+                frame,
+                model: i16_le(data, at + 2)?,
+                channels,
+            });
+            at += 8;
+        }
         Ok(Self {
             duration,
             area,
             camera,
             actors,
             weapons,
+            expressions,
         })
     }
 }

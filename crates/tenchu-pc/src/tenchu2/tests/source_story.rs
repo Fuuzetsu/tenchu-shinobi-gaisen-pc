@@ -8,6 +8,73 @@ use tenchu_assets::tenchu2::{
 use tenchu_core::tenchu2::story::Motion;
 
 #[test]
+#[ignore = "requires TENCHU2_DISC and TENCHU2_STORY_FACES_ORACLE; original expression/blink/lip timing and RNG"]
+fn native_story_faces_match_original_expression_and_draw_updates() {
+    use tenchu_assets::tenchu2::story::Resources;
+    use tenchu_core::{
+        random::Random,
+        tenchu2::story::{Face, Faces, TextureChange},
+    };
+    #[derive(Deserialize)]
+    struct State {
+        frame: i16,
+        draw: bool,
+        changes: Vec<TextureChange>,
+        actors: Vec<Face>,
+        seed: u32,
+    }
+    #[derive(Deserialize)]
+    struct Case {
+        event: u16,
+        seed: u32,
+        states: Vec<State>,
+    }
+    let disc =
+        crate::source::open_disc(std::env::var_os("TENCHU2_DISC").unwrap().as_ref()).unwrap();
+    let mut checked = 0;
+    for case in super::source_control::cases::<Case>("TENCHU2_STORY_FACES_ORACLE") {
+        let mut resources = Resources::load(&disc, case.event).unwrap();
+        let mut faces = Faces::new(&resources);
+        let mut random = Random::new(case.seed);
+        for state in case.states {
+            let changes = faces.update(
+                &resources.script.expressions,
+                state.frame,
+                state.draw,
+                &mut random,
+            );
+            assert_eq!(
+                changes, state.changes,
+                "event {} frame {}",
+                case.event, state.frame
+            );
+            assert_eq!(
+                faces.actors, state.actors,
+                "event {} frame {}",
+                case.event, state.frame
+            );
+            assert_eq!(
+                random.seed, state.seed,
+                "event {} frame {}",
+                case.event, state.frame
+            );
+            for change in changes {
+                if let TextureChange::Patch { model, index } = change {
+                    resources.faces[&model][usize::from(index)]
+                        .apply(&mut resources.models.get_mut(&model).unwrap().vram);
+                }
+            }
+            if state.frame % 101 == 0 {
+                faces = serde_json::from_value(serde_json::to_value(&faces).unwrap()).unwrap();
+            }
+            checked += 1;
+        }
+    }
+    assert!(checked > 8000);
+    eprintln!("{checked} original JP facial animation updates, including draw skips");
+}
+
+#[test]
 #[ignore = "requires TENCHU2_DISC; loads every JP story cast, scenery model and texture group"]
 fn native_story_models_load_from_their_event_bundles() {
     use tenchu_assets::tenchu2::story::Resources;

@@ -2,6 +2,9 @@ use crate::{Result, math::Position};
 use serde::{Deserialize, Serialize};
 use tenchu_assets::tenchu2::story::{Animation, Key};
 
+mod faces;
+pub use faces::{Face, Faces, TextureChange};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Motion {
     pub position: Position,

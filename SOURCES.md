@@ -2493,3 +2493,14 @@ cyclic or missing parents are rejected. The disc-backed resource check loads
 events. Sequence 152/event 88 is unreachable and its E88.ARC is absent from the
 JP disc; it is not silently substituted. Facial texture animation and actual
 story presentation remain separate integration work.
+
+JP facial texture patches and expression tracks follow `800d56b0`, `800d5758`
+and the facial branch of `800d42b4`; random blinking and lip motion follow
+`800d53c4`. The two channels retain their held expression while animation is
+enabled, and original draw skips suppress automatic animation without skipping
+scripted changes. `TENCHU2_STORY_FACES_ORACLE` checks 8,847 original-instruction
+updates from seven actual event scripts, including patch order, ignition cues,
+channel state, final RNG and snapshot continuation. Texture uploads and the
+ignition constructor are intercepted in that oracle; GPU drawing is not tested
+by these comparisons. Patches are loaded from the active event bundle and
+applied in each model's canonical atlas coordinates.

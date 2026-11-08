@@ -1,4 +1,4 @@
-use super::{Edition, Script, Volume, cab_member};
+use super::{Edition, Patch, Script, Volume, cab_member};
 use crate::{
     ReadAt, Result,
     disc::Disc,
@@ -22,6 +22,7 @@ pub struct Resources {
     pub effects: BTreeMap<i16, String>,
     pub weapons: BTreeMap<String, Model>,
     pub attachments: Vec<Attachment>,
+    pub faces: BTreeMap<i16, Vec<Patch>>,
 }
 
 pub struct Attachment {
@@ -38,6 +39,11 @@ struct Files<'a, S> {
 
 impl<S: ReadAt> Files<'_, S> {
     fn read(&self, directory: &str, name: &str) -> Result<Vec<u8>> {
+        self.optional(directory, name)?
+            .ok_or_else(|| format!("Missing Tenchu 2 story resource {directory}/{name}"))
+    }
+
+    fn optional(&self, directory: &str, name: &str) -> Result<Option<Vec<u8>>> {
         // The active CAB overrides the same resource in VOLUME.DAT.
         let wanted = (super::super::hash(directory), super::super::hash(name));
         let count = u32_le(&self.cab, 0)? as usize;
@@ -46,10 +52,10 @@ impl<S: ReadAt> Files<'_, S> {
         }
         for row in crate::slice(&self.cab, 4, count * 12)?.chunks_exact(12) {
             if (u32_le(row, 4)?, u32_le(row, 8)?) == wanted {
-                return Ok(cab_member(&self.cab, directory, name)?.to_vec());
+                return Ok(Some(cab_member(&self.cab, directory, name)?.to_vec()));
             }
         }
-        self.volume.read(directory, name)
+        self.volume.optional(directory, name)
     }
 }
 
@@ -112,6 +118,7 @@ impl Resources {
         let files = Files { volume, cab };
         let mut models = BTreeMap::new();
         let mut effects = BTreeMap::new();
+        let mut faces = BTreeMap::new();
         let mut next_character = 0;
         for animation in &script.actors {
             let id = animation.model;
@@ -119,6 +126,26 @@ impl Resources {
                 continue;
             }
             let name = model_name(&module, id)?;
+            if id < 106
+                && let Some(archive) =
+                    files.optional(r"o:\cdimage\game\event", &format!("{name}.arc"))?
+            {
+                let count = u32_le(&archive, 0)? as usize;
+                if !(26..=256).contains(&count) {
+                    return Err("Invalid Tenchu 2 facial texture count".into());
+                }
+                let offset = if id < 11 {
+                    [0; 2]
+                } else {
+                    [u16_le(&module, 0x6920)?, u16_le(&module, 0x6922)?]
+                };
+                faces.insert(
+                    id,
+                    (0..count)
+                        .map(|i| Patch::parse(arc_entry(&archive, i)?, offset))
+                        .collect::<Result<_>>()?,
+                );
+            }
             if (285..=289).contains(&id) {
                 effects.insert(id, name);
                 continue;
@@ -203,6 +230,7 @@ impl Resources {
             effects,
             weapons,
             attachments,
+            faces,
         })
     }
 }
